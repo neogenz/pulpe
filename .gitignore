@@ -36,6 +36,7 @@ testem.log
 **/.env
 **/.env.local
 **/.env.development
+!landing/.env.development
 **/.env.production
 
 # IDEs and editors
