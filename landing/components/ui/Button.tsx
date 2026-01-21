@@ -1,5 +1,6 @@
 import { memo } from 'react'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { cn } from '@/lib/cn'
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost'
 
@@ -28,7 +29,7 @@ export const Button = memo(function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`${BASE_STYLES} ${VARIANT_STYLES[variant]} ${className}`}
+      className={cn(BASE_STYLES, VARIANT_STYLES[variant], className)}
       {...props}
     >
       {children}

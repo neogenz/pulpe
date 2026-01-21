@@ -2,6 +2,7 @@
 
 import { memo, useEffect, useRef, useCallback } from 'react'
 import { X } from 'lucide-react'
+import { cn } from '@/lib/cn'
 
 interface ImageLightboxProps {
   isOpen: boolean
@@ -50,9 +51,10 @@ export const ImageLightbox = memo(function ImageLightbox({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm transition-opacity duration-200 ${
+      className={cn(
+        'fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm transition-opacity duration-200',
         isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-      }`}
+      )}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -69,14 +71,17 @@ export const ImageLightbox = memo(function ImageLightbox({
         <X className="w-8 h-8" />
       </button>
 
-      <img
-        src={imageSrc}
-        alt={imageAlt}
-        className={`max-w-[95vw] max-h-[95vh] object-contain rounded-lg transition-all duration-200 ${
-          isOpen ? 'scale-100 opacity-100' : 'scale-90 opacity-0'
-        }`}
-        onClick={handleImageClick}
-      />
+      {imageSrc && (
+        <img
+          src={imageSrc}
+          alt={imageAlt}
+          className={cn(
+            'max-w-[95vw] max-h-[95vh] object-contain rounded-lg transition-all duration-200',
+            isOpen ? 'scale-100 opacity-100' : 'scale-90 opacity-0'
+          )}
+          onClick={handleImageClick}
+        />
+      )}
     </div>
   )
 })

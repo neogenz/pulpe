@@ -1,5 +1,6 @@
 import { memo } from 'react'
 import type { HTMLAttributes, ReactNode } from 'react'
+import { cn } from '@/lib/cn'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
@@ -21,7 +22,7 @@ export const Card = memo(function Card({
 }: CardProps) {
   return (
     <div
-      className={`${BASE_STYLES} ${VARIANT_STYLES[variant]} ${className}`}
+      className={cn(BASE_STYLES, VARIANT_STYLES[variant], className)}
       {...props}
     >
       {children}

@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import type { ReactNode, CSSProperties } from 'react'
+import { cn } from '@/lib/cn'
 
 type FloatingCardVariant =
   | 'mini'
@@ -73,14 +74,7 @@ export const FloatingCard = memo(function FloatingCard({
 
   return (
     <div
-      className={`
-        float-bob
-        ${radius}
-        shadow-sm
-        ${base}
-        ${colors}
-        ${className}
-      `}
+      className={cn('float-bob shadow-sm', radius, base, colors, className)}
       style={style}
       aria-hidden="true"
     >

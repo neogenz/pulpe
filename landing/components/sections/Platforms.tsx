@@ -59,6 +59,7 @@ export function Platforms() {
                 alt="Télécharger sur l'App Store"
                 width={120}
                 height={40}
+                loading="lazy"
                 className="h-12 mx-auto"
               />
             </a>
