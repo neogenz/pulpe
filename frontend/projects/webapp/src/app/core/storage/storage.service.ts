@@ -233,7 +233,7 @@ export class StorageService {
    *
    * Tour keys (pulpe-tour-*) are handled specially:
    * - If currentUserId is provided: only preserve that user's tour keys
-   * - If currentUserId is NOT provided: remove ALL tour keys
+   * - If currentUserId is NOT provided: preserve ALL tour keys (fail safely)
    *
    * Called on user logout to prevent data leakage between users.
    */
@@ -244,7 +244,7 @@ export class StorageService {
 
         // Tour keys: preserve only current user's, remove others
         if (key.startsWith('pulpe-tour-')) {
-          if (!currentUserId) return true; // No user = remove all tour keys
+          if (!currentUserId?.trim()) return false; // No user = preserve all tour keys (fail safely)
           return !key.endsWith(`-${currentUserId}`); // Keep only this user's
         }
 

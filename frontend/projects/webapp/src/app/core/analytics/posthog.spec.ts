@@ -126,8 +126,8 @@ describe('PostHogService', () => {
 
     expect(posthog.opt_in_capturing).toHaveBeenCalledTimes(1);
     expect(posthog.set_config).toHaveBeenCalledWith({
-      capture_pageleave: true,
-      capture_pageview: true,
+      capture_pageview: 'history_change',
+      capture_pageleave: 'if_capture_pageview',
     });
     expect(posthog.capture).toHaveBeenCalledWith('$pageview');
   });

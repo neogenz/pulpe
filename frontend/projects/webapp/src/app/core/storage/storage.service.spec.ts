@@ -288,7 +288,7 @@ describe('StorageService', () => {
       );
     });
 
-    it('should remove all tour keys when no userId is provided', () => {
+    it('should preserve all tour keys when no userId is provided (fail safely)', () => {
       // GIVEN: Both regular and tour keys exist
       localStorage.setItem('pulpe-budget', 'budget-data');
       localStorage.setItem('pulpe-tour-intro-user1', 'true');
@@ -297,10 +297,10 @@ describe('StorageService', () => {
       // WHEN: Clearing all without userId
       service.clearAll();
 
-      // THEN: All pulpe keys including tour keys are removed
+      // THEN: Regular pulpe keys are removed, but ALL tour keys are preserved
       expect(localStorage.getItem('pulpe-budget')).toBeNull();
-      expect(localStorage.getItem('pulpe-tour-intro-user1')).toBeNull();
-      expect(localStorage.getItem('pulpe-tour-intro-user2')).toBeNull();
+      expect(localStorage.getItem('pulpe-tour-intro-user1')).toBe('true');
+      expect(localStorage.getItem('pulpe-tour-intro-user2')).toBe('true');
     });
 
     it('should preserve only current user tour keys when userId is provided', () => {
