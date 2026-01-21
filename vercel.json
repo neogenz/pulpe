@@ -54,14 +54,6 @@
       "destination": "/landing/icon-original.png"
     },
     {
-      "source": "/legal/cgu",
-      "destination": "/landing/legal/cgu.html"
-    },
-    {
-      "source": "/legal/confidentialite",
-      "destination": "/landing/legal/confidentialite.html"
-    },
-    {
       "source": "/landing/_next/:path*",
       "destination": "/landing/_next/:path*"
     },
