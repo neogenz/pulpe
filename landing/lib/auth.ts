@@ -11,26 +11,16 @@ export async function isAuthenticated(): Promise<boolean> {
     return false
   }
 
-  console.log('[Auth Debug] SUPABASE_URL:', SUPABASE_URL)
-  console.log('[Auth Debug] ANON_KEY exists:', !!SUPABASE_ANON_KEY)
-
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    console.log('[Auth Debug] Missing env vars')
     return false
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
   try {
-    const { data, error } = await supabase.auth.getSession()
-    console.log('[Auth Debug] getSession result:', {
-      hasSession: !!data.session,
-      hasAccessToken: !!data.session?.access_token,
-      error: error?.message,
-    })
+    const { data } = await supabase.auth.getSession()
     return !!data.session?.access_token
-  } catch (err) {
-    console.log('[Auth Debug] Error:', err)
+  } catch {
     return false
   }
 }
