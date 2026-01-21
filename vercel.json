@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "turbo build --filter=pulpe-frontend && pnpm --filter=pulpe-frontend upload:sourcemaps && pnpm build:landing && pnpm build:merge",
+  "buildCommand": "turbo build --filter=pulpe-frontend && pnpm --filter=pulpe-frontend upload:sourcemaps && pnpm build:landing-next && pnpm build:merge-next",
   "outputDirectory": "dist",
-  "installCommand": "pnpm install --frozen-lockfile --filter=pulpe-frontend --filter=pulpe-shared --filter=landing --ignore-scripts",
+  "installCommand": "pnpm install --frozen-lockfile --filter=pulpe-frontend --filter=pulpe-shared --filter=pulpe-landing-next --ignore-scripts",
   "framework": "angular",
   "redirects": [
     {
@@ -52,6 +52,18 @@
     {
       "source": "/icon-original.png",
       "destination": "/landing/icon-original.png"
+    },
+    {
+      "source": "/landing/legal/cgu",
+      "destination": "/landing/legal/cgu.html"
+    },
+    {
+      "source": "/landing/legal/confidentialite",
+      "destination": "/landing/legal/confidentialite.html"
+    },
+    {
+      "source": "/landing/_next/:path*",
+      "destination": "/landing/_next/:path*"
     },
     {
       "source": "/:path*",

@@ -3,6 +3,7 @@ packages:
   - shared
   - backend-nest
   - landing
+  - landing-next
 
 onlyBuiltDependencies:
   - '@nestjs/core'
