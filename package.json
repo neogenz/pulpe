@@ -35,9 +35,7 @@
     "changeset": "changeset",
     "changeset:version": "changeset version && pnpm install",
     "build:landing": "cd landing && pnpm build",
-    "build:landing-next": "cd landing-next && pnpm build",
-    "build:merge": "mkdir -p dist && cp -r landing/dist dist/landing && cp -r frontend/dist/webapp/browser/* dist/ && mv dist/index.html dist/_app.html",
-    "build:merge-next": "mkdir -p dist && cp -r landing-next/dist dist/landing && cp -r frontend/dist/webapp/browser/* dist/ && mv dist/index.html dist/_app.html"
+    "build:merge": "mkdir -p dist && cp -r landing/dist dist/landing && cp -r frontend/dist/webapp/browser/* dist/ && mv dist/index.html dist/_app.html"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.5",
