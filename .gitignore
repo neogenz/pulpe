@@ -98,3 +98,6 @@ docs/angular-architecture-for-enterprise.md
 # Design assets (generated files)
 design/icons/**/*.png
 icon/
+
+# Inspiration screenshots (licensing issues - local only)
+inspiration-screenshots/
