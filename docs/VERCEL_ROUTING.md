@@ -73,7 +73,6 @@ Les rewrites routent les requêtes sans changer l'URL visible.
   { "source": "/screenshots/:path*", "destination": "/landing/screenshots/:path*" },
   { "source": "/icon.png", "destination": "/landing/icon.png" },
   { "source": "/icon-64.webp", "destination": "/landing/icon-64.webp" },
-  { "source": "/icon-64.png", "destination": "/landing/icon-64.png" },
   { "source": "/app-store-badge.svg", "destination": "/landing/app-store-badge.svg" },
   { "source": "/landing/_next/:path*", "destination": "/landing/_next/:path*" },
   { "source": "/_next/:path*", "destination": "/landing/_next/:path*" },

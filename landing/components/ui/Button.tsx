@@ -10,7 +10,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const BASE_STYLES =
-  'inline-flex items-center justify-center font-semibold transition-all duration-200 ease-out rounded-[var(--radius-button)] min-h-[56px] px-8 text-lg cursor-pointer'
+  'inline-flex items-center justify-center font-semibold transition-all duration-200 ease-out rounded-[var(--radius-button)] min-h-[56px] px-8 text-lg cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none'
 
 const VARIANT_STYLES: Record<ButtonVariant, string> = {
   primary:

@@ -54,10 +54,6 @@
       "destination": "/landing/icon-64.webp"
     },
     {
-      "source": "/icon-64.png",
-      "destination": "/landing/icon-64.png"
-    },
-    {
       "source": "/app-store-badge.svg",
       "destination": "/landing/app-store-badge.svg"
     },
