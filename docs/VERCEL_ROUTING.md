@@ -6,7 +6,8 @@ Configuration du routing Vercel pour servir la landing page (React) et l'applica
 
 ```
 pulpe.app/
-├── /                    → Landing page (React/Vite)
+├── /                    → Landing page (React/Vite) [si non connecté]
+├── /                    → Redirect vers /dashboard [si connecté]
 ├── /screenshots/*       → Assets landing
 ├── /icon.png            → Assets landing
 ├── /welcome, /dashboard → Angular SPA
@@ -122,6 +123,90 @@ Redirections permanentes (301) pour les anciennes URLs.
   }
 ]
 ```
+
+## Middleware (Auth Redirect)
+
+Un Edge Middleware (`middleware.ts` à la racine du projet) intercepte les requêtes sur `/` pour rediriger automatiquement les utilisateurs connectés vers `/dashboard`.
+
+### Fonctionnement
+
+```
+GET /
+  │
+  ▼
+Middleware Edge (Vercel)
+  │
+  ├─ Lecture cookies Supabase
+  │
+  ├─ Si authentifié:
+  │     └─ HTTP 307 → /dashboard (pas de HTML envoyé)
+  │
+  └─ Si non authentifié:
+        └─ Continuer → Landing page
+```
+
+### Avantages
+
+- **Pas de "blink"** : La redirection HTTP 307 se fait avant que le HTML soit envoyé au navigateur
+- **Edge-level** : S'exécute sur le réseau Vercel (rapide, géographiquement distribué)
+- **Sécurisé** : Utilise `getUser()` pour vérifier la session côté serveur (pas juste le JWT local)
+
+### Configuration requise
+
+Variables d'environnement dans Vercel Dashboard :
+
+```
+PUBLIC_SUPABASE_URL=https://[PROJECT_REF].supabase.co
+PUBLIC_SUPABASE_ANON_KEY=[ANON_KEY]
+```
+
+Ces variables sont déjà configurées pour le frontend Angular et sont réutilisées par le middleware.
+
+### Code (`middleware.ts`)
+
+```typescript
+import { createServerClient } from '@supabase/ssr';
+import { NextResponse, type NextRequest } from 'next/server';
+
+export async function middleware(request: NextRequest) {
+  const response = NextResponse.next({ request: { headers: request.headers } });
+
+  const supabase = createServerClient(
+    process.env.PUBLIC_SUPABASE_URL!,
+    process.env.PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => request.cookies.getAll(),
+        setAll: (cookiesToSet) =>
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          ),
+      },
+    }
+  );
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user) {
+    return NextResponse.redirect(new URL('/dashboard', request.url), { status: 307 });
+  }
+
+  return response;
+}
+
+export const config = {
+  matcher: ['/'], // Uniquement la page d'accueil
+};
+```
+
+### Ordre d'exécution Vercel
+
+1. **Middleware** (si matcher correspond)
+2. **Redirects** (`vercel.json`)
+3. **Rewrites** (`vercel.json`)
+4. **Fichiers statiques** (si existants)
+
+Le middleware s'exécute en premier, ce qui permet de rediriger avant que les rewrites ne renvoient vers la landing page.
 
 ## Vite Base Path
 
