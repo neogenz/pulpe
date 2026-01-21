@@ -54,6 +54,10 @@
       "destination": "/landing/icon-original.png"
     },
     {
+      "source": "/icon-64.webp",
+      "destination": "/landing/icon-64.webp"
+    },
+    {
       "source": "/landing/_next/:path*",
       "destination": "/landing/_next/:path*"
     },
