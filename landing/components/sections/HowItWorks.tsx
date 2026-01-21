@@ -1,4 +1,5 @@
 import { Section, Button, FadeIn } from '@/components/ui'
+import { ANGULAR_APP_URL } from '@/lib/config'
 
 const STEPS = [
   { number: '1', title: 'Tes revenus', description: 'Ce qui rentre chaque mois' },
@@ -34,7 +35,9 @@ export function HowItWorks() {
 
       <FadeIn delay={0.3}>
         <div className="text-center">
-          <Button>Créer mon budget</Button>
+          <a href={`${ANGULAR_APP_URL}/signup`}>
+            <Button>Créer mon budget</Button>
+          </a>
         </div>
       </FadeIn>
     </Section>
