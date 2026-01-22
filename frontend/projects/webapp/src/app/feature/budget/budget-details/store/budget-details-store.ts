@@ -1,4 +1,5 @@
 import { computed, inject, Injectable, resource } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BudgetApi } from '@core/budget/budget-api';
 import { Logger } from '@core/logging/logger';
 import { createRolloverLine } from '@core/rollover/rollover-types';
@@ -12,7 +13,15 @@ import {
   BudgetFormulas,
 } from 'pulpe-shared';
 
-import { firstValueFrom } from 'rxjs';
+import {
+  catchError,
+  concatMap,
+  EMPTY,
+  firstValueFrom,
+  type Observable,
+  Subject,
+  tap,
+} from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 import { BudgetLineApi } from '../budget-line-api/budget-line-api';
 import { type BudgetDetailsViewModel } from '../models/budget-details-view-model';
@@ -32,6 +41,44 @@ export class BudgetDetailsStore {
   readonly #budgetApi = inject(BudgetApi);
   readonly #transactionApi = inject(TransactionApi);
   readonly #logger = inject(Logger);
+
+  /**
+   * Mutation queue - serializes all async operations to prevent race conditions
+   */
+  readonly #mutations$ = new Subject<() => Observable<unknown>>();
+
+  constructor() {
+    this.#mutations$
+      .pipe(
+        concatMap((operation) => operation()),
+        takeUntilDestroyed(),
+      )
+      .subscribe({
+        error: (err) =>
+          this.#logger.error(
+            '[BudgetDetailsStore] Unexpected mutation error:',
+            err,
+          ),
+      });
+  }
+
+  /**
+   * Enqueue a mutation for serialized execution
+   * Prevents race conditions by ensuring operations run sequentially
+   */
+  #enqueueMutation<T>(operation: () => Observable<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      this.#mutations$.next(() =>
+        operation().pipe(
+          tap((result) => resolve(result)),
+          catchError((err) => {
+            reject(err);
+            return EMPTY;
+          }),
+        ),
+      );
+    });
+  }
 
   // Single source of truth - private state signal for non-resource data
   readonly #state = createInitialBudgetDetailsState();
@@ -440,15 +487,16 @@ export class BudgetDetailsStore {
     });
 
     try {
-      const response = await firstValueFrom(
+      const response = await this.#enqueueMutation(() =>
         this.#budgetLineApi.toggleCheck$(id),
       );
 
-      await Promise.all(
-        result.transactionsToToggle.map((tx) =>
-          firstValueFrom(this.#transactionApi.toggleCheck$(tx.id)),
-        ),
-      );
+      // Execute transaction toggles sequentially through the mutation queue
+      for (const tx of result.transactionsToToggle) {
+        await this.#enqueueMutation(() =>
+          this.#transactionApi.toggleCheck$(tx.id),
+        );
+      }
 
       this.#budgetDetailsResource.update((d) => {
         if (!d) return d;
@@ -489,13 +537,13 @@ export class BudgetDetailsStore {
     });
 
     try {
-      const response = await firstValueFrom(
+      const response = await this.#enqueueMutation(() =>
         this.#transactionApi.toggleCheck$(id),
       );
 
       if (result.shouldToggleBudgetLine && result.budgetLineId) {
-        await firstValueFrom(
-          this.#budgetLineApi.toggleCheck$(result.budgetLineId),
+        await this.#enqueueMutation(() =>
+          this.#budgetLineApi.toggleCheck$(result.budgetLineId!),
         );
       }
 
