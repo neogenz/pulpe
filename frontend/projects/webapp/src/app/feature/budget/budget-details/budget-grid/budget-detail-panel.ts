@@ -1,5 +1,10 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -10,16 +15,16 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { type BudgetLine, type Transaction } from 'pulpe-shared';
+import { type BudgetLine } from 'pulpe-shared';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { BudgetLineTableItem } from '../data-core';
 import { BudgetProgressBar } from '../components/budget-progress-bar';
 import { BudgetKindIndicator } from '../components/budget-kind-indicator';
+import { BudgetDetailsStore } from '../store/budget-details-store';
 
 export interface BudgetDetailPanelData {
   item: BudgetLineTableItem;
-  allocatedTransactions: Transaction[];
   onAddTransaction: (budgetLine: BudgetLine) => void;
   onDeleteTransaction: (id: string) => void;
   onToggleTransactionCheck: (id: string) => void;
@@ -152,9 +157,9 @@ const DETAIL_SEGMENT_COUNT = 12;
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-title-medium font-semibold">
               Transactions
-              @if (data.allocatedTransactions.length > 0) {
+              @if (allocatedTransactions().length > 0) {
                 <span class="text-on-surface-variant font-normal">
-                  ({{ data.allocatedTransactions.length }})
+                  ({{ allocatedTransactions().length }})
                 </span>
               }
             </h3>
@@ -168,7 +173,7 @@ const DETAIL_SEGMENT_COUNT = 12;
             </button>
           </div>
 
-          @if (data.allocatedTransactions.length === 0) {
+          @if (allocatedTransactions().length === 0) {
             <div class="text-center py-8 text-on-surface-variant">
               <mat-icon class="text-4xl! mb-2 opacity-50"
                 >receipt_long</mat-icon
@@ -180,7 +185,7 @@ const DETAIL_SEGMENT_COUNT = 12;
             </div>
           } @else {
             <div class="space-y-3">
-              @for (tx of data.allocatedTransactions; track tx.id) {
+              @for (tx of allocatedTransactions(); track tx.id) {
                 <div
                   class="bg-surface-container-low rounded-xl p-4 flex items-center gap-3"
                   [attr.data-testid]="'detail-transaction-' + tx.id"
@@ -240,9 +245,22 @@ const DETAIL_SEGMENT_COUNT = 12;
 })
 export class BudgetDetailPanel {
   readonly #dialogRef = inject(MatDialogRef<BudgetDetailPanel>);
+  readonly #store = inject(BudgetDetailsStore);
   protected readonly data = inject<BudgetDetailPanelData>(MAT_DIALOG_DATA);
 
   readonly detailSegmentCount = DETAIL_SEGMENT_COUNT;
+
+  /**
+   * Computed signal that reactively filters transactions for the current budget line.
+   * Updates automatically when the store's transactions change (e.g., after adding a transaction).
+   */
+  protected readonly allocatedTransactions = computed(() => {
+    const details = this.#store.budgetDetails();
+    if (!details) return [];
+    return details.transactions.filter(
+      (tx) => tx.budgetLineId === this.data.item.data.id,
+    );
+  });
 
   close(): void {
     this.#dialogRef.close();

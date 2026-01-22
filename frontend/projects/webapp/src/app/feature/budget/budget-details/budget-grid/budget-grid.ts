@@ -6,6 +6,7 @@ import {
   inject,
   input,
   output,
+  ViewContainerRef,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -191,6 +192,7 @@ import { BudgetGridSection } from './budget-grid-section';
 })
 export class BudgetGrid {
   readonly #dialog = inject(MatDialog);
+  readonly #viewContainerRef = inject(ViewContainerRef);
 
   // Inputs
   readonly budgetLineItems = input.required<BudgetLineTableItem[]>();
@@ -235,13 +237,8 @@ export class BudgetGrid {
   });
 
   protected openDetailPanel(item: BudgetLineTableItem): void {
-    const allocatedTransactions = this.transactions().filter(
-      (tx) => tx.budgetLineId === item.data.id,
-    );
-
     const dialogData: BudgetDetailPanelData = {
       item,
-      allocatedTransactions,
       onAddTransaction: (budgetLine) => this.addTransaction.emit(budgetLine),
       onDeleteTransaction: (id) => this.deleteTransaction.emit(id),
       onToggleTransactionCheck: (id) => this.toggleTransactionCheck.emit(id),
@@ -249,6 +246,7 @@ export class BudgetGrid {
 
     this.#dialog.open(BudgetDetailPanel, {
       data: dialogData,
+      viewContainerRef: this.#viewContainerRef,
       panelClass: 'side-sheet-panel',
       position: { right: '0', top: '0' },
       height: '100vh',

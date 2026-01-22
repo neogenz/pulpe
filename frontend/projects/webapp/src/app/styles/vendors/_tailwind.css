@@ -161,21 +161,6 @@
   font-family: var(--text-label-small--font-family);
 }
 
-@utility text-financial-income {
-  color: var(--pulpe-financial-income);
-}
-
-@utility text-financial-negative {
-  color: var(--pulpe-financial-negative);
-}
-
-@utility text-financial-savings {
-  color: var(--pulpe-financial-savings);
-}
-
-@utility text-financial-expense {
-  color: var(--pulpe-financial-expense);
-}
 
 /* `.dark-theme` is the class name to enable dark mode in our application */
 @custom-variant dark (&:where(.dark-theme, .dark-theme *));
@@ -212,6 +197,17 @@
   --color-on-surface: var(--mat-sys-on-surface);
   --color-background: var(--mat-sys-background);
   --color-on-background: var(--mat-sys-on-background);
+
+  /* Financial colors from _financial-colors.scss */
+  --color-financial-income: var(--pulpe-financial-income);
+  --color-financial-expense: var(--pulpe-financial-expense);
+  --color-financial-savings: var(--pulpe-financial-savings);
+  --color-financial-negative: var(--pulpe-financial-negative);
+  --color-financial-income-light: var(--pulpe-financial-income-light);
+  --color-financial-expense-light: var(--pulpe-financial-expense-light);
+  --color-financial-savings-light: var(--pulpe-financial-savings-light);
+  --color-financial-negative-light: var(--pulpe-financial-negative-light);
+  --color-on-financial-light: var(--pulpe-on-financial-light);
 
   /* same as `plain-family` in angular material */
   --font-sans: var(--mat-sys-body-large-font), sans-serif;

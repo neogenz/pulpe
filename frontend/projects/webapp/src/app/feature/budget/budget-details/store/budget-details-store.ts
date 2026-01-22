@@ -314,7 +314,12 @@ export class BudgetDetailsStore {
     const parentBudgetLine = details?.budgetLines.find(
       (line) => line.id === transactionData.budgetLineId,
     );
-    const inheritedCheckedAt = parentBudgetLine?.checkedAt ?? null;
+
+    // Normalize checkedAt to ensure valid ISO format
+    // Server returns '+00:00' format, but Zod v4 validation expects 'Z' format
+    const inheritedCheckedAt = parentBudgetLine?.checkedAt
+      ? new Date(parentBudgetLine.checkedAt).toISOString()
+      : null;
 
     // Create temporary transaction for optimistic update
     const tempTransaction: Transaction = {

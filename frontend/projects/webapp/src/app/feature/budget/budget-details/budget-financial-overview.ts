@@ -85,7 +85,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
             >trending_up</mat-icon
           >
           <div class="flex flex-col">
-            <span class="text-label-small text-on-surface-variant leading-tight"
+            <span class="text-label-small leading-tight text-on-financial-light"
               >Revenus</span
             >
             <span
@@ -105,7 +105,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
             >trending_down</mat-icon
           >
           <div class="flex flex-col">
-            <span class="text-label-small text-on-surface-variant leading-tight"
+            <span class="text-label-small leading-tight text-on-financial-light"
               >Dépenses</span
             >
             <span
@@ -123,7 +123,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
         >
           <mat-icon class="text-financial-savings text-lg!">savings</mat-icon>
           <div class="flex flex-col">
-            <span class="text-label-small text-on-surface-variant leading-tight"
+            <span class="text-label-small leading-tight text-on-financial-light"
               >Épargne</span
             >
             <span
