@@ -19,7 +19,7 @@ export function Platforms() {
       <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
         {/* Web App */}
         <FadeIn delay={0.1}>
-          <div className="bg-surface rounded-[var(--radius-card)] p-6 lg:p-8 border border-text/5 shadow-[var(--shadow-card)] h-full flex flex-col items-center text-center md:items-start md:text-left">
+          <div className="bg-surface rounded-[var(--radius-card)] p-6 lg:p-8 border border-text/5 shadow-[var(--shadow-card)] h-full flex flex-col items-center text-center">
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
               <Globe className="w-6 h-6 text-primary" />
             </div>
@@ -37,7 +37,7 @@ export function Platforms() {
 
         {/* iOS App */}
         <FadeIn delay={0.2}>
-          <div className="bg-surface rounded-[var(--radius-card)] p-6 lg:p-8 border border-text/5 shadow-[var(--shadow-card)] h-full flex flex-col items-center text-center md:items-start md:text-left">
+          <div className="bg-surface rounded-[var(--radius-card)] p-6 lg:p-8 border border-text/5 shadow-[var(--shadow-card)] h-full flex flex-col items-center text-center">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
                 <Apple className="w-6 h-6 text-primary" />
@@ -69,7 +69,7 @@ export function Platforms() {
 
         {/* Android */}
         <FadeIn delay={0.3}>
-          <div className="bg-surface rounded-[var(--radius-card)] p-6 lg:p-8 border border-text/5 shadow-[var(--shadow-card)] h-full flex flex-col items-center text-center md:items-start md:text-left opacity-75">
+          <div className="bg-surface rounded-[var(--radius-card)] p-6 lg:p-8 border border-text/5 shadow-[var(--shadow-card)] h-full flex flex-col items-center text-center opacity-75">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 rounded-full bg-text/5 flex items-center justify-center">
                 <Smartphone className="w-6 h-6 text-text-secondary" />
