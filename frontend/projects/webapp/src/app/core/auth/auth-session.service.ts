@@ -90,12 +90,10 @@ export class AuthSessionService {
             case 'TOKEN_REFRESHED':
               this.#updateAuthState(session);
               break;
-            case 'SIGNED_OUT': {
-              const userId = this.#state.user()?.id;
+            case 'SIGNED_OUT':
               this.#updateAuthState(null);
-              this.#cleanup.performCleanup(userId);
+              this.#cleanup.performCleanup();
               break;
-            }
             case 'USER_UPDATED':
               this.#updateAuthState(session);
               break;
@@ -219,8 +217,6 @@ export class AuthSessionService {
   }
 
   async signOut(): Promise<void> {
-    const userId = this.#state.user()?.id;
-
     try {
       if (this.#isE2EBypass()) {
         this.#logger.debug('🎭 Mode test E2E: Simulation du logout');
@@ -240,7 +236,7 @@ export class AuthSessionService {
       });
     } finally {
       this.#updateAuthState(null);
-      this.#cleanup.performCleanup(userId);
+      this.#cleanup.performCleanup();
     }
   }
 

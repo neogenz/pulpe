@@ -288,61 +288,19 @@ describe('StorageService', () => {
       );
     });
 
-    it('should preserve all tour keys when no userId is provided (fail safely)', () => {
+    it('should preserve all tour keys (device-scoped)', () => {
       // GIVEN: Both regular and tour keys exist
       localStorage.setItem('pulpe-budget', 'budget-data');
-      localStorage.setItem('pulpe-tour-intro-user1', 'true');
-      localStorage.setItem('pulpe-tour-intro-user2', 'true');
+      localStorage.setItem('pulpe-tour-intro', 'true');
+      localStorage.setItem('pulpe-tour-current-month', 'true');
 
-      // WHEN: Clearing all without userId
+      // WHEN: Clearing all
       service.clearAll();
 
       // THEN: Regular pulpe keys are removed, but ALL tour keys are preserved
       expect(localStorage.getItem('pulpe-budget')).toBeNull();
-      expect(localStorage.getItem('pulpe-tour-intro-user1')).toBe('true');
-      expect(localStorage.getItem('pulpe-tour-intro-user2')).toBe('true');
-    });
-
-    it('should preserve only current user tour keys when userId is provided', () => {
-      // GIVEN: Tour keys for multiple users exist
-      const currentUserId = 'abc-123';
-      localStorage.setItem('pulpe-budget', 'budget-data');
-      localStorage.setItem(`pulpe-tour-intro-${currentUserId}`, 'true');
-      localStorage.setItem(`pulpe-tour-month-${currentUserId}`, 'true');
-      localStorage.setItem('pulpe-tour-intro-other-user-456', 'true');
-      localStorage.setItem('pulpe-tour-month-xyz-789', 'true');
-
-      // WHEN: Clearing all with current userId
-      service.clearAll(currentUserId);
-
-      // THEN: Regular keys are removed, only current user's tour keys are preserved
-      expect(localStorage.getItem('pulpe-budget')).toBeNull();
-      expect(localStorage.getItem(`pulpe-tour-intro-${currentUserId}`)).toBe(
-        'true',
-      );
-      expect(localStorage.getItem(`pulpe-tour-month-${currentUserId}`)).toBe(
-        'true',
-      );
-      // Other users' tour keys are removed
-      expect(
-        localStorage.getItem('pulpe-tour-intro-other-user-456'),
-      ).toBeNull();
-      expect(localStorage.getItem('pulpe-tour-month-xyz-789')).toBeNull();
-    });
-
-    it('should handle shared device scenario - prevent tour data leak', () => {
-      // GIVEN: Alice logged out previously, Bob's tour keys remain
-      localStorage.setItem('pulpe-tour-intro-alice-123', 'true');
-      localStorage.setItem('pulpe-tour-intro-bob-456', 'true');
-      localStorage.setItem('pulpe-budget', 'bob-budget');
-
-      // WHEN: Bob logs out with his userId
-      service.clearAll('bob-456');
-
-      // THEN: Only Bob's tour keys remain, Alice's are cleaned up
-      expect(localStorage.getItem('pulpe-tour-intro-bob-456')).toBe('true');
-      expect(localStorage.getItem('pulpe-tour-intro-alice-123')).toBeNull();
-      expect(localStorage.getItem('pulpe-budget')).toBeNull();
+      expect(localStorage.getItem('pulpe-tour-intro')).toBe('true');
+      expect(localStorage.getItem('pulpe-tour-current-month')).toBe('true');
     });
   });
 
