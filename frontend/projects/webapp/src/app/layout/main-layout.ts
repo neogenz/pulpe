@@ -237,7 +237,9 @@ interface NavigationItem {
               </button>
             }
             @if (!isHandset() && hasBreadcrumb()) {
-              <div class="flex-1 min-w-0 overflow-x-auto scrollbar-hide">
+              <div
+                class="breadcrumb-scroll-fade flex-1 min-w-0 overflow-x-auto scrollbar-hide"
+              >
                 <pulpe-breadcrumb [items]="breadcrumbState.breadcrumbs()" />
               </div>
             } @else {
@@ -406,6 +408,26 @@ interface NavigationItem {
         margin-left: -0.5rem !important;
         margin-right: -0.5rem !important;
         width: auto !important;
+      }
+
+      /* Gradient fade-out for horizontal scroll affordance */
+      .breadcrumb-scroll-fade {
+        position: relative;
+
+        &::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          width: 24px;
+          background: linear-gradient(
+            to right,
+            transparent,
+            var(--mat-sys-surface)
+          );
+          pointer-events: none;
+        }
       }
     `,
   ],
