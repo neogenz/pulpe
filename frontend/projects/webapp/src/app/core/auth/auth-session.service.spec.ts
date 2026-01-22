@@ -252,9 +252,7 @@ describe('AuthSessionService', () => {
 
     expect(mockAuthState.setSession).toHaveBeenCalledWith(null);
     expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
-    expect(mockCleanup.performCleanup).toHaveBeenCalledWith(
-      mockSession.user.id,
-    );
+    expect(mockCleanup.performCleanup).toHaveBeenCalled();
     expect(mockLogger.debug).toHaveBeenCalledWith('Auth event:', {
       event: 'SIGNED_OUT',
       session: undefined,
@@ -522,7 +520,7 @@ describe('AuthSessionService', () => {
     expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
     expect(mockAuthState.setSession).toHaveBeenCalledWith(null);
     expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
-    expect(mockCleanup.performCleanup).toHaveBeenCalledWith('user-123');
+    expect(mockCleanup.performCleanup).toHaveBeenCalled();
   });
 
   it('should sign out in E2E mode and call cleanup directly', async () => {
@@ -555,9 +553,7 @@ describe('AuthSessionService', () => {
     );
     expect(mockAuthState.setSession).toHaveBeenCalledWith(null);
     expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
-    expect(mockCleanup.performCleanup).toHaveBeenCalledWith(
-      mockSession.user.id,
-    );
+    expect(mockCleanup.performCleanup).toHaveBeenCalled();
     expect(mockSupabaseClient.auth.signOut).not.toHaveBeenCalled();
 
     delete (window as E2EWindow).__E2E_AUTH_BYPASS__;

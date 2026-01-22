@@ -44,6 +44,7 @@ import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
 import { of } from 'rxjs';
 import { delay, filter, map, shareReplay, switchMap } from 'rxjs/operators';
 import { AboutDialog } from './about-dialog';
+import { LogoutDialog } from './logout-dialog';
 
 interface NavigationItem {
   readonly route: string;
@@ -581,13 +582,12 @@ export default class MainLayout {
   async onLogout(): Promise<void> {
     if (this.#isLoggingOut()) return;
 
-    try {
-      this.#isLoggingOut.set(true);
+    this.#isLoggingOut.set(true);
+    this.#dialog.open(LogoutDialog, { disableClose: true });
 
-      // Sign out and wait for session to be cleared
+    try {
       await this.#authSession.signOut();
     } catch (error) {
-      // Only log detailed errors in development
       if (!this.#applicationConfig.isProduction()) {
         this.#logger.error('Erreur lors de la déconnexion:', error);
       }
@@ -605,10 +605,17 @@ export default class MainLayout {
    * Exit demo mode and redirect to login
    */
   protected async exitDemoMode(): Promise<void> {
+    if (this.#isLoggingOut()) return;
+
+    this.#isLoggingOut.set(true);
+    this.#dialog.open(LogoutDialog, { disableClose: true });
+
     try {
       await this.#demoInitializer.exitDemoMode();
     } catch (error) {
-      this.#logger.error('Failed to exit demo mode', { error });
+      if (!this.#applicationConfig.isProduction()) {
+        this.#logger.error('Failed to exit demo mode', { error });
+      }
     }
 
     this.#forceLogoutRedirect();
