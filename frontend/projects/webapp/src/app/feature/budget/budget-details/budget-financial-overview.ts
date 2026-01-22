@@ -78,8 +78,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
       >
         <!-- Income Pill -->
         <div
-          class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full"
-          [style.background-color]="'var(--pulpe-financial-income-light)'"
+          class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-(--pulpe-financial-income-light)"
         >
           <mat-icon class="text-financial-income text-lg!"
             >trending_up</mat-icon
@@ -98,8 +97,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
 
         <!-- Expenses Pill -->
         <div
-          class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full"
-          [style.background-color]="'var(--pulpe-financial-expense-light)'"
+          class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-(--pulpe-financial-expense-light)"
         >
           <mat-icon class="text-financial-expense text-lg!"
             >trending_down</mat-icon
@@ -118,8 +116,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
 
         <!-- Savings Pill -->
         <div
-          class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full"
-          [style.background-color]="'var(--pulpe-financial-savings-light)'"
+          class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-(--pulpe-financial-savings-light)"
         >
           <mat-icon class="text-financial-savings text-lg!">savings</mat-icon>
           <div class="flex flex-col">
