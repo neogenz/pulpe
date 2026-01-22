@@ -1,3 +1,11 @@
+---
+description: "Angular signal-based store patterns for state management"
+paths:
+  - "frontend/**/*.store.ts"
+  - "frontend/**/*.service.ts"
+  - "frontend/**/*state*.ts"
+---
+
 # Store Pattern with Angular Signals
 
 > **Signal API Reference**: See @.claude/rules/frontend/signals.md for `signal()`, `computed()`, `linkedSignal()`, `resource()` API details.

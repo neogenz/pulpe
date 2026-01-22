@@ -44,9 +44,10 @@ export const FadeIn = memo(function FadeIn({
   const delayStyle = delay > 0 ? { transitionDelay: `${delay}s` } : undefined
 
   if (animateOnMount) {
+    const animationClass = noYMovement ? 'animate-fade-in-opacity' : 'animate-fade-in'
     return (
       <div
-        className={`animate-fade-in ${noYMovement ? 'no-y' : ''} ${className}`}
+        className={`${animationClass} ${className}`}
         style={delay > 0 ? { animationDelay: `${delay}s` } : undefined}
       >
         {children}

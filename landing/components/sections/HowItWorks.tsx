@@ -3,8 +3,8 @@ import { ANGULAR_APP_URL } from '@/lib/config'
 
 const STEPS = [
   { number: '1', title: 'Tes revenus', description: 'Ce qui rentre chaque mois' },
-  { number: '2', title: 'Tes récurrents', description: 'Loyer, abonnements, assurances' },
-  { number: '3', title: 'Tes événements', description: 'Vacances, impôts, anniversaires' },
+  { number: '2', title: 'Frais fixes', description: 'Loyer, abonnements, assurances' },
+  { number: '3', title: 'Frais variables', description: 'Vacances, impôts, anniversaires' },
 ]
 
 export function HowItWorks() {

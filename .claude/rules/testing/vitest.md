@@ -1,6 +1,8 @@
 ---
 description: Testing patterns with Vitest and Angular TestBed
-paths: "**/*.spec.ts", "**/e2e/**/*.ts"
+paths:
+  - "**/*.spec.ts"
+  - "**/e2e/**/*.ts"
 ---
 
 # Testing with Vitest
