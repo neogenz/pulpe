@@ -1,17 +1,44 @@
 /**
  * OG Image Generator for Pulpe
  *
- * Generates a 1200x630 PNG image for social sharing.
+ * Generates a 1200x630 PNG image for social sharing using Satori + resvg.
  * Run with: pnpm generate:og
  */
 
-import sharp from 'sharp'
-import { writeFileSync, statSync } from 'fs'
+import satori from 'satori'
+import { Resvg } from '@resvg/resvg-js'
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const outputPath = join(__dirname, '../public/og-image.png')
+
+// Image dimensions (OG image standard)
+const OG_IMAGE = {
+  WIDTH: 1200,
+  HEIGHT: 630,
+} as const
+
+// Typography
+const FONT_SIZE = {
+  TITLE: 64,
+  SUBTITLE: 28,
+  BODY: 20,
+  URL: 22,
+} as const
+
+// Spacing
+const SPACING = {
+  SM: 16,
+  MD: 24,
+  LG: 32,
+} as const
+
+// Logo dimensions
+const LOGO = {
+  WIDTH: 260,
+  HEIGHT: 182,
+} as const
 
 // Brand colors from globals.css
 const colors = {
@@ -22,8 +49,45 @@ const colors = {
   textSecondary: '#5D5F5B',
 }
 
-// Pulpe logo SVG (provided by user)
-const logoSvg = `<svg width="260" height="182" viewBox="0 0 519 364" fill="none" xmlns="http://www.w3.org/2000/svg">
+// Font files configuration
+const FONT_FILES = [
+  { file: 'Poppins-Regular.ttf', weight: 400 as const },
+  { file: 'Poppins-Medium.ttf', weight: 500 as const },
+  { file: 'Poppins-SemiBold.ttf', weight: 600 as const },
+  { file: 'Poppins-Bold.ttf', weight: 700 as const },
+]
+
+function loadFonts() {
+  const fontsDir = join(__dirname, 'fonts')
+
+  if (!existsSync(fontsDir)) {
+    console.error(`❌ Fonts directory not found: ${fontsDir}`)
+    console.error('   Run: mkdir -p scripts/fonts && download Poppins fonts')
+    process.exit(1)
+  }
+
+  try {
+    return FONT_FILES.map(({ file, weight }) => {
+      const fontPath = join(fontsDir, file)
+      if (!existsSync(fontPath)) {
+        throw new Error(`Font file not found: ${file}`)
+      }
+      return {
+        name: 'Poppins',
+        data: readFileSync(fontPath),
+        weight,
+        style: 'normal' as const,
+      }
+    })
+  } catch (error) {
+    console.error(`❌ Failed to load fonts: ${error instanceof Error ? error.message : error}`)
+    console.error('   Ensure all Poppins font files are in scripts/fonts/')
+    process.exit(1)
+  }
+}
+
+// Pulpe logo as inline SVG data URL
+const logoDataUrl = `data:image/svg+xml,${encodeURIComponent(`<svg width="260" height="182" viewBox="0 0 519 364" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M63.0779 73.0042C90.5429 60.7742 115.607 60.1222 144.954 60.9502C152.99 61.2352 161.376 62.3382 169.361 62.6762C207.335 64.2822 243.801 62.6212 279.23 47.1812C297.994 39.0032 315.849 27.9792 334.434 19.3252C361.037 6.9362 397.259 -4.30083 426.53 1.63217C436.301 2.47017 452.884 6.72318 461.158 12.0432C479.133 19.5872 498.25 43.5062 505.236 61.5022C508.395 70.1392 512.556 78.8592 514.514 87.8652C520.715 116.553 519.927 146.077 513.175 174.607C473.559 341.991 281.865 399.793 133.542 341.062C57.6689 311.018 -11.8481 235.011 1.70189 147.117C2.90589 139.308 4.89689 130.96 8.22389 123.732C16.4709 100.834 39.5979 79.5652 63.0779 73.0042Z" fill="#DFFDED"/>
 <path d="M459.672 16.1373C457.98 13.6703 456.661 13.2003 454.057 11.5923C454.768 10.4853 455.056 10.5263 456.204 10.4023C458.039 11.2983 459.108 12.0703 461.158 12.0433C479.133 19.5873 498.25 43.5063 505.236 61.5023C508.395 70.1394 512.556 78.8593 514.514 87.8653C520.715 116.553 519.927 146.077 513.175 174.607C473.559 341.991 281.865 399.793 133.542 341.062C57.6689 311.018 -11.8481 235.011 1.70189 147.117C2.90589 139.308 4.89689 130.96 8.22389 123.732C9.05789 127.19 14.8859 133.107 17.7039 135.855C19.1049 137.222 22.4119 139.288 23.6709 140.918C24.3879 142.74 22.9539 150.612 24.4089 152.171C24.5219 155.362 24.7919 158.545 25.2209 161.709C26.7959 175.157 30.3119 188.305 35.6579 200.745C40.2749 211.746 45.7299 220.352 51.9489 230.329C67.4269 255.165 81.7789 273.361 105.025 291.269C113.542 297.73 122.737 303.243 132.449 307.71C158.981 320.139 202.834 332.171 231.912 336.118C246.119 337.016 263.214 338.182 277.253 335.739C333.401 325.893 392.458 312.985 435.094 272.429C454.439 254.029 461.888 241.252 474.789 218.703C496.558 181.583 509.504 138.688 503.104 95.3994C498.444 63.8764 485.641 35.6033 459.672 16.1373Z" fill="url(#paint0_linear_62160_503)"/>
 <path d="M8.22394 123.732C16.4709 100.834 39.5979 79.5654 63.0779 73.0044C57.6429 77.5364 52.3189 81.1734 47.2519 86.2764C30.5549 103.091 24.4479 129.18 24.4089 152.171C22.9539 150.612 24.3879 142.74 23.6709 140.918C22.4119 139.288 19.1049 137.222 17.7039 135.855C14.8859 133.107 9.05794 127.19 8.22394 123.732Z" fill="#12C04D"/>
@@ -59,88 +123,176 @@ const logoSvg = `<svg width="260" height="182" viewBox="0 0 519 364" fill="none"
 <stop offset="1" stop-color="#006E25"/>
 </linearGradient>
 </defs>
-</svg>`
-
-// Create the full OG image SVG
-function createOgSvg(): string {
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background gradient -->
-  <defs>
-    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="${colors.background}"/>
-      <stop offset="100%" stop-color="${colors.surfaceAlt}"/>
-    </linearGradient>
-    <!-- Poppins font embedding via Google Fonts -->
-    <style type="text/css">
-      @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;display=swap');
-    </style>
-  </defs>
-
-  <!-- Background -->
-  <rect width="1200" height="630" fill="url(#bgGradient)"/>
-
-  <!-- Decorative circles (subtle) -->
-  <circle cx="100" cy="530" r="200" fill="${colors.primary}" opacity="0.03"/>
-  <circle cx="1100" cy="100" r="150" fill="${colors.primary}" opacity="0.03"/>
-
-  <!-- Logo centered -->
-  <g transform="translate(470, 80)">
-    ${logoSvg}
-  </g>
-
-  <!-- Text content -->
-  <text x="600" y="340" text-anchor="middle" font-family="Poppins, Arial, sans-serif" font-size="64" font-weight="700" fill="${colors.text}">
-    Pulpe
-  </text>
-
-  <text x="600" y="400" text-anchor="middle" font-family="Poppins, Arial, sans-serif" font-size="28" font-weight="500" fill="${colors.text}">
-    L&apos;app budget simple pour
-  </text>
-
-  <text x="600" y="440" text-anchor="middle" font-family="Poppins, Arial, sans-serif" font-size="28" font-weight="500" fill="${colors.text}">
-    planifier ton ann&#233;e
-  </text>
-
-  <!-- Features row -->
-  <text x="600" y="510" text-anchor="middle" font-family="Poppins, Arial, sans-serif" font-size="20" font-weight="400" fill="${colors.textSecondary}">
-    Planifie tes d&#233;penses &#183; Anticipe ton budget &#183; Atteins tes objectifs
-  </text>
-
-  <!-- URL -->
-  <text x="600" y="580" text-anchor="middle" font-family="Poppins, Arial, sans-serif" font-size="22" font-weight="600" fill="${colors.primary}">
-    pulpe.app
-  </text>
-</svg>`
-}
+</svg>`)}`
 
 async function generateOgImage() {
-  console.log('Generating OG image...')
+  console.log('Generating OG image with Satori...')
 
-  const svgContent = createOgSvg()
+  // Load fonts with error handling
+  const fonts = loadFonts()
 
-  // Save SVG for debugging (optional)
-  const svgPath = join(__dirname, '../public/og-image.svg')
-  writeFileSync(svgPath, svgContent)
+  // Create the OG image using Satori (JSX-like syntax)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const element: any = {
+    type: 'div',
+    props: {
+      style: {
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: `linear-gradient(135deg, ${colors.background} 0%, ${colors.surfaceAlt} 100%)`,
+        fontFamily: 'Poppins',
+        position: 'relative',
+      },
+      children: [
+        // Decorative circles
+        {
+          type: 'div',
+          props: {
+            style: {
+              position: 'absolute',
+              left: -100,
+              bottom: -70,
+              width: 400,
+              height: 400,
+              borderRadius: '50%',
+              background: colors.primary,
+              opacity: 0.03,
+            },
+          },
+        },
+        {
+          type: 'div',
+          props: {
+            style: {
+              position: 'absolute',
+              right: -50,
+              top: -50,
+              width: 300,
+              height: 300,
+              borderRadius: '50%',
+              background: colors.primary,
+              opacity: 0.03,
+            },
+          },
+        },
+        // Logo
+        {
+          type: 'img',
+          props: {
+            src: logoDataUrl,
+            width: LOGO.WIDTH,
+            height: LOGO.HEIGHT,
+            style: {
+              marginBottom: SPACING.MD,
+            },
+          },
+        },
+        // Title
+        {
+          type: 'div',
+          props: {
+            style: {
+              fontSize: FONT_SIZE.TITLE,
+              fontWeight: 700,
+              color: colors.text,
+              marginBottom: SPACING.SM,
+            },
+            children: 'Pulpe',
+          },
+        },
+        // Subtitle
+        {
+          type: 'div',
+          props: {
+            style: {
+              fontSize: FONT_SIZE.SUBTITLE,
+              fontWeight: 500,
+              color: colors.text,
+              textAlign: 'center',
+              lineHeight: 1.4,
+            },
+            children: "L'app budget simple pour",
+          },
+        },
+        {
+          type: 'div',
+          props: {
+            style: {
+              fontSize: FONT_SIZE.SUBTITLE,
+              fontWeight: 500,
+              color: colors.text,
+              textAlign: 'center',
+              marginBottom: SPACING.LG,
+            },
+            children: 'planifier ton année',
+          },
+        },
+        // Features
+        {
+          type: 'div',
+          props: {
+            style: {
+              fontSize: FONT_SIZE.BODY,
+              fontWeight: 400,
+              color: colors.textSecondary,
+              marginBottom: SPACING.LG,
+            },
+            children: 'Planifie tes dépenses · Anticipe ton budget · Atteins tes objectifs',
+          },
+        },
+        // URL
+        {
+          type: 'div',
+          props: {
+            style: {
+              fontSize: FONT_SIZE.URL,
+              fontWeight: 600,
+              color: colors.primary,
+            },
+            children: 'pulpe.app',
+          },
+        },
+      ],
+    },
+  }
+
+  const svg = await satori(element, {
+    width: OG_IMAGE.WIDTH,
+    height: OG_IMAGE.HEIGHT,
+    fonts,
+  })
+
+  // Ensure output directory exists
+  const publicDir = join(__dirname, '../public')
+  if (!existsSync(publicDir)) {
+    mkdirSync(publicDir, { recursive: true })
+    console.log(`Created directory: ${publicDir}`)
+  }
+
+  // Save SVG for debugging
+  const svgPath = join(publicDir, 'og-image.svg')
+  writeFileSync(svgPath, svg)
   console.log(`SVG saved to: ${svgPath}`)
 
-  // Convert to PNG using Sharp
-  await sharp(Buffer.from(svgContent))
-    .png({
-      compressionLevel: 9,
-      quality: 90,
-    })
-    .toFile(outputPath)
+  // Convert SVG to PNG using resvg
+  const resvg = new Resvg(svg, {
+    fitTo: {
+      mode: 'width',
+      value: OG_IMAGE.WIDTH,
+    },
+  })
+  const pngData = resvg.render()
+  const pngBuffer = pngData.asPng()
 
-  // Get file stats
-  const stats = await sharp(outputPath).metadata()
+  const outputPath = join(publicDir, 'og-image.png')
+  writeFileSync(outputPath, pngBuffer)
   console.log(`PNG saved to: ${outputPath}`)
-  console.log(`Dimensions: ${stats.width ?? 0}x${stats.height ?? 0}`)
-
-  // Check file size
-  const { size } = statSync(outputPath)
-  console.log(`File size: ${(size / 1024).toFixed(1)} KB`)
-
+  console.log(`Dimensions: ${OG_IMAGE.WIDTH}x${OG_IMAGE.HEIGHT}`)
+  console.log(`File size: ${(pngBuffer.length / 1024).toFixed(1)} KB`)
   console.log('Done!')
 }
 
