@@ -231,22 +231,17 @@ export class StorageService {
    * Clear ALL app data from localStorage except persistent keys.
    * This removes all keys starting with 'pulpe-' or 'pulpe_'.
    *
-   * Tour keys (pulpe-tour-*) are handled specially:
-   * - If currentUserId is provided: only preserve that user's tour keys
-   * - If currentUserId is NOT provided: preserve ALL tour keys (fail safely)
+   * Tour keys (pulpe-tour-*) are always preserved as they are device-scoped.
    *
    * Called on user logout to prevent data leakage between users.
    */
-  clearAll(currentUserId?: string): void {
+  clearAll(): void {
     try {
       const keysToRemove = Object.keys(localStorage).filter((key) => {
         if (!key.startsWith('pulpe')) return false;
 
-        // Tour keys: preserve only current user's, remove others
-        if (key.startsWith('pulpe-tour-')) {
-          if (!currentUserId?.trim()) return false; // No user = preserve all tour keys (fail safely)
-          return !key.endsWith(`-${currentUserId}`); // Keep only this user's
-        }
+        // Tour keys are device-scoped, always preserve them
+        if (key.startsWith('pulpe-tour-')) return false;
 
         return true; // Remove all other pulpe keys
       });

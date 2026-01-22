@@ -32,11 +32,11 @@ export class AuthCleanupService {
     });
   }
 
-  performCleanup(userId?: string): void {
-    this.#handleSignOut(userId);
+  performCleanup(): void {
+    this.#handleSignOut();
   }
 
-  #handleSignOut(userId?: string): void {
+  #handleSignOut(): void {
     if (this.#cleanupInProgress) {
       this.#logger.debug(
         'Cleanup already in progress, skipping duplicate call',
@@ -53,7 +53,7 @@ export class AuthCleanupService {
       );
       this.#safeCleanup(() => this.#hasBudgetCache.clear(), 'budget cache');
       this.#safeCleanup(() => this.#postHogService.reset(), 'PostHog');
-      this.#safeCleanup(() => this.#storageService.clearAll(userId), 'storage');
+      this.#safeCleanup(() => this.#storageService.clearAll(), 'storage');
     } finally {
       if (this.#resetTimeoutId !== null) {
         clearTimeout(this.#resetTimeoutId);
