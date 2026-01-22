@@ -16,6 +16,8 @@ export type TourPageId =
   | 'budget-details'
   | 'templates-list';
 
+export type TourId = 'intro' | TourPageId;
+
 /**
  * Delay before starting tour to ensure DOM is fully rendered
  * and Angular animations have completed
@@ -55,8 +57,8 @@ export class ProductTourService {
    * Generate a storage key for a tour.
    * Keys are device-scoped (no userId) to persist across account changes.
    */
-  #getTourKey(tourId: string): StorageKey {
-    return `pulpe-tour-${tourId}` as StorageKey;
+  #getTourKey(tourId: TourId): StorageKey {
+    return `pulpe-tour-${tourId}`;
   }
 
   /**
