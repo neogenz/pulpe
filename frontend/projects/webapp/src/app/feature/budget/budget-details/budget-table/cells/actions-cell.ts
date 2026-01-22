@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   input,
   output,
 } from '@angular/core';
@@ -65,7 +66,7 @@ import type {
           @if (line().metadata.itemType === 'budget_line') {
             <button
               mat-menu-item
-              (click)="addTransaction.emit(budgetLineData)"
+              (click)="addTransaction.emit(budgetLineData())"
               [attr.data-testid]="'add-transaction-' + line().data.id"
             >
               <mat-icon matMenuItemIcon>add</mat-icon>
@@ -73,7 +74,7 @@ import type {
             </button>
             <button
               mat-menu-item
-              (click)="edit.emit(asBudgetLineItem)"
+              (click)="edit.emit(asBudgetLineItem())"
               [attr.data-testid]="'edit-' + line().data.id"
             >
               <mat-icon matMenuItemIcon>edit</mat-icon>
@@ -83,7 +84,7 @@ import type {
           @if (line().metadata.canResetFromTemplate) {
             <button
               mat-menu-item
-              (click)="resetFromTemplate.emit(asBudgetLineItem)"
+              (click)="resetFromTemplate.emit(asBudgetLineItem())"
               [attr.data-testid]="'reset-from-template-' + line().data.id"
             >
               <mat-icon matMenuItemIcon>refresh</mat-icon>
@@ -115,11 +116,9 @@ export class ActionsCell {
   readonly toggleCheck = output<string>();
   readonly toggleTransactionCheck = output<string>();
 
-  get asBudgetLineItem(): BudgetLineTableItem {
-    return this.line() as BudgetLineTableItem;
-  }
+  readonly asBudgetLineItem = computed(
+    () => this.line() as BudgetLineTableItem,
+  );
 
-  get budgetLineData(): BudgetLine {
-    return this.line().data as BudgetLine;
-  }
+  readonly budgetLineData = computed(() => this.line().data as BudgetLine);
 }

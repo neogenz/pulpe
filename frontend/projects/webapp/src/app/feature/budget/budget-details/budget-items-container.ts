@@ -70,7 +70,7 @@ import { BudgetViewToggle } from './components';
           <pulpe-budget-grid
             [budgetLineItems]="budgetLineItems()"
             [transactionItems]="transactionItems()"
-            [transactions]="transactionsSignal"
+            [transactions]="transactions()"
             [isMobile]="isMobile()"
             (edit)="startEditBudgetLine($event)"
             (delete)="delete.emit($event)"
@@ -154,9 +154,6 @@ export class BudgetItemsContainer {
       .pipe(map((result) => result.matches)),
     { initialValue: false },
   );
-
-  // Signal wrapper for transactions (used by grid detail panel)
-  readonly transactionsSignal = computed(() => this.transactions());
 
   // Full consumption data for outputs
   readonly #consumptions = computed(() =>

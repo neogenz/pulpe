@@ -2,12 +2,11 @@ import { CurrencyPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
   inject,
   input,
   output,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { firstValueFrom } from 'rxjs';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
@@ -273,7 +272,6 @@ import type {
 })
 export class BudgetTableView {
   readonly #dialog = inject(MatDialog);
-  readonly #destroyRef = inject(DestroyRef);
   readonly #logger = inject(Logger);
 
   // Inputs
@@ -290,7 +288,7 @@ export class BudgetTableView {
   readonly toggleTransactionCheck = output<string>();
 
   // Desktop columns
-  displayedColumns = [
+  readonly displayedColumns = [
     'name',
     'planned',
     'spent',
@@ -316,7 +314,7 @@ export class BudgetTableView {
     this.#openEditDialog(item);
   }
 
-  #openEditDialog(item: BudgetLineTableItem): void {
+  async #openEditDialog(item: BudgetLineTableItem): Promise<void> {
     try {
       const dialogRef = this.#dialog.open(EditBudgetLineDialog, {
         data: { budgetLine: item.data },
@@ -324,12 +322,8 @@ export class BudgetTableView {
         maxWidth: '90vw',
       });
 
-      dialogRef
-        .afterClosed()
-        .pipe(takeUntilDestroyed(this.#destroyRef))
-        .subscribe((result: BudgetLineUpdate | undefined) => {
-          if (result) this.update.emit(result);
-        });
+      const result = await firstValueFrom(dialogRef.afterClosed());
+      if (result) this.update.emit(result);
     } catch (error) {
       this.#logger.error('Failed to open edit dialog', {
         error,
@@ -338,25 +332,28 @@ export class BudgetTableView {
     }
   }
 
-  onResetFromTemplateClick(line: BudgetLineTableItem): void {
-    const dialogRef = this.#dialog.open(ConfirmationDialog, {
-      data: {
-        title: 'Réinitialiser depuis le modèle',
-        message:
-          'Cette action va remplacer les valeurs actuelles par celles du modèle. Cette action est irréversible.',
-        confirmText: 'Réinitialiser',
-        confirmColor: 'primary',
-      } satisfies ConfirmationDialogData,
-      width: '400px',
-    });
-
-    dialogRef
-      .afterClosed()
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe((confirmed: boolean) => {
-        if (confirmed) {
-          this.resetFromTemplate.emit(line.data.id);
-        }
+  async onResetFromTemplateClick(line: BudgetLineTableItem): Promise<void> {
+    try {
+      const dialogRef = this.#dialog.open(ConfirmationDialog, {
+        data: {
+          title: 'Réinitialiser depuis le modèle',
+          message:
+            'Cette action va remplacer les valeurs actuelles par celles du modèle. Cette action est irréversible.',
+          confirmText: 'Réinitialiser',
+          confirmColor: 'primary',
+        } satisfies ConfirmationDialogData,
+        width: '400px',
       });
+
+      const confirmed = await firstValueFrom(dialogRef.afterClosed());
+      if (confirmed) {
+        this.resetFromTemplate.emit(line.data.id);
+      }
+    } catch (error) {
+      this.#logger.error('Failed to open reset confirmation dialog', {
+        error,
+        lineId: line.data.id,
+      });
+    }
   }
 }

@@ -1,9 +1,7 @@
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { inject, Injectable } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
-import { firstValueFrom, map } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import type {
   BudgetLine,
   BudgetLineCreate,
@@ -38,14 +36,6 @@ export interface ConfirmDeleteOptions {
 export class BudgetDetailsDialogService {
   readonly #dialog = inject(MatDialog);
   readonly #bottomSheet = inject(MatBottomSheet);
-  readonly #breakpointObserver = inject(BreakpointObserver);
-
-  readonly #isMobile = toSignal(
-    this.#breakpointObserver
-      .observe(Breakpoints.Handset)
-      .pipe(map((result) => result.matches)),
-    { initialValue: false },
-  );
 
   async openAddBudgetLineDialog(
     budgetId: string,
@@ -61,16 +51,19 @@ export class BudgetDetailsDialogService {
     return firstValueFrom(dialogRef.afterClosed());
   }
 
-  async openAllocatedTransactionsDialog(event: {
-    budgetLine: BudgetLine;
-    consumption: BudgetLineConsumption;
-  }): Promise<AllocatedTransactionsDialogResult | undefined> {
+  async openAllocatedTransactionsDialog(
+    event: {
+      budgetLine: BudgetLine;
+      consumption: BudgetLineConsumption;
+    },
+    isMobile: boolean,
+  ): Promise<AllocatedTransactionsDialogResult | undefined> {
     const data: AllocatedTransactionsDialogData = {
       budgetLine: event.budgetLine,
       consumption: event.consumption,
     };
 
-    if (this.#isMobile()) {
+    if (isMobile) {
       const bottomSheetRef = this.#bottomSheet.open(
         AllocatedTransactionsBottomSheet,
         { data },

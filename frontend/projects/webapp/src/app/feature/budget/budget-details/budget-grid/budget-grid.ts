@@ -6,13 +6,13 @@ import {
   inject,
   input,
   output,
-  type Signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
+import type { TransactionViewModel } from '../models/transaction-view-model';
 import type { BudgetLineTableItem } from '../data-core';
 import {
   BudgetDetailPanel,
@@ -200,7 +200,7 @@ export class BudgetGrid {
       metadata: { isLoading?: boolean; envelopeName?: string | null };
     }[]
   >();
-  readonly transactions = input.required<Signal<Transaction[]>>();
+  readonly transactions = input.required<TransactionViewModel[]>();
   readonly isMobile = input.required<boolean>();
 
   // Outputs
@@ -235,9 +235,13 @@ export class BudgetGrid {
   });
 
   protected openDetailPanel(item: BudgetLineTableItem): void {
+    const allocatedTransactions = this.transactions().filter(
+      (tx) => tx.budgetLineId === item.data.id,
+    );
+
     const dialogData: BudgetDetailPanelData = {
       item,
-      transactions: this.transactions(),
+      allocatedTransactions,
       onAddTransaction: (budgetLine) => this.addTransaction.emit(budgetLine),
       onDeleteTransaction: (id) => this.deleteTransaction.emit(id),
       onToggleTransactionCheck: (id) => this.toggleTransactionCheck.emit(id),

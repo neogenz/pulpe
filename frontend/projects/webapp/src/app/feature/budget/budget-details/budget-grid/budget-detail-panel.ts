@@ -1,11 +1,5 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  type Signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -25,7 +19,7 @@ import { BudgetKindIndicator } from '../components/budget-kind-indicator';
 
 export interface BudgetDetailPanelData {
   item: BudgetLineTableItem;
-  transactions: Signal<Transaction[]>;
+  allocatedTransactions: Transaction[];
   onAddTransaction: (budgetLine: BudgetLine) => void;
   onDeleteTransaction: (id: string) => void;
   onToggleTransactionCheck: (id: string) => void;
@@ -158,9 +152,9 @@ const DETAIL_SEGMENT_COUNT = 12;
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-title-medium font-semibold">
               Transactions
-              @if (allocatedTransactions().length > 0) {
+              @if (data.allocatedTransactions.length > 0) {
                 <span class="text-on-surface-variant font-normal">
-                  ({{ allocatedTransactions().length }})
+                  ({{ data.allocatedTransactions.length }})
                 </span>
               }
             </h3>
@@ -174,7 +168,7 @@ const DETAIL_SEGMENT_COUNT = 12;
             </button>
           </div>
 
-          @if (allocatedTransactions().length === 0) {
+          @if (data.allocatedTransactions.length === 0) {
             <div class="text-center py-8 text-on-surface-variant">
               <mat-icon class="text-4xl! mb-2 opacity-50"
                 >receipt_long</mat-icon
@@ -186,7 +180,7 @@ const DETAIL_SEGMENT_COUNT = 12;
             </div>
           } @else {
             <div class="space-y-3">
-              @for (tx of allocatedTransactions(); track tx.id) {
+              @for (tx of data.allocatedTransactions; track tx.id) {
                 <div
                   class="bg-surface-container-low rounded-xl p-4 flex items-center gap-3"
                   [attr.data-testid]="'detail-transaction-' + tx.id"
@@ -249,13 +243,6 @@ export class BudgetDetailPanel {
   protected readonly data = inject<BudgetDetailPanelData>(MAT_DIALOG_DATA);
 
   readonly detailSegmentCount = DETAIL_SEGMENT_COUNT;
-
-  readonly allocatedTransactions = computed(() => {
-    const budgetLineId = this.data.item.data.id;
-    return this.data
-      .transactions()
-      .filter((tx) => tx.budgetLineId === budgetLineId);
-  });
 
   close(): void {
     this.#dialogRef.close();

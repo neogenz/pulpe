@@ -1,3 +1,4 @@
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
   afterNextRender,
   ChangeDetectionStrategy,
@@ -8,7 +9,9 @@ import {
   effect,
   isDevMode,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
+import { map } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -72,6 +75,14 @@ export default class BudgetDetailsPage {
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
   readonly #userSettingsApi = inject(UserSettingsApi);
+  readonly #breakpointObserver = inject(BreakpointObserver);
+
+  readonly #isMobile = toSignal(
+    this.#breakpointObserver
+      .observe(Breakpoints.Handset)
+      .pipe(map((result) => result.matches)),
+    { initialValue: false },
+  );
 
   readonly id = input.required<string>();
 
@@ -139,7 +150,7 @@ export default class BudgetDetailsPage {
       budget.id,
     );
     if (budgetLine) {
-      this.handleCreateBudgetLine(budgetLine);
+      await this.handleCreateBudgetLine(budgetLine);
     }
   }
 
@@ -201,13 +212,15 @@ export default class BudgetDetailsPage {
     budgetLine: BudgetLine;
     consumption: BudgetLineConsumption;
   }): Promise<void> {
-    const result =
-      await this.#dialogService.openAllocatedTransactionsDialog(event);
+    const result = await this.#dialogService.openAllocatedTransactionsDialog(
+      event,
+      this.#isMobile(),
+    );
 
     if (!result) return;
 
     if (result.action === 'add') {
-      this.openCreateAllocatedTransactionDialog(event.budgetLine);
+      await this.openCreateAllocatedTransactionDialog(event.budgetLine);
     } else if (result.action === 'delete' && result.transaction) {
       await this.handleDeleteTransaction(result.transaction);
     }
