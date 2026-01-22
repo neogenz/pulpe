@@ -46,6 +46,7 @@ import { Logger } from '@core/logging/logger';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { AboutDialog } from './about-dialog';
 
@@ -72,6 +73,7 @@ interface NavigationItem {
     RouterOutlet,
     PulpeBreadcrumb,
     MatProgressBarModule,
+    MatProgressSpinnerModule,
   ],
   template: `
     <mat-sidenav-container class="h-dvh bg-surface-container!">
@@ -179,6 +181,20 @@ interface NavigationItem {
           [class.p-2]="!isHandset()"
           [class.rounded-xl]="!isHandset()"
         >
+          <!-- Logout overlay - prevents flash of empty dashboard during logout -->
+          @if (isLoggingOut()) {
+            <div
+              class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-surface"
+              role="alert"
+              aria-live="assertive"
+              aria-label="Déconnexion en cours"
+            >
+              <mat-spinner diameter="48" />
+              <p class="mt-4 text-on-surface-variant text-body-large">
+                Déconnexion...
+              </p>
+            </div>
+          }
           @if (loadingIndicator.isLoading() || isNavigating()) {
             <div class="absolute top-0 left-0 right-0">
               <mat-progress-bar
