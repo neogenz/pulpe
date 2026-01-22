@@ -162,6 +162,23 @@
 }
 
 
+/* Financial text colors - need !important to override Material icons */
+@utility text-financial-income {
+  color: var(--pulpe-financial-income) !important;
+}
+@utility text-financial-expense {
+  color: var(--pulpe-financial-expense) !important;
+}
+@utility text-financial-savings {
+  color: var(--pulpe-financial-savings) !important;
+}
+@utility text-financial-negative {
+  color: var(--pulpe-financial-negative) !important;
+}
+@utility text-on-financial-light {
+  color: var(--pulpe-on-financial-light) !important;
+}
+
 /* `.dark-theme` is the class name to enable dark mode in our application */
 @custom-variant dark (&:where(.dark-theme, .dark-theme *));
 
