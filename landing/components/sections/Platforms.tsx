@@ -53,6 +53,7 @@ export function Platforms() {
               target="_blank"
               rel="noopener noreferrer"
               className="block"
+              aria-label="Télécharger sur l'App Store"
             >
               <img
                 src="/app-store-badge.svg"

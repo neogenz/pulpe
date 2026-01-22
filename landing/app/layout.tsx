@@ -49,9 +49,46 @@ export const metadata: Metadata = {
   },
 }
 
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': 'https://pulpe.app/#website',
+      url: 'https://pulpe.app',
+      name: 'Pulpe',
+      description:
+        "L'app budget simple pour planifier ton année. Anticipe les grosses dépenses et note tes achats en 2 clics.",
+      inLanguage: 'fr-FR',
+    },
+    {
+      '@type': 'SoftwareApplication',
+      '@id': 'https://pulpe.app/#app',
+      name: 'Pulpe',
+      description:
+        "Planifie ton année, anticipe les grosses dépenses, note tes achats en 2 clics. Pulpe t'aide à voir clair dans tes finances sans prise de tête.",
+      applicationCategory: 'FinanceApplication',
+      operatingSystem: 'Web, iOS',
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'EUR',
+      },
+    },
+  ],
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={poppins.variable}>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
+          }}
+        />
+      </head>
       <body className="font-sans antialiased">
         <AuthRedirectWrapper>
           <PreloadLCPImage
