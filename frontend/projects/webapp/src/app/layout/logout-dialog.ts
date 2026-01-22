@@ -6,19 +6,18 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   selector: 'pulpe-logout-dialog',
   imports: [MatDialogModule, MatProgressSpinnerModule],
   template: `
-    <mat-dialog-content class="flex flex-col items-center justify-center py-8">
+    <div class="flex flex-col items-center justify-center p-8 min-w-64">
       <mat-spinner diameter="48" />
-      <p class="mt-4 text-on-surface-variant text-body-large">Déconnexion...</p>
-    </mat-dialog-content>
+      <p class="mt-6 text-on-surface text-title-medium">Déconnexion en cours</p>
+      <p class="mt-1 text-on-surface-variant text-body-small">
+        Veuillez patienter...
+      </p>
+    </div>
   `,
   styles: [
     `
       :host {
         display: block;
-      }
-
-      mat-dialog-content {
-        min-width: 200px;
       }
     `,
   ],
