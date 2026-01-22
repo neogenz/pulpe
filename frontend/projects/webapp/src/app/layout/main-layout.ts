@@ -1,11 +1,15 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { NgClass } from '@angular/common';
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
+  type ElementRef,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
@@ -336,8 +340,8 @@ interface NavigationItem {
             [class.p-4]="isHandset()"
             data-testid="page-content"
             data-tour="page-content"
-            (scroll)="onScroll($event)"
           >
+            <div #scrollSentinel class="h-0" aria-hidden="true"></div>
             <router-outlet />
           </main>
         </div>
@@ -417,6 +421,9 @@ export default class MainLayout {
   protected readonly hasBreadcrumb = computed(
     () => this.breadcrumbState.breadcrumbs().length > 1,
   );
+  readonly #scrollSentinel =
+    viewChild<ElementRef<HTMLElement>>('scrollSentinel');
+  readonly #destroyRef = inject(DestroyRef);
   readonly #logger = inject(Logger);
   readonly #dialog = inject(MatDialog);
   protected readonly loadingIndicator = inject(LoadingIndicator);
@@ -495,9 +502,19 @@ export default class MainLayout {
     return isScrolled && (!isHandset || !hasBreadcrumb);
   });
 
-  protected onScroll(event: Event) {
-    const target = event.target as HTMLElement;
-    this.isScrolled.set(target.scrollTop > 0);
+  constructor() {
+    afterNextRender(() => {
+      const sentinel = this.#scrollSentinel()?.nativeElement;
+      if (!sentinel) return;
+
+      const observer = new IntersectionObserver(
+        ([entry]) => this.isScrolled.set(!entry.isIntersecting),
+        { threshold: 0 },
+      );
+
+      observer.observe(sentinel);
+      this.#destroyRef.onDestroy(() => observer.disconnect());
+    });
   }
 
   // Navigation state for progress bar feedback (debounced to prevent flicker)
