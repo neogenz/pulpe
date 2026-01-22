@@ -27,7 +27,7 @@ export interface BreadcrumbItemViewModel {
     @if (hasContentProjection() || showDataDrivenMode()) {
       <nav [attr.aria-label]="ariaLabel()">
         <ol
-          class="flex items-center list-none p-0 m-0 flex-wrap text-sm min-w-0 max-w-full"
+          class="flex items-center list-none p-0 m-0 flex-nowrap text-sm overflow-x-auto overflow-y-hidden"
         >
           <!-- Content projection mode -->
           @if (hasContentProjection()) {
@@ -56,35 +56,39 @@ export interface BreadcrumbItemViewModel {
           <!-- Data-driven mode -->
           @else if (showDataDrivenMode()) {
             @for (item of items(); track item.url; let isLast = $last) {
-              <li class="min-w-0 max-w-full">
+              <li class="flex-shrink-0">
                 @if (!isLast) {
                   <a
                     mat-button
                     [routerLink]="item.url"
-                    class="min-w-0 px-2 text-on-surface-variant hover:text-primary max-w-[150px] sm:max-w-none"
+                    [style.--mat-button-text-label-text-color]="
+                      'var(--mat-sys-primary)'
+                    "
+                    class="px-2 text-on-surface-variant hover:text-primary"
                   >
                     @if (item.icon) {
                       <mat-icon class="!text-base mr-1 flex-shrink-0">{{
                         item.icon
                       }}</mat-icon>
                     }
-                    <span class="truncate">{{ item.label }}</span>
+                    <span>{{ item.label }}</span>
                   </a>
                 } @else {
                   <span
-                    class="flex items-center gap-1 text-on-surface font-medium px-2 min-w-0 max-w-[200px] sm:max-w-none"
+                    class="flex items-center gap-1 text-on-surface font-medium px-2"
+                    aria-current="page"
                   >
                     @if (item.icon) {
                       <mat-icon class="!text-base flex-shrink-0">{{
                         item.icon
                       }}</mat-icon>
                     }
-                    <span class="truncate">{{ item.label }}</span>
+                    <span>{{ item.label }}</span>
                   </span>
                 }
               </li>
               @if (!isLast) {
-                <li aria-hidden="true">
+                <li aria-hidden="true" class="flex-shrink-0">
                   <mat-icon class="!text-base text-outline align-middle">{{
                     defaultSeparatorIcon
                   }}</mat-icon>

@@ -33,6 +33,14 @@
   font-variation-settings: "FILL" 1;
 }
 
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @utility text-display-large {
   font-size: var(--text-display-large);
   line-height: var(--text-display-large--line-height);
