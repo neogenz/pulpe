@@ -5,7 +5,7 @@ import { Router, type NavigationEnd, ActivatedRoute } from '@angular/router';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { ScrollDispatcher } from '@angular/cdk/scrolling';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Component, Output, Input, NO_ERRORS_SCHEMA } from '@angular/core';
+import { Component, output, input, NO_ERRORS_SCHEMA } from '@angular/core';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -79,7 +79,7 @@ type MainLayoutWithPrivates = MainLayout & {
   template: '<div>Mock Navigation Menu</div>',
 })
 class MockNavigationMenuComponent {
-  @Output() navItemClick = new Subject<Event>();
+  readonly navItemClick = output<Event>();
 }
 
 // Mock PulpeBreadcrumb component
@@ -88,7 +88,7 @@ class MockNavigationMenuComponent {
   template: '<div>Mock Breadcrumb</div>',
 })
 class MockPulpeBreadcrumbComponent {
-  @Input() items: unknown[] = [];
+  readonly items = input<unknown[]>([]);
 }
 
 describe('MainLayout', () => {

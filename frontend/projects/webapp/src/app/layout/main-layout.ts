@@ -1,5 +1,4 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { NgClass } from '@angular/common';
 import {
   afterNextRender,
   ChangeDetectionStrategy,
@@ -69,7 +68,6 @@ interface NavigationItem {
     RouterOutlet,
     PulpeBreadcrumb,
     MatProgressBarModule,
-    NgClass,
   ],
   template: `
     <mat-sidenav-container class="h-dvh bg-surface-container!">
@@ -224,9 +222,7 @@ interface NavigationItem {
           <!-- Top App Bar - Fixed Header -->
           <mat-toolbar
             color="primary"
-            [ngClass]="{
-              '-mx-2! w-auto!': !isHandset(),
-            }"
+            [class.toolbar-desktop]="!isHandset()"
             class="shrink-0"
             [class.scrolled]="showToolbarShadow()"
           >
@@ -404,6 +400,12 @@ interface NavigationItem {
 
         position: relative;
         z-index: 10;
+      }
+
+      .toolbar-desktop {
+        margin-left: -0.5rem !important;
+        margin-right: -0.5rem !important;
+        width: auto !important;
       }
     `,
   ],
