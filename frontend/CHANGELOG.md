@@ -1,5 +1,18 @@
 # pulpe-frontend
 
+## 0.14.0
+
+### Minor Changes
+
+- ### Nouvelles Fonctionnalités
+  - **Interface unifiée desktop** - Fusion de la barre d'outils et du fil d'Ariane pour plus d'espace sur écran large (≥1024px)
+  - **Mode maintenance** - Possibilité d'activer un mode maintenance avec animation et message personnalisé
+  - **Tracking PostHog SPA** - Amélioration de l'analytics avec suivi SPA activé
+
+  ### Corrections
+  - **Tour produit persistant** - Les préférences du tour restent sauvegardées même sans userId
+  - **Navigation fluide** - Résolution d'un blocage lors de la navigation initiale
+
 ## 0.13.0
 
 ### Minor Changes

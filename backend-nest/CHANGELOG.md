@@ -1,5 +1,13 @@
 # backend-nest
 
+## 0.9.0
+
+### Minor Changes
+
+- ### Nouvelles Fonctionnalités
+  - **Mode maintenance** - Endpoint et configuration pour activer un mode maintenance applicatif
+  - **Logging RGPD** - Logs backend conformes avec anonymisation des IPs et agents simplifiés
+
 ## 0.8.0
 
 ### Minor Changes
