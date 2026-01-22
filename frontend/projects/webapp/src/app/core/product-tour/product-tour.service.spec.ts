@@ -130,15 +130,15 @@ describe('ProductTourService', () => {
     });
   });
 
-  describe('isReady', () => {
+  describe('isAuthenticated', () => {
     it('should return true when user is authenticated', () => {
-      expect(service.isReady()).toBe(true);
+      expect(service.isAuthenticated()).toBe(true);
     });
 
     it('should return false when user is not authenticated', () => {
       mockCurrentUser = null;
 
-      expect(service.isReady()).toBe(false);
+      expect(service.isAuthenticated()).toBe(false);
     });
   });
 

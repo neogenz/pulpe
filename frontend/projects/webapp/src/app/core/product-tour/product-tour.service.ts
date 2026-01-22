@@ -47,9 +47,12 @@ export class ProductTourService {
   #activeDriver: Driver | null = null;
 
   /**
-   * Check if the service is ready to operate (user is authenticated)
+   * Check if user is authenticated.
+   * Tours require authentication to start because they reference app content
+   * that only exists for logged-in users, even though tour completion state
+   * is stored device-scoped (persists across account changes on same device).
    */
-  isReady(): boolean {
+  isAuthenticated(): boolean {
     return !!this.#authState.user()?.id;
   }
 
@@ -119,10 +122,10 @@ export class ProductTourService {
   /**
    * Start a page-specific tour
    * Includes intro steps if user hasn't seen them yet
-   * Does nothing if service is not ready (user not authenticated)
+   * Does nothing if user is not authenticated or a tour is already active
    */
   startPageTour(pageId: TourPageId): void {
-    if (!this.isReady() || this.#activeDriver) {
+    if (!this.isAuthenticated() || this.#activeDriver) {
       return;
     }
 
