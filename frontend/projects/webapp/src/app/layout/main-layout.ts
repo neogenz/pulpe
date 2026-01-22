@@ -591,6 +591,9 @@ export default class MainLayout {
       if (!this.#applicationConfig.isProduction()) {
         this.#logger.error('Erreur lors de la déconnexion:', error);
       }
+    } finally {
+      // Reset flag in case redirect fails or flow changes in the future
+      this.#isLoggingOut.set(false);
     }
 
     this.#forceLogoutRedirect();
