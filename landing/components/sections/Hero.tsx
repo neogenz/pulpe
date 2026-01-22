@@ -233,8 +233,8 @@ export function Hero() {
           </FadeIn>
 
           <HeroScreenshot
-            screenshotSrc="/screenshots/responsive/dashboard.png"
-            screenshotDesktopSrc="/screenshots/webapp/dashboard.png"
+            screenshotSrc="/screenshots/responsive/dashboard.webp"
+            screenshotDesktopSrc="/screenshots/webapp/dashboard.webp"
             screenshotLabel="Dashboard Pulpe - Vue du mois en cours"
           />
         </div>

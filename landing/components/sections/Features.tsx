@@ -6,8 +6,8 @@ const FEATURES = [
     description: 'Vacances, impôts, anniversaires... Tout est visible sur 12 mois.',
     badge: { icon: '🎯', label: 'Clarté' },
     screenshot: {
-      src: '/screenshots/responsive/vue-calendrier-annuel.png',
-      desktopSrc: '/screenshots/webapp/vue-calendrier-annuel.png',
+      src: '/screenshots/responsive/vue-calendrier-annuel.webp',
+      desktopSrc: '/screenshots/webapp/vue-calendrier-annuel.webp',
       label: 'Vue calendrier annuel',
     },
   },
@@ -16,8 +16,8 @@ const FEATURES = [
     description: "Ajouter une dépense prend 5 secondes. Pas de friction, pas d'excuse.",
     badge: { icon: '⚡', label: 'Simplicité' },
     screenshot: {
-      src: '/screenshots/responsive/modal-ajout-transaction.png',
-      desktopSrc: '/screenshots/webapp/modal-ajout-transaction.png',
+      src: '/screenshots/responsive/modal-ajout-transaction.webp',
+      desktopSrc: '/screenshots/webapp/modal-ajout-transaction.webp',
       label: 'Modal ajout de transaction',
     },
   },
@@ -26,8 +26,8 @@ const FEATURES = [
     description: 'Tes dépenses récurrentes sont planifiées. Tu vois venir les gros moments.',
     badge: { icon: '🛡️', label: 'Contrôle' },
     screenshot: {
-      src: '/screenshots/responsive/liste-des-previsions.png',
-      desktopSrc: '/screenshots/webapp/liste-des-previsions.png',
+      src: '/screenshots/responsive/liste-des-previsions.webp',
+      desktopSrc: '/screenshots/webapp/liste-des-previsions.webp',
       label: 'Liste des prévisions',
     },
   },
@@ -36,8 +36,8 @@ const FEATURES = [
     description: 'Crée un modèle une fois, réutilise-le chaque mois.',
     badge: { icon: '🌱', label: 'Légèreté' },
     screenshot: {
-      src: '/screenshots/responsive/ecran-des-modeles.png',
-      desktopSrc: '/screenshots/webapp/ecran-des-modeles.png',
+      src: '/screenshots/responsive/ecran-des-modeles.webp',
+      desktopSrc: '/screenshots/webapp/ecran-des-modeles.webp',
       label: 'Écran des modèles',
     },
   },

@@ -132,6 +132,15 @@ body {
   }
 }
 
+@keyframes fade-in-opacity {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes fade-in-scale {
   from {
     opacity: 0;
@@ -156,6 +165,10 @@ body {
 
 .animate-fade-in {
   animation: fade-in 0.5s ease-out both;
+}
+
+.animate-fade-in-opacity {
+  animation: fade-in-opacity 0.5s ease-out both;
 }
 
 .animate-fade-in-scale {
@@ -208,6 +221,7 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
+  .animate-fade-in-opacity,
   .animate-fade-in-scale,
   .animate-fade-in-float {
     animation: none;
