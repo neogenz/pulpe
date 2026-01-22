@@ -1,6 +1,7 @@
 ---
-description: "Angular Signal API patterns and best practices"
-paths: "**/*.ts"
+description: Angular Signal API patterns and best practices
+paths:
+  - "frontend/**/*.ts"
 ---
 
 # Angular Signal API Guidelines (v21+)

@@ -20,7 +20,7 @@ pnpm run lint                       # BEFORE commit
 |------|---------|
 | Angular | 20+, standalone, OnPush |
 | Styling | Tailwind v4 + Material v20 |
-| State | Signals (see @.claude/rules/frontend/state-pattern.md) |
+| State | Signals |
 | Testing | Vitest + Playwright |
 
 ## Directory Structure
@@ -87,7 +87,7 @@ import { BudgetFormComponent } from './budget-form.component';
 - **OnPush**: `changeDetection: ChangeDetectionStrategy.OnPush`
 - **Signals**: Prefer over observables
 - **Private**: Use `#fieldName` syntax
-- **State**: See @.claude/rules/frontend/state-pattern.md
+- **State**: Use signal-based stores
 
 ## Styling
 
@@ -138,8 +138,3 @@ See @.claude/rules/testing/vitest.md
 - **ALWAYS** `#fieldName` for private
 - **BEFORE** creating: check `ui/` or `pattern/` first
 
-## Architecture References
-
-| Topic | Reference |
-|-------|-----------|
-| Signal/Store | @.claude/rules/frontend/state-pattern.md |
