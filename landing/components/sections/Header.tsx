@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { ANGULAR_APP_URL } from '@/lib/config'
@@ -12,12 +12,21 @@ const navLinks = [
   { href: '#why-free', label: 'Pourquoi gratuit' },
 ]
 
+const SCROLL_THRESHOLD = 20
+const THROTTLE_MS = 100
+
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const lastScrollTime = useRef(0)
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20)
+    const handleScroll = () => {
+      const now = Date.now()
+      if (now - lastScrollTime.current < THROTTLE_MS) return
+      lastScrollTime.current = now
+      setScrolled(window.scrollY > SCROLL_THRESHOLD)
+    }
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
