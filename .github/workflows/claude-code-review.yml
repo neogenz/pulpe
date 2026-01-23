@@ -4,12 +4,12 @@ on:
   pull_request:
     types: [opened, synchronize]
     paths:
-      - 'frontend/**/*.ts'
-      - 'frontend/**/*.html'
-      - 'frontend/**/*.scss'
-      - 'backend-nest/**/*.ts'
-      - 'shared/**/*.ts'
-      - 'supabase/**/*.sql'
+      - 'frontend/**'
+      - 'backend-nest/**'
+      - 'shared/**'
+      - 'supabase/**'
+      - 'landing/**'
+      - 'ios/**'
 
 jobs:
   claude-review:
@@ -22,52 +22,169 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
+
+      - name: Build dynamic review prompt
+        id: prompt
+        run: |
+          set -e
+
+          CHANGED_FILES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only) || {
+            echo "ERROR: Failed to get PR diff"
+            exit 1
+          }
+
+          if [[ -z "$CHANGED_FILES" ]]; then
+            echo "WARNING: No files changed in PR"
+          fi
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          # Build dynamic prompt with only relevant stack checklists
+          PROMPT="# Code Review - PR #${{ github.event.pull_request.number }}
+
+          Tu es un expert code reviewer. Analyse UNIQUEMENT les fichiers modifiés.
+
+          ## Checklist"
+
+          # Angular 21 (frontend/)
+          if echo "$CHANGED_FILES" | grep -q "^frontend/"; then
+            PROMPT+="
+
+          ### Angular 21 / Material 21 / Tailwind v4
+          - \`changeDetection: ChangeDetectionStrategy.OnPush\` obligatoire
+          - Signals: \`signal()\`, \`computed()\`, \`linkedSignal()\` - pas d'observables pour le state
+          - \`input()\` et \`output()\` functions (pas @Input/@Output decorators)
+          - \`httpResource()\` pour GET async (pas HttpClient.get direct)
+          - \`takeUntilDestroyed()\` sur tous les \`subscribe()\`
+          - Control flow natif: \`@if\`, \`@for\`, \`@switch\` (pas *ngIf/*ngFor)
+          - \`inject()\` pour DI (pas constructor injection)
+          - \`host: {}\` pour bindings (pas @HostBinding/@HostListener)
+          - JAMAIS \`::ng-deep\`, JAMAIS \`ngClass\`/\`ngStyle\`
+          - JAMAIS \`standalone: true\` (défaut en v21)
+          - Accessibilité: WCAG AA, focus management, ARIA"
+          fi
+
+          # NestJS 11 (backend-nest/)
+          if echo "$CHANGED_FILES" | grep -q "^backend-nest/"; then
+            PROMPT+="
+
+          ### NestJS 11 / Bun / Zod 4
+          - DTOs validés avec \`createZodDto()\` de nestjs-zod
+          - \`@AuthGuard()\` + \`@User()\` decorator sur routes protégées
+          - Logique métier dans services (controllers = routing + validation)
+          - Mappers pour transformation DTO ↔ Entity (snake_case ↔ camelCase)
+          - Gestion d'erreurs structurée avec filtres globaux
+          - Logging Pino: error(5xx), warn(4xx), info(business), debug(dev)
+          - JAMAIS exposer les types DB dans les réponses API
+          - JAMAIS de \`any\` - utiliser \`unknown\` si incertain"
+          fi
+
+          # Next.js 15 / React 19 (landing/)
+          if echo "$CHANGED_FILES" | grep -q "^landing/"; then
+            PROMPT+="
+
+          ### Next.js 15 / React 19 / Tailwind v4
+          - App Router obligatoire (pas Pages Router)
+          - Server Components par défaut, \`'use client'\` uniquement si interactivité
+          - \`next/image\` avec dimensions explicites
+          - Metadata API pour SEO (\`generateMetadata\`)
+          - Data fetching côté serveur (pas useEffect pour fetch)
+          - \`loading.tsx\` et \`error.tsx\` pour UX
+          - Pas de \`useEffect\` pour data fetching initial"
+          fi
+
+          # iOS 17+ / Swift 6 (ios/)
+          if echo "$CHANGED_FILES" | grep -q "^ios/"; then
+            PROMPT+="
+
+          ### iOS 17+ / Swift 6 / SwiftUI
+          - \`@Observable\` macro (JAMAIS \`ObservableObject\`/\`@Published\`)
+          - \`async/await\` partout (pas de completion handlers)
+          - \`actor\` pour services thread-safe
+          - Tous les models sont \`Sendable\`
+          - \`NavigationStack(path:)\` avec destinations typées
+          - Sheet-based forms avec completion callback
+          - JAMAIS de force unwrap \`!\` sans justification
+          - Constructor injection avec \`.shared\` defaults"
+          fi
+
+          # Shared (shared/)
+          if echo "$CHANGED_FILES" | grep -q "^shared/"; then
+            PROMPT+="
+
+          ### Shared / Zod 4
+          - Schemas Zod bien typés avec inférence
+          - Exports cohérents et documentés
+          - Pas de dépendances circulaires
+          - Compatibilité frontend + backend"
+          fi
+
+          # Supabase (supabase/)
+          if echo "$CHANGED_FILES" | grep -q "^supabase/"; then
+            PROMPT+="
+
+          ### Supabase / PostgreSQL
+          - Migrations idempotentes (\`IF NOT EXISTS\`, \`OR REPLACE\`)
+          - RLS policies sur toutes les tables avec \`user_id\`
+          - Index sur colonnes fréquemment filtrées
+          - Pas de \`CASCADE\` sans justification"
+          fi
+
+          PROMPT+="
+
+          ## Règles transversales
+          - Sécurité: pas de secrets hardcodés, JWT requis, validation inputs
+          - Qualité: fonctions ≤30 lignes, fichiers ≤300 lignes
+          - Nommage: descriptif, cohérent avec le domaine métier
+          - TypeScript strict: pas de \`any\`, pas de \`as\` cast sans justification
+
+          ## Format de sortie (OBLIGATOIRE)
+
+          Utilise EXACTEMENT ce format markdown:
+
+          \`\`\`
+          ## Review PR #${{ github.event.pull_request.number }}
+
+          ### 🚨 Critiques (bloquants)
+          - \`fichier.ts:42\` - Description du problème
+            > Suggestion de fix
+
+          ### ⚠️ Importants
+          - \`fichier.ts:15\` - Description du problème
+            > Suggestion de fix
+
+          ### 💡 Suggestions
+          - \`fichier.ts:88\` - Amélioration possible
+            > Suggestion
+
+          ---
+          **Verdict:** ✅ APPROVE | ❌ CHANGES REQUESTED
+          **Fichiers reviewés:** X fichiers
+          \`\`\`
+
+          Règles:
+          - Max 10 issues total
+          - En français
+          - UN SEUL commentaire général (pas de commentaires inline multiples)
+          - Si aucun problème: juste le verdict avec félicitations"
+
+          # Output using heredoc for multiline
+          echo "review_prompt<<EOF" >> $GITHUB_OUTPUT
+          echo "$PROMPT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Claude Code Review
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          prompt: |
-            REPO: ${{ github.repository }}
-            PR NUMBER: ${{ github.event.pull_request.number }}
-
-            Tu es un expert code reviewer Angular 20+ / NestJS. Analyse le diff et poste ta review.
-
-            ## CHECKLIST
-
-            **Angular 20+**: standalone OnPush, signals (signal/computed/linkedSignal), httpResource() pour GET, takeUntilDestroyed() sur subscribe(), input() pas @Input()
-
-            **NestJS**: DTOs validés class-validator, AuthGuard + @User(), pas de logique dans controllers
-
-            **TypeScript**: Zod schemas, pas de `any`, types stricts
-
-            **Sécurité**: pas de secrets hardcodés, JWT requis, RLS sur tables user
-
-            **Qualité**: fonctions ≤30 lignes, fichiers ≤300 lignes, noms descriptifs
-
-            **DB**: migrations idempotentes (IF NOT EXISTS), RLS policies
-
-            ## OUTPUT
-            - Commentaires inline pour issues spécifiques
-            - UN commentaire général avec:
-
-            ### 🚨 CRITIQUE (bloquant)
-            `fichier:ligne` - Description + fix
-
-            ### ⚠️ IMPORTANT
-            `fichier:ligne` - Description + fix
-
-            ### ℹ️ SUGGESTION
-            `fichier:ligne` - Amélioration
-
-            **Verdict:** ✅ APPROVE | ❌ NEEDS FIX
-
-            Max 10 issues. Français.
-
+          prompt: ${{ steps.prompt.outputs.review_prompt }}
           claude_args: |
-            --max-turns 50
+            --max-turns 15
             --model claude-sonnet-4-5-20250929
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --allowedTools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr files:*)"
