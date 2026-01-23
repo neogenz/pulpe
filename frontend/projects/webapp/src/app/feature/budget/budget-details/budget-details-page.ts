@@ -28,7 +28,9 @@ import { frCH } from 'date-fns/locale';
 import { BudgetDetailsStore } from './store/budget-details-store';
 import { BudgetLineApi } from './budget-line-api/budget-line-api';
 import { BudgetTable } from './budget-table/budget-table';
+import { BudgetTableCheckedFilter } from './budget-table/budget-table-checked-filter';
 import { BudgetFinancialOverview } from './budget-financial-overview';
+import { BudgetItemDataProvider, type BudgetLineTableItem } from './data-core';
 import {
   AddBudgetLineDialog,
   type BudgetLineDialogData,
@@ -45,7 +47,10 @@ import {
   type TransactionCreate,
   formatBudgetPeriod,
 } from 'pulpe-shared';
-import type { BudgetLineConsumption } from '@core/budget';
+import {
+  type BudgetLineConsumption,
+  calculateAllEnrichedConsumptions,
+} from '@core/budget';
 import {
   AllocatedTransactionsDialog,
   type AllocatedTransactionsDialogData,
@@ -73,10 +78,11 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
     MatTooltipModule,
     DatePipe,
     BudgetTable,
+    BudgetTableCheckedFilter,
     BudgetFinancialOverview,
     BaseLoading,
   ],
-  providers: [BudgetDetailsStore, BudgetLineApi],
+  providers: [BudgetDetailsStore, BudgetLineApi, BudgetItemDataProvider],
   template: `
     <div class="flex flex-col gap-6 min-w-0" data-testid="budget-detail-page">
       @if (store.isLoading()) {
@@ -154,21 +160,22 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
           data-tour="financial-overview"
         />
 
-        <!-- Budget Items Table -->
-        <pulpe-budget-table
-          [budgetLines]="store.filteredBudgetLines()"
-          [transactions]="store.filteredTransactions()"
+        <!-- Checked Filter -->
+        <pulpe-budget-table-checked-filter
           [isShowingOnlyUnchecked]="store.isShowingOnlyUnchecked()"
           (isShowingOnlyUncheckedChange)="
             store.setIsShowingOnlyUnchecked($event)
           "
+        />
+
+        <!-- Budget Items Table -->
+        <pulpe-budget-table
+          [tableData]="tableData()"
           (update)="handleUpdateBudgetLine($event)"
           (delete)="handleDeleteItem($event)"
           (add)="openAddBudgetLineDialog()"
-          (viewAllocatedTransactions)="openAllocatedTransactionsDialog($event)"
-          (createAllocatedTransaction)="
-            openCreateAllocatedTransactionDialog($event)
-          "
+          (viewTransactions)="handleViewTransactions($event)"
+          (addTransaction)="handleAddTransaction($event)"
           (resetFromTemplate)="handleResetFromTemplate($event)"
           (toggleCheck)="handleToggleCheck($event)"
           (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
@@ -256,6 +263,7 @@ export default class BudgetDetailsPage {
   readonly #breadcrumbState = inject(BreadcrumbState);
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #userSettingsApi = inject(UserSettingsApi);
+  readonly #budgetItemDataProvider = inject(BudgetItemDataProvider);
 
   readonly #isMobile = toSignal(
     this.#breakpointObserver
@@ -265,6 +273,21 @@ export default class BudgetDetailsPage {
   );
 
   id = input.required<string>();
+
+  readonly #consumptions = computed(() =>
+    calculateAllEnrichedConsumptions(
+      this.store.filteredBudgetLines(),
+      this.store.filteredTransactions(),
+    ),
+  );
+
+  readonly tableData = computed(() =>
+    this.#budgetItemDataProvider.provideTableData({
+      budgetLines: this.store.filteredBudgetLines(),
+      transactions: this.store.filteredTransactions(),
+      viewMode: 'table',
+    }),
+  );
 
   constructor() {
     effect(() => {
@@ -342,6 +365,19 @@ export default class BudgetDetailsPage {
 
   async handleCreateBudgetLine(budgetLine: BudgetLineCreate): Promise<void> {
     await this.store.createBudgetLine(budgetLine);
+  }
+
+  handleViewTransactions(item: BudgetLineTableItem): void {
+    const consumption = this.#consumptions().get(item.data.id);
+    if (!consumption) return;
+    this.openAllocatedTransactionsDialog({
+      budgetLine: item.data,
+      consumption,
+    });
+  }
+
+  handleAddTransaction(budgetLine: BudgetLine): void {
+    this.openCreateAllocatedTransactionDialog(budgetLine);
   }
 
   async handleUpdateBudgetLine(data: BudgetLineUpdate): Promise<void> {
