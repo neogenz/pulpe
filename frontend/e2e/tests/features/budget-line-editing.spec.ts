@@ -1,5 +1,10 @@
 import { test, expect } from '../../fixtures/test-fixtures';
-import { createBudgetDetailsMock, createBudgetLineMock, createBudgetLineResponseMock, TEST_UUIDS } from '../../helpers/api-mocks';
+import {
+  createBudgetDetailsMock,
+  createBudgetLineMock,
+  createBudgetLineResponseMock,
+  TEST_UUIDS,
+} from '../../helpers/api-mocks';
 
 test.describe('Budget Line Editing', () => {
   test('should edit budget line inline', async ({
@@ -49,43 +54,55 @@ test.describe('Budget Line Editing', () => {
     });
 
     // Mock the update API endpoint using typed helper
-    await authenticatedPage.route(`**/api/v1/budget-lines/${TEST_UUIDS.LINE_1}`, (route) => {
-      if (route.request().method() === 'PATCH') {
-        // Capture the update payload
-        updatePayload = route.request().postDataJSON();
+    await authenticatedPage.route(
+      `**/api/v1/budget-lines/${TEST_UUIDS.LINE_1}`,
+      (route) => {
+        if (route.request().method() === 'PATCH') {
+          // Capture the update payload
+          updatePayload = route.request().postDataJSON();
 
-        // Validate that isManuallyAdjusted is set to true
-        expect(updatePayload).toHaveProperty('isManuallyAdjusted', true);
+          // Validate that isManuallyAdjusted is set to true
+          expect(updatePayload).toHaveProperty('isManuallyAdjusted', true);
 
-        // Mark that the update has been called
-        hasBeenUpdated = true;
+          // Mark that the update has been called
+          hasBeenUpdated = true;
 
-        const updatedBudgetLine = createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, {
-          name: updatedName,
-          amount: updatedAmount,
-          recurrence: 'fixed',
-          isManuallyAdjusted: true, // Ensure the response reflects the update
-        });
-        const updateResponse = createBudgetLineResponseMock(updatedBudgetLine);
+          const updatedBudgetLine = createBudgetLineMock(
+            TEST_UUIDS.LINE_1,
+            budgetId,
+            {
+              name: updatedName,
+              amount: updatedAmount,
+              recurrence: 'fixed',
+              isManuallyAdjusted: true, // Ensure the response reflects the update
+            },
+          );
+          const updateResponse =
+            createBudgetLineResponseMock(updatedBudgetLine);
 
-        void route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify(updateResponse),
-        });
-      }
-    });
+          void route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(updateResponse),
+          });
+        }
+      },
+    );
 
     await budgetDetailsPage.goto(budgetId);
     await budgetDetailsPage.expectPageLoaded();
     await budgetDetailsPage.switchToTableView();
 
     // Open the actions menu first
-    const menuButton = authenticatedPage.locator(`[data-testid="actions-menu-${TEST_UUIDS.LINE_1}"]`);
+    const menuButton = authenticatedPage.locator(
+      `[data-testid="actions-menu-${TEST_UUIDS.LINE_1}"]`,
+    );
     await menuButton.click();
 
     // Click the edit menu item
-    const editMenuItem = authenticatedPage.locator('button[mat-menu-item]').filter({ hasText: 'Éditer' });
+    const editMenuItem = authenticatedPage
+      .locator('button[mat-menu-item]')
+      .filter({ hasText: 'Éditer' });
     await editMenuItem.click();
 
     // Wait for the edit dialog to open
@@ -93,8 +110,12 @@ test.describe('Budget Line Editing', () => {
     await expect(dialog).toBeVisible();
 
     // Find the inputs in the dialog using their data-testid
-    const nameInput = authenticatedPage.locator('[data-testid="edit-line-name"]');
-    const amountInput = authenticatedPage.locator('[data-testid="edit-line-amount"]');
+    const nameInput = authenticatedPage.locator(
+      '[data-testid="edit-line-name"]',
+    );
+    const amountInput = authenticatedPage.locator(
+      '[data-testid="edit-line-amount"]',
+    );
 
     // Verify dialog inputs are visible
     await expect(nameInput).toBeVisible();
@@ -109,17 +130,25 @@ test.describe('Budget Line Editing', () => {
     await amountInput.fill(updatedAmount.toString());
 
     // Save the changes using the dialog save button
-    const saveButton = authenticatedPage.locator('[data-testid="save-edit-line"]');
+    const saveButton = authenticatedPage.locator(
+      '[data-testid="save-edit-line"]',
+    );
     await saveButton.click();
 
     // Wait for the API request to complete by waiting for the success message
-    await expect(authenticatedPage.locator('.mat-mdc-snack-bar-label').last()).toHaveText('Modification enregistrée');
+    await expect(
+      authenticatedPage.locator('.mat-mdc-snack-bar-label').last(),
+    ).toHaveText('Modification enregistrée');
 
     // Wait for the DOM to update with the new values
-    await expect(authenticatedPage.locator('tr:has-text("' + updatedName + '")')).toBeVisible();
+    await expect(
+      authenticatedPage.locator('tr:has-text("' + updatedName + '")'),
+    ).toBeVisible();
 
     // Verify the row contains the updated values
-    const updatedRow = authenticatedPage.locator('tr').filter({ hasText: updatedName });
+    const updatedRow = authenticatedPage
+      .locator('tr')
+      .filter({ hasText: updatedName });
     await expect(updatedRow).toContainText(updatedName);
     await expect(updatedRow).toContainText('150');
 
@@ -163,12 +192,16 @@ test.describe('Budget Line Editing', () => {
     await authenticatedPage.waitForSelector('tr:has-text("Test Budget Line")');
 
     // Open the actions menu first
-    const menuButton = authenticatedPage.locator(`[data-testid="actions-menu-${TEST_UUIDS.LINE_1}"]`);
+    const menuButton = authenticatedPage.locator(
+      `[data-testid="actions-menu-${TEST_UUIDS.LINE_1}"]`,
+    );
     await expect(menuButton).toBeVisible();
     await menuButton.click();
 
     // Click the edit menu item
-    const editMenuItem = authenticatedPage.locator('button[mat-menu-item]').filter({ hasText: 'Éditer' });
+    const editMenuItem = authenticatedPage
+      .locator('button[mat-menu-item]')
+      .filter({ hasText: 'Éditer' });
     await editMenuItem.click();
 
     // Wait for the edit dialog to open
@@ -176,7 +209,9 @@ test.describe('Budget Line Editing', () => {
     await expect(dialog).toBeVisible();
 
     // Find the name input in the dialog
-    const nameInput = authenticatedPage.locator('[data-testid="edit-line-name"]');
+    const nameInput = authenticatedPage.locator(
+      '[data-testid="edit-line-name"]',
+    );
     await expect(nameInput).toBeVisible();
 
     // Make some changes
@@ -184,7 +219,9 @@ test.describe('Budget Line Editing', () => {
     await nameInput.fill('Changed Name That Should Not Be Saved');
 
     // Cancel the changes using the dialog cancel button
-    const cancelButton = authenticatedPage.locator('[data-testid="cancel-edit-line"]');
+    const cancelButton = authenticatedPage.locator(
+      '[data-testid="cancel-edit-line"]',
+    );
     await expect(cancelButton).toBeVisible();
     await cancelButton.click();
 
@@ -192,8 +229,137 @@ test.describe('Budget Line Editing', () => {
     await expect(dialog).not.toBeVisible();
 
     // Verify the original values are still displayed
-    const budgetLineRow = authenticatedPage.locator('tr').filter({ hasText: originalName });
+    const budgetLineRow = authenticatedPage
+      .locator('tr')
+      .filter({ hasText: originalName });
     await expect(budgetLineRow).toBeVisible();
     await expect(budgetLineRow).toContainText(originalName);
+  });
+
+  test('should show propagation locked indicator after editing template-linked line', async ({
+    authenticatedPage,
+    budgetDetailsPage,
+  }) => {
+    const budgetId = TEST_UUIDS.BUDGET_1;
+    const originalName = 'Template Linked Line';
+    const updatedName = 'Modified Template Line';
+
+    let hasBeenUpdated = false;
+
+    // Mock budget line linked to template (templateLineId set)
+    await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
+      const mockResponse = hasBeenUpdated
+        ? createBudgetDetailsMock(budgetId, {
+            budgetLines: [
+              createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, {
+                name: updatedName,
+                amount: 100,
+                recurrence: 'fixed',
+                templateLineId: TEST_UUIDS.TEMPLATE_1, // Linked to template
+                isManuallyAdjusted: true, // Set after edit
+              }),
+            ],
+          })
+        : createBudgetDetailsMock(budgetId, {
+            budgetLines: [
+              createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, {
+                name: originalName,
+                amount: 100,
+                recurrence: 'fixed',
+                templateLineId: TEST_UUIDS.TEMPLATE_1, // Linked to template
+                isManuallyAdjusted: false, // Not yet edited
+              }),
+            ],
+          });
+
+      void route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockResponse),
+      });
+    });
+
+    // Mock update endpoint
+    await authenticatedPage.route(
+      `**/api/v1/budget-lines/${TEST_UUIDS.LINE_1}`,
+      (route) => {
+        if (route.request().method() === 'PATCH') {
+          hasBeenUpdated = true;
+
+          const updatedBudgetLine = createBudgetLineMock(
+            TEST_UUIDS.LINE_1,
+            budgetId,
+            {
+              name: updatedName,
+              amount: 100,
+              recurrence: 'fixed',
+              templateLineId: TEST_UUIDS.TEMPLATE_1,
+              isManuallyAdjusted: true,
+            },
+          );
+
+          void route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(
+              createBudgetLineResponseMock(updatedBudgetLine),
+            ),
+          });
+        }
+      },
+    );
+
+    await budgetDetailsPage.goto(budgetId);
+    await budgetDetailsPage.expectPageLoaded();
+    await budgetDetailsPage.switchToTableView();
+
+    // Initially no lock icon should be visible for this line
+    const initialRow = authenticatedPage
+      .locator('tr')
+      .filter({ hasText: originalName });
+    await expect(initialRow).toBeVisible();
+    const initialLockIcon = initialRow.locator('mat-icon:has-text("lock")');
+    await expect(initialLockIcon).not.toBeVisible();
+
+    // Open actions menu and edit
+    const menuButton = authenticatedPage.locator(
+      `[data-testid="actions-menu-${TEST_UUIDS.LINE_1}"]`,
+    );
+    await menuButton.click();
+
+    const editMenuItem = authenticatedPage
+      .locator('button[mat-menu-item]')
+      .filter({ hasText: 'Éditer' });
+    await editMenuItem.click();
+
+    // Wait for dialog and update name
+    const dialog = authenticatedPage.locator('mat-dialog-container');
+    await expect(dialog).toBeVisible();
+
+    const nameInput = authenticatedPage.locator(
+      '[data-testid="edit-line-name"]',
+    );
+    await nameInput.clear();
+    await nameInput.fill(updatedName);
+
+    // Save changes
+    const saveButton = authenticatedPage.locator(
+      '[data-testid="save-edit-line"]',
+    );
+    await saveButton.click();
+
+    // Wait for success
+    await expect(
+      authenticatedPage.locator('.mat-mdc-snack-bar-label').last(),
+    ).toHaveText('Modification enregistrée');
+
+    // After edit, lock icon should be visible
+    const updatedRow = authenticatedPage
+      .locator('tr')
+      .filter({ hasText: updatedName });
+    await expect(updatedRow).toBeVisible();
+
+    const lockIcon = updatedRow.locator('mat-icon:has-text("lock")');
+    await expect(lockIcon).toBeVisible();
   });
 });

@@ -78,6 +78,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     deleteBudgetLine$: ReturnType<typeof vi.fn>;
   };
   let mockTransactionApi: {
+    create$: ReturnType<typeof vi.fn>;
     remove$: ReturnType<typeof vi.fn>;
   };
   let mockLogger: {
@@ -125,6 +126,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     };
 
     mockTransactionApi = {
+      create$: vi.fn(),
       remove$: vi.fn(),
     };
 
@@ -682,6 +684,349 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       // User sees an error occurred
       expect(service.error()).toBeTruthy();
+    });
+  });
+
+  describe('User creates allocated transactions', () => {
+    it('should inherit checked state from parent budget line when creating allocated transaction', async () => {
+      const checkedTimestamp = '2024-01-15T10:00:00Z';
+
+      // Parent budget line has checkedAt
+      const checkedParentLine = createMockBudgetLine({
+        id: 'line-checked',
+        budgetId: mockBudgetId,
+        name: 'Checked Parent',
+        amount: 1000,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: checkedTimestamp,
+      });
+
+      // Setup mock with checked parent BEFORE loading
+      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
+        of(
+          createMockBudgetDetailsResponse({
+            budget: { id: mockBudgetId },
+            budgetLines: [checkedParentLine],
+            transactions: [],
+          }),
+        ),
+      );
+
+      // Load budget data
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      // Mock server response for transaction creation
+      const serverTransaction = createMockTransaction({
+        id: 'tx-server-1',
+        budgetId: mockBudgetId,
+        budgetLineId: 'line-checked',
+        name: 'New Allocated Transaction',
+        amount: 200,
+        kind: 'expense',
+        checkedAt: checkedTimestamp,
+      });
+
+      mockTransactionApi.create$ = vi
+        .fn()
+        .mockReturnValue(of({ data: serverTransaction }));
+
+      // User creates transaction linked to checked parent
+      await service.createAllocatedTransaction({
+        budgetId: mockBudgetId,
+        budgetLineId: 'line-checked',
+        name: 'New Allocated Transaction',
+        amount: 200,
+        kind: 'expense',
+      });
+
+      // Transaction should inherit checkedAt from parent
+      const transactions = service.budgetDetails()?.transactions ?? [];
+      const createdTx = transactions.find(
+        (tx) => tx.name === 'New Allocated Transaction',
+      );
+
+      expect(createdTx).toBeDefined();
+      expect(createdTx?.checkedAt).not.toBeNull();
+
+      // Verify API was called with inherited checkedAt
+      expect(mockTransactionApi.create$).toHaveBeenCalledWith(
+        expect.objectContaining({
+          checkedAt: expect.any(String),
+        }),
+      );
+    });
+
+    it('should not inherit checked state when parent budget line is unchecked', async () => {
+      // Parent budget line without checkedAt
+      const uncheckedParentLine = createMockBudgetLine({
+        id: 'line-unchecked',
+        budgetId: mockBudgetId,
+        name: 'Unchecked Parent',
+        amount: 1000,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: null,
+      });
+
+      // Setup mock with unchecked parent BEFORE loading
+      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
+        of(
+          createMockBudgetDetailsResponse({
+            budget: { id: mockBudgetId },
+            budgetLines: [uncheckedParentLine],
+            transactions: [],
+          }),
+        ),
+      );
+
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      const serverTransaction = createMockTransaction({
+        id: 'tx-server-2',
+        budgetId: mockBudgetId,
+        budgetLineId: 'line-unchecked',
+        name: 'Transaction to Unchecked',
+        amount: 150,
+        kind: 'expense',
+        checkedAt: null,
+      });
+
+      mockTransactionApi.create$ = vi
+        .fn()
+        .mockReturnValue(of({ data: serverTransaction }));
+
+      await service.createAllocatedTransaction({
+        budgetId: mockBudgetId,
+        budgetLineId: 'line-unchecked',
+        name: 'Transaction to Unchecked',
+        amount: 150,
+        kind: 'expense',
+      });
+
+      const transactions = service.budgetDetails()?.transactions ?? [];
+      const createdTx = transactions.find(
+        (tx) => tx.name === 'Transaction to Unchecked',
+      );
+
+      expect(createdTx).toBeDefined();
+      expect(createdTx?.checkedAt).toBeNull();
+    });
+  });
+
+  describe('User views financial summary', () => {
+    it('should calculate realized balance based on checked items only', async () => {
+      const checkedIncome = createMockBudgetLine({
+        id: 'income-checked',
+        budgetId: mockBudgetId,
+        name: 'Checked Income',
+        amount: 5000,
+        kind: 'income',
+        recurrence: 'fixed',
+        checkedAt: '2024-01-15T10:00:00Z',
+      });
+
+      const uncheckedIncome = createMockBudgetLine({
+        id: 'income-unchecked',
+        budgetId: mockBudgetId,
+        name: 'Unchecked Income',
+        amount: 3000,
+        kind: 'income',
+        recurrence: 'fixed',
+        checkedAt: null,
+      });
+
+      const checkedExpense = createMockBudgetLine({
+        id: 'expense-checked',
+        budgetId: mockBudgetId,
+        name: 'Checked Expense',
+        amount: 1500,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: '2024-01-15T10:00:00Z',
+      });
+
+      const uncheckedExpense = createMockBudgetLine({
+        id: 'expense-unchecked',
+        budgetId: mockBudgetId,
+        name: 'Unchecked Expense',
+        amount: 500,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: null,
+      });
+
+      const checkedTransaction = createMockTransaction({
+        id: 'tx-checked',
+        budgetId: mockBudgetId,
+        name: 'Checked Transaction',
+        amount: 200,
+        kind: 'expense',
+        checkedAt: '2024-01-15T10:00:00Z',
+      });
+
+      const uncheckedTransaction = createMockTransaction({
+        id: 'tx-unchecked',
+        budgetId: mockBudgetId,
+        name: 'Unchecked Transaction',
+        amount: 100,
+        kind: 'expense',
+        checkedAt: null,
+      });
+
+      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
+        of(
+          createMockBudgetDetailsResponse({
+            budget: { id: mockBudgetId },
+            budgetLines: [
+              checkedIncome,
+              uncheckedIncome,
+              checkedExpense,
+              uncheckedExpense,
+            ],
+            transactions: [checkedTransaction, uncheckedTransaction],
+          }),
+        ),
+      );
+
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      // Realized balance: checked income (5000) - checked expenses (1500) - checked transactions (200) = 3300
+      expect(service.realizedBalance()).toBe(3300);
+    });
+
+    it('should calculate realized expenses based on checked items only', async () => {
+      const checkedExpense = createMockBudgetLine({
+        id: 'expense-checked',
+        budgetId: mockBudgetId,
+        name: 'Checked Expense',
+        amount: 1500,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: '2024-01-15T10:00:00Z',
+      });
+
+      const uncheckedExpense = createMockBudgetLine({
+        id: 'expense-unchecked',
+        budgetId: mockBudgetId,
+        name: 'Unchecked Expense',
+        amount: 500,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: null,
+      });
+
+      const checkedSaving = createMockBudgetLine({
+        id: 'saving-checked',
+        budgetId: mockBudgetId,
+        name: 'Checked Saving',
+        amount: 800,
+        kind: 'saving',
+        recurrence: 'fixed',
+        checkedAt: '2024-01-15T10:00:00Z',
+      });
+
+      const checkedTransaction = createMockTransaction({
+        id: 'tx-checked',
+        budgetId: mockBudgetId,
+        name: 'Checked Transaction',
+        amount: 200,
+        kind: 'expense',
+        checkedAt: '2024-01-15T10:00:00Z',
+      });
+
+      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
+        of(
+          createMockBudgetDetailsResponse({
+            budget: { id: mockBudgetId },
+            budgetLines: [checkedExpense, uncheckedExpense, checkedSaving],
+            transactions: [checkedTransaction],
+          }),
+        ),
+      );
+
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      // Realized expenses: checked expense (1500) + checked saving (800) + checked transaction (200) = 2500
+      expect(service.realizedExpenses()).toBe(2500);
+    });
+
+    it('should count checked items accurately', async () => {
+      const checkedLine1 = createMockBudgetLine({
+        id: 'line-checked-1',
+        budgetId: mockBudgetId,
+        name: 'Checked Line 1',
+        amount: 1000,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: '2024-01-15T10:00:00Z',
+      });
+
+      const checkedLine2 = createMockBudgetLine({
+        id: 'line-checked-2',
+        budgetId: mockBudgetId,
+        name: 'Checked Line 2',
+        amount: 2000,
+        kind: 'income',
+        recurrence: 'fixed',
+        checkedAt: '2024-01-15T10:00:00Z',
+      });
+
+      const uncheckedLine = createMockBudgetLine({
+        id: 'line-unchecked',
+        budgetId: mockBudgetId,
+        name: 'Unchecked Line',
+        amount: 500,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: null,
+      });
+
+      const checkedTx = createMockTransaction({
+        id: 'tx-checked',
+        budgetId: mockBudgetId,
+        name: 'Checked Transaction',
+        amount: 100,
+        kind: 'expense',
+        checkedAt: '2024-01-15T10:00:00Z',
+      });
+
+      const uncheckedTx = createMockTransaction({
+        id: 'tx-unchecked',
+        budgetId: mockBudgetId,
+        name: 'Unchecked Transaction',
+        amount: 50,
+        kind: 'expense',
+        checkedAt: null,
+      });
+
+      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
+        of(
+          createMockBudgetDetailsResponse({
+            budget: { id: mockBudgetId },
+            budgetLines: [checkedLine1, checkedLine2, uncheckedLine],
+            transactions: [checkedTx, uncheckedTx],
+          }),
+        ),
+      );
+
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      // 2 checked budget lines + 1 checked transaction = 3
+      expect(service.checkedItemsCount()).toBe(3);
+
+      // Total items: 3 budget lines + 2 transactions = 5
+      expect(service.totalItemsCount()).toBe(5);
     });
   });
 });
