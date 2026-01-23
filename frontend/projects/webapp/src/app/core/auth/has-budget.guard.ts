@@ -10,7 +10,7 @@ import { HasBudgetCache } from './has-budget-cache';
  * Protects routes that require the user to have at least one budget.
  * Fast path: Uses cache (instant 90% of cases after pre-load at login).
  * Slow path: Fetches from API if cache miss (auto-syncs cache).
- * Fail-safe: Allows navigation on network errors.
+ * Fail-closed: Redirects to complete-profile on errors (secure default).
  */
 export const hasBudgetGuard: CanActivateFn = async () => {
   const hasBudgetCache = inject(HasBudgetCache);
@@ -19,7 +19,7 @@ export const hasBudgetGuard: CanActivateFn = async () => {
   const logger = inject(Logger);
 
   const redirectToCompleteProfile = () =>
-    router.createUrlTree(['/', ROUTES.APP, ROUTES.COMPLETE_PROFILE]);
+    router.createUrlTree(['/', ROUTES.COMPLETE_PROFILE]);
 
   const hasBudgetFromCache = hasBudgetCache.hasBudget();
 
@@ -34,10 +34,10 @@ export const hasBudgetGuard: CanActivateFn = async () => {
     const hasBudget = await firstValueFrom(budgetApi.checkBudgetExists$());
     return hasBudget ? true : redirectToCompleteProfile();
   } catch (error) {
-    logger.warn(
-      'hasBudgetGuard: API error during cache miss, allowing navigation (fail-safe)',
+    logger.error(
+      'hasBudgetGuard: API error during cache miss, redirecting to complete-profile (fail-closed)',
       error,
     );
-    return true;
+    return redirectToCompleteProfile();
   }
 };

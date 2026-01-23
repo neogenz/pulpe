@@ -34,6 +34,7 @@ import {
   type TransactionTableItem,
 } from './data-core';
 import { BudgetViewToggle } from './components';
+import { BudgetTableCheckedFilter } from './budget-table/budget-table-checked-filter';
 
 /**
  * Unified container component for displaying budget items.
@@ -48,23 +49,34 @@ import { BudgetViewToggle } from './components';
     BudgetGrid,
     BudgetTable,
     BudgetViewToggle,
+    BudgetTableCheckedFilter,
   ],
   providers: [BudgetItemDataProvider],
   template: `
     <mat-card appearance="outlined" class="overflow-hidden">
       <mat-card-header class="bg-surface-container/50 !py-4 !px-5">
-        <div class="flex items-center justify-between w-full">
-          <div>
-            <mat-card-title class="text-title-large"
-              >Tes enveloppes</mat-card-title
-            >
-            <mat-card-subtitle class="text-body-medium text-on-surface-variant">
-              {{ budgetLines().length }} prévisions ce mois
-            </mat-card-subtitle>
+        <div class="flex flex-col gap-3 w-full">
+          <div class="flex items-center justify-between">
+            <div>
+              <mat-card-title class="text-title-large"
+                >Tes enveloppes</mat-card-title
+              >
+              <mat-card-subtitle
+                class="text-body-medium text-on-surface-variant"
+              >
+                {{ budgetLines().length }} prévisions ce mois
+              </mat-card-subtitle>
+            </div>
+            @if (!isMobile()) {
+              <pulpe-budget-view-toggle [(viewMode)]="viewMode" />
+            }
           </div>
-          @if (!isMobile()) {
-            <pulpe-budget-view-toggle [(viewMode)]="viewMode" />
-          }
+          <pulpe-budget-table-checked-filter
+            [isShowingOnlyUnchecked]="isShowingOnlyUnchecked()"
+            (isShowingOnlyUncheckedChange)="
+              isShowingOnlyUncheckedChange.emit($event)
+            "
+          />
         </div>
       </mat-card-header>
 
@@ -133,8 +145,10 @@ export class BudgetItemsContainer {
   // Signal inputs
   readonly budgetLines = input.required<BudgetLineViewModel[]>();
   readonly transactions = input.required<TransactionViewModel[]>();
+  readonly isShowingOnlyUnchecked = input<boolean>(true);
 
   // Outputs
+  readonly isShowingOnlyUncheckedChange = output<boolean>();
   readonly update = output<BudgetLineUpdate>();
   readonly delete = output<string>();
   readonly deleteTransaction = output<string>();

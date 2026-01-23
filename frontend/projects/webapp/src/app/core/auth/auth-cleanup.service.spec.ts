@@ -79,12 +79,12 @@ describe('AuthCleanupService', () => {
       role: 'authenticated',
     } as User);
 
-    service.performCleanup('user-456');
+    service.performCleanup();
 
     expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
     expect(mockHasBudgetCache.clear).toHaveBeenCalled();
     expect(mockPostHog.reset).toHaveBeenCalled();
-    expect(mockStorage.clearAll).toHaveBeenCalledWith('user-456');
+    expect(mockStorage.clearAll).toHaveBeenCalled();
   });
 
   it('should prevent double cleanup when called rapidly', () => {
@@ -96,8 +96,8 @@ describe('AuthCleanupService', () => {
       role: 'authenticated',
     } as User);
 
-    service.performCleanup('user-789');
-    service.performCleanup('user-789');
+    service.performCleanup();
+    service.performCleanup();
 
     expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalledTimes(1);
     expect(mockHasBudgetCache.clear).toHaveBeenCalledTimes(1);
@@ -121,7 +121,7 @@ describe('AuthCleanupService', () => {
       role: 'authenticated',
     } as User);
 
-    service.performCleanup('user-123');
+    service.performCleanup();
 
     TestBed.resetTestingModule();
 

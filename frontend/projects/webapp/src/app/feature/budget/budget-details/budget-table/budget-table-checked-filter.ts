@@ -14,6 +14,13 @@ import { MatIconModule } from '@angular/material/icon';
   selector: 'pulpe-budget-table-checked-filter',
   imports: [MatChipsModule, MatIconModule],
   template: `
+    <span class="sr-only" role="status" aria-live="polite">
+      {{
+        isShowingOnlyUnchecked()
+          ? 'Affichage des éléments non comptabilisés'
+          : 'Affichage de tous les éléments'
+      }}
+    </span>
     <mat-chip-listbox
       class="checked-filter-chips"
       aria-label="Filtrer les éléments"

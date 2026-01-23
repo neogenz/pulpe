@@ -174,12 +174,23 @@ struct BudgetDetailsView: View {
     }
 
     private var content: some View {
-        let filteredIncome = viewModel.filteredLines(viewModel.incomeLines, searchText: searchText)
-        let filteredExpenses = viewModel.filteredLines(viewModel.expenseLines, searchText: searchText)
-        let filteredSavings = viewModel.filteredLines(viewModel.savingLines, searchText: searchText)
+        // Apply both checked filter and search filter
+        let filteredIncome = viewModel.filteredLines(viewModel.filteredIncomeLines, searchText: searchText)
+        let filteredExpenses = viewModel.filteredLines(viewModel.filteredExpenseLines, searchText: searchText)
+        let filteredSavings = viewModel.filteredLines(viewModel.filteredSavingLines, searchText: searchText)
         let filteredFree = viewModel.filteredFreeTransactions(searchText: searchText)
+            .filter { tx in
+                // Also apply checked filter to free transactions
+                !viewModel.isShowingOnlyUnchecked || tx.checkedAt == nil
+            }
 
         return List {
+            // Filter picker
+            Section {
+                CheckedFilterPicker(selection: $viewModel.checkedFilter)
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
             // Hero balance card (Revolut-style)
             Section {
                 HeroBalanceCard(
@@ -318,6 +329,12 @@ struct BudgetDetailsView: View {
 
 // MARK: - ViewModel
 
+// MARK: - UserDefaults Key
+
+private enum BudgetDetailsUserDefaultsKey {
+    static let showOnlyUnchecked = "pulpe-budget-show-only-unchecked"
+}
+
 @Observable @MainActor
 final class BudgetDetailsViewModel {
     private(set) var budgetId: String
@@ -337,12 +354,27 @@ final class BudgetDetailsViewModel {
     private(set) var previousBudgetId: String?
     private(set) var nextBudgetId: String?
 
+    // Filter state - persisted to UserDefaults
+    var checkedFilter: CheckedFilterOption {
+        didSet {
+            UserDefaults.standard.set(
+                checkedFilter == .unchecked,
+                forKey: BudgetDetailsUserDefaultsKey.showOnlyUnchecked
+            )
+        }
+    }
+
+    var isShowingOnlyUnchecked: Bool { checkedFilter == .unchecked }
+
     private let budgetService = BudgetService.shared
     private let budgetLineService = BudgetLineService.shared
     private let transactionService = TransactionService.shared
 
     init(budgetId: String) {
         self.budgetId = budgetId
+        // Load persisted filter preference (default: show only unchecked)
+        let showOnlyUnchecked = UserDefaults.standard.object(forKey: BudgetDetailsUserDefaultsKey.showOnlyUnchecked) as? Bool ?? true
+        self.checkedFilter = showOnlyUnchecked ? .unchecked : .all
     }
 
     var hasPreviousBudget: Bool { previousBudgetId != nil }
@@ -383,6 +415,36 @@ final class BudgetDetailsViewModel {
         transactions
             .filter { $0.budgetLineId == nil }
             .sorted { $0.transactionDate > $1.transactionDate }
+    }
+
+    // MARK: - Filtered Lines (based on checked filter)
+
+    /// Filters budget lines based on the checked filter preference
+    private func applyCheckedFilter(_ lines: [BudgetLine]) -> [BudgetLine] {
+        guard isShowingOnlyUnchecked else { return lines }
+        return lines.filter { $0.checkedAt == nil }
+    }
+
+    /// Filters free transactions based on the checked filter preference
+    private func applyCheckedFilterToFreeTransactions(_ transactions: [Transaction]) -> [Transaction] {
+        guard isShowingOnlyUnchecked else { return transactions }
+        return transactions.filter { $0.checkedAt == nil }
+    }
+
+    var filteredIncomeLines: [BudgetLine] {
+        applyCheckedFilter(incomeLines)
+    }
+
+    var filteredExpenseLines: [BudgetLine] {
+        applyCheckedFilter(expenseLines)
+    }
+
+    var filteredSavingLines: [BudgetLine] {
+        applyCheckedFilter(savingLines)
+    }
+
+    var filteredFreeTransactionsForDisplay: [Transaction] {
+        applyCheckedFilterToFreeTransactions(freeTransactions)
     }
 
     var rolloverInfo: (amount: Decimal, previousBudgetId: String?)? {
