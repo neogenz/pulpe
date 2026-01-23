@@ -40,7 +40,11 @@ describe('BudgetTemplateService - Simplified Tests', () => {
   beforeEach(() => {
     const { mockClient } = createMockSupabaseClient();
     mockSupabase = mockClient;
-    mockUser = { id: 'user-123', email: 'test@example.com' };
+    mockUser = {
+      id: 'user-123',
+      email: 'test@example.com',
+      accessToken: 'mock-token',
+    };
     mockLogger = {
       error: mock(() => {}),
       warn: mock(() => {}),

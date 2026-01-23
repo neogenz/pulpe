@@ -4,7 +4,9 @@ import {
   type UserSettings,
   type UserSettingsResponse,
   type UpdateUserSettings,
+  type DeleteAccountResponse,
   userSettingsResponseSchema,
+  deleteAccountResponseSchema,
 } from 'pulpe-shared';
 import { type Observable, firstValueFrom, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
@@ -107,6 +109,27 @@ export class UserSettingsApi {
    */
   reload(): void {
     this.#reloadTrigger.update((v) => v + 1);
+  }
+
+  /**
+   * Request account deletion
+   * Schedules the account for deletion after a 3-day grace period.
+   */
+  async deleteAccount(): Promise<DeleteAccountResponse> {
+    try {
+      const apiUrl = `${this.#applicationConfig.backendApiUrl()}/users/account`;
+      const response = await firstValueFrom(
+        this.#httpClient.delete<DeleteAccountResponse>(apiUrl).pipe(
+          map((res) => deleteAccountResponseSchema.parse(res)),
+          catchError((error) => this.#handleError(error)),
+        ),
+      );
+
+      return response;
+    } catch (error) {
+      this.#logger.error('Failed to delete account', { error });
+      throw error;
+    }
   }
 
   /**

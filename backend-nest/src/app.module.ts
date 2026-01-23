@@ -24,6 +24,7 @@ import { DemoModule } from '@modules/demo/demo.module';
 import { SupabaseModule } from '@modules/supabase/supabase.module';
 import { TransactionModule } from '@modules/transaction/transaction.module';
 import { UserModule } from '@modules/user/user.module';
+import { AccountDeletionModule } from '@modules/account-deletion/account-deletion.module';
 
 // Filters
 import { FiltersModule } from '@common/filters/filters.module';
@@ -281,6 +282,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
     BudgetTemplateModule,
     TransactionModule,
     UserModule,
+    AccountDeletionModule,
     // Only include DebugModule in non-production-like environments
     ...(!isProductionLike(process.env.NODE_ENV) ? [DebugModule] : []),
     FiltersModule,

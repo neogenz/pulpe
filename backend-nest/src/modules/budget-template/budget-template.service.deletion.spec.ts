@@ -10,7 +10,11 @@ describe('BudgetTemplateService - Template Deletion', () => {
   let mockUser: AuthenticatedUser;
 
   beforeEach(() => {
-    mockUser = { id: 'user-123', email: 'test@example.com' };
+    mockUser = {
+      id: 'user-123',
+      email: 'test@example.com',
+      accessToken: 'mock-token',
+    };
     const mockLogger = {
       info: mock(() => {}),
       error: mock(() => {}),

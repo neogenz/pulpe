@@ -105,6 +105,7 @@ describe('BudgetLineService', () => {
       email: 'test@example.com',
       firstName: 'Test',
       lastName: 'User',
+      accessToken: 'mock-token',
     };
 
     const module: TestingModule = await Test.createTestingModule({

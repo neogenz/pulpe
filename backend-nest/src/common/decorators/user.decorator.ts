@@ -5,6 +5,7 @@ export interface AuthenticatedUser {
   readonly email: string;
   readonly firstName?: string;
   readonly lastName?: string;
+  readonly accessToken: string;
 }
 
 export const User = createParamDecorator(

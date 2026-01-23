@@ -50,7 +50,7 @@ export class AuthGuard implements CanActivate {
         'Reusing cached user from throttler guard',
       );
 
-      request.user = cachedUser;
+      request.user = { ...cachedUser, accessToken };
       request.supabase = supabase;
       return true;
     } catch (error) {
@@ -78,11 +78,16 @@ export class AuthGuard implements CanActivate {
         throw new BusinessException(ERROR_DEFINITIONS.AUTH_TOKEN_INVALID);
       }
 
+      if (user.user_metadata?.scheduledDeletionAt) {
+        throw new BusinessException(ERROR_DEFINITIONS.USER_ACCOUNT_BLOCKED);
+      }
+
       const authenticatedUser: AuthenticatedUser = {
         id: user.id,
         email: user.email!,
         firstName: user.user_metadata?.firstName,
         lastName: user.user_metadata?.lastName,
+        accessToken,
       };
 
       request.user = authenticatedUser;

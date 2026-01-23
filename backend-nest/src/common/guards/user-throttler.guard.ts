@@ -100,6 +100,7 @@ export class UserThrottlerGuard extends ThrottlerGuard {
         email: user.email ?? '',
         firstName: user.user_metadata?.firstName,
         lastName: user.user_metadata?.lastName,
+        accessToken: token,
       };
     } catch (error) {
       // Log errors at debug level (not warn) to avoid noise from invalid tokens

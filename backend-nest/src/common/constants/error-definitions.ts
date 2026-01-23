@@ -427,6 +427,16 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Failed to fetch user settings',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+  USER_ACCOUNT_DELETION_FAILED: {
+    code: 'ERR_USER_ACCOUNT_DELETION_FAILED',
+    message: () => 'Failed to schedule account deletion',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  USER_ACCOUNT_BLOCKED: {
+    code: 'ERR_USER_ACCOUNT_BLOCKED',
+    message: () => 'Account is scheduled for deletion',
+    httpStatus: HttpStatus.FORBIDDEN,
+  },
 
   // Validation Errors
   VALIDATION_FAILED: {

@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Delete, Body, UseGuards } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { handleServiceError } from '@common/utils/error-handler';
@@ -28,6 +28,7 @@ import {
   SuccessMessageResponseDto,
   UpdateUserSettingsDto,
   UserSettingsResponseDto,
+  DeleteAccountResponseDto,
 } from './dto/user-profile.dto';
 import { payDayOfMonthSchema } from 'pulpe-shared';
 import { ErrorResponseDto } from '@common/dto/response.dto';
@@ -353,6 +354,83 @@ export class UserController {
         ERROR_DEFINITIONS.USER_SETTINGS_UPDATE_FAILED,
         undefined,
         { operation: 'updateSettings', userId: user.id },
+      );
+    }
+  }
+
+  @Delete('account')
+  @ApiOperation({
+    summary: 'Request account deletion',
+    description:
+      'Schedules the user account for deletion after a 3-day grace period. User is immediately signed out.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Account deletion scheduled successfully',
+    type: DeleteAccountResponseDto,
+  })
+  async deleteAccount(
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<DeleteAccountResponseDto> {
+    try {
+      const currentUserData = await this.getCurrentUserData(supabase);
+      const existingDeletion =
+        currentUserData.user.user_metadata?.scheduledDeletionAt;
+
+      if (existingDeletion) {
+        return {
+          success: true as const,
+          message: 'Ton compte est déjà programmé pour suppression',
+          scheduledDeletionAt: existingDeletion,
+        };
+      }
+
+      const serviceClient = this.supabaseService.getServiceRoleClient();
+      const scheduledDeletionAt = new Date().toISOString();
+
+      const { error: updateError } =
+        await serviceClient.auth.admin.updateUserById(user.id, {
+          user_metadata: {
+            ...currentUserData.user.user_metadata,
+            scheduledDeletionAt,
+          },
+        });
+
+      if (updateError) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.USER_ACCOUNT_DELETION_FAILED,
+          undefined,
+          undefined,
+          { cause: updateError },
+        );
+      }
+
+      const { error: signOutError } = await serviceClient.auth.admin.signOut(
+        user.id,
+        'global',
+      );
+
+      if (signOutError) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.USER_ACCOUNT_DELETION_FAILED,
+          undefined,
+          undefined,
+          { cause: signOutError },
+        );
+      }
+
+      return {
+        success: true as const,
+        message: 'Ton compte sera supprimé dans 3 jours',
+        scheduledDeletionAt,
+      };
+    } catch (error) {
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.USER_ACCOUNT_DELETION_FAILED,
+        undefined,
+        { operation: 'deleteAccount', userId: user.id },
       );
     }
   }

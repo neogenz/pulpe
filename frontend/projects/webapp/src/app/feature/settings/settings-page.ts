@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -17,8 +18,15 @@ import {
   MatSelectModule,
 } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsApi } from '@core/user-settings';
+import { AuthSessionService } from '@core/auth/auth-session.service';
+import {
+  ConfirmationDialog,
+  type ConfirmationDialogData,
+} from '@ui/dialogs/confirmation-dialog';
 import { PAY_DAY_MAX } from 'pulpe-shared';
 
 @Component({
@@ -26,6 +34,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
   imports: [
     MatButtonModule,
     MatCardModule,
+    MatDialogModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
@@ -118,7 +127,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
       </mat-card>
 
       <!-- Info card about pay day -->
-      <mat-card appearance="outlined" class="bg-secondary-container!">
+      <mat-card appearance="outlined" class="bg-secondary-container! mb-6">
         <mat-card-content class="flex! gap-4">
           <div class="flex items-center justify-center">
             <mat-icon class="text-on-secondary-container!">lightbulb</mat-icon>
@@ -135,6 +144,41 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
           </div>
         </mat-card-content>
       </mat-card>
+
+      <!-- Danger zone -->
+      <mat-card appearance="outlined" class="border-error!">
+        <mat-card-header>
+          <div
+            mat-card-avatar
+            class="flex items-center justify-center bg-error-container rounded-full"
+          >
+            <mat-icon class="text-on-error-container!">warning</mat-icon>
+          </div>
+          <mat-card-title>Zone de danger</mat-card-title>
+          <mat-card-subtitle>
+            Actions irréversibles sur ton compte
+          </mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content>
+          <p class="text-body-medium text-on-surface-variant mb-4">
+            La suppression de ton compte est définitive. Tu perdras l'accès à
+            toutes tes données après un délai de 3 jours.
+          </p>
+          <button
+            matButton="outlined"
+            color="warn"
+            data-testid="delete-account-button"
+            [disabled]="isDeleting()"
+            (click)="onDeleteAccount()"
+          >
+            @if (isDeleting()) {
+              <mat-spinner diameter="20" class="mr-2" />
+            }
+            Supprimer mon compte
+          </button>
+        </mat-card-content>
+      </mat-card>
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -143,8 +187,12 @@ export default class SettingsPage {
   readonly #logger = inject(Logger);
   readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #snackBar = inject(MatSnackBar);
+  readonly #dialog = inject(MatDialog);
+  readonly #router = inject(Router);
+  readonly #authSession = inject(AuthSessionService);
 
   readonly isSaving = signal(false);
+  readonly isDeleting = signal(false);
   readonly availableDays = Array.from({ length: PAY_DAY_MAX }, (_, i) => i + 1);
 
   // linkedSignal syncs with API value but can be locally modified by user
@@ -191,5 +239,45 @@ export default class SettingsPage {
 
   resetChanges(): void {
     this.selectedPayDay.set(this.initialValue());
+  }
+
+  async onDeleteAccount(): Promise<void> {
+    const dialogData: ConfirmationDialogData = {
+      title: 'Supprimer ton compte ?',
+      message:
+        'Tu perdras immédiatement accès à ton compte. ' +
+        'Toutes tes données seront supprimées définitivement après 3 jours.',
+      confirmText: 'Supprimer mon compte',
+      cancelText: 'Annuler',
+      confirmColor: 'warn',
+    };
+
+    const dialogRef = this.#dialog.open(ConfirmationDialog, {
+      data: dialogData,
+      width: '400px',
+    });
+
+    const confirmed = await firstValueFrom(dialogRef.afterClosed());
+    if (!confirmed) return;
+
+    try {
+      this.isDeleting.set(true);
+      await this.#userSettingsApi.deleteAccount();
+      await this.#authSession.signOut();
+      await this.#router.navigate(['/login']);
+    } catch (error) {
+      this.#logger.error('Failed to delete account', error);
+      this.#snackBar.open(
+        'La suppression a échoué — réessaie plus tard',
+        'OK',
+        {
+          duration: 5000,
+          horizontalPosition: 'center',
+          verticalPosition: 'bottom',
+        },
+      );
+    } finally {
+      this.isDeleting.set(false);
+    }
   }
 }
