@@ -66,6 +66,7 @@
 		6CEA4A81B6B02D7395FEFAED /* LinkedTransactionsContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = D45C40FA08472FA75B62A6AC /* LinkedTransactionsContext.swift */; };
 		6DA0F437C7AF227F27F83082 /* TransactionEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A05FA792057CD53B266EE9F /* TransactionEnums.swift */; };
 		72C131FA19CE8B13A888F19D /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 09618739B66AA92F99246D88 /* Lottie */; };
+		72E67F3C7E86FB1FE74AC2DE /* BudgetDetailsViewModelFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02ADB15B7D0B2F57118460E8 /* BudgetDetailsViewModelFilterTests.swift */; };
 		78B5F01E78BB121C95940D30 /* MaintenanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54EDA5BADA4D4026B4A784B6 /* MaintenanceService.swift */; };
 		78F733179BB5B59703022BCA /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19358B36831C40F5A674FBDA /* AuthService.swift */; };
 		7BB479C9C1133347490C1C98 /* BudgetTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27F72011B11153235E828030 /* BudgetTemplate.swift */; };
@@ -178,6 +179,7 @@
 
 /* Begin PBXFileReference section */
 		02194E13D6C9DAFCE03148E6 /* TransactionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionTests.swift; sourceTree = "<group>"; };
+		02ADB15B7D0B2F57118460E8 /* BudgetDetailsViewModelFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetDetailsViewModelFilterTests.swift; sourceTree = "<group>"; };
 		02D25BA5A5074D1D86441DDC /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		054A9E4A9CCF915305B08CC0 /* AddTransactionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTransactionSheet.swift; sourceTree = "<group>"; };
 		060916C48CE3B2A130E94F6D /* EnhancedTutorialTooltip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnhancedTutorialTooltip.swift; sourceTree = "<group>"; };
@@ -362,6 +364,7 @@
 		26597C8D7FD11A5B0DB1AFA4 /* Budgets */ = {
 			isa = PBXGroup;
 			children = (
+				02ADB15B7D0B2F57118460E8 /* BudgetDetailsViewModelFilterTests.swift */,
 				76DBD55125DA1270DC47F0BE /* CheckedFilterPickerTests.swift */,
 			);
 			path = Budgets;
@@ -1076,6 +1079,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				72E67F3C7E86FB1FE74AC2DE /* BudgetDetailsViewModelFilterTests.swift in Sources */,
 				D735D577F6183B64B5E8DAAB /* BudgetFormulasTests.swift in Sources */,
 				E95C325CB627C9D66F929675 /* BudgetLineTests.swift in Sources */,
 				96C846AEAA6A38B7A6B59F97 /* BudgetServiceTests.swift in Sources */,
