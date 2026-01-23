@@ -12,6 +12,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import {
   calculateAllEnrichedConsumptions,
@@ -19,9 +20,11 @@ import {
 } from '@core/budget';
 import { STORAGE_KEYS, StorageService } from '@core/storage';
 import { type BudgetLine, type BudgetLineUpdate } from 'pulpe-shared';
+import { firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { BudgetGrid } from './budget-grid';
 import { BudgetTableView } from './budget-table/budget-table-view';
+import { EditBudgetLineDialog } from './edit-budget-line/edit-budget-line-dialog';
 import { type BudgetLineViewModel } from './models/budget-line-view-model';
 import { type TransactionViewModel } from './models/transaction-view-model';
 import {
@@ -124,6 +127,7 @@ import { BudgetViewToggle } from './components';
 export class BudgetItemsContainer {
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #budgetItemDataProvider = inject(BudgetItemDataProvider);
+  readonly #dialog = inject(MatDialog);
   readonly #storageService = inject(StorageService);
 
   // Signal inputs
@@ -210,15 +214,19 @@ export class BudgetItemsContainer {
     return 'envelopes';
   }
 
-  // Edit method for grid view (opens dialog)
-  protected startEditBudgetLine(item: BudgetLineTableItem): void {
-    // The grid component handles the edit dialog internally
-    this.update.emit({
-      id: item.data.id,
-      name: item.data.name,
-      amount: item.data.amount,
-      isManuallyAdjusted: item.data.isManuallyAdjusted,
+  protected async startEditBudgetLine(
+    item: BudgetLineTableItem,
+  ): Promise<void> {
+    const dialogRef = this.#dialog.open(EditBudgetLineDialog, {
+      data: { budgetLine: item.data },
+      width: '400px',
+      maxWidth: '90vw',
     });
+
+    const result = await firstValueFrom(dialogRef.afterClosed());
+    if (result) {
+      this.update.emit(result);
+    }
   }
 
   protected onViewTransactions(item: BudgetLineTableItem): void {
