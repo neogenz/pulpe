@@ -39,12 +39,12 @@ import { createInitialCurrentMonthInternalState } from './current-month-state';
  */
 @Injectable()
 export class CurrentMonthStore {
-  #budgetApi = inject(BudgetApi);
-  #transactionApi = inject(TransactionApi);
-  #httpClient = inject(HttpClient);
-  #appConfig = inject(ApplicationConfiguration);
-  #userSettingsApi = inject(UserSettingsApi);
-  #invalidationService = inject(BudgetInvalidationService);
+  readonly #budgetApi = inject(BudgetApi);
+  readonly #transactionApi = inject(TransactionApi);
+  readonly #httpClient = inject(HttpClient);
+  readonly #appConfig = inject(ApplicationConfiguration);
+  readonly #userSettingsApi = inject(UserSettingsApi);
+  readonly #invalidationService = inject(BudgetInvalidationService);
 
   /**
    * Simple state signal for UI feedback during operations

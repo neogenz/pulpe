@@ -93,25 +93,25 @@ const SNACKBAR_CONFIG = {
 })
 export default class CreateTemplatePage {
   // Injected dependencies
-  #router = inject(Router);
-  #store = inject(BudgetTemplatesStore);
-  #snackBar = inject(MatSnackBar);
-  #logger = inject(Logger);
+  readonly #router = inject(Router);
+  readonly #store = inject(BudgetTemplatesStore);
+  readonly #snackBar = inject(MatSnackBar);
+  readonly #logger = inject(Logger);
 
   // Local state
-  isCreatingTemplate = signal(false);
+  readonly isCreatingTemplate = signal(false);
 
   // Computed values to pass to child form (smart/dumb pattern)
   // These are computed ONCE from state and passed as stable inputs
-  templateCount = computed(() => this.#store.templateCount());
-  existingTemplateNames = computed(
+  readonly templateCount = computed(() => this.#store.templateCount());
+  readonly existingTemplateNames = computed(
     () =>
       this.#store.budgetTemplates
         .value()
         ?.filter((t) => !t.id.startsWith('temp-'))
         .map((t) => t.name.toLowerCase()) ?? [],
   );
-  defaultTemplateName = computed(
+  readonly defaultTemplateName = computed(
     () => this.#store.defaultBudgetTemplate()?.name ?? null,
   );
 
