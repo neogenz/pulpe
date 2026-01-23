@@ -37,6 +37,12 @@ extension Color {
     /// Generic badge background
     static let badgeBackground = Color("BadgeBackground")
 
+    /// Input field background - softer than systemGray6
+    static let inputBackgroundSoft = Color(hex: 0xF5F5F7)
+
+    /// Input focus glow color
+    static let inputFocusGlow = Color(hex: 0x006820).opacity(0.12)
+
     // MARK: - Gradient Colors
 
     static let pulpeGradientColors: [Color] = [
@@ -56,6 +62,9 @@ extension Color {
     /// Onboarding backgrounds
     static let onboardingBackground = Color(hex: 0xF8FAF9)
     static let onboardingCardBackground = Color.white
+
+    /// Mint green background matching landing page suggestion
+    static let mintBackground = Color(hex: 0xBDF5B7)
 
     /// Tutorial overlay with better contrast
     static let tutorialOverlay = Color.black.opacity(0.85)

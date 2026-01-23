@@ -9,9 +9,20 @@ struct WelcomeStep: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Header with icon
-                    OnboardingStepHeader(step: .welcome)
-                        .padding(.top, 24)
+                    // Logo and title
+                    VStack(spacing: 12) {
+                        PulpeIcon(size: 80)
+
+                        Text("Pulpe")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundStyle(Color.pulpePrimary)
+
+                        Text("Reprends le contrôle de tes finances")
+                            .font(.subheadline)
+                            .foregroundStyle(Color.textSecondaryOnboarding)
+                    }
+                    .padding(.top, 40)
 
                     // Lottie animation
                     WelcomeLottieView()
