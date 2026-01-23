@@ -23,7 +23,7 @@ import { type BudgetLine, type BudgetLineUpdate } from 'pulpe-shared';
 import { firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { BudgetGrid } from './budget-grid';
-import { BudgetTableView } from './budget-table/budget-table-view';
+import { BudgetTable } from './budget-table/budget-table';
 import { EditBudgetLineDialog } from './edit-budget-line/edit-budget-line-dialog';
 import { type BudgetLineViewModel } from './models/budget-line-view-model';
 import { type TransactionViewModel } from './models/transaction-view-model';
@@ -46,7 +46,7 @@ import { BudgetViewToggle } from './components';
     MatCardModule,
     MatIconModule,
     BudgetGrid,
-    BudgetTableView,
+    BudgetTable,
     BudgetViewToggle,
   ],
   providers: [BudgetItemDataProvider],
@@ -86,7 +86,7 @@ import { BudgetViewToggle } from './components';
             (toggleTransactionCheck)="toggleTransactionCheck.emit($event)"
           />
         } @else {
-          <pulpe-budget-table-view
+          <pulpe-budget-table
             [tableData]="budgetTableData()"
             (update)="update.emit($event)"
             (delete)="delete.emit($event)"

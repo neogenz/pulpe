@@ -33,11 +33,11 @@ import type {
 } from '../data-core';
 
 /**
- * Table view component for displaying budget lines in a mat-table.
- * This component only handles the table-specific rendering logic.
+ * Table component for displaying budget lines in a mat-table.
+ * Handles the table-specific rendering logic.
  */
 @Component({
-  selector: 'pulpe-budget-table-view',
+  selector: 'pulpe-budget-table',
   imports: [
     MatTableModule,
     MatIconModule,
@@ -270,7 +270,7 @@ import type {
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BudgetTableView {
+export class BudgetTable {
   readonly #dialog = inject(MatDialog);
   readonly #logger = inject(Logger);
 

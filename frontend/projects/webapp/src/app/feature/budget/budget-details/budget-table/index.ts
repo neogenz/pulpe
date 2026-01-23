@@ -1,1 +1,1 @@
-export { BudgetTableView } from './budget-table-view';
+export { BudgetTable } from './budget-table';
