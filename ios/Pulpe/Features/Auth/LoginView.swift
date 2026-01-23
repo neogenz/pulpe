@@ -170,6 +170,7 @@ struct LoginView: View {
                                         .foregroundStyle(Color.textTertiaryOnboarding)
                                         .contentTransition(.symbolEffect(.replace))
                                 }
+                                .accessibilityLabel(viewModel.showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe")
                             }
                             .padding(.horizontal, 18)
                             .frame(height: 54)
