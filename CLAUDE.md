@@ -85,4 +85,7 @@ paths: "**/*.ts"
 |---------|------|
 | DB types | `backend-nest/src/types/database.types.ts` |
 | Shared schemas | `shared/schemas.ts` |
-| Business specs | `memory-bank/SPECS.md` |
+| Project overview | `memory-bank/projectbrief.md` |
+| Business rules | `memory-bank/productContext.md` |
+| Tech decisions | `memory-bank/techContext.md` |
+| Architecture | `memory-bank/systemPatterns.md` |
