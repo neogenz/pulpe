@@ -256,7 +256,7 @@ export default class BudgetListPage {
   readonly #isHandset = toSignal(
     this.#breakpointObserver.observe(Breakpoints.Handset).pipe(
       map((result) => result.matches),
-      shareReplay(),
+      shareReplay({ bufferSize: 1, refCount: true }),
     ),
     { initialValue: false },
   );
