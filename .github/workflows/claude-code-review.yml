@@ -82,13 +82,12 @@ jobs:
 
           ### NestJS 11 / Bun / Zod 4
 
-          **Architecture Monolithe Modulaire (CRITIQUE):**
-          - \`common/\`: cross-cutting (guards, filters, interceptors, decorators, exceptions)
-          - \`modules/[domain]/\`: un module par domaine métier isolé
-          - Structure module: \`controller.ts\` → \`service.ts\` → \`mapper.ts\` → DB
-          - Controllers = routing + validation Swagger (JAMAIS de logique métier)
-          - Services = orchestration et logique métier
-          - Mappers obligatoires: DTO ↔ Entity (camelCase ↔ snake_case)
+          **Architecture par Feature (CRITIQUE):**
+          - \`common/\`: infrastructure partagée (guards, filters, interceptors, decorators, exceptions)
+          - \`modules/[domain]/\`: feature folders par domaine métier
+          - Structure: \`controller.ts\` → \`service.ts\` → \`repository.ts\` → DB
+          - Layers: Controller (routing/validation) → Service (logique) → Repository (data access)
+          - Mappers: DTO ↔ Entity (camelCase ↔ snake_case)
           - JAMAIS exposer types \`Database['...']['Row']\` dans réponses API
 
           **Patterns:**
