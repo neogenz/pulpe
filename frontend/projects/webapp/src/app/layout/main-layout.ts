@@ -38,6 +38,10 @@ import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { Logger } from '@core/logging/logger';
+import {
+  ProductTourService,
+  type TourPageId,
+} from '@core/product-tour/product-tour.service';
 import { BreadcrumbState } from '@core/routing/breadcrumb-state';
 import { ROUTES } from '@core/routing/routes-constants';
 import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
@@ -275,6 +279,17 @@ interface NavigationItem {
                 <mat-icon matMenuItemIcon>settings</mat-icon>
                 <span>Paramètres</span>
               </a>
+              @if (currentTourPageId()) {
+                <button
+                  mat-menu-item
+                  (click)="startPageTour()"
+                  aria-label="Découvrir cette page"
+                  data-testid="page-tour-button"
+                >
+                  <mat-icon matMenuItemIcon>help_outline</mat-icon>
+                  <span>Découvrir cette page</span>
+                </button>
+              }
               <mat-divider />
               <button
                 mat-menu-item
@@ -451,6 +466,7 @@ export default class MainLayout {
   readonly #destroyRef = inject(DestroyRef);
   readonly #logger = inject(Logger);
   readonly #dialog = inject(MatDialog);
+  readonly #productTourService = inject(ProductTourService);
   protected readonly loadingIndicator = inject(LoadingIndicator);
   // Display "Mode Démo" for demo users, otherwise show email
   readonly userEmail = computed(() => {
@@ -515,6 +531,16 @@ export default class MainLayout {
     return navigationItem?.label || 'Pulpe Budget';
   });
 
+  // Current tour page ID based on route
+  protected readonly currentTourPageId = computed((): TourPageId | null => {
+    const url = this.#currentRoute();
+    if (url.includes(`/${ROUTES.DASHBOARD}`)) return 'current-month';
+    if (url.match(/\/budget\/[^/]+$/)) return 'budget-details';
+    if (url.includes(`/${ROUTES.BUDGET}`)) return 'budget-list';
+    if (url.includes(`/${ROUTES.BUDGET_TEMPLATES}`)) return 'templates-list';
+    return null;
+  });
+
   // Scroll detection for toolbar shadow
   protected readonly isScrolled = signal(false);
 
@@ -577,6 +603,13 @@ export default class MainLayout {
       width: 'auto',
       maxWidth: '90vw',
     });
+  }
+
+  protected startPageTour(): void {
+    const pageId = this.currentTourPageId();
+    if (pageId) {
+      this.#productTourService.startPageTour(pageId);
+    }
   }
 
   async onLogout(): Promise<void> {
