@@ -1,9 +1,7 @@
-import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { BudgetApi } from '@core/budget';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
-import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { TransactionApi } from '@core/transaction';
 import { UserSettingsApi } from '@core/user-settings';
 import { createRolloverLine } from '@core/rollover/rollover-types';
@@ -41,8 +39,6 @@ import { createInitialCurrentMonthInternalState } from './current-month-state';
 export class CurrentMonthStore {
   readonly #budgetApi = inject(BudgetApi);
   readonly #transactionApi = inject(TransactionApi);
-  readonly #httpClient = inject(HttpClient);
-  readonly #appConfig = inject(ApplicationConfiguration);
   readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #invalidationService = inject(BudgetInvalidationService);
 
@@ -391,8 +387,9 @@ export class CurrentMonthStore {
     });
 
     try {
-      const apiUrl = `${this.#appConfig.backendApiUrl()}/budget-lines/${budgetLineId}/toggle-check`;
-      await firstValueFrom(this.#httpClient.post(apiUrl, {}));
+      await firstValueFrom(
+        this.#budgetApi.toggleBudgetLineCheck$(budgetLineId),
+      );
     } catch (error) {
       this.#dashboardResource.set(originalData);
       throw error;
