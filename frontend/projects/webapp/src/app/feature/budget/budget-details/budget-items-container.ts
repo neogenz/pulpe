@@ -164,19 +164,14 @@ export class BudgetItemsContainer {
     calculateAllEnrichedConsumptions(this.budgetLines(), this.transactions()),
   );
 
-  // Inline edit state
-  protected inlineFormEditingItem = signal<BudgetLineTableItem | null>(null);
-
   // View Model with pre-computed values
-  readonly budgetTableData = computed(() => {
-    const editingLine = this.inlineFormEditingItem();
-    return this.#budgetItemDataProvider.provideTableData({
+  readonly budgetTableData = computed(() =>
+    this.#budgetItemDataProvider.provideTableData({
       budgetLines: this.budgetLines(),
       transactions: this.transactions(),
-      editingLineId: editingLine?.data.id ?? null,
       viewMode: this.viewMode(),
-    });
-  });
+    }),
+  );
 
   // Filtered items for grid view
   readonly budgetLineItems = computed(() =>

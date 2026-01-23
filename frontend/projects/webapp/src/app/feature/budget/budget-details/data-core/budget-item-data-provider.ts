@@ -9,7 +9,6 @@ export class BudgetItemDataProvider {
   provideTableData(params: {
     budgetLines: BudgetLine[];
     transactions: Transaction[];
-    editingLineId: string | null;
     viewMode?: BudgetViewMode;
   }): TableRowItem[] {
     // Both 'envelopes' and 'table' view modes use the same data structure

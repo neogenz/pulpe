@@ -190,7 +190,6 @@ function insertGroupHeaders(
 function createBudgetLineViewModel(
   budgetLine: BudgetLine,
   consumptionMap: Map<string, { consumed: number; transactionCount: number }>,
-  editingLineId: string | null,
 ): BudgetLineTableItem {
   const isRollover = isRolloverLine(budgetLine);
   const isPropagationLocked =
@@ -204,7 +203,6 @@ function createBudgetLineViewModel(
     metadata: {
       itemType: 'budget_line',
       cumulativeBalance: 0,
-      isEditing: editingLineId === budgetLine.id && !isRollover,
       isRollover,
       isTemplateLinked: !!budgetLine.templateLineId,
       isPropagationLocked,
@@ -237,7 +235,6 @@ function createTransactionViewModel(
     metadata: {
       itemType: 'transaction',
       cumulativeBalance: 0,
-      isEditing: false,
       isRollover,
       isTemplateLinked: false,
       isPropagationLocked: false,
@@ -253,15 +250,10 @@ function createTransactionViewModel(
 function mapToTableItems(
   items: BudgetItemWithBalance[],
   consumptionMap: Map<string, { consumed: number; transactionCount: number }>,
-  editingLineId: string | null,
 ): (BudgetLineTableItem | TransactionTableItem)[] {
   return items.map((item) => {
     if (item.itemType === 'budget_line') {
-      return createBudgetLineViewModel(
-        item.item,
-        consumptionMap,
-        editingLineId,
-      );
+      return createBudgetLineViewModel(item.item, consumptionMap);
     }
     return createTransactionViewModel(item.item);
   });
@@ -270,15 +262,14 @@ function mapToTableItems(
 export function buildViewData(params: {
   budgetLines: BudgetLine[];
   transactions: Transaction[];
-  editingLineId: string | null;
 }): TableRowItem[] {
-  const { budgetLines, transactions, editingLineId } = params;
+  const { budgetLines, transactions } = params;
 
   const consumptionMap = calculateAllConsumptions(budgetLines, transactions);
   const items = createDisplayItems(budgetLines, transactions);
   items.sort(compareItems);
 
-  const mappedItems = mapToTableItems(items, consumptionMap, editingLineId);
+  const mappedItems = mapToTableItems(items, consumptionMap);
 
   const result = insertGroupHeaders(mappedItems);
   calculateBalancesInDisplayOrder(result, consumptionMap);

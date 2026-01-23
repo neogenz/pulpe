@@ -61,7 +61,6 @@ describe('BudgetItemDataProvider', () => {
       const result = service.provideTableData({
         budgetLines,
         transactions,
-        editingLineId: null,
       });
 
       // Assert
@@ -98,7 +97,6 @@ describe('BudgetItemDataProvider', () => {
       const result = service.provideTableData({
         budgetLines,
         transactions: [],
-        editingLineId: null,
       });
 
       const dataItems = filterDataItems(result);
@@ -138,7 +136,6 @@ describe('BudgetItemDataProvider', () => {
       const result = service.provideTableData({
         budgetLines,
         transactions: [],
-        editingLineId: null,
       });
 
       const dataItems = filterDataItems(result);
@@ -186,7 +183,6 @@ describe('BudgetItemDataProvider', () => {
       const result = service.provideTableData({
         budgetLines,
         transactions,
-        editingLineId: null,
       });
 
       // Items are grouped by kind (income, saving, expense), then sorted within each group
@@ -223,7 +219,6 @@ describe('BudgetItemDataProvider', () => {
       const result = service.provideTableData({
         budgetLines,
         transactions: [],
-        editingLineId: null,
       });
 
       // Assert
@@ -239,57 +234,6 @@ describe('BudgetItemDataProvider', () => {
 
       expect(rolloverItem?.metadata.isRollover).toBe(true);
       expect(regularItem?.metadata.isRollover).toBe(false);
-    });
-
-    it('should prevent editing of rollover lines even when editingLineId matches', () => {
-      // Arrange
-      const budgetLines: BudgetLine[] = [
-        createMockRolloverBudgetLine({
-          id: 'rollover-line',
-          name: 'rollover_12_2024',
-          amount: 150,
-          kind: 'income',
-        }),
-      ];
-
-      // Act
-      const result = service.provideTableData({
-        budgetLines,
-        transactions: [],
-        editingLineId: 'rollover-line', // Try to edit rollover line
-      });
-
-      // Assert
-      const dataItems = filterDataItems(result);
-      expect(dataItems).toHaveLength(1);
-      expect(dataItems[0].metadata.isRollover).toBe(true);
-      expect(dataItems[0].metadata.isEditing).toBe(false); // Should not be editable
-    });
-
-    it('should allow editing of regular budget lines', () => {
-      // Arrange
-      const budgetLines: BudgetLine[] = [
-        createMockBudgetLine({
-          id: 'regular-line',
-          name: 'Rent',
-          amount: 1500,
-          kind: 'expense',
-          recurrence: 'fixed',
-        }),
-      ];
-
-      // Act
-      const result = service.provideTableData({
-        budgetLines,
-        transactions: [],
-        editingLineId: 'regular-line',
-      });
-
-      // Assert
-      const dataItems = filterDataItems(result);
-      expect(dataItems).toHaveLength(1);
-      expect(dataItems[0].metadata.isRollover).toBe(false);
-      expect(dataItems[0].metadata.isEditing).toBe(true); // Should be editable
     });
 
     it('should sort rollover lines according to business rules, grouped by kind', () => {
@@ -324,7 +268,6 @@ describe('BudgetItemDataProvider', () => {
       const result = service.provideTableData({
         budgetLines,
         transactions: [],
-        editingLineId: null,
       });
 
       // Assert
@@ -372,7 +315,6 @@ describe('BudgetItemDataProvider', () => {
       const result = service.provideTableData({
         budgetLines,
         transactions,
-        editingLineId: null,
       });
 
       // Assert
@@ -413,7 +355,6 @@ describe('BudgetItemDataProvider', () => {
       const result = service.provideTableData({
         budgetLines,
         transactions: [],
-        editingLineId: null,
       });
 
       // Assert
@@ -456,7 +397,6 @@ describe('BudgetItemDataProvider', () => {
       const result = service.provideTableData({
         budgetLines,
         transactions: [],
-        editingLineId: null,
       });
 
       // Assert - display order is grouped by kind: income → saving → expense
@@ -505,7 +445,6 @@ describe('BudgetItemDataProvider', () => {
       const result = service.provideTableData({
         budgetLines,
         transactions: [],
-        editingLineId: null,
       });
 
       // Assert - items are grouped by kind for display (income first, then expense)
@@ -524,122 +463,12 @@ describe('BudgetItemDataProvider', () => {
     });
   });
 
-  describe('Editing State Management', () => {
-    it('should mark line as editing when editingLineId matches', () => {
-      // Arrange
-      const budgetLines: BudgetLine[] = [
-        createMockBudgetLine({
-          id: 'editable-line',
-          name: 'Rent',
-          amount: 1500,
-          kind: 'expense',
-          recurrence: 'fixed',
-        }),
-        createMockBudgetLine({
-          id: 'other-line',
-          name: 'Utilities',
-          amount: 200,
-          kind: 'expense',
-          recurrence: 'fixed',
-        }),
-      ];
-
-      // Act
-      const result = service.provideTableData({
-        budgetLines,
-        transactions: [],
-        editingLineId: 'editable-line',
-      });
-
-      // Assert
-      const dataItems = filterDataItems(result);
-      expect(dataItems).toHaveLength(2);
-
-      const editingItem = dataItems.find(
-        (item) => item.data.id === 'editable-line',
-      );
-      const otherItem = dataItems.find((item) => item.data.id === 'other-line');
-
-      expect(editingItem?.metadata.isEditing).toBe(true);
-      expect(otherItem?.metadata.isEditing).toBe(false);
-    });
-
-    it('should not mark any line as editing when editingLineId is null', () => {
-      // Arrange
-      const budgetLines: BudgetLine[] = [
-        createMockBudgetLine({
-          id: 'line-1',
-          name: 'Rent',
-          amount: 1500,
-          kind: 'expense',
-          recurrence: 'fixed',
-        }),
-        createMockBudgetLine({
-          id: 'line-2',
-          name: 'Utilities',
-          amount: 200,
-          kind: 'expense',
-          recurrence: 'fixed',
-        }),
-      ];
-
-      // Act
-      const result = service.provideTableData({
-        budgetLines,
-        transactions: [],
-        editingLineId: null,
-      });
-
-      // Assert
-      const dataItems = filterDataItems(result);
-      dataItems.forEach((item) => {
-        expect(item.metadata.isEditing).toBe(false);
-      });
-    });
-
-    it('should never allow editing of rollover lines regardless of editingLineId', () => {
-      // Arrange
-      const budgetLines: BudgetLine[] = [
-        createMockRolloverBudgetLine({
-          id: 'rollover-line',
-          name: 'rollover_12_2024',
-          amount: 150,
-          kind: 'income',
-        }),
-        createMockBudgetLine({
-          id: 'regular-line',
-          name: 'Rent',
-          amount: 1500,
-          kind: 'expense',
-          recurrence: 'fixed',
-        }),
-      ];
-
-      // Act
-      const result = service.provideTableData({
-        budgetLines,
-        transactions: [],
-        editingLineId: 'rollover-line', // Try to edit rollover
-      });
-
-      // Assert
-      const dataItems = filterDataItems(result);
-      const rolloverItem = dataItems.find((item) =>
-        item.data.name.includes('rollover'),
-      );
-
-      expect(rolloverItem?.metadata.isRollover).toBe(true);
-      expect(rolloverItem?.metadata.isEditing).toBe(false); // Never editable
-    });
-  });
-
   describe('Edge Cases and Boundary Conditions', () => {
     it('should handle empty budgetLines and transactions', () => {
       // Arrange & Act
       const result = service.provideTableData({
         budgetLines: [],
         transactions: [],
-        editingLineId: null,
       });
 
       // Assert
@@ -668,7 +497,6 @@ describe('BudgetItemDataProvider', () => {
       const result = service.provideTableData({
         budgetLines: [],
         transactions,
-        editingLineId: null,
       });
 
       // Assert
@@ -703,7 +531,6 @@ describe('BudgetItemDataProvider', () => {
       const result = service.provideTableData({
         budgetLines,
         transactions: [],
-        editingLineId: null,
       });
 
       // Assert
@@ -745,7 +572,6 @@ describe('BudgetItemDataProvider', () => {
       const result = service.provideTableData({
         budgetLines,
         transactions,
-        editingLineId: 'regular-line',
       });
 
       // Assert
@@ -758,7 +584,6 @@ describe('BudgetItemDataProvider', () => {
       );
       expect(regularItem?.metadata.itemType).toBe('budget_line');
       expect(regularItem?.metadata.isRollover).toBe(false);
-      expect(regularItem?.metadata.isEditing).toBe(true);
       expect(typeof regularItem?.metadata.cumulativeBalance).toBe('number');
 
       // Rollover budget line
@@ -767,7 +592,6 @@ describe('BudgetItemDataProvider', () => {
       );
       expect(rolloverItem?.metadata.itemType).toBe('budget_line');
       expect(rolloverItem?.metadata.isRollover).toBe(true);
-      expect(rolloverItem?.metadata.isEditing).toBe(false); // Never editable
       expect(typeof rolloverItem?.metadata.cumulativeBalance).toBe('number');
 
       // Transaction
@@ -776,7 +600,6 @@ describe('BudgetItemDataProvider', () => {
       );
       expect(transactionItem?.metadata.itemType).toBe('transaction');
       expect(transactionItem?.metadata.isRollover).toBe(false);
-      expect(transactionItem?.metadata.isEditing).toBe(false); // Transactions not editable via this mechanism
       expect(typeof transactionItem?.metadata.cumulativeBalance).toBe('number');
     });
 
@@ -802,7 +625,6 @@ describe('BudgetItemDataProvider', () => {
       const result = service.provideTableData({
         budgetLines,
         transactions: [],
-        editingLineId: null,
       });
 
       const dataItems = filterDataItems(result);
