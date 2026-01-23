@@ -73,8 +73,12 @@ test.describe('Authentication', () => {
     await authenticatedPage.goto('/dashboard');
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
-    // Perform logout directly on authenticatedPage
+    // Wait for user menu to be visible before clicking
+    await expect(authenticatedPage.getByTestId('user-menu-trigger')).toBeVisible();
     await authenticatedPage.getByTestId('user-menu-trigger').click();
+
+    // Wait for logout button to be visible before clicking
+    await expect(authenticatedPage.getByTestId('logout-button')).toBeVisible();
     await authenticatedPage.getByTestId('logout-button').click();
 
     // Should redirect away from app

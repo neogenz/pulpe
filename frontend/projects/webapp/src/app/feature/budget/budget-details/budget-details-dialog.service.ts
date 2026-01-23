@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import type {
   BudgetLine,
   BudgetLineCreate,
+  BudgetLineUpdate,
   TransactionCreate,
 } from 'pulpe-shared';
 import type { BudgetLineConsumption } from '@core/budget';
@@ -26,6 +27,7 @@ import {
   ConfirmationDialog,
   type ConfirmationDialogData,
 } from '@ui/dialogs/confirmation-dialog';
+import { EditBudgetLineDialog } from './edit-budget-line/edit-budget-line-dialog';
 
 export interface ConfirmDeleteOptions {
   title: string;
@@ -87,6 +89,18 @@ export class BudgetDetailsDialogService {
         budgetLine,
       } satisfies CreateAllocatedTransactionDialogData,
       width: '600px',
+      maxWidth: '90vw',
+    });
+
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  async openEditBudgetLineDialog(
+    budgetLine: BudgetLine,
+  ): Promise<BudgetLineUpdate | undefined> {
+    const dialogRef = this.#dialog.open(EditBudgetLineDialog, {
+      data: { budgetLine },
+      width: '400px',
       maxWidth: '90vw',
     });
 

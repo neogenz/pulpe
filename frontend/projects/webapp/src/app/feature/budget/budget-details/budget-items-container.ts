@@ -12,7 +12,6 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import {
   calculateAllEnrichedConsumptions,
@@ -20,11 +19,9 @@ import {
 } from '@core/budget';
 import { STORAGE_KEYS, StorageService } from '@core/storage';
 import { type BudgetLine, type BudgetLineUpdate } from 'pulpe-shared';
-import { firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { BudgetGrid } from './budget-grid';
 import { BudgetTable } from './budget-table/budget-table';
-import { EditBudgetLineDialog } from './edit-budget-line/edit-budget-line-dialog';
 import { type BudgetLineViewModel } from './models/budget-line-view-model';
 import { type TransactionViewModel } from './models/transaction-view-model';
 import {
@@ -35,6 +32,7 @@ import {
 } from './data-core';
 import { BudgetViewToggle } from './components';
 import { BudgetTableCheckedFilter } from './budget-table/budget-table-checked-filter';
+import { BudgetDetailsDialogService } from './budget-details-dialog.service';
 
 /**
  * Unified container component for displaying budget items.
@@ -139,7 +137,7 @@ import { BudgetTableCheckedFilter } from './budget-table/budget-table-checked-fi
 export class BudgetItemsContainer {
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #budgetItemDataProvider = inject(BudgetItemDataProvider);
-  readonly #dialog = inject(MatDialog);
+  readonly #dialogService = inject(BudgetDetailsDialogService);
   readonly #storageService = inject(StorageService);
 
   // Signal inputs
@@ -226,13 +224,9 @@ export class BudgetItemsContainer {
   protected async startEditBudgetLine(
     item: BudgetLineTableItem,
   ): Promise<void> {
-    const dialogRef = this.#dialog.open(EditBudgetLineDialog, {
-      data: { budgetLine: item.data },
-      width: '400px',
-      maxWidth: '90vw',
-    });
-
-    const result = await firstValueFrom(dialogRef.afterClosed());
+    const result = await this.#dialogService.openEditBudgetLineDialog(
+      item.data,
+    );
     if (result) {
       this.update.emit(result);
     }
