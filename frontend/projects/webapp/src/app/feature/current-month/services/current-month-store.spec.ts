@@ -436,9 +436,15 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         .find((l) => l.id === 'line-income')?.checkedAt;
       expect(originalCheckedAt).toBeNull();
 
-      await expect(
-        store.toggleBudgetLineCheck('line-income'),
-      ).rejects.toThrow();
+      const togglePromise = store.toggleBudgetLineCheck('line-income');
+
+      // Verify optimistic update happened
+      const updatedLine = store
+        .budgetLines()
+        .find((l) => l.id === 'line-income');
+      expect(updatedLine?.checkedAt).not.toBeNull();
+
+      await expect(togglePromise).rejects.toThrow();
 
       const restoredLine = store
         .budgetLines()
