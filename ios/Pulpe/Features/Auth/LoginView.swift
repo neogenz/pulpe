@@ -201,6 +201,7 @@ struct LoginView: View {
                                 if viewModel.isLoading {
                                     ProgressView()
                                         .tint(.white)
+                                        .accessibilityLabel("Connexion en cours")
                                 } else {
                                     Text("Se connecter")
                                         .fontWeight(.semibold)
@@ -210,11 +211,8 @@ struct LoginView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .frame(height: 54)
-                            .background(
-                                viewModel.canSubmit
-                                    ? AnyShapeStyle(Color.onboardingGradient)
-                                    : AnyShapeStyle(Color.secondary.opacity(0.3))
-                            )
+                            .background(viewModel.canSubmit ? Color.onboardingGradient : nil)
+                            .background(viewModel.canSubmit ? nil : Color.secondary.opacity(0.3))
                             .foregroundStyle(viewModel.canSubmit ? .white : Color.secondary)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                             .shadow(
