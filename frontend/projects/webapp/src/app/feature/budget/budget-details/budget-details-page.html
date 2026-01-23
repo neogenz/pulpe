@@ -81,8 +81,10 @@
 
   <!-- Budget Items -->
   <pulpe-budget-items
-    [budgetLines]="budgetLines"
-    [transactions]="transactions"
+    [budgetLines]="store.filteredBudgetLines()"
+    [transactions]="store.filteredTransactions()"
+    [isShowingOnlyUnchecked]="store.isShowingOnlyUnchecked()"
+    (isShowingOnlyUncheckedChange)="store.setIsShowingOnlyUnchecked($event)"
     (update)="handleUpdateBudgetLine($event)"
     (delete)="handleDeleteItem($event)"
     (deleteTransaction)="handleDeleteItem($event)"

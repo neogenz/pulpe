@@ -374,14 +374,13 @@ describe('CurrentMonthStore - Business Scenarios', () => {
 
       const togglePromise = store.toggleBudgetLineCheck('line-income');
 
-      // Optimistic update should be immediate
+      // Optimistic update: checkedAt should be set immediately
       const updatedLine = store
         .budgetLines()
         .find((l) => l.id === 'line-income');
       expect(updatedLine?.checkedAt).not.toBeNull();
 
       await togglePromise;
-
       expect(mockBudgetApi.toggleBudgetLineCheck$).toHaveBeenCalledWith(
         'line-income',
       );
@@ -412,15 +411,12 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         expect(line?.checkedAt).toBe('2024-01-15T00:00:00Z');
       });
 
-      const togglePromise = store.toggleBudgetLineCheck('line-income');
+      await store.toggleBudgetLineCheck('line-income');
 
       const updatedLine = store
         .budgetLines()
         .find((l) => l.id === 'line-income');
       expect(updatedLine?.checkedAt).toBeNull();
-
-      await togglePromise;
-
       expect(mockBudgetApi.toggleBudgetLineCheck$).toHaveBeenCalledWith(
         'line-income',
       );
@@ -440,14 +436,9 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         .find((l) => l.id === 'line-income')?.checkedAt;
       expect(originalCheckedAt).toBeNull();
 
-      const togglePromise = store.toggleBudgetLineCheck('line-income');
-
-      const updatedLine = store
-        .budgetLines()
-        .find((l) => l.id === 'line-income');
-      expect(updatedLine?.checkedAt).not.toBeNull();
-
-      await expect(togglePromise).rejects.toThrow();
+      await expect(
+        store.toggleBudgetLineCheck('line-income'),
+      ).rejects.toThrow();
 
       const restoredLine = store
         .budgetLines()

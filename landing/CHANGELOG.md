@@ -1,5 +1,17 @@
 # pulpe-landing
 
+## 0.1.1
+
+### Patch Changes
+
+- # Landing v0.1.1
+
+  **Corrections**
+  - Correction du flash d'authentification avec vérification du token inline
+
+  **Améliorations**
+  - Configuration SEO optimisée et en-têtes de sécurité
+
 ## 0.1.0
 
 ### Minor Changes

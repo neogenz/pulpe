@@ -16,4 +16,5 @@ export const STORAGE_KEYS = {
 
   // Budget UI preferences
   BUDGET_DESKTOP_VIEW: 'pulpe-budget-desktop-view',
+  BUDGET_SHOW_ONLY_UNCHECKED: 'pulpe-budget-show-only-unchecked',
 } as const satisfies Record<string, StorageKey>;
