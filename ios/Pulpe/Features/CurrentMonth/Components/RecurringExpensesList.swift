@@ -154,6 +154,16 @@ struct BudgetLineRow: View {
         return .pulpePrimary
     }
 
+    private var remainingColor: Color {
+        consumption.available < 0 ? .red : line.kind.color
+    }
+
+    private var amountTextColor: Color {
+        if line.isChecked { return .secondary }
+        if hasConsumption { return remainingColor }
+        return line.kind.color
+    }
+
     private var linkedTransactions: [Transaction] {
         allTransactions
             .filter { $0.budgetLineId == line.id }
@@ -196,10 +206,18 @@ struct BudgetLineRow: View {
                 // Sync indicator
                 SyncIndicator(isSyncing: isSyncing)
 
-                // Amount
-                Text(line.amount.asCHF)
-                    .font(.system(.callout, design: .rounded, weight: .semibold))
-                    .foregroundStyle(line.isChecked ? .secondary : line.kind.color)
+                // Amount (remaining when transactions exist, otherwise budgeted)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(hasConsumption ? consumption.available.asCHF : line.amount.asCHF)
+                        .font(.system(.callout, design: .rounded, weight: .semibold))
+                        .foregroundStyle(amountTextColor)
+
+                    if hasConsumption {
+                        Text("reste")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
 
                 // Add button (only for non-rollover lines)
                 if !line.isVirtualRollover {
@@ -241,7 +259,10 @@ struct BudgetLineRow: View {
         .sensoryFeedback(.success, trigger: triggerSuccessFeedback)
         .sensoryFeedback(.warning, trigger: triggerWarningFeedback)
         .accessibilityAddTraits(.isButton)
-        .accessibilityHint("Touche pour modifier, maintiens pour voir les transactions")
+        .accessibilityHint(hasConsumption
+            ? "Montant restant: \(consumption.available.asCHF). Touche pour modifier, maintiens pour voir les transactions"
+            : "Touche pour modifier, maintiens pour voir les transactions"
+        )
     }
 
     // MARK: - Kind Icon Circle (Revolut-style)
