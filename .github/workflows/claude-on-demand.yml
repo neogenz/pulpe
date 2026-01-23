@@ -18,10 +18,21 @@ jobs:
       id-token: write
 
     steps:
+      - name: Get PR head SHA
+        id: pr-info
+        if: github.event.issue.pull_request
+        run: |
+          PR_DATA=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.issue.number }})
+          echo "head_sha=$(echo "$PR_DATA" | jq -r '.head.sha')" >> $GITHUB_OUTPUT
+          echo "head_ref=$(echo "$PR_DATA" | jq -r '.head.ref')" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ steps.pr-info.outputs.head_sha || github.event.pull_request.head.sha || github.ref }}
 
       - name: Claude On-Demand
         uses: anthropics/claude-code-action@v1

@@ -75,6 +75,10 @@ coverage/
 claude-rules/
 coverage-report.json
 
+# Claude Code generated outputs
+.claude/output/
+.claude/analysis/
+
 docs/angular-full.txt
 
 .serena/cache/
