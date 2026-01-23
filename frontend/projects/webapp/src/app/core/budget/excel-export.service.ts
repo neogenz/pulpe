@@ -114,9 +114,9 @@ export class ExcelExportService {
   }
 
   #formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('fr-FR', {
+    return new Intl.NumberFormat('fr-CH', {
       style: 'currency',
-      currency: 'EUR',
+      currency: 'CHF',
     }).format(amount);
   }
 
