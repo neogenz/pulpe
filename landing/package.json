@@ -20,7 +20,6 @@
     "generate:og": "npx tsx scripts/generate-og-image.ts"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.56.0",
     "lucide-react": "^0.562.0",
     "next": "^15.4.10",
     "react": "^19.2.0",
