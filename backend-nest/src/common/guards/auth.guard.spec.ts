@@ -181,7 +181,9 @@ describe('AuthGuard', () => {
 
     it('should set user and supabase client on request when authenticated', async () => {
       // Arrange
-      const mockUser = createMockAuthenticatedUser();
+      const mockUser = createMockAuthenticatedUser({
+        accessToken: 'valid-token',
+      });
       const mockRequest = { headers: { authorization: 'Bearer valid-token' } };
       const mockContext = {
         switchToHttp: () => ({ getRequest: () => mockRequest }),
@@ -213,7 +215,9 @@ describe('AuthGuard', () => {
 
     it('should reuse cached user from UserThrottlerGuard when available', async () => {
       // Arrange
-      const mockUser = createMockAuthenticatedUser();
+      const mockUser = createMockAuthenticatedUser({
+        accessToken: 'valid-token',
+      });
       const mockRequest = {
         headers: { authorization: 'Bearer valid-token' },
         __throttlerUserCache: mockUser, // Simulates cache populated by UserThrottlerGuard
@@ -238,7 +242,9 @@ describe('AuthGuard', () => {
 
     it('should fall back to normal auth flow when cache is null', async () => {
       // Arrange
-      const mockUser = createMockAuthenticatedUser();
+      const mockUser = createMockAuthenticatedUser({
+        accessToken: 'valid-token',
+      });
       const mockRequest = {
         headers: { authorization: 'Bearer valid-token' },
         __throttlerUserCache: null, // Cache indicates auth failed in throttler
