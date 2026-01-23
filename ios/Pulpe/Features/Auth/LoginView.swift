@@ -4,45 +4,53 @@ struct LoginView: View {
     @Environment(AppState.self) private var appState
     @State private var viewModel = LoginViewModel()
     @State private var canRetryBiometric = false
+    @FocusState private var focusedField: Field?
 
     var isPresented: Binding<Bool>?
+
+    private enum Field: Hashable {
+        case email, password
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 32) {
+                VStack(spacing: 0) {
                     // Logo and title
                     VStack(spacing: 16) {
-                        PulpeLogo(size: 80)
+                        PulpeIcon(size: 72)
 
-                        Text("Connexion")
+                        Text("Pulpe")
                             .font(.largeTitle)
                             .fontWeight(.bold)
+                            .foregroundStyle(Color.pulpePrimary)
 
                         Text("Retrouve ton espace")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.textSecondaryOnboarding)
                     }
-                    .padding(.top, 40)
+                    .padding(.top, 48)
+                    .padding(.bottom, 40)
 
-                    // Error message
-                    if let errorMessage = viewModel.errorMessage {
-                        HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.circle.fill")
-                            Text(errorMessage)
-                                .multilineTextAlignment(.leading)
+                    // Form card
+                    VStack(spacing: 20) {
+                        // Error message
+                        if let errorMessage = viewModel.errorMessage {
+                            HStack(spacing: 10) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.body)
+                                Text(errorMessage)
+                                    .font(.subheadline)
+                                    .multilineTextAlignment(.leading)
+                            }
+                            .foregroundStyle(.white)
+                            .padding(14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.red.opacity(0.9), in: RoundedRectangle(cornerRadius: 12))
                         }
-                        .font(.subheadline)
-                        .foregroundStyle(.white)
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.red, in: RoundedRectangle(cornerRadius: 12))
-                        .padding(.horizontal)
-                    }
 
-                    // Biometric retry button
-                    if canRetryBiometric {
-                        VStack(spacing: 16) {
+                        // Biometric button
+                        if canRetryBiometric {
                             Button {
                                 Task {
                                     await appState.retryBiometricLogin()
@@ -50,83 +58,115 @@ struct LoginView: View {
                             } label: {
                                 HStack(spacing: 12) {
                                     Image(systemName: biometricIcon)
-                                        .font(.title2)
-                                    Text("Se connecter avec \(BiometricService.shared.biometryDisplayName)")
+                                        .font(.title3)
+                                    Text("Continuer avec \(BiometricService.shared.biometryDisplayName)")
+                                        .fontWeight(.medium)
                                 }
                                 .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.accentColor)
+                                .frame(height: 54)
+                                .background(Color.onboardingGradient)
                                 .foregroundStyle(.white)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                                .shadow(color: Color.pulpePrimary.opacity(0.25), radius: 8, y: 4)
                             }
-                            .padding(.horizontal)
 
-                            // Separator
-                            HStack {
+                            // Divider
+                            HStack(spacing: 16) {
                                 Rectangle()
-                                    .fill(Color.inputBorder)
+                                    .fill(Color.secondary.opacity(0.2))
                                     .frame(height: 1)
                                 Text("ou")
-                                    .font(.subheadline)
+                                    .font(.footnote)
                                     .foregroundStyle(.secondary)
                                 Rectangle()
-                                    .fill(Color.inputBorder)
+                                    .fill(Color.secondary.opacity(0.2))
                                     .frame(height: 1)
                             }
-                            .padding(.horizontal)
+                            .padding(.vertical, 4)
                         }
-                    }
 
-                    // Form
-                    VStack(spacing: 16) {
                         // Email field
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text("Email")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .font(.footnote)
+                                .fontWeight(.medium)
+                                .foregroundStyle(Color.textSecondaryOnboarding)
 
-                            TextField("ton@email.com", text: $viewModel.email)
-                                .textContentType(.emailAddress)
-                                .keyboardType(.emailAddress)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .padding()
-                                .background(.background)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color.inputBorder, lineWidth: 1)
-                                )
+                            TextField(
+                                "",
+                                text: $viewModel.email,
+                                prompt: Text("nom@exemple.com")
+                                    .foregroundColor(Color.textTertiaryOnboarding)
+                            )
+                            .textContentType(.emailAddress)
+                            .keyboardType(.emailAddress)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .focused($focusedField, equals: .email)
+                            .font(.body)
+                            .padding(.horizontal, 16)
+                            .frame(height: 52)
+                            .background(Color(.systemGray6))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(
+                                        focusedField == .email ? Color.pulpePrimary : Color.clear,
+                                        lineWidth: 2
+                                    )
+                            )
+                            .animation(.easeInOut(duration: 0.2), value: focusedField)
                         }
 
                         // Password field
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text("Mot de passe")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .font(.footnote)
+                                .fontWeight(.medium)
+                                .foregroundStyle(Color.textSecondaryOnboarding)
 
-                            HStack {
-                                if viewModel.showPassword {
-                                    TextField("Mot de passe", text: $viewModel.password)
-                                } else {
-                                    SecureField("Mot de passe", text: $viewModel.password)
+                            HStack(spacing: 12) {
+                                Group {
+                                    if viewModel.showPassword {
+                                        TextField(
+                                            "",
+                                            text: $viewModel.password,
+                                            prompt: Text("Saisissez votre mot de passe")
+                                                .foregroundColor(Color.textTertiaryOnboarding)
+                                        )
+                                    } else {
+                                        SecureField(
+                                            "",
+                                            text: $viewModel.password,
+                                            prompt: Text("Saisissez votre mot de passe")
+                                                .foregroundColor(Color.textTertiaryOnboarding)
+                                        )
+                                    }
                                 }
+                                .textContentType(.password)
+                                .focused($focusedField, equals: .password)
+                                .font(.body)
 
                                 Button {
                                     viewModel.showPassword.toggle()
                                 } label: {
-                                    Image(systemName: viewModel.showPassword ? "eye.slash" : "eye")
-                                        .foregroundStyle(.secondary)
+                                    Image(systemName: viewModel.showPassword ? "eye.slash.fill" : "eye.fill")
+                                        .font(.body)
+                                        .foregroundStyle(Color.textTertiaryOnboarding)
                                 }
                             }
-                            .textContentType(.password)
-                            .padding()
-                            .background(.background)
+                            .padding(.horizontal, 16)
+                            .frame(height: 52)
+                            .background(Color(.systemGray6))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.inputBorder, lineWidth: 1)
+                                    .stroke(
+                                        focusedField == .password ? Color.pulpePrimary : Color.clear,
+                                        lineWidth: 2
+                                    )
                             )
+                            .animation(.easeInOut(duration: 0.2), value: focusedField)
                         }
 
                         // Login button
@@ -135,52 +175,76 @@ struct LoginView: View {
                                 await login()
                             }
                         } label: {
-                            HStack {
+                            HStack(spacing: 8) {
                                 if viewModel.isLoading {
                                     ProgressView()
                                         .tint(.white)
                                 } else {
                                     Text("Se connecter")
+                                        .fontWeight(.semibold)
+                                    Image(systemName: "arrow.right")
+                                        .font(.system(size: 14, weight: .semibold))
                                 }
                             }
                             .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(viewModel.canSubmit ? Color.accentColor : Color.secondary)
-                            .foregroundStyle(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .frame(height: 54)
+                            .background(
+                                viewModel.canSubmit
+                                    ? AnyShapeStyle(Color.onboardingGradient)
+                                    : AnyShapeStyle(Color.secondary.opacity(0.3))
+                            )
+                            .foregroundStyle(viewModel.canSubmit ? .white : Color.secondary)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .shadow(
+                                color: viewModel.canSubmit ? Color.pulpePrimary.opacity(0.25) : .clear,
+                                radius: 8,
+                                y: 4
+                            )
                         }
                         .disabled(!viewModel.canSubmit)
+                        .animation(.easeInOut(duration: 0.2), value: viewModel.canSubmit)
+                        .padding(.top, 8)
                     }
-                    .padding(.horizontal)
+                    .padding(24)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 24))
+                    .shadow(color: Color.black.opacity(0.06), radius: 20, y: 8)
+                    .padding(.horizontal, 20)
 
                     // Create account link
-                    VStack(spacing: 8) {
+                    VStack(spacing: 6) {
                         Text("Nouveau sur Pulpe ?")
-                            .foregroundStyle(.secondary)
+                            .font(.subheadline)
+                            .foregroundStyle(Color.textSecondaryOnboarding)
 
-                        Button("Créer un compte") {
+                        Button {
                             if let isPresented {
                                 isPresented.wrappedValue = false
                             } else {
                                 OnboardingState.clearPersistedData()
                                 appState.hasCompletedOnboarding = false
                             }
+                        } label: {
+                            Text("Créer un compte")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(Color.pulpePrimary)
                         }
-                        .fontWeight(.medium)
                     }
-                    .font(.subheadline)
+                    .padding(.top, 28)
 
-                    Spacer()
+                    Spacer(minLength: 40)
                 }
-                .padding()
             }
-            .background(Color(.systemGroupedBackground))
+            .scrollBounceBehavior(.basedOnSize)
+            .background(Color.onboardingBackground)
             .toolbar {
                 if let isPresented {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Annuler") {
                             isPresented.wrappedValue = false
                         }
+                        .foregroundStyle(Color.pulpePrimary)
                     }
                 }
             }
@@ -205,6 +269,7 @@ struct LoginView: View {
     }
 
     private func login() async {
+        focusedField = nil
         viewModel.isLoading = true
         viewModel.errorMessage = nil
 
