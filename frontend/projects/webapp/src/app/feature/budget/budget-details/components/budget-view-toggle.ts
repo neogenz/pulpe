@@ -4,10 +4,10 @@ import {
   MatChipsModule,
 } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
-import type { BudgetTableViewMode } from './budget-table-view-mode';
+import type { BudgetViewMode } from '../data-core';
 
 @Component({
-  selector: 'pulpe-budget-table-view-toggle',
+  selector: 'pulpe-budget-view-toggle',
   imports: [MatChipsModule, MatIconModule],
   template: `
     <mat-chip-listbox
@@ -18,18 +18,18 @@ import type { BudgetTableViewMode } from './budget-table-view-mode';
       <mat-chip-option
         [selected]="viewMode() === 'envelopes'"
         (selectionChange)="onViewModeChange('envelopes', $event)"
-        data-testid="envelope-mode-chip"
+        data-testid="grid-mode-chip"
       >
-        <mat-icon matChipAvatar>folder</mat-icon>
-        Enveloppes
+        <mat-icon matChipAvatar>grid_view</mat-icon>
+        Vue Grille
       </mat-chip-option>
       <mat-chip-option
-        [selected]="viewMode() === 'transactions'"
-        (selectionChange)="onViewModeChange('transactions', $event)"
-        data-testid="transactions-mode-chip"
+        [selected]="viewMode() === 'table'"
+        (selectionChange)="onViewModeChange('table', $event)"
+        data-testid="table-mode-chip"
       >
-        <mat-icon matChipAvatar>receipt</mat-icon>
-        Transactions
+        <mat-icon matChipAvatar>table_rows</mat-icon>
+        Vue Table
       </mat-chip-option>
     </mat-chip-listbox>
   `,
@@ -40,13 +40,10 @@ import type { BudgetTableViewMode } from './budget-table-view-mode';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BudgetTableViewToggle {
-  viewMode = model<BudgetTableViewMode>('envelopes');
+export class BudgetViewToggle {
+  viewMode = model<BudgetViewMode>('envelopes');
 
-  onViewModeChange(
-    mode: BudgetTableViewMode,
-    event: MatChipSelectionChange,
-  ): void {
+  onViewModeChange(mode: BudgetViewMode, event: MatChipSelectionChange): void {
     if (!event.isUserInput || !event.selected) {
       return;
     }

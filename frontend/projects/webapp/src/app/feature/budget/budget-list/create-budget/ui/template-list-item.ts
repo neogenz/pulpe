@@ -199,9 +199,9 @@ import { type TemplateViewModel } from './template-view-model';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TemplateListItem {
-  templateViewModel = input.required<TemplateViewModel>();
-  isSelected = input<boolean>(false);
+  readonly templateViewModel = input.required<TemplateViewModel>();
+  readonly isSelected = input<boolean>(false);
 
-  selectTemplate = output<string>();
-  showDetails = output<TemplateViewModel>();
+  readonly selectTemplate = output<string>();
+  readonly showDetails = output<TemplateViewModel>();
 }

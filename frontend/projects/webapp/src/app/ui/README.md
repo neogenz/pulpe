@@ -10,7 +10,7 @@ The `ui/` directory contains a library of generic, reusable, and purely presenta
 
 - **Only standalone components, directives, and pipes** (template context based)
 - Generic, reusable presentational elements
-- Communication exclusively via `@Input()` and `@Output()`
+- Communication exclusively via `input()` and `output()` signal functions
 - No services or headless logic
 
 **Loading**: Eager/lazy - bundler optimizes placement based on usage through cherry-picking.

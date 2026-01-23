@@ -37,7 +37,6 @@ export interface TableItem {
   metadata: {
     itemType: 'budget_line' | 'transaction';
     cumulativeBalance: number;
-    isEditing?: boolean;
     isRollover?: boolean;
     isTemplateLinked?: boolean;
     isPropagationLocked?: boolean;

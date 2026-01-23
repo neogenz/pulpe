@@ -100,6 +100,6 @@ import { type BudgetTemplate } from 'pulpe-shared';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TemplateCard {
-  template = input.required<BudgetTemplate>();
+  readonly template = input.required<BudgetTemplate>();
   readonly delete = output<BudgetTemplate>();
 }

@@ -18,6 +18,16 @@ export class BudgetDetailsPage {
     await expect(this.page.getByTestId('budget-detail-page')).toBeVisible();
   }
 
+  async switchToTableView(): Promise<void> {
+    const tableChip = this.page.getByTestId('table-mode-chip');
+    // Only click if visible (desktop view has the toggle, mobile doesn't)
+    if (await tableChip.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await tableChip.click();
+      // Wait for the table to be visible
+      await expect(this.page.locator('table[mat-table]')).toBeVisible();
+    }
+  }
+
   async expectBudgetLineVisible(lineName: string): Promise<void> {
     await expect(
       this.page.getByTestId(`budget-line-${lineName}`),

@@ -45,6 +45,11 @@ describe('hasBudgetGuard', () => {
       setHasBudget: vi.fn(),
     };
 
+    mockHasBudgetCache = {
+      hasBudget: vi.fn().mockReturnValue(null),
+      setHasBudget: vi.fn(),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         { provide: BudgetApi, useValue: mockBudgetApi },

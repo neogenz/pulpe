@@ -243,7 +243,7 @@ export class EditTransactionForm implements OnInit {
   readonly #fb = inject(FormBuilder);
   readonly #logger = inject(Logger);
 
-  transaction = input.required<Transaction>();
+  readonly transaction = input.required<Transaction>();
   readonly updateTransaction = output<EditTransactionFormData>();
   readonly cancelEdit = output<void>();
   readonly isUpdating = signal(false);
@@ -274,7 +274,7 @@ export class EditTransactionForm implements OnInit {
     return null;
   };
 
-  transactionForm = this.#fb.group({
+  readonly transactionForm = this.#fb.group({
     name: ['', TransactionValidators.name],
     amount: [null as number | null, TransactionValidators.amount],
     kind: [

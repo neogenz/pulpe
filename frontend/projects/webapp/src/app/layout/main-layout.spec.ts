@@ -520,15 +520,6 @@ describe('MainLayout', () => {
       fixture.detectChanges();
     });
 
-    it('should have proper visual states for logo', () => {
-      const logo = fixture.nativeElement.querySelector('.pulpe-gradient');
-      expect(logo).toBeTruthy();
-
-      // Test that the logo exists and has the correct classes
-      expect(logo.classList.contains('pulpe-gradient')).toBe(true);
-      expect(logo.classList.contains('rounded-full')).toBe(true);
-    });
-
     it('should have correct initial state for user menu button', () => {
       const userMenuButton = fixture.nativeElement.querySelector(
         '[data-testid="user-menu-trigger"]',

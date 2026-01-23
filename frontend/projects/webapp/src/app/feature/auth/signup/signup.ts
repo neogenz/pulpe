@@ -306,11 +306,11 @@ export default class Signup {
     { validators: passwordsMatchValidator },
   );
 
-  protected formStatus = toSignal(this.signupForm.statusChanges, {
+  protected readonly formStatus = toSignal(this.signupForm.statusChanges, {
     initialValue: this.signupForm.status,
   });
 
-  protected canSubmit = computed(() => {
+  protected readonly canSubmit = computed(() => {
     const isValid = this.formStatus() === 'VALID';
     const isNotSubmitting = !this.isSubmitting();
     return isValid && isNotSubmitting;

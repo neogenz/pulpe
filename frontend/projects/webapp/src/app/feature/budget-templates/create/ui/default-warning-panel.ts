@@ -46,10 +46,10 @@ import { MatIconModule } from '@angular/material/icon';
   `,
 })
 export class DefaultWarningPanel {
-  message = input.required<string>();
-  dismissable = input(false);
+  readonly message = input.required<string>();
+  readonly dismissable = input(false);
 
-  dismiss = output<void>();
+  readonly dismiss = output<void>();
 
   protected onDismiss(): void {
     this.dismiss.emit();

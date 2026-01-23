@@ -36,11 +36,11 @@ import { type FinancialEntryModel } from '../models/financial-entry.model';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OneTimeExpensesList {
-  financialEntries = input.required<FinancialEntryModel[]>();
-  selectedFinancialEntries = model<string[]>([]);
-  deleteFinancialEntry = output<string>();
-  editFinancialEntry = output<string>();
-  toggleCheckFinancialEntry = output<string>();
+  readonly financialEntries = input.required<FinancialEntryModel[]>();
+  readonly selectedFinancialEntries = model<string[]>([]);
+  readonly deleteFinancialEntry = output<string>();
+  readonly editFinancialEntry = output<string>();
+  readonly toggleCheckFinancialEntry = output<string>();
   readonly #breakpointObserver = inject(BreakpointObserver);
 
   protected readonly isHandset = toSignal(
@@ -50,7 +50,7 @@ export class OneTimeExpensesList {
     ),
     { initialValue: false },
   );
-  config = computed(
+  readonly config = computed(
     (): FinancialAccordionConfig => ({
       title: 'Ponctuelles',
       totalAmount: this.financialEntries().reduce((total, financialEntry) => {

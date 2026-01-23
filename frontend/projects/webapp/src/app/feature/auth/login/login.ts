@@ -188,11 +188,11 @@ export default class Login {
     ],
   });
 
-  protected formStatus = toSignal(this.loginForm.statusChanges, {
+  protected readonly formStatus = toSignal(this.loginForm.statusChanges, {
     initialValue: this.loginForm.status,
   });
 
-  protected canSubmit = computed(() => {
+  protected readonly canSubmit = computed(() => {
     const isValid = this.formStatus() === 'VALID';
     const isNotSubmitting = !this.isSubmitting();
     return isValid && isNotSubmitting;

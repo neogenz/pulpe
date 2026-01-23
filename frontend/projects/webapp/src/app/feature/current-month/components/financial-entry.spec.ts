@@ -15,9 +15,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { BehaviorSubject } from 'rxjs';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { By } from '@angular/platform-browser';
-// Import the internal API for signal manipulation in tests
-// This is a workaround for the signal inputs testing issue with Vitest
-import { SIGNAL, signalSetFn } from '@angular/core/primitives/signals';
+import { setTestInput } from '../../../testing/signal-test-utils';
 
 import {
   FinancialEntry,
@@ -88,7 +86,7 @@ describe('FinancialEntry', () => {
     component = fixture.componentInstance;
 
     // Set required inputs using signal API workaround for Vitest compatibility
-    signalSetFn(component.data[SIGNAL], mockFinancialEntry);
+    setTestInput(component.data, mockFinancialEntry);
     fixture.detectChanges();
   });
 
@@ -107,8 +105,8 @@ describe('FinancialEntry', () => {
   describe('Desktop view (non-mobile)', () => {
     beforeEach(() => {
       breakpointSubject.next({ matches: false }); // Desktop
-      signalSetFn(component.editable[SIGNAL], true);
-      signalSetFn(component.deletable[SIGNAL], true);
+      setTestInput(component.editable, true);
+      setTestInput(component.deletable, true);
       fixture.detectChanges();
     });
 
@@ -151,8 +149,8 @@ describe('FinancialEntry', () => {
     });
 
     it('should not show buttons when not editable or deletable', () => {
-      signalSetFn(component.editable[SIGNAL], false);
-      signalSetFn(component.deletable[SIGNAL], false);
+      setTestInput(component.editable, false);
+      setTestInput(component.deletable, false);
       fixture.detectChanges();
 
       const editButton = fixture.debugElement.query(
@@ -174,8 +172,8 @@ describe('FinancialEntry', () => {
   describe('Mobile view (handset)', () => {
     beforeEach(() => {
       breakpointSubject.next({ matches: true }); // Mobile
-      signalSetFn(component.editable[SIGNAL], true);
-      signalSetFn(component.deletable[SIGNAL], true);
+      setTestInput(component.editable, true);
+      setTestInput(component.deletable, true);
       fixture.detectChanges();
     });
 
@@ -258,8 +256,8 @@ describe('FinancialEntry', () => {
     });
 
     it('should not show menu button when not editable or deletable', () => {
-      signalSetFn(component.editable[SIGNAL], false);
-      signalSetFn(component.deletable[SIGNAL], false);
+      setTestInput(component.editable, false);
+      setTestInput(component.deletable, false);
       fixture.detectChanges();
 
       const menuButton = fixture.debugElement.query(
@@ -269,8 +267,8 @@ describe('FinancialEntry', () => {
     });
 
     it('should show menu button when only editable', () => {
-      signalSetFn(component.editable[SIGNAL], true);
-      signalSetFn(component.deletable[SIGNAL], false);
+      setTestInput(component.editable, true);
+      setTestInput(component.deletable, false);
       fixture.detectChanges();
 
       const menuButton = fixture.debugElement.query(
@@ -303,8 +301,8 @@ describe('FinancialEntry', () => {
     });
 
     it('should show menu button when only deletable', () => {
-      signalSetFn(component.editable[SIGNAL], false);
-      signalSetFn(component.deletable[SIGNAL], true);
+      setTestInput(component.editable, false);
+      setTestInput(component.deletable, true);
       fixture.detectChanges();
 
       const menuButton = fixture.debugElement.query(
@@ -387,8 +385,8 @@ describe('FinancialEntry', () => {
 
   describe('Responsive behavior', () => {
     beforeEach(() => {
-      signalSetFn(component.editable[SIGNAL], true);
-      signalSetFn(component.deletable[SIGNAL], true);
+      setTestInput(component.editable, true);
+      setTestInput(component.deletable, true);
     });
 
     it('should switch from desktop to mobile view when breakpoint changes', () => {
@@ -428,8 +426,8 @@ describe('FinancialEntry', () => {
 
   describe('Accessibility', () => {
     beforeEach(() => {
-      signalSetFn(component.editable[SIGNAL], true);
-      signalSetFn(component.deletable[SIGNAL], true);
+      setTestInput(component.editable, true);
+      setTestInput(component.deletable, true);
     });
 
     it('should have proper aria-label for menu button on mobile', () => {

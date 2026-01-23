@@ -2,21 +2,44 @@
 // Used by the pulpe-financial-summary component
 
 :root {
-  // Primary financial colors
+  // Primary financial colors (text)
   --pulpe-financial-income: #0061a6;
   --pulpe-financial-expense: #c26c00;
   --pulpe-financial-savings: #27ae60;
   --pulpe-financial-negative: var(--mat-sys-error);
 
-  // Light variants for backgrounds
+  // Background variants (light theme: pastel backgrounds)
   --pulpe-financial-income-light: #e3f2fd;
   --pulpe-financial-expense-light: #fff3e0;
   --pulpe-financial-savings-light: #e8f5e8;
   --pulpe-financial-negative-light: #ffebee;
+
+  // Text on financial backgrounds
+  --pulpe-on-financial-light: #374151;
 
   // Dark variants for text/borders
   --pulpe-financial-income-dark: #004494;
   --pulpe-financial-expense-dark: #a85600;
   --pulpe-financial-savings-dark: #1e8449;
   --pulpe-financial-negative-dark: var(--mat-sys-on-error-container);
+}
+
+// Dark theme overrides (using system preference)
+@media (prefers-color-scheme: dark) {
+  :root {
+    // Primary financial colors (brighter for dark backgrounds)
+    --pulpe-financial-income: #64b5f6;
+    --pulpe-financial-expense: #ffb74d;
+    --pulpe-financial-savings: #81c784;
+    --pulpe-financial-negative: var(--mat-sys-error);
+
+    // Background variants (dark theme: darker, more saturated)
+    --pulpe-financial-income-light: #1e3a5f;
+    --pulpe-financial-expense-light: #4a3728;
+    --pulpe-financial-savings-light: #1e3d2f;
+    --pulpe-financial-negative-light: #4a2c2c;
+
+    // Text on financial backgrounds (light text for dark backgrounds)
+    --pulpe-on-financial-light: #e5e7eb;
+  }
 }

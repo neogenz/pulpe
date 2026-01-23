@@ -247,17 +247,17 @@ type EditTransactionFormData = Pick<
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class CurrentMonth {
-  isCreatingTransaction = signal(false);
-  selectedTransactions = signal<string[]>([]);
+  readonly isCreatingTransaction = signal(false);
+  readonly selectedTransactions = signal<string[]>([]);
   protected readonly store = inject(CurrentMonthStore);
   protected readonly titleDisplay = inject(TitleDisplay);
   readonly #productTourService = inject(ProductTourService);
   readonly #destroyRef = inject(DestroyRef);
   readonly #loadingIndicator = inject(LoadingIndicator);
-  #bottomSheet = inject(MatBottomSheet);
-  #dialog = inject(MatDialog);
-  #snackBar = inject(MatSnackBar);
-  #logger = inject(Logger);
+  readonly #bottomSheet = inject(MatBottomSheet);
+  readonly #dialog = inject(MatDialog);
+  readonly #snackBar = inject(MatSnackBar);
+  readonly #logger = inject(Logger);
 
   constructor() {
     this.store.refreshData();
@@ -285,7 +285,7 @@ export default class CurrentMonth {
     this.#productTourService.startPageTour('current-month');
   }
 
-  recurringFinancialItems = computed<FinancialEntryModel[]>(() => {
+  readonly recurringFinancialItems = computed<FinancialEntryModel[]>(() => {
     const budgetLines = this.store.displayBudgetLines();
     const budget = this.store.dashboardData()?.budget;
 
@@ -299,7 +299,7 @@ export default class CurrentMonth {
       .map((line) => mapBudgetLineToFinancialEntry(line, budget.id));
   });
 
-  oneTimeFinancialItems = computed<FinancialEntryModel[]>(() => {
+  readonly oneTimeFinancialItems = computed<FinancialEntryModel[]>(() => {
     // For now, show all transactions as variable expenses
     const transactions = this.store.dashboardData()?.transactions ?? [];
     return transactions.map((transaction) =>

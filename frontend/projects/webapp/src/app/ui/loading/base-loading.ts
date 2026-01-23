@@ -45,12 +45,12 @@ export type LoadingSize = 'small' | 'medium' | 'large';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BaseLoading {
-  message = input.required<string>();
-  size = input<LoadingSize>('medium');
-  testId = input<string>('loading-container');
-  fullHeight = input<boolean>(false);
+  readonly message = input.required<string>();
+  readonly size = input<LoadingSize>('medium');
+  readonly testId = input<string>('loading-container');
+  readonly fullHeight = input<boolean>(false);
 
-  protected spinnerDiameter = computed(() => {
+  protected readonly spinnerDiameter = computed(() => {
     switch (this.size()) {
       case 'small':
         return 24;
@@ -63,15 +63,15 @@ export class BaseLoading {
     }
   });
 
-  protected spinnerSizeClass = computed(() => {
+  protected readonly spinnerSizeClass = computed(() => {
     return `pulpe-loading-${this.size()}`;
   });
 
-  protected messageId = computed(() => {
+  protected readonly messageId = computed(() => {
     return `loading-message-${this.testId()}`;
   });
 
-  protected actualHeight = computed(() => {
+  protected readonly actualHeight = computed(() => {
     return this.fullHeight() ? '100vh' : '256px';
   });
 }

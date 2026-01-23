@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { rxResource } from '@angular/core/rxjs-interop';
+import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BudgetApi } from '@core/budget';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
@@ -15,7 +15,18 @@ import {
   BudgetFormulas,
   getBudgetPeriodForDate,
 } from 'pulpe-shared';
-import { firstValueFrom, map, of, switchMap, type Observable } from 'rxjs';
+import {
+  catchError,
+  concatMap,
+  EMPTY,
+  firstValueFrom,
+  map,
+  of,
+  Subject,
+  switchMap,
+  tap,
+  type Observable,
+} from 'rxjs';
 import {
   type CurrentMonthState,
   type DashboardData,
@@ -39,12 +50,47 @@ import { createInitialCurrentMonthInternalState } from './current-month-state';
  */
 @Injectable()
 export class CurrentMonthStore {
-  #budgetApi = inject(BudgetApi);
-  #transactionApi = inject(TransactionApi);
-  #httpClient = inject(HttpClient);
-  #appConfig = inject(ApplicationConfiguration);
-  #userSettingsApi = inject(UserSettingsApi);
-  #invalidationService = inject(BudgetInvalidationService);
+  readonly #budgetApi = inject(BudgetApi);
+  readonly #transactionApi = inject(TransactionApi);
+  readonly #httpClient = inject(HttpClient);
+  readonly #appConfig = inject(ApplicationConfiguration);
+  readonly #userSettingsApi = inject(UserSettingsApi);
+  readonly #invalidationService = inject(BudgetInvalidationService);
+
+  /**
+   * Mutation queue - serializes all async operations to prevent race conditions
+   */
+  readonly #mutations$ = new Subject<() => Observable<unknown>>();
+
+  constructor() {
+    this.#mutations$
+      .pipe(
+        concatMap((operation) => operation()),
+        takeUntilDestroyed(),
+      )
+      .subscribe({
+        error: (err) =>
+          console.error('[CurrentMonthStore] Unexpected mutation error:', err),
+      });
+  }
+
+  /**
+   * Enqueue a mutation for serialized execution
+   * Prevents race conditions by ensuring operations run sequentially
+   */
+  #enqueueMutation<T>(operation: () => Observable<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      this.#mutations$.next(() =>
+        operation().pipe(
+          tap((result) => resolve(result)),
+          catchError((err) => {
+            reject(err);
+            return EMPTY;
+          }),
+        ),
+      );
+    });
+  }
 
   /**
    * Simple state signal for UI feedback during operations
@@ -307,8 +353,8 @@ export class CurrentMonthStore {
     const originalData = this.#dashboardResource.value();
 
     try {
-      // 1. Execute backend operation first
-      const response = await firstValueFrom(operation());
+      // 1. Execute backend operation (queued to prevent race conditions)
+      const response = await this.#enqueueMutation(() => operation());
 
       // 2. Apply optimistic update
       const currentData = this.#dashboardResource.value();
@@ -370,31 +416,55 @@ export class CurrentMonthStore {
   /**
    * Toggle the checked state of a budget line
    * Uses optimistic update for instant UI feedback with rollback on error
+   *
+   * THREAD-SAFETY: Uses targeted rollback that only affects the specific item,
+   * preventing corruption of concurrent operations on other items.
+   * @throws Error if no dashboard data or budget line not found
    */
   async toggleBudgetLineCheck(budgetLineId: string): Promise<void> {
-    const originalData = this.#dashboardResource.value();
-    if (!originalData) return;
+    const currentData = this.#dashboardResource.value();
+    if (!currentData) {
+      throw new Error('Cannot toggle budget line: no dashboard data loaded');
+    }
 
-    const budgetLine = originalData.budgetLines.find(
+    const budgetLine = currentData.budgetLines.find(
       (line) => line.id === budgetLineId,
     );
-    if (!budgetLine) return;
+    if (!budgetLine) {
+      throw new Error(`Budget line not found: ${budgetLineId}`);
+    }
 
+    // Capture original value for targeted rollback
+    const originalCheckedAt = budgetLine.checkedAt;
     const newCheckedAt =
-      budgetLine.checkedAt === null ? new Date().toISOString() : null;
+      originalCheckedAt === null ? new Date().toISOString() : null;
 
+    // Apply optimistic update immediately
     this.#dashboardResource.set({
-      ...originalData,
-      budgetLines: originalData.budgetLines.map((line) =>
+      ...currentData,
+      budgetLines: currentData.budgetLines.map((line) =>
         line.id === budgetLineId ? { ...line, checkedAt: newCheckedAt } : line,
       ),
     });
 
     try {
       const apiUrl = `${this.#appConfig.backendApiUrl()}/budget-lines/${budgetLineId}/toggle-check`;
-      await firstValueFrom(this.#httpClient.post(apiUrl, {}));
+      await this.#enqueueMutation(() =>
+        this.#httpClient.post<void>(apiUrl, {}),
+      );
     } catch (error) {
-      this.#dashboardResource.set(originalData);
+      // Targeted rollback: only restore THIS item's value, preserving concurrent changes
+      const latestData = this.#dashboardResource.value();
+      if (latestData) {
+        this.#dashboardResource.set({
+          ...latestData,
+          budgetLines: latestData.budgetLines.map((line) =>
+            line.id === budgetLineId
+              ? { ...line, checkedAt: originalCheckedAt }
+              : line,
+          ),
+        });
+      }
       throw error;
     }
   }
@@ -402,30 +472,54 @@ export class CurrentMonthStore {
   /**
    * Toggle the checked state of a transaction
    * Uses optimistic update for instant UI feedback with rollback on error
+   *
+   * THREAD-SAFETY: Uses targeted rollback that only affects the specific item,
+   * preventing corruption of concurrent operations on other items.
+   * @throws Error if no dashboard data or transaction not found
    */
   async toggleTransactionCheck(transactionId: string): Promise<void> {
-    const originalData = this.#dashboardResource.value();
-    if (!originalData) return;
+    const currentData = this.#dashboardResource.value();
+    if (!currentData) {
+      throw new Error('Cannot toggle transaction: no dashboard data loaded');
+    }
 
-    const transaction = originalData.transactions.find(
+    const transaction = currentData.transactions.find(
       (tx) => tx.id === transactionId,
     );
-    if (!transaction) return;
+    if (!transaction) {
+      throw new Error(`Transaction not found: ${transactionId}`);
+    }
 
+    // Capture original value for targeted rollback
+    const originalCheckedAt = transaction.checkedAt;
     const newCheckedAt =
-      transaction.checkedAt === null ? new Date().toISOString() : null;
+      originalCheckedAt === null ? new Date().toISOString() : null;
 
+    // Apply optimistic update immediately
     this.#dashboardResource.set({
-      ...originalData,
-      transactions: originalData.transactions.map((tx) =>
+      ...currentData,
+      transactions: currentData.transactions.map((tx) =>
         tx.id === transactionId ? { ...tx, checkedAt: newCheckedAt } : tx,
       ),
     });
 
     try {
-      await firstValueFrom(this.#transactionApi.toggleCheck$(transactionId));
+      await this.#enqueueMutation(() =>
+        this.#transactionApi.toggleCheck$(transactionId),
+      );
     } catch (error) {
-      this.#dashboardResource.set(originalData);
+      // Targeted rollback: only restore THIS item's value, preserving concurrent changes
+      const latestData = this.#dashboardResource.value();
+      if (latestData) {
+        this.#dashboardResource.set({
+          ...latestData,
+          transactions: latestData.transactions.map((tx) =>
+            tx.id === transactionId
+              ? { ...tx, checkedAt: originalCheckedAt }
+              : tx,
+          ),
+        });
+      }
       throw error;
     }
   }

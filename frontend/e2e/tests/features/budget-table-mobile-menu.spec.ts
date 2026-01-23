@@ -44,7 +44,7 @@ test.describe('Budget Table Mobile Menu', () => {
         page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
         page.goto(`/budget/${budgetId}`),
       ]);
-      await expect(page.locator('pulpe-budget-table')).toBeVisible();
+      await expect(page.locator('pulpe-budget-items')).toBeVisible();
     });
 
     test('shows menu button for budget line actions', async ({ authenticatedPage: page }) => {
@@ -192,7 +192,7 @@ test.describe('Budget Table Mobile Menu', () => {
       // Reload page to get new mock data
       await page.goto(`/budget/${testBudgetId}`);
       await page.waitForLoadState('domcontentloaded');
-      await expect(page.locator('pulpe-budget-table')).toBeVisible();
+      await expect(page.locator('pulpe-budget-items')).toBeVisible();
 
       // Regular line should have menu button
       const regularLineMenu = page.locator(`[data-testid="card-menu-${lineId}"]`);
@@ -214,7 +214,10 @@ test.describe('Budget Table Mobile Menu', () => {
         page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
         page.goto(`/budget/${budgetId}`),
       ]);
-      await expect(page.locator('pulpe-budget-table')).toBeVisible();
+      await expect(page.locator('pulpe-budget-items')).toBeVisible();
+      // Switch to table view (default is now envelopes view)
+      await page.getByTestId('table-mode-chip').click();
+      await expect(page.locator('table[mat-table]')).toBeVisible();
     });
 
     test('shows menu button for row actions', async ({ authenticatedPage: page }) => {
@@ -236,7 +239,7 @@ test.describe('Budget Table Mobile Menu', () => {
       await expect(editMenuItem).toBeVisible();
     });
 
-    test('triggers inline edit when clicking edit menu item', async ({ authenticatedPage: page }) => {
+    test('triggers edit dialog when clicking edit menu item', async ({ authenticatedPage: page }) => {
       const menuButton = page.locator('[data-testid^="actions-menu-"]').first();
       await menuButton.click();
 
@@ -244,16 +247,23 @@ test.describe('Budget Table Mobile Menu', () => {
       const editMenuItem = page.locator('button[mat-menu-item]').filter({ hasText: 'Éditer' });
       await editMenuItem.click();
 
-      // On desktop, inline editing should activate
-      const editNameInput = page.locator('[data-testid^="edit-name-"]').first();
-      const editAmountInput = page.locator('[data-testid^="edit-amount-"]').first();
+      // On desktop, edit dialog should open
+      const dialog = page.locator('mat-dialog-container');
+      await expect(dialog).toBeVisible();
+
+      // Verify dialog form fields are visible
+      const editNameInput = page.locator('[data-testid="edit-line-name"]');
+      const editAmountInput = page.locator('[data-testid="edit-line-amount"]');
 
       await expect(editNameInput).toBeVisible();
       await expect(editAmountInput).toBeVisible();
 
       // Cancel editing
-      const cancelButton = page.locator('[data-testid^="cancel-"]').first();
+      const cancelButton = page.locator('[data-testid="cancel-edit-line"]');
       await cancelButton.click();
+
+      // Verify dialog is closed
+      await expect(dialog).not.toBeVisible();
     });
 
     test('triggers delete action when clicking delete menu item', async ({ authenticatedPage: page }) => {
@@ -287,7 +297,10 @@ test.describe('Budget Table Mobile Menu', () => {
         page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
         page.goto(`/budget/${budgetId}`),
       ]);
-      await expect(page.locator('pulpe-budget-table')).toBeVisible();
+      await expect(page.locator('pulpe-budget-items')).toBeVisible();
+      // Switch to table view (default is now envelopes view)
+      await page.getByTestId('table-mode-chip').click();
+      await expect(page.locator('table[mat-table]')).toBeVisible();
 
       // Desktop uses actions-menu-* prefix (table view)
       const desktopMenuButton = page.locator('[data-testid^="actions-menu-"]').first();
@@ -313,7 +326,7 @@ test.describe('Budget Table Mobile Menu', () => {
         page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
         page.goto(`/budget/${budgetId}`),
       ]);
-      await expect(page.locator('pulpe-budget-table')).toBeVisible();
+      await expect(page.locator('pulpe-budget-items')).toBeVisible();
     });
 
     test('can navigate menu with keyboard on mobile', async ({ authenticatedPage: page }) => {

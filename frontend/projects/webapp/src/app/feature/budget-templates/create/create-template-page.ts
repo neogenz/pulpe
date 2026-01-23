@@ -88,25 +88,25 @@ const SNACKBAR_CONFIG = {
 })
 export default class CreateTemplatePage {
   // Injected dependencies
-  #router = inject(Router);
-  #store = inject(BudgetTemplatesStore);
-  #snackBar = inject(MatSnackBar);
-  #logger = inject(Logger);
+  readonly #router = inject(Router);
+  readonly #store = inject(BudgetTemplatesStore);
+  readonly #snackBar = inject(MatSnackBar);
+  readonly #logger = inject(Logger);
 
   // Local state
-  isCreatingTemplate = signal(false);
+  readonly isCreatingTemplate = signal(false);
 
   // Computed values to pass to child form (smart/dumb pattern)
   // These are computed ONCE from state and passed as stable inputs
-  templateCount = computed(() => this.#store.templateCount());
-  existingTemplateNames = computed(
+  readonly templateCount = computed(() => this.#store.templateCount());
+  readonly existingTemplateNames = computed(
     () =>
       this.#store.budgetTemplates
         .value()
         ?.filter((t) => !t.id.startsWith('temp-'))
         .map((t) => t.name.toLowerCase()) ?? [],
   );
-  defaultTemplateName = computed(
+  readonly defaultTemplateName = computed(
     () => this.#store.defaultBudgetTemplate()?.name ?? null,
   );
 
@@ -141,7 +141,7 @@ export default class CreateTemplatePage {
     } catch (error) {
       // Only reset isCreating on error (user stays on page to retry)
       this.isCreatingTemplate.set(false);
-      this.handleError(error);
+      this.#handleError(error);
     }
   }
 
@@ -149,15 +149,15 @@ export default class CreateTemplatePage {
     this.#router.navigate(['/', ROUTES.BUDGET_TEMPLATES]);
   }
 
-  private handleError(error: unknown): void {
+  #handleError(error: unknown): void {
     // Simple logging - in a real app, this would use a proper logging service
     this.#logger.error('Erreur lors de la création du template:', error);
 
-    const errorMessage = this.getErrorMessage(error);
+    const errorMessage = this.#getErrorMessage(error);
     this.#snackBar.open(errorMessage, 'Fermer', SNACKBAR_CONFIG.ERROR);
   }
 
-  private getErrorMessage(error: unknown): string {
+  #getErrorMessage(error: unknown): string {
     if (error instanceof Error) {
       // Check for specific error types that we can handle better
       if (

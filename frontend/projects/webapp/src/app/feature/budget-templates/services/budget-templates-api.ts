@@ -19,8 +19,8 @@ import { ApplicationConfiguration } from '@core/config/application-configuration
 
 @Injectable()
 export class BudgetTemplatesApi {
-  #http = inject(HttpClient);
-  #applicationConfig = inject(ApplicationConfiguration);
+  readonly #http = inject(HttpClient);
+  readonly #applicationConfig = inject(ApplicationConfiguration);
 
   get #apiUrl(): string {
     return `${this.#applicationConfig.backendApiUrl()}/budget-templates`;

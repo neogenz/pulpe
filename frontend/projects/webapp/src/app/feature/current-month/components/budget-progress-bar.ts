@@ -124,25 +124,25 @@ export class BudgetProgressBar {
   /**
    * Total expenses (expenses + savings) WITHOUT rollover
    */
-  expenses = input.required<number>();
+  readonly expenses = input.required<number>();
 
   /**
    * Total available amount (revenue + rollover)
    * Can be negative if rollover is significantly negative
    */
-  available = input.required<number>();
+  readonly available = input.required<number>();
 
   /**
    * Remaining amount (available - expenses)
    * Can be negative in case of budget overrun
    */
-  remaining = computed(() => this.available() - this.expenses());
+  readonly remaining = computed(() => this.available() - this.expenses());
 
   /**
    * Detects if budget is exceeded
    * True if remaining amount < 0
    */
-  isOverBudget = computed(() => {
+  readonly isOverBudget = computed(() => {
     return this.remaining() < 0;
   });
 
@@ -151,7 +151,7 @@ export class BudgetProgressBar {
    * Capped at 100% for bar display
    * Formula: Expenses / Available * 100
    */
-  budgetUsedPercentage = computed(() => {
+  readonly budgetUsedPercentage = computed(() => {
     const available = this.available();
     const expenses = this.expenses();
 
@@ -174,7 +174,7 @@ export class BudgetProgressBar {
    * Formula: Expenses / Available * 100
    * Returns -1 if available <= 0 and expenses > 0 (special case to handle in template)
    */
-  displayPercentage = computed(() => {
+  readonly displayPercentage = computed(() => {
     const available = this.available();
     const expenses = this.expenses();
 
@@ -195,7 +195,7 @@ export class BudgetProgressBar {
   /**
    * Absolute value of remaining for over budget situation
    */
-  overBudgetAmount = computed(() => {
+  readonly overBudgetAmount = computed(() => {
     return Math.abs(this.remaining());
   });
 }

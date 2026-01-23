@@ -6,7 +6,7 @@ import type {
   GroupHeaderTableItem,
   TableRowItem,
   TransactionTableItem,
-} from './budget-table-models';
+} from './budget-item-models';
 import {
   KIND_ICONS,
   GROUP_LABELS,
@@ -18,7 +18,7 @@ import {
   calculatePercentage,
   getRolloverSourceBudgetId,
   safeParseDate,
-} from './budget-table-constants';
+} from './budget-item-constants';
 
 type BudgetItemWithBalance =
   | { item: BudgetLine; cumulativeBalance: number; itemType: 'budget_line' }
@@ -114,32 +114,37 @@ function createDisplayItems(
   return items;
 }
 
-function calculateCumulativeBalances(
-  items: BudgetItemWithBalance[],
+function calculateBalancesInDisplayOrder(
+  items: TableRowItem[],
   consumptionMap: Map<string, { consumed: number }>,
 ): void {
   let runningBalance = 0;
 
   items.forEach((item) => {
-    const kind = item.item.kind;
-    let effectiveAmount = item.item.amount;
+    // Skip group headers
+    if (item.metadata.itemType === 'group_header') return;
 
-    if (item.itemType === 'budget_line') {
-      const consumption = consumptionMap.get(item.item.id);
+    const dataItem = item as BudgetLineTableItem | TransactionTableItem;
+    const kind = dataItem.data.kind;
+    let effectiveAmount = dataItem.data.amount;
+
+    if (dataItem.metadata.itemType === 'budget_line') {
+      const consumption = consumptionMap.get(dataItem.data.id);
       if (consumption) {
-        effectiveAmount = Math.max(item.item.amount, consumption.consumed);
+        effectiveAmount = Math.max(dataItem.data.amount, consumption.consumed);
       }
     }
 
     const isAllocatedTransaction =
-      item.itemType === 'transaction' && !!item.item.budgetLineId;
+      dataItem.metadata.itemType === 'transaction' &&
+      !!(dataItem.data as Transaction).budgetLineId;
 
     if (!isAllocatedTransaction) {
       const signedAmount = getSignedAmount(kind, effectiveAmount);
       runningBalance += signedAmount;
     }
 
-    item.cumulativeBalance = runningBalance;
+    dataItem.metadata.cumulativeBalance = runningBalance;
   });
 }
 
@@ -182,76 +187,91 @@ function insertGroupHeaders(
   return result;
 }
 
-export function buildEnvelopesViewData(params: {
+function createBudgetLineViewModel(
+  budgetLine: BudgetLine,
+  consumptionMap: Map<string, { consumed: number; transactionCount: number }>,
+): BudgetLineTableItem {
+  const isRollover = isRolloverLine(budgetLine);
+  const isPropagationLocked =
+    !!budgetLine.templateLineId && !!budgetLine.isManuallyAdjusted;
+  const consumption = consumptionMap.get(budgetLine.id);
+  const consumed = consumption?.consumed ?? 0;
+  const transactionCount = consumption?.transactionCount ?? 0;
+
+  return {
+    data: budgetLine,
+    metadata: {
+      itemType: 'budget_line',
+      cumulativeBalance: 0,
+      isRollover,
+      isTemplateLinked: !!budgetLine.templateLineId,
+      isPropagationLocked,
+      canResetFromTemplate: isPropagationLocked,
+      envelopeName: null,
+      kindIcon: getKindIcon(budgetLine.kind),
+      allocationLabel: getAllocationLabel(budgetLine.kind),
+      rolloverSourceBudgetId: getRolloverSourceBudgetId(budgetLine),
+    },
+    consumption: {
+      consumed,
+      transactionCount,
+      percentage: calculatePercentage(budgetLine.amount, consumed),
+      transactionCountLabel: getTransactionCountLabel(
+        budgetLine.kind,
+        transactionCount,
+      ),
+      hasTransactions: transactionCount > 0,
+    },
+  };
+}
+
+function createTransactionViewModel(
+  transaction: Transaction,
+): TransactionTableItem {
+  const isRollover = isRolloverLine(transaction);
+
+  return {
+    data: transaction,
+    metadata: {
+      itemType: 'transaction',
+      cumulativeBalance: 0,
+      isRollover,
+      isTemplateLinked: false,
+      isPropagationLocked: false,
+      canResetFromTemplate: false,
+      envelopeName: null,
+      kindIcon: getKindIcon(transaction.kind),
+      allocationLabel: getAllocationLabel(transaction.kind),
+      rolloverSourceBudgetId: undefined,
+    },
+  };
+}
+
+function mapToTableItems(
+  items: BudgetItemWithBalance[],
+  consumptionMap: Map<string, { consumed: number; transactionCount: number }>,
+): (BudgetLineTableItem | TransactionTableItem)[] {
+  return items.map((item) => {
+    if (item.itemType === 'budget_line') {
+      return createBudgetLineViewModel(item.item, consumptionMap);
+    }
+    return createTransactionViewModel(item.item);
+  });
+}
+
+export function buildViewData(params: {
   budgetLines: BudgetLine[];
   transactions: Transaction[];
-  editingLineId: string | null;
 }): TableRowItem[] {
-  const { budgetLines, transactions, editingLineId } = params;
+  const { budgetLines, transactions } = params;
 
   const consumptionMap = calculateAllConsumptions(budgetLines, transactions);
   const items = createDisplayItems(budgetLines, transactions);
   items.sort(compareItems);
-  calculateCumulativeBalances(items, consumptionMap);
 
-  const mappedItems = items.map((item) => {
-    const isRollover = isRolloverLine(item.item);
+  const mappedItems = mapToTableItems(items, consumptionMap);
 
-    if (item.itemType === 'budget_line') {
-      const budgetLine = item.item;
-      const isPropagationLocked =
-        !!budgetLine.templateLineId && !!budgetLine.isManuallyAdjusted;
-
-      const consumption = consumptionMap.get(budgetLine.id);
-      const consumed = consumption?.consumed ?? 0;
-      const transactionCount = consumption?.transactionCount ?? 0;
-
-      return {
-        data: budgetLine,
-        metadata: {
-          itemType: 'budget_line',
-          cumulativeBalance: item.cumulativeBalance,
-          isEditing: editingLineId === budgetLine.id && !isRollover,
-          isRollover,
-          isTemplateLinked: !!budgetLine.templateLineId,
-          isPropagationLocked,
-          canResetFromTemplate: isPropagationLocked,
-          envelopeName: null,
-          kindIcon: getKindIcon(budgetLine.kind),
-          allocationLabel: getAllocationLabel(budgetLine.kind),
-          rolloverSourceBudgetId: getRolloverSourceBudgetId(budgetLine),
-        },
-        consumption: {
-          consumed,
-          transactionCount,
-          percentage: calculatePercentage(budgetLine.amount, consumed),
-          transactionCountLabel: getTransactionCountLabel(
-            budgetLine.kind,
-            transactionCount,
-          ),
-          hasTransactions: transactionCount > 0,
-        },
-      } satisfies BudgetLineTableItem;
-    }
-
-    const transaction = item.item;
-    return {
-      data: transaction,
-      metadata: {
-        itemType: 'transaction',
-        cumulativeBalance: item.cumulativeBalance,
-        isEditing: false,
-        isRollover,
-        isTemplateLinked: false,
-        isPropagationLocked: false,
-        canResetFromTemplate: false,
-        envelopeName: null,
-        kindIcon: getKindIcon(transaction.kind),
-        allocationLabel: getAllocationLabel(transaction.kind),
-        rolloverSourceBudgetId: undefined,
-      },
-    } satisfies TransactionTableItem;
-  });
-
-  return insertGroupHeaders(mappedItems);
+  const result = insertGroupHeaders(mappedItems);
+  calculateBalancesInDisplayOrder(result, consumptionMap);
+  return result;
 }

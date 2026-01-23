@@ -6,102 +6,133 @@ import {
   inject,
   input,
 } from '@angular/core';
-import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { type BudgetLine, type Transaction } from 'pulpe-shared';
 import { BudgetCalculator, calculateAllConsumptions } from '@core/budget';
 import { RealizedBalanceProgressBar } from '@ui/realized-balance-progress-bar/realized-balance-progress-bar';
 import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-balance-tooltip';
 
+/**
+ * BudgetFinancialOverview - "Financial Pulse" design
+ *
+ * Hero metric (Disponible) prominently displayed with supporting metrics as pills.
+ * Follows M3 Expressive principle: important elements appear larger.
+ */
 @Component({
   selector: 'pulpe-budget-financial-overview',
   imports: [
-    MatCardModule,
     MatIconModule,
     DecimalPipe,
     RealizedBalanceProgressBar,
     RealizedBalanceTooltip,
   ],
   template: `
-    <div class="space-y-4">
-      <mat-card appearance="outlined">
-        <mat-card-content class="py-4 px-6">
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <!-- Revenus -->
-            <div class="text-center">
-              <div class="flex items-center justify-center mb-1">
-                <mat-icon class="text-base! text-on-surface!">
-                  arrow_upward
-                </mat-icon>
-                <span class="text-label-large"> Revenus CHF </span>
-              </div>
-              <div
-                class="text-title-large font-bold text-financial-income ph-no-capture"
-              >
-                {{ totals().income | number: '1.0-0' : 'de-CH' }}
-              </div>
-            </div>
+    <div class="space-y-6">
+      <!-- Hero Section: What matters most -->
+      <div
+        class="text-center py-8 px-6 rounded-3xl"
+        [class.bg-primary-container]="totals().remaining >= 0"
+        [class.bg-error-container]="totals().remaining < 0"
+      >
+        <p
+          class="text-body-large mb-3"
+          [class.text-on-primary-container]="totals().remaining >= 0"
+          [class.text-on-error-container]="totals().remaining < 0"
+        >
+          @if (totals().remaining >= 0) {
+            Ce qu'il te reste ce mois
+          } @else {
+            Déficit ce mois
+          }
+        </p>
+        <div
+          class="text-display-medium sm:text-display-large font-bold tracking-tight ph-no-capture"
+          [class.text-on-primary-container]="totals().remaining >= 0"
+          [class.text-on-error-container]="totals().remaining < 0"
+        >
+          {{ Math.abs(totals().remaining) | number: '1.0-0' : 'de-CH' }}
+          <span class="text-headline-small font-normal">CHF</span>
+        </div>
+        <p
+          class="text-body-medium mt-3"
+          [class.text-on-primary-container]="totals().remaining >= 0"
+          [class.text-on-error-container]="totals().remaining < 0"
+        >
+          @if (totals().remaining >= 0) {
+            @if (totals().remaining > totals().income * 0.2) {
+              Belle marge ce mois 👍
+            } @else if (totals().remaining > 0) {
+              Tu gères bien
+            } @else {
+              Pile à l'équilibre
+            }
+          } @else {
+            Ce mois sera serré — mais tu le sais
+          }
+        </p>
+      </div>
 
-            <!-- Dépenses -->
-            <div class="text-center">
-              <div class="flex items-center justify-center mb-1">
-                <mat-icon class="text-base! text-on-surface!">
-                  arrow_downward
-                </mat-icon>
-                <span class="text-label-large"> Dépenses CHF </span>
-              </div>
-              <div
-                class="text-title-large font-bold text-financial-expense ph-no-capture"
-              >
-                {{ totals().expenses | number: '1.0-0' : 'de-CH' }}
-              </div>
-            </div>
-
-            <!-- Épargne -->
-            <div class="text-center">
-              <div class="flex items-center justify-center mb-1">
-                <mat-icon class="text-base! text-on-surface!">
-                  savings
-                </mat-icon>
-                <span class="text-label-large"> Épargne CHF </span>
-              </div>
-              <div
-                class="text-title-large font-bold text-financial-savings ph-no-capture"
-              >
-                {{ totals().savings | number: '1.0-0' : 'de-CH' }}
-              </div>
-            </div>
-
-            <!-- Disponible -->
-            <div class="text-center">
-              <div class="flex items-center justify-center mb-1">
-                <mat-icon class="text-base! text-on-surface!">
-                  @if (totals().remaining >= 0) {
-                    account_balance_wallet
-                  } @else {
-                    warning
-                  }
-                </mat-icon>
-                <span class="text-label-large">
-                  @if (totals().remaining >= 0) {
-                    Disponible CHF
-                  } @else {
-                    Déficit CHF
-                  }
-                </span>
-              </div>
-              <div
-                class="text-title-large font-bold ph-no-capture"
-                [class.text-financial-savings]="totals().remaining >= 0"
-                [class.text-error]="totals().remaining < 0"
-              >
-                {{ Math.abs(totals().remaining) | number: '1.0-0' : 'de-CH' }}
-              </div>
-            </div>
+      <!-- Supporting Metrics: Pill-style, horizontal scroll on mobile -->
+      <div
+        class="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:justify-center scrollbar-hide"
+      >
+        <!-- Income Pill -->
+        <div
+          class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-income-light)]"
+        >
+          <mat-icon class="text-financial-income text-lg!"
+            >trending_up</mat-icon
+          >
+          <div class="flex flex-col">
+            <span class="text-label-small leading-tight text-on-financial-light"
+              >Revenus</span
+            >
+            <span
+              class="text-label-large font-semibold text-financial-income ph-no-capture"
+            >
+              {{ totals().income | number: '1.0-0' : 'de-CH' }} CHF
+            </span>
           </div>
-        </mat-card-content>
-      </mat-card>
+        </div>
 
+        <!-- Expenses Pill -->
+        <div
+          class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-expense-light)]"
+        >
+          <mat-icon class="text-financial-expense text-lg!"
+            >trending_down</mat-icon
+          >
+          <div class="flex flex-col">
+            <span class="text-label-small leading-tight text-on-financial-light"
+              >Dépenses</span
+            >
+            <span
+              class="text-label-large font-semibold text-financial-expense ph-no-capture"
+            >
+              {{ totals().expenses | number: '1.0-0' : 'de-CH' }} CHF
+            </span>
+          </div>
+        </div>
+
+        <!-- Savings Pill -->
+        <div
+          class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-savings-light)]"
+        >
+          <mat-icon class="text-financial-savings text-lg!">savings</mat-icon>
+          <div class="flex flex-col">
+            <span class="text-label-small leading-tight text-on-financial-light"
+              >Épargne</span
+            >
+            <span
+              class="text-label-large font-semibold text-financial-savings ph-no-capture"
+            >
+              {{ totals().savings | number: '1.0-0' : 'de-CH' }} CHF
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Journey Tracker: Realized balance progress -->
       <pulpe-realized-balance-progress-bar
         [realizedExpenses]="realizedExpenses()"
         [realizedBalance]="realizedBalance()"
@@ -117,6 +148,15 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
     :host {
       display: block;
     }
+
+    /* Hide scrollbar but keep functionality */
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -124,14 +164,14 @@ export class BudgetFinancialOverview {
   readonly Math = Math;
   readonly #budgetCalculator = inject(BudgetCalculator);
 
-  budgetLines = input.required<BudgetLine[]>();
-  transactions = input.required<Transaction[]>();
-  realizedBalance = input.required<number>();
-  realizedExpenses = input.required<number>();
-  checkedCount = input.required<number>();
-  totalCount = input.required<number>();
+  readonly budgetLines = input.required<BudgetLine[]>();
+  readonly transactions = input.required<Transaction[]>();
+  readonly realizedBalance = input.required<number>();
+  readonly realizedExpenses = input.required<number>();
+  readonly checkedCount = input.required<number>();
+  readonly totalCount = input.required<number>();
 
-  totals = computed(() => {
+  readonly totals = computed(() => {
     const lines = this.budgetLines();
     const transactions = this.transactions();
 

@@ -40,13 +40,8 @@ test.describe('App Health Check', () => {
     // Should be redirected to welcome page for new users
     await expect(page).toHaveURL(/\/welcome/);
 
-    // Should have some content on the page (any visible element)
-    const pageContent = page.locator('body');
-    await expect(pageContent).toBeVisible();
-
-    // Page should not be completely empty
-    const pageText = await page.textContent('body');
-    expect(pageText?.trim().length).toBeGreaterThan(0);
+    // Wait for welcome page content to render (auto-waits for Angular hydration)
+    await expect(page.locator('[data-testid="welcome-page"]')).toBeVisible();
   });
 
   test('login page is accessible', async ({ page }) => {

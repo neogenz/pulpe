@@ -103,25 +103,25 @@ import { type CalendarMonth } from './calendar-types';
   `,
 })
 export class MonthTile {
-  month = input.required<CalendarMonth>();
-  isCurrentMonth = input<boolean>(false);
+  readonly month = input.required<CalendarMonth>();
+  readonly isCurrentMonth = input<boolean>(false);
 
-  tileClick = output<CalendarMonth>();
+  readonly tileClick = output<CalendarMonth>();
 
   // Computed properties
-  monthName = computed(() => {
+  readonly monthName = computed(() => {
     const monthData = this.month();
     // Extract just the month name from displayName (e.g., "janvier" from "janvier 2025")
     return monthData.displayName.split(' ')[0];
   });
 
-  valueType = computed(() => {
+  readonly valueType = computed(() => {
     const value = this.month().value;
     if (value === undefined) return 'neutral';
     return value > 0 ? 'positive' : value < 0 ? 'negative' : 'neutral';
   });
 
-  isPastMonth = computed(() => {
+  readonly isPastMonth = computed(() => {
     const currentDate = new Date();
     const month = this.month().month;
     const year = this.month().year;

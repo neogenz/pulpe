@@ -52,6 +52,6 @@ import { TemplateCard } from './template-card';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TemplateList {
-  templates = input.required<BudgetTemplate[]>();
+  readonly templates = input.required<BudgetTemplate[]>();
   readonly deleteTemplate = output<BudgetTemplate>();
 }

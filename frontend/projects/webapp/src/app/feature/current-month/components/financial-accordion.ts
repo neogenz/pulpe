@@ -166,20 +166,20 @@ export interface FinancialAccordionConfig {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FinancialAccordion {
-  financialEntries = input.required<FinancialEntryModel[]>();
-  config = input.required<FinancialAccordionConfig>();
+  readonly financialEntries = input.required<FinancialEntryModel[]>();
+  readonly config = input.required<FinancialAccordionConfig>();
   readonly selectedFinancialEntries = model<string[]>([]);
   readonly deleteFinancialEntry = output<string>();
   readonly editFinancialEntry = output<string>();
   readonly toggleCheckFinancialEntry = output<string>();
-  isHandset = input<boolean>(false);
+  readonly isHandset = input<boolean>(false);
 
-  private readonly expandedState = signal<boolean | null>(null);
+  readonly #expandedState = signal<boolean | null>(null);
   protected readonly showAllItems = signal(false);
-  private readonly INITIAL_DISPLAY_COUNT = 5;
+  readonly #INITIAL_DISPLAY_COUNT = 5;
 
   protected readonly isExpanded = computed(() => {
-    const explicitState = this.expandedState();
+    const explicitState = this.#expandedState();
     if (explicitState !== null) {
       return explicitState;
     }
@@ -210,18 +210,18 @@ export class FinancialAccordion {
     }
 
     const total = all.length;
-    const shouldShowAll = showAll || total <= this.INITIAL_DISPLAY_COUNT;
+    const shouldShowAll = showAll || total <= this.#INITIAL_DISPLAY_COUNT;
 
     return {
-      items: shouldShowAll ? all : all.slice(0, this.INITIAL_DISPLAY_COUNT),
-      hasMore: !shouldShowAll && total > this.INITIAL_DISPLAY_COUNT,
-      remaining: Math.max(0, total - this.INITIAL_DISPLAY_COUNT),
+      items: shouldShowAll ? all : all.slice(0, this.#INITIAL_DISPLAY_COUNT),
+      hasMore: !shouldShowAll && total > this.#INITIAL_DISPLAY_COUNT,
+      remaining: Math.max(0, total - this.#INITIAL_DISPLAY_COUNT),
     };
   });
 
   protected toggleExpanded(): void {
     const currentExpanded = this.isExpanded();
-    this.expandedState.set(!currentExpanded);
+    this.#expandedState.set(!currentExpanded);
     if (!this.isExpanded()) {
       this.showAllItems.set(false);
     }

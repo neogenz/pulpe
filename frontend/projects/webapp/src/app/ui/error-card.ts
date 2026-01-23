@@ -36,5 +36,5 @@ import { MatCardModule } from '@angular/material/card';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ErrorCard {
-  error = input.required<string>();
+  readonly error = input.required<string>();
 }

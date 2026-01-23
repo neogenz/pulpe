@@ -2,10 +2,8 @@ import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { BudgetProgressBar } from './budget-progress-bar';
 import { describe, it, expect, beforeEach } from 'vitest';
-// Import the internal API for signal manipulation in tests
-// This is a workaround for the signal inputs testing issue with Vitest
-import { SIGNAL, signalSetFn } from '@angular/core/primitives/signals';
 import { registerLocaleData } from '@angular/common';
+import { setTestInput } from '../../../testing/signal-test-utils';
 import localeDE from '@angular/common/locales/de-CH';
 
 // Register locale data for Swiss German
@@ -22,8 +20,6 @@ describe('BudgetProgressBar', () => {
     }).compileComponents();
   });
 
-  // Helper function to create component and set signal inputs using internal API
-  // This is a workaround for the Vitest + Angular signal inputs compatibility issue
   function createComponentWithInputs(
     expenses: number,
     available: number,
@@ -34,9 +30,8 @@ describe('BudgetProgressBar', () => {
     fixture = TestBed.createComponent(BudgetProgressBar);
     component = fixture.componentInstance;
 
-    // Use internal signal API to set required inputs - Because of missing input.required support in Vitest
-    signalSetFn(component.expenses[SIGNAL], expenses);
-    signalSetFn(component.available[SIGNAL], available);
+    setTestInput(component.expenses, expenses);
+    setTestInput(component.available, available);
 
     fixture.detectChanges();
 

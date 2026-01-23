@@ -13,4 +13,7 @@ export const STORAGE_KEYS = {
   // Demo mode
   DEMO_MODE: 'pulpe-demo-mode',
   DEMO_USER_EMAIL: 'pulpe-demo-user-email',
+
+  // Budget UI preferences
+  BUDGET_DESKTOP_VIEW: 'pulpe-budget-desktop-view',
 } as const satisfies Record<string, StorageKey>;
