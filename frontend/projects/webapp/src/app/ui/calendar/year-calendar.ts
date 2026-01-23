@@ -10,7 +10,6 @@ import { type CalendarMonth, type CalendarYear } from './calendar-types';
 
 @Component({
   selector: 'pulpe-year-calendar',
-
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MonthTile],
   template: `
@@ -50,39 +49,6 @@ import { type CalendarMonth, type CalendarYear } from './calendar-types';
     :host {
       display: block;
       width: 100%;
-    }
-
-    /* Custom grid configurations for dynamic column counts */
-    .custom-grid {
-      &.cols-mobile-1 .calendar-grid {
-        @media (max-width: 767px) {
-          grid-template-columns: repeat(1, minmax(0, 1fr));
-        }
-      }
-
-      &.cols-tablet-2 .calendar-grid {
-        @media (min-width: 768px) {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-      }
-
-      &.cols-tablet-4 .calendar-grid {
-        @media (min-width: 768px) {
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-      }
-
-      &.cols-desktop-3 .calendar-grid {
-        @media (min-width: 1024px) {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-      }
-
-      &.cols-desktop-6 .calendar-grid {
-        @media (min-width: 1024px) {
-          grid-template-columns: repeat(6, minmax(0, 1fr));
-        }
-      }
     }
   `,
 })
