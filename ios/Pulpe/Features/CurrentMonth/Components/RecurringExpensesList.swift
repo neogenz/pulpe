@@ -158,6 +158,12 @@ struct BudgetLineRow: View {
         consumption.available < 0 ? .red : line.kind.color
     }
 
+    private var amountTextColor: Color {
+        if line.isChecked { return .secondary }
+        if hasConsumption { return remainingColor }
+        return line.kind.color
+    }
+
     private var linkedTransactions: [Transaction] {
         allTransactions
             .filter { $0.budgetLineId == line.id }
@@ -204,7 +210,7 @@ struct BudgetLineRow: View {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(hasConsumption ? consumption.available.asCHF : line.amount.asCHF)
                         .font(.system(.callout, design: .rounded, weight: .semibold))
-                        .foregroundStyle(line.isChecked ? .secondary : (hasConsumption ? remainingColor : line.kind.color))
+                        .foregroundStyle(amountTextColor)
 
                     if hasConsumption {
                         Text("reste")
