@@ -364,28 +364,16 @@ interface NavigationItem {
   `,
   styles: [
     `
-      @use '@angular/material' as mat;
-
       :host {
         display: block;
         height: 100dvh;
       }
 
-      /*
-       * En appliquant la surcharge de style pour les boutons à l'intérieur
-       * du sélecteur 'mat-nav-list', nous limitons sa portée aux boutons
-       * qui sont DANS la barre d'outils de ce composant uniquement.
-       * Cela empêche le style de s'appliquer aux composants dans <router-outlet>.
-       */
       :host mat-sidenav {
-        @include mat.button-overrides(
-          (
-            filled-container-shape: 50%,
-            outlined-container-shape: 50%,
-            text-container-shape: 50%,
-            tonal-container-shape: 50%,
-          )
-        );
+        --mat-filled-button-container-shape: 50%;
+        --mat-outlined-button-container-shape: 50%;
+        --mat-text-button-container-shape: 50%;
+        --mat-tonal-button-container-shape: 50%;
       }
 
       /* Smooth transition for icon fill and scale */

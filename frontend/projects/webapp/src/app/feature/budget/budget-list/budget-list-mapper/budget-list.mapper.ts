@@ -46,15 +46,16 @@ function mapToCalendarMonth(
   );
 
   if (isPlannedBudget(budget)) {
+    const value = budget.remaining ?? budget.endingBalance ?? undefined;
     return {
       id: budget.id,
       month: budget.month,
       year: budget.year,
       hasContent: true,
-      // Display value prioritizes remaining amount, fallback to endingBalance
-      value: budget.remaining ?? budget.endingBalance ?? undefined,
+      value,
       displayName: formatCalendarMonthDisplayName(budget.month, budget.year),
       period,
+      status: getStatusFromValue(value),
     };
   }
   const emptyMonth = createEmptyCalendarMonth(
@@ -74,4 +75,13 @@ function formatPeriodIfCustomPayDay(
     return undefined;
   }
   return formatBudgetPeriod(month, year, payDayOfMonth);
+}
+
+function getStatusFromValue(
+  value: number | undefined,
+): CalendarMonth['status'] {
+  if (value === undefined) return 'neutral';
+  if (value > 0) return 'positive';
+  if (value < 0) return 'negative';
+  return 'neutral';
 }
