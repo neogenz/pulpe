@@ -386,39 +386,11 @@ export class UserController {
         };
       }
 
-      const serviceClient = this.supabaseService.getServiceRoleClient();
-      const scheduledDeletionAt = new Date().toISOString();
-
-      const { error: updateError } =
-        await serviceClient.auth.admin.updateUserById(user.id, {
-          user_metadata: {
-            ...currentUserData.user.user_metadata,
-            scheduledDeletionAt,
-          },
-        });
-
-      if (updateError) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.USER_ACCOUNT_DELETION_FAILED,
-          undefined,
-          undefined,
-          { cause: updateError },
-        );
-      }
-
-      const { error: signOutError } = await serviceClient.auth.admin.signOut(
+      const scheduledDeletionAt = await this.scheduleAccountDeletion(
         user.id,
-        'global',
+        currentUserData.user.user_metadata,
       );
-
-      if (signOutError) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.USER_ACCOUNT_DELETION_FAILED,
-          undefined,
-          undefined,
-          { cause: signOutError },
-        );
-      }
+      await this.signOutUserGlobally(user.id);
 
       return {
         success: true as const,
@@ -431,6 +403,47 @@ export class UserController {
         ERROR_DEFINITIONS.USER_ACCOUNT_DELETION_FAILED,
         undefined,
         { operation: 'deleteAccount', userId: user.id },
+      );
+    }
+  }
+
+  private async scheduleAccountDeletion(
+    userId: string,
+    currentMetadata: Record<string, unknown> | undefined,
+  ): Promise<string> {
+    const serviceClient = this.supabaseService.getServiceRoleClient();
+    const scheduledDeletionAt = new Date().toISOString();
+
+    const { error } = await serviceClient.auth.admin.updateUserById(userId, {
+      user_metadata: {
+        ...currentMetadata,
+        scheduledDeletionAt,
+      },
+    });
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.USER_ACCOUNT_DELETION_FAILED,
+        undefined,
+        undefined,
+        { cause: error },
+      );
+    }
+
+    return scheduledDeletionAt;
+  }
+
+  private async signOutUserGlobally(userId: string): Promise<void> {
+    const serviceClient = this.supabaseService.getServiceRoleClient();
+
+    const { error } = await serviceClient.auth.admin.signOut(userId, 'global');
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.USER_ACCOUNT_DELETION_FAILED,
+        undefined,
+        undefined,
+        { cause: error },
       );
     }
   }
