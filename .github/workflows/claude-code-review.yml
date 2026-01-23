@@ -293,8 +293,14 @@ jobs:
           - Points positifs: reconnaître les bonnes pratiques (min 1)
           - Max 10 issues total
           - En français
-          - UN SEUL commentaire (pas d'inline multiples)
-          - Si aucun problème: résumé \\\`0 issues\\\` + points positifs + verdict ✅"
+          - Si aucun problème: résumé \\\`0 issues\\\` + points positifs + verdict ✅
+
+          ## Instructions de publication (OBLIGATOIRE)
+
+          Après avoir généré ta review:
+          1. Utilise \\\`mcp__github_inline_comment__create_inline_comment\\\` pour les commentaires inline sur des lignes spécifiques
+          2. Utilise \\\`gh pr comment ${{ github.event.pull_request.number }} --body \"...\"\\\` pour poster le résumé général
+          3. NE RETOURNE PAS le texte de la review comme message - POSTE-LE via les commandes ci-dessus"
 
           # Output using heredoc for multiline
           echo "review_prompt<<EOF" >> $GITHUB_OUTPUT
@@ -311,4 +317,4 @@ jobs:
           claude_args: |
             --max-turns 15
             --model claude-sonnet-4-5-20250929
-            --allowedTools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr files:*)"
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr files:*)"
