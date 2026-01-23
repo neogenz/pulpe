@@ -1,4 +1,5 @@
 import SwiftUI
+import TipKit
 
 struct MainTabView: View {
     @Environment(AppState.self) private var appState
@@ -25,6 +26,7 @@ struct MainTabView: View {
                 }
                 .tag(Tab.templates)
         }
+        .popoverTip(ProductTips.navigation)
     }
 }
 

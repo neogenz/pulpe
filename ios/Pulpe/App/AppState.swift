@@ -36,14 +36,6 @@ final class AppState {
         didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: UserDefaultsKey.onboardingCompleted) }
     }
 
-    private var tutorialCompleted: Bool = UserDefaults.standard.bool(forKey: UserDefaultsKey.tutorialCompleted) {
-        didSet { UserDefaults.standard.set(tutorialCompleted, forKey: UserDefaultsKey.tutorialCompleted) }
-    }
-
-    var showTutorial: Bool {
-        !tutorialCompleted && authState == .authenticated
-    }
-
     // MARK: - Biometric
 
     var biometricEnabled: Bool = UserDefaults.standard.bool(forKey: UserDefaultsKey.biometricEnabled) {
@@ -126,8 +118,8 @@ final class AppState {
         authState = .authenticated
     }
 
-    func completeTutorial() {
-        tutorialCompleted = true
+    func resetTips() {
+        ProductTips.resetAllTips()
     }
 
     // MARK: - Biometric Actions
