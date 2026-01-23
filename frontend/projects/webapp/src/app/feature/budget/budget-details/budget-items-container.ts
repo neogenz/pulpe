@@ -66,7 +66,9 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
       <!-- Filter -->
       <pulpe-budget-table-checked-filter
         [isShowingOnlyUnchecked]="isShowingOnlyUnchecked()"
-        (isShowingOnlyUncheckedChange)="isShowingOnlyUncheckedChange.emit($event)"
+        (isShowingOnlyUncheckedChange)="
+          isShowingOnlyUncheckedChange.emit($event)
+        "
       />
 
       <!-- Content -->
