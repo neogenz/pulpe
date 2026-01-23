@@ -55,17 +55,25 @@ jobs:
             PROMPT+="
 
           ### Angular 21 / Material 21 / Tailwind v4
-          - \`changeDetection: ChangeDetectionStrategy.OnPush\` obligatoire
-          - Signals: \`signal()\`, \`computed()\`, \`linkedSignal()\` - pas d'observables pour le state
-          - \`input()\` et \`output()\` functions (pas @Input/@Output decorators)
-          - \`httpResource()\` pour GET async (pas HttpClient.get direct)
-          - \`takeUntilDestroyed()\` sur tous les \`subscribe()\`
-          - Control flow natif: \`@if\`, \`@for\`, \`@switch\` (pas *ngIf/*ngFor)
-          - \`inject()\` pour DI (pas constructor injection)
-          - \`host: {}\` pour bindings (pas @HostBinding/@HostListener)
-          - JAMAIS \`::ng-deep\`, JAMAIS \`ngClass\`/\`ngStyle\`
-          - JAMAIS \`standalone: true\` (défaut en v21)
-          - Accessibilité: WCAG AA, focus management, ARIA"
+
+          **Architecture (CRITIQUE):**
+          - \`core/\`: services, guards, interceptors - JAMAIS de composants
+          - \`ui/\`: composants stateless réutilisables - JAMAIS inject de services
+          - \`feature/\`: domaines métier lazy-loaded - isolation totale entre siblings
+          - \`pattern/\`: composants stateful réutilisables cross-feature
+          - JAMAIS d'import entre features siblings (extraire vers core/ui/pattern)
+          - Components = délégation aux services (logic-free)
+          - \`loadChildren\` vers \`.routes.ts\` (pas loadComponent)
+
+          **API Angular:**
+          - \`changeDetection: OnPush\` obligatoire
+          - Signals: \`signal()\`, \`computed()\`, \`linkedSignal()\`
+          - \`input()\`/\`output()\` (pas @Input/@Output)
+          - \`httpResource()\` pour GET, \`inject()\` pour DI
+          - \`@if\`/\`@for\`/\`@switch\` (pas *ngIf/*ngFor)
+          - \`host: {}\` (pas @HostBinding/@HostListener)
+          - JAMAIS: \`::ng-deep\`, \`ngClass\`, \`ngStyle\`, \`standalone: true\`
+          - Accessibilité: WCAG AA, focus, ARIA"
           fi
 
           # NestJS 11 (backend-nest/)
@@ -73,14 +81,22 @@ jobs:
             PROMPT+="
 
           ### NestJS 11 / Bun / Zod 4
-          - DTOs validés avec \`createZodDto()\` de nestjs-zod
-          - \`@AuthGuard()\` + \`@User()\` decorator sur routes protégées
-          - Logique métier dans services (controllers = routing + validation)
-          - Mappers pour transformation DTO ↔ Entity (snake_case ↔ camelCase)
-          - Gestion d'erreurs structurée avec filtres globaux
-          - Logging Pino: error(5xx), warn(4xx), info(business), debug(dev)
-          - JAMAIS exposer les types DB dans les réponses API
-          - JAMAIS de \`any\` - utiliser \`unknown\` si incertain"
+
+          **Architecture Monolithe Modulaire (CRITIQUE):**
+          - \`common/\`: cross-cutting (guards, filters, interceptors, decorators, exceptions)
+          - \`modules/[domain]/\`: un module par domaine métier isolé
+          - Structure module: \`controller.ts\` → \`service.ts\` → \`mapper.ts\` → DB
+          - Controllers = routing + validation Swagger (JAMAIS de logique métier)
+          - Services = orchestration et logique métier
+          - Mappers obligatoires: DTO ↔ Entity (camelCase ↔ snake_case)
+          - JAMAIS exposer types \`Database['...']['Row']\` dans réponses API
+
+          **Patterns:**
+          - DTOs: \`createZodDto()\` + schemas de \`pulpe-shared\`
+          - Auth: \`@AuthGuard()\` + \`@User()\` sur routes protégées
+          - Errors: BusinessException, filtres globaux
+          - Logging Pino: error(5xx), warn(4xx), info(business)
+          - JAMAIS de \`any\` - \`unknown\` si incertain"
           fi
 
           # Next.js 15 / React 19 (landing/)
@@ -102,25 +118,40 @@ jobs:
             PROMPT+="
 
           ### iOS 17+ / Swift 6 / SwiftUI
-          - \`@Observable\` macro (JAMAIS \`ObservableObject\`/\`@Published\`)
-          - \`async/await\` partout (pas de completion handlers)
-          - \`actor\` pour services thread-safe
-          - Tous les models sont \`Sendable\`
+
+          **Architecture (CRITIQUE):**
+          - \`App/\`: entry point + AppState - JAMAIS de logique métier
+          - \`Core/\`: services = \`actor\` (thread-safe), infrastructure
+          - \`Domain/\`: models \`Sendable\`, services wrappent APIClient
+          - \`Features/\`: Views + ViewModels, sheets pour forms
+          - \`Shared/\`: composants réutilisables, extensions, formatters
+          - JAMAIS mélanger UI dans Domain layer
+
+          **Patterns:**
+          - \`@Observable\` (JAMAIS ObservableObject/@Published)
+          - \`async/await\` (JAMAIS completion handlers)
           - \`NavigationStack(path:)\` avec destinations typées
-          - Sheet-based forms avec completion callback
-          - JAMAIS de force unwrap \`!\` sans justification
-          - Constructor injection avec \`.shared\` defaults"
+          - Constructor injection avec \`.shared\` defaults
+          - JAMAIS force unwrap \`!\` sans justification"
           fi
 
           # Shared (shared/)
           if echo "$CHANGED_FILES" | grep -q "^shared/"; then
             PROMPT+="
 
-          ### Shared / Zod 4
-          - Schemas Zod bien typés avec inférence
-          - Exports cohérents et documentés
-          - Pas de dépendances circulaires
-          - Compatibilité frontend + backend"
+          ### Shared / Zod 4 - Contrats API
+
+          **Rôle (CRITIQUE):**
+          - Contrats API entre backend NestJS et frontend Angular
+          - Source unique de vérité pour les types échangés
+          - Validation runtime côté backend ET frontend
+
+          **Patterns:**
+          - Schema + type inféré: \`export const xSchema = z.object({...}); export type X = z.infer<typeof xSchema>;\`
+          - Documenter les règles métier en JSDoc (cf. SPECS.md)
+          - Nommage: \`entitySchema\`, \`entityCreateSchema\`, \`entityUpdateSchema\`
+          - JAMAIS de dépendances externes (sauf zod)
+          - JAMAIS de logique métier (seulement validation)"
           fi
 
           # Supabase (supabase/)
@@ -134,13 +165,46 @@ jobs:
           - Pas de \`CASCADE\` sans justification"
           fi
 
+          # Tests (*.spec.ts, *.test.ts)
+          if echo "$CHANGED_FILES" | grep -qE "\.(spec|test)\.ts$"; then
+            PROMPT+="
+
+          ### Tests (Vitest / Bun:test / Playwright)
+
+          **Pattern AAA obligatoire:**
+          - Arrange: setup des données et mocks
+          - Act: exécution de l'action testée
+          - Assert: vérification du résultat
+
+          **Principes (CRITIQUE):**
+          - Tester le COMPORTEMENT, pas l'implémentation
+          - Tests lisibles = documentation vivante
+          - Un test = un cas métier clair
+          - Helpers: \`createMock...()\` pour factory de données
+          - Nommage: \`should [behavior] when [condition]\`
+          - JAMAIS tester les détails d'implémentation (ordre d'appels, etc.)
+          - JAMAIS de logique conditionnelle dans les tests"
+          fi
+
           PROMPT+="
 
           ## Règles transversales
-          - Sécurité: pas de secrets hardcodés, JWT requis, validation inputs
-          - Qualité: fonctions ≤30 lignes, fichiers ≤300 lignes
-          - Nommage: descriptif, cohérent avec le domaine métier
-          - TypeScript strict: pas de \`any\`, pas de \`as\` cast sans justification
+
+          **Clean Code:**
+          - Fonctions ≤30 lignes, fichiers ≤300 lignes
+          - Nommage: \`isX\`/\`hasX\` pour booléens, pluriel pour collections
+          - Constantes nommées (pas de magic numbers)
+          - Code auto-documenté (pas de commentaires explicatifs)
+
+          **TypeScript strict:**
+          - JAMAIS \`any\` - utiliser \`unknown\` si incertain
+          - JAMAIS \`as\` cast sans justification
+          - Type guards préférés aux assertions
+
+          **Sécurité:**
+          - Pas de secrets hardcodés
+          - JWT requis sur routes protégées
+          - Validation de tous les inputs externes
 
           ## Format de sortie (OBLIGATOIRE)
 
