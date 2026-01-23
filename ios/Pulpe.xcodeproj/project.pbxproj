@@ -11,6 +11,7 @@
 		01A99D19CB83ABBFB272CE4D /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 955B1199FD862E3761B3435A /* DesignTokens.swift */; };
 		01C708D90EF921ADC8F0E663 /* ToastManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77FEC48FC6CEA8465118A09 /* ToastManager.swift */; };
 		0252AB91572198782A8F04E6 /* AddBudgetLineSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D05E8BCE893AAA486F2F8BE /* AddBudgetLineSheet.swift */; };
+		042DFA41D28663DCE581A429 /* CheckedFilterPickerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76DBD55125DA1270DC47F0BE /* CheckedFilterPickerTests.swift */; };
 		0439BC81EC87CB64E4D2A804 /* StoreProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C32141CA4F575218D6B417EF /* StoreProtocol.swift */; };
 		0ED5E397D5D72B1D9A1F5421 /* TestDataFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 162414A0A3971BB9C2DC434B /* TestDataFactory.swift */; };
 		102AE579FE67D6F209FD2CF4 /* BudgetListStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13C1CFD332A0AB9A168D1A6F /* BudgetListStore.swift */; };
@@ -65,6 +66,7 @@
 		6CEA4A81B6B02D7395FEFAED /* LinkedTransactionsContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = D45C40FA08472FA75B62A6AC /* LinkedTransactionsContext.swift */; };
 		6DA0F437C7AF227F27F83082 /* TransactionEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A05FA792057CD53B266EE9F /* TransactionEnums.swift */; };
 		72C131FA19CE8B13A888F19D /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 09618739B66AA92F99246D88 /* Lottie */; };
+		72E67F3C7E86FB1FE74AC2DE /* BudgetDetailsViewModelFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02ADB15B7D0B2F57118460E8 /* BudgetDetailsViewModelFilterTests.swift */; };
 		78B5F01E78BB121C95940D30 /* MaintenanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54EDA5BADA4D4026B4A784B6 /* MaintenanceService.swift */; };
 		78F733179BB5B59703022BCA /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19358B36831C40F5A674FBDA /* AuthService.swift */; };
 		7BB479C9C1133347490C1C98 /* BudgetTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27F72011B11153235E828030 /* BudgetTemplate.swift */; };
@@ -138,6 +140,7 @@
 		EDDD3545AF89F29F118A14A8 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFC463766B410987FE96534C /* APIError.swift */; };
 		F28AE4EA87CA967C9EAE1B9F /* RecurringExpensesList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2947DBEF8A6264E9FF73AEDA /* RecurringExpensesList.swift */; };
 		F2F1195BE9107FF339538B3E /* Color+Pulpe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E4F47F7A88B6744CA6D788C /* Color+Pulpe.swift */; };
+		F5B4314C55C6C8D7648865F0 /* CheckedFilterPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 651FC366185B834EF7B2D7C1 /* CheckedFilterPicker.swift */; };
 		F5D9B6FD484997E69677F7E2 /* Decimal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BE2934837CC4349E12F1EE2 /* Decimal+Extensions.swift */; };
 		FDFF9F61572FD2273B6B5818 /* SyncIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C40A3D67DE85A1A1DCF3277A /* SyncIndicator.swift */; };
 		FE6501D7F3A0BBA2FA54CD7C /* BudgetListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E68DC6A301F7687197817A0 /* BudgetListView.swift */; };
@@ -176,6 +179,7 @@
 
 /* Begin PBXFileReference section */
 		02194E13D6C9DAFCE03148E6 /* TransactionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionTests.swift; sourceTree = "<group>"; };
+		02ADB15B7D0B2F57118460E8 /* BudgetDetailsViewModelFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetDetailsViewModelFilterTests.swift; sourceTree = "<group>"; };
 		02D25BA5A5074D1D86441DDC /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		054A9E4A9CCF915305B08CC0 /* AddTransactionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTransactionSheet.swift; sourceTree = "<group>"; };
 		060916C48CE3B2A130E94F6D /* EnhancedTutorialTooltip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnhancedTutorialTooltip.swift; sourceTree = "<group>"; };
@@ -226,10 +230,12 @@
 		5F534FB3E2E33B3F35909729 /* EditTemplateLineSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditTemplateLineSheet.swift; sourceTree = "<group>"; };
 		606435140AB22BD250F34C36 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		6362794BE5896D980C41BD38 /* CurrentMonthWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentMonthWidgetView.swift; sourceTree = "<group>"; };
+		651FC366185B834EF7B2D7C1 /* CheckedFilterPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckedFilterPicker.swift; sourceTree = "<group>"; };
 		698F0684A80FD2BFB998D92A /* BudgetDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetDetailsView.swift; sourceTree = "<group>"; };
 		6B63C48FA85869F486C3CBE3 /* TemplateListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateListView.swift; sourceTree = "<group>"; };
 		6E4F47F7A88B6744CA6D788C /* Color+Pulpe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Pulpe.swift"; sourceTree = "<group>"; };
 		6E873F06201D0A4D69F356ED /* AddAllocatedTransactionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddAllocatedTransactionSheet.swift; sourceTree = "<group>"; };
+		76DBD55125DA1270DC47F0BE /* CheckedFilterPickerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckedFilterPickerTests.swift; sourceTree = "<group>"; };
 		77C8421EEBFDB74A00EE05B5 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
 		7D01817526FAA87D773269A9 /* TransactionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionService.swift; sourceTree = "<group>"; };
 		7D23A76488CE35949FDA3B08 /* PulpeLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PulpeLogo.swift; sourceTree = "<group>"; };
@@ -353,6 +359,15 @@
 				F3A3C49B0B8A78283AB987AD /* TemplateDetailsView.swift */,
 			);
 			path = TemplateDetails;
+			sourceTree = "<group>";
+		};
+		26597C8D7FD11A5B0DB1AFA4 /* Budgets */ = {
+			isa = PBXGroup;
+			children = (
+				02ADB15B7D0B2F57118460E8 /* BudgetDetailsViewModelFilterTests.swift */,
+				76DBD55125DA1270DC47F0BE /* CheckedFilterPickerTests.swift */,
+			);
+			path = Budgets;
 			sourceTree = "<group>";
 		};
 		287629D2742988A4C8663F26 /* Extensions */ = {
@@ -525,6 +540,14 @@
 			path = Widgets;
 			sourceTree = "<group>";
 		};
+		5D0AA5397E7F48D50C6422E4 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				26597C8D7FD11A5B0DB1AFA4 /* Budgets */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
 		5EADE2934E949F18B878498E /* Formulas */ = {
 			isa = PBXGroup;
 			children = (
@@ -588,6 +611,7 @@
 				6E873F06201D0A4D69F356ED /* AddAllocatedTransactionSheet.swift */,
 				2D05E8BCE893AAA486F2F8BE /* AddBudgetLineSheet.swift */,
 				698F0684A80FD2BFB998D92A /* BudgetDetailsView.swift */,
+				651FC366185B834EF7B2D7C1 /* CheckedFilterPicker.swift */,
 			);
 			path = BudgetDetails;
 			sourceTree = "<group>";
@@ -849,6 +873,7 @@
 			isa = PBXGroup;
 			children = (
 				D6543338E4C7E5156C55ADCA /* Domain */,
+				5D0AA5397E7F48D50C6422E4 /* Features */,
 				6077B8F3CE28256D1FC4A812 /* Helpers */,
 				F9BE070E72502345CB799D48 /* Shared */,
 			);
@@ -1054,10 +1079,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				72E67F3C7E86FB1FE74AC2DE /* BudgetDetailsViewModelFilterTests.swift in Sources */,
 				D735D577F6183B64B5E8DAAB /* BudgetFormulasTests.swift in Sources */,
 				E95C325CB627C9D66F929675 /* BudgetLineTests.swift in Sources */,
 				96C846AEAA6A38B7A6B59F97 /* BudgetServiceTests.swift in Sources */,
 				3D196510AE15B14B8450345A /* BudgetTests.swift in Sources */,
+				042DFA41D28663DCE581A429 /* CheckedFilterPickerTests.swift in Sources */,
 				5E87EA080C0DF80B550BE52F /* CurrentMonthStoreLogicTests.swift in Sources */,
 				E6E71E80DF877A5B12551898 /* MonthYearTests.swift in Sources */,
 				0ED5E397D5D72B1D9A1F5421 /* TestDataFactory.swift in Sources */,
@@ -1095,6 +1122,7 @@
 				E9723E285117007368341692 /* BudgetService.swift in Sources */,
 				4491DFC84F384660F238F4F8 /* BudgetTemplate.swift in Sources */,
 				E8BA16D4D6E28F24B0C71626 /* BudgetWidgetData.swift in Sources */,
+				F5B4314C55C6C8D7648865F0 /* CheckedFilterPicker.swift in Sources */,
 				F2F1195BE9107FF339538B3E /* Color+Pulpe.swift in Sources */,
 				83A455CF99981A6CD2A65ED3 /* CreateBudgetView.swift in Sources */,
 				547E46730E438D89507B7693 /* CreateTemplateView.swift in Sources */,

@@ -13,14 +13,18 @@ export class MainLayoutPage {
   }
 
   async openUserMenu() {
-    // Use data-testid for reliable selection
-    await this.page.getByTestId('user-menu-trigger').click();
+    // Wait for user menu trigger to be visible before clicking
+    const userMenuTrigger = this.page.getByTestId('user-menu-trigger');
+    await expect(userMenuTrigger).toBeVisible();
+    await userMenuTrigger.click();
   }
 
   async performLogout() {
     await this.openUserMenu();
-    // Use data-testid for logout button
-    await this.page.getByTestId('logout-button').click();
+    // Wait for logout button to be visible before clicking
+    const logoutButton = this.page.getByTestId('logout-button');
+    await expect(logoutButton).toBeVisible();
+    await logoutButton.click();
     // Wait for navigation to complete
     await this.page.waitForURL(/\/(login|welcome)/, { timeout: 10000 });
   }

@@ -49,9 +49,10 @@ test.describe('Authenticated Session Management', () => {
     await page.goto('/dashboard');
     await expect(page.getByTestId('current-month-page')).toBeVisible();
 
-    // Open user menu
+    // Wait for user menu to be visible then open it
+    await expect(page.getByTestId('user-menu-trigger')).toBeVisible();
     await page.getByTestId('user-menu-trigger').click();
-    
+
     // Verify logout button is visible
     await expect(page.getByTestId('logout-button')).toBeVisible();
   });
@@ -62,8 +63,12 @@ test.describe('Authenticated Session Management', () => {
     await page.goto('/dashboard');
     await expect(page.getByTestId('current-month-page')).toBeVisible();
 
-    // Perform logout
+    // Wait for user menu to be visible then perform logout
+    await expect(page.getByTestId('user-menu-trigger')).toBeVisible();
     await page.getByTestId('user-menu-trigger').click();
+
+    // Wait for logout button to be visible then click
+    await expect(page.getByTestId('logout-button')).toBeVisible();
     await page.getByTestId('logout-button').click();
 
     // Should be redirected to login or welcome page
