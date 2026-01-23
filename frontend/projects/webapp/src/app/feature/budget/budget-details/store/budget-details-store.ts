@@ -120,6 +120,39 @@ export class BudgetDetailsStore {
     () => this.#budgetDetailsResource.error() || this.#state.errorMessage(),
   );
 
+  // Month navigation - load all budgets to find adjacent ones
+  readonly #allBudgetsResource = resource({
+    loader: async () => firstValueFrom(this.#budgetApi.getAllBudgets$()),
+  });
+
+  readonly #sortedBudgets = computed(() => {
+    const budgets = this.#allBudgetsResource.value() ?? [];
+    return [...budgets].sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return a.month - b.month;
+    });
+  });
+
+  readonly #currentIndex = computed(() => {
+    const currentId = this.#state.budgetId();
+    return this.#sortedBudgets().findIndex((b) => b.id === currentId);
+  });
+
+  readonly previousBudgetId = computed(() => {
+    const idx = this.#currentIndex();
+    const sorted = this.#sortedBudgets();
+    return idx > 0 ? sorted[idx - 1].id : null;
+  });
+
+  readonly nextBudgetId = computed(() => {
+    const idx = this.#currentIndex();
+    const sorted = this.#sortedBudgets();
+    return idx >= 0 && idx < sorted.length - 1 ? sorted[idx + 1].id : null;
+  });
+
+  readonly hasPrevious = computed(() => this.previousBudgetId() !== null);
+  readonly hasNext = computed(() => this.nextBudgetId() !== null);
+
   /**
    * Budget lines for display - includes virtual rollover line when applicable
    * Similar to current-month-store pattern but for budget details page
