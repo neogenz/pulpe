@@ -11,7 +11,6 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import {
@@ -43,7 +42,6 @@ import { BudgetViewToggle } from './components';
   selector: 'pulpe-budget-items',
   imports: [
     MatButtonModule,
-    MatCardModule,
     MatIconModule,
     BudgetGrid,
     BudgetTable,
@@ -51,59 +49,54 @@ import { BudgetViewToggle } from './components';
   ],
   providers: [BudgetItemDataProvider],
   template: `
-    <mat-card appearance="outlined" class="overflow-hidden">
-      <mat-card-header class="bg-surface-container/50 !py-4 !px-5">
-        <div class="flex items-center justify-between w-full">
-          <div>
-            <mat-card-title class="text-title-large"
-              >Tes enveloppes</mat-card-title
-            >
-            <mat-card-subtitle class="text-body-medium text-on-surface-variant">
-              {{ budgetLines().length }} prévisions ce mois
-            </mat-card-subtitle>
-          </div>
-          @if (!isMobile()) {
-            <pulpe-budget-view-toggle [(viewMode)]="viewMode" />
-          }
+    <div class="flex flex-col gap-4">
+      <!-- Header -->
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-title-large font-medium">Tes enveloppes</h2>
+          <p class="text-body-medium text-on-surface-variant">
+            {{ budgetLines().length }} prévisions ce mois
+          </p>
         </div>
-      </mat-card-header>
-
-      <mat-card-content class="py-4!">
-        @if (isMobile() || viewMode() === 'envelopes') {
-          <pulpe-budget-grid
-            [budgetLineItems]="budgetLineItems()"
-            [transactionItems]="transactionItems()"
-            [transactions]="transactions()"
-            [isMobile]="isMobile()"
-            (edit)="startEditBudgetLine($event)"
-            (delete)="delete.emit($event)"
-            (deleteTransaction)="deleteTransaction.emit($event)"
-            (add)="add.emit()"
-            (addTransaction)="createAllocatedTransaction.emit($event)"
-            (viewTransactions)="onViewTransactions($event)"
-            (resetFromTemplate)="onResetFromTemplateClick($event)"
-            (toggleCheck)="toggleCheck.emit($event)"
-            (toggleTransactionCheck)="toggleTransactionCheck.emit($event)"
-          />
-        } @else {
-          <pulpe-budget-table
-            [tableData]="budgetTableData()"
-            (update)="update.emit($event)"
-            (delete)="delete.emit($event)"
-            (add)="add.emit()"
-            (addTransaction)="createAllocatedTransaction.emit($event)"
-            (viewTransactions)="onViewTransactions($event)"
-            (resetFromTemplate)="resetFromTemplate.emit($event)"
-            (toggleCheck)="toggleCheck.emit($event)"
-            (toggleTransactionCheck)="toggleTransactionCheck.emit($event)"
-          />
+        @if (!isMobile()) {
+          <pulpe-budget-view-toggle [(viewMode)]="viewMode" />
         }
-      </mat-card-content>
+      </div>
 
+      <!-- Content -->
+      @if (isMobile() || viewMode() === 'envelopes') {
+        <pulpe-budget-grid
+          [budgetLineItems]="budgetLineItems()"
+          [transactionItems]="transactionItems()"
+          [transactions]="transactions()"
+          [isMobile]="isMobile()"
+          (edit)="startEditBudgetLine($event)"
+          (delete)="delete.emit($event)"
+          (deleteTransaction)="deleteTransaction.emit($event)"
+          (add)="add.emit()"
+          (addTransaction)="createAllocatedTransaction.emit($event)"
+          (viewTransactions)="onViewTransactions($event)"
+          (resetFromTemplate)="onResetFromTemplateClick($event)"
+          (toggleCheck)="toggleCheck.emit($event)"
+          (toggleTransactionCheck)="toggleTransactionCheck.emit($event)"
+        />
+      } @else {
+        <pulpe-budget-table
+          [tableData]="budgetTableData()"
+          (update)="update.emit($event)"
+          (delete)="delete.emit($event)"
+          (add)="add.emit()"
+          (addTransaction)="createAllocatedTransaction.emit($event)"
+          (viewTransactions)="onViewTransactions($event)"
+          (resetFromTemplate)="resetFromTemplate.emit($event)"
+          (toggleCheck)="toggleCheck.emit($event)"
+          (toggleTransactionCheck)="toggleTransactionCheck.emit($event)"
+        />
+      }
+
+      <!-- Footer -->
       @if (budgetTableData().length > 0) {
-        <mat-card-actions
-          class="!px-5 !py-4 border-t border-outline-variant/50 justify-center"
-        >
+        <div class="flex justify-center pt-2">
           <button
             matButton
             (click)="add.emit()"
@@ -113,9 +106,9 @@ import { BudgetViewToggle } from './components';
             <mat-icon>add</mat-icon>
             Ajouter une enveloppe
           </button>
-        </mat-card-actions>
+        </div>
       }
-    </mat-card>
+    </div>
   `,
   styles: `
     :host {
