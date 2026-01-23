@@ -7,7 +7,7 @@
 **Philosophy**: Planning > Tracking, Simplicity > Completeness (KISS & YAGNI), Isolation > DRY
 
 **Tech Stack**:
-- Frontend: Angular 20 (Standalone + Signals), Tailwind v4, Material v20
+- Frontend: Angular 21 (Standalone + Signals), Tailwind v4, Material 21
 - Backend: NestJS 11 (Bun runtime)
 - Database: Supabase (PostgreSQL + Auth + RLS)
 - Shared: Zod schemas (pulpe-shared)

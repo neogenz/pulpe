@@ -18,8 +18,8 @@ pnpm run lint                       # BEFORE commit
 
 | Tech | Details |
 |------|---------|
-| Angular | 20+, standalone, OnPush |
-| Styling | Tailwind v4 + Material v20 |
+| Angular | 21+, standalone, OnPush |
+| Styling | Tailwind v4 + Material 21 |
 | State | Signals |
 | Testing | Vitest + Playwright |
 
@@ -92,12 +92,12 @@ import { BudgetFormComponent } from './budget-form.component';
 ## Styling
 
 - **NEVER** `::ng-deep`
-- Material v20 + Tailwind v4
+- Material 21 + Tailwind v4
 - Mobile-first: `md:`, `lg:`, `xl:`
 - Colors: `bg-primary`, `text-on-surface`
 - Typography: `text-display-large`, `text-body-medium`
 
-## Material v20 Buttons
+## Material 21 Buttons
 
 ```html
 matButton            <!-- text -->

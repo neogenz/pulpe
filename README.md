@@ -3,14 +3,18 @@
 Pulpe est une application full-stack de gestion de budgets personnels développée en Suisse. Ce monorepo est géré avec `pnpm`, `turbo` et contient :
 
 - **`backend-nest/`** : API robuste avec NestJS, Bun et Supabase
-- **`frontend/`** : Application moderne avec Angular 20+, Signals et Tailwind CSS
+- **`frontend/`** : Application moderne avec Angular 21+, Signals et Tailwind CSS
+- **`ios/`** : Application iOS native avec SwiftUI
+- **`landing/`** : Landing page avec Next.js et Tailwind CSS
 - **`shared/`** : Package de types et schémas partagés (Zod)
 
 ## 🚀 Stack Technique
 
 - **Monorepo** : `pnpm` workspace + `turbo` pour l'orchestration
 - **Backend** : NestJS 11+, Bun runtime, Supabase (PostgreSQL + Auth), Zod validation
-- **Frontend** : Angular 20+, Standalone Components, Signals, Tailwind CSS v4.1, Angular Material, Vitest, Playwright
+- **Frontend** : Angular 21+, Standalone Components, Signals, Tailwind CSS v4.1, Angular Material, Vitest, Playwright
+- **iOS** : SwiftUI, Xcode
+- **Landing** : Next.js, Tailwind CSS v4
 - **Partagé** : TypeScript strict, Zod schemas, ESM-first
 
 ## 📋 Prérequis
@@ -87,6 +91,12 @@ pulpe-workspace/
 │       ├── app/feature/      # Features lazy-loaded
 │       ├── app/ui/           # Composants réutilisables
 │       └── app/layout/       # Layouts applicatifs
+├── ios/                       # App iOS native
+│   ├── Pulpe/                # Code source SwiftUI
+│   └── PulpeWidget/          # Widget iOS
+├── landing/                   # Landing page
+│   ├── app/                  # Pages Next.js
+│   └── components/           # Composants React
 ├── shared/                    # Package partagé
 │   ├── schemas.ts            # Schémas Zod
 │   └── types.ts              # Types TypeScript
@@ -96,7 +106,7 @@ pulpe-workspace/
 ### Règles d'architecture appliquées
 
 - **Feature-based** : Organisation par domaines métier
-- **Standalone Components** : Angular 20+ sans NgModules
+- **Standalone Components** : Angular 21+ sans NgModules
 - **Signals** : State management réactif
 - **Boundary Rules** : Isolation stricte entre features
 - **Shared DTOs** : Types cohérents frontend/backend

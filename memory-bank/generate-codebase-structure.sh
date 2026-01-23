@@ -56,7 +56,7 @@ This document provides a comprehensive overview of the Pulpe Budget project stru
 ## 📋 Project Overview
 
 Pulpe Budget is a modern full-stack personal finance application built with:
-- **Frontend**: Angular 20 with Material Design 3
+- **Frontend**: Angular 21 with Material Design 3
 - **Backend**: NestJS with Supabase (PostgreSQL)
 - **Mobile**: iOS SwiftUI application
 - **Architecture**: Monorepo with Turborepo orchestration
@@ -78,7 +78,7 @@ cat >> "$OUTPUT_FILE" << 'EOF'
 ### Key Directories
 
 #### 🎯 Main Applications
-- `frontend/` - Angular 20 web application with Material Design 3
+- `frontend/` - Angular 21 web application with Material Design 3
 - `backend-nest/` - NestJS API server with Supabase integration
 - `mobile/` - iOS SwiftUI native application
 - `shared/` - Shared TypeScript types and Zod schemas

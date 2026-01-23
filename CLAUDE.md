@@ -7,6 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```
 ├── frontend/         # Angular webapp
 ├── backend-nest/     # NestJS API
+├── ios/              # iOS native app (SwiftUI)
+├── landing/          # Landing page (Next.js)
 ├── shared/           # Zod schemas, types (build before other packages)
 └── .claude/rules/    # Lazy-loaded rules (frontend/, testing/, shared/)
 ```
@@ -47,8 +49,10 @@ pnpm dev:backend              # Backend + shared
 
 | Layer | Tech |
 |-------|------|
-| Frontend | Angular 20+, Signals, Material v20, Tailwind v4 |
+| Frontend | Angular 21+, Signals, Material 21, Tailwind v4 |
 | Backend | NestJS 11+, Bun, Supabase (PostgreSQL + Auth) |
+| iOS | SwiftUI, Xcode |
+| Landing | Next.js, Tailwind v4 |
 | Shared | TypeScript strict, Zod schemas |
 | Orchestration | pnpm workspaces + Turborepo |
 
