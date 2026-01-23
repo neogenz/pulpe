@@ -10,9 +10,15 @@ interface AuthRedirectWrapperProps {
 export function AuthRedirectWrapper({ children }: AuthRedirectWrapperProps) {
   useEffect(() => {
     async function checkAuth() {
-      const authenticated = await isAuthenticated()
-      if (authenticated) {
-        window.location.replace('/dashboard')
+      try {
+        const authenticated = await isAuthenticated()
+        if (authenticated) {
+          window.location.replace('/dashboard')
+        } else {
+          document.documentElement.removeAttribute('data-auth-checking')
+        }
+      } catch {
+        document.documentElement.removeAttribute('data-auth-checking')
       }
     }
     checkAuth()

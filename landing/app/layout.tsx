@@ -78,10 +78,31 @@ const jsonLd = {
   ],
 }
 
+const authCheckScript = `
+(function() {
+  try {
+    var keys = Object.keys(localStorage);
+    for (var i = 0; i < keys.length; i++) {
+      if (keys[i].match(/^sb-.*-auth-token$/)) {
+        var data = localStorage.getItem(keys[i]);
+        if (data) {
+          var parsed = JSON.parse(data);
+          if (parsed.access_token) {
+            document.documentElement.setAttribute('data-auth-checking', 'true');
+            break;
+          }
+        }
+      }
+    }
+  } catch (e) {}
+})();
+`
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={poppins.variable}>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: authCheckScript }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
