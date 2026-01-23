@@ -221,10 +221,13 @@ final class BudgetDetailsFilterLogicTests: XCTestCase {
         BudgetLine(
             id: id,
             budgetId: "test-budget",
+            templateLineId: nil,
+            savingsGoalId: nil,
             name: "Test Line",
             amount: 100,
             kind: kind,
             recurrence: .fixed,
+            isManuallyAdjusted: false,
             checkedAt: checkedAt,
             createdAt: Date(),
             updatedAt: Date()
@@ -240,6 +243,7 @@ final class BudgetDetailsFilterLogicTests: XCTestCase {
             amount: 50,
             kind: .expense,
             transactionDate: Date(),
+            category: nil,
             checkedAt: checkedAt,
             createdAt: Date(),
             updatedAt: Date()
