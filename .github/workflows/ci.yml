@@ -1,126 +1,84 @@
-name: 🚀 CI Pipeline
+name: CI Pipeline
 
 on:
   push:
-    branches: [main, preview] # Seulement sur les branches principales
+    branches: [main, preview]
   pull_request:
-    branches: [main, preview] # Tests sur toutes les PRs vers ces branches
+    branches: [main, preview]
 
-# Éviter les runs multiples pour la même ref
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Sécurité : permissions minimales
 permissions:
   contents: read
   checks: write
   pull-requests: write
 
-# Variables globales
 env:
   NODE_VERSION: "22"
   PNPM_VERSION: "10.12.1"
   BUN_VERSION: "1.2.17"
+  SUPABASE_CLI_VERSION: "2.0.0"
 
 jobs:
-  # 📦 INSTALL & CACHE
-  install:
-    name: 📦 Install Dependencies
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@v4
-
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm" # Cache pnpm store en backup
-          cache-dependency-path: "**/pnpm-lock.yaml"
-
-      - name: 📦 Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
-
-  # 🗄️ SUPABASE SETUP (Approche officielle 2025)
+  # Supabase Setup
   supabase-setup:
-    name: 🗄️ Setup Supabase Local
-    runs-on: ubuntu-latest
+    name: Setup Supabase Local
+    runs-on: ubuntu-24.04
     timeout-minutes: 8
-    needs: install
     steps:
-      - name: 📥 Checkout
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 🗄️ Setup Supabase CLI
+      - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
-      - name: 🐳 Start Supabase Local (Optimisé)
+      - name: Start Supabase Local
         working-directory: backend-nest
         run: |
-          echo "🚀 Starting Supabase local instance..."
-          # Exclure les services non nécessaires pour gain de performance
+          echo "Starting Supabase local instance..."
           supabase start --exclude studio,inbucket,imgproxy
 
-          echo "⏳ Health check robuste..."
+          echo "Health check..."
           timeout=180
           counter=0
           until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null; do
             if [ $counter -gt $timeout ]; then
-              echo "❌ Timeout waiting for Supabase"
-              supabase status  # Debug en cas d'échec
+              echo "Timeout waiting for Supabase"
+              supabase status
               exit 1
             fi
             echo "Waiting for Supabase... ($counter/180s)"
             sleep 1
             counter=$((counter + 1))
           done
-          echo "✅ Supabase ready!"
+          echo "Supabase ready!"
 
-      - name: 🔧 Generate TypeScript Types
+      - name: Generate TypeScript Types
         working-directory: backend-nest
         run: |
-          echo "📝 Generating TypeScript types from local schema..."
+          echo "Generating TypeScript types from local schema..."
           supabase gen types typescript --local > src/types/database.types.ts
-          echo "✅ Types generated"
+          echo "Types generated"
 
-      - name: 🔧 Setup CI Environment
+      - name: Setup CI Environment
         working-directory: backend-nest
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_LOCAL_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_LOCAL_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_LOCAL_SERVICE_ROLE_KEY }}
         run: |
-          echo "📝 Creating CI environment file..."
+          echo "Creating CI environment file..."
           cp .env.ci .env
-
-          # Inject secrets into .env file
           echo "SUPABASE_URL=${SUPABASE_URL}" >> .env
           echo "SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}" >> .env
           echo "SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}" >> .env
+          echo "Environment ready"
 
-          echo "✅ Environment ready"
-
-      - name: 💾 Save Supabase State
+      - name: Save Supabase State
         uses: actions/upload-artifact@v4
         with:
           name: supabase-state
@@ -130,83 +88,53 @@ jobs:
             backend-nest/supabase/.temp/
           retention-days: 1
 
-  # 🏗️ BUILD (Modifié pour dépendre de supabase-setup)
+  # Build
   build:
-    name: 🏗️ Build Projects
-    runs-on: ubuntu-latest
+    name: Build Projects
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
-    needs: [install, supabase-setup]
+    needs: [supabase-setup]
     steps:
-      - name: 📥 Checkout
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
+      - name: Setup Monorepo
+        uses: ./.github/actions/setup-monorepo
 
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-          cache-dependency-path: "**/pnpm-lock.yaml"
-
-      - name: 📦 Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - name: 🗄️ Setup Supabase CLI
+      - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
-      - name: 📥 Download Supabase State
+      - name: Download Supabase State
         uses: actions/download-artifact@v4
         with:
           name: supabase-state
           path: backend-nest/
 
-      - name: 🐳 Restore Supabase
+      - name: Restore Supabase
         working-directory: backend-nest
         run: |
           supabase start --exclude studio,inbucket,imgproxy
 
-          # Health check rapide pour restore
           timeout=60
           counter=0
           until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null; do
             if [ $counter -gt $timeout ]; then
-              echo "❌ Failed to restore Supabase"
+              echo "Failed to restore Supabase"
               exit 1
             fi
             sleep 1
             counter=$((counter + 1))
           done
-          echo "✅ Supabase restored"
+          echo "Supabase restored"
 
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
-
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: 🏗️ Build all projects
+      - name: Build all projects
         env:
           DOTENV_CONFIG_PATH: .env.e2e
         run: pnpm build
 
-      - name: 📤 Upload build artifacts
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
@@ -216,84 +144,54 @@ jobs:
             backend-nest/dist/
           retention-days: 1
 
-  # 🧪 TESTS UNITAIRES (Modifié pour utiliser Supabase local)
+  # Unit Tests
   test-unit:
-    name: 🧪 Unit Tests
-    runs-on: ubuntu-latest
+    name: Unit Tests
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
-    needs: [install, build]
+    needs: [build]
     steps:
-      - name: 📥 Checkout
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
+      - name: Setup Monorepo
+        uses: ./.github/actions/setup-monorepo
 
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-          cache-dependency-path: "**/pnpm-lock.yaml"
-
-      - name: 📦 Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - name: 🗄️ Setup Supabase CLI
+      - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
-      - name: 📥 Download Supabase State
+      - name: Download Supabase State
         uses: actions/download-artifact@v4
         with:
           name: supabase-state
           path: backend-nest/
 
-      - name: 📥 Download build artifacts
+      - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
 
-      - name: 🐳 Start Supabase for Tests
+      - name: Start Supabase for Tests
         id: start-supabase-tests
         working-directory: backend-nest
         run: |
           supabase start --exclude studio,inbucket,imgproxy
 
-          # Health check pour tests
           timeout=60
           counter=0
           until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null; do
             if [ $counter -gt $timeout ]; then
-              echo "❌ Supabase not ready for tests"
+              echo "Supabase not ready for tests"
               exit 1
             fi
             sleep 1
             counter=$((counter + 1))
           done
-          echo "✅ Supabase ready for tests"
+          echo "Supabase ready for tests"
 
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
-
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: 🧪 Run unit tests
+      - name: Run unit tests
         run: pnpm test:unit
         env:
           NODE_ENV: test
@@ -301,17 +199,17 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_LOCAL_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_LOCAL_SERVICE_ROLE_KEY }}
 
-      - name: 🧹 Cleanup Supabase
+      - name: Cleanup Supabase
         if: always() && steps.start-supabase-tests.outcome == 'success'
         working-directory: backend-nest
         run: supabase stop || true
 
-  # 🎭 E2E TESTS avec cache Playwright optimisé
+  # E2E Tests
   test-e2e:
-    name: 🎭 E2E Tests (${{ matrix.project }})
-    runs-on: ubuntu-latest
+    name: E2E Tests (${{ matrix.project }})
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
-    needs: [install, build]
+    needs: [build]
     strategy:
       fail-fast: false
       matrix:
@@ -319,68 +217,50 @@ jobs:
           - "Critical User Journeys (Mocked)"
           - "Feature Tests (Mocked)"
     steps:
-      - name: 📥 Checkout
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Setup Monorepo
+        uses: ./.github/actions/setup-monorepo
         with:
-          version: ${{ env.PNPM_VERSION }}
+          bun-version: ""
 
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-          cache-dependency-path: "**/pnpm-lock.yaml"
-
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
-
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: 📥 Download build artifacts
+      - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
 
-      # 🚀 Cache Playwright optimisé (bonne pratique officielle)
-      - name: 🎭 Get Playwright version
+      - name: Get Playwright version
         id: playwright-version
         run: echo "version=$(cd frontend && pnpm exec playwright --version)" >> $GITHUB_OUTPUT
 
-      - name: 🎭 Cache Playwright browsers
+      - name: Cache Playwright browsers
         uses: actions/cache@v4
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
 
-      - name: 🎭 Install Playwright browsers
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: cd frontend && pnpm exec playwright install --with-deps
 
-      - name: 🎭 Run E2E tests
+      - name: Install Playwright system deps only
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: cd frontend && pnpm exec playwright install-deps
+
+      - name: Run E2E tests
         run: cd frontend && pnpm test:e2e --project="${{ matrix.project }}"
 
-      - name: 📊 Publish Test Results
+      - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
           files: frontend/test-results/junit.xml
           check_name: E2E Test Results - ${{ matrix.project }}
-          comment_title: 🎭 Playwright E2E Tests
+          comment_title: Playwright E2E Tests
 
-      - name: 📤 Upload E2E artifacts
+      - name: Upload E2E artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -390,125 +270,73 @@ jobs:
             frontend/test-results/
           retention-days: 7
 
-  # 🔍 QUALITY CHECKS en parallèle
+  # Quality Checks
   quality:
-    name: 🔍 Quality Checks
-    runs-on: ubuntu-latest
+    name: Quality Checks
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
-    needs: [install, build]
+    needs: [build]
     strategy:
       matrix:
-        check: [lint, format:check, quality, deps:check]
+        check: [quality, deps:check]
     steps:
-      - name: 📥 Checkout
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
+      - name: Setup Monorepo
+        uses: ./.github/actions/setup-monorepo
 
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-          cache-dependency-path: "**/pnpm-lock.yaml"
-
-      - name: 📦 Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
-
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: 🔍 Run ${{ matrix.check }}
+      - name: Run ${{ matrix.check }}
         run: pnpm ${{ matrix.check }}
 
-  # 🧪 TESTS PERFORMANCE (backend uniquement)
+  # Performance Tests
   test-performance:
-    name: 🚀 Performance Tests
-    runs-on: ubuntu-latest
+    name: Performance Tests
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
-    needs: [install, build]
+    needs: [build]
     steps:
-      - name: 📥 Checkout
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
+      - name: Setup Monorepo
+        uses: ./.github/actions/setup-monorepo
 
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
-
-      - name: 📦 Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - name: 🗄️ Setup Supabase CLI
+      - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
-      - name: 📥 Download Supabase State
+      - name: Download Supabase State
         uses: actions/download-artifact@v4
         with:
           name: supabase-state
           path: backend-nest/
 
-      - name: 📥 Download build artifacts
+      - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
 
-      - name: 🐳 Start Supabase for Performance Tests
+      - name: Start Supabase for Performance Tests
         id: start-supabase-performance
         working-directory: backend-nest
         run: |
           supabase start --exclude studio,inbucket,imgproxy
 
-          # Health check pour tests
           timeout=60
           counter=0
           until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null; do
             if [ $counter -gt $timeout ]; then
-              echo "❌ Supabase not ready for tests"
+              echo "Supabase not ready for tests"
               exit 1
             fi
             sleep 1
             counter=$((counter + 1))
           done
-          echo "✅ Supabase ready for performance tests"
+          echo "Supabase ready for performance tests"
 
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
-
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: 🚀 Run performance tests
+      - name: Run performance tests
         run: pnpm test:performance
         env:
           NODE_ENV: test
@@ -516,29 +344,29 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_LOCAL_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_LOCAL_SERVICE_ROLE_KEY }}
 
-      - name: 🧹 Cleanup Supabase
+      - name: Cleanup Supabase
         if: always() && steps.start-supabase-performance.outcome == 'success'
         working-directory: backend-nest
         run: supabase stop || true
 
-  # 🍎 iOS UNIT TESTS
+  # iOS Unit Tests
   test-ios:
-    name: 🍎 iOS Unit Tests
+    name: iOS Unit Tests
     runs-on: macos-14
     timeout-minutes: 15
     steps:
-      - name: 📥 Checkout
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 🔧 Setup Xcode
+      - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: "16.2"
 
-      - name: 📦 Install XcodeGen
+      - name: Install XcodeGen
         run: brew install xcodegen
 
-      - name: 💾 Cache SPM packages
+      - name: Cache SPM packages
         uses: actions/cache@v4
         with:
           path: |
@@ -547,11 +375,11 @@ jobs:
           key: spm-${{ hashFiles('ios/project.yml') }}
           restore-keys: spm-
 
-      - name: 🔨 Generate Xcode project
+      - name: Generate Xcode project
         working-directory: ios
         run: xcodegen generate
 
-      - name: 🧪 Run Unit Tests
+      - name: Run Unit Tests
         working-directory: ios
         run: |
           xcodebuild test \
@@ -560,15 +388,15 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             -quiet
 
-  # ✅ SUCCESS JOB pour status checks
+  # CI Success
   ci-success:
-    name: ✅ CI Success
-    runs-on: ubuntu-latest
+    name: CI Success
+    runs-on: ubuntu-24.04
     timeout-minutes: 1
     needs: [build, test-unit, test-e2e, quality, test-performance, test-ios]
     if: always()
     steps:
-      - name: ✅ Check all jobs
+      - name: Check all jobs
         if: >-
           needs.build.result == 'success' &&
           needs.test-unit.result == 'success' &&
@@ -576,9 +404,9 @@ jobs:
           needs.quality.result == 'success' &&
           needs.test-performance.result == 'success' &&
           needs.test-ios.result == 'success'
-        run: echo "🎉 All CI checks passed!"
+        run: echo "All CI checks passed!"
 
-      - name: ❌ Check failures
+      - name: Check failures
         if: >-
           needs.build.result != 'success' ||
           needs.test-unit.result != 'success' ||
@@ -587,7 +415,7 @@ jobs:
           needs.test-performance.result != 'success' ||
           needs.test-ios.result != 'success'
         run: |
-          echo "❌ Some CI checks failed"
+          echo "Some CI checks failed"
           echo "Build: ${{ needs.build.result }}"
           echo "Unit Tests: ${{ needs.test-unit.result }}"
           echo "E2E Tests: ${{ needs.test-e2e.result }}"

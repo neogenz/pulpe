@@ -1,0 +1,49 @@
+name: "Setup Monorepo"
+description: "Setup pnpm, Node.js, Bun, and install dependencies for the Pulpe monorepo"
+
+inputs:
+  node-version:
+    description: "Node.js version"
+    default: "22"
+  pnpm-version:
+    description: "pnpm version"
+    default: "10.12.1"
+  bun-version:
+    description: "Bun version (optional, skip if empty)"
+    default: "1.2.17"
+  install-deps:
+    description: "Run pnpm install"
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: ${{ inputs.pnpm-version }}
+
+    - name: Configure npm retry settings
+      shell: bash
+      run: |
+        npm config set fetch-retry-maxtimeout 600000
+        npm config set fetch-retry-mintimeout 120000
+        npm config set fetch-retries 3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: "pnpm"
+        cache-dependency-path: "**/pnpm-lock.yaml"
+
+    - name: Setup Bun
+      if: inputs.bun-version != ''
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: ${{ inputs.bun-version }}
+
+    - name: Install dependencies
+      if: inputs.install-deps == 'true'
+      shell: bash
+      run: pnpm install --frozen-lockfile

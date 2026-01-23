@@ -46,14 +46,18 @@ jobs:
             ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
             ~/Library/Caches/org.swift.swiftpm
           key: spm-${{ hashFiles('ios/project.yml') }}
-          restore-keys: spm-
+          restore-keys: |
+            spm-${{ hashFiles('ios/project.yml') }}-
+            spm-
 
       - name: Cache DerivedData
         uses: actions/cache@v4
         with:
           path: ~/Library/Developer/Xcode/DerivedData
-          key: deriveddata-${{ hashFiles('ios/project.yml') }}-${{ github.sha }}
-          restore-keys: deriveddata-${{ hashFiles('ios/project.yml') }}-
+          key: deriveddata-${{ runner.os }}-${{ hashFiles('ios/**/*.swift', 'ios/project.yml') }}
+          restore-keys: |
+            deriveddata-${{ runner.os }}-${{ hashFiles('ios/**/*.swift', 'ios/project.yml') }}-
+            deriveddata-${{ runner.os }}-
 
       - name: Generate Xcode project
         run: xcodegen generate
