@@ -45,10 +45,9 @@ export async function setupAuthBypass(page: Page, options: {
     }
 
     // Disable product tours in E2E tests by marking them as already seen
-    // Key format matches ProductTourService: pulpe-tour-{tourId}-{userId}
+    // Key format matches ProductTourService: pulpe-tour-{tourId} (device-scoped)
     for (const tourId of config.tourIds) {
-      const key = `pulpe-tour-${tourId}-${config.USER.ID}`;
-      localStorage.setItem(key, 'true');
+      localStorage.setItem(`pulpe-tour-${tourId}`, 'true');
     }
   }, { ...TEST_CONFIG, setLocalStorage, tourIds: TOUR_IDS });
 

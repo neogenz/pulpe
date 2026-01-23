@@ -1,6 +1,6 @@
 {
   "name": "pulpe-landing",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "browserslist": [
@@ -16,7 +16,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "generate:og": "npx tsx scripts/generate-og-image.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.56.0",
@@ -27,13 +28,16 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
+    "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.28.0",
     "eslint-config-next": "^15.3.8",
+    "satori": "^0.19.1",
     "tailwindcss": "^4.1.18",
+    "tsx": "^4.20.4",
     "typescript": "~5.9.3"
   }
 }

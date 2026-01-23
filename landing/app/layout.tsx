@@ -31,10 +31,10 @@ export const metadata: Metadata = {
     locale: 'fr_FR',
     images: [
       {
-        url: '/icon.png',
-        width: 519,
-        height: 519,
-        alt: 'Pulpe',
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Pulpe - App budget simple pour planifier ton année',
       },
     ],
   },
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: "Pulpe — L'app budget simple pour planifier ton année",
     description: 'Planifie ton année, anticipe les grosses dépenses, note tes achats en 2 clics.',
-    images: ['/icon.png'],
+    images: ['/og-image.png'],
   },
   icons: {
     icon: '/icon.png',

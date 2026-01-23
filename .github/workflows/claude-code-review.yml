@@ -4,71 +4,311 @@ on:
   pull_request:
     types: [opened, synchronize]
     paths:
-      - 'frontend/**/*.ts'
-      - 'frontend/**/*.html'
-      - 'frontend/**/*.scss'
-      - 'backend-nest/**/*.ts'
-      - 'shared/**/*.ts'
-      - 'supabase/**/*.sql'
+      - 'frontend/**'
+      - 'backend-nest/**'
+      - 'shared/**'
+      - 'supabase/**'
+      - 'landing/**'
+      - 'ios/**'
+      - 'CLAUDE.md'
+      - '.claude/**'
 
 jobs:
   claude-review:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       pull-requests: write
-      issues: write
       id-token: write
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
+
+      - name: Build dynamic review prompt
+        id: prompt
+        run: |
+          set -e
+
+          CHANGED_FILES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only) || {
+            echo "ERROR: Failed to get PR diff"
+            exit 1
+          }
+
+          if [[ -z "$CHANGED_FILES" ]]; then
+            echo "WARNING: No files changed in PR"
+          fi
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          # Build dynamic prompt with only relevant stack checklists
+          PROMPT="# Code Review - PR #${{ github.event.pull_request.number }}
+
+          Tu es un expert code reviewer. Analyse UNIQUEMENT les fichiers modifiés.
+
+          ## Checklist"
+
+          # Angular 21 (frontend/)
+          if echo "$CHANGED_FILES" | grep -q "^frontend/"; then
+            PROMPT+="
+
+          ### Angular 21 / Material 21 / Tailwind v4
+
+          **Architecture (CRITIQUE):**
+          - \`core/\`: services, guards, interceptors - JAMAIS de composants
+          - \`ui/\`: composants stateless réutilisables - JAMAIS inject de services
+          - \`feature/\`: domaines métier lazy-loaded - isolation totale entre siblings
+          - \`pattern/\`: composants stateful réutilisables cross-feature
+          - JAMAIS d'import entre features siblings (extraire vers core/ui/pattern)
+          - Components = délégation aux services (logic-free)
+          - \`loadChildren\` vers \`.routes.ts\` (pas loadComponent)
+
+          **API Angular:**
+          - \`changeDetection: OnPush\` obligatoire
+          - Signals: \`signal()\`, \`computed()\`, \`linkedSignal()\`
+          - \`input()\`/\`output()\` (pas @Input/@Output)
+          - \`httpResource()\` pour GET, \`inject()\` pour DI
+          - \`@if\`/\`@for\`/\`@switch\` (pas *ngIf/*ngFor)
+          - \`host: {}\` (pas @HostBinding/@HostListener)
+          - JAMAIS: \`::ng-deep\`, \`ngClass\`, \`ngStyle\`, \`standalone: true\`
+          - Accessibilité: WCAG AA, focus, ARIA"
+          fi
+
+          # NestJS 11 (backend-nest/)
+          if echo "$CHANGED_FILES" | grep -q "^backend-nest/"; then
+            PROMPT+="
+
+          ### NestJS 11 / Bun / Zod 4
+
+          **Architecture par Feature (CRITIQUE):**
+          - \`common/\`: infrastructure partagée (guards, filters, interceptors, decorators, exceptions)
+          - \`modules/[domain]/\`: feature folders par domaine métier
+          - Structure: \`controller.ts\` → \`service.ts\` → \`repository.ts\` → DB
+          - Layers: Controller (routing/validation) → Service (logique) → Repository (data access)
+          - Mappers: DTO ↔ Entity (camelCase ↔ snake_case)
+          - JAMAIS exposer types \`Database['...']['Row']\` dans réponses API
+
+          **Patterns:**
+          - DTOs: \`createZodDto()\` + schemas de \`pulpe-shared\`
+          - Auth: \`@AuthGuard()\` + \`@User()\` sur routes protégées
+          - Errors: BusinessException, filtres globaux
+          - Logging Pino: error(5xx), warn(4xx), info(business)
+          - JAMAIS de \`any\` - \`unknown\` si incertain"
+          fi
+
+          # Next.js 15 / React 19 (landing/)
+          if echo "$CHANGED_FILES" | grep -q "^landing/"; then
+            PROMPT+="
+
+          ### Next.js 15 / React 19 / Tailwind v4
+          - App Router obligatoire (pas Pages Router)
+          - Server Components par défaut, \`'use client'\` uniquement si interactivité
+          - \`next/image\` avec dimensions explicites
+          - Metadata API pour SEO (\`generateMetadata\`)
+          - Data fetching côté serveur (pas useEffect pour fetch)
+          - \`loading.tsx\` et \`error.tsx\` pour UX
+          - Pas de \`useEffect\` pour data fetching initial"
+          fi
+
+          # iOS 17+ / Swift 6 (ios/)
+          if echo "$CHANGED_FILES" | grep -q "^ios/"; then
+            PROMPT+="
+
+          ### iOS 17+ / Swift 6 / SwiftUI
+
+          **Architecture (CRITIQUE):**
+          - \`App/\`: entry point + AppState - JAMAIS de logique métier
+          - \`Core/\`: services = \`actor\` (thread-safe), infrastructure
+          - \`Domain/\`: models \`Sendable\`, services wrappent APIClient
+          - \`Features/\`: Views + ViewModels, sheets pour forms
+          - \`Shared/\`: composants réutilisables, extensions, formatters
+          - JAMAIS mélanger UI dans Domain layer
+
+          **Patterns:**
+          - \`@Observable\` (JAMAIS ObservableObject/@Published)
+          - \`async/await\` (JAMAIS completion handlers)
+          - \`NavigationStack(path:)\` avec destinations typées
+          - Constructor injection avec \`.shared\` defaults
+          - JAMAIS force unwrap \`!\` sans justification"
+          fi
+
+          # Shared (shared/)
+          if echo "$CHANGED_FILES" | grep -q "^shared/"; then
+            PROMPT+="
+
+          ### Shared / Zod 4 - Contrats API
+
+          **Rôle (CRITIQUE):**
+          - Contrats API entre backend NestJS et frontend Angular
+          - Source unique de vérité pour les types échangés
+          - Validation runtime côté backend ET frontend
+
+          **Patterns:**
+          - Schema + type inféré: \`export const xSchema = z.object({...}); export type X = z.infer<typeof xSchema>;\`
+          - Documenter les règles métier en JSDoc (cf. SPECS.md)
+          - Nommage: \`entitySchema\`, \`entityCreateSchema\`, \`entityUpdateSchema\`
+          - JAMAIS de dépendances externes (sauf zod)
+          - JAMAIS de logique métier (seulement validation)"
+          fi
+
+          # Supabase (supabase/)
+          if echo "$CHANGED_FILES" | grep -q "^supabase/"; then
+            PROMPT+="
+
+          ### Supabase / PostgreSQL
+          - Migrations idempotentes (\`IF NOT EXISTS\`, \`OR REPLACE\`)
+          - RLS policies sur toutes les tables avec \`user_id\`
+          - Index sur colonnes fréquemment filtrées
+          - Pas de \`CASCADE\` sans justification"
+          fi
+
+          # Tests (*.spec.ts, *.test.ts)
+          if echo "$CHANGED_FILES" | grep -qE "\.(spec|test)\.ts$"; then
+            PROMPT+="
+
+          ### Tests (Vitest / Bun:test / Playwright)
+
+          **Pattern AAA obligatoire:**
+          - Arrange: setup des données et mocks
+          - Act: exécution de l'action testée
+          - Assert: vérification du résultat
+
+          **Principes (CRITIQUE):**
+          - Tester le COMPORTEMENT, pas l'implémentation
+          - Tests lisibles = documentation vivante
+          - Un test = un cas métier clair
+          - Helpers: \`createMock...()\` pour factory de données
+          - Nommage: \`should [behavior] when [condition]\`
+          - JAMAIS tester les détails d'implémentation (ordre d'appels, etc.)
+          - JAMAIS de logique conditionnelle dans les tests"
+          fi
+
+          # Claude Code config (CLAUDE.md, .claude/)
+          if echo "$CHANGED_FILES" | grep -qE "^(CLAUDE\.md|\.claude/)"; then
+            PROMPT+="
+
+          ### Claude Code Configuration
+
+          **CLAUDE.md (CRITIQUE):**
+          - Max ~150-200 instructions (au-delà, Claude ignore les règles)
+          - Chaque ligne doit répondre à: 'Sans cette info, Claude ferait-il une erreur?'
+          - JAMAIS de code snippets (deviennent obsolètes rapidement)
+          - JAMAIS de secrets, clés API, credentials
+          - Utiliser \`@file.md\` pour importer du contenu externe
+          - Privilégier les commandes bash, conventions, décisions d'architecture
+
+          **Rules (\`.claude/rules/\`):**
+          - Frontmatter OBLIGATOIRE: \`description\` + \`paths\` (glob patterns)
+          - Max 500 lignes par fichier
+          - Une seule responsabilité par fichier (testing.md, api.md, etc.)
+          - Nommage descriptif du fichier = son contenu
+          - Organiser en sous-dossiers si nécessaire (frontend/, backend/)
+          - JAMAIS de règles sans \`paths\` (pollue le contexte global)
+
+          **Commands/Skills (\`.claude/commands/\`, \`.claude/skills/\`):**
+          - \`description\` OBLIGATOIRE (utilisé pour auto-invocation)
+          - \`disable-model-invocation: true\` pour workflows avec side effects
+          - Garder les instructions concises et actionnables
+
+          **Settings (\`.claude/settings.json\`):**
+          - JAMAIS de secrets dans les settings
+          - Deny rules pour fichiers sensibles: \`.env\`, \`.env.*\`, \`secrets/**\`
+          - Patterns de permissions explicites (\`npm run:*\`, pas \`*\`)"
+          fi
+
+          PROMPT+="
+
+          ## Règles transversales
+
+          **Clean Code:**
+          - Fonctions ≤30 lignes, fichiers ≤300 lignes
+          - Nommage: \`isX\`/\`hasX\` pour booléens, pluriel pour collections
+          - Constantes nommées (pas de magic numbers)
+          - Code auto-documenté (pas de commentaires explicatifs)
+
+          **TypeScript strict:**
+          - JAMAIS \`any\` - utiliser \`unknown\` si incertain
+          - JAMAIS \`as\` cast sans justification
+          - Type guards préférés aux assertions
+
+          **Sécurité:**
+          - Pas de secrets hardcodés
+          - JWT requis sur routes protégées
+          - Validation de tous les inputs externes
+
+          ## Format de sortie (OBLIGATOIRE)
+
+          Utilise EXACTEMENT ce format markdown:
+
+          \`\`\`
+          ## 🔍 Review PR #${{ github.event.pull_request.number }}
+
+          **Résumé:** 🚨 X bloquant(s) · ⚠️ X important(s) · 💡 X suggestion(s)
+          **Risque:** 🟢 Faible | 🟡 Moyen | 🔴 Élevé · **Fichiers:** X
+
+          ---
+
+          ### 🚨 Bloquants (merge impossible)
+
+          **\\\`fichier.ts:42\\\`** — Titre court du problème
+          > Description et impact (pourquoi c'est critique)
+          >
+          > \\\`\\\`\\\`typescript
+          > // Suggestion de fix
+          > \\\`\\\`\\\`
+
+          ---
+
+          ### ⚠️ Importants
+
+          **\\\`fichier.ts:15\\\`** — Titre court
+          > Description et suggestion de fix
+
+          ---
+
+          ### 💡 Suggestions
+
+          **\\\`fichier.ts:88\\\`** — Amélioration possible
+          > Suggestion
+
+          ---
+
+          ### ✨ Points positifs
+          - Pattern X bien respecté
+          - Bonne pratique Y observée
+
+          ---
+
+          **Verdict:** ✅ APPROVE | ❌ CHANGES REQUESTED
+          \`\`\`
+
+          Règles:
+          - Résumé avec métriques EN PREMIER
+          - Impact/Why pour chaque finding bloquant
+          - Code snippets pour les fix complexes
+          - Points positifs: reconnaître les bonnes pratiques (min 1)
+          - Max 10 issues total
+          - En français
+          - UN SEUL commentaire (pas d'inline multiples)
+          - Si aucun problème: résumé \\\`0 issues\\\` + points positifs + verdict ✅"
+
+          # Output using heredoc for multiline
+          echo "review_prompt<<EOF" >> $GITHUB_OUTPUT
+          echo "$PROMPT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Claude Code Review
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          track_progress: true
-          prompt: |
-            REPO: ${{ github.repository }}
-            PR NUMBER: ${{ github.event.pull_request.number }}
-
-            Tu es un expert code reviewer Angular 20+ / NestJS. Analyse le diff et poste ta review.
-
-            ## CHECKLIST
-
-            **Angular 20+**: standalone OnPush, signals (signal/computed/linkedSignal), httpResource() pour GET, takeUntilDestroyed() sur subscribe(), input() pas @Input()
-
-            **NestJS**: DTOs validés class-validator, AuthGuard + @User(), pas de logique dans controllers
-
-            **TypeScript**: Zod schemas, pas de `any`, types stricts
-
-            **Sécurité**: pas de secrets hardcodés, JWT requis, RLS sur tables user
-
-            **Qualité**: fonctions ≤30 lignes, fichiers ≤300 lignes, noms descriptifs
-
-            **DB**: migrations idempotentes (IF NOT EXISTS), RLS policies
-
-            ## OUTPUT
-            - Commentaires inline pour issues spécifiques
-            - UN commentaire général avec:
-
-            ### 🚨 CRITIQUE (bloquant)
-            `fichier:ligne` - Description + fix
-
-            ### ⚠️ IMPORTANT
-            `fichier:ligne` - Description + fix
-
-            ### ℹ️ SUGGESTION
-            `fichier:ligne` - Amélioration
-
-            **Verdict:** ✅ APPROVE | ❌ NEEDS FIX
-
-            Max 10 issues. Français.
-
+          prompt: ${{ steps.prompt.outputs.review_prompt }}
           claude_args: |
-            --max-turns 50
+            --max-turns 15
             --model claude-sonnet-4-5-20250929
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --allowedTools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr files:*)"
