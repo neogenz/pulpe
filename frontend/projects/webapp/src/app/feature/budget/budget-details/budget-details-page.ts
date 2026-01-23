@@ -10,13 +10,12 @@ import {
   isDevMode,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { map } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { DatePipe } from '@angular/common';
 import type { BudgetLineConsumption } from '@core/budget';
 import { Logger } from '@core/logging/logger';
@@ -49,7 +48,6 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
     MatIconModule,
     MatButtonModule,
     MatSnackBarModule,
-    MatTooltipModule,
     DatePipe,
     BudgetItemsContainer,
     BudgetFinancialOverview,
@@ -69,7 +67,6 @@ export default class BudgetDetailsPage {
   readonly store = inject(BudgetDetailsStore);
   readonly #dialogService = inject(BudgetDetailsDialogService);
   readonly #router = inject(Router);
-  readonly #route = inject(ActivatedRoute);
   readonly #breadcrumbState = inject(BreadcrumbState);
   readonly #productTourService = inject(ProductTourService);
   readonly #snackBar = inject(MatSnackBar);
@@ -120,12 +117,18 @@ export default class BudgetDetailsPage {
     });
   }
 
-  startPageTour(): void {
-    this.#productTourService.startPageTour('budget-details');
+  navigateToPrevious(): void {
+    const id = this.store.previousBudgetId();
+    if (id) {
+      this.#router.navigate(['/', 'budget', id]);
+    }
   }
 
-  navigateBack(): void {
-    this.#router.navigate(['..'], { relativeTo: this.#route });
+  navigateToNext(): void {
+    const id = this.store.nextBudgetId();
+    if (id) {
+      this.#router.navigate(['/', 'budget', id]);
+    }
   }
 
   readonly displayName = computed(() => {

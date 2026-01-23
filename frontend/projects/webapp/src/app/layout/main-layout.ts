@@ -38,6 +38,10 @@ import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { Logger } from '@core/logging/logger';
+import {
+  ProductTourService,
+  type TourPageId,
+} from '@core/product-tour/product-tour.service';
 import { BreadcrumbState } from '@core/routing/breadcrumb-state';
 import { ROUTES } from '@core/routing/routes-constants';
 import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
@@ -275,6 +279,17 @@ interface NavigationItem {
                 <mat-icon matMenuItemIcon>settings</mat-icon>
                 <span>Paramètres</span>
               </a>
+              @if (currentTourPageId()) {
+                <button
+                  mat-menu-item
+                  (click)="startPageTour()"
+                  aria-label="Découvrir cette page"
+                  data-testid="page-tour-button"
+                >
+                  <mat-icon matMenuItemIcon>help_outline</mat-icon>
+                  <span>Découvrir cette page</span>
+                </button>
+              }
               <mat-divider />
               <button
                 mat-menu-item
@@ -349,28 +364,16 @@ interface NavigationItem {
   `,
   styles: [
     `
-      @use '@angular/material' as mat;
-
       :host {
         display: block;
         height: 100dvh;
       }
 
-      /*
-       * En appliquant la surcharge de style pour les boutons à l'intérieur
-       * du sélecteur 'mat-nav-list', nous limitons sa portée aux boutons
-       * qui sont DANS la barre d'outils de ce composant uniquement.
-       * Cela empêche le style de s'appliquer aux composants dans <router-outlet>.
-       */
       :host mat-sidenav {
-        @include mat.button-overrides(
-          (
-            filled-container-shape: 50%,
-            outlined-container-shape: 50%,
-            text-container-shape: 50%,
-            tonal-container-shape: 50%,
-          )
-        );
+        --mat-filled-button-container-shape: 50%;
+        --mat-outlined-button-container-shape: 50%;
+        --mat-text-button-container-shape: 50%;
+        --mat-tonal-button-container-shape: 50%;
       }
 
       /* Smooth transition for icon fill and scale */
@@ -451,6 +454,7 @@ export default class MainLayout {
   readonly #destroyRef = inject(DestroyRef);
   readonly #logger = inject(Logger);
   readonly #dialog = inject(MatDialog);
+  readonly #productTourService = inject(ProductTourService);
   protected readonly loadingIndicator = inject(LoadingIndicator);
   // Display "Mode Démo" for demo users, otherwise show email
   readonly userEmail = computed(() => {
@@ -489,7 +493,7 @@ export default class MainLayout {
   protected readonly isHandset = toSignal(
     this.#breakpointObserver.observe(Breakpoints.Handset).pipe(
       map((result) => result.matches),
-      shareReplay(),
+      shareReplay({ bufferSize: 1, refCount: true }),
     ),
     { initialValue: false },
   );
@@ -513,6 +517,16 @@ export default class MainLayout {
   protected readonly currentPageTitle = computed(() => {
     const navigationItem = this.currentNavigationItem();
     return navigationItem?.label || 'Pulpe Budget';
+  });
+
+  // Current tour page ID based on route
+  protected readonly currentTourPageId = computed((): TourPageId | null => {
+    const url = this.#currentRoute();
+    if (url.includes(`/${ROUTES.DASHBOARD}`)) return 'current-month';
+    if (url.match(/\/budget\/[^/]+$/)) return 'budget-details';
+    if (url.includes(`/${ROUTES.BUDGET}`)) return 'budget-list';
+    if (url.includes(`/${ROUTES.BUDGET_TEMPLATES}`)) return 'templates-list';
+    return null;
   });
 
   // Scroll detection for toolbar shadow
@@ -577,6 +591,13 @@ export default class MainLayout {
       width: 'auto',
       maxWidth: '90vw',
     });
+  }
+
+  protected startPageTour(): void {
+    const pageId = this.currentTourPageId();
+    if (pageId) {
+      this.#productTourService.startPageTour(pageId);
+    }
   }
 
   async onLogout(): Promise<void> {
