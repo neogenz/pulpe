@@ -1,10 +1,10 @@
 {
   "fill" : {
-    "automatic-gradient" : "srgb:0.91373,0.96078,0.90196,1.00000"
+    "automatic-gradient" : "srgb:0.74312,0.96078,0.71915,1.00000"
   },
   "groups" : [
     {
-      "hidden" : false,
+      "hidden" : true,
       "layers" : [
         {
           "glass" : true,
@@ -134,7 +134,7 @@
       }
     },
     {
-      "hidden" : true,
+      "hidden" : false,
       "layers" : [
         {
           "glass" : true,
@@ -200,27 +200,7 @@
               -52.18360056071788
             ]
           }
-        }
-      ],
-      "position" : {
-        "scale" : 1.11,
-        "translation-in-points" : [
-          3.2646914245196967,
-          18.77197569098871
-        ]
-      },
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
-      },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
-      }
-    },
-    {
-      "hidden" : true,
-      "layers" : [
+        },
         {
           "fill" : "automatic",
           "glass" : true,
@@ -234,27 +214,7 @@
               7.023624770270544
             ]
           }
-        }
-      ],
-      "position" : {
-        "scale" : 1.11,
-        "translation-in-points" : [
-          3.2646914245196967,
-          18.77197569098871
-        ]
-      },
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
-      },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
-      }
-    },
-    {
-      "hidden" : true,
-      "layers" : [
+        },
         {
           "blend-mode" : "normal",
           "fill" : {
