@@ -1,3 +1,5 @@
+import { writeFileXLSX, type WorkBook } from 'xlsx';
+
 /**
  * Downloads data as a JSON file
  * @param data - The data to export
@@ -15,7 +17,19 @@ export function downloadAsJsonFile(data: unknown, filename: string): void {
     document.body.appendChild(link);
     link.click();
   } finally {
-    document.body.removeChild(link);
+    link.remove();
     window.URL.revokeObjectURL(url);
   }
+}
+
+/**
+ * Downloads a workbook as an Excel file
+ * @param workbook - The xlsx WorkBook to export
+ * @param filename - The filename (without extension)
+ */
+export function downloadAsExcelFile(
+  workbook: WorkBook,
+  filename: string,
+): void {
+  writeFileXLSX(workbook, `${filename}.xlsx`);
 }

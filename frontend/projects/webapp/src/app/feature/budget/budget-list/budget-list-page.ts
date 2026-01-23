@@ -18,7 +18,8 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { BudgetApi } from '@core/budget/budget-api';
-import { downloadAsJsonFile } from '@core/file-download';
+import { ExcelExportService } from '@core/budget/excel-export.service';
+import { downloadAsExcelFile, downloadAsJsonFile } from '@core/file-download';
 import { ROUTES, TitleDisplay } from '@core/routing';
 import { type CalendarMonth, YearCalendar } from '@ui/calendar';
 import { type CalendarYear } from '@ui/calendar/calendar-types';
@@ -72,13 +73,27 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
             (click)="onExportBudgets()"
             [disabled]="isExporting()"
             matTooltip="Exporter tous les budgets en JSON"
-            aria-label="Exporter"
+            aria-label="Exporter en JSON"
             data-testid="export-budgets-btn"
           >
             @if (isExporting()) {
               <mat-icon>hourglass_empty</mat-icon>
             } @else {
               <mat-icon>download</mat-icon>
+            }
+          </button>
+          <button
+            matIconButton
+            (click)="onExportBudgetsAsExcel()"
+            [disabled]="isExportingExcel()"
+            matTooltip="Exporter tous les budgets en Excel"
+            aria-label="Exporter en Excel"
+            data-testid="export-budgets-excel-btn"
+          >
+            @if (isExportingExcel()) {
+              <mat-icon>hourglass_empty</mat-icon>
+            } @else {
+              <mat-icon>table_view</mat-icon>
             }
           </button>
           <button
@@ -163,8 +178,10 @@ export default class BudgetListPage {
   readonly #destroyRef = inject(DestroyRef);
   readonly #budgetApi = inject(BudgetApi);
   readonly #userSettingsApi = inject(UserSettingsApi);
+  readonly #excelExportService = inject(ExcelExportService);
 
   protected readonly isExporting = signal(false);
+  protected readonly isExportingExcel = signal(false);
 
   constructor() {
     // Refresh data on init
@@ -239,7 +256,7 @@ export default class BudgetListPage {
   readonly #isHandset = toSignal(
     this.#breakpointObserver.observe(Breakpoints.Handset).pipe(
       map((result) => result.matches),
-      shareReplay(),
+      shareReplay({ bufferSize: 1, refCount: true }),
     ),
     { initialValue: false },
   );
@@ -344,6 +361,34 @@ export default class BudgetListPage {
       });
     } finally {
       this.isExporting.set(false);
+      this.#loadingIndicator.setLoading(false);
+    }
+  }
+
+  async onExportBudgetsAsExcel(): Promise<void> {
+    this.isExportingExcel.set(true);
+    this.#loadingIndicator.setLoading(true);
+
+    try {
+      const data = await firstValueFrom(this.#budgetApi.exportAllBudgets$());
+      const workbook = this.#excelExportService.buildWorkbook(data);
+      const today = new Date().toISOString().split('T')[0];
+      downloadAsExcelFile(workbook, `pulpe-export-${today}`);
+
+      this.#snackBar.open(
+        'Export Excel terminé — fichier téléchargé',
+        'Fermer',
+        {
+          duration: 3000,
+        },
+      );
+    } catch (error) {
+      this.#logger.error('Error exporting budgets as Excel', error);
+      this.#snackBar.open("L'export Excel a échoué — réessaie", 'Fermer', {
+        duration: 5000,
+      });
+    } finally {
+      this.isExportingExcel.set(false);
       this.#loadingIndicator.setLoading(false);
     }
   }
