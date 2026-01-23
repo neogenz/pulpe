@@ -78,7 +78,7 @@ const jsonLd = {
   ],
 }
 
-const authCheckScript = `
+const authRedirectScript = `
 (function() {
   try {
     var keys = Object.keys(localStorage);
@@ -88,8 +88,8 @@ const authCheckScript = `
         if (data) {
           var parsed = JSON.parse(data);
           if (parsed.access_token) {
-            document.documentElement.setAttribute('data-auth-checking', 'true');
-            break;
+            window.location.replace('/dashboard');
+            return;
           }
         }
       }
@@ -102,7 +102,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" className={poppins.variable}>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: authCheckScript }} />
+        <script dangerouslySetInnerHTML={{ __html: authRedirectScript }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

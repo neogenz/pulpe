@@ -240,8 +240,3 @@ body {
     opacity: 1;
   }
 }
-
-/* Auth redirect: hide body while checking authentication to prevent flash */
-html[data-auth-checking="true"] body {
-  visibility: hidden;
-}
