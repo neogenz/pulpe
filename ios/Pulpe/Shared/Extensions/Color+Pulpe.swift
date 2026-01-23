@@ -37,6 +37,12 @@ extension Color {
     /// Generic badge background
     static let badgeBackground = Color("BadgeBackground")
 
+    /// Input field background - softer than systemGray6
+    static let inputBackgroundSoft = Color(hex: 0xF5F5F7)
+
+    /// Input focus glow color
+    static let inputFocusGlow = Color(hex: 0x006820).opacity(0.12)
+
     // MARK: - Gradient Colors
 
     static let pulpeGradientColors: [Color] = [

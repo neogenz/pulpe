@@ -2,8 +2,10 @@ import SwiftUI
 
 struct LoginView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel = LoginViewModel()
     @State private var canRetryBiometric = false
+    @State private var isAppeared = false
     @FocusState private var focusedField: Field?
 
     var isPresented: Binding<Bool>?
@@ -17,20 +19,27 @@ struct LoginView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     // Logo and title
-                    VStack(spacing: 16) {
-                        PulpeIcon(size: 72)
+                    VStack(spacing: 20) {
+                        PulpeIcon(size: 88)
+                            .scaleEffect(isAppeared ? 1 : 0.8)
+                            .opacity(isAppeared ? 1 : 0)
 
-                        Text("Pulpe")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundStyle(Color.pulpePrimary)
+                        VStack(spacing: 8) {
+                            Text("Pulpe")
+                                .font(.system(size: 36, weight: .bold, design: .rounded))
+                                .tracking(1)
+                                .foregroundStyle(Color.pulpePrimary)
 
-                        Text("Retrouve ton espace")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.textSecondaryOnboarding)
+                            Text("Content de te revoir")
+                                .font(.system(size: 17, weight: .medium, design: .rounded))
+                                .foregroundStyle(Color.textSecondaryOnboarding)
+                        }
+                        .opacity(isAppeared ? 1 : 0)
+                        .offset(y: isAppeared ? 0 : 10)
                     }
-                    .padding(.top, 48)
-                    .padding(.bottom, 40)
+                    .padding(.top, 56)
+                    .padding(.bottom, 44)
+                    .animation(reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 0.8), value: isAppeared)
 
                     // Form card
                     VStack(spacing: 20) {
@@ -87,15 +96,14 @@ struct LoginView: View {
 
                         // Email field
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Email")
-                                .font(.footnote)
-                                .fontWeight(.medium)
+                            Text("Adresse e-mail")
+                                .font(.system(size: 13, weight: .semibold))
                                 .foregroundStyle(Color.textSecondaryOnboarding)
 
                             TextField(
                                 "",
                                 text: $viewModel.email,
-                                prompt: Text("nom@exemple.com")
+                                prompt: Text("exemple@email.com")
                                     .foregroundColor(Color.textTertiaryOnboarding)
                             )
                             .textContentType(.emailAddress)
@@ -103,26 +111,31 @@ struct LoginView: View {
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .focused($focusedField, equals: .email)
-                            .font(.body)
-                            .padding(.horizontal, 16)
-                            .frame(height: 52)
-                            .background(Color(.systemGray6))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .font(.system(size: 16))
+                            .padding(.horizontal, 18)
+                            .frame(height: 54)
+                            .background(Color.inputBackgroundSoft)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 12)
+                                RoundedRectangle(cornerRadius: 14)
                                     .stroke(
                                         focusedField == .email ? Color.pulpePrimary : Color.clear,
                                         lineWidth: 2
                                     )
                             )
-                            .animation(.easeInOut(duration: 0.2), value: focusedField)
+                            .shadow(
+                                color: focusedField == .email ? Color.inputFocusGlow : Color.black.opacity(0.04),
+                                radius: focusedField == .email ? 8 : 4,
+                                y: focusedField == .email ? 2 : 1
+                            )
+                            .scaleEffect(focusedField == .email ? 1.01 : 1)
+                            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
                         }
 
                         // Password field
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Mot de passe")
-                                .font(.footnote)
-                                .fontWeight(.medium)
+                                .font(.system(size: 13, weight: .semibold))
                                 .foregroundStyle(Color.textSecondaryOnboarding)
 
                             HStack(spacing: 12) {
@@ -131,42 +144,51 @@ struct LoginView: View {
                                         TextField(
                                             "",
                                             text: $viewModel.password,
-                                            prompt: Text("Saisissez votre mot de passe")
+                                            prompt: Text("Votre mot de passe")
                                                 .foregroundColor(Color.textTertiaryOnboarding)
                                         )
                                     } else {
                                         SecureField(
                                             "",
                                             text: $viewModel.password,
-                                            prompt: Text("Saisissez votre mot de passe")
+                                            prompt: Text("Votre mot de passe")
                                                 .foregroundColor(Color.textTertiaryOnboarding)
                                         )
                                     }
                                 }
                                 .textContentType(.password)
                                 .focused($focusedField, equals: .password)
-                                .font(.body)
+                                .font(.system(size: 16))
 
                                 Button {
-                                    viewModel.showPassword.toggle()
+                                    withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                                        viewModel.showPassword.toggle()
+                                    }
                                 } label: {
                                     Image(systemName: viewModel.showPassword ? "eye.slash.fill" : "eye.fill")
-                                        .font(.body)
+                                        .font(.system(size: 16))
                                         .foregroundStyle(Color.textTertiaryOnboarding)
+                                        .contentTransition(.symbolEffect(.replace))
                                 }
                             }
-                            .padding(.horizontal, 16)
-                            .frame(height: 52)
-                            .background(Color(.systemGray6))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .padding(.horizontal, 18)
+                            .frame(height: 54)
+                            .background(Color.inputBackgroundSoft)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 12)
+                                RoundedRectangle(cornerRadius: 14)
                                     .stroke(
                                         focusedField == .password ? Color.pulpePrimary : Color.clear,
                                         lineWidth: 2
                                     )
                             )
-                            .animation(.easeInOut(duration: 0.2), value: focusedField)
+                            .shadow(
+                                color: focusedField == .password ? Color.inputFocusGlow : Color.black.opacity(0.04),
+                                radius: focusedField == .password ? 8 : 4,
+                                y: focusedField == .password ? 2 : 1
+                            )
+                            .scaleEffect(focusedField == .password ? 1.01 : 1)
+                            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
                         }
 
                         // Login button
@@ -208,13 +230,16 @@ struct LoginView: View {
                     .padding(24)
                     .background(Color.white)
                     .clipShape(RoundedRectangle(cornerRadius: 24))
-                    .shadow(color: Color.black.opacity(0.06), radius: 20, y: 8)
+                    .shadow(color: Color.black.opacity(0.08), radius: 24, y: 10)
                     .padding(.horizontal, 20)
+                    .opacity(isAppeared ? 1 : 0)
+                    .offset(y: isAppeared ? 0 : 20)
+                    .animation(reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: isAppeared)
 
                     // Create account link
-                    VStack(spacing: 6) {
+                    VStack(spacing: 8) {
                         Text("Nouveau sur Pulpe ?")
-                            .font(.subheadline)
+                            .font(.system(size: 15))
                             .foregroundStyle(Color.textSecondaryOnboarding)
 
                         Button {
@@ -226,12 +251,13 @@ struct LoginView: View {
                             }
                         } label: {
                             Text("Créer un compte")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
+                                .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(Color.pulpePrimary)
                         }
                     }
-                    .padding(.top, 28)
+                    .padding(.top, 32)
+                    .opacity(isAppeared ? 1 : 0)
+                    .animation(reduceMotion ? nil : .easeOut(duration: 0.4).delay(0.2), value: isAppeared)
 
                     Spacer(minLength: 40)
                 }
@@ -251,6 +277,12 @@ struct LoginView: View {
             .dismissKeyboardOnTap()
             .task {
                 canRetryBiometric = await appState.canRetryBiometric()
+                if !reduceMotion {
+                    try? await Task.sleep(for: .milliseconds(100))
+                }
+                withAnimation {
+                    isAppeared = true
+                }
             }
         }
     }
