@@ -10,6 +10,8 @@ on:
       - 'supabase/**'
       - 'landing/**'
       - 'ios/**'
+      - 'CLAUDE.md'
+      - '.claude/**'
 
 jobs:
   claude-review:
@@ -185,6 +187,39 @@ jobs:
           - JAMAIS de logique conditionnelle dans les tests"
           fi
 
+          # Claude Code config (CLAUDE.md, .claude/)
+          if echo "$CHANGED_FILES" | grep -qE "^(CLAUDE\.md|\.claude/)"; then
+            PROMPT+="
+
+          ### Claude Code Configuration
+
+          **CLAUDE.md (CRITIQUE):**
+          - Max ~150-200 instructions (au-delà, Claude ignore les règles)
+          - Chaque ligne doit répondre à: 'Sans cette info, Claude ferait-il une erreur?'
+          - JAMAIS de code snippets (deviennent obsolètes rapidement)
+          - JAMAIS de secrets, clés API, credentials
+          - Utiliser \`@file.md\` pour importer du contenu externe
+          - Privilégier les commandes bash, conventions, décisions d'architecture
+
+          **Rules (\`.claude/rules/\`):**
+          - Frontmatter OBLIGATOIRE: \`description\` + \`paths\` (glob patterns)
+          - Max 500 lignes par fichier
+          - Une seule responsabilité par fichier (testing.md, api.md, etc.)
+          - Nommage descriptif du fichier = son contenu
+          - Organiser en sous-dossiers si nécessaire (frontend/, backend/)
+          - JAMAIS de règles sans \`paths\` (pollue le contexte global)
+
+          **Commands/Skills (\`.claude/commands/\`, \`.claude/skills/\`):**
+          - \`description\` OBLIGATOIRE (utilisé pour auto-invocation)
+          - \`disable-model-invocation: true\` pour workflows avec side effects
+          - Garder les instructions concises et actionnables
+
+          **Settings (\`.claude/settings.json\`):**
+          - JAMAIS de secrets dans les settings
+          - Deny rules pour fichiers sensibles: \`.env\`, \`.env.*\`, \`secrets/**\`
+          - Patterns de permissions explicites (\`npm run:*\`, pas \`*\`)"
+          fi
+
           PROMPT+="
 
           ## Règles transversales
@@ -210,30 +245,56 @@ jobs:
           Utilise EXACTEMENT ce format markdown:
 
           \`\`\`
-          ## Review PR #${{ github.event.pull_request.number }}
+          ## 🔍 Review PR #${{ github.event.pull_request.number }}
 
-          ### 🚨 Critiques (bloquants)
-          - \`fichier.ts:42\` - Description du problème
-            > Suggestion de fix
-
-          ### ⚠️ Importants
-          - \`fichier.ts:15\` - Description du problème
-            > Suggestion de fix
-
-          ### 💡 Suggestions
-          - \`fichier.ts:88\` - Amélioration possible
-            > Suggestion
+          **Résumé:** 🚨 X bloquant(s) · ⚠️ X important(s) · 💡 X suggestion(s)
+          **Risque:** 🟢 Faible | 🟡 Moyen | 🔴 Élevé · **Fichiers:** X
 
           ---
+
+          ### 🚨 Bloquants (merge impossible)
+
+          **\\\`fichier.ts:42\\\`** — Titre court du problème
+          > Description et impact (pourquoi c'est critique)
+          >
+          > \\\`\\\`\\\`typescript
+          > // Suggestion de fix
+          > \\\`\\\`\\\`
+
+          ---
+
+          ### ⚠️ Importants
+
+          **\\\`fichier.ts:15\\\`** — Titre court
+          > Description et suggestion de fix
+
+          ---
+
+          ### 💡 Suggestions
+
+          **\\\`fichier.ts:88\\\`** — Amélioration possible
+          > Suggestion
+
+          ---
+
+          ### ✨ Points positifs
+          - Pattern X bien respecté
+          - Bonne pratique Y observée
+
+          ---
+
           **Verdict:** ✅ APPROVE | ❌ CHANGES REQUESTED
-          **Fichiers reviewés:** X fichiers
           \`\`\`
 
           Règles:
+          - Résumé avec métriques EN PREMIER
+          - Impact/Why pour chaque finding bloquant
+          - Code snippets pour les fix complexes
+          - Points positifs: reconnaître les bonnes pratiques (min 1)
           - Max 10 issues total
           - En français
-          - UN SEUL commentaire général (pas de commentaires inline multiples)
-          - Si aucun problème: juste le verdict avec félicitations"
+          - UN SEUL commentaire (pas d'inline multiples)
+          - Si aucun problème: résumé \\\`0 issues\\\` + points positifs + verdict ✅"
 
           # Output using heredoc for multiline
           echo "review_prompt<<EOF" >> $GITHUB_OUTPUT
