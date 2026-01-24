@@ -171,7 +171,8 @@ export class MonthTile {
       group: true,
       'opacity-60': vm.isPast,
       'ring-2': vm.isCurrent,
-      'ring-primary': vm.isCurrent,
+      'ring-primary': vm.isCurrent && vm.backgroundStyle !== 'negative',
+      'ring-error': vm.isCurrent && vm.backgroundStyle === 'negative',
       // Positive
       'bg-primary-container/20': vm.backgroundStyle === 'positive',
       'border-primary/30': vm.backgroundStyle === 'positive',

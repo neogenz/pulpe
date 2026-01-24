@@ -99,16 +99,7 @@ type EditTransactionFormData = Pick<
         >
           {{ titleDisplay.currentTitle() }}
         </h1>
-        <div class="flex gap-2 flex-shrink-0">
-          <button
-            matIconButton
-            (click)="startPageTour()"
-            matTooltip="Découvrir cette page"
-            aria-label="Aide"
-            data-testid="help-button"
-          >
-            <mat-icon>help_outline</mat-icon>
-          </button>
+        <div class="flex gap-2 flex-shrink-0 ml-auto">
           <button
             matButton="tonal"
             class="icon-text-btn"
@@ -279,10 +270,6 @@ export default class CurrentMonth {
         );
       }
     });
-  }
-
-  startPageTour(): void {
-    this.#productTourService.startPageTour('current-month');
   }
 
   readonly recurringFinancialItems = computed<FinancialEntryModel[]>(() => {
