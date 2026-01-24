@@ -110,7 +110,7 @@ enum ProductTips {
         }
 
         var message: Text? {
-            Text("Ce mois-ci pour suivre, Budgets pour planifier, Modèles pour ta base mensuelle.")
+            Text("Tu retrouves tout en bas : ce mois-ci, tes budgets et tes modèles. Navigue selon tes besoins.")
         }
 
         var image: Image? {
@@ -147,7 +147,7 @@ enum ProductTips {
         }
 
         var message: Text? {
-            Text("Touche pour éditer, reste appuyé pour voir les transactions, glisse pour comptabiliser.")
+            Text("Tes prévisions sont interactives. Explore-les du bout du doigt.")
         }
 
         var image: Image? {

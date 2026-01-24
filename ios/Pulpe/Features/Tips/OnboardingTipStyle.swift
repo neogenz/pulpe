@@ -6,16 +6,23 @@ import TipKit
 struct OnboardingTipStyle: TipViewStyle {
     func makeBody(configuration: Configuration) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Header: Image + Title + X button
-            HStack(alignment: .center, spacing: 10) {
+            // Content row: Image + Text + X
+            HStack(alignment: .top, spacing: 10) {
                 configuration.image?
                     .font(.system(size: 22))
                     .foregroundStyle(.tint)
+                    .frame(width: 28)
 
-                configuration.title
-                    .font(.headline)
+                VStack(alignment: .leading, spacing: 6) {
+                    configuration.title
+                        .font(.headline)
 
-                Spacer()
+                    configuration.message?
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 4)
 
                 Button {
                     ProductTips.dismissEntireTour()
@@ -26,11 +33,6 @@ struct OnboardingTipStyle: TipViewStyle {
                 }
                 .buttonStyle(.plain)
             }
-
-            // Message
-            configuration.message?
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
 
             // Actions: primary (last/rightmost) vs secondary (others)
             // UX convention: primary action on the right
