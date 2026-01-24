@@ -27,6 +27,13 @@ struct MainTabView: View {
                 .tag(Tab.templates)
         }
         .popoverTip(ProductTips.navigation)
+        .tipViewStyle(OnboardingTipStyle())
+        .onChange(of: appState.selectedTab) { _, _ in
+            // Complete navigation tip when user changes tab
+            if ProductTips.NavigationTip.isActive {
+                ProductTips.NavigationTip.isActive = false
+            }
+        }
     }
 }
 

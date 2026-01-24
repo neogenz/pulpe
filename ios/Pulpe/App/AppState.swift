@@ -3,7 +3,6 @@ import WidgetKit
 
 private enum UserDefaultsKey {
     static let onboardingCompleted = "pulpe-onboarding-completed"
-    static let tutorialCompleted = "pulpe-tutorial-completed"
     static let biometricEnabled = "pulpe-biometric-enabled"
 }
 

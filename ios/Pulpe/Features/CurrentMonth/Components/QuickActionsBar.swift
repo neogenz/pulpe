@@ -16,6 +16,7 @@ struct QuickActionsBar: View {
                 action: onAddTransaction
             )
             .popoverTip(ProductTips.addTransaction)
+            .tipViewStyle(OnboardingTipStyle())
 
             QuickActionButton(
                 title: "Stats",
