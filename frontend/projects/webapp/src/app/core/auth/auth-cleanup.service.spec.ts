@@ -42,7 +42,7 @@ describe('AuthCleanupService', () => {
     };
 
     mockStorage = {
-      clearAll: vi.fn(),
+      clearAllUserData: vi.fn(),
     };
 
     mockLogger = {
@@ -84,7 +84,7 @@ describe('AuthCleanupService', () => {
     expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
     expect(mockHasBudgetCache.clear).toHaveBeenCalled();
     expect(mockPostHog.reset).toHaveBeenCalled();
-    expect(mockStorage.clearAll).toHaveBeenCalled();
+    expect(mockStorage.clearAllUserData).toHaveBeenCalled();
   });
 
   it('should prevent double cleanup when called rapidly', () => {
@@ -102,7 +102,7 @@ describe('AuthCleanupService', () => {
     expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalledTimes(1);
     expect(mockHasBudgetCache.clear).toHaveBeenCalledTimes(1);
     expect(mockPostHog.reset).toHaveBeenCalledTimes(1);
-    expect(mockStorage.clearAll).toHaveBeenCalledTimes(1);
+    expect(mockStorage.clearAllUserData).toHaveBeenCalledTimes(1);
     expect(mockLogger.debug).toHaveBeenCalledWith(
       'Cleanup already in progress, skipping duplicate call',
     );
