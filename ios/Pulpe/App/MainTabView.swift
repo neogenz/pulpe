@@ -31,16 +31,16 @@ struct MainTabView: View {
             }
 
             // Floating add transaction button (Liquid Glass style)
-            if monthStore.budget != nil {
+            if let budget = monthStore.budget {
                 HStack {
                     Spacer()
                     Button {
-                        pendingBudgetId = monthStore.budget?.id
+                        pendingBudgetId = budget.id
                         showAddTransaction = true
                     } label: {
                         floatingButtonLabel
                     }
-                    .padding(.trailing, 16)
+                    .padding(.trailing, DesignTokens.Spacing.lg)
                     .padding(.bottom, 60)
                 }
             }
