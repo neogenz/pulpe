@@ -18,11 +18,13 @@ import {
   MatSelectModule,
 } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsApi } from '@core/user-settings';
 import { AuthSessionService } from '@core/auth/auth-session.service';
+import { DemoModeService } from '@core/demo/demo-mode.service';
 import {
   ConfirmationDialog,
   type ConfirmationDialogData,
@@ -145,40 +147,36 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
         </mat-card-content>
       </mat-card>
 
-      <!-- Danger zone -->
-      <mat-card appearance="outlined" class="border-error!">
-        <mat-card-header>
-          <div
-            mat-card-avatar
-            class="flex items-center justify-center bg-error-container rounded-full"
-          >
-            <mat-icon class="text-on-error-container!">warning</mat-icon>
-          </div>
-          <mat-card-title>Zone de danger</mat-card-title>
-          <mat-card-subtitle>
-            Actions irréversibles sur ton compte
-          </mat-card-subtitle>
-        </mat-card-header>
-
-        <mat-card-content>
-          <p class="text-body-medium text-on-surface-variant mb-4">
-            La suppression de ton compte est définitive. Tu perdras l'accès à
-            toutes tes données après un délai de 3 jours.
-          </p>
-          <button
-            matButton="outlined"
-            color="warn"
-            data-testid="delete-account-button"
-            [disabled]="isDeleting()"
-            (click)="onDeleteAccount()"
-          >
-            @if (isDeleting()) {
-              <mat-spinner diameter="20" class="mr-2" />
-            }
-            Supprimer mon compte
-          </button>
-        </mat-card-content>
-      </mat-card>
+      <!-- Danger zone - hidden in demo mode -->
+      @if (!isDemoMode()) {
+        <mat-card
+          appearance="outlined"
+          class="bg-error-container! border-error!"
+        >
+          <mat-card-content>
+            <p class="text-title-medium text-on-error-container font-medium">
+              Zone de danger
+            </p>
+            <p class="text-body-medium text-on-error-container mt-1">
+              La suppression de ton compte est définitive. Tu perdras l'accès à
+              toutes tes données après un délai de 3 jours.
+            </p>
+            <button
+              matButton="filled"
+              color="warn"
+              class="mt-4"
+              data-testid="delete-account-button"
+              [disabled]="isDeleting()"
+              (click)="onDeleteAccount()"
+            >
+              @if (isDeleting()) {
+                <mat-spinner diameter="20" class="mr-2" />
+              }
+              Supprimer mon compte
+            </button>
+          </mat-card-content>
+        </mat-card>
+      }
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -190,7 +188,9 @@ export default class SettingsPage {
   readonly #dialog = inject(MatDialog);
   readonly #router = inject(Router);
   readonly #authSession = inject(AuthSessionService);
+  readonly #demoMode = inject(DemoModeService);
 
+  readonly isDemoMode = this.#demoMode.isDemoMode;
   readonly isSaving = signal(false);
   readonly isDeleting = signal(false);
   readonly availableDays = Array.from({ length: PAY_DAY_MAX }, (_, i) => i + 1);
@@ -250,6 +250,7 @@ export default class SettingsPage {
       confirmText: 'Supprimer mon compte',
       cancelText: 'Annuler',
       confirmColor: 'warn',
+      destructive: true,
     };
 
     const dialogRef = this.#dialog.open(ConfirmationDialog, {
@@ -263,21 +264,41 @@ export default class SettingsPage {
     try {
       this.isDeleting.set(true);
       await this.#userSettingsApi.deleteAccount();
-      await this.#authSession.signOut();
-      await this.#router.navigate(['/login']);
     } catch (error) {
       this.#logger.error('Failed to delete account', error);
-      this.#snackBar.open(
-        'La suppression a échoué — réessaie plus tard',
-        'OK',
-        {
-          duration: 5000,
-          horizontalPosition: 'center',
-          verticalPosition: 'bottom',
-        },
-      );
+      const message = this.#getDeleteAccountErrorMessage(error);
+      this.#snackBar.open(message, 'OK', {
+        duration: 5000,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom',
+      });
+      return;
     } finally {
       this.isDeleting.set(false);
     }
+
+    // Deletion succeeded - sign out and redirect (errors here are non-critical)
+    try {
+      await this.#authSession.signOut();
+    } catch {
+      // Ignore signOut errors - account is already scheduled for deletion
+    }
+    await this.#router.navigate(['/login']);
+  }
+
+  #getDeleteAccountErrorMessage(error: unknown): string {
+    if (error instanceof HttpErrorResponse) {
+      // Check network error first (status 0 means no response received)
+      if (error.status === 0) {
+        return 'Erreur réseau — vérifie ta connexion';
+      }
+
+      const errorCode = error.error?.code;
+      if (errorCode === 'ERR_USER_ACCOUNT_BLOCKED') {
+        return 'Ton compte est déjà programmé pour suppression';
+      }
+    }
+
+    return 'La suppression a échoué — réessaie plus tard';
   }
 }
