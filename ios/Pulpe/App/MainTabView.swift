@@ -31,18 +31,22 @@ struct MainTabView: View {
             }
 
             // Floating add transaction button (Liquid Glass style)
+            // Positioned at tab bar level, trailing edge
             if let budget = monthStore.budget {
-                HStack {
+                VStack {
                     Spacer()
-                    Button {
-                        pendingBudgetId = budget.id
-                        showAddTransaction = true
-                    } label: {
-                        floatingButtonLabel
+                    HStack {
+                        Spacer()
+                        Button {
+                            pendingBudgetId = budget.id
+                            showAddTransaction = true
+                        } label: {
+                            floatingButtonLabel
+                        }
+                        .padding(.trailing, DesignTokens.Spacing.lg)
                     }
-                    .padding(.trailing, DesignTokens.Spacing.lg)
-                    .padding(.bottom, 60)
                 }
+                .safeAreaPadding(.bottom, 4)
             }
         }
         .sheet(isPresented: $showAddTransaction) {
