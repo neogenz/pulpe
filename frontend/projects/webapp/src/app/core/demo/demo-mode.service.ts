@@ -15,10 +15,10 @@ export class DemoModeService {
 
   // Private writable signals
   readonly #isDemoModeSignal = signal<boolean>(
-    this.#storageService.getString(STORAGE_KEYS.DEMO_MODE) === 'true',
+    this.#storageService.get<boolean>(STORAGE_KEYS.DEMO_MODE) ?? false,
   );
   readonly #demoUserEmailSignal = signal<string | null>(
-    this.#storageService.getString(STORAGE_KEYS.DEMO_USER_EMAIL),
+    this.#storageService.get<string>(STORAGE_KEYS.DEMO_USER_EMAIL),
   );
 
   // Public readonly signals
@@ -41,8 +41,8 @@ export class DemoModeService {
       const email = this.#demoUserEmailSignal();
 
       if (isDemoMode && email) {
-        this.#storageService.setString(STORAGE_KEYS.DEMO_MODE, 'true');
-        this.#storageService.setString(STORAGE_KEYS.DEMO_USER_EMAIL, email);
+        this.#storageService.set(STORAGE_KEYS.DEMO_MODE, true);
+        this.#storageService.set(STORAGE_KEYS.DEMO_USER_EMAIL, email);
         this.#logger.debug('Demo mode state synchronized to localStorage', {
           isDemoMode,
           email,

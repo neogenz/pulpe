@@ -5,15 +5,13 @@ import { applyMigrations, getMigrationsForKey } from './storage-migrations';
 import {
   isStorageEntry,
   type StorageEntry,
+  type StorageKey,
   type StorageSchemaConfig,
   type StorageScope,
 } from './storage.types';
 
-/**
- * Type-safe storage key that MUST start with 'pulpe-' or 'pulpe_' prefix.
- * This ensures all app storage keys are cleaned on logout.
- */
-export type StorageKey = `pulpe-${string}` | `pulpe_${string}`;
+// Re-export for backwards compatibility
+export type { StorageKey } from './storage.types';
 
 /**
  * Centralized localStorage service with type-safe keys, versioning, and Zod validation.
@@ -67,11 +65,9 @@ export class StorageService {
     entry: StorageEntry<unknown>,
     schemaConfig: StorageSchemaConfig | undefined,
   ): T | null {
+    // No schema registered - return data without validation
     if (!schemaConfig) {
-      this.#logger.warn(
-        `No schema registered for key, data cannot be validated`,
-      );
-      return null;
+      return entry.data as T;
     }
 
     if (entry.version < schemaConfig.version) {

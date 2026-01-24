@@ -1,6 +1,5 @@
 import { STORAGE_KEYS } from './storage-keys';
-import type { StorageKey } from './storage.service';
-import type { Migration } from './storage.types';
+import type { Migration, StorageKey } from './storage.types';
 
 /**
  * Migration registry for storage keys.

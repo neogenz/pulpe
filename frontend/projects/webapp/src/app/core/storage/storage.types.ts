@@ -1,6 +1,12 @@
 import type { ZodSchema } from 'zod';
 
 /**
+ * Type-safe storage key that MUST start with 'pulpe-' or 'pulpe_' prefix.
+ * This ensures all app storage keys are cleaned on logout.
+ */
+export type StorageKey = `pulpe-${string}` | `pulpe_${string}`;
+
+/**
  * Versioned wrapper for storage values.
  * Every stored value is wrapped with version and timestamp for migration support.
  */

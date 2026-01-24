@@ -56,7 +56,7 @@ describe('DemoModeService', () => {
       const storedEmail = JSON.parse(
         localStorage.getItem('pulpe-demo-user-email') ?? '{}',
       );
-      expect(storedMode.data).toBe('true');
+      expect(storedMode.data).toBe(true);
       expect(storedEmail.data).toBe('demo@pulpe.app');
     });
 
@@ -71,10 +71,10 @@ describe('DemoModeService', () => {
 
   describe('Demo state persists across sessions', () => {
     it('should restore demo mode from localStorage on init', () => {
-      // GIVEN: Demo mode was previously active (versioned format)
+      // GIVEN: Demo mode was previously active (versioned format with boolean)
       const modeEntry = {
-        version: 1,
-        data: 'true',
+        version: 2,
+        data: true,
         updatedAt: new Date().toISOString(),
       };
       const emailEntry = {
