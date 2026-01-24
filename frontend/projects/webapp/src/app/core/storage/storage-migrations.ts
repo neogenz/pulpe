@@ -1,3 +1,4 @@
+import { STORAGE_KEYS } from './storage-keys';
 import type { StorageKey } from './storage.service';
 import type { Migration } from './storage.types';
 
@@ -21,8 +22,13 @@ import type { Migration } from './storage.types';
  * ```
  */
 export const STORAGE_MIGRATIONS: Partial<Record<StorageKey, Migration[]>> = {
-  // No migrations needed yet - all keys start at version 1
-  // Add migrations here when schema changes require data transformation
+  [STORAGE_KEYS.DEMO_MODE]: [
+    {
+      fromVersion: 1,
+      toVersion: 2,
+      migrate: (oldData: unknown) => oldData === 'true',
+    },
+  ],
 };
 
 /**

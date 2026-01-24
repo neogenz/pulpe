@@ -68,7 +68,10 @@ export class StorageService {
     schemaConfig: StorageSchemaConfig | undefined,
   ): T | null {
     if (!schemaConfig) {
-      return entry.data as T;
+      this.#logger.warn(
+        `No schema registered for key, data cannot be validated`,
+      );
+      return null;
     }
 
     if (entry.version < schemaConfig.version) {
@@ -108,7 +111,8 @@ export class StorageService {
 
     if (migrated === null) {
       this.#logger.warn(
-        `Migration failed for '${key}' from v${fromVersion} to v${schemaConfig.version}, resetting`,
+        `Migration failed for '${key}' from v${fromVersion} to v${schemaConfig.version}, clearing`,
+        { originalData: data },
       );
       this.remove(key);
       return null;
@@ -127,7 +131,7 @@ export class StorageService {
     schemaConfig: StorageSchemaConfig | undefined,
   ): T | null {
     if (!schemaConfig) {
-      return data as T;
+      return null;
     }
 
     const result = schemaConfig.schema.safeParse(data);

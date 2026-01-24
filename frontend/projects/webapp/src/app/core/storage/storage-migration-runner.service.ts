@@ -103,7 +103,8 @@ export class StorageMigrationRunnerService {
         `Migrated '${key}' v${parsed.version}→v${targetVersion}`,
       );
       return 'migrated';
-    } catch {
+    } catch (error) {
+      this.#logger.warn(`Failed to process key '${key}':`, error);
       localStorage.removeItem(key);
       return 'cleared';
     }

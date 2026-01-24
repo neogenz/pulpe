@@ -17,8 +17,8 @@ import type { StorageSchemaConfig } from './storage.types';
  */
 export const STORAGE_SCHEMAS = {
   [STORAGE_KEYS.DEMO_MODE]: {
-    version: 1,
-    schema: z.literal('true'),
+    version: 2,
+    schema: z.boolean(),
     scope: 'user',
   },
 
