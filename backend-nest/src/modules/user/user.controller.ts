@@ -390,7 +390,7 @@ export class UserController {
         user.id,
         currentUserData.user.user_metadata,
       );
-      await this.signOutUserGlobally(user.id);
+      await this.signOutUserGlobally(user.accessToken);
 
       return {
         success: true as const,
@@ -433,10 +433,13 @@ export class UserController {
     return scheduledDeletionAt;
   }
 
-  private async signOutUserGlobally(userId: string): Promise<void> {
+  private async signOutUserGlobally(accessToken: string): Promise<void> {
     const serviceClient = this.supabaseService.getServiceRoleClient();
 
-    const { error } = await serviceClient.auth.admin.signOut(userId, 'global');
+    const { error } = await serviceClient.auth.admin.signOut(
+      accessToken,
+      'global',
+    );
 
     if (error) {
       throw new BusinessException(
