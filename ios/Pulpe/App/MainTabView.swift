@@ -53,45 +53,43 @@ struct MainTabView: View {
     @available(iOS 26.0, *)
     @ViewBuilder
     private func customTabBarView(selectedTab: Binding<Tab>) -> some View {
-        GlassEffectContainer(spacing: 10) {
-            HStack(spacing: 10) {
-                GeometryReader { geometry in
-                    CustomTabBar(size: geometry.size, barTint: .gray.opacity(0.3), activeTab: selectedTab)
-                        .overlay {
-                            HStack(spacing: 0) {
-                                ForEach(Tab.allCases) { tab in
-                                    VStack(spacing: 3) {
-                                        Image(systemName: tab.icon)
-                                            .font(.title3)
+        HStack(spacing: 10) {
+            GeometryReader { geometry in
+                CustomTabBar(size: geometry.size, barTint: .gray.opacity(0.3), activeTab: selectedTab)
+                    .overlay {
+                        HStack(spacing: 0) {
+                            ForEach(Tab.allCases) { tab in
+                                VStack(spacing: 3) {
+                                    Image(systemName: tab.icon)
+                                        .font(.title3)
 
-                                        Text(tab.title)
-                                            .font(.system(size: 10))
-                                            .fontWeight(.medium)
-                                    }
-                                    .symbolVariant(.fill)
-                                    .foregroundStyle(selectedTab.wrappedValue == tab ? Color.pulpePrimary : Color(.label))
-                                    .frame(maxWidth: .infinity)
+                                    Text(tab.title)
+                                        .font(.system(size: 10))
+                                        .fontWeight(.medium)
                                 }
+                                .symbolVariant(.fill)
+                                .foregroundStyle(selectedTab.wrappedValue == tab ? Color.pulpePrimary : Color(.label))
+                                .frame(maxWidth: .infinity)
                             }
-                            .animation(.easeInOut(duration: 0.25), value: selectedTab.wrappedValue)
                         }
-                        .glassEffect(.regular.interactive(), in: .capsule)
-                }
-
-                // Action button (only visible on current month tab)
-                if selectedTab.wrappedValue == .currentMonth, monthStore.budget != nil {
-                    Button {
-                        pendingBudgetId = monthStore.budget?.id
-                        showAddTransaction = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 22, weight: .medium))
-                            .foregroundStyle(Color.white)
+                        .animation(.easeInOut(duration: 0.25), value: selectedTab.wrappedValue)
                     }
-                    .frame(width: tabBarHeight, height: tabBarHeight)
-                    .glassEffect(.regular.tint(Color.pulpePrimary), in: .capsule)
-                    .transition(.scale.combined(with: .opacity))
+                    .glassEffect(.regular.interactive(), in: .capsule)
+            }
+
+            // Action button (only visible on current month tab)
+            if selectedTab.wrappedValue == .currentMonth, monthStore.budget != nil {
+                Button {
+                    pendingBudgetId = monthStore.budget?.id
+                    showAddTransaction = true
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(Color.white)
                 }
+                .frame(width: tabBarHeight, height: tabBarHeight)
+                .glassEffect(.regular.tint(Color.pulpePrimary), in: .capsule)
+                .transition(.scale.combined(with: .opacity))
             }
         }
         .frame(height: tabBarHeight)
