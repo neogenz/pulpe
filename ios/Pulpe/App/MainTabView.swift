@@ -78,22 +78,24 @@ struct MainTabView: View {
                         .glassEffect(.regular.interactive(), in: .capsule)
                 }
 
-                // Action button
-                if monthStore.budget != nil {
+                // Action button (only visible on current month tab)
+                if selectedTab.wrappedValue == .currentMonth, monthStore.budget != nil {
                     Button {
                         pendingBudgetId = monthStore.budget?.id
                         showAddTransaction = true
                     } label: {
                         Image(systemName: "plus")
                             .font(.system(size: 22, weight: .medium))
-                            .foregroundStyle(Color.pulpePrimary)
+                            .foregroundStyle(Color.white)
                     }
                     .frame(width: tabBarHeight, height: tabBarHeight)
-                    .glassEffect(.regular.interactive(), in: .capsule)
+                    .glassEffect(.regular.tint(Color.pulpePrimary), in: .capsule)
+                    .transition(.scale.combined(with: .opacity))
                 }
             }
         }
         .frame(height: tabBarHeight)
+        .animation(.smooth(duration: 0.25), value: selectedTab.wrappedValue)
     }
 
     // MARK: - Custom Tab Bar (iOS 18-25 Legacy)
@@ -126,8 +128,8 @@ struct MainTabView: View {
             .background(.ultraThinMaterial)
             .clipShape(Capsule())
 
-            // Action button
-            if monthStore.budget != nil {
+            // Action button (only visible on current month tab)
+            if selectedTab.wrappedValue == .currentMonth, monthStore.budget != nil {
                 Button {
                     pendingBudgetId = monthStore.budget?.id
                     showAddTransaction = true
@@ -139,9 +141,11 @@ struct MainTabView: View {
                 .frame(width: tabBarHeight, height: tabBarHeight)
                 .background(.ultraThinMaterial)
                 .clipShape(Capsule())
+                .transition(.scale.combined(with: .opacity))
             }
         }
         .frame(height: tabBarHeight)
+        .animation(.smooth(duration: 0.25), value: selectedTab.wrappedValue)
     }
 
     // MARK: - Unavailable View
