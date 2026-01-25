@@ -12,7 +12,13 @@ interface ScheduledDeletionUser {
   };
 }
 
+/**
+ * Grace period in days before an account scheduled for deletion is actually removed.
+ * This provides a buffer for users to contact support if they change their mind,
+ * and ensures compliance with data retention best practices.
+ */
 const GRACE_PERIOD_DAYS = 3;
+const MAX_PAGES = 100; // Safety limit: ~100k users max
 
 /**
  * Service responsible for cleaning up accounts scheduled for deletion
@@ -81,7 +87,7 @@ export class AccountDeletionService {
     let page = 1;
     const expiredUsers: ScheduledDeletionUser[] = [];
 
-    while (true) {
+    while (page <= MAX_PAGES) {
       const { data, error } = await adminClient.auth.admin.listUsers({
         page,
         perPage,

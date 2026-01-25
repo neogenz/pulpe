@@ -280,8 +280,12 @@ export default class SettingsPage {
     // Deletion succeeded - sign out and redirect (errors here are non-critical)
     try {
       await this.#authSession.signOut();
-    } catch {
-      // Ignore signOut errors - account is already scheduled for deletion
+    } catch (error) {
+      // Ignore signOut errors but log them - account is already scheduled for deletion
+      this.#logger.warn(
+        'Sign out failed after account deletion scheduling',
+        error,
+      );
     }
     await this.#router.navigate(['/login']);
   }

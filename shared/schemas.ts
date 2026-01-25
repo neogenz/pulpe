@@ -774,7 +774,7 @@ export type SuccessMessageResponse = z.infer<
 export const deleteAccountResponseSchema = z.object({
   success: z.literal(true),
   message: z.string(),
-  scheduledDeletionAt: z.string(),
+  scheduledDeletionAt: z.iso.datetime({ offset: true }),
 });
 export type DeleteAccountResponse = z.infer<typeof deleteAccountResponseSchema>;
 

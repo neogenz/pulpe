@@ -362,7 +362,8 @@ export class UserController {
   @ApiOperation({
     summary: 'Request account deletion',
     description:
-      'Schedules the user account for deletion after a 3-day grace period. User is immediately signed out.',
+      'Schedules the user account for deletion after a 3-day grace period. User is immediately signed out. ' +
+      'Idempotent: returns existing scheduledDeletionAt if already scheduled.',
   })
   @ApiResponse({
     status: 200,
