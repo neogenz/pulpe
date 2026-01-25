@@ -32,6 +32,7 @@ import {
 } from './dto/user-profile.dto';
 import { payDayOfMonthSchema } from 'pulpe-shared';
 import { ErrorResponseDto } from '@common/dto/response.dto';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 
 @ApiTags('User')
 @ApiBearerAuth()
@@ -46,7 +47,11 @@ import { ErrorResponseDto } from '@common/dto/response.dto';
   type: ErrorResponseDto,
 })
 export class UserController {
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(
+    @InjectInfoLogger(UserController.name)
+    private readonly logger: InfoLogger,
+    private readonly supabaseService: SupabaseService,
+  ) {}
   @Get('me')
   @ApiOperation({
     summary: 'Get current user profile',
@@ -387,11 +392,12 @@ export class UserController {
         };
       }
 
-      await this.signOutUserGlobally(user.accessToken);
       const scheduledDeletionAt = await this.scheduleAccountDeletion(
         user.id,
         currentUserData.user.user_metadata,
       );
+
+      await this.signOutUserGlobally(user.accessToken);
 
       return {
         success: true as const,
@@ -443,11 +449,9 @@ export class UserController {
     );
 
     if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.USER_ACCOUNT_DELETION_FAILED,
-        undefined,
-        undefined,
-        { cause: error },
+      this.logger.warn(
+        { err: error },
+        'Failed to sign out user globally after account deletion scheduling',
       );
     }
   }

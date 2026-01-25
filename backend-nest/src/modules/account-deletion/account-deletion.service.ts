@@ -154,6 +154,10 @@ export class AccountDeletionService {
         const { error } = await adminClient.auth.admin.deleteUser(user.id);
 
         if (error) {
+          this.logger.warn(
+            { userId: user.id, email: user.email, err: error },
+            'Failed to delete scheduled account',
+          );
           throw error;
         }
 

@@ -265,6 +265,7 @@ export default class SettingsPage {
       this.isDeleting.set(true);
       await this.#userSettingsApi.deleteAccount();
     } catch (error) {
+      this.isDeleting.set(false);
       this.#logger.error('Failed to delete account', error);
       const message = this.#getDeleteAccountErrorMessage(error);
       this.#snackBar.open(message, 'OK', {
@@ -273,8 +274,6 @@ export default class SettingsPage {
         verticalPosition: 'bottom',
       });
       return;
-    } finally {
-      this.isDeleting.set(false);
     }
 
     // Deletion succeeded - sign out and redirect (errors here are non-critical)
