@@ -1,5 +1,4 @@
 import SwiftUI
-import TipKit
 
 /// Quick action buttons for the dashboard
 struct QuickActionsBar: View {
@@ -15,8 +14,6 @@ struct QuickActionsBar: View {
                 color: .pulpePrimary,
                 action: onAddTransaction
             )
-            .popoverTip(ProductTips.addTransaction)
-            .tipViewStyle(OnboardingTipStyle())
 
             QuickActionButton(
                 title: "Stats",
@@ -63,6 +60,7 @@ private struct QuickActionButton: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
     }
 }
 

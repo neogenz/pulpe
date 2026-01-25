@@ -1,5 +1,4 @@
 import SwiftUI
-import TipKit
 
 /// Revolut-style hero card displaying the available balance prominently
 struct HeroBalanceCard: View {
@@ -50,7 +49,6 @@ struct HeroBalanceCard: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 24)
         .heroCardStyle()
-        .popoverTip(ProductTips.progressBar)
     }
 
     // MARK: - Balance Section
@@ -117,6 +115,8 @@ struct HeroBalanceCard: View {
             .frame(width: 64, height: 64)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Voir le détail des dépenses")
+        .accessibilityValue("\(displayPercentage) pourcent du budget utilisé")
     }
 
     // MARK: - Stats Row

@@ -67,11 +67,6 @@ struct CurrentMonthView: View {
         }
         .onChange(of: showAddTransaction) { _, isPresented in
             ProductTips.isSheetPresented = isPresented
-            // Progress tip when user performs the suggested action
-            if isPresented && ProductTips.AddTransactionTip.isActive {
-                ProductTips.AddTransactionTip.isActive = false
-                ProductTips.NavigationTip.isActive = true
-            }
         }
         .onChange(of: showRealizedBalanceSheet) { _, isPresented in
             ProductTips.isSheetPresented = isPresented

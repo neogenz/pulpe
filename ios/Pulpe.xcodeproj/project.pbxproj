@@ -41,7 +41,6 @@
 		3A4F017B5B7D8F61564A40BC /* BudgetLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 150C0AA658E75766BDC017EB /* BudgetLine.swift */; };
 		3B640AF55B1CFF33ECE822B1 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 955B1199FD862E3761B3435A /* DesignTokens.swift */; };
 		3BF2AAAEDD2456443E233D23 /* BudgetLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 150C0AA658E75766BDC017EB /* BudgetLine.swift */; };
-		3C4064FB1E2B7F30F6F3C831 /* OnboardingTipStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65AE37A044A7F98EAA336DD1 /* OnboardingTipStyle.swift */; };
 		3C754ABC64CCC7FB68006C9D /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57A624A40CC91AC97C743441 /* KeychainManager.swift */; };
 		3D196510AE15B14B8450345A /* BudgetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C27CCFC10A47950AD4CE973 /* BudgetTests.swift */; };
 		3D7531C34481474D2EDD7DC0 /* AddAllocatedTransactionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E873F06201D0A4D69F356ED /* AddAllocatedTransactionSheet.swift */; };
@@ -231,7 +230,6 @@
 		606435140AB22BD250F34C36 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		6362794BE5896D980C41BD38 /* CurrentMonthWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentMonthWidgetView.swift; sourceTree = "<group>"; };
 		651FC366185B834EF7B2D7C1 /* CheckedFilterPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckedFilterPicker.swift; sourceTree = "<group>"; };
-		65AE37A044A7F98EAA336DD1 /* OnboardingTipStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingTipStyle.swift; sourceTree = "<group>"; };
 		698F0684A80FD2BFB998D92A /* BudgetDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetDetailsView.swift; sourceTree = "<group>"; };
 		6B63C48FA85869F486C3CBE3 /* TemplateListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateListView.swift; sourceTree = "<group>"; };
 		6E4F47F7A88B6744CA6D788C /* Color+Pulpe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Pulpe.swift"; sourceTree = "<group>"; };
@@ -790,7 +788,6 @@
 		D632E2D1074A2643825C1488 /* Tips */ = {
 			isa = PBXGroup;
 			children = (
-				65AE37A044A7F98EAA336DD1 /* OnboardingTipStyle.swift */,
 				1C008289AC686A78CBC4C5AA /* ProductTips.swift */,
 			);
 			path = Tips;
@@ -1150,7 +1147,6 @@
 				CCAEA8849C0DDC30D40C117A /* OnboardingProgressIndicator.swift in Sources */,
 				C3D7AA5AEDC8F320ADA32BF9 /* OnboardingState.swift in Sources */,
 				1DA9E71FF86980C306296C7B /* OnboardingStepHeader.swift in Sources */,
-				3C4064FB1E2B7F30F6F3C831 /* OnboardingTipStyle.swift in Sources */,
 				3348E3FA251D9312352A392C /* OneTimeExpensesList.swift in Sources */,
 				D9F9EAFCA6B92964B8CE5606 /* PersonalInfoStep.swift in Sources */,
 				194F56EEAE3B2C2EF5B15A3A /* PhonePlanStep.swift in Sources */,
