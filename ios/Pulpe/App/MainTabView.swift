@@ -6,43 +6,31 @@ struct MainTabView: View {
     @State private var showAddTransaction = false
     @State private var pendingBudgetId: String?
 
+    private let tabBarHeight: CGFloat = 55
+
     var body: some View {
         @Bindable var state = appState
 
-        ZStack(alignment: .bottom) {
-            TabView(selection: $state.selectedTab) {
-                CurrentMonthTab()
-                    .tabItem {
-                        Label(Tab.currentMonth.title, systemImage: Tab.currentMonth.icon)
-                    }
-                    .tag(Tab.currentMonth)
+        ZStack {
+            CurrentMonthTab()
+                .opacity(state.selectedTab == .currentMonth ? 1 : 0)
 
-                BudgetsTab()
-                    .tabItem {
-                        Label(Tab.budgets.title, systemImage: Tab.budgets.icon)
-                    }
-                    .tag(Tab.budgets)
+            BudgetsTab()
+                .opacity(state.selectedTab == .budgets ? 1 : 0)
 
-                TemplatesTab()
-                    .tabItem {
-                        Label(Tab.templates.title, systemImage: Tab.templates.icon)
-                    }
-                    .tag(Tab.templates)
-            }
+            TemplatesTab()
+                .opacity(state.selectedTab == .templates ? 1 : 0)
+        }
 
-            // Floating add transaction button (Liquid Glass style)
-            if let budget = monthStore.budget {
-                HStack {
-                    Spacer()
-                    Button {
-                        pendingBudgetId = budget.id
-                        showAddTransaction = true
-                    } label: {
-                        floatingButtonLabel
-                    }
-                    .padding(.trailing, DesignTokens.Spacing.lg)
-                    .padding(.bottom, 60)
-                }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if #available(iOS 26.0, *) {
+                tabBarWithButton(selectedTab: $state.selectedTab)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Spacing.sm)
+            } else {
+                tabBarWithButtonLegacy(selectedTab: $state.selectedTab)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Spacing.sm)
             }
         }
         .sheet(isPresented: $showAddTransaction) {
@@ -56,22 +44,97 @@ struct MainTabView: View {
         }
     }
 
-    @ViewBuilder
-    private var floatingButtonLabel: some View {
-        let icon = Image(systemName: "plus")
-            .font(.title2.weight(.semibold))
-            .foregroundStyle(Color.pulpePrimary)
-            .frame(width: 48, height: 48)
+    // MARK: - iOS 26+ Tab Bar
 
-        if #available(iOS 26.0, *) {
-            icon.glassEffect(.regular.interactive())
-        } else {
-            icon
-                .background(.ultraThinMaterial)
-                .clipShape(Circle())
-                .shadow(DesignTokens.Shadow.elevated)
+    @available(iOS 26.0, *)
+    @ViewBuilder
+    private func tabBarWithButton(selectedTab: Binding<Tab>) -> some View {
+        GlassEffectContainer(spacing: 10) {
+            HStack(spacing: 10) {
+                GeometryReader { geometry in
+                    CustomTabBar(size: geometry.size, barTint: .gray.opacity(0.3), activeTab: selectedTab) { tab in
+                        VStack(spacing: 3) {
+                            Image(systemName: tab.icon)
+                                .font(.title3)
+                            Text(tab.title)
+                                .font(.system(size: 10))
+                                .fontWeight(.medium)
+                        }
+                        .symbolVariant(.fill)
+                        .foregroundStyle(selectedTab.wrappedValue == tab ? Color.pulpePrimary : .primary)
+                        .frame(maxWidth: .infinity)
+                    }
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                }
+
+                // Action button
+                if monthStore.budget != nil {
+                    Button {
+                        pendingBudgetId = monthStore.budget?.id
+                        showAddTransaction = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 22, weight: .medium))
+                            .foregroundStyle(Color.pulpePrimary)
+                    }
+                    .frame(width: tabBarHeight, height: tabBarHeight)
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                }
+            }
         }
+        .frame(height: tabBarHeight)
     }
+
+    // MARK: - iOS < 26 Tab Bar (Legacy)
+
+    @ViewBuilder
+    private func tabBarWithButtonLegacy(selectedTab: Binding<Tab>) -> some View {
+        HStack(spacing: 10) {
+            // Tab items in a pill
+            HStack(spacing: 0) {
+                ForEach(Tab.allCases) { tab in
+                    Button {
+                        withAnimation(.smooth) {
+                            selectedTab.wrappedValue = tab
+                        }
+                    } label: {
+                        VStack(spacing: 3) {
+                            Image(systemName: tab.icon)
+                                .font(.title3)
+                            Text(tab.title)
+                                .font(.system(size: 10))
+                                .fontWeight(.medium)
+                        }
+                        .symbolVariant(.fill)
+                        .foregroundStyle(selectedTab.wrappedValue == tab ? Color.pulpePrimary : .primary)
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: tabBarHeight)
+            .background(.ultraThinMaterial)
+            .clipShape(Capsule())
+
+            // Action button
+            if monthStore.budget != nil {
+                Button {
+                    pendingBudgetId = monthStore.budget?.id
+                    showAddTransaction = true
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(Color.pulpePrimary)
+                }
+                .frame(width: tabBarHeight, height: tabBarHeight)
+                .background(.ultraThinMaterial)
+                .clipShape(Capsule())
+            }
+        }
+        .frame(height: tabBarHeight)
+    }
+
+    // MARK: - Unavailable View
 
     private var unavailableView: some View {
         VStack(spacing: 16) {
