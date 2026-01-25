@@ -109,9 +109,9 @@ jobs:
           echo "📝 Creating CI environment file..."
           cp .env.ci .env
           # Get keys dynamically from local Supabase instance
-          echo "SUPABASE_URL=$(supabase status -o env | grep API_URL | cut -d'=' -f2 | tr -d '\"')" >> .env
-          echo "SUPABASE_ANON_KEY=$(supabase status -o env | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"')" >> .env
-          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"')" >> .env
+          echo "SUPABASE_URL=$(supabase status -o env 2>/dev/null | grep API_URL | cut -d'=' -f2 | tr -d '\"')" >> .env
+          echo "SUPABASE_ANON_KEY=$(supabase status -o env 2>/dev/null | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"')" >> .env
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env 2>/dev/null | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"')" >> .env
           # Turnstile verification is skipped in test environment, dummy value is sufficient
           echo "TURNSTILE_SECRET_KEY=ci-test-turnstile-key" >> .env
           echo "✅ Environment ready"
@@ -275,9 +275,9 @@ jobs:
           echo "✅ Supabase ready for tests"
 
           # Export local Supabase keys as outputs
-          echo "SUPABASE_URL=$(supabase status -o env | grep API_URL | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
-          echo "SUPABASE_ANON_KEY=$(supabase status -o env | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
-          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
+          echo "SUPABASE_URL=$(supabase status -o env 2>/dev/null | grep API_URL | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
+          echo "SUPABASE_ANON_KEY=$(supabase status -o env 2>/dev/null | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env 2>/dev/null | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
@@ -490,9 +490,9 @@ jobs:
           echo "✅ Supabase ready for performance tests"
 
           # Export local Supabase keys as outputs
-          echo "SUPABASE_URL=$(supabase status -o env | grep API_URL | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
-          echo "SUPABASE_ANON_KEY=$(supabase status -o env | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
-          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
+          echo "SUPABASE_URL=$(supabase status -o env 2>/dev/null | grep API_URL | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
+          echo "SUPABASE_ANON_KEY=$(supabase status -o env 2>/dev/null | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env 2>/dev/null | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
