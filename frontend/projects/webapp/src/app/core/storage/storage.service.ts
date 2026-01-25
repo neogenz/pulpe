@@ -1,59 +1,43 @@
 import { Injectable, inject } from '@angular/core';
 import { Logger } from '../logging/logger';
+import { getSchemaConfig } from './storage-schemas';
+import { applyMigrations, getMigrationsForKey } from './storage-migrations';
+import {
+  isStorageEntry,
+  type StorageEntry,
+  type StorageKey,
+  type StorageSchemaConfig,
+  type StorageScope,
+} from './storage.types';
+
+// Re-export for backwards compatibility
+export type { StorageKey } from './storage.types';
 
 /**
- * Type-safe storage key that MUST start with 'pulpe-' or 'pulpe_' prefix.
- * This ensures all app storage keys are cleaned on logout.
+ * Centralized localStorage service with type-safe keys, versioning, and Zod validation.
  *
- * @example
- * const key: StorageKey = 'pulpe-current-budget'; // OK
- * const key: StorageKey = 'other-key'; // Compile error
- */
-export type StorageKey = `pulpe-${string}` | `pulpe_${string}`;
-
-/**
- * Wrapper for cached values with TTL support.
- * The `ttl` field contains the expiration timestamp (Date.now() + ttlMs).
- */
-interface CachedValue<T> {
-  value: T;
-  ttl: number;
-}
-
-/**
- * Centralized localStorage service with type-safe keys.
+ * ## Versioning
+ * Values registered in STORAGE_SCHEMAS are automatically:
+ * - Wrapped with version number and timestamp on write
+ * - Validated with Zod schema on read
+ * - Migrated if stored version differs from current
  *
- * All storage keys MUST use the 'pulpe-' or 'pulpe_' prefix to ensure
- * they are properly cleaned on user logout.
- *
- * @example
- * // Set a value
- * storage.set('pulpe-current-budget', budget);
- *
- * // Get a typed value
- * const budget = storage.get<Budget>('pulpe-current-budget');
- *
- * // Remove a value
- * storage.remove('pulpe-current-budget');
- *
- * // Clear all user data (on logout)
- * storage.clearAll();
+ * ## Scopes
+ * - 'user': Cleared on logout (clearAllUserData)
+ * - 'app': Preserved across sessions
  */
 @Injectable({
   providedIn: 'root',
 })
 export class StorageService {
   readonly #logger = inject(Logger);
+  readonly #migratedKeys = new Set<StorageKey>();
 
   /**
    * Get a value from localStorage.
-   * Returns null if the key doesn't exist, parsing fails, or value is expired.
-   *
-   * @param key Storage key
-   * @param ttlMs Optional TTL in milliseconds. If provided and the stored value
-   *              is in legacy format (no TTL wrapper), it will be considered expired.
+   * Returns null if key doesn't exist, validation fails, or data is legacy format.
    */
-  get<T>(key: StorageKey, ttlMs?: number): T | null {
+  get<T>(key: StorageKey): T | null {
     try {
       const raw = localStorage.getItem(key);
       if (raw === null) {
@@ -61,75 +45,132 @@ export class StorageService {
       }
 
       const parsed = JSON.parse(raw) as unknown;
+      const schemaConfig = getSchemaConfig(key);
 
-      // Check if it's a TTL-wrapped value
-      if (this.#isCachedValue(parsed)) {
-        if (Date.now() > parsed.ttl) {
-          this.remove(key);
-          return null;
-        }
-        return parsed.value as T;
+      if (isStorageEntry(parsed)) {
+        return this.#handleVersionedValue<T>(key, parsed, schemaConfig);
       }
 
-      // Legacy format (no TTL wrapper)
-      // If ttlMs is provided, treat legacy as expired (caller expects TTL behavior)
-      if (ttlMs !== undefined) {
-        return null;
-      }
-
-      return parsed as T;
+      // Legacy format detected - clear and return null
+      this.#logger.debug(`Legacy format for '${key}', clearing`);
+      this.remove(key);
+      return null;
     } catch (error) {
       this.#logger.warn(`Failed to read '${key}' from localStorage:`, error);
       return null;
     }
   }
 
-  #isCachedValue(value: unknown): value is CachedValue<unknown> {
-    return (
-      typeof value === 'object' &&
-      value !== null &&
-      'value' in value &&
-      'ttl' in value &&
-      typeof (value as CachedValue<unknown>).ttl === 'number'
+  #handleVersionedValue<T>(
+    key: StorageKey,
+    entry: StorageEntry<unknown>,
+    schemaConfig: StorageSchemaConfig | undefined,
+  ): T | null {
+    // No schema registered - return data without validation
+    if (!schemaConfig) {
+      return entry.data as T;
+    }
+
+    if (entry.version < schemaConfig.version) {
+      const migrated = this.#migrateIfNeeded(
+        key,
+        entry.data,
+        entry.version,
+        schemaConfig,
+      );
+      return this.#validateAndReturn<T>(migrated, schemaConfig);
+    }
+
+    return this.#validateAndReturn<T>(entry.data, schemaConfig);
+  }
+
+  #migrateIfNeeded(
+    key: StorageKey,
+    data: unknown,
+    fromVersion: number,
+    schemaConfig: StorageSchemaConfig,
+  ): unknown {
+    if (fromVersion >= schemaConfig.version) {
+      return data;
+    }
+
+    if (this.#migratedKeys.has(key)) {
+      return data;
+    }
+
+    const migrations = getMigrationsForKey(
+      key,
+      fromVersion,
+      schemaConfig.version,
     );
+
+    if (migrations.length === 0) {
+      return data;
+    }
+
+    const result = applyMigrations(data, migrations);
+
+    if (!result.ok) {
+      this.#logger.warn(
+        `Migration failed for '${key}' from v${fromVersion} to v${schemaConfig.version}, clearing`,
+        { originalData: data, error: result.error },
+      );
+      this.#migratedKeys.add(key);
+      this.remove(key);
+      return null;
+    }
+
+    this.#logger.debug(
+      `Migrated '${key}' from v${fromVersion} to v${schemaConfig.version}`,
+    );
+
+    this.#migratedKeys.add(key);
+    this.set(key, result.data);
+    return result.data;
+  }
+
+  #validateAndReturn<T>(
+    data: unknown,
+    schemaConfig: StorageSchemaConfig | undefined,
+  ): T | null {
+    if (!schemaConfig) {
+      return null;
+    }
+
+    const result = schemaConfig.schema.safeParse(data);
+
+    if (!result.success) {
+      this.#logger.warn('Storage validation failed:', result.error.issues);
+      return null;
+    }
+
+    return result.data as T;
   }
 
   /**
-   * Get a raw string value from localStorage.
-   * Handles both TTL-wrapped values and legacy raw strings.
-   *
-   * @param key Storage key
-   * @param ttlMs Optional TTL in milliseconds. If provided and the stored value
-   *              is in legacy format (no TTL wrapper), it will be considered expired.
+   * Get a string value from localStorage.
    */
-  getString(key: StorageKey, ttlMs?: number): string | null {
+  getString(key: StorageKey): string | null {
     try {
       const raw = localStorage.getItem(key);
       if (raw === null) {
         return null;
       }
 
-      // Try to parse as JSON to check for TTL wrapper
       try {
         const parsed = JSON.parse(raw) as unknown;
-        if (this.#isCachedValue(parsed)) {
-          if (Date.now() > parsed.ttl) {
-            this.remove(key);
-            return null;
-          }
-          return typeof parsed.value === 'string' ? parsed.value : null;
+
+        if (isStorageEntry(parsed)) {
+          return typeof parsed.data === 'string' ? parsed.data : null;
         }
       } catch {
-        // Not JSON, treat as raw string (legacy format)
+        // Not JSON - legacy raw string
       }
 
-      // Legacy raw string format
-      // If ttlMs is provided, treat legacy as expired
-      if (ttlMs !== undefined) {
-        return null;
-      }
-
-      return raw;
+      // Legacy format - clear and return null
+      this.#logger.debug(`Legacy format for '${key}', clearing`);
+      this.remove(key);
+      return null;
     } catch (error) {
       this.#logger.warn(`Failed to read '${key}' from localStorage:`, error);
       return null;
@@ -138,44 +179,40 @@ export class StorageService {
 
   /**
    * Set a value in localStorage.
-   * The value is automatically JSON-serialized.
-   *
-   * @param key Storage key
-   * @param value Value to store
-   * @param ttlMs Optional TTL in milliseconds. If provided, the value is wrapped
-   *              with an expiration timestamp.
+   * If the key has a registered schema, the value is wrapped with version and timestamp.
    */
-  set<T>(key: StorageKey, value: T, ttlMs?: number): void {
+  set<T>(key: StorageKey, value: T): void {
     try {
-      const toStore =
-        ttlMs !== undefined
-          ? ({ value, ttl: Date.now() + ttlMs } satisfies CachedValue<T>)
-          : value;
-      localStorage.setItem(key, JSON.stringify(toStore));
+      const schemaConfig = getSchemaConfig(key);
+
+      if (schemaConfig) {
+        const result = schemaConfig.schema.safeParse(value);
+        if (!result.success) {
+          this.#logger.warn(
+            `Validation failed for '${key}':`,
+            result.error.issues,
+          );
+          return;
+        }
+      }
+
+      const entry: StorageEntry<T> = {
+        version: schemaConfig?.version ?? 1,
+        data: value,
+        updatedAt: new Date().toISOString(),
+      };
+
+      localStorage.setItem(key, JSON.stringify(entry));
     } catch (error) {
       this.#logger.warn(`Failed to write '${key}' to localStorage:`, error);
     }
   }
 
   /**
-   * Set a raw string value in localStorage.
-   *
-   * @param key Storage key
-   * @param value String value to store
-   * @param ttlMs Optional TTL in milliseconds. If provided, the value is wrapped
-   *              with an expiration timestamp (stored as JSON).
+   * Set a string value in localStorage.
    */
-  setString(key: StorageKey, value: string, ttlMs?: number): void {
-    try {
-      if (ttlMs !== undefined) {
-        const wrapped: CachedValue<string> = { value, ttl: Date.now() + ttlMs };
-        localStorage.setItem(key, JSON.stringify(wrapped));
-      } else {
-        localStorage.setItem(key, value);
-      }
-    } catch (error) {
-      this.#logger.warn(`Failed to write '${key}' to localStorage:`, error);
-    }
+  setString(key: StorageKey, value: string): void {
+    this.set(key, value);
   }
 
   /**
@@ -190,69 +227,62 @@ export class StorageService {
   }
 
   /**
-   * Check if a key exists in localStorage and is not expired.
-   *
-   * @param key Storage key
-   * @param ttlMs Optional TTL in milliseconds. If provided and the stored value
-   *              is in legacy format (no TTL wrapper), it will be considered not present.
+   * Check if a key exists in localStorage with valid format.
    */
-  has(key: StorageKey, ttlMs?: number): boolean {
+  has(key: StorageKey): boolean {
     try {
       const raw = localStorage.getItem(key);
       if (raw === null) {
         return false;
       }
 
-      // If no TTL check required, just check existence
-      if (ttlMs === undefined) {
-        // Still need to check if it's a TTL-wrapped value that's expired
-        try {
-          const parsed = JSON.parse(raw) as unknown;
-          if (this.#isCachedValue(parsed)) {
-            if (Date.now() > parsed.ttl) {
-              this.remove(key);
-              return false;
-            }
-          }
-        } catch {
-          // Not JSON, treat as raw value
-        }
-        return true;
-      }
-
-      // TTL check required - use get() logic
-      return this.get(key, ttlMs) !== null;
+      const parsed = JSON.parse(raw) as unknown;
+      return isStorageEntry(parsed);
     } catch {
       return false;
     }
   }
 
   /**
-   * Clear ALL app data from localStorage except persistent keys.
-   * This removes all keys starting with 'pulpe-' or 'pulpe_'.
-   *
-   * Tour keys (pulpe-tour-*) are always preserved as they are device-scoped.
-   *
-   * Called on user logout to prevent data leakage between users.
+   * Clear all USER-scoped data from localStorage.
+   * Keys with scope 'app' (like tour progress) are preserved.
    */
-  clearAll(): void {
+  clearAllUserData(): void {
+    this.#clearByScope('user');
+  }
+
+  /**
+   * Clear all APP-scoped data from localStorage.
+   */
+  clearAllAppData(): void {
+    this.#clearByScope('app');
+  }
+
+  #clearByScope(targetScope: StorageScope): void {
     try {
       const keysToRemove = Object.keys(localStorage).filter((key) => {
         if (!key.startsWith('pulpe')) return false;
 
-        // Tour keys are device-scoped, always preserve them
-        if (key.startsWith('pulpe-tour-')) return false;
+        const schemaConfig = getSchemaConfig(key);
+        const effectiveScope: StorageScope = schemaConfig
+          ? schemaConfig.scope
+          : key.startsWith('pulpe-tour-')
+            ? 'app'
+            : 'user';
 
-        return true; // Remove all other pulpe keys
+        return effectiveScope === targetScope;
       });
 
       keysToRemove.forEach((key) => localStorage.removeItem(key));
 
       this.#logger.debug(
-        `Cleared ${keysToRemove.length} items from localStorage`,
+        `Cleared ${keysToRemove.length} ${targetScope} items from localStorage`,
       );
     } catch (error) {
-      this.#logger.warn('Failed to clear user data from localStorage:', error);
+      this.#logger.warn(
+        `Failed to clear ${targetScope} data from localStorage:`,
+        error,
+      );
     }
   }
 }

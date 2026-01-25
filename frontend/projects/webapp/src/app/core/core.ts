@@ -34,6 +34,7 @@ import { provideGlobalErrorHandler } from './analytics/global-error-handler';
 import { buildInfo } from '@env/build-info';
 import { environment } from '@env/environment';
 import { Logger } from './logging/logger';
+import { StorageMigrationRunnerService } from './storage/storage-migration-runner.service';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -126,8 +127,13 @@ export function provideCore({ routes }: CoreOptions) {
       const postHogService = inject(PostHogService);
       const authSession = inject(AuthSessionService);
       const analyticsService = inject(AnalyticsService);
+      const storageMigrationRunner = inject(StorageMigrationRunnerService);
       const injector = inject(Injector);
       const logger = inject(Logger);
+
+      // 0. Run storage migrations first (before any data is read)
+      storageMigrationRunner.runMigrations();
+
       // 1. Charger la configuration d'abord
       await applicationConfig.initialize();
 

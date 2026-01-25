@@ -46,8 +46,15 @@ export async function setupAuthBypass(page: Page, options: {
 
     // Disable product tours in E2E tests by marking them as already seen
     // Key format matches ProductTourService: pulpe-tour-{tourId} (device-scoped)
+    // Uses versioned storage format matching StorageService
+    // Value 'true' matches ProductTourService.hasSeenIntro() check
     for (const tourId of config.tourIds) {
-      localStorage.setItem(`pulpe-tour-${tourId}`, 'true');
+      const entry = {
+        version: 1,
+        data: 'true',
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(`pulpe-tour-${tourId}`, JSON.stringify(entry));
     }
   }, { ...TEST_CONFIG, setLocalStorage, tourIds: TOUR_IDS });
 

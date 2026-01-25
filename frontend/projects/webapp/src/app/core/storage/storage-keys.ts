@@ -1,4 +1,4 @@
-import type { StorageKey } from './storage.service';
+import type { StorageKey } from './storage.types';
 
 /**
  * Centralized storage keys for the application.

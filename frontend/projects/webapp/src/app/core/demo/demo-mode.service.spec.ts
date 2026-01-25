@@ -49,11 +49,15 @@ describe('DemoModeService', () => {
       // Force effect to run
       TestBed.flushEffects();
 
-      // THEN: State is persisted
-      expect(localStorage.getItem('pulpe-demo-mode')).toBe('true');
-      expect(localStorage.getItem('pulpe-demo-user-email')).toBe(
-        'demo@pulpe.app',
+      // THEN: State is persisted (now with versioned format)
+      const storedMode = JSON.parse(
+        localStorage.getItem('pulpe-demo-mode') ?? '{}',
       );
+      const storedEmail = JSON.parse(
+        localStorage.getItem('pulpe-demo-user-email') ?? '{}',
+      );
+      expect(storedMode.data).toBe(true);
+      expect(storedEmail.data).toBe('demo@pulpe.app');
     });
 
     it('should extract display name from email', () => {
@@ -67,9 +71,19 @@ describe('DemoModeService', () => {
 
   describe('Demo state persists across sessions', () => {
     it('should restore demo mode from localStorage on init', () => {
-      // GIVEN: Demo mode was previously active
-      localStorage.setItem('pulpe-demo-mode', 'true');
-      localStorage.setItem('pulpe-demo-user-email', 'demo@pulpe.app');
+      // GIVEN: Demo mode was previously active (versioned format with boolean)
+      const modeEntry = {
+        version: 2,
+        data: true,
+        updatedAt: new Date().toISOString(),
+      };
+      const emailEntry = {
+        version: 1,
+        data: 'demo@pulpe.app',
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem('pulpe-demo-mode', JSON.stringify(modeEntry));
+      localStorage.setItem('pulpe-demo-user-email', JSON.stringify(emailEntry));
 
       // WHEN: Service is reinitialized
       TestBed.resetTestingModule();

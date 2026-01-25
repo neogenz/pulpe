@@ -12,6 +12,18 @@ function getTourKey(tourId: string): string {
   return `pulpe-tour-${tourId}`;
 }
 
+/**
+ * Helper to set a versioned storage value for tests.
+ */
+function setVersionedValue(key: string, value: string): void {
+  const entry = {
+    version: 1,
+    data: value,
+    updatedAt: new Date().toISOString(),
+  };
+  localStorage.setItem(key, JSON.stringify(entry));
+}
+
 describe('ProductTourService', () => {
   let service: ProductTourService;
   let mockCurrentUser: { id: string } | null;
@@ -46,13 +58,13 @@ describe('ProductTourService', () => {
     });
 
     it('should return true when intro has been seen', () => {
-      localStorage.setItem(getTourKey('intro'), 'true');
+      setVersionedValue(getTourKey('intro'), 'true');
 
       expect(service.hasSeenIntro()).toBe(true);
     });
 
     it('should return false for non-true values', () => {
-      localStorage.setItem(getTourKey('intro'), 'false');
+      setVersionedValue(getTourKey('intro'), 'false');
 
       expect(service.hasSeenIntro()).toBe(false);
     });
@@ -72,7 +84,7 @@ describe('ProductTourService', () => {
       });
 
       it(`should return true when ${pageId} tour has been seen`, () => {
-        localStorage.setItem(getTourKey(pageId), 'true');
+        setVersionedValue(getTourKey(pageId), 'true');
 
         expect(service.hasSeenPageTour(pageId)).toBe(true);
       });
@@ -90,7 +102,7 @@ describe('ProductTourService', () => {
         'templates-list',
       ];
       tourIds.forEach((tourId) => {
-        localStorage.setItem(getTourKey(tourId), 'true');
+        setVersionedValue(getTourKey(tourId), 'true');
       });
 
       expect(service.hasSeenIntro()).toBe(true);
@@ -122,11 +134,12 @@ describe('ProductTourService', () => {
       expect(service.hasSeenIntro()).toBe(false);
 
       // WHEN: Tour is completed (simulated by setting localStorage)
-      localStorage.setItem(getTourKey('intro'), 'true');
+      setVersionedValue(getTourKey('intro'), 'true');
 
       // THEN: Tour is marked as seen with device-scoped key
       expect(service.hasSeenIntro()).toBe(true);
-      expect(localStorage.getItem('pulpe-tour-intro')).toBe('true');
+      const stored = JSON.parse(localStorage.getItem('pulpe-tour-intro')!);
+      expect(stored.data).toBe('true');
     });
   });
 
@@ -144,7 +157,7 @@ describe('ProductTourService', () => {
 
   describe('behavior when not authenticated', () => {
     it('should still return tour state from device storage', () => {
-      localStorage.setItem(getTourKey('intro'), 'true');
+      setVersionedValue(getTourKey('intro'), 'true');
       mockCurrentUser = null;
 
       // Tours are device-scoped, so state is still readable
