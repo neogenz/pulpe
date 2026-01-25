@@ -56,21 +56,26 @@ struct MainTabView: View {
         GlassEffectContainer(spacing: 10) {
             HStack(spacing: 10) {
                 GeometryReader { geometry in
-                    CustomTabBar(size: geometry.size, barTint: .gray.opacity(0.3), activeTab: selectedTab) { tab in
-                        let isSelected = selectedTab.wrappedValue == tab
-                        VStack(spacing: 3) {
-                            Image(systemName: tab.icon)
-                                .font(.title3)
+                    CustomTabBar(size: geometry.size, barTint: .gray.opacity(0.3), activeTab: selectedTab)
+                        .overlay {
+                            HStack(spacing: 0) {
+                                ForEach(Tab.allCases) { tab in
+                                    VStack(spacing: 3) {
+                                        Image(systemName: tab.icon)
+                                            .font(.title3)
 
-                            Text(tab.title)
-                                .font(.system(size: 10))
-                                .fontWeight(.medium)
+                                        Text(tab.title)
+                                            .font(.system(size: 10))
+                                            .fontWeight(.medium)
+                                    }
+                                    .symbolVariant(.fill)
+                                    .foregroundStyle(selectedTab.wrappedValue == tab ? Color.pulpePrimary : Color(.label))
+                                    .frame(maxWidth: .infinity)
+                                }
+                            }
+                            .animation(.easeInOut(duration: 0.25), value: selectedTab.wrappedValue)
                         }
-                        .symbolVariant(.fill)
-                        .foregroundColor(isSelected ? Color.pulpePrimary : Color(.label))
-                        .frame(maxWidth: .infinity)
-                    }
-                    .glassEffect(.regular.interactive(), in: .capsule)
+                        .glassEffect(.regular.interactive(), in: .capsule)
                 }
 
                 // Action button
