@@ -274,10 +274,22 @@ jobs:
           done
           echo "✅ Supabase ready for tests"
 
-          # Export local Supabase keys as outputs
-          echo "SUPABASE_URL=$(supabase status -o env 2>/dev/null | grep API_URL | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
-          echo "SUPABASE_ANON_KEY=$(supabase status -o env 2>/dev/null | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
-          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env 2>/dev/null | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
+          # Export local Supabase keys as outputs (using heredoc for robust special character handling)
+          {
+            echo 'SUPABASE_URL<<EOF'
+            supabase status -o env 2>/dev/null | grep API_URL | cut -d'=' -f2 | tr -d '\"'
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+          {
+            echo 'SUPABASE_ANON_KEY<<EOF'
+            supabase status -o env 2>/dev/null | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"'
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+          {
+            echo 'SUPABASE_SERVICE_ROLE_KEY<<EOF'
+            supabase status -o env 2>/dev/null | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"'
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
@@ -489,10 +501,22 @@ jobs:
           done
           echo "✅ Supabase ready for performance tests"
 
-          # Export local Supabase keys as outputs
-          echo "SUPABASE_URL=$(supabase status -o env 2>/dev/null | grep API_URL | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
-          echo "SUPABASE_ANON_KEY=$(supabase status -o env 2>/dev/null | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
-          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env 2>/dev/null | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
+          # Export local Supabase keys as outputs (using heredoc for robust special character handling)
+          {
+            echo 'SUPABASE_URL<<EOF'
+            supabase status -o env 2>/dev/null | grep API_URL | cut -d'=' -f2 | tr -d '\"'
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+          {
+            echo 'SUPABASE_ANON_KEY<<EOF'
+            supabase status -o env 2>/dev/null | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"'
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+          {
+            echo 'SUPABASE_SERVICE_ROLE_KEY<<EOF'
+            supabase status -o env 2>/dev/null | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"'
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
