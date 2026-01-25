@@ -19,6 +19,11 @@ final class CurrentMonthStore: StoreProtocol {
     private var lastLoadTime: Date?
     private static let cacheValidityDuration: TimeInterval = 30 // 30 seconds (short for multi-device sync)
 
+    private var isCacheValid: Bool {
+        guard let lastLoad = lastLoadTime else { return false }
+        return Date().timeIntervalSince(lastLoad) < Self.cacheValidityDuration
+    }
+
     // MARK: - Services
 
     private let budgetService: BudgetService
@@ -42,12 +47,59 @@ final class CurrentMonthStore: StoreProtocol {
 
     // MARK: - Smart Loading (StoreProtocol)
 
-    func loadIfNeeded() async {
-        // Skip if data is fresh (within 30s)
-        if let lastLoad = lastLoadTime,
-           Date().timeIntervalSince(lastLoad) < Self.cacheValidityDuration {
+    /// Lightweight loading: only fetches budget summary via GET /budgets
+    /// Use this at app startup to quickly enable the "+" button
+    func loadBudgetSummary() async {
+        guard budget == nil else { return }
+
+        isLoading = true
+        defer { isLoading = false }
+        error = nil
+
+        do {
+            let budgets = try await budgetService.getAllBudgets()
+            let calendar = Calendar.current
+            let now = Date()
+            let currentMonth = calendar.component(.month, from: now)
+            let currentYear = calendar.component(.year, from: now)
+
+            budget = budgets.first { $0.month == currentMonth && $0.year == currentYear }
+        } catch {
+            self.error = error
+        }
+    }
+
+    /// Loads details (transactions + budget lines) when the view needs them
+    func loadDetailsIfNeeded() async {
+        guard !isCacheValid else { return }
+        await loadDetails()
+    }
+
+    /// Full data loading - called when view needs transactions and budget lines
+    private func loadDetails() async {
+        guard let currentBudget = budget else {
+            // No budget summary loaded yet, load everything
+            await forceRefresh()
             return
         }
+
+        isLoading = true
+        defer { isLoading = false }
+        error = nil
+
+        do {
+            let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
+            budget = details.budget
+            budgetLines = details.budgetLines
+            transactions = details.transactions
+            lastLoadTime = Date()
+        } catch {
+            self.error = error
+        }
+    }
+
+    func loadIfNeeded() async {
+        guard !isCacheValid else { return }
         await forceRefresh()
     }
 
@@ -62,9 +114,6 @@ final class CurrentMonthStore: StoreProtocol {
                 budgetLines = []
                 transactions = []
                 lastLoadTime = Date()
-
-                // Update widget with empty state
-                await widgetSyncService.sync(budgetsWithDetails: [], currentBudgetDetails: nil)
                 return
             }
 
@@ -73,9 +122,6 @@ final class CurrentMonthStore: StoreProtocol {
             budgetLines = details.budgetLines
             transactions = details.transactions
             lastLoadTime = Date()
-
-            // Sync widget data after refresh
-            await syncWidgetData(details: details)
         } catch {
             self.error = error
         }
@@ -272,7 +318,9 @@ final class CurrentMonthStore: StoreProtocol {
 
     func addTransaction(_ transaction: Transaction) {
         transactions.append(transaction)
-        Task { await syncWidgetAfterChange() }
+        Task {
+            await syncWidgetAfterChange()
+        }
     }
 
     func deleteTransaction(_ transaction: Transaction) async {

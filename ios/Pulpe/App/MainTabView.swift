@@ -80,7 +80,8 @@ struct MainTabView: View {
             // Action button (only visible on current month tab)
             if selectedTab.wrappedValue == .currentMonth, monthStore.budget != nil {
                 Button {
-                    pendingBudgetId = monthStore.budget?.id
+                    guard let budgetId = monthStore.budget?.id else { return }
+                    pendingBudgetId = budgetId
                     showAddTransaction = true
                 } label: {
                     Image(systemName: "plus")
@@ -129,7 +130,8 @@ struct MainTabView: View {
             // Action button (only visible on current month tab)
             if selectedTab.wrappedValue == .currentMonth, monthStore.budget != nil {
                 Button {
-                    pendingBudgetId = monthStore.budget?.id
+                    guard let budgetId = monthStore.budget?.id else { return }
+                    pendingBudgetId = budgetId
                     showAddTransaction = true
                 } label: {
                     Image(systemName: "plus")
