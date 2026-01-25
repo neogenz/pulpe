@@ -31,6 +31,7 @@ export type { StorageKey } from './storage.types';
 })
 export class StorageService {
   readonly #logger = inject(Logger);
+  readonly #migratedKeys = new Set<StorageKey>();
 
   /**
    * Get a value from localStorage.
@@ -93,6 +94,10 @@ export class StorageService {
       return data;
     }
 
+    if (this.#migratedKeys.has(key)) {
+      return data;
+    }
+
     const migrations = getMigrationsForKey(
       key,
       fromVersion,
@@ -103,13 +108,14 @@ export class StorageService {
       return data;
     }
 
-    const migrated = applyMigrations(data, migrations);
+    const result = applyMigrations(data, migrations);
 
-    if (migrated === null) {
+    if (!result.ok) {
       this.#logger.warn(
         `Migration failed for '${key}' from v${fromVersion} to v${schemaConfig.version}, clearing`,
-        { originalData: data },
+        { originalData: data, error: result.error },
       );
+      this.#migratedKeys.add(key);
       this.remove(key);
       return null;
     }
@@ -118,8 +124,9 @@ export class StorageService {
       `Migrated '${key}' from v${fromVersion} to v${schemaConfig.version}`,
     );
 
-    this.set(key, migrated);
-    return migrated;
+    this.#migratedKeys.add(key);
+    this.set(key, result.data);
+    return result.data;
   }
 
   #validateAndReturn<T>(

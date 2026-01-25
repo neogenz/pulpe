@@ -72,23 +72,27 @@ export function getMigrationsForKey(
   return chain;
 }
 
+export type MigrationResult =
+  | { ok: true; data: unknown }
+  | { ok: false; error: unknown };
+
 /**
  * Apply migrations sequentially to transform data from one version to another.
- * Returns null if any migration fails (data should be reset).
+ * Returns { ok: false, error } if any migration fails (data should be reset).
  */
 export function applyMigrations(
   data: unknown,
   migrations: Migration[],
-): unknown {
+): MigrationResult {
   let result = data;
 
   for (const migration of migrations) {
     try {
       result = migration.migrate(result);
-    } catch {
-      return null;
+    } catch (error) {
+      return { ok: false, error };
     }
   }
 
-  return result;
+  return { ok: true, data: result };
 }

@@ -81,13 +81,15 @@ export class StorageMigrationRunnerService {
 
       let newData = parsed.data;
       if (migrations.length > 0) {
-        const migrated = applyMigrations(parsed.data, migrations);
-        if (migrated === null) {
+        const result = applyMigrations(parsed.data, migrations);
+        if (!result.ok) {
           localStorage.removeItem(key);
-          this.#logger.warn(`Migration failed for '${key}', cleared`);
+          this.#logger.warn(`Migration failed for '${key}', cleared`, {
+            error: result.error,
+          });
           return 'cleared';
         }
-        newData = migrated;
+        newData = result.data;
       }
 
       const entry: StorageEntry<unknown> = {
