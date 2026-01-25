@@ -40,6 +40,18 @@ export class AuthCredentialsService {
         };
       }
 
+      if (data.session?.user?.user_metadata?.['scheduledDeletionAt']) {
+        this.#logger.warn('Login attempt with account scheduled for deletion', {
+          userId: data.session.user.id,
+        });
+        await this.#session.signOut();
+        return {
+          success: false,
+          error:
+            'Ton compte est en attente de suppression et ne peut plus être utilisé.',
+        };
+      }
+
       this.#state.setSession(data.session ?? null);
       return { success: true };
     } catch (error) {
