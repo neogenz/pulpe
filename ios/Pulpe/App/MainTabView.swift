@@ -90,7 +90,7 @@ struct MainTabView: View {
                     }
                     .frame(width: tabBarHeight, height: tabBarHeight)
                     .contentShape(Circle())
-                    .glassEffect(.regular.tint(Color.pulpePrimary), in: .capsule)
+                    .glassEffect(.regular.tint(Color.pulpePrimary).interactive(), in: .capsule)
                     .transition(.scale.combined(with: .opacity))
                 }
             }
