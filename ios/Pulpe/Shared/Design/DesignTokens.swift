@@ -25,8 +25,6 @@ enum DesignTokens {
         static let lg: CGFloat = 16
         static let xl: CGFloat = 20
         static let xxl: CGFloat = 24
-        /// Offset for floating elements above standard tab bar (iOS < 26)
-        static let tabBarFloatingOffset: CGFloat = 60
     }
 
     // MARK: - Shadows
