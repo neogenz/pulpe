@@ -66,16 +66,15 @@ jobs:
 
       - name: Setup CI Environment
         working-directory: backend-nest
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_LOCAL_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_LOCAL_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_LOCAL_SERVICE_ROLE_KEY }}
         run: |
           echo "Creating CI environment file..."
           cp .env.ci .env
-          echo "SUPABASE_URL=${SUPABASE_URL}" >> .env
-          echo "SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}" >> .env
-          echo "SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}" >> .env
+          # Get keys dynamically from local Supabase instance
+          echo "SUPABASE_URL=$(supabase status -o env | grep API_URL | cut -d'=' -f2 | tr -d '\"')" >> .env
+          echo "SUPABASE_ANON_KEY=$(supabase status -o env | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"')" >> .env
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"')" >> .env
+          # Turnstile verification is skipped in test environment, dummy value is sufficient
+          echo "TURNSTILE_SECRET_KEY=ci-test-turnstile-key" >> .env
           echo "Environment ready"
 
       - name: Save Supabase State
@@ -191,13 +190,19 @@ jobs:
           done
           echo "Supabase ready for tests"
 
+          # Export local Supabase keys as outputs
+          echo "SUPABASE_URL=$(supabase status -o env | grep API_URL | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
+          echo "SUPABASE_ANON_KEY=$(supabase status -o env | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
+
       - name: Run unit tests
         run: pnpm test:unit
         env:
           NODE_ENV: test
-          SUPABASE_URL: ${{ secrets.SUPABASE_LOCAL_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_LOCAL_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_LOCAL_SERVICE_ROLE_KEY }}
+          SUPABASE_URL: ${{ steps.start-supabase-tests.outputs.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ steps.start-supabase-tests.outputs.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ steps.start-supabase-tests.outputs.SUPABASE_SERVICE_ROLE_KEY }}
+          TURNSTILE_SECRET_KEY: ci-test-turnstile-key
 
       - name: Cleanup Supabase
         if: always() && steps.start-supabase-tests.outcome == 'success'
@@ -336,13 +341,19 @@ jobs:
           done
           echo "Supabase ready for performance tests"
 
+          # Export local Supabase keys as outputs
+          echo "SUPABASE_URL=$(supabase status -o env | grep API_URL | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
+          echo "SUPABASE_ANON_KEY=$(supabase status -o env | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"')" >> $GITHUB_OUTPUT
+
       - name: Run performance tests
         run: pnpm test:performance
         env:
           NODE_ENV: test
-          SUPABASE_URL: ${{ secrets.SUPABASE_LOCAL_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_LOCAL_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_LOCAL_SERVICE_ROLE_KEY }}
+          SUPABASE_URL: ${{ steps.start-supabase-performance.outputs.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ steps.start-supabase-performance.outputs.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ steps.start-supabase-performance.outputs.SUPABASE_SERVICE_ROLE_KEY }}
+          TURNSTILE_SECRET_KEY: ci-test-turnstile-key
 
       - name: Cleanup Supabase
         if: always() && steps.start-supabase-performance.outcome == 'success'
