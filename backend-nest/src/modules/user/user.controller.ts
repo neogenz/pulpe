@@ -392,12 +392,12 @@ export class UserController {
         };
       }
 
+      await this.signOutUserGlobally(user.accessToken);
+
       const scheduledDeletionAt = await this.scheduleAccountDeletion(
         user.id,
         currentUserData.user.user_metadata,
       );
-
-      await this.signOutUserGlobally(user.accessToken);
 
       return {
         success: true as const,
@@ -449,9 +449,11 @@ export class UserController {
     );
 
     if (error) {
-      this.logger.warn(
-        { err: error },
-        'Failed to sign out user globally after account deletion scheduling',
+      throw new BusinessException(
+        ERROR_DEFINITIONS.USER_ACCOUNT_DELETION_FAILED,
+        undefined,
+        undefined,
+        { cause: error },
       );
     }
   }
