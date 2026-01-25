@@ -11,26 +11,11 @@ struct MainTabView: View {
     var body: some View {
         @Bindable var state = appState
 
-        ZStack {
-            CurrentMonthTab()
-                .opacity(state.selectedTab == .currentMonth ? 1 : 0)
-
-            BudgetsTab()
-                .opacity(state.selectedTab == .budgets ? 1 : 0)
-
-            TemplatesTab()
-                .opacity(state.selectedTab == .templates ? 1 : 0)
-        }
-
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if #available(iOS 26.0, *) {
-                tabBarWithButton(selectedTab: $state.selectedTab)
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .padding(.bottom, DesignTokens.Spacing.sm)
+        Group {
+            if #available(iOS 18.0, *) {
+                tabViewModern(selectedTab: $state.selectedTab)
             } else {
-                tabBarWithButtonLegacy(selectedTab: $state.selectedTab)
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .padding(.bottom, DesignTokens.Spacing.sm)
+                tabViewLegacy(selectedTab: $state.selectedTab)
             }
         }
         .sheet(isPresented: $showAddTransaction) {
@@ -41,6 +26,59 @@ struct MainTabView: View {
             } else {
                 unavailableView
             }
+        }
+    }
+
+    // MARK: - iOS 18+ TabView (Modern)
+
+    @available(iOS 18.0, *)
+    @ViewBuilder
+    private func tabViewModern(selectedTab: Binding<Tab>) -> some View {
+        TabView(selection: selectedTab) {
+            SwiftUI.Tab(value: Tab.currentMonth) {
+                CurrentMonthTab()
+                    .toolbarVisibility(.hidden, for: .tabBar)
+            }
+
+            SwiftUI.Tab(value: Tab.budgets) {
+                BudgetsTab()
+                    .toolbarVisibility(.hidden, for: .tabBar)
+            }
+
+            SwiftUI.Tab(value: Tab.templates) {
+                TemplatesTab()
+                    .toolbarVisibility(.hidden, for: .tabBar)
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if #available(iOS 26.0, *) {
+                tabBarWithButton(selectedTab: selectedTab)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+            } else {
+                tabBarWithButtonLegacy(selectedTab: selectedTab)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+            }
+        }
+    }
+
+    // MARK: - iOS 17 TabView (Legacy)
+
+    @ViewBuilder
+    private func tabViewLegacy(selectedTab: Binding<Tab>) -> some View {
+        TabView(selection: selectedTab) {
+            CurrentMonthTab()
+                .tag(Tab.currentMonth)
+
+            BudgetsTab()
+                .tag(Tab.budgets)
+
+            TemplatesTab()
+                .tag(Tab.templates)
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            tabBarWithButtonLegacy(selectedTab: selectedTab)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
         }
     }
 
