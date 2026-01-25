@@ -17,12 +17,10 @@ struct CustomTabBar: UIViewRepresentable {
         let control = UISegmentedControl(items: items)
         control.selectedSegmentIndex = activeTab.index
 
-        // Hide background image views
-        DispatchQueue.main.async {
-            for subview in control.subviews {
-                if subview is UIImageView && subview != control.subviews.last {
-                    subview.alpha = 0
-                }
+        // Hide background image views (visual content provided by SwiftUI overlay)
+        for subview in control.subviews {
+            if subview is UIImageView && subview != control.subviews.last {
+                subview.alpha = 0
             }
         }
 
