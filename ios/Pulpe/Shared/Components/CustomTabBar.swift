@@ -48,6 +48,15 @@ struct CustomTabBar<Content: View>: UIViewRepresentable {
 
     func updateUIView(_ uiView: UISegmentedControl, context: Context) {
         uiView.selectedSegmentIndex = Tab.allCases.firstIndex(of: activeTab) ?? 0
+
+        // Re-render images to update colors based on selection
+        for (index, tab) in Tab.allCases.enumerated() {
+            let renderer = ImageRenderer(content: content(tab))
+            renderer.scale = 2
+            if let image = renderer.uiImage {
+                uiView.setImage(image, forSegmentAt: index)
+            }
+        }
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UISegmentedControl, context: Context) -> CGSize? {

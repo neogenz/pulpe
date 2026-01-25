@@ -50,6 +50,7 @@ struct MainTabView: View {
                     .toolbarVisibility(.hidden, for: .tabBar)
             }
         }
+        .contentMargins(.bottom, tabBarHeight + DesignTokens.Spacing.lg, for: .scrollContent)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if #available(iOS 26.0, *) {
                 tabBarWithButton(selectedTab: selectedTab)
@@ -61,21 +62,21 @@ struct MainTabView: View {
         }
     }
 
-    // MARK: - iOS 17 TabView (Legacy)
+    // MARK: - iOS 17 TabView (Legacy ZStack approach)
 
     @ViewBuilder
     private func tabViewLegacy(selectedTab: Binding<Tab>) -> some View {
-        TabView(selection: selectedTab) {
+        ZStack {
             CurrentMonthTab()
-                .tag(Tab.currentMonth)
+                .opacity(selectedTab.wrappedValue == .currentMonth ? 1 : 0)
 
             BudgetsTab()
-                .tag(Tab.budgets)
+                .opacity(selectedTab.wrappedValue == .budgets ? 1 : 0)
 
             TemplatesTab()
-                .tag(Tab.templates)
+                .opacity(selectedTab.wrappedValue == .templates ? 1 : 0)
         }
-        .tabViewStyle(.page(indexDisplayMode: .never))
+        .safeAreaPadding(.bottom, tabBarHeight + DesignTokens.Spacing.lg)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             tabBarWithButtonLegacy(selectedTab: selectedTab)
                 .padding(.horizontal, DesignTokens.Spacing.lg)
