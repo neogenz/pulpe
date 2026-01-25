@@ -85,8 +85,10 @@ struct MainTabView: View {
                     Image(systemName: "plus")
                         .font(.system(size: 22, weight: .medium))
                         .foregroundStyle(Color.white)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .frame(width: tabBarHeight, height: tabBarHeight)
+                .contentShape(Circle())
                 .glassEffect(.regular.tint(Color.pulpePrimary), in: .capsule)
                 .transition(.scale.combined(with: .opacity))
             }
@@ -133,8 +135,10 @@ struct MainTabView: View {
                     Image(systemName: "plus")
                         .font(.system(size: 22, weight: .medium))
                         .foregroundStyle(Color.pulpePrimary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .frame(width: tabBarHeight, height: tabBarHeight)
+                .contentShape(Circle())
                 .background(.ultraThinMaterial)
                 .clipShape(Capsule())
                 .transition(.scale.combined(with: .opacity))
