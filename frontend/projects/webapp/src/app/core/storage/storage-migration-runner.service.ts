@@ -18,39 +18,37 @@ import { isStorageEntry, type StorageEntry } from './storage.types';
 export class StorageMigrationRunnerService {
   readonly #logger = inject(Logger);
 
-  runMigrations(): Promise<void> {
-    return new Promise((resolve) => {
-      try {
-        const pulpeKeys = Object.keys(localStorage).filter((key) =>
-          key.startsWith('pulpe'),
+  async runMigrations(): Promise<void> {
+    try {
+      const pulpeKeys = Object.keys(localStorage).filter((key) =>
+        key.startsWith('pulpe'),
+      );
+
+      let migratedCount = 0;
+      let clearedCount = 0;
+
+      for (const key of pulpeKeys) {
+        const schemaConfig = getSchemaConfig(key);
+        if (!schemaConfig) continue;
+
+        const result = this.#processKey(
+          key as StorageKey,
+          schemaConfig.version,
         );
-
-        let migratedCount = 0;
-        let clearedCount = 0;
-
-        for (const key of pulpeKeys) {
-          const schemaConfig = getSchemaConfig(key);
-          if (!schemaConfig) continue;
-
-          const result = this.#processKey(
-            key as StorageKey,
-            schemaConfig.version,
-          );
-          if (result === 'migrated') migratedCount++;
-          if (result === 'cleared') clearedCount++;
-        }
-
-        if (migratedCount > 0 || clearedCount > 0) {
-          this.#logger.info(
-            `Storage: ${migratedCount} migrated, ${clearedCount} legacy cleared`,
-          );
-        }
-      } catch (error) {
-        this.#logger.error('Storage migration failed:', error);
+        if (result === 'migrated') migratedCount++;
+        if (result === 'cleared') clearedCount++;
       }
 
-      resolve();
-    });
+      if (migratedCount > 0 || clearedCount > 0) {
+        this.#logger.info(
+          `Storage: ${migratedCount} migrated, ${clearedCount} legacy cleared`,
+        );
+      }
+    } catch (error) {
+      // Log but don't throw - storage issues should not block app startup.
+      // Individual key failures are handled gracefully in #processKey.
+      this.#logger.error('Storage migration failed:', error);
+    }
   }
 
   #processKey(

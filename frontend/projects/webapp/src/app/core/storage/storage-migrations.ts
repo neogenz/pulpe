@@ -25,7 +25,8 @@ export const STORAGE_MIGRATIONS: Partial<Record<StorageKey, Migration[]>> = {
     {
       fromVersion: 1,
       toVersion: 2,
-      migrate: (oldData: unknown) => oldData === 'true',
+      migrate: (oldData: unknown) =>
+        typeof oldData === 'string' ? oldData === 'true' : false,
     },
   ],
 };
