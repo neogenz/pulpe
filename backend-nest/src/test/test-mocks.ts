@@ -18,6 +18,7 @@ export const createMockAuthenticatedUser = (
   email: 'test@example.com',
   firstName: 'John',
   lastName: 'Doe',
+  accessToken: 'mock-access-token',
   ...overrides,
 });
 

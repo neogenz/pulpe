@@ -7,6 +7,7 @@ import {
   successMessageResponseSchema,
   updateUserSettingsSchema,
   userSettingsResponseSchema,
+  deleteAccountResponseSchema,
 } from 'pulpe-shared';
 
 // DTOs pour la documentation Swagger basés sur les schémas Zod partagés
@@ -30,4 +31,9 @@ export class UpdateUserSettingsDto extends createZodDto(
 ) {}
 export class UserSettingsResponseDto extends createZodDto(
   userSettingsResponseSchema,
+) {}
+
+// DTOs pour la suppression de compte
+export class DeleteAccountResponseDto extends createZodDto(
+  deleteAccountResponseSchema,
 ) {}

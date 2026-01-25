@@ -95,11 +95,16 @@ export class UserThrottlerGuard extends ThrottlerGuard {
 
       if (error || !user) return undefined;
 
+      if (user.user_metadata?.scheduledDeletionAt) {
+        return undefined;
+      }
+
       return {
         id: user.id,
         email: user.email ?? '',
         firstName: user.user_metadata?.firstName,
         lastName: user.user_metadata?.lastName,
+        accessToken: token,
       };
     } catch (error) {
       // Log errors at debug level (not warn) to avoid noise from invalid tokens

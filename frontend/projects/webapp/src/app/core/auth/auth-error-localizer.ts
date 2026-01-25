@@ -54,6 +54,7 @@ export class AuthErrorLocalizer {
     user_cancelled_login: 'Connexion annulée',
     'OAuth callback error': 'La connexion avec Google a échoué — réessayons',
     'Provider not enabled': "Cette méthode de connexion n'est pas disponible",
+    ERR_USER_ACCOUNT_BLOCKED: 'Ton compte est en cours de suppression.',
   };
 
   localizeError(originalErrorMessage: string): string {

@@ -51,7 +51,13 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "outputs": []
+      "outputs": [],
+      "passThroughEnv": [
+        "SUPABASE_URL",
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "TURNSTILE_SECRET_KEY"
+      ]
     },
     "test:watch": {
       "cache": false,
@@ -60,7 +66,12 @@
     },
     "test:performance": {
       "dependsOn": ["^build"],
-      "outputs": []
+      "outputs": [],
+      "passThroughEnv": [
+        "SUPABASE_URL",
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ]
     },
     "test:e2e": {
       "dependsOn": ["^build", "build"],

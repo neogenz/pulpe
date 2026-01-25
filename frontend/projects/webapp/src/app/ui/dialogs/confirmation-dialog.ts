@@ -13,6 +13,8 @@ export interface ConfirmationDialogData {
   confirmText?: string;
   cancelText?: string;
   confirmColor?: 'primary' | 'accent' | 'warn';
+  /** When true, puts confirm button on left and cancel on right to discourage destructive action */
+  destructive?: boolean;
 }
 
 @Component({
@@ -28,21 +30,39 @@ export interface ConfirmationDialogData {
       </mat-dialog-content>
 
       <mat-dialog-actions align="end">
-        <button
-          matButton
-          (click)="onCancel()"
-          data-testid="cancel-delete-button"
-        >
-          {{ data.cancelText || 'Annuler' }}
-        </button>
-        <button
-          matButton="filled"
-          [attr.color]="data.confirmColor || 'primary'"
-          (click)="onConfirm()"
-          data-testid="confirm-delete-button"
-        >
-          {{ data.confirmText || 'Confirmer' }}
-        </button>
+        @if (data.destructive) {
+          <button
+            matButton="filled"
+            [attr.color]="data.confirmColor || 'primary'"
+            (click)="onConfirm()"
+            data-testid="confirm-delete-button"
+          >
+            {{ data.confirmText || 'Confirmer' }}
+          </button>
+          <button
+            matButton
+            (click)="onCancel()"
+            data-testid="cancel-delete-button"
+          >
+            {{ data.cancelText || 'Annuler' }}
+          </button>
+        } @else {
+          <button
+            matButton
+            (click)="onCancel()"
+            data-testid="cancel-delete-button"
+          >
+            {{ data.cancelText || 'Annuler' }}
+          </button>
+          <button
+            matButton="filled"
+            [attr.color]="data.confirmColor || 'primary'"
+            (click)="onConfirm()"
+            data-testid="confirm-delete-button"
+          >
+            {{ data.confirmText || 'Confirmer' }}
+          </button>
+        }
       </mat-dialog-actions>
     </div>
   `,

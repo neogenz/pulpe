@@ -243,6 +243,35 @@ describe('UserThrottlerGuard', () => {
       expect(tracker).toBeDefined();
       expect(tracker).not.toContain('user:');
     });
+
+    it('should fall back to IP when user has scheduledDeletionAt', async () => {
+      // Arrange - User with account scheduled for deletion
+      mockSupabaseClient
+        .setMockData({
+          id: 'user-scheduled-deletion',
+          email: 'scheduled@example.com',
+          user_metadata: {
+            firstName: 'John',
+            lastName: 'Doe',
+            scheduledDeletionAt: '2025-01-20T12:00:00.000Z',
+          },
+        })
+        .setMockError(null);
+
+      const mockRequest = {
+        headers: { authorization: 'Bearer valid-token' },
+        ip: '192.168.1.100',
+        ips: [],
+      };
+
+      // Act
+      const tracker = await (guard as any).getTracker(mockRequest);
+
+      // Assert - Should not treat as authenticated user
+      expect(tracker).toBeDefined();
+      expect(tracker).not.toContain('user:'); // Should fall back to IP-based tracking
+      expect(tracker).not.toContain('user-scheduled-deletion');
+    });
   });
 
   describe('getTracker - Caching behavior', () => {

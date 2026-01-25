@@ -85,6 +85,20 @@ export class AuthSessionService {
             session: session?.user?.id,
           });
 
+          if (
+            (event === 'SIGNED_IN' ||
+              event === 'TOKEN_REFRESHED' ||
+              event === 'USER_UPDATED') &&
+            session?.user?.user_metadata?.['scheduledDeletionAt']
+          ) {
+            this.#logger.warn(
+              'User account scheduled for deletion detected, signing out',
+              { userId: session.user.id },
+            );
+            this.signOut();
+            return;
+          }
+
           switch (event) {
             case 'SIGNED_IN':
             case 'TOKEN_REFRESHED':

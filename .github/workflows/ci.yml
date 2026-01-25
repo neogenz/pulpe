@@ -105,19 +105,15 @@ jobs:
 
       - name: 🔧 Setup CI Environment
         working-directory: backend-nest
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_LOCAL_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_LOCAL_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_LOCAL_SERVICE_ROLE_KEY }}
         run: |
           echo "📝 Creating CI environment file..."
           cp .env.ci .env
-
-          # Inject secrets into .env file
-          echo "SUPABASE_URL=${SUPABASE_URL}" >> .env
-          echo "SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}" >> .env
-          echo "SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}" >> .env
-
+          # Get keys dynamically from local Supabase instance
+          echo "SUPABASE_URL=$(supabase status -o env 2>/dev/null | grep API_URL | cut -d'=' -f2 | tr -d '\"')" >> .env
+          echo "SUPABASE_ANON_KEY=$(supabase status -o env 2>/dev/null | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"')" >> .env
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env 2>/dev/null | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"')" >> .env
+          # Turnstile verification is skipped in test environment, dummy value is sufficient
+          echo "TURNSTILE_SECRET_KEY=ci-test-turnstile-key" >> .env
           echo "✅ Environment ready"
 
       - name: 💾 Save Supabase State
@@ -278,11 +274,22 @@ jobs:
           done
           echo "✅ Supabase ready for tests"
 
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
+          # Export local Supabase keys as outputs (using heredoc for robust special character handling)
+          {
+            echo 'SUPABASE_URL<<EOF'
+            supabase status -o env 2>/dev/null | grep API_URL | cut -d'=' -f2 | tr -d '\"'
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+          {
+            echo 'SUPABASE_ANON_KEY<<EOF'
+            supabase status -o env 2>/dev/null | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"'
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+          {
+            echo 'SUPABASE_SERVICE_ROLE_KEY<<EOF'
+            supabase status -o env 2>/dev/null | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"'
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
@@ -291,9 +298,10 @@ jobs:
         run: pnpm test:unit
         env:
           NODE_ENV: test
-          SUPABASE_URL: ${{ secrets.SUPABASE_LOCAL_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_LOCAL_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_LOCAL_SERVICE_ROLE_KEY }}
+          SUPABASE_URL: ${{ steps.start-supabase-tests.outputs.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ steps.start-supabase-tests.outputs.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ steps.start-supabase-tests.outputs.SUPABASE_SERVICE_ROLE_KEY }}
+          TURNSTILE_SECRET_KEY: ci-test-turnstile-key
 
       - name: 🧹 Cleanup Supabase
         if: always() && steps.start-supabase-tests.outcome == 'success'
@@ -500,11 +508,22 @@ jobs:
           done
           echo "✅ Supabase ready for performance tests"
 
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
+          # Export local Supabase keys as outputs (using heredoc for robust special character handling)
+          {
+            echo 'SUPABASE_URL<<EOF'
+            supabase status -o env 2>/dev/null | grep API_URL | cut -d'=' -f2 | tr -d '\"'
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+          {
+            echo 'SUPABASE_ANON_KEY<<EOF'
+            supabase status -o env 2>/dev/null | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"'
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+          {
+            echo 'SUPABASE_SERVICE_ROLE_KEY<<EOF'
+            supabase status -o env 2>/dev/null | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"'
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
@@ -513,9 +532,10 @@ jobs:
         run: pnpm test:performance
         env:
           NODE_ENV: test
-          SUPABASE_URL: ${{ secrets.SUPABASE_LOCAL_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_LOCAL_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_LOCAL_SERVICE_ROLE_KEY }}
+          SUPABASE_URL: ${{ steps.start-supabase-performance.outputs.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ steps.start-supabase-performance.outputs.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ steps.start-supabase-performance.outputs.SUPABASE_SERVICE_ROLE_KEY }}
+          TURNSTILE_SECRET_KEY: ci-test-turnstile-key
 
       - name: 🧹 Cleanup Supabase
         if: always() && steps.start-supabase-performance.outcome == 'success'

@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Delete, Body, UseGuards } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { handleServiceError } from '@common/utils/error-handler';
@@ -28,9 +28,11 @@ import {
   SuccessMessageResponseDto,
   UpdateUserSettingsDto,
   UserSettingsResponseDto,
+  DeleteAccountResponseDto,
 } from './dto/user-profile.dto';
 import { payDayOfMonthSchema } from 'pulpe-shared';
 import { ErrorResponseDto } from '@common/dto/response.dto';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 
 @ApiTags('User')
 @ApiBearerAuth()
@@ -45,7 +47,11 @@ import { ErrorResponseDto } from '@common/dto/response.dto';
   type: ErrorResponseDto,
 })
 export class UserController {
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(
+    @InjectInfoLogger(UserController.name)
+    private readonly logger: InfoLogger,
+    private readonly supabaseService: SupabaseService,
+  ) {}
   @Get('me')
   @ApiOperation({
     summary: 'Get current user profile',
@@ -353,6 +359,104 @@ export class UserController {
         ERROR_DEFINITIONS.USER_SETTINGS_UPDATE_FAILED,
         undefined,
         { operation: 'updateSettings', userId: user.id },
+      );
+    }
+  }
+
+  @Delete('account')
+  @ApiOperation({
+    summary: 'Request account deletion',
+    description:
+      'Schedules the user account for deletion after a 3-day grace period. User is immediately signed out. ' +
+      'Idempotent: returns existing scheduledDeletionAt if already scheduled.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Account deletion scheduled successfully',
+    type: DeleteAccountResponseDto,
+  })
+  async deleteAccount(
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<DeleteAccountResponseDto> {
+    try {
+      const currentUserData = await this.getCurrentUserData(supabase);
+      const existingDeletion =
+        currentUserData.user.user_metadata?.scheduledDeletionAt;
+
+      if (typeof existingDeletion === 'string' && existingDeletion.length > 0) {
+        return {
+          success: true as const,
+          message: 'Ton compte est déjà programmé pour suppression',
+          scheduledDeletionAt: existingDeletion,
+        };
+      }
+
+      // Schedule deletion FIRST - if this fails, user stays logged in (correct state)
+      // If we signed out first and this failed, user would be logged out but not scheduled
+      const scheduledDeletionAt = await this.scheduleAccountDeletion(
+        user.id,
+        currentUserData.user.user_metadata,
+      );
+
+      // Sign out AFTER scheduling - if this fails, AuthGuard blocks access anyway
+      await this.signOutUserGlobally(user.accessToken);
+
+      return {
+        success: true as const,
+        message: 'Ton compte sera supprimé dans 3 jours',
+        scheduledDeletionAt,
+      };
+    } catch (error) {
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.USER_ACCOUNT_DELETION_FAILED,
+        undefined,
+        { operation: 'deleteAccount', userId: user.id },
+      );
+    }
+  }
+
+  private async scheduleAccountDeletion(
+    userId: string,
+    currentMetadata: Record<string, unknown> | undefined,
+  ): Promise<string> {
+    const serviceClient = this.supabaseService.getServiceRoleClient();
+    const scheduledDeletionAt = new Date().toISOString();
+
+    const { error } = await serviceClient.auth.admin.updateUserById(userId, {
+      user_metadata: {
+        ...currentMetadata,
+        scheduledDeletionAt,
+      },
+    });
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.USER_ACCOUNT_DELETION_FAILED,
+        undefined,
+        undefined,
+        { cause: error },
+      );
+    }
+
+    return scheduledDeletionAt;
+  }
+
+  private async signOutUserGlobally(accessToken: string): Promise<void> {
+    const serviceClient = this.supabaseService.getServiceRoleClient();
+
+    const { error } = await serviceClient.auth.admin.signOut(
+      accessToken,
+      'global',
+    );
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.USER_ACCOUNT_DELETION_FAILED,
+        undefined,
+        undefined,
+        { cause: error },
       );
     }
   }

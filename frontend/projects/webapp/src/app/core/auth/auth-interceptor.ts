@@ -95,6 +95,19 @@ function handleAuthError(
     );
   }
 
-  // Not a 401 or user not authenticated, just pass the error through
+  // Handle account blocked (scheduled for deletion)
+  if (
+    error.status === 403 &&
+    (error.error?.code === 'ERR_USER_ACCOUNT_BLOCKED' ||
+      error.error?.error === 'ERR_USER_ACCOUNT_BLOCKED')
+  ) {
+    authSession.signOut();
+    window.location.href = '/' + ROUTES.LOGIN;
+    return throwError(
+      () => new Error('Ton compte est en cours de suppression.'),
+    );
+  }
+
+  // Not a 401/403 or user not authenticated, just pass the error through
   return throwError(() => error);
 }

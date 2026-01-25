@@ -181,7 +181,9 @@ describe('AuthGuard', () => {
 
     it('should set user and supabase client on request when authenticated', async () => {
       // Arrange
-      const mockUser = createMockAuthenticatedUser();
+      const mockUser = createMockAuthenticatedUser({
+        accessToken: 'valid-token',
+      });
       const mockRequest = { headers: { authorization: 'Bearer valid-token' } };
       const mockContext = {
         switchToHttp: () => ({ getRequest: () => mockRequest }),
@@ -213,7 +215,9 @@ describe('AuthGuard', () => {
 
     it('should reuse cached user from UserThrottlerGuard when available', async () => {
       // Arrange
-      const mockUser = createMockAuthenticatedUser();
+      const mockUser = createMockAuthenticatedUser({
+        accessToken: 'valid-token',
+      });
       const mockRequest = {
         headers: { authorization: 'Bearer valid-token' },
         __throttlerUserCache: mockUser, // Simulates cache populated by UserThrottlerGuard
@@ -238,7 +242,9 @@ describe('AuthGuard', () => {
 
     it('should fall back to normal auth flow when cache is null', async () => {
       // Arrange
-      const mockUser = createMockAuthenticatedUser();
+      const mockUser = createMockAuthenticatedUser({
+        accessToken: 'valid-token',
+      });
       const mockRequest = {
         headers: { authorization: 'Bearer valid-token' },
         __throttlerUserCache: null, // Cache indicates auth failed in throttler
@@ -313,6 +319,36 @@ describe('AuthGuard', () => {
         () => guardWithFailingClient.canActivate(mockContext),
         BusinessException,
         'Unauthorized',
+      );
+    });
+
+    it('should throw BusinessException when user account is scheduled for deletion', async () => {
+      // Arrange
+      const mockRequest = {
+        headers: { authorization: 'Bearer valid-token' },
+      };
+      const mockContext = {
+        switchToHttp: () => ({ getRequest: () => mockRequest }),
+      } as ExecutionContext;
+
+      // Set up the auth mock to return a user with scheduledDeletionAt
+      mockSupabaseClient
+        .setMockData({
+          id: 'user-scheduled-deletion',
+          email: 'scheduled@example.com',
+          user_metadata: {
+            firstName: 'John',
+            lastName: 'Doe',
+            scheduledDeletionAt: '2025-01-20T12:00:00.000Z',
+          },
+        })
+        .setMockError(null);
+
+      // Act & Assert
+      await expectErrorThrown(
+        () => authGuard.canActivate(mockContext),
+        BusinessException,
+        'Account is scheduled for deletion',
       );
     });
   });
