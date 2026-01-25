@@ -1,10 +1,14 @@
 import SwiftUI
 
+struct AddTransactionItem: Identifiable {
+    let id: String
+    var budgetId: String { id }
+}
+
 struct MainTabView: View {
     @Environment(AppState.self) private var appState
     @Environment(CurrentMonthStore.self) private var monthStore
-    @State private var showAddTransaction = false
-    @State private var pendingBudgetId: String?
+    @State private var addTransactionBudgetId: AddTransactionItem?
 
     private let tabBarHeight: CGFloat = 55
 
@@ -37,13 +41,9 @@ struct MainTabView: View {
                     .padding(.horizontal, DesignTokens.Spacing.lg)
             }
         }
-        .sheet(isPresented: $showAddTransaction) {
-            if let budgetId = pendingBudgetId {
-                AddTransactionSheet(budgetId: budgetId) { transaction in
-                    monthStore.addTransaction(transaction)
-                }
-            } else {
-                unavailableView
+        .sheet(item: $addTransactionBudgetId) { item in
+            AddTransactionSheet(budgetId: item.budgetId) { transaction in
+                monthStore.addTransaction(transaction)
             }
         }
     }
@@ -78,11 +78,9 @@ struct MainTabView: View {
             }
 
             // Action button (only visible on current month tab)
-            if selectedTab.wrappedValue == .currentMonth, monthStore.budget != nil {
+            if selectedTab.wrappedValue == .currentMonth, let budgetId = monthStore.budget?.id {
                 Button {
-                    guard let budgetId = monthStore.budget?.id else { return }
-                    pendingBudgetId = budgetId
-                    showAddTransaction = true
+                    addTransactionBudgetId = AddTransactionItem(id: budgetId)
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 22, weight: .medium))
@@ -128,11 +126,9 @@ struct MainTabView: View {
             .clipShape(Capsule())
 
             // Action button (only visible on current month tab)
-            if selectedTab.wrappedValue == .currentMonth, monthStore.budget != nil {
+            if selectedTab.wrappedValue == .currentMonth, let budgetId = monthStore.budget?.id {
                 Button {
-                    guard let budgetId = monthStore.budget?.id else { return }
-                    pendingBudgetId = budgetId
-                    showAddTransaction = true
+                    addTransactionBudgetId = AddTransactionItem(id: budgetId)
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 22, weight: .medium))
@@ -146,23 +142,6 @@ struct MainTabView: View {
         }
         .frame(height: tabBarHeight)
         .animation(.smooth(duration: 0.25), value: selectedTab.wrappedValue)
-    }
-
-    // MARK: - Unavailable View
-
-    private var unavailableView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "calendar.badge.exclamationmark")
-                .font(.largeTitle)
-                .foregroundStyle(.secondary)
-            Text("Budget non disponible")
-                .font(.headline)
-            Text("Le budget n'est plus accessible")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .presentationDetents([.medium])
     }
 }
 
