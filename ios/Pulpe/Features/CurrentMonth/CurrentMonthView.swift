@@ -4,6 +4,7 @@ import WidgetKit
 struct CurrentMonthView: View {
     @Environment(AppState.self) private var appState
     @Environment(CurrentMonthStore.self) private var store
+    @Environment(DashboardStore.self) private var dashboardStore
     @State private var showAddTransaction = false
     @State private var showRealizedBalanceSheet = false
     @State private var showAccount = false
@@ -19,15 +20,15 @@ struct CurrentMonthView: View {
                 }
             } else if store.budget == nil {
                 EmptyStateView(
-                    title: "Pas encore de budget ce mois-ci",
-                    description: "Crée ton budget dans l'onglet Budgets pour commencer",
-                    systemImage: "calendar.badge.plus"
+                    title: "Crée ton premier budget pour voir ton dashboard",
+                    description: "Ajoute un budget dans l'onglet Budgets",
+                    systemImage: "chart.pie"
                 )
             } else {
                 dashboardContent
             }
         }
-        .navigationTitle("Ce mois-ci")
+        .navigationTitle("Accueil")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -56,6 +57,7 @@ struct CurrentMonthView: View {
         }
         .task {
             await store.loadDetailsIfNeeded()
+            await dashboardStore.loadIfNeeded()
         }
         .onChange(of: navigateToBudget) { _, shouldNavigate in
             if shouldNavigate, let budgetId = store.budget?.id {
@@ -79,55 +81,41 @@ struct CurrentMonthView: View {
     // MARK: - Dashboard Content
 
     private var dashboardContent: some View {
-        List {
-            // Hero balance card with daily insight
-            Section {
-                HeroBalanceCard(
-                    metrics: store.metrics,
-                    daysRemaining: store.daysRemaining,
-                    dailyBudget: store.dailyBudget,
-                    onTapProgress: { showRealizedBalanceSheet = true }
+        ScrollView {
+            VStack(spacing: 16) {
+                // Hero card with available balance and linear progress
+                DashboardHeroCard(metrics: store.metrics)
+
+                // Inline alerts (categories at 80%+)
+                InlineAlertsView(
+                    alerts: store.alertBudgetLines,
+                    onTap: { navigateToBudget = true }
+                )
+
+                // Trends (expenses over last 3 months)
+                if dashboardStore.hasEnoughHistoryForTrends {
+                    TrendsCard(
+                        expenses: dashboardStore.historicalExpenses,
+                        variation: dashboardStore.expenseVariation,
+                        currentMonthTotal: store.metrics.totalExpenses
+                    )
+                } else {
+                    TrendsEmptyState()
+                }
+
+                // Year overview (savings YTD + rollover)
+                YearOverviewCard(
+                    savingsYTD: dashboardStore.savingsYTD,
+                    rollover: store.budget?.rollover ?? 0
                 )
             }
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
-
-            // Quick actions bar
-            Section {
-                QuickActionsBar(
-                    onAddTransaction: { showAddTransaction = true },
-                    onShowStats: { showRealizedBalanceSheet = true },
-                    onShowBudget: { navigateToBudget = true }
-                )
-            }
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
-
-            // Alerts section (categories at 80%+)
-            AlertsSection(
-                alerts: store.alertBudgetLines,
-                onTapViewBudget: { navigateToBudget = true }
-            )
-
-            // Recent transactions (read-only)
-            RecentTransactionsSection(
-                transactions: store.recentTransactions,
-                onTapViewAll: { navigateToBudget = true }
-            )
-
-            // Unchecked transactions (not yet pointed)
-            UncheckedTransactionsSection(
-                transactions: store.uncheckedTransactions,
-                onTapViewBudget: { navigateToBudget = true }
-            )
+            .padding(.horizontal, DesignTokens.Spacing.md)
+            .padding(.vertical, DesignTokens.Spacing.md)
         }
-        .listStyle(.insetGrouped)
-        .listSectionSpacing(16)
-        .scrollContentBackground(.hidden)
         .background(Color(.systemGroupedBackground))
-        .applyScrollEdgeEffect()
         .refreshable {
             await store.forceRefresh()
+            await dashboardStore.forceRefresh()
         }
     }
 }
@@ -139,4 +127,5 @@ struct CurrentMonthView: View {
     .environment(AppState())
     .environment(CurrentMonthStore())
     .environment(BudgetListStore())
+    .environment(DashboardStore())
 }

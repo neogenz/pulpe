@@ -189,7 +189,7 @@ enum Tab: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .currentMonth: "Ce mois-ci"
+        case .currentMonth: "Accueil"
         case .budgets: "Budgets"
         case .templates: "Modèles"
         }
@@ -197,7 +197,7 @@ enum Tab: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .currentMonth: "calendar.badge.clock"
+        case .currentMonth: "house"
         case .budgets: "calendar"
         case .templates: "doc.text"
         }
