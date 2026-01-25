@@ -170,15 +170,14 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
             <div class="flex items-center gap-2">
               @if (item().consumption?.hasTransactions) {
                 <button
-                  matButton
-                  class="!h-8 !px-3 !rounded-full !min-w-0"
+                  matIconButton
                   [matBadge]="item().consumption!.transactionCount"
                   matBadgeColor="primary"
                   matBadgeSize="small"
                   (click)="viewTransactions.emit(item())"
                   matTooltip="Voir les transactions"
                 >
-                  <mat-icon class="!text-lg">receipt_long</mat-icon>
+                  <mat-icon>receipt_long</mat-icon>
                 </button>
               } @else {
                 <button
