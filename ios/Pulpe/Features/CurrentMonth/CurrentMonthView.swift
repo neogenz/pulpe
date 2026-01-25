@@ -55,7 +55,7 @@ struct CurrentMonthView: View {
             AccountView()
         }
         .task {
-            await store.loadIfNeeded()
+            await store.loadDetailsIfNeeded()
         }
         .onChange(of: navigateToBudget) { _, shouldNavigate in
             if shouldNavigate, let budgetId = store.budget?.id {

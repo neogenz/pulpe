@@ -95,6 +95,9 @@ struct RootView: View {
             await appState.checkMaintenanceStatus()
             if !appState.isInMaintenance {
                 await appState.checkAuthState()
+                if appState.authState == .authenticated {
+                    await currentMonthStore.loadBudgetSummary()
+                }
             }
         }
         .onChange(of: appState.isInMaintenance) { oldValue, newValue in

@@ -518,7 +518,7 @@ jobs:
   # 🍎 iOS UNIT TESTS
   test-ios:
     name: 🍎 iOS Unit Tests
-    runs-on: macos-14
+    runs-on: macos-26
     timeout-minutes: 15
     steps:
       - name: 📥 Checkout
@@ -527,7 +527,7 @@ jobs:
       - name: 🔧 Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: "16.2"
+          xcode-version: "26.2"
 
       - name: 📦 Install XcodeGen
         run: brew install xcodegen
@@ -550,7 +550,7 @@ jobs:
         run: |
           xcodebuild test \
             -scheme PulpeTests \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.2' \
+            -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.2' \
             CODE_SIGNING_ALLOWED=NO \
             -quiet
 

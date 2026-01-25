@@ -192,6 +192,10 @@ enum Tab: String, CaseIterable, Identifiable {
         case .templates: "doc.text"
         }
     }
+
+    var index: Int {
+        Self.allCases.firstIndex(of: self) ?? 0
+    }
 }
 
 // MARK: - Navigation Destinations
