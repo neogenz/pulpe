@@ -11,30 +11,7 @@ struct MainTabView: View {
     var body: some View {
         @Bindable var state = appState
 
-        Group {
-            if #available(iOS 18.0, *) {
-                tabViewModern(selectedTab: $state.selectedTab)
-            } else {
-                tabViewLegacy(selectedTab: $state.selectedTab)
-            }
-        }
-        .sheet(isPresented: $showAddTransaction) {
-            if let budgetId = pendingBudgetId {
-                AddTransactionSheet(budgetId: budgetId) { transaction in
-                    monthStore.addTransaction(transaction)
-                }
-            } else {
-                unavailableView
-            }
-        }
-    }
-
-    // MARK: - iOS 18+ TabView (Modern)
-
-    @available(iOS 18.0, *)
-    @ViewBuilder
-    private func tabViewModern(selectedTab: Binding<Tab>) -> some View {
-        TabView(selection: selectedTab) {
+        TabView(selection: $state.selectedTab) {
             SwiftUI.Tab(value: Tab.currentMonth) {
                 CurrentMonthTab()
                     .toolbarVisibility(.hidden, for: .tabBar)
@@ -50,57 +27,47 @@ struct MainTabView: View {
                     .toolbarVisibility(.hidden, for: .tabBar)
             }
         }
-        .contentMargins(.bottom, tabBarHeight + DesignTokens.Spacing.lg, for: .scrollContent)
+        .contentMargins(.bottom, tabBarHeight + DesignTokens.Spacing.md, for: .scrollContent)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if #available(iOS 26.0, *) {
-                tabBarWithButton(selectedTab: selectedTab)
+                customTabBarView(selectedTab: $state.selectedTab)
                     .padding(.horizontal, DesignTokens.Spacing.lg)
             } else {
-                tabBarWithButtonLegacy(selectedTab: selectedTab)
+                customTabBarViewLegacy(selectedTab: $state.selectedTab)
                     .padding(.horizontal, DesignTokens.Spacing.lg)
+            }
+        }
+        .sheet(isPresented: $showAddTransaction) {
+            if let budgetId = pendingBudgetId {
+                AddTransactionSheet(budgetId: budgetId) { transaction in
+                    monthStore.addTransaction(transaction)
+                }
+            } else {
+                unavailableView
             }
         }
     }
 
-    // MARK: - iOS 17 TabView (Legacy ZStack approach)
-
-    @ViewBuilder
-    private func tabViewLegacy(selectedTab: Binding<Tab>) -> some View {
-        ZStack {
-            CurrentMonthTab()
-                .opacity(selectedTab.wrappedValue == .currentMonth ? 1 : 0)
-
-            BudgetsTab()
-                .opacity(selectedTab.wrappedValue == .budgets ? 1 : 0)
-
-            TemplatesTab()
-                .opacity(selectedTab.wrappedValue == .templates ? 1 : 0)
-        }
-        .safeAreaPadding(.bottom, tabBarHeight + DesignTokens.Spacing.lg)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            tabBarWithButtonLegacy(selectedTab: selectedTab)
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-        }
-    }
-
-    // MARK: - iOS 26+ Tab Bar
+    // MARK: - Custom Tab Bar (iOS 26+ with Glass Effect)
 
     @available(iOS 26.0, *)
     @ViewBuilder
-    private func tabBarWithButton(selectedTab: Binding<Tab>) -> some View {
+    private func customTabBarView(selectedTab: Binding<Tab>) -> some View {
         GlassEffectContainer(spacing: 10) {
             HStack(spacing: 10) {
                 GeometryReader { geometry in
                     CustomTabBar(size: geometry.size, barTint: .gray.opacity(0.3), activeTab: selectedTab) { tab in
+                        let isSelected = selectedTab.wrappedValue == tab
                         VStack(spacing: 3) {
                             Image(systemName: tab.icon)
                                 .font(.title3)
+
                             Text(tab.title)
                                 .font(.system(size: 10))
                                 .fontWeight(.medium)
                         }
                         .symbolVariant(.fill)
-                        .foregroundStyle(selectedTab.wrappedValue == tab ? Color.pulpePrimary : .primary)
+                        .foregroundColor(isSelected ? Color.pulpePrimary : Color(.label))
                         .frame(maxWidth: .infinity)
                     }
                     .glassEffect(.regular.interactive(), in: .capsule)
@@ -124,12 +91,11 @@ struct MainTabView: View {
         .frame(height: tabBarHeight)
     }
 
-    // MARK: - iOS < 26 Tab Bar (Legacy)
+    // MARK: - Custom Tab Bar (iOS 18-25 Legacy)
 
     @ViewBuilder
-    private func tabBarWithButtonLegacy(selectedTab: Binding<Tab>) -> some View {
+    private func customTabBarViewLegacy(selectedTab: Binding<Tab>) -> some View {
         HStack(spacing: 10) {
-            // Tab items in a pill
             HStack(spacing: 0) {
                 ForEach(Tab.allCases) { tab in
                     Button {
