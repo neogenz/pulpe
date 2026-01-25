@@ -386,11 +386,11 @@ export class UserController {
         };
       }
 
+      await this.signOutUserGlobally(user.accessToken);
       const scheduledDeletionAt = await this.scheduleAccountDeletion(
         user.id,
         currentUserData.user.user_metadata,
       );
-      await this.signOutUserGlobally(user.accessToken);
 
       return {
         success: true as const,
