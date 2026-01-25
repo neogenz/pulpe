@@ -384,7 +384,7 @@ export class UserController {
       const existingDeletion =
         currentUserData.user.user_metadata?.scheduledDeletionAt;
 
-      if (existingDeletion) {
+      if (typeof existingDeletion === 'string' && existingDeletion.length > 0) {
         return {
           success: true as const,
           message: 'Ton compte est déjà programmé pour suppression',

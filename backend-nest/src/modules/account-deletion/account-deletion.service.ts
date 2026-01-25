@@ -138,8 +138,9 @@ export class AccountDeletionService {
         return false;
       }
 
-      const expirationDate = new Date(scheduledDate);
-      expirationDate.setDate(expirationDate.getDate() + GRACE_PERIOD_DAYS);
+      const expirationDate = new Date(
+        scheduledDate.getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000,
+      );
 
       return now >= expirationDate;
     });

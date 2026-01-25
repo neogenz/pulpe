@@ -273,6 +273,7 @@ export default class SettingsPage {
         horizontalPosition: 'center',
         verticalPosition: 'bottom',
       });
+      // Early return prevents signOut and redirect if deleteAccount() failed
       return;
     }
 
