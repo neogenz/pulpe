@@ -1,4 +1,5 @@
 import SwiftUI
+import TipKit
 
 /// Section of recurring budget lines - designed to be used inside a parent List
 struct BudgetSection: View {
@@ -50,25 +51,15 @@ struct BudgetSection: View {
 
     var body: some View {
         Section {
-            ForEach(displayedItems) { item in
-                BudgetLineRow(
-                    line: item,
-                    consumption: BudgetFormulas.calculateConsumption(for: item, transactions: transactions),
-                    allTransactions: transactions,
-                    isSyncing: syncingIds.contains(item.id),
-                    onToggle: { onToggle(item) },
-                    onAddTransaction: { onAddTransaction(item) },
-                    onLongPress: { linkedTransactions in
-                        onLongPress(item, linkedTransactions)
-                    },
-                    onEdit: { onEdit(item) }
-                )
-                .listRowSeparator(.hidden)
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            ForEach(Array(displayedItems.enumerated()), id: \.element.id) { index, item in
+                budgetLineRow(for: item, isFirst: index == 0)
+                    .listRowSeparator(.hidden)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     if !item.isVirtualRollover {
                         Button {
                             itemToDelete = item
                             showDeleteAlert = true
+                            ProductTips.gestures.invalidate(reason: .actionPerformed)
                         } label: {
                             Label("Supprimer", systemImage: "trash")
                         }
@@ -76,6 +67,7 @@ struct BudgetSection: View {
 
                         Button {
                             onToggle(item)
+                            ProductTips.gestures.invalidate(reason: .actionPerformed)
                         } label: {
                             Label(
                                 item.isChecked ? "Annuler" : "Comptabiliser",
@@ -124,6 +116,28 @@ struct BudgetSection: View {
             }
         } message: { _ in
             Text("Cette action est irréversible.")
+        }
+    }
+
+    @ViewBuilder
+    private func budgetLineRow(for item: BudgetLine, isFirst: Bool) -> some View {
+        let row = BudgetLineRow(
+            line: item,
+            consumption: BudgetFormulas.calculateConsumption(for: item, transactions: transactions),
+            allTransactions: transactions,
+            isSyncing: syncingIds.contains(item.id),
+            onToggle: { onToggle(item) },
+            onAddTransaction: { onAddTransaction(item) },
+            onLongPress: { linkedTransactions in
+                onLongPress(item, linkedTransactions)
+            },
+            onEdit: { onEdit(item) }
+        )
+
+        if isFirst {
+            row.popoverTip(ProductTips.gestures)
+        } else {
+            row
         }
     }
 }
@@ -242,6 +256,7 @@ struct BudgetLineRow: View {
         .contentShape(Rectangle())
         .onTapGesture {
             guard !line.isVirtualRollover else { return }
+            ProductTips.gestures.invalidate(reason: .actionPerformed)
             onEdit()
         }
         .scaleEffect(isPressed ? 0.97 : 1.0)
@@ -306,6 +321,8 @@ struct BudgetLineRow: View {
 
     private func handleLongPress() {
         guard !line.isVirtualRollover else { return }
+
+        ProductTips.gestures.invalidate(reason: .actionPerformed)
 
         if linkedTransactions.isEmpty {
             triggerWarningFeedback.toggle()

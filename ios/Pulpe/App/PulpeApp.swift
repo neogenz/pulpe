@@ -1,4 +1,5 @@
 import SwiftUI
+import TipKit
 import WidgetKit
 
 enum DeepLinkDestination: Hashable {
@@ -14,6 +15,9 @@ struct PulpeApp: App {
     @State private var deepLinkDestination: DeepLinkDestination?
 
     init() {
+        try? Tips.configure([
+            .datastoreLocation(.applicationDefault)
+        ])
         BackgroundTaskService.shared.registerTasks()
     }
 
@@ -77,11 +81,6 @@ struct RootView: View {
 
                 case .authenticated:
                     MainTabView()
-                        .overlay {
-                            if appState.showTutorial {
-                                TutorialOverlay()
-                            }
-                        }
                 }
             }
         }

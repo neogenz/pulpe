@@ -423,6 +423,10 @@ describe('CurrentMonthStore - Business Scenarios', () => {
     });
 
     it('should rollback on API error', async () => {
+      mockBudgetApi.toggleBudgetLineCheck$.mockReturnValue(
+        throwError(() => new Error('API error')),
+      );
+
       await vi.waitFor(() => {
         expect(store.dashboardData()).toBeTruthy();
       });
@@ -432,14 +436,15 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         .find((l) => l.id === 'line-income')?.checkedAt;
       expect(originalCheckedAt).toBeNull();
 
-      // Mock API to throw error
-      mockBudgetApi.toggleBudgetLineCheck$.mockReturnValue(
-        throwError(() => new Error('API error')),
-      );
+      const togglePromise = store.toggleBudgetLineCheck('line-income');
 
-      await expect(
-        store.toggleBudgetLineCheck('line-income'),
-      ).rejects.toThrow();
+      // Verify optimistic update happened
+      const updatedLine = store
+        .budgetLines()
+        .find((l) => l.id === 'line-income');
+      expect(updatedLine?.checkedAt).not.toBeNull();
+
+      await expect(togglePromise).rejects.toThrow();
 
       const restoredLine = store
         .budgetLines()
