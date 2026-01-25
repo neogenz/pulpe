@@ -26,7 +26,7 @@ enum TransactionKind: String, Codable, CaseIterable, Sendable {
         switch self {
         case .income: "arrow.down"
         case .expense: "arrow.up"
-        case .saving: "pig.circle.fill"
+        case .saving: "banknote.fill"
         }
     }
 
