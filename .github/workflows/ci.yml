@@ -453,6 +453,13 @@ jobs:
           npm config set fetch-retry-mintimeout 120000
           npm config set fetch-retries 3
 
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: "**/pnpm-lock.yaml"
+
       - name: 📦 Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
