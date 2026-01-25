@@ -36,6 +36,8 @@ describe('mapToCalendarYear', () => {
       hasContent: true,
       value: 1500.5,
       displayName: 'janvier 2025',
+      period: undefined,
+      status: 'positive',
     });
   });
 

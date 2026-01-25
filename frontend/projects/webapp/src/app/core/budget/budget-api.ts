@@ -348,4 +348,23 @@ export class BudgetApi {
 
     return undefined;
   }
+
+  /**
+   * Toggle the checked state of a budget line
+   */
+  toggleBudgetLineCheck$(budgetLineId: string): Observable<void> {
+    return this.#httpClient
+      .post<void>(
+        `${this.#applicationConfig.backendApiUrl()}/budget-lines/${budgetLineId}/toggle-check`,
+        {},
+      )
+      .pipe(
+        catchError((error) =>
+          this.#handleApiError(
+            error,
+            'Erreur lors du basculement du statut de la ligne',
+          ),
+        ),
+      );
+  }
 }

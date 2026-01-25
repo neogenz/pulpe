@@ -65,6 +65,15 @@ struct CurrentMonthView: View {
                 navigateToBudget = false
             }
         }
+        .onChange(of: showAddTransaction) { _, isPresented in
+            ProductTips.isSheetPresented = isPresented
+        }
+        .onChange(of: showRealizedBalanceSheet) { _, isPresented in
+            ProductTips.isSheetPresented = isPresented
+        }
+        .onChange(of: showAccount) { _, isPresented in
+            ProductTips.isSheetPresented = isPresented
+        }
     }
 
     // MARK: - Dashboard Content

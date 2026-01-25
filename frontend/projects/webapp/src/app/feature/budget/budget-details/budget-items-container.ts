@@ -11,7 +11,6 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import {
   calculateAllEnrichedConsumptions,
@@ -19,11 +18,9 @@ import {
 } from '@core/budget';
 import { STORAGE_KEYS, StorageService } from '@core/storage';
 import { type BudgetLine, type BudgetLineUpdate } from 'pulpe-shared';
-import { firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { BudgetGrid } from './budget-grid';
 import { BudgetTable } from './budget-table/budget-table';
-import { EditBudgetLineDialog } from './edit-budget-line/edit-budget-line-dialog';
 import { type BudgetLineViewModel } from './models/budget-line-view-model';
 import { type TransactionViewModel } from './models/transaction-view-model';
 import {
@@ -33,6 +30,8 @@ import {
   type TransactionTableItem,
 } from './data-core';
 import { BudgetViewToggle } from './components';
+import { BudgetTableCheckedFilter } from './budget-table/budget-table-checked-filter';
+import { BudgetDetailsDialogService } from './budget-details-dialog.service';
 
 /**
  * Unified container component for displaying budget items.
@@ -46,6 +45,7 @@ import { BudgetViewToggle } from './components';
     BudgetGrid,
     BudgetTable,
     BudgetViewToggle,
+    BudgetTableCheckedFilter,
   ],
   providers: [BudgetItemDataProvider],
   template: `
@@ -62,6 +62,14 @@ import { BudgetViewToggle } from './components';
           <pulpe-budget-view-toggle [(viewMode)]="viewMode" />
         }
       </div>
+
+      <!-- Filter -->
+      <pulpe-budget-table-checked-filter
+        [isShowingOnlyUnchecked]="isShowingOnlyUnchecked()"
+        (isShowingOnlyUncheckedChange)="
+          isShowingOnlyUncheckedChange.emit($event)
+        "
+      />
 
       <!-- Content -->
       @if (isMobile() || viewMode() === 'envelopes') {
@@ -120,14 +128,16 @@ import { BudgetViewToggle } from './components';
 export class BudgetItemsContainer {
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #budgetItemDataProvider = inject(BudgetItemDataProvider);
-  readonly #dialog = inject(MatDialog);
+  readonly #dialogService = inject(BudgetDetailsDialogService);
   readonly #storageService = inject(StorageService);
 
   // Signal inputs
   readonly budgetLines = input.required<BudgetLineViewModel[]>();
   readonly transactions = input.required<TransactionViewModel[]>();
+  readonly isShowingOnlyUnchecked = input<boolean>(true);
 
   // Outputs
+  readonly isShowingOnlyUncheckedChange = output<boolean>();
   readonly update = output<BudgetLineUpdate>();
   readonly delete = output<string>();
   readonly deleteTransaction = output<string>();
@@ -205,13 +215,9 @@ export class BudgetItemsContainer {
   protected async startEditBudgetLine(
     item: BudgetLineTableItem,
   ): Promise<void> {
-    const dialogRef = this.#dialog.open(EditBudgetLineDialog, {
-      data: { budgetLine: item.data },
-      width: '400px',
-      maxWidth: '90vw',
-    });
-
-    const result = await firstValueFrom(dialogRef.afterClosed());
+    const result = await this.#dialogService.openEditBudgetLineDialog(
+      item.data,
+    );
     if (result) {
       this.update.emit(result);
     }

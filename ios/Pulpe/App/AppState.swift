@@ -3,7 +3,6 @@ import WidgetKit
 
 private enum UserDefaultsKey {
     static let onboardingCompleted = "pulpe-onboarding-completed"
-    static let tutorialCompleted = "pulpe-tutorial-completed"
     static let biometricEnabled = "pulpe-biometric-enabled"
 }
 
@@ -34,14 +33,6 @@ final class AppState {
 
     var hasCompletedOnboarding: Bool = UserDefaults.standard.bool(forKey: UserDefaultsKey.onboardingCompleted) {
         didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: UserDefaultsKey.onboardingCompleted) }
-    }
-
-    private var tutorialCompleted: Bool = UserDefaults.standard.bool(forKey: UserDefaultsKey.tutorialCompleted) {
-        didSet { UserDefaults.standard.set(tutorialCompleted, forKey: UserDefaultsKey.tutorialCompleted) }
-    }
-
-    var showTutorial: Bool {
-        !tutorialCompleted && authState == .authenticated
     }
 
     // MARK: - Biometric
@@ -126,8 +117,8 @@ final class AppState {
         authState = .authenticated
     }
 
-    func completeTutorial() {
-        tutorialCompleted = true
+    func resetTips() {
+        ProductTips.resetAllTips()
     }
 
     // MARK: - Biometric Actions

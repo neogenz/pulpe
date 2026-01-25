@@ -1,10 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting,
-} from '@angular/common/http/testing';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { of, throwError } from 'rxjs';
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import type {
@@ -17,7 +14,6 @@ import type {
 import { CurrentMonthStore } from './current-month-store';
 import { BudgetApi } from '@core/budget';
 import { TransactionApi } from '@core/transaction/transaction-api';
-import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { UserSettingsApi } from '@core/user-settings';
 
 // Mock data aligned with business scenarios
@@ -97,6 +93,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
     getBudgetForMonth$: Mock;
     getBudgetWithDetails$: Mock;
     getBudgetById$: Mock;
+    toggleBudgetLineCheck$: Mock;
   };
   let mockTransactionApi: {
     create$: Mock;
@@ -119,6 +116,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         }),
       ),
       getBudgetById$: vi.fn().mockReturnValue(of(mockBudget)),
+      toggleBudgetLineCheck$: vi.fn().mockReturnValue(of(undefined)),
     };
 
     mockTransactionApi = {
@@ -126,10 +124,6 @@ describe('CurrentMonthStore - Business Scenarios', () => {
       update$: vi.fn(),
       remove$: vi.fn(),
       toggleCheck$: vi.fn(),
-    };
-
-    const mockAppConfig = {
-      backendApiUrl: vi.fn().mockReturnValue('http://localhost:3000/api'),
     };
 
     const mockUserSettingsApi = {
@@ -145,7 +139,6 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         CurrentMonthStore,
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: TransactionApi, useValue: mockTransactionApi },
-        { provide: ApplicationConfiguration, useValue: mockAppConfig },
         { provide: UserSettingsApi, useValue: mockUserSettingsApi },
       ],
     });
@@ -369,12 +362,6 @@ describe('CurrentMonthStore - Business Scenarios', () => {
   });
 
   describe('User can toggle budget line check', () => {
-    let httpTesting: HttpTestingController;
-
-    beforeEach(() => {
-      httpTesting = TestBed.inject(HttpTestingController);
-    });
-
     it('should update checkedAt locally before API completes (optimistic update)', async () => {
       await vi.waitFor(() => {
         expect(store.dashboardData()).toBeTruthy();
@@ -387,17 +374,16 @@ describe('CurrentMonthStore - Business Scenarios', () => {
 
       const togglePromise = store.toggleBudgetLineCheck('line-income');
 
+      // Optimistic update: checkedAt should be set immediately
       const updatedLine = store
         .budgetLines()
         .find((l) => l.id === 'line-income');
       expect(updatedLine?.checkedAt).not.toBeNull();
 
-      const req = httpTesting.expectOne(
-        'http://localhost:3000/api/budget-lines/line-income/toggle-check',
-      );
-      req.flush({});
-
       await togglePromise;
+      expect(mockBudgetApi.toggleBudgetLineCheck$).toHaveBeenCalledWith(
+        'line-income',
+      );
     });
 
     it('should toggle checkedAt from non-null to null', async () => {
@@ -425,22 +411,22 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         expect(line?.checkedAt).toBe('2024-01-15T00:00:00Z');
       });
 
-      const togglePromise = store.toggleBudgetLineCheck('line-income');
+      await store.toggleBudgetLineCheck('line-income');
 
       const updatedLine = store
         .budgetLines()
         .find((l) => l.id === 'line-income');
       expect(updatedLine?.checkedAt).toBeNull();
-
-      const req = httpTesting.expectOne(
-        'http://localhost:3000/api/budget-lines/line-income/toggle-check',
+      expect(mockBudgetApi.toggleBudgetLineCheck$).toHaveBeenCalledWith(
+        'line-income',
       );
-      req.flush({});
-
-      await togglePromise;
     });
 
     it('should rollback on API error', async () => {
+      mockBudgetApi.toggleBudgetLineCheck$.mockReturnValue(
+        throwError(() => new Error('API error')),
+      );
+
       await vi.waitFor(() => {
         expect(store.dashboardData()).toBeTruthy();
       });
@@ -452,15 +438,11 @@ describe('CurrentMonthStore - Business Scenarios', () => {
 
       const togglePromise = store.toggleBudgetLineCheck('line-income');
 
+      // Verify optimistic update happened
       const updatedLine = store
         .budgetLines()
         .find((l) => l.id === 'line-income');
       expect(updatedLine?.checkedAt).not.toBeNull();
-
-      const req = httpTesting.expectOne(
-        'http://localhost:3000/api/budget-lines/line-income/toggle-check',
-      );
-      req.error(new ProgressEvent('error'));
 
       await expect(togglePromise).rejects.toThrow();
 
@@ -479,10 +461,6 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         of({ data: { budget: null, transactions: [], budgetLines: [] } }),
       );
 
-      const mockAppConfig = {
-        backendApiUrl: vi.fn().mockReturnValue('http://localhost:3000/api'),
-      };
-
       const mockUserSettingsApi = {
         payDayOfMonth: signal<number | null>(null),
         isLoading: signal(false),
@@ -497,7 +475,6 @@ describe('CurrentMonthStore - Business Scenarios', () => {
           CurrentMonthStore,
           { provide: BudgetApi, useValue: mockBudgetApi },
           { provide: TransactionApi, useValue: mockTransactionApi },
-          { provide: ApplicationConfiguration, useValue: mockAppConfig },
           { provide: UserSettingsApi, useValue: mockUserSettingsApi },
         ],
       });
@@ -553,6 +530,7 @@ describe('CurrentMonthStore - Pay Day Integration', () => {
     getBudgetForMonth$: Mock;
     getBudgetWithDetails$: Mock;
     getBudgetById$: Mock;
+    toggleBudgetLineCheck$: Mock;
   };
 
   const mockJanuaryBudget: Budget = {
@@ -583,6 +561,7 @@ describe('CurrentMonthStore - Pay Day Integration', () => {
         }),
       ),
       getBudgetById$: vi.fn().mockReturnValue(of(mockJanuaryBudget)),
+      toggleBudgetLineCheck$: vi.fn().mockReturnValue(of(undefined)),
     };
 
     const mockTransactionApi = {
@@ -590,10 +569,6 @@ describe('CurrentMonthStore - Pay Day Integration', () => {
       update$: vi.fn(),
       remove$: vi.fn(),
       toggleCheck$: vi.fn(),
-    };
-
-    const mockAppConfig = {
-      backendApiUrl: vi.fn().mockReturnValue('http://localhost:3000/api'),
     };
 
     const mockUserSettingsApi = {
@@ -609,7 +584,6 @@ describe('CurrentMonthStore - Pay Day Integration', () => {
         CurrentMonthStore,
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: TransactionApi, useValue: mockTransactionApi },
-        { provide: ApplicationConfiguration, useValue: mockAppConfig },
         { provide: UserSettingsApi, useValue: mockUserSettingsApi },
       ],
     });
@@ -727,6 +701,7 @@ describe('CurrentMonthStore - Envelope Allocation Logic', () => {
     getBudgetForMonth$: Mock;
     getBudgetWithDetails$: Mock;
     getBudgetById$: Mock;
+    toggleBudgetLineCheck$: Mock;
   };
 
   // Helper to create budget lines
@@ -800,6 +775,7 @@ describe('CurrentMonthStore - Envelope Allocation Logic', () => {
         }),
       ),
       getBudgetById$: vi.fn().mockReturnValue(of(budget)),
+      toggleBudgetLineCheck$: vi.fn().mockReturnValue(of(undefined)),
     };
 
     const mockTransactionApi = {
@@ -807,10 +783,6 @@ describe('CurrentMonthStore - Envelope Allocation Logic', () => {
       update$: vi.fn(),
       remove$: vi.fn(),
       toggleCheck$: vi.fn(),
-    };
-
-    const mockAppConfig = {
-      backendApiUrl: vi.fn().mockReturnValue('http://localhost:3000/api'),
     };
 
     const mockUserSettingsApi = {
@@ -827,7 +799,6 @@ describe('CurrentMonthStore - Envelope Allocation Logic', () => {
         CurrentMonthStore,
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: TransactionApi, useValue: mockTransactionApi },
-        { provide: ApplicationConfiguration, useValue: mockAppConfig },
         { provide: UserSettingsApi, useValue: mockUserSettingsApi },
       ],
     });

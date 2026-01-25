@@ -60,6 +60,7 @@ private struct QuickActionButton: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
     }
 }
 

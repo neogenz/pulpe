@@ -1,5 +1,20 @@
 # pulpe-frontend
 
+## 0.15.0
+
+### Minor Changes
+
+- # Frontend v0.15.0
+
+  **Nouvelles fonctionnalités**
+  - Export Excel des budgets avec formatage monétaire natif et totaux SUM
+  - Navigation entre les mois avec flèches précédent/suivant
+  - Refonte UI des détails de budget avec grille et décomposition des composants
+  - Amélioration du filtre "non comptabilisé" pour une interface plus intuitive
+
+  **Corrections**
+  - Déconnexion du tour produit de l'ID utilisateur
+
 ## 0.14.0
 
 ### Minor Changes

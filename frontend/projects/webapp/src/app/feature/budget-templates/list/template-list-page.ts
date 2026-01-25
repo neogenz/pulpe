@@ -70,15 +70,6 @@ import {
         </div>
         <div class="flex gap-2 items-center">
           <button
-            matIconButton
-            (click)="startPageTour()"
-            matTooltip="Découvrir cette page"
-            aria-label="Aide"
-            data-testid="help-button"
-          >
-            <mat-icon>help_outline</mat-icon>
-          </button>
-          <button
             matButton="filled"
             class="shrink-0"
             routerLink="create"
@@ -177,10 +168,6 @@ export default class TemplateListPage {
         );
       }
     });
-  }
-
-  startPageTour(): void {
-    this.#productTourService.startPageTour('templates-list');
   }
 
   async onDeleteTemplate(template: BudgetTemplate) {

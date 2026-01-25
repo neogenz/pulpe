@@ -13,16 +13,17 @@ struct HeroBalanceCard: View {
         metrics.remaining < 0
     }
 
-    private var progressPercentage: Double {
+    private var expenseRatio: Double {
         guard metrics.available > 0 else { return 1 }
-        let ratio = Double(truncating: (metrics.totalExpenses / metrics.available) as NSDecimalNumber)
-        return min(max(ratio, 0), 1)
+        return Double(truncating: (metrics.totalExpenses / metrics.available) as NSDecimalNumber)
+    }
+
+    private var progressPercentage: Double {
+        min(max(expenseRatio, 0), 1)
     }
 
     private var displayPercentage: Int {
-        guard metrics.available > 0 else { return 100 }
-        let ratio = Double(truncating: (metrics.totalExpenses / metrics.available) as NSDecimalNumber)
-        return Int(ratio * 100)
+        Int(expenseRatio * 100)
     }
 
     private var progressColor: Color {
@@ -114,6 +115,8 @@ struct HeroBalanceCard: View {
             .frame(width: 64, height: 64)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Voir le détail des dépenses")
+        .accessibilityValue("\(displayPercentage) pourcent du budget utilisé")
     }
 
     // MARK: - Stats Row
@@ -154,7 +157,7 @@ struct HeroBalanceCard: View {
                 .font(.caption)
                 .foregroundStyle(Color.textTertiary)
 
-            Text(value.formatted())
+            Text(value.formatted(.number.locale(Locale(identifier: "de_CH"))))
                 .font(.system(.subheadline, design: .rounded, weight: .semibold))
                 .foregroundStyle(color)
         }

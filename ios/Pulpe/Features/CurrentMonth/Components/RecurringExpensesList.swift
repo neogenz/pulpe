@@ -1,4 +1,5 @@
 import SwiftUI
+import TipKit
 
 /// Section of recurring budget lines - designed to be used inside a parent List
 struct BudgetSection: View {
@@ -50,25 +51,15 @@ struct BudgetSection: View {
 
     var body: some View {
         Section {
-            ForEach(displayedItems) { item in
-                BudgetLineRow(
-                    line: item,
-                    consumption: BudgetFormulas.calculateConsumption(for: item, transactions: transactions),
-                    allTransactions: transactions,
-                    isSyncing: syncingIds.contains(item.id),
-                    onToggle: { onToggle(item) },
-                    onAddTransaction: { onAddTransaction(item) },
-                    onLongPress: { linkedTransactions in
-                        onLongPress(item, linkedTransactions)
-                    },
-                    onEdit: { onEdit(item) }
-                )
-                .listRowSeparator(.hidden)
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            ForEach(Array(displayedItems.enumerated()), id: \.element.id) { index, item in
+                budgetLineRow(for: item, isFirst: index == 0)
+                    .listRowSeparator(.hidden)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     if !item.isVirtualRollover {
                         Button {
                             itemToDelete = item
                             showDeleteAlert = true
+                            ProductTips.gestures.invalidate(reason: .actionPerformed)
                         } label: {
                             Label("Supprimer", systemImage: "trash")
                         }
@@ -76,6 +67,7 @@ struct BudgetSection: View {
 
                         Button {
                             onToggle(item)
+                            ProductTips.gestures.invalidate(reason: .actionPerformed)
                         } label: {
                             Label(
                                 item.isChecked ? "Annuler" : "Comptabiliser",
@@ -126,6 +118,28 @@ struct BudgetSection: View {
             Text("Cette action est irréversible.")
         }
     }
+
+    @ViewBuilder
+    private func budgetLineRow(for item: BudgetLine, isFirst: Bool) -> some View {
+        let row = BudgetLineRow(
+            line: item,
+            consumption: BudgetFormulas.calculateConsumption(for: item, transactions: transactions),
+            allTransactions: transactions,
+            isSyncing: syncingIds.contains(item.id),
+            onToggle: { onToggle(item) },
+            onAddTransaction: { onAddTransaction(item) },
+            onLongPress: { linkedTransactions in
+                onLongPress(item, linkedTransactions)
+            },
+            onEdit: { onEdit(item) }
+        )
+
+        if isFirst {
+            row.popoverTip(ProductTips.gestures)
+        } else {
+            row
+        }
+    }
 }
 
 
@@ -152,6 +166,16 @@ struct BudgetLineRow: View {
         if consumption.isOverBudget { return .red }
         if consumption.isNearLimit { return .orange }
         return .pulpePrimary
+    }
+
+    private var remainingColor: Color {
+        consumption.available < 0 ? .red : line.kind.color
+    }
+
+    private var amountTextColor: Color {
+        if line.isChecked { return .secondary }
+        if hasConsumption { return remainingColor }
+        return line.kind.color
     }
 
     private var linkedTransactions: [Transaction] {
@@ -196,10 +220,18 @@ struct BudgetLineRow: View {
                 // Sync indicator
                 SyncIndicator(isSyncing: isSyncing)
 
-                // Amount
-                Text(line.amount.asCHF)
-                    .font(.system(.callout, design: .rounded, weight: .semibold))
-                    .foregroundStyle(line.isChecked ? .secondary : line.kind.color)
+                // Amount (remaining when transactions exist, otherwise budgeted)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(hasConsumption ? consumption.available.asCHF : line.amount.asCHF)
+                        .font(.system(.callout, design: .rounded, weight: .semibold))
+                        .foregroundStyle(amountTextColor)
+
+                    if hasConsumption {
+                        Text("reste")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
 
                 // Add button (only for non-rollover lines)
                 if !line.isVirtualRollover {
@@ -224,6 +256,7 @@ struct BudgetLineRow: View {
         .contentShape(Rectangle())
         .onTapGesture {
             guard !line.isVirtualRollover else { return }
+            ProductTips.gestures.invalidate(reason: .actionPerformed)
             onEdit()
         }
         .scaleEffect(isPressed ? 0.97 : 1.0)
@@ -241,7 +274,10 @@ struct BudgetLineRow: View {
         .sensoryFeedback(.success, trigger: triggerSuccessFeedback)
         .sensoryFeedback(.warning, trigger: triggerWarningFeedback)
         .accessibilityAddTraits(.isButton)
-        .accessibilityHint("Touche pour modifier, maintiens pour voir les transactions")
+        .accessibilityHint(hasConsumption
+            ? "Montant restant: \(consumption.available.asCHF). Touche pour modifier, maintiens pour voir les transactions"
+            : "Touche pour modifier, maintiens pour voir les transactions"
+        )
     }
 
     // MARK: - Kind Icon Circle (Revolut-style)
@@ -285,6 +321,8 @@ struct BudgetLineRow: View {
 
     private func handleLongPress() {
         guard !line.isVirtualRollover else { return }
+
+        ProductTips.gestures.invalidate(reason: .actionPerformed)
 
         if linkedTransactions.isEmpty {
             triggerWarningFeedback.toggle()
