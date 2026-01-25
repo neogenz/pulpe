@@ -58,16 +58,7 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
         <h1 class="text-display-small truncate min-w-0 flex-shrink">
           {{ titleDisplay.currentTitle() }}
         </h1>
-        <div class="flex gap-2 flex-shrink-0">
-          <button
-            matIconButton
-            (click)="startPageTour()"
-            matTooltip="Découvrir cette page"
-            aria-label="Aide"
-            data-testid="help-button"
-          >
-            <mat-icon>help_outline</mat-icon>
-          </button>
+        <div class="flex gap-2 flex-shrink-0 ml-auto">
           <button
             matIconButton
             (click)="onExportBudgets()"
@@ -205,10 +196,6 @@ export default class BudgetListPage {
         );
       }
     });
-  }
-
-  startPageTour(): void {
-    this.#productTourService.startPageTour('budget-list');
   }
 
   protected readonly calendarYears = computed<CalendarYear[]>(() => {
