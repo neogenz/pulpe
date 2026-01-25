@@ -132,7 +132,7 @@ export function provideCore({ routes }: CoreOptions) {
       const logger = inject(Logger);
 
       // 0. Run storage migrations first (before any data is read)
-      await storageMigrationRunner.runMigrations();
+      storageMigrationRunner.runMigrations();
 
       // 1. Charger la configuration d'abord
       await applicationConfig.initialize();

@@ -18,7 +18,7 @@ import { isStorageEntry, type StorageEntry } from './storage.types';
 export class StorageMigrationRunnerService {
   readonly #logger = inject(Logger);
 
-  async runMigrations(): Promise<void> {
+  runMigrations(): void {
     try {
       const pulpeKeys = Object.keys(localStorage).filter((key) =>
         key.startsWith('pulpe'),
@@ -28,6 +28,11 @@ export class StorageMigrationRunnerService {
       let clearedCount = 0;
 
       for (const key of pulpeKeys) {
+        if (!key.startsWith('pulpe-') && !key.startsWith('pulpe_')) {
+          this.#logger.warn(`Invalid storage key format: ${key}`);
+          continue;
+        }
+
         const schemaConfig = getSchemaConfig(key);
         if (!schemaConfig) continue;
 
@@ -116,6 +121,6 @@ export class StorageMigrationRunnerService {
  */
 export function initializeStorageMigrations(
   migrationRunner: StorageMigrationRunnerService,
-): () => Promise<void> {
+): () => void {
   return () => migrationRunner.runMigrations();
 }
