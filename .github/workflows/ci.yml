@@ -550,7 +550,7 @@ jobs:
         run: |
           xcodebuild test \
             -scheme PulpeTests \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=26.0' \
+            -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.2' \
             CODE_SIGNING_ALLOWED=NO \
             -quiet
 
