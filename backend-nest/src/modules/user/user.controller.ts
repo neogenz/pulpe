@@ -392,12 +392,15 @@ export class UserController {
         };
       }
 
-      await this.signOutUserGlobally(user.accessToken);
-
+      // Schedule deletion FIRST - if this fails, user stays logged in (correct state)
+      // If we signed out first and this failed, user would be logged out but not scheduled
       const scheduledDeletionAt = await this.scheduleAccountDeletion(
         user.id,
         currentUserData.user.user_metadata,
       );
+
+      // Sign out AFTER scheduling - if this fails, AuthGuard blocks access anyway
+      await this.signOutUserGlobally(user.accessToken);
 
       return {
         success: true as const,
