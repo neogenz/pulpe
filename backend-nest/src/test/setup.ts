@@ -1,6 +1,22 @@
 import 'reflect-metadata';
 
 // ============================================================================
+// TEST ENVIRONMENT VARIABLES
+// ============================================================================
+// Set required environment variables before any NestJS modules are imported.
+// ConfigModule.forRoot() validates these at import time, so they must be set
+// before the test files import their modules.
+
+process.env.NODE_ENV = 'test';
+process.env.SUPABASE_URL = process.env.SUPABASE_URL || 'http://localhost:54321';
+process.env.SUPABASE_ANON_KEY =
+  process.env.SUPABASE_ANON_KEY || 'test-anon-key';
+process.env.SUPABASE_SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key';
+process.env.TURNSTILE_SECRET_KEY =
+  process.env.TURNSTILE_SECRET_KEY || 'test-turnstile-secret';
+
+// ============================================================================
 // TEST LOG SILENCING SYSTEM
 // ============================================================================
 
