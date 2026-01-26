@@ -86,11 +86,11 @@ struct CurrentMonthView: View {
                 // Hero card with available balance and linear progress
                 DashboardHeroCard(metrics: store.metrics)
 
-                // Top spending category
-                if let topCategory = store.topSpendingCategory {
-                    TopCategoryCard(
-                        categoryName: topCategory.line.name,
-                        amount: topCategory.consumption.allocated,
+                // Top spending budget line
+                if let topSpending = store.topSpendingCategory {
+                    TopSpendingCard(
+                        name: topSpending.line.name,
+                        amount: topSpending.consumption.allocated,
                         totalExpenses: store.metrics.totalExpenses
                     )
                 }

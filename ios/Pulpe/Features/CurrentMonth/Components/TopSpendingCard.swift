@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Card showing the top spending category of the month
-struct TopCategoryCard: View {
-    let categoryName: String
+/// Card showing the top spending budget line (envelope) of the month
+struct TopSpendingCard: View {
+    let name: String
     let amount: Decimal
     let totalExpenses: Decimal
 
@@ -13,7 +13,7 @@ struct TopCategoryCard: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Category icon
+            // Icon
             Circle()
                 .fill(Color.financialExpense.opacity(0.15))
                 .frame(width: 40, height: 40)
@@ -23,13 +23,13 @@ struct TopCategoryCard: View {
                         .foregroundStyle(Color.financialExpense)
                 }
 
-            // Category info
+            // Label and name
             VStack(alignment: .leading, spacing: 2) {
-                Text("Top catégorie")
+                Text("Où part ton argent")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Text(categoryName)
+                Text(name)
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundStyle(.primary)
@@ -45,7 +45,7 @@ struct TopCategoryCard: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(.primary)
 
-                Text("\(percentageOfTotal)% des dépenses")
+                Text("\(percentageOfTotal)% de tes dépenses")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -55,28 +55,28 @@ struct TopCategoryCard: View {
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Top catégorie: \(categoryName), \(amount.asCHF), \(percentageOfTotal) pourcent des dépenses")
+        .accessibilityLabel("Où part ton argent: \(name), \(amount.asCHF), \(percentageOfTotal) pourcent de tes dépenses")
     }
 }
 
 // MARK: - Preview
 
-#Preview("Top Category Card") {
+#Preview("Top Spending Card") {
     VStack(spacing: 16) {
-        TopCategoryCard(
-            categoryName: "Restaurants",
+        TopSpendingCard(
+            name: "Restaurants",
             amount: 450,
             totalExpenses: 2500
         )
 
-        TopCategoryCard(
-            categoryName: "Courses alimentaires",
+        TopSpendingCard(
+            name: "Courses alimentaires",
             amount: 800,
             totalExpenses: 3200
         )
 
-        TopCategoryCard(
-            categoryName: "Transport",
+        TopSpendingCard(
+            name: "Transport",
             amount: 150,
             totalExpenses: 2000
         )
