@@ -5,6 +5,7 @@ struct InlineAlertsView: View {
     let alerts: [(line: BudgetLine, consumption: BudgetFormulas.Consumption)]
     var onTap: (() -> Void)?
 
+    /// Maximum alerts shown inline to avoid visual clutter while highlighting critical budget issues
     private let maxVisibleAlerts = 3
 
     var body: some View {
