@@ -31,7 +31,7 @@
         (click)="navigateToPrevious()"
         aria-label="Mois précédent"
         data-testid="previous-month-button"
-        class="flex-shrink-0 lg:hidden"
+        class="flex-shrink-0 lg:hidden!"
       >
         <mat-icon>chevron_left</mat-icon>
       </button>
@@ -42,7 +42,7 @@
         (click)="navigateToPrevious()"
         aria-label="Mois précédent"
         data-testid="previous-month-button-desktop"
-        class="hidden lg:flex flex-shrink-0"
+        class="hidden! lg:flex! flex-shrink-0"
       >
         <mat-icon>chevron_left</mat-icon>
         <span>Mois précédent</span>
@@ -73,7 +73,7 @@
         (click)="navigateToNext()"
         aria-label="Mois suivant"
         data-testid="next-month-button"
-        class="flex-shrink-0 lg:hidden"
+        class="flex-shrink-0 lg:hidden!"
       >
         <mat-icon>chevron_right</mat-icon>
       </button>
@@ -84,10 +84,10 @@
         (click)="navigateToNext()"
         aria-label="Mois suivant"
         data-testid="next-month-button-desktop"
-        class="hidden lg:flex flex-shrink-0"
+        class="hidden! lg:flex! flex-shrink-0"
       >
         <span>Mois suivant</span>
-        <mat-icon>chevron_right</mat-icon>
+        <mat-icon iconPositionEnd>chevron_right</mat-icon>
       </button>
     </div>
   </header>
