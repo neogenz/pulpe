@@ -5,10 +5,20 @@
  * Uses Driver.js library with Material Design 3 theming.
  */
 
+import { DOCUMENT } from '@angular/common';
 import { inject, Injectable } from '@angular/core';
 import { driver, type DriveStep, type Config, type Driver } from 'driver.js';
 import { StorageService, type StorageKey } from '@core/storage';
 import { AuthStateService } from '@core/auth/auth-state.service';
+
+/**
+ * Selectors for layout containers that need scroll reset after tour.
+ * Driver.js scrollIntoView() affects all scrollable ancestors.
+ */
+const SCROLL_RESET_SELECTORS = [
+  '[data-testid="page-content"]',
+  '[data-testid="main-content"] > div',
+] as const;
 
 export type TourPageId =
   | 'current-month'
@@ -40,6 +50,7 @@ const TOUR_IDS = {
   providedIn: 'root',
 })
 export class ProductTourService {
+  readonly #document = inject(DOCUMENT);
   readonly #storageService = inject(StorageService);
   readonly #authState = inject(AuthStateService);
 
@@ -131,28 +142,19 @@ export class ProductTourService {
   }
 
   #removeDriverClasses(): void {
-    document.querySelectorAll('.driver-active-element').forEach((el) => {
+    this.#document.querySelectorAll('.driver-active-element').forEach((el) => {
       el.classList.remove('driver-active-element');
     });
-    document.body.classList.remove(
+    this.#document.body.classList.remove(
       'driver-active',
       'driver-fade',
       'driver-simple',
     );
   }
 
-  /**
-   * Reset scroll on layout containers.
-   * scrollIntoView() used by Driver.js scrolls ALL ancestors, not just the intended one.
-   */
   #resetScrollPositions(): void {
-    const selectors = [
-      '[data-testid="page-content"]',
-      '[data-testid="main-content"] > div',
-    ];
-
-    for (const selector of selectors) {
-      const element = document.querySelector(selector);
+    for (const selector of SCROLL_RESET_SELECTORS) {
+      const element = this.#document.querySelector(selector);
       if (element) {
         element.scrollTop = 0;
       }
