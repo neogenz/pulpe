@@ -103,3 +103,23 @@ struct BudgetWithDetails: Decodable {
     let createdAt: Date
     let updatedAt: Date
 }
+
+// MARK: - Sparse Fieldsets (Dashboard optimized)
+
+/// Sparse budget response with only requested aggregates
+/// Used for dashboard to avoid fetching full budget details
+struct BudgetSparse: Decodable, Identifiable, Sendable {
+    let id: String
+    let month: Int?
+    let year: Int?
+    let totalExpenses: Decimal?
+    let totalSavings: Decimal?
+    let totalIncome: Decimal?
+    let remaining: Decimal?
+    let rollover: Decimal?
+}
+
+struct BudgetSparseListResponse: Decodable {
+    let success: Bool
+    let data: [BudgetSparse]
+}

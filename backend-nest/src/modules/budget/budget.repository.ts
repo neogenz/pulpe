@@ -3,7 +3,7 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import type { BudgetUpdate } from 'pulpe-shared';
+import type { BudgetUpdate, TransactionKind } from 'pulpe-shared';
 import type { Tables } from '../../types/database.types';
 import type { PostgrestError } from '@supabase/supabase-js';
 
@@ -35,6 +35,15 @@ interface BudgetDataResult {
   budget?: Tables<'monthly_budget'>;
   budgetLines: Tables<'budget_line'>[];
   transactions: Tables<'transaction'>[];
+}
+
+/**
+ * Aggregated totals for a budget
+ */
+export interface BudgetAggregates {
+  totalExpenses: number;
+  totalSavings: number;
+  totalIncome: number;
 }
 
 /**
@@ -312,5 +321,73 @@ export class BudgetRepository {
     }
 
     return response;
+  }
+
+  /**
+   * Fetches aggregated totals for multiple budgets in batch
+   * Calculates totalExpenses, totalSavings, totalIncome from budget_lines and transactions
+   * @param budgetIds - Array of budget IDs
+   * @param supabase - Authenticated Supabase client
+   * @returns Map of budget ID to aggregates
+   */
+  async fetchBudgetAggregates(
+    budgetIds: string[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Map<string, BudgetAggregates>> {
+    const aggregatesMap = new Map<string, BudgetAggregates>();
+
+    if (budgetIds.length === 0) {
+      return aggregatesMap;
+    }
+
+    for (const budgetId of budgetIds) {
+      aggregatesMap.set(budgetId, {
+        totalExpenses: 0,
+        totalSavings: 0,
+        totalIncome: 0,
+      });
+    }
+
+    try {
+      const [budgetLinesResult, transactionsResult] = await Promise.all([
+        supabase
+          .from('budget_line')
+          .select('budget_id, kind, amount')
+          .in('budget_id', budgetIds),
+        supabase
+          .from('transaction')
+          .select('budget_id, kind, amount')
+          .in('budget_id', budgetIds),
+      ]);
+
+      this.accumulateAmounts(budgetLinesResult.data ?? [], aggregatesMap);
+      this.accumulateAmounts(transactionsResult.data ?? [], aggregatesMap);
+    } catch {
+      // On error, return zero-initialized aggregates for graceful degradation
+    }
+
+    return aggregatesMap;
+  }
+
+  private accumulateAmounts(
+    items: Array<{ budget_id: string; kind: TransactionKind; amount: number }>,
+    aggregatesMap: Map<string, BudgetAggregates>,
+  ): void {
+    for (const item of items) {
+      const aggregates = aggregatesMap.get(item.budget_id);
+      if (!aggregates) continue;
+
+      switch (item.kind) {
+        case 'expense':
+          aggregates.totalExpenses += item.amount;
+          break;
+        case 'saving':
+          aggregates.totalSavings += item.amount;
+          break;
+        case 'income':
+          aggregates.totalIncome += item.amount;
+          break;
+      }
+    }
   }
 }

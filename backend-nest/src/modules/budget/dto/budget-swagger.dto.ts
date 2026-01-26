@@ -6,6 +6,8 @@ import {
   budgetListResponseSchema,
   budgetDeleteResponseSchema,
   budgetDetailsResponseSchema,
+  listBudgetsQuerySchema,
+  budgetSparseListResponseSchema,
 } from 'pulpe-shared';
 
 // DTOs pour la documentation Swagger basés sur les schémas Zod partagés
@@ -20,4 +22,10 @@ export class BudgetDeleteResponseDto extends createZodDto(
 ) {}
 export class BudgetDetailsResponseDto extends createZodDto(
   budgetDetailsResponseSchema,
+) {}
+
+// Sparse fieldsets DTOs for optimized queries
+export class ListBudgetsQueryDto extends createZodDto(listBudgetsQuerySchema) {}
+export class BudgetSparseListResponseDto extends createZodDto(
+  budgetSparseListResponseSchema,
 ) {}
