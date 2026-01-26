@@ -49,10 +49,10 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
     <mat-card
       appearance="outlined"
       class="!rounded-2xl"
+      [class.ring-2]="isSelected()"
+      [class.ring-primary]="isSelected()"
       [class.opacity-60]="item().metadata.isLoading"
-      [attr.data-testid]="
-        'envelope-card-' + (item().data.name | rolloverFormat)
-      "
+      [attr.data-testid]="'envelope-card-' + item().data.id"
     >
       <mat-card-content class="p-4">
         <!-- Row 1: Name and Menu -->
@@ -171,14 +171,19 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
               @if (item().consumption?.hasTransactions) {
                 <button
                   matButton
-                  class="!h-8 !px-3 !rounded-full !min-w-0"
+                  class="text-body-small h-8! px-3!"
                   [matBadge]="item().consumption!.transactionCount"
                   matBadgeColor="primary"
-                  matBadgeSize="small"
                   (click)="viewTransactions.emit(item())"
-                  matTooltip="Voir les transactions"
+                  [matTooltip]="
+                    'Voir les ' + item().consumption!.transactionCountLabel
+                  "
                 >
-                  <mat-icon class="!text-lg">receipt_long</mat-icon>
+                  <mat-icon class="text-base! mr-1">receipt_long</mat-icon>
+                  {{
+                    item().consumption!.consumed
+                      | currency: 'CHF' : 'symbol' : '1.0-0'
+                  }}
                 </button>
               } @else {
                 <button
@@ -212,6 +217,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
 })
 export class BudgetGridMobileCard {
   readonly item = input.required<BudgetLineTableItem>();
+  readonly isSelected = input<boolean>(false);
 
   readonly edit = output<BudgetLineTableItem>();
   readonly delete = output<string>();

@@ -24,16 +24,28 @@
   <!-- Header: Month navigation with chevrons -->
   <header class="relative">
     <div class="flex items-center justify-center gap-2 min-w-0">
+      <!-- Mobile: icon button only -->
+      <button
+        matIconButton
+        [disabled]="!store.hasPrevious()"
+        (click)="navigateToPrevious()"
+        aria-label="Mois précédent"
+        data-testid="previous-month-button"
+        class="flex-shrink-0 lg:hidden!"
+      >
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+      <!-- Desktop: text button -->
       <button
         matButton
         [disabled]="!store.hasPrevious()"
         (click)="navigateToPrevious()"
         aria-label="Mois précédent"
-        data-testid="previous-month-button"
-        class="flex-shrink-0"
+        data-testid="previous-month-button-desktop"
+        class="hidden! lg:flex! flex-shrink-0"
       >
         <mat-icon>chevron_left</mat-icon>
-        <span class="hidden lg:inline">Mois précédent</span>
+        <span>Mois précédent</span>
       </button>
       <div class="flex-1 min-w-0 text-center">
         <h1
@@ -54,16 +66,28 @@
         </p>
         }
       </div>
+      <!-- Mobile: icon button only -->
+      <button
+        matIconButton
+        [disabled]="!store.hasNext()"
+        (click)="navigateToNext()"
+        aria-label="Mois suivant"
+        data-testid="next-month-button"
+        class="flex-shrink-0 lg:hidden!"
+      >
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+      <!-- Desktop: text button -->
       <button
         matButton
         [disabled]="!store.hasNext()"
         (click)="navigateToNext()"
         aria-label="Mois suivant"
-        data-testid="next-month-button"
-        class="flex-shrink-0"
+        data-testid="next-month-button-desktop"
+        class="hidden! lg:flex! flex-shrink-0"
       >
-        <span class="hidden lg:inline">Mois suivant</span>
-        <mat-icon>chevron_right</mat-icon>
+        <span>Mois suivant</span>
+        <mat-icon iconPositionEnd>chevron_right</mat-icon>
       </button>
     </div>
   </header>
