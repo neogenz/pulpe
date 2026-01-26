@@ -1,5 +1,17 @@
 # pulpe-shared
 
+## 0.6.0
+
+### Minor Changes
+
+- ## Nouvelles fonctionnalités
+  - **Suppression de compte** - Les utilisateurs peuvent supprimer leur compte avec un délai de grâce de 3 jours pour annuler
+  - **Migrations de stockage typées** - Système de migration robuste pour les préférences locales
+  - **UI Budget améliorée** - Anneau dynamique pour budgets négatifs, boutons alignés à droite
+
+  ## Corrections
+  - Restauration de l'abstraction du service API pour le toggle des lignes budgétaires
+
 ## 0.5.1
 
 ### Patch Changes
