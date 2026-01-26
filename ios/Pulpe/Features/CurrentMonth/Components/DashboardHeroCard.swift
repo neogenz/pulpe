@@ -33,6 +33,19 @@ struct DashboardHeroCard: View {
         isOverBudget ? .red : .primary
     }
 
+    private var statusMessage: (text: String, color: Color)? {
+        if usagePercentage >= 1 {
+            return nil // Over budget state is already clear from red balance
+        }
+        if usagePercentage >= 0.85 {
+            return ("Attention, tu approches de ta limite", .orange)
+        }
+        if usagePercentage < 0.7 {
+            return ("Tu gères bien ce mois", .green)
+        }
+        return nil // 70-85%: no message
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -74,6 +87,18 @@ struct DashboardHeroCard: View {
                     .fontWeight(.medium)
                     .foregroundStyle(progressColor)
                     .fixedSize()
+            }
+
+            // Contextual status message
+            if let status = statusMessage {
+                HStack(spacing: 6) {
+                    Image(systemName: status.color == .green ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                        .font(.subheadline)
+                    Text(status.text)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                }
+                .foregroundStyle(status.color)
             }
         }
         .padding(.horizontal, 20)

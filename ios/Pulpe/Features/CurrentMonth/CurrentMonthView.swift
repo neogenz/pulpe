@@ -86,11 +86,28 @@ struct CurrentMonthView: View {
                 // Hero card with available balance and linear progress
                 DashboardHeroCard(metrics: store.metrics)
 
+                // Top spending category
+                if let topCategory = store.topSpendingCategory {
+                    TopCategoryCard(
+                        categoryName: topCategory.line.name,
+                        amount: topCategory.consumption.allocated,
+                        totalExpenses: store.metrics.totalExpenses
+                    )
+                }
+
                 // Inline alerts (categories at 80%+)
                 InlineAlertsView(
                     alerts: store.alertBudgetLines,
                     onTap: { navigateToBudget = true }
                 )
+
+                // Recent transactions
+                if !store.recentTransactions.isEmpty {
+                    RecentTransactionsCard(
+                        transactions: store.recentTransactions,
+                        onViewAll: { navigateToBudget = true }
+                    )
+                }
 
                 // Trends (expenses over last 3 months)
                 if dashboardStore.hasEnoughHistoryForTrends {
