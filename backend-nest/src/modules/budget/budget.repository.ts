@@ -363,7 +363,8 @@ export class BudgetRepository {
       this.accumulateAmounts(budgetLinesResult.data ?? [], aggregatesMap);
       this.accumulateAmounts(transactionsResult.data ?? [], aggregatesMap);
     } catch {
-      // On error, return zero-initialized aggregates for graceful degradation
+      // Graceful degradation: return zero-initialized aggregates
+      // Intentionally silent - aggregates are non-critical for sparse responses
     }
 
     return aggregatesMap;
