@@ -5,6 +5,7 @@ import {
   input,
   output,
 } from '@angular/core';
+import { MatBadgeModule } from '@angular/material/badge';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { type BudgetLine } from 'pulpe-shared';
@@ -33,6 +34,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
 @Component({
   selector: 'pulpe-budget-grid-card',
   imports: [
+    MatBadgeModule,
     MatChipsModule,
     MatSlideToggleModule,
     CurrencyPipe,
@@ -50,6 +52,10 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
       [class.ring-2]="isSelected()"
       [class.ring-primary]="isSelected()"
       [class.opacity-60]="item().metadata.isLoading"
+      [matBadge]="item().consumption?.transactionCount"
+      [matBadgeHidden]="!item().consumption?.hasTransactions"
+      matBadgeColor="primary"
+      matBadgePosition="above after"
       role="button"
       tabindex="0"
       (click)="cardClick.emit(item())"

@@ -49,10 +49,10 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
     <mat-card
       appearance="outlined"
       class="!rounded-2xl"
+      [class.ring-2]="isSelected()"
+      [class.ring-primary]="isSelected()"
       [class.opacity-60]="item().metadata.isLoading"
-      [attr.data-testid]="
-        'envelope-card-' + (item().data.name | rolloverFormat)
-      "
+      [attr.data-testid]="'envelope-card-' + item().data.id"
     >
       <mat-card-content class="p-4">
         <!-- Row 1: Name and Menu -->
@@ -217,6 +217,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
 })
 export class BudgetGridMobileCard {
   readonly item = input.required<BudgetLineTableItem>();
+  readonly isSelected = input<boolean>(false);
 
   readonly edit = output<BudgetLineTableItem>();
   readonly delete = output<string>();
