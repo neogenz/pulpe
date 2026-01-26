@@ -12,7 +12,7 @@ struct DashboardHeroCard: View {
 
     private var usagePercentage: Double {
         guard metrics.available > 0 else { return 1 }
-        return Double(truncating: (metrics.totalExpenses / metrics.available) as NSDecimalNumber)
+        return ((metrics.totalExpenses / metrics.available) as NSDecimalNumber).doubleValue
     }
 
     private var clampedPercentage: Double {

@@ -70,14 +70,14 @@ struct TrendsCard: View {
         Chart(expenses) { expense in
             LineMark(
                 x: .value("Mois", expense.shortMonthName),
-                y: .value("Dépenses", Double(truncating: expense.total as NSDecimalNumber))
+                y: .value("Dépenses", (expense.total as NSDecimalNumber).doubleValue)
             )
             .foregroundStyle(Color.pulpePrimary)
             .interpolationMethod(.catmullRom)
 
             AreaMark(
                 x: .value("Mois", expense.shortMonthName),
-                y: .value("Dépenses", Double(truncating: expense.total as NSDecimalNumber))
+                y: .value("Dépenses", (expense.total as NSDecimalNumber).doubleValue)
             )
             .foregroundStyle(
                 LinearGradient(

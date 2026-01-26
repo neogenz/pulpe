@@ -23,6 +23,10 @@ final class DashboardStore: StoreProtocol {
 
     private let budgetService: BudgetService
 
+    // MARK: - Constants
+
+    private static let historicalMonthsCount = 3
+
     // MARK: - Initialization
 
     init(budgetService: BudgetService = .shared) {
@@ -61,7 +65,7 @@ final class DashboardStore: StoreProtocol {
 
         // Get last 3 months (including current)
         var months: [(month: Int, year: Int)] = []
-        for offset in (-2...0) {
+        for offset in (-(Self.historicalMonthsCount - 1)...0) {
             guard let date = calendar.date(byAdding: .month, value: offset, to: now) else { continue }
             let month = calendar.component(.month, from: date)
             let year = calendar.component(.year, from: date)
@@ -97,7 +101,7 @@ final class DashboardStore: StoreProtocol {
         guard previous.total > 0 else { return nil }
 
         let difference = current.total - previous.total
-        let percentage = (Double(truncating: difference as NSDecimalNumber) / Double(truncating: previous.total as NSDecimalNumber)) * 100
+        let percentage = ((difference as NSDecimalNumber).doubleValue / (previous.total as NSDecimalNumber).doubleValue) * 100
 
         return ExpenseVariation(
             amount: difference,
