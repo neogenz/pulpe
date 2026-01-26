@@ -4,6 +4,11 @@ import Foundation
 actor BudgetService {
     static let shared = BudgetService()
 
+    // MARK: - Constants
+
+    /// Default fields for sparse dashboard queries (optimized payload)
+    static let defaultSparseFields = "month,year,totalExpenses,totalSavings,rollover"
+
     private let apiClient: APIClient
 
     private init(apiClient: APIClient = .shared) {
@@ -75,7 +80,7 @@ actor BudgetService {
     /// Get budgets with sparse fieldsets (optimized for dashboard)
     /// Returns only requested aggregates without transactions/budget lines
     func getBudgetsSparse(
-        fields: String = "month,year,totalExpenses,totalSavings,rollover",
+        fields: String = BudgetService.defaultSparseFields,
         limit: Int? = nil,
         year: Int? = nil
     ) async throws -> [BudgetSparse] {

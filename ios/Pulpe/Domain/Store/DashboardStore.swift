@@ -50,7 +50,6 @@ final class DashboardStore: StoreProtocol {
         do {
             // Fetch only aggregated data - no transactions or budget lines
             sparseBudgets = try await budgetService.getBudgetsSparse(
-                fields: "month,year,totalExpenses,totalSavings,rollover",
                 limit: Self.maxBudgetsToFetch
             )
             lastLoadTime = Date()
