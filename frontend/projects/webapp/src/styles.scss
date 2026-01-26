@@ -27,12 +27,19 @@ html {
   );
 }
 
-html,
+html {
+  overflow: hidden;
+  width: 100%;
+}
+
 body {
   height: 100%;
-  // Prevent body scroll - mat-sidenav-container manages all scrolling internally
-  // See: main-layout.ts where mat-sidenav-container is h-[100dvh] and main content is overflow-y-auto
-  overflow: hidden;
+  // Enable mobile browser navbar auto-hide on scroll (Android Chrome/Samsung Browser)
+  // position: fixed + overflow-y: scroll allows browser to detect scroll gestures
+  position: fixed;
+  width: 100%;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
   // Prevent horizontal scrolling on mobile - critical for preventing layout issues
   overflow-x: hidden;
   max-width: 100vw;
