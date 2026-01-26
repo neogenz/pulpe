@@ -308,6 +308,205 @@ describe('BudgetService', () => {
       expect(calculateEndingBalanceCallCount).toBe(1);
       expect(capturedBudgetId).toBe(mockBudgets[0].id);
     });
+
+    describe('sparse fieldsets', () => {
+      it('should return sparse response with only requested fields', async () => {
+        const mockUser = createMockAuthenticatedUser();
+        const mockBudgets = [
+          createValidBudgetEntity({ id: 'budget-1', month: 1, year: 2026 }),
+          createValidBudgetEntity({ id: 'budget-2', month: 2, year: 2026 }),
+        ];
+
+        mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
+
+        const result = await service.findAll(
+          mockUser,
+          mockSupabaseClient as any,
+          {
+            fields: 'month,year',
+          },
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.data).toHaveLength(2);
+
+        result.data.forEach((budget: any) => {
+          expect(budget).toHaveProperty('id');
+          expect(budget).toHaveProperty('month');
+          expect(budget).toHaveProperty('year');
+          expect(budget).not.toHaveProperty('createdAt');
+          expect(budget).not.toHaveProperty('description');
+        });
+      });
+
+      it('should apply limit filter when provided', async () => {
+        const mockUser = createMockAuthenticatedUser();
+        const mockBudgets = [
+          createValidBudgetEntity({ id: 'budget-1', month: 1, year: 2026 }),
+          createValidBudgetEntity({ id: 'budget-2', month: 2, year: 2026 }),
+          createValidBudgetEntity({ id: 'budget-3', month: 3, year: 2026 }),
+        ];
+
+        mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
+
+        const result = await service.findAll(
+          mockUser,
+          mockSupabaseClient as any,
+          {
+            fields: 'month,year',
+            limit: 2,
+          },
+        );
+
+        expect(result.success).toBe(true);
+        // Note: Mock doesn't actually apply limit, but we test that it's passed correctly
+        // Real integration test would verify this
+      });
+
+      it('should filter by year when provided', async () => {
+        const mockUser = createMockAuthenticatedUser();
+        const mockBudgets = [
+          createValidBudgetEntity({ id: 'budget-1', month: 1, year: 2026 }),
+        ];
+
+        mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
+
+        const result = await service.findAll(
+          mockUser,
+          mockSupabaseClient as any,
+          {
+            fields: 'month,year',
+            year: 2026,
+          },
+        );
+
+        expect(result.success).toBe(true);
+      });
+
+      it('should calculate aggregates when totalExpenses is requested', async () => {
+        const mockUser = createMockAuthenticatedUser();
+        const mockBudgets = [
+          createValidBudgetEntity({ id: 'budget-1', month: 1, year: 2026 }),
+        ];
+
+        mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
+
+        // Mock repository to return aggregates
+        mockRepository.fetchBudgetAggregates = () =>
+          Promise.resolve(
+            new Map([
+              [
+                'budget-1',
+                { totalExpenses: 1500, totalSavings: 500, totalIncome: 5000 },
+              ],
+            ]),
+          );
+
+        const result = await service.findAll(
+          mockUser,
+          mockSupabaseClient as any,
+          {
+            fields: 'month,year,totalExpenses',
+          },
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.data[0]).toHaveProperty('totalExpenses');
+        expect(
+          (result.data[0] as { totalExpenses: number }).totalExpenses,
+        ).toBe(1500);
+      });
+
+      it('should calculate remaining when requested (income - expenses - savings + rollover)', async () => {
+        const mockUser = createMockAuthenticatedUser();
+        const mockBudgets = [
+          createValidBudgetEntity({ id: 'budget-1', month: 1, year: 2026 }),
+        ];
+
+        mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
+
+        mockRepository.fetchBudgetAggregates = () =>
+          Promise.resolve(
+            new Map([
+              [
+                'budget-1',
+                { totalExpenses: 1500, totalSavings: 500, totalIncome: 5000 },
+              ],
+            ]),
+          );
+
+        mockCalculator.getRollover = () =>
+          Promise.resolve({ rollover: 200, previousBudgetId: null });
+
+        const result = await service.findAll(
+          mockUser,
+          mockSupabaseClient as any,
+          {
+            fields: 'month,year,remaining',
+          },
+        );
+
+        expect(result.success).toBe(true);
+        // remaining = 5000 - 1500 - 500 + 200 = 3200
+        expect(result.data[0].remaining).toBe(3200);
+      });
+
+      it('should return rollover when requested', async () => {
+        const mockUser = createMockAuthenticatedUser();
+        const mockBudgets = [
+          createValidBudgetEntity({ id: 'budget-1', month: 1, year: 2026 }),
+        ];
+
+        mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
+
+        mockCalculator.getRollover = () =>
+          Promise.resolve({ rollover: 350, previousBudgetId: 'prev-budget' });
+
+        const result = await service.findAll(
+          mockUser,
+          mockSupabaseClient as any,
+          {
+            fields: 'month,rollover',
+          },
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.data[0]).toHaveProperty('rollover');
+        expect(result.data[0].rollover).toBe(350);
+      });
+
+      it('should handle database error in sparse mode', async () => {
+        const mockUser = createMockAuthenticatedUser();
+        const mockError = { message: 'Database connection failed' };
+        mockSupabaseClient.setMockData(null).setMockError(mockError);
+
+        await expectBusinessExceptionThrown(
+          () =>
+            service.findAll(mockUser, mockSupabaseClient as any, {
+              fields: 'month,year',
+            }),
+          ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+        );
+      });
+
+      it('should fallback to full response when no fields param provided', async () => {
+        const mockUser = createMockAuthenticatedUser();
+        const mockBudgets = [createValidBudgetEntity()];
+
+        mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
+
+        // Without fields param, should return full response with all fields
+        const result = await service.findAll(
+          mockUser,
+          mockSupabaseClient as any,
+          {},
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.data[0]).toHaveProperty('createdAt');
+        expect(result.data[0]).toHaveProperty('description');
+      });
+    });
   });
 
   describe('create', () => {

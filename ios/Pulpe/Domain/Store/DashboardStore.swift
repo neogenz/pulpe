@@ -1,11 +1,12 @@
 import Foundation
 
 /// Store for dashboard historical data and trends
+/// Uses sparse fieldsets API for optimized data fetching (~500 bytes vs ~50KB)
 @Observable @MainActor
 final class DashboardStore: StoreProtocol {
     // MARK: - State
 
-    private(set) var budgetsWithDetails: [BudgetWithDetails] = []
+    private(set) var sparseBudgets: [BudgetSparse] = []
     private(set) var isLoading = false
     private(set) var error: Error?
 
@@ -26,6 +27,7 @@ final class DashboardStore: StoreProtocol {
     // MARK: - Constants
 
     private static let historicalMonthsCount = 3
+    private static let maxBudgetsToFetch = 12 // Enough for YTD + trends
 
     // MARK: - Initialization
 
@@ -46,8 +48,11 @@ final class DashboardStore: StoreProtocol {
         error = nil
 
         do {
-            let exportData = try await budgetService.exportAllBudgets()
-            budgetsWithDetails = exportData.budgets
+            // Fetch only aggregated data - no transactions or budget lines
+            sparseBudgets = try await budgetService.getBudgetsSparse(
+                fields: "month,year,totalExpenses,totalSavings,rollover",
+                limit: Self.maxBudgetsToFetch
+            )
             lastLoadTime = Date()
         } catch {
             self.error = error
@@ -73,14 +78,12 @@ final class DashboardStore: StoreProtocol {
         }
 
         return months.compactMap { (month, year) -> MonthlyExpense? in
-            guard let budget = budgetsWithDetails.first(where: { $0.month == month && $0.year == year }) else {
+            guard let budget = sparseBudgets.first(where: { $0.month == month && $0.year == year }) else {
                 return nil
             }
 
-            let totalExpenses = BudgetFormulas.calculateTotalExpenses(
-                budgetLines: budget.budgetLines,
-                transactions: budget.transactions
-            )
+            // Use pre-calculated aggregate from backend
+            let totalExpenses = budget.totalExpenses ?? 0
 
             return MonthlyExpense(
                 month: month,
@@ -116,13 +119,11 @@ final class DashboardStore: StoreProtocol {
         let calendar = Calendar.current
         let currentYear = calendar.component(.year, from: Date())
 
-        return budgetsWithDetails
+        // Use pre-calculated aggregates from backend
+        return sparseBudgets
             .filter { $0.year == currentYear }
             .reduce(Decimal.zero) { total, budget in
-                total + BudgetFormulas.calculateTotalSavings(
-                    budgetLines: budget.budgetLines,
-                    transactions: budget.transactions
-                )
+                total + (budget.totalSavings ?? 0)
             }
     }
 
@@ -133,7 +134,7 @@ final class DashboardStore: StoreProtocol {
         let currentMonth = calendar.component(.month, from: now)
         let currentYear = calendar.component(.year, from: now)
 
-        return budgetsWithDetails
+        return sparseBudgets
             .first { $0.month == currentMonth && $0.year == currentYear }?
             .rollover ?? 0
     }

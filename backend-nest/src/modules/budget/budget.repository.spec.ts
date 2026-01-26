@@ -240,4 +240,101 @@ describe('BudgetRepository', () => {
       expect(orderParams!.options.ascending).toBe(false);
     });
   });
+
+  describe('fetchBudgetAggregates', () => {
+    it('should return empty map when no budget IDs provided', async () => {
+      const mockSupabase = {} as any;
+      const result = await repository.fetchBudgetAggregates([], mockSupabase);
+      expect(result.size).toBe(0);
+    });
+
+    it('should calculate correct aggregates from budget_lines and transactions', async () => {
+      const mockBudgetLines = [
+        { budget_id: 'budget-1', kind: 'expense', amount: 500 },
+        { budget_id: 'budget-1', kind: 'income', amount: 3000 },
+        { budget_id: 'budget-1', kind: 'saving', amount: 200 },
+        { budget_id: 'budget-2', kind: 'expense', amount: 1000 },
+      ];
+
+      const mockTransactions = [
+        { budget_id: 'budget-1', kind: 'expense', amount: 100 },
+        { budget_id: 'budget-1', kind: 'income', amount: 500 },
+        { budget_id: 'budget-2', kind: 'saving', amount: 300 },
+      ];
+
+      const mockSupabase = {
+        from: (table: string) => ({
+          select: () => ({
+            in: () => {
+              if (table === 'budget_line') {
+                return Promise.resolve({ data: mockBudgetLines, error: null });
+              }
+              return Promise.resolve({ data: mockTransactions, error: null });
+            },
+          }),
+        }),
+      };
+
+      const result = await repository.fetchBudgetAggregates(
+        ['budget-1', 'budget-2'],
+        mockSupabase as any,
+      );
+
+      expect(result.size).toBe(2);
+
+      const budget1 = result.get('budget-1');
+      expect(budget1).toBeDefined();
+      expect(budget1?.totalExpenses).toBe(600); // 500 + 100
+      expect(budget1?.totalIncome).toBe(3500); // 3000 + 500
+      expect(budget1?.totalSavings).toBe(200);
+
+      const budget2 = result.get('budget-2');
+      expect(budget2).toBeDefined();
+      expect(budget2?.totalExpenses).toBe(1000);
+      expect(budget2?.totalIncome).toBe(0);
+      expect(budget2?.totalSavings).toBe(300);
+    });
+
+    it('should return zero aggregates when no budget_lines or transactions exist', async () => {
+      const mockSupabase = {
+        from: () => ({
+          select: () => ({
+            in: () => Promise.resolve({ data: [], error: null }),
+          }),
+        }),
+      };
+
+      const result = await repository.fetchBudgetAggregates(
+        ['budget-1'],
+        mockSupabase as any,
+      );
+
+      expect(result.size).toBe(1);
+      const budget1 = result.get('budget-1');
+      expect(budget1?.totalExpenses).toBe(0);
+      expect(budget1?.totalIncome).toBe(0);
+      expect(budget1?.totalSavings).toBe(0);
+    });
+
+    it('should handle null data gracefully', async () => {
+      const mockSupabase = {
+        from: () => ({
+          select: () => ({
+            in: () => Promise.resolve({ data: null, error: null }),
+          }),
+        }),
+      };
+
+      const result = await repository.fetchBudgetAggregates(
+        ['budget-1'],
+        mockSupabase as any,
+      );
+
+      expect(result.size).toBe(1);
+      const budget1 = result.get('budget-1');
+      expect(budget1?.totalExpenses).toBe(0);
+      expect(budget1?.totalIncome).toBe(0);
+      expect(budget1?.totalSavings).toBe(0);
+    });
+  });
 });

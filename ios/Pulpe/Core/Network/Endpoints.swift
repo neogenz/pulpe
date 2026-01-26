@@ -18,6 +18,7 @@ enum Endpoint {
     case budget(id: String)
     case budgetDetails(id: String)
     case budgetsExport
+    case budgetsSparse(fields: String, limit: Int?, year: Int?)
 
     // MARK: - Budget Lines
 
@@ -63,6 +64,7 @@ enum Endpoint {
         case .budget(let id): return "/budgets/\(id)"
         case .budgetDetails(let id): return "/budgets/\(id)/details"
         case .budgetsExport: return "/budgets/export"
+        case .budgetsSparse: return "/budgets"
 
         // Budget Lines
         case .budgetLines(let budgetId): return "/budgets/\(budgetId)/lines"
@@ -100,7 +102,7 @@ enum Endpoint {
 
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetsExport,
              .budgetLine, .transaction, .template, .templateUsage, .templateLine,
-             .transactionsByBudget:
+             .transactionsByBudget, .budgetsSparse:
             return .get
 
         case .updateProfile:
@@ -114,7 +116,18 @@ enum Endpoint {
     // MARK: - URL Request
 
     func urlRequest(baseURL: URL) -> URLRequest {
-        let url = baseURL.appendingPathComponent(path)
+        var url = baseURL.appendingPathComponent(path)
+
+        // Add query parameters for sparse budgets
+        if case let .budgetsSparse(fields, limit, year) = self {
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            var queryItems: [URLQueryItem] = [URLQueryItem(name: "fields", value: fields)]
+            if let limit { queryItems.append(URLQueryItem(name: "limit", value: String(limit))) }
+            if let year { queryItems.append(URLQueryItem(name: "year", value: String(year))) }
+            components?.queryItems = queryItems
+            url = components?.url ?? url
+        }
+
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
         request.timeoutInterval = AppConfiguration.requestTimeout
