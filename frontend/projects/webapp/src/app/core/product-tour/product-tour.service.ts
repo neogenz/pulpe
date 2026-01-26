@@ -120,6 +120,46 @@ export class ProductTourService {
   }
 
   /**
+   * Clean up Driver.js artifacts that may persist after tour ends.
+   * Delayed execution ensures cleanup runs after Driver.js completes its own teardown.
+   */
+  #cleanupDriverArtifacts(): void {
+    setTimeout(() => {
+      this.#removeDriverClasses();
+      this.#resetScrollPositions();
+    }, 0);
+  }
+
+  #removeDriverClasses(): void {
+    document.querySelectorAll('.driver-active-element').forEach((el) => {
+      el.classList.remove('driver-active-element');
+    });
+    document.body.classList.remove(
+      'driver-active',
+      'driver-fade',
+      'driver-simple',
+    );
+  }
+
+  /**
+   * Reset scroll on layout containers.
+   * scrollIntoView() used by Driver.js scrolls ALL ancestors, not just the intended one.
+   */
+  #resetScrollPositions(): void {
+    const selectors = [
+      '[data-testid="page-content"]',
+      '[data-testid="main-content"] > div',
+    ];
+
+    for (const selector of selectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        element.scrollTop = 0;
+      }
+    }
+  }
+
+  /**
    * Start a page-specific tour
    * Includes intro steps if user hasn't seen them yet
    * Does nothing if user is not authenticated or a tour is already active
@@ -154,6 +194,7 @@ export class ProductTourService {
       popoverOffset: 16,
       onDestroyed: () => {
         this.#activeDriver = null;
+        this.#cleanupDriverArtifacts();
         if (includeIntro) {
           this.#markIntroCompleted();
         }
