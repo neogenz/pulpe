@@ -68,7 +68,7 @@ test.describe('Mobile scroll behavior', () => {
   test.describe('Mobile View', () => {
     test.use({ viewport: { width: 375, height: 667 }, isMobile: true });
 
-    test('body should prevent independent scrolling (managed by mat-sidenav-container)', async ({
+    test('body should have proper overflow settings for mobile browser navbar auto-hide', async ({
       authenticatedPage: page,
     }) => {
       await page.waitForLoadState('networkidle');
@@ -82,9 +82,9 @@ test.describe('Mobile scroll behavior', () => {
       });
 
       expect(bodyOverflowX).toBe('hidden');
-      // Body overflow-y should be 'hidden' to prevent independent scrolling.
-      // mat-sidenav-container manages all scroll internally via the main content area.
-      expect(bodyOverflowY).toBe('hidden');
+      // Body overflow-y is 'scroll' to enable Android Chrome/Samsung browser navbar auto-hide.
+      // The browser needs to detect scroll gestures on body to trigger navbar hide/show.
+      expect(bodyOverflowY).toBe('scroll');
     });
 
     test('main content should be the only scrollable container', async ({
@@ -150,16 +150,23 @@ test.describe('Mobile scroll behavior', () => {
       expect(mainOverflow).toBe('auto');
     });
 
-    test('body should prevent independent scrolling on desktop', async ({
+    test('body should have proper overflow settings on desktop', async ({
       authenticatedPage: page,
     }) => {
       await page.waitForLoadState('networkidle');
 
-      const bodyOverflow = await page.evaluate(() => {
-        return window.getComputedStyle(document.body).overflow;
+      const { bodyOverflowX, bodyOverflowY } = await page.evaluate(() => {
+        const bodyStyle = window.getComputedStyle(document.body);
+        return {
+          bodyOverflowX: bodyStyle.overflowX,
+          bodyOverflowY: bodyStyle.overflowY,
+        };
       });
 
-      expect(bodyOverflow).toBe('hidden');
+      // overflow-x hidden prevents horizontal scrolling
+      expect(bodyOverflowX).toBe('hidden');
+      // overflow-y scroll enables browser navbar auto-hide on scroll
+      expect(bodyOverflowY).toBe('scroll');
     });
   });
 });
