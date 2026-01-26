@@ -62,6 +62,16 @@ final class AppState {
     func checkAuthState() async {
         authState = .loading
 
+        #if DEBUG
+        // In DEBUG mode, try regular token-based session first (no biometric prompt)
+        // This keeps developers logged in across app restarts from Xcode
+        if let user = try? await authService.validateSession() {
+            currentUser = user
+            authState = .authenticated
+            return
+        }
+        #endif
+
         guard biometricEnabled else {
             // Clear any stale tokens from previous install
             await authService.clearBiometricTokens()
