@@ -20,6 +20,16 @@ const SCROLL_RESET_SELECTORS = [
   '[data-testid="main-content"] > div',
 ] as const;
 
+/** Driver.js CSS class applied to highlighted elements (driver.js v1.x) */
+const DRIVER_ACTIVE_ELEMENT_CLASS = 'driver-active-element';
+
+/** Driver.js CSS classes applied to document body (driver.js v1.x) */
+const DRIVER_BODY_CLASSES = [
+  'driver-active',
+  'driver-fade',
+  'driver-simple',
+] as const;
+
 export type TourPageId =
   | 'current-month'
   | 'budget-list'
@@ -142,19 +152,17 @@ export class ProductTourService {
   }
 
   #removeDriverClasses(): void {
-    this.#document.querySelectorAll('.driver-active-element').forEach((el) => {
-      el.classList.remove('driver-active-element');
-    });
-    this.#document.body.classList.remove(
-      'driver-active',
-      'driver-fade',
-      'driver-simple',
-    );
+    this.#document
+      .querySelectorAll(`.${DRIVER_ACTIVE_ELEMENT_CLASS}`)
+      .forEach((el) => {
+        el.classList.remove(DRIVER_ACTIVE_ELEMENT_CLASS);
+      });
+    this.#document.body.classList.remove(...DRIVER_BODY_CLASSES);
   }
 
   #resetScrollPositions(): void {
     for (const selector of SCROLL_RESET_SELECTORS) {
-      const element = this.#document.querySelector(selector);
+      const element = this.#document.querySelector<HTMLElement>(selector);
       if (element) {
         element.scrollTop = 0;
       }
