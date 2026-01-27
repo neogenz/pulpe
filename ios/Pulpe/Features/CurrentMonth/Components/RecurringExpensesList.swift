@@ -51,8 +51,11 @@ struct BudgetSection: View {
 
     var body: some View {
         Section {
+            TipView(ProductTips.gestures)
+                .listRowSeparator(.hidden)
+
             ForEach(Array(displayedItems.enumerated()), id: \.element.id) { index, item in
-                budgetLineRow(for: item, isFirst: index == 0)
+                budgetLineRow(for: item)
                     .listRowSeparator(.hidden)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     if !item.isVirtualRollover {
@@ -119,9 +122,8 @@ struct BudgetSection: View {
         }
     }
 
-    @ViewBuilder
-    private func budgetLineRow(for item: BudgetLine, isFirst: Bool) -> some View {
-        let row = BudgetLineRow(
+    private func budgetLineRow(for item: BudgetLine) -> some View {
+        BudgetLineRow(
             line: item,
             consumption: BudgetFormulas.calculateConsumption(for: item, transactions: transactions),
             allTransactions: transactions,
@@ -133,12 +135,6 @@ struct BudgetSection: View {
             },
             onEdit: { onEdit(item) }
         )
-
-        if isFirst {
-            row.popoverTip(ProductTips.gestures)
-        } else {
-            row
-        }
     }
 }
 

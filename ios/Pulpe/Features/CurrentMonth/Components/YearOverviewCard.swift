@@ -59,68 +59,24 @@ struct YearOverviewCard: View {
     }
 }
 
-// MARK: - Empty State
-
-struct YearOverviewEmptyState: View {
-    private var currentYear: Int {
-        Calendar.current.component(.year, from: Date())
-    }
-
-    var body: some View {
-        HStack(spacing: 12) {
-            emptyCard(title: "Épargne \(currentYear)", icon: "banknote")
-            emptyCard(title: "Report cumulé", icon: "arrow.right.circle")
-        }
-    }
-
-    private func emptyCard(title: String, icon: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Text("CHF 0")
-                .font(.system(.title3, design: .rounded, weight: .semibold))
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
-    }
-}
-
 // MARK: - Preview
 
 #Preview("Year Overview Card") {
     VStack(spacing: 16) {
-        // Positive values
         YearOverviewCard(
             savingsYTD: 4200,
             rollover: 890
         )
 
-        // Zero savings
         YearOverviewCard(
             savingsYTD: 0,
             rollover: 500
         )
 
-        // Negative rollover
         YearOverviewCard(
             savingsYTD: 2500,
             rollover: -320
         )
-
-        // Empty state
-        YearOverviewEmptyState()
     }
     .padding()
     .background(Color(.systemGroupedBackground))
