@@ -2,7 +2,9 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { RouterLink } from '@angular/router';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
+import { ROUTES } from '@core/routing/routes-constants';
 import { buildInfo } from '@env/build-info';
 
 interface DebugInfoSection {
@@ -17,7 +19,7 @@ interface DebugInfoItem {
 
 @Component({
   selector: 'pulpe-about-dialog',
-  imports: [MatDialogModule, MatButtonModule, MatIconModule],
+  imports: [MatDialogModule, MatButtonModule, MatIconModule, RouterLink],
   template: `
     <h2 mat-dialog-title class="text-headline-small">À propos</h2>
 
@@ -44,6 +46,27 @@ interface DebugInfoItem {
             </div>
           </div>
         }
+        <div>
+          <h3 class="text-label-large text-on-surface-variant mb-2">
+            Mentions légales
+          </h3>
+          <div class="flex flex-col gap-1">
+            <a
+              class="text-body-medium text-primary py-1 hover:underline"
+              [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
+              (click)="close()"
+            >
+              Conditions Générales d'Utilisation
+            </a>
+            <a
+              class="text-body-medium text-primary py-1 hover:underline"
+              [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
+              (click)="close()"
+            >
+              Politique de Confidentialité
+            </a>
+          </div>
+        </div>
       </div>
     </mat-dialog-content>
 
@@ -74,6 +97,8 @@ interface DebugInfoItem {
 export class AboutDialog {
   readonly #dialogRef = inject(MatDialogRef<AboutDialog>);
   readonly #applicationConfig = inject(ApplicationConfiguration);
+
+  protected readonly ROUTES = ROUTES;
 
   readonly sections: readonly DebugInfoSection[] = this.#buildSections();
 
