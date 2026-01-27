@@ -162,6 +162,21 @@ targets:
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
         TARGETED_DEVICE_FAMILY: "1,2"
 
+  PulpeUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: PulpeUITests
+        excludes:
+          - "**/.DS_Store"
+    dependencies:
+      - target: Pulpe
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios.uitests
+        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+
 schemes:
   Pulpe:
     build:
@@ -199,3 +214,12 @@ schemes:
       config: Debug
       targets:
         - name: PulpeTests
+
+  PulpeUITests:
+    build:
+      targets:
+        PulpeUITests: all
+    test:
+      config: Debug
+      targets:
+        - name: PulpeUITests

@@ -1,3 +1,4 @@
+import OSLog
 import SwiftUI
 import WidgetKit
 
@@ -153,7 +154,7 @@ final class AppState {
             try await authService.saveBiometricTokens()
             biometricEnabled = true
         } catch {
-            // Silently fail - user can retry from settings
+            Logger.auth.error("enableBiometric: failed to save biometric tokens - \(error)")
         }
     }
 

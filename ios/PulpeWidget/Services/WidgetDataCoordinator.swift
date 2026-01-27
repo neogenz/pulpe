@@ -1,14 +1,14 @@
 import Foundation
+import OSLog
 
 struct WidgetDataCoordinator: Sendable {
     static let appGroupId = "group.app.pulpe.ios"
     private static let cacheKey = "widget_budget_cache"
+    private static let logger = Logger(subsystem: "app.pulpe.ios.widget", category: "data")
 
     private var sharedDefaults: UserDefaults? {
         guard let defaults = UserDefaults(suiteName: Self.appGroupId) else {
-            #if DEBUG
-            print("WidgetDataCoordinator: CRITICAL - Failed to create UserDefaults for App Group '\(Self.appGroupId)'")
-            #endif
+            Self.logger.fault("Failed to create UserDefaults for App Group '\(Self.appGroupId)'")
             return nil
         }
         return defaults
@@ -22,9 +22,7 @@ struct WidgetDataCoordinator: Sendable {
             defaults.set(data, forKey: Self.cacheKey)
             return true
         } catch {
-            #if DEBUG
-            print("WidgetDataCoordinator: Failed to encode cache - \(error)")
-            #endif
+            Self.logger.error("Failed to encode cache - \(error)")
             return false
         }
     }
@@ -35,9 +33,7 @@ struct WidgetDataCoordinator: Sendable {
         do {
             return try JSONDecoder().decode(WidgetDataCache.self, from: data)
         } catch {
-            #if DEBUG
-            print("WidgetDataCoordinator: Failed to decode cache - \(error)")
-            #endif
+            Self.logger.error("Failed to decode cache - \(error)")
             return nil
         }
     }

@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 /// Thread-safe API client with token management
 actor APIClient {
@@ -211,19 +212,16 @@ actor APIClient {
         return false
     }
 
-    #if DEBUG
     private func logRequest(_ request: URLRequest, response: HTTPURLResponse, data: Data) {
         let method = request.httpMethod ?? "?"
-        let url = request.url?.absoluteString ?? "?"
+        let path = request.url?.path ?? "?"
         let status = response.statusCode
-        let dataPreview = String(data: data.prefix(500), encoding: .utf8) ?? "Binary data"
 
-        print("[\(method)] \(url) -> \(status)")
+        Logger.network.debug("[\(method, privacy: .public)] \(path, privacy: .public) -> \(status, privacy: .public)")
         if status >= 400 {
-            print("Response: \(dataPreview)")
+            Logger.network.error("Request failed: [\(method, privacy: .public)] \(path, privacy: .public) -> \(status, privacy: .public)")
         }
     }
-    #endif
 }
 
 // MARK: - Helper Types

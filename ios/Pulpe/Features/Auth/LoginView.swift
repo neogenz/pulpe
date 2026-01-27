@@ -130,6 +130,7 @@ struct LoginView: View {
                             )
                             .scaleEffect(focusedField == .email ? 1.01 : 1)
                             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
+                            .accessibilityIdentifier("email")
                         }
 
                         // Password field
@@ -159,6 +160,7 @@ struct LoginView: View {
                                 .textContentType(.password)
                                 .focused($focusedField, equals: .password)
                                 .font(.system(size: 16))
+                                .accessibilityIdentifier("password")
 
                                 Button {
                                     withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
@@ -224,10 +226,11 @@ struct LoginView: View {
                         }
                         .disabled(!viewModel.canSubmit)
                         .animation(.easeInOut(duration: 0.2), value: viewModel.canSubmit)
+                        .accessibilityIdentifier("loginButton")
                         .padding(.top, 8)
                     }
                     .padding(24)
-                    .background(Color.white)
+                    .background(Color.onboardingCardBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 24))
                     .shadow(color: Color.black.opacity(0.08), radius: 24, y: 10)
                     .padding(.horizontal, 20)
