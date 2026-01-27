@@ -1,5 +1,5 @@
 ---
-description: TypeScript strict typing and conventions
+description: "TypeScript strict typing and conventions"
 paths: "**/*.ts"
 ---
 
@@ -105,6 +105,10 @@ function map<TInput, TOutput>(items: TInput[], fn: (item: TInput) => TOutput): T
 | `timeout: number \| undefined` | `timeout?: number` |
 | `const enum Status {}` | `type Status = 'a' \| 'b'` |
 | `function fetch<T>(): Promise<User>` (unused T) | Remove unused type parameters |
+
+## Related
+
+- Error handling patterns: see `error-handling.md`
 
 ## Sources
 

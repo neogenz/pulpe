@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ├── ios/              # iOS native app (SwiftUI)
 ├── landing/          # Landing page (Next.js)
 ├── shared/           # Zod schemas, types (build before other packages)
-└── .claude/rules/    # Lazy-loaded rules (frontend/, testing/, shared/)
+└── .claude/rules/    # Lazy-loaded rules (00-architecture/ through 08-other/)
 ```
 
 ## Commands
