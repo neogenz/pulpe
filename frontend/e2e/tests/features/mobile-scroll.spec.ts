@@ -128,6 +128,32 @@ test.describe('Mobile scroll behavior', () => {
 
       expect(afterScrollPosition!.y).toBe(initialPosition!.y);
     });
+
+    test('menu should open correctly after scrolling', async ({
+      authenticatedPage: page,
+    }) => {
+      await page.evaluate(() => {
+        const main = document.querySelector('[data-testid="page-content"]');
+        if (!main) {
+          throw new Error(
+            'Cannot scroll: [data-testid="page-content"] not found in DOM.',
+          );
+        }
+        main.scrollTop = 300;
+      });
+
+      const menuTrigger = page.locator('[data-testid="user-menu-trigger"]');
+      await expect(menuTrigger).toBeVisible({ timeout: 5000 });
+      await menuTrigger.click();
+
+      const menu = page.locator('mat-menu');
+      await expect(menu).toBeVisible({ timeout: 5000 });
+
+      const menuBox = await menu.boundingBox();
+      expect(menuBox).not.toBeNull();
+      expect(menuBox!.width).toBeGreaterThan(0);
+      expect(menuBox!.height).toBeGreaterThan(0);
+    });
   });
 
   test.describe('Desktop View', () => {
