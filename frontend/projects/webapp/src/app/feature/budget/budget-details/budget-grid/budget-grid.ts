@@ -110,7 +110,7 @@ import { BudgetGridSection } from './budget-grid-section';
         <div
           class="w-16 h-16 mx-auto mb-4 rounded-full bg-primary-container/30 flex items-center justify-center"
         >
-          <mat-icon class="text-primary text-3xl!"
+          <mat-icon class="text-primary text-3xl! shrink-0"
             >account_balance_wallet</mat-icon
           >
         </div>
