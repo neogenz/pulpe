@@ -1,11 +1,15 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { BudgetRepository } from './budget.repository';
+import { createMockPinoLogger } from '../../test/test-mocks';
+import type { InfoLogger } from '@common/logger';
 
 describe('BudgetRepository', () => {
   let repository: BudgetRepository;
+  let mockLogger: InfoLogger;
 
   beforeEach(() => {
-    repository = new BudgetRepository();
+    mockLogger = createMockPinoLogger() as unknown as InfoLogger;
+    repository = new BudgetRepository(mockLogger);
   });
 
   describe('fetchBudgetData', () => {

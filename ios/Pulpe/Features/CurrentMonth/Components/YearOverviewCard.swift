@@ -62,9 +62,13 @@ struct YearOverviewCard: View {
 // MARK: - Empty State
 
 struct YearOverviewEmptyState: View {
+    private var currentYear: Int {
+        Calendar.current.component(.year, from: Date())
+    }
+
     var body: some View {
         HStack(spacing: 12) {
-            emptyCard(title: "Épargne 2026", icon: "banknote")
+            emptyCard(title: "Épargne \(currentYear)", icon: "banknote")
             emptyCard(title: "Report cumulé", icon: "arrow.right.circle")
         }
     }

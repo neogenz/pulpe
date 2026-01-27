@@ -13,7 +13,7 @@ final class DashboardStore: StoreProtocol {
     // MARK: - Cache Metadata
 
     private var lastLoadTime: Date?
-    private static let cacheValidityDuration: TimeInterval = 60 // 1 minute for dashboard
+    private static let cacheValidityDuration: TimeInterval = 300 // 5 minutes for historical data
 
     private var isCacheValid: Bool {
         guard let lastLoad = lastLoadTime else { return false }
