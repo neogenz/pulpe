@@ -19,6 +19,7 @@ export class MaintenanceApi {
   async checkStatus(): Promise<MaintenanceStatus> {
     const response = await fetch(
       `${this.#config.backendApiUrl()}/maintenance/status`,
+      { headers: { 'ngrok-skip-browser-warning': 'true' } },
     );
 
     if (!response.ok) {

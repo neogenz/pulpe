@@ -75,7 +75,11 @@ interface NavigationItem {
     MatProgressBarModule,
   ],
   template: `
-    <mat-sidenav-container class="h-dvh bg-surface-container!">
+    <mat-sidenav-container
+      class="bg-surface-container!"
+      [class.h-dvh]="!isHandset()"
+      [class.min-h-dvh]="isHandset()"
+    >
       <!-- Navigation Sidenav -->
       <mat-sidenav
         #drawer
@@ -88,7 +92,10 @@ interface NavigationItem {
       >
         <!-- Sidenav Header -->
         @if (isHandset()) {
-          <div class="py-4 px-6 flex items-center gap-3">
+          <div
+            class="py-4 px-6 flex items-center gap-3"
+            style="padding-top: max(1rem, env(safe-area-inset-top))"
+          >
             <img src="logo.svg" alt="Pulpe" class="w-10 h-auto" />
             <span class="text-lg font-medium text-on-surface">Pulpe</span>
           </div>
@@ -171,12 +178,16 @@ interface NavigationItem {
 
       <!-- Main Content -->
       <mat-sidenav-content
-        class="flex flex-col h-full overflow-hidden max-w-full"
+        class="flex flex-col max-w-full"
+        [class.h-full]="!isHandset()"
+        [class.overflow-hidden]="!isHandset()"
         [class.p-2]="!isHandset()"
         data-testid="main-content"
       >
         <div
-          class="flex flex-col h-full bg-surface relative overflow-hidden min-w-0"
+          class="flex flex-col bg-surface relative min-w-0"
+          [class.h-full]="!isHandset()"
+          [class.overflow-hidden]="!isHandset()"
           [class.p-2]="!isHandset()"
           [class.pt-0]="!isHandset() && !isDemoMode()"
           [class.rounded-xl]="!isHandset()"
@@ -348,7 +359,9 @@ interface NavigationItem {
 
           <!-- Page Content - Scrollable Container -->
           <main
-            class="flex-1 overflow-y-auto overflow-x-hidden bg-surface text-on-surface pt-2! min-w-0"
+            class="flex-1 bg-surface text-on-surface pt-2! min-w-0"
+            [class.overflow-y-auto]="!isHandset()"
+            [class.overflow-x-hidden]="!isHandset()"
             [class.p-6]="!isHandset()"
             [class.md:p-8]="!isHandset()"
             [class.p-4]="isHandset()"
@@ -367,6 +380,13 @@ interface NavigationItem {
       :host {
         display: block;
         height: 100dvh;
+      }
+
+      @media (max-width: 599.98px) {
+        :host {
+          height: auto;
+          min-height: 100dvh;
+        }
       }
 
       :host mat-sidenav {
@@ -396,6 +416,22 @@ interface NavigationItem {
         z-index: 10;
       }
 
+      /* Mobile: sticky header enables body-level scroll while keeping toolbar visible */
+      @media (max-width: 599.98px) {
+        mat-toolbar {
+          position: sticky;
+          top: 0;
+          z-index: 50;
+        }
+
+        .breadcrumb-mobile {
+          position: sticky;
+          top: 56px;
+          z-index: 40;
+          background: var(--mat-sys-surface);
+        }
+      }
+
       mat-toolbar.scrolled,
       .breadcrumb-mobile.scrolled {
         box-shadow: var(--mat-sys-level2);
@@ -403,8 +439,6 @@ interface NavigationItem {
         /* Coupe tout ce qui dépasse en HAUT (0), mais laisse passer le reste (-20px) */
         /* Ordre : Top, Right, Bottom, Left */
         clip-path: inset(0px -20px -20px -20px);
-
-        position: relative;
         z-index: 10;
       }
 

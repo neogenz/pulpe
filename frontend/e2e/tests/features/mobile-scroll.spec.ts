@@ -68,7 +68,7 @@ test.describe('Mobile scroll behavior', () => {
   test.describe('Mobile View', () => {
     test.use({ viewport: { width: 375, height: 667 }, isMobile: true });
 
-    test('body should have proper overflow settings for mobile browser navbar auto-hide', async ({
+    test('body should have proper overflow settings for browser navbar auto-hide', async ({
       authenticatedPage: page,
     }) => {
       await page.waitForLoadState('networkidle');
@@ -82,12 +82,12 @@ test.describe('Mobile scroll behavior', () => {
       });
 
       expect(bodyOverflowX).toBe('hidden');
-      // Body overflow-y is 'scroll' to enable Android Chrome/Samsung browser navbar auto-hide.
-      // The browser needs to detect scroll gestures on body to trigger navbar hide/show.
-      expect(bodyOverflowY).toBe('scroll');
+      // Body-level scroll enables iOS Safari toolbar translucency
+      // and Android Chrome/Samsung/Firefox navbar auto-hide
+      expect(bodyOverflowY).toBe('auto');
     });
 
-    test('main content should be the only scrollable container', async ({
+    test('main content should not create its own scroll container on mobile', async ({
       authenticatedPage: page,
     }) => {
       const mainOverflow = await page.evaluate(() => {
@@ -101,10 +101,11 @@ test.describe('Mobile scroll behavior', () => {
         return window.getComputedStyle(main).overflowY;
       });
 
-      expect(mainOverflow).toBe('auto');
+      // Mobile: body scrolls, not main container
+      expect(mainOverflow).toBe('visible');
     });
 
-    test('navbar should stay fixed when scrolling content', async ({
+    test('navbar should stay sticky when scrolling body', async ({
       authenticatedPage: page,
     }) => {
       const toolbar = page.locator('mat-toolbar').first();
@@ -113,15 +114,9 @@ test.describe('Mobile scroll behavior', () => {
       const initialPosition = await toolbar.boundingBox();
       expect(initialPosition).not.toBeNull();
 
-      await page.evaluate(() => {
-        const main = document.querySelector('[data-testid="page-content"]');
-        if (!main) {
-          throw new Error(
-            'Cannot scroll: [data-testid="page-content"] not found in DOM.',
-          );
-        }
-        main.scrollTop = 100;
-      });
+      // Body-level scroll (not container scroll)
+      await page.evaluate(() => window.scrollTo(0, 100));
+      await page.waitForFunction(() => window.scrollY >= 100);
 
       const afterScrollPosition = await toolbar.boundingBox();
       expect(afterScrollPosition).not.toBeNull();
@@ -132,15 +127,9 @@ test.describe('Mobile scroll behavior', () => {
     test('menu should open correctly after scrolling', async ({
       authenticatedPage: page,
     }) => {
-      await page.evaluate(() => {
-        const main = document.querySelector('[data-testid="page-content"]');
-        if (!main) {
-          throw new Error(
-            'Cannot scroll: [data-testid="page-content"] not found in DOM.',
-          );
-        }
-        main.scrollTop = 300;
-      });
+      // Body-level scroll (not container scroll)
+      await page.evaluate(() => window.scrollTo(0, 300));
+      await page.waitForFunction(() => window.scrollY >= 300);
 
       const menuTrigger = page.locator('[data-testid="user-menu-trigger"]');
       await expect(menuTrigger).toBeVisible({ timeout: 5000 });
