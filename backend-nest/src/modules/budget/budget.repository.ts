@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { BudgetUpdate, TransactionKind } from 'pulpe-shared';
@@ -51,6 +52,11 @@ export interface BudgetAggregates {
  */
 @Injectable()
 export class BudgetRepository {
+  constructor(
+    @InjectInfoLogger(BudgetRepository.name)
+    private readonly logger: InfoLogger,
+  ) {}
+
   /**
    * Fetches a single budget by ID
    * @param id - Budget ID
@@ -362,9 +368,11 @@ export class BudgetRepository {
 
       this.accumulateAmounts(budgetLinesResult.data ?? [], aggregatesMap);
       this.accumulateAmounts(transactionsResult.data ?? [], aggregatesMap);
-    } catch {
-      // Graceful degradation: return zero-initialized aggregates
-      // Intentionally silent - aggregates are non-critical for sparse responses
+    } catch (error) {
+      this.logger.warn('Failed to fetch budget aggregates, returning zeros', {
+        budgetIds,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
 
     return aggregatesMap;

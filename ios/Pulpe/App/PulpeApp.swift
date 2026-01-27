@@ -121,7 +121,7 @@ struct RootView: View {
                 Task {
                     async let refreshCurrent: Void = currentMonthStore.forceRefresh()
                     async let refreshBudgets: Void = budgetListStore.forceRefresh()
-                    async let refreshDashboard: Void = dashboardStore.forceRefresh()
+                    async let refreshDashboard: Void = dashboardStore.loadIfNeeded()
                     _ = await (refreshCurrent, refreshBudgets, refreshDashboard)
                 }
             }
