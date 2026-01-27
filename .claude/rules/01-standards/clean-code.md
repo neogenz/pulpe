@@ -57,4 +57,3 @@ save(isDraft: boolean)
 | `!isInvalid` | `isValid` |
 | `save(isDraft: boolean)` | `saveAsDraft()` / `saveAndPublish()` |
 | Comments explaining code | Self-documenting code |
-
