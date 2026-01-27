@@ -114,6 +114,13 @@ test.describe('Mobile scroll behavior', () => {
       const initialPosition = await toolbar.boundingBox();
       expect(initialPosition).not.toBeNull();
 
+      // Ensure body is tall enough to scroll
+      await page.evaluate(() => {
+        const spacer = document.createElement('div');
+        spacer.style.height = '200vh';
+        document.body.appendChild(spacer);
+      });
+
       // Body-level scroll (not container scroll)
       await page.evaluate(() => window.scrollTo(0, 100));
       await page.waitForFunction(() => window.scrollY >= 100);
@@ -127,6 +134,13 @@ test.describe('Mobile scroll behavior', () => {
     test('menu should open correctly after scrolling', async ({
       authenticatedPage: page,
     }) => {
+      // Ensure body is tall enough to scroll
+      await page.evaluate(() => {
+        const spacer = document.createElement('div');
+        spacer.style.height = '200vh';
+        document.body.appendChild(spacer);
+      });
+
       // Body-level scroll (not container scroll)
       await page.evaluate(() => window.scrollTo(0, 300));
       await page.waitForFunction(() => window.scrollY >= 300);
@@ -135,10 +149,10 @@ test.describe('Mobile scroll behavior', () => {
       await expect(menuTrigger).toBeVisible({ timeout: 5000 });
       await menuTrigger.click();
 
-      const menu = page.locator('mat-menu');
-      await expect(menu).toBeVisible({ timeout: 5000 });
+      const menuPanel = page.locator('.mat-mdc-menu-panel');
+      await expect(menuPanel).toBeVisible({ timeout: 5000 });
 
-      const menuBox = await menu.boundingBox();
+      const menuBox = await menuPanel.boundingBox();
       expect(menuBox).not.toBeNull();
       expect(menuBox!.width).toBeGreaterThan(0);
       expect(menuBox!.height).toBeGreaterThan(0);

@@ -45,6 +45,7 @@ describe('MaintenanceApi', () => {
       expect(result).toEqual(mockStatus);
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:3000/api/v1/maintenance/status',
+        { headers: { 'ngrok-skip-browser-warning': 'true' } },
       );
     });
 
