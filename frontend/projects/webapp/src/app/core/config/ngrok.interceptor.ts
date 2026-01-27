@@ -1,6 +1,6 @@
 import { type HttpInterceptorFn } from '@angular/common/http';
 
-const NGROK_PATTERN = /\.ngrok(-free)?\.app/;
+const NGROK_PATTERN = /\.ngrok(-free)?\.(app|io)/;
 
 export const ngrokInterceptor: HttpInterceptorFn = (req, next) => {
   if (!NGROK_PATTERN.test(req.url)) {
