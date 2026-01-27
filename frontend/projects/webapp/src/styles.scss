@@ -35,13 +35,20 @@ html {
 body {
   height: 100%;
   margin: 0;
-  // Enable mobile browser navbar auto-hide on scroll (Android Chrome/Samsung Browser)
-  // position: fixed + overflow-y: scroll allows browser to detect scroll gestures
-  position: fixed;
-  width: 100%;
-  overflow-y: scroll;
   overflow-x: hidden;
   max-width: 100vw;
+
+  // Enable mobile browser navbar auto-hide on scroll (Android Chrome/Samsung/Firefox)
+  // position: fixed + overflow-y: scroll allows browser to detect scroll gestures
+  @media (max-width: 768px) {
+    position: fixed;
+    width: 100%;
+    overflow-y: scroll;
+  }
+
+  @media (min-width: 769px) {
+    overflow-y: hidden;
+  }
   font-family:
     var(--mat-sys-typescale-body-medium-font-family-name), Poppins,
     "Helvetica Neue", sans-serif;

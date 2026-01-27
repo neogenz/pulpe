@@ -189,10 +189,9 @@ test.describe('Mobile scroll behavior', () => {
         };
       });
 
-      // overflow-x hidden prevents horizontal scrolling
       expect(bodyOverflowX).toBe('hidden');
-      // overflow-y scroll enables browser navbar auto-hide on scroll
-      expect(bodyOverflowY).toBe('scroll');
+      // Desktop: overflow-y hidden (navbar auto-hide is mobile-only)
+      expect(bodyOverflowY).toBe('hidden');
     });
   });
 });
