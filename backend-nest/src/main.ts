@@ -75,7 +75,7 @@ function isAllowedOriginDevelopment(origin: string): boolean {
   // En développement : localhost, LAN IPs, ngrok tunnels, Vercel previews
   return (
     /^http:\/\/localhost:\d+$/.test(origin) ||
-    /^http:\/\/192\.168\.\d+\.\d+:\d+$/.test(origin) ||
+    /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:\d+$/.test(origin) ||
     origin.includes('.ngrok') ||
     origin.includes('.vercel.app')
   );

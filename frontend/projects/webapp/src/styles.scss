@@ -55,20 +55,6 @@ body {
   line-height: var(--mat-sys-typescale-body-medium-line-height);
 }
 
-// Mobile: override Angular Material scroll containment to enable body-level scrolling
-// mat-sidenav-content normally creates its own scroll container (overflow: auto, height: 100%)
-// We disable this on mobile so scroll propagates to body for browser navbar behavior
-@media (max-width: 599.98px) {
-  .mat-drawer-container {
-    overflow: visible !important;
-  }
-
-  .mat-drawer-content {
-    overflow: visible !important;
-    height: auto !important;
-  }
-}
-
 // Pulpe brand gradient - CSS variables for theme support
 :root {
   // Version SATURÉE à fond de ta palette

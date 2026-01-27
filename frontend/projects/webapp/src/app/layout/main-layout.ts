@@ -448,6 +448,18 @@ interface NavigationItem {
         width: auto !important;
       }
 
+      /* Mobile: override Material scroll containment for body-level scrolling */
+      @media (max-width: 599.98px) {
+        :host mat-sidenav-container {
+          overflow: visible !important;
+        }
+
+        :host mat-sidenav-content {
+          overflow: visible !important;
+          height: auto !important;
+        }
+      }
+
       /* Gradient fade-out for horizontal scroll affordance */
       .breadcrumb-scroll-fade {
         position: relative;
