@@ -5,10 +5,30 @@
  * Uses Driver.js library with Material Design 3 theming.
  */
 
+import { DOCUMENT } from '@angular/common';
 import { inject, Injectable } from '@angular/core';
 import { driver, type DriveStep, type Config, type Driver } from 'driver.js';
 import { StorageService, type StorageKey } from '@core/storage';
 import { AuthStateService } from '@core/auth/auth-state.service';
+
+/**
+ * Selectors for layout containers that need scroll reset after tour.
+ * Driver.js scrollIntoView() affects all scrollable ancestors.
+ */
+const SCROLL_RESET_SELECTORS = [
+  '[data-testid="page-content"]',
+  '[data-testid="main-content"] > div',
+] as const;
+
+/** Driver.js CSS class applied to highlighted elements (driver.js v1.x) */
+const DRIVER_ACTIVE_ELEMENT_CLASS = 'driver-active-element';
+
+/** Driver.js CSS classes applied to document body (driver.js v1.x) */
+const DRIVER_BODY_CLASSES = [
+  'driver-active',
+  'driver-fade',
+  'driver-simple',
+] as const;
 
 export type TourPageId =
   | 'current-month'
@@ -40,6 +60,7 @@ const TOUR_IDS = {
   providedIn: 'root',
 })
 export class ProductTourService {
+  readonly #document = inject(DOCUMENT);
   readonly #storageService = inject(StorageService);
   readonly #authState = inject(AuthStateService);
 
@@ -120,6 +141,35 @@ export class ProductTourService {
   }
 
   /**
+   * Clean up Driver.js artifacts that may persist after tour ends.
+   * Delayed execution ensures cleanup runs after Driver.js completes its own teardown.
+   */
+  #cleanupDriverArtifacts(): void {
+    setTimeout(() => {
+      this.#removeDriverClasses();
+      this.#resetScrollPositions();
+    }, 0);
+  }
+
+  #removeDriverClasses(): void {
+    this.#document
+      .querySelectorAll(`.${DRIVER_ACTIVE_ELEMENT_CLASS}`)
+      .forEach((el) => {
+        el.classList.remove(DRIVER_ACTIVE_ELEMENT_CLASS);
+      });
+    this.#document.body.classList.remove(...DRIVER_BODY_CLASSES);
+  }
+
+  #resetScrollPositions(): void {
+    for (const selector of SCROLL_RESET_SELECTORS) {
+      const element = this.#document.querySelector<HTMLElement>(selector);
+      if (element) {
+        element.scrollTop = 0;
+      }
+    }
+  }
+
+  /**
    * Start a page-specific tour
    * Includes intro steps if user hasn't seen them yet
    * Does nothing if user is not authenticated or a tour is already active
@@ -154,6 +204,7 @@ export class ProductTourService {
       popoverOffset: 16,
       onDestroyed: () => {
         this.#activeDriver = null;
+        this.#cleanupDriverArtifacts();
         if (includeIntro) {
           this.#markIntroCompleted();
         }
