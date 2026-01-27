@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import Supabase
 
 /// Authentication service using Supabase Auth directly
@@ -90,7 +91,7 @@ actor AuthService {
         do {
             try await supabase.auth.signOut()
         } catch {
-            // Ignore signout errors
+            Logger.auth.error("logout: signOut failed - \(error)")
         }
 
         // Clear local tokens

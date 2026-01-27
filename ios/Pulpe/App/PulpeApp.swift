@@ -1,3 +1,4 @@
+import OSLog
 import SwiftUI
 import TipKit
 import WidgetKit
@@ -183,9 +184,7 @@ final class WidgetSyncViewModel {
                 currentBudgetDetails: details
             )
         } catch {
-            #if DEBUG
-            print("WidgetSyncViewModel: exportAllBudgets failed - \(error)")
-            #endif
+            Logger.sync.error("WidgetSyncViewModel: exportAllBudgets failed - \(error)")
             await WidgetDataSyncService.shared.sync(
                 budgetsWithDetails: [],
                 currentBudgetDetails: details

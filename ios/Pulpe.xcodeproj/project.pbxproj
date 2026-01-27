@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -53,6 +53,7 @@
 		4A0D647CD0FC9FA613122423 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E1ED9277251CACDC297FEFA3 /* LaunchScreen.storyboard */; };
 		4AE5D0489770F91DC072D500 /* Transaction+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4090237752EF9DF63F659AA /* Transaction+Extensions.swift */; };
 		4D613852DBBBCCEF9960A4C5 /* PulpeWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B157DB64FA5B4252F58D08EF /* PulpeWidgetBundle.swift */; };
+		4FDD5DEEA9834DF486F307C5 /* Logger+Pulpe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0572D9902FC26A1AE849B414 /* Logger+Pulpe.swift */; };
 		52E9A1293AA9DD073BBB6D77 /* RecentTransactionsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A73FC67CE08CBE1E23B7251 /* RecentTransactionsSection.swift */; };
 		547E46730E438D89507B7693 /* CreateTemplateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94DA9F16798B6DC1691A2DB8 /* CreateTemplateView.swift */; };
 		55D79FD3DF0AFD08A0E9F743 /* YearOverviewCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A8EDD631A46B3AE54C26D5 /* YearOverviewCard.swift */; };
@@ -71,6 +72,7 @@
 		70150EE27CA65EBC0F906375 /* PulpeIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40EC58ED46B8CA086F6A633D /* PulpeIcon.swift */; };
 		72C131FA19CE8B13A888F19D /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 09618739B66AA92F99246D88 /* Lottie */; };
 		72E67F3C7E86FB1FE74AC2DE /* BudgetDetailsViewModelFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02ADB15B7D0B2F57118460E8 /* BudgetDetailsViewModelFilterTests.swift */; };
+		750151450FC15B7323B68703 /* LoginFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D90A416A651347D442C1D15C /* LoginFlowTests.swift */; };
 		76159D026AC1CFAF14AAD281 /* RecentTransactionsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D37EB2021A91C45A93464DD5 /* RecentTransactionsCard.swift */; };
 		78B5F01E78BB121C95940D30 /* MaintenanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54EDA5BADA4D4026B4A784B6 /* MaintenanceService.swift */; };
 		78F733179BB5B59703022BCA /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19358B36831C40F5A674FBDA /* AuthService.swift */; };
@@ -141,6 +143,8 @@
 		E8BA16D4D6E28F24B0C71626 /* BudgetWidgetData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4337403CDB985DFEA70C9D76 /* BudgetWidgetData.swift */; };
 		E95C325CB627C9D66F929675 /* BudgetLineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 560EDBC9A29B4FA0528D9F98 /* BudgetLineTests.swift */; };
 		E9723E285117007368341692 /* BudgetService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E56340C03DD8EE1F7DF7638 /* BudgetService.swift */; };
+		EB35983A7D10C7881D79060C /* PulpeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C594C36815E25499F4B73532 /* PulpeUITests.swift */; };
+		EBACB0B221E57277720423E8 /* Logger+Pulpe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0572D9902FC26A1AE849B414 /* Logger+Pulpe.swift */; };
 		EC88348DD8DBF4F6B166D265 /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = D576CD613CD0E637C83249E9 /* Formatters.swift */; };
 		EDDD3545AF89F29F118A14A8 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFC463766B410987FE96534C /* APIError.swift */; };
 		F28AE4EA87CA967C9EAE1B9F /* RecurringExpensesList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2947DBEF8A6264E9FF73AEDA /* RecurringExpensesList.swift */; };
@@ -160,6 +164,13 @@
 			remoteInfo = PulpeWidget;
 		};
 		517A4C17479D6D5159595C7E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7271AAB4035820B7C5EEAA3A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4E3C22AB1CE882331E727F8E;
+			remoteInfo = Pulpe;
+		};
+		A8D78EBFCCA82E8F5ACAACBF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 7271AAB4035820B7C5EEAA3A /* Project object */;
 			proxyType = 1;
@@ -187,6 +198,7 @@
 		02ADB15B7D0B2F57118460E8 /* BudgetDetailsViewModelFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetDetailsViewModelFilterTests.swift; sourceTree = "<group>"; };
 		02D25BA5A5074D1D86441DDC /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		054A9E4A9CCF915305B08CC0 /* AddTransactionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTransactionSheet.swift; sourceTree = "<group>"; };
+		0572D9902FC26A1AE849B414 /* Logger+Pulpe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Logger+Pulpe.swift"; sourceTree = "<group>"; };
 		0E68DC6A301F7687197817A0 /* BudgetListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetListView.swift; sourceTree = "<group>"; };
 		13A8EDD631A46B3AE54C26D5 /* YearOverviewCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YearOverviewCard.swift; sourceTree = "<group>"; };
 		13C1CFD332A0AB9A168D1A6F /* BudgetListStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetListStore.swift; sourceTree = "<group>"; };
@@ -243,7 +255,7 @@
 		6B68A90534D06367C77B1427 /* DashboardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardStore.swift; sourceTree = "<group>"; };
 		6E4F47F7A88B6744CA6D788C /* Color+Pulpe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Pulpe.swift"; sourceTree = "<group>"; };
 		6E873F06201D0A4D69F356ED /* AddAllocatedTransactionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddAllocatedTransactionSheet.swift; sourceTree = "<group>"; };
-		723AB344C1BB78CCBA3446C8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		723AB344C1BB78CCBA3446C8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		76DBD55125DA1270DC47F0BE /* CheckedFilterPickerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckedFilterPickerTests.swift; sourceTree = "<group>"; };
 		77C8421EEBFDB74A00EE05B5 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
 		7D01817526FAA87D773269A9 /* TransactionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionService.swift; sourceTree = "<group>"; };
@@ -254,7 +266,7 @@
 		88250064A726B3B6AAAE9ADF /* welcome-animation.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "welcome-animation.json"; sourceTree = "<group>"; };
 		8C9C2806F868DBC404A44317 /* OnboardingNavigationButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingNavigationButtons.swift; sourceTree = "<group>"; };
 		8E370F96AA76DABDBB00B7DC /* maintenance-animation.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "maintenance-animation.json"; sourceTree = "<group>"; };
-		94570CEB6CD57FB35C06DE92 /* Pulpe.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Pulpe.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		94570CEB6CD57FB35C06DE92 /* Pulpe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pulpe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		94DA9F16798B6DC1691A2DB8 /* CreateTemplateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTemplateView.swift; sourceTree = "<group>"; };
 		955B1199FD862E3761B3435A /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		9A05FA792057CD53B266EE9F /* TransactionEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionEnums.swift; sourceTree = "<group>"; };
@@ -262,7 +274,8 @@
 		9C02340FB2A3D93553E9CA15 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		9E56340C03DD8EE1F7DF7638 /* BudgetService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetService.swift; sourceTree = "<group>"; };
 		A1A0EA391775C63723A83BF3 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
-		A40110A09E6DF69EDAD88EFA /* PulpeWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PulpeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A3D2CDB198623A6C39D6F3EF /* PulpeUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PulpeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A40110A09E6DF69EDAD88EFA /* PulpeWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PulpeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A4090237752EF9DF63F659AA /* Transaction+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Transaction+Extensions.swift"; sourceTree = "<group>"; };
 		A77FEC48FC6CEA8465118A09 /* ToastManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastManager.swift; sourceTree = "<group>"; };
 		A97A17DE833B65153924BB0A /* BudgetLineService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetLineService.swift; sourceTree = "<group>"; };
@@ -283,6 +296,7 @@
 		C32141CA4F575218D6B417EF /* StoreProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreProtocol.swift; sourceTree = "<group>"; };
 		C40A3D67DE85A1A1DCF3277A /* SyncIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncIndicator.swift; sourceTree = "<group>"; };
 		C4E26A1733C140437FFB1B7D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		C594C36815E25499F4B73532 /* PulpeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PulpeUITests.swift; sourceTree = "<group>"; };
 		C81B7DA6BF84774DCD938E37 /* KindBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KindBadge.swift; sourceTree = "<group>"; };
 		CAAA7ED54F25794213D540FE /* BudgetFormulas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetFormulas.swift; sourceTree = "<group>"; };
 		CAEE16A3F433B50FF474CC42 /* MonthYearTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthYearTests.swift; sourceTree = "<group>"; };
@@ -295,6 +309,7 @@
 		D4925C570E82F5C95331C1B9 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		D576CD613CD0E637C83249E9 /* Formatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatters.swift; sourceTree = "<group>"; };
 		D86B67782D2A720349211B65 /* WelcomeStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeStep.swift; sourceTree = "<group>"; };
+		D90A416A651347D442C1D15C /* LoginFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginFlowTests.swift; sourceTree = "<group>"; };
 		DEE595C429B5C70B0E39A099 /* CurrentMonthStoreLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentMonthStoreLogicTests.swift; sourceTree = "<group>"; };
 		DF510A93BF114B6C91984C87 /* DashboardHeroCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardHeroCard.swift; sourceTree = "<group>"; };
 		E179041C080777B5E0C6F270 /* YearOverviewProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YearOverviewProvider.swift; sourceTree = "<group>"; };
@@ -487,6 +502,7 @@
 				6E4F47F7A88B6744CA6D788C /* Color+Pulpe.swift */,
 				BF72C3AFECE05BCF77785C5F /* Date+Extensions.swift */,
 				3BE2934837CC4349E12F1EE2 /* Decimal+Extensions.swift */,
+				0572D9902FC26A1AE849B414 /* Logger+Pulpe.swift */,
 				A4090237752EF9DF63F659AA /* Transaction+Extensions.swift */,
 				E7A8C7ACFFD4118A786F4A2C /* View+Extensions.swift */,
 			);
@@ -602,9 +618,7 @@
 		6D00927D5E35AD49432F228E /* PulpeWidget */ = {
 			isa = PBXGroup;
 			children = (
-				BF32797555067F58F521F8FD /* Models */,
 				AD0CAF35FBFF805D67F8AD1C /* Resources */,
-				35A07FFF4A09B0C4045409BF /* Services */,
 				5CCD294071AF1411A6856A16 /* Widgets */,
 				9C02340FB2A3D93553E9CA15 /* Info.plist */,
 				1D358058CCE0A379A8189DA6 /* PulpeWidget.entitlements */,
@@ -703,6 +717,15 @@
 			path = Formulas;
 			sourceTree = "<group>";
 		};
+		96F4CD3C388E5D16FE1BB5CC /* PulpeUITests */ = {
+			isa = PBXGroup;
+			children = (
+				D90A416A651347D442C1D15C /* LoginFlowTests.swift */,
+				C594C36815E25499F4B73532 /* PulpeUITests.swift */,
+			);
+			path = PulpeUITests;
+			sourceTree = "<group>";
+		};
 		A0B4D452DA78EF022A27EB74 /* Network */ = {
 			isa = PBXGroup;
 			children = (
@@ -754,6 +777,7 @@
 				BF32797555067F58F521F8FD /* Models */,
 				0AEDD62EFE9E1084625551DC /* Pulpe */,
 				F4AA324A302F8F42EB9D96B7 /* PulpeTests */,
+				96F4CD3C388E5D16FE1BB5CC /* PulpeUITests */,
 				6D00927D5E35AD49432F228E /* PulpeWidget */,
 				35A07FFF4A09B0C4045409BF /* Services */,
 				F1BC99C651523435231F4EC2 /* Products */,
@@ -871,6 +895,7 @@
 			children = (
 				94570CEB6CD57FB35C06DE92 /* Pulpe.app */,
 				FA3FD668DBA7B37AD784F89D /* PulpeTests.xctest */,
+				A3D2CDB198623A6C39D6F3EF /* PulpeUITests.xctest */,
 				A40110A09E6DF69EDAD88EFA /* PulpeWidget.appex */,
 			);
 			name = Products;
@@ -962,6 +987,24 @@
 			productReference = 94570CEB6CD57FB35C06DE92 /* Pulpe.app */;
 			productType = "com.apple.product-type.application";
 		};
+		DE37C1D30CE2CD31E5FB0C65 /* PulpeUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 461C574FDE4E83727B62726D /* Build configuration list for PBXNativeTarget "PulpeUITests" */;
+			buildPhases = (
+				5C7D408D92940E90923555AA /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				8C5777208C7F8F972FAF2758 /* PBXTargetDependency */,
+			);
+			name = PulpeUITests;
+			packageProductDependencies = (
+			);
+			productName = PulpeUITests;
+			productReference = A3D2CDB198623A6C39D6F3EF /* PulpeUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		FF9375B7DCBF9359BA5C4F10 /* PulpeTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = AC80993085D686D56C1E547E /* Build configuration list for PBXNativeTarget "PulpeTests" */;
@@ -990,12 +1033,15 @@
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					07BEE599D482CF9B6643DCEB = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 					4E3C22AB1CE882331E727F8E = {
+						ProvisioningStyle = Automatic;
+					};
+					DE37C1D30CE2CD31E5FB0C65 = {
 						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
+						TestTargetID = 4E3C22AB1CE882331E727F8E;
 					};
 					FF9375B7DCBF9359BA5C4F10 = {
 						DevelopmentTeam = "";
@@ -1017,12 +1063,12 @@
 				104B6E33E10617F89EF7ECD9 /* XCRemoteSwiftPackageReference "lottie-spm" */,
 				09998022D4D87255D2EAE15A /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				4E3C22AB1CE882331E727F8E /* Pulpe */,
 				FF9375B7DCBF9359BA5C4F10 /* PulpeTests */,
+				DE37C1D30CE2CD31E5FB0C65 /* PulpeUITests */,
 				07BEE599D482CF9B6643DCEB /* PulpeWidget */,
 			);
 		};
@@ -1071,6 +1117,7 @@
 				3B640AF55B1CFF33ECE822B1 /* DesignTokens.swift in Sources */,
 				401748FBC2FA450B43CAF432 /* Formatters.swift in Sources */,
 				6CEA4A81B6B02D7395FEFAED /* LinkedTransactionsContext.swift in Sources */,
+				EBACB0B221E57277720423E8 /* Logger+Pulpe.swift in Sources */,
 				4D613852DBBBCCEF9960A4C5 /* PulpeWidgetBundle.swift in Sources */,
 				D16C982314DE3DBF6A8C62ED /* Transaction+Extensions.swift in Sources */,
 				BB4950D1CAE5CD80802EEA21 /* Transaction.swift in Sources */,
@@ -1080,6 +1127,15 @@
 				AB76B8EB227DD6513A4238FC /* YearOverviewProvider.swift in Sources */,
 				2E7CD1E47B561FB85B0C17D9 /* YearOverviewWidget.swift in Sources */,
 				8F2A8100743B4FD5CC2B86C3 /* YearOverviewWidgetView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5C7D408D92940E90923555AA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				750151450FC15B7323B68703 /* LoginFlowTests.swift in Sources */,
+				EB35983A7D10C7881D79060C /* PulpeUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1159,6 +1215,7 @@
 				9DF3E7C14A96A5E7AC8EC4C3 /* LinkedTransactionsContext.swift in Sources */,
 				6CDB77CCB53255B0897278CC /* LinkedTransactionsSheet.swift in Sources */,
 				A9D815E799971DE27B7770E9 /* LoadingView.swift in Sources */,
+				4FDD5DEEA9834DF486F307C5 /* Logger+Pulpe.swift in Sources */,
 				846573A9906007B79BC2B2C2 /* LoginView.swift in Sources */,
 				7D8DD48CD5C6688A74753599 /* MainTabView.swift in Sources */,
 				78B5F01E78BB121C95940D30 /* MaintenanceService.swift in Sources */,
@@ -1219,6 +1276,11 @@
 			target = 07BEE599D482CF9B6643DCEB /* PulpeWidget */;
 			targetProxy = 26DB0D8661DD5E57880C323F /* PBXContainerItemProxy */;
 		};
+		8C5777208C7F8F972FAF2758 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4E3C22AB1CE882331E727F8E /* Pulpe */;
+			targetProxy = A8D78EBFCCA82E8F5ACAACBF /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -1245,6 +1307,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Pulpe/Pulpe.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = Pulpe/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1334,6 +1397,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				CODE_SIGN_ENTITLEMENTS = PulpeWidget/PulpeWidget.entitlements;
+				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = PulpeWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1348,12 +1412,30 @@
 			};
 			name = Debug;
 		};
+		7E9F620A3B131E1FB7ACB20A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.pulpe.ios.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Pulpe;
+			};
+			name = Debug;
+		};
 		89120607AC9454C2896E542D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Pulpe/Pulpe.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = Pulpe/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1430,12 +1512,30 @@
 			};
 			name = Release;
 		};
+		CA71D03A71400B2FB6F146D2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.pulpe.ios.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Pulpe;
+			};
+			name = Release;
+		};
 		CBCAC068EA9FEAC1FADC4805 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				CODE_SIGN_ENTITLEMENTS = PulpeWidget/PulpeWidget.entitlements;
+				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = PulpeWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1484,6 +1584,15 @@
 			buildConfigurations = (
 				4F55DBF4707FCCB9EA8AC743 /* Debug */,
 				A1B82848B7E55B916925889D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		461C574FDE4E83727B62726D /* Build configuration list for PBXNativeTarget "PulpeUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7E9F620A3B131E1FB7ACB20A /* Debug */,
+				CA71D03A71400B2FB6F146D2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

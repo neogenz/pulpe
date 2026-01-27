@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 @Observable @MainActor
 final class CurrentMonthStore: StoreProtocol {
@@ -137,9 +138,7 @@ final class CurrentMonthStore: StoreProtocol {
                 currentBudgetDetails: details
             )
         } catch {
-            #if DEBUG
-            print("syncWidgetData: exportAllBudgets failed - \(error)")
-            #endif
+            Logger.sync.error("syncWidgetData: exportAllBudgets failed - \(error)")
             await widgetSyncService.sync(
                 budgetsWithDetails: [],
                 currentBudgetDetails: details
