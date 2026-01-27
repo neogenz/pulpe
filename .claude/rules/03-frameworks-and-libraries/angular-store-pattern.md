@@ -8,7 +8,7 @@ paths:
 
 # Store Pattern with Angular Signals
 
-> **Signal API Reference**: See @.claude/rules/frontend/signals.md for `signal()`, `computed()`, `linkedSignal()`, `resource()` API details.
+> **Signal API Reference**: See @.claude/rules/03-frameworks-and-libraries/angular-signals.md for `signal()`, `computed()`, `linkedSignal()`, `resource()` API details.
 
 ## Store Structure
 
