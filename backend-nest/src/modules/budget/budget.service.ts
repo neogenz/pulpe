@@ -261,7 +261,17 @@ export class BudgetService {
             supabase,
           );
           rolloversMap.set(budget.id, rolloverData.rollover);
-        } catch {
+        } catch (error) {
+          this.logger.warn(
+            {
+              budgetId: budget.id,
+              month: budget.month,
+              year: budget.year,
+              err: error,
+              operation: 'fetchRolloversForBudgets',
+            },
+            'Failed to fetch rollover for budget, using fallback of 0',
+          );
           rolloversMap.set(budget.id, 0);
         }
       }),
