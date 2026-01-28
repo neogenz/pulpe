@@ -75,7 +75,7 @@ struct MainTabView: View {
                             }
                             .animation(.easeInOut(duration: 0.25), value: selectedTab.wrappedValue)
                         }
-                        .glassEffect(.regular, in: .capsule)
+                        .glassEffect(.regular.interactive(), in: .capsule)
                 }
 
                 // Action button (only visible on current month tab)
