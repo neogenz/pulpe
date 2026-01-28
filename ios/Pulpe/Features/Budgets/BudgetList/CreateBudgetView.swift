@@ -19,7 +19,7 @@ struct CreateBudgetView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: DesignTokens.Spacing.xxl) {
                     // Period header card
                     periodCard
                         .opacity(hasAppeared ? 1 : 0)
@@ -41,8 +41,8 @@ struct CreateBudgetView: View {
                         ))
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
+                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, 32)
             }
             .scrollIndicators(.hidden)
@@ -90,7 +90,7 @@ struct CreateBudgetView: View {
     // MARK: - Period Card
 
     private var periodCard: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: DesignTokens.Spacing.lg) {
             // Calendar icon with gradient background
             ZStack {
                 Circle()
@@ -108,7 +108,7 @@ struct CreateBudgetView: View {
                     .foregroundStyle(Color.pulpePrimary)
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Période du budget")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -128,7 +128,7 @@ struct CreateBudgetView: View {
                 .padding(.vertical, 6)
                 .background(Color(.tertiarySystemGroupedBackground), in: Capsule())
         }
-        .padding(16)
+        .padding(DesignTokens.Spacing.lg)
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
         .shadow(DesignTokens.Shadow.subtle)
@@ -137,7 +137,7 @@ struct CreateBudgetView: View {
     // MARK: - Template Section
 
     private var templateSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             // Section header
             HStack {
                 Text("Choisir un modèle")
@@ -150,7 +150,7 @@ struct CreateBudgetView: View {
                         .scaleEffect(0.8)
                 }
             }
-            .padding(.horizontal, 4)
+            .padding(.horizontal, DesignTokens.Spacing.xs)
 
             // Template list
             if viewModel.isLoadingTemplates && viewModel.templates.isEmpty {
@@ -165,15 +165,15 @@ struct CreateBudgetView: View {
             Text("Le budget sera créé avec les prévisions du modèle sélectionné")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
-                .padding(.horizontal, 4)
-                .padding(.top, 4)
+                .padding(.horizontal, DesignTokens.Spacing.xs)
+                .padding(.top, DesignTokens.Spacing.xs)
         }
     }
 
     // MARK: - Loading Templates
 
     private var loadingTemplates: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: DesignTokens.Spacing.md) {
             ForEach(0..<2, id: \.self) { _ in
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
                     .fill(Color(.tertiarySystemGroupedBackground))
@@ -186,7 +186,7 @@ struct CreateBudgetView: View {
     // MARK: - Empty Templates
 
     private var emptyTemplates: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "doc.text.magnifyingglass")
                 .font(.system(size: 32))
                 .foregroundStyle(.tertiary)
@@ -324,7 +324,7 @@ struct TemplateSelectionCard: View {
     // MARK: - Totals Row
 
     private func totalsRow(_ totals: BudgetFormulas.TemplateTotals) -> some View {
-        HStack(spacing: 16) {
+        HStack(spacing: DesignTokens.Spacing.lg) {
             HStack(spacing: 4) {
                 Image(systemName: "arrow.down.circle.fill")
                     .font(.system(size: 12))
@@ -349,11 +349,11 @@ struct TemplateSelectionCard: View {
             HStack(spacing: 4) {
                 Image(systemName: totals.balance >= 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                     .font(.system(size: 12))
-                    .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : .red)
+                    .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
 
                 Text(totals.balance.asCompactCHF)
                     .font(.system(.caption, design: .rounded, weight: .medium))
-                    .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : .red)
+                    .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
             }
         }
     }
