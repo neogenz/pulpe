@@ -134,18 +134,16 @@ export function provideCore({ routes }: CoreOptions) {
       // 0. Run storage migrations first (before any data is read)
       storageMigrationRunner.runMigrations();
 
-      // 1. Charger la configuration d'abord
+      // 1. Charger la configuration d'abord (requise par PostHog et Auth)
       await applicationConfig.initialize();
 
       // 2. Logger les informations complètes après chargement
       logAppInfo(applicationConfig, logger);
 
-      try {
-        // 3. Initialiser PostHog (non-blocking, can fail gracefully)
+      // 3. Initialiser PostHog et Auth en parallèle (les deux ne dépendent que de la config)
+      const initPostHog = async () => {
         try {
           await postHogService.initialize();
-
-          // Initialize analytics with proper injection context for effect()
           runInInjectionContext(injector, () => {
             analyticsService.initializeAnalyticsTracking();
             logger.debug('Analytics service ready', {
@@ -154,22 +152,20 @@ export function provideCore({ routes }: CoreOptions) {
           });
         } catch (postHogError) {
           if (applicationConfig.isDevelopment()) {
-            logger.error('PostHog initialization failed', postHogError);
             throw postHogError;
           }
-
           logger.warn(
             'PostHog initialization failed, continuing without analytics',
             postHogError,
           );
-          // Don't throw - PostHog failure shouldn't block app startup
         }
+      };
 
-        // 4. Initialiser l'auth ensuite (config garantie disponible)
-        await authSession.initializeAuthState();
+      try {
+        await Promise.all([initPostHog(), authSession.initializeAuthState()]);
       } catch (error) {
         logger.error("Erreur lors de l'initialisation", error);
-        throw error; // Bloquer le démarrage de l'app en cas d'erreur critique
+        throw error;
       }
     }),
 
