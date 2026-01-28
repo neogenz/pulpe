@@ -43,6 +43,7 @@ final class AppState {
     }
 
     var showBiometricEnrollment = false
+    var biometricError: String?
 
     // MARK: - Services
 
@@ -62,6 +63,7 @@ final class AppState {
 
     func checkAuthState() async {
         authState = .loading
+        biometricError = nil
 
         #if DEBUG
         // In DEBUG mode, try regular token-based session first (no biometric prompt)
@@ -88,8 +90,15 @@ final class AppState {
                 // No tokens found
                 authState = .unauthenticated
             }
+        } catch is KeychainError {
+            // Face ID cancelled or failed — keep tokens for retry
+            authState = .unauthenticated
         } catch {
-            // Face ID cancelled, lockout, or server error - keep tokens for retry button
+            // Token refresh failed (expired session, network, etc.)
+            Logger.auth.error("checkAuthState: biometric session refresh failed - \(error)")
+            await authService.clearBiometricTokens()
+            biometricEnabled = false
+            biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
             authState = .unauthenticated
         }
     }
@@ -144,6 +153,7 @@ final class AppState {
     }
 
     func retryBiometricLogin() async {
+        biometricError = nil
         await checkAuthState()
     }
 
