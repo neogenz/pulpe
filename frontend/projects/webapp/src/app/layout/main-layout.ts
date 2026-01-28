@@ -188,6 +188,7 @@ interface NavigationItem {
           class="flex flex-col bg-surface relative min-w-0"
           [class.h-full]="!isHandset()"
           [class.overflow-hidden]="!isHandset()"
+          [class.flex-1]="isHandset()"
           [class.p-2]="!isHandset()"
           [class.pt-0]="!isHandset() && !isDemoMode()"
           [class.rounded-xl]="!isHandset()"
@@ -457,6 +458,10 @@ interface NavigationItem {
         :host mat-sidenav-content {
           overflow: visible !important;
           height: auto !important;
+          min-height: 100dvh !important;
+          /* Force flex layout - Material overrides Tailwind classes */
+          display: flex !important;
+          flex-direction: column !important;
         }
       }
 
