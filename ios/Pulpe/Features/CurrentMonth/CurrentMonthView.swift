@@ -86,17 +86,11 @@ struct CurrentMonthView: View {
                 // Hero card with available balance and linear progress
                 DashboardHeroCard(metrics: store.metrics)
 
-                // Top spending budget line
-                if let topSpending = store.topSpendingCategory {
-                    TopSpendingCard(
-                        name: topSpending.line.name,
-                        amount: topSpending.consumption.allocated,
-                        totalExpenses: store.metrics.totalExpenses
-                    )
-                }
-
-                // Inline alerts (categories at 80%+)
-                InlineAlertsView(
+                // Insights: top spending + budget alerts
+                InsightsCard(
+                    topSpending: store.topSpendingCategory.map {
+                        (name: $0.line.name, amount: $0.consumption.allocated, totalExpenses: store.metrics.totalExpenses)
+                    },
                     alerts: store.alertBudgetLines,
                     onTap: { navigateToBudget = true }
                 )
