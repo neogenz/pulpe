@@ -34,14 +34,19 @@ struct EditTransactionSheet: View {
             Form {
                 Section {
                     TextField("Description", text: $name)
+                        .font(PulpeTypography.bodyLarge)
+                        .listRowBackground(Color.surfaceCard)
                 } header: {
                     Text("Description")
+                        .font(PulpeTypography.labelLarge)
                 }
 
                 Section {
                     CurrencyField(value: $amount, placeholder: "0.00")
+                        .listRowBackground(Color.surfaceCard)
                 } header: {
                     Text("Montant")
+                        .font(PulpeTypography.labelLarge)
                 }
 
                 Section {
@@ -52,8 +57,10 @@ struct EditTransactionSheet: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    .listRowBackground(Color.surfaceCard)
                 } header: {
                     Text("Type")
+                        .font(PulpeTypography.labelLarge)
                 }
 
                 Section {
@@ -63,8 +70,10 @@ struct EditTransactionSheet: View {
                         displayedComponents: .date
                     )
                     .datePickerStyle(.graphical)
+                    .listRowBackground(Color.surfaceCard)
                 } header: {
                     Text("Date")
+                        .font(PulpeTypography.labelLarge)
                 }
 
                 if let error {
