@@ -6,7 +6,7 @@ struct RecentTransactionsCard: View {
     let onViewAll: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             // Header
             Text("Transactions récentes")
                 .font(.subheadline)
@@ -14,7 +14,7 @@ struct RecentTransactionsCard: View {
                 .foregroundStyle(.primary)
 
             // Transaction rows
-            VStack(spacing: 8) {
+            VStack(spacing: DesignTokens.Spacing.sm) {
                 ForEach(transactions, id: \.id) { transaction in
                     RecentTransactionCardRow(transaction: transaction)
                 }
@@ -34,9 +34,9 @@ struct RecentTransactionsCard: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, 14)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Color.surfaceCard)
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Transactions récentes, \(transactions.count) transactions")
@@ -48,7 +48,7 @@ private struct RecentTransactionCardRow: View {
     let transaction: Transaction
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DesignTokens.Spacing.md) {
             // Kind icon circle
             Circle()
                 .fill(transaction.kind.color.opacity(DesignTokens.Opacity.badgeBackground))

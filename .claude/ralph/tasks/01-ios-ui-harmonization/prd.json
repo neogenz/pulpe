@@ -225,8 +225,8 @@
         "Project compiles"
       ],
       "priority": 16,
-      "passes": false,
-      "notes": "File: Features/Onboarding/Components/OnboardingNavigationButtons.swift"
+      "passes": true,
+      "notes": "Replaced .white with Color.textOnPrimary (2 instances: ProgressView tint, foregroundStyle). Replaced Font.system() on icons with PulpeTypography tokens (inputLabel for arrow, inputHelper for chevron). Replaced hardcoded spacing: 12→md, 8→sm, 4→xs with DesignTokens.Spacing. Replaced padding 24→xxl. Button text already used PulpeTypography.buttonPrimary/buttonSecondary. Primary button already used Color.onboardingGradient."
     },
     {
       "id": "US-017",
@@ -239,8 +239,8 @@
         "Project compiles"
       ],
       "priority": 17,
-      "passes": false,
-      "notes": "DashboardHeroCard.swift: line 27 returns .red for over-budget, line 33 uses .red for balance text. Replace with Color.financialOverBudget."
+      "passes": true,
+      "notes": "Replaced .red with Color.financialOverBudget (2 instances: progressColor, balanceColor). Replaced .green with Color.financialSavings (2 instances: progressColor, statusMessage). Replaced .orange with Color.financialOverBudget (2 instances: progressColor, statusMessage). Refactored statusMessage tuple to include icon name (avoids unreliable Color == comparison). Status messages use warm DA tones."
     },
     {
       "id": "US-018",
@@ -255,8 +255,8 @@
         "Project compiles"
       ],
       "priority": 18,
-      "passes": false,
-      "notes": "HeroBalanceCard.swift: .red at lines 30/36/76, .green, .white, Font.system() at lines 66/107, .stroke at 97, system gray surface at 175."
+      "passes": true,
+      "notes": "Replaced .red with Color.financialOverBudget (3 instances: progressColor, balanceColor, over-budget label). Replaced .orange with Color.financialOverBudget (warning state). Replaced Font.system(size: 42) with PulpeTypography.amountHero (new token). Replaced Font.system(size: 16/10) with PulpeTypography.progressValue/progressUnit (new tokens). Replaced Color(.secondarySystemGroupedBackground) with Color.surfaceCard (DA verdâtre). Replaced hardcoded spacing (20, 24, 8) with DesignTokens.Spacing tokens. Circle .stroke() kept as-is — progress indicator, not form input."
     },
     {
       "id": "US-019",
@@ -270,8 +270,8 @@
         "Project compiles"
       ],
       "priority": 19,
-      "passes": false,
-      "notes": "4 card files in Features/CurrentMonth/Components/. Focus on replacing hardcoded colors and surfaces."
+      "passes": true,
+      "notes": "TopSpendingCard: replaced Color(.secondarySystemGroupedBackground) with Color.surfaceCard, replaced hardcoded spacing 12→md, 16→lg. YearOverviewCard: replaced .red with Color.financialOverBudget for negative rollover, replaced system background with Color.surfaceCard, replaced spacing 12→md, 8→sm, 16→lg. TrendsCard: replaced .orange/.green variation colors with Color.financialOverBudget/Color.financialSavings, replaced system background with Color.surfaceCard (both TrendsCard and TrendsEmptyState), replaced spacing 16→lg, 12→md, 20→xl, 4→xs, 8→sm. RecentTransactionsCard: replaced system background with Color.surfaceCard, replaced spacing 12→md, 8→sm, 16→lg. All 4 cards now use DA color tokens and DesignTokens.Spacing."
     },
     {
       "id": "US-020",

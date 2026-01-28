@@ -12,7 +12,7 @@ struct TopSpendingCard: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DesignTokens.Spacing.md) {
             // Icon
             Circle()
                 .fill(Color.financialExpense.opacity(0.15))
@@ -50,9 +50,9 @@ struct TopSpendingCard: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, 14)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Color.surfaceCard)
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Où part ton argent: \(name), \(amount.asCHF), \(percentageOfTotal) pourcent de tes dépenses")
