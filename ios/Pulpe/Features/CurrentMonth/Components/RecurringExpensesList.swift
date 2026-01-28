@@ -66,7 +66,7 @@ struct BudgetSection: View {
                         } label: {
                             Label("Supprimer", systemImage: "trash")
                         }
-                        .tint(.red)
+                        .tint(Color.errorPrimary)
 
                         Button {
                             onToggle(item)
@@ -77,7 +77,7 @@ struct BudgetSection: View {
                                 systemImage: item.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
                             )
                         }
-                        .tint(item.isChecked ? .orange : .pulpePrimary)
+                        .tint(item.isChecked ? Color.financialOverBudget : .pulpePrimary)
                     }
                 }
             }
@@ -159,13 +159,13 @@ struct BudgetLineRow: View {
     }
 
     private var consumptionColor: Color {
-        if consumption.isOverBudget { return .red }
-        if consumption.isNearLimit { return .orange }
+        if consumption.isOverBudget { return .financialOverBudget }
+        if consumption.isNearLimit { return .financialOverBudget }
         return .pulpePrimary
     }
 
     private var remainingColor: Color {
-        consumption.available < 0 ? .red : line.kind.color
+        consumption.available < 0 ? .financialOverBudget : line.kind.color
     }
 
     private var amountTextColor: Color {

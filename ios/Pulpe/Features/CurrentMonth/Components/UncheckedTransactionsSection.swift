@@ -26,7 +26,7 @@ struct UncheckedTransactionsSection: View {
             } header: {
                 HStack(spacing: 6) {
                     Image(systemName: "clock.arrow.circlepath")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Color.financialOverBudget)
                     Text("À comptabiliser")
                         .font(.subheadline)
                         .fontWeight(.semibold)
@@ -46,12 +46,12 @@ private struct UncheckedTransactionRow: View {
             // Unchecked indicator
             ZStack {
                 Circle()
-                    .stroke(Color.orange, lineWidth: 2)
+                    .fill(Color.financialOverBudget.opacity(DesignTokens.Opacity.badgeBackground))
                     .frame(width: 36, height: 36)
 
                 Image(systemName: transaction.kind.listIcon)
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Color.financialOverBudget)
             }
 
             // Name and date
