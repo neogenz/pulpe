@@ -192,14 +192,15 @@ struct BudgetDetailsView: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
             .listSectionSeparator(.hidden)
-            // Hero balance card (Revolut-style) - no Section to avoid double glass effect
-            HeroBalanceCard(
-                metrics: viewModel.metrics,
-                onTapProgress: {}
-            )
-            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 16, trailing: 16))
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
+
+            // Hero balance card - applyGlass: false car le List fournit son propre styling
+            Section {
+                HeroBalanceCard(
+                    metrics: viewModel.metrics,
+                    applyGlass: false,
+                    onTapProgress: {}
+                )
+            }
 
             // Rollover section (toujours en premier)
             if let rolloverInfo = viewModel.rolloverInfo {

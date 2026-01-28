@@ -1,9 +1,13 @@
 import SwiftUI
 
 extension View {
-    /// Conditionally apply a modifier
+    /// Conditionally apply a modifier.
+    /// Use when a modifier should only be applied based on a compile-time or init-time condition.
     @ViewBuilder
-    func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
+    func `if`<TrueContent: View>(
+        _ condition: Bool,
+        @ViewBuilder transform: (Self) -> TrueContent
+    ) -> some View {
         if condition {
             transform(self)
         } else {
@@ -110,6 +114,21 @@ extension View {
                 for: nil
             )
         }
+    }
+}
+
+// MARK: - List Row Styling
+
+extension View {
+    /// Modifier for self-styled cards in List context.
+    /// Use this when a card applies its own glass/background and shouldn't get List section styling.
+    func listRowCustomStyled(
+        insets: EdgeInsets = EdgeInsets(top: 8, leading: 16, bottom: 16, trailing: 16)
+    ) -> some View {
+        self
+            .listRowInsets(insets)
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
     }
 }
 
