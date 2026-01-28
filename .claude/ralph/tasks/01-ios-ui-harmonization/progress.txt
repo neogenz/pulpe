@@ -247,3 +247,17 @@ Feature: 01-ios-ui-harmonization
   - RecentTransactionsCard uses `transaction.kind.color` from the model — this is already semantic and doesn't need replacement
 ---
 
+## 2026-01-28 - US-020: Harmonize Dashboard alert components (AlertsSection, InlineAlertsView, RealizedBalanceSheet)
+- AlertsSection: replaced `.orange` → `Color.financialOverBudget` on header icon, replaced `.red`/`.orange` → `Color.financialOverBudget` in AlertRow (both over-budget and warning use warm amber), replaced spacing `12`→`md`, `4`→`xs`, `8`→`sm`
+- InlineAlertsView: replaced `.orange` → `Color.financialOverBudget` on icon, replaced `.red`/`.orange` → `Color.financialOverBudget` for percentage text color, replaced `Color(.secondarySystemGroupedBackground)` → `Color.surfaceCard`, replaced spacing `4`→`xs`, `16`→`lg`, `12`→`md`
+- RealizedBalanceSheet: replaced `.red` → `Color.financialOverBudget` (negative balance, badge), `.green`/`Color.green` → `Color.financialSavings`/`Color.financialSavings` (positive badge), `Color(.systemGroupedBackground)` → `Color.surfacePrimary`, `Color(.secondarySystemGroupedBackground)` → `Color.surfaceCard` (2x), `cornerRadius: 16` → `DesignTokens.CornerRadius.lg` (2x), `cornerRadius: 12` → `DesignTokens.CornerRadius.md`, spacing `24`→`xxl`, `16`→`lg`, `20`→`xl`, `12`→`md`, `4`→`xs`, `8`→`sm`
+- Files changed: `AlertsSection.swift`, `InlineAlertsView.swift`, `RealizedBalanceSheet.swift`
+- **Learnings:**
+  - AlertsSection AlertRow had `.red`/`.orange` ternary for over-budget vs warning — simplified to `Color.financialOverBudget` for both since all alerts are ≥80% (both states warrant warm amber tone)
+  - `Color(.systemGroupedBackground)` (UIKit primary bg) → `Color.surfacePrimary` (DA verdâtre), `Color(.secondarySystemGroupedBackground)` (UIKit secondary bg) → `Color.surfaceCard` — consistent replacement pattern
+  - `.yellow` on decorative lightbulb icon and tip background is acceptable — it's a standard iconographic color for "tip/idea", not a financial indicator
+  - `spacing: 6` and `.padding(.vertical, 6)` kept as-is — no matching DesignTokens.Spacing token (between xs=4 and sm=8)
+  - RealizedBalanceSheet status message "on y remédie ?" already uses warm reassuring tone per DA Soulagement — no text change needed
+  - `Font.system(size: 40, weight: .bold, design: .rounded)` on balance amount left as-is — `amountHero` is 42pt and this is 40pt, close but different. Layout-specific hero size.
+---
+

@@ -8,7 +8,7 @@ struct AlertsSection: View {
     var body: some View {
         if !alerts.isEmpty {
             Section {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                     ForEach(alerts.prefix(3), id: \.line.id) { alert in
                         AlertRow(
                             name: alert.line.name,
@@ -28,13 +28,13 @@ struct AlertsSection: View {
                             .font(.subheadline)
                             .fontWeight(.medium)
                     }
-                    .padding(.top, 4)
+                    .padding(.top, DesignTokens.Spacing.xs)
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, DesignTokens.Spacing.xs)
             } header: {
                 HStack {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Color.financialOverBudget)
                     Text("Dépenses à surveiller")
                         .font(.subheadline)
                         .fontWeight(.semibold)
@@ -52,11 +52,11 @@ private struct AlertRow: View {
     let isOverBudget: Bool
 
     private var color: Color {
-        isOverBudget ? .red : .orange
+        Color.financialOverBudget
     }
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DesignTokens.Spacing.sm) {
             Circle()
                 .fill(color)
                 .frame(width: 8, height: 8)

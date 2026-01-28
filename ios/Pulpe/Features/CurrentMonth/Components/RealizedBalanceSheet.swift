@@ -13,7 +13,7 @@ struct RealizedBalanceSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: DesignTokens.Spacing.xxl) {
                     // Main balance card
                     balanceCard
 
@@ -25,7 +25,7 @@ struct RealizedBalanceSheet: View {
                 }
                 .padding()
             }
-            .background(Color(.systemGroupedBackground))
+            .background(Color.surfacePrimary)
             .navigationTitle("Suivi du budget")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -43,7 +43,7 @@ struct RealizedBalanceSheet: View {
     // MARK: - Balance Card
 
     private var balanceCard: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: DesignTokens.Spacing.lg) {
             // Label
             Text("Solde à date")
                 .font(.subheadline)
@@ -52,7 +52,7 @@ struct RealizedBalanceSheet: View {
             // Amount
             Text(realizedMetrics.realizedBalance.asCHF)
                 .font(.system(size: 40, weight: .bold, design: .rounded))
-                .foregroundColor(isPositiveBalance ? .primary : .red)
+                .foregroundColor(isPositiveBalance ? .primary : Color.financialOverBudget)
 
             // Status badge
             HStack(spacing: 6) {
@@ -62,10 +62,10 @@ struct RealizedBalanceSheet: View {
                     .font(.caption)
                     .fontWeight(.medium)
             }
-            .foregroundStyle(isPositiveBalance ? .green : .red)
-            .padding(.horizontal, 12)
+            .foregroundStyle(isPositiveBalance ? Color.financialSavings : Color.financialOverBudget)
+            .padding(.horizontal, DesignTokens.Spacing.md)
             .padding(.vertical, 6)
-            .background((isPositiveBalance ? Color.green : Color.red).opacity(0.12))
+            .background((isPositiveBalance ? Color.financialSavings : Color.financialOverBudget).opacity(0.12))
             .clipShape(Capsule())
 
             // Completion info
@@ -74,15 +74,15 @@ struct RealizedBalanceSheet: View {
                 .foregroundStyle(Color.textTertiary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(.vertical, DesignTokens.Spacing.xxl)
+        .background(Color.surfaceCard)
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
     }
 
     // MARK: - Progress Section
 
     private var progressSection: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
             Text("Prévu vs Réalisé")
                 .font(.headline)
 
@@ -114,8 +114,8 @@ struct RealizedBalanceSheet: View {
             )
         }
         .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .background(Color.surfaceCard)
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
     }
 
     /// Calculate realized savings from realized metrics
@@ -131,12 +131,12 @@ struct RealizedBalanceSheet: View {
     // MARK: - Tip Section
 
     private var tipSection: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
             Image(systemName: "lightbulb.fill")
                 .font(.body)
                 .foregroundStyle(.yellow)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Astuce")
                     .font(.subheadline)
                     .fontWeight(.semibold)
@@ -149,7 +149,7 @@ struct RealizedBalanceSheet: View {
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.yellow.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
     }
 }
 
@@ -174,7 +174,7 @@ private struct ProgressRow: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             // Header
             HStack {
                 Image(systemName: icon)

@@ -11,9 +11,9 @@ struct InlineAlertsView: View {
     var body: some View {
         if !alerts.isEmpty {
             Button(action: { onTap?() }) {
-                HStack(spacing: 4) {
+                HStack(spacing: DesignTokens.Spacing.xs) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Color.financialOverBudget)
                         .font(.subheadline)
 
                     alertText
@@ -21,10 +21,10 @@ struct InlineAlertsView: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.vertical, DesignTokens.Spacing.md)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(.secondarySystemGroupedBackground))
+                .background(Color.surfaceCard)
                 .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
             }
             .buttonStyle(.plain)
@@ -41,7 +41,7 @@ struct InlineAlertsView: View {
         var result = Text("")
 
         for (index, alert) in visibleAlerts.enumerated() {
-            let color: Color = alert.consumption.isOverBudget ? .red : .orange
+            let color: Color = Color.financialOverBudget
             let percentage = Int(alert.consumption.percentage)
 
             if index > 0 {
