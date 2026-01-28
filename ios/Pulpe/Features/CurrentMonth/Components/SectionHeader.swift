@@ -8,18 +8,18 @@ struct SectionHeader: View {
     var totalColor: Color = .primary
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DesignTokens.Spacing.sm) {
             // Title
             Text(title)
                 .font(.headline)
-                .foregroundStyle(.primary)
+                .foregroundStyle(Color.textPrimary)
                 .lineLimit(1)
 
             // Count badge
             Text("\(count)")
                 .font(.system(.caption, design: .rounded, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 8)
+                .foregroundStyle(Color.textOnPrimary)
+                .padding(.horizontal, DesignTokens.Spacing.sm)
                 .padding(.vertical, 3)
                 .background(Color.countBadge)
                 .clipShape(Capsule())
