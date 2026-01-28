@@ -44,7 +44,7 @@ struct LoginView: View {
                     // Form card
                     VStack(spacing: DesignTokens.Spacing.xl) {
                         // Error message
-                        if let errorMessage = viewModel.errorMessage {
+                        if let errorMessage = viewModel.errorMessage ?? appState.biometricError {
                             HStack(spacing: DesignTokens.Spacing.sm) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.body)
@@ -60,10 +60,11 @@ struct LoginView: View {
                         }
 
                         // Biometric button
-                        if canRetryBiometric {
+                        if canRetryBiometric && appState.biometricError == nil {
                             Button {
                                 Task {
                                     await appState.retryBiometricLogin()
+                                    canRetryBiometric = await appState.canRetryBiometric()
                                 }
                             } label: {
                                 HStack(spacing: DesignTokens.Spacing.md) {
@@ -296,6 +297,7 @@ struct LoginView: View {
 
         do {
             try await appState.login(email: viewModel.email, password: viewModel.password)
+            appState.biometricError = nil
             isPresented?.wrappedValue = false
         } catch {
             viewModel.errorMessage = AuthErrorLocalizer.localize(error)
