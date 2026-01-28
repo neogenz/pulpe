@@ -1,0 +1,54 @@
+# Ralph Progress Log
+Started: 2026-01-28
+Feature: 01-ios-ui-harmonization
+
+## Codebase Patterns
+
+### Design System Files (ALWAYS read these first)
+- `ios/Pulpe/Shared/Design/DesignTokens.swift` — Spacing, CornerRadius, Card, FormField, Shadow, Opacity, Icon, Progress
+- `ios/Pulpe/Shared/Extensions/Color+Pulpe.swift` — All colors with light/dark (financialIncome, financialExpense, financialSavings, financialOverBudget, errorPrimary, errorBackground, surfacePrimary, surfaceCard, pulpePrimary)
+- `ios/Pulpe/Shared/Styles/Typography.swift` — PulpeTypography (heroTitle, headlineLarge, bodyLarge, amountHero, labelLarge, etc.)
+- `ios/Pulpe/Shared/Extensions/View+Extensions.swift` — .pulpeCard(), .pulpeSectionHeader(), .loadingOverlay(), .cardStyle()
+- `ios/Pulpe/Shared/Styles/AnimationConstants.swift` — typealias to DesignTokens.Animation (backward compat)
+
+### Critical Constraints
+- NEVER touch Shared/Components/CustomTabBar.swift
+- ZERO hardcoded values: all colors → Color+Pulpe, all fonts → PulpeTypography, all spacing → DesignTokens.Spacing, all radius → DesignTokens.CornerRadius
+- No .red, Color.red, .green, Color.green in views — use Color.financialOverBudget, Color.errorPrimary, Color.financialSavings
+- No .white/.black — use DA semantic tokens (surfacePrimary, surfaceCard, textPrimary)
+- No .stroke()/.border() on form inputs — use filled background (inputBackgroundSoft or surfaceCard)
+- Dark mode: no pure #000 → use #1C1C1E (surfaceCard dark)
+- Build check after EVERY story: xcodegen generate && xcodebuild build -scheme Pulpe -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' CODE_SIGNING_ALLOWED=NO
+
+### Replacement Cheat Sheet
+| Hardcoded | Replace with |
+|-----------|-------------|
+| `.red` (over-budget) | `Color.financialOverBudget` |
+| `.red` (error) | `Color.errorPrimary` |
+| `.green` (positive) | `Color.financialSavings` or `.pulpePrimary` |
+| `.white` (text on primary) | `Color.textOnPrimary` (if exists) or `.white` only inside Color+Pulpe |
+| `.white` (background) | `Color.surfacePrimary` or `Color.surfaceCard` |
+| `.black` (text) | `Color.textPrimary` |
+| `Font.system(size: X)` | `PulpeTypography.bodyLarge` / `.headlineMedium` / etc. |
+| `.stroke()` on inputs | Remove — use filled background |
+| `padding(16)` | `.padding(DesignTokens.Spacing.lg)` |
+| `cornerRadius(12)` | Already tokenized via DesignTokens.CornerRadius |
+
+### DA Piliers (for messaging tone)
+1. Soulagement → Errors warm & reassuring, not punitive
+2. Clarté → 3-level visual hierarchy, one main message per screen
+3. Contrôle → Obvious CTAs, immediate feedback
+4. Légèreté → Rounded corners, soft colors, fluid 200-300ms animations
+
+---
+
+## 2026-01-28 - US-001: Consolidate animation tokens into DesignTokens
+- Added `DesignTokens.Animation` enum with durations (fast: 0.2, normal: 0.3, slow: 0.5), spring presets, easing, and step transitions
+- Converted `AnimationConstants.swift` to a typealias (`PulpeAnimations = DesignTokens.Animation`) for backward compatibility
+- Files changed: `DesignTokens.swift`, `AnimationConstants.swift`
+- **Learnings:**
+  - Must use `SwiftUI.Animation` as return type inside `DesignTokens.Animation` to avoid ambiguity with the enum name
+  - PRD specified normal: 0.3 but existing code had 0.35 — used PRD value
+  - 3 call sites use PulpeAnimations (OnboardingFlow, OnboardingProgressIndicator, OnboardingStepHeader) — all work via typealias
+---
+

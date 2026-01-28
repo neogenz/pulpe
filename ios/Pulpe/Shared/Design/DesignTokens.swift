@@ -70,6 +70,53 @@ enum DesignTokens {
         static let compact: CGFloat = 28
     }
 
+    // MARK: - Animation
+
+    enum Animation {
+        // MARK: - Duration
+
+        static let fast: Double = 0.2
+        static let normal: Double = 0.3
+        static let slow: Double = 0.5
+
+        // MARK: - Spring Configurations
+
+        static let springResponse: Double = 0.5
+        static let springDamping: Double = 0.8
+
+        static var defaultSpring: SwiftUI.Animation {
+            .spring(response: springResponse, dampingFraction: springDamping)
+        }
+
+        static var gentleSpring: SwiftUI.Animation {
+            .spring(response: 0.6, dampingFraction: 0.85)
+        }
+
+        static var bouncySpring: SwiftUI.Animation {
+            .spring(response: 0.4, dampingFraction: 0.65)
+        }
+
+        // MARK: - Easing
+
+        static var smoothEaseOut: SwiftUI.Animation {
+            .easeOut(duration: normal)
+        }
+
+        static var smoothEaseInOut: SwiftUI.Animation {
+            .easeInOut(duration: normal)
+        }
+
+        // MARK: - Step Transitions
+
+        static var stepTransition: SwiftUI.Animation {
+            .spring(response: 0.5, dampingFraction: 0.85)
+        }
+
+        static var iconEntrance: SwiftUI.Animation {
+            .spring(response: 0.5, dampingFraction: 0.7)
+        }
+    }
+
     // MARK: - Progress Bar
 
     enum ProgressBar {
