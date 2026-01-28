@@ -53,12 +53,11 @@ extension View {
         .animation(DesignTokens.Animation.defaultSpring, value: manager.currentToast)
     }
 
-    /// DA-compliant card styling: surfaceCard background, lg corner radius
+    /// Glass card styling with padding and Liquid Glass effect (iOS 26+) or material fallback
     func pulpeCard() -> some View {
         self
             .padding(DesignTokens.Spacing.lg)
-            .background(Color.surfaceCard)
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
+            .pulpeCardBackground()
     }
 
     /// DA-compliant section header styling
@@ -69,9 +68,9 @@ extension View {
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Unified app background with subtle brand gradient
+    /// Unified app background with premium multi-layered gradient for Liquid Glass
     func pulpeBackground() -> some View {
-        self.background(Color.appBackgroundGradient)
+        self.background { Color.appPremiumBackground.ignoresSafeArea() }
     }
 }
 
@@ -114,44 +113,12 @@ extension View {
     }
 }
 
-// MARK: - Scroll Edge Effect
-
-extension View {
-    @ViewBuilder
-    func applyScrollEdgeEffect() -> some View {
-        // scrollEdgeEffectStyle is a future iOS API - this is a no-op placeholder
-        // When the API becomes available, update the availability check
-        self
-    }
-}
-
 // MARK: - Glass Effect Modifiers (iOS 26+)
 
 extension View {
-    /// Hero card styling: surfaceCard background, xl corner radius (for hero/showcase cards)
-    func pulpeHeroCard() -> some View {
-        self
-            .background(Color.surfaceCard)
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
-    }
-
-    /// Glass effect for hero/showcase cards with fallback
+    /// Shared glass effect with iOS 26+ Liquid Glass or ultraThinMaterial fallback
     @ViewBuilder
-    func pulpeHeroGlass() -> some View {
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, *) {
-            self.glassEffect(.regular, in: .rect(cornerRadius: DesignTokens.CornerRadius.xl))
-        } else {
-            pulpeHeroCard()
-        }
-        #else
-        pulpeHeroCard()
-        #endif
-    }
-
-    /// Glass effect for floating elements (toasts, overlays)
-    @ViewBuilder
-    func pulpeFloatingGlass(cornerRadius: CGFloat = DesignTokens.CornerRadius.md) -> some View {
+    private func applyGlassEffect(cornerRadius: CGFloat) -> some View {
         #if compiler(>=6.2)
         if #available(iOS 26.0, *) {
             self.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
@@ -161,5 +128,27 @@ extension View {
         #else
         self.background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
         #endif
+    }
+
+    /// Glass card background without padding (for cards with custom internal padding)
+    func pulpeCardBackground(cornerRadius: CGFloat = DesignTokens.CornerRadius.lg) -> some View {
+        applyGlassEffect(cornerRadius: cornerRadius)
+    }
+
+    /// Glass effect for hero/showcase cards (xl corner radius)
+    func pulpeHeroGlass() -> some View {
+        applyGlassEffect(cornerRadius: DesignTokens.CornerRadius.xl)
+    }
+
+    /// Glass effect for floating elements (toasts, overlays)
+    func pulpeFloatingGlass(cornerRadius: CGFloat = DesignTokens.CornerRadius.md) -> some View {
+        applyGlassEffect(cornerRadius: cornerRadius)
+    }
+
+    /// Legacy hero card styling (opaque fallback, kept for compatibility)
+    func pulpeHeroCard() -> some View {
+        self
+            .background(Color.surfaceCard)
+            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
     }
 }

@@ -28,8 +28,7 @@ struct InsightsCard: View {
                         alertsSection
                     }
                 }
-                .background(Color.surfaceCard)
-                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
+                .pulpeCardBackground()
             }
             .buttonStyle(.plain)
             .accessibilityElement(children: .combine)
@@ -99,7 +98,15 @@ struct InsightsCard: View {
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, DesignTokens.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.errorBackground)
+        .background(
+            Color.errorBackground,
+            in: UnevenRoundedRectangle(
+                topLeadingRadius: hasTopSpending ? 0 : DesignTokens.CornerRadius.lg,
+                bottomLeadingRadius: DesignTokens.CornerRadius.lg,
+                bottomTrailingRadius: DesignTokens.CornerRadius.lg,
+                topTrailingRadius: hasTopSpending ? 0 : DesignTokens.CornerRadius.lg
+            )
+        )
     }
 
     // MARK: - Alert Text
