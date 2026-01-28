@@ -53,13 +53,12 @@ extension View {
         .animation(DesignTokens.Animation.defaultSpring, value: manager.currentToast)
     }
 
-    /// DA-compliant card styling: surfaceCard background, lg corner radius, subtle shadow
+    /// DA-compliant card styling: surfaceCard background, lg corner radius
     func pulpeCard() -> some View {
         self
             .padding(DesignTokens.Spacing.lg)
             .background(Color.surfaceCard)
             .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
-            .shadow(DesignTokens.Shadow.subtle)
     }
 
     /// DA-compliant section header styling
@@ -68,6 +67,11 @@ extension View {
             .font(.headline)
             .foregroundStyle(Color.textPrimary)
             .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Unified app background with subtle brand gradient
+    func pulpeBackground() -> some View {
+        self.background(Color.appBackgroundGradient)
     }
 }
 
@@ -156,6 +160,5 @@ extension View {
         self
             .background(Color.surfaceCard)
             .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
-            .shadow(DesignTokens.Shadow.elevated)
     }
 }

@@ -148,7 +148,7 @@ struct CurrentMonthView: View {
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.lg)
         }
-        .background(Color(.systemGroupedBackground))
+        .pulpeBackground()
         .refreshable {
             await store.forceRefresh()
             await dashboardStore.forceRefresh()

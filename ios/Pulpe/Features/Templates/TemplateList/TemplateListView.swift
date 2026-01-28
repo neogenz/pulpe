@@ -74,6 +74,8 @@ struct TemplateListView: View {
                 Text("\(viewModel.templates.count)/\(AppConfiguration.maxTemplates) modèles")
             }
         }
+        .scrollContentBackground(.hidden)
+        .pulpeBackground()
         .alert(
             "Supprimer ce modèle ?",
             isPresented: $showDeleteAlert,
