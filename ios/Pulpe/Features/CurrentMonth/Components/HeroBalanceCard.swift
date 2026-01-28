@@ -5,6 +5,7 @@ struct HeroBalanceCard: View {
     let metrics: BudgetFormulas.Metrics
     var daysRemaining: Int? = nil
     var dailyBudget: Decimal? = nil
+    var applyGlass: Bool = true
     let onTapProgress: () -> Void
 
     // MARK: - Computed Properties
@@ -48,7 +49,7 @@ struct HeroBalanceCard: View {
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
         .padding(.vertical, DesignTokens.Spacing.xxl)
-        .pulpeHeroGlass()
+        .if(applyGlass) { $0.pulpeHeroGlass() }
     }
 
     // MARK: - Balance Section
