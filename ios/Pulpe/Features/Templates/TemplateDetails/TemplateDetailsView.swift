@@ -53,14 +53,14 @@ struct TemplateDetailsView: View {
             Section {
                 HStack {
                     Label("Revenus", systemImage: "arrow.down.circle")
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Color.financialIncome)
                     Spacer()
                     Text(viewModel.totals.totalIncome.asCHF)
                 }
 
                 HStack {
                     Label("Dépenses", systemImage: "arrow.up.circle")
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Color.financialExpense)
                     Spacer()
                     Text(viewModel.totals.totalExpenses.asCHF)
                 }
@@ -70,7 +70,7 @@ struct TemplateDetailsView: View {
                         .fontWeight(.semibold)
                     Spacer()
                     Text(viewModel.totals.balance.asCHF)
-                        .foregroundStyle(viewModel.totals.balance >= 0 ? .green : .red)
+                        .foregroundStyle(viewModel.totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
                         .fontWeight(.semibold)
                 }
             } header: {
