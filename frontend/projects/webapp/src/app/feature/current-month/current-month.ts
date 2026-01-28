@@ -98,16 +98,16 @@ type EditTransactionFormData = Pick<
         >
           {{ budgetPeriodDisplayName() }}
         </h1>
-        <div class="flex gap-2 flex-shrink-0 ml-auto">
+        <div class="flex gap-2 items-center flex-shrink-0 ml-auto">
           <button
-            matButton="tonal"
-            class="icon-text-btn"
+            matIconButton
             (click)="store.refreshData()"
             [disabled]="store.isLoading()"
+            matTooltip="Actualiser"
+            aria-label="Actualiser"
             data-testid="refresh-button"
           >
             <mat-icon>refresh</mat-icon>
-            Actualiser
           </button>
         </div>
       </header>

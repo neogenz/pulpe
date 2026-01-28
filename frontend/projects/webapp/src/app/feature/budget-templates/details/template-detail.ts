@@ -1,5 +1,3 @@
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-
 import {
   ChangeDetectionStrategy,
   Component,
@@ -10,11 +8,11 @@ import {
   Injector,
   type OnInit,
 } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { DecimalPipe, NgClass } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ROUTES } from '@core/routing';
@@ -25,17 +23,9 @@ import {
   type TemplateLinesPropagationSummary,
 } from 'pulpe-shared';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
-import {
-  FinancialSummary,
-  type FinancialSummaryData,
-} from '@ui/financial-summary/financial-summary';
 import { BaseLoading } from '@ui/loading';
-import {
-  TransactionIconPipe,
-  TransactionLabelPipe,
-} from '@ui/transaction-display';
+import { TransactionLabelPipe } from '@ui/transaction-display';
 import { firstValueFrom } from 'rxjs';
-import { map } from 'rxjs/operators';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
 import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
 import {
@@ -53,21 +43,18 @@ import { TemplateDetailsStore } from './services/template-details-store';
   selector: 'pulpe-template-detail',
 
   imports: [
+    DecimalPipe,
+    NgClass,
     MatButtonModule,
     MatIconModule,
-    MatMenuModule,
     MatSnackBarModule,
-    FinancialSummary,
     TransactionsTable,
     BaseLoading,
   ],
-  providers: [TemplateDetailsStore, TransactionIconPipe, TransactionLabelPipe],
+  providers: [TemplateDetailsStore, TransactionLabelPipe],
   template: `
     <!-- Main container with proper surface container background -->
-    <div
-      class="flex flex-col gap-6 h-full p-4 md:p-6"
-      data-testid="template-detail-page"
-    >
+    <div class="flex flex-col gap-8 min-w-0" data-testid="template-detail-page">
       @if (templateDetailsStore.isLoading()) {
         <!-- Loading state with proper accessibility -->
         <pulpe-base-loading
@@ -103,8 +90,8 @@ import { TemplateDetailsStore } from './services/template-details-store';
       } @else {
         @let templateData = templateDetailsStore.templateDetails();
         @if (templateData) {
-          <!-- Header section with proper semantic structure -->
-          <header class="flex flex-shrink-0 gap-4 items-center rounded-xl p-4">
+          <!-- Header with back button, title, and actions -->
+          <header class="flex flex-shrink-0 gap-4 items-center">
             <button
               matIconButton
               (click)="navigateBack()"
@@ -115,96 +102,134 @@ import { TemplateDetailsStore } from './services/template-details-store';
             </button>
             <div class="flex-1 min-w-0">
               <h1
-                class="text-display-small truncate"
+                class="text-headline-medium md:text-display-small truncate"
                 [title]="templateData.template.name"
                 data-testid="page-title"
               >
                 {{ templateData.template.name }}
               </h1>
             </div>
+            <!-- Mobile: icon-only buttons -->
+            <div class="flex items-center gap-1 flex-shrink-0 md:hidden">
+              <button
+                matIconButton
+                (click)="editTemplate()"
+                aria-label="Modifier les transactions du modèle"
+                data-testid="template-detail-edit-button-mobile"
+              >
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button
+                matIconButton
+                color="warn"
+                (click)="deleteTemplate()"
+                aria-label="Supprimer le modèle"
+                data-testid="delete-template-detail-button-mobile"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+            <!-- Desktop: full buttons with text -->
+            <div class="hidden md:flex items-center gap-2 flex-shrink-0">
+              <button
+                matButton="tonal"
+                (click)="editTemplate()"
+                aria-label="Modifier les transactions du modèle"
+                data-testid="template-detail-edit-button"
+              >
+                <mat-icon>edit</mat-icon>
+                Modifier
+              </button>
+              <button
+                matButton="filled"
+                color="warn"
+                (click)="deleteTemplate()"
+                aria-label="Supprimer le modèle"
+                data-testid="delete-template-detail-button"
+              >
+                <mat-icon>delete</mat-icon>
+                Supprimer
+              </button>
+            </div>
           </header>
 
-          <!-- Financial summary cards with responsive grid -->
+          <!-- Financial overview: Hero + Pills -->
           <section
-            class="flex-shrink-0"
+            class="flex-shrink-0 space-y-6"
             aria-labelledby="financial-summary-heading"
           >
             <h2 id="financial-summary-heading" class="sr-only">
               Résumé financier du modèle
             </h2>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <pulpe-financial-summary
-                [data]="incomeData()"
-                role="region"
-                [attr.aria-label]="'Revenus'"
-              />
-              <pulpe-financial-summary
-                [data]="expenseData()"
-                role="region"
-                [attr.aria-label]="'Dépenses'"
-              />
-              <pulpe-financial-summary
-                [data]="savingsData()"
-                role="region"
-                [attr.aria-label]="'Économies'"
-              />
-              <pulpe-financial-summary
-                [data]="netBalanceData()"
-                role="region"
-                [attr.aria-label]="netBalanceData().title"
-              />
+
+            <!-- Hero: Net balance -->
+            <div
+              class="text-center py-6 px-4 sm:py-8 sm:px-6 rounded-3xl"
+              [class.bg-primary-container]="netBalance() >= 0"
+              [class.bg-error-container]="netBalance() < 0"
+            >
+              <p
+                class="text-body-large mb-3"
+                [class.text-on-primary-container]="netBalance() >= 0"
+                [class.text-on-error-container]="netBalance() < 0"
+              >
+                @if (netBalance() >= 0) {
+                  Solde net du modèle
+                } @else {
+                  Déficit du modèle
+                }
+              </p>
+              <div
+                class="text-display-medium sm:text-display-large font-bold tracking-tight ph-no-capture"
+                [class.text-on-primary-container]="netBalance() >= 0"
+                [class.text-on-error-container]="netBalance() < 0"
+              >
+                {{ absNetBalance() | number: '1.0-0' : 'de-CH' }}
+                <span class="text-headline-small font-normal">CHF</span>
+              </div>
+            </div>
+
+            <!-- Pills: Income, Expenses, Savings -->
+            <div
+              class="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:justify-center scrollbar-hide"
+            >
+              @for (pill of financialPills(); track pill.testId) {
+                <div
+                  [attr.data-testid]="pill.testId"
+                  class="snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full"
+                  [style.background-color]="pill.bgStyle"
+                >
+                  <mat-icon class="mat-icon-sm" [ngClass]="pill.colorClass">{{
+                    pill.icon
+                  }}</mat-icon>
+                  <div class="flex flex-col">
+                    <span
+                      class="text-label-small leading-tight text-on-financial-light"
+                      >{{ pill.label }}</span
+                    >
+                    <span
+                      class="text-label-large font-semibold ph-no-capture"
+                      [ngClass]="pill.colorClass"
+                    >
+                      {{ pill.amount | number: '1.0-0' : 'de-CH' }} CHF
+                    </span>
+                  </div>
+                </div>
+              }
             </div>
           </section>
 
-          <!-- Transactions section with proper surface container -->
+          <!-- Transactions section -->
           <section
-            class="flex flex-col flex-1 gap-4 min-h-0 rounded-xl p-4"
+            class="flex flex-col flex-1 gap-4 min-h-0"
             aria-labelledby="transactions-heading"
           >
-            <div class="flex gap-4 justify-between items-center">
-              <h2
-                id="transactions-heading"
-                class="flex-shrink-0 text-headline-small"
-              >
-                Dépenses récurrentes
-              </h2>
-              <button
-                matIconButton
-                [matMenuTriggerFor]="transactionsMenu"
-                aria-label="Options pour les transactions"
-                aria-haspopup="menu"
-                [attr.aria-expanded]="false"
-                data-testid="template-detail-menu-trigger"
-              >
-                <mat-icon>more_vert</mat-icon>
-              </button>
-
-              <mat-menu
-                #transactionsMenu="matMenu"
-                aria-label="Menu des options"
-              >
-                <button
-                  mat-menu-item
-                  (click)="editTemplate()"
-                  aria-label="Éditer les transactions du modèle"
-                >
-                  <mat-icon aria-hidden="true">edit</mat-icon>
-                  <span>Éditer</span>
-                </button>
-                <button
-                  mat-menu-item
-                  (click)="deleteTemplate()"
-                  aria-label="Supprimer le modèle"
-                  class="text-error"
-                  data-testid="delete-template-detail-menu-item"
-                >
-                  <mat-icon aria-hidden="true" class="text-error"
-                    >delete</mat-icon
-                  >
-                  <span>Supprimer</span>
-                </button>
-              </mat-menu>
-            </div>
+            <h2
+              id="transactions-heading"
+              class="flex-shrink-0 text-headline-small"
+            >
+              Prévisions du modèle
+            </h2>
 
             <div class="flex-1 min-h-0 rounded-lg">
               <pulpe-transactions-table
@@ -222,7 +247,14 @@ import { TemplateDetailsStore } from './services/template-details-store';
   styles: `
     :host {
       display: block;
-      height: 100%;
+    }
+
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -235,10 +267,7 @@ export default class TemplateDetail implements OnInit {
   readonly #titleStrategy = inject(PulpeTitleStrategy);
   readonly #dialog = inject(MatDialog);
   readonly #injector = inject(Injector);
-  readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #snackBar = inject(MatSnackBar);
-  readonly #transactionIconPipe = inject(TransactionIconPipe);
-  readonly #transactionLabelPipe = inject(TransactionLabelPipe);
   readonly #logger = inject(Logger);
   readonly #destroyRef = inject(DestroyRef);
   ngOnInit(): void {
@@ -258,14 +287,6 @@ export default class TemplateDetail implements OnInit {
   private get templateId(): string | null {
     return this.#route.snapshot.paramMap.get('templateId');
   }
-
-  // Reactive breakpoint detection with proper signal integration
-  readonly isHandset = toSignal(
-    this.#breakpointObserver
-      .observe([Breakpoints.Handset, Breakpoints.TabletPortrait])
-      .pipe(map((result) => result.matches)),
-    { initialValue: false },
-  );
 
   // Define sort order for transaction kinds
   readonly #KIND_ORDER: Record<string, number> = {
@@ -302,8 +323,7 @@ export default class TemplateDetail implements OnInit {
     });
   });
 
-  // Optimized: Single pass through entries for all totals
-  readonly #totals = computed(() => {
+  readonly totals = computed(() => {
     return this.entries().reduce(
       (acc, entry) => ({
         income: acc.income + entry.earned,
@@ -314,37 +334,41 @@ export default class TemplateDetail implements OnInit {
     );
   });
 
-  readonly incomeData = computed<FinancialSummaryData>(() => ({
-    title: this.#transactionLabelPipe.transform('income') + 's',
-    amount: this.#totals().income,
-    icon: this.#transactionIconPipe.transform('income'),
-    type: 'income',
-    isClickable: false,
-  }));
+  readonly netBalance = computed(() => {
+    const t = this.totals();
+    return t.income - t.expense - t.savings;
+  });
 
-  readonly expenseData = computed<FinancialSummaryData>(() => ({
-    title: this.#transactionLabelPipe.transform('expense') + 's',
-    amount: this.#totals().expense,
-    icon: this.#transactionIconPipe.transform('expense'),
-    type: 'expense',
-  }));
+  readonly absNetBalance = computed(() => Math.abs(this.netBalance()));
 
-  readonly savingsData = computed<FinancialSummaryData>(() => ({
-    title: this.#transactionLabelPipe.transform('saving') + ' prévue',
-    amount: this.#totals().savings,
-    icon: this.#transactionIconPipe.transform('saving'),
-    type: 'savings',
-  }));
-
-  readonly netBalanceData = computed<FinancialSummaryData>(() => {
-    const totals = this.#totals();
-    const total = totals.income - totals.expense;
-    return {
-      title: total >= 0 ? 'Solde net' : 'Déficit',
-      amount: total,
-      icon: total >= 0 ? 'account_balance_wallet' : 'money_off',
-      type: total >= 0 ? 'income' : 'negative',
-    };
+  readonly financialPills = computed(() => {
+    const t = this.totals();
+    return [
+      {
+        testId: 'income-pill',
+        bgStyle: 'var(--pulpe-financial-income-light)',
+        colorClass: 'text-financial-income',
+        icon: 'trending_up',
+        label: 'Revenus',
+        amount: t.income,
+      },
+      {
+        testId: 'expense-pill',
+        bgStyle: 'var(--pulpe-financial-expense-light)',
+        colorClass: 'text-financial-expense',
+        icon: 'trending_down',
+        label: 'Dépenses',
+        amount: t.expense,
+      },
+      {
+        testId: 'savings-pill',
+        bgStyle: 'var(--pulpe-financial-savings-light)',
+        colorClass: 'text-financial-savings',
+        icon: 'savings',
+        label: 'Épargne',
+        amount: t.savings,
+      },
+    ];
   });
 
   constructor() {

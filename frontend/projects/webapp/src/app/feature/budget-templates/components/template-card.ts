@@ -1,25 +1,13 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  input,
-  output,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatMenuModule } from '@angular/material/menu';
 import { type BudgetTemplate } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-template-card',
-  imports: [
-    RouterLink,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatMenuModule,
-  ],
+  imports: [RouterLink, MatCardModule, MatButtonModule, MatIconModule],
   template: `
     <mat-card
       appearance="outlined"
@@ -39,31 +27,6 @@ import { type BudgetTemplate } from 'pulpe-shared';
         } @else {
           <mat-card-subtitle>Template</mat-card-subtitle>
         }
-        <div class="flex-1"></div>
-        <button
-          matIconButton
-          [matMenuTriggerFor]="menu"
-          aria-label="Options du modèle"
-          data-testid="template-menu-trigger"
-          (click)="$event.stopPropagation()"
-        >
-          <mat-icon>more_vert</mat-icon>
-        </button>
-        <mat-menu #menu="matMenu">
-          <button mat-menu-item [routerLink]="['details', template().id]">
-            <mat-icon>visibility</mat-icon>
-            <span>Voir les détails</span>
-          </button>
-          <button
-            mat-menu-item
-            (click)="delete.emit(template())"
-            class="text-error"
-            data-testid="delete-template-menu-item"
-          >
-            <mat-icon class="text-error">delete</mat-icon>
-            <span>Supprimer</span>
-          </button>
-        </mat-menu>
       </mat-card-header>
       <mat-card-content>
         @if (template().description) {
@@ -93,6 +56,9 @@ import { type BudgetTemplate } from 'pulpe-shared';
       @include mat.card-overrides(
         (
           title-text-size: var(--mat-sys-title-medium-size),
+          title-text-weight: var(--mat-sys-title-medium-weight, 500),
+          subtitle-text-size: var(--mat-sys-body-small-size),
+          subtitle-text-color: var(--mat-sys-on-surface-variant),
         )
       );
     }
@@ -101,5 +67,4 @@ import { type BudgetTemplate } from 'pulpe-shared';
 })
 export class TemplateCard {
   readonly template = input.required<BudgetTemplate>();
-  readonly delete = output<BudgetTemplate>();
 }

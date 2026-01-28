@@ -1,7 +1,38 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { registerLocaleData } from '@angular/common';
+import localeDeCH from '@angular/common/locales/de-CH';
+import { TestBed } from '@angular/core/testing';
+import {
+  provideZonelessChangeDetection,
+  signal,
+  computed,
+  Component,
+  ChangeDetectionStrategy,
+  input,
+} from '@angular/core';
+import { provideRouter, ActivatedRoute } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import type { BudgetTemplateDetailViewModel } from '../services/budget-templates-api';
+import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import type { TemplateLine } from 'pulpe-shared';
 import { of, throwError, firstValueFrom } from 'rxjs';
+import { TemplateDetailsStore } from './services/template-details-store';
+import { PulpeTitleStrategy } from '@core/routing/title-strategy';
+import { TransactionLabelPipe } from '@ui/transaction-display';
+import { TransactionsTable } from './components';
+
+registerLocaleData(localeDeCH, 'de-CH');
+
+@Component({
+  selector: 'pulpe-transactions-table',
+  template: '',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class StubTransactionsTable {
+  readonly entries = input.required<unknown[]>();
+}
 
 // Interface for budget usage data
 interface BudgetUsageItem {
@@ -294,60 +325,61 @@ describe('TemplateDetail', () => {
       });
     });
 
-    it('should generate correct income data summary', () => {
+    it('should generate financial pills config from totals', () => {
       const totals = { income: 5500, expense: 1800, savings: 800 };
 
-      const incomeData = {
-        title: 'Revenus',
-        amount: totals.income,
-        icon: 'arrow_upward',
-        type: 'income' as const,
-        isClickable: false,
-      };
+      const pills = [
+        {
+          testId: 'income-pill',
+          bgStyle: 'var(--pulpe-financial-income-light)',
+          colorClass: 'text-financial-income',
+          icon: 'trending_up',
+          label: 'Revenus',
+          amount: totals.income,
+        },
+        {
+          testId: 'expense-pill',
+          bgStyle: 'var(--pulpe-financial-expense-light)',
+          colorClass: 'text-financial-expense',
+          icon: 'trending_down',
+          label: 'Dépenses',
+          amount: totals.expense,
+        },
+        {
+          testId: 'savings-pill',
+          bgStyle: 'var(--pulpe-financial-savings-light)',
+          colorClass: 'text-financial-savings',
+          icon: 'savings',
+          label: 'Épargne',
+          amount: totals.savings,
+        },
+      ];
 
-      expect(incomeData).toEqual({
-        title: 'Revenus',
-        amount: 5500,
-        icon: 'arrow_upward',
-        type: 'income',
-        isClickable: false,
-      });
-    });
-
-    it('should generate correct expense data summary', () => {
-      const totals = { income: 5500, expense: 1800, savings: 800 };
-
-      const expenseData = {
-        title: 'Dépenses',
-        amount: totals.expense,
-        icon: 'arrow_downward',
-        type: 'expense' as const,
-      };
-
-      expect(expenseData).toEqual({
-        title: 'Dépenses',
-        amount: 1800,
-        icon: 'arrow_downward',
-        type: 'expense',
-      });
-    });
-
-    it('should generate correct savings data summary', () => {
-      const totals = { income: 5500, expense: 1800, savings: 800 };
-
-      const savingsData = {
-        title: 'Économies',
-        amount: totals.savings,
-        icon: 'savings',
-        type: 'savings' as const,
-      };
-
-      expect(savingsData).toEqual({
-        title: 'Économies',
-        amount: 800,
-        icon: 'savings',
-        type: 'savings',
-      });
+      expect(pills).toHaveLength(3);
+      expect(pills[0]).toEqual(
+        expect.objectContaining({
+          testId: 'income-pill',
+          icon: 'trending_up',
+          label: 'Revenus',
+          amount: 5500,
+        }),
+      );
+      expect(pills[1]).toEqual(
+        expect.objectContaining({
+          testId: 'expense-pill',
+          icon: 'trending_down',
+          label: 'Dépenses',
+          amount: 1800,
+        }),
+      );
+      expect(pills[2]).toEqual(
+        expect.objectContaining({
+          testId: 'savings-pill',
+          icon: 'savings',
+          label: 'Épargne',
+          amount: 800,
+        }),
+      );
     });
 
     it('should generate correct net balance for positive balance', () => {
@@ -1136,6 +1168,174 @@ describe('TemplateDetail', () => {
     });
   });
 
-  // Full integration tests are done via E2E tests
-  // See e2e/tests/features/budget-template-management.spec.ts
+  describe('Component Behavior (TestBed)', () => {
+    const mockTemplateDetails: BudgetTemplateDetailViewModel = {
+      template: {
+        id: 'template-123',
+        name: 'Template Test',
+        description: 'Description',
+        userId: 'user-1',
+        isDefault: false,
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+      },
+      transactions: [
+        {
+          id: 'line-1',
+          templateId: 'template-123',
+          name: 'Salaire',
+          amount: 5000,
+          kind: 'income',
+          recurrence: 'fixed',
+          description: '',
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        },
+      ],
+    };
+
+    const mockTemplateDetailsStore = {
+      templateDetails: signal(mockTemplateDetails),
+      isLoading: signal(false),
+      hasValue: signal(true),
+      error: signal(null),
+      template: computed(() => mockTemplateDetails.template),
+      templateLines: computed(() => mockTemplateDetails.transactions),
+      transactions: computed(() => mockTemplateDetails.transactions),
+      initializeTemplateId: vi.fn(),
+      reloadTemplateDetails: vi.fn(),
+    };
+
+    const mockDialog = {
+      open: vi.fn().mockReturnValue({ afterClosed: () => of(null) }),
+    };
+
+    const mockSnackBar = { open: vi.fn() };
+    const mockBudgetTemplatesApi = {
+      checkUsage$: vi.fn(),
+      delete$: vi.fn(),
+      getDetail$: vi.fn(),
+      bulkOperationsTemplateLines$: vi.fn(),
+    };
+    const mockTitleStrategy = { setTitle: vi.fn() };
+
+    async function createComponent() {
+      const TemplateDetail = (await import('./template-detail')).default;
+
+      TestBed.configureTestingModule({
+        imports: [TemplateDetail, NoopAnimationsModule],
+        providers: [
+          provideZonelessChangeDetection(),
+          provideRouter([]),
+          TransactionLabelPipe,
+          {
+            provide: ActivatedRoute,
+            useValue: {
+              snapshot: {
+                paramMap: { get: () => 'template-123' },
+              },
+            },
+          },
+          { provide: TemplateDetailsStore, useValue: mockTemplateDetailsStore },
+          { provide: MatDialog, useValue: mockDialog },
+          { provide: MatSnackBar, useValue: mockSnackBar },
+          { provide: BudgetTemplatesApi, useValue: mockBudgetTemplatesApi },
+          { provide: PulpeTitleStrategy, useValue: mockTitleStrategy },
+        ],
+      })
+        .overrideComponent(TemplateDetail, {
+          remove: { imports: [TransactionsTable] },
+        })
+        .overrideComponent(TemplateDetail, {
+          add: {
+            imports: [StubTransactionsTable],
+            providers: [
+              {
+                provide: TemplateDetailsStore,
+                useValue: mockTemplateDetailsStore,
+              },
+            ],
+          },
+        });
+
+      const fixture = TestBed.createComponent(TemplateDetail);
+      fixture.detectChanges();
+      return fixture;
+    }
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+      mockDialog.open.mockReturnValue({ afterClosed: () => of(null) });
+    });
+
+    it('should render without errors when template data is loaded', async () => {
+      const fixture = await createComponent();
+      const el = fixture.nativeElement as HTMLElement;
+
+      expect(el.querySelector('[data-testid="page-title"]')).toBeTruthy();
+      expect(
+        el.querySelector('[data-testid="page-title"]')?.textContent?.trim(),
+      ).toContain('Template Test');
+    });
+
+    it('should render edit and delete buttons', async () => {
+      const fixture = await createComponent();
+      const el = fixture.nativeElement as HTMLElement;
+
+      expect(
+        el.querySelector('[data-testid="template-detail-edit-button"]'),
+      ).toBeTruthy();
+      expect(
+        el.querySelector('[data-testid="delete-template-detail-button"]'),
+      ).toBeTruthy();
+    });
+
+    it('should open EditTransactionsDialog when clicking Modifier', async () => {
+      const fixture = await createComponent();
+      const editButton = fixture.nativeElement.querySelector(
+        '[data-testid="template-detail-edit-button"]',
+      ) as HTMLButtonElement;
+
+      editButton.click();
+      fixture.detectChanges();
+
+      expect(mockDialog.open).toHaveBeenCalledOnce();
+      const [, config] = mockDialog.open.mock.calls[0];
+      expect(config.data.templateName).toBe('Template Test');
+      expect(config.data.templateId).toBe('template-123');
+      expect(config.data.transactions).toHaveLength(1);
+    });
+
+    it('should trigger delete flow when clicking Supprimer', async () => {
+      mockBudgetTemplatesApi.checkUsage$.mockReturnValue(
+        of({ data: { isUsed: false, budgets: [] }, success: true }),
+      );
+
+      const fixture = await createComponent();
+      const deleteButton = fixture.nativeElement.querySelector(
+        '[data-testid="delete-template-detail-button"]',
+      ) as HTMLButtonElement;
+
+      deleteButton.click();
+      await fixture.whenStable();
+
+      expect(mockBudgetTemplatesApi.checkUsage$).toHaveBeenCalledWith(
+        'template-123',
+      );
+    });
+
+    it('should display financial summary with hero and pills', async () => {
+      const fixture = await createComponent();
+      const el = fixture.nativeElement as HTMLElement;
+      const summaryRegion = el.querySelector(
+        '[aria-labelledby="financial-summary-heading"]',
+      );
+
+      expect(summaryRegion).toBeTruthy();
+      expect(summaryRegion?.textContent).toContain('Solde net du modèle');
+      expect(summaryRegion?.textContent).toContain('Revenus');
+      expect(summaryRegion?.textContent).toContain('Dépenses');
+      expect(summaryRegion?.textContent).toContain('Épargne');
+    });
+  });
 });
