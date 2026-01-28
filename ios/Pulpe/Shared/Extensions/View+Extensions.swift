@@ -53,20 +53,20 @@ extension View {
         .animation(.spring(duration: 0.3), value: manager.currentToast)
     }
 
-    /// Standard card styling
-    func cardStyle() -> some View {
+    /// DA-compliant card styling: surfaceCard background, lg corner radius, subtle shadow
+    func pulpeCard() -> some View {
         self
-            .padding()
-            .background(.background)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+            .padding(DesignTokens.Spacing.lg)
+            .background(Color.surfaceCard)
+            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
+            .shadow(DesignTokens.Shadow.subtle)
     }
 
-    /// Section header styling
-    func sectionHeader() -> some View {
+    /// DA-compliant section header styling
+    func pulpeSectionHeader() -> some View {
         self
             .font(.headline)
-            .foregroundStyle(.primary)
+            .foregroundStyle(Color.textPrimary)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
