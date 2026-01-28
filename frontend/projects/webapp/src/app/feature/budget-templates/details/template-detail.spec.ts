@@ -325,60 +325,61 @@ describe('TemplateDetail', () => {
       });
     });
 
-    it('should generate correct income data summary', () => {
+    it('should generate financial pills config from totals', () => {
       const totals = { income: 5500, expense: 1800, savings: 800 };
 
-      const incomeData = {
-        title: 'Revenus',
-        amount: totals.income,
-        icon: 'arrow_upward',
-        type: 'income' as const,
-        isClickable: false,
-      };
+      const pills = [
+        {
+          testId: 'income-pill',
+          bgStyle: 'var(--pulpe-financial-income-light)',
+          colorClass: 'text-financial-income',
+          icon: 'trending_up',
+          label: 'Revenus',
+          amount: totals.income,
+        },
+        {
+          testId: 'expense-pill',
+          bgStyle: 'var(--pulpe-financial-expense-light)',
+          colorClass: 'text-financial-expense',
+          icon: 'trending_down',
+          label: 'Dépenses',
+          amount: totals.expense,
+        },
+        {
+          testId: 'savings-pill',
+          bgStyle: 'var(--pulpe-financial-savings-light)',
+          colorClass: 'text-financial-savings',
+          icon: 'savings',
+          label: 'Épargne',
+          amount: totals.savings,
+        },
+      ];
 
-      expect(incomeData).toEqual({
-        title: 'Revenus',
-        amount: 5500,
-        icon: 'arrow_upward',
-        type: 'income',
-        isClickable: false,
-      });
-    });
-
-    it('should generate correct expense data summary', () => {
-      const totals = { income: 5500, expense: 1800, savings: 800 };
-
-      const expenseData = {
-        title: 'Dépenses',
-        amount: totals.expense,
-        icon: 'arrow_downward',
-        type: 'expense' as const,
-      };
-
-      expect(expenseData).toEqual({
-        title: 'Dépenses',
-        amount: 1800,
-        icon: 'arrow_downward',
-        type: 'expense',
-      });
-    });
-
-    it('should generate correct savings data summary', () => {
-      const totals = { income: 5500, expense: 1800, savings: 800 };
-
-      const savingsData = {
-        title: 'Économies',
-        amount: totals.savings,
-        icon: 'savings',
-        type: 'savings' as const,
-      };
-
-      expect(savingsData).toEqual({
-        title: 'Économies',
-        amount: 800,
-        icon: 'savings',
-        type: 'savings',
-      });
+      expect(pills).toHaveLength(3);
+      expect(pills[0]).toEqual(
+        expect.objectContaining({
+          testId: 'income-pill',
+          icon: 'trending_up',
+          label: 'Revenus',
+          amount: 5500,
+        }),
+      );
+      expect(pills[1]).toEqual(
+        expect.objectContaining({
+          testId: 'expense-pill',
+          icon: 'trending_down',
+          label: 'Dépenses',
+          amount: 1800,
+        }),
+      );
+      expect(pills[2]).toEqual(
+        expect.objectContaining({
+          testId: 'savings-pill',
+          icon: 'savings',
+          label: 'Épargne',
+          amount: 800,
+        }),
+      );
     });
 
     it('should generate correct net balance for positive balance', () => {

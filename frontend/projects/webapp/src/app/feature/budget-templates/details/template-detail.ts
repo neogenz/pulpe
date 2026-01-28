@@ -9,7 +9,7 @@ import {
   type OnInit,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DecimalPipe } from '@angular/common';
+import { DecimalPipe, NgClass } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -44,6 +44,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
 
   imports: [
     DecimalPipe,
+    NgClass,
     MatButtonModule,
     MatIconModule,
     MatSnackBarModule,
@@ -192,65 +193,29 @@ import { TemplateDetailsStore } from './services/template-details-store';
             <div
               class="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:justify-center scrollbar-hide"
             >
-              <div
-                data-testid="income-pill"
-                class="snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-income-light)]"
-              >
-                <mat-icon class="text-financial-income text-lg!"
-                  >trending_up</mat-icon
+              @for (pill of financialPills(); track pill.testId) {
+                <div
+                  [attr.data-testid]="pill.testId"
+                  class="snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full"
+                  [style.background-color]="pill.bgStyle"
                 >
-                <div class="flex flex-col">
-                  <span
-                    class="text-label-small leading-tight text-on-financial-light"
-                    >Revenus</span
-                  >
-                  <span
-                    class="text-label-large font-semibold text-financial-income ph-no-capture"
-                  >
-                    {{ totals().income | number: '1.0-0' : 'de-CH' }} CHF
-                  </span>
+                  <mat-icon class="mat-icon-sm" [ngClass]="pill.colorClass">{{
+                    pill.icon
+                  }}</mat-icon>
+                  <div class="flex flex-col">
+                    <span
+                      class="text-label-small leading-tight text-on-financial-light"
+                      >{{ pill.label }}</span
+                    >
+                    <span
+                      class="text-label-large font-semibold ph-no-capture"
+                      [ngClass]="pill.colorClass"
+                    >
+                      {{ pill.amount | number: '1.0-0' : 'de-CH' }} CHF
+                    </span>
+                  </div>
                 </div>
-              </div>
-
-              <div
-                data-testid="expense-pill"
-                class="snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-expense-light)]"
-              >
-                <mat-icon class="text-financial-expense text-lg!"
-                  >trending_down</mat-icon
-                >
-                <div class="flex flex-col">
-                  <span
-                    class="text-label-small leading-tight text-on-financial-light"
-                    >Dépenses</span
-                  >
-                  <span
-                    class="text-label-large font-semibold text-financial-expense ph-no-capture"
-                  >
-                    {{ totals().expense | number: '1.0-0' : 'de-CH' }} CHF
-                  </span>
-                </div>
-              </div>
-
-              <div
-                data-testid="savings-pill"
-                class="snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-savings-light)]"
-              >
-                <mat-icon class="text-financial-savings text-lg!"
-                  >savings</mat-icon
-                >
-                <div class="flex flex-col">
-                  <span
-                    class="text-label-small leading-tight text-on-financial-light"
-                    >Épargne</span
-                  >
-                  <span
-                    class="text-label-large font-semibold text-financial-savings ph-no-capture"
-                  >
-                    {{ totals().savings | number: '1.0-0' : 'de-CH' }} CHF
-                  </span>
-                </div>
-              </div>
+              }
             </div>
           </section>
 
@@ -375,6 +340,36 @@ export default class TemplateDetail implements OnInit {
   });
 
   readonly absNetBalance = computed(() => Math.abs(this.netBalance()));
+
+  readonly financialPills = computed(() => {
+    const t = this.totals();
+    return [
+      {
+        testId: 'income-pill',
+        bgStyle: 'var(--pulpe-financial-income-light)',
+        colorClass: 'text-financial-income',
+        icon: 'trending_up',
+        label: 'Revenus',
+        amount: t.income,
+      },
+      {
+        testId: 'expense-pill',
+        bgStyle: 'var(--pulpe-financial-expense-light)',
+        colorClass: 'text-financial-expense',
+        icon: 'trending_down',
+        label: 'Dépenses',
+        amount: t.expense,
+      },
+      {
+        testId: 'savings-pill',
+        bgStyle: 'var(--pulpe-financial-savings-light)',
+        colorClass: 'text-financial-savings',
+        icon: 'savings',
+        label: 'Épargne',
+        amount: t.savings,
+      },
+    ];
+  });
 
   constructor() {
     // Mettre à jour le titre de la page avec le nom du modèle

@@ -162,7 +162,11 @@
 }
 
 
-/* Financial text colors - need !important to override Material icons */
+/* Financial colors & Material overrides - need !important to override Material defaults */
+@utility mat-icon-sm {
+  font-size: 1.125rem !important;
+}
+
 @utility text-financial-income {
   color: var(--pulpe-financial-income) !important;
 }

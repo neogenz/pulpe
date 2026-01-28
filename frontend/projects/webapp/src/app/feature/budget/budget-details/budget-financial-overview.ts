@@ -80,7 +80,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
         <div
           class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-income-light)]"
         >
-          <mat-icon class="text-financial-income text-lg!"
+          <mat-icon class="text-financial-income mat-icon-sm"
             >trending_up</mat-icon
           >
           <div class="flex flex-col">
@@ -99,7 +99,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
         <div
           class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-expense-light)]"
         >
-          <mat-icon class="text-financial-expense text-lg!"
+          <mat-icon class="text-financial-expense mat-icon-sm"
             >trending_down</mat-icon
           >
           <div class="flex flex-col">
@@ -118,7 +118,9 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
         <div
           class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-savings-light)]"
         >
-          <mat-icon class="text-financial-savings text-lg!">savings</mat-icon>
+          <mat-icon class="text-financial-savings mat-icon-sm"
+            >savings</mat-icon
+          >
           <div class="flex flex-col">
             <span class="text-label-small leading-tight text-on-financial-light"
               >Épargne</span
