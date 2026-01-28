@@ -50,7 +50,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
           [class.text-on-primary-container]="totals().remaining >= 0"
           [class.text-on-error-container]="totals().remaining < 0"
         >
-          {{ Math.abs(totals().remaining) | number: '1.0-0' : 'de-CH' }}
+          {{ remainingAbsolute() | number: '1.0-0' : 'de-CH' }}
           <span class="text-headline-small font-normal">CHF</span>
         </div>
         <p
@@ -161,7 +161,6 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetFinancialOverview {
-  readonly Math = Math;
   readonly #budgetCalculator = inject(BudgetCalculator);
 
   readonly budgetLines = input.required<BudgetLine[]>();
@@ -207,4 +206,8 @@ export class BudgetFinancialOverview {
 
     return { income, expenses, savings, remaining };
   });
+
+  readonly remainingAbsolute = computed(() =>
+    Math.abs(this.totals().remaining),
+  );
 }

@@ -131,7 +131,7 @@ test.describe('Mobile scroll behavior', () => {
       expect(afterScrollPosition!.y).toBe(initialPosition!.y);
     });
 
-    test('page content should fill full viewport height even with minimal content', async ({
+    test('mat-sidenav-content should fill full viewport height even with minimal content', async ({
       authenticatedPage: page,
     }) => {
       await page.waitForLoadState('networkidle');
