@@ -318,7 +318,7 @@ struct BudgetDetailsView: View {
         .listStyle(.insetGrouped)
         .listSectionSpacing(16)
         .scrollContentBackground(.hidden)
-        .background(Color(.systemGroupedBackground))
+        .background(Color.surfacePrimary)
         .applyScrollEdgeEffect()
         .refreshable {
             await viewModel.loadDetails()
@@ -661,10 +661,10 @@ private struct RolloverInfoRow: View {
     }
 
     private var content: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "arrow.uturn.backward.circle.fill")
                 .font(.title2)
-                .foregroundStyle(isPositive ? .green : .red)
+                .foregroundStyle(isPositive ? Color.financialSavings : Color.financialOverBudget)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Report du mois précédent")
@@ -681,12 +681,12 @@ private struct RolloverInfoRow: View {
             Text(amount.asCHF)
                 .font(.headline)
                 .fontWeight(.semibold)
-                .foregroundStyle(isPositive ? .green : .red)
+                .foregroundStyle(isPositive ? Color.financialSavings : Color.financialOverBudget)
         }
         .padding()
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill((isPositive ? Color.green : Color.red).opacity(0.08))
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+                .fill((isPositive ? Color.financialSavings : Color.financialOverBudget).opacity(0.08))
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Report du mois précédent")

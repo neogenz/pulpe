@@ -320,7 +320,7 @@ struct BudgetMonthCard: View {
                 endPoint: .bottomTrailing
             )
         } else {
-            Color(.secondarySystemGroupedBackground)
+            Color.surfaceCard
         }
     }
 
@@ -347,7 +347,7 @@ struct BudgetMonthCard: View {
         var color: Color {
             switch self {
             case .positive: return .financialSavings
-            case .negative: return .red
+            case .negative: return .financialOverBudget
             case .neutral: return .secondary
             }
         }
@@ -385,7 +385,7 @@ struct EmptyMonthCard: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
         .padding(.horizontal, 8)
-        .background(Color(.tertiarySystemGroupedBackground).opacity(isPast ? 0.5 : 0.8))
+        .background(Color.surfaceCard.opacity(isPast ? 0.5 : 0.8))
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
         .overlay(
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)

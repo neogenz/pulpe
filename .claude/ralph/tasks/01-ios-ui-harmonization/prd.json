@@ -313,8 +313,8 @@
         "Project compiles"
       ],
       "priority": 22,
-      "passes": false,
-      "notes": "Files in Features/Budgets/. CheckedFilterPicker also in BudgetDetails — check if it needs harmonization."
+      "passes": true,
+      "notes": "BudgetListView: replaced .red→Color.financialOverBudget (RemainingStatus.negative), replaced Color(.secondarySystemGroupedBackground)→Color.surfaceCard (BudgetMonthCard non-current bg), replaced Color(.tertiarySystemGroupedBackground)→Color.surfaceCard (EmptyMonthCard bg). Card .stroke() overlay kept as-is — selection indicator for current month, not form input. BudgetDetailsView: replaced Color(.systemGroupedBackground)→Color.surfacePrimary (list background), replaced .green/.red→Color.financialSavings/Color.financialOverBudget (RolloverInfoRow icon and amount, 2 instances each), replaced Color.green/Color.red→Color.financialSavings/Color.financialOverBudget (background fill), replaced cornerRadius: 12→DesignTokens.CornerRadius.md, replaced spacing: 12→DesignTokens.Spacing.md. CheckedFilterPicker: already clean — segmented picker with no hardcoded colors."
     },
     {
       "id": "US-023",
