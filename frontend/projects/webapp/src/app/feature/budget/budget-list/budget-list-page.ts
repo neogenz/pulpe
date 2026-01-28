@@ -31,7 +31,10 @@ import { BudgetListStore } from './budget-list-store';
 import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
 import SearchTransactionsDialogComponent from './search-transactions-dialog/search-transactions-dialog';
 import { Logger } from '@core/logging/logger';
-import type { TransactionSearchResult } from 'pulpe-shared';
+import {
+  type TransactionSearchResult,
+  getBudgetPeriodForDate,
+} from 'pulpe-shared';
 import {
   ProductTourService,
   TOUR_START_DELAY,
@@ -234,10 +237,10 @@ export default class BudgetListPage {
     });
   });
 
-  // Calendar-specific signals
-  protected readonly currentDate = signal({
-    month: new Date().getMonth() + 1,
-    year: new Date().getFullYear(),
+  // Current budget period based on payday setting
+  protected readonly currentDate = computed(() => {
+    const payDay = this.#userSettingsApi.payDayOfMonth();
+    return getBudgetPeriodForDate(new Date(), payDay);
   });
 
   readonly #isHandset = toSignal(

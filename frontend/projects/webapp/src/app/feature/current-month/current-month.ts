@@ -1,4 +1,5 @@
-import { DatePipe } from '@angular/common';
+import { format } from 'date-fns';
+import { frCH } from 'date-fns/locale';
 import {
   afterNextRender,
   ChangeDetectionStrategy,
@@ -32,7 +33,6 @@ import {
   ProductTourService,
   TOUR_START_DELAY,
 } from '@core/product-tour/product-tour.service';
-import { TitleDisplay } from '@core/routing';
 import { type TransactionCreate } from 'pulpe-shared';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { BaseLoading } from '@ui/loading';
@@ -73,7 +73,6 @@ type EditTransactionFormData = Pick<
   ],
   imports: [
     BudgetProgressBar,
-    DatePipe,
     MatCardModule,
     MatButtonModule,
     MatBottomSheetModule,
@@ -97,7 +96,7 @@ type EditTransactionFormData = Pick<
           class="text-headline-medium md:text-display-small truncate min-w-0 flex-shrink"
           data-testid="page-title"
         >
-          {{ titleDisplay.currentTitle() }}
+          {{ budgetPeriodDisplayName() }}
         </h1>
         <div class="flex gap-2 flex-shrink-0 ml-auto">
           <button
@@ -200,7 +199,7 @@ type EditTransactionFormData = Pick<
                 data-testid="empty-state-description"
               >
                 Aucun budget n'a été créé pour
-                {{ store.budgetDate() | date: 'MMMM yyyy' : '' : 'fr-CH' }}.
+                {{ budgetPeriodDisplayName() }}.
               </p>
             </div>
           }
@@ -241,7 +240,6 @@ export default class CurrentMonth {
   readonly isCreatingTransaction = signal(false);
   readonly selectedTransactions = signal<string[]>([]);
   protected readonly store = inject(CurrentMonthStore);
-  protected readonly titleDisplay = inject(TitleDisplay);
   readonly #productTourService = inject(ProductTourService);
   readonly #destroyRef = inject(DestroyRef);
   readonly #loadingIndicator = inject(LoadingIndicator);
@@ -249,6 +247,17 @@ export default class CurrentMonth {
   readonly #dialog = inject(MatDialog);
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
+
+  /**
+   * Display name for the current budget period (e.g., "janvier 2025")
+   * Uses currentBudgetPeriod which accounts for the user's payday setting
+   */
+  protected readonly budgetPeriodDisplayName = computed(() => {
+    const period = this.store.currentBudgetPeriod();
+    return format(new Date(period.year, period.month - 1, 1), 'MMMM yyyy', {
+      locale: frCH,
+    });
+  });
 
   constructor() {
     this.store.refreshData();
