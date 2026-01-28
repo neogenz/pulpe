@@ -37,8 +37,8 @@ import { ROUTES } from '@core/routing';
           <ul class="list-disc pl-6 text-body-large">
             <li>Email et mot de passe (pour votre compte)</li>
             <li>
-              Si vous vous inscrivez via Google : email, nom et photo de
-              profil transmis par Google
+              Si vous vous inscrivez via Google : email, nom et photo de profil
+              transmis par Google
             </li>
             <li>Informations financières (revenus, dépenses, épargne)</li>
             <li>Préférences et paramètres de l'application</li>
@@ -219,8 +219,8 @@ import { ROUTES } from '@core/routing';
           </p>
           <ul class="list-disc pl-6 text-body-large">
             <li>
-              Activés lors de la création de votre compte (base légale :
-              intérêt légitime pour l'amélioration du service)
+              Activés lors de la création de votre compte (base légale : intérêt
+              légitime pour l'amélioration du service)
             </li>
             <li>Données pseudonymisées (pas d'identification directe)</li>
             <li>

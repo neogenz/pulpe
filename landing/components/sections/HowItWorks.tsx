@@ -16,6 +16,9 @@ export function HowItWorks() {
         </h2>
         <p className="text-text-secondary text-center mb-12">
           Pas de configuration complexe. Juste l'essentiel.
+          <br />
+          Et voilà : ton année est planifiée, tu vois chaque mois ce qu'il te
+          reste.
         </p>
       </FadeIn>
 

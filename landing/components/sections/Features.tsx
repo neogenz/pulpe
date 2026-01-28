@@ -2,8 +2,8 @@ import { Section, Badge, Screenshot, FadeIn } from '@/components/ui'
 
 const FEATURES = [
   {
-    title: "Vois toute ton année d'un coup d'œil",
-    description: 'Vacances, impôts, anniversaires... Tout est visible sur 12 mois.',
+    title: 'Fini les impôts qui tombent au pire moment',
+    description: 'Ta vue annuelle affiche chaque dépense prévue sur 12 mois. Vacances, impôts, anniversaires — tu vois tout venir.',
     badge: { icon: '🎯', label: 'Clarté' },
     screenshot: {
       src: '/screenshots/responsive/vue-calendrier-annuel.webp',
@@ -12,8 +12,8 @@ const FEATURES = [
     },
   },
   {
-    title: "2 clics, c'est noté",
-    description: "Ajouter une dépense prend 5 secondes. Pas de friction, pas d'excuse.",
+    title: 'Assez simple pour ne jamais lâcher',
+    description: 'Note une dépense en 5 secondes, 2 clics. Pas de friction, pas de corvée — tu gardes le rythme.',
     badge: { icon: '⚡', label: 'Simplicité' },
     screenshot: {
       src: '/screenshots/responsive/modal-ajout-transaction.webp',
@@ -23,7 +23,7 @@ const FEATURES = [
   },
   {
     title: 'Plus jamais surpris',
-    description: 'Tes dépenses récurrentes sont planifiées. Tu vois venir les gros moments.',
+    description: 'Tes dépenses récurrentes sont planifiées automatiquement. Tu sais exactement ce qui arrive — et quand.',
     badge: { icon: '🛡️', label: 'Contrôle' },
     screenshot: {
       src: '/screenshots/responsive/liste-des-previsions.webp',
@@ -32,8 +32,8 @@ const FEATURES = [
     },
   },
   {
-    title: 'Ton budget se construit tout seul',
-    description: 'Crée un modèle une fois, réutilise-le chaque mois.',
+    title: 'Chaque mois commence déjà organisé',
+    description: 'Crée un modèle une fois, et chaque nouveau mois démarre avec tes revenus, charges et objectifs en place.',
     badge: { icon: '🌱', label: 'Légèreté' },
     screenshot: {
       src: '/screenshots/responsive/ecran-des-modeles.webp',

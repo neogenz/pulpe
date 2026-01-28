@@ -189,7 +189,7 @@ export function Hero() {
             className="text-center lg:text-left"
           >
             <p className="text-sm font-medium text-primary mb-3 tracking-wide uppercase">
-              L'app budget simple
+              Budget annuel en 3 minutes
             </p>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-text mb-6">
               Tu sais ce qu'il te reste ?
@@ -203,8 +203,8 @@ export function Hero() {
               </span>
             </h1>
             <p className="text-lg md:text-xl text-text-secondary mb-8 max-w-lg mx-auto lg:mx-0">
-              Planifie ton année, anticipe chaque dépense, note en 2 clics.
-              Fini le flou.
+              Pulpe planifie ton année pour que tu saches toujours ce que tu
+              peux dépenser. Sans prise de tête.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start justify-center">
               <div className="flex flex-col items-center gap-3">

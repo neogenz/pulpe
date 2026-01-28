@@ -72,7 +72,7 @@ const jsonLd = {
       offers: {
         '@type': 'Offer',
         price: '0',
-        priceCurrency: 'EUR',
+        priceCurrency: 'CHF',
       },
     },
   ],
