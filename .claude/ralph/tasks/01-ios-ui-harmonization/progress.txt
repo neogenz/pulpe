@@ -8,7 +8,7 @@ Feature: 01-ios-ui-harmonization
 - `ios/Pulpe/Shared/Design/DesignTokens.swift` — Spacing, CornerRadius, Card, FormField, Shadow, Opacity, Icon, Progress
 - `ios/Pulpe/Shared/Extensions/Color+Pulpe.swift` — All colors with light/dark (financialIncome, financialExpense, financialSavings, financialOverBudget, errorPrimary, errorBackground, surfacePrimary, surfaceCard, pulpePrimary)
 - `ios/Pulpe/Shared/Styles/Typography.swift` — PulpeTypography (heroTitle, headlineLarge, bodyLarge, amountHero, labelLarge, etc.)
-- `ios/Pulpe/Shared/Extensions/View+Extensions.swift` — .pulpeCard(), .pulpeSectionHeader(), .loadingOverlay(), .cardStyle()
+- `ios/Pulpe/Shared/Extensions/View+Extensions.swift` — .pulpeCard(), .pulpeSectionHeader(), .loadingOverlay()
 - `ios/Pulpe/Shared/Styles/AnimationConstants.swift` — typealias to DesignTokens.Animation (backward compat)
 
 ### Critical Constraints
@@ -50,5 +50,53 @@ Feature: 01-ios-ui-harmonization
   - Must use `SwiftUI.Animation` as return type inside `DesignTokens.Animation` to avoid ambiguity with the enum name
   - PRD specified normal: 0.3 but existing code had 0.35 — used PRD value
   - 3 call sites use PulpeAnimations (OnboardingFlow, OnboardingProgressIndicator, OnboardingStepHeader) — all work via typealias
+---
+
+## 2026-01-28 - US-002: Add missing semantic color and surface tokens
+- Added 8 new color tokens to Color+Pulpe.swift using `init(light:dark:)` with hex values from DA.md
+- New tokens: surfacePrimary, surfaceCard, surfaceSecondary, textPrimary, textOnPrimary, errorPrimary, errorBackground, financialOverBudget
+- Files changed: `Color+Pulpe.swift`
+- **Learnings:**
+  - DA.md specifies fond principal as #F6FFF0 (blanc verdâtre) and surfaces as #EBFFE6
+  - financialOverBudget uses warm amber (#C27A00) not red, per DA pillar "Soulagement"
+  - errorPrimary uses warm orange (#D4760A) not red, per DA "pas de rouge agressif"
+  - No asset catalog colorsets were needed — `init(light:dark:)` with hex is sufficient
+  - textOnPrimary is white/white since primary buttons are dark green
+---
+
+## 2026-01-28 - US-003: Verify and complete pulpeCard() and pulpeSectionHeader() modifiers
+- Replaced unused `cardStyle()` and `sectionHeader()` with DA-compliant `pulpeCard()` and `pulpeSectionHeader()`
+- `pulpeCard()`: padding(Spacing.lg), background(Color.surfaceCard), cornerRadius(CornerRadius.lg), shadow(Shadow.subtle)
+- `pulpeSectionHeader()`: font(.headline), foregroundStyle(Color.textPrimary), full-width leading alignment
+- Files changed: `View+Extensions.swift`
+- **Learnings:**
+  - The PRD notes said pulpeCard()/pulpeSectionHeader() already existed — they didn't. Only cardStyle()/sectionHeader() existed (unused, with hardcoded values)
+  - Replaced them directly since grep confirmed zero call sites for cardStyle()/sectionHeader()
+  - Both modifiers are simple extension functions (inherently stateless), no need for ViewModifier structs
+---
+
+## 2026-01-28 - US-004: Harmonize CurrencyField — remove stroke, use filled background
+- Removed `.overlay(RoundedRectangle...stroke(...))` — no more border on input
+- Changed `.background(.background)` → `Color.inputBackgroundSoft` (filled background)
+- Changed `.padding()` → `.padding(DesignTokens.Spacing.lg)` (explicit token)
+- Changed label `.font(.subheadline)` → `PulpeTypography.inputLabel`
+- CurrencyText left unchanged (uses system fonts appropriately for read-only display)
+- Files changed: `CurrencyField.swift`
+- **Learnings:**
+  - `.background(.background)` is a SwiftUI semantic that adapts to context, but DA requires explicit `inputBackgroundSoft` for form inputs
+  - CurrencyField had minimal violations (only stroke + background) compared to what PRD notes suggested
+  - The `effectiveFocus` visual feedback (stroke color change) was removed — filled background alone is sufficient per DA
+---
+
+## 2026-01-28 - US-005: Harmonize AddTransactionSheet — Form natif, tokens DA
+- File was already well-harmonized from prior work (Form with .listRowBackground, DesignTokens.Spacing, Color.pulpePrimary, no hardcoded colors)
+- Added PulpeTypography.labelLarge (size 15, semibold) and PulpeTypography.bodyLarge (size 17, regular) to Typography.swift
+- Applied PulpeTypography.labelLarge to all 5 Form section headers (Montant, Montants rapides, Description, Type, Date)
+- Applied PulpeTypography.bodyLarge to the TextField input
+- Files changed: `Typography.swift`, `AddTransactionSheet.swift`
+- **Learnings:**
+  - labelLarge and bodyLarge were referenced in progress.txt header but never actually added — now they exist for future stories
+  - Form section headers accept custom fonts via `.font()` on the Text view inside the header closure
+  - AddTransactionSheet was already mostly DA-compliant — the prior US-004 CurrencyField harmonization covered the main input
 ---
 

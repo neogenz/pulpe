@@ -25,8 +25,8 @@
         "Project compiles"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "Color+Pulpe.swift already has most semantic colors. Check if textOnPrimary and surfaceSecondary are needed for form/button contexts."
+      "passes": true,
+      "notes": "Added to Color+Pulpe.swift: surfacePrimary (#F6FFF0/#1A1A1A), surfaceCard (#EBFFE6/#1C1C1E), surfaceSecondary (#F0F5EE/#2C2C2E), textPrimary (#181D17/#F5F5F5), textOnPrimary (white/white), errorPrimary (#D4760A/#F0A050), errorBackground (#FFF3E0/#2A1F10), financialOverBudget (#C27A00/#E5A33A). All use init(light:dark:) with hex values from DA.md."
     },
     {
       "id": "US-003",
@@ -38,8 +38,8 @@
         "Project compiles"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "View+Extensions.swift already has pulpeCard() and pulpeSectionHeader(). Read them, verify they match DA specs, fix if needed. Do NOT over-engineer."
+      "passes": true,
+      "notes": "Replaced unused cardStyle()/sectionHeader() with DA-compliant pulpeCard()/pulpeSectionHeader(). pulpeCard() uses Color.surfaceCard, DesignTokens.CornerRadius.lg, DesignTokens.Shadow.subtle, DesignTokens.Spacing.lg padding. pulpeSectionHeader() uses .headline font with Color.textPrimary."
     },
     {
       "id": "US-004",
@@ -53,8 +53,8 @@
         "Project compiles"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "CurrencyField.swift has .stroke() at line 58. Replace with filled background approach. Keep functional behavior identical."
+      "passes": true,
+      "notes": "Removed .overlay(.stroke()) and replaced .background(.background) with Color.inputBackgroundSoft. Label font changed from .subheadline to PulpeTypography.inputLabel. Padding made explicit with DesignTokens.Spacing.lg. No hardcoded colors remain."
     },
     {
       "id": "US-005",
@@ -68,8 +68,8 @@
         "Project compiles"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "File: Features/CurrentMonth/Components/AddTransactionSheet.swift. Replace hardcoded colors with tokens. Use Form native styling."
+      "passes": true,
+      "notes": "Form already used native styling with .listRowBackground(Color.surfaceCard). Added PulpeTypography.labelLarge to all section headers and PulpeTypography.bodyLarge to TextField. Added labelLarge and bodyLarge tokens to PulpeTypography. No .stroke(), .border(), .white, .black, .red remain."
     },
     {
       "id": "US-006",

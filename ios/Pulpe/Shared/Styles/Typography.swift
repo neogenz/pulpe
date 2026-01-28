@@ -12,6 +12,14 @@ enum PulpeTypography {
     static let stepTitle = Font.system(size: 24, weight: .bold, design: .rounded)
     static let stepSubtitle = Font.system(size: 15, weight: .regular, design: .default)
 
+    // MARK: - Body Text
+
+    static let bodyLarge = Font.system(size: 17, weight: .regular, design: .default)
+
+    // MARK: - Labels
+
+    static let labelLarge = Font.system(size: 15, weight: .semibold, design: .default)
+
     // MARK: - Input Labels
 
     static let inputLabel = Font.system(size: 14, weight: .semibold, design: .default)

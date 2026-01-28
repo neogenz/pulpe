@@ -36,13 +36,15 @@ struct AddTransactionSheet: View {
                         placeholder: "0.00",
                         externalFocus: $isAmountFocused
                     )
+                    .listRowBackground(Color.surfaceCard)
                 } header: {
                     Text("Montant")
+                        .font(PulpeTypography.labelLarge)
                 }
 
                 // Quick amounts
                 Section {
-                    HStack(spacing: 8) {
+                    HStack(spacing: DesignTokens.Spacing.sm) {
                         ForEach(quickAmounts, id: \.self) { quickAmount in
                             Button {
                                 if isAmountFocused {
@@ -53,27 +55,32 @@ struct AddTransactionSheet: View {
                                 }
                             } label: {
                                 Text("\(quickAmount) CHF")
-                                    .font(.subheadline.weight(.medium))
+                                    .font(PulpeTypography.buttonSecondary)
                                     .fixedSize()
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, DesignTokens.Spacing.md)
+                                    .padding(.vertical, DesignTokens.Spacing.sm)
                                     .frame(maxWidth: .infinity)
-                                    .background(Color.accentColor.opacity(0.15))
-                                    .foregroundStyle(Color.accentColor)
+                                    .background(Color.pulpePrimary.opacity(0.15))
+                                    .foregroundStyle(Color.pulpePrimary)
                                     .clipShape(Capsule())
                             }
                             .buttonStyle(.borderless)
                         }
                     }
+                    .listRowBackground(Color.surfaceCard)
                 } header: {
                     Text("Montants rapides")
+                        .font(PulpeTypography.labelLarge)
                 }
 
                 // Name
                 Section {
                     TextField("Description", text: $name)
+                        .font(PulpeTypography.bodyLarge)
+                        .listRowBackground(Color.surfaceCard)
                 } header: {
                     Text("Description")
+                        .font(PulpeTypography.labelLarge)
                 }
 
                 // Kind
@@ -85,8 +92,10 @@ struct AddTransactionSheet: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    .listRowBackground(Color.surfaceCard)
                 } header: {
                     Text("Type")
+                        .font(PulpeTypography.labelLarge)
                 }
 
                 // Date
@@ -97,8 +106,10 @@ struct AddTransactionSheet: View {
                         displayedComponents: .date
                     )
                     .datePickerStyle(.graphical)
+                    .listRowBackground(Color.surfaceCard)
                 } header: {
                     Text("Date")
+                        .font(PulpeTypography.labelLarge)
                 }
 
                 // Error
