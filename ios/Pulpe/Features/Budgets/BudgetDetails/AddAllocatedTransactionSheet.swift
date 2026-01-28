@@ -27,15 +27,20 @@ struct AddAllocatedTransactionSheet: View {
                 // Name
                 Section {
                     TextField("Ex: Restaurant, Courses...", text: $name)
+                        .font(PulpeTypography.bodyLarge)
+                        .listRowBackground(Color.surfaceCard)
                 } header: {
                     Text("Description")
+                        .font(PulpeTypography.labelLarge)
                 }
 
                 // Amount
                 Section {
                     CurrencyField(value: $amount, placeholder: "0.00")
+                        .listRowBackground(Color.surfaceCard)
                 } header: {
                     Text("Montant")
+                        .font(PulpeTypography.labelLarge)
                 }
 
                 // Date
@@ -46,8 +51,10 @@ struct AddAllocatedTransactionSheet: View {
                         displayedComponents: .date
                     )
                     .datePickerStyle(.graphical)
+                    .listRowBackground(Color.surfaceCard)
                 } header: {
                     Text("Date")
+                        .font(PulpeTypography.labelLarge)
                 }
 
                 // Error
