@@ -7,12 +7,6 @@ struct RecentTransactionsCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            // Header
-            Text("Transactions récentes")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(.primary)
-
             // Transaction rows
             VStack(spacing: 0) {
                 ForEach(transactions, id: \.id) { transaction in
@@ -34,10 +28,7 @@ struct RecentTransactionsCard: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, 14)
-        .background(Color.surfaceCard)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
+        .pulpeCard()
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Transactions récentes, \(transactions.count) transactions")
     }

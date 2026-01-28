@@ -35,7 +35,6 @@
 		2E7CD1E47B561FB85B0C17D9 /* YearOverviewWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = B91CC0F49D6D3BC490F1955B /* YearOverviewWidget.swift */; };
 		3348E3FA251D9312352A392C /* OneTimeExpensesList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EA095E32B5C5AC4B0FCE485 /* OneTimeExpensesList.swift */; };
 		337582D8464C681222B2141F /* TransactionEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A05FA792057CD53B266EE9F /* TransactionEnums.swift */; };
-		34E23D4D6D962D2BDB8157FA /* DashboardHeroCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF510A93BF114B6C91984C87 /* DashboardHeroCard.swift */; };
 		355EAC39C5277062B617B41A /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4614F485D865898B139E965 /* ErrorView.swift */; };
 		36D240411A8032729B6D29AA /* HealthInsuranceStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2462651BA94AFFA96E88027 /* HealthInsuranceStep.swift */; };
 		398CE2254BF633E3D3D45D74 /* UncheckedTransactionsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED65AA01579D6F54056E2672 /* UncheckedTransactionsSection.swift */; };
@@ -308,7 +307,6 @@
 		D86B67782D2A720349211B65 /* WelcomeStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeStep.swift; sourceTree = "<group>"; };
 		D90A416A651347D442C1D15C /* LoginFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginFlowTests.swift; sourceTree = "<group>"; };
 		DEE595C429B5C70B0E39A099 /* CurrentMonthStoreLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentMonthStoreLogicTests.swift; sourceTree = "<group>"; };
-		DF510A93BF114B6C91984C87 /* DashboardHeroCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardHeroCard.swift; sourceTree = "<group>"; };
 		E179041C080777B5E0C6F270 /* YearOverviewProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YearOverviewProvider.swift; sourceTree = "<group>"; };
 		E18D4C745E8A27CA92B99037 /* EditTransactionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditTransactionSheet.swift; sourceTree = "<group>"; };
 		E1ED9277251CACDC297FEFA3 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -458,7 +456,6 @@
 			children = (
 				054A9E4A9CCF915305B08CC0 /* AddTransactionSheet.swift */,
 				B8F1C23CE0EC52738271BB2E /* AlertsSection.swift */,
-				DF510A93BF114B6C91984C87 /* DashboardHeroCard.swift */,
 				E5BB996AAB135A9A73AF8762 /* HeroBalanceCard.swift */,
 				FF0D72F529D604F502CBFB45 /* InsightsCard.swift */,
 				F8334F2FD3ED442FCC576A91 /* LinkedTransactionsSheet.swift */,
@@ -1195,7 +1192,6 @@
 				D97CDED0639CAF9FA3C1630A /* CurrentMonthStore.swift in Sources */,
 				91B28D61C5AD8F09EAD10E8A /* CurrentMonthView.swift in Sources */,
 				BBC393EE6EF33467D093FA7A /* CustomTabBar.swift in Sources */,
-				34E23D4D6D962D2BDB8157FA /* DashboardHeroCard.swift in Sources */,
 				A62FBEA047FB4A4478151E65 /* DashboardStore.swift in Sources */,
 				E3BA82ABFFC6695DE1311D13 /* Date+Extensions.swift in Sources */,
 				F5D9B6FD484997E69677F7E2 /* Decimal+Extensions.swift in Sources */,
