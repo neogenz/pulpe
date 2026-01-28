@@ -5,6 +5,7 @@ const STEPS = [
   { number: '1', title: 'Tes revenus', description: 'Ce qui rentre chaque mois' },
   { number: '2', title: 'Frais fixes', description: 'Loyer, abonnements, assurances' },
   { number: '3', title: 'Frais variables', description: 'Vacances, impôts, anniversaires' },
+  { number: '✓', title: 'Ton année est prête', description: 'Tu vois chaque mois, chaque dépense, ce qu\'il te reste' },
 ]
 
 export function HowItWorks() {
@@ -16,17 +17,14 @@ export function HowItWorks() {
         </h2>
         <p className="text-text-secondary text-center mb-12">
           Pas de configuration complexe. Juste l'essentiel.
-          <br />
-          Et voilà : ton année est planifiée, tu vois chaque mois ce qu'il te
-          reste.
         </p>
       </FadeIn>
 
-      <div className="grid md:grid-cols-3 gap-8 mb-12">
+      <div className="grid md:grid-cols-4 gap-8 mb-12">
         {STEPS.map((step, index) => (
           <FadeIn key={step.title} delay={index * 0.1}>
             <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-primary text-white font-bold text-xl flex items-center justify-center mx-auto mb-4">
+              <div className={`w-12 h-12 rounded-full font-bold text-xl flex items-center justify-center mx-auto mb-4 ${step.number === '✓' ? 'bg-primary/10 text-primary' : 'bg-primary text-white'}`}>
                 {step.number}
               </div>
               <h3 className="font-semibold text-lg mb-2">{step.title}</h3>
