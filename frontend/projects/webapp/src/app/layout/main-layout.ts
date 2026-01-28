@@ -459,6 +459,9 @@ interface NavigationItem {
           overflow: visible !important;
           height: auto !important;
           min-height: 100dvh !important;
+          /* Force flex layout - Material overrides Tailwind classes */
+          display: flex !important;
+          flex-direction: column !important;
         }
       }
 
