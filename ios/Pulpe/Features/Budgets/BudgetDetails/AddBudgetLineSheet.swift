@@ -27,15 +27,20 @@ struct AddBudgetLineSheet: View {
                 // Name
                 Section {
                     TextField("Description", text: $name)
+                        .font(PulpeTypography.bodyLarge)
+                        .listRowBackground(Color.surfaceCard)
                 } header: {
                     Text("Description")
+                        .font(PulpeTypography.labelLarge)
                 }
 
                 // Amount
                 Section {
                     CurrencyField(value: $amount, placeholder: "0.00")
+                        .listRowBackground(Color.surfaceCard)
                 } header: {
                     Text("Montant")
+                        .font(PulpeTypography.labelLarge)
                 }
 
                 // Kind
@@ -47,8 +52,10 @@ struct AddBudgetLineSheet: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    .listRowBackground(Color.surfaceCard)
                 } header: {
                     Text("Type")
+                        .font(PulpeTypography.labelLarge)
                 }
 
                 // Error
