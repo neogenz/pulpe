@@ -83,13 +83,13 @@ extension Color {
 
     // MARK: - App Background Gradient
 
-    // Semantic gradient colors for premium background
-    private static let gradientBaseTop = Color(light: Color(hex: 0xFAFBFA), dark: Color(hex: 0x141414))
-    private static let gradientBaseMid = Color(light: Color(hex: 0xF5F7F5), dark: Color(hex: 0x181A18))
-    private static let gradientBaseBottom = Color(light: Color(hex: 0xEDF3EE), dark: Color(hex: 0x1A1E1B))
-    private static let gradientAccentMint = Color(light: Color(hex: 0xD4EED8), dark: Color(hex: 0x1F3D2A))
-    private static let gradientAccentSage = Color(light: Color(hex: 0xE8F0E6), dark: Color(hex: 0x1C2E20))
-    private static let gradientCenterGlow = Color(light: Color(hex: 0xF0F5F0), dark: Color(hex: 0x202520))
+    // Semantic gradient colors for premium background (enhanced saturation)
+    private static let gradientBaseTop = Color(light: Color(hex: 0xF5FAF6), dark: Color(hex: 0x141816))
+    private static let gradientBaseMid = Color(light: Color(hex: 0xEEF5EF), dark: Color(hex: 0x1A201C))
+    private static let gradientBaseBottom = Color(light: Color(hex: 0xE0EDE2), dark: Color(hex: 0x1C241E))
+    private static let gradientAccentMint = Color(light: Color(hex: 0xA8E0B0), dark: Color(hex: 0x254A32))
+    private static let gradientAccentSage = Color(light: Color(hex: 0xC5E0C8), dark: Color(hex: 0x223828))
+    private static let gradientCenterGlow = Color(light: Color(hex: 0xD8EDD8), dark: Color(hex: 0x253028))
 
     /// Premium multi-layered background for Liquid Glass effect
     @ViewBuilder
@@ -114,7 +114,7 @@ extension Color {
     @ViewBuilder
     private static var mintAccentLayer: some View {
         RadialGradient(
-            colors: [gradientAccentMint.opacity(0.6), .clear],
+            colors: [gradientAccentMint.opacity(0.75), .clear],
             center: .topTrailing,
             startRadius: 0,
             endRadius: 400
@@ -124,7 +124,7 @@ extension Color {
     @ViewBuilder
     private static var sageAccentLayer: some View {
         RadialGradient(
-            colors: [gradientAccentSage.opacity(0.5), .clear],
+            colors: [gradientAccentSage.opacity(0.65), .clear],
             center: .bottomLeading,
             startRadius: 0,
             endRadius: 350
@@ -134,7 +134,7 @@ extension Color {
     @ViewBuilder
     private static var centerGlowLayer: some View {
         RadialGradient(
-            colors: [gradientCenterGlow.opacity(0.3), .clear],
+            colors: [gradientCenterGlow.opacity(0.45), .clear],
             center: .center,
             startRadius: 50,
             endRadius: 500
