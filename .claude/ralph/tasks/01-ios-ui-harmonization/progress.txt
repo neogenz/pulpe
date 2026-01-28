@@ -277,3 +277,18 @@ Feature: 01-ios-ui-harmonization
   - `.font(.system(.body, design: .rounded, weight: .medium))` and similar system text styles in list rows are acceptable — these are standard body text, not input or header typography
 ---
 
+## 2026-01-28 - US-022: Harmonize BudgetListView and BudgetDetailsView — replace red, use tokens
+- BudgetListView: replaced `.red` → `Color.financialOverBudget` in `RemainingStatus.negative`, replaced `Color(.secondarySystemGroupedBackground)` → `Color.surfaceCard` (BudgetMonthCard non-current background), replaced `Color(.tertiarySystemGroupedBackground)` → `Color.surfaceCard` (EmptyMonthCard background)
+- BudgetDetailsView (RolloverInfoRow): replaced `.green`/`.red` → `Color.financialSavings`/`Color.financialOverBudget` (icon foreground + amount text, 2 instances each), replaced `Color.green`/`Color.red` → semantic colors in background fill, replaced `cornerRadius: 12` → `DesignTokens.CornerRadius.md`, replaced `spacing: 12` → `DesignTokens.Spacing.md`
+- BudgetDetailsView (content): replaced `Color(.systemGroupedBackground)` → `Color.surfacePrimary` (list background)
+- CheckedFilterPicker: already clean — segmented Picker with no hardcoded colors, no changes needed
+- Files changed: `BudgetListView.swift`, `BudgetDetailsView.swift`
+- **Learnings:**
+  - Card `.stroke()` overlay for visual selection indicators (e.g., current month border) is acceptable — the "no .stroke()" rule applies to form input borders only, consistent with US-018 circle progress ring decision
+  - `Color(.tertiarySystemGroupedBackground)` (UIKit tertiary grouped bg) → `Color.surfaceCard` — same replacement as `secondarySystemGroupedBackground`, the tertiary distinction is handled via opacity modifier
+  - `.padding(.vertical, 14)` and `.padding(.horizontal, 8)` in grid cards kept as-is — layout-specific values with no exact token match, consistent with previous decisions
+  - `.font(.system(.subheadline, design: .rounded, weight: .semibold))` and similar text styles in list/grid cards are standard body text — no PulpeTypography replacement needed
+  - CheckedFilterPicker uses `.pickerStyle(.segmented)` which manages its own styling — no DA harmonization required
+  - `spacing: 2`, `spacing: 6`, `spacing: 10` in grid and card layouts kept as-is — too granular for DesignTokens.Spacing
+---
+
