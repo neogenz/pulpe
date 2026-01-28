@@ -11,9 +11,8 @@ test.describe('Template propagation choices', () => {
     await page.waitForLoadState('domcontentloaded');
     await expect(page.getByTestId('template-detail-page')).toBeVisible();
 
-    // Open action menu and launch the edit dialog
-    await page.getByTestId('template-detail-menu-trigger').click();
-    await page.getByText('Éditer', { exact: true }).click();
+    // Click the edit button directly (desktop view)
+    await page.getByTestId('template-detail-edit-button').click();
 
     // Ensure dialog is visible
     await expect(

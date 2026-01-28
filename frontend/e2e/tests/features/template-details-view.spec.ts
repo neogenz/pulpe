@@ -28,17 +28,16 @@ test.describe('Template Details View', () => {
     await expect(pageTitle).toBeVisible();
     await expect(pageTitle).toHaveText('E2E Test Template');
 
-    // Verify financial summary cards are displayed (4 cards)
-    const financialSummaryCards = authenticatedPage.locator(
-      'pulpe-financial-summary',
+    // Verify financial overview section is displayed
+    const financialSection = authenticatedPage.locator(
+      '[aria-labelledby="financial-summary-heading"]',
     );
-    await expect(financialSummaryCards).toHaveCount(4);
+    await expect(financialSection).toBeVisible();
 
-    // Verify specific card values are displayed
-    const summaryTexts = await financialSummaryCards.allTextContents();
-    expect(summaryTexts.join(' ')).toContain('Revenus');
-    expect(summaryTexts.join(' ')).toContain('Dépenses');
-    expect(summaryTexts.join(' ')).toContain('Épargne prévue');
+    // Verify the three financial pills (Revenus, Dépenses, Épargne)
+    await expect(financialSection.getByText('Revenus')).toBeVisible();
+    await expect(financialSection.getByText('Dépenses')).toBeVisible();
+    await expect(financialSection.getByText('Épargne')).toBeVisible();
 
     // Verify transactions table is displayed
     const transactionsTable = authenticatedPage.locator(
@@ -48,24 +47,18 @@ test.describe('Template Details View', () => {
 
     // Verify transactions heading
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'Dépenses récurrentes' }),
+      authenticatedPage.getByRole('heading', { name: 'Prévisions du modèle' }),
     ).toBeVisible();
 
-    // Verify action menu is accessible
-    const menuButton = authenticatedPage.getByTestId(
-      'template-detail-menu-trigger',
+    // Verify action buttons are accessible (desktop buttons)
+    const editButton = authenticatedPage.getByTestId(
+      'template-detail-edit-button',
     );
-    await expect(menuButton).toBeVisible();
-    await menuButton.click();
-
-    // Verify menu options
-    await expect(authenticatedPage.getByText('Éditer')).toBeVisible();
-    await expect(
-      authenticatedPage.getByTestId('delete-template-detail-menu-item'),
-    ).toBeVisible();
-
-    // Close menu
-    await authenticatedPage.press('body', 'Escape');
+    const deleteButton = authenticatedPage.getByTestId(
+      'delete-template-detail-button',
+    );
+    await expect(editButton).toBeVisible();
+    await expect(deleteButton).toBeVisible();
 
     // Verify back button exists (without clicking it to avoid navigation issues)
     const backButton = authenticatedPage.getByLabel(
@@ -186,23 +179,25 @@ test.describe('Template Details View', () => {
       authenticatedPage.getByTestId('template-detail-page'),
     ).toBeVisible();
 
-    // Verify the financial cards display correct calculated values
-    const financialCards = authenticatedPage.locator('pulpe-financial-summary');
+    // Verify the financial section displays correct calculated values
+    const financialSection = authenticatedPage.locator(
+      '[aria-labelledby="financial-summary-heading"]',
+    );
 
     // Based on global mock data: income 5000, expenses 2600, savings 500
-    const incomeCard = financialCards.filter({ hasText: 'Revenus' });
-    await expect(incomeCard.locator('p')).toContainText(/5.000\.00/);
+    // Format is de-CH with no decimals (e.g., "5'000 CHF")
+    const incomePill = financialSection.locator('div.rounded-full').filter({ hasText: 'Revenus' });
+    await expect(incomePill).toContainText(/5.000/);
 
     // Total expenses: 1800 + 600 + 200 = 2600
-    const expenseCard = financialCards.filter({ hasText: 'Dépenses' });
-    await expect(expenseCard.locator('p')).toContainText(/2.600\.00/);
+    const expensePill = financialSection.locator('div.rounded-full').filter({ hasText: 'Dépenses' });
+    await expect(expensePill).toContainText(/2.600/);
 
     // Total savings: 500
-    const savingsCard = financialCards.filter({ hasText: 'Épargne prévue' });
-    await expect(savingsCard.locator('p')).toContainText(/500\.00/);
+    const savingsPill = financialSection.locator('div.rounded-full').filter({ hasText: 'Épargne' });
+    await expect(savingsPill).toContainText(/500/);
 
-    // Net balance (5000 - 2600 - 500 = 1900)
-    const balanceCard = financialCards.filter({ hasText: 'Solde net' });
-    await expect(balanceCard).toBeVisible();
+    // Net balance hero card (5000 - 2600 - 500 = 1900)
+    await expect(financialSection.getByText(/1.900/)).toBeVisible();
   });
 });
