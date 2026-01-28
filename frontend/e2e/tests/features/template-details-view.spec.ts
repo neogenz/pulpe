@@ -186,15 +186,15 @@ test.describe('Template Details View', () => {
 
     // Based on global mock data: income 5000, expenses 2600, savings 500
     // Format is de-CH with no decimals (e.g., "5'000 CHF")
-    const incomePill = financialSection.locator('div.rounded-full').filter({ hasText: 'Revenus' });
+    const incomePill = financialSection.getByTestId('income-pill');
     await expect(incomePill).toContainText(/5.000/);
 
     // Total expenses: 1800 + 600 + 200 = 2600
-    const expensePill = financialSection.locator('div.rounded-full').filter({ hasText: 'Dépenses' });
+    const expensePill = financialSection.getByTestId('expense-pill');
     await expect(expensePill).toContainText(/2.600/);
 
     // Total savings: 500
-    const savingsPill = financialSection.locator('div.rounded-full').filter({ hasText: 'Épargne' });
+    const savingsPill = financialSection.getByTestId('savings-pill');
     await expect(savingsPill).toContainText(/500/);
 
     // Net balance hero card (5000 - 2600 - 500 = 1900)

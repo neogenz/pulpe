@@ -183,7 +183,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
                 [class.text-on-primary-container]="netBalance() >= 0"
                 [class.text-on-error-container]="netBalance() < 0"
               >
-                {{ Math.abs(netBalance()) | number: '1.0-0' : 'de-CH' }}
+                {{ absNetBalance() | number: '1.0-0' : 'de-CH' }}
                 <span class="text-headline-small font-normal">CHF</span>
               </div>
             </div>
@@ -193,6 +193,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
               class="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:justify-center scrollbar-hide"
             >
               <div
+                data-testid="income-pill"
                 class="snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-income-light)]"
               >
                 <mat-icon class="text-financial-income text-lg!"
@@ -212,6 +213,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
               </div>
 
               <div
+                data-testid="expense-pill"
                 class="snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-expense-light)]"
               >
                 <mat-icon class="text-financial-expense text-lg!"
@@ -231,6 +233,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
               </div>
 
               <div
+                data-testid="savings-pill"
                 class="snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-savings-light)]"
               >
                 <mat-icon class="text-financial-savings text-lg!"
@@ -292,7 +295,6 @@ import { TemplateDetailsStore } from './services/template-details-store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class TemplateDetail implements OnInit {
-  readonly Math = Math;
   readonly templateDetailsStore = inject(TemplateDetailsStore);
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);
@@ -371,6 +373,8 @@ export default class TemplateDetail implements OnInit {
     const t = this.totals();
     return t.income - t.expense - t.savings;
   });
+
+  readonly absNetBalance = computed(() => Math.abs(this.netBalance()));
 
   constructor() {
     // Mettre à jour le titre de la page avec le nom du modèle
