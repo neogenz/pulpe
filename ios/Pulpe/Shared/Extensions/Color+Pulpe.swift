@@ -13,15 +13,43 @@ extension Color {
     /// Savings indicator color - Green (#1E8A4C light, #50C882 dark)
     static let financialSavings = Color("FinancialSavings")
 
+    /// Over-budget indicator - Warm amber, not aggressive red (#C27A00 light, #E5A33A dark)
+    static let financialOverBudget = Color(light: Color(hex: 0xC27A00), dark: Color(hex: 0xE5A33A))
+
     // MARK: - Brand Colors
 
     /// Primary brand color - Dark green (#006820 light, #4AA070 dark)
     static let pulpePrimary = Color("PulpePrimary")
 
+    // MARK: - Surface Colors
+
+    /// Primary background — DA blanc verdâtre (#F6FFF0 light, #1A1A1A dark)
+    static let surfacePrimary = Color(light: Color(hex: 0xF6FFF0), dark: Color(hex: 0x1A1A1A))
+
+    /// Card/modal surfaces — DA vert très clair (#EBFFE6 light, #1C1C1E dark)
+    static let surfaceCard = Color(light: Color(hex: 0xEBFFE6), dark: Color(hex: 0x1C1C1E))
+
+    /// Secondary surface for form backgrounds (#F0F5EE light, #2C2C2E dark)
+    static let surfaceSecondary = Color(light: Color(hex: 0xF0F5EE), dark: Color(hex: 0x2C2C2E))
+
     // MARK: - Semantic Text Colors
+
+    /// Primary text — DA noir doux (#181D17 light, #F5F5F5 dark)
+    static let textPrimary = Color(light: Color(hex: 0x181D17), dark: Color(hex: 0xF5F5F5))
+
+    /// Text on primary-colored backgrounds (white in both modes)
+    static let textOnPrimary = Color(light: .white, dark: .white)
 
     /// Tertiary text with improved contrast (40% opacity light, 50% dark)
     static let textTertiary = Color("TextTertiary")
+
+    // MARK: - Error Colors
+
+    /// Error primary — warm orange, not aggressive red (#D4760A light, #F0A050 dark)
+    static let errorPrimary = Color(light: Color(hex: 0xD4760A), dark: Color(hex: 0xF0A050))
+
+    /// Error background — soft warm tint (#FFF3E0 light, #2A1F10 dark)
+    static let errorBackground = Color(light: Color(hex: 0xFFF3E0), dark: Color(hex: 0x2A1F10))
 
     // MARK: - Component Colors
 
