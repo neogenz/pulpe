@@ -57,7 +57,7 @@ struct HeroBalanceCard: View {
     private var balanceSection: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Disponible CHF")
+                Text("Disponible")
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundStyle(.secondary)
@@ -67,6 +67,7 @@ struct HeroBalanceCard: View {
                         .font(PulpeTypography.amountHero)
                         .foregroundStyle(balanceColor)
                         .contentTransition(.numericText())
+                        .accessibilityLabel(metrics.remaining.asCHF)
 
                 }
 
@@ -125,7 +126,7 @@ struct HeroBalanceCard: View {
     private var statsRow: some View {
         HStack(spacing: 0) {
             statItem(
-                label: "Dépenses CHF",
+                label: "Dépenses",
                 value: metrics.totalExpenses,
                 color: .financialExpense
             )
@@ -135,7 +136,7 @@ struct HeroBalanceCard: View {
                 .padding(.horizontal, DesignTokens.Spacing.sm)
 
             statItem(
-                label: "Revenus CHF",
+                label: "Revenus",
                 value: metrics.totalIncome,
                 color: .financialIncome
             )
@@ -145,7 +146,7 @@ struct HeroBalanceCard: View {
                 .padding(.horizontal, DesignTokens.Spacing.sm)
 
             statItem(
-                label: "Épargne CHF",
+                label: "Épargne",
                 value: metrics.totalSavings,
                 color: .financialSavings
             )
@@ -163,6 +164,8 @@ struct HeroBalanceCard: View {
                 .foregroundStyle(color)
         }
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(label) \(value.asCHF)")
     }
 }
 
