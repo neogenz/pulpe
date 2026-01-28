@@ -245,5 +245,5 @@ struct TransactionRow: View {
     .listStyle(.insetGrouped)
     .listSectionSpacing(16)
     .scrollContentBackground(.hidden)
-    .background(Color(.systemGroupedBackground))
+    .pulpeBackground()
 }

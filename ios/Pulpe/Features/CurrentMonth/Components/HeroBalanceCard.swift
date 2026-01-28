@@ -176,13 +176,11 @@ private struct HeroCardStyleModifier: ViewModifier {
             content
                 .background(Color.surfaceCard)
                 .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
-                .shadow(DesignTokens.Shadow.elevated)
         }
         #else
         content
             .background(Color.surfaceCard)
             .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
-            .shadow(DesignTokens.Shadow.elevated)
         #endif
     }
 }
@@ -248,5 +246,5 @@ extension View {
         }
         .padding()
     }
-    .background(Color(.systemGroupedBackground))
+    .pulpeBackground()
 }

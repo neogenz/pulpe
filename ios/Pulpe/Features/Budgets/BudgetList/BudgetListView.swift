@@ -110,6 +110,7 @@ struct BudgetListView: View {
             .padding(.bottom, 32)
         }
         .scrollIndicators(.hidden)
+        .pulpeBackground()
     }
 }
 

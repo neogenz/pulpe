@@ -81,6 +81,20 @@ extension Color {
         Color(light: Color(hex: 0x88FF44), dark: Color(hex: 0x2B883B))
     ]
 
+    // MARK: - App Background Gradient
+
+    /// Brand-tinted background gradient (top to bottom)
+    /// Light: neutral → visible mint tint
+    /// Dark: dark gray → visible deep green tint
+    static let appBackgroundGradient = LinearGradient(
+        colors: [
+            Color(light: Color(hex: 0xF8F9F8), dark: Color(hex: 0x1A1A1A)),
+            Color(light: Color(hex: 0xEBF5ED), dark: Color(hex: 0x1A211C))
+        ],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+
     // MARK: - Onboarding & Tutorial Colors
 
     /// High-contrast text colors for onboarding

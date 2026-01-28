@@ -169,5 +169,5 @@ struct TrendsEmptyState: View {
         TrendsEmptyState()
     }
     .padding()
-    .background(Color(.systemGroupedBackground))
+    .pulpeBackground()
 }

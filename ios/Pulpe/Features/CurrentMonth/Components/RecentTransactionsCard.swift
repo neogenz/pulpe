@@ -124,5 +124,5 @@ private struct RecentTransactionCardRow: View {
         )
     }
     .padding()
-    .background(Color(.systemGroupedBackground))
+    .pulpeBackground()
 }

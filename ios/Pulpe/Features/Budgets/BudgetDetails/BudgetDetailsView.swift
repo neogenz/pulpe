@@ -318,7 +318,7 @@ struct BudgetDetailsView: View {
         .listStyle(.insetGrouped)
         .listSectionSpacing(16)
         .scrollContentBackground(.hidden)
-        .background(Color.surfacePrimary)
+        .pulpeBackground()
         .applyScrollEdgeEffect()
         .refreshable {
             await viewModel.loadDetails()
