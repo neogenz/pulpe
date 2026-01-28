@@ -18,7 +18,11 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
   app.enableCors({
     origin: createOriginValidator(configService, nodeEnv),
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'ngrok-skip-browser-warning',
+    ],
     credentials: true,
   });
 }
@@ -68,9 +72,12 @@ function isAllowedOriginProduction(
 }
 
 function isAllowedOriginDevelopment(origin: string): boolean {
-  // En développement : localhost + toutes les URLs Vercel
+  // En développement : localhost, LAN IPs, ngrok tunnels, Vercel previews
   return (
-    /^http:\/\/localhost:\d+$/.test(origin) || origin.includes('.vercel.app')
+    /^http:\/\/localhost:\d+$/.test(origin) ||
+    /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:\d+$/.test(origin) ||
+    /^https?:\/\/[\w-]+\.ngrok(-free)?\.(app|io)$/.test(origin) ||
+    origin.includes('.vercel.app')
   );
 }
 

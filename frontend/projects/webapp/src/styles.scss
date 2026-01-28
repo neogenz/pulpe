@@ -27,19 +27,25 @@ html {
   );
 }
 
-html,
-body {
-  height: 100%;
-  // Prevent body scroll - mat-sidenav-container manages all scrolling internally
-  // See: main-layout.ts where mat-sidenav-container is h-[100dvh] and main content is overflow-y-auto
-  overflow: hidden;
-  // Prevent horizontal scrolling on mobile - critical for preventing layout issues
-  overflow-x: hidden;
-  max-width: 100vw;
+html {
+  width: 100%;
+  // Desktop: prevent document scroll (content scrolls inside mat-sidenav-content)
+  @media (min-width: 600px) {
+    overflow: hidden;
+  }
+  // Mobile: no overflow set → body's overflow propagates to viewport (per CSS spec)
 }
 
 body {
   margin: 0;
+  overflow-x: hidden;
+  max-width: 100vw;
+  // Mobile: body-level scroll enables iOS Safari toolbar translucency
+  // and Android Chrome/Samsung/Firefox navbar auto-hide
+  @media (min-width: 600px) {
+    height: 100%;
+    overflow-y: hidden;
+  }
   font-family:
     var(--mat-sys-typescale-body-medium-font-family-name), Poppins,
     "Helvetica Neue", sans-serif;
@@ -95,9 +101,11 @@ body {
 .side-sheet-panel {
   position: fixed !important;
   right: 0 !important;
-  top: 0 !important;
+  top: env(safe-area-inset-top) !important;
   margin: 0 !important;
-  max-height: 100vh !important;
+  max-height: calc(
+    100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+  ) !important;
   border-radius: 0 !important;
 
   .mat-mdc-dialog-container,

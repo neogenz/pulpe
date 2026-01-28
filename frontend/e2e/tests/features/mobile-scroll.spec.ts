@@ -68,7 +68,7 @@ test.describe('Mobile scroll behavior', () => {
   test.describe('Mobile View', () => {
     test.use({ viewport: { width: 375, height: 667 }, isMobile: true });
 
-    test('body should prevent independent scrolling (managed by mat-sidenav-container)', async ({
+    test('body should have proper overflow settings for browser navbar auto-hide', async ({
       authenticatedPage: page,
     }) => {
       await page.waitForLoadState('networkidle');
@@ -82,12 +82,12 @@ test.describe('Mobile scroll behavior', () => {
       });
 
       expect(bodyOverflowX).toBe('hidden');
-      // Body overflow-y should be 'hidden' to prevent independent scrolling.
-      // mat-sidenav-container manages all scroll internally via the main content area.
-      expect(bodyOverflowY).toBe('hidden');
+      // Body-level scroll enables iOS Safari toolbar translucency
+      // and Android Chrome/Samsung/Firefox navbar auto-hide
+      expect(bodyOverflowY).toBe('auto');
     });
 
-    test('main content should be the only scrollable container', async ({
+    test('main content should not create its own scroll container on mobile', async ({
       authenticatedPage: page,
     }) => {
       const mainOverflow = await page.evaluate(() => {
@@ -101,10 +101,11 @@ test.describe('Mobile scroll behavior', () => {
         return window.getComputedStyle(main).overflowY;
       });
 
-      expect(mainOverflow).toBe('auto');
+      // Mobile: body scrolls, not main container
+      expect(mainOverflow).toBe('visible');
     });
 
-    test('navbar should stay fixed when scrolling content', async ({
+    test('navbar should stay sticky when scrolling body', async ({
       authenticatedPage: page,
     }) => {
       const toolbar = page.locator('mat-toolbar').first();
@@ -113,20 +114,48 @@ test.describe('Mobile scroll behavior', () => {
       const initialPosition = await toolbar.boundingBox();
       expect(initialPosition).not.toBeNull();
 
+      // Ensure body is tall enough to scroll
       await page.evaluate(() => {
-        const main = document.querySelector('[data-testid="page-content"]');
-        if (!main) {
-          throw new Error(
-            'Cannot scroll: [data-testid="page-content"] not found in DOM.',
-          );
-        }
-        main.scrollTop = 100;
+        const spacer = document.createElement('div');
+        spacer.style.height = '200vh';
+        document.body.appendChild(spacer);
       });
+
+      // Body-level scroll (not container scroll)
+      await page.evaluate(() => window.scrollTo(0, 100));
+      await page.waitForFunction(() => window.scrollY >= 100);
 
       const afterScrollPosition = await toolbar.boundingBox();
       expect(afterScrollPosition).not.toBeNull();
 
       expect(afterScrollPosition!.y).toBe(initialPosition!.y);
+    });
+
+    test('menu should open correctly after scrolling', async ({
+      authenticatedPage: page,
+    }) => {
+      // Ensure body is tall enough to scroll
+      await page.evaluate(() => {
+        const spacer = document.createElement('div');
+        spacer.style.height = '200vh';
+        document.body.appendChild(spacer);
+      });
+
+      // Body-level scroll (not container scroll)
+      await page.evaluate(() => window.scrollTo(0, 300));
+      await page.waitForFunction(() => window.scrollY >= 300);
+
+      const menuTrigger = page.locator('[data-testid="user-menu-trigger"]');
+      await expect(menuTrigger).toBeVisible({ timeout: 5000 });
+      await menuTrigger.click();
+
+      const menuPanel = page.locator('.mat-mdc-menu-panel');
+      await expect(menuPanel).toBeVisible({ timeout: 5000 });
+
+      const menuBox = await menuPanel.boundingBox();
+      expect(menuBox).not.toBeNull();
+      expect(menuBox!.width).toBeGreaterThan(0);
+      expect(menuBox!.height).toBeGreaterThan(0);
     });
   });
 
@@ -150,16 +179,22 @@ test.describe('Mobile scroll behavior', () => {
       expect(mainOverflow).toBe('auto');
     });
 
-    test('body should prevent independent scrolling on desktop', async ({
+    test('body should have proper overflow settings on desktop', async ({
       authenticatedPage: page,
     }) => {
       await page.waitForLoadState('networkidle');
 
-      const bodyOverflow = await page.evaluate(() => {
-        return window.getComputedStyle(document.body).overflow;
+      const { bodyOverflowX, bodyOverflowY } = await page.evaluate(() => {
+        const bodyStyle = window.getComputedStyle(document.body);
+        return {
+          bodyOverflowX: bodyStyle.overflowX,
+          bodyOverflowY: bodyStyle.overflowY,
+        };
       });
 
-      expect(bodyOverflow).toBe('hidden');
+      expect(bodyOverflowX).toBe('hidden');
+      // Desktop: overflow-y hidden (navbar auto-hide is mobile-only)
+      expect(bodyOverflowY).toBe('hidden');
     });
   });
 });

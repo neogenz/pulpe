@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MaintenanceApi } from './maintenance-api';
 import { ApplicationConfiguration } from '../config/application-configuration';
+import { NGROK_SKIP_HEADER } from '../config/ngrok.constants';
 
 describe('MaintenanceApi', () => {
   let service: MaintenanceApi;
@@ -45,6 +46,7 @@ describe('MaintenanceApi', () => {
       expect(result).toEqual(mockStatus);
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:3000/api/v1/maintenance/status',
+        { headers: NGROK_SKIP_HEADER },
       );
     });
 

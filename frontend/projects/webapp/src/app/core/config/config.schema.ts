@@ -58,15 +58,20 @@ export const EnvSchema = z.object({
     .url({ error: 'Supabase URL must be a valid URL' })
     .refine(
       (url) => {
-        // Allow localhost for development
-        if (url.includes('localhost') || url.includes('127.0.0.1')) {
+        // Allow localhost and LAN IPs for development
+        if (
+          url.includes('localhost') ||
+          url.includes('127.0.0.1') ||
+          /^https?:\/\/192\.168\.\d+\.\d+/.test(url)
+        ) {
           return true;
         }
         // For production, ensure it's a Supabase URL
         return url.includes('supabase.co') || url.includes('supabase.in');
       },
       {
-        error: 'URL must be a valid Supabase URL or localhost for development',
+        error:
+          'URL must be a valid Supabase URL or localhost/LAN IP for development',
       },
     ),
   PUBLIC_SUPABASE_ANON_KEY: z
@@ -244,15 +249,20 @@ export const ConfigSchema = z.object({
   supabase: z.object({
     url: z.url({ error: 'Supabase URL must be a valid URL' }).refine(
       (url) => {
-        // Allow localhost for development
-        if (url.includes('localhost') || url.includes('127.0.0.1')) {
+        // Allow localhost and LAN IPs for development
+        if (
+          url.includes('localhost') ||
+          url.includes('127.0.0.1') ||
+          /^https?:\/\/192\.168\.\d+\.\d+/.test(url)
+        ) {
           return true;
         }
         // For production, ensure it's a Supabase URL
         return url.includes('supabase.co') || url.includes('supabase.in');
       },
       {
-        error: 'URL must be a valid Supabase URL or localhost for development',
+        error:
+          'URL must be a valid Supabase URL or localhost/LAN IP for development',
       },
     ),
     anonKey: z

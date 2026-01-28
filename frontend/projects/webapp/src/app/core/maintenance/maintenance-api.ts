@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { ApplicationConfiguration } from '../config/application-configuration';
+import { NGROK_SKIP_HEADER } from '../config/ngrok.constants';
 
 export interface MaintenanceStatus {
   maintenanceMode: boolean;
@@ -19,6 +20,7 @@ export class MaintenanceApi {
   async checkStatus(): Promise<MaintenanceStatus> {
     const response = await fetch(
       `${this.#config.backendApiUrl()}/maintenance/status`,
+      { headers: NGROK_SKIP_HEADER },
     );
 
     if (!response.ok) {
