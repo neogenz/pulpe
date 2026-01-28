@@ -50,11 +50,11 @@ struct CreateTemplateView: View {
                 } footer: {
                     if !lines.isEmpty {
                         let totals = calculateTotals()
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                             Text("Revenus: \(totals.income.asCHF)")
                             Text("Dépenses: \(totals.expenses.asCHF)")
                             Text("Solde: \(totals.balance.asCHF)")
-                                .foregroundStyle(totals.balance >= 0 ? .green : .red)
+                                .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
                         }
                     }
                 }
@@ -145,7 +145,7 @@ struct TemplateLineInputRow: View {
 
     var body: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(line.name)
                     .font(.subheadline)
 
@@ -162,7 +162,7 @@ struct TemplateLineInputRow: View {
 
             Button(role: .destructive, action: onDelete) {
                 Image(systemName: "trash")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Color.errorPrimary)
             }
         }
     }
