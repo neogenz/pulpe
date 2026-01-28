@@ -162,6 +162,7 @@ struct TransactionRow: View {
                     .font(.system(.callout, design: .rounded, weight: .semibold))
                     .foregroundStyle(transaction.isChecked ? .secondary : transaction.kind.color)
             }
+            .padding(.vertical, 8)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
