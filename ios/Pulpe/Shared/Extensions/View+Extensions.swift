@@ -120,3 +120,42 @@ extension View {
         self
     }
 }
+
+// MARK: - Glass Effect Modifiers (iOS 26+)
+
+extension View {
+    /// Glass effect for hero/showcase cards with fallback
+    @ViewBuilder
+    func pulpeHeroGlass() -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            self.glassEffect(.regular, in: .rect(cornerRadius: DesignTokens.CornerRadius.xl))
+        } else {
+            heroCardStyleFallback()
+        }
+        #else
+        heroCardStyleFallback()
+        #endif
+    }
+
+    /// Glass effect for floating elements (toasts, overlays)
+    @ViewBuilder
+    func pulpeFloatingGlass(cornerRadius: CGFloat = DesignTokens.CornerRadius.md) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            self.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+        } else {
+            self.background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
+        }
+        #else
+        self.background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
+        #endif
+    }
+
+    private func heroCardStyleFallback() -> some View {
+        self
+            .background(Color.surfaceCard)
+            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
+            .shadow(DesignTokens.Shadow.elevated)
+    }
+}

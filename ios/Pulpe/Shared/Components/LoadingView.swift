@@ -60,7 +60,7 @@ struct LoadingOverlay: View {
                     }
                 }
                 .padding(DesignTokens.Spacing.xxl)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
+                .pulpeFloatingGlass(cornerRadius: DesignTokens.CornerRadius.lg)
             }
         }
     }

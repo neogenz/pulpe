@@ -277,7 +277,7 @@ struct BudgetMonthCard: View {
                 // Month name
                 Text(monthName)
                     .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                    .foregroundColor(budget.isCurrentMonth ? .pulpePrimary : .primary)
+                    .foregroundStyle(budget.isCurrentMonth ? Color.pulpePrimary : Color.primary)
 
                 // Remaining amount
                 if let remaining = budget.remaining {
