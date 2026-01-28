@@ -52,6 +52,8 @@ struct BudgetSection: View {
     var body: some View {
         Section {
             TipView(ProductTips.gestures)
+                .frame(maxWidth: .infinity)
+                .fixedSize(horizontal: false, vertical: true)
                 .listRowSeparator(.hidden)
 
             ForEach(Array(displayedItems.enumerated()), id: \.element.id) { index, item in
