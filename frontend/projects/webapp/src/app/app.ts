@@ -33,10 +33,8 @@ export class App {
       take(1),
     );
 
-    race(routerReady$, timer(SPLASH_TIMEOUT_MS))
-      .pipe(take(1))
-      .subscribe(() => {
-        removeSplash();
-      });
+    race(routerReady$, timer(SPLASH_TIMEOUT_MS)).subscribe(() => {
+      removeSplash();
+    });
   }
 }
