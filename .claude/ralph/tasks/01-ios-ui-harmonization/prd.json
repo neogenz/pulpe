@@ -82,8 +82,8 @@
         "Project compiles"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "File: Features/Budgets/BudgetDetails/AddBudgetLineSheet.swift"
+      "passes": true,
+      "notes": "Added PulpeTypography.labelLarge to all 3 section headers (Description, Montant, Type). Added PulpeTypography.bodyLarge to TextField. Added .listRowBackground(Color.surfaceCard) to all 3 sections. No hardcoded colors, no .stroke(), no .border() were present."
     },
     {
       "id": "US-007",
@@ -96,8 +96,8 @@
         "Project compiles"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "File: Features/Budgets/BudgetDetails/AddAllocatedTransactionSheet.swift"
+      "passes": true,
+      "notes": "Added PulpeTypography.labelLarge to all 3 section headers (Description, Montant, Date). Added PulpeTypography.bodyLarge to TextField. Added .listRowBackground(Color.surfaceCard) to all 3 sections. No hardcoded colors were present."
     },
     {
       "id": "US-008",
@@ -110,8 +110,8 @@
         "Project compiles"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": "File: Shared/Components/EditTransactionSheet.swift"
+      "passes": true,
+      "notes": "Added PulpeTypography.labelLarge to all 4 section headers. Added PulpeTypography.bodyLarge to TextField. Added .listRowBackground(Color.surfaceCard) to all 4 sections. No hardcoded colors were present."
     },
     {
       "id": "US-009",
@@ -124,8 +124,8 @@
         "Project compiles"
       ],
       "priority": 9,
-      "passes": false,
-      "notes": "File: Shared/Components/EditBudgetLineSheet.swift"
+      "passes": true,
+      "notes": "Added PulpeTypography.labelLarge to all 3 section headers. Added PulpeTypography.bodyLarge to TextField. Added .listRowBackground(Color.surfaceCard) to all 3 sections."
     },
     {
       "id": "US-010",
@@ -138,8 +138,8 @@
         "Project compiles"
       ],
       "priority": 10,
-      "passes": false,
-      "notes": "File: Features/Templates/TemplateDetails/EditTemplateLineSheet.swift"
+      "passes": true,
+      "notes": "Added PulpeTypography.labelLarge to all 3 section headers. Added PulpeTypography.bodyLarge to TextField. Added .listRowBackground(Color.surfaceCard) to all 3 sections."
     },
     {
       "id": "US-011",
@@ -152,8 +152,8 @@
         "Project compiles"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": "File: Features/Budgets/BudgetList/CreateBudgetView.swift. Has hardcoded padding, .stroke, .white, .red."
+      "passes": true,
+      "notes": "Replaced .red with Color.financialOverBudget (2 instances in totalsRow). Replaced all hardcoded spacing (24→xxl, 20→xl, 16→lg, 12→md, 4→xs) with DesignTokens.Spacing tokens. Shimmer .white left as-is (decorative gradient). Card .stroke left as-is (selection indicator, not input)."
     },
     {
       "id": "US-012",
@@ -166,8 +166,8 @@
         "Project compiles"
       ],
       "priority": 12,
-      "passes": false,
-      "notes": "File: Features/Templates/TemplateList/CreateTemplateView.swift. Lines 57, 165 use .red."
+      "passes": true,
+      "notes": "Replaced .green/.red balance colors with Color.financialSavings/Color.financialOverBudget. Replaced .red trash icon with Color.errorPrimary. Replaced hardcoded spacing: 4 with DesignTokens.Spacing.xs (2 instances). No .stroke()/.border() or .white/.black were present."
     },
     {
       "id": "US-013",
@@ -183,8 +183,8 @@
         "Project compiles"
       ],
       "priority": 13,
-      "passes": false,
-      "notes": "LoginView.swift has: .red at line 58, .white at lines 55/77/127/189/206, Font.system() at lines 29/34/100/114, .stroke at lines 121/183, hardcoded padding at lines 56/232. Major redesign needed."
+      "passes": true,
+      "notes": "Replaced Color.red error banner with Color.errorBackground bg + Color.errorPrimary icon + Color.textPrimary text (warm reassuring tone). Replaced all .white with Color.textOnPrimary. Replaced all Font.system() with PulpeTypography tokens (added brandTitle 36pt). Removed .stroke() overlays on email/password inputs (kept shadow/scale focus effects). Replaced hardcoded spacing with DesignTokens.Spacing tokens. Layout-specific values (56, 44, 32, 40, 54) kept as-is."
     },
     {
       "id": "US-014",
@@ -196,8 +196,8 @@
         "Project compiles"
       ],
       "priority": 14,
-      "passes": false,
-      "notes": "File: Features/Onboarding/Steps/RegistrationStep.swift. Line 117: .stroke(passwordMismatch ? Color.red : Color.inputBorder), Line 123: .foregroundStyle(.red)"
+      "passes": true,
+      "notes": "Removed all 3 .overlay(.stroke()) on inputs — replaced with filled background (Color.inputBackgroundSoft). Replaced Color.red with Color.errorPrimary for mismatch text. Password confirmation uses Color.errorBackground when mismatch. Replaced .background(.background) with Color.inputBackgroundSoft on all inputs. Replaced .padding() with DesignTokens.Spacing.lg. Replaced spacing: 20 with .xl, spacing: 4 with .xs. Replaced .font(.subheadline) with PulpeTypography.inputLabel. Checkbox spacing: 12 replaced with DesignTokens.Spacing.md."
     },
     {
       "id": "US-015",
@@ -212,8 +212,8 @@
         "Project compiles"
       ],
       "priority": 15,
-      "passes": false,
-      "notes": "7+ files in Features/Onboarding/Steps/. PersonalInfoStep has .stroke at line 31. WelcomeStep has .white. OnboardingState has .white."
+      "passes": true,
+      "notes": "PersonalInfoStep: removed .overlay(.stroke()), replaced .background(.background) with Color.inputBackgroundSoft, replaced .padding() with DesignTokens.Spacing.lg, replaced .font(.subheadline) with PulpeTypography.inputLabel, replaced spacing: 8 with DesignTokens.Spacing.sm. WelcomeStep: replaced .foregroundStyle(.white) with Color.textOnPrimary. Other steps (Income, Housing, Health, Phone, Transport, Leasing) were already clean — they delegate to CurrencyField (harmonized in US-004). OnboardingFlow and OnboardingState had no hardcoded colors. stepHealth color kept as-is (intentional category distinction)."
     },
     {
       "id": "US-016",

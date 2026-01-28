@@ -100,3 +100,86 @@ Feature: 01-ios-ui-harmonization
   - AddTransactionSheet was already mostly DA-compliant — the prior US-004 CurrencyField harmonization covered the main input
 ---
 
+## 2026-01-28 - US-006: Harmonize AddBudgetLineSheet — Form natif, tokens DA
+- Added `.listRowBackground(Color.surfaceCard)` to all 3 Form sections (Description, Montant, Type)
+- Added `PulpeTypography.labelLarge` to all section header Text views
+- Added `PulpeTypography.bodyLarge` to the TextField
+- Files changed: `AddBudgetLineSheet.swift`
+- **Learnings:**
+  - AddBudgetLineSheet was already very clean — no hardcoded colors, no .stroke(), no .border()
+  - Only missing DA tokens were typography and listRowBackground, matching the US-005 pattern exactly
+  - These form sheet harmonizations are straightforward when no hardcoded values exist
+---
+
+## 2026-01-28 - US-007/008/009/010: Harmonize remaining form sheets
+- US-007 AddAllocatedTransactionSheet: +labelLarge headers, +bodyLarge TextField, +listRowBackground (3 sections)
+- US-008 EditTransactionSheet: +labelLarge headers, +bodyLarge TextField, +listRowBackground (4 sections: Description, Montant, Type, Date)
+- US-009 EditBudgetLineSheet: +labelLarge headers, +bodyLarge TextField, +listRowBackground (3 sections)
+- US-010 EditTemplateLineSheet: +labelLarge headers, +bodyLarge TextField, +listRowBackground (3 sections)
+- Files changed: `AddAllocatedTransactionSheet.swift`, `EditTransactionSheet.swift`, `EditBudgetLineSheet.swift`, `EditTemplateLineSheet.swift`
+- **Learnings:**
+  - All 4 form sheets followed the exact same pattern — no hardcoded colors, just missing typography and listRowBackground
+  - The form sheet harmonization is now a repeatable pattern: labelLarge on headers, bodyLarge on TextFields, surfaceCard on listRowBackground
+---
+
+## 2026-01-28 - US-012: Harmonize CreateTemplateView — remove stroke/white/red, use tokens
+- Replaced `.green`/`.red` balance color ternary with `Color.financialSavings`/`Color.financialOverBudget`
+- Replaced `.red` on trash icon with `Color.errorPrimary`
+- Replaced hardcoded `spacing: 4` with `DesignTokens.Spacing.xs` (2 instances: footer VStack, TemplateLineInputRow VStack)
+- No .stroke(), .border(), .white, .black were present — file was mostly clean
+- Files changed: `CreateTemplateView.swift`
+- **Learnings:**
+  - CreateTemplateView had very few violations (only .red/.green and hardcoded spacing)
+  - The `.red` on a destructive trash button should use `Color.errorPrimary` (warm orange), not `Color.financialOverBudget` (amber) — errorPrimary is for UI error/destructive actions
+  - Pattern: balance ternary `>= 0 ? .green : .red` → `>= 0 ? Color.financialSavings : Color.financialOverBudget`
+---
+
+## 2026-01-28 - US-013: Harmonize LoginView — replace red, white/black, Font.system(), hardcoded padding
+- Replaced error banner: `Color.red.opacity(0.9)` background + `.white` text → `Color.errorBackground` background + `Color.errorPrimary` icon + `Color.textPrimary` text (warm, reassuring per DA Soulagement)
+- Replaced all `.white` on buttons/ProgressView → `Color.textOnPrimary`
+- Replaced all `Font.system()` (10 instances) with PulpeTypography tokens: brandTitle (36pt, new), onboardingSubtitle, inputLabel, bodyLarge, stepSubtitle, labelLarge, inputLabel
+- Removed `.stroke()` overlays on email and password inputs (focus still indicated by shadow glow + scale effect)
+- Replaced hardcoded spacing: 20→xl, 8→sm, 14→lg, 12→md, 16→lg, 4→xs, 18→lg, 24→xxl
+- Layout-specific values (56, 44, 32, 40, 54 height, 14 cornerRadius, 24 cornerRadius) kept as-is — no matching tokens
+- Added `PulpeTypography.brandTitle` = Font.system(size: 36, weight: .bold, design: .rounded)
+- Files changed: `LoginView.swift`, `Typography.swift`
+- **Learnings:**
+  - Error banners: using `errorBackground` bg + `errorPrimary` icon is warmer than a solid errorPrimary background with white text
+  - `.black.opacity()` in shadows is acceptable — DesignTokens.Shadow uses the same pattern internally
+  - `.secondary` is a SwiftUI semantic color (adapts to light/dark), not a hardcoded color — acceptable to keep
+  - Layout-specific padding (56pt top, 44pt bottom) should not be forced into spacing tokens — these are screen-level layout values
+  - Focus indication via shadow glow (Color.inputFocusGlow) + subtle scale effect is sufficient without stroke overlay
+---
+
+## 2026-01-28 - US-014: Harmonize RegistrationStep — replace red/stroke, use tokens
+- Removed all 3 `.overlay(RoundedRectangle...stroke())` on email, password, and confirmation inputs — replaced with filled background
+- Replaced `.background(.background)` → `Color.inputBackgroundSoft` on all 3 inputs
+- Replaced `.padding()` → `.padding(DesignTokens.Spacing.lg)` on all 3 inputs
+- Password confirmation: mismatch state uses `Color.errorBackground` background instead of red stroke
+- Replaced `.foregroundStyle(.red)` → `.foregroundStyle(Color.errorPrimary)` for mismatch error text
+- Replaced `.font(.subheadline)` → `PulpeTypography.inputLabel` on all 3 labels
+- Replaced `spacing: 20` → `DesignTokens.Spacing.xl`, `spacing: 4` → `DesignTokens.Spacing.xs`
+- Replaced CheckboxToggleStyle `spacing: 12` → `DesignTokens.Spacing.md`
+- Files changed: `RegistrationStep.swift`
+- **Learnings:**
+  - Error indication on inputs without stroke: use `Color.errorBackground` as background color when validation fails — visually distinct but not aggressive
+  - `.secondary` foregroundStyle is a SwiftUI semantic — acceptable to keep (adapts to light/dark)
+  - `.background(.background)` is SwiftUI semantic but DA requires explicit `inputBackgroundSoft` for consistency across all form inputs
+  - RegistrationStep had more violations than PRD notes suggested — all 3 inputs had stroke overlays, not just the confirmation field
+---
+
+## 2026-01-28 - US-015: Harmonize remaining Onboarding steps — tokens DA, airy layout
+- PersonalInfoStep: removed `.overlay(.stroke())`, replaced `.background(.background)` → `Color.inputBackgroundSoft`, `.padding()` → `DesignTokens.Spacing.lg`, `.font(.subheadline)` → `PulpeTypography.inputLabel`, `spacing: 8` → `DesignTokens.Spacing.sm`
+- WelcomeStep: replaced `.foregroundStyle(.white)` → `Color.textOnPrimary`
+- Other steps (Income, Housing, HealthInsurance, PhonePlan, Transport, LeasingCredit): already clean — delegate to CurrencyField (harmonized in US-004)
+- OnboardingFlow: no hardcoded colors — uses Color.onboardingBackground, PulpeAnimations
+- OnboardingState: pure logic, no colors at all
+- Files changed: `PersonalInfoStep.swift`, `WelcomeStep.swift`
+- **Learnings:**
+  - PRD notes said "OnboardingState has .white" but it's a pure state/logic class with no UI code — no .white found
+  - Most onboarding steps are thin wrappers around CurrencyField, which was already harmonized in US-004
+  - PersonalInfoStep is the only step with its own TextField (not CurrencyField), so it's the only one that needed stroke removal
+  - `.secondary` foregroundStyle on labels is a SwiftUI semantic (adapts to light/dark) — acceptable to keep
+  - stepHealth color (red) kept as-is per acceptance criteria — intentional for health category visual distinction
+---
+
