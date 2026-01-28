@@ -31,7 +31,7 @@ struct CurrencyField: View {
         VStack(alignment: .leading, spacing: 4) {
             if let label {
                 Text(label)
-                    .font(.subheadline)
+                    .font(PulpeTypography.inputLabel)
                     .foregroundStyle(.secondary)
             }
 
@@ -50,13 +50,9 @@ struct CurrencyField: View {
                         updateText(from: newValue)
                     }
             }
-            .padding()
-            .background(.background)
+            .padding(DesignTokens.Spacing.lg)
+            .background(Color.inputBackgroundSoft)
             .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
-            .overlay(
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                    .stroke(effectiveFocus ? Color.accentColor : Color.inputBorder, lineWidth: 1)
-            )
         }
         .onAppear {
             updateText(from: value)
