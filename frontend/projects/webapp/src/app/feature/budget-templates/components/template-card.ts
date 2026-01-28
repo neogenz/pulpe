@@ -8,7 +8,7 @@ import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatMenuModule } from '@angular/material/menu';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetTemplate } from 'pulpe-shared';
 
 @Component({
@@ -18,7 +18,7 @@ import { type BudgetTemplate } from 'pulpe-shared';
     MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatMenuModule,
+    MatTooltipModule,
   ],
   template: `
     <mat-card
@@ -42,28 +42,13 @@ import { type BudgetTemplate } from 'pulpe-shared';
         <div class="flex-1"></div>
         <button
           matIconButton
-          [matMenuTriggerFor]="menu"
-          aria-label="Options du modèle"
-          data-testid="template-menu-trigger"
-          (click)="$event.stopPropagation()"
+          aria-label="Supprimer le modèle"
+          matTooltip="Supprimer"
+          data-testid="delete-template-button"
+          (click)="delete.emit(template())"
         >
-          <mat-icon>more_vert</mat-icon>
+          <mat-icon class="text-error">delete</mat-icon>
         </button>
-        <mat-menu #menu="matMenu">
-          <button mat-menu-item [routerLink]="['details', template().id]">
-            <mat-icon>visibility</mat-icon>
-            <span>Voir les détails</span>
-          </button>
-          <button
-            mat-menu-item
-            (click)="delete.emit(template())"
-            class="text-error"
-            data-testid="delete-template-menu-item"
-          >
-            <mat-icon class="text-error">delete</mat-icon>
-            <span>Supprimer</span>
-          </button>
-        </mat-menu>
       </mat-card-header>
       <mat-card-content>
         @if (template().description) {
