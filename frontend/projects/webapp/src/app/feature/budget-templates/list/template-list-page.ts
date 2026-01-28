@@ -64,6 +64,16 @@ import {
         </div>
         <div class="flex gap-2 items-center flex-shrink-0 ml-auto">
           <button
+            matIconButton
+            (click)="store.refreshData()"
+            [disabled]="store.budgetTemplates.isLoading()"
+            matTooltip="Actualiser"
+            aria-label="Actualiser"
+            data-testid="refresh-button"
+          >
+            <mat-icon>refresh</mat-icon>
+          </button>
+          <button
             matButton="filled"
             class="shrink-0"
             routerLink="create"
@@ -79,15 +89,6 @@ import {
             <mat-icon class="md:inline hidden">add_circle</mat-icon>
             <span class="md:hidden">Ajouter</span>
             <span class="hidden md:inline">Ajouter un modèle</span>
-          </button>
-          <button
-            matIconButton
-            (click)="store.refreshData()"
-            [disabled]="store.budgetTemplates.isLoading()"
-            aria-label="Actualiser"
-            data-testid="refresh-button"
-          >
-            <mat-icon>refresh</mat-icon>
           </button>
         </div>
       </header>

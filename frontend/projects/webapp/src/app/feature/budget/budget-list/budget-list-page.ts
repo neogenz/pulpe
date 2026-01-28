@@ -57,11 +57,17 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
   ],
   template: `
     <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0 min-w-0">
-      <header class="flex flex-wrap justify-between items-center gap-2">
-        <h1 class="text-display-small truncate min-w-0 flex-shrink">
+      <header
+        class="flex flex-wrap justify-between items-center gap-2"
+        data-testid="page-header"
+      >
+        <h1
+          class="text-headline-medium md:text-display-small truncate min-w-0 flex-shrink"
+          data-testid="page-title"
+        >
           {{ titleDisplay.currentTitle() }}
         </h1>
-        <div class="flex gap-2 flex-shrink-0 ml-auto">
+        <div class="flex gap-2 items-center flex-shrink-0 ml-auto">
           <button
             matIconButton
             (click)="onExportBudgets()"
