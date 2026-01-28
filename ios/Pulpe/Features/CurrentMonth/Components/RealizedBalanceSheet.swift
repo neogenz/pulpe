@@ -52,7 +52,7 @@ struct RealizedBalanceSheet: View {
             // Amount
             Text(realizedMetrics.realizedBalance.asCHF)
                 .font(.system(size: 40, weight: .bold, design: .rounded))
-                .foregroundColor(isPositiveBalance ? .primary : Color.financialOverBudget)
+                .foregroundStyle(isPositiveBalance ? .primary : Color.financialOverBudget)
 
             // Status badge
             HStack(spacing: 6) {

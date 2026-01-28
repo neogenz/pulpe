@@ -169,12 +169,21 @@ struct HeroBalanceCard: View {
 
 private struct HeroCardStyleModifier: ViewModifier {
     func body(content: Content) -> some View {
-        // glassEffect is a future iOS API - using fallback styling
-        // When the API becomes available, add iOS 26+ branch with glassEffect
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            content.glassEffect(.regular, in: .rect(cornerRadius: DesignTokens.CornerRadius.xl))
+        } else {
+            content
+                .background(Color.surfaceCard)
+                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
+                .shadow(DesignTokens.Shadow.elevated)
+        }
+        #else
         content
             .background(Color.surfaceCard)
             .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
             .shadow(DesignTokens.Shadow.elevated)
+        #endif
     }
 }
 

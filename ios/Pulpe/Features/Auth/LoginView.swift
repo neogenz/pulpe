@@ -105,7 +105,7 @@ struct LoginView: View {
                                 "",
                                 text: $viewModel.email,
                                 prompt: Text("exemple@email.com")
-                                    .foregroundColor(Color.textTertiaryOnboarding)
+                                    .foregroundStyle(Color.textTertiaryOnboarding)
                             )
                             .textContentType(.emailAddress)
                             .keyboardType(.emailAddress)
@@ -140,14 +140,14 @@ struct LoginView: View {
                                             "",
                                             text: $viewModel.password,
                                             prompt: Text("Votre mot de passe")
-                                                .foregroundColor(Color.textTertiaryOnboarding)
+                                                .foregroundStyle(Color.textTertiaryOnboarding)
                                         )
                                     } else {
                                         SecureField(
                                             "",
                                             text: $viewModel.password,
                                             prompt: Text("Votre mot de passe")
-                                                .foregroundColor(Color.textTertiaryOnboarding)
+                                                .foregroundStyle(Color.textTertiaryOnboarding)
                                         )
                                     }
                                 }
