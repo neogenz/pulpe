@@ -284,8 +284,8 @@
         "Project compiles"
       ],
       "priority": 20,
-      "passes": false,
-      "notes": "These components show budget alerts and balance info. Replace aggressive red with warm amber tones."
+      "passes": true,
+      "notes": "AlertsSection: replaced .orange→Color.financialOverBudget (header icon), replaced .red/.orange→Color.financialOverBudget (AlertRow color — both states use warm amber since all alerts are ≥80%), replaced spacing 12→md, 4→xs, 8→sm. InlineAlertsView: replaced .orange→Color.financialOverBudget (icon), replaced .red/.orange→Color.financialOverBudget (percentage text), replaced Color(.secondarySystemGroupedBackground)→Color.surfaceCard, replaced spacing 4→xs, padding 16→lg, 12→md. RealizedBalanceSheet: replaced .red→Color.financialOverBudget (negative balance amount, badge foreground/background), replaced .green→Color.financialSavings (positive badge foreground/background), replaced Color(.systemGroupedBackground)→Color.surfacePrimary, replaced Color(.secondarySystemGroupedBackground)→Color.surfaceCard (2 instances), replaced cornerRadius 16→CornerRadius.lg (2), 12→CornerRadius.md (1), replaced spacing 24→xxl, 16→lg, 20→xl, 12→md, 4→xs, 8→sm. Status badge uses warm tone: 'Solde négatif — on y remédie ?' (reassuring per DA Soulagement). .yellow on lightbulb tip kept as-is — decorative."
     },
     {
       "id": "US-021",
