@@ -147,7 +147,7 @@ private struct GlassEffectModifier: ViewModifier {
                     in: .rect(cornerRadius: cornerRadius)
                 )
             } else {
-                content.glassEffect(.regular.tint(Color.white.opacity(0.75)), in: .rect(cornerRadius: cornerRadius))
+                content.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
             }
         } else {
             content.background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
