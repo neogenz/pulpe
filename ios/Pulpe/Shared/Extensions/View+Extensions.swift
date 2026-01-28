@@ -134,34 +134,44 @@ extension View {
 
 // MARK: - Glass Effect Modifiers (iOS 26+)
 
-extension View {
-    /// Shared glass effect with iOS 26+ Liquid Glass or thinMaterial fallback
-    @ViewBuilder
-    private func applyGlassEffect(cornerRadius: CGFloat) -> some View {
+private struct GlassEffectModifier: ViewModifier {
+    let cornerRadius: CGFloat
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
         #if compiler(>=6.2)
         if #available(iOS 26.0, *) {
-            self.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+            if colorScheme == .dark {
+                content.glassEffect(
+                    .regular.tint(Color.black.opacity(0.3)),
+                    in: .rect(cornerRadius: cornerRadius)
+                )
+            } else {
+                content.glassEffect(.regular.tint(Color.white.opacity(0.75)), in: .rect(cornerRadius: cornerRadius))
+            }
         } else {
-            self.background(.ultraThickMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
+            content.background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
         }
         #else
-        self.background(.ultraThickMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
+        content.background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
         #endif
     }
+}
 
+extension View {
     /// Glass card background without padding (for cards with custom internal padding)
     func pulpeCardBackground(cornerRadius: CGFloat = DesignTokens.CornerRadius.lg) -> some View {
-        applyGlassEffect(cornerRadius: cornerRadius)
+        modifier(GlassEffectModifier(cornerRadius: cornerRadius))
     }
 
     /// Glass effect for hero/showcase cards (xl corner radius)
     func pulpeHeroGlass() -> some View {
-        applyGlassEffect(cornerRadius: DesignTokens.CornerRadius.xl)
+        modifier(GlassEffectModifier(cornerRadius: DesignTokens.CornerRadius.xl))
     }
 
     /// Glass effect for floating elements (toasts, overlays)
     func pulpeFloatingGlass(cornerRadius: CGFloat = DesignTokens.CornerRadius.md) -> some View {
-        applyGlassEffect(cornerRadius: cornerRadius)
+        modifier(GlassEffectModifier(cornerRadius: cornerRadius))
     }
 
     /// Legacy hero card styling (opaque fallback, kept for compatibility)
