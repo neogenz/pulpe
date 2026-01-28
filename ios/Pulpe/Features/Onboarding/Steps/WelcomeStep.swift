@@ -69,7 +69,7 @@ struct WelcomeStep: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 54)
                     .background(Color.onboardingGradient)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.textOnPrimary)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                     .shadow(color: Color.pulpePrimary.opacity(0.3), radius: 8, y: 4)
                 }
