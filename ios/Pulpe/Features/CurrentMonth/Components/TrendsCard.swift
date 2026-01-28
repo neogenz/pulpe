@@ -9,26 +9,6 @@ struct TrendsCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-            // Header
-            HStack {
-                Text("Dépenses")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.primary)
-
-                Spacer()
-
-                // Month labels
-                HStack(spacing: DesignTokens.Spacing.md) {
-                    ForEach(expenses) { expense in
-                        Text(expense.shortMonthName)
-                            .font(.caption)
-                            .foregroundStyle(expense.isCurrentMonth ? .primary : .secondary)
-                            .fontWeight(expense.isCurrentMonth ? .semibold : .regular)
-                    }
-                }
-            }
-
             // Content
             HStack(alignment: .center, spacing: DesignTokens.Spacing.xl) {
                 // Current month amount
@@ -45,23 +25,33 @@ struct TrendsCard: View {
 
                 Spacer()
 
-                // Sparkline chart
-                if expenses.count >= 2 {
-                    sparklineChart
-                        .frame(width: 80, height: 40)
-                        .accessibilityLabel("Graphique de tendance des dépenses")
-                        .accessibilityValue(sparklineAccessibilityValue)
-                } else {
-                    emptySparkline
-                        .frame(width: 80, height: 40)
-                        .accessibilityLabel("Pas assez de données pour afficher le graphique")
+                // Sparkline with month labels
+                VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xs) {
+                    // Month labels above chart
+                    HStack(spacing: DesignTokens.Spacing.md) {
+                        ForEach(expenses) { expense in
+                            Text(expense.shortMonthName)
+                                .font(.caption)
+                                .foregroundStyle(expense.isCurrentMonth ? .primary : .secondary)
+                                .fontWeight(expense.isCurrentMonth ? .semibold : .regular)
+                        }
+                    }
+
+                    // Sparkline chart
+                    if expenses.count >= 2 {
+                        sparklineChart
+                            .frame(width: 80, height: 40)
+                            .accessibilityLabel("Graphique de tendance des dépenses")
+                            .accessibilityValue(sparklineAccessibilityValue)
+                    } else {
+                        emptySparkline
+                            .frame(width: 80, height: 40)
+                            .accessibilityLabel("Pas assez de données pour afficher le graphique")
+                    }
                 }
             }
         }
-        .padding(.horizontal, DesignTokens.Spacing.xl)
-        .padding(.vertical, DesignTokens.Spacing.lg)
-        .background(Color.surfaceCard)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
+        .pulpeCard()
     }
 
     // MARK: - Sparkline Chart
@@ -131,21 +121,11 @@ struct TrendsCard: View {
 
 struct TrendsEmptyState: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Dépenses")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(.primary)
-
-            Text("Crée plus de budgets pour voir les tendances")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, DesignTokens.Spacing.xl)
-        .padding(.vertical, DesignTokens.Spacing.lg)
-        .background(Color.surfaceCard)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
+        Text("Crée plus de budgets pour voir les tendances")
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .pulpeCard()
     }
 }
 

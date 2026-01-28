@@ -86,7 +86,7 @@ struct InsightsCard: View {
     // MARK: - Alerts Section
 
     private var alertsSection: some View {
-        HStack(spacing: DesignTokens.Spacing.xs) {
+        HStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(Color.financialOverBudget)
                 .font(.subheadline)
@@ -99,6 +99,7 @@ struct InsightsCard: View {
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, DesignTokens.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.errorBackground)
     }
 
     // MARK: - Alert Text

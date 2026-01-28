@@ -82,9 +82,14 @@ struct CurrentMonthView: View {
 
     private var dashboardContent: some View {
         ScrollView {
-            VStack(spacing: 16) {
-                // Hero card with available balance and linear progress
-                DashboardHeroCard(metrics: store.metrics)
+            VStack(spacing: DesignTokens.Spacing.xxl) {
+                // Hero card with available balance and circular progress
+                HeroBalanceCard(
+                    metrics: store.metrics,
+                    daysRemaining: store.daysRemaining,
+                    dailyBudget: store.dailyBudget,
+                    onTapProgress: { showRealizedBalanceSheet = true }
+                )
 
                 // Insights: top spending + budget alerts
                 InsightsCard(
@@ -95,23 +100,33 @@ struct CurrentMonthView: View {
                     onTap: { navigateToBudget = true }
                 )
 
-                // Recent transactions
+                // Recent transactions with external section header
                 if !store.recentTransactions.isEmpty {
-                    RecentTransactionsCard(
-                        transactions: store.recentTransactions,
-                        onViewAll: { navigateToBudget = true }
-                    )
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        Text("Transactions récentes")
+                            .pulpeSectionHeader()
+
+                        RecentTransactionsCard(
+                            transactions: store.recentTransactions,
+                            onViewAll: { navigateToBudget = true }
+                        )
+                    }
                 }
 
-                // Trends (expenses over last 3 months)
-                if dashboardStore.hasEnoughHistoryForTrends {
-                    TrendsCard(
-                        expenses: dashboardStore.historicalExpenses,
-                        variation: dashboardStore.expenseVariation,
-                        currentMonthTotal: store.metrics.totalExpenses
-                    )
-                } else {
-                    TrendsEmptyState()
+                // Trends (expenses over last 3 months) with external section header
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    Text("Dépenses")
+                        .pulpeSectionHeader()
+
+                    if dashboardStore.hasEnoughHistoryForTrends {
+                        TrendsCard(
+                            expenses: dashboardStore.historicalExpenses,
+                            variation: dashboardStore.expenseVariation,
+                            currentMonthTotal: store.metrics.totalExpenses
+                        )
+                    } else {
+                        TrendsEmptyState()
+                    }
                 }
 
                 // Year overview (savings YTD + rollover)
@@ -120,8 +135,8 @@ struct CurrentMonthView: View {
                     rollover: store.budget?.rollover ?? 0
                 )
             }
-            .padding(.horizontal, DesignTokens.Spacing.md)
-            .padding(.vertical, DesignTokens.Spacing.md)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.lg)
         }
         .background(Color(.systemGroupedBackground))
         .refreshable {

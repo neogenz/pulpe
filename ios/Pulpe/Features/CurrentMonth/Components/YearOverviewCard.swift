@@ -44,7 +44,7 @@ struct YearOverviewCard: View {
             }
 
             Text(value.asCHF)
-                .font(.system(.title3, design: .rounded, weight: .semibold))
+                .font(.system(.title3, design: .rounded, weight: .bold))
                 .foregroundStyle(color)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -54,6 +54,7 @@ struct YearOverviewCard: View {
         .padding(.vertical, 14)
         .background(Color.surfaceCard)
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+        .shadow(DesignTokens.Shadow.subtle)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title): \(value.asCHF)")
     }
