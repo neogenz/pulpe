@@ -10,7 +10,7 @@ struct YearOverviewCard: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DesignTokens.Spacing.md) {
             // Savings YTD
             metricCard(
                 title: "Épargne \(currentYear)",
@@ -24,7 +24,7 @@ struct YearOverviewCard: View {
                 title: "Report cumulé",
                 value: rollover,
                 icon: "arrow.right.circle",
-                color: rollover >= 0 ? .pulpePrimary : .red
+                color: rollover >= 0 ? .pulpePrimary : .financialOverBudget
             )
         }
     }
@@ -32,7 +32,7 @@ struct YearOverviewCard: View {
     // MARK: - Metric Card
 
     private func metricCard(title: String, value: Decimal, icon: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
                     .font(.caption)
@@ -50,9 +50,9 @@ struct YearOverviewCard: View {
                 .minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, 14)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Color.surfaceCard)
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title): \(value.asCHF)")

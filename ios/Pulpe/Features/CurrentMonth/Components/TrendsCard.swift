@@ -8,7 +8,7 @@ struct TrendsCard: View {
     let currentMonthTotal: Decimal
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
             // Header
             HStack {
                 Text("Dépenses")
@@ -19,7 +19,7 @@ struct TrendsCard: View {
                 Spacer()
 
                 // Month labels
-                HStack(spacing: 12) {
+                HStack(spacing: DesignTokens.Spacing.md) {
                     ForEach(expenses) { expense in
                         Text(expense.shortMonthName)
                             .font(.caption)
@@ -30,9 +30,9 @@ struct TrendsCard: View {
             }
 
             // Content
-            HStack(alignment: .center, spacing: 20) {
+            HStack(alignment: .center, spacing: DesignTokens.Spacing.xl) {
                 // Current month amount
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(currentMonthTotal.asCHF)
                         .font(.title2)
                         .fontWeight(.bold)
@@ -58,9 +58,9 @@ struct TrendsCard: View {
                 }
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .background(Color(.secondarySystemGroupedBackground))
+        .padding(.horizontal, DesignTokens.Spacing.xl)
+        .padding(.vertical, DesignTokens.Spacing.lg)
+        .background(Color.surfaceCard)
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
     }
 
@@ -115,7 +115,7 @@ struct TrendsCard: View {
             Text("\(variation.formattedPercentage) vs \(variation.previousMonthName)")
                 .font(.caption)
         }
-        .foregroundStyle(variation.isIncrease ? .orange : .green)
+        .foregroundStyle(variation.isIncrease ? Color.financialOverBudget : Color.financialSavings)
         .accessibilityLabel(variation.isIncrease ? "Dépenses en hausse" : "Dépenses en baisse")
         .accessibilityValue("\(variation.formattedPercentage) par rapport à \(variation.previousMonthName)")
     }
@@ -131,7 +131,7 @@ struct TrendsCard: View {
 
 struct TrendsEmptyState: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text("Dépenses")
                 .font(.subheadline)
                 .fontWeight(.semibold)
@@ -142,9 +142,9 @@ struct TrendsEmptyState: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .background(Color(.secondarySystemGroupedBackground))
+        .padding(.horizontal, DesignTokens.Spacing.xl)
+        .padding(.vertical, DesignTokens.Spacing.lg)
+        .background(Color.surfaceCard)
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
     }
 }
