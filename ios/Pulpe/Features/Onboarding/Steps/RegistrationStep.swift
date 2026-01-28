@@ -18,11 +18,11 @@ struct RegistrationStep: View {
             canProceed: state.canSubmitRegistration,
             onNext: { Task { await submitRegistration() } }
         ) {
-            VStack(spacing: 20) {
+            VStack(spacing: DesignTokens.Spacing.xl) {
                 // Email
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Email")
-                        .font(.subheadline)
+                        .font(PulpeTypography.inputLabel)
                         .foregroundStyle(.secondary)
 
                     TextField("ton@email.com", text: Binding(
@@ -33,19 +33,15 @@ struct RegistrationStep: View {
                     .keyboardType(.emailAddress)
                     .autocapitalization(.none)
                     .autocorrectionDisabled()
-                    .padding()
-                    .background(.background)
+                    .padding(DesignTokens.Spacing.lg)
+                    .background(Color.inputBackgroundSoft)
                     .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                            .stroke(Color.inputBorder, lineWidth: 1)
-                    )
                 }
 
                 // Password
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Mot de passe")
-                        .font(.subheadline)
+                        .font(PulpeTypography.inputLabel)
                         .foregroundStyle(.secondary)
 
                     HStack {
@@ -69,13 +65,9 @@ struct RegistrationStep: View {
                         }
                     }
                     .textContentType(.newPassword)
-                    .padding()
-                    .background(.background)
+                    .padding(DesignTokens.Spacing.lg)
+                    .background(Color.inputBackgroundSoft)
                     .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                            .stroke(Color.inputBorder, lineWidth: 1)
-                    )
 
                     Text("8 caractères minimum pour sécuriser ton compte")
                         .font(.caption)
@@ -83,9 +75,9 @@ struct RegistrationStep: View {
                 }
 
                 // Password confirmation
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Confirmer le mot de passe")
-                        .font(.subheadline)
+                        .font(PulpeTypography.inputLabel)
                         .foregroundStyle(.secondary)
 
                     HStack {
@@ -109,18 +101,14 @@ struct RegistrationStep: View {
                         }
                     }
                     .textContentType(.newPassword)
-                    .padding()
-                    .background(.background)
+                    .padding(DesignTokens.Spacing.lg)
+                    .background(passwordMismatch ? Color.errorBackground : Color.inputBackgroundSoft)
                     .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                            .stroke(passwordMismatch ? Color.red : Color.inputBorder, lineWidth: 1)
-                    )
 
                     if passwordMismatch {
                         Text("Les mots de passe ne correspondent pas")
                             .font(.caption)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(Color.errorPrimary)
                     }
                 }
 
@@ -189,7 +177,7 @@ struct RegistrationStep: View {
 
 struct CheckboxToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
             Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
                 .font(.title3)
                 .foregroundStyle(configuration.isOn ? Color.accentColor : Color.secondary)
