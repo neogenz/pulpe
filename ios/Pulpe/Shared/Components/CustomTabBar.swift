@@ -32,7 +32,17 @@ struct CustomTabBar: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: UISegmentedControl, context: Context) {
-        // Empty - don't update selectedSegmentIndex here to avoid visual conflicts with Liquid Glass
+        // Sync only for programmatic changes (user taps are already handled by UIKit)
+        // When user taps: UIKit updates selectedSegmentIndex BEFORE valueChanged fires,
+        // so indices match and we skip the update (no double animation)
+        // When programmatic: indices differ, so we update without animation to avoid
+        // conflicting with Liquid Glass
+        guard uiView.selectedSegmentIndex != activeTab.index else { return }
+
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        uiView.selectedSegmentIndex = activeTab.index
+        CATransaction.commit()
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UISegmentedControl, context: Context) -> CGSize? {
