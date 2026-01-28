@@ -6,6 +6,15 @@ enum PulpeTypography {
 
     static let brandTitle = Font.system(size: 36, weight: .bold, design: .rounded)
 
+    // MARK: - Hero Amounts
+
+    static let amountHero = Font.system(size: 42, weight: .bold, design: .rounded)
+
+    // MARK: - Progress Indicator
+
+    static let progressValue = Font.system(size: 16, weight: .bold, design: .rounded)
+    static let progressUnit = Font.system(size: 10, weight: .medium, design: .default)
+
     // MARK: - Onboarding Headlines
 
     static let onboardingTitle = Font.system(size: 28, weight: .bold, design: .rounded)
