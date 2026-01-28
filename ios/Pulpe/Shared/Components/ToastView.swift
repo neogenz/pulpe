@@ -34,7 +34,7 @@ struct ToastView: View {
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, 14)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
-        .shadow(color: .black.opacity(0.1), radius: 8, y: 4)
+        .shadow(DesignTokens.Shadow.toast)
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .offset(y: offset)
         .opacity(opacity)
@@ -47,7 +47,7 @@ struct ToastView: View {
                 }
         )
         .onAppear {
-            withAnimation(.spring(duration: 0.4, bounce: 0.3)) {
+            withAnimation(DesignTokens.Animation.toastEntrance) {
                 offset = 0
                 opacity = 1
             }
@@ -61,7 +61,7 @@ struct ToastView: View {
         // Cancel any pending dismiss
         animationTask?.cancel()
 
-        withAnimation(.easeOut(duration: 0.2)) {
+        withAnimation(DesignTokens.Animation.toastDismiss) {
             offset = -100
             opacity = 0
         }

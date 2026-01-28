@@ -73,10 +73,10 @@ struct LoginView: View {
                                         .fontWeight(.medium)
                                 }
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 54)
+                                .frame(height: DesignTokens.FrameHeight.button)
                                 .background(Color.onboardingGradient)
                                 .foregroundStyle(Color.textOnPrimary)
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button))
                                 .shadow(color: Color.pulpePrimary.opacity(0.25), radius: 8, y: 4)
                             }
 
@@ -84,13 +84,13 @@ struct LoginView: View {
                             HStack(spacing: DesignTokens.Spacing.lg) {
                                 Rectangle()
                                     .fill(Color.secondary.opacity(0.2))
-                                    .frame(height: 1)
+                                    .frame(height: DesignTokens.FrameHeight.separator)
                                 Text("ou")
                                     .font(.footnote)
                                     .foregroundStyle(.secondary)
                                 Rectangle()
                                     .fill(Color.secondary.opacity(0.2))
-                                    .frame(height: 1)
+                                    .frame(height: DesignTokens.FrameHeight.separator)
                             }
                             .padding(.vertical, DesignTokens.Spacing.xs)
                         }
@@ -114,9 +114,9 @@ struct LoginView: View {
                             .focused($focusedField, equals: .email)
                             .font(PulpeTypography.bodyLarge)
                             .padding(.horizontal, DesignTokens.Spacing.lg)
-                            .frame(height: 54)
+                            .frame(height: DesignTokens.FrameHeight.button)
                             .background(Color.inputBackgroundSoft)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button))
                             .shadow(
                                 color: focusedField == .email ? Color.inputFocusGlow : Color.black.opacity(0.04),
                                 radius: focusedField == .email ? 8 : 4,
@@ -169,9 +169,9 @@ struct LoginView: View {
                                 .accessibilityLabel(viewModel.showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe")
                             }
                             .padding(.horizontal, DesignTokens.Spacing.lg)
-                            .frame(height: 54)
+                            .frame(height: DesignTokens.FrameHeight.button)
                             .background(Color.inputBackgroundSoft)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button))
                             .shadow(
                                 color: focusedField == .password ? Color.inputFocusGlow : Color.black.opacity(0.04),
                                 radius: focusedField == .password ? 8 : 4,
@@ -200,11 +200,11 @@ struct LoginView: View {
                                 }
                             }
                             .frame(maxWidth: .infinity)
-                            .frame(height: 54)
+                            .frame(height: DesignTokens.FrameHeight.button)
                             .background(viewModel.canSubmit ? Color.onboardingGradient : nil)
                             .background(viewModel.canSubmit ? nil : Color.secondary.opacity(0.3))
                             .foregroundStyle(viewModel.canSubmit ? Color.textOnPrimary : Color.secondary)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button))
                             .shadow(
                                 color: viewModel.canSubmit ? Color.pulpePrimary.opacity(0.25) : .clear,
                                 radius: 8,
@@ -313,7 +313,8 @@ final class LoginViewModel {
     var errorMessage: String?
 
     var isEmailValid: Bool {
-        email.contains("@") && email.contains(".")
+        let pattern = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/
+        return email.wholeMatch(of: pattern) != nil
     }
 
     var isPasswordValid: Bool {

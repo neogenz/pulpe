@@ -1,6 +1,6 @@
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { handleServiceError } from '@common/utils/error-handler';
@@ -149,7 +149,7 @@ export class BudgetService {
         data: apiData,
       } as BudgetListResponse;
     } catch (error) {
-      handleServiceError(
+      throw handleServiceError(
         error,
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
@@ -168,6 +168,23 @@ export class BudgetService {
     query: ListBudgetsQuery,
   ): Promise<BudgetSparseListResponse> {
     const requestedFields = query.fields!.split(',').map((f) => f.trim());
+    const allowedFields = [
+      'month',
+      'year',
+      'rollover',
+      'totalExpenses',
+      'totalSavings',
+      'totalIncome',
+      'remaining',
+    ];
+    const invalidFields = requestedFields.filter(
+      (f) => !allowedFields.includes(f),
+    );
+    if (invalidFields.length > 0) {
+      throw new BadRequestException(
+        `Unknown sparse fields: ${invalidFields.join(', ')}`,
+      );
+    }
     const needsAggregates = this.fieldsRequireAggregates(requestedFields);
     const needsRollover = this.fieldsRequireRollover(requestedFields);
 
@@ -298,7 +315,7 @@ export class BudgetService {
 
       return this.buildExportResponse(budgetsWithDetails);
     } catch (error) {
-      handleServiceError(
+      throw handleServiceError(
         error,
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
@@ -447,7 +464,7 @@ export class BudgetService {
         data: apiData,
       };
     } catch (error) {
-      handleServiceError(
+      throw handleServiceError(
         error,
         ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
         undefined,
@@ -478,7 +495,7 @@ export class BudgetService {
         data: apiData,
       };
     } catch (error) {
-      handleServiceError(
+      throw handleServiceError(
         error,
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
@@ -519,7 +536,7 @@ export class BudgetService {
         data: responseData,
       } as BudgetDetailsResponse;
     } catch (error) {
-      handleServiceError(
+      throw handleServiceError(
         error,
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
@@ -636,7 +653,7 @@ export class BudgetService {
         data: apiData,
       };
     } catch (error) {
-      handleServiceError(
+      throw handleServiceError(
         error,
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
@@ -699,7 +716,7 @@ export class BudgetService {
         message: 'Budget deleted successfully',
       };
     } catch (error) {
-      handleServiceError(
+      throw handleServiceError(
         error,
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,

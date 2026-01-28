@@ -13,11 +13,45 @@ actor KeychainManager {
     private let biometricAccessTokenKey = "biometric_access_token"
     private let biometricRefreshTokenKey = "biometric_refresh_token"
 
+    private var isAvailableCache: Bool?
+
     private init() {}
+
+    // MARK: - Availability
+
+    static func checkAvailability() -> Bool {
+        let testKey = "app.pulpe.keychain-test"
+        let testData = "test".data(using: .utf8)!
+
+        let addQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: testKey,
+            kSecValueData as String: testData
+        ]
+
+        // Clean up first
+        SecItemDelete(addQuery as CFDictionary)
+
+        let status = SecItemAdd(addQuery as CFDictionary, nil)
+        SecItemDelete(addQuery as CFDictionary)
+
+        return status == errSecSuccess
+    }
+
+    func ensureAvailable() throws {
+        if let cached = isAvailableCache {
+            guard cached else { throw KeychainError.notAvailable }
+            return
+        }
+        let available = Self.checkAvailability()
+        isAvailableCache = available
+        guard available else { throw KeychainError.notAvailable }
+    }
 
     // MARK: - Token Management
 
-    func saveTokens(accessToken: String, refreshToken: String) {
+    func saveTokens(accessToken: String, refreshToken: String) throws {
+        try ensureAvailable()
         save(key: accessTokenKey, value: accessToken)
         save(key: refreshTokenKey, value: refreshToken)
     }
@@ -214,12 +248,15 @@ actor KeychainManager {
 // MARK: - Keychain Errors
 
 enum KeychainError: LocalizedError {
+    case notAvailable
     case userCanceled
     case authFailed
     case unknown(OSStatus)
 
     var errorDescription: String? {
         switch self {
+        case .notAvailable:
+            return "Le trousseau n'est pas disponible sur cet appareil"
         case .userCanceled:
             return "Authentification annulée"
         case .authFailed:

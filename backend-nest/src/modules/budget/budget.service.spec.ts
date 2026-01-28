@@ -489,6 +489,26 @@ describe('BudgetService', () => {
         );
       });
 
+      it('should reject unknown sparse field names', async () => {
+        const mockUser = createMockAuthenticatedUser();
+
+        await expect(
+          service.findAll(mockUser, mockSupabaseClient as any, {
+            fields: 'month,invalidField',
+          }),
+        ).rejects.toThrow('Unknown sparse fields: invalidField');
+      });
+
+      it('should reject all unknown fields and list them', async () => {
+        const mockUser = createMockAuthenticatedUser();
+
+        await expect(
+          service.findAll(mockUser, mockSupabaseClient as any, {
+            fields: 'foo,bar',
+          }),
+        ).rejects.toThrow('Unknown sparse fields: foo, bar');
+      });
+
       it('should fallback to full response when no fields param provided', async () => {
         const mockUser = createMockAuthenticatedUser();
         const mockBudgets = [createValidBudgetEntity()];

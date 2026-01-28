@@ -4,6 +4,7 @@ import SwiftUI
 struct ErrorView: View {
     let error: Error
     let retryAction: (() async -> Void)?
+    @State private var isRetrying = false
 
     init(error: Error, retryAction: (() async -> Void)? = nil) {
         self.error = error
@@ -17,12 +18,21 @@ struct ErrorView: View {
             Text(error.localizedDescription)
         } actions: {
             if let retryAction {
-                Button("Réessayer") {
+                Button {
                     Task {
+                        isRetrying = true
+                        defer { isRetrying = false }
                         await retryAction()
+                    }
+                } label: {
+                    if isRetrying {
+                        ProgressView()
+                    } else {
+                        Text("Réessayer")
                     }
                 }
                 .buttonStyle(.borderedProminent)
+                .disabled(isRetrying)
             }
         }
     }

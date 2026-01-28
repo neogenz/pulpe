@@ -2,6 +2,15 @@ import SwiftUI
 
 /// Text field for currency input with CHF formatting
 struct CurrencyField: View {
+    private static let displayFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 2
+        formatter.groupingSeparator = ""
+        return formatter
+    }()
+
     @Binding var value: Decimal?
     let placeholder: String
     let label: String?
@@ -91,12 +100,7 @@ struct CurrencyField: View {
 
         // Only update if not focused (avoid cursor jumping)
         if !effectiveFocus {
-            let formatter = NumberFormatter()
-            formatter.numberStyle = .decimal
-            formatter.minimumFractionDigits = 0
-            formatter.maximumFractionDigits = 2
-            formatter.groupingSeparator = ""
-            textValue = formatter.string(from: decimal as NSDecimalNumber) ?? ""
+            textValue = Self.displayFormatter.string(from: decimal as NSDecimalNumber) ?? ""
         }
     }
 }

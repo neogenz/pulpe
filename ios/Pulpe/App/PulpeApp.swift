@@ -44,9 +44,11 @@ struct PulpeApp: App {
         switch url.host {
         case "add-expense":
             let budgetId = components?.queryItems?.first { $0.name == "budgetId" }?.value
+            if let budgetId, UUID(uuidString: budgetId) == nil { break }
             deepLinkDestination = .addExpense(budgetId: budgetId)
         case "budget":
-            if let budgetId = components?.queryItems?.first(where: { $0.name == "id" })?.value {
+            if let budgetId = components?.queryItems?.first(where: { $0.name == "id" })?.value,
+               UUID(uuidString: budgetId) != nil {
                 deepLinkDestination = .viewBudget(budgetId: budgetId)
             }
         default:

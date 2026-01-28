@@ -45,6 +45,48 @@ struct TransactionSection: View {
         return .secondary
     }
 
+    @ViewBuilder
+    private func swipeActions(for transaction: Transaction) -> some View {
+        Button {
+            transactionToDelete = transaction
+            showDeleteAlert = true
+        } label: {
+            Label("Supprimer", systemImage: "trash")
+        }
+        .tint(Color.errorPrimary)
+
+        Button {
+            onToggle(transaction)
+        } label: {
+            Label(
+                transaction.isChecked ? "Annuler" : "Comptabiliser",
+                systemImage: transaction.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
+            )
+        }
+        .tint(transaction.isChecked ? Color.financialOverBudget : .pulpePrimary)
+    }
+
+    @ViewBuilder
+    private var expandCollapseButton: some View {
+        if hasMoreItems {
+            Button {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack {
+                    Text(isExpanded ? "Voir moins" : "Voir plus (+\(hiddenItemsCount))")
+                        .font(.subheadline)
+                    Spacer()
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .listRowSeparator(.hidden)
+        }
+    }
+
     var body: some View {
         Section {
             ForEach(displayedTransactions) { transaction in
@@ -55,43 +97,11 @@ struct TransactionSection: View {
                 )
                     .listRowSeparator(.hidden)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button {
-                            transactionToDelete = transaction
-                            showDeleteAlert = true
-                        } label: {
-                            Label("Supprimer", systemImage: "trash")
-                        }
-                        .tint(Color.errorPrimary)
-
-                        Button {
-                            onToggle(transaction)
-                        } label: {
-                            Label(
-                                transaction.isChecked ? "Annuler" : "Comptabiliser",
-                                systemImage: transaction.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
-                            )
-                        }
-                        .tint(transaction.isChecked ? Color.financialOverBudget : .pulpePrimary)
+                        swipeActions(for: transaction)
                     }
             }
 
-            if hasMoreItems {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        isExpanded.toggle()
-                    }
-                } label: {
-                    HStack {
-                        Text(isExpanded ? "Voir moins" : "Voir plus (+\(hiddenItemsCount))")
-                            .font(.subheadline)
-                        Spacer()
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .listRowSeparator(.hidden)
-            }
+            expandCollapseButton
         } header: {
             SectionHeader(
                 title: title,
