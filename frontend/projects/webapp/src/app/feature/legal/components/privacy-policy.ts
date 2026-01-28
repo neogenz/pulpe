@@ -23,7 +23,8 @@ import { ROUTES } from '@core/routing';
           <p class="text-body-large">
             Je prends votre vie privée au sérieux. Cette politique explique
             comment je collecte, utilise et protège vos données personnelles
-            dans le cadre du service Pulpe.
+            dans le cadre du service Pulpe, accessible via l'application web et
+            l'application iOS.
           </p>
         </section>
 
@@ -57,7 +58,7 @@ import { ROUTES } from '@core/routing';
             <li>Fournir le service de gestion budgétaire</li>
             <li>Sauvegarder et synchroniser vos budgets</li>
             <li>Améliorer l'application et corriger les bugs</li>
-            <li>Vous envoyer des notifications importantes (optionnel)</li>
+            <li>Communiquer des informations importantes sur le service</li>
             <li>Assurer la sécurité de votre compte</li>
           </ul>
         </section>
@@ -110,6 +111,10 @@ import { ROUTES } from '@core/routing';
             <li><strong>Railway</strong> (USA - Oregon) : Backend API</li>
             <li><strong>Vercel</strong> (CDN global) : Interface web</li>
             <li><strong>PostHog</strong> (Europe) : Analytics</li>
+            <li>
+              <strong>Cloudflare Turnstile</strong> : Vérification anti-bot
+              utilisée uniquement en mode démo (aucun cookie stocké)
+            </li>
           </ul>
           <p class="text-body-large mt-4">
             <strong>Note :</strong> Vos données sont principalement stockées en
@@ -149,7 +154,11 @@ import { ROUTES } from '@core/routing';
             <li>Données de compte : Tant que votre compte est actif</li>
             <li>Données financières : Conservées avec votre compte</li>
             <li>Données d'analyse : Maximum 12 mois</li>
-            <li>Après suppression du compte : Effacement sous 30 jours</li>
+            <li>Après suppression du compte : Effacement sous 3 jours</li>
+            <li>
+              Données de session démo : Supprimées automatiquement après 24
+              heures
+            </li>
           </ul>
         </section>
 
@@ -265,9 +274,5 @@ import { ROUTES } from '@core/routing';
 export default class PrivacyPolicyComponent {
   protected readonly ROUTES = ROUTES;
 
-  currentDate = new Date().toLocaleDateString('fr-CH', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  protected readonly currentDate = '27 janvier 2026';
 }

@@ -41,6 +41,10 @@ import { ROUTES } from '@core/routing';
             <li>Suivre vos dépenses et revenus</li>
             <li>Gérer votre épargne</li>
             <li>Créer des modèles de budget réutilisables</li>
+            <li>
+              Tester le service en mode démo (données éphémères, supprimées
+              après 24 heures)
+            </li>
           </ul>
         </section>
 
@@ -178,9 +182,5 @@ import { ROUTES } from '@core/routing';
 export default class TermsOfServiceComponent {
   protected readonly ROUTES = ROUTES;
 
-  currentDate = new Date().toLocaleDateString('fr-CH', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  protected readonly currentDate = '27 janvier 2026';
 }
