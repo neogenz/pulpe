@@ -48,7 +48,7 @@ struct HeroBalanceCard: View {
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
         .padding(.vertical, DesignTokens.Spacing.xxl)
-        .heroCardStyle()
+        .pulpeHeroCard()
     }
 
     // MARK: - Balance Section
@@ -162,23 +162,6 @@ struct HeroBalanceCard: View {
                 .foregroundStyle(color)
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-// MARK: - Hero Card Style Modifier
-
-private struct HeroCardStyleModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        // Content cards use solid backgrounds for readability (no glass)
-        content
-            .background(Color.surfaceCard)
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
-    }
-}
-
-extension View {
-    func heroCardStyle() -> some View {
-        modifier(HeroCardStyleModifier())
     }
 }
 

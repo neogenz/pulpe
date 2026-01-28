@@ -128,6 +128,13 @@ extension View {
 // MARK: - Glass Effect Modifiers (iOS 26+)
 
 extension View {
+    /// Hero card styling: surfaceCard background, xl corner radius (for hero/showcase cards)
+    func pulpeHeroCard() -> some View {
+        self
+            .background(Color.surfaceCard)
+            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
+    }
+
     /// Glass effect for hero/showcase cards with fallback
     @ViewBuilder
     func pulpeHeroGlass() -> some View {
@@ -135,10 +142,10 @@ extension View {
         if #available(iOS 26.0, *) {
             self.glassEffect(.regular, in: .rect(cornerRadius: DesignTokens.CornerRadius.xl))
         } else {
-            heroCardStyleFallback()
+            pulpeHeroCard()
         }
         #else
-        heroCardStyleFallback()
+        pulpeHeroCard()
         #endif
     }
 
@@ -154,11 +161,5 @@ extension View {
         #else
         self.background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
         #endif
-    }
-
-    private func heroCardStyleFallback() -> some View {
-        self
-            .background(Color.surfaceCard)
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
     }
 }
