@@ -121,7 +121,7 @@ struct CreateBudgetView: View {
             Spacer()
 
             // Month indicator badge
-            Text(String(format: "%02d/%d", month, year))
+            Text("\(month, format: .number.precision(.integerLength(2)))/\(year)")
                 .font(.system(.caption, design: .monospaced, weight: .medium))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 10)

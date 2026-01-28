@@ -56,7 +56,7 @@ struct BudgetSection: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .listRowSeparator(.hidden)
 
-            ForEach(Array(displayedItems.enumerated()), id: \.element.id) { index, item in
+            ForEach(displayedItems) { item in
                 budgetLineRow(for: item)
                     .listRowSeparator(.hidden)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
