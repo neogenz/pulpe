@@ -2,7 +2,9 @@ import {
   type Budget,
   type BudgetCreate,
   type BudgetUpdate,
+  type BudgetSparse,
 } from 'pulpe-shared';
+import type { BudgetAggregates } from './budget.repository';
 import { Tables, TablesInsert } from '@/types/database.types';
 
 /**
@@ -81,4 +83,48 @@ export function toUpdate(
   }
 
   return updateData;
+}
+
+/**
+ * Transform database row to sparse API response with only requested fields
+ * Always includes id, adds other fields based on requestedFields array
+ */
+export function toSparseApi(
+  budgetDb: Tables<'monthly_budget'>,
+  requestedFields: string[],
+  aggregates?: BudgetAggregates,
+  rollover?: number,
+): BudgetSparse {
+  const sparse: BudgetSparse = { id: budgetDb.id };
+
+  if (requestedFields.includes('month')) {
+    sparse.month = budgetDb.month;
+  }
+  if (requestedFields.includes('year')) {
+    sparse.year = budgetDb.year;
+  }
+  if (requestedFields.includes('rollover') && rollover !== undefined) {
+    sparse.rollover = rollover;
+  }
+
+  if (aggregates) {
+    if (requestedFields.includes('totalExpenses')) {
+      sparse.totalExpenses = aggregates.totalExpenses;
+    }
+    if (requestedFields.includes('totalSavings')) {
+      sparse.totalSavings = aggregates.totalSavings;
+    }
+    if (requestedFields.includes('totalIncome')) {
+      sparse.totalIncome = aggregates.totalIncome;
+    }
+    if (requestedFields.includes('remaining')) {
+      sparse.remaining =
+        aggregates.totalIncome -
+        aggregates.totalExpenses -
+        aggregates.totalSavings +
+        (rollover ?? 0);
+    }
+  }
+
+  return sparse;
 }

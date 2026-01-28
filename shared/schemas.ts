@@ -555,6 +555,72 @@ export const budgetExportResponseSchema = z.object({
 });
 export type BudgetExportResponse = z.infer<typeof budgetExportResponseSchema>;
 
+/**
+ * SPARSE FIELDSETS - Optimized budget queries
+ *
+ * Allows clients to request only specific fields from the budgets endpoint,
+ * reducing payload size from ~50KB to ~500 bytes for dashboard use cases.
+ *
+ * JSON:API standard: https://jsonapi.org/format/#fetching-sparse-fieldsets
+ */
+
+// Available fields that can be requested via sparse fieldsets
+export const VALID_SPARSE_FIELDS = [
+  'month',
+  'year',
+  'totalExpenses',
+  'totalSavings',
+  'totalIncome',
+  'remaining',
+  'rollover',
+] as const;
+export const budgetFieldsEnum = z.enum(VALID_SPARSE_FIELDS);
+export type BudgetField = z.infer<typeof budgetFieldsEnum>;
+
+// Query parameters for sparse fieldsets
+export const listBudgetsQuerySchema = z.object({
+  fields: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        const requestedFields = val.split(',').map((f) => f.trim());
+        return requestedFields.every((f) =>
+          (VALID_SPARSE_FIELDS as readonly string[]).includes(f),
+        );
+      },
+      {
+        message: `Invalid fields. Valid options: ${VALID_SPARSE_FIELDS.join(', ')}`,
+      },
+    ),
+  limit: z.coerce.number().int().min(1).max(36).optional(),
+  year: z.coerce.number().int().min(MIN_YEAR).max(MAX_YEAR).optional(),
+});
+export type ListBudgetsQuery = z.infer<typeof listBudgetsQuerySchema>;
+
+// Sparse budget response with optional aggregate fields
+export const budgetSparseSchema = z.object({
+  id: z.uuid(),
+  month: z.number().int().min(MONTH_MIN).max(MONTH_MAX).optional(),
+  year: z.number().int().min(MIN_YEAR).max(MAX_YEAR).optional(),
+  totalExpenses: z.number().optional(),
+  totalSavings: z.number().optional(),
+  totalIncome: z.number().optional(),
+  remaining: z.number().optional(),
+  rollover: z.number().optional(),
+});
+export type BudgetSparse = z.infer<typeof budgetSparseSchema>;
+
+// Response wrapper for sparse budget list
+export const budgetSparseListResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.array(budgetSparseSchema),
+});
+export type BudgetSparseListResponse = z.infer<
+  typeof budgetSparseListResponseSchema
+>;
+
 // Transaction response schemas for operation-specific types
 export const transactionResponseSchema = z.object({
   success: z.literal(true),

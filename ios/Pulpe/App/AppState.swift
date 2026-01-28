@@ -1,3 +1,4 @@
+import OSLog
 import SwiftUI
 import WidgetKit
 
@@ -153,7 +154,7 @@ final class AppState {
             try await authService.saveBiometricTokens()
             biometricEnabled = true
         } catch {
-            // Silently fail - user can retry from settings
+            Logger.auth.error("enableBiometric: failed to save biometric tokens - \(error)")
         }
     }
 
@@ -189,7 +190,7 @@ enum Tab: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .currentMonth: "Ce mois-ci"
+        case .currentMonth: "Accueil"
         case .budgets: "Budgets"
         case .templates: "Modèles"
         }
@@ -197,7 +198,7 @@ enum Tab: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .currentMonth: "calendar.badge.clock"
+        case .currentMonth: "house"
         case .budgets: "calendar"
         case .templates: "doc.text"
         }

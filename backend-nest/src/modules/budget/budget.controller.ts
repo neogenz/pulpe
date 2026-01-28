@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
@@ -15,6 +16,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
   ApiBadRequestResponse,
   ApiNotFoundResponse,
   ApiUnauthorizedResponse,
@@ -26,6 +28,8 @@ import {
   type BudgetResponse,
   type BudgetDeleteResponse,
   type BudgetDetailsResponse,
+  type BudgetSparseListResponse,
+  type ListBudgetsQuery,
 } from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -38,10 +42,11 @@ import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.ser
 import {
   BudgetCreateDto,
   BudgetUpdateDto,
-  BudgetListResponseDto,
   BudgetResponseDto,
   BudgetDeleteResponseDto,
   BudgetDetailsResponseDto,
+  ListBudgetsQueryDto,
+  BudgetSparseListResponseDto,
 } from './dto/budget-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 
@@ -62,20 +67,46 @@ export class BudgetController {
 
   @Get()
   @ApiOperation({
-    summary: 'List all user budgets',
+    summary: 'List user budgets with optional sparse fieldsets',
     description:
-      'Retrieves all budgets belonging to the authenticated user, ordered by year and month',
+      'Retrieves budgets with optional field selection, limit, and year filtering. Use sparse fieldsets to reduce payload size.',
+  })
+  @ApiQuery({
+    name: 'fields',
+    required: false,
+    description:
+      'Comma-separated fields to return: month,year,totalExpenses,totalSavings,totalIncome,remaining,rollover',
+    example: 'month,year,totalExpenses',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Maximum number of budgets to return (1-36)',
+    example: 3,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'year',
+    required: false,
+    description: 'Filter budgets by year',
+    example: 2026,
+    type: Number,
   })
   @ApiResponse({
     status: 200,
     description: 'Budget list retrieved successfully',
-    type: BudgetListResponseDto,
+    type: BudgetSparseListResponseDto,
   })
   async findAll(
+    @Query() query: ListBudgetsQueryDto,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetListResponse> {
-    return this.budgetService.findAll(user, supabase);
+  ): Promise<BudgetListResponse | BudgetSparseListResponse> {
+    return this.budgetService.findAll(
+      user,
+      supabase,
+      query as ListBudgetsQuery,
+    );
   }
 
   @Post()

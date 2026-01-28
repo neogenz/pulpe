@@ -1,3 +1,4 @@
+import OSLog
 import SwiftUI
 import TipKit
 import WidgetKit
@@ -12,6 +13,7 @@ struct PulpeApp: App {
     @State private var appState = AppState()
     @State private var currentMonthStore = CurrentMonthStore()
     @State private var budgetListStore = BudgetListStore()
+    @State private var dashboardStore = DashboardStore()
     @State private var deepLinkDestination: DeepLinkDestination?
 
     init() {
@@ -27,6 +29,7 @@ struct PulpeApp: App {
                 .environment(appState)
                 .environment(currentMonthStore)
                 .environment(budgetListStore)
+                .environment(dashboardStore)
                 .onOpenURL { url in
                     handleDeepLink(url)
                 }
@@ -56,6 +59,7 @@ struct RootView: View {
     @Environment(AppState.self) private var appState
     @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(BudgetListStore.self) private var budgetListStore
+    @Environment(DashboardStore.self) private var dashboardStore
     @Environment(\.scenePhase) private var scenePhase
     @Binding var deepLinkDestination: DeepLinkDestination?
     @State private var showAddExpenseSheet = false
@@ -118,7 +122,8 @@ struct RootView: View {
                 Task {
                     async let refreshCurrent: Void = currentMonthStore.forceRefresh()
                     async let refreshBudgets: Void = budgetListStore.forceRefresh()
-                    _ = await (refreshCurrent, refreshBudgets)
+                    async let refreshDashboard: Void = dashboardStore.loadIfNeeded()
+                    _ = await (refreshCurrent, refreshBudgets, refreshDashboard)
                 }
             }
         }
@@ -179,9 +184,7 @@ final class WidgetSyncViewModel {
                 currentBudgetDetails: details
             )
         } catch {
-            #if DEBUG
-            print("WidgetSyncViewModel: exportAllBudgets failed - \(error)")
-            #endif
+            Logger.sync.error("WidgetSyncViewModel: exportAllBudgets failed - \(error)")
             await WidgetDataSyncService.shared.sync(
                 budgetsWithDetails: [],
                 currentBudgetDetails: details

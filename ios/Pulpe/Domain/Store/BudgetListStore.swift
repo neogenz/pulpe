@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 @Observable @MainActor
 final class BudgetListStore: StoreProtocol {
@@ -75,9 +76,7 @@ final class BudgetListStore: StoreProtocol {
                 )
             }
         } catch {
-            #if DEBUG
-            print("BudgetListStore: syncWidgetData failed - \(error)")
-            #endif
+            Logger.sync.error("BudgetListStore: syncWidgetData failed - \(error)")
             await widgetSyncService.sync(
                 budgetsWithDetails: [],
                 currentBudgetDetails: nil

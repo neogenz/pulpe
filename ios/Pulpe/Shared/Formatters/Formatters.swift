@@ -59,6 +59,13 @@ enum Formatters {
         return f
     }()
 
+    static let month: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "fr_FR")
+        f.dateFormat = "MMMM"
+        return f
+    }()
+
     // MARK: - ISO8601
 
     static let iso8601WithFractional: ISO8601DateFormatter = {

@@ -1,5 +1,6 @@
 import Foundation
 import LocalAuthentication
+import OSLog
 import Security
 
 /// Thread-safe Keychain manager for secure token storage
@@ -106,11 +107,9 @@ actor KeychainManager {
 
         let status = SecItemAdd(query as CFDictionary, nil)
 
-        #if DEBUG
         if status != errSecSuccess {
-            print("Keychain save error: \(status)")
+            Logger.auth.error("Keychain save error: \(status)")
         }
-        #endif
     }
 
     private func get(key: String) -> String? {
@@ -158,9 +157,7 @@ actor KeychainManager {
             .biometryCurrentSet,
             &error
         ) else {
-            #if DEBUG
-            print("Keychain access control error: \(String(describing: error))")
-            #endif
+            Logger.auth.error("Keychain access control error: \(String(describing: error))")
             return
         }
 
@@ -174,11 +171,9 @@ actor KeychainManager {
 
         let status = SecItemAdd(query as CFDictionary, nil)
 
-        #if DEBUG
         if status != errSecSuccess {
-            print("Keychain biometric save error: \(status)")
+            Logger.auth.error("Keychain biometric save error: \(status)")
         }
-        #endif
     }
 
     private func getBiometric(key: String) throws -> String? {
