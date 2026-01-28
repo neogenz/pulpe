@@ -131,6 +131,26 @@ test.describe('Mobile scroll behavior', () => {
       expect(afterScrollPosition!.y).toBe(initialPosition!.y);
     });
 
+    test('page content should fill full viewport height even with minimal content', async ({
+      authenticatedPage: page,
+    }) => {
+      await page.waitForLoadState('networkidle');
+
+      const { sidenavContentHeight, viewportHeight } = await page.evaluate(() => {
+        const sidenavContent = document.querySelector('[data-testid="main-content"]');
+        if (!sidenavContent) {
+          throw new Error('Element [data-testid="main-content"] not found in DOM.');
+        }
+        return {
+          sidenavContentHeight: sidenavContent.getBoundingClientRect().height,
+          viewportHeight: window.innerHeight,
+        };
+      });
+
+      // mat-sidenav-content should fill at least the full viewport height
+      expect(sidenavContentHeight).toBeGreaterThanOrEqual(viewportHeight);
+    });
+
     test('menu should open correctly after scrolling', async ({
       authenticatedPage: page,
     }) => {
