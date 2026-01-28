@@ -26,14 +26,18 @@ struct AddTransactionSheet: View {
         !isLoading
     }
 
+    private static let amountFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 2
+        formatter.groupingSeparator = "'"
+        return formatter
+    }()
+
     private var displayAmount: String {
         if let amount, amount > 0 {
-            let formatter = NumberFormatter()
-            formatter.numberStyle = .decimal
-            formatter.minimumFractionDigits = 0
-            formatter.maximumFractionDigits = 2
-            formatter.groupingSeparator = "'"
-            return formatter.string(from: amount as NSDecimalNumber) ?? "0"
+            return Self.amountFormatter.string(from: amount as NSDecimalNumber) ?? "0"
         }
         return "0.00"
     }

@@ -304,7 +304,7 @@ struct LoginView: View {
     }
 }
 
-@Observable
+@Observable @MainActor
 final class LoginViewModel {
     var email = ""
     var password = ""
