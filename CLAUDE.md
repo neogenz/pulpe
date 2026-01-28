@@ -79,7 +79,9 @@ paths: "**/*.ts"
 - `income` → "Revenu" | `expense` → "Dépense" | `saving` → "Épargne"
 - Labels: "Disponible à dépenser", "Épargne prévue", "Fréquence"
 
-## Key Files
+## Further Reading
+
+**IMPORTANT:** Before starting any task, read the relevant docs below.
 
 | Purpose | Path |
 |---------|------|

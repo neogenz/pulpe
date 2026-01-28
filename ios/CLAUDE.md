@@ -3,7 +3,7 @@
 ## Commands
 
 ```bash
-xcodegen generate                        # Regenerate Xcode project (required after modifying project.yml)
+xcodegen generate                        # Regenerate Xcode project
 xcodebuild build -scheme Pulpe -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' CODE_SIGNING_ALLOWED=NO
 cd .. && pnpm dev:backend                # Run backend
 ```
@@ -16,20 +16,19 @@ cd .. && pnpm dev:backend                # Run backend
 | `CURRENT_PROJECT_VERSION` | Build (1, 2, 3...) | Chaque upload TestFlight     |
 
 ```bash
-./scripts/bump-version.sh           # Show current version
 ./scripts/bump-version.sh patch     # 1.0.0 → 1.0.1 (reset build to 1)
 ./scripts/bump-version.sh build     # build 1 → 2
 ```
 
-## Architecture Rules
+## Architecture
 
-| Layer    | Location    | Rule                                                       |
-| -------- | ----------- | ---------------------------------------------------------- |
-| App      | `App/`      | Entry point, AppState only - NO business logic             |
-| Core     | `Core/`     | Services are **actors** (thread-safe), infrastructure only |
-| Domain   | `Domain/`   | Models are `Sendable`, services wrap APIClient             |
-| Features | `Features/` | Views + ViewModels, use sheets for forms                   |
-| Shared   | `Shared/`   | Reusable components, extensions, formatters                |
+| Layer    | Location    | Purpose                           |
+| -------- | ----------- | --------------------------------- |
+| App      | `App/`      | Entry point, AppState             |
+| Core     | `Core/`     | Services (actors), infrastructure |
+| Domain   | `Domain/`   | Models, business logic            |
+| Features | `Features/` | Views + ViewModels                |
+| Shared   | `Shared/`   | Reusable components               |
 
 ## Key Patterns
 
@@ -39,7 +38,6 @@ cd .. && pnpm dev:backend                # Run backend
 | Navigation  | `NavigationStack(path:)` with typed destinations   |
 | Concurrency | **Actors** for services, all models are `Sendable` |
 | Forms       | Sheet-based with completion callback               |
-| Dependency  | Constructor injection with `.shared` defaults      |
 
 ## Forbidden
 
@@ -48,7 +46,6 @@ cd .. && pnpm dev:backend                # Run backend
 | Add external dependencies | SPM only (Supabase + Lottie already added)       |
 | Use `ObservableObject`    | iOS 17+ uses `@Observable` only                  |
 | Store data locally        | Keychain for tokens only, API is source of truth |
-| Mix UI in Domain layer    | Keep Domain pure (models, services, formulas)    |
 
 ## Business Vocabulary
 
@@ -59,47 +56,10 @@ cd .. && pnpm dev:backend                # Run backend
 | `saving`                  | Épargne                          |
 | `BudgetLine`              | Catégorie / Ligne budgétaire     |
 | `Transaction` (allocated) | Transaction liée à une catégorie |
-| `Transaction` (free)      | Transaction libre                |
-| `checkedAt != nil`        | Transaction comptabilisée        |
 
-## Critical Files
-
-| Purpose              | Path                                   |
-| -------------------- | -------------------------------------- |
-| Global state machine | `App/AppState.swift`                   |
-| API contract         | `Core/Network/Endpoints.swift`         |
-| Business logic       | `Domain/Formulas/BudgetFormulas.swift` |
-| Auth + biometric     | `Core/Auth/AuthService.swift`          |
-| Runtime config       | `Core/Config/AppConfiguration.swift`   |
-
-## Currency & Formatting
-
-All amounts are `Decimal`. Use extensions:
+## Currency
 
 ```swift
 amount.asCHF        // "CHF 1'234.56"
-amount.asCompactCHF // "CHF 1'235" (whole numbers only)
+amount.asCompactCHF // "CHF 1'235"
 ```
-
-## API Configuration
-
-| Build   | API Base URL                   |
-| ------- | ------------------------------ |
-| Debug   | `http://localhost:3000/api/v1` |
-| Release | Production Railway URL         |
-
-Backend must be running for the app to work (no offline mode).
-
-## CI/CD
-
-Build is validated on every PR that modifies `ios/`.
-
-```bash
-# Local command equivalent to CI build
-xcodegen generate && xcodebuild build -scheme Pulpe -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' CODE_SIGNING_ALLOWED=NO
-```
-
-| Phase | Status | Description |
-| ----- | ------ | ----------- |
-| Build validation | Active | Compiles on every PR |
-| TestFlight | Planned | After Apple Developer Program |
