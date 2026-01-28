@@ -26,7 +26,8 @@ final class OnboardingState {
     var currentStep: OnboardingStep = .welcome
     var isLoading: Bool = false
     var error: Error?
-    var isUserCreated: Bool = false
+    var signupProgress: SignupProgress = .notStarted
+    var createdTemplateId: String?
 
     // MARK: - Persistence Keys
 
@@ -50,7 +51,8 @@ final class OnboardingState {
     }
 
     var isEmailValid: Bool {
-        email.contains("@") && email.contains(".")
+        let pattern = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/
+        return email.wholeMatch(of: pattern) != nil
     }
 
     var isPasswordValid: Bool {
@@ -253,6 +255,14 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
         case .registration: .pulpePrimary
         }
     }
+}
+
+// MARK: - Signup Progress
+
+enum SignupProgress {
+    case notStarted
+    case userCreated
+    case templateCreated(templateId: String)
 }
 
 // MARK: - Storage Data

@@ -23,14 +23,14 @@ extension Color {
 
     // MARK: - Surface Colors
 
-    /// Primary background — DA blanc verdâtre (#F6FFF0 light, #1A1A1A dark)
-    static let surfacePrimary = Color(light: Color(hex: 0xF6FFF0), dark: Color(hex: 0x1A1A1A))
+    /// Primary background — near-white with barely perceptible warmth (#F8F9F8 light, #1A1A1A dark)
+    static let surfacePrimary = Color(light: Color(hex: 0xF8F9F8), dark: Color(hex: 0x1A1A1A))
 
-    /// Card/modal surfaces — DA vert très clair (#EBFFE6 light, #1C1C1E dark)
-    static let surfaceCard = Color(light: Color(hex: 0xEBFFE6), dark: Color(hex: 0x1C1C1E))
+    /// Card/modal surfaces — clean white (#FFFFFF light, #1C1C1E dark)
+    static let surfaceCard = Color(light: .white, dark: Color(hex: 0x1C1C1E))
 
-    /// Secondary surface for form backgrounds (#F0F5EE light, #2C2C2E dark)
-    static let surfaceSecondary = Color(light: Color(hex: 0xF0F5EE), dark: Color(hex: 0x2C2C2E))
+    /// Secondary surface for form backgrounds (#F2F4F2 light, #2C2C2E dark)
+    static let surfaceSecondary = Color(light: Color(hex: 0xF2F4F2), dark: Color(hex: 0x2C2C2E))
 
     // MARK: - Semantic Text Colors
 

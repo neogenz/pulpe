@@ -326,8 +326,8 @@
         "Project compiles"
       ],
       "priority": 23,
-      "passes": false,
-      "notes": "Files in Features/Templates/."
+      "passes": true,
+      "notes": "TemplateDetailsView: replaced .green→Color.financialIncome (income label), .red→Color.financialExpense (expense label), balance ternary .green/.red→Color.financialSavings/Color.financialOverBudget. TemplateListView: replaced swipe delete .tint(.red)→Color.errorPrimary. No other hardcoded colors were present — both files were mostly clean."
     },
     {
       "id": "US-024",
@@ -339,8 +339,8 @@
         "Project compiles"
       ],
       "priority": 24,
-      "passes": false,
-      "notes": "File: Features/Account/AccountView.swift. Check for hardcoded values."
+      "passes": true,
+      "notes": "AccountView was already clean — no hardcoded colors, no .stroke(), no Font.system(). Applied DA surface tokens: .scrollContentBackground(.hidden) + .background(Color.surfacePrimary) for list background, .listRowBackground(Color.surfaceCard) on all 4 sections. Added PulpeTypography.labelLarge to all 3 section headers (Informations Personnelles, Sécurité, Application). Destructive button uses SwiftUI .destructive role — acceptable semantic styling."
     },
     {
       "id": "US-025",
@@ -352,8 +352,8 @@
         "Project compiles"
       ],
       "priority": 25,
-      "passes": false,
-      "notes": "File: Features/Tips/ProductTips.swift. The tooltip bubble width is broken — needs min/max constraints."
+      "passes": true,
+      "notes": "Added .frame(maxWidth: .infinity) and .fixedSize(horizontal: false, vertical: true) to TipView in RecurringExpensesList.swift. The TipView (Apple TipKit) was rendered without width constraints inside a List Section — maxWidth: .infinity ensures it fills the row, fixedSize(horizontal: false, vertical: true) prevents horizontal scrolling and ensures proper text wrapping on small screens."
     },
     {
       "id": "US-026",
@@ -366,8 +366,8 @@
         "Project compiles"
       ],
       "priority": 26,
-      "passes": false,
-      "notes": "ErrorView.swift (ErrorBanner): .red at lines 44/58/64. Replace with Color.errorPrimary (warm orange) and Color.errorBackground."
+      "passes": true,
+      "notes": "ErrorBanner: replaced .foregroundStyle(.red) → Color.errorPrimary (icon, line 44), replaced .foregroundStyle(.red.opacity(0.8)) → Color.errorPrimary (close button, line 58), replaced .background(.red.opacity(0.1)) → Color.errorBackground (banner background, line 64). Replaced spacing: 12 → DesignTokens.Spacing.md, .padding() → .padding(DesignTokens.Spacing.lg), cornerRadius: 12 → DesignTokens.CornerRadius.md. ErrorView (full-screen) uses ContentUnavailableView — no hardcoded colors, no changes needed. EmptyStateView also clean."
     },
     {
       "id": "US-027",
@@ -380,8 +380,8 @@
         "Project compiles"
       ],
       "priority": 27,
-      "passes": false,
-      "notes": "LoadingView.swift: .white at lines 48/54/59, hardcoded padding at line 62."
+      "passes": true,
+      "notes": "LoadingView: replaced .background(.background) → Color.surfacePrimary, spacing: 16 → DesignTokens.Spacing.lg. LoadingOverlay: reduced Color.black.opacity(0.3) → 0.12 (Légèreté pillar), replaced .tint(.white) → .tint(.primary), .foregroundStyle(.white) → .foregroundStyle(.primary) (SwiftUI semantics adapt to light/dark), .padding(24) → DesignTokens.Spacing.xxl, cornerRadius: 16 → DesignTokens.CornerRadius.lg, spacing: 16 → DesignTokens.Spacing.lg. Color.black kept for dim overlay — universal dimming pattern, opacity reduced to 0.12 per AC."
     },
     {
       "id": "US-028",
@@ -393,8 +393,8 @@
         "Project compiles"
       ],
       "priority": 28,
-      "passes": false,
-      "notes": "ToastView.swift: Font.system() at lines 15/28, possibly .white hardcoded."
+      "passes": true,
+      "notes": "ToastView: replaced Font.system(size: 18, weight: .semibold) → PulpeTypography.buttonPrimary (icon), Font.system(.subheadline, design: .rounded, weight: .medium) → PulpeTypography.buttonSecondary (message), Font.system(size: 12, weight: .bold) → PulpeTypography.inputHelper (close icon). Replaced spacing: 12 → DesignTokens.Spacing.md, .padding(.horizontal, 16) → DesignTokens.Spacing.lg (2x), cornerRadius: 12 → DesignTokens.CornerRadius.md. No .white found — PRD note was incorrect. .padding(.vertical, 14) kept as-is (no exact token). Shadow .black.opacity(0.1) kept — acceptable per US-013 pattern."
     },
     {
       "id": "US-029",
@@ -407,8 +407,8 @@
         "Project compiles"
       ],
       "priority": 29,
-      "passes": false,
-      "notes": "File: Shared/Components/KindBadge.swift. Ensure it uses the semantic financial colors from Color+Pulpe."
+      "passes": true,
+      "notes": "KindBadge already uses kind.color which delegates to TransactionKind.color → .financialIncome/.financialExpense/.financialSavings (all DA semantic tokens). Badge background uses kind.color.opacity(DesignTokens.Opacity.badgeBackground). RecurrenceBadge uses .secondary (SwiftUI semantic). No hardcoded colors, no Font.system(). Small spacing values (4, 6, 8) kept as-is — too granular for DesignTokens.Spacing. File was already fully harmonized."
     },
     {
       "id": "US-030",
@@ -420,8 +420,8 @@
         "Project compiles"
       ],
       "priority": 30,
-      "passes": false,
-      "notes": "File: Features/CurrentMonth/Components/SectionHeader.swift. Has .white hardcoded."
+      "passes": true,
+      "notes": "SectionHeader: replaced .foregroundStyle(.white) → Color.textOnPrimary (count badge text), .foregroundStyle(.primary) → Color.textPrimary (title), spacing: 8 → DesignTokens.Spacing.sm, .padding(.horizontal, 8) → DesignTokens.Spacing.sm. Font.system() on caption badge and subheadline total kept as-is — caption-specific styling with no PulpeTypography equivalent. .padding(.vertical, 3) kept — too granular for tokens. Title already uses .headline matching .pulpeSectionHeader() pattern."
     }
   ]
 }

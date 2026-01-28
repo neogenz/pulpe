@@ -49,7 +49,7 @@ struct DashboardHeroCard: View {
     // MARK: - Body
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
             // Label
             Text("Disponible")
                 .font(.subheadline)
@@ -63,23 +63,23 @@ struct DashboardHeroCard: View {
                 .contentTransition(.numericText())
 
             // Progress bar with percentage
-            HStack(spacing: 12) {
+            HStack(spacing: DesignTokens.Spacing.md) {
                 // Linear progress bar
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
                         // Track
-                        RoundedRectangle(cornerRadius: 4)
+                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xs)
                             .fill(Color.progressTrack)
-                            .frame(height: 8)
+                            .frame(height: DesignTokens.FrameHeight.progressBar)
 
                         // Fill
-                        RoundedRectangle(cornerRadius: 4)
+                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xs)
                             .fill(progressColor)
-                            .frame(width: geometry.size.width * clampedPercentage, height: 8)
+                            .frame(width: geometry.size.width * clampedPercentage, height: DesignTokens.FrameHeight.progressBar)
                             .animation(.spring(duration: 0.6), value: clampedPercentage)
                     }
                 }
-                .frame(height: 8)
+                .frame(height: DesignTokens.FrameHeight.progressBar)
 
                 // Percentage text
                 Text("\(displayPercentage)% utilisé")
@@ -101,8 +101,8 @@ struct DashboardHeroCard: View {
                 .foregroundStyle(status.color)
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 24)
+        .padding(.horizontal, DesignTokens.Spacing.xl)
+        .padding(.vertical, DesignTokens.Spacing.xxl)
         .heroCardStyle()
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Disponible \(metrics.remaining.asCHF), \(displayPercentage) pourcent du budget utilisé")

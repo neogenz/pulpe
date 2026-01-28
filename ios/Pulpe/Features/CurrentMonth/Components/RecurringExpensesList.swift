@@ -60,47 +60,11 @@ struct BudgetSection: View {
                 budgetLineRow(for: item)
                     .listRowSeparator(.hidden)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    if !item.isVirtualRollover {
-                        Button {
-                            itemToDelete = item
-                            showDeleteAlert = true
-                            ProductTips.gestures.invalidate(reason: .actionPerformed)
-                        } label: {
-                            Label("Supprimer", systemImage: "trash")
-                        }
-                        .tint(Color.errorPrimary)
-
-                        Button {
-                            onToggle(item)
-                            ProductTips.gestures.invalidate(reason: .actionPerformed)
-                        } label: {
-                            Label(
-                                item.isChecked ? "Annuler" : "Comptabiliser",
-                                systemImage: item.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
-                            )
-                        }
-                        .tint(item.isChecked ? Color.financialOverBudget : .pulpePrimary)
+                        swipeActions(for: item)
                     }
-                }
             }
 
-            if hasMoreItems {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        isExpanded.toggle()
-                    }
-                } label: {
-                    HStack {
-                        Text(isExpanded ? "Voir moins" : "Voir plus (+\(hiddenItemsCount))")
-                            .font(.subheadline)
-                        Spacer()
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .listRowSeparator(.hidden)
-            }
+            expandCollapseButton
         } header: {
             SectionHeader(
                 title: title,
@@ -121,6 +85,53 @@ struct BudgetSection: View {
             }
         } message: { _ in
             Text("Cette action est irréversible.")
+        }
+    }
+
+    @ViewBuilder
+    private func swipeActions(for item: BudgetLine) -> some View {
+        if !item.isVirtualRollover {
+            Button {
+                itemToDelete = item
+                showDeleteAlert = true
+                ProductTips.gestures.invalidate(reason: .actionPerformed)
+            } label: {
+                Label("Supprimer", systemImage: "trash")
+            }
+            .tint(Color.errorPrimary)
+
+            Button {
+                onToggle(item)
+                ProductTips.gestures.invalidate(reason: .actionPerformed)
+            } label: {
+                Label(
+                    item.isChecked ? "Annuler" : "Comptabiliser",
+                    systemImage: item.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
+                )
+            }
+            .tint(item.isChecked ? Color.financialOverBudget : .pulpePrimary)
+        }
+    }
+
+    private var expandCollapseButton: some View {
+        Group {
+            if hasMoreItems {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    HStack {
+                        Text(isExpanded ? "Voir moins" : "Voir plus (+\(hiddenItemsCount))")
+                            .font(.subheadline)
+                        Spacer()
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .listRowSeparator(.hidden)
+            }
         }
     }
 

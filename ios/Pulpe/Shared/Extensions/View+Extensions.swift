@@ -50,7 +50,7 @@ extension View {
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
-        .animation(.spring(duration: 0.3), value: manager.currentToast)
+        .animation(DesignTokens.Animation.defaultSpring, value: manager.currentToast)
     }
 
     /// DA-compliant card styling: surfaceCard background, lg corner radius, subtle shadow

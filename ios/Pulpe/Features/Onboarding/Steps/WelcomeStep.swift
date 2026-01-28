@@ -67,10 +67,10 @@ struct WelcomeStep: View {
                             .font(.system(size: 14, weight: .semibold))
                     }
                     .frame(maxWidth: .infinity)
-                    .frame(height: 54)
+                    .frame(height: DesignTokens.FrameHeight.button)
                     .background(Color.onboardingGradient)
                     .foregroundStyle(Color.textOnPrimary)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button))
                     .shadow(color: Color.pulpePrimary.opacity(0.3), radius: 8, y: 4)
                 }
 
@@ -86,7 +86,7 @@ struct WelcomeStep: View {
                 .font(.subheadline)
             }
             .padding(.horizontal, 24)
-            .padding(.bottom, 32)
+            .padding(.bottom, DesignTokens.Spacing.xxxl)
         }
         .background(Color.onboardingBackground)
         .sheet(isPresented: $showLogin) {

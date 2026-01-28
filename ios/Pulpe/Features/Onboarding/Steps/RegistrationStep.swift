@@ -134,20 +134,27 @@ struct RegistrationStep: View {
             let authService = AuthService.shared
             var user: UserInfo
 
-            if !state.isUserCreated {
+            switch state.signupProgress {
+            case .notStarted:
                 user = try await authService.signup(email: state.email, password: state.password)
-                state.isUserCreated = true
-            } else {
-                // User already created, validate session
+                state.signupProgress = .userCreated
+            case .userCreated, .templateCreated:
                 guard let existingUser = try await authService.validateSession() else {
                     throw APIError.unauthorized
                 }
                 user = existingUser
             }
 
-            // Step 2: Create template from onboarding data
-            let templateService = TemplateService.shared
-            let template = try await templateService.createTemplateFromOnboarding(state.createTemplateData())
+            // Step 2: Create template (if not already created)
+            let templateId: String
+            if case .templateCreated(let existingId) = state.signupProgress {
+                templateId = existingId
+            } else {
+                let templateService = TemplateService.shared
+                let template = try await templateService.createTemplateFromOnboarding(state.createTemplateData())
+                templateId = template.id
+                state.signupProgress = .templateCreated(templateId: templateId)
+            }
 
             // Step 3: Create initial budget for current month
             let budgetService = BudgetService.shared
@@ -156,7 +163,7 @@ struct RegistrationStep: View {
                 month: now.month,
                 year: now.year,
                 description: now.monthYearFormatted,
-                templateId: template.id
+                templateId: templateId
             )
             _ = try await budgetService.createBudget(budgetData)
 

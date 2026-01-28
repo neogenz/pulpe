@@ -292,3 +292,108 @@ Feature: 01-ios-ui-harmonization
   - `spacing: 2`, `spacing: 6`, `spacing: 10` in grid and card layouts kept as-is — too granular for DesignTokens.Spacing
 ---
 
+## 2026-01-28 - US-023: Harmonize TemplateListView and TemplateDetailsView — replace red, use tokens
+- TemplateDetailsView: replaced `.green` → `Color.financialIncome` (income label), `.red` → `Color.financialExpense` (expense label), balance ternary `.green/.red` → `Color.financialSavings/Color.financialOverBudget`
+- TemplateListView: replaced swipe delete `.tint(.red)` → `Color.errorPrimary`
+- Files changed: `TemplateDetailsView.swift`, `TemplateListView.swift`
+- **Learnings:**
+  - Income/expense labels use `Color.financialIncome` (blue) / `Color.financialExpense` (orange) — these are category-specific semantic colors, distinct from `financialSavings`/`financialOverBudget` which are for positive/negative balance states
+  - TemplateRow uses `.secondary` and `Color.accentColor` — both are SwiftUI semantics that adapt to light/dark, acceptable to keep
+  - `line.kind.color` in TemplateLineRow is already semantic (from the model) — no replacement needed
+  - Both files were very clean — only 4 hardcoded color instances total across both files
+---
+
+## 2026-01-28 - US-024: Harmonize AccountView — use DA tokens
+- AccountView was already clean — no hardcoded colors (.red, .green, .white, .black), no .stroke(), no Font.system(), no hardcoded spacing
+- Applied DA surface tokens: `.scrollContentBackground(.hidden)` + `.background(Color.surfacePrimary)` for verdâtre list background
+- Added `.listRowBackground(Color.surfaceCard)` to all 4 sections (Informations Personnelles, Sécurité, Application, Déconnexion)
+- Added `PulpeTypography.labelLarge` to all 3 section header Text views
+- Destructive "Déconnexion" button uses SwiftUI `.destructive` role — this is a semantic system styling, not a hardcoded `.red`
+- Files changed: `AccountView.swift`
+- **Learnings:**
+  - `.listStyle(.insetGrouped)` uses system background by default — `.scrollContentBackground(.hidden)` + `.background(Color.surfacePrimary)` overrides it with DA verdâtre
+  - SwiftUI `Button(role: .destructive)` is a semantic API (system decides the color) — acceptable to keep, not considered a hardcoded `.red`
+  - AccountView is a settings-style screen with standard List/Section/LabeledContent — minimal violations since it relies on system components
+---
+
+## 2026-01-28 - US-025: Fix ProductTips tooltip width bug
+- Added `.frame(maxWidth: .infinity)` to TipView to fill the List row width
+- Added `.fixedSize(horizontal: false, vertical: true)` to prevent horizontal scrolling and ensure text wraps
+- The actual tooltip rendering is in RecurringExpensesList.swift (line 54), not ProductTips.swift (which is just the TipKit data model)
+- Files changed: `RecurringExpensesList.swift`
+- **Learnings:**
+  - ProductTips.swift is a TipKit data model file (defines `Tip` structs with rules) — it has no UI code. The tooltip is rendered via `TipView(ProductTips.gestures)` in RecurringExpensesList.swift
+  - TipKit's `TipView` inside a List Section can have width issues — `.frame(maxWidth: .infinity)` + `.fixedSize(horizontal: false, vertical: true)` is the standard fix
+  - `.fixedSize(horizontal: false, vertical: true)` prevents horizontal expansion while allowing vertical growth for text wrapping — critical for multi-line tooltip messages
+---
+
+## 2026-01-28 - US-026: Harmonize ErrorView — warm tone, no red
+- ErrorBanner: replaced `.foregroundStyle(.red)` → `Color.errorPrimary` (icon), `.foregroundStyle(.red.opacity(0.8))` → `Color.errorPrimary` (close button), `.background(.red.opacity(0.1))` → `Color.errorBackground` (banner background)
+- Replaced `spacing: 12` → `DesignTokens.Spacing.md`, `.padding()` → `.padding(DesignTokens.Spacing.lg)`, `cornerRadius: 12` → `DesignTokens.CornerRadius.md`
+- ErrorView (full-screen) uses `ContentUnavailableView` — system component, no hardcoded colors, no changes needed
+- EmptyStateView also uses `ContentUnavailableView` — clean, no changes needed
+- Files changed: `ErrorView.swift`
+- **Learnings:**
+  - `ContentUnavailableView` is a SwiftUI system component that handles its own styling — no DA harmonization needed
+  - ErrorBanner had 3 `.red` instances: icon foreground, close button foreground, and background — all replaced with warm DA tokens
+  - `.red.opacity(0.1)` background → `Color.errorBackground` is a direct semantic replacement (soft warm tint)
+  - Close button dismiss icon uses `Color.errorPrimary` (same as the error icon) — both are warm orange, not aggressive red
+---
+
+## 2026-01-28 - US-027: Harmonize LoadingView — reduce opacity, replace white/black
+- LoadingView: replaced `.background(.background)` → `Color.surfacePrimary` (DA verdâtre), replaced `spacing: 16` → `DesignTokens.Spacing.lg`
+- LoadingOverlay: reduced `Color.black.opacity(0.3)` → `0.12` (non-intrusive per DA Légèreté pillar), replaced `.tint(.white)` → `.tint(.primary)`, `.foregroundStyle(.white)` → `.foregroundStyle(.primary)`, `.padding(24)` → `DesignTokens.Spacing.xxl`, `cornerRadius: 16` → `DesignTokens.CornerRadius.lg`, `spacing: 16` → `DesignTokens.Spacing.lg`
+- InlineLoadingView: already clean — just a bare ProgressView with .circular style
+- Files changed: `LoadingView.swift`
+- **Learnings:**
+  - `Color.black.opacity()` for dim overlays is an acceptable pattern even though `.black` is hardcoded — it's a universal dimming technique (black dims in both light and dark modes). The key is reducing opacity to 0.1-0.15 per DA Légèreté
+  - `.primary` (SwiftUI semantic) adapts to the color scheme context — on `.ultraThinMaterial` it provides good contrast in both modes, unlike `.white` which only works on dark backgrounds
+  - `.background(.background)` is SwiftUI semantic but replaced with `Color.surfacePrimary` for DA verdâtre consistency across all full-screen backgrounds
+  - LoadingOverlay opacity 0.12 (vs original 0.3) makes the overlay feel much lighter and less blocking — aligns with DA "non-intrusive" principle
+---
+
+## 2026-01-28 - US-028: Harmonize ToastView — replace Font.system() with PulpeTypography
+- Replaced `Font.system(size: 18, weight: .semibold)` → `PulpeTypography.buttonPrimary` (toast icon)
+- Replaced `Font.system(.subheadline, design: .rounded, weight: .medium)` → `PulpeTypography.buttonSecondary` (toast message)
+- Replaced `Font.system(size: 12, weight: .bold)` → `PulpeTypography.inputHelper` (close icon)
+- Replaced `spacing: 12` → `DesignTokens.Spacing.md`, `.padding(.horizontal, 16)` → `DesignTokens.Spacing.lg` (2 instances), `cornerRadius: 12` → `DesignTokens.CornerRadius.md`
+- `.padding(.vertical, 14)` kept as-is — no exact token match (between md=12 and lg=16), consistent with prior decisions
+- No `.white` was found — PRD note "possibly .white hardcoded" was incorrect
+- Files changed: `ToastView.swift`
+- **Learnings:**
+  - Toast components map well to existing PulpeTypography button tokens: `buttonPrimary` for prominent icons, `buttonSecondary` for body text, `inputHelper` for small dismiss icons
+  - `.foregroundStyle(toast.type.color)` is semantic (from the model) — no replacement needed
+  - `.primary` and `.secondary` foregroundStyle are SwiftUI semantics — acceptable to keep
+  - Shadow `.black.opacity(0.1)` is a standard shadow pattern — acceptable per US-013 learnings
+  - `.ultraThinMaterial` is a system material — no DA replacement needed
+---
+
+## 2026-01-28 - US-029: Harmonize KindBadge — use Color.financial* semantic colors
+- KindBadge was already fully harmonized — no changes needed
+- `kind.color` delegates to `TransactionKind.color` which already returns `.financialIncome`, `.financialExpense`, `.financialSavings`
+- Badge background uses `kind.color.opacity(DesignTokens.Opacity.badgeBackground)` — already tokenized
+- RecurrenceBadge uses `.secondary` (SwiftUI semantic) — acceptable
+- Small spacing (4, 6, 8) in badge layout kept as-is — too granular for tokens
+- Files changed: none (no code changes required)
+- **Learnings:**
+  - Always check the model layer before assuming violations — `kind.color` was already semantic via `TransactionKind.color`
+  - KindBadge is a good example of a fully DA-compliant component: semantic model colors + DesignTokens.Opacity for badge backgrounds
+  - `.caption2` is a SwiftUI dynamic type style — acceptable for badge text (not an input or header)
+---
+
+## 2026-01-28 - US-030: Harmonize SectionHeader — replace white, ensure uniform usage
+- Replaced `.foregroundStyle(.white)` → `Color.textOnPrimary` (count badge text on colored background)
+- Replaced `.foregroundStyle(.primary)` → `Color.textPrimary` (title text, explicit DA token)
+- Replaced `spacing: 8` → `DesignTokens.Spacing.sm`, `.padding(.horizontal, 8)` → `DesignTokens.Spacing.sm`
+- `.padding(.vertical, 3)` kept as-is — too granular for tokens
+- `Font.system(.caption, design: .rounded, weight: .semibold)` on count badge kept — caption-specific styling with no PulpeTypography equivalent
+- `Font.system(.subheadline, design: .rounded, weight: .semibold)` on total amount kept — display text, not input/header
+- Title already uses `.headline` matching `.pulpeSectionHeader()` pattern from US-003
+- Files changed: `SectionHeader.swift`
+- **Learnings:**
+  - `.white` on badge text over `Color.countBadge` background → `Color.textOnPrimary` is the correct semantic replacement (text on colored background)
+  - `.primary` (SwiftUI semantic) was replaced with `Color.textPrimary` (DA token) for explicit consistency — both adapt to light/dark but `textPrimary` uses DA-specific hex values (#181D17/#F5F5F5)
+  - `Font.system(.caption, ...)` with specific design/weight for small badge text has no PulpeTypography equivalent — acceptable to keep for specialized components
+  - SectionHeader's title styling (.headline + textPrimary) matches the `.pulpeSectionHeader()` modifier pattern established in US-003
+---
+

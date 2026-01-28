@@ -24,7 +24,7 @@ actor AuthService {
         let session = try await supabase.auth.signIn(email: email, password: password)
 
         // Save tokens to keychain for API calls
-        await keychain.saveTokens(
+        try await keychain.saveTokens(
             accessToken: session.accessToken,
             refreshToken: session.refreshToken
         )
@@ -45,7 +45,7 @@ actor AuthService {
         }
 
         // Save tokens to keychain for API calls
-        await keychain.saveTokens(
+        try await keychain.saveTokens(
             accessToken: session.accessToken,
             refreshToken: session.refreshToken
         )
@@ -69,7 +69,7 @@ actor AuthService {
             let session = try await supabase.auth.session
 
             // Refresh tokens in keychain
-            await keychain.saveTokens(
+            try await keychain.saveTokens(
                 accessToken: session.accessToken,
                 refreshToken: session.refreshToken
             )
@@ -105,7 +105,7 @@ actor AuthService {
         // Try to get fresh token from Supabase
         if let session = try? await supabase.auth.session {
             // Update keychain with latest token
-            await keychain.saveTokens(
+            try? await keychain.saveTokens(
                 accessToken: session.accessToken,
                 refreshToken: session.refreshToken
             )
@@ -140,7 +140,7 @@ actor AuthService {
 
         let session = try await supabase.auth.refreshSession(refreshToken: refreshToken)
 
-        await keychain.saveTokens(
+        try await keychain.saveTokens(
             accessToken: session.accessToken,
             refreshToken: session.refreshToken
         )

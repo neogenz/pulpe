@@ -27,10 +27,10 @@ struct OnboardingNavigationButtons: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 54)
+                .frame(height: DesignTokens.FrameHeight.button)
                 .background(buttonBackground)
                 .foregroundStyle(Color.textOnPrimary)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button))
                 .shadow(
                     color: canProceed ? Color.pulpePrimary.opacity(0.3) : .clear,
                     radius: 8,
@@ -55,7 +55,7 @@ struct OnboardingNavigationButtons: View {
             }
         }
         .padding(.horizontal, DesignTokens.Spacing.xxl)
-        .padding(.bottom, 32)
+        .padding(.bottom, DesignTokens.Spacing.xxxl)
     }
 
     private var buttonTitle: String {
