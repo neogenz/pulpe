@@ -197,8 +197,9 @@ struct BudgetDetailsView: View {
                     metrics: viewModel.metrics,
                     onTapProgress: {}
                 )
+                .padding(.horizontal, 4)
             }
-            .listRowInsets(EdgeInsets())
+            .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
             .listRowBackground(Color.clear)
 
             // Rollover section (toujours en premier)
