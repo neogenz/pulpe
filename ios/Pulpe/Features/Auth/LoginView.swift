@@ -19,19 +19,19 @@ struct LoginView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     // Logo and title
-                    VStack(spacing: 20) {
+                    VStack(spacing: DesignTokens.Spacing.xl) {
                         PulpeIcon(size: 88)
                             .scaleEffect(isAppeared ? 1 : 0.8)
                             .opacity(isAppeared ? 1 : 0)
 
-                        VStack(spacing: 8) {
+                        VStack(spacing: DesignTokens.Spacing.sm) {
                             Text("Pulpe")
-                                .font(.system(size: 36, weight: .bold, design: .rounded))
+                                .font(PulpeTypography.brandTitle)
                                 .tracking(1)
                                 .foregroundStyle(Color.pulpePrimary)
 
                             Text("Content de te revoir")
-                                .font(.system(size: 17, weight: .medium, design: .rounded))
+                                .font(PulpeTypography.onboardingSubtitle)
                                 .foregroundStyle(Color.textSecondaryOnboarding)
                         }
                         .opacity(isAppeared ? 1 : 0)
@@ -42,20 +42,21 @@ struct LoginView: View {
                     .animation(reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 0.8), value: isAppeared)
 
                     // Form card
-                    VStack(spacing: 20) {
+                    VStack(spacing: DesignTokens.Spacing.xl) {
                         // Error message
                         if let errorMessage = viewModel.errorMessage {
-                            HStack(spacing: 10) {
+                            HStack(spacing: DesignTokens.Spacing.sm) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.body)
+                                    .foregroundStyle(Color.errorPrimary)
                                 Text(errorMessage)
                                     .font(.subheadline)
                                     .multilineTextAlignment(.leading)
+                                    .foregroundStyle(Color.textPrimary)
                             }
-                            .foregroundStyle(.white)
-                            .padding(14)
+                            .padding(DesignTokens.Spacing.lg)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.red.opacity(0.9), in: RoundedRectangle(cornerRadius: 12))
+                            .background(Color.errorBackground, in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
                         }
 
                         // Biometric button
@@ -65,7 +66,7 @@ struct LoginView: View {
                                     await appState.retryBiometricLogin()
                                 }
                             } label: {
-                                HStack(spacing: 12) {
+                                HStack(spacing: DesignTokens.Spacing.md) {
                                     Image(systemName: biometricIcon)
                                         .font(.title3)
                                     Text("Continuer avec \(BiometricService.shared.biometryDisplayName)")
@@ -74,13 +75,13 @@ struct LoginView: View {
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 54)
                                 .background(Color.onboardingGradient)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(Color.textOnPrimary)
                                 .clipShape(RoundedRectangle(cornerRadius: 14))
                                 .shadow(color: Color.pulpePrimary.opacity(0.25), radius: 8, y: 4)
                             }
 
                             // Divider
-                            HStack(spacing: 16) {
+                            HStack(spacing: DesignTokens.Spacing.lg) {
                                 Rectangle()
                                     .fill(Color.secondary.opacity(0.2))
                                     .frame(height: 1)
@@ -91,13 +92,13 @@ struct LoginView: View {
                                     .fill(Color.secondary.opacity(0.2))
                                     .frame(height: 1)
                             }
-                            .padding(.vertical, 4)
+                            .padding(.vertical, DesignTokens.Spacing.xs)
                         }
 
                         // Email field
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                             Text("Adresse e-mail")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(PulpeTypography.inputLabel)
                                 .foregroundStyle(Color.textSecondaryOnboarding)
 
                             TextField(
@@ -111,18 +112,11 @@ struct LoginView: View {
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .focused($focusedField, equals: .email)
-                            .font(.system(size: 16))
-                            .padding(.horizontal, 18)
+                            .font(PulpeTypography.bodyLarge)
+                            .padding(.horizontal, DesignTokens.Spacing.lg)
                             .frame(height: 54)
                             .background(Color.inputBackgroundSoft)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(
-                                        focusedField == .email ? Color.pulpePrimary : Color.clear,
-                                        lineWidth: 2
-                                    )
-                            )
                             .shadow(
                                 color: focusedField == .email ? Color.inputFocusGlow : Color.black.opacity(0.04),
                                 radius: focusedField == .email ? 8 : 4,
@@ -134,12 +128,12 @@ struct LoginView: View {
                         }
 
                         // Password field
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                             Text("Mot de passe")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(PulpeTypography.inputLabel)
                                 .foregroundStyle(Color.textSecondaryOnboarding)
 
-                            HStack(spacing: 12) {
+                            HStack(spacing: DesignTokens.Spacing.md) {
                                 Group {
                                     if viewModel.showPassword {
                                         TextField(
@@ -159,7 +153,7 @@ struct LoginView: View {
                                 }
                                 .textContentType(.password)
                                 .focused($focusedField, equals: .password)
-                                .font(.system(size: 16))
+                                .font(PulpeTypography.bodyLarge)
                                 .accessibilityIdentifier("password")
 
                                 Button {
@@ -168,23 +162,16 @@ struct LoginView: View {
                                     }
                                 } label: {
                                     Image(systemName: viewModel.showPassword ? "eye.slash.fill" : "eye.fill")
-                                        .font(.system(size: 16))
+                                        .font(PulpeTypography.bodyLarge)
                                         .foregroundStyle(Color.textTertiaryOnboarding)
                                         .contentTransition(.symbolEffect(.replace))
                                 }
                                 .accessibilityLabel(viewModel.showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe")
                             }
-                            .padding(.horizontal, 18)
+                            .padding(.horizontal, DesignTokens.Spacing.lg)
                             .frame(height: 54)
                             .background(Color.inputBackgroundSoft)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(
-                                        focusedField == .password ? Color.pulpePrimary : Color.clear,
-                                        lineWidth: 2
-                                    )
-                            )
                             .shadow(
                                 color: focusedField == .password ? Color.inputFocusGlow : Color.black.opacity(0.04),
                                 radius: focusedField == .password ? 8 : 4,
@@ -200,23 +187,23 @@ struct LoginView: View {
                                 await login()
                             }
                         } label: {
-                            HStack(spacing: 8) {
+                            HStack(spacing: DesignTokens.Spacing.sm) {
                                 if viewModel.isLoading {
                                     ProgressView()
-                                        .tint(.white)
+                                        .tint(Color.textOnPrimary)
                                         .accessibilityLabel("Connexion en cours")
                                 } else {
                                     Text("Se connecter")
                                         .fontWeight(.semibold)
                                     Image(systemName: "arrow.right")
-                                        .font(.system(size: 14, weight: .semibold))
+                                        .font(PulpeTypography.inputLabel)
                                 }
                             }
                             .frame(maxWidth: .infinity)
                             .frame(height: 54)
                             .background(viewModel.canSubmit ? Color.onboardingGradient : nil)
                             .background(viewModel.canSubmit ? nil : Color.secondary.opacity(0.3))
-                            .foregroundStyle(viewModel.canSubmit ? .white : Color.secondary)
+                            .foregroundStyle(viewModel.canSubmit ? Color.textOnPrimary : Color.secondary)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                             .shadow(
                                 color: viewModel.canSubmit ? Color.pulpePrimary.opacity(0.25) : .clear,
@@ -227,21 +214,21 @@ struct LoginView: View {
                         .disabled(!viewModel.canSubmit)
                         .animation(.easeInOut(duration: 0.2), value: viewModel.canSubmit)
                         .accessibilityIdentifier("loginButton")
-                        .padding(.top, 8)
+                        .padding(.top, DesignTokens.Spacing.sm)
                     }
-                    .padding(24)
+                    .padding(DesignTokens.Spacing.xxl)
                     .background(Color.onboardingCardBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 24))
                     .shadow(color: Color.black.opacity(0.08), radius: 24, y: 10)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, DesignTokens.Spacing.xl)
                     .opacity(isAppeared ? 1 : 0)
                     .offset(y: isAppeared ? 0 : 20)
                     .animation(reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: isAppeared)
 
                     // Create account link
-                    VStack(spacing: 8) {
+                    VStack(spacing: DesignTokens.Spacing.sm) {
                         Text("Nouveau sur Pulpe ?")
-                            .font(.system(size: 15))
+                            .font(PulpeTypography.stepSubtitle)
                             .foregroundStyle(Color.textSecondaryOnboarding)
 
                         Button {
@@ -253,7 +240,7 @@ struct LoginView: View {
                             }
                         } label: {
                             Text("Créer un compte")
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(PulpeTypography.labelLarge)
                                 .foregroundStyle(Color.pulpePrimary)
                         }
                     }

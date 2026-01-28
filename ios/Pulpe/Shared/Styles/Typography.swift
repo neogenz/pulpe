@@ -2,6 +2,10 @@ import SwiftUI
 
 /// Typography system for Pulpe onboarding and tutorial
 enum PulpeTypography {
+    // MARK: - Brand
+
+    static let brandTitle = Font.system(size: 36, weight: .bold, design: .rounded)
+
     // MARK: - Onboarding Headlines
 
     static let onboardingTitle = Font.system(size: 28, weight: .bold, design: .rounded)
