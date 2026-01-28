@@ -299,8 +299,8 @@
         "Project compiles"
       ],
       "priority": 21,
-      "passes": false,
-      "notes": "4 list/section components in Features/CurrentMonth/Components/."
+      "passes": true,
+      "notes": "RecurringExpensesList (BudgetLineRow): replaced .red→Color.financialOverBudget (consumptionColor over-budget), .orange→Color.financialOverBudget (consumptionColor near-limit), .red→Color.financialOverBudget (remainingColor negative). Swipe delete .tint(.red)→Color.errorPrimary, undo .tint(.orange)→Color.financialOverBudget. OneTimeExpensesList (TransactionSection): swipe delete .tint(.red)→Color.errorPrimary, undo .tint(.orange)→Color.financialOverBudget. LinkedTransactionsSheet: .red→Color.financialOverBudget (remainingColor, progressColor), Color(.systemGroupedBackground)→Color.surfacePrimary, Color(.secondarySystemGroupedBackground)→Color.surfaceCard (4 instances), .red.opacity(0.8)→Color.errorPrimary (trash icon), cornerRadius 12→CornerRadius.md (2), spacing 20→xl, 12→md, 8→sm, 16→lg. UncheckedTransactionsSection: .orange→Color.financialOverBudget (header icon, indicator icon), Circle .stroke(Color.orange)→Circle .fill(Color.financialOverBudget.opacity(badgeBackground)) (replaced stroke with filled background per DA)."
     },
     {
       "id": "US-022",

@@ -261,3 +261,19 @@ Feature: 01-ios-ui-harmonization
   - `Font.system(size: 40, weight: .bold, design: .rounded)` on balance amount left as-is — `amountHero` is 42pt and this is 40pt, close but different. Layout-specific hero size.
 ---
 
+## 2026-01-28 - US-021: Harmonize Dashboard lists (RecurringExpenses, OneTimeExpenses, LinkedTransactions, UncheckedTransactions)
+- RecurringExpensesList (BudgetLineRow): replaced `.red`→`Color.financialOverBudget` (consumptionColor over-budget), `.orange`→`Color.financialOverBudget` (consumptionColor near-limit), `.red`→`Color.financialOverBudget` (remainingColor negative). Swipe delete `.tint(.red)`→`Color.errorPrimary`, undo `.tint(.orange)`→`Color.financialOverBudget`
+- OneTimeExpensesList (TransactionSection): swipe delete `.tint(.red)`→`Color.errorPrimary`, undo `.tint(.orange)`→`Color.financialOverBudget`
+- LinkedTransactionsSheet: `.red`→`Color.financialOverBudget` (remainingColor, progressColor), `Color(.systemGroupedBackground)`→`Color.surfacePrimary`, `Color(.secondarySystemGroupedBackground)`→`Color.surfaceCard` (4 instances), `.red.opacity(0.8)`→`Color.errorPrimary` (trash icon), `cornerRadius: 12`→`DesignTokens.CornerRadius.md` (2), spacing `20`→`xl`, `12`→`md`, `8`→`sm`, `16`→`lg`
+- UncheckedTransactionsSection: `.orange`→`Color.financialOverBudget` (header icon, indicator icon), `Circle.stroke(Color.orange)`→`Circle.fill(Color.financialOverBudget.opacity(badgeBackground))` — replaced stroke with filled background per DA
+- Files changed: `RecurringExpensesList.swift`, `OneTimeExpensesList.swift`, `LinkedTransactionsSheet.swift`, `UncheckedTransactionsSection.swift`
+- **Learnings:**
+  - Swipe action `.tint(.red)` for destructive actions → `Color.errorPrimary` (warm orange). SwiftUI accepts custom Color for `.tint()` on swipe buttons
+  - Swipe action `.tint(.orange)` for undo/toggle → `Color.financialOverBudget` (warm amber) — semantically maps to "action needed" state
+  - `Color(.systemGroupedBackground)` (UIKit primary grouped bg) → `Color.surfacePrimary` (DA verdâtre), consistent with US-020 pattern
+  - UncheckedTransactionRow had `Circle.stroke(Color.orange)` as unchecked indicator — replaced with filled circle (`Color.financialOverBudget.opacity(badgeBackground)`) to match the filled-circle pattern used in BudgetLineRow and TransactionRow
+  - `.padding(.vertical, 14)` has no exact spacing token match (between md=12 and lg=16) — kept as-is as layout-specific value, consistent with US-019 decision
+  - `spacing: 2`, `spacing: 3`, `spacing: 6` are too granular for DesignTokens.Spacing — kept as-is
+  - `.font(.system(.body, design: .rounded, weight: .medium))` and similar system text styles in list rows are acceptable — these are standard body text, not input or header typography
+---
+

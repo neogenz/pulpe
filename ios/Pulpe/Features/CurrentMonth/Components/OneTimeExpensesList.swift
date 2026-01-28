@@ -61,7 +61,7 @@ struct TransactionSection: View {
                         } label: {
                             Label("Supprimer", systemImage: "trash")
                         }
-                        .tint(.red)
+                        .tint(Color.errorPrimary)
 
                         Button {
                             onToggle(transaction)
@@ -71,7 +71,7 @@ struct TransactionSection: View {
                                 systemImage: transaction.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
                             )
                         }
-                        .tint(transaction.isChecked ? .orange : .pulpePrimary)
+                        .tint(transaction.isChecked ? Color.financialOverBudget : .pulpePrimary)
                     }
             }
 
