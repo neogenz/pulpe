@@ -56,6 +56,9 @@ import { type BudgetTemplate } from 'pulpe-shared';
       @include mat.card-overrides(
         (
           title-text-size: var(--mat-sys-title-medium-size),
+          title-text-weight: var(--mat-sys-title-medium-weight, 500),
+          subtitle-text-size: var(--mat-sys-body-small-size),
+          subtitle-text-color: var(--mat-sys-on-surface-variant),
         )
       );
     }
