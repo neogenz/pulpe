@@ -48,7 +48,7 @@ struct HeroBalanceCard: View {
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
         .padding(.vertical, DesignTokens.Spacing.xxl)
-        .pulpeHeroCard()
+        .pulpeHeroGlass()
     }
 
     // MARK: - Balance Section
