@@ -49,16 +49,15 @@ struct DashboardHeroCard: View {
     // MARK: - Body
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             // Label
             Text("Disponible")
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundStyle(.secondary)
+                .font(.caption)
+                .foregroundStyle(Color.textTertiary)
 
             // Amount
             Text(metrics.remaining.asCHF)
-                .font(.system(size: 42, weight: .bold, design: .rounded))
+                .font(.system(size: 34, weight: .bold, design: .rounded))
                 .foregroundStyle(balanceColor)
                 .contentTransition(.numericText())
 
@@ -68,12 +67,12 @@ struct DashboardHeroCard: View {
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
                         // Track
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xs)
+                        Capsule()
                             .fill(Color.progressTrack)
                             .frame(height: DesignTokens.FrameHeight.progressBar)
 
                         // Fill
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xs)
+                        Capsule()
                             .fill(progressColor)
                             .frame(width: geometry.size.width * clampedPercentage, height: DesignTokens.FrameHeight.progressBar)
                             .animation(.spring(duration: 0.6), value: clampedPercentage)
@@ -82,9 +81,7 @@ struct DashboardHeroCard: View {
                 .frame(height: DesignTokens.FrameHeight.progressBar)
 
                 // Percentage text
-                Text("\(displayPercentage)% utilisé")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                (Text("\(displayPercentage)%").font(PulpeTypography.progressValue) + Text(" utilisé").font(.subheadline).fontWeight(.medium))
                     .foregroundStyle(progressColor)
                     .fixedSize()
             }
@@ -102,7 +99,7 @@ struct DashboardHeroCard: View {
             }
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
-        .padding(.vertical, DesignTokens.Spacing.xxl)
+        .padding(.vertical, DesignTokens.Spacing.xl)
         .heroCardStyle()
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Disponible \(metrics.remaining.asCHF), \(displayPercentage) pourcent du budget utilisé")

@@ -14,7 +14,7 @@ struct RecentTransactionsCard: View {
                 .foregroundStyle(.primary)
 
             // Transaction rows
-            VStack(spacing: DesignTokens.Spacing.sm) {
+            VStack(spacing: 0) {
                 ForEach(transactions, id: \.id) { transaction in
                     RecentTransactionCardRow(transaction: transaction)
                 }
@@ -52,32 +52,32 @@ private struct RecentTransactionCardRow: View {
             // Kind icon circle
             Circle()
                 .fill(transaction.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
-                .frame(width: 32, height: 32)
+                .frame(width: 40, height: 40)
                 .overlay {
                     Image(systemName: transaction.kind.listIcon)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(transaction.kind.color)
                 }
 
             // Name and date
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(transaction.name)
-                    .font(.subheadline)
+                    .font(.system(.body, design: .rounded, weight: .medium))
                     .lineLimit(1)
 
                 Text(transaction.transactionDate.relativeFormatted)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textTertiary)
             }
 
             Spacer()
 
             // Amount
             Text(transaction.signedAmount.asCHF)
-                .font(.subheadline)
-                .fontWeight(.medium)
+                .font(.system(.callout, design: .rounded, weight: .semibold))
                 .foregroundStyle(transaction.kind.color)
         }
+        .padding(.vertical, 8)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(transaction.name), \(transaction.kind.label), \(transaction.transactionDate.relativeFormatted), \(transaction.signedAmount.asCHF)")
     }
