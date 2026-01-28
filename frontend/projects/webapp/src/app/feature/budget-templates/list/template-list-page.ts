@@ -43,14 +43,17 @@ import {
     TemplatesError,
   ],
   template: `
-    <div class="flex flex-col gap-4 h-full" data-testid="budget-templates-page">
+    <div
+      class="flex flex-col gap-4 h-full min-w-0"
+      data-testid="budget-templates-page"
+    >
       <header
-        class="flex justify-between items-center"
+        class="flex flex-wrap justify-between items-center gap-2"
         data-testid="page-header"
       >
-        <div>
+        <div class="min-w-0">
           <h1
-            class="text-headline-medium md:text-display-small"
+            class="text-headline-medium md:text-display-small truncate min-w-0 flex-shrink"
             data-testid="page-title"
           >
             {{ title.currentTitle() }}
@@ -68,7 +71,7 @@ import {
             </p>
           }
         </div>
-        <div class="flex gap-2 items-center">
+        <div class="flex gap-2 items-center flex-shrink-0 ml-auto">
           <button
             matButton="filled"
             class="shrink-0"
