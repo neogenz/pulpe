@@ -1,25 +1,13 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  input,
-  output,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetTemplate } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-template-card',
-  imports: [
-    RouterLink,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTooltipModule,
-  ],
+  imports: [RouterLink, MatCardModule, MatButtonModule, MatIconModule],
   template: `
     <mat-card
       appearance="outlined"
@@ -39,16 +27,6 @@ import { type BudgetTemplate } from 'pulpe-shared';
         } @else {
           <mat-card-subtitle>Template</mat-card-subtitle>
         }
-        <div class="flex-1"></div>
-        <button
-          matIconButton
-          aria-label="Supprimer le modèle"
-          matTooltip="Supprimer"
-          data-testid="delete-template-button"
-          (click)="delete.emit(template())"
-        >
-          <mat-icon class="text-error">delete</mat-icon>
-        </button>
       </mat-card-header>
       <mat-card-content>
         @if (template().description) {
@@ -86,5 +64,4 @@ import { type BudgetTemplate } from 'pulpe-shared';
 })
 export class TemplateCard {
   readonly template = input.required<BudgetTemplate>();
-  readonly delete = output<BudgetTemplate>();
 }

@@ -10,21 +10,12 @@ import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatDialog } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { firstValueFrom } from 'rxjs';
-import { type BudgetTemplate } from 'pulpe-shared';
 import { BudgetTemplatesStore } from '../services/budget-templates-store';
-import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import { TemplateList } from '../components/template-list';
 import { BaseLoading } from '@ui/loading';
 import { TemplatesError } from '../components/templates-error';
 import { TitleDisplay } from '@core/routing';
-import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
-import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
-import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
-import { Logger } from '@core/logging/logger';
 import {
   ProductTourService,
   TOUR_START_DELAY,
@@ -123,7 +114,6 @@ import {
         ) {
           <pulpe-template-list
             [templates]="store.budgetTemplates.value() ?? []"
-            (deleteTemplate)="onDeleteTemplate($event)"
             data-testid="templates-list"
             data-tour="templates-list"
           />
@@ -146,10 +136,6 @@ export default class TemplateListPage {
   readonly #productTourService = inject(ProductTourService);
   readonly #destroyRef = inject(DestroyRef);
   readonly #loadingIndicator = inject(LoadingIndicator);
-  readonly #dialog = inject(MatDialog);
-  readonly #snackBar = inject(MatSnackBar);
-  readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
-  readonly #logger = inject(Logger);
 
   constructor() {
     this.store.refreshData();
@@ -171,62 +157,5 @@ export default class TemplateListPage {
         );
       }
     });
-  }
-
-  async onDeleteTemplate(template: BudgetTemplate) {
-    try {
-      // First check if template is being used
-      const usageResponse = await firstValueFrom(
-        this.#budgetTemplatesApi.checkUsage$(template.id),
-      );
-
-      if (usageResponse.data.isUsed) {
-        // Show dialog with list of budgets using this template
-        const dialogRef = this.#dialog.open(TemplateUsageDialogComponent, {
-          data: {
-            templateId: template.id,
-            templateName: template.name,
-          },
-          width: '90vw',
-          maxWidth: '600px',
-          disableClose: false,
-        });
-
-        // Set the usage data after opening the dialog
-        const dialogInstance = dialogRef.componentInstance;
-        dialogInstance.setUsageData(usageResponse.data.budgets);
-      } else {
-        // Template is not used, show confirmation dialog
-        const dialogRef = this.#dialog.open(ConfirmationDialog, {
-          data: getDeleteConfirmationConfig(template.name),
-          width: '400px',
-        });
-
-        const confirmed = await firstValueFrom(dialogRef.afterClosed());
-        if (confirmed) {
-          await this.#performDeletion(template);
-        }
-      }
-    } catch (error) {
-      this.#logger.error('Error checking template usage:', error);
-      this.#snackBar.open('La vérification a échoué — réessaie', 'Fermer', {
-        duration: 5000,
-      });
-    }
-  }
-
-  async #performDeletion(template: BudgetTemplate) {
-    try {
-      await this.store.deleteTemplate(template.id);
-
-      this.#snackBar.open('Modèle supprimé', undefined, {
-        duration: 3000,
-      });
-    } catch (error) {
-      this.#logger.error('Error deleting template:', error);
-      this.#snackBar.open('La suppression a échoué — réessaie', 'Fermer', {
-        duration: 5000,
-      });
-    }
   }
 }
