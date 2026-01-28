@@ -297,7 +297,6 @@ module.exports = tseslint.config(
                 ["shared"],
                 ["lib-api"],
                 ["testing"],
-                ["app", { app: "${from.app}" }],
                 ["core", { app: "${from.app}" }],
                 ["ui", { app: "${from.app}" }],
                 ["layout", { app: "${from.app}" }],

@@ -35,6 +35,7 @@ import { buildInfo } from '@env/build-info';
 import { environment } from '@env/environment';
 import { Logger } from './logging/logger';
 import { StorageMigrationRunnerService } from './storage/storage-migration-runner.service';
+import { provideSplashRemoval } from './splash-removal';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -119,6 +120,9 @@ export function provideCore({ routes }: CoreOptions) {
 
     // Global error handler with PostHog integration (needs HttpClient via PostHogService)
     provideGlobalErrorHandler(),
+
+    // Remove splash screen once first navigation completes (or after timeout)
+    provideSplashRemoval(),
 
     // perform initialization, has to be last
     // Sequential initialization with explicit order
