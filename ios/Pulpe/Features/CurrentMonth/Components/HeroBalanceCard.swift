@@ -169,19 +169,10 @@ struct HeroBalanceCard: View {
 
 private struct HeroCardStyleModifier: ViewModifier {
     func body(content: Content) -> some View {
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, *) {
-            content.glassEffect(.regular, in: .rect(cornerRadius: DesignTokens.CornerRadius.xl))
-        } else {
-            content
-                .background(Color.surfaceCard)
-                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
-        }
-        #else
+        // Content cards use solid backgrounds for readability (no glass)
         content
             .background(Color.surfaceCard)
             .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
-        #endif
     }
 }
 
