@@ -53,7 +53,7 @@ struct YearOverviewCard: View {
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, 14)
         .background(Color.surfaceCard)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
         .shadow(DesignTokens.Shadow.subtle)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title): \(value.asCHF)")

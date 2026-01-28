@@ -92,13 +92,18 @@ struct CurrentMonthView: View {
                 )
 
                 // Insights: top spending + budget alerts
-                InsightsCard(
-                    topSpending: store.topSpendingCategory.map {
-                        (name: $0.line.name, amount: $0.consumption.allocated, totalExpenses: store.metrics.totalExpenses)
-                    },
-                    alerts: store.alertBudgetLines,
-                    onTap: { navigateToBudget = true }
-                )
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    Text("Aperçu")
+                        .pulpeSectionHeader()
+
+                    InsightsCard(
+                        topSpending: store.topSpendingCategory.map {
+                            (name: $0.line.name, amount: $0.consumption.allocated, totalExpenses: store.metrics.totalExpenses)
+                        },
+                        alerts: store.alertBudgetLines,
+                        onTap: { navigateToBudget = true }
+                    )
+                }
 
                 // Recent transactions with external section header
                 if !store.recentTransactions.isEmpty {
@@ -130,10 +135,15 @@ struct CurrentMonthView: View {
                 }
 
                 // Year overview (savings YTD + rollover)
-                YearOverviewCard(
-                    savingsYTD: dashboardStore.savingsYTD,
-                    rollover: store.budget?.rollover ?? 0
-                )
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    Text("Cette année")
+                        .pulpeSectionHeader()
+
+                    YearOverviewCard(
+                        savingsYTD: dashboardStore.savingsYTD,
+                        rollover: store.budget?.rollover ?? 0
+                    )
+                }
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.lg)

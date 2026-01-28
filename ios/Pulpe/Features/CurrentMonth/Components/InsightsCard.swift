@@ -30,6 +30,7 @@ struct InsightsCard: View {
                 }
                 .background(Color.surfaceCard)
                 .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
+                .shadow(DesignTokens.Shadow.subtle)
             }
             .buttonStyle(.plain)
             .accessibilityElement(children: .combine)
