@@ -17,10 +17,12 @@ struct CustomTabBar: UIViewRepresentable {
         let control = UISegmentedControl(items: items)
         control.selectedSegmentIndex = activeTab.index
 
-        // Hide background image views (visual content provided by SwiftUI overlay)
-        for subview in control.subviews {
-            if subview is UIImageView && subview != control.subviews.last {
-                subview.alpha = 0
+        // Hide background image views asynchronously (after view hierarchy is set up)
+        DispatchQueue.main.async {
+            for subview in control.subviews {
+                if subview is UIImageView && subview != control.subviews.last {
+                    subview.alpha = 0
+                }
             }
         }
 
@@ -30,7 +32,7 @@ struct CustomTabBar: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: UISegmentedControl, context: Context) {
-        uiView.selectedSegmentIndex = activeTab.index
+        // Empty - don't update selectedSegmentIndex here to avoid visual conflicts with Liquid Glass
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UISegmentedControl, context: Context) -> CGSize? {
