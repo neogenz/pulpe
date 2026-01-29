@@ -177,11 +177,17 @@ import { BudgetGridSection } from './budget-grid-section';
                 (change)="toggleTransactionCheck.emit(item.data.id)"
                 (click)="$event.stopPropagation()"
                 [attr.data-testid]="'toggle-check-tx-' + item.data.id"
+                [attr.aria-label]="
+                  item.data.checkedAt
+                    ? 'Marquer comme non vérifié'
+                    : 'Marquer comme vérifié'
+                "
               />
               <button
                 matIconButton
                 (click)="deleteTransaction.emit(item.data.id)"
                 [attr.data-testid]="'delete-tx-' + item.data.id"
+                aria-label="Supprimer la transaction"
               >
                 <mat-icon class="text-xl!">delete</mat-icon>
               </button>

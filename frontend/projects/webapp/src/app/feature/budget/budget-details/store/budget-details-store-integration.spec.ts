@@ -833,6 +833,65 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       expect(createdTx).toBeDefined();
       expect(createdTx?.checkedAt).toBeNull();
     });
+
+    it('should rollback optimistic updates when toggleCheck fails after transaction creation', async () => {
+      const checkedTimestamp = '2024-01-15T10:00:00Z';
+
+      const checkedParentLine = createMockBudgetLine({
+        id: 'line-checked-fail',
+        budgetId: mockBudgetId,
+        name: 'Checked Parent Fail',
+        amount: 1000,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: checkedTimestamp,
+      });
+
+      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
+        of(
+          createMockBudgetDetailsResponse({
+            budget: { id: mockBudgetId },
+            budgetLines: [checkedParentLine],
+            transactions: [],
+          }),
+        ),
+      );
+
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      const serverTransaction = createMockTransaction({
+        id: 'tx-server-fail',
+        budgetId: mockBudgetId,
+        budgetLineId: 'line-checked-fail',
+        name: 'Transaction Before Fail',
+        amount: 200,
+        kind: 'expense',
+        checkedAt: null,
+      });
+
+      mockTransactionApi.create$ = vi
+        .fn()
+        .mockReturnValue(of({ data: serverTransaction }));
+
+      mockBudgetLineApi.toggleCheck$ = vi
+        .fn()
+        .mockReturnValue(throwError(() => new Error('Toggle check failed')));
+
+      await service.createAllocatedTransaction({
+        budgetId: mockBudgetId,
+        budgetLineId: 'line-checked-fail',
+        name: 'Transaction Before Fail',
+        amount: 200,
+        kind: 'expense',
+      });
+
+      expect(service.error()).toBeTruthy();
+      expect(mockBudgetLineApi.toggleCheck$).toHaveBeenCalledWith(
+        'line-checked-fail',
+      );
+    });
   });
 
   describe('User views financial summary', () => {
