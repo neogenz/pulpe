@@ -218,9 +218,7 @@ struct LoginView: View {
                         .padding(.top, DesignTokens.Spacing.sm)
                     }
                     .padding(DesignTokens.Spacing.xxl)
-                    .background(Color.onboardingCardBackground)
-                    .clipShape(.rect(cornerRadius: 24))
-                    .shadow(color: Color.black.opacity(0.08), radius: 24, y: 10)
+                    .pulpeCardBackground(cornerRadius: 24)
                     .padding(.horizontal, DesignTokens.Spacing.xl)
                     .opacity(isAppeared ? 1 : 0)
                     .offset(y: isAppeared ? 0 : 20)
@@ -253,7 +251,7 @@ struct LoginView: View {
                 }
             }
             .scrollBounceBehavior(.basedOnSize)
-            .background(Color.onboardingBackground)
+            .pulpeBackground()
             .toolbar {
                 if let isPresented {
                     ToolbarItem(placement: .cancellationAction) {

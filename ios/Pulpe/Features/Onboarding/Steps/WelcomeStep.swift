@@ -1,62 +1,64 @@
 import SwiftUI
 
 struct WelcomeStep: View {
-    @Environment(AppState.self) private var appState
     @State private var showLogin = false
+    @State private var currentPage = 0
+    @State private var isAppeared = false
     let state: OnboardingState
+
+    private let pages: [WelcomePage] = [
+        WelcomePage(
+            icon: "chart.bar.fill",
+            iconColor: Color.financialExpense,
+            title: "Suis tes dépenses",
+            subtitle: "Visualise où va ton argent chaque mois et reprends le contrôle"
+        ),
+        WelcomePage(
+            icon: "target",
+            iconColor: Color.pulpePrimary,
+            title: "Planifie ton budget",
+            subtitle: "Crée des modèles de budget et atteins tes objectifs financiers"
+        ),
+        WelcomePage(
+            icon: "chart.line.uptrend.xyaxis",
+            iconColor: Color.financialIncome,
+            title: "Progresse chaque mois",
+            subtitle: "Compare tes dépenses, suis tes tendances et améliore-toi"
+        )
+    ]
 
     var body: some View {
         VStack(spacing: 0) {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Logo and title
-                    VStack(spacing: 12) {
-                        PulpeIcon(size: 80)
+            Spacer()
 
-                        Text("Pulpe")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundStyle(Color.pulpePrimary)
-
-                        Text("Reprends le contrôle de tes finances")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.textSecondaryOnboarding)
-                    }
-                    .padding(.top, 40)
-
-                    // Lottie animation
-                    WelcomeLottieView()
-
-                    // Features
-                    VStack(spacing: 20) {
-                        FeatureRow(
-                            icon: "chart.bar.fill",
-                            title: "Suis tes dépenses",
-                            description: "Visualise où va ton argent chaque mois"
-                        )
-
-                        FeatureRow(
-                            icon: "target",
-                            title: "Atteins tes objectifs",
-                            description: "Planifie et épargne sereinement"
-                        )
-
-                        FeatureRow(
-                            icon: "calendar",
-                            title: "Budget mensuel",
-                            description: "Un budget clair pour chaque mois"
-                        )
-                    }
-                    .padding(.horizontal, 24)
+            // Carousel
+            TabView(selection: $currentPage) {
+                ForEach(Array(pages.enumerated()), id: \.offset) { index, page in
+                    WelcomePageView(page: page)
+                        .tag(index)
                 }
             }
-            .scrollBounceBehavior(.basedOnSize)
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .frame(height: 360)
+            .opacity(isAppeared ? 1 : 0)
+            .offset(y: isAppeared ? 0 : 20)
+
+            // Page indicators
+            HStack(spacing: 8) {
+                ForEach(0..<pages.count, id: \.self) { index in
+                    Capsule()
+                        .fill(index == currentPage ? Color.pulpePrimary : Color.secondary.opacity(0.25))
+                        .frame(width: index == currentPage ? 24 : 8, height: 8)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentPage)
+                }
+            }
+            .padding(.top, DesignTokens.Spacing.xxl)
+            .opacity(isAppeared ? 1 : 0)
 
             Spacer()
 
             // Bottom buttons
-            VStack(spacing: 16) {
-                // Primary button
+            VStack(spacing: DesignTokens.Spacing.md) {
                 Button {
                     state.nextStep()
                 } label: {
@@ -74,51 +76,81 @@ struct WelcomeStep: View {
                     .shadow(color: Color.pulpePrimary.opacity(0.3), radius: 8, y: 4)
                 }
 
-                // Login link
-                HStack(spacing: 4) {
-                    Text("Déjà un compte ?")
-                        .foregroundStyle(.secondary)
-                    Button("Se connecter") {
-                        showLogin = true
-                    }
-                    .fontWeight(.semibold)
+                Button {
+                    showLogin = true
+                } label: {
+                    Text("Se connecter")
+                        .font(PulpeTypography.buttonPrimary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: DesignTokens.FrameHeight.button)
+                        .foregroundStyle(Color.textPrimary)
+                        .background(Color.surfaceSecondary.opacity(0.6))
+                        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
                 }
-                .font(.subheadline)
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, DesignTokens.Spacing.xxl)
             .padding(.bottom, DesignTokens.Spacing.xxxl)
+            .opacity(isAppeared ? 1 : 0)
+            .offset(y: isAppeared ? 0 : 10)
         }
-        .background(Color.onboardingBackground)
+        .pulpeBackground()
         .sheet(isPresented: $showLogin) {
             LoginView(isPresented: $showLogin)
+        }
+        .task {
+            try? await Task.sleep(for: .milliseconds(100))
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                isAppeared = true
+            }
         }
     }
 }
 
-struct FeatureRow: View {
+// MARK: - Welcome Page Data
+
+private struct WelcomePage {
     let icon: String
+    let iconColor: Color
     let title: String
-    let description: String
+    let subtitle: String
+}
+
+// MARK: - Welcome Page View
+
+private struct WelcomePageView: View {
+    let page: WelcomePage
 
     var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(.tint)
-                .frame(width: 44, height: 44)
-                .background(.tint.opacity(0.1), in: Circle())
+        VStack(spacing: DesignTokens.Spacing.xxl) {
+            // Icon illustration
+            ZStack {
+                Circle()
+                    .fill(page.iconColor.opacity(0.12))
+                    .frame(width: 120, height: 120)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                Circle()
+                    .fill(page.iconColor.opacity(0.06))
+                    .frame(width: 180, height: 180)
 
-                Text(description)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Image(systemName: page.icon)
+                    .font(.system(size: 48, weight: .medium))
+                    .foregroundStyle(page.iconColor)
+                    .symbolRenderingMode(.hierarchical)
             }
 
-            Spacer()
+            VStack(spacing: DesignTokens.Spacing.md) {
+                Text(page.title)
+                    .font(PulpeTypography.onboardingTitle)
+                    .foregroundStyle(Color.textPrimaryOnboarding)
+                    .multilineTextAlignment(.center)
+
+                Text(page.subtitle)
+                    .font(PulpeTypography.onboardingSubtitle)
+                    .foregroundStyle(Color.textSecondaryOnboarding)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+            }
+            .padding(.horizontal, DesignTokens.Spacing.xxxl)
         }
     }
 }
