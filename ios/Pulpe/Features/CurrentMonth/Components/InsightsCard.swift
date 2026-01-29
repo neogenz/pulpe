@@ -34,6 +34,13 @@ struct InsightsCard: View {
             .accessibilityElement(children: .combine)
             .accessibilityLabel(accessibilityDescription)
             .accessibilityHint("Ouvre la vue détaillée du budget")
+        } else {
+            Text("Ajoute une dépense pour voir l'aperçu")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .pulpeCard()
+                .accessibilityLabel("Ajoute une dépense pour voir l'aperçu")
         }
     }
 
@@ -214,7 +221,7 @@ struct InsightsCard: View {
             ]
         )
 
-        // Empty (should not render)
+        // Empty state
         InsightsCard(topSpending: nil, alerts: [])
     }
     .padding()
