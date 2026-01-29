@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { TemplateCache } from '@core/template/template-cache';
 import { BudgetTemplatesApi } from '../../services/budget-templates-api';
 import type { TransactionFormData } from '../../services/transaction-form';
 import type {
@@ -22,6 +23,7 @@ import type { EditableLine, SaveResult } from './template-line-state';
 @Injectable()
 export class TemplateLineStore {
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
+  readonly #templateCache = inject(TemplateCache);
 
   // Private state signals
   readonly lines = signal<EditableLine[]>([]);
@@ -167,6 +169,7 @@ export class TemplateLineStore {
         ),
       );
 
+      this.#templateCache.invalidate();
       this.#updateStateAfterSave(response.data);
 
       const updatedLines = [...response.data.created, ...response.data.updated];

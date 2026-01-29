@@ -19,11 +19,15 @@ export class BudgetTemplatesStore {
   // Business constants
   readonly MAX_TEMPLATES = 5;
 
-  readonly budgetTemplates = rxResource<BudgetTemplate[], void>({
-    stream: () => {
-      const cached = this.#templateCache.templates();
-      if (cached) {
-        return of(cached);
+  readonly budgetTemplates = rxResource<
+    BudgetTemplate[],
+    { hasCache: boolean }
+  >({
+    params: () => ({ hasCache: this.#templateCache.hasTemplates() }),
+    stream: ({ params }) => {
+      if (params.hasCache) {
+        const cached = this.#templateCache.templates();
+        if (cached) return of(cached);
       }
       return this.#budgetTemplatesApi.getAll$().pipe(
         map((response) => (Array.isArray(response.data) ? response.data : [])),
@@ -83,6 +87,8 @@ export class BudgetTemplatesStore {
       this.#budgetTemplatesApi.create$(template),
     );
 
+    this.#templateCache.invalidate();
+
     // Update list state with template only (lines don't belong in list)
     this.budgetTemplates.update((data) => {
       if (!data || !response.data.template) return data;
@@ -103,6 +109,7 @@ export class BudgetTemplatesStore {
 
     try {
       await firstValueFrom(this.#budgetTemplatesApi.delete$(id));
+      this.#templateCache.invalidate();
     } catch (error) {
       // Rollback on error
       if (originalData) {

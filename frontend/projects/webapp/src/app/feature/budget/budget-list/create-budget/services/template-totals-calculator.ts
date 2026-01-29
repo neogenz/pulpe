@@ -81,6 +81,19 @@ export class TemplateTotalsCalculator {
     };
   }
 
-  // Private methods removed - now delegating to BudgetFormulas (DRY principle)
-  // The separation of expenses and savings is kept inline for UI-specific needs
+  /**
+   * Create default totals map for multiple template IDs
+   */
+  createDefaultTotalsMap(
+    templateIds: string[],
+    isLoading: boolean,
+  ): Record<string, TemplateTotals> {
+    return templateIds.reduce(
+      (acc, id) => {
+        acc[id] = this.createDefaultTotals(isLoading);
+        return acc;
+      },
+      {} as Record<string, TemplateTotals>,
+    );
+  }
 }

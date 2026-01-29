@@ -33,6 +33,7 @@ export class BudgetCache {
         if (version === 0) return; // Skip initial value
         this.invalidateBudgetList();
         this.#budgetDetailsMap.set(new Map());
+        this.#failedDetailIds.set(new Set());
       });
     });
   }
