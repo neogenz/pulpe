@@ -1,20 +1,6 @@
 import SwiftUI
 
 extension View {
-    /// Conditionally apply a modifier.
-    /// Use when a modifier should only be applied based on a compile-time or init-time condition.
-    @ViewBuilder
-    func `if`<TrueContent: View>(
-        _ condition: Bool,
-        @ViewBuilder transform: (Self) -> TrueContent
-    ) -> some View {
-        if condition {
-            transform(self)
-        } else {
-            self
-        }
-    }
-
     /// Apply modifier if value is not nil
     @ViewBuilder
     func ifLet<T, Content: View>(_ value: T?, transform: (Self, T) -> Content) -> some View {

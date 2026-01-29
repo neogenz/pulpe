@@ -105,10 +105,14 @@ actor AuthService {
         // Try to get fresh token from Supabase
         if let session = try? await supabase.auth.session {
             // Update keychain with latest token
-            try? await keychain.saveTokens(
-                accessToken: session.accessToken,
-                refreshToken: session.refreshToken
-            )
+            do {
+                try await keychain.saveTokens(
+                    accessToken: session.accessToken,
+                    refreshToken: session.refreshToken
+                )
+            } catch {
+                Logger.auth.error("getAccessToken: failed to persist tokens - \(error)")
+            }
             return session.accessToken
         }
 
@@ -122,10 +126,13 @@ actor AuthService {
     func saveBiometricTokens() async throws {
         let session = try await supabase.auth.session
 
-        await keychain.saveBiometricTokens(
+        let saved = await keychain.saveBiometricTokens(
             accessToken: session.accessToken,
             refreshToken: session.refreshToken
         )
+        if !saved {
+            throw AuthServiceError.biometricSaveFailed
+        }
     }
 
     func validateBiometricSession() async throws -> UserInfo? {
@@ -146,10 +153,13 @@ actor AuthService {
             refreshToken: session.refreshToken
         )
 
-        await keychain.saveBiometricTokens(
+        let biometricSaved = await keychain.saveBiometricTokens(
             accessToken: session.accessToken,
             refreshToken: session.refreshToken
         )
+        if !biometricSaved {
+            Logger.auth.warning("validateBiometricSession: failed to persist biometric tokens")
+        }
 
         return UserInfo(
             id: session.user.id.uuidString,
@@ -171,6 +181,7 @@ actor AuthService {
 enum AuthServiceError: LocalizedError {
     case signupFailed(String)
     case loginFailed(String)
+    case biometricSaveFailed
 
     var errorDescription: String? {
         switch self {
@@ -178,6 +189,8 @@ enum AuthServiceError: LocalizedError {
             return "L'inscription n'a pas abouti — \(message)"
         case .loginFailed(let message):
             return "La connexion n'a pas abouti — \(message)"
+        case .biometricSaveFailed:
+            return "Les identifiants biométriques n'ont pas pu être enregistrés"
         }
     }
 }

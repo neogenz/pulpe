@@ -52,8 +52,17 @@ actor KeychainManager {
 
     func saveTokens(accessToken: String, refreshToken: String) throws {
         try ensureAvailable()
-        save(key: accessTokenKey, value: accessToken)
-        save(key: refreshTokenKey, value: refreshToken)
+
+        let accessStatus = saveReturningStatus(key: accessTokenKey, value: accessToken)
+        guard accessStatus == errSecSuccess else {
+            throw KeychainError.unknown(accessStatus)
+        }
+
+        let refreshStatus = saveReturningStatus(key: refreshTokenKey, value: refreshToken)
+        guard refreshStatus == errSecSuccess else {
+            delete(key: accessTokenKey)
+            throw KeychainError.unknown(refreshStatus)
+        }
     }
 
     func getAccessToken() -> String? {
@@ -75,9 +84,18 @@ actor KeychainManager {
 
     // MARK: - Biometric Token Management
 
-    func saveBiometricTokens(accessToken: String, refreshToken: String) {
-        saveBiometric(key: biometricAccessTokenKey, value: accessToken)
-        saveBiometric(key: biometricRefreshTokenKey, value: refreshToken)
+    @discardableResult
+    func saveBiometricTokens(accessToken: String, refreshToken: String) -> Bool {
+        let accessSaved = saveBiometric(key: biometricAccessTokenKey, value: accessToken)
+        guard accessSaved else { return false }
+
+        let refreshSaved = saveBiometric(key: biometricRefreshTokenKey, value: refreshToken)
+        guard refreshSaved else {
+            delete(key: biometricAccessTokenKey)
+            return false
+        }
+
+        return true
     }
 
     func getBiometricAccessToken() throws -> String? {
@@ -126,10 +144,19 @@ actor KeychainManager {
     // MARK: - Private Keychain Operations
 
     private func save(key: String, value: String) {
-        guard let data = value.data(using: .utf8) else { return }
+        let status = saveReturningStatus(key: key, value: value)
+        if status != errSecSuccess {
+            Logger.auth.error("Keychain save error: \(status)")
+        }
+    }
 
-        // Delete existing item first
-        delete(key: key)
+    private func saveReturningStatus(key: String, value: String) -> OSStatus {
+        guard let data = value.data(using: .utf8) else { return errSecParam }
+
+        let deleteStatus = delete(key: key)
+        guard deleteStatus == errSecSuccess || deleteStatus == errSecItemNotFound else {
+            return deleteStatus
+        }
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -139,11 +166,7 @@ actor KeychainManager {
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         ]
 
-        let status = SecItemAdd(query as CFDictionary, nil)
-
-        if status != errSecSuccess {
-            Logger.auth.error("Keychain save error: \(status)")
-        }
+        return SecItemAdd(query as CFDictionary, nil)
     }
 
     private func get(key: String) -> String? {
@@ -167,22 +190,27 @@ actor KeychainManager {
         return value
     }
 
-    private func delete(key: String) {
+    @discardableResult
+    private func delete(key: String) -> OSStatus {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: key
         ]
 
-        SecItemDelete(query as CFDictionary)
+        return SecItemDelete(query as CFDictionary)
     }
 
     // MARK: - Private Biometric Keychain Operations
 
-    private func saveBiometric(key: String, value: String) {
-        guard let data = value.data(using: .utf8) else { return }
+    @discardableResult
+    private func saveBiometric(key: String, value: String) -> Bool {
+        guard let data = value.data(using: .utf8) else { return false }
 
-        delete(key: key)
+        let deleteStatus = delete(key: key)
+        guard deleteStatus == errSecSuccess || deleteStatus == errSecItemNotFound else {
+            return false
+        }
 
         var error: Unmanaged<CFError>?
         guard let accessControl = SecAccessControlCreateWithFlags(
@@ -192,7 +220,7 @@ actor KeychainManager {
             &error
         ) else {
             Logger.auth.error("Keychain access control error: \(String(describing: error))")
-            return
+            return false
         }
 
         let query: [String: Any] = [
@@ -207,7 +235,9 @@ actor KeychainManager {
 
         if status != errSecSuccess {
             Logger.auth.error("Keychain biometric save error: \(status)")
+            return false
         }
+        return true
     }
 
     private func getBiometric(key: String) throws -> String? {

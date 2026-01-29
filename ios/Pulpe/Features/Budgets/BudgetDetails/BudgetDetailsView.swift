@@ -9,11 +9,13 @@ struct MonthNavigationBar: View {
     let onPrevious: () -> Void
     let onNext: () -> Void
 
+    @State private var navigateTrigger = false
+
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: DesignTokens.Spacing.lg) {
             Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 onPrevious()
+                navigateTrigger.toggle()
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.body.weight(.semibold))
@@ -26,8 +28,8 @@ struct MonthNavigationBar: View {
                 .lineLimit(1)
 
             Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 onNext()
+                navigateTrigger.toggle()
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.body.weight(.semibold))
@@ -35,7 +37,8 @@ struct MonthNavigationBar: View {
             }
             .disabled(!hasNext)
         }
-        .padding(.horizontal, 16)
+        .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.5), trigger: navigateTrigger)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, 10)
         .modifier(GlassBackgroundModifier())
     }
@@ -154,7 +157,7 @@ struct BudgetDetailsView: View {
     private func navigateToPreviousMonth() {
         guard let previousId = viewModel.previousBudgetId else { return }
         slideFromEdge = .leading
-        withAnimation(.easeInOut(duration: 0.25)) {
+        withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
             viewModel.prepareNavigation(to: previousId)
         }
         Task {
@@ -165,7 +168,7 @@ struct BudgetDetailsView: View {
     private func navigateToNextMonth() {
         guard let nextId = viewModel.nextBudgetId else { return }
         slideFromEdge = .trailing
-        withAnimation(.easeInOut(duration: 0.25)) {
+        withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
             viewModel.prepareNavigation(to: nextId)
         }
         Task {
@@ -214,88 +217,37 @@ struct BudgetDetailsView: View {
                 .listRowSeparator(.hidden)
             }
 
-            // Income section
-            if !filteredIncome.isEmpty {
-                BudgetSection(
-                    title: "Revenus",
-                    items: filteredIncome,
-                    transactions: viewModel.transactions,
-                    syncingIds: viewModel.syncingBudgetLineIds,
-                    onToggle: { line in
-                        Task { await viewModel.toggleBudgetLine(line) }
-                    },
-                    onDelete: { line in
-                        Task { await viewModel.deleteBudgetLine(line) }
-                    },
-                    onAddTransaction: { line in
-                        selectedLineForTransaction = line
-                    },
-                    onLongPress: { line, transactions in
-                        linkedTransactionsContext = LinkedTransactionsContext(
-                            budgetLine: line,
-                            transactions: transactions
-                        )
-                    },
-                    onEdit: { line in
-                        selectedBudgetLineForEdit = line
-                    }
-                )
-            }
-
-            // Expense section
-            if !filteredExpenses.isEmpty {
-                BudgetSection(
-                    title: "Dépenses",
-                    items: filteredExpenses,
-                    transactions: viewModel.transactions,
-                    syncingIds: viewModel.syncingBudgetLineIds,
-                    onToggle: { line in
-                        Task { await viewModel.toggleBudgetLine(line) }
-                    },
-                    onDelete: { line in
-                        Task { await viewModel.deleteBudgetLine(line) }
-                    },
-                    onAddTransaction: { line in
-                        selectedLineForTransaction = line
-                    },
-                    onLongPress: { line, transactions in
-                        linkedTransactionsContext = LinkedTransactionsContext(
-                            budgetLine: line,
-                            transactions: transactions
-                        )
-                    },
-                    onEdit: { line in
-                        selectedBudgetLineForEdit = line
-                    }
-                )
-            }
-
-            // Saving section
-            if !filteredSavings.isEmpty {
-                BudgetSection(
-                    title: "Épargne",
-                    items: filteredSavings,
-                    transactions: viewModel.transactions,
-                    syncingIds: viewModel.syncingBudgetLineIds,
-                    onToggle: { line in
-                        Task { await viewModel.toggleBudgetLine(line) }
-                    },
-                    onDelete: { line in
-                        Task { await viewModel.deleteBudgetLine(line) }
-                    },
-                    onAddTransaction: { line in
-                        selectedLineForTransaction = line
-                    },
-                    onLongPress: { line, transactions in
-                        linkedTransactionsContext = LinkedTransactionsContext(
-                            budgetLine: line,
-                            transactions: transactions
-                        )
-                    },
-                    onEdit: { line in
-                        selectedBudgetLineForEdit = line
-                    }
-                )
+            // Budget line sections (income, expenses, savings)
+            ForEach(
+                [("Revenus", filteredIncome), ("Dépenses", filteredExpenses), ("Épargne", filteredSavings)],
+                id: \.0
+            ) { title, items in
+                if !items.isEmpty {
+                    BudgetSection(
+                        title: title,
+                        items: items,
+                        transactions: viewModel.transactions,
+                        syncingIds: viewModel.syncingBudgetLineIds,
+                        onToggle: { line in
+                            Task { await viewModel.toggleBudgetLine(line) }
+                        },
+                        onDelete: { line in
+                            Task { await viewModel.deleteBudgetLine(line) }
+                        },
+                        onAddTransaction: { line in
+                            selectedLineForTransaction = line
+                        },
+                        onLongPress: { line, transactions in
+                            linkedTransactionsContext = LinkedTransactionsContext(
+                                budgetLine: line,
+                                transactions: transactions
+                            )
+                        },
+                        onEdit: { line in
+                            selectedBudgetLineForEdit = line
+                        }
+                    )
+                }
             }
 
             // Free transactions
@@ -317,7 +269,7 @@ struct BudgetDetailsView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .listSectionSpacing(16)
+        .listSectionSpacing(DesignTokens.Spacing.lg)
         .scrollContentBackground(.hidden)
         .pulpeBackground()
         .refreshable {
@@ -476,7 +428,6 @@ final class BudgetDetailsViewModel {
 
     /// Full load: fetches budget details AND all budgets list (for month navigation)
     /// Use for: initial load, pull-to-refresh
-    @MainActor
     func loadDetails() async {
         isLoading = true
         error = nil
@@ -502,7 +453,6 @@ final class BudgetDetailsViewModel {
 
     /// Light reload: fetches only current budget details (no allBudgets)
     /// Use for: after toggle, update, or month navigation
-    @MainActor
     func reloadCurrentBudget() async {
         error = nil
 
@@ -688,7 +638,7 @@ private struct RolloverInfoRow: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                .fill((isPositive ? Color.financialSavings : Color.financialOverBudget).opacity(0.08))
+                .fill((isPositive ? Color.financialSavings : Color.financialOverBudget).opacity(DesignTokens.Opacity.highlightBackground))
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Report du mois précédent")
