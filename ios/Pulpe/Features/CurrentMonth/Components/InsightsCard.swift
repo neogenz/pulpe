@@ -35,12 +35,11 @@ struct InsightsCard: View {
             .accessibilityLabel(accessibilityDescription)
             .accessibilityHint("Ouvre la vue détaillée du budget")
         } else {
-            Text("Ajoute une dépense pour voir l'aperçu")
+            Text("Enregistre tes dépenses pour voir où part ton argent")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .pulpeCard()
-                .accessibilityLabel("Ajoute une dépense pour voir l'aperçu")
         }
     }
 

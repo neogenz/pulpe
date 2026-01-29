@@ -70,7 +70,8 @@ struct BudgetDetailsView: View {
     @State private var selectedBudgetLineForEdit: BudgetLine?
     @State private var selectedTransactionForEdit: Transaction?
     @State private var searchText = ""
-    @State private var slideFromEdge: Edge = .trailing
+    @State private var contentOffset: CGFloat = 0
+    @State private var contentOpacity: Double = 1
 
     init(budgetId: String) {
         self.budgetId = budgetId
@@ -87,8 +88,8 @@ struct BudgetDetailsView: View {
                 }
             } else if viewModel.budget != nil {
                 content
-                    .id(viewModel.budgetId)
-                    .transition(.push(from: slideFromEdge))
+                    .offset(x: contentOffset)
+                    .opacity(contentOpacity)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -111,8 +112,12 @@ struct BudgetDetailsView: View {
                 .accessibilityLabel("Ajouter une prévision")
             }
         }
-        .task {
-            await viewModel.loadDetails()
+        .task(id: viewModel.budgetId) {
+            if viewModel.allBudgets.isEmpty {
+                await viewModel.loadDetails()
+            } else {
+                await viewModel.reloadCurrentBudget()
+            }
         }
         .sheet(item: $selectedLineForTransaction) { line in
             AddAllocatedTransactionSheet(budgetLine: line) { transaction in
@@ -156,23 +161,35 @@ struct BudgetDetailsView: View {
 
     private func navigateToPreviousMonth() {
         guard let previousId = viewModel.previousBudgetId else { return }
-        slideFromEdge = .leading
-        withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
-            viewModel.prepareNavigation(to: previousId)
-        }
-        Task {
-            await viewModel.reloadCurrentBudget()
-        }
+        navigateToMonth(previousId, forward: false)
     }
 
     private func navigateToNextMonth() {
         guard let nextId = viewModel.nextBudgetId else { return }
-        slideFromEdge = .trailing
-        withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
-            viewModel.prepareNavigation(to: nextId)
-        }
-        Task {
-            await viewModel.reloadCurrentBudget()
+        navigateToMonth(nextId, forward: true)
+    }
+
+    private func navigateToMonth(_ id: String, forward: Bool) {
+        let slideOutX: CGFloat = forward ? -40 : 40
+        let slideInX: CGFloat = forward ? 40 : -40
+
+        Task { @MainActor in
+            // Phase 1: Slide out current content
+            withAnimation(.easeIn(duration: 0.12)) {
+                contentOffset = slideOutX
+                contentOpacity = 0
+            }
+            try? await Task.sleep(for: .milliseconds(120))
+
+            // Phase 2: Swap data while hidden
+            viewModel.prepareNavigation(to: id)
+            contentOffset = slideInX
+
+            // Phase 3: Slide in new content
+            withAnimation(.easeOut(duration: 0.2)) {
+                contentOffset = 0
+                contentOpacity = 1
+            }
         }
     }
 
@@ -332,7 +349,8 @@ final class BudgetDetailsViewModel {
     var hasPreviousBudget: Bool { previousBudgetId != nil }
     var hasNextBudget: Bool { nextBudgetId != nil }
 
-    /// Prepare navigation by changing the budgetId (synchronous, can be animated)
+    /// Prepare navigation by changing the budgetId (synchronous)
+    /// Old data stays as placeholder until new data arrives via reloadCurrentBudget()
     func prepareNavigation(to id: String) {
         budgetId = id
     }
@@ -454,13 +472,17 @@ final class BudgetDetailsViewModel {
     /// Light reload: fetches only current budget details (no allBudgets)
     /// Use for: after toggle, update, or month navigation
     func reloadCurrentBudget() async {
+        isLoading = budget == nil
         error = nil
+        defer { isLoading = false }
 
         do {
             let details = try await budgetService.getBudgetWithDetails(id: budgetId)
-            budget = details.budget
-            budgetLines = details.budgetLines
-            transactions = details.transactions
+            withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
+                budget = details.budget
+                budgetLines = details.budgetLines
+                transactions = details.transactions
+            }
             updateAdjacentBudgets()
         } catch {
             self.error = error

@@ -120,8 +120,8 @@ struct CreateBudgetView: View {
 
             Spacer()
 
-            // Month indicator badge
-            Text("\(month, format: .number.precision(.integerLength(2)))/\(year)")
+            // Month indicator badge (Swiss format: MM.YYYY)
+            Text(String(format: "%02d.%d", month, year))
                 .font(.system(.caption, design: .monospaced, weight: .medium))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 10)
@@ -449,7 +449,7 @@ final class CreateBudgetViewModel {
     }
 
     var monthYearFormatted: String {
-        Date.from(month: month, year: year)?.monthYearFormatted ?? "\(month)/\(year)"
+        Date.from(month: month, year: year)?.monthYearFormatted ?? String(format: "%02d.%d", month, year)
     }
 
     var canCreate: Bool {
