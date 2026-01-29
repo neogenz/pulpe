@@ -19,6 +19,9 @@ enum AuthErrorLocalizer {
         if message.contains("user not found") {
             return "Aucun compte trouvé avec cet email — crée-en un ?"
         }
+        if message.contains("user already registered") || message.contains("already been registered") {
+            return "Cet email est déjà utilisé — connecte-toi ou utilise un autre"
+        }
 
         return "Quelque chose n'a pas fonctionné — réessaye"
     }

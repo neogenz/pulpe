@@ -226,8 +226,12 @@ struct RegistrationStep: View {
 
             onComplete(user)
 
+        } catch let apiError as APIError {
+            state.error = apiError
+            state.isLoading = false
         } catch {
-            state.error = error
+            let localizedMessage = AuthErrorLocalizer.localize(error)
+            state.error = APIError.serverError(message: localizedMessage)
             state.isLoading = false
         }
     }
