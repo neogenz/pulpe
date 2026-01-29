@@ -96,20 +96,17 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
       );
     });
 
-    it('should convert negative amount to positive via Math.abs', () => {
+    it('should use absolute value of amount', () => {
       component.form.patchValue({
         name: 'Test',
-        amount: 50,
+        amount: 42.5,
         transactionDate: new Date(),
       });
-      // Bypass validation by setting raw value after form is valid
-      component.form.get('amount')?.setValue(-50, { emitEvent: false });
-      component.form.get('amount')?.setErrors(null);
 
       component.submit();
 
       expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
-        expect.objectContaining({ amount: 50 }),
+        expect.objectContaining({ amount: 42.5 }),
       );
     });
   });

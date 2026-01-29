@@ -30,7 +30,7 @@ import type { CreateAllocatedTransactionDialogData } from './create-allocated-tr
       ></div>
 
       <!-- Header -->
-      <div class="flex justify-between items-center px-4">
+      <div class="flex justify-between items-center">
         <h2 class="text-title-large text-on-surface m-0">
           Nouvelle transaction - {{ data.budgetLine.name }}
         </h2>
@@ -43,7 +43,7 @@ import type { CreateAllocatedTransactionDialogData } from './create-allocated-tr
       <form
         [formGroup]="form"
         (ngSubmit)="submit()"
-        class="flex flex-col gap-4 px-4"
+        class="flex flex-col gap-4"
         novalidate
       >
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
@@ -108,7 +108,7 @@ import type { CreateAllocatedTransactionDialogData } from './create-allocated-tr
       </form>
 
       <!-- Action buttons -->
-      <div class="flex gap-3 px-4 pt-2">
+      <div class="flex gap-3 pt-2">
         <button matButton (click)="close()" class="flex-1">Annuler</button>
         <button
           matButton="filled"
