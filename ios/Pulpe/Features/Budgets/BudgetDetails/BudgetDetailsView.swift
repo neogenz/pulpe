@@ -190,16 +190,17 @@ struct BudgetDetailsView: View {
                 CheckedFilterPicker(selection: $viewModel.checkedFilter)
             }
             .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-            // Hero balance card (Revolut-style)
+            .listRowSeparator(.hidden)
+            .listSectionSeparator(.hidden)
+
+            // Hero balance card - applyGlass: false car le List fournit son propre styling
             Section {
                 HeroBalanceCard(
                     metrics: viewModel.metrics,
+                    applyGlass: false,
                     onTapProgress: {}
                 )
             }
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
 
             // Rollover section (toujours en premier)
             if let rolloverInfo = viewModel.rolloverInfo {
@@ -209,8 +210,8 @@ struct BudgetDetailsView: View {
                         { appState.budgetPath.append(BudgetDestination.details(budgetId: id)) }
                     }
                 )
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
 
             // Income section
@@ -318,8 +319,7 @@ struct BudgetDetailsView: View {
         .listStyle(.insetGrouped)
         .listSectionSpacing(16)
         .scrollContentBackground(.hidden)
-        .background(Color.surfacePrimary)
-        .applyScrollEdgeEffect()
+        .pulpeBackground()
         .refreshable {
             await viewModel.loadDetails()
         }

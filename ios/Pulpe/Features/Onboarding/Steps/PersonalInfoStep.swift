@@ -25,7 +25,7 @@ struct PersonalInfoStep: View {
                 .focused($isFocused)
                 .padding(DesignTokens.Spacing.lg)
                 .background(Color.inputBackgroundSoft)
-                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
                 .onSubmit {
                     if state.isFirstNameValid {
                         state.nextStep()

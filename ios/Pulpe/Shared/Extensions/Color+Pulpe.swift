@@ -81,6 +81,76 @@ extension Color {
         Color(light: Color(hex: 0x88FF44), dark: Color(hex: 0x2B883B))
     ]
 
+    // MARK: - App Background Gradient
+
+    // Semantic gradient colors for premium background (enhanced saturation)
+    private static let gradientBaseTop = Color(light: Color(hex: 0xF5FAF6), dark: Color(hex: 0x141816))
+    private static let gradientBaseMid = Color(light: Color(hex: 0xEEF5EF), dark: Color(hex: 0x1A201C))
+    private static let gradientBaseBottom = Color(light: Color(hex: 0xE0EDE2), dark: Color(hex: 0x1C241E))
+    private static let gradientAccentMint = Color(light: Color(hex: 0xA8E0B0), dark: Color(hex: 0x254A32))
+    private static let gradientAccentSage = Color(light: Color(hex: 0xC5E0C8), dark: Color(hex: 0x223828))
+    private static let gradientCenterGlow = Color(light: Color(hex: 0xD8EDD8), dark: Color(hex: 0x253028))
+
+    /// Premium multi-layered background for Liquid Glass effect
+    @ViewBuilder
+    static var appPremiumBackground: some View {
+        ZStack {
+            baseGradientLayer
+            mintAccentLayer
+            sageAccentLayer
+            centerGlowLayer
+        }
+    }
+
+    @ViewBuilder
+    private static var baseGradientLayer: some View {
+        LinearGradient(
+            colors: [gradientBaseTop, gradientBaseMid, gradientBaseBottom],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
+    @ViewBuilder
+    private static var mintAccentLayer: some View {
+        RadialGradient(
+            colors: [gradientAccentMint.opacity(0.75), .clear],
+            center: .topTrailing,
+            startRadius: 0,
+            endRadius: 400
+        )
+    }
+
+    @ViewBuilder
+    private static var sageAccentLayer: some View {
+        RadialGradient(
+            colors: [gradientAccentSage.opacity(0.65), .clear],
+            center: .bottomLeading,
+            startRadius: 0,
+            endRadius: 350
+        )
+    }
+
+    @ViewBuilder
+    private static var centerGlowLayer: some View {
+        RadialGradient(
+            colors: [gradientCenterGlow.opacity(0.45), .clear],
+            center: .center,
+            startRadius: 50,
+            endRadius: 500
+        )
+    }
+
+    /// Legacy gradient (kept for compatibility)
+    static let appBackgroundGradient = LinearGradient(
+        colors: [
+            Color(light: Color(hex: 0xF8F9F8), dark: Color(hex: 0x1A1A1A)),
+            Color(light: Color(hex: 0xEBF5ED), dark: Color(hex: 0x1A211C))
+        ],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+
     // MARK: - Onboarding & Tutorial Colors
 
     /// High-contrast text colors for onboarding

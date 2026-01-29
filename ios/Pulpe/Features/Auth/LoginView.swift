@@ -44,7 +44,7 @@ struct LoginView: View {
                     // Form card
                     VStack(spacing: DesignTokens.Spacing.xl) {
                         // Error message
-                        if let errorMessage = viewModel.errorMessage {
+                        if let errorMessage = viewModel.errorMessage ?? appState.biometricError {
                             HStack(spacing: DesignTokens.Spacing.sm) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.body)
@@ -56,14 +56,15 @@ struct LoginView: View {
                             }
                             .padding(DesignTokens.Spacing.lg)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.errorBackground, in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+                            .background(Color.errorBackground, in: .rect(cornerRadius: DesignTokens.CornerRadius.md))
                         }
 
                         // Biometric button
-                        if canRetryBiometric {
+                        if canRetryBiometric && appState.biometricError == nil {
                             Button {
                                 Task {
                                     await appState.retryBiometricLogin()
+                                    canRetryBiometric = await appState.canRetryBiometric()
                                 }
                             } label: {
                                 HStack(spacing: DesignTokens.Spacing.md) {
@@ -76,7 +77,7 @@ struct LoginView: View {
                                 .frame(height: DesignTokens.FrameHeight.button)
                                 .background(Color.onboardingGradient)
                                 .foregroundStyle(Color.textOnPrimary)
-                                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button))
+                                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
                                 .shadow(color: Color.pulpePrimary.opacity(0.25), radius: 8, y: 4)
                             }
 
@@ -105,7 +106,7 @@ struct LoginView: View {
                                 "",
                                 text: $viewModel.email,
                                 prompt: Text("exemple@email.com")
-                                    .foregroundColor(Color.textTertiaryOnboarding)
+                                    .foregroundStyle(Color.textTertiaryOnboarding)
                             )
                             .textContentType(.emailAddress)
                             .keyboardType(.emailAddress)
@@ -116,7 +117,7 @@ struct LoginView: View {
                             .padding(.horizontal, DesignTokens.Spacing.lg)
                             .frame(height: DesignTokens.FrameHeight.button)
                             .background(Color.inputBackgroundSoft)
-                            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button))
+                            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
                             .shadow(
                                 color: focusedField == .email ? Color.inputFocusGlow : Color.black.opacity(0.04),
                                 radius: focusedField == .email ? 8 : 4,
@@ -140,14 +141,14 @@ struct LoginView: View {
                                             "",
                                             text: $viewModel.password,
                                             prompt: Text("Votre mot de passe")
-                                                .foregroundColor(Color.textTertiaryOnboarding)
+                                                .foregroundStyle(Color.textTertiaryOnboarding)
                                         )
                                     } else {
                                         SecureField(
                                             "",
                                             text: $viewModel.password,
                                             prompt: Text("Votre mot de passe")
-                                                .foregroundColor(Color.textTertiaryOnboarding)
+                                                .foregroundStyle(Color.textTertiaryOnboarding)
                                         )
                                     }
                                 }
@@ -171,7 +172,7 @@ struct LoginView: View {
                             .padding(.horizontal, DesignTokens.Spacing.lg)
                             .frame(height: DesignTokens.FrameHeight.button)
                             .background(Color.inputBackgroundSoft)
-                            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button))
+                            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
                             .shadow(
                                 color: focusedField == .password ? Color.inputFocusGlow : Color.black.opacity(0.04),
                                 radius: focusedField == .password ? 8 : 4,
@@ -204,7 +205,7 @@ struct LoginView: View {
                             .background(viewModel.canSubmit ? Color.onboardingGradient : nil)
                             .background(viewModel.canSubmit ? nil : Color.secondary.opacity(0.3))
                             .foregroundStyle(viewModel.canSubmit ? Color.textOnPrimary : Color.secondary)
-                            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button))
+                            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
                             .shadow(
                                 color: viewModel.canSubmit ? Color.pulpePrimary.opacity(0.25) : .clear,
                                 radius: 8,
@@ -217,9 +218,7 @@ struct LoginView: View {
                         .padding(.top, DesignTokens.Spacing.sm)
                     }
                     .padding(DesignTokens.Spacing.xxl)
-                    .background(Color.onboardingCardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 24))
-                    .shadow(color: Color.black.opacity(0.08), radius: 24, y: 10)
+                    .pulpeCardBackground(cornerRadius: 24)
                     .padding(.horizontal, DesignTokens.Spacing.xl)
                     .opacity(isAppeared ? 1 : 0)
                     .offset(y: isAppeared ? 0 : 20)
@@ -252,7 +251,7 @@ struct LoginView: View {
                 }
             }
             .scrollBounceBehavior(.basedOnSize)
-            .background(Color.onboardingBackground)
+            .pulpeBackground()
             .toolbar {
                 if let isPresented {
                     ToolbarItem(placement: .cancellationAction) {
@@ -296,6 +295,7 @@ struct LoginView: View {
 
         do {
             try await appState.login(email: viewModel.email, password: viewModel.password)
+            appState.biometricError = nil
             isPresented?.wrappedValue = false
         } catch {
             viewModel.errorMessage = AuthErrorLocalizer.localize(error)
@@ -304,7 +304,7 @@ struct LoginView: View {
     }
 }
 
-@Observable
+@Observable @MainActor
 final class LoginViewModel {
     var email = ""
     var password = ""

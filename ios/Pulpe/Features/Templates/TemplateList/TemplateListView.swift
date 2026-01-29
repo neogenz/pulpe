@@ -74,6 +74,8 @@ struct TemplateListView: View {
                 Text("\(viewModel.templates.count)/\(AppConfiguration.maxTemplates) modèles")
             }
         }
+        .scrollContentBackground(.hidden)
+        .pulpeBackground()
         .alert(
             "Supprimer ce modèle ?",
             isPresented: $showDeleteAlert,
@@ -134,7 +136,7 @@ struct TemplateRow: View {
 
 // MARK: - ViewModel
 
-@Observable
+@Observable @MainActor
 final class TemplateListViewModel {
     private(set) var templates: [BudgetTemplate] = []
     private(set) var isLoading = false
@@ -146,7 +148,6 @@ final class TemplateListViewModel {
         templates.count >= AppConfiguration.maxTemplates
     }
 
-    @MainActor
     func loadTemplates() async {
         isLoading = true
         error = nil
@@ -164,7 +165,6 @@ final class TemplateListViewModel {
         templates.append(template)
     }
 
-    @MainActor
     func deleteTemplate(_ template: BudgetTemplate) async {
         // Check usage first
         do {

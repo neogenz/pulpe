@@ -1,13 +1,19 @@
 import SwiftUI
 import WidgetKit
 
+private enum SheetDestination: Identifiable {
+    case addTransaction
+    case realizedBalance
+    case account
+
+    var id: Self { self }
+}
+
 struct CurrentMonthView: View {
     @Environment(AppState.self) private var appState
     @Environment(CurrentMonthStore.self) private var store
     @Environment(DashboardStore.self) private var dashboardStore
-    @State private var showAddTransaction = false
-    @State private var showRealizedBalanceSheet = false
-    @State private var showAccount = false
+    @State private var activeSheet: SheetDestination?
     @State private var navigateToBudget = false
 
     var body: some View {
@@ -32,28 +38,29 @@ struct CurrentMonthView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    showAccount = true
+                    activeSheet = .account
                 } label: {
                     Image(systemName: "person.circle")
                 }
                 .accessibilityLabel("Mon compte")
             }
         }
-        .sheet(isPresented: $showAddTransaction) {
-            if let budgetId = store.budget?.id {
-                AddTransactionSheet(budgetId: budgetId) { transaction in
-                    store.addTransaction(transaction)
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .addTransaction:
+                if let budgetId = store.budget?.id {
+                    AddTransactionSheet(budgetId: budgetId) { transaction in
+                        store.addTransaction(transaction)
+                    }
                 }
+            case .realizedBalance:
+                RealizedBalanceSheet(
+                    metrics: store.metrics,
+                    realizedMetrics: store.realizedMetrics
+                )
+            case .account:
+                AccountView()
             }
-        }
-        .sheet(isPresented: $showRealizedBalanceSheet) {
-            RealizedBalanceSheet(
-                metrics: store.metrics,
-                realizedMetrics: store.realizedMetrics
-            )
-        }
-        .sheet(isPresented: $showAccount) {
-            AccountView()
         }
         .task {
             await store.loadDetailsIfNeeded()
@@ -67,14 +74,8 @@ struct CurrentMonthView: View {
                 navigateToBudget = false
             }
         }
-        .onChange(of: showAddTransaction) { _, isPresented in
-            ProductTips.isSheetPresented = isPresented
-        }
-        .onChange(of: showRealizedBalanceSheet) { _, isPresented in
-            ProductTips.isSheetPresented = isPresented
-        }
-        .onChange(of: showAccount) { _, isPresented in
-            ProductTips.isSheetPresented = isPresented
+        .onChange(of: activeSheet) { _, sheet in
+            ProductTips.isSheetPresented = sheet != nil
         }
     }
 
@@ -88,7 +89,7 @@ struct CurrentMonthView: View {
                     metrics: store.metrics,
                     daysRemaining: store.daysRemaining,
                     dailyBudget: store.dailyBudget,
-                    onTapProgress: { showRealizedBalanceSheet = true }
+                    onTapProgress: { activeSheet = .realizedBalance }
                 )
 
                 // Insights: top spending + budget alerts
@@ -148,7 +149,7 @@ struct CurrentMonthView: View {
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.lg)
         }
-        .background(Color(.systemGroupedBackground))
+        .pulpeBackground()
         .refreshable {
             await store.forceRefresh()
             await dashboardStore.forceRefresh()

@@ -60,7 +60,7 @@ actor APIClient {
         }
 
         // Add auth token
-        if let token = await KeychainManager.shared.getAccessToken() {
+        if let token = await KeychainManager.shared.getAccessToken(), !token.isEmpty {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
@@ -87,7 +87,7 @@ actor APIClient {
             request.httpMethod = method.rawValue
         }
 
-        if let token = await KeychainManager.shared.getAccessToken() {
+        if let token = await KeychainManager.shared.getAccessToken(), !token.isEmpty {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
@@ -206,9 +206,11 @@ actor APIClient {
     private func refreshTokenAndRetry() async throws -> Bool {
         // Token refresh is handled by Supabase SDK via AuthService
         // Try to get a fresh token from AuthService
-        if let token = await AuthService.shared.getAccessToken() {
-            return !token.isEmpty
+        if let token = await AuthService.shared.getAccessToken(), !token.isEmpty {
+            return true
         }
+        // Refresh failed — clear tokens and force logout
+        await AuthService.shared.logout()
         return false
     }
 

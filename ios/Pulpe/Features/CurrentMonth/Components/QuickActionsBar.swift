@@ -57,7 +57,7 @@ private struct QuickActionButton: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
             .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .clipShape(.rect(cornerRadius: 12))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)

@@ -121,7 +121,7 @@ struct CreateBudgetView: View {
             Spacer()
 
             // Month indicator badge
-            Text(String(format: "%02d/%d", month, year))
+            Text("\(month, format: .number.precision(.integerLength(2)))/\(year)")
                 .font(.system(.caption, design: .monospaced, weight: .medium))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 10)
@@ -130,7 +130,7 @@ struct CreateBudgetView: View {
         }
         .padding(DesignTokens.Spacing.lg)
         .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
         .shadow(DesignTokens.Shadow.subtle)
     }
 
@@ -203,7 +203,7 @@ struct CreateBudgetView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 32)
         .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
 
     // MARK: - Template List
@@ -277,7 +277,7 @@ struct TemplateSelectionCard: View {
             }
             .padding(14)
             .background(cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
             .overlay(cardBorder)
             .shadow(isSelected ? DesignTokens.Shadow.card : DesignTokens.Shadow.subtle)
             .scaleEffect(isPressed ? 0.98 : 1)

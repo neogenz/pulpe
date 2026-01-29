@@ -110,6 +110,7 @@ struct BudgetListView: View {
             .padding(.bottom, 32)
         }
         .scrollIndicators(.hidden)
+        .pulpeBackground()
     }
 }
 
@@ -277,7 +278,7 @@ struct BudgetMonthCard: View {
                 // Month name
                 Text(monthName)
                     .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                    .foregroundColor(budget.isCurrentMonth ? .pulpePrimary : .primary)
+                    .foregroundStyle(budget.isCurrentMonth ? Color.pulpePrimary : Color.primary)
 
                 // Remaining amount
                 if let remaining = budget.remaining {
@@ -290,7 +291,7 @@ struct BudgetMonthCard: View {
             .padding(.vertical, 14)
             .padding(.horizontal, 8)
             .background(cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
             .overlay(cardOverlay)
             .shadow(budget.isCurrentMonth ? DesignTokens.Shadow.card : DesignTokens.Shadow.subtle)
             .scaleEffect(isPressed ? 0.96 : 1)
@@ -386,7 +387,7 @@ struct EmptyMonthCard: View {
         .padding(.vertical, 14)
         .padding(.horizontal, 8)
         .background(Color.surfaceCard.opacity(isPast ? 0.5 : 0.8))
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
         .overlay(
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
                 .strokeBorder(

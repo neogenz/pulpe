@@ -26,14 +26,18 @@ struct AddTransactionSheet: View {
         !isLoading
     }
 
+    private static let amountFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 2
+        formatter.groupingSeparator = "'"
+        return formatter
+    }()
+
     private var displayAmount: String {
         if let amount, amount > 0 {
-            let formatter = NumberFormatter()
-            formatter.numberStyle = .decimal
-            formatter.minimumFractionDigits = 0
-            formatter.maximumFractionDigits = 2
-            formatter.groupingSeparator = "'"
-            return formatter.string(from: amount as NSDecimalNumber) ?? "0"
+            return Self.amountFormatter.string(from: amount as NSDecimalNumber) ?? "0"
         }
         return "0.00"
     }
@@ -109,6 +113,8 @@ struct AddTransactionSheet: View {
                     .contentTransition(.numericText())
                     .animation(.snappy(duration: 0.2), value: amount)
             }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel("Montant")
             .onTapGesture { isAmountFocused = true }
 
             // Subtle underline
@@ -157,7 +163,7 @@ struct AddTransactionSheet: View {
             .font(PulpeTypography.bodyLarge)
             .padding(DesignTokens.Spacing.lg)
             .background(Color.inputBackgroundSoft)
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
 
     // MARK: - Kind Selector (Custom Pills)
@@ -204,7 +210,7 @@ struct AddTransactionSheet: View {
         }
         .padding(DesignTokens.Spacing.lg)
         .background(Color.inputBackgroundSoft)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
 
     // MARK: - Add Button
@@ -219,7 +225,7 @@ struct AddTransactionSheet: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: DesignTokens.FrameHeight.button)
                 .background(Color.pulpePrimary)
-                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button))
+                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
                 .opacity(canSubmit ? 1 : 0.4)
         }
         .disabled(!canSubmit)

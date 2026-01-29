@@ -133,38 +133,39 @@ struct TransactionRow: View {
     let onEdit: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            // Kind icon circle (Revolut-style)
-            kindIconCircle
+        Button(action: onEdit) {
+            HStack(spacing: 12) {
+                // Kind icon circle (Revolut-style)
+                kindIconCircle
 
-            // Main content
-            VStack(alignment: .leading, spacing: 4) {
-                Text(transaction.name)
-                    .font(.system(.body, design: .rounded, weight: .medium))
-                    .foregroundStyle(transaction.isChecked ? .secondary : .primary)
-                    .strikethrough(transaction.isChecked, color: .secondary)
-                    .lineLimit(1)
+                // Main content
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(transaction.name)
+                        .font(.system(.body, design: .rounded, weight: .medium))
+                        .foregroundStyle(transaction.isChecked ? .secondary : .primary)
+                        .strikethrough(transaction.isChecked, color: .secondary)
+                        .lineLimit(1)
 
-                // Date (relative formatting)
-                Text(transaction.transactionDate.relativeFormatted)
-                    .font(.caption)
-                    .foregroundStyle(Color.textTertiary)
+                    // Date (relative formatting)
+                    Text(transaction.transactionDate.relativeFormatted)
+                        .font(.caption)
+                        .foregroundStyle(Color.textTertiary)
+                }
+
+                Spacer(minLength: 8)
+
+                // Sync indicator
+                SyncIndicator(isSyncing: isSyncing)
+
+                // Amount
+                Text(transaction.amount.asCHF)
+                    .font(.system(.callout, design: .rounded, weight: .semibold))
+                    .foregroundStyle(transaction.isChecked ? .secondary : transaction.kind.color)
             }
-
-            Spacer(minLength: 8)
-
-            // Sync indicator
-            SyncIndicator(isSyncing: isSyncing)
-
-            // Amount
-            Text(transaction.amount.asCHF)
-                .font(.system(.callout, design: .rounded, weight: .semibold))
-                .foregroundStyle(transaction.isChecked ? .secondary : transaction.kind.color)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
         }
-        .padding(.vertical, 8)
-        .contentShape(Rectangle())
-        .onTapGesture { onEdit() }
-        .accessibilityAddTraits(.isButton)
+        .buttonStyle(.plain)
         .accessibilityHint("Touche pour modifier")
     }
 
@@ -245,5 +246,5 @@ struct TransactionRow: View {
     .listStyle(.insetGrouped)
     .listSectionSpacing(16)
     .scrollContentBackground(.hidden)
-    .background(Color(.systemGroupedBackground))
+    .pulpeBackground()
 }

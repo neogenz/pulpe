@@ -71,7 +71,7 @@ struct ErrorBanner: View {
             }
         }
         .padding(DesignTokens.Spacing.lg)
-        .background(Color.errorBackground, in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+        .background(Color.errorBackground, in: .rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
 }
 

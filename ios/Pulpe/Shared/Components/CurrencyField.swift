@@ -61,7 +61,7 @@ struct CurrencyField: View {
             }
             .padding(DesignTokens.Spacing.lg)
             .background(Color.inputBackgroundSoft)
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
         }
         .onAppear {
             updateText(from: value)

@@ -33,7 +33,7 @@ struct ToastView: View {
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, 14)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+        .pulpeFloatingGlass(cornerRadius: DesignTokens.CornerRadius.md)
         .shadow(DesignTokens.Shadow.toast)
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .offset(y: offset)

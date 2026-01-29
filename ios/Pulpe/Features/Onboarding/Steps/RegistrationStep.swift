@@ -6,6 +6,11 @@ struct RegistrationStep: View {
 
     @State private var showPassword = false
     @State private var showPasswordConfirmation = false
+    @FocusState private var focusedField: Field?
+
+    private enum Field: Hashable {
+        case email, password, passwordConfirmation
+    }
 
     private var passwordMismatch: Bool {
         !state.passwordConfirmation.isEmpty && state.password != state.passwordConfirmation
@@ -23,7 +28,7 @@ struct RegistrationStep: View {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Email")
                         .font(PulpeTypography.inputLabel)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondaryOnboarding)
 
                     TextField("ton@email.com", text: Binding(
                         get: { state.email },
@@ -31,79 +36,123 @@ struct RegistrationStep: View {
                     ))
                     .textContentType(.emailAddress)
                     .keyboardType(.emailAddress)
-                    .autocapitalization(.none)
+                    .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .padding(DesignTokens.Spacing.lg)
+                    .focused($focusedField, equals: .email)
+                    .font(PulpeTypography.bodyLarge)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .frame(height: DesignTokens.FrameHeight.button)
                     .background(Color.inputBackgroundSoft)
-                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+                    .shadow(
+                        color: focusedField == .email ? Color.inputFocusGlow : Color.black.opacity(0.04),
+                        radius: focusedField == .email ? 8 : 4,
+                        y: focusedField == .email ? 2 : 1
+                    )
+                    .scaleEffect(focusedField == .email ? 1.01 : 1)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
                 }
 
                 // Password
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Mot de passe")
                         .font(PulpeTypography.inputLabel)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondaryOnboarding)
 
-                    HStack {
-                        if showPassword {
-                            TextField("••••••••", text: Binding(
-                                get: { state.password },
-                                set: { state.password = $0 }
-                            ))
-                        } else {
-                            SecureField("••••••••", text: Binding(
-                                get: { state.password },
-                                set: { state.password = $0 }
-                            ))
+                    HStack(spacing: DesignTokens.Spacing.md) {
+                        Group {
+                            if showPassword {
+                                TextField("••••••••", text: Binding(
+                                    get: { state.password },
+                                    set: { state.password = $0 }
+                                ))
+                            } else {
+                                SecureField("••••••••", text: Binding(
+                                    get: { state.password },
+                                    set: { state.password = $0 }
+                                ))
+                            }
                         }
+                        .textContentType(.newPassword)
+                        .focused($focusedField, equals: .password)
+                        .font(PulpeTypography.bodyLarge)
 
                         Button {
-                            showPassword.toggle()
+                            withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                                showPassword.toggle()
+                            }
                         } label: {
-                            Image(systemName: showPassword ? "eye.slash" : "eye")
-                                .foregroundStyle(.secondary)
+                            Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
+                                .font(PulpeTypography.bodyLarge)
+                                .foregroundStyle(Color.textTertiaryOnboarding)
+                                .contentTransition(.symbolEffect(.replace))
                         }
+                        .accessibilityLabel(showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe")
                     }
-                    .textContentType(.newPassword)
-                    .padding(DesignTokens.Spacing.lg)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .frame(height: DesignTokens.FrameHeight.button)
                     .background(Color.inputBackgroundSoft)
-                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+                    .shadow(
+                        color: focusedField == .password ? Color.inputFocusGlow : Color.black.opacity(0.04),
+                        radius: focusedField == .password ? 8 : 4,
+                        y: focusedField == .password ? 2 : 1
+                    )
+                    .scaleEffect(focusedField == .password ? 1.01 : 1)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
 
-                    Text("8 caractères minimum pour sécuriser ton compte")
+                    Text("8 caractères minimum, dont une majuscule et un chiffre")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textTertiaryOnboarding)
                 }
 
                 // Password confirmation
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Confirmer le mot de passe")
                         .font(PulpeTypography.inputLabel)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondaryOnboarding)
 
-                    HStack {
-                        if showPasswordConfirmation {
-                            TextField("••••••••", text: Binding(
-                                get: { state.passwordConfirmation },
-                                set: { state.passwordConfirmation = $0 }
-                            ))
-                        } else {
-                            SecureField("••••••••", text: Binding(
-                                get: { state.passwordConfirmation },
-                                set: { state.passwordConfirmation = $0 }
-                            ))
+                    HStack(spacing: DesignTokens.Spacing.md) {
+                        Group {
+                            if showPasswordConfirmation {
+                                TextField("••••••••", text: Binding(
+                                    get: { state.passwordConfirmation },
+                                    set: { state.passwordConfirmation = $0 }
+                                ))
+                            } else {
+                                SecureField("••••••••", text: Binding(
+                                    get: { state.passwordConfirmation },
+                                    set: { state.passwordConfirmation = $0 }
+                                ))
+                            }
                         }
+                        .textContentType(.newPassword)
+                        .focused($focusedField, equals: .passwordConfirmation)
+                        .font(PulpeTypography.bodyLarge)
 
                         Button {
-                            showPasswordConfirmation.toggle()
+                            withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                                showPasswordConfirmation.toggle()
+                            }
                         } label: {
-                            Image(systemName: showPasswordConfirmation ? "eye.slash" : "eye")
-                                .foregroundStyle(.secondary)
+                            Image(systemName: showPasswordConfirmation ? "eye.slash.fill" : "eye.fill")
+                                .font(PulpeTypography.bodyLarge)
+                                .foregroundStyle(Color.textTertiaryOnboarding)
+                                .contentTransition(.symbolEffect(.replace))
                         }
+                        .accessibilityLabel(showPasswordConfirmation ? "Masquer le mot de passe" : "Afficher le mot de passe")
                     }
-                    .textContentType(.newPassword)
-                    .padding(DesignTokens.Spacing.lg)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .frame(height: DesignTokens.FrameHeight.button)
                     .background(passwordMismatch ? Color.errorBackground : Color.inputBackgroundSoft)
-                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+                    .shadow(
+                        color: focusedField == .passwordConfirmation ? Color.inputFocusGlow : Color.black.opacity(0.04),
+                        radius: focusedField == .passwordConfirmation ? 8 : 4,
+                        y: focusedField == .passwordConfirmation ? 2 : 1
+                    )
+                    .scaleEffect(focusedField == .passwordConfirmation ? 1.01 : 1)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
 
                     if passwordMismatch {
                         Text("Les mots de passe ne correspondent pas")
@@ -122,6 +171,8 @@ struct RegistrationStep: View {
                 }
                 .toggleStyle(.pulpeCheckbox)
             }
+            .padding(DesignTokens.Spacing.xxl)
+            .pulpeCardBackground(cornerRadius: 24)
         }
     }
 
@@ -167,7 +218,9 @@ struct RegistrationStep: View {
             )
             _ = try await budgetService.createBudget(budgetData)
 
-            // Clear storage and complete
+            // Clear sensitive data and storage
+            state.password = ""
+            state.passwordConfirmation = ""
             state.clearStorage()
             state.isLoading = false
 

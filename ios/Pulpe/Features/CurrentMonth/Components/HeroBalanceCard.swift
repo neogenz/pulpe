@@ -5,6 +5,7 @@ struct HeroBalanceCard: View {
     let metrics: BudgetFormulas.Metrics
     var daysRemaining: Int? = nil
     var dailyBudget: Decimal? = nil
+    var applyGlass: Bool = true
     let onTapProgress: () -> Void
 
     // MARK: - Computed Properties
@@ -48,7 +49,7 @@ struct HeroBalanceCard: View {
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
         .padding(.vertical, DesignTokens.Spacing.xxl)
-        .heroCardStyle()
+        .if(applyGlass) { $0.pulpeHeroGlass() }
     }
 
     // MARK: - Balance Section
@@ -56,7 +57,7 @@ struct HeroBalanceCard: View {
     private var balanceSection: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Disponible CHF")
+                Text("Disponible")
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundStyle(.secondary)
@@ -66,6 +67,7 @@ struct HeroBalanceCard: View {
                         .font(PulpeTypography.amountHero)
                         .foregroundStyle(balanceColor)
                         .contentTransition(.numericText())
+                        .accessibilityLabel(metrics.remaining.asCHF)
 
                 }
 
@@ -124,7 +126,7 @@ struct HeroBalanceCard: View {
     private var statsRow: some View {
         HStack(spacing: 0) {
             statItem(
-                label: "Dépenses CHF",
+                label: "Dépenses",
                 value: metrics.totalExpenses,
                 color: .financialExpense
             )
@@ -134,7 +136,7 @@ struct HeroBalanceCard: View {
                 .padding(.horizontal, DesignTokens.Spacing.sm)
 
             statItem(
-                label: "Revenus CHF",
+                label: "Revenus",
                 value: metrics.totalIncome,
                 color: .financialIncome
             )
@@ -144,7 +146,7 @@ struct HeroBalanceCard: View {
                 .padding(.horizontal, DesignTokens.Spacing.sm)
 
             statItem(
-                label: "Épargne CHF",
+                label: "Épargne",
                 value: metrics.totalSavings,
                 color: .financialSavings
             )
@@ -162,25 +164,8 @@ struct HeroBalanceCard: View {
                 .foregroundStyle(color)
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-// MARK: - Hero Card Style Modifier
-
-private struct HeroCardStyleModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        // glassEffect is a future iOS API - using fallback styling
-        // When the API becomes available, add iOS 26+ branch with glassEffect
-        content
-            .background(Color.surfaceCard)
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
-            .shadow(DesignTokens.Shadow.elevated)
-    }
-}
-
-extension View {
-    func heroCardStyle() -> some View {
-        modifier(HeroCardStyleModifier())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(label) \(value.asCHF)")
     }
 }
 
@@ -239,5 +224,5 @@ extension View {
         }
         .padding()
     }
-    .background(Color(.systemGroupedBackground))
+    .pulpeBackground()
 }
