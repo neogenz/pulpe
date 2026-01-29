@@ -1,4 +1,9 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  inject,
+  computed,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import {
   MAT_BOTTOM_SHEET_DATA,
@@ -7,7 +12,9 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import type { Transaction } from 'pulpe-shared';
+import { BudgetDetailsStore } from '../store/budget-details-store';
 import type {
   AllocatedTransactionsDialogData,
   AllocatedTransactionsDialogResult,
@@ -19,6 +26,7 @@ import type {
     MatButtonModule,
     MatIconModule,
     MatProgressBarModule,
+    MatSlideToggleModule,
     CurrencyPipe,
     DatePipe,
     DecimalPipe,
@@ -92,14 +100,18 @@ import type {
 
       <!-- Transactions list -->
       <div class="px-4 max-h-[40vh] overflow-y-auto">
-        @if (data.consumption.allocatedTransactions.length > 0) {
+        @if (allocatedTransactions().length > 0) {
           <div class="flex flex-col gap-2">
-            @for (tx of data.consumption.allocatedTransactions; track tx.id) {
+            @for (tx of allocatedTransactions(); track tx.id) {
               <div
                 class="flex items-center justify-between p-3 bg-surface-container-low rounded-lg"
               >
                 <div class="flex flex-col gap-0.5 min-w-0 flex-1">
-                  <span class="text-body-medium font-medium truncate">
+                  <span
+                    class="text-body-medium font-medium truncate"
+                    [class.line-through]="tx.checkedAt"
+                    [class.text-on-surface-variant]="tx.checkedAt"
+                  >
                     {{ tx.name }}
                   </span>
                   <span class="text-label-small text-on-surface-variant">
@@ -112,6 +124,12 @@ import type {
                   >
                     {{ tx.amount | currency: 'CHF' : 'symbol' : '1.2-2' }}
                   </span>
+                  <mat-slide-toggle
+                    [checked]="!!tx.checkedAt"
+                    (change)="onToggleCheck(tx.id)"
+                    (click)="$event.stopPropagation()"
+                    [attr.data-testid]="'toggle-tx-check-' + tx.id"
+                  />
                   <button
                     matIconButton
                     (click)="deleteTransaction(tx)"
@@ -162,6 +180,19 @@ export class AllocatedTransactionsBottomSheet {
       AllocatedTransactionsDialogResult
     >,
   );
+  readonly #store = inject(BudgetDetailsStore);
+
+  /**
+   * Computed signal that reactively filters transactions for the current budget line.
+   * Updates automatically when the store's transactions change (e.g., after toggling check).
+   */
+  protected readonly allocatedTransactions = computed(() => {
+    const details = this.#store.budgetDetails();
+    if (!details) return [];
+    return details.transactions.filter(
+      (tx) => tx.budgetLineId === this.data.budgetLine.id,
+    );
+  });
 
   readonly consumptionPercentage =
     this.data.budgetLine.amount > 0
@@ -180,5 +211,9 @@ export class AllocatedTransactionsBottomSheet {
 
   deleteTransaction(transaction: Transaction): void {
     this.#bottomSheetRef.dismiss({ action: 'delete', transaction });
+  }
+
+  onToggleCheck(id: string): void {
+    this.data.onToggleTransactionCheck?.(id);
   }
 }
