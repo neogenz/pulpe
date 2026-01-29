@@ -8,8 +8,8 @@ struct OnboardingFlow: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Enhanced background
-                Color.onboardingBackground
+                // Premium gradient background for Liquid Glass
+                Color.appPremiumBackground
                     .ignoresSafeArea()
 
                 VStack(spacing: 0) {
@@ -113,7 +113,7 @@ struct OnboardingStepView<Content: View>: View {
                 onBack: { state.previousStep() }
             )
         }
-        .background(Color.onboardingBackground)
+        .background(Color.clear)
         .dismissKeyboardOnTap()
         .onAppear {
             withAnimation(.easeOut(duration: 0.4).delay(0.2)) {
