@@ -35,6 +35,7 @@ import { buildInfo } from '@env/build-info';
 import { environment } from '@env/environment';
 import { Logger } from './logging/logger';
 import { StorageMigrationRunnerService } from './storage/storage-migration-runner.service';
+import { AppPreloader } from './preloader/app-preloader';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -128,6 +129,7 @@ export function provideCore({ routes }: CoreOptions) {
       const authSession = inject(AuthSessionService);
       const analyticsService = inject(AnalyticsService);
       const storageMigrationRunner = inject(StorageMigrationRunnerService);
+      const appPreloader = inject(AppPreloader);
       const injector = inject(Injector);
       const logger = inject(Logger);
 
@@ -167,6 +169,11 @@ export function provideCore({ routes }: CoreOptions) {
 
         // 4. Initialiser l'auth ensuite (config garantie disponible)
         await authSession.initializeAuthState();
+
+        // 5. Start background data preloading (non-blocking, reactive to auth)
+        runInInjectionContext(injector, () => {
+          appPreloader.initializePreloading();
+        });
       } catch (error) {
         logger.error("Erreur lors de l'initialisation", error);
         throw error; // Bloquer le démarrage de l'app en cas d'erreur critique

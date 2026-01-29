@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BudgetApi } from '@core/budget/budget-api';
+import { BudgetCache } from '@core/budget/budget-cache';
 import { Logger } from '@core/logging/logger';
 import { createRolloverLine } from '@core/rollover/rollover-types';
 import { StorageService } from '@core/storage/storage.service';
@@ -48,6 +49,7 @@ import { createInitialBudgetDetailsState } from './budget-details-state';
 export class BudgetDetailsStore {
   readonly #budgetLineApi = inject(BudgetLineApi);
   readonly #budgetApi = inject(BudgetApi);
+  readonly #budgetCache = inject(BudgetCache);
   readonly #transactionApi = inject(TransactionApi);
   readonly #logger = inject(Logger);
   readonly #storage = inject(StorageService);
@@ -118,6 +120,29 @@ export class BudgetDetailsStore {
         throw new Error('Budget ID is required');
       }
 
+      const cached = this.#budgetCache.getBudgetDetails(budgetId);
+      if (cached) {
+        return {
+          ...cached.budget,
+          budgetLines: cached.budgetLines,
+          transactions: cached.transactions,
+        };
+      }
+
+      // If cache is currently loading this budget, wait for it
+      if (this.#budgetCache.isBudgetDetailLoading(budgetId)) {
+        const entry = await this.#budgetCache.waitForBudgetDetails(budgetId);
+        if (entry) {
+          return {
+            ...entry.budget,
+            budgetLines: entry.budgetLines,
+            transactions: entry.transactions,
+          };
+        }
+        // Cache load failed or timed out — fall through to direct API call
+      }
+
+      // Fallback to direct API call
       const response = await firstValueFrom(
         this.#budgetApi.getBudgetWithDetails$(budgetId),
       );
@@ -147,7 +172,10 @@ export class BudgetDetailsStore {
 
   // Month navigation - load all budgets to find adjacent ones
   readonly #allBudgetsResource = resource({
-    loader: async () => firstValueFrom(this.#budgetApi.getAllBudgets$()),
+    loader: async () => {
+      const cached = this.#budgetCache.budgets();
+      return cached ?? (await firstValueFrom(this.#budgetApi.getAllBudgets$()));
+    },
   });
 
   readonly #sortedBudgets = computed(() => {
@@ -351,6 +379,7 @@ export class BudgetDetailsStore {
         };
       });
 
+      this.#invalidateCachedBudgetDetails();
       this.#clearError();
     } catch (error) {
       this.reloadBudgetDetails();
@@ -387,7 +416,7 @@ export class BudgetDetailsStore {
         this.#budgetLineApi.updateBudgetLine$(data.id, data),
       );
 
-      // Clear any previous errors
+      this.#invalidateCachedBudgetDetails();
       this.#clearError();
     } catch (error) {
       this.reloadBudgetDetails();
@@ -415,6 +444,7 @@ export class BudgetDetailsStore {
     try {
       await firstValueFrom(this.#budgetLineApi.deleteBudgetLine$(id));
 
+      this.#invalidateCachedBudgetDetails();
       this.#clearError();
     } catch (error) {
       this.reloadBudgetDetails();
@@ -442,6 +472,7 @@ export class BudgetDetailsStore {
     try {
       await firstValueFrom(this.#transactionApi.remove$(id));
 
+      this.#invalidateCachedBudgetDetails();
       this.#clearError();
     } catch (error) {
       this.reloadBudgetDetails();
@@ -519,6 +550,7 @@ export class BudgetDetailsStore {
         };
       });
 
+      this.#invalidateCachedBudgetDetails();
       this.#clearError();
     } catch (error) {
       this.reloadBudgetDetails();
@@ -549,6 +581,7 @@ export class BudgetDetailsStore {
         };
       });
 
+      this.#invalidateCachedBudgetDetails();
       this.#clearError();
     } catch (error) {
       this.reloadBudgetDetails();
@@ -613,6 +646,7 @@ export class BudgetDetailsStore {
         };
       });
 
+      this.#invalidateCachedBudgetDetails();
       this.#clearError();
     } catch (error) {
       this.reloadBudgetDetails();
@@ -662,6 +696,7 @@ export class BudgetDetailsStore {
         };
       });
 
+      this.#invalidateCachedBudgetDetails();
       this.#clearError();
     } catch (error) {
       this.reloadBudgetDetails();
@@ -692,5 +727,12 @@ export class BudgetDetailsStore {
    */
   #clearError(): void {
     this.#state.errorMessage.set(null);
+  }
+
+  #invalidateCachedBudgetDetails(): void {
+    const budgetId = this.#state.budgetId();
+    if (budgetId) {
+      this.#budgetCache.invalidateBudgetDetails(budgetId);
+    }
   }
 }

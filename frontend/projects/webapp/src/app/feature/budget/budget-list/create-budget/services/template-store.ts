@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { type TemplateLine, type BudgetTemplate } from 'pulpe-shared';
 import { TemplateApi } from '@core/template/template-api';
+import { TemplateCache } from '@core/template/template-cache';
 import { Logger } from '@core/logging/logger';
 import {
   TemplateTotalsCalculator,
@@ -33,6 +34,7 @@ interface TemplateStoreState {
 @Injectable()
 export class TemplateStore {
   readonly #templateApi = inject(TemplateApi);
+  readonly #templateCache = inject(TemplateCache);
   readonly #totalsCalculator = inject(TemplateTotalsCalculator);
   readonly #logger = inject(Logger);
 
@@ -216,6 +218,17 @@ export class TemplateStore {
    * Load all templates from API
    */
   async loadTemplates(): Promise<void> {
+    const cached = this.#templateCache.templates();
+    if (cached) {
+      this.#state.update((state) => ({
+        ...state,
+        templates: cached,
+        isLoading: false,
+        error: null,
+      }));
+      return;
+    }
+
     this.#state.update((state) => ({
       ...state,
       isLoading: true,

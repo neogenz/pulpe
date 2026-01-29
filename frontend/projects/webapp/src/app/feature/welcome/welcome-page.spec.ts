@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterModule } from '@angular/router';
 import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
+import { AnimationLoader } from 'ngx-lottie';
+import { EMPTY } from 'rxjs';
 import WelcomePage from './welcome-page';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { Logger } from '@core/logging/logger';
@@ -67,6 +69,13 @@ describe('WelcomePage', () => {
     await TestBed.configureTestingModule({
       imports: [WelcomePage, NoopAnimationsModule, RouterModule.forRoot([])],
       providers: [
+        {
+          provide: AnimationLoader,
+          useValue: {
+            resolveOptions: (options: unknown) => options,
+            loadAnimation: () => EMPTY,
+          },
+        },
         { provide: DemoInitializerService, useValue: mockDemoInitializer },
         { provide: Logger, useValue: mockLogger },
         { provide: TurnstileService, useValue: mockTurnstileService },

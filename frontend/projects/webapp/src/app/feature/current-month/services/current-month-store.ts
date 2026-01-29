@@ -1,6 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { BudgetApi } from '@core/budget';
+import { BudgetCache } from '@core/budget/budget-cache';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { TransactionApi } from '@core/transaction';
 import { UserSettingsApi } from '@core/user-settings';
@@ -38,6 +39,7 @@ import { createInitialCurrentMonthInternalState } from './current-month-state';
 @Injectable()
 export class CurrentMonthStore {
   readonly #budgetApi = inject(BudgetApi);
+  readonly #budgetCache = inject(BudgetCache);
   readonly #transactionApi = inject(TransactionApi);
   readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #invalidationService = inject(BudgetInvalidationService);
@@ -351,6 +353,9 @@ export class CurrentMonthStore {
             },
           });
         }
+
+        // Invalidate preloaded cache so next navigation fetches fresh data
+        this.#invalidateCachedBudgetDetails();
       }
     } catch (error) {
       // Rollback on error
@@ -390,6 +395,7 @@ export class CurrentMonthStore {
       await firstValueFrom(
         this.#budgetApi.toggleBudgetLineCheck$(budgetLineId),
       );
+      this.#invalidateCachedBudgetDetails();
     } catch (error) {
       this.#dashboardResource.set(originalData);
       throw error;
@@ -421,6 +427,7 @@ export class CurrentMonthStore {
 
     try {
       await firstValueFrom(this.#transactionApi.toggleCheck$(transactionId));
+      this.#invalidateCachedBudgetDetails();
     } catch (error) {
       this.#dashboardResource.set(originalData);
       throw error;
@@ -431,6 +438,13 @@ export class CurrentMonthStore {
    * Load dashboard data from API as Observable
    * Chains two API calls: getBudgetForMonth → getBudgetWithDetails
    */
+  #invalidateCachedBudgetDetails(): void {
+    const budgetId = this.dashboardData()?.budget?.id;
+    if (budgetId) {
+      this.#budgetCache.invalidateBudgetDetails(budgetId);
+    }
+  }
+
   #loadDashboardData$(params: {
     month: string;
     year: string;
@@ -440,6 +454,16 @@ export class CurrentMonthStore {
         if (!budget) {
           return of({ budget: null, transactions: [], budgetLines: [] });
         }
+
+        const cached = this.#budgetCache.getBudgetDetails(budget.id);
+        if (cached) {
+          return of({
+            budget: cached.budget,
+            transactions: cached.transactions,
+            budgetLines: cached.budgetLines,
+          });
+        }
+
         return this.#budgetApi.getBudgetWithDetails$(budget.id).pipe(
           map((response) => ({
             budget: response.data.budget,
