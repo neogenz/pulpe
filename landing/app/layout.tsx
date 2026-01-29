@@ -77,6 +77,7 @@ const jsonLd = {
   ],
 }
 
+// Static script only — never inject dynamic data (XSS risk)
 const authRedirectScript = `
 (function() {
   try {

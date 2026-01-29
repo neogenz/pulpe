@@ -198,6 +198,7 @@ export function Hero() {
               <span className="text-primary md:hidden">
                 Pulpe, oui.
               </span>
+              {/* Reserve height for TypeWriter to prevent layout shift */}
               <span className="text-primary hidden md:block min-h-[7.5rem] lg:min-h-[9.375rem]">
                 <TypeWriter strings={TYPEWRITER_STRINGS} />
               </span>
