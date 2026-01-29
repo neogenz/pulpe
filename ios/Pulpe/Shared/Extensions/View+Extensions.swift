@@ -147,13 +147,13 @@ private struct GlassEffectModifier: ViewModifier {
                     in: .rect(cornerRadius: cornerRadius)
                 )
             } else {
-                content.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+                content.glassEffect(.regular.tint(Color.white.opacity(0.3)), in: .rect(cornerRadius: cornerRadius))
             }
         } else {
-            content.background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
+            content.background(.ultraThinMaterial, in: .rect(cornerRadius: cornerRadius))
         }
         #else
-        content.background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
+        content.background(.ultraThinMaterial, in: .rect(cornerRadius: cornerRadius))
         #endif
     }
 }
@@ -178,6 +178,6 @@ extension View {
     func pulpeHeroCard() -> some View {
         self
             .background(Color.surfaceCard)
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.xl))
     }
 }

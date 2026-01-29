@@ -113,6 +113,8 @@ struct AddTransactionSheet: View {
                     .contentTransition(.numericText())
                     .animation(.snappy(duration: 0.2), value: amount)
             }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel("Montant")
             .onTapGesture { isAmountFocused = true }
 
             // Subtle underline
@@ -161,7 +163,7 @@ struct AddTransactionSheet: View {
             .font(PulpeTypography.bodyLarge)
             .padding(DesignTokens.Spacing.lg)
             .background(Color.inputBackgroundSoft)
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
 
     // MARK: - Kind Selector (Custom Pills)
@@ -208,7 +210,7 @@ struct AddTransactionSheet: View {
         }
         .padding(DesignTokens.Spacing.lg)
         .background(Color.inputBackgroundSoft)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
 
     // MARK: - Add Button
@@ -223,7 +225,7 @@ struct AddTransactionSheet: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: DesignTokens.FrameHeight.button)
                 .background(Color.pulpePrimary)
-                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button))
+                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
                 .opacity(canSubmit ? 1 : 0.4)
         }
         .disabled(!canSubmit)

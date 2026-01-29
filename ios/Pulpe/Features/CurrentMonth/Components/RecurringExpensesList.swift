@@ -325,7 +325,7 @@ struct BudgetLineRow: View {
             }
         }
         .frame(height: DesignTokens.ProgressBar.height)
-        .clipShape(RoundedRectangle(cornerRadius: 1.5))
+        .clipShape(.rect(cornerRadius: 1.5))
     }
 
     private func handleLongPress() {

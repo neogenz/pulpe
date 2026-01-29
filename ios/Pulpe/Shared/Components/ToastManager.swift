@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Global toast manager for displaying confirmation messages
-@Observable
+@Observable @MainActor
 final class ToastManager {
     enum ToastType {
         case success
@@ -35,7 +35,6 @@ final class ToastManager {
     private(set) var currentToast: Toast?
     private var dismissTask: Task<Void, Never>?
 
-    @MainActor
     func show(_ message: String, type: ToastType = .success) {
         // Cancel any pending dismiss
         dismissTask?.cancel()
@@ -44,7 +43,7 @@ final class ToastManager {
         currentToast = Toast(message: message, type: type)
 
         // Auto-dismiss after 3 seconds
-        dismissTask = Task { @MainActor in
+        dismissTask = Task {
             do {
                 try await Task.sleep(for: .seconds(3))
                 dismiss()
@@ -54,7 +53,6 @@ final class ToastManager {
         }
     }
 
-    @MainActor
     func dismiss() {
         dismissTask?.cancel()
         currentToast = nil

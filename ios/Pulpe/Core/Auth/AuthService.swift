@@ -112,7 +112,8 @@ actor AuthService {
             return session.accessToken
         }
 
-        // Fallback to stored token
+        // Supabase session unavailable — fall back to stored token
+        Logger.auth.warning("getAccessToken: Supabase session unavailable, falling back to keychain")
         return await keychain.getAccessToken()
     }
 

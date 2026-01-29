@@ -35,7 +35,7 @@ struct RegistrationStep: View {
                     .autocorrectionDisabled()
                     .padding(DesignTokens.Spacing.lg)
                     .background(Color.inputBackgroundSoft)
-                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
                 }
 
                 // Password
@@ -67,9 +67,9 @@ struct RegistrationStep: View {
                     .textContentType(.newPassword)
                     .padding(DesignTokens.Spacing.lg)
                     .background(Color.inputBackgroundSoft)
-                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
 
-                    Text("8 caractères minimum pour sécuriser ton compte")
+                    Text("8 caractères minimum, dont une majuscule et un chiffre")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -103,7 +103,7 @@ struct RegistrationStep: View {
                     .textContentType(.newPassword)
                     .padding(DesignTokens.Spacing.lg)
                     .background(passwordMismatch ? Color.errorBackground : Color.inputBackgroundSoft)
-                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
 
                     if passwordMismatch {
                         Text("Les mots de passe ne correspondent pas")
@@ -167,7 +167,9 @@ struct RegistrationStep: View {
             )
             _ = try await budgetService.createBudget(budgetData)
 
-            // Clear storage and complete
+            // Clear sensitive data and storage
+            state.password = ""
+            state.passwordConfirmation = ""
             state.clearStorage()
             state.isLoading = false
 

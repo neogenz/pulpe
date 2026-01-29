@@ -291,7 +291,7 @@ struct BudgetMonthCard: View {
             .padding(.vertical, 14)
             .padding(.horizontal, 8)
             .background(cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
             .overlay(cardOverlay)
             .shadow(budget.isCurrentMonth ? DesignTokens.Shadow.card : DesignTokens.Shadow.subtle)
             .scaleEffect(isPressed ? 0.96 : 1)
@@ -387,7 +387,7 @@ struct EmptyMonthCard: View {
         .padding(.vertical, 14)
         .padding(.horizontal, 8)
         .background(Color.surfaceCard.opacity(isPast ? 0.5 : 0.8))
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
         .overlay(
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
                 .strokeBorder(

@@ -18,27 +18,23 @@ struct Budget: Codable, Identifiable, Hashable, Sendable {
     // MARK: - Computed Properties
 
     var monthYear: String {
-        var components = DateComponents()
-        components.month = month
-        components.year = year
-        components.day = 1
-
-        if let date = Calendar.current.date(from: components) {
-            return Formatters.monthYear.string(from: date).capitalized
-        }
-        return "\(month)/\(year)"
+        formatted(with: Formatters.monthYear)
     }
 
     var shortMonthYear: String {
+        formatted(with: Formatters.shortMonthYear)
+    }
+
+    private func formatted(with formatter: DateFormatter) -> String {
         var components = DateComponents()
         components.month = month
         components.year = year
         components.day = 1
 
-        if let date = Calendar.current.date(from: components) {
-            return Formatters.shortMonthYear.string(from: date).capitalized
+        guard let date = Calendar.current.date(from: components) else {
+            return "\(month)/\(year)"
         }
-        return "\(month)/\(year)"
+        return formatter.string(from: date).capitalized
     }
 
     var isCurrentMonth: Bool {

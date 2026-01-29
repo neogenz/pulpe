@@ -126,7 +126,7 @@ struct LinkedTransactionsSheet: View {
         }
         .padding(DesignTokens.Spacing.lg)
         .background(Color.surfaceCard)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
         .padding(.horizontal)
     }
 
@@ -175,7 +175,7 @@ struct LinkedTransactionsSheet: View {
                 }
             }
             .background(Color.surfaceCard)
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
             .padding(.horizontal)
         }
     }
@@ -226,7 +226,7 @@ private struct MetricCard: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.md)
         .background(Color.surfaceCard)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
 }
 
