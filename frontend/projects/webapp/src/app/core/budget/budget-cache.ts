@@ -1,8 +1,16 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import {
+  Injectable,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { type Budget, type BudgetDetailsResponse } from 'pulpe-shared';
-import { filter, firstValueFrom, first } from 'rxjs';
+import { filter, firstValueFrom, first, timeout } from 'rxjs';
 import { BudgetApi } from './budget-api';
+import { BudgetInvalidationService } from './budget-invalidation.service';
 import { Logger } from '../logging/logger';
 
 interface BudgetDetailsEntry {
@@ -14,7 +22,20 @@ interface BudgetDetailsEntry {
 @Injectable({ providedIn: 'root' })
 export class BudgetCache {
   readonly #budgetApi = inject(BudgetApi);
+  readonly #invalidationService = inject(BudgetInvalidationService);
   readonly #logger = inject(Logger);
+
+  constructor() {
+    // Auto-invalidate cache when budget mutations occur (signaled by version bump)
+    effect(() => {
+      const version = this.#invalidationService.version();
+      untracked(() => {
+        if (version === 0) return; // Skip initial value
+        this.invalidateBudgetList();
+        this.#budgetDetailsMap.set(new Map());
+      });
+    });
+  }
 
   readonly #budgets = signal<Budget[] | null>(null);
   readonly #budgetDetailsMap = signal<Map<string, BudgetDetailsEntry>>(
@@ -22,6 +43,7 @@ export class BudgetCache {
   );
   readonly #isListLoading = signal(false);
   readonly #loadingDetailIds = signal<Set<string>>(new Set());
+  readonly #failedDetailIds = signal<Set<string>>(new Set());
 
   readonly budgets = this.#budgets.asReadonly();
   readonly isListLoading = this.#isListLoading.asReadonly();
@@ -39,23 +61,35 @@ export class BudgetCache {
     return this.#budgetDetailsMap().has(budgetId);
   }
 
-  async waitForBudgetDetails(budgetId: string): Promise<BudgetDetailsEntry> {
+  async waitForBudgetDetails(
+    budgetId: string,
+  ): Promise<BudgetDetailsEntry | null> {
     const cached = this.getBudgetDetails(budgetId);
     if (cached) return cached;
 
-    // Wait for this specific budget detail to appear in the map
+    // Fail fast if preload already failed for this ID
+    if (this.#failedDetailIds().has(budgetId)) return null;
+
+    // Wait for this specific budget detail to appear in the map (with timeout)
     const detailsMap$ = toObservable(this.#budgetDetailsMap);
-    const map = await firstValueFrom(
-      detailsMap$.pipe(
-        filter((m) => m.has(budgetId)),
-        first(),
-      ),
-    );
-    return map.get(budgetId)!;
+    try {
+      const map = await firstValueFrom(
+        detailsMap$.pipe(
+          filter((m) => m.has(budgetId)),
+          first(),
+          timeout(10_000),
+        ),
+      );
+      return map.get(budgetId)!;
+    } catch {
+      return null;
+    }
   }
 
   async preloadBudgetList(): Promise<Budget[]> {
-    if (this.#isListLoading()) return this.#budgets() ?? [];
+    const cached = this.#budgets();
+    if (cached !== null) return cached;
+    if (this.#isListLoading()) return [];
 
     this.#isListLoading.set(true);
     try {
@@ -110,6 +144,11 @@ export class BudgetCache {
           `[BudgetCache] Failed to preload budget details for ${budgetId}`,
           error,
         );
+        this.#failedDetailIds.update((set) => {
+          const next = new Set(set);
+          next.add(budgetId);
+          return next;
+        });
       } finally {
         this.#loadingDetailIds.update((set) => {
           const next = new Set(set);
@@ -122,10 +161,23 @@ export class BudgetCache {
     await Promise.all(promises);
   }
 
+  invalidateBudgetList(): void {
+    this.#budgets.set(null);
+  }
+
+  invalidateBudgetDetails(budgetId: string): void {
+    this.#budgetDetailsMap.update((map) => {
+      const next = new Map(map);
+      next.delete(budgetId);
+      return next;
+    });
+  }
+
   clear(): void {
     this.#budgets.set(null);
     this.#budgetDetailsMap.set(new Map());
     this.#loadingDetailIds.set(new Set());
+    this.#failedDetailIds.set(new Set());
     this.#isListLoading.set(false);
   }
 }

@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { type Observable, forkJoin, map } from 'rxjs';
+import { type Observable, forkJoin, map, tap } from 'rxjs';
 import {
   type BudgetTemplateCreate,
   type BudgetTemplateCreateFromOnboarding,
@@ -16,11 +16,13 @@ import {
   type TemplateUsageResponse,
 } from 'pulpe-shared';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
+import { TemplateCache } from '@core/template/template-cache';
 
 @Injectable()
 export class BudgetTemplatesApi {
   readonly #http = inject(HttpClient);
   readonly #applicationConfig = inject(ApplicationConfiguration);
+  readonly #templateCache = inject(TemplateCache);
 
   get #apiUrl(): string {
     return `${this.#applicationConfig.backendApiUrl()}/budget-templates`;
@@ -37,29 +39,29 @@ export class BudgetTemplatesApi {
   create$(
     template: BudgetTemplateCreate,
   ): Observable<BudgetTemplateCreateResponse> {
-    return this.#http.post<BudgetTemplateCreateResponse>(
-      this.#apiUrl,
-      template,
-    );
+    return this.#http
+      .post<BudgetTemplateCreateResponse>(this.#apiUrl, template)
+      .pipe(tap(() => this.#templateCache.invalidate()));
   }
 
   createFromOnboarding$(
     onboardingData: BudgetTemplateCreateFromOnboarding,
   ): Observable<BudgetTemplateCreateResponse> {
-    return this.#http.post<BudgetTemplateCreateResponse>(
-      `${this.#apiUrl}/from-onboarding`,
-      onboardingData,
-    );
+    return this.#http
+      .post<BudgetTemplateCreateResponse>(
+        `${this.#apiUrl}/from-onboarding`,
+        onboardingData,
+      )
+      .pipe(tap(() => this.#templateCache.invalidate()));
   }
 
   update$(
     id: string,
     updates: Partial<BudgetTemplateCreate>,
   ): Observable<BudgetTemplateResponse> {
-    return this.#http.patch<BudgetTemplateResponse>(
-      `${this.#apiUrl}/${id}`,
-      updates,
-    );
+    return this.#http
+      .patch<BudgetTemplateResponse>(`${this.#apiUrl}/${id}`, updates)
+      .pipe(tap(() => this.#templateCache.invalidate()));
   }
 
   getTemplateTransactions$(
@@ -74,26 +76,30 @@ export class BudgetTemplatesApi {
     templateId: string,
     bulkUpdate: TemplateLinesBulkUpdate,
   ): Observable<TemplateLinesBulkUpdateResponse> {
-    return this.#http.patch<TemplateLinesBulkUpdateResponse>(
-      `${this.#apiUrl}/${templateId}/lines`,
-      bulkUpdate,
-    );
+    return this.#http
+      .patch<TemplateLinesBulkUpdateResponse>(
+        `${this.#apiUrl}/${templateId}/lines`,
+        bulkUpdate,
+      )
+      .pipe(tap(() => this.#templateCache.invalidate()));
   }
 
   bulkOperationsTemplateLines$(
     templateId: string,
     bulkOperations: TemplateLinesBulkOperations,
   ): Observable<TemplateLinesBulkOperationsResponse> {
-    return this.#http.post<TemplateLinesBulkOperationsResponse>(
-      `${this.#apiUrl}/${templateId}/lines/bulk-operations`,
-      bulkOperations,
-    );
+    return this.#http
+      .post<TemplateLinesBulkOperationsResponse>(
+        `${this.#apiUrl}/${templateId}/lines/bulk-operations`,
+        bulkOperations,
+      )
+      .pipe(tap(() => this.#templateCache.invalidate()));
   }
 
   delete$(id: string): Observable<BudgetTemplateDeleteResponse> {
-    return this.#http.delete<BudgetTemplateDeleteResponse>(
-      `${this.#apiUrl}/${id}`,
-    );
+    return this.#http
+      .delete<BudgetTemplateDeleteResponse>(`${this.#apiUrl}/${id}`)
+      .pipe(tap(() => this.#templateCache.invalidate()));
   }
 
   checkUsage$(id: string): Observable<TemplateUsageResponse> {
