@@ -6,7 +6,7 @@ import {
   resource,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetCache } from '@core/budget/budget-cache';
 import { Logger } from '@core/logging/logger';
@@ -21,15 +21,7 @@ import {
   type TransactionCreate,
 } from 'pulpe-shared';
 
-import {
-  catchError,
-  concatMap,
-  EMPTY,
-  firstValueFrom,
-  type Observable,
-  Subject,
-  tap,
-} from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 import { BudgetLineApi } from '../budget-line-api/budget-line-api';
 import { type BudgetDetailsViewModel } from '../models/budget-details-view-model';
@@ -57,12 +49,12 @@ export class BudgetDetailsStore {
   readonly #logger = inject(Logger);
   readonly #storage = inject(StorageService);
 
-  // Serialization queue for toggle operations only.
+  // Serialization chain for toggle operations only.
   // Toggles cascade to multiple API calls (budget line + child transactions)
   // that must execute sequentially to maintain consistency.
-  // CRUD mutations don't need the queue: they use resource.update() callbacks
+  // CRUD mutations don't need serialization: they use resource.update() callbacks
   // which always read current state, making them inherently race-safe.
-  readonly #mutations$ = new Subject<() => Observable<unknown>>();
+  #mutationChain = Promise.resolve();
 
   // Single source of truth - private state signal for non-resource data
   readonly #state = createInitialBudgetDetailsState();
@@ -74,20 +66,6 @@ export class BudgetDetailsStore {
   readonly isShowingOnlyUnchecked = this.#isShowingOnlyUnchecked.asReadonly();
 
   constructor() {
-    // Mutation queue subscription
-    this.#mutations$
-      .pipe(
-        concatMap((operation) => operation()),
-        takeUntilDestroyed(),
-      )
-      .subscribe({
-        error: (err) =>
-          this.#logger.error(
-            '[BudgetDetailsStore] Unexpected mutation error:',
-            err,
-          ),
-      });
-
     // Persist filter preference to localStorage
     effect(() => {
       this.#storage.set(
@@ -97,18 +75,11 @@ export class BudgetDetailsStore {
     });
   }
 
-  #enqueueMutation<T>(operation: () => Observable<T>): Promise<T> {
-    return new Promise((resolve, reject) => {
-      this.#mutations$.next(() =>
-        operation().pipe(
-          tap((result) => resolve(result)),
-          catchError((err) => {
-            reject(err);
-            return EMPTY;
-          }),
-        ),
-      );
-    });
+  #enqueue<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.#mutationChain.then(() => operation());
+    // Swallow errors so the chain stays alive for subsequent operations
+    this.#mutationChain = result.catch(() => undefined).then(() => undefined);
+    return result;
   }
 
   readonly #budgetDetailsResource = resource<
@@ -498,13 +469,13 @@ export class BudgetDetailsStore {
     });
 
     try {
-      const response = await this.#enqueueMutation(() =>
-        this.#budgetLineApi.toggleCheck$(id),
+      const response = await this.#enqueue(() =>
+        firstValueFrom(this.#budgetLineApi.toggleCheck$(id)),
       );
 
       for (const tx of result.transactionsToToggle) {
-        await this.#enqueueMutation(() =>
-          this.#transactionApi.toggleCheck$(tx.id),
+        await this.#enqueue(() =>
+          firstValueFrom(this.#transactionApi.toggleCheck$(tx.id)),
         );
       }
 
@@ -550,13 +521,15 @@ export class BudgetDetailsStore {
     });
 
     try {
-      const response = await this.#enqueueMutation(() =>
-        this.#transactionApi.toggleCheck$(id),
+      const response = await this.#enqueue(() =>
+        firstValueFrom(this.#transactionApi.toggleCheck$(id)),
       );
 
       if (result.shouldToggleBudgetLine && result.budgetLineId) {
-        await this.#enqueueMutation(() =>
-          this.#budgetLineApi.toggleCheck$(result.budgetLineId!),
+        await this.#enqueue(() =>
+          firstValueFrom(
+            this.#budgetLineApi.toggleCheck$(result.budgetLineId!),
+          ),
         );
       }
 

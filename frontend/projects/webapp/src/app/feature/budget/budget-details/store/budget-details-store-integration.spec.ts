@@ -5,7 +5,7 @@ import {
   provideHttpClientTesting,
   HttpTestingController,
 } from '@angular/common/http/testing';
-import { of, throwError, Subject } from 'rxjs';
+import { Observable, of, throwError, Subject } from 'rxjs';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
 
@@ -81,6 +81,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
   let mockTransactionApi: {
     create$: ReturnType<typeof vi.fn>;
     remove$: ReturnType<typeof vi.fn>;
+    toggleCheck$: ReturnType<typeof vi.fn>;
   };
   let mockLogger: {
     error: ReturnType<typeof vi.fn>;
@@ -130,6 +131,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     mockTransactionApi = {
       create$: vi.fn(),
       remove$: vi.fn(),
+      toggleCheck$: vi.fn(),
     };
 
     mockLogger = {
@@ -1176,6 +1178,118 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       // Total items: 3 budget lines + 2 transactions = 5
       expect(service.totalItemsCount()).toBe(5);
+    });
+  });
+
+  describe('Toggle serialization', () => {
+    beforeEach(async () => {
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+    });
+
+    const flushMicrotasks = () =>
+      new Promise((resolve) => setTimeout(resolve, 0));
+
+    it('should serialize rapid toggle API calls sequentially, not in parallel', async () => {
+      const callOrder: string[] = [];
+
+      let resolveToggle1!: (value: unknown) => void;
+      let resolveToggle2!: (value: unknown) => void;
+
+      mockBudgetLineApi.toggleCheck$ = vi
+        .fn()
+        .mockImplementation((id: string) => {
+          callOrder.push(`start:${id}`);
+          return new Observable((subscriber) => {
+            if (id === 'line-1') {
+              resolveToggle1 = (value) => {
+                subscriber.next(value);
+                subscriber.complete();
+              };
+            } else {
+              resolveToggle2 = (value) => {
+                subscriber.next(value);
+                subscriber.complete();
+              };
+            }
+          });
+        });
+
+      // Fire two toggles rapidly without awaiting
+      const promise1 = service.toggleCheck('line-1');
+      const promise2 = service.toggleCheck('line-2');
+
+      // Flush microtasks so the first enqueued Promise starts
+      await flushMicrotasks();
+
+      // Only the first API call should have started
+      expect(callOrder).toEqual(['start:line-1']);
+
+      // Resolve first toggle
+      resolveToggle1({
+        data: createMockBudgetLine({
+          id: 'line-1',
+          budgetId: mockBudgetId,
+          name: 'Salary',
+          amount: 5000,
+          kind: 'income',
+          recurrence: 'fixed',
+          checkedAt: new Date().toISOString(),
+        }),
+      });
+      await promise1;
+
+      // Flush so the second enqueued Promise starts
+      await flushMicrotasks();
+
+      // Now the second API call should have started
+      expect(callOrder).toEqual(['start:line-1', 'start:line-2']);
+
+      // Resolve second toggle
+      resolveToggle2({
+        data: createMockBudgetLine({
+          id: 'line-2',
+          budgetId: mockBudgetId,
+          name: 'Rent',
+          amount: 1500,
+          kind: 'expense',
+          recurrence: 'fixed',
+          checkedAt: new Date().toISOString(),
+        }),
+      });
+      await promise2;
+    });
+
+    it('should not block subsequent toggles when a toggle fails', async () => {
+      mockBudgetLineApi.toggleCheck$ = vi
+        .fn()
+        .mockReturnValueOnce(throwError(() => new Error('Network error')))
+        .mockReturnValueOnce(
+          of({
+            data: createMockBudgetLine({
+              id: 'line-2',
+              budgetId: mockBudgetId,
+              name: 'Rent',
+              amount: 1500,
+              kind: 'expense',
+              recurrence: 'fixed',
+              checkedAt: new Date().toISOString(),
+            }),
+          }),
+        );
+
+      // First toggle fails
+      const promise1 = service.toggleCheck('line-1');
+      await flushMicrotasks();
+      await promise1;
+
+      // Second toggle should still work despite the first one failing
+      const promise2 = service.toggleCheck('line-2');
+      await flushMicrotasks();
+      await promise2;
+
+      expect(mockBudgetLineApi.toggleCheck$).toHaveBeenCalledTimes(2);
     });
   });
 });
