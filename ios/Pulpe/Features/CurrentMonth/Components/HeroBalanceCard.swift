@@ -114,6 +114,7 @@ struct HeroBalanceCard: View {
                     Text("\(displayPercentage)")
                         .font(PulpeTypography.progressValue)
                         .foregroundStyle(progressColor)
+                        .contentTransition(.numericText())
 
                     Text("%")
                         .font(PulpeTypography.progressUnit)
@@ -168,6 +169,7 @@ struct HeroBalanceCard: View {
             Text(value.formatted(.number.locale(Locale(identifier: "de_CH"))))
                 .font(.system(.subheadline, design: .rounded, weight: .semibold))
                 .foregroundStyle(color)
+                .contentTransition(.numericText())
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)

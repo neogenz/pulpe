@@ -132,11 +132,11 @@ struct MonthYear: Hashable, Comparable {
     }
 
     var formatted: String {
-        date?.monthYearFormatted ?? "\(month)/\(year)"
+        date?.monthYearFormatted ?? String(format: "%02d.%d", month, year)
     }
 
     var shortFormatted: String {
-        date?.shortMonthYearFormatted ?? "\(month)/\(year)"
+        date?.shortMonthYearFormatted ?? String(format: "%02d.%d", month, year)
     }
 
     static func < (lhs: MonthYear, rhs: MonthYear) -> Bool {
