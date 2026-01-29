@@ -27,9 +27,11 @@ export function provideSplashRemoval() {
       take(1),
     );
 
-    race(routerReady$, timer(SPLASH_TIMEOUT_MS)).subscribe({
-      next: () => removeSplash(),
-      error: () => removeSplash(),
-    });
+    race(routerReady$, timer(SPLASH_TIMEOUT_MS))
+      .pipe(take(1))
+      .subscribe({
+        next: () => removeSplash(),
+        error: () => removeSplash(),
+      });
   });
 }

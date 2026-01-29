@@ -85,13 +85,19 @@ describe('provideSplashRemoval', () => {
 
   it('should remove splash on timeout if no navigation event fires', async () => {
     vi.useFakeTimers();
+    const rafSpy = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation((cb) => {
+        cb(0);
+        return 0;
+      });
 
     await setup();
 
     vi.advanceTimersByTime(15_000);
-    vi.advanceTimersByTime(16);
 
     vi.useRealTimers();
+    rafSpy.mockRestore();
 
     expect(document.getElementById('pulpe-splash')).toBeNull();
   });
