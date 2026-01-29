@@ -89,8 +89,8 @@ export default function SupportPage() {
               </h2>
 
               <div className="space-y-3">
-                {faqs.map((faq) => (
-                  <AccordionItem key={faq.question} question={faq.question} answer={faq.answer} />
+                {faqs.map((faq, index) => (
+                  <AccordionItem key={index} question={faq.question} answer={faq.answer} />
                 ))}
               </div>
             </section>

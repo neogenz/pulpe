@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState, useCallback } from 'react'
+import { memo, useState } from 'react'
 
 interface AccordionItemProps {
   question: string
@@ -10,7 +10,7 @@ interface AccordionItemProps {
 export const AccordionItem = memo(function AccordionItem({ question, answer }: AccordionItemProps) {
   const [open, setOpen] = useState(false)
 
-  const toggle = useCallback(() => setOpen((prev) => !prev), [])
+  const toggle = () => setOpen((prev) => !prev)
 
   return (
     <div className="bg-surface rounded-[var(--radius-card)] border border-text/5">
