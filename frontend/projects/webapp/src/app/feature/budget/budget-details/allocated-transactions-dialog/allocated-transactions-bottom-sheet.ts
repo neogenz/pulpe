@@ -1,9 +1,4 @@
-import {
-  Component,
-  inject,
-  computed,
-  ChangeDetectionStrategy,
-} from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import {
   MAT_BOTTOM_SHEET_DATA,
@@ -14,7 +9,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import type { Transaction } from 'pulpe-shared';
-import { BudgetDetailsStore } from '../store/budget-details-store';
 import type {
   AllocatedTransactionsDialogData,
   AllocatedTransactionsDialogResult,
@@ -39,7 +33,7 @@ import type {
       ></div>
 
       <!-- Header -->
-      <div class="flex justify-between items-center px-4">
+      <div class="flex justify-between items-center">
         <h2 class="text-title-large text-on-surface m-0">
           {{ data.budgetLine.name }}
         </h2>
@@ -49,7 +43,7 @@ import type {
       </div>
 
       <!-- Summary -->
-      <div class="grid grid-cols-3 gap-2 px-4">
+      <div class="grid grid-cols-3 gap-2">
         <!-- Dépensé (mis en avant) -->
         <div class="text-center p-2 bg-surface-container rounded-lg">
           <div class="text-label-small text-on-surface-variant">Dépensé</div>
@@ -87,7 +81,7 @@ import type {
       </div>
 
       <!-- Progress bar -->
-      <div class="px-4">
+      <div>
         <mat-progress-bar
           mode="determinate"
           [value]="consumptionPercentage"
@@ -99,13 +93,20 @@ import type {
       </div>
 
       <!-- Transactions list -->
-      <div class="px-4 max-h-[40vh] overflow-y-auto">
-        @if (allocatedTransactions().length > 0) {
+      <div class="max-h-[40vh] overflow-y-auto">
+        @if (allocatedTransactions.length > 0) {
           <div class="flex flex-col gap-2">
-            @for (tx of allocatedTransactions(); track tx.id) {
+            @for (tx of allocatedTransactions; track tx.id) {
               <div
-                class="flex items-center justify-between p-3 bg-surface-container-low rounded-lg"
+                class="flex items-center gap-3 py-3 px-1 bg-surface-container-low rounded-lg"
               >
+                <mat-slide-toggle
+                  [checked]="!!tx.checkedAt"
+                  (change)="onToggleCheck(tx.id)"
+                  (click)="$event.stopPropagation()"
+                  [attr.data-testid]="'toggle-tx-check-' + tx.id"
+                  [attr.aria-label]="'Comptabiliser : ' + tx.name"
+                />
                 <div class="flex flex-col gap-0.5 min-w-0 flex-1">
                   <span
                     class="text-body-medium font-medium truncate"
@@ -118,27 +119,17 @@ import type {
                     {{ tx.transactionDate | date: 'dd.MM.yyyy' }}
                   </span>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span
-                    class="text-body-medium font-semibold whitespace-nowrap"
-                  >
-                    {{ tx.amount | currency: 'CHF' : 'symbol' : '1.2-2' }}
-                  </span>
-                  <mat-slide-toggle
-                    [checked]="!!tx.checkedAt"
-                    (change)="onToggleCheck(tx.id)"
-                    (click)="$event.stopPropagation()"
-                    [attr.data-testid]="'toggle-tx-check-' + tx.id"
-                  />
-                  <button
-                    matIconButton
-                    (click)="deleteTransaction(tx)"
-                    aria-label="Supprimer la transaction"
-                    class="text-error"
-                  >
-                    <mat-icon class="text-error">delete</mat-icon>
-                  </button>
-                </div>
+                <span class="text-body-medium font-semibold whitespace-nowrap">
+                  {{ tx.amount | currency: 'CHF' : 'symbol' : '1.2-2' }}
+                </span>
+                <button
+                  matIconButton
+                  (click)="deleteTransaction(tx)"
+                  aria-label="Supprimer la transaction"
+                  class="text-error"
+                >
+                  <mat-icon class="text-error">delete</mat-icon>
+                </button>
               </div>
             }
           </div>
@@ -151,7 +142,7 @@ import type {
       </div>
 
       <!-- Action button -->
-      <div class="px-4 pt-2">
+      <div class="pt-2">
         <button matButton="filled" (click)="addTransaction()" class="w-full">
           <mat-icon>add</mat-icon>
           Nouvelle transaction
@@ -180,19 +171,8 @@ export class AllocatedTransactionsBottomSheet {
       AllocatedTransactionsDialogResult
     >,
   );
-  readonly #store = inject(BudgetDetailsStore);
-
-  /**
-   * Computed signal that reactively filters transactions for the current budget line.
-   * Updates automatically when the store's transactions change (e.g., after toggling check).
-   */
-  protected readonly allocatedTransactions = computed(() => {
-    const details = this.#store.budgetDetails();
-    if (!details) return [];
-    return details.transactions.filter(
-      (tx) => tx.budgetLineId === this.data.budgetLine.id,
-    );
-  });
+  protected readonly allocatedTransactions =
+    this.data.consumption.allocatedTransactions;
 
   readonly consumptionPercentage =
     this.data.budgetLine.amount > 0
@@ -213,7 +193,7 @@ export class AllocatedTransactionsBottomSheet {
     this.#bottomSheetRef.dismiss({ action: 'delete', transaction });
   }
 
-  onToggleCheck(id: string): void {
+  protected onToggleCheck(id: string): void {
     this.data.onToggleTransactionCheck?.(id);
   }
 }

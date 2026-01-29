@@ -164,7 +164,7 @@ export class CreateAllocatedTransactionBottomSheet {
       budgetId: this.data.budgetLine.budgetId,
       budgetLineId: this.data.budgetLine.id,
       name: formValue.name!.trim(),
-      amount: formValue.amount!,
+      amount: Math.abs(formValue.amount!),
       kind: this.data.budgetLine.kind,
       transactionDate,
       category: null,

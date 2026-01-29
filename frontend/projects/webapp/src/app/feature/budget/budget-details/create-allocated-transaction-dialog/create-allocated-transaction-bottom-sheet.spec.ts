@@ -1,62 +1,164 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { provideNativeDateAdapter } from '@angular/material/core';
+import {
+  MAT_BOTTOM_SHEET_DATA,
+  MatBottomSheetRef,
+} from '@angular/material/bottom-sheet';
+import { CreateAllocatedTransactionBottomSheet } from './create-allocated-transaction-bottom-sheet';
+import type { CreateAllocatedTransactionDialogData } from './create-allocated-transaction-dialog';
+
+const createDialogData = (
+  overrides: Partial<CreateAllocatedTransactionDialogData['budgetLine']> = {},
+): CreateAllocatedTransactionDialogData => ({
+  budgetLine: {
+    id: 'bl-123',
+    budgetId: 'budget-456',
+    name: 'Assurance maladie',
+    amount: 385,
+    kind: 'expense',
+    frequency: 'monthly',
+    savingsGoalId: null,
+    isRollover: false,
+    rolloverSourceBudgetId: undefined,
+    ...overrides,
+  } as CreateAllocatedTransactionDialogData['budgetLine'],
+});
 
 describe('CreateAllocatedTransactionBottomSheet', () => {
-  describe('Transaction Creation Logic', () => {
-    it('should build TransactionCreate with correct budgetLineId and budgetId', () => {
-      const budgetLine = {
-        id: 'bl-123',
-        budgetId: 'budget-456',
-        name: 'Assurance maladie',
-        amount: 385,
-        kind: 'expense' as const,
-      };
+  let component: CreateAllocatedTransactionBottomSheet;
+  let mockBottomSheetRef: { dismiss: ReturnType<typeof vi.fn> };
+  let dialogData: CreateAllocatedTransactionDialogData;
 
-      const formValue = {
+  beforeEach(async () => {
+    mockBottomSheetRef = { dismiss: vi.fn() };
+    dialogData = createDialogData();
+
+    await TestBed.configureTestingModule({
+      imports: [CreateAllocatedTransactionBottomSheet],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideAnimationsAsync(),
+        provideNativeDateAdapter(),
+        { provide: MAT_BOTTOM_SHEET_DATA, useValue: dialogData },
+        { provide: MatBottomSheetRef, useValue: mockBottomSheetRef },
+      ],
+    }).compileComponents();
+
+    component = TestBed.createComponent(
+      CreateAllocatedTransactionBottomSheet,
+    ).componentInstance;
+  });
+
+  describe('submit', () => {
+    it('should dismiss with transaction data when form is valid', () => {
+      component.form.patchValue({
         name: 'Consultation médecin',
         amount: 45.5,
         transactionDate: new Date('2026-01-15'),
-      };
+      });
 
-      const transaction = {
-        budgetId: budgetLine.budgetId,
-        budgetLineId: budgetLine.id,
-        name: formValue.name.trim(),
-        amount: formValue.amount,
-        kind: budgetLine.kind,
-        transactionDate: formValue.transactionDate.toISOString(),
-        category: null,
-      };
+      component.submit();
 
-      expect(transaction.budgetId).toBe('budget-456');
-      expect(transaction.budgetLineId).toBe('bl-123');
-      expect(transaction.name).toBe('Consultation médecin');
-      expect(transaction.amount).toBe(45.5);
-      expect(transaction.kind).toBe('expense');
-      expect(transaction.category).toBeNull();
+      expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
+        expect.objectContaining({
+          budgetId: 'budget-456',
+          budgetLineId: 'bl-123',
+          name: 'Consultation médecin',
+          amount: 45.5,
+          kind: 'expense',
+          category: null,
+        }),
+      );
+    });
+
+    it('should not dismiss when form is invalid', () => {
+      component.form.patchValue({ name: '', amount: null });
+
+      component.submit();
+
+      expect(mockBottomSheetRef.dismiss).not.toHaveBeenCalled();
     });
 
     it('should trim whitespace from name', () => {
-      const name = '  Courses  ';
-      expect(name.trim()).toBe('Courses');
+      component.form.patchValue({
+        name: '  Courses  ',
+        amount: 20,
+        transactionDate: new Date(),
+      });
+
+      component.submit();
+
+      expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Courses' }),
+      );
     });
 
-    it('should use current date as fallback when transactionDate is not a Date', () => {
-      const formValue = { transactionDate: 'not-a-date' as unknown };
-      const transactionDate =
-        formValue.transactionDate instanceof Date
-          ? (formValue.transactionDate as Date).toISOString()
-          : new Date().toISOString();
+    it('should convert negative amount to positive via Math.abs', () => {
+      component.form.patchValue({
+        name: 'Test',
+        amount: 50,
+        transactionDate: new Date(),
+      });
+      // Bypass validation by setting raw value after form is valid
+      component.form.get('amount')?.setValue(-50, { emitEvent: false });
+      component.form.get('amount')?.setErrors(null);
 
-      expect(transactionDate).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+      component.submit();
+
+      expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 50 }),
+      );
+    });
+  });
+
+  describe('close', () => {
+    it('should dismiss without data', () => {
+      component.close();
+
+      expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith();
+    });
+  });
+
+  describe('form validation', () => {
+    it('should require name', () => {
+      component.form.get('name')?.setValue('');
+
+      expect(component.form.get('name')?.hasError('required')).toBe(true);
     });
 
-    it('should inherit kind from budget line', () => {
-      const kinds = ['expense', 'income', 'saving'] as const;
+    it('should enforce max length on name', () => {
+      component.form.get('name')?.setValue('a'.repeat(101));
 
-      for (const kind of kinds) {
-        const budgetLine = { kind };
-        expect(budgetLine.kind).toBe(kind);
-      }
+      expect(component.form.get('name')?.hasError('maxlength')).toBe(true);
+    });
+
+    it('should require amount', () => {
+      component.form.get('amount')?.setValue(null);
+
+      expect(component.form.get('amount')?.hasError('required')).toBe(true);
+    });
+
+    it('should reject amount below 0.01', () => {
+      component.form.get('amount')?.setValue(0);
+
+      expect(component.form.get('amount')?.hasError('min')).toBe(true);
+    });
+
+    it('should reject negative amount', () => {
+      component.form.get('amount')?.setValue(-50);
+
+      expect(component.form.get('amount')?.hasError('min')).toBe(true);
+    });
+
+    it('should require transaction date', () => {
+      component.form.get('transactionDate')?.setValue(null);
+
+      expect(component.form.get('transactionDate')?.hasError('required')).toBe(
+        true,
+      );
     });
   });
 });
