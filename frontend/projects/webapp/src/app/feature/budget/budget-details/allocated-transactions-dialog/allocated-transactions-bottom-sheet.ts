@@ -94,9 +94,9 @@ import type {
 
       <!-- Transactions list -->
       <div class="max-h-[40vh] overflow-y-auto">
-        @if (allocatedTransactions.length > 0) {
+        @if (data.consumption.allocatedTransactions.length > 0) {
           <div class="flex flex-col gap-2">
-            @for (tx of allocatedTransactions; track tx.id) {
+            @for (tx of data.consumption.allocatedTransactions; track tx.id) {
               <div
                 class="flex items-center gap-3 py-3 px-1 bg-surface-container-low rounded-lg"
               >
@@ -171,9 +171,6 @@ export class AllocatedTransactionsBottomSheet {
       AllocatedTransactionsDialogResult
     >,
   );
-  protected readonly allocatedTransactions =
-    this.data.consumption.allocatedTransactions;
-
   readonly consumptionPercentage =
     this.data.budgetLine.amount > 0
       ? Math.round(
