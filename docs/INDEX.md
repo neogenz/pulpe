@@ -22,6 +22,7 @@
 - **[VERCEL_ROUTING.md](./VERCEL_ROUTING.md)** - Routing Vercel (landing React + Angular SPA)
 - **[MONITORING.md](./MONITORING.md)** - PostHog sourcemaps + error tracking complet
 - **[BACKEND_PRACTICES.md](./BACKEND_PRACTICES.md)** - Error handling + guidelines NestJS
+- **[VERSIONING.md](./VERSIONING.md)** - Versioning produit unifié (SemVer, tags, releases)
 - **[IOS_VERSIONING.md](./IOS_VERSIONING.md)** - Versioning iOS selon standards Apple
 
 ### 📖 Référence (Consultation)
