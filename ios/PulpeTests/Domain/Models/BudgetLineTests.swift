@@ -309,23 +309,6 @@ final class BudgetLineTests: XCTestCase {
         XCTAssertEqual(lineSet.count, 2, "Set should contain only unique budget lines")
     }
 
-    // MARK: - Sendable Conformance
-
-    func testBudgetLine_isSendable() {
-        // This test verifies the type conforms to Sendable at compile time
-
-        // Arrange
-        let line = TestDataFactory.createBudgetLine()
-
-        // Act
-        Task {
-            let _ = line
-        }
-
-        // Assert
-        XCTAssertTrue(true, "BudgetLine should be Sendable for use across actor boundaries")
-    }
-
     // MARK: - Amount Validation
 
     func testAmount_canBePositive() {

@@ -118,11 +118,11 @@ struct BudgetListView: View {
 
 struct YearSection: View {
     let year: Int
-    let budgets: [Budget]
+    let budgets: [BudgetSparse]
     let isExpanded: Bool
     var appearDelay: Double = 0
     let onToggle: () -> Void
-    let onSelect: (Budget) -> Void
+    let onSelect: (BudgetSparse) -> Void
 
     @State private var cardsAppeared = false
 
@@ -243,18 +243,20 @@ struct YearSection: View {
 // MARK: - Budget Month Card
 
 struct BudgetMonthCard: View {
-    let budget: Budget
+    let budget: BudgetSparse
     let onTap: () -> Void
 
     @State private var isPressed = false
 
     private var monthName: String {
-        Formatters.shortMonth.shortMonthSymbols[budget.month - 1].capitalized
+        guard let month = budget.month, month >= 1, month <= 12 else { return "—" }
+        return Formatters.shortMonth.shortMonthSymbols[month - 1].capitalized
     }
 
     /// Check if this budget month is in the past
     private var isPastMonth: Bool {
-        Date.isPast(month: budget.month, year: budget.year)
+        guard let month = budget.month, let year = budget.year else { return false }
+        return Date.isPast(month: month, year: year)
     }
 
     private var remainingStatus: RemainingStatus {

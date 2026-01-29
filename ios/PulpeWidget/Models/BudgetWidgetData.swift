@@ -3,10 +3,23 @@ import Foundation
 // MARK: - Deep Link URLs
 
 enum DeepLinks {
-    static let addExpense = URL(string: "pulpe://add-expense")!
+    static let addExpense: URL = {
+        guard let url = URL(string: "pulpe://add-expense") else {
+            fatalError("Invalid hardcoded URL: pulpe://add-expense")
+        }
+        return url
+    }()
 
     static func budget(id: String) -> URL {
-        URL(string: "pulpe://budget?id=\(id)")!
+        var components = URLComponents()
+        components.scheme = "pulpe"
+        components.host = "budget"
+        components.queryItems = [URLQueryItem(name: "id", value: id)]
+        guard let url = components.url else {
+            assertionFailure("DeepLinks: failed to encode budget id: \(id)")
+            return addExpense // Safe fallback — opens app without broken navigation
+        }
+        return url
     }
 }
 

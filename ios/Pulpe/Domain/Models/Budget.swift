@@ -103,8 +103,8 @@ struct BudgetWithDetails: Decodable {
 // MARK: - Sparse Fieldsets (Dashboard optimized)
 
 /// Sparse budget response with only requested aggregates
-/// Used for dashboard to avoid fetching full budget details
-struct BudgetSparse: Decodable, Identifiable, Sendable {
+/// Used for dashboard and lists to avoid fetching full budget details
+struct BudgetSparse: Decodable, Identifiable, Sendable, Hashable {
     let id: String
     let month: Int?
     let year: Int?
@@ -113,6 +113,40 @@ struct BudgetSparse: Decodable, Identifiable, Sendable {
     let totalIncome: Decimal?
     let remaining: Decimal?
     let rollover: Decimal?
+
+    var isCurrentMonth: Bool {
+        let now = Date()
+        let calendar = Calendar.current
+        return month == calendar.component(.month, from: now) &&
+               year == calendar.component(.year, from: now)
+    }
+
+    init(from budget: Budget) {
+        self.id = budget.id
+        self.month = budget.month
+        self.year = budget.year
+        self.totalExpenses = nil
+        self.totalSavings = nil
+        self.totalIncome = nil
+        self.remaining = budget.remaining
+        self.rollover = budget.rollover
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        month = try container.decodeIfPresent(Int.self, forKey: .month)
+        year = try container.decodeIfPresent(Int.self, forKey: .year)
+        totalExpenses = try container.decodeIfPresent(Decimal.self, forKey: .totalExpenses)
+        totalSavings = try container.decodeIfPresent(Decimal.self, forKey: .totalSavings)
+        totalIncome = try container.decodeIfPresent(Decimal.self, forKey: .totalIncome)
+        remaining = try container.decodeIfPresent(Decimal.self, forKey: .remaining)
+        rollover = try container.decodeIfPresent(Decimal.self, forKey: .rollover)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, month, year, totalExpenses, totalSavings, totalIncome, remaining, rollover
+    }
 }
 
 struct BudgetSparseListResponse: Decodable {
