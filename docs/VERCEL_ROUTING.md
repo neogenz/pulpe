@@ -8,6 +8,7 @@ Configuration du routing Vercel pour servir la landing page (Next.js static expo
 pulpe.app/
 ├── /                    → Landing page (Next.js) [si non connecté]
 ├── /                    → Redirect vers /dashboard [si connecté]
+├── /support             → Page support/FAQ (Next.js)
 ├── /screenshots/*       → Assets landing
 ├── /icon.png            → Assets landing
 ├── /welcome, /dashboard → Angular SPA
@@ -77,6 +78,7 @@ Les rewrites routent les requêtes sans changer l'URL visible.
   { "source": "/app-store-badge.svg", "destination": "/landing/app-store-badge.svg" },
   { "source": "/landing/_next/:path*", "destination": "/landing/_next/:path*" },
   { "source": "/_next/:path*", "destination": "/landing/_next/:path*" },
+  { "source": "/support", "destination": "/landing/support.html" },
   { "source": "/:path*", "destination": "/_app.html" }
 ]
 ```
@@ -90,7 +92,8 @@ Les rewrites routent les requêtes sans changer l'URL visible.
 | 3-4 | `/icon.png` | Icône landing |
 | 5 | `/landing/_next/...` | Assets Next.js landing (avec prefix) |
 | 6 | `/_next/...` | Assets Next.js landing (sans prefix) |
-| 7 | `/welcome`, `/dashboard`, etc. | Angular SPA |
+| 7 | `/support` | Page support (Next.js) |
+| 8 | `/welcome`, `/dashboard`, etc. | Angular SPA |
 
 **Note importante sur `/_next/*` :** La règle 6 est essentielle pour éviter que les assets statiques (CSS/JS) de la landing page soient interceptés par la règle catch-all (règle 7). Sans elle, les requêtes vers `/_next/static/css/...` retourneraient du HTML (`_app.html`) au lieu des fichiers CSS/JS, causant des erreurs MIME type et un rendu cassé.
 
@@ -126,7 +129,7 @@ Redirections permanentes (301) pour les anciennes URLs.
 
 ## Auth Redirect (Client-Side)
 
-La landing utilise une stratégie dual-layer pour rediriger les utilisateurs connectés vers `/dashboard` :
+La landing utilise une stratégie pour rediriger les utilisateurs connectés vers `/dashboard` depuis la homepage uniquement (les sous-pages comme `/support` restent accessibles) :
 
 ### Fonctionnement
 
@@ -167,6 +170,9 @@ GET /
 
 GET /screenshots/webapp/dashboard.png
   → Rewrite → /landing/screenshots/webapp/dashboard.png → Image
+
+GET /support
+  → Rewrite → /landing/support.html → Page support Next.js
 
 GET /welcome
   → Pas de fichier statique

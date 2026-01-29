@@ -6,10 +6,10 @@ import { Button } from '@/components/ui'
 import { ANGULAR_APP_URL } from '@/lib/config'
 
 const navLinks = [
-  { href: '#features', label: 'Fonctionnalités' },
-  { href: '#how-it-works', label: 'Comment ça marche' },
-  { href: '#platforms', label: 'Télécharger' },
-  { href: '#why-free', label: 'Pourquoi gratuit' },
+  { href: '/#features', label: 'Fonctionnalités' },
+  { href: '/#how-it-works', label: 'Comment ça marche' },
+  { href: '/#platforms', label: 'Télécharger' },
+  { href: '/#why-free', label: 'Pourquoi gratuit' },
 ]
 
 const SCROLL_THRESHOLD = 20
