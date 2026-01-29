@@ -25,6 +25,7 @@ export class BudgetListStore {
   readonly #invalidationService = inject(BudgetInvalidationService);
 
   // Maximum de mois à rechercher dans le futur (3 ans)
+  // private static uses TS keyword (not #) because static # is incompatible with class decorators
   private static readonly MAX_FUTURE_MONTHS_TO_SEARCH = 36;
 
   /**

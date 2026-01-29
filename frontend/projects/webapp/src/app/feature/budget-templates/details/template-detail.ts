@@ -17,6 +17,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ROUTES } from '@core/routing';
 import { Logger } from '@core/logging/logger';
+import { TemplateCache } from '@core/template/template-cache';
 import { PulpeTitleStrategy } from '@core/routing/title-strategy';
 import {
   type TemplateLine,
@@ -269,6 +270,7 @@ export default class TemplateDetail implements OnInit {
   readonly #injector = inject(Injector);
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
+  readonly #templateCache = inject(TemplateCache);
   readonly #destroyRef = inject(DestroyRef);
   ngOnInit(): void {
     const templateId = this.#route.snapshot.paramMap.get('templateId');
@@ -525,6 +527,7 @@ export default class TemplateDetail implements OnInit {
 
     try {
       await firstValueFrom(this.#budgetTemplatesApi.delete$(templateId));
+      this.#templateCache.invalidate();
 
       this.#snackBar.open('Modèle supprimé avec succès', undefined, {
         duration: 3000,
