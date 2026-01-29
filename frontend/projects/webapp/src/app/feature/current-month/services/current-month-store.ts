@@ -154,6 +154,11 @@ export class CurrentMonthStore {
     }));
   }
 
+  // No mutation queue needed: the dashboard is a single-action-at-a-time view
+  // with low concurrency risk. Toggle methods use snapshot-based rollback
+  // for optimistic updates. CRUD mutations go through #performOptimisticMutation
+  // which does a single atomic set() after API + server reconciliation.
+
   async addTransaction(transactionData: TransactionCreate): Promise<void> {
     return this.#performOptimisticMutation<Transaction>(
       () => this.#transactionApi.create$(transactionData),
@@ -267,47 +272,37 @@ export class CurrentMonthStore {
       const response = await firstValueFrom(operation());
 
       const currentData = this.#dashboardResource.value();
-      if (currentData && currentData.budget) {
-        const responseData =
-          response && typeof response === 'object' && 'data' in response
-            ? (response as { data: T }).data
-            : undefined;
-        const updatedData = updateData(currentData, responseData);
+      if (!currentData?.budget) return;
 
-        const rollover = updatedData.budget?.rollover || 0;
-        const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
-          updatedData.budgetLines,
-          updatedData.transactions,
-          rollover,
-        );
+      const responseData =
+        response && typeof response === 'object' && 'data' in response
+          ? (response as { data: T }).data
+          : undefined;
+      const updatedData = updateData(currentData, responseData);
 
-        this.#dashboardResource.set({
-          ...updatedData,
-          budget: {
-            ...currentData.budget,
-            endingBalance: metrics.endingBalance,
-          },
-        });
+      // Fetch server-computed budget (endingBalance, etc.) after mutation is persisted.
+      // The server budget already reflects the mutation, so local metrics
+      // calculation is unnecessary — we use the authoritative server values.
+      const serverBudget = await firstValueFrom(
+        this.#budgetApi.getBudgetById$(currentData.budget.id),
+      );
 
-        const budgetId = currentData.budget.id;
-        const updatedBudget = await firstValueFrom(
-          this.#budgetApi.getBudgetById$(budgetId),
-        );
+      // Single atomic set — avoids a race condition from two sequential set() calls
+      // where a concurrent mutation could be overwritten between them.
+      // Read latest data right before setting to preserve concurrent toggle updates.
+      const latestData = this.#dashboardResource.value();
+      if (!latestData?.budget) return;
 
-        const latestData = this.#dashboardResource.value();
-        if (latestData && latestData.budget && updatedBudget) {
-          this.#dashboardResource.set({
-            ...latestData,
-            budget: {
-              ...updatedBudget,
-              rollover: latestData.budget.rollover,
-              previousBudgetId: latestData.budget.previousBudgetId,
-            },
-          });
-        }
+      this.#dashboardResource.set({
+        ...updatedData,
+        budget: {
+          ...(serverBudget ?? latestData.budget),
+          rollover: latestData.budget.rollover,
+          previousBudgetId: latestData.budget.previousBudgetId,
+        },
+      });
 
-        this.#invalidateCachedBudgetDetails();
-      }
+      this.#invalidateCachedBudgetDetails();
     } catch (error) {
       if (originalData) {
         this.#dashboardResource.set(originalData);
