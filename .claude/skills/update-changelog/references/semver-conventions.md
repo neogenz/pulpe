@@ -1,6 +1,16 @@
 # SemVer Conventions
 
-All packages use **Semantic Versioning**: `MAJOR.MINOR.PATCH`
+The product uses a **single unified version** following **Semantic Versioning**: `MAJOR.MINOR.PATCH`
+
+## Tag Format
+
+A single tag per release:
+
+```
+vX.Y.Z    (e.g. v0.18.0)
+```
+
+The version is tracked in the root `package.json` (`version` field).
 
 ## Version Bump Mapping
 
@@ -10,6 +20,8 @@ All packages use **Semantic Versioning**: `MAJOR.MINOR.PATCH`
 | `feat:` | **MINOR** | New user-facing feature (backward compatible) |
 | `fix:` | **PATCH** | Bug fix (backward compatible) |
 | `perf:` | **PATCH** | Only if user-visible performance improvement |
+
+The product version bump is the **highest bump** across all affected packages.
 
 ## Bump Guidelines
 
@@ -21,18 +33,8 @@ All packages use **Semantic Versioning**: `MAJOR.MINOR.PATCH`
 | Fix incorrect behavior | PATCH | Correction de l'affichage des montants |
 | Visible perf improvement | PATCH | Temps de chargement reduit de 50% |
 
-## Package Registry
-
-| Package | Type | Tag Format |
-|---|---|---|
-| `pulpe-frontend` | JS/TS | `pulpe-frontend@X.Y.Z` |
-| `backend-nest` | JS/TS | `backend-nest@X.Y.Z` |
-| `pulpe-shared` | JS/TS | `pulpe-shared@X.Y.Z` |
-| `pulpe-landing` | JS/TS | `pulpe-landing@X.Y.Z` |
-| `ios` | Native | `ios@X.Y.Z` |
-
 ## iOS Specifics
 
-- Version follows SemVer (1.0.0)
+- iOS also tracks its own version in `ios/project.yml` (for App Store)
 - Build is an integer, resets to 1 for each new version
 - Defined in `ios/project.yml` (managed by XcodeGen)

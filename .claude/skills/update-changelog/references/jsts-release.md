@@ -1,5 +1,7 @@
 # JS/TS Release (Changesets)
 
+Changesets is used to bump individual `package.json` versions of sub-packages. The product tag is handled separately at the root level.
+
 ## Apply versions
 
 Do NOT run `pnpm changeset` interactively. Instead, create the changeset file directly:
@@ -26,14 +28,6 @@ Then apply versions:
 pnpm changeset version
 ```
 
-## Create tags
+This bumps the individual `package.json` versions and generates per-package `CHANGELOG.md` files.
 
-For each bumped JS/TS package:
-
-```bash
-git tag "pulpe-frontend@X.Y.Z" -m "Release pulpe-frontend vX.Y.Z"
-git tag "backend-nest@X.Y.Z" -m "Release backend-nest vX.Y.Z"
-git tag "pulpe-shared@X.Y.Z" -m "Release pulpe-shared vX.Y.Z"
-```
-
-Only create tags for packages that were actually bumped.
+**Note:** No per-package git tags are created. The only tag is the unified product tag `vX.Y.Z`.

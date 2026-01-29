@@ -14,8 +14,4 @@ cd ios && ./scripts/bump-version.sh [major|minor|patch]
 cd ios && xcodegen generate
 ```
 
-## Create tag
-
-```bash
-git tag "ios@X.Y.Z" -m "Release iOS vX.Y.Z (build N)"
-```
+**Note:** No iOS-specific git tag is created. The only tag is the unified product tag `vX.Y.Z`.

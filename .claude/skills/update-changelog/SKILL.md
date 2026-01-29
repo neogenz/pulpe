@@ -1,14 +1,16 @@
 ---
 name: update-changelog
-description: Unified release command - analyzes git changes and bumps frontend, backend, shared AND iOS automatically. Use when user says "update changelog", "release", "bump versions", or "preparer une release".
+description: Unified release command - analyzes git changes and bumps all packages with a single product version. Use when user says "update changelog", "release", "bump versions", or "preparer une release".
 argument-hint: [depuis le dernier tag | depuis main]
-allowed-tools: Read, Glob, Grep, Bash(git *), Bash(pnpm changeset*), Bash(pnpm quality*), Bash(cd ios && *), Bash(gh release*), Write, AskUserQuestion
+allowed-tools: Read, Glob, Grep, Bash(git *), Bash(pnpm changeset*), Bash(pnpm quality*), Bash(cd ios && *), Bash(gh release*), Bash(node -e*), Write, AskUserQuestion
 model: opus
 ---
 
 # Update Changelog
 
 Act as the **Product Owner** of this monorepo. Analyze code changes to produce clear, user-focused changelog entries in French.
+
+**Release model:** Unified product release — one SemVer version, one git tag (`vX.Y.Z`), one GitHub Release with all notes grouped.
 
 **Critical rules:**
 - NEVER apply versions without explicit user approval
@@ -32,7 +34,7 @@ User argument: `$ARGUMENTS`
 
 ```bash
 # If "depuis le dernier tag" or empty:
-BASE_REF=$(git tag -l | sort -V | tail -1)
+BASE_REF=$(git tag -l "v*" | sort -V | tail -1)
 
 # If "depuis main":
 BASE_REF="main"
@@ -56,18 +58,17 @@ git diff $BASE_REF..HEAD --stat          # Change summary
 
 Map files to packages:
 
-| File Pattern | Package | Release Method |
-|---|---|---|
-| `frontend/**` | `pulpe-frontend` | JS/TS (changesets) |
-| `backend-nest/**` | `backend-nest` | JS/TS (changesets) |
-| `shared/**` | `pulpe-shared` | JS/TS (changesets) |
-| `landing/**` | `pulpe-landing` | JS/TS (changesets) |
-| `ios/**` | `ios` | Native (bump script) |
+| File Pattern | Package |
+|---|---|
+| `frontend/**` | Frontend |
+| `backend-nest/**` | Backend |
+| `shared/**` | Shared |
+| `landing/**` | Landing |
+| `ios/**` | iOS |
 
 Extract relevant commits **per package** by cross-referencing commit file changes:
 
 ```bash
-# For each package, get commits that touch its files
 git log $BASE_REF..HEAD --oneline -- frontend/
 git log $BASE_REF..HEAD --oneline -- backend-nest/
 git log $BASE_REF..HEAD --oneline -- shared/
@@ -77,7 +78,16 @@ git log $BASE_REF..HEAD --oneline -- ios/
 
 Only consider `feat:`, `fix:`, `feat!:`, `BREAKING CHANGE:`, `perf:` commits for version bumps. For version bump rules, see [references/semver-conventions.md](references/semver-conventions.md).
 
-### Step 4: Propose changelog
+### Step 4: Determine product version bump
+
+Read the current product version from `package.json` at the root (`version` field).
+
+The product version bump is the **highest bump** across all affected packages:
+- If ANY package has a `feat!:` or `BREAKING CHANGE:` → **MAJOR**
+- Else if ANY package has a `feat:` → **MINOR**
+- Else if ANY package has a `fix:` or `perf:` → **PATCH**
+
+### Step 5: Propose changelog
 
 **IMPORTANT: Display the changelog as regular output text FIRST, then ask for confirmation separately.**
 
@@ -86,16 +96,18 @@ Only consider `feat:`, `fix:`, `feat!:`, `BREAKING CHANGE:`, `perf:` commits for
 ```markdown
 ## Proposition de Changelog
 
-### Packages detectes
-- `frontend/**` -> pulpe-frontend
-- `backend-nest/**` -> backend-nest
+### Version proposee
+**vX.Y.Z** (MINOR)
 
-### Versions proposees
-- **pulpe-frontend**: MINOR (feat: recurring transactions)
-- **backend-nest**: PATCH (fix: token refresh)
+### Packages impactes
+- Frontend, Backend
 
 ### Changements utilisateur
+
+**Frontend**
 1. **Transactions recurrentes** - Definir des depenses/revenus qui se repetent automatiquement
+
+**Backend**
 2. **Correction deconnexion** - Resolution du probleme de rafraichissement de token
 
 *Les changements techniques internes ont ete exclus.*
@@ -109,14 +121,27 @@ Do NOT put the changelog content inside AskUserQuestion — it cannot render lon
 
 Wait for explicit "oui" before proceeding.
 
-### Step 5: Apply versions
+### Step 6: Apply versions
 
 Execute ONLY after user confirms.
 
-- **JS/TS packages**: See [references/jsts-release.md](references/jsts-release.md)
-- **iOS package**: See [references/ios-release.md](references/ios-release.md)
+1. **Bump root product version** in `package.json` at the root:
 
-### Step 6: Verify quality BEFORE committing
+```bash
+node -e "
+const fs = require('fs');
+const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+const [major, minor, patch] = pkg.version.split('.').map(Number);
+// Apply bump: 'major' | 'minor' | 'patch'
+pkg.version = 'X.Y.Z';
+fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+"
+```
+
+2. **JS/TS sub-packages** (if affected): See [references/jsts-release.md](references/jsts-release.md)
+3. **iOS** (if affected): See [references/ios-release.md](references/ios-release.md)
+
+### Step 7: Verify quality BEFORE committing
 
 ```bash
 pnpm quality
@@ -124,28 +149,21 @@ pnpm quality
 
 If quality checks fail, fix issues before proceeding. Do NOT commit or push broken code.
 
-### Step 7: Commit & tag
+### Step 8: Commit & tag
 
-Stage only the files modified by the release process (changelogs, package.json, project.yml, etc.) — do NOT use `git add -A`:
+Stage only the files modified by the release process — do NOT use `git add -A`:
 
 ```bash
-# Stage specific release files
-git add CHANGELOG.md */CHANGELOG.md */package.json .changeset/ ios/project.yml
-git commit -m "chore(release): bump versions
-
-- pulpe-frontend: X.Y.Z
-- backend-nest: X.Y.Z
-- pulpe-shared: X.Y.Z
-- ios: X.Y.Z (build N)"
+git add package.json CHANGELOG.md */CHANGELOG.md */package.json .changeset/ ios/project.yml
+git commit -m "chore(release): vX.Y.Z"
+git tag "vX.Y.Z" -m "Release vX.Y.Z"
 ```
 
-Create tags **only for packages actually bumped** — see platform-specific references for tag format.
-
-### Step 8: Push & GitHub releases (with confirmation)
+### Step 9: Push & GitHub release (with confirmation)
 
 Ask the user for confirmation before pushing:
 
-> Pret a pousser sur main avec les tags et creer les releases GitHub ? (oui/non)
+> Pret a pousser sur main avec le tag et creer la release GitHub ? (oui/non)
 
 Only after explicit "oui":
 
@@ -153,21 +171,16 @@ Only after explicit "oui":
 git push origin main --tags
 ```
 
-### Step 9: Create GitHub releases
-
-For each bumped package, create a GitHub release using `gh`:
+Then create a **single** GitHub release:
 
 ```bash
-gh release create "pulpe-frontend@X.Y.Z" --title "pulpe-frontend vX.Y.Z" --notes "changelog content in French"
+gh release create "vX.Y.Z" --title "vX.Y.Z" --notes "unified changelog content in French"
 ```
 
-- Use the same user-facing changelog content from Step 4 as the release notes
-- Create one release per bumped package using the tag created in Step 7
-- The tag format must match the convention in [references/semver-conventions.md](references/semver-conventions.md)
+The release notes should group changes by package, using the same format as Step 5.
 
 ## Adding a new platform
 
 To add support for a new platform:
 1. Create `references/<platform>-release.md` with apply + tag instructions
 2. Add file pattern mapping in Step 3 table
-3. Add tag format in [references/semver-conventions.md](references/semver-conventions.md)
