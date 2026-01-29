@@ -10,10 +10,30 @@ export function Solution() {
             <br />
             <span className="text-primary">pour que tu profites du mois</span>
           </h2>
-          <p className="text-lg text-text-secondary">
-            Au lieu de tracker ce qui est passé, tu planifies ce qui arrive.
-            Résultat : tu sais toujours où tu en es.
+          <p className="text-lg text-text-secondary mb-8">
+            Les autres apps te montrent ce que tu as déjà dépensé. Pulpe te
+            montre ce que tu peux encore dépenser.
           </p>
+          <ul className="text-left text-text-secondary space-y-3 max-w-xl mx-auto">
+            <li className="flex items-start gap-3">
+              <span className="text-primary mt-1 shrink-0">✓</span>
+              <span>
+                Tes impôts dans 4 mois ? Déjà budgétés.
+              </span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="text-primary mt-1 shrink-0">✓</span>
+              <span>
+                Vacances en août ? Anticipées depuis janvier.
+              </span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="text-primary mt-1 shrink-0">✓</span>
+              <span>
+                Ce qu'il te reste ce mois ? Toujours visible, au centime près.
+              </span>
+            </li>
+          </ul>
         </FadeIn>
       </div>
 

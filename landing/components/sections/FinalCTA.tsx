@@ -7,10 +7,11 @@ export function FinalCTA() {
       <div className="max-w-3xl mx-auto px-4 text-center">
         <FadeIn>
           <h2 className="text-2xl md:text-4xl font-bold text-white mb-4">
-            Prêt à reprendre le contrôle ?
+            Tu sais ce qu'il te reste ce mois ?
           </h2>
           <p className="text-white/80 mb-8">
-            Essaie Pulpe gratuitement. Pas de carte bancaire, pas d'engagement.
+            Crée ton premier budget en 3 minutes. Gratuit, sans compte bancaire
+            à connecter.
           </p>
           <a href={`${ANGULAR_APP_URL}/signup`}>
             <Button

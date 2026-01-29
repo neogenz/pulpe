@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { Poppins } from 'next/font/google'
 import { PreloadLCPImage } from '@/components/ui'
-import { AuthRedirectWrapper } from '@/components/AuthRedirectWrapper'
 import './globals.css'
 
 const poppins = Poppins({
@@ -72,12 +71,13 @@ const jsonLd = {
       offers: {
         '@type': 'Offer',
         price: '0',
-        priceCurrency: 'EUR',
+        priceCurrency: 'CHF',
       },
     },
   ],
 }
 
+// Static script only — never inject dynamic data (XSS risk)
 const authRedirectScript = `
 (function() {
   try {
@@ -111,14 +111,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="font-sans antialiased">
-        <AuthRedirectWrapper>
-          <PreloadLCPImage
-            mobileSrc="/screenshots/mobile/dashboard.webp"
-            desktopSrc="/screenshots/webapp/dashboard.webp"
-          />
-          {children}
-          <div id="lightbox-root" />
-        </AuthRedirectWrapper>
+        <PreloadLCPImage
+          mobileSrc="/screenshots/mobile/dashboard.webp"
+          desktopSrc="/screenshots/webapp/dashboard.webp"
+        />
+        {children}
+        <div id="lightbox-root" />
       </body>
     </html>
   )
