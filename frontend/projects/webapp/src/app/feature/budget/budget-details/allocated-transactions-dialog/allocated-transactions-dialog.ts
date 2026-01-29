@@ -16,6 +16,7 @@ import type { BudgetLineConsumption } from '@core/budget';
 export interface AllocatedTransactionsDialogData {
   budgetLine: BudgetLine;
   consumption: BudgetLineConsumption;
+  onToggleTransactionCheck?: (id: string) => void;
 }
 
 export interface AllocatedTransactionsDialogResult {

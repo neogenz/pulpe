@@ -218,6 +218,9 @@ export default class BudgetDetailsPage {
     const result = await this.#dialogService.openAllocatedTransactionsDialog(
       event,
       this.#isMobile(),
+      {
+        onToggleTransactionCheck: (id) => this.handleToggleTransactionCheck(id),
+      },
     );
 
     if (!result) return;
@@ -235,6 +238,7 @@ export default class BudgetDetailsPage {
     const transaction =
       await this.#dialogService.openCreateAllocatedTransactionDialog(
         budgetLine,
+        this.#isMobile(),
       );
 
     if (transaction) {
