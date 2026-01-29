@@ -56,7 +56,9 @@ final class OnboardingState {
     }
 
     var isPasswordValid: Bool {
-        password.count >= 8
+        password.count >= 8 &&
+        password.contains { $0.isUppercase } &&
+        password.contains { $0.isNumber }
     }
 
     var isPasswordConfirmed: Bool {

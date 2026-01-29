@@ -70,7 +70,7 @@ struct WelcomeStep: View {
                     .frame(height: DesignTokens.FrameHeight.button)
                     .background(Color.onboardingGradient)
                     .foregroundStyle(Color.textOnPrimary)
-                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button))
+                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
                     .shadow(color: Color.pulpePrimary.opacity(0.3), radius: 8, y: 4)
                 }
 

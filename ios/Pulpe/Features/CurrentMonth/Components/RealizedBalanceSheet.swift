@@ -76,7 +76,7 @@ struct RealizedBalanceSheet: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.xxl)
         .background(Color.surfaceCard)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
     }
 
     // MARK: - Progress Section
@@ -115,7 +115,7 @@ struct RealizedBalanceSheet: View {
         }
         .padding()
         .background(Color.surfaceCard)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
     }
 
     /// Calculate realized savings from realized metrics
@@ -149,7 +149,7 @@ struct RealizedBalanceSheet: View {
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.yellow.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
 }
 

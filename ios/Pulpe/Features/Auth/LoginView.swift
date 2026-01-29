@@ -56,7 +56,7 @@ struct LoginView: View {
                             }
                             .padding(DesignTokens.Spacing.lg)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.errorBackground, in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+                            .background(Color.errorBackground, in: .rect(cornerRadius: DesignTokens.CornerRadius.md))
                         }
 
                         // Biometric button
@@ -77,7 +77,7 @@ struct LoginView: View {
                                 .frame(height: DesignTokens.FrameHeight.button)
                                 .background(Color.onboardingGradient)
                                 .foregroundStyle(Color.textOnPrimary)
-                                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button))
+                                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
                                 .shadow(color: Color.pulpePrimary.opacity(0.25), radius: 8, y: 4)
                             }
 
@@ -117,7 +117,7 @@ struct LoginView: View {
                             .padding(.horizontal, DesignTokens.Spacing.lg)
                             .frame(height: DesignTokens.FrameHeight.button)
                             .background(Color.inputBackgroundSoft)
-                            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button))
+                            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
                             .shadow(
                                 color: focusedField == .email ? Color.inputFocusGlow : Color.black.opacity(0.04),
                                 radius: focusedField == .email ? 8 : 4,
@@ -172,7 +172,7 @@ struct LoginView: View {
                             .padding(.horizontal, DesignTokens.Spacing.lg)
                             .frame(height: DesignTokens.FrameHeight.button)
                             .background(Color.inputBackgroundSoft)
-                            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button))
+                            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
                             .shadow(
                                 color: focusedField == .password ? Color.inputFocusGlow : Color.black.opacity(0.04),
                                 radius: focusedField == .password ? 8 : 4,
@@ -205,7 +205,7 @@ struct LoginView: View {
                             .background(viewModel.canSubmit ? Color.onboardingGradient : nil)
                             .background(viewModel.canSubmit ? nil : Color.secondary.opacity(0.3))
                             .foregroundStyle(viewModel.canSubmit ? Color.textOnPrimary : Color.secondary)
-                            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button))
+                            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
                             .shadow(
                                 color: viewModel.canSubmit ? Color.pulpePrimary.opacity(0.25) : .clear,
                                 radius: 8,
@@ -219,7 +219,7 @@ struct LoginView: View {
                     }
                     .padding(DesignTokens.Spacing.xxl)
                     .background(Color.onboardingCardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 24))
+                    .clipShape(.rect(cornerRadius: 24))
                     .shadow(color: Color.black.opacity(0.08), radius: 24, y: 10)
                     .padding(.horizontal, DesignTokens.Spacing.xl)
                     .opacity(isAppeared ? 1 : 0)
