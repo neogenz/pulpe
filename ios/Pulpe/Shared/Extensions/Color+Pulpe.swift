@@ -51,6 +51,14 @@ extension Color {
     /// Error background — soft warm tint (#FFF3E0 light, #2A1F10 dark)
     static let errorBackground = Color(light: Color(hex: 0xFFF3E0), dark: Color(hex: 0x2A1F10))
 
+    // MARK: - Warning Colors
+
+    /// Warning primary — amber/yellow for tips and caution (#B8860B light, #FFD54F dark)
+    static let warningPrimary = Color(light: Color(hex: 0xB8860B), dark: Color(hex: 0xFFD54F))
+
+    /// Warning background — soft amber tint (#FFF8E1 light, #2A2510 dark)
+    static let warningBackground = Color(light: Color(hex: 0xFFF8E1), dark: Color(hex: 0x2A2510))
+
     // MARK: - Component Colors
 
     /// Background for count badges in section headers

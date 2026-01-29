@@ -39,8 +39,9 @@ struct HeroBalanceCard: View {
 
     // MARK: - Body
 
+    @ViewBuilder
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.xl) {
+        let content = VStack(spacing: DesignTokens.Spacing.xl) {
             // Main balance section
             balanceSection
 
@@ -49,7 +50,12 @@ struct HeroBalanceCard: View {
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
         .padding(.vertical, DesignTokens.Spacing.xxl)
-        .if(applyGlass) { $0.pulpeHeroGlass() }
+
+        if applyGlass {
+            content.pulpeHeroGlass()
+        } else {
+            content
+        }
     }
 
     // MARK: - Balance Section

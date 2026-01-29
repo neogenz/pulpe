@@ -44,15 +44,20 @@ struct PulpeApp: App {
         switch url.host {
         case "add-expense":
             let budgetId = components?.queryItems?.first { $0.name == "budgetId" }?.value
-            if let budgetId, UUID(uuidString: budgetId) == nil { break }
+            if let budgetId, UUID(uuidString: budgetId) == nil {
+                Logger.app.warning("Deep link: invalid UUID for add-expense budgetId=\(budgetId)")
+                break
+            }
             deepLinkDestination = .addExpense(budgetId: budgetId)
         case "budget":
             if let budgetId = components?.queryItems?.first(where: { $0.name == "id" })?.value,
                UUID(uuidString: budgetId) != nil {
                 deepLinkDestination = .viewBudget(budgetId: budgetId)
+            } else {
+                Logger.app.warning("Deep link: invalid or missing UUID for budget path")
             }
         default:
-            break
+            Logger.app.warning("Deep link: unrecognized host=\(url.host ?? "nil")")
         }
     }
 }
@@ -92,8 +97,8 @@ struct RootView: View {
         }
         .toastOverlay(appState.toastManager)
         .environment(appState.toastManager)
-        .animation(.easeInOut(duration: 0.3), value: appState.authState)
-        .animation(.easeInOut(duration: 0.3), value: appState.isInMaintenance)
+        .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: appState.authState)
+        .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: appState.isInMaintenance)
         .onReceive(NotificationCenter.default.publisher(for: .maintenanceModeDetected)) { _ in
             appState.setMaintenanceMode(true)
         }

@@ -51,7 +51,7 @@ struct RealizedBalanceSheet: View {
 
             // Amount
             Text(realizedMetrics.realizedBalance.asCHF)
-                .font(.system(size: 40, weight: .bold, design: .rounded))
+                .font(PulpeTypography.amountHero)
                 .foregroundStyle(isPositiveBalance ? .primary : Color.financialOverBudget)
 
             // Status badge
@@ -65,7 +65,7 @@ struct RealizedBalanceSheet: View {
             .foregroundStyle(isPositiveBalance ? Color.financialSavings : Color.financialOverBudget)
             .padding(.horizontal, DesignTokens.Spacing.md)
             .padding(.vertical, 6)
-            .background((isPositiveBalance ? Color.financialSavings : Color.financialOverBudget).opacity(0.12))
+            .background((isPositiveBalance ? Color.financialSavings : Color.financialOverBudget).opacity(DesignTokens.Opacity.badgeBackground))
             .clipShape(Capsule())
 
             // Completion info
@@ -134,7 +134,7 @@ struct RealizedBalanceSheet: View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
             Image(systemName: "lightbulb.fill")
                 .font(.body)
-                .foregroundStyle(.yellow)
+                .foregroundStyle(Color.warningPrimary)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Astuce")
@@ -148,7 +148,7 @@ struct RealizedBalanceSheet: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.yellow.opacity(0.1))
+        .background(Color.warningBackground)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
 }

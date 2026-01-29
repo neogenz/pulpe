@@ -74,7 +74,7 @@ struct AddTransactionSheet: View {
             }
             .loadingOverlay(isLoading)
             .task {
-                try? await Task.sleep(nanoseconds: 200_000_000)
+                try? await Task.sleep(for: .milliseconds(200))
                 isAmountFocused = true
             }
             .onChange(of: isAmountFocused) { _, isFocused in
@@ -111,7 +111,7 @@ struct AddTransactionSheet: View {
                     .font(PulpeTypography.amountHero)
                     .foregroundStyle((amount ?? 0) > 0 ? Color.textPrimary : Color.textTertiary)
                     .contentTransition(.numericText())
-                    .animation(.snappy(duration: 0.2), value: amount)
+                    .animation(.snappy(duration: DesignTokens.Animation.fast), value: amount)
             }
             .accessibilityAddTraits(.isButton)
             .accessibilityLabel("Montant")
@@ -119,9 +119,9 @@ struct AddTransactionSheet: View {
 
             // Subtle underline
             RoundedRectangle(cornerRadius: 1)
-                .fill(isAmountFocused ? Color.pulpePrimary : Color.textTertiary.opacity(0.3))
+                .fill(isAmountFocused ? Color.pulpePrimary : Color.textTertiary.opacity(DesignTokens.Opacity.strong))
                 .frame(width: 120, height: 2)
-                .animation(.easeInOut(duration: 0.2), value: isAmountFocused)
+                .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isAmountFocused)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.lg)
@@ -172,7 +172,7 @@ struct AddTransactionSheet: View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             ForEach(TransactionKind.allCases, id: \.self) { type in
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
                         kind = type
                     }
                 } label: {
