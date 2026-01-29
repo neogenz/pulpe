@@ -368,23 +368,6 @@ final class TransactionTests: XCTestCase {
         XCTAssertEqual(txSet.count, 2, "Set should contain only unique transactions")
     }
 
-    // MARK: - Sendable Conformance
-
-    func testTransaction_isSendable() {
-        // This test verifies the type conforms to Sendable at compile time
-
-        // Arrange
-        let transaction = TestDataFactory.createTransaction()
-
-        // Act
-        Task {
-            let _ = transaction
-        }
-
-        // Assert
-        XCTAssertTrue(true, "Transaction should be Sendable for use across actor boundaries")
-    }
-
     // MARK: - Business Logic
 
     func testAllocatedTransaction_belongsToBudgetLine() {

@@ -165,21 +165,4 @@ final class BudgetTests: XCTestCase {
         XCTAssertEqual(budget.rollover, 0, "Should store zero rollover")
     }
 
-    // MARK: - Sendable Conformance
-
-    func testBudget_isSendable() {
-        // This test verifies the type conforms to Sendable at compile time
-        // The ability to compile this function demonstrates Sendable conformance
-
-        // Arrange
-        let budget = TestDataFactory.createBudget()
-
-        // Act
-        Task {
-            let _ = budget
-        }
-
-        // Assert
-        XCTAssertTrue(true, "Budget should be Sendable for use across actor boundaries")
-    }
 }

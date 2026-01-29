@@ -350,7 +350,7 @@ final class BudgetDetailsViewModel {
     private(set) var syncingTransactionIds: Set<String> = []
 
     // Navigation between months
-    private(set) var allBudgets: [Budget] = []
+    private(set) var allBudgets: [BudgetSparse] = []
     private(set) var previousBudgetId: String?
     private(set) var nextBudgetId: String?
 
@@ -483,7 +483,7 @@ final class BudgetDetailsViewModel {
 
         do {
             async let detailsTask = budgetService.getBudgetWithDetails(id: budgetId)
-            async let budgetsTask = budgetService.getAllBudgets()
+            async let budgetsTask = budgetService.getBudgetsSparse(fields: "month,year")
 
             let (details, budgets) = try await (detailsTask, budgetsTask)
 
@@ -526,8 +526,10 @@ final class BudgetDetailsViewModel {
 
         // Sort budgets chronologically
         let sorted = allBudgets.sorted { lhs, rhs in
-            if lhs.year != rhs.year { return lhs.year < rhs.year }
-            return lhs.month < rhs.month
+            let lhsYear = lhs.year ?? 0
+            let rhsYear = rhs.year ?? 0
+            if lhsYear != rhsYear { return lhsYear < rhsYear }
+            return (lhs.month ?? 0) < (rhs.month ?? 0)
         }
 
         guard let currentIndex = sorted.firstIndex(where: { $0.id == currentBudget.id }) else {

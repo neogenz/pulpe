@@ -7,7 +7,7 @@ final class BudgetServiceTests: XCTestCase {
 
     var sut: BudgetService!
 
-    override func setUp() async throws {
+    override func setUp() {
         sut = BudgetService.shared
     }
 

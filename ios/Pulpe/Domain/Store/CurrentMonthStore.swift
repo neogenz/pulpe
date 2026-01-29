@@ -58,13 +58,20 @@ final class CurrentMonthStore: StoreProtocol {
         error = nil
 
         do {
-            let budgets = try await budgetService.getAllBudgets()
+            let sparseBudgets = try await budgetService.getBudgetsSparse(
+                fields: "month,year",
+                limit: 13
+            )
             let calendar = Calendar.current
             let now = Date()
             let currentMonth = calendar.component(.month, from: now)
             let currentYear = calendar.component(.year, from: now)
 
-            budget = budgets.first { $0.month == currentMonth && $0.year == currentYear }
+            guard let match = sparseBudgets.first(where: {
+                $0.month == currentMonth && $0.year == currentYear
+            }) else { return }
+
+            budget = try await budgetService.getBudget(id: match.id)
         } catch {
             self.error = error
         }
