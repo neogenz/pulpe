@@ -57,6 +57,11 @@ export class BudgetDetailsStore {
   readonly #logger = inject(Logger);
   readonly #storage = inject(StorageService);
 
+  // Serialization queue for toggle operations only.
+  // Toggles cascade to multiple API calls (budget line + child transactions)
+  // that must execute sequentially to maintain consistency.
+  // CRUD mutations don't need the queue: they use resource.update() callbacks
+  // which always read current state, making them inherently race-safe.
   readonly #mutations$ = new Subject<() => Observable<unknown>>();
 
   // Single source of truth - private state signal for non-resource data
