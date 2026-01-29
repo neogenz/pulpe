@@ -1,36 +1,19 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { type TemplateLine } from 'pulpe-shared';
 import { firstValueFrom } from 'rxjs';
-import { type TemplateLine, type BudgetTemplate } from 'pulpe-shared';
 import { TemplateApi } from '@core/template/template-api';
 import { TemplateCache } from '@core/template/template-cache';
 import { Logger } from '@core/logging/logger';
+import { TemplateTotalsCalculator } from './template-totals-calculator';
 import {
-  TemplateTotalsCalculator,
+  type TemplateStoreState,
   type TemplateTotals,
-} from './template-totals-calculator';
+  createInitialTemplateStoreState,
+} from './template-store-state';
 
 // Re-export for external use
 export type { TemplateTotals };
 
-/**
- * Centralized state for the TemplateStore
- */
-interface TemplateStoreState {
-  templates: BudgetTemplate[];
-  selectedId: string | null;
-  templateLinesCache: Map<string, TemplateLine[]>;
-  templateTotalsMap: Record<string, TemplateTotals>;
-  isLoading: boolean;
-  error: Error | null;
-}
-
-/**
- * Centralized state management for budget templates.
- * Handles loading, caching, and selection state.
- *
- * Follows STATE-PATTERN.md with a single centralized state signal.
- * Following Angular 20 naming convention (no .service suffix)
- */
 @Injectable()
 export class TemplateStore {
   readonly #templateApi = inject(TemplateApi);
@@ -38,17 +21,9 @@ export class TemplateStore {
   readonly #totalsCalculator = inject(TemplateTotalsCalculator);
   readonly #logger = inject(Logger);
 
-  /**
-   * Single source of truth for all store state
-   */
-  readonly #state = signal<TemplateStoreState>({
-    templates: [],
-    selectedId: null,
-    templateLinesCache: new Map(),
-    templateTotalsMap: {},
-    isLoading: false,
-    error: null,
-  });
+  readonly #state = signal<TemplateStoreState>(
+    createInitialTemplateStoreState(),
+  );
 
   // Public read-only selectors via computed
   readonly templates = computed(() => this.#state().templates);
@@ -58,10 +33,6 @@ export class TemplateStore {
   readonly hasValue = computed(() => this.#state().templates.length > 0);
   readonly error = computed(() => this.#state().error);
 
-  /**
-   * Computed value for the currently selected template
-   * Returns the full template object or null
-   */
   readonly selectedTemplate = computed(() => {
     const id = this.#state().selectedId;
     if (!id) return null;
@@ -70,9 +41,6 @@ export class TemplateStore {
     return allTemplates.find((t) => t.id === id) || null;
   });
 
-  /**
-   * Computed value for all templates sorted with default first
-   */
   readonly sortedTemplates = computed(() => {
     const templates = this.#state().templates;
     return [...templates].sort((a, b) => {
@@ -84,16 +52,10 @@ export class TemplateStore {
     });
   });
 
-  /**
-   * Get cached template lines or null if not cached
-   */
   getCachedTemplateLines(templateId: string): TemplateLine[] | null {
     return this.#state().templateLinesCache.get(templateId) || null;
   }
 
-  /**
-   * Select a template by ID
-   */
   selectTemplate(templateId: string): void {
     this.#state.update((state) => ({
       ...state,
@@ -101,9 +63,6 @@ export class TemplateStore {
     }));
   }
 
-  /**
-   * Clear selection
-   */
   clearSelection(): void {
     this.#state.update((state) => ({
       ...state,
@@ -111,10 +70,6 @@ export class TemplateStore {
     }));
   }
 
-  /**
-   * Initialize default selection
-   * Selects the default template or the newest one
-   */
   initializeDefaultSelection(): void {
     if (this.#state().selectedId) return; // Already selected
 
@@ -133,9 +88,6 @@ export class TemplateStore {
     }
   }
 
-  /**
-   * Load template lines and cache them
-   */
   async loadTemplateLines(templateId: string): Promise<TemplateLine[]> {
     // Check cache first
     const cached = this.getCachedTemplateLines(templateId);
@@ -163,10 +115,6 @@ export class TemplateStore {
     }
   }
 
-  /**
-   * Load totals for multiple templates
-   * Manages loading states and caching
-   */
   async loadTemplateTotals(templateIds: string[]): Promise<void> {
     const currentTotals = this.#state().templateTotalsMap;
 
@@ -207,16 +155,10 @@ export class TemplateStore {
     }
   }
 
-  /**
-   * Load totals for a single template
-   */
   async loadSingleTemplateTotals(templateId: string): Promise<void> {
     await this.loadTemplateTotals([templateId]);
   }
 
-  /**
-   * Load all templates from API
-   */
   async loadTemplates(): Promise<void> {
     const cached = this.#templateCache.templates();
     if (cached) {
@@ -252,9 +194,6 @@ export class TemplateStore {
     }
   }
 
-  /**
-   * Clear all caches
-   */
   clearCaches(): void {
     this.#state.update((state) => ({
       ...state,
@@ -263,9 +202,6 @@ export class TemplateStore {
     }));
   }
 
-  /**
-   * Invalidate cache for a specific template
-   */
   invalidateTemplate(templateId: string): void {
     this.#state.update((state) => {
       const newLinesCache = new Map(state.templateLinesCache);
@@ -282,16 +218,10 @@ export class TemplateStore {
     });
   }
 
-  /**
-   * Reload templates from API
-   */
   async reloadTemplates(): Promise<void> {
     await this.loadTemplates();
   }
 
-  /**
-   * Update template lines cache
-   */
   #updateTemplateLinesCache(templateId: string, lines: TemplateLine[]): void {
     this.#state.update((state) => {
       const newCache = new Map(state.templateLinesCache);
@@ -303,18 +233,11 @@ export class TemplateStore {
     });
   }
 
-  /**
-   * Set loading states for templates
-   */
   #setLoadingStates(templateIds: string[]): void {
-    const loadingStates = templateIds.reduce(
-      (acc, id) => {
-        acc[id] = this.#totalsCalculator.createDefaultTotals(true);
-        return acc;
-      },
-      {} as Record<string, TemplateTotals>,
+    const loadingStates = this.#totalsCalculator.createDefaultTotalsMap(
+      templateIds,
+      true,
     );
-
     this.#state.update((state) => ({
       ...state,
       templateTotalsMap: {
@@ -324,18 +247,11 @@ export class TemplateStore {
     }));
   }
 
-  /**
-   * Set error states for templates that failed to load
-   */
   #setErrorStates(templateIds: string[]): void {
-    const errorStates = templateIds.reduce(
-      (acc, id) => {
-        acc[id] = this.#totalsCalculator.createDefaultTotals(false);
-        return acc;
-      },
-      {} as Record<string, TemplateTotals>,
+    const errorStates = this.#totalsCalculator.createDefaultTotalsMap(
+      templateIds,
+      false,
     );
-
     this.#state.update((state) => ({
       ...state,
       templateTotalsMap: {

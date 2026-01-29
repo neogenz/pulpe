@@ -14,6 +14,9 @@ export class AppPreloader {
   readonly #templateCache = inject(TemplateCache);
   readonly #logger = inject(Logger);
 
+  // Plain boolean (not a signal) — intentional. The effect() only needs to
+  // react to isAuthenticated(); #isPreloading acts as a reentrancy guard
+  // checked both in the effect and at #preloadAll entry (line 30).
   #isPreloading = false;
 
   initializePreloading(): void {
