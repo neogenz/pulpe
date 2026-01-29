@@ -185,16 +185,16 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                       | currency: 'CHF' : 'symbol' : '1.0-0'
                   }}
                 </button>
-              } @else {
-                <button
-                  matButton
-                  class="!h-8 !px-3 !rounded-full text-primary"
-                  (click)="addTransaction.emit(item().data)"
-                >
-                  <mat-icon class="!text-base mr-1">add</mat-icon>
-                  Saisir
-                </button>
               }
+              <button
+                matIconButton
+                class="text-primary"
+                (click)="addTransaction.emit(item().data)"
+                matTooltip="Saisir une transaction"
+                [attr.data-testid]="'add-transaction-' + item().data.id"
+              >
+                <mat-icon>add</mat-icon>
+              </button>
 
               <mat-slide-toggle
                 [checked]="!!item().data.checkedAt"
