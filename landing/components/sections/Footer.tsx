@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { Container } from '@/components/ui'
 import { ANGULAR_APP_URL } from '@/lib/config'
 
@@ -26,6 +27,9 @@ export function Footer() {
             <a href={`${ANGULAR_APP_URL}/legal/confidentialite`} className="hover:text-text transition-colors">
               Politique de confidentialité
             </a>
+            <Link href="/support" className="hover:text-text transition-colors">
+              Support
+            </Link>
             <a
               href="mailto:maxime.desogus@gmail.com"
               className="hover:text-text transition-colors"

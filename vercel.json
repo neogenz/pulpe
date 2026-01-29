@@ -78,6 +78,10 @@
       "destination": "/landing/sitemap.xml"
     },
     {
+      "source": "/support",
+      "destination": "/landing/support.html"
+    },
+    {
       "source": "/:path*",
       "destination": "/_app.html"
     }
