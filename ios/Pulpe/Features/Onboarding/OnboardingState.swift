@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 /// State for the onboarding flow
-@Observable
+@Observable @MainActor
 final class OnboardingState {
     // MARK: - Data
 
@@ -26,6 +26,7 @@ final class OnboardingState {
     var currentStep: OnboardingStep = .welcome
     var isLoading: Bool = false
     var error: Error?
+    var isMovingForward: Bool = true
     var signupProgress: SignupProgress = .notStarted
     var createdTemplateId: String?
 
@@ -98,6 +99,7 @@ final class OnboardingState {
               currentIndex < OnboardingStep.allCases.count - 1 else {
             return
         }
+        isMovingForward = true
         currentStep = OnboardingStep.allCases[currentIndex + 1]
         saveToStorage()
     }
@@ -107,6 +109,7 @@ final class OnboardingState {
               currentIndex > 0 else {
             return
         }
+        isMovingForward = false
         currentStep = OnboardingStep.allCases[currentIndex - 1]
         saveToStorage()
     }
