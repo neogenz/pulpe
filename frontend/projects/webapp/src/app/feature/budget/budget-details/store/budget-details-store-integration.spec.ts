@@ -76,6 +76,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     createBudgetLine$: ReturnType<typeof vi.fn>;
     updateBudgetLine$: ReturnType<typeof vi.fn>;
     deleteBudgetLine$: ReturnType<typeof vi.fn>;
+    toggleCheck$: ReturnType<typeof vi.fn>;
   };
   let mockTransactionApi: {
     create$: ReturnType<typeof vi.fn>;
@@ -123,6 +124,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       createBudgetLine$: vi.fn(),
       updateBudgetLine$: vi.fn(),
       deleteBudgetLine$: vi.fn(),
+      toggleCheck$: vi.fn(),
     };
 
     mockTransactionApi = {
@@ -688,7 +690,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
   });
 
   describe('User creates allocated transactions', () => {
-    it('should inherit checked state from parent budget line when creating allocated transaction', async () => {
+    it('should create transaction unchecked and uncheck parent budget line when parent was checked', async () => {
       const checkedTimestamp = '2024-01-15T10:00:00Z';
 
       // Parent budget line has checkedAt
@@ -726,12 +728,18 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         name: 'New Allocated Transaction',
         amount: 200,
         kind: 'expense',
-        checkedAt: checkedTimestamp,
+        checkedAt: null,
       });
 
       mockTransactionApi.create$ = vi
         .fn()
         .mockReturnValue(of({ data: serverTransaction }));
+
+      mockBudgetLineApi.toggleCheck$ = vi
+        .fn()
+        .mockReturnValue(
+          of({ data: { ...checkedParentLine, checkedAt: null } }),
+        );
 
       // User creates transaction linked to checked parent
       await service.createAllocatedTransaction({
@@ -742,21 +750,30 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         kind: 'expense',
       });
 
-      // Transaction should inherit checkedAt from parent
+      // Transaction should be created unchecked
       const transactions = service.budgetDetails()?.transactions ?? [];
       const createdTx = transactions.find(
         (tx) => tx.name === 'New Allocated Transaction',
       );
 
       expect(createdTx).toBeDefined();
-      expect(createdTx?.checkedAt).not.toBeNull();
+      expect(createdTx?.checkedAt).toBeNull();
 
-      // Verify API was called with inherited checkedAt
+      // Verify API was called with checkedAt: null
       expect(mockTransactionApi.create$).toHaveBeenCalledWith(
         expect.objectContaining({
-          checkedAt: expect.any(String),
+          checkedAt: null,
         }),
       );
+
+      // Parent budget line should have been unchecked
+      expect(mockBudgetLineApi.toggleCheck$).toHaveBeenCalledWith(
+        'line-checked',
+      );
+
+      const budgetLines = service.budgetDetails()?.budgetLines ?? [];
+      const parentLine = budgetLines.find((l) => l.id === 'line-checked');
+      expect(parentLine?.checkedAt).toBeNull();
     });
 
     it('should not inherit checked state when parent budget line is unchecked', async () => {

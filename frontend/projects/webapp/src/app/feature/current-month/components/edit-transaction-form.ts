@@ -26,6 +26,7 @@ import { startOfMonth, endOfMonth } from 'date-fns';
 import { TransactionValidators } from '../utils/transaction-form-validators';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { Logger } from '@core/logging/logger';
+import { formatLocalDate } from '@core/date/format-local-date';
 
 type EditTransactionFormData = Pick<
   TransactionCreate,
@@ -329,7 +330,7 @@ export class EditTransactionForm implements OnInit {
       name: name as string,
       amount: amount as number,
       kind: kind as 'expense' | 'income' | 'saving',
-      transactionDate: (transactionDate as Date).toISOString(),
+      transactionDate: formatLocalDate(transactionDate as Date),
       category: (category as string) || null,
     });
   }
