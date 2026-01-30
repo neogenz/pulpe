@@ -25,6 +25,7 @@
 | DR-003 | Remove Variable Transaction Recurrence | 2024-07-20 | Accepted |
 | DR-004 | Typed & Versioned Storage Service | 2024-11-10 | Pending |
 | DR-005 | Temp ID Replacement Before Toggle Cascade | 2026-01-30 | Accepted |
+| DR-006 | Split-Key Encryption for Financial Amounts | 2026-01-29 | Accepted |
 
 ---
 
@@ -256,6 +257,63 @@ Implement a typed storage service with:
 ### Notes
 
 Implementation pending. Priority: Medium (bug was hotfixed, this is preventive).
+
+---
+
+## DR-006: Split-Key Encryption for Financial Amounts
+
+**Date**: 2026-01-29
+**Status**: Accepted
+
+### Problem
+
+L'administrateur Supabase peut lire tous les montants financiers en clair (`NUMERIC(12,2)`) via le Dashboard ou un client SQL. Pulpe revendique la confidentialité des données financières — cette promesse doit être techniquement réelle avant tout lancement public.
+
+### Decision Drivers
+
+- L'admin (propriétaire du projet) ne doit pas pouvoir décrypter les données utilisateurs
+- Le backend doit pouvoir effectuer les calculs (rollover, sommes, soldes)
+- Le code crypto côté client doit rester minimal (3 plateformes : Angular, SwiftUI, Android)
+- Les 3 utilisateurs existants en production ne doivent perdre aucune donnée
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A: Server-side only (master key) | Backend chiffre avec une clé env var | Rejected — admin peut décrypter |
+| B: Client-side E2E | Tout le chiffrement dans le navigateur/app | Rejected — backend ne peut plus calculer |
+| C: Split-key (client PBKDF2 + backend HKDF) | DEK dérivée de deux parts : clientKey (mot de passe) + masterKey (env var) | Chosen |
+
+### Decision
+
+Architecture split-key :
+- **Client** : dérive un `clientKey` depuis le mot de passe via PBKDF2 (600k itérations, SHA-256) au login
+- **Backend** : combine `clientKey` + `masterKey` via HKDF → DEK utilisée pour AES-256-GCM
+- **DEK jamais stockée** : dérivée à chaque requête, jetée après traitement
+- **Table `user_encryption_key`** : stocke uniquement `salt` et `kdf_iterations` par utilisateur
+- **Changement de mot de passe** : re-chiffrement complet des données utilisateur (acceptable au volume actuel)
+- **Migration** : stratégie dual-column (plaintext + encrypted) pour réversibilité
+
+### Rationale
+
+- masterKey seule insuffisante pour décrypter → admin ne peut pas lire les données at rest
+- Backend voit les données en clair en mémoire pendant les requêtes → permet les calculs serveur
+- PBKDF2 côté client = quelques lignes natives (Web Crypto API, CryptoKit, JCA) → pas de lib tierce
+- Dual-column protège les 3 users existants pendant la migration progressive
+
+### Consequences
+
+- **Positive** : Claim marketing "même l'admin ne peut pas décrypter sans votre mot de passe" techniquement vrai
+- **Trade-off** : Perte de mot de passe = perte d'accès aux données (pas de recovery possible)
+- **Trade-off** : Changement de mot de passe re-chiffre toutes les données (négligeable au volume actuel)
+- **Trade-off** : ~300-500ms de PBKDF2 au login côté client (une seule fois)
+- **Dependencies** : Web Crypto API (Angular), CryptoKit (SwiftUI), JCA (Android)
+
+### Notes
+
+- Issue GitHub : [#274](https://github.com/neogenz/pulpe/issues/274)
+- Tables impactées : `budget_line`, `transaction`, `template_line`, `savings_goal`, `monthly_budget`
+- Le re-chiffrement row-by-row est acceptable pour le volume actuel ; à batcher si >1000 users
 
 ---
 

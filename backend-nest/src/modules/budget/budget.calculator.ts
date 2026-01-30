@@ -3,11 +3,10 @@ import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { handleServiceError } from '@common/utils/error-handler';
-import { ZodError } from 'zod';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { BudgetFormulas } from 'pulpe-shared';
 import { BudgetRepository } from './budget.repository';
-import { validateBudgetWithRolloverResponse } from './schemas/rpc-responses.schema';
+import { EncryptionService } from '@modules/encryption/encryption.service';
 
 /**
  * Handles all financial calculations for budgets
@@ -18,6 +17,7 @@ export class BudgetCalculator {
     @InjectInfoLogger(BudgetCalculator.name)
     private readonly logger: InfoLogger,
     private readonly repository: BudgetRepository,
+    private readonly encryptionService: EncryptionService,
   ) {}
 
   /**
@@ -62,13 +62,20 @@ export class BudgetCalculator {
    * Recalculates and persists the ending balance
    * @param budgetId - The budget ID that was modified
    * @param supabase - Authenticated Supabase client
+   * @param clientKey - Client encryption key for DEK operations (null to skip encryption, e.g. demo mode)
    */
   async recalculateAndPersist(
     budgetId: string,
     supabase: AuthenticatedSupabaseClient,
+    clientKey: Buffer | null,
   ): Promise<void> {
     const endingBalance = await this.calculateEndingBalance(budgetId, supabase);
-    await this.persistEndingBalance(budgetId, endingBalance, supabase);
+    await this.persistEndingBalance(
+      budgetId,
+      endingBalance,
+      supabase,
+      clientKey,
+    );
   }
 
   /**
@@ -76,57 +83,68 @@ export class BudgetCalculator {
    * @param budgetId - Budget ID to get rollover for
    * @param payDayOfMonth - Day of month when pay period starts (1-31)
    * @param supabase - Authenticated Supabase client
+   * @param clientKey - Client encryption key for DEK operations
    * @returns Rollover amount and previous budget ID from previous months
    */
   async getRollover(
     budgetId: string,
     payDayOfMonth: number,
     supabase: AuthenticatedSupabaseClient,
+    clientKey: Buffer,
   ): Promise<{ rollover: number; previousBudgetId: string | null }> {
     try {
-      const { data, error } = await supabase
-        .rpc('get_budget_with_rollover', {
-          p_budget_id: budgetId,
-          p_pay_day_of_month: payDayOfMonth,
-        })
-        .single();
+      const userId = await this.#fetchBudgetUserId(budgetId, supabase);
+      const budgetsForFormula = await this.#fetchAndDecryptBudgets(
+        userId,
+        budgetId,
+        supabase,
+        clientKey,
+      );
 
-      if (error) {
-        this.handleRolloverFetchError(error, budgetId);
+      if (!budgetsForFormula.length) {
+        return { rollover: 0, previousBudgetId: null };
       }
 
-      if (!data) {
-        throw new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND, {
-          id: budgetId,
-        });
-      }
+      const result = BudgetFormulas.calculateRollover(
+        budgetsForFormula,
+        budgetId,
+        payDayOfMonth,
+      );
 
-      const rolloverData = validateBudgetWithRolloverResponse(data);
       return {
-        rollover: rolloverData.rollover,
-        previousBudgetId: rolloverData.previous_budget_id,
+        rollover: result.rollover,
+        previousBudgetId: result.previousBudgetId,
       };
     } catch (error) {
-      this.handleRolloverError(error, budgetId);
+      if (error instanceof BusinessException) throw error;
+
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        {
+          operation: 'getBudgetRollover',
+          entityId: budgetId,
+          entityType: 'budget',
+        },
+      );
     }
   }
 
-  private handleRolloverFetchError(error: unknown, budgetId: string): never {
-    throw new BusinessException(
-      ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
-      { budgetId },
-      {
-        operation: 'getBudgetRollover',
-        entityId: budgetId,
-        entityType: 'budget',
-        supabaseError: error,
-      },
-      { cause: error },
-    );
-  }
+  async #fetchAndDecryptBudgets(
+    userId: string,
+    budgetId: string,
+    supabase: AuthenticatedSupabaseClient,
+    clientKey: Buffer,
+  ): Promise<
+    { id: string; month: number; year: number; endingBalance: number | null }[]
+  > {
+    const { data: allBudgets, error } = await supabase
+      .from('monthly_budget')
+      .select('id, month, year, ending_balance, ending_balance_encrypted')
+      .eq('user_id', userId);
 
-  private handleRolloverError(error: unknown, budgetId: string): never {
-    if (error instanceof ZodError) {
+    if (error) {
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
         { budgetId },
@@ -134,22 +152,51 @@ export class BudgetCalculator {
           operation: 'getBudgetRollover',
           entityId: budgetId,
           entityType: 'budget',
-          validationErrors: error.issues,
+          supabaseError: error,
         },
         { cause: error },
       );
     }
 
-    handleServiceError(
-      error,
-      ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-      undefined,
-      {
-        operation: 'getBudgetRollover',
-        entityId: budgetId,
-        entityType: 'budget',
-      },
-    );
+    if (!allBudgets?.length) return [];
+
+    const hasEncryptedData = allBudgets.some((b) => b.ending_balance_encrypted);
+    const dek = hasEncryptedData
+      ? await this.encryptionService.getUserDEK(userId, clientKey)
+      : null;
+
+    return allBudgets.map((b) => ({
+      id: b.id,
+      month: b.month,
+      year: b.year,
+      endingBalance:
+        b.ending_balance_encrypted && dek
+          ? this.encryptionService.tryDecryptAmount(
+              b.ending_balance_encrypted,
+              dek,
+              b.ending_balance ?? 0,
+            )
+          : b.ending_balance,
+    }));
+  }
+
+  async #fetchBudgetUserId(
+    budgetId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<string> {
+    const { data, error } = await supabase
+      .from('monthly_budget')
+      .select('user_id')
+      .eq('id', budgetId)
+      .single();
+
+    if (error || !data?.user_id) {
+      throw new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND, {
+        id: budgetId,
+      });
+    }
+
+    return data.user_id;
   }
 
   /**
@@ -157,16 +204,30 @@ export class BudgetCalculator {
    * @param budgetId - Budget ID
    * @param endingBalance - Calculated ending balance
    * @param supabase - Authenticated Supabase client
+   * @param clientKey - Client encryption key for DEK operations (null to skip encryption, e.g. demo mode)
    */
   private async persistEndingBalance(
     budgetId: string,
     endingBalance: number,
     supabase: AuthenticatedSupabaseClient,
+    clientKey: Buffer | null,
   ): Promise<void> {
+    let encryptedBalance: string | null = null;
+
+    if (clientKey) {
+      const userId = await this.#fetchBudgetUserId(budgetId, supabase);
+      const dek = await this.encryptionService.ensureUserDEK(userId, clientKey);
+      encryptedBalance = this.encryptionService.encryptAmount(
+        endingBalance,
+        dek,
+      );
+    }
+
     const { error } = await supabase
       .from('monthly_budget')
       .update({
         ending_balance: endingBalance,
+        ending_balance_encrypted: encryptedBalance,
       })
       .eq('id', budgetId);
 

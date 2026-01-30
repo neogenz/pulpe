@@ -12,6 +12,7 @@ import {
   MockSupabaseClient,
 } from '../../../test/test-mocks';
 import { INFO_LOGGER_TOKEN } from '@common/logger';
+import { EncryptionService } from '@modules/encryption/encryption.service';
 
 describe('Rollover with payDayOfMonth', () => {
   let service: BudgetService;
@@ -197,15 +198,14 @@ describe('Rollover with payDayOfMonth', () => {
 
 describe('BudgetCalculator.getRollover', () => {
   let calculator: BudgetCalculator;
-  let mockSupabaseClient: MockSupabaseClient;
-  let rpcSpy: ReturnType<typeof spyOn>;
 
   const mockPinoLogger = createMockPinoLogger();
+  const mockEncryptionService = {
+    ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+    encryptAmount: () => 'encrypted-mock',
+  };
 
   beforeEach(async () => {
-    const { mockClient } = createMockSupabaseClient();
-    mockSupabaseClient = mockClient;
-
     const mockRepository = {
       fetchBudgetData: () =>
         Promise.resolve({ budget: null, transactions: [], budgetLines: [] }),
@@ -216,6 +216,10 @@ describe('BudgetCalculator.getRollover', () => {
         BudgetCalculator,
         { provide: BudgetRepository, useValue: mockRepository },
         {
+          provide: EncryptionService,
+          useValue: mockEncryptionService,
+        },
+        {
           provide: `${INFO_LOGGER_TOKEN}:${BudgetCalculator.name}`,
           useValue: mockPinoLogger,
         },
@@ -225,99 +229,192 @@ describe('BudgetCalculator.getRollover', () => {
     calculator = module.get<BudgetCalculator>(BudgetCalculator);
   });
 
-  it('should pass payDayOfMonth=1 to RPC for calendar-based rollover', async () => {
+  it('should fetch user_id and query budgets for calendar-based rollover', async () => {
     // Arrange
     const budgetId = '550e8400-e29b-41d4-a716-446655440002';
+    const userId = 'user-123';
     const payDayOfMonth = 1;
-    const mockRpcResponse = {
-      ending_balance: 100,
-      rollover: 50,
-      available_to_spend: 150,
-      previous_budget_id: null,
-    };
 
-    rpcSpy = spyOn(mockSupabaseClient, 'rpc');
-    mockSupabaseClient.setMockData(mockRpcResponse);
-
-    // Act
-    await calculator.getRollover(
-      budgetId,
-      payDayOfMonth,
-      mockSupabaseClient as any,
-    );
-
-    // Assert
-    expect(rpcSpy).toHaveBeenCalledWith('get_budget_with_rollover', {
-      p_budget_id: budgetId,
-      p_pay_day_of_month: 1,
-    });
-  });
-
-  it('should pass payDayOfMonth=27 to RPC for pay-period-based rollover', async () => {
-    // Arrange
-    const budgetId = '550e8400-e29b-41d4-a716-446655440002';
-    const payDayOfMonth = 27;
-    const mockRpcResponse = {
-      ending_balance: 100,
-      rollover: 75,
-      available_to_spend: 175,
-      previous_budget_id: '550e8400-e29b-41d4-a716-446655440001',
-    };
-
-    rpcSpy = spyOn(mockSupabaseClient, 'rpc');
-    mockSupabaseClient.setMockData(mockRpcResponse);
-
-    // Act
-    const result = await calculator.getRollover(
-      budgetId,
-      payDayOfMonth,
-      mockSupabaseClient as any,
-    );
-
-    // Assert
-    expect(rpcSpy).toHaveBeenCalledWith('get_budget_with_rollover', {
-      p_budget_id: budgetId,
-      p_pay_day_of_month: 27,
-    });
-    expect(result.rollover).toBe(75);
-    expect(result.previousBudgetId).toBe(
-      '550e8400-e29b-41d4-a716-446655440001',
-    );
-  });
-
-  it('should return correct rollover data from RPC response', async () => {
-    // Arrange
-    const budgetId = '550e8400-e29b-41d4-a716-446655440002';
-    const previousBudgetId = '550e8400-e29b-41d4-a716-446655440001';
-    const payDayOfMonth = 15;
-    const mockRpcResponse = {
-      ending_balance: 200,
-      rollover: 150,
-      available_to_spend: 350,
-      previous_budget_id: previousBudgetId,
-    };
-
-    // Create a custom mock that returns the data correctly
-    const customClient = {
-      rpc: () => ({
-        single: () =>
-          Promise.resolve({
-            data: mockRpcResponse,
-            error: null,
-          }),
-      }),
+    const mockClient = {
+      from: (table: string) => {
+        if (table === 'monthly_budget') {
+          return {
+            select: (fields: string) => {
+              if (fields === 'user_id') {
+                return {
+                  eq: (col: string, val: string) =>
+                    col === 'id' && val === budgetId
+                      ? {
+                          single: () =>
+                            Promise.resolve({
+                              data: { user_id: userId },
+                              error: null,
+                            }),
+                        }
+                      : undefined,
+                };
+              }
+              if (
+                fields ===
+                'id, month, year, ending_balance, ending_balance_encrypted'
+              ) {
+                return {
+                  eq: (col: string, val: string) =>
+                    col === 'user_id' && val === userId
+                      ? Promise.resolve({
+                          data: [],
+                          error: null,
+                        })
+                      : undefined,
+                };
+              }
+            },
+          };
+        }
+      },
     };
 
     // Act
     const result = await calculator.getRollover(
       budgetId,
       payDayOfMonth,
-      customClient as any,
+      mockClient as any,
+      Buffer.alloc(32),
     );
 
     // Assert
     expect(result).toEqual({
-      rollover: 150,
+      rollover: 0,
+      previousBudgetId: null,
+    });
+  });
+
+  it('should calculate rollover from multiple budgets with payDayOfMonth=27', async () => {
+    // Arrange
+    const budgetId = '550e8400-e29b-41d4-a716-446655440002';
+    const previousBudgetId = '550e8400-e29b-41d4-a716-446655440001';
+    const userId = 'user-123';
+    const payDayOfMonth = 27;
+
+    const budgetsData = [
+      { id: previousBudgetId, month: 1, year: 2024, ending_balance: 100 },
+      { id: budgetId, month: 2, year: 2024, ending_balance: 150 },
+    ];
+
+    const mockClient = {
+      from: (table: string) => {
+        if (table === 'monthly_budget') {
+          return {
+            select: (fields: string) => {
+              if (fields === 'user_id') {
+                return {
+                  eq: (col: string, val: string) =>
+                    col === 'id' && val === budgetId
+                      ? {
+                          single: () =>
+                            Promise.resolve({
+                              data: { user_id: userId },
+                              error: null,
+                            }),
+                        }
+                      : undefined,
+                };
+              }
+              if (
+                fields ===
+                'id, month, year, ending_balance, ending_balance_encrypted'
+              ) {
+                return {
+                  eq: (col: string, val: string) =>
+                    col === 'user_id' && val === userId
+                      ? Promise.resolve({
+                          data: budgetsData,
+                          error: null,
+                        })
+                      : undefined,
+                };
+              }
+            },
+          };
+        }
+      },
+    };
+
+    // Act
+    const result = await calculator.getRollover(
+      budgetId,
+      payDayOfMonth,
+      mockClient as any,
+      Buffer.alloc(32),
+    );
+
+    // Assert
+    expect(result.rollover).toBe(100);
+    expect(result.previousBudgetId).toBe(previousBudgetId);
+  });
+
+  it('should return correct rollover data with ending_balance mapping', async () => {
+    // Arrange
+    const budgetId = '550e8400-e29b-41d4-a716-446655440002';
+    const previousBudgetId = '550e8400-e29b-41d4-a716-446655440001';
+    const userId = 'user-456';
+    const payDayOfMonth = 15;
+
+    const budgetsData = [
+      { id: previousBudgetId, month: 12, year: 2023, ending_balance: 200 },
+      { id: budgetId, month: 1, year: 2024, ending_balance: 250 },
+    ];
+
+    const mockClient = {
+      from: (table: string) => {
+        if (table === 'monthly_budget') {
+          return {
+            select: (fields: string) => {
+              if (fields === 'user_id') {
+                return {
+                  eq: (col: string, val: string) =>
+                    col === 'id' && val === budgetId
+                      ? {
+                          single: () =>
+                            Promise.resolve({
+                              data: { user_id: userId },
+                              error: null,
+                            }),
+                        }
+                      : undefined,
+                };
+              }
+              if (
+                fields ===
+                'id, month, year, ending_balance, ending_balance_encrypted'
+              ) {
+                return {
+                  eq: (col: string, val: string) =>
+                    col === 'user_id' && val === userId
+                      ? Promise.resolve({
+                          data: budgetsData,
+                          error: null,
+                        })
+                      : undefined,
+                };
+              }
+            },
+          };
+        }
+      },
+    };
+
+    // Act
+    const result = await calculator.getRollover(
+      budgetId,
+      payDayOfMonth,
+      mockClient as any,
+      Buffer.alloc(32),
+    );
+
+    // Assert
+    expect(result).toEqual({
+      rollover: 200,
       previousBudgetId,
     });
   });

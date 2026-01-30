@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedSupabaseClient } from '../supabase/supabase.service';
 import { addMonths, startOfMonth } from 'date-fns';
+
 import type { Tables } from '../../types/database.types';
 import { BudgetCalculator } from '../budget/budget.calculator';
 
@@ -239,6 +240,7 @@ export class DemoDataGeneratorService {
       template_id: templateId,
       name,
       amount,
+      amount_encrypted: null,
       kind,
       recurrence,
       description: '',
@@ -463,6 +465,7 @@ export class DemoDataGeneratorService {
       description,
       template_id: template.id,
       ending_balance: null,
+      ending_balance_encrypted: null,
     };
   }
 
@@ -525,6 +528,7 @@ export class DemoDataGeneratorService {
           savings_goal_id: null,
           name: templateLine.name,
           amount: templateLine.amount,
+          amount_encrypted: null,
           kind: templateLine.kind,
           recurrence: templateLine.recurrence,
           is_manually_adjusted: false,
@@ -660,6 +664,7 @@ export class DemoDataGeneratorService {
       budget_line_id: null,
       name,
       amount,
+      amount_encrypted: null,
       kind: 'expense',
       category,
       transaction_date: new Date(
@@ -685,7 +690,11 @@ export class DemoDataGeneratorService {
     });
 
     for (const budget of sortedBudgets) {
-      await this.budgetCalculator.recalculateAndPersist(budget.id, supabase);
+      await this.budgetCalculator.recalculateAndPersist(
+        budget.id,
+        supabase,
+        null,
+      );
     }
   }
 }

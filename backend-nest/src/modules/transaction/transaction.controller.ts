@@ -78,7 +78,7 @@ export class TransactionController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
-    return this.transactionService.findByBudgetId(budgetId, supabase);
+    return this.transactionService.findByBudgetId(budgetId, user, supabase);
   }
 
   @Get('budget-line/:budgetLineId')
@@ -100,7 +100,11 @@ export class TransactionController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
-    return this.transactionService.findByBudgetLineId(budgetLineId, supabase);
+    return this.transactionService.findByBudgetLineId(
+      budgetLineId,
+      user,
+      supabase,
+    );
   }
 
   @Get('search')
@@ -135,6 +139,7 @@ export class TransactionController {
   async search(
     @Query('q') query: string,
     @Query('years') yearsParam: string | string[] | undefined,
+    @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionSearchResponse> {
     if (!query || query.length < 2) {
@@ -144,7 +149,7 @@ export class TransactionController {
     }
 
     const years = this.#parseYearsParam(yearsParam);
-    return this.transactionService.search(query, supabase, years);
+    return this.transactionService.search(query, user, supabase, years);
   }
 
   #parseYearsParam(yearsParam: string | string[] | undefined): number[] {

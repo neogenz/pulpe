@@ -5,6 +5,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { LoggerModule } from 'nestjs-pino';
 import { AccountDeletionModule } from './account-deletion.module';
 import { AccountDeletionService } from './account-deletion.service';
+import { EncryptionService } from '@modules/encryption/encryption.service';
 import type { Database } from '../../types/database.types';
 
 const FOUR_DAYS_MS = 4 * 24 * 60 * 60 * 1000;
@@ -52,6 +53,18 @@ describe('AccountDeletionService Integration', () => {
           pinoHttp: { level: 'silent' },
         }),
         AccountDeletionModule,
+      ],
+      providers: [
+        {
+          provide: EncryptionService,
+          useValue: {
+            ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+            encryptAmount: () => 'encrypted-mock',
+            getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+            decryptAmount: () => 100,
+            generateUserDEK: () => Promise.resolve(),
+          },
+        },
       ],
     }).compile();
 

@@ -50,7 +50,8 @@ export class AuthGuard implements CanActivate {
         'Reusing cached user from throttler guard',
       );
 
-      request.user = { ...cachedUser, accessToken };
+      const clientKey = this.extractClientKey(request);
+      request.user = { ...cachedUser, accessToken, clientKey };
       request.supabase = supabase;
       return true;
     } catch (error) {
@@ -82,12 +83,15 @@ export class AuthGuard implements CanActivate {
         throw new BusinessException(ERROR_DEFINITIONS.USER_ACCOUNT_BLOCKED);
       }
 
+      const clientKey = this.extractClientKey(request);
+
       const authenticatedUser: AuthenticatedUser = {
         id: user.id,
         email: user.email!,
         firstName: user.user_metadata?.firstName,
         lastName: user.user_metadata?.lastName,
         accessToken,
+        clientKey,
       };
 
       request.user = authenticatedUser;
@@ -110,5 +114,26 @@ export class AuthGuard implements CanActivate {
 
     const [type, token] = authHeader.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
+  }
+
+  private extractClientKey(request: RequestWithCache): Buffer {
+    const clientKeyHex = request.headers?.['x-client-key'] as
+      | string
+      | undefined;
+
+    if (!clientKeyHex) {
+      throw new BusinessException(ERROR_DEFINITIONS.AUTH_CLIENT_KEY_MISSING);
+    }
+
+    const clientKey = Buffer.from(clientKeyHex, 'hex');
+    if (clientKey.length !== 32) {
+      throw new BusinessException(ERROR_DEFINITIONS.AUTH_CLIENT_KEY_INVALID);
+    }
+
+    if (!clientKey.some((byte) => byte !== 0)) {
+      throw new BusinessException(ERROR_DEFINITIONS.AUTH_CLIENT_KEY_INVALID);
+    }
+
+    return clientKey;
   }
 }

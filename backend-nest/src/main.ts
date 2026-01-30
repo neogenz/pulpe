@@ -237,6 +237,7 @@ async function bootstrap() {
     SUPABASE_ANON_KEY: configService.get('SUPABASE_ANON_KEY')!,
     SUPABASE_SERVICE_ROLE_KEY: configService.get('SUPABASE_SERVICE_ROLE_KEY')!,
     TURNSTILE_SECRET_KEY: configService.get('TURNSTILE_SECRET_KEY')!,
+    ENCRYPTION_MASTER_KEY: configService.get('ENCRYPTION_MASTER_KEY')!,
     DEBUG_HTTP_FULL: configService.get('DEBUG_HTTP_FULL'),
   };
 

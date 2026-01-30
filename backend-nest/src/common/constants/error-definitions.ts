@@ -62,6 +62,16 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Failed to fetch user information',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+  AUTH_CLIENT_KEY_MISSING: {
+    code: 'ERR_AUTH_CLIENT_KEY_MISSING',
+    message: () => 'Client encryption key missing',
+    httpStatus: HttpStatus.UNAUTHORIZED,
+  },
+  AUTH_CLIENT_KEY_INVALID: {
+    code: 'ERR_AUTH_CLIENT_KEY_INVALID',
+    message: () => 'Client encryption key is invalid',
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
 
   // Budget Errors
   BUDGET_NOT_FOUND: {

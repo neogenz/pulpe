@@ -322,6 +322,99 @@ export class BudgetFormulas {
    * @param metrics - Métriques calculées
    * @returns True si cohérent, false sinon
    */
+  /**
+   * Calcule le rollover pour un budget donné (port TypeScript de get_budget_with_rollover SQL).
+   *
+   * QUINZAINE RULE:
+   * - payDay <= 15 (1ère quinzaine): Budget starts on payDay of SAME month
+   * - payDay > 15 (2ème quinzaine): Budget starts on payDay of PREVIOUS month
+   *
+   * @param budgets - All user budgets with month, year, endingBalance
+   * @param targetBudgetId - The budget to calculate rollover for
+   * @param payDayOfMonth - Day of month when pay period starts (1-31)
+   * @returns Rollover data for the target budget
+   */
+  static calculateRollover(
+    budgets: {
+      id: string;
+      month: number;
+      year: number;
+      endingBalance: number | null;
+    }[],
+    targetBudgetId: string,
+    payDayOfMonth: number = 1,
+  ): {
+    endingBalance: number;
+    rollover: number;
+    availableToSpend: number;
+    previousBudgetId: string | null;
+  } {
+    const payDay = Math.max(1, Math.min(31, payDayOfMonth));
+
+    const budgetsWithSortDate = budgets.map((b) => ({
+      ...b,
+      endingBalance: b.endingBalance ?? 0,
+      sortDate: this.#calculateBudgetStartDate(b.year, b.month, payDay),
+    }));
+
+    budgetsWithSortDate.sort(
+      (a, b) => a.sortDate.getTime() - b.sortDate.getTime(),
+    );
+
+    const targetIndex = budgetsWithSortDate.findIndex(
+      (b) => b.id === targetBudgetId,
+    );
+
+    if (targetIndex === -1) {
+      return {
+        endingBalance: 0,
+        rollover: 0,
+        availableToSpend: 0,
+        previousBudgetId: null,
+      };
+    }
+
+    const target = budgetsWithSortDate[targetIndex];
+
+    let rollover = 0;
+    for (let i = 0; i < targetIndex; i++) {
+      rollover += budgetsWithSortDate[i].endingBalance;
+    }
+
+    let availableToSpend = 0;
+    for (let i = 0; i <= targetIndex; i++) {
+      availableToSpend += budgetsWithSortDate[i].endingBalance;
+    }
+
+    const previousBudgetId =
+      targetIndex > 0 ? budgetsWithSortDate[targetIndex - 1].id : null;
+
+    return {
+      endingBalance: target.endingBalance,
+      rollover,
+      availableToSpend,
+      previousBudgetId,
+    };
+  }
+
+  static #calculateBudgetStartDate(
+    year: number,
+    month: number,
+    payDay: number,
+  ): Date {
+    if (payDay <= 15) {
+      const lastDayOfMonth = new Date(year, month, 0).getDate();
+      const clampedDay = Math.min(payDay, lastDayOfMonth);
+      return new Date(year, month - 1, clampedDay);
+    }
+
+    const prevMonth = month === 1 ? 12 : month - 1;
+    const prevYear = month === 1 ? year - 1 : year;
+    const lastDayOfPrevMonth = new Date(prevYear, prevMonth, 0).getDate();
+    const clampedDay = Math.min(payDay, lastDayOfPrevMonth);
+    return new Date(prevYear, prevMonth - 1, clampedDay);
+  }
+
   static validateMetricsCoherence(
     metrics: ReturnType<typeof BudgetFormulas.calculateAllMetricsWithEnvelopes>,
   ): boolean {

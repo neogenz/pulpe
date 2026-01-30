@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, jest } from 'bun:test';
 import { Test, TestingModule } from '@nestjs/testing';
 import { BudgetLineService } from './budget-line.service';
 import { BudgetService } from '../budget/budget.service';
+import { EncryptionService } from '@modules/encryption/encryption.service';
 import { BusinessException } from '@common/exceptions/business.exception';
 import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
@@ -73,6 +74,7 @@ describe('BudgetLineService', () => {
     savings_goal_id: null,
     name: 'Salaire',
     amount: 2500,
+    amount_encrypted: null,
     kind: 'income' as const,
     recurrence: 'fixed' as const,
     is_manually_adjusted: false,
@@ -108,6 +110,7 @@ describe('BudgetLineService', () => {
       firstName: 'Test',
       lastName: 'User',
       accessToken: 'mock-token',
+      clientKey: Buffer.from('ab'.repeat(32), 'hex'),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -117,6 +120,17 @@ describe('BudgetLineService', () => {
           provide: BudgetService,
           useValue: {
             recalculateBalances: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: EncryptionService,
+          useValue: {
+            getUserDEK: jest.fn().mockResolvedValue(Buffer.alloc(32)),
+            ensureUserDEK: jest.fn().mockResolvedValue(Buffer.alloc(32)),
+            encryptAmount: jest.fn().mockReturnValue('encrypted-mock'),
+            decryptAmount: jest
+              .fn()
+              .mockImplementation((_ct: string, _dek: Buffer) => 100),
           },
         },
       ],
@@ -137,6 +151,7 @@ describe('BudgetLineService', () => {
 
       const result = await service.findByBudgetId(
         budgetId,
+        mockUser,
         getMockSupabaseClient(),
       );
 
@@ -158,7 +173,7 @@ describe('BudgetLineService', () => {
       );
 
       await expect(
-        service.findByBudgetId(budgetId, getMockSupabaseClient()),
+        service.findByBudgetId(budgetId, mockUser, getMockSupabaseClient()),
       ).rejects.toThrow(BusinessException);
     });
 
@@ -173,6 +188,7 @@ describe('BudgetLineService', () => {
 
       const result = await service.findByBudgetId(
         budgetId,
+        mockUser,
         getMockSupabaseClient(),
       );
 
@@ -291,7 +307,7 @@ describe('BudgetLineService', () => {
 
     it('should update a budget line', async () => {
       const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
-      const updatedBudgetLine = {
+      const updatedBudgetLine: BudgetLineRow = {
         ...mockBudgetLineDb,
         name: 'Salaire Updated',
         amount: 2600,
