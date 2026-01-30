@@ -56,26 +56,30 @@ body {
 }
 
 // Pulpe brand gradient - electric DA: vivid blue → neon emerald → bright green → lime pop
-.pulpe-gradient {
-  background: linear-gradient(
-    135deg,
-    #009bff 0%,
-    #00edab 33%,
-    #30e868 66%,
-    #8fff6b 100%
-  );
+:root {
+  --pulpe-gradient-start: #009bff;
+  --pulpe-gradient-mid1: #00edab;
+  --pulpe-gradient-mid2: #30e868;
+  --pulpe-gradient-end: #8fff6b;
 }
 
 @media (prefers-color-scheme: dark) {
-  .pulpe-gradient {
-    background: linear-gradient(
-      135deg,
-      #003d7a 0%,
-      #006b4e 33%,
-      #0d7a30 66%,
-      #2ba84a 100%
-    );
+  :root {
+    --pulpe-gradient-start: #003d7a;
+    --pulpe-gradient-mid1: #006b4e;
+    --pulpe-gradient-mid2: #0d7a30;
+    --pulpe-gradient-end: #2ba84a;
   }
+}
+
+.pulpe-gradient {
+  background: linear-gradient(
+    135deg,
+    var(--pulpe-gradient-start) 0%,
+    var(--pulpe-gradient-mid1) 33%,
+    var(--pulpe-gradient-mid2) 66%,
+    var(--pulpe-gradient-end) 100%
+  );
 }
 
 // Budget section group - Material expansion panel overrides
