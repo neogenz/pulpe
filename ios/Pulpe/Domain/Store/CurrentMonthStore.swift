@@ -217,16 +217,12 @@ final class CurrentMonthStore: StoreProtocol {
             .sorted { $0.1.percentage > $1.1.percentage }
     }
 
-    /// Top spending category by allocated amount (expenses only)
-    var topSpendingCategory: (line: BudgetLine, consumption: BudgetFormulas.Consumption)? {
-        budgetLines
-            .filter { $0.kind == .expense && !($0.isRollover ?? false) }
-            .compactMap { line -> (BudgetLine, BudgetFormulas.Consumption)? in
-                let consumption = BudgetFormulas.calculateConsumption(for: line, transactions: transactions)
-                guard consumption.allocated > 0 else { return nil }
-                return (line, consumption)
-            }
-            .max { $0.1.allocated < $1.1.allocated }
+    /// Top expense transaction by amount (linked or free)
+    var topSpending: (name: String, amount: Decimal, totalExpenses: Decimal)? {
+        guard let top = transactions.filter({ $0.kind == .expense }).max(by: { $0.amount < $1.amount }) else {
+            return nil
+        }
+        return (name: top.name, amount: top.amount, totalExpenses: metrics.totalExpenses)
     }
 
     /// 5 most recent transactions (all types)

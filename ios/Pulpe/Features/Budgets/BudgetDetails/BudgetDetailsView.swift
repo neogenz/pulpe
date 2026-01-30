@@ -8,6 +8,7 @@ struct MonthNavigationBar: View {
     let hasNext: Bool
     let onPrevious: () -> Void
     let onNext: () -> Void
+    let onTapMonth: () -> Void
 
     @State private var navigateTrigger = false
 
@@ -23,9 +24,13 @@ struct MonthNavigationBar: View {
             }
             .disabled(!hasPrevious)
 
-            Text(monthYear)
-                .font(.headline)
-                .lineLimit(1)
+            Button(action: onTapMonth) {
+                Text(monthYear)
+                    .font(.headline)
+                    .lineLimit(1)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Sélectionner un mois")
 
             Button {
                 onNext()
@@ -69,6 +74,7 @@ struct BudgetDetailsView: View {
     @State private var linkedTransactionsContext: LinkedTransactionsContext?
     @State private var selectedBudgetLineForEdit: BudgetLine?
     @State private var selectedTransactionForEdit: Transaction?
+    @State private var showMonthPicker = false
     @State private var searchText = ""
     @State private var contentOffset: CGFloat = 0
     @State private var contentOpacity: Double = 1
@@ -100,7 +106,8 @@ struct BudgetDetailsView: View {
                     hasPrevious: viewModel.hasPreviousBudget,
                     hasNext: viewModel.hasNextBudget,
                     onPrevious: navigateToPreviousMonth,
-                    onNext: navigateToNextMonth
+                    onNext: navigateToNextMonth,
+                    onTapMonth: { showMonthPicker = true }
                 )
             }
             ToolbarItem(placement: .primaryAction) {
@@ -155,6 +162,15 @@ struct BudgetDetailsView: View {
                 Task { await viewModel.updateTransaction(updatedTransaction) }
             }
         }
+        .sheet(isPresented: $showMonthPicker) {
+            MonthPickerSheet(
+                budgets: viewModel.allBudgets,
+                currentBudgetId: viewModel.budgetId,
+                onSelect: { id in
+                    navigateToMonth(id, forward: isForward(id))
+                }
+            )
+        }
     }
 
     // MARK: - Navigation
@@ -167,6 +183,20 @@ struct BudgetDetailsView: View {
     private func navigateToNextMonth() {
         guard let nextId = viewModel.nextBudgetId else { return }
         navigateToMonth(nextId, forward: true)
+    }
+
+    private func isForward(_ targetId: String) -> Bool {
+        let sorted = viewModel.allBudgets.sorted { lhs, rhs in
+            let lhsYear = lhs.year ?? 0
+            let rhsYear = rhs.year ?? 0
+            if lhsYear != rhsYear { return lhsYear < rhsYear }
+            return (lhs.month ?? 0) < (rhs.month ?? 0)
+        }
+        guard let currentIndex = sorted.firstIndex(where: { $0.id == viewModel.budgetId }),
+              let targetIndex = sorted.firstIndex(where: { $0.id == targetId }) else {
+            return true
+        }
+        return targetIndex > currentIndex
     }
 
     private func navigateToMonth(_ id: String, forward: Bool) {
@@ -668,6 +698,96 @@ private struct RolloverInfoRow: View {
         .ifLet(onTap) { view, _ in
             view.accessibilityHint("Appuie deux fois pour voir le budget précédent")
         }
+    }
+}
+
+// MARK: - Month Picker Sheet
+
+private struct MonthPickerSheet: View {
+    let budgets: [BudgetSparse]
+    let currentBudgetId: String
+    let onSelect: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectionTrigger = false
+
+    private var budgetsByYear: [(year: Int, budgets: [BudgetSparse])] {
+        let sorted = budgets
+            .filter { $0.month != nil && $0.year != nil }
+            .sorted { lhs, rhs in
+                let lhsYear = lhs.year ?? 0
+                let rhsYear = rhs.year ?? 0
+                if lhsYear != rhsYear { return lhsYear < rhsYear }
+                return (lhs.month ?? 0) < (rhs.month ?? 0)
+            }
+        let grouped = Dictionary(grouping: sorted) { $0.year ?? 0 }
+        return grouped.keys.sorted().map { year in
+            (year: year, budgets: grouped[year] ?? [])
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollViewReader { proxy in
+                List {
+                    ForEach(budgetsByYear, id: \.year) { year, yearBudgets in
+                        Section(String(year)) {
+                            ForEach(yearBudgets) { budget in
+                                monthRow(for: budget)
+                            }
+                        }
+                    }
+                }
+                .onAppear {
+                    proxy.scrollTo(currentBudgetId, anchor: .center)
+                }
+            }
+            .navigationTitle("Choisir un mois")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fermer") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .sensoryFeedback(.selection, trigger: selectionTrigger)
+    }
+
+    private func monthRow(for budget: BudgetSparse) -> some View {
+        let isCurrent = budget.id == currentBudgetId
+        return Button {
+            selectionTrigger.toggle()
+            dismiss()
+            onSelect(budget.id)
+        } label: {
+            HStack {
+                Text(monthYearLabel(for: budget))
+                    .foregroundStyle(.primary)
+                Spacer()
+                if isCurrent {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(Color.pulpePrimary)
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+        .listRowBackground(isCurrent ? Color.pulpePrimary.opacity(0.1) : nil)
+        .accessibilityAddTraits(isCurrent ? .isSelected : [])
+        .id(budget.id)
+    }
+
+    private func monthYearLabel(for budget: BudgetSparse) -> String {
+        guard let month = budget.month, let year = budget.year else { return "—" }
+        var components = DateComponents()
+        components.month = month
+        components.year = year
+        components.day = 1
+        guard let date = Calendar.current.date(from: components) else {
+            return "\(month)/\(year)"
+        }
+        return Formatters.monthYear.string(from: date).capitalized
     }
 }
 

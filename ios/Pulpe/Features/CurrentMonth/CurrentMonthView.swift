@@ -98,9 +98,7 @@ struct CurrentMonthView: View {
                         .pulpeSectionHeader()
 
                     InsightsCard(
-                        topSpending: store.topSpendingCategory.map {
-                            (name: $0.line.name, amount: $0.consumption.allocated, totalExpenses: store.metrics.totalExpenses)
-                        },
+                        topSpending: store.topSpending,
                         alerts: store.alertBudgetLines,
                         onTap: { navigateToBudget = true }
                     )

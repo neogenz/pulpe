@@ -40,10 +40,8 @@ struct BudgetListView: View {
                     month: nextMonth.month,
                     year: nextMonth.year
                 ) { budget in
-                    Task {
-                        await store.addBudget(budget)
-                        appState.budgetPath.append(BudgetDestination.details(budgetId: budget.id))
-                    }
+                    store.addBudget(budget)
+                    appState.budgetPath.append(BudgetDestination.details(budgetId: budget.id))
                 }
             }
         }

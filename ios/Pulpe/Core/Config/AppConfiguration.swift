@@ -61,8 +61,8 @@ enum AppConfiguration {
 
     // MARK: - Timeouts
 
-    static let requestTimeout: TimeInterval = 30
-    static let resourceTimeout: TimeInterval = 60
+    static let requestTimeout: TimeInterval = 10
+    static let resourceTimeout: TimeInterval = 30
 
     // MARK: - Limits
 

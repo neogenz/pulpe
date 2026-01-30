@@ -19,6 +19,7 @@ actor MaintenanceService {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = AppConfiguration.requestTimeout
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
