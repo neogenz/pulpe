@@ -9,9 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     <div class="flex flex-col items-center justify-center p-8 min-w-64">
       <mat-spinner diameter="48" />
       <p class="mt-6 text-on-surface text-title-medium">Déconnexion...</p>
-      <p class="mt-1 text-on-surface-variant text-body-small">
-        À bientôt !
-      </p>
+      <p class="mt-1 text-on-surface-variant text-body-small">À bientôt !</p>
     </div>
   `,
   styles: [

@@ -52,7 +52,9 @@ import { LoadingButton } from '@ui/loading-button';
         </a>
 
         <div class="text-center mb-8 mt-4">
-          <h1 class="text-headline-large text-on-surface mb-2">Content de te revoir</h1>
+          <h1 class="text-headline-large text-on-surface mb-2">
+            Content de te revoir
+          </h1>
           <p class="text-body-large text-on-surface-variant">
             Retrouve ton budget là où tu l'as laissé
           </p>

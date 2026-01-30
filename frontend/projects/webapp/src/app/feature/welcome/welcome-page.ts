@@ -38,18 +38,15 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
       class="min-h-screen pulpe-gradient flex items-center justify-center p-4"
     >
       <div
-        class="w-full max-w-3xl min-h-[600px] md:h-[800px] bg-surface rounded-2xl md:p-16 p-8 flex flex-col items-center justify-center gap-6 md:gap-10"
+        class="w-full max-w-3xl bg-surface rounded-2xl md:p-16 p-8 flex flex-col items-center justify-center gap-6 md:gap-10"
         data-testid="welcome-page"
       >
         <div class="text-center">
-          <div class="hidden md:flex items-center justify-center gap-3 mb-2">
-            <img src="/logo.svg" alt="" class="h-10" />
-            <span
-              class="text-display-medium text-primary dark:text-white font-bold"
-            >
-              Pulpe
-            </span>
-          </div>
+          <img
+            src="/logo.svg"
+            alt="Pulpe"
+            class="h-12 md:h-16 mx-auto mb-4"
+          />
           <h1 class="text-headline-large text-on-surface">
             Vois clair dans tes finances
           </h1>
