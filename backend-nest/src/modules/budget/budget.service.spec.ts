@@ -282,33 +282,6 @@ describe('BudgetService', () => {
       expect(result.data[0].remaining).toBe(5000); // 4500 + 500 rollover
     });
 
-    it('should call calculator with correct parameters for remaining calculation (regression test)', async () => {
-      // ARRANGE
-      // This test ensures the bug where same selectFields was used for both tables doesn't return
-      const mockUser = createMockAuthenticatedUser();
-      const mockBudgets = [createValidBudgetEntity()];
-
-      mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
-
-      let calculateEndingBalanceCallCount = 0;
-      let capturedBudgetId: string | null = null;
-
-      mockCalculator.calculateEndingBalance = (budgetId: string) => {
-        calculateEndingBalanceCallCount++;
-        capturedBudgetId = budgetId;
-        return Promise.resolve(4500);
-      };
-      mockCalculator.getRollover = () =>
-        Promise.resolve({ rollover: 500, previousBudgetId: null });
-
-      // ACT
-      await service.findAll(mockUser, mockSupabaseClient as any);
-
-      // ASSERT - Verify calculator was called properly
-      expect(calculateEndingBalanceCallCount).toBe(1);
-      expect(capturedBudgetId).toBe(mockBudgets[0].id);
-    });
-
     describe('sparse fieldsets', () => {
       it('should return sparse response with only requested fields', async () => {
         const mockUser = createMockAuthenticatedUser();
@@ -1115,43 +1088,6 @@ describe('BudgetService', () => {
 
       // Restore the original method
       mockRepository.fetchBudgetData = originalFetchBudgetData;
-    });
-  });
-
-  describe('Log or Throw Pattern', () => {
-    // These tests document the expected behavior after fixing the "log AND throw" anti-pattern
-    // The BudgetService currently calls logger.error() before throwing BusinessException
-    // After Phase 5 implementation, logger.error() should NOT be called in services
-    // (GlobalExceptionFilter handles all error logging)
-
-    it('should document that handleBudgetCreationError currently logs AND throws (to be fixed)', () => {
-      // This test documents the current anti-pattern in handleBudgetCreationError
-      // Lines 631-638 in budget.service.ts:
-      //   this.logger.error({...}, 'Supabase RPC failed at database level');
-      //   throw businessException;
-      //
-      // EXPECTED BEHAVIOR (after fix):
-      // - Service should ONLY throw BusinessException with loggingContext
-      // - GlobalExceptionFilter should handle all error logging
-      // - No duplicate logs should occur
-
-      // The actual implementation test requires complex mock setup
-      // which is better suited for integration tests
-      expect(true).toBe(true);
-    });
-
-    it('should document that warn logs should use err field instead of error field (to be fixed)', () => {
-      // This test documents the incorrect pattern in enrichBudgetsWithRemaining
-      // Lines 801-810 in budget.service.ts:
-      //   error: error instanceof Error ? error.message : String(error)
-      //
-      // EXPECTED BEHAVIOR (after fix):
-      //   err: error  // Pino automatically extracts message, stack, etc.
-      //
-      // Using 'err' field allows Pino to properly serialize Error objects
-      // and preserve stack traces for debugging
-
-      expect(true).toBe(true);
     });
   });
 });

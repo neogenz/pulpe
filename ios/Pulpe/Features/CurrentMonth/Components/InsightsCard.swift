@@ -11,6 +11,11 @@ struct InsightsCard: View {
     private var hasTopSpending: Bool { topSpending != nil }
     private var hasAlerts: Bool { !alerts.isEmpty }
 
+    private static func percentageOfTotal(_ amount: Decimal, of total: Decimal) -> Int {
+        guard total > 0 else { return 0 }
+        return Int(((amount / total) * 100 as NSDecimalNumber).doubleValue)
+    }
+
     var body: some View {
         if hasTopSpending || hasAlerts {
             Button(action: { onTap?() }) {
@@ -46,10 +51,7 @@ struct InsightsCard: View {
     // MARK: - Top Spending Section
 
     private func topSpendingSection(_ spending: (name: String, amount: Decimal, totalExpenses: Decimal)) -> some View {
-        let percentageOfTotal: Int = {
-            guard spending.totalExpenses > 0 else { return 0 }
-            return Int(((spending.amount / spending.totalExpenses * 100) as NSDecimalNumber).doubleValue)
-        }()
+        let percentage = Self.percentageOfTotal(spending.amount, of: spending.totalExpenses)
 
         return HStack(spacing: DesignTokens.Spacing.md) {
             Circle()
@@ -79,7 +81,7 @@ struct InsightsCard: View {
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundStyle(.primary)
-                Text("\(percentageOfTotal)% de tes dépenses")
+                Text("\(percentage)% de tes dépenses")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -150,10 +152,7 @@ struct InsightsCard: View {
         var parts: [String] = []
 
         if let topSpending {
-            let percentage: Int = {
-                guard topSpending.totalExpenses > 0 else { return 0 }
-                return Int(((topSpending.amount / topSpending.totalExpenses * 100) as NSDecimalNumber).doubleValue)
-            }()
+            let percentage = Self.percentageOfTotal(topSpending.amount, of: topSpending.totalExpenses)
             parts.append("Où part ton argent: \(topSpending.name), \(topSpending.amount.asCHF), \(percentage) pourcent de tes dépenses")
         }
 
