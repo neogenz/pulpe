@@ -239,6 +239,7 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
       expect(customComponent.minDate).toBeDefined();
       expect(customComponent.maxDate).toBeDefined();
       expect(customComponent.minDate!.getDate()).toBe(25);
+      expect(customComponent.maxDate!.getDate()).toBe(24);
 
       vi.useRealTimers();
     });

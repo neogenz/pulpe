@@ -1,3 +1,8 @@
+import type {
+  AbstractControl,
+  ValidationErrors,
+  ValidatorFn,
+} from '@angular/forms';
 import { getBudgetPeriodDates, getBudgetPeriodForDate } from 'pulpe-shared';
 
 export interface BudgetPeriodDateConstraints {
@@ -26,4 +31,21 @@ export function computeBudgetPeriodDateConstraints(
   );
 
   return { isCurrentMonth, minDate: startDate, maxDate: endDate };
+}
+
+export function createDateRangeValidator(
+  min: Date | undefined,
+  max: Date | undefined,
+): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const value = control.value;
+    if (!value || !(value instanceof Date)) return null;
+    if (!min && !max) return null;
+
+    const time = value.getTime();
+    if (min && time < min.getTime()) return { dateOutOfRange: true };
+    if (max && time > max.getTime()) return { dateOutOfRange: true };
+
+    return null;
+  };
 }
