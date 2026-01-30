@@ -834,6 +834,79 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       expect(createdTx?.checkedAt).toBeNull();
     });
 
+    it('should replace temp ID in state before calling toggleCheck on parent', async () => {
+      const checkedTimestamp = '2024-01-15T10:00:00Z';
+
+      const checkedParentLine = createMockBudgetLine({
+        id: 'line-checked',
+        budgetId: mockBudgetId,
+        name: 'Checked Parent',
+        amount: 1000,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: checkedTimestamp,
+      });
+
+      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
+        of(
+          createMockBudgetDetailsResponse({
+            budget: { id: mockBudgetId },
+            budgetLines: [checkedParentLine],
+            transactions: [],
+          }),
+        ),
+      );
+
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      const serverTransaction = createMockTransaction({
+        id: 'tx-real-server-id',
+        budgetId: mockBudgetId,
+        budgetLineId: 'line-checked',
+        name: 'Allocated Tx',
+        amount: 200,
+        kind: 'expense',
+        checkedAt: null,
+      });
+
+      mockTransactionApi.create$ = vi
+        .fn()
+        .mockReturnValue(of({ data: serverTransaction }));
+
+      // Capture store state at the moment toggleCheck$ is called
+      let transactionsAtToggleTime: { id: string }[] = [];
+      mockBudgetLineApi.toggleCheck$ = vi.fn().mockImplementation(() => {
+        transactionsAtToggleTime = [
+          ...(service.budgetDetails()?.transactions ?? []),
+        ];
+        return of({ data: { ...checkedParentLine, checkedAt: null } });
+      });
+
+      await service.createAllocatedTransaction({
+        budgetId: mockBudgetId,
+        budgetLineId: 'line-checked',
+        name: 'Allocated Tx',
+        amount: 200,
+        kind: 'expense',
+      });
+
+      // toggleCheck$ was called
+      expect(mockBudgetLineApi.toggleCheck$).toHaveBeenCalledWith(
+        'line-checked',
+      );
+
+      // At the moment toggleCheck$ was called, state must contain the real ID (not temp)
+      const hasTempId = transactionsAtToggleTime.some((tx) =>
+        tx.id.startsWith('temp-'),
+      );
+      expect(hasTempId).toBe(false);
+      expect(
+        transactionsAtToggleTime.some((tx) => tx.id === 'tx-real-server-id'),
+      ).toBe(true);
+    });
+
     it('should rollback optimistic updates when toggleCheck fails after transaction creation', async () => {
       const checkedTimestamp = '2024-01-15T10:00:00Z';
 
