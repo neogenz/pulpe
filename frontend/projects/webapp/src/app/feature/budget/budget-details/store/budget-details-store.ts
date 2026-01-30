@@ -454,7 +454,7 @@ export class BudgetDetailsStore {
 
   /**
    * Create an allocated transaction with optimistic updates
-   * If parent budget line is checked, new transaction inherits checked state
+   * New transactions always start unchecked; if parent was checked, uncheck it
    */
   async createAllocatedTransaction(
     transactionData: TransactionCreate,
@@ -462,16 +462,11 @@ export class BudgetDetailsStore {
     const newId = `temp-${uuidv4()}`;
     const details = this.budgetDetails();
 
-    // Inherit checked state from parent budget line if it's checked
     const parentBudgetLine = details?.budgetLines.find(
       (line) => line.id === transactionData.budgetLineId,
     );
-
-    // Normalize checkedAt to ensure valid ISO format
-    // Server returns '+00:00' format, but Zod v4 validation expects 'Z' format
-    const inheritedCheckedAt = parentBudgetLine?.checkedAt
-      ? new Date(parentBudgetLine.checkedAt).toISOString()
-      : null;
+    const shouldUncheckParent =
+      parentBudgetLine != null && parentBudgetLine.checkedAt !== null;
 
     // Create temporary transaction for optimistic update
     const tempTransaction: Transaction = {
@@ -486,15 +481,29 @@ export class BudgetDetailsStore {
       category: transactionData.category ?? null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      checkedAt: inheritedCheckedAt,
+      checkedAt: null,
     };
 
-    // Optimistic update - add the new transaction immediately
+    // Optimistic update - add the new transaction and uncheck parent if needed
     this.#budgetDetailsResource.update((details) => {
       if (!details) return details;
 
+      const updatedBudgetLines =
+        shouldUncheckParent && parentBudgetLine
+          ? details.budgetLines.map((line) =>
+              line.id === parentBudgetLine.id
+                ? {
+                    ...line,
+                    checkedAt: null,
+                    updatedAt: new Date().toISOString(),
+                  }
+                : line,
+            )
+          : details.budgetLines;
+
       return {
         ...details,
+        budgetLines: updatedBudgetLines,
         transactions: [...(details.transactions ?? []), tempTransaction],
       };
     });
@@ -503,9 +512,16 @@ export class BudgetDetailsStore {
       const response = await firstValueFrom(
         this.#transactionApi.create$({
           ...transactionData,
-          checkedAt: inheritedCheckedAt,
+          checkedAt: null,
         }),
       );
+
+      // Uncheck parent budget line on backend if it was checked
+      if (shouldUncheckParent && parentBudgetLine) {
+        await this.#enqueueMutation(() =>
+          this.#budgetLineApi.toggleCheck$(parentBudgetLine.id),
+        );
+      }
 
       // Replace temporary transaction with server response
       this.#budgetDetailsResource.update((details) => {

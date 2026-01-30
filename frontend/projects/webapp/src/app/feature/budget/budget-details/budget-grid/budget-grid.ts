@@ -12,6 +12,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
 import type { TransactionViewModel } from '../models/transaction-view-model';
 import type { BudgetLineTableItem } from '../data-core';
@@ -37,6 +38,7 @@ import { BudgetGridSection } from './budget-grid-section';
     BudgetGridCard,
     BudgetGridMobileCard,
     BudgetGridSection,
+    MatSlideToggleModule,
   ],
   template: `
     @if (isMobile()) {
@@ -169,11 +171,23 @@ import { BudgetGridSection } from './budget-grid-section';
             >
               {{ item.data.amount }}
             </div>
-            <div>
+            <div class="flex items-center">
+              <mat-slide-toggle
+                [checked]="!!item.data.checkedAt"
+                (change)="toggleTransactionCheck.emit(item.data.id)"
+                (click)="$event.stopPropagation()"
+                [attr.data-testid]="'toggle-check-tx-' + item.data.id"
+                [attr.aria-label]="
+                  item.data.checkedAt
+                    ? 'Marquer comme non vérifié'
+                    : 'Marquer comme vérifié'
+                "
+              />
               <button
                 matIconButton
                 (click)="deleteTransaction.emit(item.data.id)"
                 [attr.data-testid]="'delete-tx-' + item.data.id"
+                aria-label="Supprimer la transaction"
               >
                 <mat-icon class="text-xl!">delete</mat-icon>
               </button>
