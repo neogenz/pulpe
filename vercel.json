@@ -82,6 +82,10 @@
       "destination": "/landing/support.html"
     },
     {
+      "source": "/changelog",
+      "destination": "/landing/changelog.html"
+    },
+    {
       "source": "/:path*",
       "destination": "/_app.html"
     }

@@ -27,6 +27,9 @@ export function Footer() {
             <a href={`${ANGULAR_APP_URL}/legal/confidentialite`} className="hover:text-text transition-colors">
               Politique de confidentialité
             </a>
+            <Link href="/changelog" className="hover:text-text transition-colors">
+              Nouveautés
+            </Link>
             <Link href="/support" className="hover:text-text transition-colors">
               Support
             </Link>

@@ -144,6 +144,54 @@ Rules for writing notes:
 
 Then ask with AskUserQuestion: "Approuves-tu cette proposition ?" → "Oui, appliquer" / "Non, ajuster"
 
+### Step 5b: Update landing changelog data
+
+After user approves, update `landing/data/releases.json` with the new release.
+
+**Procedure:**
+
+1. Read `landing/data/releases.json` (use Read tool)
+2. Build a new release object from the approved Step 5 data:
+
+```json
+{
+  "version": "X.Y.Z",
+  "date": "YYYY-MM-DD",
+  "platforms": ["web", "ios"],
+  "changes": {
+    "features": [
+      { "title": "Titre court", "description": "Description en une phrase" }
+    ],
+    "fixes": [],
+    "technical": []
+  }
+}
+```
+
+3. Insert it at position 0 (first element) of the array
+4. Write back the full JSON with `JSON.stringify(releases, null, 2)` (use Write tool)
+
+**Field rules:**
+
+| Field | Value |
+|-------|-------|
+| `version` | Version from Step 4 (without `v` prefix) |
+| `date` | Today's date in `YYYY-MM-DD` format |
+| `platforms` | Derived from affected packages (see mapping below) |
+| `changes.features` | From approved "Nouveautes" entries |
+| `changes.fixes` | From approved "Corrections" entries |
+| `changes.technical` | From approved "Technique" entries |
+
+Each entry: `{ "title": "Bold title from Step 5", "description": "Description from Step 5" }`
+
+**Platform mapping** (from Step 3 affected packages):
+- `frontend/**`, `backend-nest/**`, `shared/**`, `landing/**` → `"web"`
+- `ios/**` → `"ios"`
+- `android/**` → `"android"` (future)
+
+Deduplicate: if both frontend and backend changed, `"web"` appears once.
+Empty sections stay as `[]` (never omit the key).
+
 ### Step 6: Apply versions
 
 Execute ONLY after user confirms.
@@ -151,7 +199,7 @@ Execute ONLY after user confirms.
 1. **Bump root product version** in root `package.json`:
 
 ```bash
-node -e "
+bun -e "
 const fs = require('fs');
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 pkg.version = 'X.Y.Z';
@@ -176,7 +224,7 @@ Fix issues before proceeding.
 Stage only release files:
 
 ```bash
-git add package.json CHANGELOG.md */CHANGELOG.md */package.json .changeset/ ios/project.yml ios/Pulpe.xcodeproj/project.pbxproj
+git add package.json CHANGELOG.md */CHANGELOG.md */package.json .changeset/ ios/project.yml ios/Pulpe.xcodeproj/project.pbxproj landing/data/releases.json
 git commit -m "chore(release): vX.Y.Z"
 git tag "vX.Y.Z" -m "Release vX.Y.Z"
 ```

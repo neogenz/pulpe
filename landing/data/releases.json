@@ -1,0 +1,90 @@
+[
+  {
+    "version": "0.18.0",
+    "date": "2026-01-30",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "Dashboard",
+          "description": "Nouvelle vue d'ensemble \"Ce mois-ci\" sur iOS, avec un apercu rapide du budget en cours."
+        },
+        {
+          "title": "Design system",
+          "description": "Pages de connexion, inscription et bienvenue alignees avec le design system Pulpe."
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Toggle check",
+          "description": "Correction des erreurs 404 lors du cochage rapide de plusieurs previsions."
+        },
+        {
+          "title": "Dates et transactions",
+          "description": "Correction du decalage de dates et des bugs de verification de transactions."
+        }
+      ],
+      "technical": []
+    }
+  },
+  {
+    "version": "0.17.0",
+    "date": "2026-01-29",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "Page support",
+          "description": "Nouvelle page support avec FAQ et contact directement sur le site."
+        },
+        {
+          "title": "Bouton d'ajout persistant",
+          "description": "Le bouton d'ajout de transaction reste visible sur les cartes enveloppes en mobile."
+        },
+        {
+          "title": "Suppression de compte",
+          "description": "Possibilite de supprimer son compte avec un delai de grace de 3 jours."
+        },
+        {
+          "title": "Export Excel",
+          "description": "Export des budgets en Excel avec formatage des montants et totaux automatiques."
+        },
+        {
+          "title": "Navigation mensuelle",
+          "description": "Barre de navigation avec fleches precedent/suivant pour naviguer entre les mois."
+        },
+        {
+          "title": "Bouton flottant iOS",
+          "description": "Bouton d'ajout de transaction flottant avec effet Liquid Glass sur iOS."
+        },
+        {
+          "title": "Ecran de connexion iOS",
+          "description": "Nouvel ecran de connexion repense avec le branding Pulpe sur iOS."
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Layout responsive",
+          "description": "Amelioration de la mise en page sur la page detail des modeles."
+        },
+        {
+          "title": "Mois du budget",
+          "description": "Affichage du vrai mois de la periode budgetaire au lieu d'un label statique."
+        },
+        {
+          "title": "Viewport mobile",
+          "description": "Le contenu remplit maintenant toute la hauteur de l'ecran sur mobile."
+        },
+        {
+          "title": "Navigation mobile",
+          "description": "La barre de navigation se masque automatiquement au scroll sur mobile."
+        },
+        {
+          "title": "Flash d'authentification",
+          "description": "Correction du flash de contenu lors de la detection du token d'authentification."
+        }
+      ],
+      "technical": []
+    }
+  }
+]
