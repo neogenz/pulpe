@@ -9,6 +9,8 @@ describe('Environment Validation', () => {
         SUPABASE_URL: 'http://localhost:54321',
         SUPABASE_ANON_KEY: 'test-anon-key',
         TURNSTILE_SECRET_KEY: 'test-turnstile-key',
+        ENCRYPTION_MASTER_KEY:
+          '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
         // SERVICE_ROLE_KEY omitted - should fail
       };
 
@@ -21,6 +23,8 @@ describe('Environment Validation', () => {
         SUPABASE_URL: 'http://localhost:54321',
         SUPABASE_ANON_KEY: 'test-anon-key',
         TURNSTILE_SECRET_KEY: 'test-turnstile-key',
+        ENCRYPTION_MASTER_KEY:
+          '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
         // SERVICE_ROLE_KEY omitted - should fail
       };
 
@@ -33,6 +37,8 @@ describe('Environment Validation', () => {
         SUPABASE_URL: 'https://example.supabase.co',
         SUPABASE_ANON_KEY: 'prod-anon-key',
         TURNSTILE_SECRET_KEY: 'prod-turnstile-key',
+        ENCRYPTION_MASTER_KEY:
+          '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
         // SERVICE_ROLE_KEY omitted - should fail
       };
 
@@ -45,6 +51,8 @@ describe('Environment Validation', () => {
         SUPABASE_URL: 'https://example.supabase.co',
         SUPABASE_ANON_KEY: 'preview-anon-key',
         TURNSTILE_SECRET_KEY: 'preview-turnstile-key',
+        ENCRYPTION_MASTER_KEY:
+          '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
         // SERVICE_ROLE_KEY omitted - should fail
       };
 
@@ -58,6 +66,8 @@ describe('Environment Validation', () => {
         SUPABASE_ANON_KEY: 'prod-anon-key',
         SUPABASE_SERVICE_ROLE_KEY: 'service-role-key',
         TURNSTILE_SECRET_KEY: 'prod-turnstile-key',
+        ENCRYPTION_MASTER_KEY:
+          '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
       };
 
       expect(() => validateConfig(config)).not.toThrow();
@@ -71,6 +81,8 @@ describe('Environment Validation', () => {
         SUPABASE_ANON_KEY: 'test-key',
         SUPABASE_SERVICE_ROLE_KEY: 'test-service-key',
         TURNSTILE_SECRET_KEY: 'test-turnstile-key',
+        ENCRYPTION_MASTER_KEY:
+          '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
       };
 
       expect(() => validateConfig(config)).toThrow(/SUPABASE_URL/);
@@ -82,6 +94,8 @@ describe('Environment Validation', () => {
         SUPABASE_URL: 'http://localhost:54321',
         SUPABASE_SERVICE_ROLE_KEY: 'test-service-key',
         TURNSTILE_SECRET_KEY: 'test-turnstile-key',
+        ENCRYPTION_MASTER_KEY:
+          '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
       };
 
       expect(() => validateConfig(config)).toThrow(/SUPABASE_ANON_KEY/);
@@ -93,6 +107,8 @@ describe('Environment Validation', () => {
         SUPABASE_URL: 'http://localhost:54321',
         SUPABASE_ANON_KEY: 'test-key',
         TURNSTILE_SECRET_KEY: 'test-turnstile-key',
+        ENCRYPTION_MASTER_KEY:
+          '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
       };
 
       expect(() => validateConfig(config)).toThrow(/SUPABASE_SERVICE_ROLE_KEY/);
@@ -104,6 +120,8 @@ describe('Environment Validation', () => {
         SUPABASE_URL: 'http://localhost:54321',
         SUPABASE_ANON_KEY: 'test-key',
         SUPABASE_SERVICE_ROLE_KEY: 'test-service-key',
+        ENCRYPTION_MASTER_KEY:
+          '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
       };
 
       expect(() => validateConfig(config)).toThrow(/TURNSTILE_SECRET_KEY/);
