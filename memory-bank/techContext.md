@@ -24,6 +24,46 @@
 | DR-002 | Automated Demo Cleanup | 2024-06-15 | Accepted |
 | DR-003 | Remove Variable Transaction Recurrence | 2024-07-20 | Accepted |
 | DR-004 | Typed & Versioned Storage Service | 2024-11-10 | Pending |
+| DR-005 | Cache-First Data Loading in Dashboard | 2026-01-30 | Accepted |
+
+---
+
+## DR-005: Cache-First Data Loading in Dashboard
+
+**Date**: 2026-01-30
+**Status**: Accepted
+
+### Context
+
+Le dashboard rechargait `GET /budgets` à chaque navigation (retour depuis Budgets, Modèles, etc.) malgré un système de cache (`BudgetCache`) et un preloader (`AppPreloader`) déjà en place.
+
+### Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Data loader vérifie le cache avant l'API | Cache-first lookup dans `createDashboardDataLoader` | Même pattern que `BudgetListStore` et `BudgetDetailsStore` |
+| `getBudgetForMonth$` reste inchangé | Fallback API conservé | Évite les régressions sur les autres consommateurs |
+| Race condition initiale acceptée | Pas de restructuration de l'init | Ne se produit qu'une fois au login/reload |
+
+### Problem
+
+`current-month-data-loader.ts` appelait `budgetApi.getBudgetForMonth$()` qui exécute systématiquement `getAllBudgets$()` (HTTP GET brut), ignorant le cache `BudgetCache.budgets()` rempli par le preloader. Chaque retour au dashboard déclenchait un appel réseau inutile.
+
+### Decision
+
+Le data loader consulte d'abord `budgetCache.budgets()` pour trouver le budget du mois courant. Si le cache contient les données, aucun appel HTTP. Le fallback API reste en place pour les cache miss.
+
+### Rationale
+
+- Le pattern cache-first existait déjà dans `BudgetListStore` (ligne 179) et `BudgetDetailsStore` (ligne 148) — seul le dashboard ne l'appliquait pas
+- Le preloader remplit le cache au login, donc les navigations suivantes sont instantanées
+- Changement minimal (1 fichier) avec impact maximal sur la réactivité perçue
+
+### Consequences
+
+- **Positive**: 0 requêtes réseau lors des navigations inter-écrans après le chargement initial
+- **Trade-off**: Doublon `GET /budgets` au premier chargement (race preloader/store) — accepté
+- **Impact**: `current-month-data-loader.ts` uniquement
 
 ---
 
