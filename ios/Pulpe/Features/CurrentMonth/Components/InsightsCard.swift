@@ -13,7 +13,12 @@ struct InsightsCard: View {
 
     private static func percentageOfTotal(_ amount: Decimal, of total: Decimal) -> Int {
         guard total > 0 else { return 0 }
-        return Int(((amount / total) * 100 as NSDecimalNumber).doubleValue)
+        return Int(
+            (amount as NSDecimalNumber)
+                .dividing(by: total as NSDecimalNumber)
+                .multiplying(by: 100)
+                .doubleValue
+        )
     }
 
     var body: some View {

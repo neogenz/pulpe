@@ -29,7 +29,7 @@ struct HeroBalanceCard: View {
 
     private var progressColor: Color {
         if isOverBudget { return .financialOverBudget }
-        if progressPercentage > 0.85 { return .financialOverBudget }
+        if progressPercentage >= 0.80 { return .orange }
         return .pulpePrimary
     }
 

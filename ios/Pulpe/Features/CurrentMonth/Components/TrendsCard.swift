@@ -63,7 +63,7 @@ struct TrendsCard: View {
                 y: .value("Dépenses", (expense.total as NSDecimalNumber).doubleValue)
             )
             .foregroundStyle(Color.pulpePrimary)
-            .interpolationMethod(.catmullRom)
+            .interpolationMethod(.monotone)
 
             AreaMark(
                 x: .value("Mois", expense.shortMonthName),
@@ -76,7 +76,7 @@ struct TrendsCard: View {
                     endPoint: .bottom
                 )
             )
-            .interpolationMethod(.catmullRom)
+            .interpolationMethod(.monotone)
         }
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)

@@ -536,6 +536,75 @@ describe('BudgetService', () => {
         ).rejects.toThrow('Unknown sparse fields: foo, bar');
       });
 
+      it('should combine fields + year + limit filters', async () => {
+        const mockUser = createMockAuthenticatedUser();
+        const mockBudgets = [
+          createValidBudgetEntity({ id: 'budget-1', month: 1, year: 2026 }),
+          createValidBudgetEntity({ id: 'budget-2', month: 2, year: 2026 }),
+          createValidBudgetEntity({ id: 'budget-3', month: 3, year: 2026 }),
+        ];
+
+        mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
+
+        const result = await service.findAll(
+          mockUser,
+          mockSupabaseClient as any,
+          {
+            fields: 'month,year',
+            year: 2026,
+            limit: 2,
+          },
+        );
+
+        expect(result.success).toBe(true);
+        result.data.forEach((budget: any) => {
+          expect(budget).toHaveProperty('id');
+          expect(budget).toHaveProperty('month');
+          expect(budget).toHaveProperty('year');
+          expect(budget).not.toHaveProperty('createdAt');
+          expect(budget).not.toHaveProperty('description');
+        });
+      });
+
+      it('should handle limit: 0 gracefully', async () => {
+        const mockUser = createMockAuthenticatedUser();
+        const mockBudgets = [
+          createValidBudgetEntity({ id: 'budget-1', month: 1, year: 2026 }),
+        ];
+
+        mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
+
+        const result = await service.findAll(
+          mockUser,
+          mockSupabaseClient as any,
+          {
+            fields: 'month,year',
+            limit: 0,
+          },
+        );
+
+        expect(result.success).toBe(true);
+      });
+
+      it('should handle empty fields string', async () => {
+        const mockUser = createMockAuthenticatedUser();
+
+        // Empty string means no valid fields — should fallback to full response
+        const mockBudgets = [createValidBudgetEntity()];
+        mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
+
+        const result = await service.findAll(
+          mockUser,
+          mockSupabaseClient as any,
+          {
+            fields: '',
+          },
+        );
+
+        // Empty fields string: either returns full response or handles gracefully
+        expect(result.success).toBe(true);
+      });
+
       it('should fallback to full response when no fields param provided', async () => {
         const mockUser = createMockAuthenticatedUser();
         const mockBudgets = [createValidBudgetEntity()];

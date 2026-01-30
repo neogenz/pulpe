@@ -104,7 +104,10 @@ final class DashboardStore: StoreProtocol {
         guard previous.total > 0 else { return nil }
 
         let difference = current.total - previous.total
-        let percentage = ((difference / previous.total) * 100 as NSDecimalNumber).doubleValue
+        let percentage = (difference as NSDecimalNumber)
+            .dividing(by: previous.total as NSDecimalNumber)
+            .multiplying(by: 100)
+            .doubleValue
 
         return ExpenseVariation(
             amount: difference,

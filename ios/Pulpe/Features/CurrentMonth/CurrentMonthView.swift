@@ -63,8 +63,9 @@ struct CurrentMonthView: View {
             }
         }
         .task {
-            await store.loadDetailsIfNeeded()
-            await dashboardStore.loadIfNeeded()
+            async let loadDetails: Void = store.loadDetailsIfNeeded()
+            async let loadDashboard: Void = dashboardStore.loadIfNeeded()
+            _ = await (loadDetails, loadDashboard)
         }
         .onChange(of: navigateToBudget) { _, shouldNavigate in
             if shouldNavigate, let budgetId = store.budget?.id {
@@ -149,8 +150,9 @@ struct CurrentMonthView: View {
         }
         .pulpeBackground()
         .refreshable {
-            await store.forceRefresh()
-            await dashboardStore.forceRefresh()
+            async let refreshStore: Void = store.forceRefresh()
+            async let refreshDashboard: Void = dashboardStore.forceRefresh()
+            _ = await (refreshStore, refreshDashboard)
         }
     }
 }
