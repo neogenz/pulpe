@@ -1,16 +1,18 @@
 # SemVer Conventions
 
-The product uses a **single unified version** following **Semantic Versioning**: `MAJOR.MINOR.PATCH`
+Pulpe uses a **single unified product version** following **Semantic Versioning**: `MAJOR.MINOR.PATCH`
 
 ## Tag Format
 
-A single tag per release:
+One tag per release:
 
 ```
-vX.Y.Z    (e.g. v0.18.0)
+vX.Y.Z    (e.g. v1.7.0)
 ```
 
 The version is tracked in the root `package.json` (`version` field).
+
+No other tags are created — no per-package tags, no date-based tags.
 
 ## Version Bump Mapping
 
@@ -23,6 +25,8 @@ The version is tracked in the root `package.json` (`version` field).
 
 The product version bump is the **highest bump** across all affected packages.
 
+Commits that do NOT trigger a release: `chore:`, `refactor:`, `test:`, `ci:`, `docs:`, `style:`, `build:`.
+
 ## Bump Guidelines
 
 | Scenario | Bump | Example |
@@ -33,8 +37,13 @@ The product version bump is the **highest bump** across all affected packages.
 | Fix incorrect behavior | PATCH | Correction de l'affichage des montants |
 | Visible perf improvement | PATCH | Temps de chargement reduit de 50% |
 
-## iOS Specifics
+## Sub-package Versions
 
-- iOS also tracks its own version in `ios/project.yml` (for App Store)
-- Build is an integer, resets to 1 for each new version
-- Defined in `ios/project.yml` (managed by XcodeGen)
+Each JS/TS sub-package has its own version in `package.json`, managed by changesets. These versions:
+- Are bumped only when the package is affected
+- Do NOT generate git tags
+- Track changes in per-package `CHANGELOG.md` files
+
+## iOS Alignment
+
+iOS `MARKETING_VERSION` aligns with the product version **only when iOS code changes**. See `references/ios-release.md` for details.

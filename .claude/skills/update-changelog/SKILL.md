@@ -8,15 +8,15 @@ model: opus
 
 # Update Changelog
 
-Act as the **Product Owner** of this monorepo. Analyze code changes to produce clear, user-focused changelog entries in French.
+Analyze code changes to produce a unified product release with clear, user-focused changelog entries in French.
 
-**Release model:** Unified product release — one SemVer version, one git tag (`vX.Y.Z`), one GitHub Release with all notes grouped.
+**Release model:** One SemVer version, one git tag (`vX.Y.Z`), one GitHub Release.
 
 **Critical rules:**
 - NEVER apply versions without explicit user approval
 - NEVER push without explicit user approval
-- If changes are ambiguous, ASK for clarification — do not guess
-- When uncertain about bump severity, prefer the HIGHER bump (conservative)
+- If changes are ambiguous, ASK — do not guess
+- When uncertain about bump severity, prefer the HIGHER bump
 
 ## Input
 
@@ -33,30 +33,26 @@ User argument: `$ARGUMENTS`
 ### Step 1: Determine base reference
 
 ```bash
-# If "depuis le dernier tag" or empty:
-# Use creation date sort to find the most recent tag regardless of naming convention
-# (supports v*, pulpe-*@*, ios@*, backend-nest@*, etc.)
-BASE_REF=$(git tag -l --sort=-creatordate | head -1)
-
-# If "depuis main":
-BASE_REF="main"
+BASE_REF=$(git tag -l "v*" --sort=-creatordate | head -1)
+# Fallback if no v* tag exists:
+# BASE_REF=$(git tag -l --sort=-creatordate | head -1)
 ```
 
-Use `$BASE_REF` as the reference for ALL subsequent git commands.
+If "depuis main": `BASE_REF="main"`
 
 ### Step 2: Analyze git changes
 
-Run in parallel using `$BASE_REF`:
+Run in parallel:
 
 ```bash
-git diff $BASE_REF..HEAD --name-only     # Modified files
-git log $BASE_REF..HEAD --oneline        # Commit messages
-git diff $BASE_REF..HEAD --stat          # Change summary
+git diff $BASE_REF..HEAD --name-only
+git log $BASE_REF..HEAD --oneline
+git diff $BASE_REF..HEAD --stat
 ```
 
-**Stop immediately** if changes contain ONLY non-functional commits (`refactor:`, `test:`, `chore:`, `ci:`, `docs:`, `style:`, `build:`), dev dependency updates, CI/CD changes, or documentation. Output: "Aucun changeset necessaire — modifications techniques uniquement."
+**Stop immediately** if changes contain ONLY non-functional commits (`refactor:`, `test:`, `chore:`, `ci:`, `docs:`, `style:`, `build:`). Output: "Aucun changeset necessaire — modifications techniques uniquement."
 
-### Step 3: Detect affected packages and their commits
+### Step 3: Detect affected packages
 
 Map files to packages:
 
@@ -68,7 +64,7 @@ Map files to packages:
 | `landing/**` | Landing |
 | `ios/**` | iOS |
 
-Extract relevant commits **per package** by cross-referencing commit file changes:
+Extract relevant commits per package:
 
 ```bash
 git log $BASE_REF..HEAD --oneline -- frontend/
@@ -78,111 +74,143 @@ git log $BASE_REF..HEAD --oneline -- landing/
 git log $BASE_REF..HEAD --oneline -- ios/
 ```
 
-Only consider `feat:`, `fix:`, `feat!:`, `BREAKING CHANGE:`, `perf:` commits for version bumps. For version bump rules, see [references/semver-conventions.md](references/semver-conventions.md).
+Only `feat:`, `fix:`, `feat!:`, `BREAKING CHANGE:`, `perf:` trigger version bumps. See [references/semver-conventions.md](references/semver-conventions.md).
 
 ### Step 4: Determine product version bump
 
-Read the current product version from `package.json` at the root (`version` field).
+Read current version from root `package.json` (`version` field).
 
-The product version bump is the **highest bump** across all affected packages:
-- If ANY package has a `feat!:` or `BREAKING CHANGE:` → **MAJOR**
-- Else if ANY package has a `feat:` → **MINOR**
-- Else if ANY package has a `fix:` or `perf:` → **PATCH**
+The product version bump is the **highest** across all affected packages:
+- ANY `feat!:` or `BREAKING CHANGE:` → **MAJOR**
+- ANY `feat:` → **MINOR**
+- ANY `fix:` or `perf:` → **PATCH**
 
 ### Step 5: Propose changelog
 
-**IMPORTANT: Display the changelog as regular output text FIRST, then ask for confirmation separately.**
+**Display the changelog as regular text FIRST, then ask for confirmation.**
 
-1. **Output the proposal as text** (this will be visible to the user in the terminal):
+Use this exact template for the **proposal** (shown in terminal):
 
 ```markdown
-## Proposition de Changelog
+## Proposition de release
 
 ### Version proposee
 **vX.Y.Z** (MINOR)
 
 ### Packages impactes
-- Frontend, Backend
+- Frontend, Backend, iOS
 
-### Changements utilisateur
+### Notes de release
 
-**Frontend**
-1. **Transactions recurrentes** - Definir des depenses/revenus qui se repetent automatiquement
+#### Nouveautes
+- **Titre court** — Description en une phrase
 
-**Backend**
-2. **Correction deconnexion** - Resolution du probleme de rafraichissement de token
+#### Corrections
+- **Titre court** — Description en une phrase
+
+#### Technique
+- Description si pertinent
 
 *Les changements techniques internes ont ete exclus.*
 ```
 
-2. **Then ask for approval** using AskUserQuestion with a short confirmation question:
-   - Question: "Approuves-tu cette proposition de changelog ?"
-   - Options: "Oui, appliquer" / "Non, ajuster"
+Use this exact template for the **GitHub Release** (created in Step 9):
 
-Do NOT put the changelog content inside AskUserQuestion — it cannot render long text properly. The changelog must be output as regular text before the question.
+```markdown
+## vX.Y.Z
 
-Wait for explicit "oui" before proceeding.
+### Nouveautes
+- **Titre court** — Description en une phrase
+
+### Corrections
+- **Titre court** — Description en une phrase
+
+### Technique
+- Description si pertinent
+
+---
+
+*[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)*
+```
+
+Rules for writing notes:
+- French, no emojis, no package names
+- Grouped by type (Nouveautes / Corrections / Technique), NOT by package
+- User-focused: describe what changed for the user, not technical details
+- Each entry: **bold short title** + em dash + one sentence description
+- Omit empty sections (if no corrections, skip "Corrections")
+- Footer with links to roadmap and issues
+- Release title is always `vX.Y.Z` — nothing else added
+
+Then ask with AskUserQuestion: "Approuves-tu cette proposition ?" → "Oui, appliquer" / "Non, ajuster"
 
 ### Step 6: Apply versions
 
 Execute ONLY after user confirms.
 
-1. **Bump root product version** in `package.json` at the root:
+1. **Bump root product version** in root `package.json`:
 
 ```bash
 node -e "
 const fs = require('fs');
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-const [major, minor, patch] = pkg.version.split('.').map(Number);
-// Apply bump: 'major' | 'minor' | 'patch'
 pkg.version = 'X.Y.Z';
 fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
 "
 ```
 
 2. **JS/TS sub-packages** (if affected): See [references/jsts-release.md](references/jsts-release.md)
+
 3. **iOS** (if affected): See [references/ios-release.md](references/ios-release.md)
 
-### Step 7: Verify quality BEFORE committing
+### Step 7: Quality check
 
 ```bash
 pnpm quality
 ```
 
-If quality checks fail, fix issues before proceeding. Do NOT commit or push broken code.
+Fix issues before proceeding.
 
-### Step 8: Commit & tag
+### Step 8: Commit and tag
 
-Stage only the files modified by the release process — do NOT use `git add -A`:
+Stage only release files:
 
 ```bash
-git add package.json CHANGELOG.md */CHANGELOG.md */package.json .changeset/ ios/project.yml
+git add package.json CHANGELOG.md */CHANGELOG.md */package.json .changeset/ ios/project.yml ios/Pulpe.xcodeproj/project.pbxproj
 git commit -m "chore(release): vX.Y.Z"
 git tag "vX.Y.Z" -m "Release vX.Y.Z"
 ```
 
-### Step 9: Push & GitHub release (with confirmation)
+### Step 9: Push and GitHub release
 
-Ask the user for confirmation before pushing:
+Ask: "Pret a pousser sur main avec le tag et creer la release GitHub ?"
 
-> Pret a pousser sur main avec le tag et creer la release GitHub ? (oui/non)
-
-Only after explicit "oui":
+Only after "oui":
 
 ```bash
 git push origin main --tags
 ```
 
-Then create a **single** GitHub release:
+Then create the GitHub release using the **GitHub Release template** from Step 5:
 
 ```bash
-gh release create "vX.Y.Z" --title "vX.Y.Z" --notes "unified changelog content in French"
+gh release create "vX.Y.Z" --repo neogenz/pulpe --title "vX.Y.Z" --notes "$(cat <<'EOF'
+## vX.Y.Z
+
+### Nouveautés
+- **Titre** — Description
+
+### Corrections
+- **Titre** — Description
+
+---
+
+*[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)*
+EOF
+)"
 ```
 
-The release notes should group changes by package, using the same format as Step 5.
-
-## Adding a new platform
-
-To add support for a new platform:
-1. Create `references/<platform>-release.md` with apply + tag instructions
-2. Add file pattern mapping in Step 3 table
+Rules:
+- Release title is always `vX.Y.Z` — nothing else
+- Omit empty sections (no corrections? skip the section)
+- Footer links always present

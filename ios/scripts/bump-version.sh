@@ -1,6 +1,6 @@
 #!/bin/bash
 # iOS Version Bump Script
-# Usage: ./bump-version.sh [major|minor|patch|build]
+# Usage: ./bump-version.sh [major|minor|patch|build|set X.Y.Z]
 
 set -e
 
@@ -43,6 +43,18 @@ case "$1" in
     build)
         NEW_BUILD=$((CURRENT_BUILD + 1))
         ;;
+    set)
+        if [[ -z "$2" ]]; then
+            echo "Error: 'set' requires a version argument (e.g. set 1.7.0)"
+            exit 1
+        fi
+        if [[ ! "$2" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Invalid version format '$2' (expected X.Y.Z)"
+            exit 1
+        fi
+        IFS='.' read -r MAJOR MINOR PATCH <<< "$2"
+        NEW_BUILD=1
+        ;;
     "")
         echo "Current: $CURRENT_VERSION (build $CURRENT_BUILD)"
         echo ""
@@ -51,6 +63,7 @@ case "$1" in
         echo "  minor  - $CURRENT_VERSION → $MAJOR.$((MINOR + 1)).0 (reset build)"
         echo "  patch  - $CURRENT_VERSION → $MAJOR.$MINOR.$((PATCH + 1)) (reset build)"
         echo "  build  - build $CURRENT_BUILD → $((CURRENT_BUILD + 1))"
+        echo "  set    - set to specific version (e.g. set 1.7.0, reset build)"
         exit 0
         ;;
     *)
