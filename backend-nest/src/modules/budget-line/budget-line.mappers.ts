@@ -43,6 +43,7 @@ export function toApiList(budgetLinesDb: BudgetLineRow[]): BudgetLine[] {
 export function toInsert(
   createDto: BudgetLineCreate,
   budgetId?: string,
+  amountEncrypted?: string,
 ): BudgetLineInsert {
   // Validate with Zod schema - fail fast on invalid data
   const validationResult = budgetLineCreateSchema.safeParse(createDto);
@@ -71,6 +72,7 @@ export function toInsert(
     savings_goal_id: createDto.savingsGoalId ?? null,
     name: createDto.name,
     amount: createDto.amount,
+    ...(amountEncrypted && { amount_encrypted: amountEncrypted }),
     kind: createDto.kind, // Pas de conversion - les enums sont maintenant unifiés
     recurrence: createDto.recurrence,
     is_manually_adjusted: createDto.isManuallyAdjusted ?? false,
@@ -82,6 +84,7 @@ export function toInsert(
  */
 export function toUpdate(
   updateDto: BudgetLineUpdate,
+  amountEncrypted?: string,
 ): Partial<BudgetLineInsert> {
   const updateData: Partial<BudgetLineInsert> = {};
 
@@ -96,6 +99,9 @@ export function toUpdate(
   }
   if (updateDto.amount !== undefined) {
     updateData.amount = updateDto.amount;
+  }
+  if (amountEncrypted !== undefined) {
+    updateData.amount_encrypted = amountEncrypted;
   }
   if (updateDto.kind !== undefined) {
     updateData.kind = updateDto.kind; // Pas de conversion - les enums sont maintenant unifiés
