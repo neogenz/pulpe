@@ -397,6 +397,68 @@ describe('Budget Details Check Utils', () => {
     });
   });
 
+  describe('calculateBudgetLineToggle - temp ID handling', () => {
+    it('should include temp transactions in transactionsToToggle when checking a budget line', () => {
+      // This test documents the behavior that caused a production bug:
+      // When a transaction has a temp ID (temp-xxx), calculateBudgetLineToggle
+      // includes it in transactionsToToggle. The caller must ensure temp IDs
+      // are replaced with real IDs before triggering a cascade toggle.
+      const budgetLines = [createBudgetLine({ id: 'line-1', checkedAt: null })];
+      const transactions = [
+        createTransaction({
+          id: 'real-uuid',
+          budgetLineId: 'line-1',
+          checkedAt: null,
+        }),
+        createTransaction({
+          id: 'temp-d8948d20-f63f-4031-b946-b270622513aa',
+          budgetLineId: 'line-1',
+          checkedAt: null,
+        }),
+      ];
+
+      const result = calculateBudgetLineToggle('line-1', {
+        budgetLines,
+        transactions,
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.transactionsToToggle).toHaveLength(2);
+      expect(result!.transactionsToToggle.map((tx) => tx.id)).toContain(
+        'temp-d8948d20-f63f-4031-b946-b270622513aa',
+      );
+    });
+
+    it('should not include temp transactions in transactionsToToggle after ID replacement', () => {
+      // After the fix: the temp ID is replaced with the real ID before cascade,
+      // so transactionsToToggle only contains real IDs
+      const budgetLines = [createBudgetLine({ id: 'line-1', checkedAt: null })];
+      const transactions = [
+        createTransaction({
+          id: 'real-uuid-1',
+          budgetLineId: 'line-1',
+          checkedAt: null,
+        }),
+        createTransaction({
+          id: 'real-uuid-2',
+          budgetLineId: 'line-1',
+          checkedAt: null,
+        }),
+      ];
+
+      const result = calculateBudgetLineToggle('line-1', {
+        budgetLines,
+        transactions,
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.transactionsToToggle).toHaveLength(2);
+      expect(
+        result!.transactionsToToggle.every((tx) => !tx.id.startsWith('temp-')),
+      ).toBe(true);
+    });
+  });
+
   describe('Immutability', () => {
     it('should not mutate original budget lines array', () => {
       // Arrange

@@ -516,14 +516,8 @@ export class BudgetDetailsStore {
         }),
       );
 
-      // Uncheck parent budget line on backend if it was checked
-      if (shouldUncheckParent && parentBudgetLine) {
-        await this.#enqueueMutation(() =>
-          this.#budgetLineApi.toggleCheck$(parentBudgetLine.id),
-        );
-      }
-
-      // Replace temporary transaction with server response
+      // Replace temporary transaction with server response BEFORE toggling parent
+      // to avoid cascade toggle-check calls using the temp ID (which doesn't exist on backend)
       this.#budgetDetailsResource.update((details) => {
         if (!details) return details;
 
@@ -534,6 +528,13 @@ export class BudgetDetailsStore {
           ),
         };
       });
+
+      // Uncheck parent budget line on backend if it was checked
+      if (shouldUncheckParent && parentBudgetLine) {
+        await this.#enqueueMutation(() =>
+          this.#budgetLineApi.toggleCheck$(parentBudgetLine.id),
+        );
+      }
 
       this.#clearError();
     } catch (error) {
