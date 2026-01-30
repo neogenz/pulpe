@@ -25,6 +25,9 @@
 - **[VERSIONING.md](./VERSIONING.md)** - Versioning produit unifié (SemVer, tags, releases)
 - **[IOS_VERSIONING.md](./IOS_VERSIONING.md)** - Versioning iOS selon standards Apple
 
+### 🔒 Sécurité
+- **[ENCRYPTION.md](./ENCRYPTION.md)** - Chiffrement AES-256-GCM des montants financiers (split-key)
+
 ### 📖 Référence (Consultation)
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Vue d'ensemble système (focus développeur)
 - **[INFRASTRUCTURE_REFERENCE.md](./INFRASTRUCTURE_REFERENCE.md)** - Détails techniques infrastructure
