@@ -9,28 +9,28 @@ struct OnboardingNavigationButtons: View {
     let onBack: () -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: DesignTokens.Spacing.md) {
             // Primary button with gradient
             Button(action: onNext) {
-                HStack(spacing: 8) {
+                HStack(spacing: DesignTokens.Spacing.sm) {
                     if isLoading {
                         ProgressView()
-                            .tint(.white)
+                            .tint(Color.textOnPrimary)
                     } else {
                         Text(buttonTitle)
                             .font(PulpeTypography.buttonPrimary)
 
                         if step != .registration {
                             Image(systemName: "arrow.right")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(PulpeTypography.inputLabel)
                         }
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 54)
+                .frame(height: DesignTokens.FrameHeight.button)
                 .background(buttonBackground)
-                .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .foregroundStyle(Color.textOnPrimary)
+                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
                 .shadow(
                     color: canProceed ? Color.pulpePrimary.opacity(0.3) : .clear,
                     radius: 8,
@@ -43,19 +43,19 @@ struct OnboardingNavigationButtons: View {
             // Back button
             if step != .welcome {
                 Button(action: onBack) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: DesignTokens.Spacing.xs) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(PulpeTypography.inputHelper)
                         Text("Retour")
                             .font(PulpeTypography.buttonSecondary)
                     }
                     .foregroundStyle(Color.textSecondaryOnboarding)
                 }
-                .padding(.top, 4)
+                .padding(.top, DesignTokens.Spacing.xs)
             }
         }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 32)
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
+        .padding(.bottom, DesignTokens.Spacing.xxxl)
     }
 
     private var buttonTitle: String {

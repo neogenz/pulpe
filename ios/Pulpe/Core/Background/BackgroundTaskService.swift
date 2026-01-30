@@ -1,4 +1,5 @@
 import BackgroundTasks
+import OSLog
 import WidgetKit
 
 actor BackgroundTaskService {
@@ -26,9 +27,7 @@ actor BackgroundTaskService {
         do {
             try BGTaskScheduler.shared.submit(request)
         } catch {
-            #if DEBUG
-            print("BackgroundTaskService: Failed to schedule widget refresh - \(error)")
-            #endif
+            Logger.sync.error("BackgroundTaskService: Failed to schedule widget refresh - \(error)")
         }
     }
 
@@ -64,9 +63,7 @@ actor BackgroundTaskService {
                 currentBudgetDetails: details
             )
         } catch {
-            #if DEBUG
-            print("BackgroundTaskService: exportAllBudgets failed - \(error)")
-            #endif
+            Logger.sync.error("BackgroundTaskService: exportAllBudgets failed - \(error)")
             await WidgetDataSyncService.shared.sync(
                 budgetsWithDetails: [],
                 currentBudgetDetails: details

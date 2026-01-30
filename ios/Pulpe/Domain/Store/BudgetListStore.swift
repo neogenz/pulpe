@@ -1,10 +1,11 @@
 import Foundation
+import OSLog
 
 @Observable @MainActor
 final class BudgetListStore: StoreProtocol {
     // MARK: - State
 
-    private(set) var budgets: [Budget] = []
+    private(set) var budgets: [BudgetSparse] = []
     private(set) var isLoading = false
     private(set) var error: Error?
 
@@ -45,7 +46,7 @@ final class BudgetListStore: StoreProtocol {
         error = nil
 
         do {
-            budgets = try await budgetService.getAllBudgets()
+            budgets = try await budgetService.getBudgetsSparse(fields: "month,year,remaining")
             lastLoadTime = Date()
 
             // Sync widget data after refresh
@@ -75,9 +76,7 @@ final class BudgetListStore: StoreProtocol {
                 )
             }
         } catch {
-            #if DEBUG
-            print("BudgetListStore: syncWidgetData failed - \(error)")
-            #endif
+            Logger.sync.error("BudgetListStore: syncWidgetData failed - \(error)")
             await widgetSyncService.sync(
                 budgetsWithDetails: [],
                 currentBudgetDetails: nil
@@ -89,26 +88,42 @@ final class BudgetListStore: StoreProtocol {
 
     struct YearGroup {
         let year: Int
-        let budgets: [Budget]
+        let budgets: [BudgetSparse]
     }
 
     var groupedByYear: [YearGroup] {
-        let grouped = Dictionary(grouping: budgets) { $0.year }
+        let grouped = Dictionary(grouping: budgets) { $0.year ?? 0 }
         return grouped
             .sorted { $0.key < $1.key } // Oldest first, newest last
             .map { year, budgets in
-                YearGroup(year: year, budgets: budgets.sorted { $0.month < $1.month })
+                YearGroup(year: year, budgets: budgets.sorted { ($0.month ?? 0) < ($1.month ?? 0) })
             }
     }
 
     var nextAvailableMonth: (month: Int, year: Int)? {
-        budgetService.getNextAvailableMonth(existingBudgets: budgets)
+        let calendar = Calendar.current
+        let now = Date()
+        let maxYearsAhead = AppConfiguration.maxBudgetYearsAhead
+
+        for monthOffset in 0..<(maxYearsAhead * 12) {
+            guard let date = calendar.date(byAdding: .month, value: monthOffset, to: now) else {
+                continue
+            }
+            let month = calendar.component(.month, from: date)
+            let year = calendar.component(.year, from: date)
+
+            let exists = budgets.contains { $0.month == month && $0.year == year }
+            if !exists {
+                return (month, year)
+            }
+        }
+        return nil
     }
 
     // MARK: - Mutations
 
-    func addBudget(_ budget: Budget) async {
-        budgets.append(budget)
-        await syncWidgetData()
+    func addBudget(_ budget: Budget) {
+        budgets.append(BudgetSparse(from: budget))
+        lastLoadTime = nil
     }
 }

@@ -1,6 +1,6 @@
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { handleServiceError } from '@common/utils/error-handler';
@@ -19,6 +19,8 @@ import {
   type Budget,
   type Transaction,
   type BudgetLine,
+  type ListBudgetsQuery,
+  type BudgetSparseListResponse,
   PAY_DAY_MIN,
   PAY_DAY_MAX,
 } from 'pulpe-shared';
@@ -105,8 +107,13 @@ export class BudgetService {
   async findAll(
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetListResponse> {
+    query?: ListBudgetsQuery,
+  ): Promise<BudgetListResponse | BudgetSparseListResponse> {
     try {
+      if (query?.fields) {
+        return this.findAllSparse(user, supabase, query);
+      }
+
       const { data: budgets, error } = await supabase
         .from('monthly_budget')
         .select('*')
@@ -142,7 +149,7 @@ export class BudgetService {
         data: apiData,
       } as BudgetListResponse;
     } catch (error) {
-      handleServiceError(
+      throw handleServiceError(
         error,
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
@@ -153,6 +160,141 @@ export class BudgetService {
         },
       );
     }
+  }
+
+  private async findAllSparse(
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+    query: ListBudgetsQuery,
+  ): Promise<BudgetSparseListResponse> {
+    const requestedFields = query.fields!.split(',').map((f) => f.trim());
+    const allowedFields = [
+      'month',
+      'year',
+      'rollover',
+      'totalExpenses',
+      'totalSavings',
+      'totalIncome',
+      'remaining',
+    ];
+    const invalidFields = requestedFields.filter(
+      (f) => !allowedFields.includes(f),
+    );
+    if (invalidFields.length > 0) {
+      throw new BadRequestException(
+        `Unknown sparse fields: ${invalidFields.join(', ')}`,
+      );
+    }
+    const needsAggregates = this.fieldsRequireAggregates(requestedFields);
+    const needsRollover = this.fieldsRequireRollover(requestedFields);
+
+    const budgetsList = await this.fetchBudgetsWithFilters(
+      user,
+      supabase,
+      query,
+    );
+    const budgetIds = budgetsList.map((b) => b.id);
+
+    const aggregatesMap = needsAggregates
+      ? await this.repository.fetchBudgetAggregates(budgetIds, supabase)
+      : new Map();
+
+    const rolloversMap = needsRollover
+      ? await this.fetchRolloversForBudgets(budgetsList, supabase)
+      : new Map<string, number>();
+
+    const sparseData = budgetsList.map((budget) =>
+      budgetMappers.toSparseApi(
+        budget,
+        requestedFields,
+        aggregatesMap.get(budget.id),
+        rolloversMap.get(budget.id),
+      ),
+    );
+
+    return { success: true as const, data: sparseData };
+  }
+
+  private fieldsRequireAggregates(fields: string[]): boolean {
+    const aggregateFields = [
+      'totalExpenses',
+      'totalSavings',
+      'totalIncome',
+      'remaining',
+    ];
+    return fields.some((f) => aggregateFields.includes(f));
+  }
+
+  private fieldsRequireRollover(fields: string[]): boolean {
+    return fields.includes('rollover') || fields.includes('remaining');
+  }
+
+  private async fetchBudgetsWithFilters(
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+    query: ListBudgetsQuery,
+  ): Promise<Tables<'monthly_budget'>[]> {
+    let budgetsQuery = supabase
+      .from('monthly_budget')
+      .select('*')
+      .order('year', { ascending: false })
+      .order('month', { ascending: false });
+
+    if (query.limit) budgetsQuery = budgetsQuery.limit(query.limit);
+    if (query.year) budgetsQuery = budgetsQuery.eq('year', query.year);
+
+    const { data: budgets, error } = await budgetsQuery;
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'listBudgetsSparse',
+          userId: user.id,
+          entityType: 'budget',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return budgets || [];
+  }
+
+  private async fetchRolloversForBudgets(
+    budgets: Tables<'monthly_budget'>[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Map<string, number>> {
+    const payDayOfMonth = await this.getPayDayOfMonth(supabase);
+    const rolloversMap = new Map<string, number>();
+
+    await Promise.all(
+      budgets.map(async (budget) => {
+        try {
+          const rolloverData = await this.calculator.getRollover(
+            budget.id,
+            payDayOfMonth,
+            supabase,
+          );
+          rolloversMap.set(budget.id, rolloverData.rollover);
+        } catch (error) {
+          this.logger.warn(
+            {
+              budgetId: budget.id,
+              month: budget.month,
+              year: budget.year,
+              err: error,
+              operation: 'fetchRolloversForBudgets',
+            },
+            'Failed to fetch rollover for budget, using fallback of 0',
+          );
+          rolloversMap.set(budget.id, 0);
+        }
+      }),
+    );
+
+    return rolloversMap;
   }
 
   async exportAll(
@@ -173,7 +315,7 @@ export class BudgetService {
 
       return this.buildExportResponse(budgetsWithDetails);
     } catch (error) {
-      handleServiceError(
+      throw handleServiceError(
         error,
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
@@ -322,7 +464,7 @@ export class BudgetService {
         data: apiData,
       };
     } catch (error) {
-      handleServiceError(
+      throw handleServiceError(
         error,
         ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
         undefined,
@@ -353,7 +495,7 @@ export class BudgetService {
         data: apiData,
       };
     } catch (error) {
-      handleServiceError(
+      throw handleServiceError(
         error,
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
@@ -394,7 +536,7 @@ export class BudgetService {
         data: responseData,
       } as BudgetDetailsResponse;
     } catch (error) {
-      handleServiceError(
+      throw handleServiceError(
         error,
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
@@ -511,7 +653,7 @@ export class BudgetService {
         data: apiData,
       };
     } catch (error) {
-      handleServiceError(
+      throw handleServiceError(
         error,
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
@@ -574,7 +716,7 @@ export class BudgetService {
         message: 'Budget deleted successfully',
       };
     } catch (error) {
-      handleServiceError(
+      throw handleServiceError(
         error,
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,

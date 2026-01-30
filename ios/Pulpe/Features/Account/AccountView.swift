@@ -12,7 +12,9 @@ struct AccountView: View {
                     LabeledContent("E-mail", value: appState.currentUser?.email ?? "Non connecté(e)")
                 } header: {
                     Text("INFORMATIONS PERSONNELLES")
+                        .font(PulpeTypography.labelLarge)
                 }
+                .listRowBackground(Color.surfaceCard)
 
                 if BiometricService.shared.canUseBiometrics() {
                     Section {
@@ -32,7 +34,9 @@ struct AccountView: View {
                         }
                     } header: {
                         Text("SÉCURITÉ")
+                            .font(PulpeTypography.labelLarge)
                     }
+                    .listRowBackground(Color.surfaceCard)
                 }
 
                 Section {
@@ -40,7 +44,9 @@ struct AccountView: View {
                     LabeledContent("Build", value: AppConfiguration.buildNumber)
                 } header: {
                     Text("APPLICATION")
+                        .font(PulpeTypography.labelLarge)
                 }
+                .listRowBackground(Color.surfaceCard)
 
                 Section {
                     Button("Déconnexion", role: .destructive) {
@@ -48,11 +54,14 @@ struct AccountView: View {
                         dismiss()
                     }
                 }
+                .listRowBackground(Color.surfaceCard)
             }
             .onAppear {
                 biometricToggle = appState.biometricEnabled
             }
             .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Color.surfacePrimary)
             .navigationTitle("Compte")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

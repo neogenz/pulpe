@@ -40,10 +40,8 @@ struct BudgetListView: View {
                     month: nextMonth.month,
                     year: nextMonth.year
                 ) { budget in
-                    Task {
-                        await store.addBudget(budget)
-                        appState.budgetPath.append(BudgetDestination.details(budgetId: budget.id))
-                    }
+                    store.addBudget(budget)
+                    appState.budgetPath.append(BudgetDestination.details(budgetId: budget.id))
                 }
             }
         }
@@ -110,6 +108,7 @@ struct BudgetListView: View {
             .padding(.bottom, 32)
         }
         .scrollIndicators(.hidden)
+        .pulpeBackground()
     }
 }
 
@@ -117,11 +116,11 @@ struct BudgetListView: View {
 
 struct YearSection: View {
     let year: Int
-    let budgets: [Budget]
+    let budgets: [BudgetSparse]
     let isExpanded: Bool
     var appearDelay: Double = 0
     let onToggle: () -> Void
-    let onSelect: (Budget) -> Void
+    let onSelect: (BudgetSparse) -> Void
 
     @State private var cardsAppeared = false
 
@@ -242,18 +241,20 @@ struct YearSection: View {
 // MARK: - Budget Month Card
 
 struct BudgetMonthCard: View {
-    let budget: Budget
+    let budget: BudgetSparse
     let onTap: () -> Void
 
     @State private var isPressed = false
 
     private var monthName: String {
-        Formatters.shortMonth.shortMonthSymbols[budget.month - 1].capitalized
+        guard let month = budget.month, month >= 1, month <= 12 else { return "—" }
+        return Formatters.shortMonth.shortMonthSymbols[month - 1].capitalized
     }
 
     /// Check if this budget month is in the past
     private var isPastMonth: Bool {
-        Date.isPast(month: budget.month, year: budget.year)
+        guard let month = budget.month, let year = budget.year else { return false }
+        return Date.isPast(month: month, year: year)
     }
 
     private var remainingStatus: RemainingStatus {
@@ -277,7 +278,7 @@ struct BudgetMonthCard: View {
                 // Month name
                 Text(monthName)
                     .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                    .foregroundColor(budget.isCurrentMonth ? .pulpePrimary : .primary)
+                    .foregroundStyle(budget.isCurrentMonth ? Color.pulpePrimary : Color.primary)
 
                 // Remaining amount
                 if let remaining = budget.remaining {
@@ -290,7 +291,7 @@ struct BudgetMonthCard: View {
             .padding(.vertical, 14)
             .padding(.horizontal, 8)
             .background(cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
             .overlay(cardOverlay)
             .shadow(budget.isCurrentMonth ? DesignTokens.Shadow.card : DesignTokens.Shadow.subtle)
             .scaleEffect(isPressed ? 0.96 : 1)
@@ -320,7 +321,7 @@ struct BudgetMonthCard: View {
                 endPoint: .bottomTrailing
             )
         } else {
-            Color(.secondarySystemGroupedBackground)
+            Color.surfaceCard
         }
     }
 
@@ -347,7 +348,7 @@ struct BudgetMonthCard: View {
         var color: Color {
             switch self {
             case .positive: return .financialSavings
-            case .negative: return .red
+            case .negative: return .financialOverBudget
             case .neutral: return .secondary
             }
         }
@@ -385,8 +386,8 @@ struct EmptyMonthCard: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
         .padding(.horizontal, 8)
-        .background(Color(.tertiarySystemGroupedBackground).opacity(isPast ? 0.5 : 0.8))
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+        .background(Color.surfaceCard.opacity(isPast ? 0.5 : 0.8))
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
         .overlay(
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
                 .strokeBorder(

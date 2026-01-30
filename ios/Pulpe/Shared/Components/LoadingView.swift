@@ -9,7 +9,7 @@ struct LoadingView: View {
     }
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: DesignTokens.Spacing.lg) {
             ProgressView()
                 .scaleEffect(1.2)
 
@@ -20,7 +20,7 @@ struct LoadingView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.background)
+        .background(Color.surfacePrimary)
     }
 }
 
@@ -45,22 +45,22 @@ struct LoadingOverlay: View {
     var body: some View {
         if isLoading {
             ZStack {
-                Color.black.opacity(0.3)
+                Color.black.opacity(0.12)
                     .ignoresSafeArea()
 
-                VStack(spacing: 16) {
+                VStack(spacing: DesignTokens.Spacing.lg) {
                     ProgressView()
                         .scaleEffect(1.2)
-                        .tint(.white)
+                        .tint(.primary)
 
                     if let message {
                         Text(message)
                             .font(.subheadline)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.primary)
                     }
                 }
-                .padding(24)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                .padding(DesignTokens.Spacing.xxl)
+                .pulpeFloatingGlass(cornerRadius: DesignTokens.CornerRadius.lg)
             }
         }
     }

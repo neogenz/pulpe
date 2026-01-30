@@ -1,3 +1,4 @@
+import OSLog
 import SwiftUI
 import TipKit
 import WidgetKit
@@ -12,6 +13,7 @@ struct PulpeApp: App {
     @State private var appState = AppState()
     @State private var currentMonthStore = CurrentMonthStore()
     @State private var budgetListStore = BudgetListStore()
+    @State private var dashboardStore = DashboardStore()
     @State private var deepLinkDestination: DeepLinkDestination?
 
     init() {
@@ -27,6 +29,7 @@ struct PulpeApp: App {
                 .environment(appState)
                 .environment(currentMonthStore)
                 .environment(budgetListStore)
+                .environment(dashboardStore)
                 .onOpenURL { url in
                     handleDeepLink(url)
                 }
@@ -41,13 +44,20 @@ struct PulpeApp: App {
         switch url.host {
         case "add-expense":
             let budgetId = components?.queryItems?.first { $0.name == "budgetId" }?.value
+            if let budgetId, UUID(uuidString: budgetId) == nil {
+                Logger.app.warning("Deep link: invalid UUID for add-expense budgetId=\(budgetId)")
+                break
+            }
             deepLinkDestination = .addExpense(budgetId: budgetId)
         case "budget":
-            if let budgetId = components?.queryItems?.first(where: { $0.name == "id" })?.value {
+            if let budgetId = components?.queryItems?.first(where: { $0.name == "id" })?.value,
+               UUID(uuidString: budgetId) != nil {
                 deepLinkDestination = .viewBudget(budgetId: budgetId)
+            } else {
+                Logger.app.warning("Deep link: invalid or missing UUID for budget path")
             }
         default:
-            break
+            Logger.app.warning("Deep link: unrecognized host=\(url.host ?? "nil")")
         }
     }
 }
@@ -56,6 +66,7 @@ struct RootView: View {
     @Environment(AppState.self) private var appState
     @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(BudgetListStore.self) private var budgetListStore
+    @Environment(DashboardStore.self) private var dashboardStore
     @Environment(\.scenePhase) private var scenePhase
     @Binding var deepLinkDestination: DeepLinkDestination?
     @State private var showAddExpenseSheet = false
@@ -65,7 +76,14 @@ struct RootView: View {
         @Bindable var appState = appState
 
         Group {
-            if appState.isInMaintenance {
+            if appState.isNetworkUnavailable {
+                NetworkUnavailableView {
+                    await appState.retryNetworkCheck()
+                    if appState.authState == .authenticated {
+                        await currentMonthStore.loadBudgetSummary()
+                    }
+                }
+            } else if appState.isInMaintenance {
                 MaintenanceView()
             } else {
                 switch appState.authState {
@@ -86,18 +104,18 @@ struct RootView: View {
         }
         .toastOverlay(appState.toastManager)
         .environment(appState.toastManager)
-        .animation(.easeInOut(duration: 0.3), value: appState.authState)
-        .animation(.easeInOut(duration: 0.3), value: appState.isInMaintenance)
+        .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: appState.authState)
+        .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: appState.isInMaintenance)
+        .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: appState.isNetworkUnavailable)
         .onReceive(NotificationCenter.default.publisher(for: .maintenanceModeDetected)) { _ in
             appState.setMaintenanceMode(true)
         }
         .task {
             await appState.checkMaintenanceStatus()
-            if !appState.isInMaintenance {
-                await appState.checkAuthState()
-                if appState.authState == .authenticated {
-                    await currentMonthStore.loadBudgetSummary()
-                }
+            guard !appState.isInMaintenance, !appState.isNetworkUnavailable else { return }
+            await appState.checkAuthState()
+            if appState.authState == .authenticated {
+                await currentMonthStore.loadBudgetSummary()
             }
         }
         .onChange(of: appState.isInMaintenance) { oldValue, newValue in
@@ -118,7 +136,8 @@ struct RootView: View {
                 Task {
                     async let refreshCurrent: Void = currentMonthStore.forceRefresh()
                     async let refreshBudgets: Void = budgetListStore.forceRefresh()
-                    _ = await (refreshCurrent, refreshBudgets)
+                    async let refreshDashboard: Void = dashboardStore.loadIfNeeded()
+                    _ = await (refreshCurrent, refreshBudgets, refreshDashboard)
                 }
             }
         }
@@ -179,9 +198,7 @@ final class WidgetSyncViewModel {
                 currentBudgetDetails: details
             )
         } catch {
-            #if DEBUG
-            print("WidgetSyncViewModel: exportAllBudgets failed - \(error)")
-            #endif
+            Logger.sync.error("WidgetSyncViewModel: exportAllBudgets failed - \(error)")
             await WidgetDataSyncService.shared.sync(
                 budgetsWithDetails: [],
                 currentBudgetDetails: details

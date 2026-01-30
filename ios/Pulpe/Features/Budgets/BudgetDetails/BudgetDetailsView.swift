@@ -8,12 +8,15 @@ struct MonthNavigationBar: View {
     let hasNext: Bool
     let onPrevious: () -> Void
     let onNext: () -> Void
+    let onTapMonth: () -> Void
+
+    @State private var navigateTrigger = false
 
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: DesignTokens.Spacing.lg) {
             Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 onPrevious()
+                navigateTrigger.toggle()
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.body.weight(.semibold))
@@ -21,13 +24,17 @@ struct MonthNavigationBar: View {
             }
             .disabled(!hasPrevious)
 
-            Text(monthYear)
-                .font(.headline)
-                .lineLimit(1)
+            Button(action: onTapMonth) {
+                Text(monthYear)
+                    .font(.headline)
+                    .lineLimit(1)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Sélectionner un mois")
 
             Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 onNext()
+                navigateTrigger.toggle()
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.body.weight(.semibold))
@@ -35,7 +42,8 @@ struct MonthNavigationBar: View {
             }
             .disabled(!hasNext)
         }
-        .padding(.horizontal, 16)
+        .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.5), trigger: navigateTrigger)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, 10)
         .modifier(GlassBackgroundModifier())
     }
@@ -66,8 +74,10 @@ struct BudgetDetailsView: View {
     @State private var linkedTransactionsContext: LinkedTransactionsContext?
     @State private var selectedBudgetLineForEdit: BudgetLine?
     @State private var selectedTransactionForEdit: Transaction?
+    @State private var showMonthPicker = false
     @State private var searchText = ""
-    @State private var slideFromEdge: Edge = .trailing
+    @State private var contentOffset: CGFloat = 0
+    @State private var contentOpacity: Double = 1
 
     init(budgetId: String) {
         self.budgetId = budgetId
@@ -84,8 +94,8 @@ struct BudgetDetailsView: View {
                 }
             } else if viewModel.budget != nil {
                 content
-                    .id(viewModel.budgetId)
-                    .transition(.push(from: slideFromEdge))
+                    .offset(x: contentOffset)
+                    .opacity(contentOpacity)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -96,7 +106,8 @@ struct BudgetDetailsView: View {
                     hasPrevious: viewModel.hasPreviousBudget,
                     hasNext: viewModel.hasNextBudget,
                     onPrevious: navigateToPreviousMonth,
-                    onNext: navigateToNextMonth
+                    onNext: navigateToNextMonth,
+                    onTapMonth: { showMonthPicker = true }
                 )
             }
             ToolbarItem(placement: .primaryAction) {
@@ -108,8 +119,12 @@ struct BudgetDetailsView: View {
                 .accessibilityLabel("Ajouter une prévision")
             }
         }
-        .task {
-            await viewModel.loadDetails()
+        .task(id: viewModel.budgetId) {
+            if viewModel.allBudgets.isEmpty {
+                await viewModel.loadDetails()
+            } else {
+                await viewModel.reloadCurrentBudget()
+            }
         }
         .sheet(item: $selectedLineForTransaction) { line in
             AddAllocatedTransactionSheet(budgetLine: line) { transaction in
@@ -147,29 +162,64 @@ struct BudgetDetailsView: View {
                 Task { await viewModel.updateTransaction(updatedTransaction) }
             }
         }
+        .sheet(isPresented: $showMonthPicker) {
+            MonthPickerSheet(
+                budgets: viewModel.allBudgets,
+                currentBudgetId: viewModel.budgetId,
+                onSelect: { id in
+                    navigateToMonth(id, forward: isForward(id))
+                }
+            )
+        }
     }
 
     // MARK: - Navigation
 
     private func navigateToPreviousMonth() {
         guard let previousId = viewModel.previousBudgetId else { return }
-        slideFromEdge = .leading
-        withAnimation(.easeInOut(duration: 0.25)) {
-            viewModel.prepareNavigation(to: previousId)
-        }
-        Task {
-            await viewModel.reloadCurrentBudget()
-        }
+        navigateToMonth(previousId, forward: false)
     }
 
     private func navigateToNextMonth() {
         guard let nextId = viewModel.nextBudgetId else { return }
-        slideFromEdge = .trailing
-        withAnimation(.easeInOut(duration: 0.25)) {
-            viewModel.prepareNavigation(to: nextId)
+        navigateToMonth(nextId, forward: true)
+    }
+
+    private func isForward(_ targetId: String) -> Bool {
+        let sorted = viewModel.allBudgets.sorted { lhs, rhs in
+            let lhsYear = lhs.year ?? 0
+            let rhsYear = rhs.year ?? 0
+            if lhsYear != rhsYear { return lhsYear < rhsYear }
+            return (lhs.month ?? 0) < (rhs.month ?? 0)
         }
-        Task {
-            await viewModel.reloadCurrentBudget()
+        guard let currentIndex = sorted.firstIndex(where: { $0.id == viewModel.budgetId }),
+              let targetIndex = sorted.firstIndex(where: { $0.id == targetId }) else {
+            return true
+        }
+        return targetIndex > currentIndex
+    }
+
+    private func navigateToMonth(_ id: String, forward: Bool) {
+        let slideOutX: CGFloat = forward ? -40 : 40
+        let slideInX: CGFloat = forward ? 40 : -40
+
+        Task { @MainActor in
+            // Phase 1: Slide out current content
+            withAnimation(.easeIn(duration: 0.12)) {
+                contentOffset = slideOutX
+                contentOpacity = 0
+            }
+            try? await Task.sleep(for: .milliseconds(120))
+
+            // Phase 2: Swap data while hidden
+            viewModel.prepareNavigation(to: id)
+            contentOffset = slideInX
+
+            // Phase 3: Slide in new content
+            withAnimation(.easeOut(duration: 0.2)) {
+                contentOffset = 0
+                contentOpacity = 1
+            }
         }
     }
 
@@ -190,16 +240,17 @@ struct BudgetDetailsView: View {
                 CheckedFilterPicker(selection: $viewModel.checkedFilter)
             }
             .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-            // Hero balance card (Revolut-style)
+            .listRowSeparator(.hidden)
+            .listSectionSeparator(.hidden)
+
+            // Hero balance card - applyGlass: false car le List fournit son propre styling
             Section {
                 HeroBalanceCard(
                     metrics: viewModel.metrics,
+                    applyGlass: false,
                     onTapProgress: {}
                 )
             }
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
 
             // Rollover section (toujours en premier)
             if let rolloverInfo = viewModel.rolloverInfo {
@@ -209,92 +260,41 @@ struct BudgetDetailsView: View {
                         { appState.budgetPath.append(BudgetDestination.details(budgetId: id)) }
                     }
                 )
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
 
-            // Income section
-            if !filteredIncome.isEmpty {
-                BudgetSection(
-                    title: "Revenus",
-                    items: filteredIncome,
-                    transactions: viewModel.transactions,
-                    syncingIds: viewModel.syncingBudgetLineIds,
-                    onToggle: { line in
-                        Task { await viewModel.toggleBudgetLine(line) }
-                    },
-                    onDelete: { line in
-                        Task { await viewModel.deleteBudgetLine(line) }
-                    },
-                    onAddTransaction: { line in
-                        selectedLineForTransaction = line
-                    },
-                    onLongPress: { line, transactions in
-                        linkedTransactionsContext = LinkedTransactionsContext(
-                            budgetLine: line,
-                            transactions: transactions
-                        )
-                    },
-                    onEdit: { line in
-                        selectedBudgetLineForEdit = line
-                    }
-                )
-            }
-
-            // Expense section
-            if !filteredExpenses.isEmpty {
-                BudgetSection(
-                    title: "Dépenses",
-                    items: filteredExpenses,
-                    transactions: viewModel.transactions,
-                    syncingIds: viewModel.syncingBudgetLineIds,
-                    onToggle: { line in
-                        Task { await viewModel.toggleBudgetLine(line) }
-                    },
-                    onDelete: { line in
-                        Task { await viewModel.deleteBudgetLine(line) }
-                    },
-                    onAddTransaction: { line in
-                        selectedLineForTransaction = line
-                    },
-                    onLongPress: { line, transactions in
-                        linkedTransactionsContext = LinkedTransactionsContext(
-                            budgetLine: line,
-                            transactions: transactions
-                        )
-                    },
-                    onEdit: { line in
-                        selectedBudgetLineForEdit = line
-                    }
-                )
-            }
-
-            // Saving section
-            if !filteredSavings.isEmpty {
-                BudgetSection(
-                    title: "Épargne",
-                    items: filteredSavings,
-                    transactions: viewModel.transactions,
-                    syncingIds: viewModel.syncingBudgetLineIds,
-                    onToggle: { line in
-                        Task { await viewModel.toggleBudgetLine(line) }
-                    },
-                    onDelete: { line in
-                        Task { await viewModel.deleteBudgetLine(line) }
-                    },
-                    onAddTransaction: { line in
-                        selectedLineForTransaction = line
-                    },
-                    onLongPress: { line, transactions in
-                        linkedTransactionsContext = LinkedTransactionsContext(
-                            budgetLine: line,
-                            transactions: transactions
-                        )
-                    },
-                    onEdit: { line in
-                        selectedBudgetLineForEdit = line
-                    }
-                )
+            // Budget line sections (income, expenses, savings)
+            ForEach(
+                [("Revenus", filteredIncome), ("Dépenses", filteredExpenses), ("Épargne", filteredSavings)],
+                id: \.0
+            ) { title, items in
+                if !items.isEmpty {
+                    BudgetSection(
+                        title: title,
+                        items: items,
+                        transactions: viewModel.transactions,
+                        syncingIds: viewModel.syncingBudgetLineIds,
+                        onToggle: { line in
+                            Task { await viewModel.toggleBudgetLine(line) }
+                        },
+                        onDelete: { line in
+                            Task { await viewModel.deleteBudgetLine(line) }
+                        },
+                        onAddTransaction: { line in
+                            selectedLineForTransaction = line
+                        },
+                        onLongPress: { line, transactions in
+                            linkedTransactionsContext = LinkedTransactionsContext(
+                                budgetLine: line,
+                                transactions: transactions
+                            )
+                        },
+                        onEdit: { line in
+                            selectedBudgetLineForEdit = line
+                        }
+                    )
+                }
             }
 
             // Free transactions
@@ -316,10 +316,9 @@ struct BudgetDetailsView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .listSectionSpacing(16)
+        .listSectionSpacing(DesignTokens.Spacing.lg)
         .scrollContentBackground(.hidden)
-        .background(Color(.systemGroupedBackground))
-        .applyScrollEdgeEffect()
+        .pulpeBackground()
         .refreshable {
             await viewModel.loadDetails()
         }
@@ -350,7 +349,7 @@ final class BudgetDetailsViewModel {
     private(set) var syncingTransactionIds: Set<String> = []
 
     // Navigation between months
-    private(set) var allBudgets: [Budget] = []
+    private(set) var allBudgets: [BudgetSparse] = []
     private(set) var previousBudgetId: String?
     private(set) var nextBudgetId: String?
 
@@ -380,7 +379,8 @@ final class BudgetDetailsViewModel {
     var hasPreviousBudget: Bool { previousBudgetId != nil }
     var hasNextBudget: Bool { nextBudgetId != nil }
 
-    /// Prepare navigation by changing the budgetId (synchronous, can be animated)
+    /// Prepare navigation by changing the budgetId (synchronous)
+    /// Old data stays as placeholder until new data arrives via reloadCurrentBudget()
     func prepareNavigation(to id: String) {
         budgetId = id
     }
@@ -476,14 +476,13 @@ final class BudgetDetailsViewModel {
 
     /// Full load: fetches budget details AND all budgets list (for month navigation)
     /// Use for: initial load, pull-to-refresh
-    @MainActor
     func loadDetails() async {
         isLoading = true
         error = nil
 
         do {
             async let detailsTask = budgetService.getBudgetWithDetails(id: budgetId)
-            async let budgetsTask = budgetService.getAllBudgets()
+            async let budgetsTask = budgetService.getBudgetsSparse(fields: "month,year")
 
             let (details, budgets) = try await (detailsTask, budgetsTask)
 
@@ -502,9 +501,10 @@ final class BudgetDetailsViewModel {
 
     /// Light reload: fetches only current budget details (no allBudgets)
     /// Use for: after toggle, update, or month navigation
-    @MainActor
     func reloadCurrentBudget() async {
+        isLoading = budget == nil
         error = nil
+        defer { isLoading = false }
 
         do {
             let details = try await budgetService.getBudgetWithDetails(id: budgetId)
@@ -526,8 +526,10 @@ final class BudgetDetailsViewModel {
 
         // Sort budgets chronologically
         let sorted = allBudgets.sorted { lhs, rhs in
-            if lhs.year != rhs.year { return lhs.year < rhs.year }
-            return lhs.month < rhs.month
+            let lhsYear = lhs.year ?? 0
+            let rhsYear = rhs.year ?? 0
+            if lhsYear != rhsYear { return lhsYear < rhsYear }
+            return (lhs.month ?? 0) < (rhs.month ?? 0)
         }
 
         guard let currentIndex = sorted.firstIndex(where: { $0.id == currentBudget.id }) else {
@@ -661,10 +663,10 @@ private struct RolloverInfoRow: View {
     }
 
     private var content: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "arrow.uturn.backward.circle.fill")
                 .font(.title2)
-                .foregroundStyle(isPositive ? .green : .red)
+                .foregroundStyle(isPositive ? Color.financialSavings : Color.financialOverBudget)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Report du mois précédent")
@@ -681,12 +683,12 @@ private struct RolloverInfoRow: View {
             Text(amount.asCHF)
                 .font(.headline)
                 .fontWeight(.semibold)
-                .foregroundStyle(isPositive ? .green : .red)
+                .foregroundStyle(isPositive ? Color.financialSavings : Color.financialOverBudget)
         }
         .padding()
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill((isPositive ? Color.green : Color.red).opacity(0.08))
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+                .fill((isPositive ? Color.financialSavings : Color.financialOverBudget).opacity(DesignTokens.Opacity.highlightBackground))
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Report du mois précédent")
@@ -694,6 +696,96 @@ private struct RolloverInfoRow: View {
         .ifLet(onTap) { view, _ in
             view.accessibilityHint("Appuie deux fois pour voir le budget précédent")
         }
+    }
+}
+
+// MARK: - Month Picker Sheet
+
+private struct MonthPickerSheet: View {
+    let budgets: [BudgetSparse]
+    let currentBudgetId: String
+    let onSelect: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectionTrigger = false
+
+    private var budgetsByYear: [(year: Int, budgets: [BudgetSparse])] {
+        let sorted = budgets
+            .filter { $0.month != nil && $0.year != nil }
+            .sorted { lhs, rhs in
+                let lhsYear = lhs.year ?? 0
+                let rhsYear = rhs.year ?? 0
+                if lhsYear != rhsYear { return lhsYear < rhsYear }
+                return (lhs.month ?? 0) < (rhs.month ?? 0)
+            }
+        let grouped = Dictionary(grouping: sorted) { $0.year ?? 0 }
+        return grouped.keys.sorted().map { year in
+            (year: year, budgets: grouped[year] ?? [])
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollViewReader { proxy in
+                List {
+                    ForEach(budgetsByYear, id: \.year) { year, yearBudgets in
+                        Section(String(year)) {
+                            ForEach(yearBudgets) { budget in
+                                monthRow(for: budget)
+                            }
+                        }
+                    }
+                }
+                .onAppear {
+                    proxy.scrollTo(currentBudgetId, anchor: .center)
+                }
+            }
+            .navigationTitle("Choisir un mois")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fermer") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .sensoryFeedback(.selection, trigger: selectionTrigger)
+    }
+
+    private func monthRow(for budget: BudgetSparse) -> some View {
+        let isCurrent = budget.id == currentBudgetId
+        return Button {
+            selectionTrigger.toggle()
+            dismiss()
+            onSelect(budget.id)
+        } label: {
+            HStack {
+                Text(monthYearLabel(for: budget))
+                    .foregroundStyle(.primary)
+                Spacer()
+                if isCurrent {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(Color.pulpePrimary)
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+        .listRowBackground(isCurrent ? Color.pulpePrimary.opacity(0.1) : nil)
+        .accessibilityAddTraits(isCurrent ? .isSelected : [])
+        .id(budget.id)
+    }
+
+    private func monthYearLabel(for budget: BudgetSparse) -> String {
+        guard let month = budget.month, let year = budget.year else { return "—" }
+        var components = DateComponents()
+        components.month = month
+        components.year = year
+        components.day = 1
+        guard let date = Calendar.current.date(from: components) else {
+            return "\(month)/\(year)"
+        }
+        return Formatters.monthYear.string(from: date).capitalized
     }
 }
 

@@ -26,17 +26,17 @@ struct LinkedTransactionsSheet: View {
     }
 
     private var remainingColor: Color {
-        remaining < 0 ? .red : .financialIncome
+        remaining < 0 ? .financialOverBudget : .financialIncome
     }
 
     private var progressColor: Color {
-        consumption.percentage > 100 ? .red : .pulpePrimary
+        consumption.percentage > 100 ? .financialOverBudget : .pulpePrimary
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: DesignTokens.Spacing.xl) {
                     metricsSection
                     progressSection
 
@@ -46,10 +46,10 @@ struct LinkedTransactionsSheet: View {
                         transactionsSection
                     }
                 }
-                .padding(.top, 8)
+                .padding(.top, DesignTokens.Spacing.sm)
                 .padding(.bottom, 100)
             }
-            .background(Color(.systemGroupedBackground))
+            .background(Color.surfacePrimary)
             .safeAreaInset(edge: .bottom) {
                 addTransactionButton
             }
@@ -70,7 +70,7 @@ struct LinkedTransactionsSheet: View {
     // MARK: - Metrics Cards
 
     private var metricsSection: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DesignTokens.Spacing.md) {
             MetricCard(
                 icon: "arrow.up.circle.fill",
                 label: "Dépensé",
@@ -98,7 +98,7 @@ struct LinkedTransactionsSheet: View {
     // MARK: - Progress Section
 
     private var progressSection: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: DesignTokens.Spacing.sm) {
             HStack {
                 Text("Utilisation du budget")
                     .font(.subheadline)
@@ -122,18 +122,18 @@ struct LinkedTransactionsSheet: View {
                         .frame(width: geometry.size.width * CGFloat(min(consumption.percentage / 100, 1)))
                 }
             }
-            .frame(height: 8)
+            .frame(height: DesignTokens.ProgressBar.thickHeight)
         }
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(DesignTokens.Spacing.lg)
+        .background(Color.surfaceCard)
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
         .padding(.horizontal)
     }
 
     // MARK: - Empty State
 
     private var emptyStateView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: DesignTokens.Spacing.lg) {
             Image(systemName: "tray")
                 .font(.system(size: 44, weight: .light))
                 .foregroundStyle(.quaternary)
@@ -157,7 +157,7 @@ struct LinkedTransactionsSheet: View {
     // MARK: - Transactions Section
 
     private var transactionsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             Text("Transactions")
                 .font(.subheadline)
                 .fontWeight(.medium)
@@ -174,8 +174,8 @@ struct LinkedTransactionsSheet: View {
                     )
                 }
             }
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .background(Color.surfaceCard)
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
             .padding(.horizontal)
         }
     }
@@ -189,12 +189,12 @@ struct LinkedTransactionsSheet: View {
             Label("Nouvelle transaction", systemImage: "plus")
                 .font(.headline)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                .padding(.vertical, DesignTokens.Spacing.lg)
         }
         .buttonStyle(.borderedProminent)
         .tint(.pulpePrimary)
         .padding(.horizontal)
-        .padding(.vertical, 12)
+        .padding(.vertical, DesignTokens.Spacing.md)
         .background(.ultraThinMaterial)
     }
 }
@@ -208,7 +208,7 @@ private struct MetricCard: View {
     let color: Color
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: icon)
                 .font(.system(size: 20))
                 .foregroundStyle(color)
@@ -224,9 +224,9 @@ private struct MetricCard: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.vertical, DesignTokens.Spacing.md)
+        .background(Color.surfaceCard)
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
 }
 
@@ -241,7 +241,7 @@ private struct LinkedTransactionRow: View {
     @State private var showDeleteConfirmation = false
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DesignTokens.Spacing.md) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(transaction.name)
                     .font(.body)
@@ -264,17 +264,17 @@ private struct LinkedTransactionRow: View {
             } label: {
                 Image(systemName: "trash")
                     .font(.system(size: 15))
-                    .foregroundStyle(.red.opacity(0.8))
+                    .foregroundStyle(Color.errorPrimary)
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, 14)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Color.surfaceCard)
         .overlay(alignment: .bottom) {
             if !isLast {
                 Divider()
-                    .padding(.leading, 16)
+                    .padding(.leading, DesignTokens.Spacing.lg)
             }
         }
         .alert(

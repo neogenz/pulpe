@@ -1,3 +1,4 @@
+import OSLog
 import SwiftUI
 import WidgetKit
 
@@ -19,9 +20,10 @@ final class AppState {
     private(set) var authState: AuthStatus = .loading
     private(set) var currentUser: UserInfo?
 
-    // MARK: - Maintenance State
+    // MARK: - Maintenance & Network State
 
     private(set) var isInMaintenance = false
+    private(set) var isNetworkUnavailable = false
 
     // MARK: - Navigation
 
@@ -42,6 +44,7 @@ final class AppState {
     }
 
     var showBiometricEnrollment = false
+    var biometricError: String?
 
     // MARK: - Services
 
@@ -61,6 +64,7 @@ final class AppState {
 
     func checkAuthState() async {
         authState = .loading
+        biometricError = nil
 
         #if DEBUG
         // In DEBUG mode, try regular token-based session first (no biometric prompt)
@@ -87,8 +91,15 @@ final class AppState {
                 // No tokens found
                 authState = .unauthenticated
             }
+        } catch is KeychainError {
+            // Face ID cancelled or failed — keep tokens for retry
+            authState = .unauthenticated
         } catch {
-            // Face ID cancelled, lockout, or server error - keep tokens for retry button
+            // Token refresh failed (expired session, network, etc.)
+            Logger.auth.error("checkAuthState: biometric session refresh failed - \(error)")
+            await authService.clearBiometricTokens()
+            biometricEnabled = false
+            biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
             authState = .unauthenticated
         }
     }
@@ -143,6 +154,7 @@ final class AppState {
     }
 
     func retryBiometricLogin() async {
+        biometricError = nil
         await checkAuthState()
     }
 
@@ -153,7 +165,7 @@ final class AppState {
             try await authService.saveBiometricTokens()
             biometricEnabled = true
         } catch {
-            // Silently fail - user can retry from settings
+            Logger.auth.error("enableBiometric: failed to save biometric tokens - \(error)")
         }
     }
 
@@ -170,10 +182,25 @@ final class AppState {
 
     func checkMaintenanceStatus() async {
         do {
+            isNetworkUnavailable = false
             isInMaintenance = try await MaintenanceService.shared.checkStatus()
         } catch {
-            // Fail-closed: assume maintenance on error
-            isInMaintenance = true
+            // Distinguish network errors from server errors:
+            // network unreachable → dedicated screen with retry
+            // server error → assume maintenance (fail-closed)
+            if (error as? URLError) != nil {
+                isNetworkUnavailable = true
+                isInMaintenance = false
+            } else {
+                isInMaintenance = true
+            }
+        }
+    }
+
+    func retryNetworkCheck() async {
+        await checkMaintenanceStatus()
+        if !isInMaintenance, !isNetworkUnavailable {
+            await checkAuthState()
         }
     }
 }
@@ -189,7 +216,7 @@ enum Tab: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .currentMonth: "Ce mois-ci"
+        case .currentMonth: "Accueil"
         case .budgets: "Budgets"
         case .templates: "Modèles"
         }
@@ -197,7 +224,7 @@ enum Tab: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .currentMonth: "calendar.badge.clock"
+        case .currentMonth: "house"
         case .budgets: "calendar"
         case .templates: "doc.text"
         }

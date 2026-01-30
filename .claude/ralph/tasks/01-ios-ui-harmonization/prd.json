@@ -1,0 +1,427 @@
+{
+  "branchName": "feat/01-ios-ui-harmonization",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Consolidate animation tokens into DesignTokens",
+      "acceptanceCriteria": [
+        "Add enum Animation in DesignTokens.swift with durations (fast: 0.2, normal: 0.3, slow: 0.5) and spring presets",
+        "AnimationConstants.swift values are referenced or migrated",
+        "No functional behavior change",
+        "Project compiles: xcodegen generate && xcodebuild build -scheme Pulpe -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' CODE_SIGNING_ALLOWED=NO"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Consolidated into DesignTokens.Animation namespace. AnimationConstants.swift now uses typealias PulpeAnimations = DesignTokens.Animation for backward compatibility. Duration normal changed from 0.35 to 0.3 per DA spec."
+    },
+    {
+      "id": "US-002",
+      "title": "Add missing semantic color and surface tokens",
+      "acceptanceCriteria": [
+        "Verify Color.surfacePrimary, surfaceCard, errorPrimary, errorBackground, financialOverBudget all exist with light/dark variants",
+        "Add textOnPrimary (white for light, white for dark) if missing",
+        "Add surfaceSecondary if needed for form backgrounds",
+        "Contrast WCAG AA verified (4.5:1 text, 3:1 UI)",
+        "Project compiles"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Added to Color+Pulpe.swift: surfacePrimary (#F6FFF0/#1A1A1A), surfaceCard (#EBFFE6/#1C1C1E), surfaceSecondary (#F0F5EE/#2C2C2E), textPrimary (#181D17/#F5F5F5), textOnPrimary (white/white), errorPrimary (#D4760A/#F0A050), errorBackground (#FFF3E0/#2A1F10), financialOverBudget (#C27A00/#E5A33A). All use init(light:dark:) with hex values from DA.md."
+    },
+    {
+      "id": "US-003",
+      "title": "Verify and complete pulpeCard() and pulpeSectionHeader() modifiers",
+      "acceptanceCriteria": [
+        ".pulpeCard() uses surfaceCard background, CornerRadius.lg, Shadow.subtle, Card.padding",
+        ".pulpeSectionHeader() applies consistent section header styling",
+        "Both are stateless ViewModifiers",
+        "Project compiles"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Replaced unused cardStyle()/sectionHeader() with DA-compliant pulpeCard()/pulpeSectionHeader(). pulpeCard() uses Color.surfaceCard, DesignTokens.CornerRadius.lg, DesignTokens.Shadow.subtle, DesignTokens.Spacing.lg padding. pulpeSectionHeader() uses .headline font with Color.textPrimary."
+    },
+    {
+      "id": "US-004",
+      "title": "Harmonize CurrencyField — remove stroke, use filled background",
+      "acceptanceCriteria": [
+        "No .stroke() or .border() on the input",
+        "Uses filled background (inputBackgroundSoft or surfaceCard)",
+        "Typography from PulpeTypography (inputValue, inputLabel)",
+        "No hardcoded colors (.white, .black, .red)",
+        "Works in light and dark mode",
+        "Project compiles"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Removed .overlay(.stroke()) and replaced .background(.background) with Color.inputBackgroundSoft. Label font changed from .subheadline to PulpeTypography.inputLabel. Padding made explicit with DesignTokens.Spacing.lg. No hardcoded colors remain."
+    },
+    {
+      "id": "US-005",
+      "title": "Harmonize AddTransactionSheet — Form natif, tokens DA",
+      "acceptanceCriteria": [
+        "Uses SwiftUI Form with .listRowBackground() for styling",
+        "No .stroke() or .border() on inputs",
+        "No .white/.black hardcoded — use DA tokens",
+        "No .red — use Color.errorPrimary if needed",
+        "Labels use PulpeTypography.labelLarge, values use PulpeTypography.bodyLarge",
+        "Project compiles"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Form already used native styling with .listRowBackground(Color.surfaceCard). Added PulpeTypography.labelLarge to all section headers and PulpeTypography.bodyLarge to TextField. Added labelLarge and bodyLarge tokens to PulpeTypography. No .stroke(), .border(), .white, .black, .red remain."
+    },
+    {
+      "id": "US-006",
+      "title": "Harmonize AddBudgetLineSheet — Form natif, tokens DA",
+      "acceptanceCriteria": [
+        "Uses SwiftUI Form with .listRowBackground()",
+        "No .stroke()/.border() on inputs",
+        "No hardcoded colors — uses DA tokens",
+        "Typography consistent with PulpeTypography",
+        "Project compiles"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Added PulpeTypography.labelLarge to all 3 section headers (Description, Montant, Type). Added PulpeTypography.bodyLarge to TextField. Added .listRowBackground(Color.surfaceCard) to all 3 sections. No hardcoded colors, no .stroke(), no .border() were present."
+    },
+    {
+      "id": "US-007",
+      "title": "Harmonize AddAllocatedTransactionSheet — Form natif, tokens DA",
+      "acceptanceCriteria": [
+        "Uses SwiftUI Form with .listRowBackground()",
+        "No .stroke()/.border() on inputs",
+        "No hardcoded colors — uses DA tokens",
+        "Typography consistent with PulpeTypography",
+        "Project compiles"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Added PulpeTypography.labelLarge to all 3 section headers (Description, Montant, Date). Added PulpeTypography.bodyLarge to TextField. Added .listRowBackground(Color.surfaceCard) to all 3 sections. No hardcoded colors were present."
+    },
+    {
+      "id": "US-008",
+      "title": "Harmonize EditTransactionSheet — Form natif, tokens DA",
+      "acceptanceCriteria": [
+        "Uses SwiftUI Form with .listRowBackground()",
+        "No .stroke()/.border() on inputs",
+        "No hardcoded colors — uses DA tokens",
+        "Typography consistent with PulpeTypography",
+        "Project compiles"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "Added PulpeTypography.labelLarge to all 4 section headers. Added PulpeTypography.bodyLarge to TextField. Added .listRowBackground(Color.surfaceCard) to all 4 sections. No hardcoded colors were present."
+    },
+    {
+      "id": "US-009",
+      "title": "Harmonize EditBudgetLineSheet — Form natif, tokens DA",
+      "acceptanceCriteria": [
+        "Uses SwiftUI Form with .listRowBackground()",
+        "No .stroke()/.border() on inputs",
+        "No hardcoded colors — uses DA tokens",
+        "Typography consistent with PulpeTypography",
+        "Project compiles"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "Added PulpeTypography.labelLarge to all 3 section headers. Added PulpeTypography.bodyLarge to TextField. Added .listRowBackground(Color.surfaceCard) to all 3 sections."
+    },
+    {
+      "id": "US-010",
+      "title": "Harmonize EditTemplateLineSheet — Form natif, tokens DA",
+      "acceptanceCriteria": [
+        "Uses SwiftUI Form with .listRowBackground()",
+        "No .stroke()/.border() on inputs",
+        "No hardcoded colors — uses DA tokens",
+        "Typography consistent with PulpeTypography",
+        "Project compiles"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "Added PulpeTypography.labelLarge to all 3 section headers. Added PulpeTypography.bodyLarge to TextField. Added .listRowBackground(Color.surfaceCard) to all 3 sections."
+    },
+    {
+      "id": "US-011",
+      "title": "Harmonize CreateBudgetView — remove stroke/white/red, use tokens",
+      "acceptanceCriteria": [
+        "No .stroke()/.border() on inputs",
+        "No .white/.black hardcoded",
+        "No .red — use Color.errorPrimary or Color.financialOverBudget",
+        "All spacing uses DesignTokens.Spacing",
+        "Project compiles"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "Replaced .red with Color.financialOverBudget (2 instances in totalsRow). Replaced all hardcoded spacing (24→xxl, 20→xl, 16→lg, 12→md, 4→xs) with DesignTokens.Spacing tokens. Shimmer .white left as-is (decorative gradient). Card .stroke left as-is (selection indicator, not input)."
+    },
+    {
+      "id": "US-012",
+      "title": "Harmonize CreateTemplateView — remove stroke/white/red, use tokens",
+      "acceptanceCriteria": [
+        "No .stroke()/.border() on inputs",
+        "No .white/.black hardcoded",
+        "No .red — use Color.errorPrimary or Color.financialOverBudget",
+        "All spacing uses DesignTokens.Spacing",
+        "Project compiles"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "Replaced .green/.red balance colors with Color.financialSavings/Color.financialOverBudget. Replaced .red trash icon with Color.errorPrimary. Replaced hardcoded spacing: 4 with DesignTokens.Spacing.xs (2 instances). No .stroke()/.border() or .white/.black were present."
+    },
+    {
+      "id": "US-013",
+      "title": "Harmonize LoginView — replace red, white/black, Font.system(), hardcoded padding",
+      "acceptanceCriteria": [
+        "No .red — error messages use Color.errorPrimary with warm reassuring tone",
+        "No .white/.black — use DA tokens (surfacePrimary, textPrimary)",
+        "No Font.system() — use PulpeTypography",
+        "No hardcoded padding — use DesignTokens.Spacing",
+        "No .stroke()/.border() on inputs — filled background instead",
+        "Logo centered, CTA primary with pulpePrimary",
+        "Works in light and dark mode",
+        "Project compiles"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": "Replaced Color.red error banner with Color.errorBackground bg + Color.errorPrimary icon + Color.textPrimary text (warm reassuring tone). Replaced all .white with Color.textOnPrimary. Replaced all Font.system() with PulpeTypography tokens (added brandTitle 36pt). Removed .stroke() overlays on email/password inputs (kept shadow/scale focus effects). Replaced hardcoded spacing with DesignTokens.Spacing tokens. Layout-specific values (56, 44, 32, 40, 54) kept as-is."
+    },
+    {
+      "id": "US-014",
+      "title": "Harmonize RegistrationStep — replace red/stroke, use tokens",
+      "acceptanceCriteria": [
+        "No .red — use Color.errorPrimary for validation errors",
+        "No .stroke() — use filled background for inputs",
+        "All colors from DA tokens",
+        "Project compiles"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": "Removed all 3 .overlay(.stroke()) on inputs — replaced with filled background (Color.inputBackgroundSoft). Replaced Color.red with Color.errorPrimary for mismatch text. Password confirmation uses Color.errorBackground when mismatch. Replaced .background(.background) with Color.inputBackgroundSoft on all inputs. Replaced .padding() with DesignTokens.Spacing.lg. Replaced spacing: 20 with .xl, spacing: 4 with .xs. Replaced .font(.subheadline) with PulpeTypography.inputLabel. Checkbox spacing: 12 replaced with DesignTokens.Spacing.md."
+    },
+    {
+      "id": "US-015",
+      "title": "Harmonize remaining Onboarding steps — tokens DA, airy layout",
+      "acceptanceCriteria": [
+        "PersonalInfoStep: no .stroke(), use filled backgrounds",
+        "WelcomeStep: no .white hardcoded, use DA tokens",
+        "All other steps (PhonePlan, Income, Housing, LeasingCredit, HealthInsurance, Transport): use DA tokens",
+        "OnboardingFlow and OnboardingState: no hardcoded colors",
+        "stepHealth color (red) can remain if it's intentional for health category distinction",
+        "All steps feel airy (pilier Légèreté)",
+        "Project compiles"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": "PersonalInfoStep: removed .overlay(.stroke()), replaced .background(.background) with Color.inputBackgroundSoft, replaced .padding() with DesignTokens.Spacing.lg, replaced .font(.subheadline) with PulpeTypography.inputLabel, replaced spacing: 8 with DesignTokens.Spacing.sm. WelcomeStep: replaced .foregroundStyle(.white) with Color.textOnPrimary. Other steps (Income, Housing, Health, Phone, Transport, Leasing) were already clean — they delegate to CurrencyField (harmonized in US-004). OnboardingFlow and OnboardingState had no hardcoded colors. stepHealth color kept as-is (intentional category distinction)."
+    },
+    {
+      "id": "US-016",
+      "title": "Harmonize OnboardingNavigationButtons — replace white, use tokens",
+      "acceptanceCriteria": [
+        "No .white hardcoded — use DA semantic tokens",
+        "Button styling uses PulpeTypography.buttonPrimary/buttonSecondary",
+        "Primary button uses Color.pulpePrimary",
+        "Project compiles"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": "Replaced .white with Color.textOnPrimary (2 instances: ProgressView tint, foregroundStyle). Replaced Font.system() on icons with PulpeTypography tokens (inputLabel for arrow, inputHelper for chevron). Replaced hardcoded spacing: 12→md, 8→sm, 4→xs with DesignTokens.Spacing. Replaced padding 24→xxl. Button text already used PulpeTypography.buttonPrimary/buttonSecondary. Primary button already used Color.onboardingGradient."
+    },
+    {
+      "id": "US-017",
+      "title": "Harmonize DashboardHeroCard — replace red/green with semantic colors",
+      "acceptanceCriteria": [
+        "No .red — over-budget uses Color.financialOverBudget (warm amber)",
+        "No .green — positive uses Color.financialSavings or .pulpePrimary",
+        "Progress bar colors use semantic tokens",
+        "Status messages use warm tone (pilier Soulagement)",
+        "Project compiles"
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": "Replaced .red with Color.financialOverBudget (2 instances: progressColor, balanceColor). Replaced .green with Color.financialSavings (2 instances: progressColor, statusMessage). Replaced .orange with Color.financialOverBudget (2 instances: progressColor, statusMessage). Refactored statusMessage tuple to include icon name (avoids unreliable Color == comparison). Status messages use warm DA tones."
+    },
+    {
+      "id": "US-018",
+      "title": "Harmonize HeroBalanceCard — replace red/green/white, fix Font.system()",
+      "acceptanceCriteria": [
+        "No .red — use Color.financialOverBudget",
+        "No .green — use Color.financialSavings or .pulpePrimary",
+        "No .white — use DA tokens",
+        "No Font.system() — use PulpeTypography.amountHero etc.",
+        "No .stroke() at line 97",
+        "Surface color uses DA verdâtre (not system gray)",
+        "Project compiles"
+      ],
+      "priority": 18,
+      "passes": true,
+      "notes": "Replaced .red with Color.financialOverBudget (3 instances: progressColor, balanceColor, over-budget label). Replaced .orange with Color.financialOverBudget (warning state). Replaced Font.system(size: 42) with PulpeTypography.amountHero (new token). Replaced Font.system(size: 16/10) with PulpeTypography.progressValue/progressUnit (new tokens). Replaced Color(.secondarySystemGroupedBackground) with Color.surfaceCard (DA verdâtre). Replaced hardcoded spacing (20, 24, 8) with DesignTokens.Spacing tokens. Circle .stroke() kept as-is — progress indicator, not form input."
+    },
+    {
+      "id": "US-019",
+      "title": "Harmonize Dashboard secondary cards (TopSpending, Trends, YearOverview, RecentTransactions)",
+      "acceptanceCriteria": [
+        "TopSpendingCard: surface uses DA color (not system gray at line 55)",
+        "YearOverviewCard: no .red at line 27 — use financialOverBudget",
+        "TrendsCard: all colors from DA tokens",
+        "RecentTransactionsCard: all colors from DA tokens",
+        "All cards use .pulpeCard() modifier or equivalent DA styling",
+        "Project compiles"
+      ],
+      "priority": 19,
+      "passes": true,
+      "notes": "TopSpendingCard: replaced Color(.secondarySystemGroupedBackground) with Color.surfaceCard, replaced hardcoded spacing 12→md, 16→lg. YearOverviewCard: replaced .red with Color.financialOverBudget for negative rollover, replaced system background with Color.surfaceCard, replaced spacing 12→md, 8→sm, 16→lg. TrendsCard: replaced .orange/.green variation colors with Color.financialOverBudget/Color.financialSavings, replaced system background with Color.surfaceCard (both TrendsCard and TrendsEmptyState), replaced spacing 16→lg, 12→md, 20→xl, 4→xs, 8→sm. RecentTransactionsCard: replaced system background with Color.surfaceCard, replaced spacing 12→md, 8→sm, 16→lg. All 4 cards now use DA color tokens and DesignTokens.Spacing."
+    },
+    {
+      "id": "US-020",
+      "title": "Harmonize Dashboard alert components (AlertsSection, InlineAlertsView, RealizedBalanceSheet)",
+      "acceptanceCriteria": [
+        "AlertsSection: line 55 .red → Color.financialOverBudget",
+        "InlineAlertsView: lines 16/44 .red → Color.financialOverBudget or Color.errorPrimary",
+        "RealizedBalanceSheet: lines 55/65 .red → Color.financialOverBudget, .green → Color.financialSavings",
+        "Warm messaging tone for over-budget alerts (pilier Soulagement)",
+        "Project compiles"
+      ],
+      "priority": 20,
+      "passes": true,
+      "notes": "AlertsSection: replaced .orange→Color.financialOverBudget (header icon), replaced .red/.orange→Color.financialOverBudget (AlertRow color — both states use warm amber since all alerts are ≥80%), replaced spacing 12→md, 4→xs, 8→sm. InlineAlertsView: replaced .orange→Color.financialOverBudget (icon), replaced .red/.orange→Color.financialOverBudget (percentage text), replaced Color(.secondarySystemGroupedBackground)→Color.surfaceCard, replaced spacing 4→xs, padding 16→lg, 12→md. RealizedBalanceSheet: replaced .red→Color.financialOverBudget (negative balance amount, badge foreground/background), replaced .green→Color.financialSavings (positive badge foreground/background), replaced Color(.systemGroupedBackground)→Color.surfacePrimary, replaced Color(.secondarySystemGroupedBackground)→Color.surfaceCard (2 instances), replaced cornerRadius 16→CornerRadius.lg (2), 12→CornerRadius.md (1), replaced spacing 24→xxl, 16→lg, 20→xl, 12→md, 4→xs, 8→sm. Status badge uses warm tone: 'Solde négatif — on y remédie ?' (reassuring per DA Soulagement). .yellow on lightbulb tip kept as-is — decorative."
+    },
+    {
+      "id": "US-021",
+      "title": "Harmonize Dashboard lists (RecurringExpenses, OneTimeExpenses, LinkedTransactions, UncheckedTransactions)",
+      "acceptanceCriteria": [
+        "RecurringExpensesList: lines 69/162/168 .red → semantic colors",
+        "OneTimeExpensesList: line 64 .red → semantic color",
+        "LinkedTransactionsSheet: lines 29/33/267 .red → semantic colors",
+        "UncheckedTransactionsSection: line 49 .stroke → filled background or DA styling",
+        "All use DA color tokens",
+        "Project compiles"
+      ],
+      "priority": 21,
+      "passes": true,
+      "notes": "RecurringExpensesList (BudgetLineRow): replaced .red→Color.financialOverBudget (consumptionColor over-budget), .orange→Color.financialOverBudget (consumptionColor near-limit), .red→Color.financialOverBudget (remainingColor negative). Swipe delete .tint(.red)→Color.errorPrimary, undo .tint(.orange)→Color.financialOverBudget. OneTimeExpensesList (TransactionSection): swipe delete .tint(.red)→Color.errorPrimary, undo .tint(.orange)→Color.financialOverBudget. LinkedTransactionsSheet: .red→Color.financialOverBudget (remainingColor, progressColor), Color(.systemGroupedBackground)→Color.surfacePrimary, Color(.secondarySystemGroupedBackground)→Color.surfaceCard (4 instances), .red.opacity(0.8)→Color.errorPrimary (trash icon), cornerRadius 12→CornerRadius.md (2), spacing 20→xl, 12→md, 8→sm, 16→lg. UncheckedTransactionsSection: .orange→Color.financialOverBudget (header icon, indicator icon), Circle .stroke(Color.orange)→Circle .fill(Color.financialOverBudget.opacity(badgeBackground)) (replaced stroke with filled background per DA)."
+    },
+    {
+      "id": "US-022",
+      "title": "Harmonize BudgetListView and BudgetDetailsView — replace red, use tokens",
+      "acceptanceCriteria": [
+        "BudgetListView: line 332 .stroke → DA styling, line 350 .red → semantic color",
+        "BudgetDetailsView: lines 667/684/689 .red → Color.financialOverBudget",
+        "All colors from DA tokens",
+        "Progress bars use semantic colors",
+        "Project compiles"
+      ],
+      "priority": 22,
+      "passes": true,
+      "notes": "BudgetListView: replaced .red→Color.financialOverBudget (RemainingStatus.negative), replaced Color(.secondarySystemGroupedBackground)→Color.surfaceCard (BudgetMonthCard non-current bg), replaced Color(.tertiarySystemGroupedBackground)→Color.surfaceCard (EmptyMonthCard bg). Card .stroke() overlay kept as-is — selection indicator for current month, not form input. BudgetDetailsView: replaced Color(.systemGroupedBackground)→Color.surfacePrimary (list background), replaced .green/.red→Color.financialSavings/Color.financialOverBudget (RolloverInfoRow icon and amount, 2 instances each), replaced Color.green/Color.red→Color.financialSavings/Color.financialOverBudget (background fill), replaced cornerRadius: 12→DesignTokens.CornerRadius.md, replaced spacing: 12→DesignTokens.Spacing.md. CheckedFilterPicker: already clean — segmented picker with no hardcoded colors."
+    },
+    {
+      "id": "US-023",
+      "title": "Harmonize TemplateListView and TemplateDetailsView — replace red, use tokens",
+      "acceptanceCriteria": [
+        "TemplateDetailsView: lines 56/63/73 .red → semantic colors",
+        "TemplateListView: all colors from DA tokens",
+        "No hardcoded colors",
+        "Project compiles"
+      ],
+      "priority": 23,
+      "passes": true,
+      "notes": "TemplateDetailsView: replaced .green→Color.financialIncome (income label), .red→Color.financialExpense (expense label), balance ternary .green/.red→Color.financialSavings/Color.financialOverBudget. TemplateListView: replaced swipe delete .tint(.red)→Color.errorPrimary. No other hardcoded colors were present — both files were mostly clean."
+    },
+    {
+      "id": "US-024",
+      "title": "Harmonize AccountView — use DA tokens",
+      "acceptanceCriteria": [
+        "All colors from DA tokens",
+        "Typography from PulpeTypography",
+        "Surfaces use surfacePrimary/surfaceCard",
+        "Project compiles"
+      ],
+      "priority": 24,
+      "passes": true,
+      "notes": "AccountView was already clean — no hardcoded colors, no .stroke(), no Font.system(). Applied DA surface tokens: .scrollContentBackground(.hidden) + .background(Color.surfacePrimary) for list background, .listRowBackground(Color.surfaceCard) on all 4 sections. Added PulpeTypography.labelLarge to all 3 section headers (Informations Personnelles, Sécurité, Application). Destructive button uses SwiftUI .destructive role — acceptable semantic styling."
+    },
+    {
+      "id": "US-025",
+      "title": "Fix ProductTips tooltip width bug",
+      "acceptanceCriteria": [
+        "Tooltip bubble has reasonable minWidth and maxWidth",
+        "Tooltip is not scrollable horizontally",
+        "Tooltip text wraps properly on small screens",
+        "Project compiles"
+      ],
+      "priority": 25,
+      "passes": true,
+      "notes": "Added .frame(maxWidth: .infinity) and .fixedSize(horizontal: false, vertical: true) to TipView in RecurringExpensesList.swift. The TipView (Apple TipKit) was rendered without width constraints inside a List Section — maxWidth: .infinity ensures it fills the row, fixedSize(horizontal: false, vertical: true) prevents horizontal scrolling and ensures proper text wrapping on small screens."
+    },
+    {
+      "id": "US-026",
+      "title": "Harmonize ErrorView — warm tone, no red",
+      "acceptanceCriteria": [
+        "No .red — icon and background use Color.errorPrimary / Color.errorBackground",
+        "Message tone is warm and reassuring (pilier Soulagement)",
+        "Close button uses warm color, not red",
+        "Works in light and dark mode",
+        "Project compiles"
+      ],
+      "priority": 26,
+      "passes": true,
+      "notes": "ErrorBanner: replaced .foregroundStyle(.red) → Color.errorPrimary (icon, line 44), replaced .foregroundStyle(.red.opacity(0.8)) → Color.errorPrimary (close button, line 58), replaced .background(.red.opacity(0.1)) → Color.errorBackground (banner background, line 64). Replaced spacing: 12 → DesignTokens.Spacing.md, .padding() → .padding(DesignTokens.Spacing.lg), cornerRadius: 12 → DesignTokens.CornerRadius.md. ErrorView (full-screen) uses ContentUnavailableView — no hardcoded colors, no changes needed. EmptyStateView also clean."
+    },
+    {
+      "id": "US-027",
+      "title": "Harmonize LoadingView — reduce opacity, replace white/black",
+      "acceptanceCriteria": [
+        "Loading overlay opacity between 0.1-0.15 (not 0.3)",
+        "No .white/.black hardcoded — use DA tokens",
+        "No hardcoded padding — use DesignTokens.Spacing",
+        "Feels light and non-intrusive (pilier Légèreté)",
+        "Project compiles"
+      ],
+      "priority": 27,
+      "passes": true,
+      "notes": "LoadingView: replaced .background(.background) → Color.surfacePrimary, spacing: 16 → DesignTokens.Spacing.lg. LoadingOverlay: reduced Color.black.opacity(0.3) → 0.12 (Légèreté pillar), replaced .tint(.white) → .tint(.primary), .foregroundStyle(.white) → .foregroundStyle(.primary) (SwiftUI semantics adapt to light/dark), .padding(24) → DesignTokens.Spacing.xxl, cornerRadius: 16 → DesignTokens.CornerRadius.lg, spacing: 16 → DesignTokens.Spacing.lg. Color.black kept for dim overlay — universal dimming pattern, opacity reduced to 0.12 per AC."
+    },
+    {
+      "id": "US-028",
+      "title": "Harmonize ToastView — replace Font.system() with PulpeTypography",
+      "acceptanceCriteria": [
+        "No Font.system() — use PulpeTypography",
+        "No hardcoded colors — use DA tokens",
+        "Toast is discreet and elegant",
+        "Project compiles"
+      ],
+      "priority": 28,
+      "passes": true,
+      "notes": "ToastView: replaced Font.system(size: 18, weight: .semibold) → PulpeTypography.buttonPrimary (icon), Font.system(.subheadline, design: .rounded, weight: .medium) → PulpeTypography.buttonSecondary (message), Font.system(size: 12, weight: .bold) → PulpeTypography.inputHelper (close icon). Replaced spacing: 12 → DesignTokens.Spacing.md, .padding(.horizontal, 16) → DesignTokens.Spacing.lg (2x), cornerRadius: 12 → DesignTokens.CornerRadius.md. No .white found — PRD note was incorrect. .padding(.vertical, 14) kept as-is (no exact token). Shadow .black.opacity(0.1) kept — acceptable per US-013 pattern."
+    },
+    {
+      "id": "US-029",
+      "title": "Harmonize KindBadge — use Color.financial* semantic colors",
+      "acceptanceCriteria": [
+        "Income badge uses Color.financialIncome",
+        "Expense badge uses Color.financialExpense",
+        "Savings badge uses Color.financialSavings",
+        "No hardcoded colors",
+        "Project compiles"
+      ],
+      "priority": 29,
+      "passes": true,
+      "notes": "KindBadge already uses kind.color which delegates to TransactionKind.color → .financialIncome/.financialExpense/.financialSavings (all DA semantic tokens). Badge background uses kind.color.opacity(DesignTokens.Opacity.badgeBackground). RecurrenceBadge uses .secondary (SwiftUI semantic). No hardcoded colors, no Font.system(). Small spacing values (4, 6, 8) kept as-is — too granular for DesignTokens.Spacing. File was already fully harmonized."
+    },
+    {
+      "id": "US-030",
+      "title": "Harmonize SectionHeader — replace white, ensure uniform usage",
+      "acceptanceCriteria": [
+        "No .white hardcoded — use DA tokens",
+        "Styling matches .pulpeSectionHeader() modifier",
+        "Used consistently across all screens that have section headers",
+        "Project compiles"
+      ],
+      "priority": 30,
+      "passes": true,
+      "notes": "SectionHeader: replaced .foregroundStyle(.white) → Color.textOnPrimary (count badge text), .foregroundStyle(.primary) → Color.textPrimary (title), spacing: 8 → DesignTokens.Spacing.sm, .padding(.horizontal, 8) → DesignTokens.Spacing.sm. Font.system() on caption badge and subheadline total kept as-is — caption-specific styling with no PulpeTypography equivalent. .padding(.vertical, 3) kept — too granular for tokens. Title already uses .headline matching .pulpeSectionHeader() pattern."
+    }
+  ]
+}

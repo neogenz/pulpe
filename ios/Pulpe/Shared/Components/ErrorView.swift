@@ -4,6 +4,7 @@ import SwiftUI
 struct ErrorView: View {
     let error: Error
     let retryAction: (() async -> Void)?
+    @State private var isRetrying = false
 
     init(error: Error, retryAction: (() async -> Void)? = nil) {
         self.error = error
@@ -17,12 +18,21 @@ struct ErrorView: View {
             Text(error.localizedDescription)
         } actions: {
             if let retryAction {
-                Button("Réessayer") {
+                Button {
                     Task {
+                        isRetrying = true
+                        defer { isRetrying = false }
                         await retryAction()
+                    }
+                } label: {
+                    if isRetrying {
+                        ProgressView()
+                    } else {
+                        Text("Réessayer")
                     }
                 }
                 .buttonStyle(.borderedProminent)
+                .disabled(isRetrying)
             }
         }
     }
@@ -39,9 +49,9 @@ struct ErrorBanner: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "exclamationmark.circle.fill")
-                .foregroundStyle(.red)
+                .foregroundStyle(Color.errorPrimary)
 
             Text(message)
                 .font(.subheadline)
@@ -55,13 +65,13 @@ struct ErrorBanner: View {
                     dismissAction()
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.red.opacity(0.8))
+                        .foregroundStyle(Color.errorPrimary)
                 }
                 .accessibilityLabel("Fermer")
             }
         }
-        .padding()
-        .background(.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+        .padding(DesignTokens.Spacing.lg)
+        .background(Color.errorBackground, in: .rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
 }
 

@@ -6,6 +6,11 @@ struct RegistrationStep: View {
 
     @State private var showPassword = false
     @State private var showPasswordConfirmation = false
+    @FocusState private var focusedField: Field?
+
+    private enum Field: Hashable {
+        case email, password, passwordConfirmation
+    }
 
     private var passwordMismatch: Bool {
         !state.passwordConfirmation.isEmpty && state.password != state.passwordConfirmation
@@ -18,12 +23,12 @@ struct RegistrationStep: View {
             canProceed: state.canSubmitRegistration,
             onNext: { Task { await submitRegistration() } }
         ) {
-            VStack(spacing: 20) {
+            VStack(spacing: DesignTokens.Spacing.xl) {
                 // Email
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Email")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(PulpeTypography.inputLabel)
+                        .foregroundStyle(Color.textSecondaryOnboarding)
 
                     TextField("ton@email.com", text: Binding(
                         get: { state.email },
@@ -31,96 +36,128 @@ struct RegistrationStep: View {
                     ))
                     .textContentType(.emailAddress)
                     .keyboardType(.emailAddress)
-                    .autocapitalization(.none)
+                    .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .padding()
-                    .background(.background)
-                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                            .stroke(Color.inputBorder, lineWidth: 1)
+                    .focused($focusedField, equals: .email)
+                    .font(PulpeTypography.bodyLarge)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .frame(height: DesignTokens.FrameHeight.button)
+                    .background(Color.inputBackgroundSoft)
+                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+                    .shadow(
+                        color: focusedField == .email ? Color.inputFocusGlow : Color.black.opacity(0.04),
+                        radius: focusedField == .email ? 8 : 4,
+                        y: focusedField == .email ? 2 : 1
                     )
+                    .scaleEffect(focusedField == .email ? 1.01 : 1)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
                 }
 
                 // Password
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Mot de passe")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(PulpeTypography.inputLabel)
+                        .foregroundStyle(Color.textSecondaryOnboarding)
 
-                    HStack {
-                        if showPassword {
-                            TextField("••••••••", text: Binding(
-                                get: { state.password },
-                                set: { state.password = $0 }
-                            ))
-                        } else {
-                            SecureField("••••••••", text: Binding(
-                                get: { state.password },
-                                set: { state.password = $0 }
-                            ))
+                    HStack(spacing: DesignTokens.Spacing.md) {
+                        Group {
+                            if showPassword {
+                                TextField("••••••••", text: Binding(
+                                    get: { state.password },
+                                    set: { state.password = $0 }
+                                ))
+                            } else {
+                                SecureField("••••••••", text: Binding(
+                                    get: { state.password },
+                                    set: { state.password = $0 }
+                                ))
+                            }
                         }
+                        .textContentType(.newPassword)
+                        .focused($focusedField, equals: .password)
+                        .font(PulpeTypography.bodyLarge)
 
                         Button {
-                            showPassword.toggle()
+                            withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                                showPassword.toggle()
+                            }
                         } label: {
-                            Image(systemName: showPassword ? "eye.slash" : "eye")
-                                .foregroundStyle(.secondary)
+                            Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
+                                .font(PulpeTypography.bodyLarge)
+                                .foregroundStyle(Color.textTertiaryOnboarding)
+                                .contentTransition(.symbolEffect(.replace))
                         }
+                        .accessibilityLabel(showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe")
                     }
-                    .textContentType(.newPassword)
-                    .padding()
-                    .background(.background)
-                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                            .stroke(Color.inputBorder, lineWidth: 1)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .frame(height: DesignTokens.FrameHeight.button)
+                    .background(Color.inputBackgroundSoft)
+                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+                    .shadow(
+                        color: focusedField == .password ? Color.inputFocusGlow : Color.black.opacity(0.04),
+                        radius: focusedField == .password ? 8 : 4,
+                        y: focusedField == .password ? 2 : 1
                     )
+                    .scaleEffect(focusedField == .password ? 1.01 : 1)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
 
-                    Text("8 caractères minimum pour sécuriser ton compte")
+                    Text("8 caractères minimum, dont une majuscule et un chiffre")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textTertiaryOnboarding)
                 }
 
                 // Password confirmation
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Confirmer le mot de passe")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(PulpeTypography.inputLabel)
+                        .foregroundStyle(Color.textSecondaryOnboarding)
 
-                    HStack {
-                        if showPasswordConfirmation {
-                            TextField("••••••••", text: Binding(
-                                get: { state.passwordConfirmation },
-                                set: { state.passwordConfirmation = $0 }
-                            ))
-                        } else {
-                            SecureField("••••••••", text: Binding(
-                                get: { state.passwordConfirmation },
-                                set: { state.passwordConfirmation = $0 }
-                            ))
+                    HStack(spacing: DesignTokens.Spacing.md) {
+                        Group {
+                            if showPasswordConfirmation {
+                                TextField("••••••••", text: Binding(
+                                    get: { state.passwordConfirmation },
+                                    set: { state.passwordConfirmation = $0 }
+                                ))
+                            } else {
+                                SecureField("••••••••", text: Binding(
+                                    get: { state.passwordConfirmation },
+                                    set: { state.passwordConfirmation = $0 }
+                                ))
+                            }
                         }
+                        .textContentType(.newPassword)
+                        .focused($focusedField, equals: .passwordConfirmation)
+                        .font(PulpeTypography.bodyLarge)
 
                         Button {
-                            showPasswordConfirmation.toggle()
+                            withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                                showPasswordConfirmation.toggle()
+                            }
                         } label: {
-                            Image(systemName: showPasswordConfirmation ? "eye.slash" : "eye")
-                                .foregroundStyle(.secondary)
+                            Image(systemName: showPasswordConfirmation ? "eye.slash.fill" : "eye.fill")
+                                .font(PulpeTypography.bodyLarge)
+                                .foregroundStyle(Color.textTertiaryOnboarding)
+                                .contentTransition(.symbolEffect(.replace))
                         }
+                        .accessibilityLabel(showPasswordConfirmation ? "Masquer le mot de passe" : "Afficher le mot de passe")
                     }
-                    .textContentType(.newPassword)
-                    .padding()
-                    .background(.background)
-                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                            .stroke(passwordMismatch ? Color.red : Color.inputBorder, lineWidth: 1)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .frame(height: DesignTokens.FrameHeight.button)
+                    .background(passwordMismatch ? Color.errorBackground : Color.inputBackgroundSoft)
+                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+                    .shadow(
+                        color: focusedField == .passwordConfirmation ? Color.inputFocusGlow : Color.black.opacity(0.04),
+                        radius: focusedField == .passwordConfirmation ? 8 : 4,
+                        y: focusedField == .passwordConfirmation ? 2 : 1
                     )
+                    .scaleEffect(focusedField == .passwordConfirmation ? 1.01 : 1)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
 
                     if passwordMismatch {
                         Text("Les mots de passe ne correspondent pas")
                             .font(.caption)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(Color.errorPrimary)
                     }
                 }
 
@@ -134,6 +171,8 @@ struct RegistrationStep: View {
                 }
                 .toggleStyle(.pulpeCheckbox)
             }
+            .padding(DesignTokens.Spacing.xxl)
+            .pulpeCardBackground(cornerRadius: 24)
         }
     }
 
@@ -146,20 +185,27 @@ struct RegistrationStep: View {
             let authService = AuthService.shared
             var user: UserInfo
 
-            if !state.isUserCreated {
+            switch state.signupProgress {
+            case .notStarted:
                 user = try await authService.signup(email: state.email, password: state.password)
-                state.isUserCreated = true
-            } else {
-                // User already created, validate session
+                state.signupProgress = .userCreated
+            case .userCreated, .templateCreated:
                 guard let existingUser = try await authService.validateSession() else {
                     throw APIError.unauthorized
                 }
                 user = existingUser
             }
 
-            // Step 2: Create template from onboarding data
-            let templateService = TemplateService.shared
-            let template = try await templateService.createTemplateFromOnboarding(state.createTemplateData())
+            // Step 2: Create template (if not already created)
+            let templateId: String
+            if case .templateCreated(let existingId) = state.signupProgress {
+                templateId = existingId
+            } else {
+                let templateService = TemplateService.shared
+                let template = try await templateService.createTemplateFromOnboarding(state.createTemplateData())
+                templateId = template.id
+                state.signupProgress = .templateCreated(templateId: templateId)
+            }
 
             // Step 3: Create initial budget for current month
             let budgetService = BudgetService.shared
@@ -168,18 +214,24 @@ struct RegistrationStep: View {
                 month: now.month,
                 year: now.year,
                 description: now.monthYearFormatted,
-                templateId: template.id
+                templateId: templateId
             )
             _ = try await budgetService.createBudget(budgetData)
 
-            // Clear storage and complete
+            // Clear sensitive data and storage
+            state.password = ""
+            state.passwordConfirmation = ""
             state.clearStorage()
             state.isLoading = false
 
             onComplete(user)
 
+        } catch let apiError as APIError {
+            state.error = apiError
+            state.isLoading = false
         } catch {
-            state.error = error
+            let localizedMessage = AuthErrorLocalizer.localize(error)
+            state.error = APIError.serverError(message: localizedMessage)
             state.isLoading = false
         }
     }
@@ -189,7 +241,7 @@ struct RegistrationStep: View {
 
 struct CheckboxToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
             Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
                 .font(.title3)
                 .foregroundStyle(configuration.isOn ? Color.accentColor : Color.secondary)

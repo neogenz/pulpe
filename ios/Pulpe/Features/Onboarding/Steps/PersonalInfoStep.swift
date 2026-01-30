@@ -11,9 +11,9 @@ struct PersonalInfoStep: View {
             canProceed: state.isFirstNameValid,
             onNext: { state.nextStep() }
         ) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 Text("Prénom")
-                    .font(.subheadline)
+                    .font(PulpeTypography.inputLabel)
                     .foregroundStyle(.secondary)
 
                 TextField("Ton prénom", text: Binding(
@@ -23,13 +23,9 @@ struct PersonalInfoStep: View {
                 .textContentType(.givenName)
                 .autocapitalization(.words)
                 .focused($isFocused)
-                .padding()
-                .background(.background)
-                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
-                .overlay(
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                        .stroke(isFocused ? Color.accentColor : Color.inputBorder, lineWidth: 1)
-                )
+                .padding(DesignTokens.Spacing.lg)
+                .background(Color.inputBackgroundSoft)
+                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
                 .onSubmit {
                     if state.isFirstNameValid {
                         state.nextStep()

@@ -2,6 +2,15 @@ import SwiftUI
 
 /// Text field for currency input with CHF formatting
 struct CurrencyField: View {
+    private static let displayFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 2
+        formatter.groupingSeparator = ""
+        return formatter
+    }()
+
     @Binding var value: Decimal?
     let placeholder: String
     let label: String?
@@ -31,7 +40,7 @@ struct CurrencyField: View {
         VStack(alignment: .leading, spacing: 4) {
             if let label {
                 Text(label)
-                    .font(.subheadline)
+                    .font(PulpeTypography.inputLabel)
                     .foregroundStyle(.secondary)
             }
 
@@ -50,13 +59,9 @@ struct CurrencyField: View {
                         updateText(from: newValue)
                     }
             }
-            .padding()
-            .background(.background)
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
-            .overlay(
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                    .stroke(effectiveFocus ? Color.accentColor : Color.inputBorder, lineWidth: 1)
-            )
+            .padding(DesignTokens.Spacing.lg)
+            .background(Color.inputBackgroundSoft)
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
         }
         .onAppear {
             updateText(from: value)
@@ -95,12 +100,7 @@ struct CurrencyField: View {
 
         // Only update if not focused (avoid cursor jumping)
         if !effectiveFocus {
-            let formatter = NumberFormatter()
-            formatter.numberStyle = .decimal
-            formatter.minimumFractionDigits = 0
-            formatter.maximumFractionDigits = 2
-            formatter.groupingSeparator = ""
-            textValue = formatter.string(from: decimal as NSDecimalNumber) ?? ""
+            textValue = Self.displayFormatter.string(from: decimal as NSDecimalNumber) ?? ""
         }
     }
 }

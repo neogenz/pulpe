@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 /// Thread-safe API client with token management
 actor APIClient {
@@ -59,7 +60,7 @@ actor APIClient {
         }
 
         // Add auth token
-        if let token = await KeychainManager.shared.getAccessToken() {
+        if let token = await KeychainManager.shared.getAccessToken(), !token.isEmpty {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
@@ -78,7 +79,8 @@ actor APIClient {
     func requestVoid(
         _ endpoint: Endpoint,
         body: Encodable? = nil,
-        method: HTTPMethod? = nil
+        method: HTTPMethod? = nil,
+        isRetry: Bool = false
     ) async throws {
         var request = endpoint.urlRequest(baseURL: baseURL)
 
@@ -86,7 +88,7 @@ actor APIClient {
             request.httpMethod = method.rawValue
         }
 
-        if let token = await KeychainManager.shared.getAccessToken() {
+        if let token = await KeychainManager.shared.getAccessToken(), !token.isEmpty {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
@@ -97,7 +99,19 @@ actor APIClient {
 
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
-        let (data, response) = try await session.data(for: request)
+        let data: Data
+        let response: URLResponse
+
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            if !isRetry, Self.isTransientError(error) {
+                Logger.network.warning("Transient network error, retrying: \(error.localizedDescription, privacy: .public)")
+                try await requestVoid(endpoint, body: body, method: method, isRetry: true)
+                return
+            }
+            throw APIError.networkError(error)
+        }
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
@@ -122,9 +136,22 @@ actor APIClient {
     private func performRequest<T: Decodable>(
         _ request: URLRequest,
         endpoint: Endpoint,
-        body: Encodable?
+        body: Encodable?,
+        isRetry: Bool = false
     ) async throws -> T {
-        let (data, response) = try await session.data(for: request)
+        let data: Data
+        let response: URLResponse
+
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            // Retry once on transient network errors
+            if !isRetry, Self.isTransientError(error) {
+                Logger.network.warning("Transient network error, retrying: \(error.localizedDescription, privacy: .public)")
+                return try await performRequest(request, endpoint: endpoint, body: body, isRetry: true)
+            }
+            throw APIError.networkError(error)
+        }
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
@@ -205,25 +232,39 @@ actor APIClient {
     private func refreshTokenAndRetry() async throws -> Bool {
         // Token refresh is handled by Supabase SDK via AuthService
         // Try to get a fresh token from AuthService
-        if let token = await AuthService.shared.getAccessToken() {
-            return !token.isEmpty
+        if let token = await AuthService.shared.getAccessToken(), !token.isEmpty {
+            return true
         }
+        // Refresh failed — clear tokens and force logout
+        await AuthService.shared.logout()
         return false
     }
 
-    #if DEBUG
-    private func logRequest(_ request: URLRequest, response: HTTPURLResponse, data: Data) {
-        let method = request.httpMethod ?? "?"
-        let url = request.url?.absoluteString ?? "?"
-        let status = response.statusCode
-        let dataPreview = String(data: data.prefix(500), encoding: .utf8) ?? "Binary data"
-
-        print("[\(method)] \(url) -> \(status)")
-        if status >= 400 {
-            print("Response: \(dataPreview)")
+    /// Transient network errors that are worth retrying once
+    private static func isTransientError(_ error: Error) -> Bool {
+        guard let urlError = error as? URLError else { return false }
+        switch urlError.code {
+        case .timedOut,
+             .networkConnectionLost,
+             .dataLengthExceedsMaximum, // -1103 "resource exceeds maximum size"
+             .cannotConnectToHost,
+             .secureConnectionFailed:
+            return true
+        default:
+            return false
         }
     }
-    #endif
+
+    private func logRequest(_ request: URLRequest, response: HTTPURLResponse, data: Data) {
+        let method = request.httpMethod ?? "?"
+        let path = request.url?.path ?? "?"
+        let status = response.statusCode
+
+        Logger.network.debug("[\(method, privacy: .public)] \(path, privacy: .public) -> \(status, privacy: .public)")
+        if status >= 400 {
+            Logger.network.error("Request failed: [\(method, privacy: .public)] \(path, privacy: .public) -> \(status, privacy: .public)")
+        }
+    }
 }
 
 // MARK: - Helper Types

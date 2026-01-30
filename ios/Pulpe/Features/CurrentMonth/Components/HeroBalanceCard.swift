@@ -5,6 +5,7 @@ struct HeroBalanceCard: View {
     let metrics: BudgetFormulas.Metrics
     var daysRemaining: Int? = nil
     var dailyBudget: Decimal? = nil
+    var applyGlass: Bool = true
     let onTapProgress: () -> Void
 
     // MARK: - Computed Properties
@@ -27,28 +28,34 @@ struct HeroBalanceCard: View {
     }
 
     private var progressColor: Color {
-        if isOverBudget { return .red }
-        if progressPercentage > 0.85 { return .orange }
+        if isOverBudget { return .financialOverBudget }
+        if progressPercentage >= 0.80 { return .orange }
         return .pulpePrimary
     }
 
     private var balanceColor: Color {
-        isOverBudget ? .red : .primary
+        isOverBudget ? .financialOverBudget : .primary
     }
 
     // MARK: - Body
 
+    @ViewBuilder
     var body: some View {
-        VStack(spacing: 20) {
+        let content = VStack(spacing: DesignTokens.Spacing.xl) {
             // Main balance section
             balanceSection
 
             // Quick stats row
             statsRow
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 24)
-        .heroCardStyle()
+        .padding(.horizontal, DesignTokens.Spacing.xl)
+        .padding(.vertical, DesignTokens.Spacing.xxl)
+
+        if applyGlass {
+            content.pulpeHeroGlass()
+        } else {
+            content
+        }
     }
 
     // MARK: - Balance Section
@@ -56,16 +63,17 @@ struct HeroBalanceCard: View {
     private var balanceSection: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Disponible CHF")
+                Text("Disponible")
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundStyle(.secondary)
 
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(metrics.remaining.formatted(.number.precision(.fractionLength(0...2))))
-                        .font(.system(size: 42, weight: .bold, design: .rounded))
+                        .font(PulpeTypography.amountHero)
                         .foregroundStyle(balanceColor)
                         .contentTransition(.numericText())
+                        .accessibilityLabel(metrics.remaining.asCHF)
 
                 }
 
@@ -73,7 +81,7 @@ struct HeroBalanceCard: View {
                     Label("Tu as dépassé ton budget — ça arrive", systemImage: "info.circle.fill")
                         .font(.caption)
                         .fontWeight(.medium)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Color.financialOverBudget)
                 } else if let days = daysRemaining, let daily = dailyBudget, daily > 0 {
                     Text("\(days) jours restants · ~\(daily.asCompactCHF)/jour")
                         .font(.caption)
@@ -104,11 +112,12 @@ struct HeroBalanceCard: View {
 
                 HStack(spacing: 2) {
                     Text("\(displayPercentage)")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(PulpeTypography.progressValue)
                         .foregroundStyle(progressColor)
+                        .contentTransition(.numericText())
 
                     Text("%")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(PulpeTypography.progressUnit)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -124,27 +133,27 @@ struct HeroBalanceCard: View {
     private var statsRow: some View {
         HStack(spacing: 0) {
             statItem(
-                label: "Dépenses CHF",
+                label: "Dépenses",
                 value: metrics.totalExpenses,
                 color: .financialExpense
             )
 
             Divider()
                 .frame(height: 32)
-                .padding(.horizontal, 8)
+                .padding(.horizontal, DesignTokens.Spacing.sm)
 
             statItem(
-                label: "Revenus CHF",
+                label: "Revenus",
                 value: metrics.totalIncome,
                 color: .financialIncome
             )
 
             Divider()
                 .frame(height: 32)
-                .padding(.horizontal, 8)
+                .padding(.horizontal, DesignTokens.Spacing.sm)
 
             statItem(
-                label: "Épargne CHF",
+                label: "Épargne",
                 value: metrics.totalSavings,
                 color: .financialSavings
             )
@@ -160,27 +169,11 @@ struct HeroBalanceCard: View {
             Text(value.formatted(.number.locale(Locale(identifier: "de_CH"))))
                 .font(.system(.subheadline, design: .rounded, weight: .semibold))
                 .foregroundStyle(color)
+                .contentTransition(.numericText())
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-// MARK: - Hero Card Style Modifier
-
-private struct HeroCardStyleModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        // glassEffect is a future iOS API - using fallback styling
-        // When the API becomes available, add iOS 26+ branch with glassEffect
-        content
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
-            .shadow(DesignTokens.Shadow.elevated)
-    }
-}
-
-extension View {
-    func heroCardStyle() -> some View {
-        modifier(HeroCardStyleModifier())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(label) \(value.asCHF)")
     }
 }
 
@@ -239,5 +232,5 @@ extension View {
         }
         .padding()
     }
-    .background(Color(.systemGroupedBackground))
+    .pulpeBackground()
 }

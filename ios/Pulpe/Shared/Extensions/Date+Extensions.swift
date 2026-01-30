@@ -13,12 +13,12 @@ extension Date {
 
     /// Start of the current month
     var startOfMonth: Date {
-        Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: self))!
+        Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: self)) ?? self
     }
 
     /// End of the current month
     var endOfMonth: Date {
-        Calendar.current.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth)!
+        Calendar.current.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth) ?? self
     }
 
     /// Format as "Janvier 2024"
@@ -96,7 +96,9 @@ extension Date {
         }
 
         // Check if within this week (show day name)
-        let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now))!
+        guard let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)) else {
+            return dayMonthFormatted
+        }
         if self >= startOfWeek {
             let formatter = DateFormatter()
             formatter.locale = Locale(identifier: "fr_FR")
@@ -130,11 +132,11 @@ struct MonthYear: Hashable, Comparable {
     }
 
     var formatted: String {
-        date?.monthYearFormatted ?? "\(month)/\(year)"
+        date?.monthYearFormatted ?? String(format: "%02d.%d", month, year)
     }
 
     var shortFormatted: String {
-        date?.shortMonthYearFormatted ?? "\(month)/\(year)"
+        date?.shortMonthYearFormatted ?? String(format: "%02d.%d", month, year)
     }
 
     static func < (lhs: MonthYear, rhs: MonthYear) -> Bool {

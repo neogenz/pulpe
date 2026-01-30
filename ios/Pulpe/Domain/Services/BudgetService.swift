@@ -4,6 +4,11 @@ import Foundation
 actor BudgetService {
     static let shared = BudgetService()
 
+    // MARK: - Constants
+
+    /// Default fields for sparse dashboard queries (optimized payload)
+    static let defaultSparseFields = "month,year,totalExpenses,totalSavings,rollover"
+
     private let apiClient: APIClient
 
     private init(apiClient: APIClient = .shared) {
@@ -63,10 +68,24 @@ actor BudgetService {
         return try await getBudgetForMonth(month: month, year: year)
     }
 
-    /// Export all budgets
+    /// Export all budgets (heavy endpoint - use for full data export only)
     func exportAllBudgets() async throws -> BudgetExportData {
         let response: BudgetExportResponse = try await apiClient.request(
             .budgetsExport,
+            method: .get
+        )
+        return response.data
+    }
+
+    /// Get budgets with sparse fieldsets (optimized for dashboard)
+    /// Returns only requested aggregates without transactions/budget lines
+    func getBudgetsSparse(
+        fields: String = BudgetService.defaultSparseFields,
+        limit: Int? = nil,
+        year: Int? = nil
+    ) async throws -> [BudgetSparse] {
+        let response: BudgetSparseListResponse = try await apiClient.request(
+            .budgetsSparse(fields: fields, limit: limit, year: year),
             method: .get
         )
         return response.data

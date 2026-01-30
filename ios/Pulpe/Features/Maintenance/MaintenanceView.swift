@@ -27,7 +27,7 @@ struct MaintenanceView: View {
             if let error = errorMessage {
                 Text(error)
                     .font(.footnote)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Color.errorPrimary)
             }
 
             Button {

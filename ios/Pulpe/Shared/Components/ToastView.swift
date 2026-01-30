@@ -10,13 +10,13 @@ struct ToastView: View {
     @State private var animationTask: Task<Void, Never>?
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: toast.type.icon)
-                .font(.system(size: 18, weight: .semibold))
+                .font(PulpeTypography.buttonPrimary)
                 .foregroundStyle(toast.type.color)
 
             Text(toast.message)
-                .font(.system(.subheadline, design: .rounded, weight: .medium))
+                .font(PulpeTypography.buttonSecondary)
                 .foregroundStyle(.primary)
 
             Spacer(minLength: 0)
@@ -25,17 +25,17 @@ struct ToastView: View {
                 dismissWithAnimation()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(PulpeTypography.inputHelper)
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Fermer")
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, 14)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .shadow(color: .black.opacity(0.1), radius: 8, y: 4)
-        .padding(.horizontal, 16)
+        .pulpeFloatingGlass(cornerRadius: DesignTokens.CornerRadius.md)
+        .shadow(DesignTokens.Shadow.toast)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
         .offset(y: offset)
         .opacity(opacity)
         .gesture(
@@ -47,7 +47,7 @@ struct ToastView: View {
                 }
         )
         .onAppear {
-            withAnimation(.spring(duration: 0.4, bounce: 0.3)) {
+            withAnimation(DesignTokens.Animation.toastEntrance) {
                 offset = 0
                 opacity = 1
             }
@@ -61,7 +61,7 @@ struct ToastView: View {
         // Cancel any pending dismiss
         animationTask?.cancel()
 
-        withAnimation(.easeOut(duration: 0.2)) {
+        withAnimation(DesignTokens.Animation.toastDismiss) {
             offset = -100
             opacity = 0
         }

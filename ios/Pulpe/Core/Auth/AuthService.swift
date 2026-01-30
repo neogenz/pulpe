@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import Supabase
 
 /// Authentication service using Supabase Auth directly
@@ -23,7 +24,7 @@ actor AuthService {
         let session = try await supabase.auth.signIn(email: email, password: password)
 
         // Save tokens to keychain for API calls
-        await keychain.saveTokens(
+        try await keychain.saveTokens(
             accessToken: session.accessToken,
             refreshToken: session.refreshToken
         )
@@ -44,7 +45,7 @@ actor AuthService {
         }
 
         // Save tokens to keychain for API calls
-        await keychain.saveTokens(
+        try await keychain.saveTokens(
             accessToken: session.accessToken,
             refreshToken: session.refreshToken
         )
@@ -68,7 +69,7 @@ actor AuthService {
             let session = try await supabase.auth.session
 
             // Refresh tokens in keychain
-            await keychain.saveTokens(
+            try await keychain.saveTokens(
                 accessToken: session.accessToken,
                 refreshToken: session.refreshToken
             )
@@ -90,7 +91,7 @@ actor AuthService {
         do {
             try await supabase.auth.signOut()
         } catch {
-            // Ignore signout errors
+            Logger.auth.error("logout: signOut failed - \(error)")
         }
 
         // Clear local tokens
@@ -104,14 +105,19 @@ actor AuthService {
         // Try to get fresh token from Supabase
         if let session = try? await supabase.auth.session {
             // Update keychain with latest token
-            await keychain.saveTokens(
-                accessToken: session.accessToken,
-                refreshToken: session.refreshToken
-            )
+            do {
+                try await keychain.saveTokens(
+                    accessToken: session.accessToken,
+                    refreshToken: session.refreshToken
+                )
+            } catch {
+                Logger.auth.error("getAccessToken: failed to persist tokens - \(error)")
+            }
             return session.accessToken
         }
 
-        // Fallback to stored token
+        // Supabase session unavailable — fall back to stored token
+        Logger.auth.warning("getAccessToken: Supabase session unavailable, falling back to keychain")
         return await keychain.getAccessToken()
     }
 
@@ -120,10 +126,13 @@ actor AuthService {
     func saveBiometricTokens() async throws {
         let session = try await supabase.auth.session
 
-        await keychain.saveBiometricTokens(
+        let saved = await keychain.saveBiometricTokens(
             accessToken: session.accessToken,
             refreshToken: session.refreshToken
         )
+        if !saved {
+            throw AuthServiceError.biometricSaveFailed
+        }
     }
 
     func validateBiometricSession() async throws -> UserInfo? {
@@ -139,15 +148,18 @@ actor AuthService {
 
         let session = try await supabase.auth.refreshSession(refreshToken: refreshToken)
 
-        await keychain.saveTokens(
+        try await keychain.saveTokens(
             accessToken: session.accessToken,
             refreshToken: session.refreshToken
         )
 
-        await keychain.saveBiometricTokens(
+        let biometricSaved = await keychain.saveBiometricTokens(
             accessToken: session.accessToken,
             refreshToken: session.refreshToken
         )
+        if !biometricSaved {
+            Logger.auth.warning("validateBiometricSession: failed to persist biometric tokens")
+        }
 
         return UserInfo(
             id: session.user.id.uuidString,
@@ -169,6 +181,7 @@ actor AuthService {
 enum AuthServiceError: LocalizedError {
     case signupFailed(String)
     case loginFailed(String)
+    case biometricSaveFailed
 
     var errorDescription: String? {
         switch self {
@@ -176,6 +189,8 @@ enum AuthServiceError: LocalizedError {
             return "L'inscription n'a pas abouti — \(message)"
         case .loginFailed(let message):
             return "La connexion n'a pas abouti — \(message)"
+        case .biometricSaveFailed:
+            return "Les identifiants biométriques n'ont pas pu être enregistrés"
         }
     }
 }

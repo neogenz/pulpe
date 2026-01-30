@@ -51,51 +51,20 @@ struct BudgetSection: View {
 
     var body: some View {
         Section {
-            ForEach(Array(displayedItems.enumerated()), id: \.element.id) { index, item in
-                budgetLineRow(for: item, isFirst: index == 0)
+            TipView(ProductTips.gestures)
+                .frame(maxWidth: .infinity)
+                .fixedSize(horizontal: false, vertical: true)
+                .listRowSeparator(.hidden)
+
+            ForEach(displayedItems) { item in
+                budgetLineRow(for: item)
                     .listRowSeparator(.hidden)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    if !item.isVirtualRollover {
-                        Button {
-                            itemToDelete = item
-                            showDeleteAlert = true
-                            ProductTips.gestures.invalidate(reason: .actionPerformed)
-                        } label: {
-                            Label("Supprimer", systemImage: "trash")
-                        }
-                        .tint(.red)
-
-                        Button {
-                            onToggle(item)
-                            ProductTips.gestures.invalidate(reason: .actionPerformed)
-                        } label: {
-                            Label(
-                                item.isChecked ? "Annuler" : "Comptabiliser",
-                                systemImage: item.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
-                            )
-                        }
-                        .tint(item.isChecked ? .orange : .pulpePrimary)
+                        swipeActions(for: item)
                     }
-                }
             }
 
-            if hasMoreItems {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        isExpanded.toggle()
-                    }
-                } label: {
-                    HStack {
-                        Text(isExpanded ? "Voir moins" : "Voir plus (+\(hiddenItemsCount))")
-                            .font(.subheadline)
-                        Spacer()
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .listRowSeparator(.hidden)
-            }
+            expandCollapseButton
         } header: {
             SectionHeader(
                 title: title,
@@ -120,8 +89,54 @@ struct BudgetSection: View {
     }
 
     @ViewBuilder
-    private func budgetLineRow(for item: BudgetLine, isFirst: Bool) -> some View {
-        let row = BudgetLineRow(
+    private func swipeActions(for item: BudgetLine) -> some View {
+        if !item.isVirtualRollover {
+            Button {
+                itemToDelete = item
+                showDeleteAlert = true
+                ProductTips.gestures.invalidate(reason: .actionPerformed)
+            } label: {
+                Label("Supprimer", systemImage: "trash")
+            }
+            .tint(Color.errorPrimary)
+
+            Button {
+                onToggle(item)
+                ProductTips.gestures.invalidate(reason: .actionPerformed)
+            } label: {
+                Label(
+                    item.isChecked ? "Annuler" : "Comptabiliser",
+                    systemImage: item.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
+                )
+            }
+            .tint(item.isChecked ? Color.financialOverBudget : .pulpePrimary)
+        }
+    }
+
+    private var expandCollapseButton: some View {
+        Group {
+            if hasMoreItems {
+                Button {
+                    withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    HStack {
+                        Text(isExpanded ? "Voir moins" : "Voir plus (+\(hiddenItemsCount))")
+                            .font(.subheadline)
+                        Spacer()
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .listRowSeparator(.hidden)
+            }
+        }
+    }
+
+    private func budgetLineRow(for item: BudgetLine) -> some View {
+        BudgetLineRow(
             line: item,
             consumption: BudgetFormulas.calculateConsumption(for: item, transactions: transactions),
             allTransactions: transactions,
@@ -133,12 +148,6 @@ struct BudgetSection: View {
             },
             onEdit: { onEdit(item) }
         )
-
-        if isFirst {
-            row.popoverTip(ProductTips.gestures)
-        } else {
-            row
-        }
     }
 }
 
@@ -163,13 +172,13 @@ struct BudgetLineRow: View {
     }
 
     private var consumptionColor: Color {
-        if consumption.isOverBudget { return .red }
-        if consumption.isNearLimit { return .orange }
+        if consumption.isOverBudget { return .financialOverBudget }
+        if consumption.isNearLimit { return .financialOverBudget }
         return .pulpePrimary
     }
 
     private var remainingColor: Color {
-        consumption.available < 0 ? .red : line.kind.color
+        consumption.available < 0 ? .financialOverBudget : line.kind.color
     }
 
     private var amountTextColor: Color {
@@ -240,7 +249,7 @@ struct BudgetLineRow: View {
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(Color.accentColor)
                             .frame(width: 28, height: 28)
-                            .background(Color.accentColor.opacity(0.1))
+                            .background(Color.accentColor.opacity(DesignTokens.Opacity.shadow))
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
@@ -260,12 +269,12 @@ struct BudgetLineRow: View {
             onEdit()
         }
         .scaleEffect(isPressed ? 0.97 : 1.0)
-        .animation(.spring(duration: 0.25), value: isPressed)
+        .animation(.spring(duration: DesignTokens.Animation.fast), value: isPressed)
         .onLongPressGesture(
             minimumDuration: 0.4,
             maximumDistance: 10,
             pressing: { pressing in
-                withAnimation(.spring(duration: 0.2)) {
+                withAnimation(.spring(duration: DesignTokens.Animation.fast)) {
                     isPressed = pressing
                 }
             },
@@ -312,11 +321,11 @@ struct BudgetLineRow: View {
                 Rectangle()
                     .fill(consumptionColor)
                     .frame(width: geometry.size.width * CGFloat(min(consumption.percentage / 100, 1)))
-                    .animation(.spring(duration: 0.4), value: consumption.percentage)
+                    .animation(.spring(duration: DesignTokens.Animation.slow), value: consumption.percentage)
             }
         }
         .frame(height: DesignTokens.ProgressBar.height)
-        .clipShape(RoundedRectangle(cornerRadius: 1.5))
+        .clipShape(.rect(cornerRadius: 1.5))
     }
 
     private func handleLongPress() {
@@ -326,7 +335,7 @@ struct BudgetLineRow: View {
 
         if linkedTransactions.isEmpty {
             triggerWarningFeedback.toggle()
-            withAnimation(.spring(duration: 0.2)) {
+            withAnimation(.spring(duration: DesignTokens.Animation.fast)) {
                 isPressed = false
             }
         } else {
@@ -410,5 +419,5 @@ struct BudgetLineRow: View {
     .listStyle(.insetGrouped)
     .listSectionSpacing(16)
     .scrollContentBackground(.hidden)
-    .background(Color(.systemGroupedBackground))
+    .pulpeBackground()
 }

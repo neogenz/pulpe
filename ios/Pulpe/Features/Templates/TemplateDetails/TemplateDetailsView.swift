@@ -53,14 +53,14 @@ struct TemplateDetailsView: View {
             Section {
                 HStack {
                     Label("Revenus", systemImage: "arrow.down.circle")
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Color.financialIncome)
                     Spacer()
                     Text(viewModel.totals.totalIncome.asCHF)
                 }
 
                 HStack {
                     Label("Dépenses", systemImage: "arrow.up.circle")
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Color.financialExpense)
                     Spacer()
                     Text(viewModel.totals.totalExpenses.asCHF)
                 }
@@ -70,7 +70,7 @@ struct TemplateDetailsView: View {
                         .fontWeight(.semibold)
                     Spacer()
                     Text(viewModel.totals.balance.asCHF)
-                        .foregroundStyle(viewModel.totals.balance >= 0 ? .green : .red)
+                        .foregroundStyle(viewModel.totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
                         .fontWeight(.semibold)
                 }
             } header: {
@@ -120,29 +120,30 @@ struct TemplateLineRow: View {
     let onEdit: () -> Void
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(line.name)
-                    .font(.subheadline)
+        Button(action: onEdit) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(line.name)
+                        .font(.subheadline)
 
-                RecurrenceBadge(line.recurrence, style: .compact)
+                    RecurrenceBadge(line.recurrence, style: .compact)
+                }
+
+                Spacer()
+
+                CurrencyText(line.amount)
+                    .foregroundStyle(line.kind.color)
             }
-
-            Spacer()
-
-            CurrencyText(line.amount)
-                .foregroundStyle(line.kind.color)
+            .contentShape(Rectangle())
         }
-        .contentShape(Rectangle())
-        .onTapGesture { onEdit() }
-        .accessibilityAddTraits(.isButton)
+        .buttonStyle(.plain)
         .accessibilityHint("Touche pour modifier")
     }
 }
 
 // MARK: - ViewModel
 
-@Observable
+@Observable @MainActor
 final class TemplateDetailsViewModel {
     let templateId: String
 
@@ -173,7 +174,6 @@ final class TemplateDetailsViewModel {
         lines.filter { $0.kind == .saving }
     }
 
-    @MainActor
     func loadDetails() async {
         isLoading = true
         error = nil
@@ -191,7 +191,6 @@ final class TemplateDetailsViewModel {
         isLoading = false
     }
 
-    @MainActor
     func updateTemplateLine(_ line: TemplateLine) async {
         // Optimistic update
         if let index = lines.firstIndex(where: { $0.id == line.id }) {

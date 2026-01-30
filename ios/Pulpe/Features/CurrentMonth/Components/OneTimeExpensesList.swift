@@ -45,6 +45,48 @@ struct TransactionSection: View {
         return .secondary
     }
 
+    @ViewBuilder
+    private func swipeActions(for transaction: Transaction) -> some View {
+        Button {
+            transactionToDelete = transaction
+            showDeleteAlert = true
+        } label: {
+            Label("Supprimer", systemImage: "trash")
+        }
+        .tint(Color.errorPrimary)
+
+        Button {
+            onToggle(transaction)
+        } label: {
+            Label(
+                transaction.isChecked ? "Annuler" : "Comptabiliser",
+                systemImage: transaction.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
+            )
+        }
+        .tint(transaction.isChecked ? Color.financialOverBudget : .pulpePrimary)
+    }
+
+    @ViewBuilder
+    private var expandCollapseButton: some View {
+        if hasMoreItems {
+            Button {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack {
+                    Text(isExpanded ? "Voir moins" : "Voir plus (+\(hiddenItemsCount))")
+                        .font(.subheadline)
+                    Spacer()
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .listRowSeparator(.hidden)
+        }
+    }
+
     var body: some View {
         Section {
             ForEach(displayedTransactions) { transaction in
@@ -55,43 +97,11 @@ struct TransactionSection: View {
                 )
                     .listRowSeparator(.hidden)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button {
-                            transactionToDelete = transaction
-                            showDeleteAlert = true
-                        } label: {
-                            Label("Supprimer", systemImage: "trash")
-                        }
-                        .tint(.red)
-
-                        Button {
-                            onToggle(transaction)
-                        } label: {
-                            Label(
-                                transaction.isChecked ? "Annuler" : "Comptabiliser",
-                                systemImage: transaction.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
-                            )
-                        }
-                        .tint(transaction.isChecked ? .orange : .pulpePrimary)
+                        swipeActions(for: transaction)
                     }
             }
 
-            if hasMoreItems {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        isExpanded.toggle()
-                    }
-                } label: {
-                    HStack {
-                        Text(isExpanded ? "Voir moins" : "Voir plus (+\(hiddenItemsCount))")
-                            .font(.subheadline)
-                        Spacer()
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .listRowSeparator(.hidden)
-            }
+            expandCollapseButton
         } header: {
             SectionHeader(
                 title: title,
@@ -123,38 +133,39 @@ struct TransactionRow: View {
     let onEdit: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            // Kind icon circle (Revolut-style)
-            kindIconCircle
+        Button(action: onEdit) {
+            HStack(spacing: 12) {
+                // Kind icon circle (Revolut-style)
+                kindIconCircle
 
-            // Main content
-            VStack(alignment: .leading, spacing: 4) {
-                Text(transaction.name)
-                    .font(.system(.body, design: .rounded, weight: .medium))
-                    .foregroundStyle(transaction.isChecked ? .secondary : .primary)
-                    .strikethrough(transaction.isChecked, color: .secondary)
-                    .lineLimit(1)
+                // Main content
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(transaction.name)
+                        .font(.system(.body, design: .rounded, weight: .medium))
+                        .foregroundStyle(transaction.isChecked ? .secondary : .primary)
+                        .strikethrough(transaction.isChecked, color: .secondary)
+                        .lineLimit(1)
 
-                // Date (relative formatting)
-                Text(transaction.transactionDate.relativeFormatted)
-                    .font(.caption)
-                    .foregroundStyle(Color.textTertiary)
+                    // Date (relative formatting)
+                    Text(transaction.transactionDate.relativeFormatted)
+                        .font(.caption)
+                        .foregroundStyle(Color.textTertiary)
+                }
+
+                Spacer(minLength: 8)
+
+                // Sync indicator
+                SyncIndicator(isSyncing: isSyncing)
+
+                // Amount
+                Text(transaction.amount.asCHF)
+                    .font(.system(.callout, design: .rounded, weight: .semibold))
+                    .foregroundStyle(transaction.isChecked ? .secondary : transaction.kind.color)
             }
-
-            Spacer(minLength: 8)
-
-            // Sync indicator
-            SyncIndicator(isSyncing: isSyncing)
-
-            // Amount
-            Text(transaction.amount.asCHF)
-                .font(.system(.callout, design: .rounded, weight: .semibold))
-                .foregroundStyle(transaction.isChecked ? .secondary : transaction.kind.color)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
         }
-        .padding(.vertical, 8)
-        .contentShape(Rectangle())
-        .onTapGesture { onEdit() }
-        .accessibilityAddTraits(.isButton)
+        .buttonStyle(.plain)
         .accessibilityHint("Touche pour modifier")
     }
 
@@ -235,5 +246,5 @@ struct TransactionRow: View {
     .listStyle(.insetGrouped)
     .listSectionSpacing(16)
     .scrollContentBackground(.hidden)
-    .background(Color(.systemGroupedBackground))
+    .pulpeBackground()
 }

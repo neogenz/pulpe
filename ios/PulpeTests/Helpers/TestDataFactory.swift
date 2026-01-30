@@ -65,6 +65,30 @@ enum TestDataFactory {
         )
     }
 
+    // MARK: - BudgetSparse Factory
+
+    static func createBudgetSparse(
+        id: String = "test-sparse-1",
+        month: Int? = 1,
+        year: Int? = 2025,
+        totalExpenses: Decimal? = nil,
+        totalSavings: Decimal? = nil,
+        totalIncome: Decimal? = nil,
+        remaining: Decimal? = nil,
+        rollover: Decimal? = nil
+    ) -> BudgetSparse {
+        BudgetSparse(
+            id: id,
+            month: month,
+            year: year,
+            totalExpenses: totalExpenses,
+            totalSavings: totalSavings,
+            totalIncome: totalIncome,
+            remaining: remaining,
+            rollover: rollover
+        )
+    }
+
     // MARK: - Budget Factory
 
     static func createBudget(

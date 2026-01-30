@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 /// State for the onboarding flow
-@Observable
+@Observable @MainActor
 final class OnboardingState {
     // MARK: - Data
 
@@ -26,7 +26,9 @@ final class OnboardingState {
     var currentStep: OnboardingStep = .welcome
     var isLoading: Bool = false
     var error: Error?
-    var isUserCreated: Bool = false
+    var isMovingForward: Bool = true
+    var signupProgress: SignupProgress = .notStarted
+    var createdTemplateId: String?
 
     // MARK: - Persistence Keys
 
@@ -50,11 +52,14 @@ final class OnboardingState {
     }
 
     var isEmailValid: Bool {
-        email.contains("@") && email.contains(".")
+        let pattern = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/
+        return email.wholeMatch(of: pattern) != nil
     }
 
     var isPasswordValid: Bool {
-        password.count >= 8
+        password.count >= 8 &&
+        password.contains { $0.isUppercase } &&
+        password.contains { $0.isNumber }
     }
 
     var isPasswordConfirmed: Bool {
@@ -94,6 +99,7 @@ final class OnboardingState {
               currentIndex < OnboardingStep.allCases.count - 1 else {
             return
         }
+        isMovingForward = true
         currentStep = OnboardingStep.allCases[currentIndex + 1]
         saveToStorage()
     }
@@ -103,6 +109,7 @@ final class OnboardingState {
               currentIndex > 0 else {
             return
         }
+        isMovingForward = false
         currentStep = OnboardingStep.allCases[currentIndex - 1]
         saveToStorage()
     }
@@ -253,6 +260,14 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
         case .registration: .pulpePrimary
         }
     }
+}
+
+// MARK: - Signup Progress
+
+enum SignupProgress {
+    case notStarted
+    case userCreated
+    case templateCreated(templateId: String)
 }
 
 // MARK: - Storage Data

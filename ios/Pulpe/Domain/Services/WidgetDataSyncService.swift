@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import WidgetKit
 
 actor WidgetDataSyncService {
@@ -12,7 +13,7 @@ actor WidgetDataSyncService {
     func sync(
         budgetsWithDetails: [BudgetWithDetails],
         currentBudgetDetails: BudgetDetails?
-    ) {
+    ) async {
         let calendar = Calendar.current
         let now = Date()
         let currentMonth = calendar.component(.month, from: now)
@@ -59,10 +60,15 @@ actor WidgetDataSyncService {
 
         let didSave = coordinator.save(cache)
 
-        guard didSave else { return }
+        guard didSave else {
+            Logger.sync.warning("WidgetDataSyncService: failed to save widget cache")
+            return
+        }
 
-        WidgetCenter.shared.reloadTimelines(ofKind: Self.currentMonthWidgetKind)
-        WidgetCenter.shared.reloadTimelines(ofKind: Self.yearOverviewWidgetKind)
+        await MainActor.run {
+            WidgetCenter.shared.reloadTimelines(ofKind: Self.currentMonthWidgetKind)
+            WidgetCenter.shared.reloadTimelines(ofKind: Self.yearOverviewWidgetKind)
+        }
     }
 
     private nonisolated func buildYearBudgets(

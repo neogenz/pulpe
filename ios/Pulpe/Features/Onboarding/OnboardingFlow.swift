@@ -3,17 +3,18 @@ import SwiftUI
 /// Main onboarding flow coordinator
 struct OnboardingFlow: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var state = OnboardingState()
 
     var body: some View {
         NavigationStack {
             ZStack {
-                // Enhanced background
-                Color.onboardingBackground
+                // Premium gradient background for Liquid Glass
+                Color.appPremiumBackground
                     .ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    // New segmented progress indicator (except welcome)
+                    // Segmented progress indicator (except welcome)
                     if state.currentStep.showProgressBar {
                         OnboardingProgressIndicator(
                             currentStep: state.currentStep,
@@ -22,44 +23,55 @@ struct OnboardingFlow: View {
                         .transition(.opacity.combined(with: .move(edge: .top)))
                     }
 
-                    // Step content with smooth transitions
-                    TabView(selection: $state.currentStep) {
-                        WelcomeStep(state: state)
-                            .tag(OnboardingStep.welcome)
-
-                        PersonalInfoStep(state: state)
-                            .tag(OnboardingStep.personalInfo)
-
-                        IncomeStep(state: state)
-                            .tag(OnboardingStep.income)
-
-                        HousingStep(state: state)
-                            .tag(OnboardingStep.housing)
-
-                        HealthInsuranceStep(state: state)
-                            .tag(OnboardingStep.healthInsurance)
-
-                        PhonePlanStep(state: state)
-                            .tag(OnboardingStep.phonePlan)
-
-                        TransportStep(state: state)
-                            .tag(OnboardingStep.transport)
-
-                        LeasingCreditStep(state: state)
-                            .tag(OnboardingStep.leasingCredit)
-
-                        RegistrationStep(state: state) { user in
-                            appState.completeOnboarding(user: user)
-                        }
-                        .tag(OnboardingStep.registration)
-                    }
-                    .tabViewStyle(.page(indexDisplayMode: .never))
-                    .scrollDisabled(true)
+                    // Step content — no TabView so swipe is impossible
+                    stepContent
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .id(state.currentStep)
+                        .transition(stepTransition)
                 }
             }
-            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
             .animation(PulpeAnimations.stepTransition, value: state.currentStep)
         }
+    }
+
+    // MARK: - Step Content
+
+    @ViewBuilder
+    private var stepContent: some View {
+        switch state.currentStep {
+        case .welcome:
+            WelcomeStep(state: state)
+        case .personalInfo:
+            PersonalInfoStep(state: state)
+        case .income:
+            IncomeStep(state: state)
+        case .housing:
+            HousingStep(state: state)
+        case .healthInsurance:
+            HealthInsuranceStep(state: state)
+        case .phonePlan:
+            PhonePlanStep(state: state)
+        case .transport:
+            TransportStep(state: state)
+        case .leasingCredit:
+            LeasingCreditStep(state: state)
+        case .registration:
+            RegistrationStep(state: state) { user in
+                appState.completeOnboarding(user: user)
+            }
+        }
+    }
+
+    /// Slide from trailing when advancing, from leading when going back
+    private var stepTransition: AnyTransition {
+        if reduceMotion {
+            return .opacity
+        }
+        return .asymmetric(
+            insertion: .move(edge: state.isMovingForward ? .trailing : .leading),
+            removal: .move(edge: state.isMovingForward ? .leading : .trailing)
+        )
     }
 }
 
@@ -72,6 +84,7 @@ struct OnboardingStepView<Content: View>: View {
     let onNext: () -> Void
     @ViewBuilder let content: () -> Content
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var contentOpacity: Double = 0
     @State private var contentOffset: CGFloat = 20
 
@@ -113,12 +126,17 @@ struct OnboardingStepView<Content: View>: View {
                 onBack: { state.previousStep() }
             )
         }
-        .background(Color.onboardingBackground)
+        .background(Color.clear)
         .dismissKeyboardOnTap()
         .onAppear {
-            withAnimation(.easeOut(duration: 0.4).delay(0.2)) {
+            if reduceMotion {
                 contentOpacity = 1
                 contentOffset = 0
+            } else {
+                withAnimation(.easeOut(duration: 0.4).delay(0.2)) {
+                    contentOpacity = 1
+                    contentOffset = 0
+                }
             }
         }
     }

@@ -8,13 +8,13 @@ final class BudgetDetailsViewModelFilterTests: XCTestCase {
 
     private var viewModel: BudgetDetailsViewModel!
 
-    override func setUp() async throws {
+    override func setUp() {
         // Clear UserDefaults to ensure consistent test state
         UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked")
         viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
     }
 
-    override func tearDown() async throws {
+    override func tearDown() {
         UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked")
         viewModel = nil
     }
@@ -82,15 +82,14 @@ final class BudgetDetailsViewModelFilterTests: XCTestCase {
 
 /// Tests for the filtering logic using test data
 /// These tests verify the business rules for filtering budget items
-@MainActor
 final class BudgetDetailsFilterLogicTests: XCTestCase {
 
     // MARK: - Budget Line Filter Rules
 
     func testFilteredIncomeLines_whenUncheckedFilter_excludesCheckedItems() {
         // Given: Budget lines with mixed checked states
-        let uncheckedLine = makeBudgetLine(id: "1", kind: .income, checkedAt: nil)
-        let checkedLine = makeBudgetLine(id: "2", kind: .income, checkedAt: Date())
+        let uncheckedLine = TestDataFactory.createBudgetLine(id: "1", kind: .income)
+        let checkedLine = TestDataFactory.createBudgetLine(id: "2", kind: .income, isChecked: true)
 
         // When: Applying unchecked filter
         let filtered = applyCheckedFilter([uncheckedLine, checkedLine], showOnlyUnchecked: true)
@@ -102,8 +101,8 @@ final class BudgetDetailsFilterLogicTests: XCTestCase {
 
     func testFilteredIncomeLines_whenAllFilter_includesAllItems() {
         // Given: Budget lines with mixed checked states
-        let uncheckedLine = makeBudgetLine(id: "1", kind: .income, checkedAt: nil)
-        let checkedLine = makeBudgetLine(id: "2", kind: .income, checkedAt: Date())
+        let uncheckedLine = TestDataFactory.createBudgetLine(id: "1", kind: .income)
+        let checkedLine = TestDataFactory.createBudgetLine(id: "2", kind: .income, isChecked: true)
 
         // When: Applying "all" filter
         let filtered = applyCheckedFilter([uncheckedLine, checkedLine], showOnlyUnchecked: false)
@@ -114,9 +113,9 @@ final class BudgetDetailsFilterLogicTests: XCTestCase {
 
     func testFilteredExpenseLines_whenUncheckedFilter_excludesCheckedItems() {
         // Given: Expense lines with mixed checked states
-        let unchecked1 = makeBudgetLine(id: "1", kind: .expense, checkedAt: nil)
-        let unchecked2 = makeBudgetLine(id: "2", kind: .expense, checkedAt: nil)
-        let checked = makeBudgetLine(id: "3", kind: .expense, checkedAt: Date())
+        let unchecked1 = TestDataFactory.createBudgetLine(id: "1", kind: .expense)
+        let unchecked2 = TestDataFactory.createBudgetLine(id: "2", kind: .expense)
+        let checked = TestDataFactory.createBudgetLine(id: "3", kind: .expense, isChecked: true)
 
         // When: Applying unchecked filter
         let filtered = applyCheckedFilter([unchecked1, unchecked2, checked], showOnlyUnchecked: true)
@@ -128,8 +127,8 @@ final class BudgetDetailsFilterLogicTests: XCTestCase {
 
     func testFilteredSavingLines_whenUncheckedFilter_excludesCheckedItems() {
         // Given: Saving lines with mixed checked states
-        let unchecked = makeBudgetLine(id: "1", kind: .saving, checkedAt: nil)
-        let checked = makeBudgetLine(id: "2", kind: .saving, checkedAt: Date())
+        let unchecked = TestDataFactory.createBudgetLine(id: "1", kind: .saving)
+        let checked = TestDataFactory.createBudgetLine(id: "2", kind: .saving, isChecked: true)
 
         // When: Applying unchecked filter
         let filtered = applyCheckedFilter([unchecked, checked], showOnlyUnchecked: true)
@@ -143,8 +142,8 @@ final class BudgetDetailsFilterLogicTests: XCTestCase {
 
     func testFilteredFreeTransactions_whenUncheckedFilter_excludesCheckedTransactions() {
         // Given: Free transactions with mixed checked states
-        let uncheckedTx = makeTransaction(id: "1", budgetLineId: nil, checkedAt: nil)
-        let checkedTx = makeTransaction(id: "2", budgetLineId: nil, checkedAt: Date())
+        let uncheckedTx = TestDataFactory.createTransaction(id: "1")
+        let checkedTx = TestDataFactory.createTransaction(id: "2", isChecked: true)
 
         // When: Applying unchecked filter
         let filtered = applyCheckedFilterToTransactions([uncheckedTx, checkedTx], showOnlyUnchecked: true)
@@ -156,8 +155,8 @@ final class BudgetDetailsFilterLogicTests: XCTestCase {
 
     func testFilteredFreeTransactions_whenAllFilter_includesAllTransactions() {
         // Given: Free transactions with mixed checked states
-        let uncheckedTx = makeTransaction(id: "1", budgetLineId: nil, checkedAt: nil)
-        let checkedTx = makeTransaction(id: "2", budgetLineId: nil, checkedAt: Date())
+        let uncheckedTx = TestDataFactory.createTransaction(id: "1")
+        let checkedTx = TestDataFactory.createTransaction(id: "2", isChecked: true)
 
         // When: Applying "all" filter
         let filtered = applyCheckedFilterToTransactions([uncheckedTx, checkedTx], showOnlyUnchecked: false)
@@ -181,9 +180,9 @@ final class BudgetDetailsFilterLogicTests: XCTestCase {
 
     func testFilter_withAllUnchecked_returnsAllItems() {
         // Given: All lines are unchecked
-        let line1 = makeBudgetLine(id: "1", kind: .expense, checkedAt: nil)
-        let line2 = makeBudgetLine(id: "2", kind: .expense, checkedAt: nil)
-        let line3 = makeBudgetLine(id: "3", kind: .expense, checkedAt: nil)
+        let line1 = TestDataFactory.createBudgetLine(id: "1", kind: .expense)
+        let line2 = TestDataFactory.createBudgetLine(id: "2", kind: .expense)
+        let line3 = TestDataFactory.createBudgetLine(id: "3", kind: .expense)
 
         // When: Applying unchecked filter
         let filtered = applyCheckedFilter([line1, line2, line3], showOnlyUnchecked: true)
@@ -194,8 +193,8 @@ final class BudgetDetailsFilterLogicTests: XCTestCase {
 
     func testFilter_withAllChecked_returnsEmptyList() {
         // Given: All lines are checked
-        let line1 = makeBudgetLine(id: "1", kind: .expense, checkedAt: Date())
-        let line2 = makeBudgetLine(id: "2", kind: .expense, checkedAt: Date())
+        let line1 = TestDataFactory.createBudgetLine(id: "1", kind: .expense, isChecked: true)
+        let line2 = TestDataFactory.createBudgetLine(id: "2", kind: .expense, isChecked: true)
 
         // When: Applying unchecked filter
         let filtered = applyCheckedFilter([line1, line2], showOnlyUnchecked: true)
@@ -217,36 +216,4 @@ final class BudgetDetailsFilterLogicTests: XCTestCase {
         return transactions.filter { $0.checkedAt == nil }
     }
 
-    private func makeBudgetLine(id: String, kind: TransactionKind, checkedAt: Date?) -> BudgetLine {
-        BudgetLine(
-            id: id,
-            budgetId: "test-budget",
-            templateLineId: nil,
-            savingsGoalId: nil,
-            name: "Test Line",
-            amount: 100,
-            kind: kind,
-            recurrence: .fixed,
-            isManuallyAdjusted: false,
-            checkedAt: checkedAt,
-            createdAt: Date(),
-            updatedAt: Date()
-        )
-    }
-
-    private func makeTransaction(id: String, budgetLineId: String?, checkedAt: Date?) -> Transaction {
-        Transaction(
-            id: id,
-            budgetId: "test-budget",
-            budgetLineId: budgetLineId,
-            name: "Test Transaction",
-            amount: 50,
-            kind: .expense,
-            transactionDate: Date(),
-            category: nil,
-            checkedAt: checkedAt,
-            createdAt: Date(),
-            updatedAt: Date()
-        )
-    }
 }

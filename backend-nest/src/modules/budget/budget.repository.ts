@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import type { BudgetUpdate } from 'pulpe-shared';
+import type { BudgetUpdate, TransactionKind } from 'pulpe-shared';
 import type { Tables } from '../../types/database.types';
 import type { PostgrestError } from '@supabase/supabase-js';
 
@@ -38,10 +39,24 @@ interface BudgetDataResult {
 }
 
 /**
+ * Aggregated totals for a budget
+ */
+export interface BudgetAggregates {
+  totalExpenses: number;
+  totalSavings: number;
+  totalIncome: number;
+}
+
+/**
  * Handles all data access operations for budgets
  */
 @Injectable()
 export class BudgetRepository {
+  constructor(
+    @InjectInfoLogger(BudgetRepository.name)
+    private readonly logger: InfoLogger,
+  ) {}
+
   /**
    * Fetches a single budget by ID
    * @param id - Budget ID
@@ -312,5 +327,76 @@ export class BudgetRepository {
     }
 
     return response;
+  }
+
+  /**
+   * Fetches aggregated totals for multiple budgets in batch
+   * Calculates totalExpenses, totalSavings, totalIncome from budget_lines and transactions
+   * @param budgetIds - Array of budget IDs
+   * @param supabase - Authenticated Supabase client
+   * @returns Map of budget ID to aggregates
+   */
+  async fetchBudgetAggregates(
+    budgetIds: string[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Map<string, BudgetAggregates>> {
+    const aggregatesMap = new Map<string, BudgetAggregates>();
+
+    if (budgetIds.length === 0) {
+      return aggregatesMap;
+    }
+
+    for (const budgetId of budgetIds) {
+      aggregatesMap.set(budgetId, {
+        totalExpenses: 0,
+        totalSavings: 0,
+        totalIncome: 0,
+      });
+    }
+
+    try {
+      const [budgetLinesResult, transactionsResult] = await Promise.all([
+        supabase
+          .from('budget_line')
+          .select('budget_id, kind, amount')
+          .in('budget_id', budgetIds),
+        supabase
+          .from('transaction')
+          .select('budget_id, kind, amount')
+          .in('budget_id', budgetIds),
+      ]);
+
+      this.accumulateAmounts(budgetLinesResult.data ?? [], aggregatesMap);
+      this.accumulateAmounts(transactionsResult.data ?? [], aggregatesMap);
+    } catch (error) {
+      this.logger.warn('Failed to fetch budget aggregates, returning zeros', {
+        budgetIds,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    return aggregatesMap;
+  }
+
+  private accumulateAmounts(
+    items: Array<{ budget_id: string; kind: TransactionKind; amount: number }>,
+    aggregatesMap: Map<string, BudgetAggregates>,
+  ): void {
+    for (const item of items) {
+      const aggregates = aggregatesMap.get(item.budget_id);
+      if (!aggregates) continue;
+
+      switch (item.kind) {
+        case 'expense':
+          aggregates.totalExpenses += item.amount;
+          break;
+        case 'saving':
+          aggregates.totalSavings += item.amount;
+          break;
+        case 'income':
+          aggregates.totalIncome += item.amount;
+          break;
+      }
+    }
   }
 }

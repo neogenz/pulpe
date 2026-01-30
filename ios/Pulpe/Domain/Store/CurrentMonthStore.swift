@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 @Observable @MainActor
 final class CurrentMonthStore: StoreProtocol {
@@ -57,13 +58,20 @@ final class CurrentMonthStore: StoreProtocol {
         error = nil
 
         do {
-            let budgets = try await budgetService.getAllBudgets()
+            let sparseBudgets = try await budgetService.getBudgetsSparse(
+                fields: "month,year",
+                limit: 13
+            )
             let calendar = Calendar.current
             let now = Date()
             let currentMonth = calendar.component(.month, from: now)
             let currentYear = calendar.component(.year, from: now)
 
-            budget = budgets.first { $0.month == currentMonth && $0.year == currentYear }
+            guard let match = sparseBudgets.first(where: {
+                $0.month == currentMonth && $0.year == currentYear
+            }) else { return }
+
+            budget = try await budgetService.getBudget(id: match.id)
         } catch {
             self.error = error
         }
@@ -137,9 +145,7 @@ final class CurrentMonthStore: StoreProtocol {
                 currentBudgetDetails: details
             )
         } catch {
-            #if DEBUG
-            print("syncWidgetData: exportAllBudgets failed - \(error)")
-            #endif
+            Logger.sync.error("syncWidgetData: exportAllBudgets failed - \(error)")
             await widgetSyncService.sync(
                 budgetsWithDetails: [],
                 currentBudgetDetails: details
@@ -209,6 +215,14 @@ final class CurrentMonthStore: StoreProtocol {
                 return (line, consumption)
             }
             .sorted { $0.1.percentage > $1.1.percentage }
+    }
+
+    /// Top expense transaction by amount (linked or free)
+    var topSpending: (name: String, amount: Decimal, totalExpenses: Decimal)? {
+        guard let top = transactions.filter({ $0.kind == .expense }).max(by: { $0.amount < $1.amount }) else {
+            return nil
+        }
+        return (name: top.name, amount: top.amount, totalExpenses: metrics.totalExpenses)
     }
 
     /// 5 most recent transactions (all types)
