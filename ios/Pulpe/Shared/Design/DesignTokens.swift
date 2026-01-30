@@ -165,6 +165,13 @@ enum DesignTokens {
         static let separator: CGFloat = 1
     }
 
+    // MARK: - Amount Input
+
+    enum AmountInput {
+        static let quickAmounts = [10, 15, 20, 30]
+        static let currencyCode = "CHF"
+    }
+
     // MARK: - Progress Bar
 
     enum ProgressBar {

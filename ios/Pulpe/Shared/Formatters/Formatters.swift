@@ -23,6 +23,15 @@ enum Formatters {
         return f
     }()
 
+    static let amountInput: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.minimumFractionDigits = 0
+        f.maximumFractionDigits = 2
+        f.groupingSeparator = "'"
+        return f
+    }()
+
     static let percentage: NumberFormatter = {
         let f = NumberFormatter()
         f.numberStyle = .percent

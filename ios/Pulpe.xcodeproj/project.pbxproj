@@ -15,6 +15,7 @@
 		0439BC81EC87CB64E4D2A804 /* StoreProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C32141CA4F575218D6B417EF /* StoreProtocol.swift */; };
 		0ED5E397D5D72B1D9A1F5421 /* TestDataFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 162414A0A3971BB9C2DC434B /* TestDataFactory.swift */; };
 		102AE579FE67D6F209FD2CF4 /* BudgetListStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13C1CFD332A0AB9A168D1A6F /* BudgetListStore.swift */; };
+		11FAC305478C80D495BDE0E0 /* StringParsedAsAmountTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28F77BA6BE7228F88ED96032 /* StringParsedAsAmountTests.swift */; };
 		1623C2D7A07E71A04BAF5EB9 /* View+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7A8C7ACFFD4118A786F4A2C /* View+Extensions.swift */; };
 		194F56EEAE3B2C2EF5B15A3A /* PhonePlanStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6D73BC1D11C6EC1A1E313C /* PhonePlanStep.swift */; };
 		19A14676593410AFA5021013 /* Decimal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BE2934837CC4349E12F1EE2 /* Decimal+Extensions.swift */; };
@@ -216,6 +217,7 @@
 		24760BF421846CAFAD51DF62 /* TransportStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportStep.swift; sourceTree = "<group>"; };
 		27F72011B11153235E828030 /* BudgetTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetTemplate.swift; sourceTree = "<group>"; };
 		2880F0C22312339FA0DA2633 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		28F77BA6BE7228F88ED96032 /* StringParsedAsAmountTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringParsedAsAmountTests.swift; sourceTree = "<group>"; };
 		2947DBEF8A6264E9FF73AEDA /* RecurringExpensesList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecurringExpensesList.swift; sourceTree = "<group>"; };
 		29D91A4D1401A217165EAD49 /* CreateBudgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateBudgetView.swift; sourceTree = "<group>"; };
 		2D05E8BCE893AAA486F2F8BE /* AddBudgetLineSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBudgetLineSheet.swift; sourceTree = "<group>"; };
@@ -394,6 +396,7 @@
 			isa = PBXGroup;
 			children = (
 				CAEE16A3F433B50FF474CC42 /* MonthYearTests.swift */,
+				28F77BA6BE7228F88ED96032 /* StringParsedAsAmountTests.swift */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
@@ -1176,6 +1179,7 @@
 				9E4C5D319DB85E349A7923AF /* DesignTokensTests.swift in Sources */,
 				E6E71E80DF877A5B12551898 /* MonthYearTests.swift in Sources */,
 				E8DEE99514F84114E6915A37 /* OnboardingStateTests.swift in Sources */,
+				11FAC305478C80D495BDE0E0 /* StringParsedAsAmountTests.swift in Sources */,
 				0ED5E397D5D72B1D9A1F5421 /* TestDataFactory.swift in Sources */,
 				22145E1D27F9CDDAC582B2D7 /* TransactionTests.swift in Sources */,
 			);
