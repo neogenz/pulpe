@@ -7,6 +7,7 @@ import {
   MAT_BOTTOM_SHEET_DATA,
   MatBottomSheetRef,
 } from '@angular/material/bottom-sheet';
+import { getBudgetPeriodForDate } from 'pulpe-shared';
 import { CreateAllocatedTransactionBottomSheet } from './create-allocated-transaction-bottom-sheet';
 import type { CreateAllocatedTransactionDialogData } from './create-allocated-transaction-dialog';
 
@@ -25,6 +26,9 @@ const createDialogData = (
     rolloverSourceBudgetId: undefined,
     ...overrides,
   } as CreateAllocatedTransactionDialogData['budgetLine'],
+  budgetMonth: new Date().getMonth() + 1,
+  budgetYear: new Date().getFullYear(),
+  payDayOfMonth: null,
 });
 
 describe('CreateAllocatedTransactionBottomSheet', () => {
@@ -156,6 +160,87 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
       expect(component.form.get('transactionDate')?.hasError('required')).toBe(
         true,
       );
+    });
+  });
+
+  describe('date constraints for current month', () => {
+    it('should set minDate and maxDate when budget is current month', () => {
+      expect(component.isCurrentMonth).toBe(true);
+      expect(component.minDate).toBeDefined();
+      expect(component.maxDate).toBeDefined();
+      expect(component.minDate!.getTime()).toBeLessThanOrEqual(
+        component.maxDate!.getTime(),
+      );
+    });
+
+    it('should not set date constraints when budget is past month', async () => {
+      const pastData: CreateAllocatedTransactionDialogData = {
+        ...createDialogData(),
+        budgetMonth: 1,
+        budgetYear: 2020,
+      };
+
+      const pastRef = { dismiss: vi.fn() };
+
+      await TestBed.resetTestingModule()
+        .configureTestingModule({
+          imports: [CreateAllocatedTransactionBottomSheet],
+          providers: [
+            provideZonelessChangeDetection(),
+            provideAnimationsAsync(),
+            provideNativeDateAdapter(),
+            { provide: MAT_BOTTOM_SHEET_DATA, useValue: pastData },
+            { provide: MatBottomSheetRef, useValue: pastRef },
+          ],
+        })
+        .compileComponents();
+
+      const pastComponent = TestBed.createComponent(
+        CreateAllocatedTransactionBottomSheet,
+      ).componentInstance;
+
+      expect(pastComponent.isCurrentMonth).toBe(false);
+      expect(pastComponent.minDate).toBeUndefined();
+      expect(pastComponent.maxDate).toBeUndefined();
+    });
+
+    it('should respect custom payDayOfMonth', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2025, 5, 27));
+
+      const currentPeriod = getBudgetPeriodForDate(new Date(), 25);
+      const customPayDayData: CreateAllocatedTransactionDialogData = {
+        ...createDialogData(),
+        budgetMonth: currentPeriod.month,
+        budgetYear: currentPeriod.year,
+        payDayOfMonth: 25,
+      };
+
+      const customRef = { dismiss: vi.fn() };
+
+      await TestBed.resetTestingModule()
+        .configureTestingModule({
+          imports: [CreateAllocatedTransactionBottomSheet],
+          providers: [
+            provideZonelessChangeDetection(),
+            provideAnimationsAsync(),
+            provideNativeDateAdapter(),
+            { provide: MAT_BOTTOM_SHEET_DATA, useValue: customPayDayData },
+            { provide: MatBottomSheetRef, useValue: customRef },
+          ],
+        })
+        .compileComponents();
+
+      const customComponent = TestBed.createComponent(
+        CreateAllocatedTransactionBottomSheet,
+      ).componentInstance;
+
+      expect(customComponent.isCurrentMonth).toBe(true);
+      expect(customComponent.minDate).toBeDefined();
+      expect(customComponent.maxDate).toBeDefined();
+      expect(customComponent.minDate!.getDate()).toBe(25);
+
+      vi.useRealTimers();
     });
   });
 });

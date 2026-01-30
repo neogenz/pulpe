@@ -10,11 +10,15 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import type { BudgetLine, TransactionCreate } from 'pulpe-shared';
+import { type BudgetLine, type TransactionCreate } from 'pulpe-shared';
 import { formatLocalDate } from '@core/date/format-local-date';
+import { computeBudgetPeriodDateConstraints } from './budget-period-date-constraints';
 
 export interface CreateAllocatedTransactionDialogData {
   budgetLine: BudgetLine;
+  budgetMonth: number;
+  budgetYear: number;
+  payDayOfMonth: number | null;
 }
 
 @Component({
@@ -84,11 +88,17 @@ export interface CreateAllocatedTransactionDialogData {
           <input
             matInput
             [matDatepicker]="picker"
+            [min]="minDate"
+            [max]="maxDate"
             formControlName="transactionDate"
             data-testid="transaction-date"
+            readonly
           />
           <mat-datepicker-toggle matIconSuffix [for]="picker" />
           <mat-datepicker #picker />
+          @if (isCurrentMonth) {
+            <mat-hint>Doit être dans la période en cours</mat-hint>
+          }
           @if (
             form.get('transactionDate')?.hasError('required') &&
             form.get('transactionDate')?.touched
@@ -122,6 +132,15 @@ export class CreateAllocatedTransactionDialog {
     MatDialogRef<CreateAllocatedTransactionDialog, TransactionCreate>,
   );
   readonly #fb = inject(FormBuilder);
+
+  readonly #dateConstraints = computeBudgetPeriodDateConstraints(
+    this.data.budgetMonth,
+    this.data.budgetYear,
+    this.data.payDayOfMonth,
+  );
+  readonly isCurrentMonth = this.#dateConstraints.isCurrentMonth;
+  readonly minDate = this.#dateConstraints.minDate;
+  readonly maxDate = this.#dateConstraints.maxDate;
 
   readonly form = this.#fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
