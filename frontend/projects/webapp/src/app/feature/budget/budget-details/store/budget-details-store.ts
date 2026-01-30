@@ -10,8 +10,8 @@ import {
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetCache } from '@core/budget/budget-cache';
 import { Logger } from '@core/logging/logger';
-import { StorageService } from '@core/storage/storage.service';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
+import { StorageService } from '@core/storage/storage.service';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import {
   type BudgetLine,
@@ -49,15 +49,14 @@ export class BudgetDetailsStore {
   readonly #logger = inject(Logger);
   readonly #storage = inject(StorageService);
 
-  // Serialization chain for toggle operations only.
-  // Toggles cascade to multiple API calls (budget line + child transactions)
-  // that must execute sequentially to maintain consistency.
-  // CRUD mutations don't need serialization: they use resource.update() callbacks
-  // which always read current state, making them inherently race-safe.
-  #mutationChain = Promise.resolve();
+  // Serializes toggle API calls that cascade to child transactions.
+  #toggleQueue = Promise.resolve();
 
   // Single source of truth - private state signal for non-resource data
   readonly #state = createInitialBudgetDetailsState();
+
+  // Cached data for instant display before resource resolves
+  readonly #immediateValue = signal<BudgetDetailsViewModel | null>(null);
 
   // Filter state - show only unchecked items by default
   readonly #isShowingOnlyUnchecked = signal<boolean>(
@@ -76,9 +75,9 @@ export class BudgetDetailsStore {
   }
 
   #enqueue<T>(operation: () => Promise<T>): Promise<T> {
-    const result = this.#mutationChain.then(() => operation());
+    const result = this.#toggleQueue.then(() => operation());
     // Swallow errors so the chain stays alive for subsequent operations
-    this.#mutationChain = result.catch(() => undefined).then(() => undefined);
+    this.#toggleQueue = result.catch(() => undefined).then(() => undefined);
     return result;
   }
 
@@ -98,7 +97,7 @@ export class BudgetDetailsStore {
           ...cached.budget,
           budgetLines: cached.budgetLines,
           transactions: cached.transactions,
-        };
+        } satisfies BudgetDetailsViewModel;
       }
 
       // If cache is currently loading this budget, wait for it
@@ -109,7 +108,7 @@ export class BudgetDetailsStore {
             ...entry.budget,
             budgetLines: entry.budgetLines,
             transactions: entry.transactions,
-          };
+          } satisfies BudgetDetailsViewModel;
         }
         // Cache load failed or timed out — fall through to direct API call
       }
@@ -133,10 +132,17 @@ export class BudgetDetailsStore {
   });
 
   // Computed pour l'état dérivé
-  readonly budgetDetails = computed(
-    () => this.#budgetDetailsResource.value() ?? null,
-  );
+  // Read both signals eagerly so Angular tracks both as dependencies,
+  // regardless of nullish-coalescing short-circuit.
+  readonly budgetDetails = computed(() => {
+    const resourceValue = this.#budgetDetailsResource.value();
+    const cachedValue = this.#immediateValue();
+    return resourceValue ?? cachedValue ?? null;
+  });
   readonly isLoading = computed(() => this.#budgetDetailsResource.isLoading());
+  readonly isInitialLoading = computed(
+    () => this.#budgetDetailsResource.isLoading() && !this.budgetDetails(),
+  );
   readonly hasValue = computed(() => this.#budgetDetailsResource.hasValue());
   readonly error = computed(
     () => this.#budgetDetailsResource.error() || this.#state.errorMessage(),
@@ -216,6 +222,18 @@ export class BudgetDetailsStore {
   }
 
   setBudgetId(budgetId: string): void {
+    // Seed cached data for instant display before resource loader runs
+    const cached = this.#budgetCache.getBudgetDetails(budgetId);
+    this.#immediateValue.set(
+      cached
+        ? {
+            ...cached.budget,
+            budgetLines: cached.budgetLines,
+            transactions: cached.transactions,
+          }
+        : null,
+    );
+
     this.#state.budgetId.set(budgetId);
     // Reset rollover checked state when changing budget (checked by default)
     this.#state.rolloverCheckedAt.set(new Date().toISOString());

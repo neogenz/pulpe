@@ -42,10 +42,15 @@ export class TemplateDetailsStore {
     },
   });
 
-  // SWR with computed(): fresh data takes priority, fallback to stale
-  // Conforms to Angular 21 guidelines: "Derived read-only state" → computed()
+  // SWR with computed(): fresh data takes priority, fallback to stale.
+  // Read both signals eagerly so Angular tracks both as dependencies,
+  // regardless of nullish-coalescing short-circuit.
   readonly templateDetails = computed<BudgetTemplateDetailViewModel | null>(
-    () => this.#templateDetailsResource.value() ?? this.#staleData(),
+    () => {
+      const freshValue = this.#templateDetailsResource.value();
+      const staleValue = this.#staleData();
+      return freshValue ?? staleValue ?? null;
+    },
   );
 
   // Loading hidden if stale data available (smooth UX)

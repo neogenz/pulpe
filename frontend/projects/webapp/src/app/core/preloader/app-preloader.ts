@@ -1,15 +1,12 @@
 import { effect, inject, Injectable, untracked } from '@angular/core';
 import { AuthStateService } from '../auth/auth-state.service';
-import { UserSettingsApi } from '../user-settings/user-settings-api';
 import { BudgetCache } from '../budget/budget-cache';
 import { TemplateCache } from '../template/template-cache';
 import { Logger } from '../logging/logger';
-import { getBudgetPeriodForDate } from 'pulpe-shared';
 
 @Injectable({ providedIn: 'root' })
 export class AppPreloader {
   readonly #authState = inject(AuthStateService);
-  readonly #userSettings = inject(UserSettingsApi);
   readonly #budgetCache = inject(BudgetCache);
   readonly #templateCache = inject(TemplateCache);
   readonly #logger = inject(Logger);
@@ -42,18 +39,9 @@ export class AppPreloader {
         this.#templateCache.preloadAll(),
       ]);
 
-      // Phase 2: Preload current month budget details
+      // Phase 2: Preload all budget details in parallel
       if (budgets.length > 0) {
-        const payDay = this.#userSettings.payDayOfMonth();
-        const period = getBudgetPeriodForDate(new Date(), payDay);
-
-        const currentMonthBudget = budgets.find(
-          (b) => b.month === period.month && b.year === period.year,
-        );
-
-        if (currentMonthBudget) {
-          await this.#budgetCache.preloadBudgetDetails([currentMonthBudget.id]);
-        }
+        await this.#budgetCache.preloadBudgetDetails(budgets.map((b) => b.id));
       }
 
       this.#logger.debug('[AppPreloader] Background preload complete');

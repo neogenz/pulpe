@@ -11,6 +11,7 @@ import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
 
 import { BudgetDetailsStore } from './budget-details-store';
 import { BudgetApi } from '@core/budget/budget-api';
+import { BudgetCache } from '@core/budget/budget-cache';
 import { BudgetLineApi } from '../budget-line-api/budget-line-api';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { Logger } from '@core/logging/logger';
@@ -69,6 +70,7 @@ const mockBudgetDetailsResponse = createMockBudgetDetailsResponse({
 describe('BudgetDetailsStore - User Behavior Tests', () => {
   let service: BudgetDetailsStore;
   let httpMock: HttpTestingController;
+  let budgetCache: BudgetCache;
   let mockBudgetApi: {
     getBudgetWithDetails$: ReturnType<typeof vi.fn>;
   };
@@ -168,6 +170,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
     service = TestBed.inject(BudgetDetailsStore);
     httpMock = TestBed.inject(HttpTestingController);
+    budgetCache = TestBed.inject(BudgetCache);
   });
 
   afterEach(() => {
@@ -1178,6 +1181,50 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       // Total items: 3 budget lines + 2 transactions = 5
       expect(service.totalItemsCount()).toBe(5);
+    });
+  });
+
+  describe('Cache-first loading', () => {
+    it('displays cached budget instantly without initial loading state', async () => {
+      // Pre-populate cache with budget details
+      await budgetCache.preloadBudgetDetails([mockBudgetId]);
+      TestBed.tick();
+
+      // User navigates to cached budget
+      service.setBudgetId(mockBudgetId);
+
+      // Budget data is available immediately via cache
+      expect(service.budgetDetails()).toBeDefined();
+      expect(service.budgetDetails()?.id).toBe(mockBudgetId);
+      expect(service.isInitialLoading()).toBe(false);
+    });
+
+    it('shows initial loading when budget is not cached', () => {
+      // No cache populated — user navigates to a budget
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+
+      // No cached data available, so isInitialLoading should be true
+      // (resource is loading and budgetDetails is null)
+      expect(service.budgetDetails()).toBeNull();
+      expect(service.isInitialLoading()).toBe(true);
+    });
+
+    it('resolves to fresh data after cache-first display', async () => {
+      // Pre-populate cache
+      await budgetCache.preloadBudgetDetails([mockBudgetId]);
+      TestBed.tick();
+
+      // Navigate to budget (cache hit provides instant data)
+      service.setBudgetId(mockBudgetId);
+      expect(service.budgetDetails()).toBeDefined();
+
+      // Wait for resource to resolve with fresh data
+      await waitForResourceStable();
+
+      // Resource has resolved — data still present
+      expect(service.budgetDetails()).toBeDefined();
+      expect(service.budgetDetails()?.budgetLines).toHaveLength(2);
     });
   });
 

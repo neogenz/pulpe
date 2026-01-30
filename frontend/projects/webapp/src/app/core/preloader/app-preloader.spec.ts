@@ -3,7 +3,6 @@ import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { AppPreloader } from './app-preloader';
 import { AuthStateService } from '../auth/auth-state.service';
-import { UserSettingsApi } from '../user-settings/user-settings-api';
 import { BudgetCache } from '../budget/budget-cache';
 import { TemplateCache } from '../template/template-cache';
 import { Logger } from '../logging/logger';
@@ -11,7 +10,6 @@ import { Logger } from '../logging/logger';
 describe('AppPreloader', () => {
   let preloader: AppPreloader;
   let mockAuthState: { isAuthenticated: ReturnType<typeof vi.fn> };
-  let mockUserSettings: { payDayOfMonth: ReturnType<typeof vi.fn> };
   let mockBudgetCache: {
     preloadBudgetList: ReturnType<typeof vi.fn>;
     preloadBudgetDetails: ReturnType<typeof vi.fn>;
@@ -32,10 +30,6 @@ describe('AppPreloader', () => {
   beforeEach(() => {
     mockAuthState = {
       isAuthenticated: vi.fn().mockReturnValue(false),
-    };
-
-    mockUserSettings = {
-      payDayOfMonth: vi.fn().mockReturnValue(1),
     };
 
     mockBudgetCache = {
@@ -62,7 +56,6 @@ describe('AppPreloader', () => {
         provideZonelessChangeDetection(),
         AppPreloader,
         { provide: AuthStateService, useValue: mockAuthState },
-        { provide: UserSettingsApi, useValue: mockUserSettings },
         { provide: BudgetCache, useValue: mockBudgetCache },
         { provide: TemplateCache, useValue: mockTemplateCache },
         { provide: Logger, useValue: mockLogger },
