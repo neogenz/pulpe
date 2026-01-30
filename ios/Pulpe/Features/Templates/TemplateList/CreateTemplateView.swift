@@ -185,18 +185,9 @@ struct AddTemplateLineSheet: View {
         !name.trimmingCharacters(in: .whitespaces).isEmpty && (amount ?? 0) > 0
     }
 
-    private static let amountFormatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = 2
-        formatter.groupingSeparator = "'"
-        return formatter
-    }()
-
     private var displayAmount: String {
         if let amount, amount > 0 {
-            return Self.amountFormatter.string(from: amount as NSDecimalNumber) ?? "0"
+            return Formatters.amountInput.string(from: amount as NSDecimalNumber) ?? "0"
         }
         return "0.00"
     }
