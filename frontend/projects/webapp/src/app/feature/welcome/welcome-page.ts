@@ -42,8 +42,16 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
         data-testid="welcome-page"
       >
         <div class="text-center">
+          <div class="hidden md:flex items-center justify-center gap-3 mb-2">
+            <img src="/logo.svg" alt="" class="h-10" />
+            <span
+              class="text-display-medium text-primary dark:text-white font-bold"
+            >
+              Pulpe
+            </span>
+          </div>
           <h1 class="text-headline-large text-on-surface">
-            Tu sais ce qu'il te reste ?
+            Vois clair dans tes finances
           </h1>
 
           @defer (on idle) {
@@ -81,8 +89,8 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
           <p
             class="text-body-large text-on-surface-variant md:leading-relaxed px-4"
           >
-            Pulpe planifie ton année pour que tu saches toujours ce que
-            tu peux dépenser. Sans prise de tête.
+            Pulpe planifie ton année pour que tu saches toujours ce que tu peux
+            dépenser. Sans prise de tête.
           </p>
         </div>
 
@@ -135,7 +143,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
             class="w-full max-w-sm"
             (click)="startDemoMode()"
           >
-            Essayer sans compte — c'est gratuit
+            Essayer gratuitement
           </pulpe-loading-button>
 
           <pulpe-error-alert
