@@ -114,6 +114,7 @@ jobs:
           echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env 2>/dev/null | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"')" >> .env
           # Turnstile verification is skipped in test environment, dummy value is sufficient
           echo "TURNSTILE_SECRET_KEY=ci-test-turnstile-key" >> .env
+          echo "ENCRYPTION_MASTER_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" >> .env
           echo "✅ Environment ready"
 
       - name: 💾 Save Supabase State
@@ -302,6 +303,7 @@ jobs:
           SUPABASE_ANON_KEY: ${{ steps.start-supabase-tests.outputs.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ steps.start-supabase-tests.outputs.SUPABASE_SERVICE_ROLE_KEY }}
           TURNSTILE_SECRET_KEY: ci-test-turnstile-key
+          ENCRYPTION_MASTER_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
       - name: 🧹 Cleanup Supabase
         if: always() && steps.start-supabase-tests.outcome == 'success'
@@ -536,6 +538,7 @@ jobs:
           SUPABASE_ANON_KEY: ${{ steps.start-supabase-performance.outputs.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ steps.start-supabase-performance.outputs.SUPABASE_SERVICE_ROLE_KEY }}
           TURNSTILE_SECRET_KEY: ci-test-turnstile-key
+          ENCRYPTION_MASTER_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
       - name: 🧹 Cleanup Supabase
         if: always() && steps.start-supabase-performance.outcome == 'success'
