@@ -38,62 +38,75 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
       class="min-h-screen pulpe-gradient flex items-center justify-center p-4"
     >
       <div
-        class="w-full max-w-3xl bg-surface rounded-2xl md:p-16 p-8 flex flex-col items-center justify-center gap-6 md:gap-10"
+        class="w-full max-w-lg bg-surface rounded-3xl p-8 md:p-10 flex flex-col items-center shadow-xl"
         data-testid="welcome-page"
       >
-        <div class="text-center">
-          <img
-            src="/logo.svg"
-            alt="Pulpe"
-            class="h-12 md:h-16 mx-auto mb-4"
-          />
-          <h1 class="text-headline-large text-on-surface">
-            Vois clair dans tes finances
-          </h1>
+        <!-- Branding -->
+        <img src="/logo.svg" alt="Pulpe" class="h-14 md:h-16 mb-6" />
 
-          @defer (on idle) {
-            <div class="flex justify-center md:mb-6">
-              <ng-lottie
-                [options]="lottieOptions"
-                class="md:w-80 md:h-80 mt-[-86px] md:mt-[-100px]"
-                style="background: transparent !important;"
-              />
-            </div>
-          } @placeholder {
+        <!-- Eyebrow -->
+        <p
+          class="text-xs font-semibold tracking-widest uppercase text-primary mb-3"
+          style="font-family: 'Poppins', sans-serif"
+        >
+          Budget annuel en 3 minutes
+        </p>
+
+        <!-- Title -->
+        <h1
+          class="text-2xl md:text-4xl font-bold text-on-surface leading-tight text-center mb-2"
+          style="font-family: 'Poppins', sans-serif"
+        >
+          Vois clair dans tes finances
+        </h1>
+
+        <!-- Subtitle -->
+        <p
+          class="text-sm md:text-base text-on-surface-variant text-center leading-relaxed mb-4"
+          style="font-family: 'Poppins', sans-serif"
+        >
+          Planifie ton année, sache toujours ce que tu peux dépenser.
+        </p>
+
+        <!-- Lottie animation -->
+        @defer (on idle) {
+          <div class="flex justify-center mb-6">
+            <ng-lottie
+              [options]="lottieOptions"
+              class="hidden md:block w-60 h-45 md:w-120 md:h-80 -mt-10 md:-mt-18"
+              style="background: transparent !important;"
+            />
+          </div>
+        } @placeholder {
+          <div class="flex justify-center mb-6">
             <div
-              class="flex justify-center mb-6 md:w-80 md:h-80 mt-[-86px] md:mt-[-100px] items-center"
+              class="w-56 h-40 md:w-72 md:h-48 flex items-center justify-center"
             >
               <div
-                class="w-24 h-24 bg-primary/10 rounded-full animate-pulse"
+                class="w-16 h-16 bg-primary/10 rounded-full animate-pulse"
               ></div>
             </div>
-          } @loading {
+          </div>
+        } @loading {
+          <div class="flex justify-center mb-6">
             <div
-              class="flex justify-center mb-6 md:w-80 md:h-80 mt-[-86px] md:mt-[-100px] items-center"
+              class="w-56 h-40 md:w-72 md:h-48 flex items-center justify-center"
             >
               <div
-                class="w-24 h-24 bg-primary/20 rounded-full animate-pulse"
+                class="w-16 h-16 bg-primary/20 rounded-full animate-pulse"
               ></div>
             </div>
-          } @error {
-            <div
-              class="flex justify-center mb-6 md:w-80 md:h-80 mt-[-86px] md:mt-[-100px] items-center"
-            >
-              <span class="text-on-surface-variant text-4xl"></span>
-            </div>
-          }
+          </div>
+        } @error {
+          <div class="flex justify-center mb-6">
+            <div class="w-56 h-40 md:w-72 md:h-48"></div>
+          </div>
+        }
 
-          <p
-            class="text-body-large text-on-surface-variant md:leading-relaxed px-4"
-          >
-            Pulpe planifie ton année pour que tu saches toujours ce que tu peux
-            dépenser. Sans prise de tête.
-          </p>
-        </div>
-
-        <div class="flex gap-4 flex-col items-center justify-center w-full">
+        <!-- CTAs -->
+        <div class="flex flex-col gap-3 w-full">
           <pulpe-google-oauth-button
-            class="w-full max-w-sm"
+            class="w-full"
             buttonType="filled"
             testId="google-oauth-button"
             (authError)="errorMessage.set($event)"
@@ -102,7 +115,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
 
           <button
             matButton="outlined"
-            class="w-full max-w-sm h-12"
+            class="w-full h-12"
             data-testid="email-signup-button"
             [disabled]="isLoading()"
             [routerLink]="['/', ROUTES.SIGNUP]"
@@ -137,49 +150,43 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
             loadingText="Préparation..."
             icon="play_arrow"
             testId="demo-mode-button"
-            class="w-full max-w-sm"
+            class="w-full"
             (click)="startDemoMode()"
           >
             Essayer gratuitement
           </pulpe-loading-button>
 
-          <pulpe-error-alert
-            [message]="errorMessage()"
-            class="w-full max-w-sm"
-          />
-
-          <p
-            class="text-body-small text-on-surface-variant text-center max-w-sm"
-          >
-            En continuant, j'accepte les
-            <a
-              [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
-              target="_blank"
-              class="text-primary underline"
-              >CGU</a
-            >
-            et la
-            <a
-              [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
-              target="_blank"
-              class="text-primary underline"
-              >Politique de Confidentialité</a
-            >
-          </p>
+          <pulpe-error-alert [message]="errorMessage()" class="w-full" />
         </div>
 
-        <div class="w-full flex-col gap-2 flex justify-center items-center">
-          <p class="text-body-small text-on-surface-variant">
-            Tu as déjà un compte ?
-          </p>
-          <button
-            matButton
+        <!-- Legal -->
+        <p class="text-xs text-on-surface-variant text-center mt-5">
+          En continuant, j'accepte les
+          <a
+            [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
+            target="_blank"
+            class="text-primary underline"
+            >CGU</a
+          >
+          et la
+          <a
+            [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
+            target="_blank"
+            class="text-primary underline"
+            >Politique de Confidentialité</a
+          >
+        </p>
+
+        <!-- Login link -->
+        <p class="text-sm text-on-surface-variant mt-4">
+          Tu as déjà un compte ?
+          <a
             [routerLink]="['/', ROUTES.LOGIN]"
-            class="w-full max-w-sm"
+            class="text-primary font-semibold"
           >
             Se connecter
-          </button>
-        </div>
+          </a>
+        </p>
       </div>
     </div>
   `,
