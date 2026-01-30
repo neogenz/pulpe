@@ -47,7 +47,6 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
         <!-- Eyebrow -->
         <p
           class="text-xs font-semibold tracking-widest uppercase text-primary mb-3"
-          style="font-family: 'Poppins', sans-serif"
         >
           Budget annuel en 3 minutes
         </p>
@@ -55,7 +54,6 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
         <!-- Title -->
         <h1
           class="text-2xl md:text-4xl font-bold text-on-surface leading-tight text-center mb-2"
-          style="font-family: 'Poppins', sans-serif"
         >
           Vois clair dans tes finances
         </h1>
@@ -63,7 +61,6 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
         <!-- Subtitle -->
         <p
           class="text-sm md:text-base text-on-surface-variant text-center leading-relaxed mb-4"
-          style="font-family: 'Poppins', sans-serif"
         >
           Planifie ton année, sache toujours ce que tu peux dépenser.
         </p>

@@ -80,14 +80,10 @@ function passwordsMatchValidator(
         <div class="text-center mb-8 mt-4">
           <h1
             class="text-2xl md:text-4xl font-bold text-on-surface mb-2 leading-tight"
-            style="font-family: 'Poppins', sans-serif"
           >
             Prêt en 3 minutes
           </h1>
-          <p
-            class="text-base md:text-lg text-on-surface-variant"
-            style="font-family: 'Poppins', sans-serif"
-          >
+          <p class="text-base md:text-lg text-on-surface-variant">
             Crée ton espace et vois clair dans tes finances
           </p>
         </div>
