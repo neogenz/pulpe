@@ -9,6 +9,7 @@ import {
 
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetCache } from '@core/budget/budget-cache';
+import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { Logger } from '@core/logging/logger';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import { StorageService } from '@core/storage/storage.service';
@@ -45,6 +46,7 @@ export class BudgetDetailsStore {
   readonly #budgetLineApi = inject(BudgetLineApi);
   readonly #budgetApi = inject(BudgetApi);
   readonly #budgetCache = inject(BudgetCache);
+  readonly #invalidationService = inject(BudgetInvalidationService);
   readonly #transactionApi = inject(TransactionApi);
   readonly #logger = inject(Logger);
   readonly #storage = inject(StorageService);
@@ -578,9 +580,6 @@ export class BudgetDetailsStore {
   }
 
   #invalidateCache(): void {
-    const budgetId = this.#state.budgetId();
-    if (budgetId) {
-      this.#budgetCache.invalidateBudgetDetails(budgetId);
-    }
+    this.#invalidationService.invalidate();
   }
 }
