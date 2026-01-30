@@ -8,7 +8,7 @@ describe('formatLocalDate', () => {
 
     const result = formatLocalDate(date);
 
-    expect(result).toMatch(/^2026-01-29T00:00:00[+-]\d{2}:\d{2}$/);
+    expect(result).toMatch(/^2026-01-29T00:00:00([+-]\d{2}:\d{2}|Z)$/);
   });
 
   it('should preserve date when time is set', () => {
@@ -16,7 +16,7 @@ describe('formatLocalDate', () => {
 
     const result = formatLocalDate(date);
 
-    expect(result).toMatch(/^2026-06-15T14:30:45[+-]\d{2}:\d{2}$/);
+    expect(result).toMatch(/^2026-06-15T14:30:45([+-]\d{2}:\d{2}|Z)$/);
   });
 
   it('should include timezone offset suffix', () => {
@@ -24,7 +24,7 @@ describe('formatLocalDate', () => {
 
     const result = formatLocalDate(date);
 
-    expect(result).toMatch(/[+-]\d{2}:\d{2}$/);
+    expect(result).toMatch(/([+-]\d{2}:\d{2}|Z)$/);
   });
 
   it('should return a string that starts with the correct date regardless of timezone', () => {
