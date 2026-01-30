@@ -70,7 +70,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
           <div class="flex justify-center mb-6">
             <ng-lottie
               [options]="lottieOptions"
-              class="hidden md:block w-60 h-44 md:w-120 md:h-80 -mt-10 md:-mt-20 ![background:transparent]"
+              class="hidden md:block w-60 h-44 md:w-120 md:h-80 -mt-10 md:-mt-20 bg-transparent"
             />
           </div>
         } @placeholder {
