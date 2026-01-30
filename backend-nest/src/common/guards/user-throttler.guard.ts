@@ -77,9 +77,9 @@ export class UserThrottlerGuard extends ThrottlerGuard {
    * This ensures public endpoints continue to work while authenticated endpoints
    * benefit from user-based throttling.
    */
-  private async resolveUser(request: {
-    headers?: { authorization?: string };
-  }): Promise<AuthenticatedUser | undefined> {
+  private async resolveUser(
+    request: Request,
+  ): Promise<AuthenticatedUser | undefined> {
     try {
       const authHeader = request.headers?.authorization;
       if (!authHeader) return undefined;
@@ -99,12 +99,20 @@ export class UserThrottlerGuard extends ThrottlerGuard {
         return undefined;
       }
 
+      const clientKeyHex = request.headers?.['x-client-key'] as
+        | string
+        | undefined;
+      const clientKey = clientKeyHex
+        ? Buffer.from(clientKeyHex, 'hex')
+        : Buffer.alloc(0);
+
       return {
         id: user.id,
         email: user.email ?? '',
         firstName: user.user_metadata?.firstName,
         lastName: user.user_metadata?.lastName,
         accessToken: token,
+        clientKey,
       };
     } catch (error) {
       // Log errors at debug level (not warn) to avoid noise from invalid tokens

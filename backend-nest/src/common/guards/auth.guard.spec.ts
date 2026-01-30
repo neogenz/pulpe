@@ -72,6 +72,7 @@ describe('AuthGuard', () => {
         getRequest: () => ({
           headers: {
             authorization,
+            'x-client-key': 'ab'.repeat(32),
           },
         }),
       }),
@@ -184,7 +185,12 @@ describe('AuthGuard', () => {
       const mockUser = createMockAuthenticatedUser({
         accessToken: 'valid-token',
       });
-      const mockRequest = { headers: { authorization: 'Bearer valid-token' } };
+      const mockRequest = {
+        headers: {
+          authorization: 'Bearer valid-token',
+          'x-client-key': 'ab'.repeat(32),
+        },
+      };
       const mockContext = {
         switchToHttp: () => ({ getRequest: () => mockRequest }),
       } as ExecutionContext;
@@ -219,7 +225,10 @@ describe('AuthGuard', () => {
         accessToken: 'valid-token',
       });
       const mockRequest = {
-        headers: { authorization: 'Bearer valid-token' },
+        headers: {
+          authorization: 'Bearer valid-token',
+          'x-client-key': 'ab'.repeat(32),
+        },
         __throttlerUserCache: mockUser, // Simulates cache populated by UserThrottlerGuard
       };
       const mockContext = {
@@ -246,7 +255,10 @@ describe('AuthGuard', () => {
         accessToken: 'valid-token',
       });
       const mockRequest = {
-        headers: { authorization: 'Bearer valid-token' },
+        headers: {
+          authorization: 'Bearer valid-token',
+          'x-client-key': 'ab'.repeat(32),
+        },
         __throttlerUserCache: null, // Cache indicates auth failed in throttler
       };
       const mockContext = {
@@ -279,7 +291,10 @@ describe('AuthGuard', () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
       const mockRequest = {
-        headers: { authorization: 'Bearer valid-token' },
+        headers: {
+          authorization: 'Bearer valid-token',
+          'x-client-key': 'ab'.repeat(32),
+        },
         __throttlerUserCache: mockUser, // Cache présent
       };
       const mockContext = {
@@ -325,7 +340,10 @@ describe('AuthGuard', () => {
     it('should throw BusinessException when user account is scheduled for deletion', async () => {
       // Arrange
       const mockRequest = {
-        headers: { authorization: 'Bearer valid-token' },
+        headers: {
+          authorization: 'Bearer valid-token',
+          'x-client-key': 'ab'.repeat(32),
+        },
       };
       const mockContext = {
         switchToHttp: () => ({ getRequest: () => mockRequest }),
