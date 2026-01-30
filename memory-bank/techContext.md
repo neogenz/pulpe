@@ -24,6 +24,171 @@
 | DR-002 | Automated Demo Cleanup | 2024-06-15 | Accepted |
 | DR-003 | Remove Variable Transaction Recurrence | 2024-07-20 | Accepted |
 | DR-004 | Typed & Versioned Storage Service | 2024-11-10 | Pending |
+| DR-005 | Cache-First Data Loading in Dashboard | 2026-01-30 | Accepted |
+| DR-006 | Cache-First Budget Details & Full Preload | 2026-01-30 | Accepted |
+| DR-007 | Eager Signal Reading in computed() with ?? | 2026-01-30 | Accepted |
+| DR-008 | Keep imperative `#staleData` signal over alternatives | 2026-01-30 | Accepted |
+
+---
+
+## DR-008: Keep imperative `#staleData` signal over alternatives
+
+**Date**: 2026-01-30
+**Status**: Accepted
+
+### Context
+
+Evaluated alternatives to the `#staleData = signal<T | null>(null)` pattern used in `budget-details-store.ts` and `template-details-store.ts` for cache-first display.
+
+### Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Keep imperative `signal()` seeded in `setBudgetId()` | `#staleData` signal | Precise reactivity, no timing issues, clear intent |
+| Reject `resource.update()` seeding (Option B) | Not viable | Resource effect on microtask wipes value to `undefined` on param change |
+| Reject `linkedSignal` reading cache (Option A) | Functional but imprecise | Tracks entire `#budgetDetailsMap` signal → réévalues on any budget preload/invalidation |
+| Reject computed reading cache (Option C) | Same problem as A | Same dependency on the cache Map signal |
+
+### Alternatives Evaluated
+
+**Option B — `resource.update()` to seed cached value**: Broken. `setBudgetId()` sets params synchronously, then `resource.update()` seeds the value. But the resource effect runs on the next microtask, detects new params, transitions to `'loading'`, and wipes `value` to `undefined`. Confirmed by [angular/angular#58602](https://github.com/angular/angular/issues/58602).
+
+**Option A — `linkedSignal` reading `BudgetCache`**: `linkedSignal(() => cache.getBudgetDetails(budgetId))` works but `getBudgetDetails()` reads `#budgetDetailsMap()` internally, so the linkedSignal tracks the entire Map. Any preload or invalidation of *another* budget triggers re-evaluation.
+
+**Option C — `computed` reading cache**: Same Map dependency problem as Option A.
+
+### Consequences
+
+- **Positive**: No over-reactivity, no race condition, signal represents "last known stale data" explicitly
+- **Trade-off**: Imperative `.set()` call in `setBudgetId()` — less declarative than reactive alternatives
+- **Impact**: `budget-details-store.ts`, `template-details-store.ts`
+
+### Sources
+
+- [angular/angular#58602 — resource value wiped on param change](https://github.com/angular/angular/issues/58602)
+- [Angular resource API — status/value behavior](https://angular.dev/guide/signals/resource)
+
+---
+
+## DR-007: Eager Signal Reading in computed() with ??
+
+**Date**: 2026-01-30
+**Status**: Accepted
+
+### Context
+
+Angular's `computed()` tracks dependencies dynamically — only signals actually read during the last evaluation are tracked. JavaScript's `??` operator short-circuits: `A ?? B` skips reading B when A is non-null, causing Angular to stop tracking B as a dependency.
+
+### Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Read all signals eagerly before `??` | Assign to local variables first | Ensures both signals are always tracked regardless of short-circuit |
+| Boolean `&&` / `\|\|` are safe as-is | No fix needed | Short-circuit cannot produce incorrect boolean result |
+| `??` with data signals requires eager read | Mandatory pattern | Stale context can cause wrong data to be returned |
+
+### Problem
+
+```typescript
+// BUG: if resource.value() is non-null, #staleData() is never tracked
+readonly details = computed(() => this.resource.value() ?? this.#staleData());
+```
+
+When navigating between entities, `#staleData` updates to new context but the computed doesn't re-evaluate because `#staleData` isn't tracked.
+
+### Decision
+
+Always read all signals into local variables before applying `??`:
+
+```typescript
+readonly details = computed(() => {
+  const fresh = this.resource.value();
+  const stale = this.#staleData();
+  return fresh ?? stale ?? null;
+});
+```
+
+### Consequences
+
+- **Positive**: Eliminates a class of subtle reactivity bugs
+- **Trade-off**: Slightly more verbose computed expressions
+- **Impact**: `budget-details-store.ts`, `template-details-store.ts`
+
+---
+
+## DR-006: Cache-First Budget Details & Full Preload
+
+**Date**: 2026-01-30
+**Status**: Accepted
+
+### Context
+
+Budget details page showed a spinner on every navigation, even for cached data. Three root causes: (a) `BudgetDetailsStore` provided at component level → recreated on every navigation, (b) `resource()` always enters loading state for at least one tick, (c) only current month was preloaded.
+
+### Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Seed cached data in `setBudgetId()` | `#staleData` signal populated from `BudgetCache` | Provides instant display before resource loader runs |
+| Distinguish initial loading from reloading | `isInitialLoading = isLoading && !budgetDetails()` | Spinner only when truly no data available |
+| Preload all budget details at startup | `preloadBudgetDetails(allIds)` in `AppPreloader` | Maximizes cache hits across all months |
+| Keep store at component level | No architecture change | Follows feature isolation rules |
+
+### Problem
+
+`resource()` always transitions through loading state when params change. Template `@if (store.isLoading())` showed spinner even when cache had data. `AppPreloader` only preloaded current month — other months triggered real API calls.
+
+### Decision
+
+- `setBudgetId()` checks `BudgetCache` synchronously and populates `#staleData` signal
+- `budgetDetails` computed falls back to `#staleData` when resource is loading
+- `isInitialLoading` only true when loading AND no cached data exists
+- `AppPreloader` preloads all budget IDs in parallel
+
+### Consequences
+
+- **Positive**: No spinner flash for cached budgets, all months preloaded in parallel
+- **Trade-off**: All budget details loaded at startup (acceptable: typical users have 12-24 budgets)
+- **Impact**: `budget-details-store.ts`, `budget-details-page.html`, `app-preloader.ts`
+
+---
+
+## DR-005: Cache-First Data Loading in Dashboard
+
+**Date**: 2026-01-30
+**Status**: Accepted
+
+### Context
+
+Le dashboard rechargait `GET /budgets` à chaque navigation (retour depuis Budgets, Modèles, etc.) malgré un système de cache (`BudgetCache`) et un preloader (`AppPreloader`) déjà en place.
+
+### Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Data loader vérifie le cache avant l'API | Cache-first lookup dans `createDashboardDataLoader` | Même pattern que `BudgetListStore` et `BudgetDetailsStore` |
+| `getBudgetForMonth$` reste inchangé | Fallback API conservé | Évite les régressions sur les autres consommateurs |
+| Race condition initiale acceptée | Pas de restructuration de l'init | Ne se produit qu'une fois au login/reload |
+
+### Problem
+
+`current-month-data-loader.ts` appelait `budgetApi.getBudgetForMonth$()` qui exécute systématiquement `getAllBudgets$()` (HTTP GET brut), ignorant le cache `BudgetCache.budgets()` rempli par le preloader. Chaque retour au dashboard déclenchait un appel réseau inutile.
+
+### Decision
+
+Le data loader consulte d'abord `budgetCache.budgets()` pour trouver le budget du mois courant. Si le cache contient les données, aucun appel HTTP. Le fallback API reste en place pour les cache miss.
+
+### Rationale
+
+- Le pattern cache-first existait déjà dans `BudgetListStore` (ligne 179) et `BudgetDetailsStore` (ligne 148) — seul le dashboard ne l'appliquait pas
+- Le preloader remplit le cache au login, donc les navigations suivantes sont instantanées
+- Changement minimal (1 fichier) avec impact maximal sur la réactivité perçue
+
+### Consequences
+
+- **Positive**: 0 requêtes réseau lors des navigations inter-écrans après le chargement initial
+- **Trade-off**: Doublon `GET /budgets` au premier chargement (race preloader/store) — accepté
+- **Impact**: `current-month-data-loader.ts` uniquement
 
 ---
 

@@ -66,6 +66,14 @@ describe('TemplateStore', () => {
       getAll$,
       getTemplateLines$,
     };
+    const defaultTotals = {
+      totalIncome: 0,
+      totalExpenses: 0,
+      totalSavings: 0,
+      remainingLivingAllowance: 0,
+      loading: false,
+    };
+
     totalsCalculatorMock = {
       calculateTemplateTotals: vi.fn(),
       calculateBatchTotals: vi.fn().mockReturnValue({
@@ -77,13 +85,18 @@ describe('TemplateStore', () => {
           loading: false,
         },
       }),
-      createDefaultTotals: vi.fn().mockReturnValue({
-        totalIncome: 0,
-        totalExpenses: 0,
-        totalSavings: 0,
-        remainingLivingAllowance: 0,
-        loading: false,
-      }),
+      createDefaultTotals: vi.fn().mockReturnValue(defaultTotals),
+      createDefaultTotalsMap: vi
+        .fn()
+        .mockImplementation((ids: string[], isLoading: boolean) => {
+          return ids.reduce(
+            (acc: Record<string, typeof defaultTotals>, id: string) => {
+              acc[id] = { ...defaultTotals, loading: isLoading };
+              return acc;
+            },
+            {},
+          );
+        }),
     };
 
     TestBed.configureTestingModule({
