@@ -88,14 +88,16 @@ describe('WelcomePage', () => {
     it('should display welcome title', () => {
       const title = fixture.nativeElement.querySelector('h1');
 
-      expect(title.textContent).toContain('Bienvenue dans Pulpe');
+      expect(title.textContent).toContain('Vois clair dans tes finances');
     });
 
     it('should display value proposition', () => {
-      const subtitle = fixture.nativeElement.querySelector('p.text-body-large');
+      const subtitle = fixture.nativeElement.querySelector(
+        'p.text-on-surface-variant.text-center',
+      );
 
       expect(subtitle.textContent).toContain(
-        'Reprends le contrôle de tes finances',
+        'Planifie ton année, sache toujours ce que tu peux dépenser',
       );
     });
 
@@ -114,7 +116,7 @@ describe('WelcomePage', () => {
       );
 
       expect(button).toBeTruthy();
-      expect(button.textContent).toContain('Utiliser mon email');
+      expect(button.textContent).toContain('Continuer avec mon email');
     });
 
     it('should have demo mode button', () => {
@@ -123,15 +125,15 @@ describe('WelcomePage', () => {
       );
 
       expect(loadingButton).toBeTruthy();
-      expect(loadingButton.textContent).toContain('Essayer le mode démo');
+      expect(loadingButton.textContent).toContain('Essayer gratuitement');
     });
 
     it('should have login link', () => {
-      const buttons = fixture.nativeElement.querySelectorAll('button');
-      const loginLink = Array.from(buttons).find(
-        (btn) =>
-          btn instanceof HTMLElement &&
-          btn.textContent?.includes('Se connecter'),
+      const links = fixture.nativeElement.querySelectorAll('a');
+      const loginLink = Array.from(links).find(
+        (link) =>
+          link instanceof HTMLElement &&
+          link.textContent?.includes('Se connecter'),
       );
 
       expect(loginLink).toBeTruthy();
@@ -211,7 +213,7 @@ describe('WelcomePage', () => {
   describe('CGU text', () => {
     it('should display CGU text under Google OAuth button', () => {
       const cguText = fixture.nativeElement.querySelector(
-        'p.text-body-small.text-on-surface-variant.text-center',
+        'p.text-xs.text-on-surface-variant.text-center',
       );
 
       expect(cguText).toBeTruthy();

@@ -67,7 +67,7 @@ function passwordsMatchValidator(
       class="min-h-screen pulpe-gradient flex items-center justify-center p-4"
     >
       <div
-        class="w-full max-w-md bg-surface rounded-2xl p-8 flex flex-col shadow-lg"
+        class="w-full max-w-md bg-surface rounded-3xl p-8 flex flex-col shadow-xl"
       >
         <a
           [routerLink]="['/', ROUTES.WELCOME]"
@@ -78,11 +78,13 @@ function passwordsMatchValidator(
         </a>
 
         <div class="text-center mb-8 mt-4">
-          <h1 class="text-headline-large text-on-surface mb-2">
-            Créer un compte
+          <h1
+            class="text-2xl md:text-4xl font-bold text-on-surface mb-2 leading-tight"
+          >
+            Prêt en 3 minutes
           </h1>
-          <p class="text-body-large text-on-surface-variant">
-            Rejoins Pulpe et reprends le contrôle
+          <p class="text-base md:text-lg text-on-surface-variant">
+            Crée ton espace et vois clair dans tes finances
           </p>
         </div>
 
@@ -100,7 +102,7 @@ function passwordsMatchValidator(
               formControlName="email"
               data-testid="email-input"
               (input)="clearMessages()"
-              placeholder="votre@email.com"
+              placeholder="ton@email.com"
               [disabled]="isSubmitting()"
             />
             <mat-icon matPrefix>email</mat-icon>
