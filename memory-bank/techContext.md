@@ -24,6 +24,51 @@
 | DR-002 | Automated Demo Cleanup | 2024-06-15 | Accepted |
 | DR-003 | Remove Variable Transaction Recurrence | 2024-07-20 | Accepted |
 | DR-004 | Typed & Versioned Storage Service | 2024-11-10 | Pending |
+| DR-005 | Temp ID Replacement Before Toggle Cascade | 2026-01-30 | Accepted |
+
+---
+
+## DR-005: Temp ID Replacement Before Toggle Cascade
+
+**Date**: 2026-01-30
+**Status**: Accepted
+
+### Problem
+
+Creating a transaction under a checked parent budget line triggered a 404 error. The store called `toggleCheck` on the parent **before** replacing the temp ID (`temp-xxx`) with the real server ID. The cascade (`calculateBudgetLineToggle`) then included temp IDs in `transactionsToToggle`, causing `POST /transactions/temp-xxx/check → 404`.
+
+### Decision Drivers
+
+- Optimistic updates generate temp IDs (`temp-${uuidv4()}`) for immediate UI feedback
+- `calculateBudgetLineToggle` is a pure function that returns whatever IDs are in state
+- API calls require real server-assigned UUIDs
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A: Reorder operations | Replace temp ID before triggering cascade | Chosen |
+| B: Filter temp IDs in cascade | Skip `temp-*` IDs in `transactionsToToggle` | Rejected |
+
+### Decision
+
+In `createAllocatedTransaction()`, replace the temp ID with the server response **before** triggering the parent budget line's `toggleCheck` cascade.
+
+### Rationale
+
+- Option A fixes the root cause (ordering) without coupling the pure utility to ID format conventions
+- Option B would leak implementation details (`temp-` prefix) into `calculateBudgetLineToggle`
+- Pure functions should not know about temp ID conventions — the store controls operation ordering
+
+### Consequences
+
+- **Positive**: No temp IDs reach API calls; pure functions remain agnostic
+- **Trade-off**: Sequential await (replace → then toggle) instead of parallel
+- **Impact**: `budget-details-store.ts:519-530` reordered
+
+### Notes
+
+Pattern applies to any optimistic update followed by cascade: always resolve temp IDs before triggering dependent operations.
 
 ---
 
