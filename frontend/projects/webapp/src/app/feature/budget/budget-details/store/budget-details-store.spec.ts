@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
+import { calculateBudgetLineToggle } from './budget-details-check.utils';
 
 /**
  * Tests unitaires métier pour BudgetDetailsStore
@@ -181,52 +182,74 @@ describe('BudgetDetailsStore - Logique Métier', () => {
   });
 
   describe('Race condition - temp ID replaced before parent toggle', () => {
-    it('should replace temp ID with real ID before triggering parent uncheck cascade', () => {
-      // This test documents the production bug fix:
-      // When creating a transaction under a checked parent budget line,
-      // the temp ID must be replaced with the real server ID BEFORE
-      // calling toggleCheck on the parent. Otherwise, the cascade
-      // tries to toggle-check the temp ID which returns 404 from the backend.
+    it('should only produce real IDs in cascade when temp ID is replaced before toggle', () => {
+      // Production bug: createAllocatedTransaction triggered toggleCheck on the
+      // parent budget line BEFORE replacing the temp ID with the server ID.
+      // calculateBudgetLineToggle then returned transactionsToToggle containing
+      // temp-xxx IDs, causing 404s on the backend.
+      //
+      // Fix: replace temp ID → then call calculateBudgetLineToggle.
+      // This test verifies the cascade output with both orderings.
 
-      // Simulate the state after transaction creation (optimistic update)
       const tempId = 'temp-d8948d20-f63f-4031-b946-b270622513aa';
       const realId = 'efa28612-390b-47c8-8245-04581268fd2f';
 
-      const stateWithTempId = {
+      const uncheckedParent = {
+        id: 'line-1',
+        budgetId: 'budget-1',
+        name: 'Loyer',
+        amount: 1500,
+        kind: 'expense' as const,
+        recurrence: 'fixed' as const,
+        isManuallyAdjusted: false,
+        templateLineId: null,
+        savingsGoalId: null,
+        checkedAt: null,
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+      };
+
+      const baseTransaction = {
+        budgetId: 'budget-1',
+        budgetLineId: 'line-1',
+        name: 'Test',
+        amount: 50,
+        kind: 'expense' as const,
+        transactionDate: '2024-01-15T00:00:00.000Z',
+        category: null,
+        checkedAt: null,
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+      };
+
+      // BUG scenario: cascade runs with temp ID still in state
+      const buggyResult = calculateBudgetLineToggle('line-1', {
+        budgetLines: [uncheckedParent],
         transactions: [
-          { id: 'existing-tx', budgetLineId: 'line-1', checkedAt: null },
-          { id: tempId, budgetLineId: 'line-1', checkedAt: null },
+          { ...baseTransaction, id: 'existing-tx' },
+          { ...baseTransaction, id: tempId },
         ],
-      };
-
-      // Step 1: Replace temp with real ID (this must happen BEFORE toggle cascade)
-      const stateAfterReplace = {
-        ...stateWithTempId,
-        transactions: stateWithTempId.transactions.map((tx) =>
-          tx.id === tempId ? { ...tx, id: realId } : tx,
-        ),
-      };
-
-      // Step 2: Now the cascade will only see real IDs
-      const transactionsToToggle = stateAfterReplace.transactions.filter(
-        (tx) => tx.budgetLineId === 'line-1' && tx.checkedAt === null,
-      );
-
-      // Assert: No temp IDs in the toggle list
+      });
       expect(
-        transactionsToToggle.every((tx) => !tx.id.startsWith('temp-')),
+        buggyResult!.transactionsToToggle.some((tx) => tx.id === tempId),
       ).toBe(true);
-      expect(transactionsToToggle.map((tx) => tx.id)).toContain(realId);
-      expect(transactionsToToggle.map((tx) => tx.id)).not.toContain(tempId);
-    });
 
-    it('should not send API calls with temp IDs', () => {
-      // Verify that temp IDs are never valid for API calls
-      const tempId = 'temp-fd08fd5d-f21c-4dc3-9e92-1ccc15702db7';
-
-      expect(tempId.startsWith('temp-')).toBe(true);
-      // In the fixed code, this ID would have been replaced before any
-      // toggle-check API call is made
+      // FIX scenario: temp ID replaced before cascade
+      const fixedResult = calculateBudgetLineToggle('line-1', {
+        budgetLines: [uncheckedParent],
+        transactions: [
+          { ...baseTransaction, id: 'existing-tx' },
+          { ...baseTransaction, id: realId },
+        ],
+      });
+      expect(
+        fixedResult!.transactionsToToggle.every(
+          (tx) => !tx.id.startsWith('temp-'),
+        ),
+      ).toBe(true);
+      expect(fixedResult!.transactionsToToggle.map((tx) => tx.id)).toContain(
+        realId,
+      );
     });
   });
 

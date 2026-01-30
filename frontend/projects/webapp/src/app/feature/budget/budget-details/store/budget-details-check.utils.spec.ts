@@ -429,7 +429,7 @@ describe('Budget Details Check Utils', () => {
       );
     });
 
-    it('should not include temp transactions in transactionsToToggle after ID replacement', () => {
+    it('should only include real transaction IDs in transactionsToToggle', () => {
       // After the fix: the temp ID is replaced with the real ID before cascade,
       // so transactionsToToggle only contains real IDs
       const budgetLines = [createBudgetLine({ id: 'line-1', checkedAt: null })];
