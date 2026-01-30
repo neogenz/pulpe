@@ -26,14 +26,12 @@ export class BudgetCache {
   readonly #logger = inject(Logger);
 
   constructor() {
-    // Auto-invalidate cache when budget mutations occur (signaled by version bump)
+    // Auto-revalidate cache when budget mutations occur (signaled by version bump)
     effect(() => {
       const version = this.#invalidationService.version();
       untracked(() => {
         if (version === 0) return; // Skip initial value
-        this.invalidateBudgetList();
-        this.#budgetDetailsMap.set(new Map());
-        this.#failedDetailIds.set(new Set());
+        this.#revalidate();
       });
     });
   }
@@ -45,6 +43,8 @@ export class BudgetCache {
   readonly #isListLoading = signal(false);
   readonly #loadingDetailIds = signal<Set<string>>(new Set());
   readonly #failedDetailIds = signal<Set<string>>(new Set());
+  #listLoadPromise: Promise<Budget[]> | null = null;
+  #isRevalidating = false;
 
   readonly budgets = this.#budgets.asReadonly();
   readonly isListLoading = this.#isListLoading.asReadonly();
@@ -90,8 +90,13 @@ export class BudgetCache {
   async preloadBudgetList(): Promise<Budget[]> {
     const cached = this.#budgets();
     if (cached !== null) return cached;
-    if (this.#isListLoading()) return [];
+    if (this.#listLoadPromise) return this.#listLoadPromise;
 
+    this.#listLoadPromise = this.#fetchBudgetList();
+    return this.#listLoadPromise;
+  }
+
+  async #fetchBudgetList(): Promise<Budget[]> {
     this.#isListLoading.set(true);
     try {
       const budgets = await firstValueFrom(this.#budgetApi.getAllBudgets$());
@@ -102,6 +107,7 @@ export class BudgetCache {
       return [];
     } finally {
       this.#isListLoading.set(false);
+      this.#listLoadPromise = null;
     }
   }
 
@@ -120,46 +126,72 @@ export class BudgetCache {
       return next;
     });
 
-    // Load all details in parallel
-    const promises = idsToLoad.map(async (budgetId) => {
-      try {
-        const response = await firstValueFrom(
-          this.#budgetApi.getBudgetWithDetails$(budgetId),
-        );
+    // Load in batches to leave HTTP connection slots for user-initiated requests
+    const BATCH_SIZE = 3;
+    for (let i = 0; i < idsToLoad.length; i += BATCH_SIZE) {
+      const batch = idsToLoad.slice(i, i + BATCH_SIZE);
+      await Promise.all(
+        batch.map((budgetId) => this.#loadBudgetDetail(budgetId)),
+      );
+    }
+  }
 
-        if (response.success && response.data) {
-          const entry: BudgetDetailsEntry = {
-            budget: response.data.budget,
-            budgetLines: response.data.budgetLines,
-            transactions: response.data.transactions,
-          };
+  async #loadBudgetDetail(budgetId: string): Promise<void> {
+    try {
+      const response = await firstValueFrom(
+        this.#budgetApi.getBudgetWithDetails$(budgetId),
+      );
 
-          this.#budgetDetailsMap.update((map) => {
-            const next = new Map(map);
-            next.set(budgetId, entry);
-            return next;
-          });
-        }
-      } catch (error) {
-        this.#logger.error(
-          `[BudgetCache] Failed to preload budget details for ${budgetId}`,
-          error,
-        );
-        this.#failedDetailIds.update((set) => {
-          const next = new Set(set);
-          next.add(budgetId);
-          return next;
-        });
-      } finally {
-        this.#loadingDetailIds.update((set) => {
-          const next = new Set(set);
-          next.delete(budgetId);
+      if (response.success && response.data) {
+        const entry: BudgetDetailsEntry = {
+          budget: response.data.budget,
+          budgetLines: response.data.budgetLines,
+          transactions: response.data.transactions,
+        };
+
+        this.#budgetDetailsMap.update((map) => {
+          const next = new Map(map);
+          next.set(budgetId, entry);
           return next;
         });
       }
-    });
+    } catch (error) {
+      this.#logger.error(
+        `[BudgetCache] Failed to preload budget details for ${budgetId}`,
+        error,
+      );
+      this.#failedDetailIds.update((set) => {
+        const next = new Set(set);
+        next.add(budgetId);
+        return next;
+      });
+    } finally {
+      this.#loadingDetailIds.update((set) => {
+        const next = new Set(set);
+        next.delete(budgetId);
+        return next;
+      });
+    }
+  }
 
-    await Promise.all(promises);
+  async #revalidate(): Promise<void> {
+    if (this.#isRevalidating) return;
+    this.#isRevalidating = true;
+
+    this.#budgets.set(null);
+    this.#budgetDetailsMap.set(new Map());
+    this.#failedDetailIds.set(new Set());
+
+    try {
+      const budgets = await this.preloadBudgetList();
+      if (budgets.length > 0) {
+        await this.preloadBudgetDetails(budgets.map((b) => b.id));
+      }
+    } catch (error) {
+      this.#logger.error('[BudgetCache] Revalidation failed', error);
+    } finally {
+      this.#isRevalidating = false;
+    }
   }
 
   invalidateBudgetList(): void {

@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { of, throwError } from 'rxjs';
+import { of, throwError, Subject } from 'rxjs';
 import {
   type Budget,
   type BudgetDetailsResponse,
@@ -416,11 +416,11 @@ describe('BudgetCache', () => {
     });
   });
 
-  describe('auto-invalidation on version change', () => {
-    it('should clear budget list and details when invalidation version changes', async () => {
+  describe('revalidation on version change', () => {
+    it('should clear cache and re-fetch when invalidation version changes', async () => {
       const invalidationService = TestBed.inject(BudgetInvalidationService);
 
-      const mockBudgets: Budget[] = [createMockBudget({ id: '1' })];
+      const initialBudgets: Budget[] = [createMockBudget({ id: '1' })];
       const mockResponse = createMockBudgetDetailsResponse({
         data: {
           budget: createMockBudget({ id: '1' }),
@@ -429,22 +429,39 @@ describe('BudgetCache', () => {
         },
       });
 
-      mockBudgetApi.getAllBudgets$.mockReturnValue(of(mockBudgets));
+      mockBudgetApi.getAllBudgets$.mockReturnValue(of(initialBudgets));
       mockBudgetApi.getBudgetWithDetails$.mockReturnValue(of(mockResponse));
 
       await service.preloadBudgetList();
       await service.preloadBudgetDetails(['1']);
 
-      expect(service.budgets()).toEqual(mockBudgets);
-      expect(service.isBudgetDetailAvailable('1')).toBe(true);
+      expect(service.budgets()).toEqual(initialBudgets);
+
+      // Prepare fresh data for revalidation
+      const freshBudgets: Budget[] = [
+        createMockBudget({ id: '1', remaining: 999 }),
+      ];
+      const freshResponse = createMockBudgetDetailsResponse({
+        data: {
+          budget: createMockBudget({ id: '1', remaining: 999 }),
+          budgetLines: [],
+          transactions: [],
+        },
+      });
+      mockBudgetApi.getAllBudgets$.mockReturnValue(of(freshBudgets));
+      mockBudgetApi.getBudgetWithDetails$.mockReturnValue(of(freshResponse));
 
       // Trigger invalidation (simulates a budget mutation)
       invalidationService.invalidate();
-      // Flush the effect
       TestBed.flushEffects();
 
-      expect(service.budgets()).toBeNull();
-      expect(service.isBudgetDetailAvailable('1')).toBe(false);
+      // Wait for revalidation to complete
+      await vi.waitFor(() => {
+        expect(service.budgets()).toEqual(freshBudgets);
+      });
+
+      expect(service.isBudgetDetailAvailable('1')).toBe(true);
+      expect(service.getBudgetDetails('1')?.budget.remaining).toBe(999);
     });
 
     it('should not invalidate on initial version (0)', () => {
@@ -456,6 +473,23 @@ describe('BudgetCache', () => {
 
       // No side effect should have happened
       expect(service.budgets()).toBeNull();
+      expect(mockBudgetApi.getAllBudgets$).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('preloadBudgetList deduplication', () => {
+    it('should share the same API call for concurrent requests', async () => {
+      const mockBudgets: Budget[] = [createMockBudget({ id: '1' })];
+      mockBudgetApi.getAllBudgets$.mockReturnValue(of(mockBudgets));
+
+      const [result1, result2] = await Promise.all([
+        service.preloadBudgetList(),
+        service.preloadBudgetList(),
+      ]);
+
+      expect(result1).toEqual(mockBudgets);
+      expect(result2).toEqual(mockBudgets);
+      expect(mockBudgetApi.getAllBudgets$).toHaveBeenCalledOnce();
     });
   });
 
@@ -477,6 +511,268 @@ describe('BudgetCache', () => {
       const result = await service.waitForBudgetDetails(budgetId);
 
       expect(result!.budget.id).toBe(budgetId);
+    });
+  });
+
+  describe('Navigation scenarios with cache revalidation', () => {
+    const budget1 = createMockBudget({ id: 'jan-2024', month: 1, year: 2024 });
+    const budget2 = createMockBudget({ id: 'feb-2024', month: 2, year: 2024 });
+    const budget3 = createMockBudget({ id: 'mar-2024', month: 3, year: 2024 });
+    const allBudgets = [budget1, budget2, budget3];
+
+    function createDetailsResponse(budget: Budget): BudgetDetailsResponse {
+      return createMockBudgetDetailsResponse({
+        data: { budget, budgetLines: [], transactions: [] },
+      });
+    }
+
+    function setupInitialPreload(): void {
+      mockBudgetApi.getAllBudgets$.mockReturnValue(of(allBudgets));
+      mockBudgetApi.getBudgetWithDetails$.mockImplementation((id: string) => {
+        const target = allBudgets.find((bgt) => bgt.id === id);
+        return of(createDetailsResponse(target ?? budget1));
+      });
+    }
+
+    it('Scenario 1: Initial preload → navigate to budget → cache hit', async () => {
+      setupInitialPreload();
+
+      // Phase 1: App preloads all data on login
+      const budgets = await service.preloadBudgetList();
+      await service.preloadBudgetDetails(budgets.map((b) => b.id));
+
+      expect(mockBudgetApi.getAllBudgets$).toHaveBeenCalledOnce();
+      expect(mockBudgetApi.getBudgetWithDetails$).toHaveBeenCalledTimes(3);
+      mockBudgetApi.getAllBudgets$.mockClear();
+      mockBudgetApi.getBudgetWithDetails$.mockClear();
+
+      // Phase 2: User navigates to january budget → cache hit, zero API calls
+      const jan = service.getBudgetDetails('jan-2024');
+      expect(jan).not.toBeNull();
+      expect(jan!.budget.month).toBe(1);
+      expect(mockBudgetApi.getBudgetWithDetails$).not.toHaveBeenCalled();
+
+      // Phase 3: User navigates to february budget → still cache hit
+      const feb = service.getBudgetDetails('feb-2024');
+      expect(feb).not.toBeNull();
+      expect(feb!.budget.month).toBe(2);
+      expect(mockBudgetApi.getBudgetWithDetails$).not.toHaveBeenCalled();
+    });
+
+    it('Scenario 2: Edit in budget details → revalidation re-populates cache', async () => {
+      const invalidationService = TestBed.inject(BudgetInvalidationService);
+      setupInitialPreload();
+
+      // Phase 1: Initial preload
+      await service.preloadBudgetList();
+      await service.preloadBudgetDetails(allBudgets.map((b) => b.id));
+      mockBudgetApi.getAllBudgets$.mockClear();
+      mockBudgetApi.getBudgetWithDetails$.mockClear();
+
+      // Phase 2: User edits within budget → triggers invalidation
+      const freshBudgets = allBudgets.map((b) => ({
+        ...b,
+        remaining: 999,
+      }));
+      mockBudgetApi.getAllBudgets$.mockReturnValue(of(freshBudgets));
+      mockBudgetApi.getBudgetWithDetails$.mockImplementation((id: string) => {
+        const target = freshBudgets.find((bgt) => bgt.id === id);
+        return of(
+          createMockBudgetDetailsResponse({
+            data: {
+              budget: target ?? freshBudgets[0],
+              budgetLines: [],
+              transactions: [],
+            },
+          }),
+        );
+      });
+
+      invalidationService.invalidate();
+      TestBed.flushEffects();
+
+      // Wait for revalidation to complete
+      await vi.waitFor(() => {
+        expect(service.budgets()).not.toBeNull();
+      });
+      // Wait for details to be re-loaded
+      await vi.waitFor(() => {
+        expect(service.isBudgetDetailAvailable('jan-2024')).toBe(true);
+      });
+
+      // Phase 3: All cache entries are fresh — no extra API calls needed
+      mockBudgetApi.getAllBudgets$.mockClear();
+      mockBudgetApi.getBudgetWithDetails$.mockClear();
+
+      const cachedList = service.budgets();
+      expect(cachedList).toHaveLength(3);
+      expect(cachedList![0].remaining).toBe(999);
+
+      const cachedDetail = service.getBudgetDetails('feb-2024');
+      expect(cachedDetail).not.toBeNull();
+      expect(cachedDetail!.budget.remaining).toBe(999);
+
+      // Zero additional API calls — everything served from cache
+      expect(mockBudgetApi.getAllBudgets$).not.toHaveBeenCalled();
+      expect(mockBudgetApi.getBudgetWithDetails$).not.toHaveBeenCalled();
+    });
+
+    it('Scenario 3: Navigate back to list after edit → cache hit', async () => {
+      const invalidationService = TestBed.inject(BudgetInvalidationService);
+      setupInitialPreload();
+
+      // Phase 1: Initial preload
+      await service.preloadBudgetList();
+      await service.preloadBudgetDetails(allBudgets.map((b) => b.id));
+
+      // Phase 2: User edits → invalidation + revalidation
+      mockBudgetApi.getAllBudgets$.mockReturnValue(of(allBudgets));
+      invalidationService.invalidate();
+      TestBed.flushEffects();
+
+      await vi.waitFor(() => {
+        expect(service.budgets()).not.toBeNull();
+      });
+
+      mockBudgetApi.getAllBudgets$.mockClear();
+
+      // Phase 3: User navigates back to budget list
+      // BudgetListStore would call preloadBudgetList() — should be cache hit
+      const budgets = await service.preloadBudgetList();
+      expect(budgets).toHaveLength(3);
+      expect(mockBudgetApi.getAllBudgets$).not.toHaveBeenCalled();
+    });
+
+    it('Scenario 4: Navigate to different budget after edit → cache hit', async () => {
+      const invalidationService = TestBed.inject(BudgetInvalidationService);
+      setupInitialPreload();
+
+      // Phase 1: Initial preload
+      await service.preloadBudgetList();
+      await service.preloadBudgetDetails(allBudgets.map((b) => b.id));
+
+      // Phase 2: User is on jan-2024, edits something → invalidation
+      mockBudgetApi.getAllBudgets$.mockReturnValue(of(allBudgets));
+      mockBudgetApi.getBudgetWithDetails$.mockImplementation((id: string) => {
+        const target = allBudgets.find((bgt) => bgt.id === id);
+        return of(createDetailsResponse(target ?? budget1));
+      });
+
+      invalidationService.invalidate();
+      TestBed.flushEffects();
+
+      // Wait for full revalidation
+      await vi.waitFor(() => {
+        expect(service.isBudgetDetailAvailable('mar-2024')).toBe(true);
+      });
+
+      mockBudgetApi.getBudgetWithDetails$.mockClear();
+
+      // Phase 3: User navigates to mar-2024 → cache hit, zero API calls
+      const march = service.getBudgetDetails('mar-2024');
+      expect(march).not.toBeNull();
+      expect(march!.budget.month).toBe(3);
+      expect(mockBudgetApi.getBudgetWithDetails$).not.toHaveBeenCalled();
+    });
+
+    it('Scenario 5: Budget not in cache (cache miss) → falls back to API', async () => {
+      // No preload happened
+      const result = service.getBudgetDetails('unknown-budget');
+      expect(result).toBeNull();
+      expect(service.isBudgetDetailLoading('unknown-budget')).toBe(false);
+    });
+
+    it('Scenario 6: Rapid mutations do not trigger concurrent revalidations', async () => {
+      const invalidationService = TestBed.inject(BudgetInvalidationService);
+      setupInitialPreload();
+
+      await service.preloadBudgetList();
+      mockBudgetApi.getAllBudgets$.mockClear();
+
+      // Use a Subject to simulate a slow API response
+      const apiSubject = new Subject<Budget[]>();
+      mockBudgetApi.getAllBudgets$.mockReturnValue(apiSubject.asObservable());
+
+      // Trigger 3 rapid invalidations
+      invalidationService.invalidate();
+      invalidationService.invalidate();
+      invalidationService.invalidate();
+      TestBed.flushEffects();
+
+      // Resolve the API call
+      apiSubject.next(allBudgets);
+      apiSubject.complete();
+
+      await vi.waitFor(() => {
+        expect(service.budgets()).not.toBeNull();
+      });
+
+      // Reentrancy guard ensures only 1 API call despite 3 invalidations
+      expect(mockBudgetApi.getAllBudgets$).toHaveBeenCalledOnce();
+    });
+
+    it('Scenario 7: preloadBudgetList deduplicates with revalidation', async () => {
+      const invalidationService = TestBed.inject(BudgetInvalidationService);
+      setupInitialPreload();
+
+      await service.preloadBudgetList();
+      mockBudgetApi.getAllBudgets$.mockClear();
+      mockBudgetApi.getAllBudgets$.mockReturnValue(of(allBudgets));
+
+      // Trigger invalidation (starts revalidation)
+      invalidationService.invalidate();
+      TestBed.flushEffects();
+
+      // Concurrent call from BudgetListStore (should share the same promise)
+      const storeResult = await service.preloadBudgetList();
+
+      expect(storeResult).toHaveLength(3);
+      // Only 1 API call even though both revalidation and store called preloadBudgetList
+      expect(mockBudgetApi.getAllBudgets$).toHaveBeenCalledOnce();
+    });
+
+    it('Scenario 8: invalidateBudgetList only clears list, not details', () => {
+      setupInitialPreload();
+
+      // Preload list only, then manually invalidate list
+      service.preloadBudgetList().then(() => {
+        service.invalidateBudgetList();
+        // List is cleared
+        expect(service.budgets()).toBeNull();
+      });
+    });
+
+    it('Scenario 9: invalidateBudgetDetails only clears specific budget', async () => {
+      setupInitialPreload();
+
+      await service.preloadBudgetList();
+      await service.preloadBudgetDetails(['jan-2024', 'feb-2024']);
+
+      expect(service.isBudgetDetailAvailable('jan-2024')).toBe(true);
+      expect(service.isBudgetDetailAvailable('feb-2024')).toBe(true);
+
+      // Invalidate only january
+      service.invalidateBudgetDetails('jan-2024');
+
+      expect(service.isBudgetDetailAvailable('jan-2024')).toBe(false);
+      expect(service.isBudgetDetailAvailable('feb-2024')).toBe(true);
+    });
+
+    it('Scenario 10: clear() resets all state for logout', async () => {
+      setupInitialPreload();
+
+      await service.preloadBudgetList();
+      await service.preloadBudgetDetails(['jan-2024']);
+
+      expect(service.budgets()).not.toBeNull();
+      expect(service.isBudgetDetailAvailable('jan-2024')).toBe(true);
+
+      service.clear();
+
+      expect(service.budgets()).toBeNull();
+      expect(service.hasBudgets()).toBe(false);
+      expect(service.isBudgetDetailAvailable('jan-2024')).toBe(false);
+      expect(service.isListLoading()).toBe(false);
     });
   });
 });

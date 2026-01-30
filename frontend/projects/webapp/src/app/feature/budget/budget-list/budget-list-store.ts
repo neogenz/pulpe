@@ -5,12 +5,10 @@ import {
   linkedSignal,
   resource,
 } from '@angular/core';
-import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetCache } from '@core/budget/budget-cache';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { Logger } from '@core/logging/logger';
 import { type Budget } from 'pulpe-shared';
-import { firstValueFrom } from 'rxjs';
 
 export interface BudgetPlaceholder {
   month: number;
@@ -19,7 +17,6 @@ export interface BudgetPlaceholder {
 
 @Injectable()
 export class BudgetListStore {
-  readonly #budgetApi = inject(BudgetApi);
   readonly #budgetCache = inject(BudgetCache);
   readonly #logger = inject(Logger);
   readonly #invalidationService = inject(BudgetInvalidationService);
@@ -176,9 +173,7 @@ export class BudgetListStore {
 
   async #loadBudgets(): Promise<Budget[]> {
     try {
-      const cached = this.#budgetCache.budgets();
-      const budgets =
-        cached ?? (await firstValueFrom(this.#budgetApi.getAllBudgets$()));
+      const budgets = await this.#budgetCache.preloadBudgetList();
       return budgets.sort((a: Budget, b: Budget) => {
         if (a.year !== b.year) {
           return a.year - b.year;

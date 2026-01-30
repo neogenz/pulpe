@@ -103,20 +103,7 @@ export class BudgetDetailsStore {
         } satisfies BudgetDetailsViewModel;
       }
 
-      // If cache is currently loading this budget, wait for it
-      if (this.#budgetCache.isBudgetDetailLoading(budgetId)) {
-        const entry = await this.#budgetCache.waitForBudgetDetails(budgetId);
-        if (entry) {
-          return {
-            ...entry.budget,
-            budgetLines: entry.budgetLines,
-            transactions: entry.transactions,
-          } satisfies BudgetDetailsViewModel;
-        }
-        // Cache load failed or timed out — fall through to direct API call
-      }
-
-      // Fallback to direct API call
+      // Cache miss — direct API call (don't wait for preloader to avoid blocking user)
       const response = await firstValueFrom(
         this.#budgetApi.getBudgetWithDetails$(budgetId),
       );
@@ -152,10 +139,7 @@ export class BudgetDetailsStore {
 
   // Month navigation - load all budgets to find adjacent ones
   readonly #allBudgetsResource = resource({
-    loader: async () => {
-      const cached = this.#budgetCache.budgets();
-      return cached ?? (await firstValueFrom(this.#budgetApi.getAllBudgets$()));
-    },
+    loader: async () => this.#budgetCache.preloadBudgetList(),
   });
 
   readonly #sortedBudgets = computed(() => {
