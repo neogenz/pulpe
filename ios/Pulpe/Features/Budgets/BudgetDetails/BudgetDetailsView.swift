@@ -508,11 +508,9 @@ final class BudgetDetailsViewModel {
 
         do {
             let details = try await budgetService.getBudgetWithDetails(id: budgetId)
-            withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
-                budget = details.budget
-                budgetLines = details.budgetLines
-                transactions = details.transactions
-            }
+            budget = details.budget
+            budgetLines = details.budgetLines
+            transactions = details.transactions
             updateAdjacentBudgets()
         } catch {
             self.error = error
