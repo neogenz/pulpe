@@ -33,7 +33,7 @@ export class AppPreloader {
     this.#logger.debug('[AppPreloader] Starting background preload');
 
     try {
-      // Phase 1: Load budget list and templates in parallel
+      // Two-phase preload: list then details — see DR-006 in memory-bank/techContext.md
       const [budgets] = await Promise.all([
         this.#budgetCache.preloadBudgetList(),
         this.#templateCache.preloadAll(),

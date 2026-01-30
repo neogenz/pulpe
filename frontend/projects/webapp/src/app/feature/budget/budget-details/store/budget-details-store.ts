@@ -56,6 +56,7 @@ export class BudgetDetailsStore {
   readonly #state = createInitialBudgetDetailsState();
 
   // Last known stale data for instant display before resource resolves
+  // Imperative signal chosen over linkedSignal/computed — see DR-008 in memory-bank/techContext.md
   readonly #staleData = signal<BudgetDetailsViewModel | null>(null);
 
   // Filter state - show only unchecked items by default
@@ -131,9 +132,8 @@ export class BudgetDetailsStore {
     },
   });
 
-  // Computed pour l'état dérivé
   // Read both signals eagerly so Angular tracks both as dependencies,
-  // regardless of nullish-coalescing short-circuit.
+  // regardless of nullish-coalescing short-circuit — see DR-007 in memory-bank/techContext.md
   readonly budgetDetails = computed(() => {
     const resourceValue = this.#budgetDetailsResource.value();
     const cachedValue = this.#staleData();
@@ -221,8 +221,8 @@ export class BudgetDetailsStore {
     this.#isShowingOnlyUnchecked.set(value);
   }
 
+  // Cache-first display: seed stale data before resource triggers — see DR-006 in memory-bank/techContext.md
   setBudgetId(budgetId: string): void {
-    // Seed cached data for instant display before resource loader runs
     const cached = this.#budgetCache.getBudgetDetails(budgetId);
     this.#staleData.set(
       cached
