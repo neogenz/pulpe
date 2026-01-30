@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { transactionCreateSchema } from 'pulpe-shared';
 import { formatLocalDate } from './format-local-date';
 
 describe('formatLocalDate', () => {
@@ -7,7 +8,7 @@ describe('formatLocalDate', () => {
 
     const result = formatLocalDate(date);
 
-    expect(result).toBe('2026-01-29T00:00:00');
+    expect(result).toMatch(/^2026-01-29T00:00:00[+-]\d{2}:\d{2}$/);
   });
 
   it('should preserve date when time is set', () => {
@@ -15,16 +16,15 @@ describe('formatLocalDate', () => {
 
     const result = formatLocalDate(date);
 
-    expect(result).toBe('2026-06-15T14:30:45');
+    expect(result).toMatch(/^2026-06-15T14:30:45[+-]\d{2}:\d{2}$/);
   });
 
-  it('should not include timezone suffix', () => {
+  it('should include timezone offset suffix', () => {
     const date = new Date(2026, 0, 1);
 
     const result = formatLocalDate(date);
 
-    expect(result).not.toContain('Z');
-    expect(result).not.toMatch(/[+-]\d{2}:\d{2}$/);
+    expect(result).toMatch(/[+-]\d{2}:\d{2}$/);
   });
 
   it('should return a string that starts with the correct date regardless of timezone', () => {
@@ -33,5 +33,15 @@ describe('formatLocalDate', () => {
     const result = formatLocalDate(date);
 
     expect(result).toMatch(/^2026-12-31/);
+  });
+
+  it('should produce a valid transactionDate for the backend schema', () => {
+    const date = new Date(2026, 0, 29, 12, 0, 0);
+
+    const result = formatLocalDate(date);
+
+    const parsed =
+      transactionCreateSchema.shape.transactionDate.safeParse(result);
+    expect(parsed.success).toBe(true);
   });
 });
