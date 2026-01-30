@@ -24,51 +24,46 @@
 | DR-002 | Automated Demo Cleanup | 2024-06-15 | Accepted |
 | DR-003 | Remove Variable Transaction Recurrence | 2024-07-20 | Accepted |
 | DR-004 | Typed & Versioned Storage Service | 2024-11-10 | Pending |
-| DR-005 | Temp ID Replacement Before Toggle Cascade | 2026-01-30 | Accepted |
+| DR-005 | Cache-First Data Loading in Dashboard | 2026-01-30 | Accepted |
 
 ---
 
-## DR-005: Temp ID Replacement Before Toggle Cascade
+## DR-005: Cache-First Data Loading in Dashboard
 
 **Date**: 2026-01-30
 **Status**: Accepted
 
+### Context
+
+Le dashboard rechargait `GET /budgets` à chaque navigation (retour depuis Budgets, Modèles, etc.) malgré un système de cache (`BudgetCache`) et un preloader (`AppPreloader`) déjà en place.
+
+### Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Data loader vérifie le cache avant l'API | Cache-first lookup dans `createDashboardDataLoader` | Même pattern que `BudgetListStore` et `BudgetDetailsStore` |
+| `getBudgetForMonth$` reste inchangé | Fallback API conservé | Évite les régressions sur les autres consommateurs |
+| Race condition initiale acceptée | Pas de restructuration de l'init | Ne se produit qu'une fois au login/reload |
+
 ### Problem
 
-Creating a transaction under a checked parent budget line triggered a 404 error. The store called `toggleCheck` on the parent **before** replacing the temp ID (`temp-xxx`) with the real server ID. The cascade (`calculateBudgetLineToggle`) then included temp IDs in `transactionsToToggle`, causing `POST /transactions/temp-xxx/check → 404`.
-
-### Decision Drivers
-
-- Optimistic updates generate temp IDs (`temp-${uuidv4()}`) for immediate UI feedback
-- `calculateBudgetLineToggle` is a pure function that returns whatever IDs are in state
-- API calls require real server-assigned UUIDs
-
-### Options Considered
-
-| Option | Description | Verdict |
-|--------|-------------|---------|
-| A: Reorder operations | Replace temp ID before triggering cascade | Chosen |
-| B: Filter temp IDs in cascade | Skip `temp-*` IDs in `transactionsToToggle` | Rejected |
+`current-month-data-loader.ts` appelait `budgetApi.getBudgetForMonth$()` qui exécute systématiquement `getAllBudgets$()` (HTTP GET brut), ignorant le cache `BudgetCache.budgets()` rempli par le preloader. Chaque retour au dashboard déclenchait un appel réseau inutile.
 
 ### Decision
 
-In `createAllocatedTransaction()`, replace the temp ID with the server response **before** triggering the parent budget line's `toggleCheck` cascade.
+Le data loader consulte d'abord `budgetCache.budgets()` pour trouver le budget du mois courant. Si le cache contient les données, aucun appel HTTP. Le fallback API reste en place pour les cache miss.
 
 ### Rationale
 
-- Option A fixes the root cause (ordering) without coupling the pure utility to ID format conventions
-- Option B would leak implementation details (`temp-` prefix) into `calculateBudgetLineToggle`
-- Pure functions should not know about temp ID conventions — the store controls operation ordering
+- Le pattern cache-first existait déjà dans `BudgetListStore` (ligne 179) et `BudgetDetailsStore` (ligne 148) — seul le dashboard ne l'appliquait pas
+- Le preloader remplit le cache au login, donc les navigations suivantes sont instantanées
+- Changement minimal (1 fichier) avec impact maximal sur la réactivité perçue
 
 ### Consequences
 
-- **Positive**: No temp IDs reach API calls; pure functions remain agnostic
-- **Trade-off**: Sequential await (replace → then toggle) instead of parallel
-- **Impact**: `budget-details-store.ts:519-530` reordered
-
-### Notes
-
-Pattern applies to any optimistic update followed by cascade: always resolve temp IDs before triggering dependent operations.
+- **Positive**: 0 requêtes réseau lors des navigations inter-écrans après le chargement initial
+- **Trade-off**: Doublon `GET /budgets` au premier chargement (race preloader/store) — accepté
+- **Impact**: `current-month-data-loader.ts` uniquement
 
 ---
 

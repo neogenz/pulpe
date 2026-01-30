@@ -7,19 +7,32 @@ export function createDashboardDataLoader(
   budgetApi: BudgetApi,
   budgetCache: BudgetCache,
 ): (params: { month: string; year: string }) => Observable<DashboardData> {
-  return (params) =>
-    budgetApi.getBudgetForMonth$(params.month, params.year).pipe(
+  return (params) => {
+    const monthNumber = parseInt(params.month, 10);
+    const yearNumber = parseInt(params.year, 10);
+
+    // Cache-first: find the budget from the preloaded budget list
+    const cachedBudgets = budgetCache.budgets();
+    const cachedBudget = cachedBudgets?.find(
+      (b) => b.month === monthNumber && b.year === yearNumber,
+    );
+
+    const budget$ = cachedBudget
+      ? of(cachedBudget)
+      : budgetApi.getBudgetForMonth$(params.month, params.year);
+
+    return budget$.pipe(
       switchMap((budget) => {
         if (!budget) {
           return of({ budget: null, transactions: [], budgetLines: [] });
         }
 
-        const cached = budgetCache.getBudgetDetails(budget.id);
-        if (cached) {
+        const cachedDetails = budgetCache.getBudgetDetails(budget.id);
+        if (cachedDetails) {
           return of({
-            budget: cached.budget,
-            transactions: cached.transactions,
-            budgetLines: cached.budgetLines,
+            budget: cachedDetails.budget,
+            transactions: cachedDetails.transactions,
+            budgetLines: cachedDetails.budgetLines,
           });
         }
 
@@ -32,4 +45,5 @@ export function createDashboardDataLoader(
         );
       }),
     );
+  };
 }
