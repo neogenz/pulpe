@@ -25,6 +25,91 @@
 | DR-003 | Remove Variable Transaction Recurrence | 2024-07-20 | Accepted |
 | DR-004 | Typed & Versioned Storage Service | 2024-11-10 | Pending |
 | DR-005 | Cache-First Data Loading in Dashboard | 2026-01-30 | Accepted |
+| DR-006 | Cache-First Budget Details & Full Preload | 2026-01-30 | Accepted |
+| DR-007 | Eager Signal Reading in computed() with ?? | 2026-01-30 | Accepted |
+
+---
+
+## DR-007: Eager Signal Reading in computed() with ??
+
+**Date**: 2026-01-30
+**Status**: Accepted
+
+### Context
+
+Angular's `computed()` tracks dependencies dynamically — only signals actually read during the last evaluation are tracked. JavaScript's `??` operator short-circuits: `A ?? B` skips reading B when A is non-null, causing Angular to stop tracking B as a dependency.
+
+### Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Read all signals eagerly before `??` | Assign to local variables first | Ensures both signals are always tracked regardless of short-circuit |
+| Boolean `&&` / `\|\|` are safe as-is | No fix needed | Short-circuit cannot produce incorrect boolean result |
+| `??` with data signals requires eager read | Mandatory pattern | Stale context can cause wrong data to be returned |
+
+### Problem
+
+```typescript
+// BUG: if resource.value() is non-null, #staleData() is never tracked
+readonly details = computed(() => this.resource.value() ?? this.#staleData());
+```
+
+When navigating between entities, `#staleData` updates to new context but the computed doesn't re-evaluate because `#staleData` isn't tracked.
+
+### Decision
+
+Always read all signals into local variables before applying `??`:
+
+```typescript
+readonly details = computed(() => {
+  const fresh = this.resource.value();
+  const stale = this.#staleData();
+  return fresh ?? stale ?? null;
+});
+```
+
+### Consequences
+
+- **Positive**: Eliminates a class of subtle reactivity bugs
+- **Trade-off**: Slightly more verbose computed expressions
+- **Impact**: `budget-details-store.ts`, `template-details-store.ts`
+
+---
+
+## DR-006: Cache-First Budget Details & Full Preload
+
+**Date**: 2026-01-30
+**Status**: Accepted
+
+### Context
+
+Budget details page showed a spinner on every navigation, even for cached data. Three root causes: (a) `BudgetDetailsStore` provided at component level → recreated on every navigation, (b) `resource()` always enters loading state for at least one tick, (c) only current month was preloaded.
+
+### Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Seed cached data in `setBudgetId()` | `#immediateValue` signal populated from `BudgetCache` | Provides instant display before resource loader runs |
+| Distinguish initial loading from reloading | `isInitialLoading = isLoading && !budgetDetails()` | Spinner only when truly no data available |
+| Preload all budget details at startup | `preloadBudgetDetails(allIds)` in `AppPreloader` | Maximizes cache hits across all months |
+| Keep store at component level | No architecture change | Follows feature isolation rules |
+
+### Problem
+
+`resource()` always transitions through loading state when params change. Template `@if (store.isLoading())` showed spinner even when cache had data. `AppPreloader` only preloaded current month — other months triggered real API calls.
+
+### Decision
+
+- `setBudgetId()` checks `BudgetCache` synchronously and populates `#immediateValue` signal
+- `budgetDetails` computed falls back to `#immediateValue` when resource is loading
+- `isInitialLoading` only true when loading AND no cached data exists
+- `AppPreloader` preloads all budget IDs in parallel
+
+### Consequences
+
+- **Positive**: No spinner flash for cached budgets, all months preloaded in parallel
+- **Trade-off**: All budget details loaded at startup (acceptable: typical users have 12-24 budgets)
+- **Impact**: `budget-details-store.ts`, `budget-details-page.html`, `app-preloader.ts`
 
 ---
 
