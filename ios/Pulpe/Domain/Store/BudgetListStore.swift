@@ -122,8 +122,8 @@ final class BudgetListStore: StoreProtocol {
 
     // MARK: - Mutations
 
-    func addBudget(_ budget: Budget) async {
+    func addBudget(_ budget: Budget) {
         budgets.append(BudgetSparse(from: budget))
-        await syncWidgetData()
+        lastLoadTime = nil
     }
 }

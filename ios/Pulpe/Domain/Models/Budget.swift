@@ -128,7 +128,7 @@ struct BudgetSparse: Decodable, Identifiable, Sendable, Hashable {
         self.totalExpenses = nil
         self.totalSavings = nil
         self.totalIncome = nil
-        self.remaining = budget.remaining
+        self.remaining = budget.remaining ?? 0
         self.rollover = budget.rollover
     }
 

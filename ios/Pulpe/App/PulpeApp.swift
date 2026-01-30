@@ -76,7 +76,14 @@ struct RootView: View {
         @Bindable var appState = appState
 
         Group {
-            if appState.isInMaintenance {
+            if appState.isNetworkUnavailable {
+                NetworkUnavailableView {
+                    await appState.retryNetworkCheck()
+                    if appState.authState == .authenticated {
+                        await currentMonthStore.loadBudgetSummary()
+                    }
+                }
+            } else if appState.isInMaintenance {
                 MaintenanceView()
             } else {
                 switch appState.authState {
@@ -99,16 +106,16 @@ struct RootView: View {
         .environment(appState.toastManager)
         .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: appState.authState)
         .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: appState.isInMaintenance)
+        .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: appState.isNetworkUnavailable)
         .onReceive(NotificationCenter.default.publisher(for: .maintenanceModeDetected)) { _ in
             appState.setMaintenanceMode(true)
         }
         .task {
             await appState.checkMaintenanceStatus()
-            if !appState.isInMaintenance {
-                await appState.checkAuthState()
-                if appState.authState == .authenticated {
-                    await currentMonthStore.loadBudgetSummary()
-                }
+            guard !appState.isInMaintenance, !appState.isNetworkUnavailable else { return }
+            await appState.checkAuthState()
+            if appState.authState == .authenticated {
+                await currentMonthStore.loadBudgetSummary()
             }
         }
         .onChange(of: appState.isInMaintenance) { oldValue, newValue in

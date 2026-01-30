@@ -20,9 +20,10 @@ final class AppState {
     private(set) var authState: AuthStatus = .loading
     private(set) var currentUser: UserInfo?
 
-    // MARK: - Maintenance State
+    // MARK: - Maintenance & Network State
 
     private(set) var isInMaintenance = false
+    private(set) var isNetworkUnavailable = false
 
     // MARK: - Navigation
 
@@ -181,10 +182,25 @@ final class AppState {
 
     func checkMaintenanceStatus() async {
         do {
+            isNetworkUnavailable = false
             isInMaintenance = try await MaintenanceService.shared.checkStatus()
         } catch {
-            // Fail-closed: assume maintenance on error
-            isInMaintenance = true
+            // Distinguish network errors from server errors:
+            // network unreachable → dedicated screen with retry
+            // server error → assume maintenance (fail-closed)
+            if (error as? URLError) != nil {
+                isNetworkUnavailable = true
+                isInMaintenance = false
+            } else {
+                isInMaintenance = true
+            }
+        }
+    }
+
+    func retryNetworkCheck() async {
+        await checkMaintenanceStatus()
+        if !isInMaintenance, !isNetworkUnavailable {
+            await checkAuthState()
         }
     }
 }

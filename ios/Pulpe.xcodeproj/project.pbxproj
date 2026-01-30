@@ -68,6 +68,7 @@
 		6CEA4A81B6B02D7395FEFAED /* LinkedTransactionsContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = D45C40FA08472FA75B62A6AC /* LinkedTransactionsContext.swift */; };
 		6DA0F437C7AF227F27F83082 /* TransactionEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A05FA792057CD53B266EE9F /* TransactionEnums.swift */; };
 		70150EE27CA65EBC0F906375 /* PulpeIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40EC58ED46B8CA086F6A633D /* PulpeIcon.swift */; };
+		721D537D7CBD37B1580BB991 /* NetworkUnavailableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4952E464DEEA5F04D784FD0 /* NetworkUnavailableView.swift */; };
 		72C131FA19CE8B13A888F19D /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 09618739B66AA92F99246D88 /* Lottie */; };
 		72E67F3C7E86FB1FE74AC2DE /* BudgetDetailsViewModelFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02ADB15B7D0B2F57118460E8 /* BudgetDetailsViewModelFilterTests.swift */; };
 		750151450FC15B7323B68703 /* LoginFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D90A416A651347D442C1D15C /* LoginFlowTests.swift */; };
@@ -276,6 +277,7 @@
 		A3D2CDB198623A6C39D6F3EF /* PulpeUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PulpeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A40110A09E6DF69EDAD88EFA /* PulpeWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PulpeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A4090237752EF9DF63F659AA /* Transaction+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Transaction+Extensions.swift"; sourceTree = "<group>"; };
+		A4952E464DEEA5F04D784FD0 /* NetworkUnavailableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkUnavailableView.swift; sourceTree = "<group>"; };
 		A77FEC48FC6CEA8465118A09 /* ToastManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastManager.swift; sourceTree = "<group>"; };
 		A97A17DE833B65153924BB0A /* BudgetLineService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetLineService.swift; sourceTree = "<group>"; };
 		A9E904C52E1E5F2BF3E1EB84 /* PersonalInfoStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalInfoStep.swift; sourceTree = "<group>"; };
@@ -417,6 +419,7 @@
 				D4614F485D865898B139E965 /* ErrorView.swift */,
 				C81B7DA6BF84774DCD938E37 /* KindBadge.swift */,
 				A1A0EA391775C63723A83BF3 /* LoadingView.swift */,
+				A4952E464DEEA5F04D784FD0 /* NetworkUnavailableView.swift */,
 				40EC58ED46B8CA086F6A633D /* PulpeIcon.swift */,
 				C40A3D67DE85A1A1DCF3277A /* SyncIndicator.swift */,
 				A77FEC48FC6CEA8465118A09 /* ToastManager.swift */,
@@ -1242,6 +1245,7 @@
 				7D8DD48CD5C6688A74753599 /* MainTabView.swift in Sources */,
 				78B5F01E78BB121C95940D30 /* MaintenanceService.swift in Sources */,
 				C2C698AC77274675E4B5CFF7 /* MaintenanceView.swift in Sources */,
+				721D537D7CBD37B1580BB991 /* NetworkUnavailableView.swift in Sources */,
 				A22726A5F8810386134F4846 /* OnboardingFlow.swift in Sources */,
 				92133527D14DFDB8A91245F6 /* OnboardingNavigationButtons.swift in Sources */,
 				CCAEA8849C0DDC30D40C117A /* OnboardingProgressIndicator.swift in Sources */,
