@@ -36,6 +36,10 @@ import { ROUTES } from '@core/routing';
           </h3>
           <ul class="list-disc pl-6 text-body-large">
             <li>Email et mot de passe (pour votre compte)</li>
+            <li>
+              Si vous vous inscrivez via Google : email, nom et photo de profil
+              transmis par Google
+            </li>
             <li>Informations financières (revenus, dépenses, épargne)</li>
             <li>Préférences et paramètres de l'application</li>
           </ul>
@@ -76,12 +80,17 @@ import { ROUTES } from '@core/routing';
             <li>Améliorer l'expérience utilisateur</li>
           </ul>
           <p class="text-body-large mt-4">
+            <strong>Enregistrement de sessions :</strong> PostHog peut
+            enregistrer des sessions d'utilisation (replay des interactions)
+            pour m'aider à comprendre et résoudre les problèmes techniques.
+          </p>
+          <p class="text-body-large mt-4">
             <strong>Protection de vos données financières :</strong>
           </p>
           <ul class="list-disc pl-6 text-body-large">
             <li>
               Vos montants financiers sont automatiquement masqués dans toutes
-              les analyses
+              les analyses et les enregistrements de sessions
             </li>
             <li>
               Les données sont pseudonymisées (votre identité n'est pas
@@ -115,6 +124,10 @@ import { ROUTES } from '@core/routing';
               <strong>Cloudflare Turnstile</strong> : Vérification anti-bot
               utilisée uniquement en mode démo (aucun cookie stocké)
             </li>
+            <li>
+              <strong>Google</strong> (OAuth) : Connexion via votre compte
+              Google (si vous choisissez cette méthode d'inscription)
+            </li>
           </ul>
           <p class="text-body-large mt-4">
             <strong>Note :</strong> Vos données sont principalement stockées en
@@ -127,7 +140,10 @@ import { ROUTES } from '@core/routing';
           <h2 class="text-headline-medium mb-4">6. Sécurité</h2>
           <ul class="list-disc pl-6 text-body-large">
             <li>Toutes les connexions sont chiffrées (HTTPS)</li>
-            <li>Mots de passe hashés avec bcrypt</li>
+            <li>
+              Mots de passe hashés de manière sécurisée par Supabase (notre
+              fournisseur d'authentification)
+            </li>
             <li>Authentification JWT sécurisée</li>
             <li>
               Accès aux données limité par utilisateur (Row Level Security)
@@ -177,10 +193,10 @@ import { ROUTES } from '@core/routing';
             <li>Droit de retirer votre consentement à tout moment</li>
           </ul>
           <p class="text-body-large mt-4">
-            Pour exercer ces droits, contactez-moi dans un délai de 30 jours à :
+            Pour exercer ces droits, contactez-moi à :
             <a href="mailto:maxime.desogus@gmail.com" class="text-primary"
               >maxime.desogus@gmail.com</a
-            >
+            >. Je m'engage à vous répondre dans un délai d'un mois
           </p>
           <p class="text-body-large mt-2">
             Je suis responsable du traitement de vos données dès la création de
@@ -203,9 +219,16 @@ import { ROUTES } from '@core/routing';
           </p>
           <ul class="list-disc pl-6 text-body-large">
             <li>
-              Activés uniquement après acceptation des CGU lors de l'inscription
+              Activés lors de la création de votre compte (base légale : intérêt
+              légitime pour l'amélioration du service)
             </li>
             <li>Données pseudonymisées (pas d'identification directe)</li>
+            <li>
+              Vous pouvez vous opposer à ces cookies en me contactant à
+              <a href="mailto:maxime.desogus@gmail.com" class="text-primary"
+                >maxime.desogus@gmail.com</a
+              >
+            </li>
           </ul>
         </section>
 

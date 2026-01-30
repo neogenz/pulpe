@@ -344,21 +344,21 @@ export class BudgetDetailsStore {
     }
   }
 
+  /**
+   * Create an allocated transaction with optimistic updates
+   * New transactions always start unchecked; if parent was checked, uncheck it
+   */
   async createAllocatedTransaction(
     transactionData: TransactionCreate,
   ): Promise<void> {
     const newId = `temp-${uuidv4()}`;
     const details = this.#budgetDetailsResource.value();
 
-    if (!details) return;
-
-    const parentBudgetLine = details.budgetLines.find(
+    const parentBudgetLine = details?.budgetLines.find(
       (line) => line.id === transactionData.budgetLineId,
     );
-
-    const inheritedCheckedAt = parentBudgetLine?.checkedAt
-      ? new Date(parentBudgetLine.checkedAt).toISOString()
-      : null;
+    const shouldUncheckParent =
+      parentBudgetLine != null && parentBudgetLine.checkedAt !== null;
 
     const tempTransaction: Transaction = {
       id: newId,
@@ -372,13 +372,29 @@ export class BudgetDetailsStore {
       category: transactionData.category ?? null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      checkedAt: inheritedCheckedAt,
+      checkedAt: null,
     };
 
+    // Optimistic update - add the new transaction and uncheck parent if needed
     this.#budgetDetailsResource.update((details) => {
       if (!details) return details;
+
+      const updatedBudgetLines =
+        shouldUncheckParent && parentBudgetLine
+          ? details.budgetLines.map((line) =>
+              line.id === parentBudgetLine.id
+                ? {
+                    ...line,
+                    checkedAt: null,
+                    updatedAt: new Date().toISOString(),
+                  }
+                : line,
+            )
+          : details.budgetLines;
+
       return {
         ...details,
+        budgetLines: updatedBudgetLines,
         transactions: [...(details.transactions ?? []), tempTransaction],
       };
     });
@@ -387,10 +403,18 @@ export class BudgetDetailsStore {
       const response = await firstValueFrom(
         this.#transactionApi.create$({
           ...transactionData,
-          checkedAt: inheritedCheckedAt,
+          checkedAt: null,
         }),
       );
 
+      // Uncheck parent budget line on backend if it was checked
+      if (shouldUncheckParent && parentBudgetLine) {
+        await this.#enqueue(() =>
+          firstValueFrom(this.#budgetLineApi.toggleCheck$(parentBudgetLine.id)),
+        );
+      }
+
+      // Replace temporary transaction with server response
       this.#budgetDetailsResource.update((details) => {
         if (!details) return details;
         return {

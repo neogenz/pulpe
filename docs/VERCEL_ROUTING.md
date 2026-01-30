@@ -1,13 +1,14 @@
 # Vercel Routing - Pulpe
 
-Configuration du routing Vercel pour servir la landing page (React) et l'application (Angular) depuis le même domaine.
+Configuration du routing Vercel pour servir la landing page (Next.js static export) et l'application (Angular) depuis le même domaine.
 
 ## Architecture
 
 ```
 pulpe.app/
-├── /                    → Landing page (React/Vite) [si non connecté]
+├── /                    → Landing page (Next.js) [si non connecté]
 ├── /                    → Redirect vers /dashboard [si connecté]
+├── /support             → Page support/FAQ (Next.js)
 ├── /screenshots/*       → Assets landing
 ├── /icon.png            → Assets landing
 ├── /welcome, /dashboard → Angular SPA
@@ -18,7 +19,7 @@ pulpe.app/
 
 | App | Stack | Chemin source | Servi depuis |
 |-----|-------|---------------|--------------|
-| Landing | React + Vite | `landing/dist/` | `dist/landing/` |
+| Landing | Next.js (static export) | `landing/dist/` | `dist/landing/` |
 | Webapp | Angular | `frontend/dist/webapp/browser/` | `dist/` |
 
 ## Build Pipeline
@@ -43,8 +44,8 @@ mv dist/index.html dist/_app.html          # Renommer pour éviter conflit
 ```
 dist/
 ├── landing/
-│   ├── index.html        ← Landing React
-│   ├── assets/           ← JS/CSS Vite
+│   ├── index.html        ← Landing Next.js
+│   ├── _next/            ← JS/CSS Next.js
 │   ├── screenshots/      ← Images landing
 │   └── icon.png
 ├── _app.html             ← Angular (renommé)
@@ -77,6 +78,7 @@ Les rewrites routent les requêtes sans changer l'URL visible.
   { "source": "/app-store-badge.svg", "destination": "/landing/app-store-badge.svg" },
   { "source": "/landing/_next/:path*", "destination": "/landing/_next/:path*" },
   { "source": "/_next/:path*", "destination": "/landing/_next/:path*" },
+  { "source": "/support", "destination": "/landing/support.html" },
   { "source": "/:path*", "destination": "/_app.html" }
 ]
 ```
@@ -90,7 +92,8 @@ Les rewrites routent les requêtes sans changer l'URL visible.
 | 3-4 | `/icon.png` | Icône landing |
 | 5 | `/landing/_next/...` | Assets Next.js landing (avec prefix) |
 | 6 | `/_next/...` | Assets Next.js landing (sans prefix) |
-| 7 | `/welcome`, `/dashboard`, etc. | Angular SPA |
+| 7 | `/support` | Page support (Next.js) |
+| 8 | `/welcome`, `/dashboard`, etc. | Angular SPA |
 
 **Note importante sur `/_next/*` :** La règle 6 est essentielle pour éviter que les assets statiques (CSS/JS) de la landing page soient interceptés par la règle catch-all (règle 7). Sans elle, les requêtes vers `/_next/static/css/...` retourneraient du HTML (`_app.html`) au lieu des fichiers CSS/JS, causant des erreurs MIME type et un rendu cassé.
 
@@ -126,7 +129,7 @@ Redirections permanentes (301) pour les anciennes URLs.
 
 ## Auth Redirect (Client-Side)
 
-La landing page Next.js utilise un wrapper client-side pour rediriger automatiquement les utilisateurs connectés vers `/dashboard`.
+La landing utilise une stratégie pour rediriger les utilisateurs connectés vers `/dashboard` depuis la homepage uniquement (les sous-pages comme `/support` restent accessibles) :
 
 ### Fonctionnement
 
@@ -137,98 +140,39 @@ GET /
 Vercel → Landing Page HTML
   │
   ▼
-AuthRedirectWrapper (client)
+1. Script inline synchrone (<head>)
+  │  Vérifie localStorage pour sb-*-auth-token
   │
-  ├─ Supabase JS client getSession()
+  ├─ Si token trouvé:
+  │     └─ window.location.replace('/dashboard') (immédiat, pas de flash)
   │
-  ├─ Si authentifié:
-  │     └─ window.location.replace('/dashboard')
-  │
-  └─ Si non authentifié:
+  └─ Si pas de token:
         └─ Afficher la landing page
 ```
 
-### Pourquoi client-side ?
+### Pourquoi un script inline ?
 
-La landing utilise `output: 'export'` (static HTML) dans Next.js, ce qui est incompatible avec Edge Middleware (qui nécessite un runtime serveur). La solution client-side :
+La landing utilise `output: 'export'` (static HTML) dans Next.js, ce qui est incompatible avec Edge Middleware (qui nécessite un runtime serveur). Le script inline dans `<head>` :
 
 - **Fonctionne avec le static export** : Pas de runtime serveur requis
-- **Loading state** : Affiche un spinner pendant la vérification (évite le flash de contenu)
-- **Supabase JS client** : Gère automatiquement localStorage/sessionStorage pour l'auth
+- **Pas de flash de contenu** : S'exécute avant le rendu React, avant que le HTML soit affiché
+- **Zero dépendance** : Lit directement localStorage sans SDK Supabase
 
-### Configuration requise
+## Next.js Static Export
 
-Variables d'environnement dans Vercel Dashboard :
-
-```
-NEXT_PUBLIC_SUPABASE_URL=https://[PROJECT_REF].supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-```
-
-Ces variables doivent avoir les mêmes valeurs que `PUBLIC_SUPABASE_URL` et `PUBLIC_SUPABASE_ANON_KEY` du frontend Angular.
-
-### Architecture
-
-```
-landing/
-├── lib/auth.ts                      # Client Supabase + getSession()
-├── components/AuthRedirectWrapper.tsx  # Wrapper avec loading state
-└── app/layout.tsx                   # Intègre le wrapper
-```
-
-### Code (`AuthRedirectWrapper.tsx`)
-
-```typescript
-'use client'
-
-import { useEffect, useState } from 'react'
-import { isAuthenticated } from '@/lib/auth'
-
-export function AuthRedirectWrapper({ children }) {
-  const [isChecking, setIsChecking] = useState(true)
-
-  useEffect(() => {
-    async function checkAuth() {
-      const authenticated = await isAuthenticated()
-      if (authenticated) {
-        window.location.replace('/dashboard')
-      } else {
-        setIsChecking(false)
-      }
-    }
-    checkAuth()
-  }, [])
-
-  if (isChecking) {
-    return <LoadingSpinner />
-  }
-
-  return children
-}
-```
-
-## Vite Base Path
-
-La landing utilise `base: '/landing/'` dans `vite.config.ts` pour que les assets JS/CSS soient référencés correctement :
-
-```typescript
-// landing/vite.config.ts
-export default defineConfig({
-  base: '/landing/',
-  plugins: [react(), tailwindcss()],
-})
-```
-
-Les fichiers du dossier `public/` (images, icons) ne sont pas affectés par le base path. D'où les rewrites `/screenshots/*` et `/icon.png`.
+La landing utilise `output: 'export'` et `distDir: 'dist'` dans `next.config.ts`. Next.js génère les assets dans `_next/` automatiquement. Les fichiers du dossier `public/` (images, icons) sont copiés à la racine du dist. D'où les rewrites `/screenshots/*` et `/icon.png`.
 
 ## Flux de requêtes
 
 ```
 GET /
-  → Rewrite → /landing/index.html → Landing React
+  → Rewrite → /landing/index.html → Landing Next.js
 
 GET /screenshots/webapp/dashboard.png
   → Rewrite → /landing/screenshots/webapp/dashboard.png → Image
+
+GET /support
+  → Rewrite → /landing/support.html → Page support Next.js
 
 GET /welcome
   → Pas de fichier statique
@@ -255,4 +199,4 @@ Pour ajouter un nouveau dossier d'assets à la landing :
 
 - [Vercel Rewrites](https://vercel.com/docs/rewrites)
 - [Vercel Redirects](https://vercel.com/docs/redirects)
-- [Vite Base Path](https://vite.dev/config/shared-options.html#base)
+- [Next.js Static Export](https://nextjs.org/docs/app/building-your-application/deploying/static-exports)

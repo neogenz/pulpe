@@ -31,7 +31,7 @@ export function WhyFree() {
             <div>
               <h3 className="font-semibold text-text mb-2">Tes données sont protégées</h3>
               <p>
-                Analytics hébergés en Europe, montants toujours masqués. Je ne vois jamais tes chiffres.
+                Analytics hébergés en Europe, tes montants sont protégés par chiffrement et contrôle d'accès.
               </p>
             </div>
 

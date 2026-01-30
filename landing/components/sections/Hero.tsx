@@ -20,10 +20,10 @@ import {
 import type { ReactNode } from "react";
 
 const TYPEWRITER_STRINGS = [
-  "Profite de ton mois.",
-  "Anticipe tes dépenses.",
-  "Épargne sans y penser.",
-  "Reprends le contrôle.",
+  "Pulpe, oui.",
+  "Ce mois, oui.",
+  "Sur 12 mois, oui.",
+  "Au centime près, oui.",
 ];
 
 type FloatingCardVariant =
@@ -189,22 +189,23 @@ export function Hero() {
             className="text-center lg:text-left"
           >
             <p className="text-sm font-medium text-primary mb-3 tracking-wide uppercase">
-              L'app budget simple
+              Budget annuel en 3 minutes
             </p>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-text mb-6">
-              Planifie ton année.
+              Tu sais ce qu'il te reste ?
               <br />
               {/* Static text on mobile, TypeWriter on desktop */}
               <span className="text-primary md:hidden">
-                Profite de ton mois.
+                Pulpe, oui.
               </span>
+              {/* Reserve height for TypeWriter to prevent layout shift */}
               <span className="text-primary hidden md:block min-h-[7.5rem] lg:min-h-[9.375rem]">
                 <TypeWriter strings={TYPEWRITER_STRINGS} />
               </span>
             </h1>
             <p className="text-lg md:text-xl text-text-secondary mb-8 max-w-lg mx-auto lg:mx-0">
-              Fini le stress des dépenses oubliées. Anticipe tout et note en 2
-              clics.
+              Pulpe planifie ton année pour que tu saches toujours ce que tu
+              peux dépenser. Sans prise de tête.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start justify-center">
               <div className="flex flex-col items-center gap-3">

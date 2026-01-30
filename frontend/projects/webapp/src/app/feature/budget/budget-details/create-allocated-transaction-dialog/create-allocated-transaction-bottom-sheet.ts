@@ -1,26 +1,20 @@
 import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import {
-  MAT_DIALOG_DATA,
-  MatDialogRef,
-  MatDialogModule,
-} from '@angular/material/dialog';
+  MAT_BOTTOM_SHEET_DATA,
+  MatBottomSheetRef,
+} from '@angular/material/bottom-sheet';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import type { BudgetLine, TransactionCreate } from 'pulpe-shared';
-import { formatLocalDate } from '@core/date/format-local-date';
-
-export interface CreateAllocatedTransactionDialogData {
-  budgetLine: BudgetLine;
-}
+import type { TransactionCreate } from 'pulpe-shared';
+import type { CreateAllocatedTransactionDialogData } from './create-allocated-transaction-dialog';
 
 @Component({
-  selector: 'pulpe-create-allocated-transaction-dialog',
+  selector: 'pulpe-create-allocated-transaction-bottom-sheet',
   imports: [
-    MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
@@ -29,19 +23,35 @@ export interface CreateAllocatedTransactionDialogData {
     ReactiveFormsModule,
   ],
   template: `
-    <h2 mat-dialog-title class="text-headline-small">
-      Nouvelle transaction - {{ data.budgetLine.name }}
-    </h2>
+    <div class="flex flex-col gap-4 pb-6">
+      <!-- Drag indicator -->
+      <div
+        class="w-9 h-1 bg-outline-variant rounded-sm mx-auto mt-3 mb-2"
+      ></div>
 
-    <mat-dialog-content>
-      <form [formGroup]="form" class="flex flex-col gap-4 pt-4">
-        <mat-form-field appearance="outline" class="w-full">
+      <!-- Header -->
+      <div class="flex justify-between items-center">
+        <h2 class="text-title-large text-on-surface m-0">
+          Nouvelle transaction - {{ data.budgetLine.name }}
+        </h2>
+        <button matIconButton (click)="close()" aria-label="Fermer">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <!-- Form -->
+      <form
+        [formGroup]="form"
+        (ngSubmit)="submit()"
+        class="flex flex-col gap-4"
+        novalidate
+      >
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Description</mat-label>
           <input
             matInput
             formControlName="name"
             placeholder="Ex: Restaurant, Courses..."
-            data-testid="transaction-name"
           />
           @if (
             form.get('name')?.hasError('required') && form.get('name')?.touched
@@ -55,15 +65,15 @@ export interface CreateAllocatedTransactionDialogData {
           }
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="w-full">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Montant</mat-label>
           <input
             matInput
             type="number"
+            inputmode="decimal"
             formControlName="amount"
             step="0.01"
             min="0.01"
-            data-testid="transaction-amount"
           />
           <span matTextSuffix>CHF</span>
           @if (
@@ -79,13 +89,12 @@ export interface CreateAllocatedTransactionDialogData {
           }
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="w-full">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Date</mat-label>
           <input
             matInput
             [matDatepicker]="picker"
             formControlName="transactionDate"
-            data-testid="transaction-date"
           />
           <mat-datepicker-toggle matIconSuffix [for]="picker" />
           <mat-datepicker #picker />
@@ -97,29 +106,35 @@ export interface CreateAllocatedTransactionDialogData {
           }
         </mat-form-field>
       </form>
-    </mat-dialog-content>
 
-    <mat-dialog-actions align="end">
-      <button matButton (click)="cancel()" data-testid="cancel-transaction">
-        Annuler
-      </button>
-      <button
-        matButton="filled"
-        (click)="submit()"
-        [disabled]="form.invalid"
-        data-testid="save-transaction"
-      >
-        <mat-icon>add</mat-icon>
-        Créer
-      </button>
-    </mat-dialog-actions>
+      <!-- Action buttons -->
+      <div class="flex gap-3 pt-2">
+        <button matButton (click)="close()" class="flex-1">Annuler</button>
+        <button
+          matButton="filled"
+          (click)="submit()"
+          [disabled]="form.invalid"
+          class="flex-2"
+        >
+          <mat-icon>add</mat-icon>
+          Créer
+        </button>
+      </div>
+    </div>
+  `,
+  styles: `
+    :host {
+      display: block;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CreateAllocatedTransactionDialog {
-  readonly data = inject<CreateAllocatedTransactionDialogData>(MAT_DIALOG_DATA);
-  readonly #dialogRef = inject(
-    MatDialogRef<CreateAllocatedTransactionDialog, TransactionCreate>,
+export class CreateAllocatedTransactionBottomSheet {
+  readonly data = inject<CreateAllocatedTransactionDialogData>(
+    MAT_BOTTOM_SHEET_DATA,
+  );
+  readonly #bottomSheetRef = inject(
+    MatBottomSheetRef<CreateAllocatedTransactionBottomSheet, TransactionCreate>,
   );
   readonly #fb = inject(FormBuilder);
 
@@ -132,8 +147,8 @@ export class CreateAllocatedTransactionDialog {
     transactionDate: [new Date(), Validators.required],
   });
 
-  cancel(): void {
-    this.#dialogRef.close();
+  close(): void {
+    this.#bottomSheetRef.dismiss();
   }
 
   submit(): void {
@@ -142,19 +157,19 @@ export class CreateAllocatedTransactionDialog {
     const formValue = this.form.getRawValue();
     const transactionDate =
       formValue.transactionDate instanceof Date
-        ? formatLocalDate(formValue.transactionDate)
-        : formatLocalDate(new Date());
+        ? formValue.transactionDate.toISOString()
+        : new Date().toISOString();
 
     const transaction: TransactionCreate = {
       budgetId: this.data.budgetLine.budgetId,
       budgetLineId: this.data.budgetLine.id,
       name: formValue.name!.trim(),
-      amount: Math.abs(formValue.amount!),
+      amount: formValue.amount!,
       kind: this.data.budgetLine.kind,
       transactionDate,
       category: null,
     };
 
-    this.#dialogRef.close(transaction);
+    this.#bottomSheetRef.dismiss(transaction);
   }
 }

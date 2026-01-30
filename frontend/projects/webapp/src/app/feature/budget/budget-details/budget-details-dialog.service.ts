@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, Injector } from '@angular/core';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
@@ -23,6 +23,7 @@ import {
   CreateAllocatedTransactionDialog,
   type CreateAllocatedTransactionDialogData,
 } from './create-allocated-transaction-dialog/create-allocated-transaction-dialog';
+import { CreateAllocatedTransactionBottomSheet } from './create-allocated-transaction-dialog/create-allocated-transaction-bottom-sheet';
 import {
   ConfirmationDialog,
   type ConfirmationDialogData,
@@ -38,6 +39,7 @@ export interface ConfirmDeleteOptions {
 export class BudgetDetailsDialogService {
   readonly #dialog = inject(MatDialog);
   readonly #bottomSheet = inject(MatBottomSheet);
+  readonly #injector = inject(Injector);
 
   async openAddBudgetLineDialog(
     budgetId: string,
@@ -59,16 +61,18 @@ export class BudgetDetailsDialogService {
       consumption: BudgetLineConsumption;
     },
     isMobile: boolean,
+    callbacks?: { onToggleTransactionCheck?: (id: string) => void },
   ): Promise<AllocatedTransactionsDialogResult | undefined> {
     const data: AllocatedTransactionsDialogData = {
       budgetLine: event.budgetLine,
       consumption: event.consumption,
+      onToggleTransactionCheck: callbacks?.onToggleTransactionCheck,
     };
 
     if (isMobile) {
       const bottomSheetRef = this.#bottomSheet.open(
         AllocatedTransactionsBottomSheet,
-        { data },
+        { data, injector: this.#injector },
       );
       return firstValueFrom(bottomSheetRef.afterDismissed());
     }
@@ -83,15 +87,23 @@ export class BudgetDetailsDialogService {
 
   async openCreateAllocatedTransactionDialog(
     budgetLine: BudgetLine,
+    isMobile: boolean,
   ): Promise<TransactionCreate | undefined> {
+    const data: CreateAllocatedTransactionDialogData = { budgetLine };
+
+    if (isMobile) {
+      const bottomSheetRef = this.#bottomSheet.open(
+        CreateAllocatedTransactionBottomSheet,
+        { data, injector: this.#injector },
+      );
+      return firstValueFrom(bottomSheetRef.afterDismissed());
+    }
+
     const dialogRef = this.#dialog.open(CreateAllocatedTransactionDialog, {
-      data: {
-        budgetLine,
-      } satisfies CreateAllocatedTransactionDialogData,
+      data,
       width: '600px',
       maxWidth: '90vw',
     });
-
     return firstValueFrom(dialogRef.afterClosed());
   }
 

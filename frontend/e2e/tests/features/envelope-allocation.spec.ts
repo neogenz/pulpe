@@ -18,6 +18,61 @@ import {
  * totalExpenses = Σ(max(envelope.amount, consumed)) + Σ(freeTransactions)
  * remaining = (totalIncome + rollover) - totalExpenses
  */
+test.describe('Envelope Allocation - Mobile Add Transaction Button', () => {
+  test.use({
+    viewport: { width: 375, height: 667 },
+    isMobile: true,
+  });
+
+  test('add transaction button should be visible on envelope card even when transactions exist', async ({
+    authenticatedPage,
+    budgetDetailsPage,
+  }) => {
+    const budgetId = TEST_UUIDS.BUDGET_1;
+
+    const mockResponse = createBudgetDetailsMock(budgetId, {
+      budget: { rollover: 0 },
+      budgetLines: [
+        createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, {
+          name: 'Salaire',
+          amount: 5000,
+          kind: 'income',
+        }),
+        createBudgetLineMock(TEST_UUIDS.LINE_2, budgetId, {
+          name: 'Courses',
+          amount: 500,
+          kind: 'expense',
+        }),
+      ],
+      transactions: [
+        createTransactionMock(TEST_UUIDS.TRANSACTION_1, budgetId, {
+          name: 'Supermarché',
+          amount: 100,
+          kind: 'expense',
+          budgetLineId: TEST_UUIDS.LINE_2,
+        }),
+      ],
+    });
+
+    await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
+      void route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockResponse),
+      });
+    });
+
+    await budgetDetailsPage.goto(budgetId);
+
+    // The add transaction button should be visible on the envelope card
+    // even though it already has an allocated transaction
+    const addButton = authenticatedPage.getByTestId(
+      `add-transaction-${TEST_UUIDS.LINE_2}`,
+    );
+    await expect(addButton).toBeVisible();
+  });
+});
+
 test.describe('Envelope Allocation - Remaining Budget Calculation', () => {
   test('allocated transaction within envelope should NOT reduce remaining budget', async ({
     authenticatedPage,

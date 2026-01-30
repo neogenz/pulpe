@@ -1,165 +1,175 @@
-# Pulpe Workspace
+<div align="center">
 
-Pulpe est une application full-stack de gestion de budgets personnels développée en Suisse. Ce monorepo est géré avec `pnpm`, `turbo` et contient :
+<img src="frontend/projects/webapp/public/logo.svg" alt="Pulpe" width="120" />
 
-- **`backend-nest/`** : API robuste avec NestJS, Bun et Supabase
-- **`frontend/`** : Application moderne avec Angular 21+, Signals et Tailwind CSS
-- **`ios/`** : Application iOS native avec SwiftUI
-- **`landing/`** : Landing page avec Next.js et Tailwind CSS
-- **`shared/`** : Package de types et schémas partagés (Zod)
+# Pulpe
 
-## 🚀 Stack Technique
+**Tu sais ce qu'il te reste ? Pulpe, oui.**
 
-- **Monorepo** : `pnpm` workspace + `turbo` pour l'orchestration
-- **Backend** : NestJS 11+, Bun runtime, Supabase (PostgreSQL + Auth), Zod validation
-- **Frontend** : Angular 21+, Standalone Components, Signals, Tailwind CSS v4.1, Angular Material, Vitest, Playwright
-- **iOS** : SwiftUI, Xcode
-- **Landing** : Next.js, Tailwind CSS v4
-- **Partagé** : TypeScript strict, Zod schemas, ESM-first
+Application de planification budgétaire personnelle pour la Suisse.
+Planifie ton année, maîtrise tes dépenses, mois après mois.
 
-## 📋 Prérequis
+[![Angular](https://img.shields.io/badge/Angular-21-dd0031?logo=angular&logoColor=white)](https://angular.dev)
+[![NestJS](https://img.shields.io/badge/NestJS-11-e0234e?logo=nestjs&logoColor=white)](https://nestjs.com)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ecf8e?logo=supabase&logoColor=white)](https://supabase.com)
+[![Bun](https://img.shields.io/badge/Bun-runtime-f9f1e1?logo=bun&logoColor=black)](https://bun.sh)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-06b6d4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![Zod](https://img.shields.io/badge/Zod-4-3068b7?logo=zod&logoColor=white)](https://zod.dev)
+[![pnpm](https://img.shields.io/badge/pnpm-workspace-f69220?logo=pnpm&logoColor=white)](https://pnpm.io)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-- **Node.js** (LTS recommandé)
-- **pnpm** v8+ (gestionnaire de packages)
-- **bun** v1.2+ (runtime backend)
-- **Supabase** (compte et projet configuré)
+**Web** · [pulpe.app](https://pulpe.app) · **iOS** · [App Store](https://apps.apple.com/app/pulpe) · **Code** · [GitHub](https://github.com/neogenz/pulpe)
 
-## 🛠️ Installation
+</div>
 
-1. **Cloner le dépôt**
+---
 
-   ```bash
-   git clone <votre-url-de-repo>
-   cd pulpe-workspace
-   ```
+## Table des matières
 
-2. **Installer les dépendances**
+- [À propos](#à-propos)
+- [Plateformes](#plateformes)
+- [Stack technique](#stack-technique)
+- [Architecture](#architecture)
+- [Démarrage rapide](#démarrage-rapide)
+- [Développement](#développement)
+- [Tests](#tests)
+- [Documentation](#documentation)
 
-   ```bash
-   pnpm install
-   ```
+## À propos
 
-3. **Configurer l'environnement**
-   ```bash
-   # Backend
-   cp backend-nest/.env.example backend-nest/.env
-   # Éditer backend-nest/.env avec vos clés Supabase
-   ```
+Pulpe est une application de gestion de budgets personnels développée en Suisse. Contrairement aux apps de suivi classiques, Pulpe mise sur la **planification** : tu crées un template mensuel avec tes revenus, charges fixes et objectifs d'épargne, puis tu génères ton budget annuel en quelques minutes.
 
-## 🚀 Développement
+### Philosophie
 
-### Démarrage rapide
+| Principe | Description |
+|----------|-------------|
+| **Planification > Suivi** | Anticiper plutôt que réagir |
+| **Simplicité > Exhaustivité** | KISS & YAGNI, une seule devise (CHF) |
+| **Sérénité > Contrôle** | Savoir ce qu'il reste à dépenser, sans prise de tête |
 
-```bash
-# Développement complet (recommandé)
-pnpm dev
+### Fonctionnalités clés
 
-# Frontend + shared seulement
-pnpm dev:frontend-only
+- **Templates mensuels** — crée une structure réutilisable (revenus, charges, épargne)
+- **Planification annuelle** — génère 12 budgets en un clic depuis un template
+- **Suivi du reste à dépenser** — saisie rapide des dépenses, solde visible en temps réel
+- **Report automatique** — l'excédent ou déficit se propage de mois en mois
+- **Alertes dépassement** — notifications à 80%, 90% et 100% du budget
+- **Mode démo** — exploration complète du produit sans inscription
 
-# Backend + shared seulement
-pnpm dev:backend-only
-```
+<!-- TODO: Ajouter une capture d'écran du dashboard ici -->
+<!-- <img src="docs/screenshot-dashboard.png" alt="Dashboard Pulpe" width="720" /> -->
 
-### Commandes essentielles
+## Plateformes
 
-```bash
-# Développement
-pnpm dev              # Lance tous les services
-pnpm dev:frontend     # Frontend seul (http://localhost:4200)
-pnpm dev:backend      # Backend seul (http://localhost:3000)
+| Plateforme | Statut | Lien |
+|------------|--------|------|
+| Web | Disponible | [pulpe.app](https://pulpe.app) |
+| iOS | Disponible | [App Store](https://apps.apple.com/app/pulpe) |
+| Android | Prévu | — |
 
-# Build & Tests
-pnpm build            # Build tous les projets
-pnpm test             # Tous les tests
-pnpm lint:fix         # Corrections automatiques
-```
+## Stack technique
 
-> 📚 **Commandes complètes** : Voir `package.json` de chaque projet pour la liste exhaustive
+| Couche | Technologies |
+|--------|-------------|
+| **Frontend** | Angular 21, Signals, Material 21, Tailwind CSS v4 |
+| **Backend** | NestJS 11, Bun, Supabase (PostgreSQL + Auth + RLS) |
+| **iOS** | SwiftUI, WidgetKit |
+| **Landing** | Next.js, Tailwind CSS v4 |
+| **Partagé** | TypeScript strict, Zod 4 |
+| **Orchestration** | pnpm workspaces + Turborepo |
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 pulpe-workspace/
-├── backend-nest/              # API NestJS
-│   ├── src/modules/          # Modules métier (auth, budget, transaction...)
-│   ├── src/common/           # Guards, interceptors, DTOs
-│   └── src/types/            # Types Supabase
 ├── frontend/                  # App Angular
 │   └── projects/webapp/src/
-│       ├── app/core/         # Services core (auth, API)
-│       ├── app/feature/      # Features lazy-loaded
-│       ├── app/ui/           # Composants réutilisables
-│       └── app/layout/       # Layouts applicatifs
+│       ├── app/core/         # Services (auth, API, routing)
+│       ├── app/feature/      # Features lazy-loaded par domaine
+│       ├── app/ui/           # Composants stateless réutilisables
+│       ├── app/pattern/      # Composants stateful réutilisables
+│       └── app/layout/       # Shell applicatif
+├── backend-nest/              # API NestJS
+│   ├── src/modules/          # Modules métier (auth, budget, transaction…)
+│   ├── src/common/           # Guards, interceptors, DTOs
+│   └── src/types/            # Types Supabase générés
 ├── ios/                       # App iOS native
 │   ├── Pulpe/                # Code source SwiftUI
 │   └── PulpeWidget/          # Widget iOS
-├── landing/                   # Landing page
-│   ├── app/                  # Pages Next.js
-│   └── components/           # Composants React
-├── shared/                    # Package partagé
-│   ├── schemas.ts            # Schémas Zod
-│   └── types.ts              # Types TypeScript
+├── landing/                   # Landing page Next.js
+├── shared/                    # Schémas Zod & types TypeScript
 └── scripts/                   # Scripts utilitaires
 ```
 
-### Règles d'architecture appliquées
-
-- **Feature-based** : Organisation par domaines métier
-- **Standalone Components** : Angular 21+ sans NgModules
-- **Signals** : State management réactif
-- **Boundary Rules** : Isolation stricte entre features
-- **Shared DTOs** : Types cohérents frontend/backend
-
-## 🔧 URLs de développement
-
-- **Frontend** : http://localhost:4200
-- **Backend API** : http://localhost:3000/api
-- **Swagger** : http://localhost:3000/api/docs
-- **Storybook** : _(si configuré)_
-
-## 📚 Documentation détaillée
-
-- **[Backend Architecture](./backend-nest/ARCHITECTURE.md)** : Patterns NestJS, DTOs, validation
-- **[Database Guide](./backend-nest/DATABASE.md)** : Supabase, RLS, sécurité
-- **[Frontend Tests](./frontend/run-tests.md)** : Stratégie de tests E2E
-- **[Turborepo Guide](./MONOREPO.md)** : Guide Turborepo + PNPM workspace
-
-## 🧪 Tests
-
-### Frontend
-
-- **Vitest** : Tests unitaires ultra-rapides
-- **Playwright** : Tests E2E cross-browser
-- **Coverage** : Rapport de couverture intégré
-
-### Backend
-
-- **Bun Test** : Tests intégrés avec TypeScript
-- **Supertest** : Tests d'intégration HTTP
-- **Performance** : Tests de charge avec métriques
-
-## 🚀 Mise en production
+## Démarrage rapide
 
 ```bash
-# Build tous les projets
-pnpm build
+# Cloner et installer
+git clone https://github.com/neogenz/pulpe.git
+cd pulpe-workspace
+pnpm install
 
-# Tests complets avant déploiement
-pnpm quality && pnpm test
+# Configurer le backend
+cp backend-nest/.env.example backend-nest/.env
+# Éditer backend-nest/.env avec vos clés Supabase
 
-# Démarrage production
-# Frontend : Servir dist/webapp/
-# Backend : cd backend-nest && bun run start:prod
+# Lancer le projet
+pnpm dev
 ```
 
-## 🤝 Contribution
+> **Prérequis** : Node.js LTS, pnpm 10+, Bun 1.2+, Supabase (compte configuré)
 
-1. Respecter les règles d'architecture du workspace
-2. Tester avant commit : `pnpm quality:fix && pnpm test`
-3. Suivre les conventions de nommage TypeScript
-4. Documenter les changements majeurs
+## Développement
 
-## 📄 Licence
+```bash
+# Full stack
+pnpm dev                  # Tous les services
+
+# Par package
+pnpm dev:frontend         # Frontend seul
+pnpm dev:backend          # Backend seul
+pnpm dev:frontend-only    # Frontend + shared
+pnpm dev:backend-only     # Backend + shared
+
+# Qualité (avant chaque commit)
+pnpm quality              # Type-check + lint + format
+pnpm lint:fix             # Corrections automatiques
+
+# Build
+pnpm build                # Build tous les projets
+```
+
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:4200 |
+| Backend API | http://localhost:3000/api |
+| Swagger | http://localhost:3000/api/docs |
+
+## Tests
+
+| Type | Outil | Commande |
+|------|-------|----------|
+| Unitaires frontend | Vitest | `cd frontend && pnpm test` |
+| Unitaires backend | Bun Test | `cd backend-nest && bun test` |
+| E2E | Playwright | `pnpm test:e2e` |
+
+## Production
+
+```bash
+pnpm build
+pnpm quality && pnpm test
+```
+
+## Documentation
+
+| Sujet | Fichier |
+|-------|---------|
+| Architecture backend | [`backend-nest/ARCHITECTURE.md`](./backend-nest/ARCHITECTURE.md) |
+| Base de données | [`backend-nest/DATABASE.md`](./backend-nest/DATABASE.md) |
+| Tests E2E | [`frontend/run-tests.md`](./frontend/run-tests.md) |
+| Monorepo & Turbo | [`MONOREPO.md`](./MONOREPO.md) |
+
+## Licence
 
 MIT

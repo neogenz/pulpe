@@ -692,7 +692,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
   });
 
   describe('User creates allocated transactions', () => {
-    it('should inherit checked state from parent budget line when creating allocated transaction', async () => {
+    it('should create transaction unchecked and uncheck parent budget line when parent was checked', async () => {
       const checkedTimestamp = '2024-01-15T10:00:00Z';
 
       // Parent budget line has checkedAt
@@ -730,12 +730,18 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         name: 'New Allocated Transaction',
         amount: 200,
         kind: 'expense',
-        checkedAt: checkedTimestamp,
+        checkedAt: null,
       });
 
       mockTransactionApi.create$ = vi
         .fn()
         .mockReturnValue(of({ data: serverTransaction }));
+
+      mockBudgetLineApi.toggleCheck$ = vi
+        .fn()
+        .mockReturnValue(
+          of({ data: { ...checkedParentLine, checkedAt: null } }),
+        );
 
       // User creates transaction linked to checked parent
       await service.createAllocatedTransaction({
@@ -746,21 +752,30 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         kind: 'expense',
       });
 
-      // Transaction should inherit checkedAt from parent
+      // Transaction should be created unchecked
       const transactions = service.budgetDetails()?.transactions ?? [];
       const createdTx = transactions.find(
         (tx) => tx.name === 'New Allocated Transaction',
       );
 
       expect(createdTx).toBeDefined();
-      expect(createdTx?.checkedAt).not.toBeNull();
+      expect(createdTx?.checkedAt).toBeNull();
 
-      // Verify API was called with inherited checkedAt
+      // Verify API was called with checkedAt: null
       expect(mockTransactionApi.create$).toHaveBeenCalledWith(
         expect.objectContaining({
-          checkedAt: expect.any(String),
+          checkedAt: null,
         }),
       );
+
+      // Parent budget line should have been unchecked
+      expect(mockBudgetLineApi.toggleCheck$).toHaveBeenCalledWith(
+        'line-checked',
+      );
+
+      const budgetLines = service.budgetDetails()?.budgetLines ?? [];
+      const parentLine = budgetLines.find((l) => l.id === 'line-checked');
+      expect(parentLine?.checkedAt).toBeNull();
     });
 
     it('should not inherit checked state when parent budget line is unchecked', async () => {
@@ -819,6 +834,65 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       expect(createdTx).toBeDefined();
       expect(createdTx?.checkedAt).toBeNull();
+    });
+
+    it('should rollback optimistic updates when toggleCheck fails after transaction creation', async () => {
+      const checkedTimestamp = '2024-01-15T10:00:00Z';
+
+      const checkedParentLine = createMockBudgetLine({
+        id: 'line-checked-fail',
+        budgetId: mockBudgetId,
+        name: 'Checked Parent Fail',
+        amount: 1000,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: checkedTimestamp,
+      });
+
+      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
+        of(
+          createMockBudgetDetailsResponse({
+            budget: { id: mockBudgetId },
+            budgetLines: [checkedParentLine],
+            transactions: [],
+          }),
+        ),
+      );
+
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      const serverTransaction = createMockTransaction({
+        id: 'tx-server-fail',
+        budgetId: mockBudgetId,
+        budgetLineId: 'line-checked-fail',
+        name: 'Transaction Before Fail',
+        amount: 200,
+        kind: 'expense',
+        checkedAt: null,
+      });
+
+      mockTransactionApi.create$ = vi
+        .fn()
+        .mockReturnValue(of({ data: serverTransaction }));
+
+      mockBudgetLineApi.toggleCheck$ = vi
+        .fn()
+        .mockReturnValue(throwError(() => new Error('Toggle check failed')));
+
+      await service.createAllocatedTransaction({
+        budgetId: mockBudgetId,
+        budgetLineId: 'line-checked-fail',
+        name: 'Transaction Before Fail',
+        amount: 200,
+        kind: 'expense',
+      });
+
+      expect(service.error()).toBeTruthy();
+      expect(mockBudgetLineApi.toggleCheck$).toHaveBeenCalledWith(
+        'line-checked-fail',
+      );
     });
   });
 

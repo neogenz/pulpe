@@ -72,8 +72,10 @@ import { ROUTES } from '@core/routing';
           <p class="text-body-large mt-4">
             <strong>Important :</strong> J'utilise PostHog pour suivre
             l'utilisation de l'application. Cela inclut les pages visitées, les
-            fonctionnalités utilisées et les erreurs rencontrées. Vos données
-            financières sont toujours masquées dans ces analyses.
+            fonctionnalités utilisées, les erreurs rencontrées et
+            l'enregistrement de sessions (replay des interactions). Vos données
+            financières sont toujours masquées dans ces analyses et
+            enregistrements.
           </p>
         </section>
 

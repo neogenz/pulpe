@@ -132,8 +132,7 @@ async function generateOgImage() {
   const fonts = loadFonts()
 
   // Create the OG image using Satori (JSX-like syntax)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const element: any = {
+  const element = {
     type: 'div',
     props: {
       style: {
@@ -260,7 +259,7 @@ async function generateOgImage() {
     },
   }
 
-  const svg = await satori(element, {
+  const svg = await satori(element as React.ReactNode, {
     width: OG_IMAGE.WIDTH,
     height: OG_IMAGE.HEIGHT,
     fonts,
