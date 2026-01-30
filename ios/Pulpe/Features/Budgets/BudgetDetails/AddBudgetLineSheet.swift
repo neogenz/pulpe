@@ -12,9 +12,11 @@ struct AddBudgetLineSheet: View {
     @State private var isLoading = false
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
+    @State private var pendingQuickAmount: Int?
     @State private var amountText = ""
 
     private let budgetLineService = BudgetLineService.shared
+    private let quickAmounts = [10, 15, 20, 30]
 
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
@@ -43,6 +45,7 @@ struct AddBudgetLineSheet: View {
             ScrollView {
                 VStack(spacing: DesignTokens.Spacing.xxl) {
                     heroAmountSection
+                    quickAmountChips
                     descriptionField
                     kindSelector
 
@@ -72,6 +75,13 @@ struct AddBudgetLineSheet: View {
                 try? await Task.sleep(for: .milliseconds(200))
                 isAmountFocused = true
             }
+            .onChange(of: isAmountFocused) { _, isFocused in
+                if !isFocused, let quickAmount = pendingQuickAmount {
+                    amount = Decimal(quickAmount)
+                    amountText = "\(quickAmount)"
+                    pendingQuickAmount = nil
+                }
+            }
         }
     }
 
@@ -97,19 +107,48 @@ struct AddBudgetLineSheet: View {
                     .font(PulpeTypography.amountHero)
                     .foregroundStyle((amount ?? 0) > 0 ? Color.textPrimary : Color.textTertiary)
                     .contentTransition(.numericText())
-                    .animation(.snappy(duration: 0.2), value: amount)
+                    .animation(.snappy(duration: DesignTokens.Animation.fast), value: amount)
             }
             .accessibilityAddTraits(.isButton)
             .accessibilityLabel("Montant")
             .onTapGesture { isAmountFocused = true }
 
             RoundedRectangle(cornerRadius: 1)
-                .fill(isAmountFocused ? Color.pulpePrimary : Color.textTertiary.opacity(0.3))
+                .fill(isAmountFocused ? Color.pulpePrimary : Color.textTertiary.opacity(DesignTokens.Opacity.strong))
                 .frame(width: 120, height: 2)
-                .animation(.easeInOut(duration: 0.2), value: isAmountFocused)
+                .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isAmountFocused)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.lg)
+    }
+
+    // MARK: - Quick Amounts
+
+    private var quickAmountChips: some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            ForEach(quickAmounts, id: \.self) { quickAmount in
+                Button {
+                    if isAmountFocused {
+                        pendingQuickAmount = quickAmount
+                        isAmountFocused = false
+                    } else {
+                        amount = Decimal(quickAmount)
+                        amountText = "\(quickAmount)"
+                    }
+                } label: {
+                    Text("\(quickAmount) CHF")
+                        .font(PulpeTypography.buttonSecondary)
+                        .fixedSize()
+                        .padding(.horizontal, DesignTokens.Spacing.md)
+                        .padding(.vertical, DesignTokens.Spacing.sm)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.pulpePrimary.opacity(DesignTokens.Opacity.accent))
+                        .foregroundStyle(Color.pulpePrimary)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 
     // MARK: - Description
@@ -128,7 +167,7 @@ struct AddBudgetLineSheet: View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             ForEach(TransactionKind.allCases, id: \.self) { type in
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
                         kind = type
                     }
                 } label: {
