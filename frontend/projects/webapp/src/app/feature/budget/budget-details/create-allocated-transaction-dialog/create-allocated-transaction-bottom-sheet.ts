@@ -12,7 +12,10 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import type { TransactionCreate } from 'pulpe-shared';
 import { formatLocalDate } from '@core/date/format-local-date';
 import type { CreateAllocatedTransactionDialogData } from './create-allocated-transaction-dialog';
-import { computeBudgetPeriodDateConstraints } from './budget-period-date-constraints';
+import {
+  computeBudgetPeriodDateConstraints,
+  createDateRangeValidator,
+} from './budget-period-date-constraints';
 
 @Component({
   selector: 'pulpe-create-allocated-transaction-bottom-sheet',
@@ -112,6 +115,12 @@ import { computeBudgetPeriodDateConstraints } from './budget-period-date-constra
           ) {
             <mat-error>La date est requise</mat-error>
           }
+          @if (
+            form.get('transactionDate')?.hasError('dateOutOfRange') &&
+            form.get('transactionDate')?.touched
+          ) {
+            <mat-error>La date doit être dans la période en cours</mat-error>
+          }
         </mat-form-field>
       </form>
 
@@ -161,7 +170,13 @@ export class CreateAllocatedTransactionBottomSheet {
       null as number | null,
       [Validators.required, Validators.min(0.01)],
     ],
-    transactionDate: [new Date(), Validators.required],
+    transactionDate: [
+      new Date(),
+      [
+        Validators.required,
+        createDateRangeValidator(this.minDate, this.maxDate),
+      ],
+    ],
   });
 
   close(): void {

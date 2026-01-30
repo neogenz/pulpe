@@ -236,7 +236,12 @@ export default class BudgetDetailsPage {
     budgetLine: BudgetLine,
   ): Promise<void> {
     const budget = this.store.budgetDetails();
-    if (!budget) return;
+    if (!budget) {
+      this.#logger.warn(
+        'Cannot open create transaction dialog: budget not loaded',
+      );
+      return;
+    }
 
     const transaction =
       await this.#dialogService.openCreateAllocatedTransactionDialog(
