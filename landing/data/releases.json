@@ -2,89 +2,52 @@
   {
     "version": "0.18.0",
     "date": "2026-01-30",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.18.0",
+    "headline": "Premiere release officielle",
+    "description": "Pulpe est une application de gestion budgetaire personnelle pour le marche suisse. Cette premiere release regroupe l'ensemble des fonctionnalites developpees depuis la creation du projet.",
     "platforms": ["web", "ios"],
     "changes": {
       "features": [
         {
-          "title": "Dashboard",
-          "description": "Nouvelle vue d'ensemble \"Ce mois-ci\" sur iOS, avec un apercu rapide du budget en cours."
+          "title": "Planification budgetaire",
+          "description": "Modeles de mois reutilisables, generation automatique des budgets mensuels, report du solde entre les mois (rollover), alertes de depassement a 80%, 90% et 100%."
         },
         {
-          "title": "Design system",
-          "description": "Pages de connexion, inscription et bienvenue alignees avec le design system Pulpe."
-        }
-      ],
-      "fixes": [
-        {
-          "title": "Toggle check",
-          "description": "Correction des erreurs 404 lors du cochage rapide de plusieurs previsions."
+          "title": "Suivi mensuel",
+          "description": "Ajout de transactions manuelles, vue claire du disponible a depenser, cochage des previsions realisees, distinction plan vs realite."
         },
         {
-          "title": "Dates et transactions",
-          "description": "Correction du decalage de dates et des bugs de verification de transactions."
-        }
-      ],
-      "technical": []
-    }
-  },
-  {
-    "version": "0.17.0",
-    "date": "2026-01-29",
-    "platforms": ["web", "ios"],
-    "changes": {
-      "features": [
-        {
-          "title": "Page support",
-          "description": "Nouvelle page support avec FAQ et contact directement sur le site."
+          "title": "Onboarding",
+          "description": "Creation guidee du premier budget en quelques etapes, mode demo avec donnees realistes (session 24h, sans inscription)."
         },
         {
-          "title": "Bouton d'ajout persistant",
-          "description": "Le bouton d'ajout de transaction reste visible sur les cartes enveloppes en mobile."
+          "title": "Application iOS",
+          "description": "App native SwiftUI avec navigation fluide, tableau de bord avec vue d'ensemble du mois, gestion des budgets et transactions depuis mobile."
         },
         {
-          "title": "Suppression de compte",
-          "description": "Possibilite de supprimer son compte avec un delai de grace de 3 jours."
+          "title": "Application web",
+          "description": "Interface Angular responsive mobile-first, pages d'authentification alignees avec le design system, navigation par mois avec barre de progression temporelle."
+        },
+        {
+          "title": "Landing page",
+          "description": "Page d'accueil Next.js avec presentation du produit, pages legales (confidentialite, CGU), page support."
         },
         {
           "title": "Export Excel",
           "description": "Export des budgets en Excel avec formatage des montants et totaux automatiques."
         },
         {
-          "title": "Navigation mensuelle",
-          "description": "Barre de navigation avec fleches precedent/suivant pour naviguer entre les mois."
-        },
-        {
-          "title": "Bouton flottant iOS",
-          "description": "Bouton d'ajout de transaction flottant avec effet Liquid Glass sur iOS."
-        },
-        {
-          "title": "Ecran de connexion iOS",
-          "description": "Nouvel ecran de connexion repense avec le branding Pulpe sur iOS."
+          "title": "Suppression de compte",
+          "description": "Possibilite de supprimer son compte avec un delai de grace de 3 jours."
         }
       ],
-      "fixes": [
+      "fixes": [],
+      "technical": [
         {
-          "title": "Layout responsive",
-          "description": "Amelioration de la mise en page sur la page detail des modeles."
-        },
-        {
-          "title": "Mois du budget",
-          "description": "Affichage du vrai mois de la periode budgetaire au lieu d'un label statique."
-        },
-        {
-          "title": "Viewport mobile",
-          "description": "Le contenu remplit maintenant toute la hauteur de l'ecran sur mobile."
-        },
-        {
-          "title": "Navigation mobile",
-          "description": "La barre de navigation se masque automatiquement au scroll sur mobile."
-        },
-        {
-          "title": "Flash d'authentification",
-          "description": "Correction du flash de contenu lors de la detection du token d'authentification."
+          "title": "Backend et infrastructure",
+          "description": "API NestJS avec Supabase (PostgreSQL + Auth), schemas partages (Zod), mode maintenance configurable, journalisation RGPD."
         }
-      ],
-      "technical": []
+      ]
     }
   }
 ]

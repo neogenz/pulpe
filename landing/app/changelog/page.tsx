@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { ExternalLink } from 'lucide-react'
 import { Container } from '@/components/ui'
 import { Header, Footer } from '@/components/sections'
 import releases from '@/data/releases.json'
@@ -83,10 +84,27 @@ export default function ChangelogPage() {
                         )
                       })}
                     </div>
+                    {release.githubUrl && (
+                      <a
+                        href={release.githubUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 mt-3 text-xs text-text-secondary hover:text-primary transition-colors"
+                      >
+                        <ExternalLink size={12} />
+                        GitHub Release
+                      </a>
+                    )}
                   </div>
 
                   {/* Right column — release content */}
                   <div className="space-y-8">
+                    {release.headline && (
+                      <p className="text-lg font-semibold text-text">{release.headline}</p>
+                    )}
+                    {release.description && (
+                      <p className="text-text-secondary leading-relaxed">{release.description}</p>
+                    )}
                     {SECTION_CONFIG.map(({ key, title }) => {
                       const items = release.changes[key]
                       if (!items || items.length === 0) return null

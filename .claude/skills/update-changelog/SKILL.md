@@ -157,6 +157,7 @@ After user approves, update `landing/data/releases.json` with the new release.
 {
   "version": "X.Y.Z",
   "date": "YYYY-MM-DD",
+  "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/vX.Y.Z",
   "platforms": ["web", "ios"],
   "changes": {
     "features": [
@@ -177,6 +178,7 @@ After user approves, update `landing/data/releases.json` with the new release.
 |-------|-------|
 | `version` | Version from Step 4 (without `v` prefix) |
 | `date` | Today's date in `YYYY-MM-DD` format |
+| `githubUrl` | `https://github.com/neogenz/pulpe/releases/tag/vX.Y.Z` |
 | `platforms` | Derived from affected packages (see mapping below) |
 | `changes.features` | From approved "Nouveautes" entries |
 | `changes.fixes` | From approved "Corrections" entries |
