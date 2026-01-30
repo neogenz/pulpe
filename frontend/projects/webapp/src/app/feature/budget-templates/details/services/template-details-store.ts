@@ -24,6 +24,7 @@ export class TemplateDetailsStore {
 
   // Stale data from navigation (POST response via router state)
   // Used for SWR: display immediately while fresh data loads in background
+  // Imperative signal chosen over linkedSignal/computed — see DR-008 in memory-bank/techContext.md
   readonly #staleData = signal<BudgetTemplateDetailViewModel | null>(null);
 
   // Resource for fresh data (background revalidation)
@@ -44,7 +45,7 @@ export class TemplateDetailsStore {
 
   // SWR with computed(): fresh data takes priority, fallback to stale.
   // Read both signals eagerly so Angular tracks both as dependencies,
-  // regardless of nullish-coalescing short-circuit.
+  // regardless of nullish-coalescing short-circuit — see DR-007 in memory-bank/techContext.md
   readonly templateDetails = computed<BudgetTemplateDetailViewModel | null>(
     () => {
       const freshValue = this.#templateDetailsResource.value();

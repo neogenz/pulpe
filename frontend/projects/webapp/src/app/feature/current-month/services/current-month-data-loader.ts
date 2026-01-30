@@ -11,7 +11,7 @@ export function createDashboardDataLoader(
     const monthNumber = parseInt(params.month, 10);
     const yearNumber = parseInt(params.year, 10);
 
-    // Cache-first: find the budget from the preloaded budget list
+    // Cache-first: reuse preloaded budget list — see DR-005 in memory-bank/techContext.md
     const cachedBudgets = budgetCache.budgets();
     const cachedBudget = cachedBudgets?.find(
       (b) => b.month === monthNumber && b.year === yearNumber,

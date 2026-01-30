@@ -23,6 +23,19 @@
 | **Budget Line** | Planned item (income/expense/saving) |
 | **Transaction** | Actual operation to adjust budget vs. reality |
 
+### Relation Prévu / Réalisé
+
+Le modèle repose sur un couple central :
+
+| Concept | Terme technique | Terme UI (FR) | Rôle |
+|---------|----------------|---------------|------|
+| **Prévu** | `BudgetLine` | Prévision | Ce qu'on anticipe (revenu, dépense, épargne) |
+| **Réalisé** | `Transaction` | Réel | Ce qui s'est passé concrètement |
+
+Les Budget Lines établissent le plan du mois. Les Transactions enregistrent la réalité. L'écart entre les deux indique si on est sur les rails.
+
+> **Note technique** : les termes `BudgetLine` et `Transaction` viennent de mondes sémantiques différents (comptabilité vs banque). Le couple Prévu/Réalisé est la clé de lecture pour naviguer le code.
+
 ---
 
 ## Calculation Model
@@ -145,7 +158,7 @@ Mar: income=5100, expenses=5200, rollover=900  → ending=800
 | `budget_lines` | Prévisions |
 | `fixed` | Récurrent |
 | `one_off` | Prévu |
-| `transaction` | Transaction / Réel |
+| `transaction` | Réel |
 | `income` | Revenu |
 | `expense` | Dépense |
 | `saving` | Épargne |
@@ -155,16 +168,16 @@ Mar: income=5100, expenses=5200, rollover=900  → ending=800
 
 ### Domain Terms
 
-| Term | Definition |
-|------|------------|
-| Template | Reusable month structure |
-| Budget | Monthly instance from template |
-| Budget Line | Planned budget item |
-| Transaction | Actual operation entry |
-| Available | Income + rollover |
-| Remaining | Available - expenses |
-| Rollover | Surplus/deficit carried to next month |
-| Ending Balance | Month result (becomes next rollover) |
+| Term | Definition | Relationship |
+|------|-----------|--------------|
+| Template | Reusable month structure | Generates → Budget |
+| Budget | Monthly instance from template | Contains → Budget Lines + Transactions |
+| Budget Line | Planned budget item | **Planned** — forms couple with Transaction |
+| Transaction | Actual operation entry | **Actual** — forms couple with Budget Line |
+| Available | Income + rollover | |
+| Remaining | Available - expenses | Updated by transactions |
+| Rollover | Surplus/deficit carried to next month | |
+| Ending Balance | Month result (becomes next rollover) | |
 
 ---
 

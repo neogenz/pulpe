@@ -173,20 +173,7 @@ L'icône actuelle (tranche d'agrume neumorphique) :
 
 ## 5. Vocabulaire Métier
 
-Termes techniques vs termes utilisateur (FR) :
-
-| Terme technique | Terme utilisateur |
-|-----------------|-------------------|
-| `budget_lines` | Prévisions |
-| `fixed` | Récurrent |
-| `one_off` | Prévu |
-| `transaction` | Transaction / Réel |
-| `income` | Revenu |
-| `expense` | Dépense |
-| `saving` | Épargne |
-| `available` | Disponible à dépenser |
-| `remaining` | Reste |
-| `rollover` | Report |
+Voir la table de correspondance technique → utilisateur dans [`productContext.md` § Glossary](./productContext.md#glossary).
 
 ---
 

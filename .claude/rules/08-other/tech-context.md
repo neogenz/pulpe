@@ -17,6 +17,19 @@ paths: "memory-bank/techContext.md"
 - Use tables for compact decision summaries
 - Avoid implementation details (those belong in plan files or code comments)
 
+## Code Cross-References
+
+When a Decision Record impacts code, add a short comment referencing the DR in the impacted file(s):
+
+```typescript
+// Imperative signal chosen over linkedSignal/computed — see DR-008 in memory-bank/techContext.md
+readonly #staleData = signal<T | null>(null);
+```
+
+- One comment per DR per file (at the most relevant location)
+- Format: `— see DR-XXX in memory-bank/techContext.md`
+- Keep it minimal — the comment should explain **what** pattern, the DR explains **why**
+
 ## Entry Template
 
 ```markdown
