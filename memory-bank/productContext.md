@@ -116,6 +116,14 @@ Mar: income=5100, expenses=5200, rollover=900  → ending=800
 3. Receive alerts at thresholds
 4. Auto-close at month end with rollover calculation
 
+### WF-004: Dashboard (planned — #271)
+
+1. Open app → see hero number "Disponible à dépenser"
+2. Temporal progress bar: % of month elapsed vs % budget consumed
+3. See unchecked budget lines (quick-check from dashboard)
+4. Bar chart: income vs expenses over last 6 months
+5. FAB (+) for quick transaction entry
+
 ### WF-003: Demo Mode
 
 1. Click "Try demo" (login or onboarding)
