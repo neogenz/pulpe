@@ -42,10 +42,12 @@ Pulpe is an open-source passion project, in production with 3 users, no marketin
 |-------|-------------|
 | #243 | Dashboard iOS "Vue d'ensemble" |
 
-### Missing (to create)
+### Préparation App Store
 
-- Définir le scope MVP iOS (quelles features dans la v1 iOS ?)
-- Checklist App Store (screenshots, description, privacy policy, test account Apple Review)
+| Issue | Description |
+|-------|-------------|
+| #276 | Définir le scope MVP iOS |
+| #277 | Checklist soumission App Store |
 
 ---
 
