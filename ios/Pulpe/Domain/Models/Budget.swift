@@ -121,6 +121,26 @@ struct BudgetSparse: Decodable, Identifiable, Sendable, Hashable {
                year == calendar.component(.year, from: now)
     }
 
+    init(
+        id: String,
+        month: Int? = nil,
+        year: Int? = nil,
+        totalExpenses: Decimal? = nil,
+        totalSavings: Decimal? = nil,
+        totalIncome: Decimal? = nil,
+        remaining: Decimal? = nil,
+        rollover: Decimal? = nil
+    ) {
+        self.id = id
+        self.month = month
+        self.year = year
+        self.totalExpenses = totalExpenses
+        self.totalSavings = totalSavings
+        self.totalIncome = totalIncome
+        self.remaining = remaining
+        self.rollover = rollover
+    }
+
     init(from budget: Budget) {
         self.id = budget.id
         self.month = budget.month

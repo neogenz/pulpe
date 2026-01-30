@@ -475,6 +475,60 @@ describe('BudgetService', () => {
         expect(result.data[0].rollover).toBe(350);
       });
 
+      it('should fallback rollover to 0 when getRollover fails for a budget', async () => {
+        const mockUser = createMockAuthenticatedUser();
+        const mockBudgets = [
+          createValidBudgetEntity({ id: 'budget-1', month: 1, year: 2026 }),
+          createValidBudgetEntity({ id: 'budget-2', month: 2, year: 2026 }),
+        ];
+
+        mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
+
+        mockRepository.fetchBudgetAggregates = () =>
+          Promise.resolve(
+            new Map([
+              [
+                'budget-1',
+                { totalExpenses: 1000, totalSavings: 200, totalIncome: 3000 },
+              ],
+              [
+                'budget-2',
+                { totalExpenses: 500, totalSavings: 100, totalIncome: 2000 },
+              ],
+            ]),
+          );
+
+        let callCount = 0;
+        mockCalculator.getRollover = () => {
+          callCount++;
+          if (callCount === 1) {
+            return Promise.resolve({ rollover: 150, previousBudgetId: null });
+          }
+          return Promise.reject(new Error('RPC timeout'));
+        };
+
+        const result = await service.findAll(
+          mockUser,
+          mockSupabaseClient as any,
+          {
+            fields: 'month,rollover,remaining',
+          },
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.data).toHaveLength(2);
+
+        // First budget: rollover succeeded = 150
+        expect(result.data[0].rollover).toBe(150);
+        // remaining = 3000 - 1000 - 200 + 150 = 1950
+        expect(result.data[0].remaining).toBe(1950);
+
+        // Second budget: rollover failed, fallback to 0
+        expect(result.data[1].rollover).toBe(0);
+        // remaining = 2000 - 500 - 100 + 0 = 1400
+        expect(result.data[1].remaining).toBe(1400);
+      });
+
       it('should handle database error in sparse mode', async () => {
         const mockUser = createMockAuthenticatedUser();
         const mockError = { message: 'Database connection failed' };

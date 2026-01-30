@@ -340,5 +340,35 @@ describe('BudgetRepository', () => {
       expect(budget1?.totalIncome).toBe(0);
       expect(budget1?.totalSavings).toBe(0);
     });
+
+    it('should return zero aggregates when fetch throws an error', async () => {
+      // ARRANGE
+      const mockSupabase = {
+        from: () => ({
+          select: () => ({
+            in: () => Promise.reject(new Error('Network error')),
+          }),
+        }),
+      };
+
+      // ACT
+      const result = await repository.fetchBudgetAggregates(
+        ['budget-1', 'budget-2'],
+        mockSupabase as any,
+      );
+
+      // ASSERT — method should not throw, returns zeros
+      expect(result.size).toBe(2);
+
+      const budget1 = result.get('budget-1');
+      expect(budget1?.totalExpenses).toBe(0);
+      expect(budget1?.totalIncome).toBe(0);
+      expect(budget1?.totalSavings).toBe(0);
+
+      const budget2 = result.get('budget-2');
+      expect(budget2?.totalExpenses).toBe(0);
+      expect(budget2?.totalIncome).toBe(0);
+      expect(budget2?.totalSavings).toBe(0);
+    });
   });
 });

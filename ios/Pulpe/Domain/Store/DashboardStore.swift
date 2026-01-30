@@ -31,8 +31,9 @@ final class DashboardStore: StoreProtocol {
 
     // MARK: - Initialization
 
-    init(budgetService: BudgetService = .shared) {
+    init(budgetService: BudgetService = .shared, initialBudgets: [BudgetSparse] = []) {
         self.budgetService = budgetService
+        self.sparseBudgets = initialBudgets
     }
 
     // MARK: - Smart Loading (StoreProtocol)
