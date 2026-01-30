@@ -10,7 +10,7 @@
 pulpe-workspace/
 ├── frontend/         # Angular webapp
 ├── backend-nest/     # NestJS API
-├── ios/              # iOS native app (SwiftUI)
+├── ios/              # iOS native app (SwiftUI) — active development
 ├── landing/          # Landing page (Next.js)
 ├── shared/           # Zod schemas, types, calculators
 └── .claude/          # AI context and rules

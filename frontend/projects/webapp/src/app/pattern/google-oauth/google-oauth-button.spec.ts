@@ -134,7 +134,7 @@ describe('GoogleOAuthButton', () => {
       await component.signInWithGoogle();
 
       expect(errorEmitSpy).toHaveBeenCalledWith(
-        'Erreur lors de la connexion avec Google',
+        'La connexion avec Google a échoué — on réessaie ?',
       );
     });
 
@@ -168,7 +168,7 @@ describe('GoogleOAuthButton', () => {
       await component.signInWithGoogle();
 
       expect(errorEmitSpy).toHaveBeenCalledWith(
-        'Erreur lors de la connexion avec Google',
+        'La connexion avec Google a échoué — on réessaie ?',
       );
     });
 

@@ -175,9 +175,7 @@ const DETAIL_SEGMENT_COUNT = 12;
 
           @if (allocatedTransactions().length === 0) {
             <div class="text-center py-8 text-on-surface-variant">
-              <mat-icon class="text-4xl! mb-2 opacity-50"
-                >receipt_long</mat-icon
-              >
+              <mat-icon class="mb-2 opacity-50">receipt_long</mat-icon>
               <p class="text-body-medium">Aucune transaction</p>
               <p class="text-body-small">
                 Ajoute une transaction pour suivre tes dépenses

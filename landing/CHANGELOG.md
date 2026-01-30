@@ -1,5 +1,23 @@
 # pulpe-landing
 
+## 0.2.0
+
+### Minor Changes
+
+- ## Nouvelles fonctionnalités
+  - **Bouton d'ajout toujours visible** - Le bouton d'ajout de transaction est désormais affiché en permanence sur les cartes enveloppes mobile
+  - **Liens légaux** - Accès rapide aux pages de confidentialité et CGU depuis le menu À propos
+  - **Page Support** (landing) - Nouvelle page /support avec FAQ et formulaire de contact
+
+  ## Corrections
+  - Affichage du mois réel de la période budgétaire au lieu d'un libellé statique
+  - Layout responsive amélioré sur la page détail des modèles
+  - Contenu de page remplissant toute la hauteur du viewport mobile
+  - Auto-masquage de la barre de navigation au scroll sur mobile
+  - Nettoyage des artefacts du product tour et reset du scroll
+  - Correction des effets ripple sur les boutons mobile du budget
+  - Icône budget qui ne rétrécit plus dans la grille
+
 ## 0.1.1
 
 ### Patch Changes

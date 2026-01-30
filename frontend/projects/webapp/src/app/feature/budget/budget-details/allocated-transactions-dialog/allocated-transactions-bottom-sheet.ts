@@ -135,7 +135,7 @@ import type {
           </div>
         } @else {
           <div class="text-center py-6 text-on-surface-variant">
-            <mat-icon class="text-4xl! mb-2!">receipt_long</mat-icon>
+            <mat-icon class="mb-2!">receipt_long</mat-icon>
             <p class="text-body-medium">Aucune transaction</p>
           </div>
         }
