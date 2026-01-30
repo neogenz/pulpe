@@ -34,7 +34,9 @@ User argument: `$ARGUMENTS`
 
 ```bash
 # If "depuis le dernier tag" or empty:
-BASE_REF=$(git tag -l "v*" | sort -V | tail -1)
+# Use creation date sort to find the most recent tag regardless of naming convention
+# (supports v*, pulpe-*@*, ios@*, backend-nest@*, etc.)
+BASE_REF=$(git tag -l --sort=-creatordate | head -1)
 
 # If "depuis main":
 BASE_REF="main"

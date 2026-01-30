@@ -1,5 +1,11 @@
 # pulpe-shared
 
+## 0.7.0
+
+### Minor Changes
+
+- Tableau de bord iOS, refonte pages d'authentification, corrections toggle-check et dates.
+
 ## 0.6.0
 
 ### Minor Changes

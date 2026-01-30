@@ -1,5 +1,16 @@
 # pulpe-frontend
 
+## 0.18.0
+
+### Minor Changes
+
+- Tableau de bord iOS, refonte pages d'authentification, corrections toggle-check et dates.
+
+### Patch Changes
+
+- Updated dependencies
+  - pulpe-shared@0.7.0
+
 ## 0.17.0
 
 ### Minor Changes

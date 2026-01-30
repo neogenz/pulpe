@@ -152,6 +152,7 @@
 		F2F1195BE9107FF339538B3E /* Color+Pulpe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E4F47F7A88B6744CA6D788C /* Color+Pulpe.swift */; };
 		F5B4314C55C6C8D7648865F0 /* CheckedFilterPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 651FC366185B834EF7B2D7C1 /* CheckedFilterPicker.swift */; };
 		F5D9B6FD484997E69677F7E2 /* Decimal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BE2934837CC4349E12F1EE2 /* Decimal+Extensions.swift */; };
+		F9C4007C68F810D34D6C5E3B /* DashboardStoreLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDD96A5A1EE86321FCC06771 /* DashboardStoreLogicTests.swift */; };
 		FDFF9F61572FD2273B6B5818 /* SyncIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C40A3D67DE85A1A1DCF3277A /* SyncIndicator.swift */; };
 		FE6501D7F3A0BBA2FA54CD7C /* BudgetListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E68DC6A301F7687197817A0 /* BudgetListView.swift */; };
 /* End PBXBuildFile section */
@@ -320,6 +321,7 @@
 		E5BB996AAB135A9A73AF8762 /* HeroBalanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeroBalanceCard.swift; sourceTree = "<group>"; };
 		E7A8C7ACFFD4118A786F4A2C /* View+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+Extensions.swift"; sourceTree = "<group>"; };
 		ED65AA01579D6F54056E2672 /* UncheckedTransactionsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UncheckedTransactionsSection.swift; sourceTree = "<group>"; };
+		EDD96A5A1EE86321FCC06771 /* DashboardStoreLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardStoreLogicTests.swift; sourceTree = "<group>"; };
 		EFC463766B410987FE96534C /* APIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIError.swift; sourceTree = "<group>"; };
 		F0B8C94F0B71D25CF2D5D563 /* IncomeStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomeStep.swift; sourceTree = "<group>"; };
 		F15A109E95BBEA3CE6EA04C7 /* WelcomeLottieView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeLottieView.swift; sourceTree = "<group>"; };
@@ -717,6 +719,7 @@
 			isa = PBXGroup;
 			children = (
 				DEE595C429B5C70B0E39A099 /* CurrentMonthStoreLogicTests.swift */,
+				EDD96A5A1EE86321FCC06771 /* DashboardStoreLogicTests.swift */,
 			);
 			path = Store;
 			sourceTree = "<group>";
@@ -1174,6 +1177,7 @@
 				3D196510AE15B14B8450345A /* BudgetTests.swift in Sources */,
 				042DFA41D28663DCE581A429 /* CheckedFilterPickerTests.swift in Sources */,
 				5E87EA080C0DF80B550BE52F /* CurrentMonthStoreLogicTests.swift in Sources */,
+				F9C4007C68F810D34D6C5E3B /* DashboardStoreLogicTests.swift in Sources */,
 				9E4C5D319DB85E349A7923AF /* DesignTokensTests.swift in Sources */,
 				E6E71E80DF877A5B12551898 /* MonthYearTests.swift in Sources */,
 				E8DEE99514F84114E6915A37 /* OnboardingStateTests.swift in Sources */,
@@ -1403,7 +1407,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Pulpe/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				MARKETING_VERSION = 1.5.0;
+				MARKETING_VERSION = 1.6.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1523,7 +1527,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Pulpe/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				MARKETING_VERSION = 1.5.0;
+				MARKETING_VERSION = 1.6.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
