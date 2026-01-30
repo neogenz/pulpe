@@ -27,6 +27,46 @@
 | DR-005 | Cache-First Data Loading in Dashboard | 2026-01-30 | Accepted |
 | DR-006 | Cache-First Budget Details & Full Preload | 2026-01-30 | Accepted |
 | DR-007 | Eager Signal Reading in computed() with ?? | 2026-01-30 | Accepted |
+| DR-008 | Keep imperative `#staleData` signal over alternatives | 2026-01-30 | Accepted |
+
+---
+
+## DR-008: Keep imperative `#staleData` signal over alternatives
+
+**Date**: 2026-01-30
+**Status**: Accepted
+
+### Context
+
+Evaluated alternatives to the `#staleData = signal<T | null>(null)` pattern used in `budget-details-store.ts` and `template-details-store.ts` for cache-first display.
+
+### Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Keep imperative `signal()` seeded in `setBudgetId()` | `#staleData` signal | Precise reactivity, no timing issues, clear intent |
+| Reject `resource.update()` seeding (Option B) | Not viable | Resource effect on microtask wipes value to `undefined` on param change |
+| Reject `linkedSignal` reading cache (Option A) | Functional but imprecise | Tracks entire `#budgetDetailsMap` signal → réévalues on any budget preload/invalidation |
+| Reject computed reading cache (Option C) | Same problem as A | Same dependency on the cache Map signal |
+
+### Alternatives Evaluated
+
+**Option B — `resource.update()` to seed cached value**: Broken. `setBudgetId()` sets params synchronously, then `resource.update()` seeds the value. But the resource effect runs on the next microtask, detects new params, transitions to `'loading'`, and wipes `value` to `undefined`. Confirmed by [angular/angular#58602](https://github.com/angular/angular/issues/58602).
+
+**Option A — `linkedSignal` reading `BudgetCache`**: `linkedSignal(() => cache.getBudgetDetails(budgetId))` works but `getBudgetDetails()` reads `#budgetDetailsMap()` internally, so the linkedSignal tracks the entire Map. Any preload or invalidation of *another* budget triggers re-evaluation.
+
+**Option C — `computed` reading cache**: Same Map dependency problem as Option A.
+
+### Consequences
+
+- **Positive**: No over-reactivity, no race condition, signal represents "last known stale data" explicitly
+- **Trade-off**: Imperative `.set()` call in `setBudgetId()` — less declarative than reactive alternatives
+- **Impact**: `budget-details-store.ts`, `template-details-store.ts`
+
+### Sources
+
+- [angular/angular#58602 — resource value wiped on param change](https://github.com/angular/angular/issues/58602)
+- [Angular resource API — status/value behavior](https://angular.dev/guide/signals/resource)
 
 ---
 
@@ -89,7 +129,7 @@ Budget details page showed a spinner on every navigation, even for cached data. 
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Seed cached data in `setBudgetId()` | `#immediateValue` signal populated from `BudgetCache` | Provides instant display before resource loader runs |
+| Seed cached data in `setBudgetId()` | `#staleData` signal populated from `BudgetCache` | Provides instant display before resource loader runs |
 | Distinguish initial loading from reloading | `isInitialLoading = isLoading && !budgetDetails()` | Spinner only when truly no data available |
 | Preload all budget details at startup | `preloadBudgetDetails(allIds)` in `AppPreloader` | Maximizes cache hits across all months |
 | Keep store at component level | No architecture change | Follows feature isolation rules |
@@ -100,8 +140,8 @@ Budget details page showed a spinner on every navigation, even for cached data. 
 
 ### Decision
 
-- `setBudgetId()` checks `BudgetCache` synchronously and populates `#immediateValue` signal
-- `budgetDetails` computed falls back to `#immediateValue` when resource is loading
+- `setBudgetId()` checks `BudgetCache` synchronously and populates `#staleData` signal
+- `budgetDetails` computed falls back to `#staleData` when resource is loading
 - `isInitialLoading` only true when loading AND no cached data exists
 - `AppPreloader` preloads all budget IDs in parallel
 

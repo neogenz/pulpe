@@ -55,8 +55,8 @@ export class BudgetDetailsStore {
   // Single source of truth - private state signal for non-resource data
   readonly #state = createInitialBudgetDetailsState();
 
-  // Cached data for instant display before resource resolves
-  readonly #immediateValue = signal<BudgetDetailsViewModel | null>(null);
+  // Last known stale data for instant display before resource resolves
+  readonly #staleData = signal<BudgetDetailsViewModel | null>(null);
 
   // Filter state - show only unchecked items by default
   readonly #isShowingOnlyUnchecked = signal<boolean>(
@@ -136,7 +136,7 @@ export class BudgetDetailsStore {
   // regardless of nullish-coalescing short-circuit.
   readonly budgetDetails = computed(() => {
     const resourceValue = this.#budgetDetailsResource.value();
-    const cachedValue = this.#immediateValue();
+    const cachedValue = this.#staleData();
     return resourceValue ?? cachedValue ?? null;
   });
   readonly isLoading = computed(() => this.#budgetDetailsResource.isLoading());
@@ -224,7 +224,7 @@ export class BudgetDetailsStore {
   setBudgetId(budgetId: string): void {
     // Seed cached data for instant display before resource loader runs
     const cached = this.#budgetCache.getBudgetDetails(budgetId);
-    this.#immediateValue.set(
+    this.#staleData.set(
       cached
         ? {
             ...cached.budget,
