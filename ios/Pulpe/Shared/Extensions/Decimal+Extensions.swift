@@ -36,6 +36,30 @@ extension Decimal {
     }
 }
 
+// MARK: - Amount Parsing
+
+extension String {
+    /// Parses user-typed amount text into a Decimal value.
+    /// Supports comma as decimal separator and limits to 2 fractional digits.
+    /// Returns the parsed Decimal, or nil for empty/invalid input.
+    var parsedAsAmount: Decimal? {
+        let cleaned = self
+            .replacingOccurrences(of: ",", with: ".")
+            .filter { $0.isNumber || $0 == "." }
+
+        let components = cleaned.split(separator: ".")
+        let sanitized: String
+        if components.count > 1 {
+            let fractional = String(components.dropFirst().joined().prefix(2))
+            sanitized = "\(components[0]).\(fractional)"
+        } else {
+            sanitized = cleaned
+        }
+
+        return Decimal(string: sanitized)
+    }
+}
+
 // MARK: - Optional Decimal Helpers
 
 extension Optional where Wrapped == Decimal {

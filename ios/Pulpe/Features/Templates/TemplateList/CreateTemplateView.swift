@@ -235,7 +235,7 @@ struct AddTemplateLineSheet: View {
 
     private var heroAmountSection: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
-            Text("CHF")
+            Text(DesignTokens.AmountInput.currencyCode)
                 .font(PulpeTypography.labelLarge)
                 .foregroundStyle(Color.textTertiary)
 
@@ -369,22 +369,9 @@ struct AddTemplateLineSheet: View {
     // MARK: - Logic
 
     private func parseAmount(_ text: String) {
-        let cleaned = text
-            .replacingOccurrences(of: ",", with: ".")
-            .filter { $0.isNumber || $0 == "." }
-
-        let components = cleaned.split(separator: ".")
-        let sanitized: String
-        if components.count > 1 {
-            let fractional = String(components.dropFirst().joined().prefix(2))
-            sanitized = "\(components[0]).\(fractional)"
+        if let value = text.parsedAsAmount {
+            amount = value
         } else {
-            sanitized = cleaned
-        }
-
-        if let decimal = Decimal(string: sanitized) {
-            amount = decimal
-        } else if sanitized.isEmpty {
             amount = nil
         }
     }
