@@ -43,7 +43,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
       >
         <div class="text-center">
           <h1 class="text-headline-large text-on-surface">
-            Bienvenue dans Pulpe
+            Tu sais ce qu'il te reste ?
           </h1>
 
           @defer (on idle) {
@@ -81,7 +81,8 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
           <p
             class="text-body-large text-on-surface-variant md:leading-relaxed px-4"
           >
-            Reprends le contrôle de tes finances en quelques minutes
+            Pulpe planifie ton année pour que tu saches toujours ce que
+            tu peux dépenser. Sans prise de tête.
           </p>
         </div>
 
@@ -94,25 +95,6 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
             (loadingChange)="onGoogleLoadingChange($event)"
           />
 
-          <p
-            class="text-body-small text-on-surface-variant text-center max-w-sm"
-          >
-            En continuant avec Google, j'accepte les
-            <a
-              [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
-              target="_blank"
-              class="text-primary underline"
-              >CGU</a
-            >
-            et la
-            <a
-              [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
-              target="_blank"
-              class="text-primary underline"
-              >Politique de Confidentialité</a
-            >
-          </p>
-
           <button
             matButton="outlined"
             class="w-full max-w-sm h-12"
@@ -123,7 +105,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
           >
             <div class="flex items-center justify-center gap-2">
               <mat-icon>email</mat-icon>
-              <span>Utiliser mon email</span>
+              <span>Continuer avec mon email</span>
             </div>
           </button>
 
@@ -148,18 +130,37 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
             variant="tonal"
             type="button"
             loadingText="Préparation..."
-            icon="science"
+            icon="play_arrow"
             testId="demo-mode-button"
-            class=" w-full max-w-sm"
+            class="w-full max-w-sm"
             (click)="startDemoMode()"
           >
-            Essayer le mode démo
+            Essayer sans compte — c'est gratuit
           </pulpe-loading-button>
 
           <pulpe-error-alert
             [message]="errorMessage()"
             class="w-full max-w-sm"
           />
+
+          <p
+            class="text-body-small text-on-surface-variant text-center max-w-sm"
+          >
+            En continuant, j'accepte les
+            <a
+              [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
+              target="_blank"
+              class="text-primary underline"
+              >CGU</a
+            >
+            et la
+            <a
+              [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
+              target="_blank"
+              class="text-primary underline"
+              >Politique de Confidentialité</a
+            >
+          </p>
         </div>
 
         <div class="w-full flex-col gap-2 flex justify-center items-center">

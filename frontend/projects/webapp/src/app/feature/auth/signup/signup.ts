@@ -79,10 +79,10 @@ function passwordsMatchValidator(
 
         <div class="text-center mb-8 mt-4">
           <h1 class="text-headline-large text-on-surface mb-2">
-            Créer un compte
+            Prêt en 3 minutes
           </h1>
           <p class="text-body-large text-on-surface-variant">
-            Rejoins Pulpe et reprends le contrôle
+            Crée ton espace et vois clair dans tes finances
           </p>
         </div>
 
@@ -100,7 +100,7 @@ function passwordsMatchValidator(
               formControlName="email"
               data-testid="email-input"
               (input)="clearMessages()"
-              placeholder="votre@email.com"
+              placeholder="ton@email.com"
               [disabled]="isSubmitting()"
             />
             <mat-icon matPrefix>email</mat-icon>
