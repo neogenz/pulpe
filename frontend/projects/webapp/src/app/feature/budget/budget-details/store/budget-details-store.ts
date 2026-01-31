@@ -94,8 +94,9 @@ export class BudgetDetailsStore {
         throw new Error('Budget ID is required');
       }
 
+      // Skip stale cache hits to force fresh API call — see DR-009 in memory-bank/techContext.md
       const cached = this.#budgetCache.getBudgetDetails(budgetId);
-      if (cached) {
+      if (cached && !this.#budgetCache.isBudgetDetailStale(budgetId)) {
         return {
           ...cached.budget,
           budgetLines: cached.budgetLines,
