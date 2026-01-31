@@ -18,14 +18,8 @@ struct HeroBalanceCard: View {
         Int(metrics.usagePercentage)
     }
 
-    private var progressColor: Color {
-        if metrics.isDeficit { return .financialOverBudget }
-        if progressPercentage >= 0.80 { return .financialOverBudget }
-        return .pulpePrimary
-    }
-
     private var heroTintColor: Color {
-        metrics.isDeficit ? .heroTextOnNegative : .heroTextOnPositive
+        metrics.isDeficit ? .financialOverBudget : .pulpePrimary
     }
 
     private var contextLabel: String {
@@ -45,34 +39,15 @@ struct HeroBalanceCard: View {
         return "Pile à l'équilibre"
     }
 
-    private var heroBackgroundStart: Color {
-        metrics.isDeficit
-            ? Color(light: Color(hex: 0xF8D4B0), dark: Color(hex: 0x2E1E12))
-            : Color(light: Color(hex: 0xB8E4BC), dark: Color(hex: 0x162E18))
-    }
-
-    private var heroBackgroundEnd: Color {
-        metrics.isDeficit
-            ? Color(light: Color(hex: 0xFDE8D8), dark: Color(hex: 0x241A10))
-            : Color(light: Color(hex: 0xD8F0D6), dark: Color(hex: 0x122414))
-    }
-
     // MARK: - Body
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.md) {
-            // Gradient hero card
+            // Vibrant glass hero card
             balanceRow
                 .padding(.horizontal, DesignTokens.Spacing.lg)
                 .padding(.vertical, DesignTokens.Spacing.xl)
-                .background(
-                    LinearGradient(
-                        colors: [heroBackgroundStart, heroBackgroundEnd],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    in: .rect(cornerRadius: DesignTokens.CornerRadius.xl)
-                )
+                .heroCardBackground(tint: heroTintColor)
 
             // Pills below the card
             pillChips
@@ -86,7 +61,7 @@ struct HeroBalanceCard: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(contextLabel)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(heroTintColor)
+                    .foregroundStyle(.white)
 
                 Text(abs(metrics.remaining).formatted(
                     .number.precision(.fractionLength(0 ... 2))
@@ -94,13 +69,13 @@ struct HeroBalanceCard: View {
                 ))
                 .font(.system(size: 40, weight: .bold, design: .rounded))
                 .monospacedDigit()
-                .foregroundStyle(.primary)
+                .foregroundStyle(.white)
                 .contentTransition(.numericText())
                 .accessibilityLabel(metrics.remaining.asCHF)
 
                 Text(motivationalMessage)
                     .font(.caption)
-                    .foregroundStyle(metrics.isDeficit ? Color.heroSubtextOnNegative : Color.heroSubtextOnPositive)
+                    .foregroundStyle(.white.opacity(0.75))
             }
 
             Spacer()
@@ -115,12 +90,12 @@ struct HeroBalanceCard: View {
         Button(action: onTapProgress) {
             ZStack {
                 Circle()
-                    .stroke(Color.progressTrack, lineWidth: 10)
+                    .stroke(Color.white.opacity(0.25), lineWidth: 10)
 
                 Circle()
                     .trim(from: 0, to: CGFloat(progressPercentage))
                     .stroke(
-                        progressColor.gradient,
+                        Color.white.gradient,
                         style: StrokeStyle(lineWidth: 10, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
@@ -130,11 +105,11 @@ struct HeroBalanceCard: View {
                     Text("\(displayPercentage)")
                         .font(.system(.title2, design: .rounded, weight: .bold))
                         .monospacedDigit()
-                        .foregroundStyle(progressColor)
+                        .foregroundStyle(.white)
                         .contentTransition(.numericText())
                     Text("%")
                         .font(.caption2.weight(.medium))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.white.opacity(0.7))
                 }
             }
             .frame(width: 88, height: 88)
@@ -193,6 +168,37 @@ struct HeroBalanceCard: View {
         .background(color.opacity(0.10), in: Capsule())
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(label) \(value.asCHF)")
+    }
+}
+
+// MARK: - Hero Card Background
+
+private struct HeroCardBackgroundModifier: ViewModifier {
+    let tint: Color
+
+    func body(content: Content) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            content
+                .background(tint, in: .rect(cornerRadius: DesignTokens.CornerRadius.xl))
+                .glassEffect(
+                    .regular.tint(tint.opacity(0.85)),
+                    in: .rect(cornerRadius: DesignTokens.CornerRadius.xl)
+                )
+        } else {
+            content
+                .background(tint, in: .rect(cornerRadius: DesignTokens.CornerRadius.xl))
+        }
+        #else
+        content
+            .background(tint, in: .rect(cornerRadius: DesignTokens.CornerRadius.xl))
+        #endif
+    }
+}
+
+private extension View {
+    func heroCardBackground(tint: Color) -> some View {
+        modifier(HeroCardBackgroundModifier(tint: tint))
     }
 }
 
