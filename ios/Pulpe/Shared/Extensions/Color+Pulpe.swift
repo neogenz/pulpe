@@ -16,20 +16,6 @@ extension Color {
     /// Over-budget indicator - Warm amber, not aggressive red (#C27A00 light, #E5A33A dark)
     static let financialOverBudget = Color(light: Color(hex: 0xC27A00), dark: Color(hex: 0xE5A33A))
 
-    // MARK: - Hero Text Colors (high contrast on hero card gradients)
-
-    /// Context label on positive (green) hero gradient — dark green for readability
-    static let heroTextOnPositive = Color(light: Color(hex: 0x1A5C2E), dark: Color(hex: 0xA0D8B0))
-
-    /// Context label on negative (amber) hero gradient — dark amber for readability
-    static let heroTextOnNegative = Color(light: Color(hex: 0x7A4A00), dark: Color(hex: 0xE8C080))
-
-    /// Motivational subtext on positive hero gradient
-    static let heroSubtextOnPositive = Color(light: Color(hex: 0x2D6B40), dark: Color(hex: 0x88C098))
-
-    /// Motivational subtext on negative hero gradient
-    static let heroSubtextOnNegative = Color(light: Color(hex: 0x8A5A10), dark: Color(hex: 0xD0A860))
-
     // MARK: - Brand Colors
 
     /// Primary brand color - Dark green (#006820 light, #4AA070 dark)
