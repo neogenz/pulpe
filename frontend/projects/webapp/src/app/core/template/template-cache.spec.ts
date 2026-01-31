@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { of, throwError } from 'rxjs';
+import { of, throwError, delay } from 'rxjs';
 import { type BudgetTemplate } from 'pulpe-shared';
 import { TemplateCache } from './template-cache';
 import { TemplateApi } from './template-api';
@@ -157,19 +157,19 @@ describe('TemplateCache', () => {
       expect(service.isLoading()).toBe(false);
     });
 
-    it('should return empty array if loading and templates is null', async () => {
-      mockTemplateApi.getAll$.mockImplementation(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(() => resolve(mockTemplates), 100),
-          ),
+    it('should deduplicate concurrent preload calls', async () => {
+      mockTemplateApi.getAll$.mockReturnValue(
+        of(mockTemplates).pipe(delay(50)),
       );
 
-      const promise1 = service.preloadAll();
-      const result2 = await service.preloadAll();
+      const [result1, result2] = await Promise.all([
+        service.preloadAll(),
+        service.preloadAll(),
+      ]);
 
-      expect(result2).toEqual([]);
-      await promise1;
+      expect(result1).toEqual(mockTemplates);
+      expect(result2).toEqual(mockTemplates);
+      expect(mockTemplateApi.getAll$).toHaveBeenCalledOnce();
     });
   });
 
