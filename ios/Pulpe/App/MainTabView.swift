@@ -176,7 +176,6 @@ struct BudgetsTab: View {
                     switch destination {
                     case .details(let budgetId):
                         BudgetDetailsView(budgetId: budgetId)
-                            .id(budgetId)
                     }
                 }
         }
