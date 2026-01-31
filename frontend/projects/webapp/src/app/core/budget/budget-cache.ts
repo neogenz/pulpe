@@ -1,7 +1,7 @@
-import { Injectable, effect, inject, signal, untracked } from '@angular/core';
-import { toObservable } from '@angular/core/rxjs-interop';
+import { Injectable, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { type Budget, type BudgetDetailsResponse } from 'pulpe-shared';
-import { filter, firstValueFrom, first, timeout } from 'rxjs';
+import { filter, firstValueFrom, first, skip, timeout } from 'rxjs';
 import { createListCache } from '@core/cache';
 import { BudgetApi } from './budget-api';
 import { BudgetInvalidationService } from './budget-invalidation.service';
@@ -21,13 +21,9 @@ export class BudgetCache {
 
   constructor() {
     // Auto-revalidate cache when budget mutations occur (signaled by version bump)
-    effect(() => {
-      const version = this.#invalidationService.version();
-      untracked(() => {
-        if (version === 0) return; // Skip initial value
-        this.#revalidate();
-      });
-    });
+    toObservable(this.#invalidationService.version)
+      .pipe(skip(1), takeUntilDestroyed())
+      .subscribe(() => this.#revalidate());
   }
 
   readonly #listCache = createListCache<Budget>({

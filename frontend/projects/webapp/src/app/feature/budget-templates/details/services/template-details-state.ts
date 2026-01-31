@@ -1,25 +1,13 @@
-/**
- * State for template details store
- * Manages non-resource state like operation tracking and template ID
- */
-export interface TemplateDetailsState {
-  /**
-   * The current template ID being viewed
-   */
-  templateId: string | null;
+import { type WritableSignal, signal } from '@angular/core';
 
-  /**
-   * Error message if any operation fails
-   */
-  error: string | null;
+export interface TemplateDetailsState {
+  readonly templateId: WritableSignal<string | null>;
+  readonly error: WritableSignal<string | null>;
 }
 
-/**
- * Factory function to create initial internal state
- */
 export function createInitialTemplateDetailsState(): TemplateDetailsState {
   return {
-    templateId: null,
-    error: null,
+    templateId: signal<string | null>(null),
+    error: signal<string | null>(null),
   };
 }
