@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -49,6 +49,7 @@
 		401748FBC2FA450B43CAF432 /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = D576CD613CD0E637C83249E9 /* Formatters.swift */; };
 		40867D66318D1675AC21C5EE /* Endpoints.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3AD93EA890CC61B4AA606B7 /* Endpoints.swift */; };
 		4491DFC84F384660F238F4F8 /* BudgetTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27F72011B11153235E828030 /* BudgetTemplate.swift */; };
+		487CD153F3E52718398AF9B7 /* MeshBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C088CF97CC00F71BA368A27 /* MeshBackground.swift */; };
 		4A0D647CD0FC9FA613122423 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E1ED9277251CACDC297FEFA3 /* LaunchScreen.storyboard */; };
 		4AE5D0489770F91DC072D500 /* Transaction+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4090237752EF9DF63F659AA /* Transaction+Extensions.swift */; };
 		4D613852DBBBCCEF9960A4C5 /* PulpeWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B157DB64FA5B4252F58D08EF /* PulpeWidgetBundle.swift */; };
@@ -258,7 +259,7 @@
 		6B68A90534D06367C77B1427 /* DashboardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardStore.swift; sourceTree = "<group>"; };
 		6E4F47F7A88B6744CA6D788C /* Color+Pulpe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Pulpe.swift"; sourceTree = "<group>"; };
 		6E873F06201D0A4D69F356ED /* AddAllocatedTransactionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddAllocatedTransactionSheet.swift; sourceTree = "<group>"; };
-		723AB344C1BB78CCBA3446C8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		723AB344C1BB78CCBA3446C8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		76DBD55125DA1270DC47F0BE /* CheckedFilterPickerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckedFilterPickerTests.swift; sourceTree = "<group>"; };
 		77C8421EEBFDB74A00EE05B5 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
 		7D01817526FAA87D773269A9 /* TransactionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionService.swift; sourceTree = "<group>"; };
@@ -269,16 +270,17 @@
 		88250064A726B3B6AAAE9ADF /* welcome-animation.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "welcome-animation.json"; sourceTree = "<group>"; };
 		8C9C2806F868DBC404A44317 /* OnboardingNavigationButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingNavigationButtons.swift; sourceTree = "<group>"; };
 		8E370F96AA76DABDBB00B7DC /* maintenance-animation.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "maintenance-animation.json"; sourceTree = "<group>"; };
-		94570CEB6CD57FB35C06DE92 /* Pulpe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pulpe.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		94570CEB6CD57FB35C06DE92 /* Pulpe.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Pulpe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		94DA9F16798B6DC1691A2DB8 /* CreateTemplateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTemplateView.swift; sourceTree = "<group>"; };
 		955B1199FD862E3761B3435A /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		9A05FA792057CD53B266EE9F /* TransactionEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionEnums.swift; sourceTree = "<group>"; };
 		9BB8AFF47FF273694E987E2A /* Pulpe.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Pulpe.entitlements; sourceTree = "<group>"; };
 		9C02340FB2A3D93553E9CA15 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		9C088CF97CC00F71BA368A27 /* MeshBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshBackground.swift; sourceTree = "<group>"; };
 		9E56340C03DD8EE1F7DF7638 /* BudgetService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetService.swift; sourceTree = "<group>"; };
 		A1A0EA391775C63723A83BF3 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
 		A3D2CDB198623A6C39D6F3EF /* PulpeUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PulpeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		A40110A09E6DF69EDAD88EFA /* PulpeWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PulpeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A40110A09E6DF69EDAD88EFA /* PulpeWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PulpeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A4090237752EF9DF63F659AA /* Transaction+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Transaction+Extensions.swift"; sourceTree = "<group>"; };
 		A4952E464DEEA5F04D784FD0 /* NetworkUnavailableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkUnavailableView.swift; sourceTree = "<group>"; };
 		A77FEC48FC6CEA8465118A09 /* ToastManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastManager.swift; sourceTree = "<group>"; };
@@ -424,6 +426,7 @@
 				D4614F485D865898B139E965 /* ErrorView.swift */,
 				C81B7DA6BF84774DCD938E37 /* KindBadge.swift */,
 				A1A0EA391775C63723A83BF3 /* LoadingView.swift */,
+				9C088CF97CC00F71BA368A27 /* MeshBackground.swift */,
 				A4952E464DEEA5F04D784FD0 /* NetworkUnavailableView.swift */,
 				40EC58ED46B8CA086F6A633D /* PulpeIcon.swift */,
 				C40A3D67DE85A1A1DCF3277A /* SyncIndicator.swift */,
@@ -633,7 +636,9 @@
 		6D00927D5E35AD49432F228E /* PulpeWidget */ = {
 			isa = PBXGroup;
 			children = (
+				BF32797555067F58F521F8FD /* Models */,
 				AD0CAF35FBFF805D67F8AD1C /* Resources */,
+				35A07FFF4A09B0C4045409BF /* Services */,
 				5CCD294071AF1411A6856A16 /* Widgets */,
 				9C02340FB2A3D93553E9CA15 /* Info.plist */,
 				1D358058CCE0A379A8189DA6 /* PulpeWidget.entitlements */,
@@ -1058,9 +1063,11 @@
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					07BEE599D482CF9B6643DCEB = {
+						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 					4E3C22AB1CE882331E727F8E = {
+						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 					DE37C1D30CE2CD31E5FB0C65 = {
@@ -1088,6 +1095,7 @@
 				104B6E33E10617F89EF7ECD9 /* XCRemoteSwiftPackageReference "lottie-spm" */,
 				09998022D4D87255D2EAE15A /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -1248,6 +1256,7 @@
 				7D8DD48CD5C6688A74753599 /* MainTabView.swift in Sources */,
 				78B5F01E78BB121C95940D30 /* MaintenanceService.swift in Sources */,
 				C2C698AC77274675E4B5CFF7 /* MaintenanceView.swift in Sources */,
+				487CD153F3E52718398AF9B7 /* MeshBackground.swift in Sources */,
 				721D537D7CBD37B1580BB991 /* NetworkUnavailableView.swift in Sources */,
 				A22726A5F8810386134F4846 /* OnboardingFlow.swift in Sources */,
 				92133527D14DFDB8A91245F6 /* OnboardingNavigationButtons.swift in Sources */,
@@ -1335,7 +1344,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Pulpe/Pulpe.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = Pulpe/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1425,7 +1433,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				CODE_SIGN_ENTITLEMENTS = PulpeWidget/PulpeWidget.entitlements;
-				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = PulpeWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1463,7 +1470,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Pulpe/Pulpe.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = Pulpe/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1563,7 +1569,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				CODE_SIGN_ENTITLEMENTS = PulpeWidget/PulpeWidget.entitlements;
-				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = PulpeWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (

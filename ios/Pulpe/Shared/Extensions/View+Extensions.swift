@@ -58,9 +58,25 @@ extension View {
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Unified app background with premium multi-layered gradient for Liquid Glass
+    /// Unified app background: static MeshGradient on iOS 26+, premium gradient fallback otherwise
     func pulpeBackground() -> some View {
-        self.background { Color.appPremiumBackground.ignoresSafeArea() }
+        modifier(PulpeBackgroundModifier())
+    }
+}
+
+// MARK: - Background Modifier
+
+private struct PulpeBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            content.background { MeshBackground() }
+        } else {
+            content.background { Color.appPremiumBackground.ignoresSafeArea() }
+        }
+        #else
+        content.background { Color.appPremiumBackground.ignoresSafeArea() }
+        #endif
     }
 }
 

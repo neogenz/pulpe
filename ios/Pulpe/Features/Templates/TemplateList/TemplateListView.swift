@@ -75,7 +75,6 @@ struct TemplateListView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .pulpeBackground()
         .alert(
             "Supprimer ce modèle ?",
             isPresented: $showDeleteAlert,
