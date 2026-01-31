@@ -1,11 +1,14 @@
 import SwiftUI
 
-/// Revolut-style hero card displaying the available balance prominently
+/// Hero card displaying the budget summary with character:
+/// - Liquid Glass with state-dependent color tint (green/positive, warm/deficit)
+/// - Contextual label + motivational message
+/// - Circular progress indicator
+/// - Pill-style stat chips
 struct HeroBalanceCard: View {
     let metrics: BudgetFormulas.Metrics
     var daysRemaining: Int? = nil
     var dailyBudget: Decimal? = nil
-    var applyGlass: Bool = true
     let onTapProgress: () -> Void
 
     // MARK: - Computed Properties
@@ -24,56 +27,82 @@ struct HeroBalanceCard: View {
         return .pulpePrimary
     }
 
-    private var balanceColor: Color {
-        metrics.isDeficit ? .financialOverBudget : .primary
+    private var heroTintColor: Color {
+        metrics.isDeficit ? .financialOverBudget : .financialSavings
+    }
+
+    private var contextLabel: String {
+        metrics.isDeficit ? "Déficit ce mois" : "Ce qu'il te reste ce mois"
+    }
+
+    private var motivationalMessage: String {
+        if metrics.isDeficit {
+            return "Ce mois sera serré — mais tu le sais"
+        }
+        if metrics.totalIncome > 0, metrics.remaining > metrics.totalIncome * Decimal(string: "0.2")! {
+            return "Belle marge ce mois"
+        }
+        if metrics.remaining > 0 {
+            return "Tu gères bien"
+        }
+        return "Pile à l'équilibre"
+    }
+
+    /// Opaque pastel backgrounds that create real contrast with glass cards
+    private var heroBackgroundStart: Color {
+        metrics.isDeficit
+            ? Color(light: Color(hex: 0xFDE8D8), dark: Color(hex: 0x2E1E12))
+            : Color(light: Color(hex: 0xD0EDCF), dark: Color(hex: 0x162E18))
+    }
+
+    private var heroBackgroundEnd: Color {
+        metrics.isDeficit
+            ? Color(light: Color(hex: 0xFDF4EC), dark: Color(hex: 0x241A10))
+            : Color(light: Color(hex: 0xE4F3E0), dark: Color(hex: 0x122414))
     }
 
     // MARK: - Body
 
     var body: some View {
-        let content = VStack(spacing: DesignTokens.Spacing.xl) {
-            // Main balance section
-            balanceSection
-
-            // Quick stats row
-            statsRow
+        VStack(spacing: DesignTokens.Spacing.lg) {
+            balanceRow
+            pillChips
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
         .padding(.vertical, DesignTokens.Spacing.xxl)
-
-        if applyGlass {
-            content.pulpeHeroGlass()
-        } else {
-            content
-        }
+        .background(
+            LinearGradient(
+                colors: [heroBackgroundStart, heroBackgroundEnd],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: .rect(cornerRadius: DesignTokens.CornerRadius.xl)
+        )
+        .shadow(DesignTokens.Shadow.elevated)
     }
 
-    // MARK: - Balance Section
+    // MARK: - Balance Row
 
-    private var balanceSection: some View {
-        HStack(alignment: .center, spacing: DesignTokens.Spacing.xxl) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Disponible")
-                    .font(.callout.weight(.medium))
+    private var balanceRow: some View {
+        HStack(alignment: .center, spacing: DesignTokens.Spacing.xl) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(contextLabel)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(heroTintColor)
+
+                Text(abs(metrics.remaining).formatted(
+                    .number.precision(.fractionLength(0 ... 2))
+                        .locale(Locale(identifier: "de_CH"))
+                ))
+                .font(.system(size: 40, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.primary)
+                .contentTransition(.numericText())
+                .accessibilityLabel(metrics.remaining.asCHF)
+
+                Text(motivationalMessage)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
-
-                Text(metrics.remaining.formatted(.number.precision(.fractionLength(0...2)).locale(Locale(identifier: "de_CH"))))
-                    .font(.system(size: 40, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(balanceColor)
-                    .contentTransition(.numericText())
-                    .accessibilityLabel(metrics.remaining.asCHF)
-
-                if metrics.isDeficit {
-                    Label("Budget dépassé", systemImage: "info.circle.fill")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundStyle(Color.financialOverBudget)
-                } else if let days = daysRemaining, let daily = dailyBudget, daily > 0 {
-                    Text("\(days) jours · ~\(daily.asCompactCHF)/jour")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
             }
 
             Spacer()
@@ -117,31 +146,26 @@ struct HeroBalanceCard: View {
         .accessibilityValue("\(displayPercentage) pourcent du budget utilisé")
     }
 
-    // MARK: - Stats Row
+    // MARK: - Pill Chips
 
-    private var statsRow: some View {
-        HStack(spacing: 0) {
-            statItem(
-                label: "Dépenses",
-                value: metrics.totalExpenses,
-                color: .financialExpense
-            )
-
-            Divider()
-                .frame(height: 32)
-                .padding(.horizontal, DesignTokens.Spacing.sm)
-
-            statItem(
+    private var pillChips: some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            pillChip(
+                icon: "arrow.up.right",
                 label: "Revenus",
                 value: metrics.totalIncome,
                 color: .financialIncome
             )
 
-            Divider()
-                .frame(height: 32)
-                .padding(.horizontal, DesignTokens.Spacing.sm)
+            pillChip(
+                icon: "arrow.down.right",
+                label: "Dépenses",
+                value: metrics.totalExpenses,
+                color: .financialExpense
+            )
 
-            statItem(
+            pillChip(
+                icon: "banknote",
                 label: "Épargne",
                 value: metrics.totalSavings,
                 color: .financialSavings
@@ -149,21 +173,35 @@ struct HeroBalanceCard: View {
         }
     }
 
-    private func statItem(label: String, value: Decimal, color: Color) -> some View {
-        VStack(alignment: .center, spacing: 2) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(Color.textTertiary)
-
-            Text(value.formatted(.number.locale(Locale(identifier: "de_CH"))))
-                .font(.system(.subheadline, design: .rounded, weight: .semibold))
+    private func pillChip(icon: String, label: String, value: Decimal, color: Color) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.caption2.weight(.semibold))
                 .foregroundStyle(color)
-                .contentTransition(.numericText())
+
+            VStack(alignment: .leading, spacing: 0) {
+                Text(label)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(Color.textTertiary)
+
+                Text(value.formatted(.number.locale(Locale(identifier: "de_CH"))))
+                    .font(.system(.caption2, design: .rounded, weight: .semibold))
+                    .foregroundStyle(color)
+                    .contentTransition(.numericText())
+            }
         }
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(color.opacity(0.10), in: Capsule())
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(label) \(value.asCHF)")
     }
+}
+
+// MARK: - Helpers
+
+private func abs(_ value: Decimal) -> Decimal {
+    value < 0 ? -value : value
 }
 
 // MARK: - Preview
@@ -171,51 +209,65 @@ struct HeroBalanceCard: View {
 #Preview("Hero Balance Card") {
     ScrollView {
         VStack(spacing: 24) {
-            // Normal state
+            // Positive — good margin
             HeroBalanceCard(
                 metrics: .init(
                     totalIncome: 5000,
                     totalExpenses: 2000,
-                    totalSavings: 5000,
+                    totalSavings: 500,
                     available: 5500,
                     endingBalance: 3500,
-                    remaining: 3000.45,
+                    remaining: 2500,
                     rollover: 500
                 ),
                 daysRemaining: 15,
-                dailyBudget: 200,
+                dailyBudget: 167,
                 onTapProgress: {}
             )
 
-            // High usage
+            // Positive — managing well
             HeroBalanceCard(
                 metrics: .init(
                     totalIncome: 5000,
-                    totalExpenses: 4500,
-                    totalSavings: 300,
+                    totalExpenses: 4209,
+                    totalSavings: 0,
                     available: 5000,
-                    endingBalance: 500,
-                    remaining: 200,
+                    endingBalance: 791,
+                    remaining: 791,
                     rollover: 0
                 ),
                 daysRemaining: 8,
-                dailyBudget: 25,
+                dailyBudget: 99,
                 onTapProgress: {}
             )
 
-            // Over budget
+            // Deficit
             HeroBalanceCard(
                 metrics: .init(
-                    totalIncome: 50000,
-                    totalExpenses: 55000,
-                    totalSavings: 2000,
-                    available: 5000,
-                    endingBalance: -500,
-                    remaining: -700,
+                    totalIncome: 8500,
+                    totalExpenses: 8619,
+                    totalSavings: 0,
+                    available: 8500,
+                    endingBalance: -119,
+                    remaining: -119,
                     rollover: 0
                 ),
                 daysRemaining: 20,
                 dailyBudget: 0,
+                onTapProgress: {}
+            )
+
+            // Balanced
+            HeroBalanceCard(
+                metrics: .init(
+                    totalIncome: 5000,
+                    totalExpenses: 5000,
+                    totalSavings: 0,
+                    available: 5000,
+                    endingBalance: 0,
+                    remaining: 0,
+                    rollover: 0
+                ),
                 onTapProgress: {}
             )
         }
