@@ -41,6 +41,16 @@ import {
   createTotalItemsCount,
 } from './budget-details-selectors';
 import { createInitialBudgetDetailsState } from './budget-details-state';
+import {
+  addBudgetLine,
+  addTransaction,
+  applyToggleResult,
+  patchBudgetLine,
+  removeBudgetLine,
+  removeTransaction,
+  replaceBudgetLine,
+  replaceTransaction,
+} from './budget-details-updaters';
 
 @Injectable()
 export class BudgetDetailsStore {
@@ -52,20 +62,15 @@ export class BudgetDetailsStore {
   readonly #logger = inject(Logger);
   readonly #storage = inject(StorageService);
 
-  // Serializes toggle API calls that cascade to child transactions.
   #toggleQueue = Promise.resolve();
-
-  // Single source of truth - private state signal for non-resource data
   readonly #state = createInitialBudgetDetailsState();
 
-  // Filter state - show only unchecked items by default
   readonly #isShowingOnlyUnchecked = signal<boolean>(
     this.#storage.get<boolean>(STORAGE_KEYS.BUDGET_SHOW_ONLY_UNCHECKED) ?? true,
   );
   readonly isShowingOnlyUnchecked = this.#isShowingOnlyUnchecked.asReadonly();
 
   constructor() {
-    // Persist filter preference to localStorage
     effect(() => {
       this.#storage.set(
         STORAGE_KEYS.BUDGET_SHOW_ONLY_UNCHECKED,
@@ -74,12 +79,15 @@ export class BudgetDetailsStore {
     });
   }
 
+  // ─── Toggle Queue ──────────────────────────────────────────────
+
   #enqueue<T>(operation: () => Promise<T>): Promise<T> {
     const result = this.#toggleQueue.then(() => operation());
-    // Swallow errors so the chain stays alive for subsequent operations
     this.#toggleQueue = result.catch(() => undefined).then(() => undefined);
     return result;
   }
+
+  // ─── Resource & SWR ────────────────────────────────────────────
 
   readonly #budgetDetailsResource = resource<
     BudgetDetailsViewModel,
@@ -101,7 +109,6 @@ export class BudgetDetailsStore {
         } satisfies BudgetDetailsViewModel;
       }
 
-      // Cache miss — direct API call (don't wait for preloader to avoid blocking user)
       const response = await firstValueFrom(
         this.#budgetApi.getBudgetWithDetails$(budgetId),
       );
@@ -130,7 +137,8 @@ export class BudgetDetailsStore {
     () => this.#budgetDetailsResource.error() || this.#state.errorMessage(),
   );
 
-  // Month navigation - load all budgets to find adjacent ones
+  // ─── Month Navigation ─────────────────────────────────────────
+
   readonly #allBudgetsResource = resource({
     loader: async () => this.#budgetCache.preloadBudgetList(),
   });
@@ -162,6 +170,8 @@ export class BudgetDetailsStore {
 
   readonly hasPrevious = computed(() => this.previousBudgetId() !== null);
   readonly hasNext = computed(() => this.nextBudgetId() !== null);
+
+  // ─── Selectors ─────────────────────────────────────────────────
 
   readonly #selectorCtx = {
     budgetDetailsResource: this.#budgetDetailsResource,
@@ -196,6 +206,43 @@ export class BudgetDetailsStore {
     this.filteredBudgetLines,
   );
 
+  // ─── Mutation Helper ───────────────────────────────────────────
+
+  async #runMutation<T>(options: {
+    optimisticUpdate?: (d: BudgetDetailsViewModel) => BudgetDetailsViewModel;
+    apiCall: () => Promise<T>;
+    reconcile?: (
+      d: BudgetDetailsViewModel,
+      response: T,
+    ) => BudgetDetailsViewModel;
+    errorMessage: string;
+  }): Promise<void> {
+    if (options.optimisticUpdate) {
+      this.#budgetDetailsResource.update((d) =>
+        d ? options.optimisticUpdate!(d) : d,
+      );
+    }
+
+    try {
+      const response = await options.apiCall();
+
+      if (options.reconcile) {
+        this.#budgetDetailsResource.update((d) =>
+          d ? options.reconcile!(d, response) : d,
+        );
+      }
+
+      this.#invalidateCache();
+      this.#state.errorMessage.set(null);
+    } catch (error) {
+      this.#budgetDetailsResource.reload();
+      this.#state.errorMessage.set(options.errorMessage);
+      this.#logger.error(options.errorMessage, error);
+    }
+  }
+
+  // ─── Public API ────────────────────────────────────────────────
+
   setIsShowingOnlyUnchecked(value: boolean): void {
     this.#isShowingOnlyUnchecked.set(value);
   }
@@ -214,14 +261,12 @@ export class BudgetDetailsStore {
     );
 
     this.#state.budgetId.set(budgetId);
-    // Reset rollover checked state when changing budget (checked by default)
     this.#state.rolloverCheckedAt.set(new Date().toISOString());
   }
 
   async createBudgetLine(budgetLine: BudgetLineCreate): Promise<void> {
     const newId = `temp-${uuidv4()}`;
-
-    const tempBudgetLine: BudgetLine = {
+    const tempLine: BudgetLine = {
       ...budgetLine,
       id: newId,
       createdAt: new Date().toISOString(),
@@ -231,114 +276,38 @@ export class BudgetDetailsStore {
       checkedAt: budgetLine.checkedAt ?? null,
     };
 
-    this.#budgetDetailsResource.update((details) => {
-      if (!details) return details;
-      return {
-        ...details,
-        budgetLines: [...details.budgetLines, tempBudgetLine],
-      };
+    return this.#runMutation({
+      optimisticUpdate: (d) => addBudgetLine(d, tempLine),
+      apiCall: () =>
+        firstValueFrom(this.#budgetLineApi.createBudgetLine$(budgetLine)),
+      reconcile: (d, response) => replaceBudgetLine(d, newId, response.data),
+      errorMessage: "Erreur lors de l'ajout de la prévision",
     });
-
-    try {
-      const response = await firstValueFrom(
-        this.#budgetLineApi.createBudgetLine$(budgetLine),
-      );
-
-      this.#budgetDetailsResource.update((details) => {
-        if (!details) return details;
-        return {
-          ...details,
-          budgetLines: details.budgetLines.map((line) =>
-            line.id === newId ? response.data : line,
-          ),
-        };
-      });
-
-      this.#invalidateCache();
-      this.#state.errorMessage.set(null);
-    } catch (error) {
-      this.#budgetDetailsResource.reload();
-      this.#state.errorMessage.set("Erreur lors de l'ajout de la prévision");
-      this.#logger.error('Error creating budget line', error);
-    }
   }
 
   async updateBudgetLine(data: BudgetLineUpdate): Promise<void> {
-    this.#budgetDetailsResource.update((details) => {
-      if (!details) return details;
-
-      const updatedLines = details.budgetLines.map((line) =>
-        line.id === data.id
-          ? { ...line, ...data, updatedAt: new Date().toISOString() }
-          : line,
-      );
-
-      return {
-        ...details,
-        budgetLines: updatedLines,
-      };
+    return this.#runMutation({
+      optimisticUpdate: (d) => patchBudgetLine(d, data),
+      apiCall: () =>
+        firstValueFrom(this.#budgetLineApi.updateBudgetLine$(data.id, data)),
+      errorMessage: 'Erreur lors de la modification de la prévision',
     });
-
-    try {
-      await firstValueFrom(
-        this.#budgetLineApi.updateBudgetLine$(data.id, data),
-      );
-
-      this.#invalidateCache();
-      this.#state.errorMessage.set(null);
-    } catch (error) {
-      this.#budgetDetailsResource.reload();
-      this.#state.errorMessage.set(
-        'Erreur lors de la modification de la prévision',
-      );
-      this.#logger.error('Error updating budget line', error);
-    }
   }
 
   async deleteBudgetLine(id: string): Promise<void> {
-    this.#budgetDetailsResource.update((details) => {
-      if (!details) return details;
-      return {
-        ...details,
-        budgetLines: details.budgetLines.filter((line) => line.id !== id),
-      };
+    return this.#runMutation({
+      optimisticUpdate: (d) => removeBudgetLine(d, id),
+      apiCall: () => firstValueFrom(this.#budgetLineApi.deleteBudgetLine$(id)),
+      errorMessage: 'Erreur lors de la suppression de la prévision',
     });
-
-    try {
-      await firstValueFrom(this.#budgetLineApi.deleteBudgetLine$(id));
-
-      this.#invalidateCache();
-      this.#state.errorMessage.set(null);
-    } catch (error) {
-      this.#budgetDetailsResource.reload();
-      this.#state.errorMessage.set(
-        'Erreur lors de la suppression de la prévision',
-      );
-      this.#logger.error('Error deleting budget line', error);
-    }
   }
 
   async deleteTransaction(id: string): Promise<void> {
-    this.#budgetDetailsResource.update((details) => {
-      if (!details) return details;
-      return {
-        ...details,
-        transactions: details.transactions?.filter((tx) => tx.id !== id) ?? [],
-      };
+    return this.#runMutation({
+      optimisticUpdate: (d) => removeTransaction(d, id),
+      apiCall: () => firstValueFrom(this.#transactionApi.remove$(id)),
+      errorMessage: 'Erreur lors de la suppression de la transaction',
     });
-
-    try {
-      await firstValueFrom(this.#transactionApi.remove$(id));
-
-      this.#invalidateCache();
-      this.#state.errorMessage.set(null);
-    } catch (error) {
-      this.#budgetDetailsResource.reload();
-      this.#state.errorMessage.set(
-        'Erreur lors de la suppression de la transaction',
-      );
-      this.#logger.error('Error deleting transaction', error);
-    }
   }
 
   async createAllocatedTransaction(
@@ -346,13 +315,11 @@ export class BudgetDetailsStore {
   ): Promise<void> {
     const newId = `temp-${uuidv4()}`;
     const details = this.#budgetDetailsResource.value();
-
     if (!details) return;
 
     const parentBudgetLine = details.budgetLines.find(
       (line) => line.id === transactionData.budgetLineId,
     );
-
     const inheritedCheckedAt = parentBudgetLine?.checkedAt
       ? new Date(parentBudgetLine.checkedAt).toISOString()
       : null;
@@ -372,38 +339,18 @@ export class BudgetDetailsStore {
       checkedAt: inheritedCheckedAt,
     };
 
-    this.#budgetDetailsResource.update((details) => {
-      if (!details) return details;
-      return {
-        ...details,
-        transactions: [...(details.transactions ?? []), tempTransaction],
-      };
+    return this.#runMutation({
+      optimisticUpdate: (d) => addTransaction(d, tempTransaction),
+      apiCall: () =>
+        firstValueFrom(
+          this.#transactionApi.create$({
+            ...transactionData,
+            checkedAt: inheritedCheckedAt,
+          }),
+        ),
+      reconcile: (d, response) => replaceTransaction(d, newId, response.data),
+      errorMessage: "Erreur lors de l'ajout de la transaction",
     });
-
-    try {
-      const response = await firstValueFrom(
-        this.#transactionApi.create$({
-          ...transactionData,
-          checkedAt: inheritedCheckedAt,
-        }),
-      );
-      this.#budgetDetailsResource.update((details) => {
-        if (!details) return details;
-        return {
-          ...details,
-          transactions: (details.transactions ?? []).map((tx) =>
-            tx.id === newId ? response.data : tx,
-          ),
-        };
-      });
-
-      this.#invalidateCache();
-      this.#state.errorMessage.set(null);
-    } catch (error) {
-      this.#budgetDetailsResource.reload();
-      this.#state.errorMessage.set("Erreur lors de l'ajout de la transaction");
-      this.#logger.error('Error creating allocated transaction', error);
-    }
   }
 
   async resetBudgetLineFromTemplate(id: string): Promise<void> {
@@ -412,21 +359,14 @@ export class BudgetDetailsStore {
         this.#budgetLineApi.resetFromTemplate$(id),
       );
 
-      this.#budgetDetailsResource.update((details) => {
-        if (!details) return details;
-        return {
-          ...details,
-          budgetLines: details.budgetLines.map((line) =>
-            line.id === id ? response.data : line,
-          ),
-        };
-      });
+      this.#budgetDetailsResource.update((d) =>
+        d ? replaceBudgetLine(d, id, response.data) : d,
+      );
 
       this.#invalidateCache();
       this.#state.errorMessage.set(null);
     } catch (error) {
       this.#budgetDetailsResource.reload();
-
       const errorMessage =
         error instanceof Error
           ? error.message
@@ -436,6 +376,8 @@ export class BudgetDetailsStore {
       throw error;
     }
   }
+
+  // ─── Toggle Operations ────────────────────────────────────────
 
   async toggleCheck(id: string): Promise<void> {
     if (id === 'rollover-display') {
@@ -453,17 +395,11 @@ export class BudgetDetailsStore {
       budgetLines: details.budgetLines,
       transactions: details.transactions ?? [],
     });
-
     if (!result) return;
 
-    this.#budgetDetailsResource.update((d) => {
-      if (!d) return d;
-      return {
-        ...d,
-        budgetLines: result.updatedBudgetLines,
-        transactions: result.updatedTransactions,
-      };
-    });
+    this.#budgetDetailsResource.update((d) =>
+      d ? applyToggleResult(d, result) : d,
+    );
 
     try {
       const response = await this.#enqueue(() =>
@@ -476,15 +412,9 @@ export class BudgetDetailsStore {
         );
       }
 
-      this.#budgetDetailsResource.update((d) => {
-        if (!d) return d;
-        return {
-          ...d,
-          budgetLines: d.budgetLines.map((line) =>
-            line.id === id ? response.data : line,
-          ),
-        };
-      });
+      this.#budgetDetailsResource.update((d) =>
+        d ? replaceBudgetLine(d, id, response.data) : d,
+      );
 
       this.#invalidateCache();
       this.#state.errorMessage.set(null);
@@ -505,17 +435,11 @@ export class BudgetDetailsStore {
       budgetLines: details.budgetLines,
       transactions: details.transactions ?? [],
     });
-
     if (!result) return;
 
-    this.#budgetDetailsResource.update((d) => {
-      if (!d) return d;
-      return {
-        ...d,
-        budgetLines: result.updatedBudgetLines,
-        transactions: result.updatedTransactions,
-      };
-    });
+    this.#budgetDetailsResource.update((d) =>
+      d ? applyToggleResult(d, result) : d,
+    );
 
     try {
       const response = await this.#enqueue(() =>
@@ -530,15 +454,9 @@ export class BudgetDetailsStore {
         );
       }
 
-      this.#budgetDetailsResource.update((d) => {
-        if (!d) return d;
-        return {
-          ...d,
-          transactions: (d.transactions ?? []).map((tx) =>
-            tx.id === id ? response.data : tx,
-          ),
-        };
-      });
+      this.#budgetDetailsResource.update((d) =>
+        d ? replaceTransaction(d, id, response.data) : d,
+      );
 
       this.#invalidateCache();
       this.#state.errorMessage.set(null);
