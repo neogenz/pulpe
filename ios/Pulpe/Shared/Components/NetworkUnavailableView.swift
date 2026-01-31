@@ -44,7 +44,7 @@ struct NetworkUnavailableView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.background)
+        .pulpeBackground()
     }
 }
 

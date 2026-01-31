@@ -20,7 +20,7 @@ struct LoadingView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.surfacePrimary)
+        .pulpeBackground()
     }
 }
 

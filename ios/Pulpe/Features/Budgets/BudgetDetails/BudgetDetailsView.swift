@@ -229,6 +229,7 @@ struct BudgetDetailsView: View {
             }
 
         let fullWidthInsets = EdgeInsets()
+        let heroCardInsets = EdgeInsets()
 
         return List {
             // Filter picker
@@ -240,7 +241,7 @@ struct BudgetDetailsView: View {
             .listSectionSeparator(.hidden)
             .listRowInsets(fullWidthInsets)
 
-            // Hero balance card
+            // Hero balance card (with horizontal padding to prevent edge clipping)
             Section {
                 HeroBalanceCard(
                     metrics: viewModel.metrics,
@@ -250,7 +251,7 @@ struct BudgetDetailsView: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
             .listSectionSeparator(.hidden)
-            .listRowInsets(fullWidthInsets)
+            .listRowInsets(heroCardInsets)
 
             // Rollover section (toujours en premier)
             if let rolloverInfo = viewModel.rolloverInfo {

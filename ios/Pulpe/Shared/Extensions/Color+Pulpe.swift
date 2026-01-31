@@ -21,16 +21,16 @@ extension Color {
     /// Primary brand color - Dark green (#006820 light, #4AA070 dark)
     static let pulpePrimary = Color("PulpePrimary")
 
-    // MARK: - Surface Colors
+    // MARK: - Surface Colors (system semantic for proper light/dark/high-contrast)
 
-    /// Primary background — warm sage tint for brand personality (#F5F6F2 light, #1A1B19 dark)
-    static let surfacePrimary = Color(light: Color(hex: 0xF5F6F2), dark: Color(hex: 0x1A1B19))
+    /// Primary background — system grouped background (off-white in light, elevated dark in dark mode)
+    static let surfacePrimary = Color(uiColor: .systemGroupedBackground)
 
-    /// Card/modal surfaces — warm white (#FAFBF8 light, #1C1D1B dark)
-    static let surfaceCard = Color(light: Color(hex: 0xFAFBF8), dark: Color(hex: 0x1C1D1B))
+    /// Card/modal surfaces — elevated in dark mode for visible card definition
+    static let surfaceCard = Color(uiColor: .secondarySystemGroupedBackground)
 
-    /// Secondary surface for form backgrounds (#EDEEE9 light, #2A2B28 dark)
-    static let surfaceSecondary = Color(light: Color(hex: 0xEDEEE9), dark: Color(hex: 0x2A2B28))
+    /// Secondary surface for form backgrounds, inactive pills
+    static let surfaceSecondary = Color(uiColor: .secondarySystemGroupedBackground)
 
     // MARK: - Semantic Text Colors
 
@@ -73,8 +73,8 @@ extension Color {
     /// Generic badge background
     static let badgeBackground = Color("BadgeBackground")
 
-    /// Input field background — warm tint matching surfaces
-    static let inputBackgroundSoft = Color(light: Color(hex: 0xF0F1ED), dark: Color(hex: 0x242522))
+    /// Input field background — system tertiary fill for native feel
+    static let inputBackgroundSoft = Color(uiColor: .tertiarySystemFill)
 
     /// Input focus glow color
     static let inputFocusGlow = Color(light: Color(hex: 0x006820).opacity(0.12), dark: Color(hex: 0x4AA070).opacity(0.15))
@@ -91,13 +91,66 @@ extension Color {
 
     // MARK: - App Background Gradient
 
-    // Semantic gradient colors for premium background (moderate greens for Liquid Glass)
-    private static let gradientBaseTop = Color(light: Color(hex: 0xE4F3E0), dark: Color(hex: 0x141816))
-    private static let gradientBaseMid = Color(light: Color(hex: 0xD8EDD8), dark: Color(hex: 0x1A201C))
-    private static let gradientBaseBottom = Color(light: Color(hex: 0xCEE5D0), dark: Color(hex: 0x1C241E))
-    private static let gradientAccentMint = Color(light: Color(hex: 0xA8E0B0), dark: Color(hex: 0x254A32))
-    private static let gradientAccentSage = Color(light: Color(hex: 0xC5E0C8), dark: Color(hex: 0x223828))
-    private static let gradientCenterGlow = Color(light: Color(hex: 0xD8EDD8), dark: Color(hex: 0x253028))
+    // Semantic gradient colors for premium background (neutral dark, green accents in light)
+    private static let gradientBaseTop = Color(light: Color(hex: 0xE4F3E0), dark: Color(hex: 0x141414))
+    private static let gradientBaseMid = Color(light: Color(hex: 0xD8EDD8), dark: Color(hex: 0x1A1A1C))
+    private static let gradientBaseBottom = Color(light: Color(hex: 0xCEE5D0), dark: Color(hex: 0x1C1C1E))
+    private static let gradientAccentMint = Color(light: Color(hex: 0xA8E0B0), dark: Color(hex: 0x1E2020))
+    private static let gradientAccentSage = Color(light: Color(hex: 0xC5E0C8), dark: Color(hex: 0x1D1E1D))
+    private static let gradientCenterGlow = Color(light: Color(hex: 0xD8EDD8), dark: Color(hex: 0x1E1F1E))
+
+    // MARK: - Mesh Gradient Data (used by PulpeBackgroundModifier via @Environment(\.colorScheme))
+
+    static let meshPoints: [SIMD2<Float>] = [
+        .init(x: 0, y: 0),    .init(x: 0.5, y: 0),    .init(x: 1, y: 0),
+        .init(x: 0, y: 0.5),  .init(x: 0.55, y: 0.5), .init(x: 1, y: 0.5),
+        .init(x: 0, y: 1),    .init(x: 0.5, y: 1),    .init(x: 1, y: 1)
+    ]
+
+    @available(iOS 18.0, *)
+    static let lightMeshColors: [Color] = [
+        Color(hex: 0xC2EDCA).opacity(0.70),
+        Color(hex: 0xDFF0DF).opacity(0.55),
+        Color(hex: 0xECF2E8).opacity(0.45),
+        Color(hex: 0xD0E8D2).opacity(0.50),
+        Color(hex: 0xEEF5EF),
+        Color(hex: 0xC8E6CE).opacity(0.55),
+        Color(hex: 0xD8ECDA).opacity(0.50),
+        Color(hex: 0xBDE4C4).opacity(0.60),
+        Color(hex: 0xD5EDD8).opacity(0.45)
+    ]
+
+    @available(iOS 18.0, *)
+    static let darkMeshColors: [Color] = [
+        // Near-black base (~system dark #000000) so elevated cards (#1C1C1E) clearly stand out
+        Color(hex: 0x0C0C0E), Color(hex: 0x0E0E10), Color(hex: 0x0C0C0E),
+        Color(hex: 0x0E0E10), Color(hex: 0x0D0D0F), Color(hex: 0x0C0C0E),
+        Color(hex: 0x0C0C0E), Color(hex: 0x0E0E10), Color(hex: 0x0C0C0E)
+    ]
+
+    @ViewBuilder
+    static var appFallbackBackground: some View {
+        ZStack {
+            Color(uiColor: .systemGroupedBackground)
+            LinearGradient(
+                colors: [gradientBaseTop.opacity(0.50), gradientBaseMid.opacity(0.45), gradientBaseBottom.opacity(0.40)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            RadialGradient(
+                colors: [gradientAccentMint.opacity(0.40), .clear],
+                center: .topTrailing,
+                startRadius: 0,
+                endRadius: 400
+            )
+            RadialGradient(
+                colors: [gradientAccentSage.opacity(0.35), .clear],
+                center: .bottomLeading,
+                startRadius: 0,
+                endRadius: 350
+            )
+        }
+    }
 
     /// Premium multi-layered background with visible color for Liquid Glass refraction
     @ViewBuilder
@@ -151,20 +204,20 @@ extension Color {
 
     // MARK: - Status-Tinted Backgrounds (for budget details)
 
-    /// Positive status background (green tint, matching hero card)
+    /// Positive status background (green tint in light, near-black in dark)
     @ViewBuilder
     static var appPositiveBackground: some View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(light: Color(hex: 0xD0EDCF), dark: Color(hex: 0x162E18)),
-                    Color(light: Color(hex: 0xE4F3E0), dark: Color(hex: 0x122414))
+                    Color(light: Color(hex: 0xD0EDCF), dark: Color(hex: 0x0D0E0D)),
+                    Color(light: Color(hex: 0xE4F3E0), dark: Color(hex: 0x0C0C0E))
                 ],
                 startPoint: .top,
                 endPoint: .bottom
             )
             RadialGradient(
-                colors: [Color(hex: 0xA8E0B0).opacity(0.60), .clear],
+                colors: [Color(light: Color(hex: 0xA8E0B0), dark: Color(hex: 0x10120F)).opacity(0.60), .clear],
                 center: .topTrailing,
                 startRadius: 0,
                 endRadius: 400
@@ -172,20 +225,20 @@ extension Color {
         }
     }
 
-    /// Negative status background (amber tint, matching hero card)
+    /// Negative status background (amber tint in light, near-black in dark)
     @ViewBuilder
     static var appNegativeBackground: some View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(light: Color(hex: 0xFDE8D8), dark: Color(hex: 0x2E1E12)),
-                    Color(light: Color(hex: 0xFDF4EC), dark: Color(hex: 0x241A10))
+                    Color(light: Color(hex: 0xFDE8D8), dark: Color(hex: 0x0E0D0C)),
+                    Color(light: Color(hex: 0xFDF4EC), dark: Color(hex: 0x0C0C0E))
                 ],
                 startPoint: .top,
                 endPoint: .bottom
             )
             RadialGradient(
-                colors: [Color(hex: 0xF0C8A0).opacity(0.50), .clear],
+                colors: [Color(light: Color(hex: 0xF0C8A0), dark: Color(hex: 0x12100E)).opacity(0.50), .clear],
                 center: .topTrailing,
                 startRadius: 0,
                 endRadius: 400
@@ -197,7 +250,7 @@ extension Color {
     static let appBackgroundGradient = LinearGradient(
         colors: [
             Color(light: Color(hex: 0xF8F9F8), dark: Color(hex: 0x1A1A1A)),
-            Color(light: Color(hex: 0xEBF5ED), dark: Color(hex: 0x1A211C))
+            Color(light: Color(hex: 0xEBF5ED), dark: Color(hex: 0x1A1A1C))
         ],
         startPoint: .top,
         endPoint: .bottom

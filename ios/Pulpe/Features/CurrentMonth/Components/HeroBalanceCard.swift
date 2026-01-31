@@ -172,34 +172,11 @@ struct HeroBalanceCard: View {
     }
 }
 
-// MARK: - Hero Card Background
-
-private struct HeroCardBackgroundModifier: ViewModifier {
-    let tint: Color
-
-    func body(content: Content) -> some View {
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, *) {
-            content
-                .background(tint, in: .rect(cornerRadius: DesignTokens.CornerRadius.xl))
-                .glassEffect(
-                    .regular.tint(tint.opacity(0.85)),
-                    in: .rect(cornerRadius: DesignTokens.CornerRadius.xl)
-                )
-        } else {
-            content
-                .background(tint, in: .rect(cornerRadius: DesignTokens.CornerRadius.xl))
-        }
-        #else
-        content
-            .background(tint, in: .rect(cornerRadius: DesignTokens.CornerRadius.xl))
-        #endif
-    }
-}
+// MARK: - Hero Card Background (solid fill — glass is for navigation layer only per HIG)
 
 private extension View {
     func heroCardBackground(tint: Color) -> some View {
-        modifier(HeroCardBackgroundModifier(tint: tint))
+        background(tint, in: .rect(cornerRadius: DesignTokens.CornerRadius.xl))
     }
 }
 
