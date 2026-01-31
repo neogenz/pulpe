@@ -25,9 +25,53 @@
 | DR-003 | Remove Variable Transaction Recurrence | 2024-07-20 | Accepted |
 | DR-004 | Typed & Versioned Storage Service | 2024-11-10 | Pending |
 | DR-005 | Cache-First Data Loading in Dashboard | 2026-01-30 | Accepted |
-| DR-006 | Cache-First Budget Details & Full Preload | 2026-01-30 | Accepted |
+| DR-006 | Cache-First Budget Details & Full Preload | 2026-01-30 | Superseded by DR-009 |
 | DR-007 | Eager Signal Reading in computed() with ?? | 2026-01-30 | Accepted |
 | DR-008 | Keep imperative `#staleData` signal over alternatives | 2026-01-30 | Accepted |
+| DR-009 | Selective + Lazy Cache Revalidation | 2026-01-30 | Accepted |
+
+---
+
+## DR-009: Selective + Lazy Cache Revalidation
+
+**Date**: 2026-01-30
+**Status**: Accepted
+**Supersedes**: DR-006 (revalidation strategy only — cache-first display unchanged)
+
+### Context
+
+After every budget mutation, `BudgetCache.#revalidate()` cleared the entire cache and re-fetched the list + all budget details (1 + N API calls). For 12 budgets, that meant 13 API calls per single edit. Disproportionate given only the list summary actually needs fresh data immediately.
+
+### Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Revalidation re-fetches list only | 1 API call instead of 1 + N | List summary (remaining, balance) changes on every mutation — must be fresh |
+| Mark detail entries as stale, don't delete them | `#staleDetailIds` signal | Stale data remains available for instant display via `#staleData` (DR-008) |
+| Lazy re-fetch details on navigation | `preloadBudgetDetails()` re-fetches stale entries | Detail is only needed when user actually navigates to it |
+| Resource loader skips stale cache hits | `!isBudgetDetailStale(id)` guard | Forces API call for stale entries while allowing fresh cache hits |
+| Initial preload unchanged | Still loads list + all details at login | First load fills cache for zero-spinner navigation across all months |
+
+### API Call Volume Comparison
+
+| Scenario | Before (DR-006) | After (DR-009) |
+|----------|-----------------|----------------|
+| Edit in budget details | 1 + N (list + all details) | 1 (list only) |
+| Navigate to another budget | 0 (already re-fetched) | 1 (lazy fetch) |
+| Total for edit + 1 navigation | N + 1 | 2 |
+
+### Consequences
+
+- **Positive**: ~85% fewer API calls after mutations (13 → 2 for typical 12-budget user)
+- **Positive**: Stale data still provides instant display — no spinner regression
+- **Trade-off**: Navigating to a budget after mutation triggers 1 extra API call (vs 0 with full bust) — acceptable since the data shown is guaranteed fresh
+- **Impact**: `budget-cache.ts`, `budget-details-store.ts`
+
+### Sources
+
+- Inspired by TanStack Query's stale-while-revalidate pattern
+- DR-006 for original cache-first display strategy
+- DR-008 for `#staleData` instant display mechanism
 
 ---
 
@@ -119,7 +163,7 @@ readonly details = computed(() => {
 ## DR-006: Cache-First Budget Details & Full Preload
 
 **Date**: 2026-01-30
-**Status**: Accepted
+**Status**: Accepted (revalidation strategy superseded by DR-009)
 
 ### Context
 

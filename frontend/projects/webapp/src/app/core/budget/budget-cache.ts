@@ -43,6 +43,7 @@ export class BudgetCache {
   readonly #isListLoading = signal(false);
   readonly #loadingDetailIds = signal<Set<string>>(new Set());
   readonly #failedDetailIds = signal<Set<string>>(new Set());
+  readonly #staleDetailIds = signal<Set<string>>(new Set());
   #listLoadPromise: Promise<Budget[]> | null = null;
   #isRevalidating = false;
 
@@ -60,6 +61,10 @@ export class BudgetCache {
 
   isBudgetDetailAvailable(budgetId: string): boolean {
     return this.#budgetDetailsMap().has(budgetId);
+  }
+
+  isBudgetDetailStale(budgetId: string): boolean {
+    return this.#staleDetailIds().has(budgetId);
   }
 
   async waitForBudgetDetails(
@@ -114,7 +119,8 @@ export class BudgetCache {
   async preloadBudgetDetails(budgetIds: string[]): Promise<void> {
     const idsToLoad = budgetIds.filter(
       (id) =>
-        !this.#budgetDetailsMap().has(id) && !this.#loadingDetailIds().has(id),
+        (!this.#budgetDetailsMap().has(id) || this.#staleDetailIds().has(id)) &&
+        !this.#loadingDetailIds().has(id),
     );
 
     if (idsToLoad.length === 0) return;
@@ -154,6 +160,12 @@ export class BudgetCache {
           next.set(budgetId, entry);
           return next;
         });
+
+        this.#staleDetailIds.update((set) => {
+          const next = new Set(set);
+          next.delete(budgetId);
+          return next;
+        });
       }
     } catch (error) {
       this.#logger.error(
@@ -174,24 +186,31 @@ export class BudgetCache {
     }
   }
 
+  // Selective revalidation: re-fetch list only, mark details as stale — see DR-009 in memory-bank/techContext.md
   async #revalidate(): Promise<void> {
     if (this.#isRevalidating) return;
     this.#isRevalidating = true;
 
+    this.#markAllDetailsStale();
     this.#budgets.set(null);
-    this.#budgetDetailsMap.set(new Map());
     this.#failedDetailIds.set(new Set());
 
     try {
-      const budgets = await this.preloadBudgetList();
-      if (budgets.length > 0) {
-        await this.preloadBudgetDetails(budgets.map((b) => b.id));
-      }
+      await this.preloadBudgetList();
     } catch (error) {
       this.#logger.error('[BudgetCache] Revalidation failed', error);
     } finally {
       this.#isRevalidating = false;
     }
+  }
+
+  #markAllDetailsStale(): void {
+    const currentIds = this.#budgetDetailsMap().keys();
+    this.#staleDetailIds.set(new Set(currentIds));
+  }
+
+  markAllDetailsStale(): void {
+    this.#markAllDetailsStale();
   }
 
   invalidateBudgetList(): void {
@@ -211,6 +230,7 @@ export class BudgetCache {
     this.#budgetDetailsMap.set(new Map());
     this.#loadingDetailIds.set(new Set());
     this.#failedDetailIds.set(new Set());
+    this.#staleDetailIds.set(new Set());
     this.#isListLoading.set(false);
   }
 }
