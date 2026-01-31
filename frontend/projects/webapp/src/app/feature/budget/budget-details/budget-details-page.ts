@@ -235,10 +235,23 @@ export default class BudgetDetailsPage {
   async openCreateAllocatedTransactionDialog(
     budgetLine: BudgetLine,
   ): Promise<void> {
+    const budget = this.store.budgetDetails();
+    if (!budget) {
+      this.#logger.warn(
+        'Cannot open create transaction dialog: budget not loaded',
+      );
+      return;
+    }
+
     const transaction =
       await this.#dialogService.openCreateAllocatedTransactionDialog(
         budgetLine,
         this.#isMobile(),
+        {
+          budgetMonth: budget.month,
+          budgetYear: budget.year,
+          payDayOfMonth: this.#userSettingsApi.payDayOfMonth(),
+        },
       );
 
     if (transaction) {
