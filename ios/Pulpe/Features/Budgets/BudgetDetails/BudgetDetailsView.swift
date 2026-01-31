@@ -326,7 +326,7 @@ struct BudgetDetailsView: View {
         .listStyle(.insetGrouped)
         .listSectionSpacing(DesignTokens.Spacing.lg)
         .scrollContentBackground(.hidden)
-        .pulpeBackground()
+        .pulpeStatusBackground(isDeficit: viewModel.metrics.isDeficit)
         .refreshable {
             await viewModel.loadDetails()
         }

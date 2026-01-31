@@ -69,7 +69,8 @@ struct CurrentMonthView: View {
         }
         .onChange(of: navigateToBudget) { _, shouldNavigate in
             if shouldNavigate, let budgetId = store.budget?.id {
-                // Navigate to budget details: switch tab + push destination
+                // Navigate to budget details: reset stack + push destination
+                appState.budgetPath = NavigationPath()
                 appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
                 appState.selectedTab = .budgets
                 navigateToBudget = false
@@ -90,6 +91,7 @@ struct CurrentMonthView: View {
                     metrics: store.metrics,
                     daysRemaining: store.daysRemaining,
                     dailyBudget: store.dailyBudget,
+                    useGlass: true,
                     onTapProgress: { activeSheet = .realizedBalance }
                 )
 
@@ -148,6 +150,7 @@ struct CurrentMonthView: View {
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.lg)
         }
+        .pulpeBackground()
         .refreshable {
             async let refreshStore: Void = store.forceRefresh()
             async let refreshDashboard: Void = dashboardStore.forceRefresh()

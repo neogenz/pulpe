@@ -6,6 +6,7 @@ struct HeroBalanceCard: View {
     let metrics: BudgetFormulas.Metrics
     var daysRemaining: Int? = nil
     var dailyBudget: Decimal? = nil
+    var useGlass: Bool = false
     let onTapProgress: () -> Void
 
     // MARK: - Computed Properties
@@ -61,10 +62,23 @@ struct HeroBalanceCard: View {
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.md) {
-            // Gradient hero card
-            balanceRow
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.vertical, DesignTokens.Spacing.xl)
+            // Gradient hero card (with optional Liquid Glass on iOS 26+)
+            heroCardContent
+
+            // Pills below the card
+            pillChips
+        }
+    }
+
+    @ViewBuilder
+    private var heroCardContent: some View {
+        let content = balanceRow
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.xl)
+
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *), useGlass {
+            content
                 .background(
                     LinearGradient(
                         colors: [heroBackgroundStart, heroBackgroundEnd],
@@ -73,10 +87,32 @@ struct HeroBalanceCard: View {
                     ),
                     in: .rect(cornerRadius: DesignTokens.CornerRadius.xl)
                 )
-
-            // Pills below the card
-            pillChips
+                .glassEffect(
+                    .regular.tint(heroTintColor.opacity(0.25)),
+                    in: .rect(cornerRadius: DesignTokens.CornerRadius.xl)
+                )
+        } else {
+            content
+                .background(
+                    LinearGradient(
+                        colors: [heroBackgroundStart, heroBackgroundEnd],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    in: .rect(cornerRadius: DesignTokens.CornerRadius.xl)
+                )
         }
+        #else
+        content
+            .background(
+                LinearGradient(
+                    colors: [heroBackgroundStart, heroBackgroundEnd],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: .rect(cornerRadius: DesignTokens.CornerRadius.xl)
+            )
+        #endif
     }
 
     // MARK: - Balance Row
