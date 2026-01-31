@@ -449,11 +449,6 @@ struct CurrentMonthHeroCard: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 18)
             .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
-            .overlay {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
-                    .stroke(Color.pulpePrimary.opacity(0.2), lineWidth: 1)
-            }
-            .shadow(DesignTokens.Shadow.elevated)
             .scaleEffect(isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
         }

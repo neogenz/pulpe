@@ -147,32 +147,28 @@ struct HeroBalanceCard: View {
     // MARK: - Pill Chips
 
     private var pillChips: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                pillChip(
-                    icon: "arrow.up.right",
-                    label: "Revenus",
-                    value: metrics.totalIncome,
-                    color: .financialIncome
-                )
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            pillChip(
+                icon: "arrow.up.right",
+                label: "Revenus",
+                value: metrics.totalIncome,
+                color: .financialIncome
+            )
 
-                pillChip(
-                    icon: "arrow.down.right",
-                    label: "Dépenses",
-                    value: metrics.totalExpenses,
-                    color: .financialExpense
-                )
+            pillChip(
+                icon: "arrow.down.right",
+                label: "Dépenses",
+                value: metrics.totalExpenses,
+                color: .financialExpense
+            )
 
-                pillChip(
-                    icon: TransactionKind.savingsIcon,
-                    label: "Épargne",
-                    value: metrics.totalSavings,
-                    color: .financialSavings
-                )
-            }
-            .frame(maxWidth: .infinity)
+            pillChip(
+                icon: TransactionKind.savingsIcon,
+                label: "Épargne",
+                value: metrics.totalSavings,
+                color: .financialSavings
+            )
         }
-        .scrollIndicators(.hidden)
     }
 
     private func pillChip(icon: String, label: String, value: Decimal, color: Color) -> some View {
