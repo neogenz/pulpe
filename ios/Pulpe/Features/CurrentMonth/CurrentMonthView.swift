@@ -91,7 +91,6 @@ struct CurrentMonthView: View {
                     metrics: store.metrics,
                     daysRemaining: store.daysRemaining,
                     dailyBudget: store.dailyBudget,
-                    useGlass: true,
                     onTapProgress: { activeSheet = .realizedBalance }
                 )
 

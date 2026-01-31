@@ -6,7 +6,6 @@ struct HeroBalanceCard: View {
     let metrics: BudgetFormulas.Metrics
     var daysRemaining: Int? = nil
     var dailyBudget: Decimal? = nil
-    var useGlass: Bool = false
     let onTapProgress: () -> Void
 
     // MARK: - Computed Properties
@@ -48,71 +47,36 @@ struct HeroBalanceCard: View {
 
     private var heroBackgroundStart: Color {
         metrics.isDeficit
-            ? Color(light: Color(hex: 0xFDE8D8), dark: Color(hex: 0x2E1E12))
-            : Color(light: Color(hex: 0xD0EDCF), dark: Color(hex: 0x162E18))
+            ? Color(light: Color(hex: 0xF8D4B0), dark: Color(hex: 0x2E1E12))
+            : Color(light: Color(hex: 0xB8E4BC), dark: Color(hex: 0x162E18))
     }
 
     private var heroBackgroundEnd: Color {
         metrics.isDeficit
-            ? Color(light: Color(hex: 0xFDF4EC), dark: Color(hex: 0x241A10))
-            : Color(light: Color(hex: 0xE4F3E0), dark: Color(hex: 0x122414))
+            ? Color(light: Color(hex: 0xFDE8D8), dark: Color(hex: 0x241A10))
+            : Color(light: Color(hex: 0xD8F0D6), dark: Color(hex: 0x122414))
     }
 
     // MARK: - Body
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.md) {
-            // Gradient hero card (with optional Liquid Glass on iOS 26+)
-            heroCardContent
+            // Gradient hero card
+            balanceRow
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.vertical, DesignTokens.Spacing.xl)
+                .background(
+                    LinearGradient(
+                        colors: [heroBackgroundStart, heroBackgroundEnd],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    in: .rect(cornerRadius: DesignTokens.CornerRadius.xl)
+                )
 
             // Pills below the card
             pillChips
         }
-    }
-
-    @ViewBuilder
-    private var heroCardContent: some View {
-        let content = balanceRow
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, DesignTokens.Spacing.xl)
-
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, *), useGlass {
-            content
-                .background(
-                    LinearGradient(
-                        colors: [heroBackgroundStart, heroBackgroundEnd],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    in: .rect(cornerRadius: DesignTokens.CornerRadius.xl)
-                )
-                .glassEffect(
-                    .regular.tint(heroTintColor.opacity(0.25)),
-                    in: .rect(cornerRadius: DesignTokens.CornerRadius.xl)
-                )
-        } else {
-            content
-                .background(
-                    LinearGradient(
-                        colors: [heroBackgroundStart, heroBackgroundEnd],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    in: .rect(cornerRadius: DesignTokens.CornerRadius.xl)
-                )
-        }
-        #else
-        content
-            .background(
-                LinearGradient(
-                    colors: [heroBackgroundStart, heroBackgroundEnd],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ),
-                in: .rect(cornerRadius: DesignTokens.CornerRadius.xl)
-            )
-        #endif
     }
 
     // MARK: - Balance Row
