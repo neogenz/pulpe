@@ -165,7 +165,8 @@ struct HeroBalanceCard: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(color.opacity(0.10), in: Capsule())
+        .background(color.opacity(0.12), in: Capsule())
+        .overlay(Capsule().strokeBorder(color.opacity(0.15), lineWidth: 0.5))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(label) \(value.asCHF)")
     }

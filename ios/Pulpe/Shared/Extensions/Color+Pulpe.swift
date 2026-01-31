@@ -23,14 +23,14 @@ extension Color {
 
     // MARK: - Surface Colors
 
-    /// Primary background — near-white with barely perceptible warmth (#F8F9F8 light, #1A1A1A dark)
-    static let surfacePrimary = Color(light: Color(hex: 0xF8F9F8), dark: Color(hex: 0x1A1A1A))
+    /// Primary background — warm sage tint for brand personality (#F5F6F2 light, #1A1B19 dark)
+    static let surfacePrimary = Color(light: Color(hex: 0xF5F6F2), dark: Color(hex: 0x1A1B19))
 
-    /// Card/modal surfaces — clean white (#FFFFFF light, #1C1C1E dark)
-    static let surfaceCard = Color(light: .white, dark: Color(hex: 0x1C1C1E))
+    /// Card/modal surfaces — warm white (#FAFBF8 light, #1C1D1B dark)
+    static let surfaceCard = Color(light: Color(hex: 0xFAFBF8), dark: Color(hex: 0x1C1D1B))
 
-    /// Secondary surface for form backgrounds (#F2F4F2 light, #2C2C2E dark)
-    static let surfaceSecondary = Color(light: Color(hex: 0xF2F4F2), dark: Color(hex: 0x2C2C2E))
+    /// Secondary surface for form backgrounds (#EDEEE9 light, #2A2B28 dark)
+    static let surfaceSecondary = Color(light: Color(hex: 0xEDEEE9), dark: Color(hex: 0x2A2B28))
 
     // MARK: - Semantic Text Colors
 
@@ -73,8 +73,8 @@ extension Color {
     /// Generic badge background
     static let badgeBackground = Color("BadgeBackground")
 
-    /// Input field background - softer than systemGray6
-    static let inputBackgroundSoft = Color(light: Color(hex: 0xF5F5F7), dark: Color(hex: 0x1C1C1E))
+    /// Input field background — warm tint matching surfaces
+    static let inputBackgroundSoft = Color(light: Color(hex: 0xF0F1ED), dark: Color(hex: 0x242522))
 
     /// Input focus glow color
     static let inputFocusGlow = Color(light: Color(hex: 0x006820).opacity(0.12), dark: Color(hex: 0x4AA070).opacity(0.15))

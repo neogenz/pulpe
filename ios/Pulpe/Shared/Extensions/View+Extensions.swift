@@ -73,7 +73,7 @@ extension View {
 
 private struct PulpeBackgroundModifier: ViewModifier {
     func body(content: Content) -> some View {
-        content.background(Color(.systemGroupedBackground).ignoresSafeArea())
+        content.background(Color.surfacePrimary.ignoresSafeArea())
     }
 }
 
@@ -81,7 +81,7 @@ private struct PulpeStatusBackgroundModifier: ViewModifier {
     let isDeficit: Bool
 
     func body(content: Content) -> some View {
-        content.background(Color(.systemGroupedBackground).ignoresSafeArea())
+        content.background(Color.surfacePrimary.ignoresSafeArea())
     }
 }
 
@@ -141,16 +141,19 @@ extension View {
 
 // MARK: - Card Modifiers
 
-/// Flat card for content (white / dark gray, no shadow)
+/// Card surface with subtle border for definition (no shadows — Liquid Glass era)
 private struct CardBackgroundModifier: ViewModifier {
     let cornerRadius: CGFloat
-    @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
         content
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(colorScheme == .dark ? Color(hex: 0x1C1C1E) : .white)
+                    .fill(Color.surfaceCard)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: cornerRadius)
+                            .strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5)
+                    )
             )
     }
 }

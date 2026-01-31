@@ -268,8 +268,8 @@ struct LoginView: View {
             .frame(maxWidth: .infinity)
             .frame(height: DesignTokens.FrameHeight.button)
             .background(viewModel.canSubmit ? Color.onboardingGradient : nil)
-            .background(viewModel.canSubmit ? nil : Color.secondary.opacity(DesignTokens.Opacity.strong))
-            .foregroundStyle(viewModel.canSubmit ? Color.textOnPrimary : Color.secondary)
+            .background(viewModel.canSubmit ? nil : Color.surfaceSecondary)
+            .foregroundStyle(viewModel.canSubmit ? Color.textOnPrimary : .secondary)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
             .shadow(
                 color: viewModel.canSubmit ? Color.pulpePrimary.opacity(DesignTokens.Opacity.glow) : .clear,
