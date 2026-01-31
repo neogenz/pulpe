@@ -174,9 +174,11 @@ struct RootView: View {
         case .addExpense:
             showAddExpenseSheet = true
         case .viewBudget(let budgetId):
-            appState.selectedTab = .budgets
             appState.budgetPath = NavigationPath()
-            appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
+            Task { @MainActor in
+                appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
+                appState.selectedTab = .budgets
+            }
         }
     }
 }
