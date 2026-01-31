@@ -186,7 +186,7 @@ private struct GlassEffectModifier: ViewModifier {
         if #available(iOS 26.0, *) {
             if colorScheme == .dark {
                 content.glassEffect(
-                    .regular.tint(Color.black.opacity(0.3)),
+                    .regular.tint(Color.black.opacity(0.2)),
                     in: .rect(cornerRadius: cornerRadius)
                 )
             } else {

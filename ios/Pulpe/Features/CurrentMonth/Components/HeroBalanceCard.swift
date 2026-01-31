@@ -20,12 +20,12 @@ struct HeroBalanceCard: View {
 
     private var progressColor: Color {
         if metrics.isDeficit { return .financialOverBudget }
-        if progressPercentage >= 0.80 { return .orange }
+        if progressPercentage >= 0.80 { return .financialOverBudget }
         return .pulpePrimary
     }
 
     private var heroTintColor: Color {
-        metrics.isDeficit ? .financialOverBudget : .financialSavings
+        metrics.isDeficit ? .heroTextOnNegative : .heroTextOnPositive
     }
 
     private var contextLabel: String {
@@ -100,7 +100,7 @@ struct HeroBalanceCard: View {
 
                 Text(motivationalMessage)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(metrics.isDeficit ? Color.heroSubtextOnNegative : Color.heroSubtextOnPositive)
             }
 
             Spacer()
@@ -184,7 +184,7 @@ struct HeroBalanceCard: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(label)
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary)
 
                 Text(value.formatted(.number.locale(Locale(identifier: "de_CH"))))
                     .font(.system(.callout, design: .rounded, weight: .semibold))

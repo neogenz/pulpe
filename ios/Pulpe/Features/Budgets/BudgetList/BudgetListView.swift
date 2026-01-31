@@ -192,7 +192,7 @@ struct YearSection: View {
                 let budgetCount = budgets.count
                 Text("\(budgetCount) budget\(budgetCount > 1 ? "s" : "")")
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
             }
             .padding(.vertical, 8)
             .padding(.horizontal, 4)
@@ -290,9 +290,8 @@ struct BudgetMonthCard: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
             .padding(.horizontal, 8)
-            .background(cardBackground)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-            .overlay(cardOverlay)
+            .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.md)
+            .overlay(currentMonthIndicator)
             .shadow(budget.isCurrentMonth ? DesignTokens.Shadow.card : DesignTokens.Shadow.subtle)
             .scaleEffect(isPressed ? 0.96 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
@@ -307,35 +306,14 @@ struct BudgetMonthCard: View {
         .accessibilityAddTraits(.isButton)
     }
 
-    // MARK: - Card Background
+    // MARK: - Current Month Indicator
 
     @ViewBuilder
-    private var cardBackground: some View {
+    private var currentMonthIndicator: some View {
         if budget.isCurrentMonth {
-            LinearGradient(
-                colors: [
-                    Color.pulpePrimary.opacity(0.08),
-                    Color.pulpePrimary.opacity(0.04)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        } else {
-            Color.surfaceCard
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+                .stroke(Color.pulpePrimary.opacity(0.4), lineWidth: 1.5)
         }
-    }
-
-    // MARK: - Card Overlay
-
-    @ViewBuilder
-    private var cardOverlay: some View {
-        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-            .stroke(
-                budget.isCurrentMonth
-                    ? Color.pulpePrimary.opacity(0.4)
-                    : Color(.separator).opacity(0.3),
-                lineWidth: budget.isCurrentMonth ? 1.5 : 0.5
-            )
     }
 
     // MARK: - Remaining Status
@@ -386,8 +364,7 @@ struct EmptyMonthCard: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
         .padding(.horizontal, 8)
-        .background(Color.surfaceCard.opacity(isPast ? 0.5 : 0.8))
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.md)
         .overlay(
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
                 .strokeBorder(
