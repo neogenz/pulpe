@@ -1,14 +1,41 @@
 import { computed, signal, type ResourceRef, type Signal } from '@angular/core';
 
+/**
+ * Configuration for stale-while-revalidate fallback pattern.
+ *
+ * @template T - Data type returned by the resource
+ */
 interface StaleFallbackConfig<T> {
+  /**
+   * Resource that provides fresh data.
+   * Returns T when loaded, undefined when loading or error.
+   */
   readonly resource: ResourceRef<T | undefined>;
 }
 
+/**
+ * Stale-while-revalidate signal that falls back to cached data
+ * while the resource is loading.
+ *
+ * @template T - Data type
+ */
 interface StaleFallback<T> {
+  /**
+   * Current data: fresh from resource, or stale from cache, or null if none available.
+   *
+   * Type transformation:
+   * - Resource returns: T | undefined (undefined = loading/error)
+   * - Fallback returns: T | null (null = no data available, fresh or stale)
+   */
   readonly data: Signal<T | null>;
   readonly isLoading: Signal<boolean>;
   readonly isInitialLoading: Signal<boolean>;
   readonly hasValue: Signal<boolean>;
+
+  /**
+   * Manually set stale data to display while resource loads.
+   * Typically seeded from a cache before triggering resource load.
+   */
   setStaleData(value: T | null): void;
 }
 

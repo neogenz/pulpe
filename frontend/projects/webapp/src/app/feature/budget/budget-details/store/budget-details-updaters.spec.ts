@@ -5,7 +5,7 @@ import {
   addBudgetLine,
   addTransaction,
   applyToggleResult,
-  patchBudgetLine,
+  updateBudgetLine,
   removeBudgetLine,
   removeTransaction,
   replaceBudgetLine,
@@ -101,7 +101,7 @@ describe('Budget Details Updaters', () => {
     });
   });
 
-  describe('patchBudgetLine', () => {
+  describe('updateBudgetLine', () => {
     it('should patch the line matching data.id with new properties', () => {
       const vm = createViewModel({
         budgetLines: [
@@ -110,7 +110,7 @@ describe('Budget Details Updaters', () => {
         ],
       });
 
-      const result = patchBudgetLine(vm, {
+      const result = updateBudgetLine(vm, {
         id: 'line-1',
         name: 'Updated',
         amount: 200,
@@ -129,7 +129,7 @@ describe('Budget Details Updaters', () => {
         budgetLines: [createBudgetLine({ id: 'line-1' })],
       });
 
-      const result = patchBudgetLine(vm, { id: 'line-1', name: 'Patched' });
+      const result = updateBudgetLine(vm, { id: 'line-1', name: 'Patched' });
 
       expect(
         new Date(result.budgetLines[0].updatedAt).getTime(),

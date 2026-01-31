@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { of, throwError } from 'rxjs';
+import { of, throwError, Subject } from 'rxjs';
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import type {
   Budget,
@@ -1080,18 +1080,19 @@ describe('CurrentMonthStore - Cache Invalidation', () => {
     store = TestBed.inject(CurrentMonthStore);
   });
 
-  describe('Toggle operations invalidate global cache', () => {
-    it('should call invalidationService.invalidate() after toggleBudgetLineCheck', async () => {
+  describe('Toggle operations do NOT invalidate global cache', () => {
+    it('should NOT call invalidationService.invalidate() after toggleBudgetLineCheck', async () => {
       await vi.waitFor(() => {
         expect(store.dashboardData()).toBeTruthy();
       });
 
       await store.toggleBudgetLineCheck('line-income');
 
-      expect(mockInvalidationService.invalidate).toHaveBeenCalled();
+      // Toggles are UI-only and should not trigger cache invalidation
+      expect(mockInvalidationService.invalidate).not.toHaveBeenCalled();
     });
 
-    it('should call invalidationService.invalidate() after toggleTransactionCheck', async () => {
+    it('should NOT call invalidationService.invalidate() after toggleTransactionCheck', async () => {
       mockTransactionApi.toggleCheck$.mockReturnValue(of(undefined));
 
       await vi.waitFor(() => {
@@ -1100,7 +1101,8 @@ describe('CurrentMonthStore - Cache Invalidation', () => {
 
       await store.toggleTransactionCheck('txn-1');
 
-      expect(mockInvalidationService.invalidate).toHaveBeenCalled();
+      // Toggles are UI-only and should not trigger cache invalidation
+      expect(mockInvalidationService.invalidate).not.toHaveBeenCalled();
     });
   });
 
@@ -1203,5 +1205,206 @@ describe('CurrentMonthStore - Cache Invalidation', () => {
       // Should not invalidate on error (data was rolled back)
       expect(mockInvalidationService.invalidate).not.toHaveBeenCalled();
     });
+  });
+});
+
+/**
+ * Optimistic Mutation Race Condition Tests
+ *
+ * These tests verify that concurrent optimistic updates (e.g., toggle during
+ * an in-flight CRUD mutation) are correctly merged, preventing data loss.
+ *
+ * Key scenario: User toggles a transaction while addTransaction is in-flight.
+ * Expected behavior: Both the new transaction AND the toggle should be present
+ * when the mutation completes (no overwrite).
+ */
+describe('CurrentMonthStore - Optimistic Mutation Race Conditions', () => {
+  let store: CurrentMonthStore;
+  let mockBudgetApi: {
+    getBudgetForMonth$: Mock;
+    getBudgetWithDetails$: Mock;
+    getBudgetById$: Mock;
+    toggleBudgetLineCheck$: Mock;
+  };
+  let mockTransactionApi: {
+    create$: Mock;
+    update$: Mock;
+    remove$: Mock;
+    toggleCheck$: Mock;
+  };
+
+  beforeEach(() => {
+    mockBudgetApi = {
+      getBudgetForMonth$: vi.fn().mockReturnValue(of(mockBudget)),
+      getBudgetWithDetails$: vi.fn().mockReturnValue(
+        of({
+          data: {
+            budget: mockBudget,
+            transactions: mockTransactions,
+            budgetLines: mockBudgetLines,
+          },
+        }),
+      ),
+      getBudgetById$: vi.fn().mockReturnValue(of(mockBudget)),
+      toggleBudgetLineCheck$: vi.fn().mockReturnValue(of(undefined)),
+    };
+
+    mockTransactionApi = {
+      create$: vi.fn(),
+      update$: vi.fn(),
+      remove$: vi.fn(),
+      toggleCheck$: vi.fn(),
+    };
+
+    const mockInvalidationService = {
+      invalidate: vi.fn(),
+      version: signal(0),
+    };
+
+    const mockUserSettingsApi = {
+      payDayOfMonth: signal<number | null>(null),
+      isLoading: signal(false),
+    };
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        CurrentMonthStore,
+        { provide: BudgetApi, useValue: mockBudgetApi },
+        { provide: TransactionApi, useValue: mockTransactionApi },
+        { provide: UserSettingsApi, useValue: mockUserSettingsApi },
+        {
+          provide: BudgetInvalidationService,
+          useValue: mockInvalidationService,
+        },
+      ],
+    });
+
+    store = TestBed.inject(CurrentMonthStore);
+  });
+
+  it('should merge concurrent toggle with addTransaction mutation', async () => {
+    // Business scenario: User toggles an existing transaction while
+    // a new transaction is being created. Both changes should be preserved.
+
+    // Wait for initial data to load
+    await vi.waitFor(() => {
+      expect(store.dashboardData()).toBeTruthy();
+    });
+
+    // Verify initial state: transaction is unchecked
+    const initialTx = store.transactions().find((t) => t.id === 'txn-1');
+    expect(initialTx?.checkedAt).toBeNull();
+
+    // Setup controlled observable for slow mutation
+    const mutationSubject = new Subject<{ data: Transaction }>();
+    mockTransactionApi.create$.mockReturnValue(mutationSubject.asObservable());
+
+    // Start the mutation (doesn't await)
+    const mutationPromise = store.addTransaction({
+      budgetId: 'budget-1',
+      name: 'New Expense',
+      amount: 100,
+      kind: 'expense',
+      transactionDate: '2024-01-20T00:00:00Z',
+      category: null,
+    });
+
+    // While mutation is in-flight, toggle an existing transaction
+    mockTransactionApi.toggleCheck$.mockReturnValue(of(undefined));
+    await store.toggleTransactionCheck('txn-1');
+
+    // Verify toggle took effect immediately (optimistic)
+    const afterToggle = store.transactions().find((t) => t.id === 'txn-1');
+    expect(afterToggle?.checkedAt).not.toBeNull();
+
+    // Complete the mutation by emitting response
+    mutationSubject.next({
+      data: {
+        id: 'new-txn',
+        budgetId: 'budget-1',
+        budgetLineId: null,
+        name: 'New Expense',
+        amount: 100,
+        kind: 'expense',
+        transactionDate: '2024-01-20T00:00:00Z',
+        category: null,
+        checkedAt: null,
+        createdAt: '2024-01-20T00:00:00Z',
+        updatedAt: '2024-01-20T00:00:00Z',
+      },
+    });
+    mutationSubject.complete();
+
+    await mutationPromise;
+
+    // Verify BOTH changes are present after mutation completes
+    const finalTransactions = store.transactions();
+
+    // New transaction should exist
+    const newTx = finalTransactions.find((t) => t.id === 'new-txn');
+    expect(newTx).toBeDefined();
+    expect(newTx?.name).toBe('New Expense');
+
+    // Toggle state should NOT be overwritten
+    const toggledTx = finalTransactions.find((t) => t.id === 'txn-1');
+    expect(toggledTx?.checkedAt).not.toBeNull();
+  });
+
+  it('should preserve toggle state when updateTransaction reconciles', async () => {
+    // Business scenario: User toggles a transaction while an update
+    // mutation is in-flight. The toggle should not be overwritten.
+
+    await vi.waitFor(() => {
+      expect(store.dashboardData()).toBeTruthy();
+    });
+
+    // Verify initial state
+    const initialTx = store.transactions().find((t) => t.id === 'txn-1');
+    expect(initialTx?.checkedAt).toBeNull();
+
+    // Setup controlled observable for slow update
+    const updateSubject = new Subject<{ data: Transaction }>();
+    mockTransactionApi.update$.mockReturnValue(updateSubject.asObservable());
+
+    // Start update mutation (doesn't await)
+    const updatePromise = store.updateTransaction('txn-1', {
+      amount: 200,
+    });
+
+    // While update is in-flight, toggle the same transaction
+    mockTransactionApi.toggleCheck$.mockReturnValue(of(undefined));
+    await store.toggleTransactionCheck('txn-1');
+
+    // Verify toggle happened
+    const afterToggle = store.transactions().find((t) => t.id === 'txn-1');
+    expect(afterToggle?.checkedAt).not.toBeNull();
+
+    // Complete the update mutation
+    updateSubject.next({
+      data: {
+        id: 'txn-1',
+        budgetId: 'budget-1',
+        budgetLineId: null,
+        name: 'Coffee',
+        amount: 200,
+        kind: 'expense',
+        transactionDate: '2024-01-15T10:00:00Z',
+        category: null,
+        checkedAt: null,
+        createdAt: '2024-01-15T10:00:00Z',
+        updatedAt: '2024-01-15T10:01:00Z',
+      },
+    });
+    updateSubject.complete();
+
+    await updatePromise;
+
+    // Verify amount was updated AND toggle state preserved
+    const finalTx = store.transactions().find((t) => t.id === 'txn-1');
+    expect(finalTx?.amount).toBe(200);
+    expect(finalTx?.checkedAt).not.toBeNull();
   });
 });

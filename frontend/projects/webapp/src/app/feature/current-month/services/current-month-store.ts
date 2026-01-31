@@ -22,6 +22,31 @@ import {
 import { createInitialCurrentMonthInternalState } from './current-month-state';
 import { createDashboardDataLoader } from './current-month-data-loader';
 
+/**
+ * Merges checkedAt states from latest data into items from updated data.
+ * Preserves concurrent toggle updates that occurred during mutation.
+ *
+ * @param items - Items with mutation applied (from updateData callback)
+ * @param latestItems - Items with latest toggle states (from resource)
+ * @returns Merged items with mutation + latest toggle states
+ */
+function mergeToggleStates<T extends { id: string; checkedAt: string | null }>(
+  items: T[],
+  latestItems: T[],
+): T[] {
+  const latestCheckedAtMap = new Map(
+    latestItems.map((item) => [item.id, item.checkedAt]),
+  );
+
+  return items.map((item) => {
+    const latestCheckedAt = latestCheckedAtMap.get(item.id);
+    if (latestCheckedAt !== undefined) {
+      return { ...item, checkedAt: latestCheckedAt };
+    }
+    return item;
+  });
+}
+
 @Injectable()
 export class CurrentMonthStore {
   readonly #budgetApi = inject(BudgetApi);
@@ -219,7 +244,8 @@ export class CurrentMonthStore {
       await firstValueFrom(
         this.#budgetApi.toggleBudgetLineCheck$(budgetLineId),
       );
-      this.#invalidateCachedBudgetDetails();
+      // Cache invalidation removed: toggles are UI-only, no need to reload
+      // Server state is synced, next mutation reload will include the toggle
     } catch (error) {
       this.#dashboardResource.set(originalData);
       throw error;
@@ -247,7 +273,8 @@ export class CurrentMonthStore {
 
     try {
       await firstValueFrom(this.#transactionApi.toggleCheck$(transactionId));
-      this.#invalidateCachedBudgetDetails();
+      // Cache invalidation removed: toggles are UI-only, no need to reload
+      // Server state is synced, next mutation reload will include the toggle
     } catch (error) {
       this.#dashboardResource.set(originalData);
       throw error;
@@ -295,6 +322,18 @@ export class CurrentMonthStore {
 
       this.#dashboardResource.set({
         ...updatedData,
+        // Preserve concurrent toggle states on budgetLines and transactions
+        budgetLines:
+          updatedData.budgetLines && latestData.budgetLines
+            ? mergeToggleStates(updatedData.budgetLines, latestData.budgetLines)
+            : updatedData.budgetLines,
+        transactions:
+          updatedData.transactions && latestData.transactions
+            ? mergeToggleStates(
+                updatedData.transactions,
+                latestData.transactions,
+              )
+            : updatedData.transactions,
         budget: {
           ...(serverBudget ?? latestData.budget),
           rollover: latestData.budget.rollover,
@@ -302,7 +341,7 @@ export class CurrentMonthStore {
         },
       });
 
-      this.#invalidateCachedBudgetDetails();
+      this.#invalidateCache();
     } catch (error) {
       if (originalData) {
         this.#dashboardResource.set(originalData);
@@ -313,7 +352,7 @@ export class CurrentMonthStore {
     }
   }
 
-  #invalidateCachedBudgetDetails(): void {
+  #invalidateCache(): void {
     const budgetId = this.dashboardData()?.budget?.id;
     if (budgetId) {
       this.#budgetCache.invalidateBudgetDetails(budgetId);

@@ -12,3 +12,4 @@ export {
   type StaleFallback,
   type StaleFallbackConfig,
 } from './stale-fallback';
+export { CACHE_CONFIG } from './cache-config';
