@@ -129,13 +129,15 @@ struct AddBudgetLineSheet: View {
                 } label: {
                     Text("\(quickAmount) \(DesignTokens.AmountInput.currencyCode)")
                         .font(PulpeTypography.buttonSecondary)
+                        .fontWeight(.semibold)
                         .fixedSize()
                         .padding(.horizontal, DesignTokens.Spacing.md)
                         .padding(.vertical, DesignTokens.Spacing.sm)
                         .frame(maxWidth: .infinity)
-                        .background(Color.pulpePrimary.opacity(DesignTokens.Opacity.accent))
+                        .background(Color.pulpePrimary.opacity(0.12))
                         .foregroundStyle(Color.pulpePrimary)
                         .clipShape(Capsule())
+                        .overlay(Capsule().strokeBorder(Color.pulpePrimary.opacity(0.20), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
             }
@@ -164,14 +166,20 @@ struct AddBudgetLineSheet: View {
                 } label: {
                     Label(type.label, systemImage: type.icon)
                         .font(PulpeTypography.buttonSecondary)
+                        .fontWeight(kind == type ? .semibold : .medium)
                         .padding(.horizontal, DesignTokens.Spacing.md)
                         .padding(.vertical, DesignTokens.Spacing.sm + 2)
                         .frame(maxWidth: .infinity)
                         .background(kind == type ? Color.pulpePrimary : Color.surfaceSecondary)
-                        .foregroundStyle(kind == type ? Color.textOnPrimary : Color.textPrimary)
+                        .foregroundStyle(kind == type ? Color.textOnPrimary : .primary)
                         .clipShape(Capsule())
+                        .overlay(
+                            kind == type ? nil :
+                            Capsule().strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                        )
                 }
                 .buttonStyle(.plain)
+                .sensoryFeedback(.selection, trigger: kind)
             }
         }
     }
@@ -184,12 +192,11 @@ struct AddBudgetLineSheet: View {
         } label: {
             Text("Ajouter")
                 .font(PulpeTypography.buttonPrimary)
-                .foregroundStyle(Color.textOnPrimary)
+                .foregroundStyle(canSubmit ? Color.textOnPrimary : .secondary)
                 .frame(maxWidth: .infinity)
                 .frame(height: DesignTokens.FrameHeight.button)
-                .background(Color.pulpePrimary)
+                .background(canSubmit ? Color.pulpePrimary : Color.surfaceSecondary)
                 .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
-                .opacity(canSubmit ? 1 : 0.4)
         }
         .disabled(!canSubmit)
         .buttonStyle(.plain)
