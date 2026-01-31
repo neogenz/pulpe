@@ -1,10 +1,7 @@
 import SwiftUI
 
-/// Hero card displaying the budget summary with character:
-/// - Liquid Glass with state-dependent color tint (green/positive, warm/deficit)
-/// - Contextual label + motivational message
-/// - Circular progress indicator
-/// - Pill-style stat chips
+/// Hero card with colored gradient background + summary pills below.
+/// The gradient card contains balance + progress, pills sit outside for readability.
 struct HeroBalanceCard: View {
     let metrics: BudgetFormulas.Metrics
     var daysRemaining: Int? = nil
@@ -48,7 +45,6 @@ struct HeroBalanceCard: View {
         return "Pile à l'équilibre"
     }
 
-    /// Opaque pastel backgrounds that create real contrast with glass cards
     private var heroBackgroundStart: Color {
         metrics.isDeficit
             ? Color(light: Color(hex: 0xFDE8D8), dark: Color(hex: 0x2E1E12))
@@ -64,21 +60,23 @@ struct HeroBalanceCard: View {
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
+        VStack(spacing: DesignTokens.Spacing.md) {
+            // Gradient hero card
             balanceRow
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.vertical, DesignTokens.Spacing.xl)
+                .background(
+                    LinearGradient(
+                        colors: [heroBackgroundStart, heroBackgroundEnd],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    in: .rect(cornerRadius: DesignTokens.CornerRadius.xl)
+                )
+
+            // Pills below the card
             pillChips
         }
-        .padding(.horizontal, DesignTokens.Spacing.xl)
-        .padding(.vertical, DesignTokens.Spacing.xxl)
-        .background(
-            LinearGradient(
-                colors: [heroBackgroundStart, heroBackgroundEnd],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: .rect(cornerRadius: DesignTokens.CornerRadius.xl)
-        )
-        .shadow(DesignTokens.Shadow.elevated)
     }
 
     // MARK: - Balance Row
@@ -149,49 +147,53 @@ struct HeroBalanceCard: View {
     // MARK: - Pill Chips
 
     private var pillChips: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            pillChip(
-                icon: "arrow.up.right",
-                label: "Revenus",
-                value: metrics.totalIncome,
-                color: .financialIncome
-            )
+        ScrollView(.horizontal) {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                pillChip(
+                    icon: "arrow.up.right",
+                    label: "Revenus",
+                    value: metrics.totalIncome,
+                    color: .financialIncome
+                )
 
-            pillChip(
-                icon: "arrow.down.right",
-                label: "Dépenses",
-                value: metrics.totalExpenses,
-                color: .financialExpense
-            )
+                pillChip(
+                    icon: "arrow.down.right",
+                    label: "Dépenses",
+                    value: metrics.totalExpenses,
+                    color: .financialExpense
+                )
 
-            pillChip(
-                icon: "banknote",
-                label: "Épargne",
-                value: metrics.totalSavings,
-                color: .financialSavings
-            )
+                pillChip(
+                    icon: "banknote",
+                    label: "Épargne",
+                    value: metrics.totalSavings,
+                    color: .financialSavings
+                )
+            }
+            .frame(maxWidth: .infinity)
         }
+        .scrollIndicators(.hidden)
     }
 
     private func pillChip(icon: String, label: String, value: Decimal, color: Color) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.caption2.weight(.semibold))
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(color)
 
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text(label)
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(Color.textTertiary)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
 
                 Text(value.formatted(.number.locale(Locale(identifier: "de_CH"))))
-                    .font(.system(.caption2, design: .rounded, weight: .semibold))
+                    .font(.system(.callout, design: .rounded, weight: .semibold))
                     .foregroundStyle(color)
                     .contentTransition(.numericText())
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .background(color.opacity(0.10), in: Capsule())
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(label) \(value.asCHF)")
@@ -209,7 +211,6 @@ private func abs(_ value: Decimal) -> Decimal {
 #Preview("Hero Balance Card") {
     ScrollView {
         VStack(spacing: 24) {
-            // Positive — good margin
             HeroBalanceCard(
                 metrics: .init(
                     totalIncome: 5000,
@@ -225,23 +226,6 @@ private func abs(_ value: Decimal) -> Decimal {
                 onTapProgress: {}
             )
 
-            // Positive — managing well
-            HeroBalanceCard(
-                metrics: .init(
-                    totalIncome: 5000,
-                    totalExpenses: 4209,
-                    totalSavings: 0,
-                    available: 5000,
-                    endingBalance: 791,
-                    remaining: 791,
-                    rollover: 0
-                ),
-                daysRemaining: 8,
-                dailyBudget: 99,
-                onTapProgress: {}
-            )
-
-            // Deficit
             HeroBalanceCard(
                 metrics: .init(
                     totalIncome: 8500,
@@ -252,12 +236,9 @@ private func abs(_ value: Decimal) -> Decimal {
                     remaining: -119,
                     rollover: 0
                 ),
-                daysRemaining: 20,
-                dailyBudget: 0,
                 onTapProgress: {}
             )
 
-            // Balanced
             HeroBalanceCard(
                 metrics: .init(
                     totalIncome: 5000,
