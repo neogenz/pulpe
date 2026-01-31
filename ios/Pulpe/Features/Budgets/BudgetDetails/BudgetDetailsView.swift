@@ -268,6 +268,8 @@ struct BudgetDetailsView: View {
                 !viewModel.isShowingOnlyUnchecked || tx.checkedAt == nil
             }
 
+        let fullWidthInsets = EdgeInsets()
+
         return List {
             // Filter picker
             Section {
@@ -276,8 +278,9 @@ struct BudgetDetailsView: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
             .listSectionSeparator(.hidden)
+            .listRowInsets(fullWidthInsets)
 
-            // Hero balance card — edge-to-edge within safe area
+            // Hero balance card
             Section {
                 HeroBalanceCard(
                     metrics: viewModel.metrics,
@@ -287,7 +290,7 @@ struct BudgetDetailsView: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
             .listSectionSeparator(.hidden)
-            .listRowInsets(EdgeInsets())
+            .listRowInsets(fullWidthInsets)
 
             // Rollover section (toujours en premier)
             if let rolloverInfo = viewModel.rolloverInfo {
@@ -299,6 +302,7 @@ struct BudgetDetailsView: View {
                 )
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
+                .listRowInsets(fullWidthInsets)
             }
 
             // Empty search state
