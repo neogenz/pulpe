@@ -1,30 +1,24 @@
-import { inject, Injectable, signal, computed, resource } from '@angular/core';
+import { inject, Injectable, computed, resource } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { createStaleFallback } from '@core/cache';
 import {
   BudgetTemplatesApi,
   type BudgetTemplateDetailViewModel,
 } from '../../services/budget-templates-api';
-import {
-  type TemplateDetailsState,
-  createInitialTemplateDetailsState,
-} from './template-details-state';
+import { createInitialTemplateDetailsState } from './template-details-state';
 
 @Injectable()
 export class TemplateDetailsStore {
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
 
-  // Single source of truth - private state signal for non-resource data
-  readonly #state = signal<TemplateDetailsState>(
-    createInitialTemplateDetailsState(),
-  );
+  readonly #state = createInitialTemplateDetailsState();
 
   // Resource for fresh data (background revalidation)
   readonly #templateDetailsResource = resource<
     BudgetTemplateDetailViewModel,
     string | null
   >({
-    params: () => this.#state().templateId,
+    params: () => this.#state.templateId(),
     loader: async ({ params: templateId }) => {
       if (!templateId) {
         throw new Error('Template ID is required');
@@ -43,7 +37,7 @@ export class TemplateDetailsStore {
   readonly isLoading = this.#swr.isInitialLoading;
   readonly hasValue = this.#swr.hasValue;
   readonly error = computed(
-    () => this.#templateDetailsResource.error() || this.#state().error,
+    () => this.#templateDetailsResource.error() || this.#state.error(),
   );
 
   // Derived selectors for convenience
@@ -67,11 +61,8 @@ export class TemplateDetailsStore {
       this.#swr.setStaleData(staleData);
     }
 
-    this.#state.update((state) => ({
-      ...state,
-      templateId: id,
-      error: null,
-    }));
+    this.#state.templateId.set(id);
+    this.#state.error.set(null);
   }
 
   reloadTemplateDetails(): void {
@@ -80,9 +71,6 @@ export class TemplateDetailsStore {
   }
 
   #clearError(): void {
-    this.#state.update((state) => ({
-      ...state,
-      error: null,
-    }));
+    this.#state.error.set(null);
   }
 }

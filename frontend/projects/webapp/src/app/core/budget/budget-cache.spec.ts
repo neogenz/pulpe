@@ -13,6 +13,12 @@ import { BudgetApi } from './budget-api';
 import { BudgetInvalidationService } from './budget-invalidation.service';
 import { Logger } from '../logging/logger';
 
+/** Flush toObservable internal effect + microtask emission pipeline */
+async function flushObservable(): Promise<void> {
+  TestBed.flushEffects();
+  await new Promise((r) => setTimeout(r));
+}
+
 function createMockBudget(overrides: Partial<Budget> = {}): Budget {
   return {
     id: 'budget-1',
@@ -83,6 +89,8 @@ describe('BudgetCache', () => {
     });
 
     service = TestBed.inject(BudgetCache);
+    // Flush initial toObservable effect so skip(1) consumes the initial emission
+    TestBed.flushEffects();
   });
 
   describe('Initial state', () => {
@@ -446,7 +454,7 @@ describe('BudgetCache', () => {
 
       // Trigger invalidation (simulates a budget mutation)
       invalidationService.invalidate();
-      TestBed.flushEffects();
+      await flushObservable();
 
       // Wait for revalidation to complete (list only)
       await vi.waitFor(() => {
@@ -459,14 +467,14 @@ describe('BudgetCache', () => {
       expect(mockBudgetApi.getBudgetWithDetails$).not.toHaveBeenCalled();
     });
 
-    it('should not invalidate on initial version (0)', () => {
+    it('should not invalidate on initial version (0)', async () => {
       // Just after creation, cache should be in initial state
       expect(service.budgets()).toBeNull();
 
-      // Flush any pending effects
-      TestBed.flushEffects();
+      // Flush internal effect + microtask
+      await flushObservable();
 
-      // No side effect should have happened
+      // No side effect should have happened (skip(1) ignores initial)
       expect(service.budgets()).toBeNull();
       expect(mockBudgetApi.getAllBudgets$).not.toHaveBeenCalled();
     });
@@ -572,7 +580,7 @@ describe('BudgetCache', () => {
       mockBudgetApi.getAllBudgets$.mockReturnValue(of(freshBudgets));
 
       invalidationService.invalidate();
-      TestBed.flushEffects();
+      await flushObservable();
 
       // Wait for revalidation to complete (list only)
       await vi.waitFor(() => {
@@ -605,7 +613,7 @@ describe('BudgetCache', () => {
       // Phase 2: User edits → invalidation + revalidation (list only)
       mockBudgetApi.getAllBudgets$.mockReturnValue(of(allBudgets));
       invalidationService.invalidate();
-      TestBed.flushEffects();
+      await flushObservable();
 
       await vi.waitFor(() => {
         expect(service.budgets()).not.toBeNull();
@@ -631,7 +639,7 @@ describe('BudgetCache', () => {
       mockBudgetApi.getAllBudgets$.mockReturnValue(of(allBudgets));
 
       invalidationService.invalidate();
-      TestBed.flushEffects();
+      await flushObservable();
 
       await vi.waitFor(() => {
         expect(service.budgets()).not.toBeNull();
@@ -694,7 +702,7 @@ describe('BudgetCache', () => {
       invalidationService.invalidate();
       invalidationService.invalidate();
       invalidationService.invalidate();
-      TestBed.flushEffects();
+      await flushObservable();
 
       // Resolve the API call
       apiSubject.next(allBudgets);
@@ -719,7 +727,7 @@ describe('BudgetCache', () => {
 
       // Trigger invalidation (starts revalidation)
       invalidationService.invalidate();
-      TestBed.flushEffects();
+      await flushObservable();
 
       // Concurrent call from BudgetListStore (should share the same promise)
       const storeResult = await service.preloadBudgetList();
@@ -766,7 +774,7 @@ describe('BudgetCache', () => {
       // Trigger invalidation to mark details as stale
       mockBudgetApi.getAllBudgets$.mockReturnValue(of(allBudgets));
       invalidationService.invalidate();
-      TestBed.flushEffects();
+      await flushObservable();
 
       await vi.waitFor(() => {
         expect(service.budgets()).not.toBeNull();
