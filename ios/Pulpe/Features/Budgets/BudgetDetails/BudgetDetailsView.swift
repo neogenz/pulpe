@@ -138,11 +138,6 @@ struct BudgetDetailsView: View {
                 .accessibilityLabel("Ajouter une prévision")
             }
         }
-        .onChange(of: budgetId) { _, newId in
-            if viewModel.budgetId != newId {
-                viewModel.prepareNavigation(to: newId)
-            }
-        }
         .task(id: viewModel.budgetId) {
             if viewModel.allBudgets.isEmpty {
                 await viewModel.loadDetails()
