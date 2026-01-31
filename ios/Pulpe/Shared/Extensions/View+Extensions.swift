@@ -72,8 +72,25 @@ extension View {
 // MARK: - Background Modifiers
 
 private struct PulpeBackgroundModifier: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+
     func body(content: Content) -> some View {
-        content.background(Color.surfacePrimary.ignoresSafeArea())
+        content.background {
+            meshOrFallbackBackground.ignoresSafeArea()
+        }
+    }
+
+    @ViewBuilder
+    private var meshOrFallbackBackground: some View {
+        if #available(iOS 18.0, *) {
+            MeshGradient(
+                width: 3, height: 3,
+                points: Color.meshPoints,
+                colors: colorScheme == .dark ? Color.darkMeshColors : Color.lightMeshColors
+            )
+        } else {
+            Color.appFallbackBackground
+        }
     }
 }
 
@@ -81,7 +98,13 @@ private struct PulpeStatusBackgroundModifier: ViewModifier {
     let isDeficit: Bool
 
     func body(content: Content) -> some View {
-        content.background(Color.surfacePrimary.ignoresSafeArea())
+        content.background {
+            if isDeficit {
+                Color.appNegativeBackground.ignoresSafeArea()
+            } else {
+                Color.appPositiveBackground.ignoresSafeArea()
+            }
+        }
     }
 }
 
@@ -152,7 +175,7 @@ private struct CardBackgroundModifier: ViewModifier {
                     .fill(Color.surfaceCard)
                     .overlay(
                         RoundedRectangle(cornerRadius: cornerRadius)
-                            .strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5)
+                            .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
                     )
             )
     }
