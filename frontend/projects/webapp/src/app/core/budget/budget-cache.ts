@@ -20,10 +20,14 @@ export class BudgetCache {
   readonly #logger = inject(Logger);
 
   constructor() {
-    // Auto-revalidate cache when budget mutations occur (signaled by version bump)
+    // Auto-invalidate cache when budget mutations occur (signaled by version bump)
     toObservable(this.#invalidationService.version)
       .pipe(skip(1), takeUntilDestroyed())
-      .subscribe(() => this.#revalidate());
+      .subscribe(() => {
+        this.#markAllDetailsStale();
+        this.#listCache.invalidate();
+        this.#failedDetailIds.set(new Set());
+      });
   }
 
   readonly #listCache = createListCache<Budget>({
@@ -39,7 +43,6 @@ export class BudgetCache {
   readonly #loadingDetailIds = signal<Set<string>>(new Set());
   readonly #failedDetailIds = signal<Set<string>>(new Set());
   readonly #staleDetailIds = signal<Set<string>>(new Set());
-  #isRevalidating = false;
 
   readonly budgets = this.#listCache.data;
   readonly isListLoading = this.#listCache.isLoading;
@@ -157,24 +160,6 @@ export class BudgetCache {
         next.delete(budgetId);
         return next;
       });
-    }
-  }
-
-  // Selective revalidation: re-fetch list only, mark details as stale — see DR-009 in memory-bank/techContext.md
-  async #revalidate(): Promise<void> {
-    if (this.#isRevalidating) return;
-    this.#isRevalidating = true;
-
-    this.#markAllDetailsStale();
-    this.#listCache.invalidate();
-    this.#failedDetailIds.set(new Set());
-
-    try {
-      await this.preloadBudgetList();
-    } catch (error) {
-      this.#logger.error('[BudgetCache] Revalidation failed', error);
-    } finally {
-      this.#isRevalidating = false;
     }
   }
 
