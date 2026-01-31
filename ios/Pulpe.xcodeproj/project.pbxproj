@@ -48,6 +48,7 @@
 		401748FBC2FA450B43CAF432 /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = D576CD613CD0E637C83249E9 /* Formatters.swift */; };
 		40867D66318D1675AC21C5EE /* Endpoints.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3AD93EA890CC61B4AA606B7 /* Endpoints.swift */; };
 		4491DFC84F384660F238F4F8 /* BudgetTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27F72011B11153235E828030 /* BudgetTemplate.swift */; };
+		487CD153F3E52718398AF9B7 /* MeshBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C088CF97CC00F71BA368A27 /* MeshBackground.swift */; };
 		4A0D647CD0FC9FA613122423 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E1ED9277251CACDC297FEFA3 /* LaunchScreen.storyboard */; };
 		4AE5D0489770F91DC072D500 /* Transaction+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4090237752EF9DF63F659AA /* Transaction+Extensions.swift */; };
 		4D613852DBBBCCEF9960A4C5 /* PulpeWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B157DB64FA5B4252F58D08EF /* PulpeWidgetBundle.swift */; };
@@ -275,6 +276,7 @@
 		9A05FA792057CD53B266EE9F /* TransactionEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionEnums.swift; sourceTree = "<group>"; };
 		9BB8AFF47FF273694E987E2A /* Pulpe.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Pulpe.entitlements; sourceTree = "<group>"; };
 		9C02340FB2A3D93553E9CA15 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		9C088CF97CC00F71BA368A27 /* MeshBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshBackground.swift; sourceTree = "<group>"; };
 		9E56340C03DD8EE1F7DF7638 /* BudgetService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetService.swift; sourceTree = "<group>"; };
 		A1A0EA391775C63723A83BF3 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
 		A3D2CDB198623A6C39D6F3EF /* PulpeUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PulpeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -424,6 +426,7 @@
 				D4614F485D865898B139E965 /* ErrorView.swift */,
 				C81B7DA6BF84774DCD938E37 /* KindBadge.swift */,
 				A1A0EA391775C63723A83BF3 /* LoadingView.swift */,
+				9C088CF97CC00F71BA368A27 /* MeshBackground.swift */,
 				A4952E464DEEA5F04D784FD0 /* NetworkUnavailableView.swift */,
 				40EC58ED46B8CA086F6A633D /* PulpeIcon.swift */,
 				C40A3D67DE85A1A1DCF3277A /* SyncIndicator.swift */,
@@ -1251,6 +1254,7 @@
 				7D8DD48CD5C6688A74753599 /* MainTabView.swift in Sources */,
 				78B5F01E78BB121C95940D30 /* MaintenanceService.swift in Sources */,
 				C2C698AC77274675E4B5CFF7 /* MaintenanceView.swift in Sources */,
+				487CD153F3E52718398AF9B7 /* MeshBackground.swift in Sources */,
 				721D537D7CBD37B1580BB991 /* NetworkUnavailableView.swift in Sources */,
 				A22726A5F8810386134F4846 /* OnboardingFlow.swift in Sources */,
 				92133527D14DFDB8A91245F6 /* OnboardingNavigationButtons.swift in Sources */,

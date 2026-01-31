@@ -31,6 +31,7 @@ struct MainTabView: View {
                     .toolbarVisibility(.hidden, for: .tabBar)
             }
         }
+        .pulpeBackground()
         .contentMargins(.bottom, tabBarHeight + DesignTokens.Spacing.md, for: .scrollContent)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if #available(iOS 26.0, *) {
