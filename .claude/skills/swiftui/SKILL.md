@@ -51,6 +51,9 @@ Tactical guide for designing and building world-class SwiftUI interfaces—the k
 - Tint everything — only primary actions/meaning
 - Custom backgrounds behind toolbars (let system handle scroll edge effects)
 
+**Sheets:** Require `.presentationDetents([.medium])` for Liquid Glass appearance.
+**Buttons:** Use `.buttonStyle(.glass)` or `.buttonStyle(.glassProminent)` for glass controls.
+
 ## Layout Essentials
 
 | Container | Use For |
@@ -77,7 +80,9 @@ Tactical guide for designing and building world-class SwiftUI interfaces—the k
 | Body must be cheap | No sorting, filtering, formatting, I/O in body |
 | Stable identity | `ForEach(items, id: \.id)` not `\.self`, no UUID() in body |
 | Dependency hygiene | Keep @State local, pass Binding not whole model |
-| Instrument | Use SwiftUI instrument (Instruments 26) for hitches |
+| Equatable on rows | Conform scrollable list rows to `Equatable` for faster diffing |
+| AsyncImage caching | AsyncImage does NOT cache — use NSCache/Nuke for production |
+| Instrument | Use SwiftUI instrument (Instruments 26) + Cause & Effect Graph |
 
 ## Accessibility Checklist
 
@@ -87,7 +92,13 @@ Tactical guide for designing and building world-class SwiftUI interfaces—the k
 - [ ] Focus order matches reading order
 - [ ] 44×44pt minimum touch targets
 - [ ] Reduced Motion removes parallax, uses opacity
-- [ ] Reduced Transparency increases separation
+- [ ] Reduced Transparency increases separation (solid bg instead of glass)
+- [ ] Color contrast meets WCAG AA (4.5:1 text, 3:1 UI)
+- [ ] accessibilityElement grouping on composite views
+- [ ] Header traits on section titles
+- [ ] @AccessibilityFocusState for modal dismiss flows
+- [ ] AccessibilityNotification for dynamic updates
+- [ ] Haptic feedback on key interactions (.sensoryFeedback)
 
 ## Component Primitives (Build These)
 

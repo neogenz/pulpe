@@ -226,6 +226,26 @@ Button("Action") { }
 }
 ```
 
+## iOS 26 Gotchas
+
+### NavigationLink Gesture Conflicts
+
+iOS 26 refactored gesture recognizers — NavigationLink now swallows child gestures. Fix:
+
+```swift
+NavigationLink { destination } label: { content }
+    .buttonStyle(.plain)              // Unlock child gestures
+    .highPriorityGesture(myGesture)   // Win priority over nav
+    .contentShape(Rectangle())         // Proper hit testing
+```
+
+### Liquid Glass Sheets
+
+Partial detent is **required** for glass appearance:
+```swift
+.presentationDetents([.medium, .large])  // Required
+```
+
 ## Anti-Patterns
 
 | Don't | Do |
@@ -238,3 +258,4 @@ Button("Action") { }
 | Massive view bodies | Extract subviews and `@ViewBuilder` |
 | Inline date/number formatters | Shared `Formatters/` singleton |
 | Glass on content views | Glass on navigation elements only |
+| `AsyncImage` without caching | NSCache wrapper or Nuke/Kingfisher |
