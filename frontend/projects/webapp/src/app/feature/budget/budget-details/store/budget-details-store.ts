@@ -10,6 +10,7 @@ import {
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetCache } from '@core/budget/budget-cache';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
+import { createStaleFallback } from '@core/cache';
 import { Logger } from '@core/logging/logger';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import { StorageService } from '@core/storage/storage.service';
@@ -56,10 +57,6 @@ export class BudgetDetailsStore {
 
   // Single source of truth - private state signal for non-resource data
   readonly #state = createInitialBudgetDetailsState();
-
-  // Last known stale data for instant display before resource resolves
-  // Imperative signal chosen over linkedSignal/computed — see DR-008 in memory-bank/techContext.md
-  readonly #staleData = signal<BudgetDetailsViewModel | null>(null);
 
   // Filter state - show only unchecked items by default
   readonly #isShowingOnlyUnchecked = signal<boolean>(
@@ -122,18 +119,13 @@ export class BudgetDetailsStore {
     },
   });
 
-  // Read both signals eagerly so Angular tracks both as dependencies,
-  // regardless of nullish-coalescing short-circuit — see DR-007 in memory-bank/techContext.md
-  readonly budgetDetails = computed(() => {
-    const resourceValue = this.#budgetDetailsResource.value();
-    const cachedValue = this.#staleData();
-    return resourceValue ?? cachedValue ?? null;
+  readonly #swr = createStaleFallback({
+    resource: this.#budgetDetailsResource,
   });
-  readonly isLoading = computed(() => this.#budgetDetailsResource.isLoading());
-  readonly isInitialLoading = computed(
-    () => this.#budgetDetailsResource.isLoading() && !this.budgetDetails(),
-  );
-  readonly hasValue = computed(() => this.#budgetDetailsResource.hasValue());
+  readonly budgetDetails = this.#swr.data;
+  readonly isLoading = this.#swr.isLoading;
+  readonly isInitialLoading = this.#swr.isInitialLoading;
+  readonly hasValue = this.#swr.hasValue;
   readonly error = computed(
     () => this.#budgetDetailsResource.error() || this.#state.errorMessage(),
   );
@@ -211,7 +203,7 @@ export class BudgetDetailsStore {
   // Cache-first display: seed stale data before resource triggers — see DR-006 in memory-bank/techContext.md
   setBudgetId(budgetId: string): void {
     const cached = this.#budgetCache.getBudgetDetails(budgetId);
-    this.#staleData.set(
+    this.#swr.setStaleData(
       cached
         ? {
             ...cached.budget,

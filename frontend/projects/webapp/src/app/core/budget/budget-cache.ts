@@ -1,14 +1,8 @@
-import {
-  Injectable,
-  computed,
-  effect,
-  inject,
-  signal,
-  untracked,
-} from '@angular/core';
+import { Injectable, effect, inject, signal, untracked } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { type Budget, type BudgetDetailsResponse } from 'pulpe-shared';
 import { filter, firstValueFrom, first, timeout } from 'rxjs';
+import { createListCache } from '@core/cache';
 import { BudgetApi } from './budget-api';
 import { BudgetInvalidationService } from './budget-invalidation.service';
 import { Logger } from '../logging/logger';
@@ -36,20 +30,24 @@ export class BudgetCache {
     });
   }
 
-  readonly #budgets = signal<Budget[] | null>(null);
+  readonly #listCache = createListCache<Budget>({
+    fetcher: () => firstValueFrom(this.#budgetApi.getAllBudgets$()),
+    label: 'BudgetCache',
+    onError: (error) =>
+      this.#logger.error('[BudgetCache] Failed to preload budget list', error),
+  });
+
   readonly #budgetDetailsMap = signal<Map<string, BudgetDetailsEntry>>(
     new Map(),
   );
-  readonly #isListLoading = signal(false);
   readonly #loadingDetailIds = signal<Set<string>>(new Set());
   readonly #failedDetailIds = signal<Set<string>>(new Set());
   readonly #staleDetailIds = signal<Set<string>>(new Set());
-  #listLoadPromise: Promise<Budget[]> | null = null;
   #isRevalidating = false;
 
-  readonly budgets = this.#budgets.asReadonly();
-  readonly isListLoading = this.#isListLoading.asReadonly();
-  readonly hasBudgets = computed(() => this.#budgets() !== null);
+  readonly budgets = this.#listCache.data;
+  readonly isListLoading = this.#listCache.isLoading;
+  readonly hasBudgets = this.#listCache.hasData;
 
   getBudgetDetails(budgetId: string): BudgetDetailsEntry | null {
     return this.#budgetDetailsMap().get(budgetId) ?? null;
@@ -93,27 +91,7 @@ export class BudgetCache {
   }
 
   async preloadBudgetList(): Promise<Budget[]> {
-    const cached = this.#budgets();
-    if (cached !== null) return cached;
-    if (this.#listLoadPromise) return this.#listLoadPromise;
-
-    this.#listLoadPromise = this.#fetchBudgetList();
-    return this.#listLoadPromise;
-  }
-
-  async #fetchBudgetList(): Promise<Budget[]> {
-    this.#isListLoading.set(true);
-    try {
-      const budgets = await firstValueFrom(this.#budgetApi.getAllBudgets$());
-      this.#budgets.set(budgets);
-      return budgets;
-    } catch (error) {
-      this.#logger.error('[BudgetCache] Failed to preload budget list', error);
-      return [];
-    } finally {
-      this.#isListLoading.set(false);
-      this.#listLoadPromise = null;
-    }
+    return this.#listCache.preload();
   }
 
   async preloadBudgetDetails(budgetIds: string[]): Promise<void> {
@@ -192,7 +170,7 @@ export class BudgetCache {
     this.#isRevalidating = true;
 
     this.#markAllDetailsStale();
-    this.#budgets.set(null);
+    this.#listCache.invalidate();
     this.#failedDetailIds.set(new Set());
 
     try {
@@ -214,7 +192,7 @@ export class BudgetCache {
   }
 
   invalidateBudgetList(): void {
-    this.#budgets.set(null);
+    this.#listCache.invalidate();
   }
 
   invalidateBudgetDetails(budgetId: string): void {
@@ -226,11 +204,10 @@ export class BudgetCache {
   }
 
   clear(): void {
-    this.#budgets.set(null);
+    this.#listCache.clear();
     this.#budgetDetailsMap.set(new Map());
     this.#loadingDetailIds.set(new Set());
     this.#failedDetailIds.set(new Set());
     this.#staleDetailIds.set(new Set());
-    this.#isListLoading.set(false);
   }
 }
