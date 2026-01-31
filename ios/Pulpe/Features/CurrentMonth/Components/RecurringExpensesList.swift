@@ -304,7 +304,7 @@ struct BudgetLineRow: View {
                     .foregroundStyle(.secondary)
             } else {
                 // Show kind icon
-                Image(systemName: line.kind.listIcon)
+                Image(systemName: line.kind.icon)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(line.kind.color)
             }

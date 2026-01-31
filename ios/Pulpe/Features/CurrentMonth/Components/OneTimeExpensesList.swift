@@ -184,7 +184,7 @@ struct TransactionRow: View {
                     .foregroundStyle(.secondary)
             } else {
                 // Show kind icon
-                Image(systemName: transaction.kind.listIcon)
+                Image(systemName: transaction.kind.icon)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(transaction.kind.color)
             }

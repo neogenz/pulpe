@@ -164,7 +164,7 @@ struct HeroBalanceCard: View {
                 )
 
                 pillChip(
-                    icon: "banknote",
+                    icon: TransactionKind.savingsIcon,
                     label: "Épargne",
                     value: metrics.totalSavings,
                     color: .financialSavings

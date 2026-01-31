@@ -15,7 +15,7 @@ struct YearOverviewCard: View {
             metricCard(
                 title: "Épargne \(currentYear)",
                 value: savingsYTD,
-                icon: "banknote",
+                icon: TransactionKind.savingsIcon,
                 color: .financialSavings
             )
 

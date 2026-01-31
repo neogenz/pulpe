@@ -45,7 +45,7 @@ private struct RecentTransactionCardRow: View {
                 .fill(transaction.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
                 .frame(width: 40, height: 40)
                 .overlay {
-                    Image(systemName: transaction.kind.listIcon)
+                    Image(systemName: transaction.kind.icon)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(transaction.kind.color)
                 }
