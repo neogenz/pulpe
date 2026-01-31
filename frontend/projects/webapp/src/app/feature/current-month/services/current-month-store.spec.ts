@@ -13,6 +13,7 @@ import type {
 
 import { CurrentMonthStore } from './current-month-store';
 import { BudgetApi } from '@core/budget';
+import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { UserSettingsApi } from '@core/user-settings';
 
@@ -994,6 +995,213 @@ describe('CurrentMonthStore - Envelope Allocation Logic', () => {
       // Expected: 5000 - 500 - 200 - 150 = 4150
       // Or: 5000 - 500 - 350 (max of 200 and 350) = 4150
       expect(store.remaining()).toBe(4150);
+    });
+  });
+});
+
+/**
+ * Cache Invalidation Tests
+ *
+ * These tests verify that mutations trigger global cache invalidation
+ * via BudgetInvalidationService.invalidate(), ensuring cache consistency
+ * across the application (especially BudgetListStore).
+ *
+ * Bug context: Toggles and mutations from CurrentMonth were not invalidating
+ * the global cache, causing stale data in the budget list.
+ */
+describe('CurrentMonthStore - Cache Invalidation', () => {
+  let store: CurrentMonthStore;
+  let mockBudgetApi: {
+    getBudgetForMonth$: Mock;
+    getBudgetWithDetails$: Mock;
+    getBudgetById$: Mock;
+    toggleBudgetLineCheck$: Mock;
+  };
+  let mockTransactionApi: {
+    create$: Mock;
+    update$: Mock;
+    remove$: Mock;
+    toggleCheck$: Mock;
+  };
+  let mockInvalidationService: {
+    invalidate: Mock;
+    version: ReturnType<typeof signal<number>>;
+  };
+
+  beforeEach(() => {
+    mockBudgetApi = {
+      getBudgetForMonth$: vi.fn().mockReturnValue(of(mockBudget)),
+      getBudgetWithDetails$: vi.fn().mockReturnValue(
+        of({
+          data: {
+            budget: mockBudget,
+            transactions: mockTransactions,
+            budgetLines: mockBudgetLines,
+          },
+        }),
+      ),
+      getBudgetById$: vi.fn().mockReturnValue(of(mockBudget)),
+      toggleBudgetLineCheck$: vi.fn().mockReturnValue(of(undefined)),
+    };
+
+    mockTransactionApi = {
+      create$: vi.fn(),
+      update$: vi.fn(),
+      remove$: vi.fn(),
+      toggleCheck$: vi.fn(),
+    };
+
+    mockInvalidationService = {
+      invalidate: vi.fn(),
+      version: signal(0),
+    };
+
+    const mockUserSettingsApi = {
+      payDayOfMonth: signal<number | null>(null),
+      isLoading: signal(false),
+    };
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        CurrentMonthStore,
+        { provide: BudgetApi, useValue: mockBudgetApi },
+        { provide: TransactionApi, useValue: mockTransactionApi },
+        { provide: UserSettingsApi, useValue: mockUserSettingsApi },
+        {
+          provide: BudgetInvalidationService,
+          useValue: mockInvalidationService,
+        },
+      ],
+    });
+
+    store = TestBed.inject(CurrentMonthStore);
+  });
+
+  describe('Toggle operations invalidate global cache', () => {
+    it('should call invalidationService.invalidate() after toggleBudgetLineCheck', async () => {
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
+      await store.toggleBudgetLineCheck('line-income');
+
+      expect(mockInvalidationService.invalidate).toHaveBeenCalled();
+    });
+
+    it('should call invalidationService.invalidate() after toggleTransactionCheck', async () => {
+      mockTransactionApi.toggleCheck$.mockReturnValue(of(undefined));
+
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
+      await store.toggleTransactionCheck('txn-1');
+
+      expect(mockInvalidationService.invalidate).toHaveBeenCalled();
+    });
+  });
+
+  describe('CRUD operations invalidate global cache', () => {
+    it('should call invalidationService.invalidate() after addTransaction', async () => {
+      const newTransaction: TransactionCreate = {
+        budgetId: 'budget-1',
+        name: 'Coffee',
+        amount: 5,
+        kind: 'expense',
+        transactionDate: '2024-01-25T00:00:00Z',
+        category: null,
+      };
+
+      mockTransactionApi.create$.mockReturnValue(
+        of({
+          data: {
+            id: 'new-1',
+            ...newTransaction,
+            createdAt: '2024-01-25T00:00:00Z',
+            updatedAt: '2024-01-25T00:00:00Z',
+          },
+        }),
+      );
+
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
+      await store.addTransaction(newTransaction);
+
+      expect(mockInvalidationService.invalidate).toHaveBeenCalled();
+    });
+
+    it('should call invalidationService.invalidate() after updateTransaction', async () => {
+      mockTransactionApi.update$.mockReturnValue(
+        of({ data: { id: 'txn-1', amount: 200, name: 'Updated' } }),
+      );
+
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
+      await store.updateTransaction('txn-1', { amount: 200 });
+
+      expect(mockInvalidationService.invalidate).toHaveBeenCalled();
+    });
+
+    it('should call invalidationService.invalidate() after deleteTransaction', async () => {
+      mockTransactionApi.remove$.mockReturnValue(of(undefined));
+
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
+      await store.deleteTransaction('txn-1');
+
+      expect(mockInvalidationService.invalidate).toHaveBeenCalled();
+    });
+  });
+
+  describe('Error handling maintains cache invalidation behavior', () => {
+    it('should NOT call invalidationService.invalidate() when toggle fails', async () => {
+      mockBudgetApi.toggleBudgetLineCheck$.mockReturnValue(
+        throwError(() => new Error('API error')),
+      );
+
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
+      await expect(
+        store.toggleBudgetLineCheck('line-income'),
+      ).rejects.toThrow();
+
+      // Should not invalidate on error (data was rolled back)
+      expect(mockInvalidationService.invalidate).not.toHaveBeenCalled();
+    });
+
+    it('should NOT call invalidationService.invalidate() when mutation fails', async () => {
+      mockTransactionApi.create$.mockReturnValue(
+        throwError(() => new Error('Server unavailable')),
+      );
+
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
+      const newTransaction: TransactionCreate = {
+        budgetId: 'budget-1',
+        name: 'Failed',
+        amount: 100,
+        kind: 'expense',
+        transactionDate: '2024-01-25T00:00:00Z',
+        category: null,
+      };
+
+      await expect(store.addTransaction(newTransaction)).rejects.toThrow();
+
+      // Should not invalidate on error (data was rolled back)
+      expect(mockInvalidationService.invalidate).not.toHaveBeenCalled();
     });
   });
 });

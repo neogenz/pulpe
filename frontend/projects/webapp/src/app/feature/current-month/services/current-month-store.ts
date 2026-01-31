@@ -318,5 +318,6 @@ export class CurrentMonthStore {
     if (budgetId) {
       this.#budgetCache.invalidateBudgetDetails(budgetId);
     }
+    this.#invalidationService.invalidate();
   }
 }
