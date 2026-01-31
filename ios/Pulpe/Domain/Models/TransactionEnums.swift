@@ -22,20 +22,14 @@ enum TransactionKind: String, Codable, CaseIterable, Sendable {
         }
     }
 
+    /// SF Symbol name for savings (bank icon, used everywhere)
+    static let savingsIcon = "building.columns"
+
     var icon: String {
         switch self {
         case .income: "arrow.down"
         case .expense: "arrow.up"
-        case .saving: "banknote.fill"
-        }
-    }
-
-    /// Large icon for list rows (Revolut-style)
-    var listIcon: String {
-        switch self {
-        case .income: "arrow.down"
-        case .expense: "arrow.up"
-        case .saving: "dollarsign.bank.building"
+        case .saving: Self.savingsIcon
         }
     }
 

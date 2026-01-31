@@ -107,7 +107,7 @@ struct RealizedBalanceSheet: View {
             // Savings row
             ProgressRow(
                 label: "Épargne",
-                icon: "banknote.fill",
+                icon: TransactionKind.savingsIcon,
                 iconColor: .financialSavings,
                 realized: realizedSavings,
                 planned: metrics.totalSavings

@@ -45,7 +45,7 @@ private struct RecentTransactionRow: View {
                     .fill(transaction.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
                     .frame(width: 36, height: 36)
 
-                Image(systemName: transaction.kind.listIcon)
+                Image(systemName: transaction.kind.icon)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(transaction.kind.color)
             }
