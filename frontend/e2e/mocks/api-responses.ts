@@ -128,14 +128,75 @@ export const createMockBudgetResponse = (): MockBudgetResponse => ({
   data: [TEST_CONFIG.BUDGETS.CURRENT_MONTH],
 });
 
-export const createMockBudgetDetailsResponse = (): MockBudgetDetailsResponse => ({
-  success: true,
-  data: {
-    budget: TEST_CONFIG.BUDGETS.CURRENT_MONTH,
-    transactions: [],
-    budgetLines: [],
-  },
-});
+export const createMockBudgetDetailsResponse = (): MockBudgetDetailsResponse => {
+  const now = new Date().toISOString();
+  const budgetId = TEST_CONFIG.BUDGETS.CURRENT_MONTH.id;
+
+  return {
+    success: true,
+    data: {
+      budget: TEST_CONFIG.BUDGETS.CURRENT_MONTH,
+      transactions: [
+        {
+          id: '00000000-0000-4000-a000-000000000301',
+          budgetId,
+          budgetLineId: null,
+          name: 'Test Transaction 1',
+          amount: 50,
+          kind: 'expense' as const,
+          transactionDate: now,
+          category: 'Test',
+          createdAt: now,
+          updatedAt: now,
+          checkedAt: null,
+        },
+        {
+          id: '00000000-0000-4000-a000-000000000302',
+          budgetId,
+          budgetLineId: null,
+          name: 'Test Transaction 2',
+          amount: 100,
+          kind: 'expense' as const,
+          transactionDate: now,
+          category: 'Test',
+          createdAt: now,
+          updatedAt: now,
+          checkedAt: null,
+        },
+      ],
+      budgetLines: [
+        {
+          id: '00000000-0000-4000-a000-000000000401',
+          budgetId,
+          name: 'Test Budget Line 1',
+          amount: 200,
+          kind: 'expense' as const,
+          recurrence: 'fixed' as const,
+          isManuallyAdjusted: false,
+          templateLineId: null,
+          savingsGoalId: null,
+          checkedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: '00000000-0000-4000-a000-000000000402',
+          budgetId,
+          name: 'Test Budget Line 2',
+          amount: 300,
+          kind: 'expense' as const,
+          recurrence: 'fixed' as const,
+          isManuallyAdjusted: false,
+          templateLineId: null,
+          savingsGoalId: null,
+          checkedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    },
+  };
+};
 
 export const createMockTemplateResponse = (): MockTemplateResponse => ({
   data: [TEST_CONFIG.TEMPLATES.DEFAULT],

@@ -105,6 +105,15 @@ export async function setupApiMocks(page: Page) {
       });
     }
 
+    // Toggle check endpoints - must check BEFORE budget endpoints (budget-lines contains "budget")
+    if (url.includes('/toggle-check')) {
+      return route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: {} })
+      });
+    }
+
     // Budget exists endpoint (for hasBudgetGuard - must check BEFORE other budget endpoints)
     if (url.includes('budgets/exists')) {
       return route.fulfill({

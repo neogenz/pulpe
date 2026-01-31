@@ -17,15 +17,14 @@ import { test, expect } from '../../fixtures/test-fixtures';
  * - Monitor network requests to verify cache invalidation
  */
 test.describe('Cache Invalidation - CurrentMonth Mutations', () => {
-  test.beforeEach(async ({ page, authBypass }) => {
-    // Authenticate and navigate to app
-    await authBypass.bypassAuthentication();
-    await page.goto('/budget');
-    await page.waitForLoadState('networkidle');
+  test.beforeEach(async ({ authenticatedPage }) => {
+    // Navigate to budget list with authentication already set up
+    await authenticatedPage.goto('/budget');
+    await authenticatedPage.waitForLoadState('networkidle');
   });
 
   test('should invalidate cache after toggle transaction from CurrentMonth', async ({
-    page,
+    authenticatedPage: page,
   }) => {
     await test.step('Navigate to CurrentMonth page', async () => {
       await page.getByRole('link', { name: 'Ce mois-ci' }).click();
@@ -71,7 +70,7 @@ test.describe('Cache Invalidation - CurrentMonth Mutations', () => {
     });
 
     await test.step('Navigate back to budget list', async () => {
-      await page.getByRole('link', { name: 'Budgets' }).click();
+      await page.getByRole('link', { name: 'Budgets' }).first().click();
       await page.waitForLoadState('networkidle');
     });
 
@@ -92,7 +91,7 @@ test.describe('Cache Invalidation - CurrentMonth Mutations', () => {
   });
 
   test('should invalidate cache after toggle budget line from CurrentMonth', async ({
-    page,
+    authenticatedPage: page,
   }) => {
     await test.step('Navigate to CurrentMonth page', async () => {
       await page.getByRole('link', { name: 'Ce mois-ci' }).click();
@@ -124,7 +123,7 @@ test.describe('Cache Invalidation - CurrentMonth Mutations', () => {
     });
 
     await test.step('Navigate back to budget list', async () => {
-      await page.getByRole('link', { name: 'Budgets' }).click();
+      await page.getByRole('link', { name: 'Budgets' }).first().click();
       await page.waitForLoadState('networkidle');
     });
 
@@ -134,7 +133,7 @@ test.describe('Cache Invalidation - CurrentMonth Mutations', () => {
   });
 
   test('should invalidate cache after adding transaction from CurrentMonth', async ({
-    page,
+    authenticatedPage: page,
   }) => {
     await test.step('Navigate to CurrentMonth page', async () => {
       await page.getByRole('link', { name: 'Ce mois-ci' }).click();
@@ -152,9 +151,9 @@ test.describe('Cache Invalidation - CurrentMonth Mutations', () => {
         await fab.click();
 
         // Fill in transaction form (if dialog opens)
-        const nameInput = page.getByLabel('Nom');
-        if (await nameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
-          await nameInput.fill('Test E2E Transaction');
+        const descriptionInput = page.getByLabel('Description');
+        if (await descriptionInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+          await descriptionInput.fill('Test E2E Transaction');
           await page.getByLabel('Montant').fill('10');
 
           // Submit form
@@ -170,7 +169,7 @@ test.describe('Cache Invalidation - CurrentMonth Mutations', () => {
     });
 
     await test.step('Navigate back to budget list', async () => {
-      await page.getByRole('link', { name: 'Budgets' }).click();
+      await page.getByRole('link', { name: 'Budgets' }).first().click();
       await page.waitForLoadState('networkidle');
     });
 
@@ -181,18 +180,17 @@ test.describe('Cache Invalidation - CurrentMonth Mutations', () => {
 });
 
 test.describe('Cache Invalidation - BudgetDetails Mutations', () => {
-  test.beforeEach(async ({ page, authBypass }) => {
-    await authBypass.bypassAuthentication();
-    await page.goto('/budget');
-    await page.waitForLoadState('networkidle');
+  test.beforeEach(async ({ authenticatedPage }) => {
+    await authenticatedPage.goto('/budget');
+    await authenticatedPage.waitForLoadState('networkidle');
   });
 
   test('should invalidate cache after toggle budget line from BudgetDetails', async ({
-    page,
+    authenticatedPage: page,
   }) => {
     await test.step('Navigate to budget details', async () => {
       // Click on first budget (January 2026)
-      const firstBudget = page.locator('[data-testid^="budget-card-"]').first();
+      const firstBudget = page.locator('[data-testid^="month-tile-"]').first();
       await firstBudget.click();
       await page.waitForLoadState('networkidle');
 
@@ -217,7 +215,7 @@ test.describe('Cache Invalidation - BudgetDetails Mutations', () => {
 
     await test.step('Navigate back to budget list', async () => {
       // Click on "Budgets" breadcrumb or nav link
-      await page.getByRole('link', { name: 'Budgets' }).click();
+      await page.getByRole('link', { name: 'Budgets' }).first().click();
       await page.waitForLoadState('networkidle');
     });
 
@@ -227,11 +225,11 @@ test.describe('Cache Invalidation - BudgetDetails Mutations', () => {
   });
 
   test('should maintain cache consistency across complex navigation flow', async ({
-    page,
+    authenticatedPage: page,
   }) => {
     await test.step('Navigate: List → Details → CurrentMonth → List', async () => {
       // 1. Navigate to budget details
-      const firstBudget = page.locator('[data-testid^="budget-card-"]').first();
+      const firstBudget = page.locator('[data-testid^="month-tile-"]').first();
       await firstBudget.click();
       await page.waitForLoadState('networkidle');
 

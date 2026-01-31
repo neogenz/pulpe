@@ -55,9 +55,9 @@ export const test = base.extend<AppFixtures>({
   // Authenticated page - for feature tests with mocks
   authenticatedPage: async ({ page }, use) => {
     // Setup auth bypass with API mocks and localStorage for feature tests
-    await setupAuthBypass(page, { 
-      includeApiMocks: true, 
-      setLocalStorage: true 
+    await setupAuthBypass(page, {
+      includeApiMocks: true,
+      setLocalStorage: true
     });
 
     await use(page);

@@ -56,7 +56,10 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
     YearCalendar,
   ],
   template: `
-    <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0 min-w-0">
+    <div
+      class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0 min-w-0"
+      data-testid="budget-list-page"
+    >
       <header
         class="flex flex-wrap justify-between items-center gap-2"
         data-testid="page-header"

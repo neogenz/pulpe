@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { type Budget, type BudgetDetailsResponse } from 'pulpe-shared';
 import { filter, firstValueFrom, first, skip, timeout } from 'rxjs';
-import { createListCache } from '@core/cache';
+import { CACHE_CONFIG, createListCache } from '@core/cache';
 import { BudgetApi } from './budget-api';
 import { BudgetInvalidationService } from './budget-invalidation.service';
 import { Logger } from '../logging/logger';
@@ -24,7 +24,7 @@ export class BudgetCache {
     toObservable(this.#invalidationService.version)
       .pipe(skip(1), takeUntilDestroyed())
       .subscribe(() => {
-        this.#markAllDetailsStale();
+        this.markAllDetailsStale();
         this.#listCache.invalidate();
         this.#failedDetailIds.set(new Set());
       });
@@ -80,11 +80,15 @@ export class BudgetCache {
         detailsMap$.pipe(
           filter((m) => m.has(budgetId)),
           first(),
-          timeout(10_000),
+          timeout(CACHE_CONFIG.BUDGET_DETAILS_WAIT_TIMEOUT),
         ),
       );
       return map.get(budgetId)!;
-    } catch {
+    } catch (error) {
+      this.#logger.warn(
+        `[BudgetCache] Timeout waiting for budget ${budgetId}`,
+        error,
+      );
       return null;
     }
   }
@@ -110,7 +114,7 @@ export class BudgetCache {
     });
 
     // Load in batches to leave HTTP connection slots for user-initiated requests
-    const BATCH_SIZE = 3;
+    const BATCH_SIZE = CACHE_CONFIG.BUDGET_DETAILS_BATCH_SIZE;
     for (let i = 0; i < idsToLoad.length; i += BATCH_SIZE) {
       const batch = idsToLoad.slice(i, i + BATCH_SIZE);
       await Promise.all(
@@ -163,13 +167,9 @@ export class BudgetCache {
     }
   }
 
-  #markAllDetailsStale(): void {
+  markAllDetailsStale(): void {
     const currentIds = this.#budgetDetailsMap().keys();
     this.#staleDetailIds.set(new Set(currentIds));
-  }
-
-  markAllDetailsStale(): void {
-    this.#markAllDetailsStale();
   }
 
   invalidateBudgetList(): void {

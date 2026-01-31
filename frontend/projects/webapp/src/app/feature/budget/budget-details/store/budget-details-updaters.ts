@@ -22,7 +22,7 @@ export function replaceBudgetLine(
   };
 }
 
-export function patchBudgetLine(
+export function updateBudgetLine(
   vm: BudgetDetailsViewModel,
   data: Partial<BudgetLine> & { id: string },
 ): BudgetDetailsViewModel {

@@ -29,6 +29,86 @@
 | DR-007 | Eager Signal Reading in computed() with ?? | 2026-01-30 | Accepted |
 | DR-008 | Keep imperative `#staleData` signal over alternatives | 2026-01-30 | Accepted |
 | DR-009 | Selective + Lazy Cache Revalidation | 2026-01-30 | Accepted |
+| DR-010 | Toggle Merge + No-Reload for Race Condition Fix | 2026-01-31 | Accepted |
+
+---
+
+## DR-010: Toggle Merge + No-Reload for Race Condition Fix
+
+**Date**: 2026-01-31
+**Status**: Accepted
+
+### Context
+
+Race condition bug discovered: when user toggles a transaction/budget line during a CRUD mutation (slow network), the toggle state is lost when mutation reconciles. This breaks user trust when their actions "disappear".
+
+### Problem
+
+**Bug #1**: Toggles overwritten during CRUD mutations
+- `#performOptimisticMutation` reads `currentData` before toggle, calculates `updatedData`, then sets it → overwrites concurrent toggle in `checkedAt` field
+
+**Bug #2**: Reload after toggle causes more race conditions
+- Toggles called `#invalidateCache()` → triggers async reload
+- If CRUD mutation happens during reload, either mutation or toggle gets overwritten
+
+### Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Merge concurrent toggles | `mergeToggleStates()` helper preserves `checkedAt` from `latestData` while keeping structure from `updatedData` | Simple (15 LOC), preserves both toggle + mutation, no breaking changes |
+| Remove reload after toggles | Delete `#invalidateCache()` calls in toggle methods | Toggles are UI-only (don't affect calculations), server is synced, next mutation reload will include toggle |
+| Reject mutex queue | Not implemented | Would block user during mutations (bad UX), unnecessary complexity |
+| Reject CRDT/OT | Not implemented | Overkill for simple last-write-wins on `checkedAt` field |
+
+### Impact
+
+**User Experience:**
+- ✅ Toggles no longer lost during slow mutations
+- ✅ Better performance (no reload after every toggle)
+- ✅ Trust restored (actions don't "disappear")
+
+**Technical:**
+- ✅ 1082/1082 unit tests pass (2 new race condition tests added)
+- ✅ 5/5 E2E cache invalidation tests pass
+- ✅ No breaking changes (mutation behavior unchanged)
+- ✅ Minimal code change (4 lines modified, 15 lines added)
+
+**Code Changes:**
+```typescript
+// frontend/projects/webapp/src/app/feature/current-month/services/current-month-store.ts
+
+// 1. Helper function to merge toggle states (lines 25-48)
+function mergeToggleStates<T extends { id: string; checkedAt: string | null }>(
+  items: T[],
+  latestItems: T[],
+): T[] {
+  const latestCheckedAtMap = new Map(
+    latestItems.map((item) => [item.id, item.checkedAt]),
+  );
+  return items.map((item) => {
+    const latestCheckedAt = latestCheckedAtMap.get(item.id);
+    return latestCheckedAt !== undefined
+      ? { ...item, checkedAt: latestCheckedAt }
+      : item;
+  });
+}
+
+// 2. Apply merge in #performOptimisticMutation (lines 321-334)
+this.#dashboardResource.set({
+  ...updatedData,
+  budgetLines: mergeToggleStates(updatedData.budgetLines, latestData.budgetLines),
+  transactions: mergeToggleStates(updatedData.transactions, latestData.transactions),
+  budget: { /* ... */ }
+});
+
+// 3. Remove cache invalidation from toggles (lines 247, 275)
+// - toggleBudgetLineCheck: removed #invalidateCache() call
+// - toggleTransactionCheck: removed #invalidateCache() call
+```
+
+### Alternative Considered
+
+**Queue-based locking** (rejected): Would serialize all operations, blocking user during mutations. Poor UX for a problem solved simply by merging state.
 
 ---
 

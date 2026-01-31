@@ -12,6 +12,7 @@ import { BudgetCache } from '@core/budget/budget-cache';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { createStaleFallback } from '@core/cache';
 import { Logger } from '@core/logging/logger';
+import { createRolloverLine } from '@core/rollover/rollover-types';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import { StorageService } from '@core/storage/storage.service';
 import { TransactionApi } from '@core/transaction/transaction-api';
@@ -21,6 +22,7 @@ import {
   type BudgetLineUpdate,
   type Transaction,
   type TransactionCreate,
+  BudgetFormulas,
 } from 'pulpe-shared';
 
 import { firstValueFrom } from 'rxjs';
@@ -31,21 +33,12 @@ import {
   calculateBudgetLineToggle,
   calculateTransactionToggle,
 } from './budget-details-check.utils';
-import {
-  createCheckedItemsCount,
-  createDisplayBudgetLines,
-  createFilteredBudgetLines,
-  createFilteredTransactions,
-  createRealizedBalance,
-  createRealizedExpenses,
-  createTotalItemsCount,
-} from './budget-details-selectors';
 import { createInitialBudgetDetailsState } from './budget-details-state';
 import {
   addBudgetLine,
   addTransaction,
   applyToggleResult,
-  patchBudgetLine,
+  updateBudgetLine,
   removeBudgetLine,
   removeTransaction,
   replaceBudgetLine,
@@ -173,38 +166,85 @@ export class BudgetDetailsStore {
 
   // ─── Selectors ─────────────────────────────────────────────────
 
-  readonly #selectorCtx = {
-    budgetDetailsResource: this.#budgetDetailsResource,
-    budgetDetails: this.budgetDetails,
-    rolloverCheckedAt: this.#state.rolloverCheckedAt,
-    isShowingOnlyUnchecked: this.#isShowingOnlyUnchecked,
-  } as const;
+  readonly displayBudgetLines = computed(() => {
+    const details = this.budgetDetails();
+    if (!details) return [];
 
-  readonly displayBudgetLines = createDisplayBudgetLines(this.#selectorCtx);
-  readonly realizedBalance = createRealizedBalance(
-    this.#selectorCtx,
-    this.displayBudgetLines,
-  );
-  readonly realizedExpenses = createRealizedExpenses(
-    this.#selectorCtx,
-    this.displayBudgetLines,
-  );
-  readonly checkedItemsCount = createCheckedItemsCount(
-    this.#selectorCtx,
-    this.displayBudgetLines,
-  );
-  readonly totalItemsCount = createTotalItemsCount(
-    this.#selectorCtx,
-    this.displayBudgetLines,
-  );
-  readonly filteredBudgetLines = createFilteredBudgetLines(
-    this.displayBudgetLines,
-    this.#isShowingOnlyUnchecked,
-  );
-  readonly filteredTransactions = createFilteredTransactions(
-    this.#selectorCtx,
-    this.filteredBudgetLines,
-  );
+    const lines = [...details.budgetLines];
+    const rollover = details.rollover;
+
+    if (rollover !== 0 && rollover !== undefined) {
+      const rolloverLine = createRolloverLine({
+        budgetId: details.id,
+        amount: rollover,
+        month: details.month,
+        year: details.year,
+        previousBudgetId: details.previousBudgetId,
+      });
+      rolloverLine.checkedAt = this.#state.rolloverCheckedAt();
+      lines.unshift(rolloverLine);
+    }
+
+    return lines;
+  });
+
+  readonly realizedBalance = computed(() => {
+    if (!this.#budgetDetailsResource.hasValue()) return 0;
+    const details = this.#budgetDetailsResource.value()!;
+    return BudgetFormulas.calculateRealizedBalance(
+      this.displayBudgetLines(),
+      details.transactions,
+    );
+  });
+
+  readonly realizedExpenses = computed(() => {
+    if (!this.#budgetDetailsResource.hasValue()) return 0;
+    const details = this.#budgetDetailsResource.value()!;
+    return BudgetFormulas.calculateRealizedExpenses(
+      this.displayBudgetLines(),
+      details.transactions,
+    );
+  });
+
+  readonly checkedItemsCount = computed(() => {
+    if (!this.#budgetDetailsResource.hasValue()) return 0;
+    const details = this.#budgetDetailsResource.value()!;
+    const lines = this.displayBudgetLines();
+    const transactions = details.transactions ?? [];
+    return [...lines, ...transactions].filter((item) => item.checkedAt != null)
+      .length;
+  });
+
+  readonly totalItemsCount = computed(() => {
+    if (!this.#budgetDetailsResource.hasValue()) return 0;
+    const details = this.#budgetDetailsResource.value()!;
+    const lines = this.displayBudgetLines();
+    const transactions = details.transactions ?? [];
+    return lines.length + transactions.length;
+  });
+
+  readonly filteredBudgetLines = computed(() => {
+    const lines = this.displayBudgetLines();
+    if (!this.#isShowingOnlyUnchecked()) return lines;
+    return lines.filter((line) => line.checkedAt === null);
+  });
+
+  readonly filteredTransactions = computed(() => {
+    const details = this.budgetDetails();
+    if (!details) return [];
+
+    const transactions = details.transactions ?? [];
+    if (!this.#isShowingOnlyUnchecked()) return transactions;
+
+    const visibleBudgetLineIds = new Set(
+      this.filteredBudgetLines().map((line) => line.id),
+    );
+
+    return transactions.filter((tx) => {
+      if (tx.budgetLineId) return visibleBudgetLineIds.has(tx.budgetLineId);
+      return tx.checkedAt === null;
+    });
+  });
 
   // ─── Mutation Helper ───────────────────────────────────────────
 
@@ -287,7 +327,7 @@ export class BudgetDetailsStore {
 
   async updateBudgetLine(data: BudgetLineUpdate): Promise<void> {
     return this.#runMutation({
-      optimisticUpdate: (d) => patchBudgetLine(d, data),
+      optimisticUpdate: (d) => updateBudgetLine(d, data),
       apiCall: () =>
         firstValueFrom(this.#budgetLineApi.updateBudgetLine$(data.id, data)),
       errorMessage: 'Erreur lors de la modification de la prévision',
