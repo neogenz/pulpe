@@ -58,7 +58,7 @@ extension View {
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Unified app background: static MeshGradient on iOS 26+, premium gradient fallback otherwise
+    /// Unified app background: neutral system background to let glass cards and hero card stand out
     func pulpeBackground() -> some View {
         modifier(PulpeBackgroundModifier())
     }
@@ -73,15 +73,7 @@ extension View {
 
 private struct PulpeBackgroundModifier: ViewModifier {
     func body(content: Content) -> some View {
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, *) {
-            content.background { MeshBackground() }
-        } else {
-            content.background { Color.appPremiumBackground.ignoresSafeArea() }
-        }
-        #else
-        content.background { Color.appPremiumBackground.ignoresSafeArea() }
-        #endif
+        content.background(Color(.systemGroupedBackground).ignoresSafeArea())
     }
 }
 
@@ -89,35 +81,7 @@ private struct PulpeStatusBackgroundModifier: ViewModifier {
     let isDeficit: Bool
 
     func body(content: Content) -> some View {
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, *) {
-            content.background {
-                MeshBackground(tint: isDeficit ? .negative : .positive)
-            }
-        } else {
-            content.background {
-                Group {
-                    if isDeficit {
-                        Color.appNegativeBackground
-                    } else {
-                        Color.appPositiveBackground
-                    }
-                }
-                .ignoresSafeArea()
-            }
-        }
-        #else
-        content.background {
-            Group {
-                if isDeficit {
-                    Color.appNegativeBackground
-                } else {
-                    Color.appPositiveBackground
-                }
-            }
-            .ignoresSafeArea()
-        }
-        #endif
+        content.background(Color(.systemGroupedBackground).ignoresSafeArea())
     }
 }
 
@@ -175,23 +139,30 @@ extension View {
     }
 }
 
-// MARK: - Glass Effect Modifiers (iOS 26+)
+// MARK: - Card Modifiers
 
-private struct GlassEffectModifier: ViewModifier {
+/// Flat card for content (white / dark gray, no shadow)
+private struct CardBackgroundModifier: ViewModifier {
     let cornerRadius: CGFloat
     @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
+        content
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(colorScheme == .dark ? Color(hex: 0x1C1C1E) : .white)
+            )
+    }
+}
+
+/// Liquid Glass for navigation-layer elements (tab bar, floating buttons, toasts)
+private struct GlassEffectModifier: ViewModifier {
+    let cornerRadius: CGFloat
+
+    func body(content: Content) -> some View {
         #if compiler(>=6.2)
         if #available(iOS 26.0, *) {
-            if colorScheme == .dark {
-                content.glassEffect(
-                    .regular.tint(Color.black.opacity(0.2)),
-                    in: .rect(cornerRadius: cornerRadius)
-                )
-            } else {
-                content.glassEffect(.regular.tint(Color.white.opacity(0.3)), in: .rect(cornerRadius: cornerRadius))
-            }
+            content.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
         } else {
             content.background(.ultraThinMaterial, in: .rect(cornerRadius: cornerRadius))
         }
@@ -202,25 +173,13 @@ private struct GlassEffectModifier: ViewModifier {
 }
 
 extension View {
-    /// Glass card background without padding (for cards with custom internal padding)
+    /// Flat card background for content (white in light, dark gray in dark mode)
     func pulpeCardBackground(cornerRadius: CGFloat = DesignTokens.CornerRadius.lg) -> some View {
-        modifier(GlassEffectModifier(cornerRadius: cornerRadius))
+        modifier(CardBackgroundModifier(cornerRadius: cornerRadius))
     }
 
-    /// Glass effect for hero/showcase cards (xl corner radius)
-    func pulpeHeroGlass() -> some View {
-        modifier(GlassEffectModifier(cornerRadius: DesignTokens.CornerRadius.xl))
-    }
-
-    /// Glass effect for floating elements (toasts, overlays)
+    /// Glass effect for floating navigation elements (toasts, overlays)
     func pulpeFloatingGlass(cornerRadius: CGFloat = DesignTokens.CornerRadius.md) -> some View {
         modifier(GlassEffectModifier(cornerRadius: cornerRadius))
-    }
-
-    /// Legacy hero card styling (opaque fallback, kept for compatibility)
-    func pulpeHeroCard() -> some View {
-        self
-            .background(Color.surfaceCard)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.xl))
     }
 }

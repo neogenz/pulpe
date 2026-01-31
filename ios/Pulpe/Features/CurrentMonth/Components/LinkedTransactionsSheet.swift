@@ -177,7 +177,7 @@ struct LinkedTransactionsSheet: View {
                 }
             }
             .background(Color.surfaceCard)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
             .padding(.horizontal)
         }
     }
