@@ -277,14 +277,17 @@ struct BudgetDetailsView: View {
             .listRowSeparator(.hidden)
             .listSectionSeparator(.hidden)
 
-            // Hero balance card - applyGlass: false car le List fournit son propre styling
+            // Hero balance card — edge-to-edge within safe area
             Section {
                 HeroBalanceCard(
                     metrics: viewModel.metrics,
-                    applyGlass: false,
                     onTapProgress: {}
                 )
             }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            .listSectionSeparator(.hidden)
+            .listRowInsets(EdgeInsets())
 
             // Rollover section (toujours en premier)
             if let rolloverInfo = viewModel.rolloverInfo {
