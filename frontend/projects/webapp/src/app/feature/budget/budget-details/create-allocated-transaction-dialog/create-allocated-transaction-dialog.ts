@@ -99,9 +99,7 @@ export interface CreateAllocatedTransactionDialogData {
           />
           <mat-datepicker-toggle matIconSuffix [for]="picker" />
           <mat-datepicker #picker />
-          @if (isCurrentMonth) {
-            <mat-hint>Doit être dans la période en cours</mat-hint>
-          }
+          <mat-hint>Doit être dans la période du budget</mat-hint>
           @if (
             form.get('transactionDate')?.hasError('required') &&
             form.get('transactionDate')?.touched
@@ -112,7 +110,7 @@ export interface CreateAllocatedTransactionDialogData {
             form.get('transactionDate')?.hasError('dateOutOfRange') &&
             form.get('transactionDate')?.touched
           ) {
-            <mat-error>La date doit être dans la période en cours</mat-error>
+            <mat-error>La date doit être dans la période du budget</mat-error>
           }
         </mat-form-field>
       </form>
@@ -147,7 +145,6 @@ export class CreateAllocatedTransactionDialog {
     this.data.budgetYear,
     this.data.payDayOfMonth,
   );
-  readonly isCurrentMonth = this.#dateConstraints.isCurrentMonth;
   readonly minDate = this.#dateConstraints.minDate;
   readonly maxDate = this.#dateConstraints.maxDate;
 
@@ -158,7 +155,7 @@ export class CreateAllocatedTransactionDialog {
       [Validators.required, Validators.min(0.01)],
     ],
     transactionDate: [
-      new Date(),
+      this.#dateConstraints.defaultDate,
       [
         Validators.required,
         createDateRangeValidator(this.minDate, this.maxDate),
@@ -174,18 +171,14 @@ export class CreateAllocatedTransactionDialog {
     if (this.form.invalid) return;
 
     const formValue = this.form.getRawValue();
-    const transactionDate =
-      formValue.transactionDate instanceof Date
-        ? formatLocalDate(formValue.transactionDate)
-        : formatLocalDate(new Date());
 
     const transaction: TransactionCreate = {
       budgetId: this.data.budgetLine.budgetId,
       budgetLineId: this.data.budgetLine.id,
       name: formValue.name!.trim(),
-      amount: Math.abs(formValue.amount!),
+      amount: formValue.amount!,
       kind: this.data.budgetLine.kind,
-      transactionDate,
+      transactionDate: formatLocalDate(formValue.transactionDate as Date),
       category: null,
     };
 

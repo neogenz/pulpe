@@ -3,12 +3,12 @@ import type {
   ValidationErrors,
   ValidatorFn,
 } from '@angular/forms';
-import { getBudgetPeriodDates, getBudgetPeriodForDate } from 'pulpe-shared';
+import { getBudgetPeriodDates } from 'pulpe-shared';
 
 export interface BudgetPeriodDateConstraints {
-  isCurrentMonth: boolean;
-  minDate: Date | undefined;
-  maxDate: Date | undefined;
+  minDate: Date;
+  maxDate: Date;
+  defaultDate: Date;
 }
 
 export function computeBudgetPeriodDateConstraints(
@@ -16,21 +16,17 @@ export function computeBudgetPeriodDateConstraints(
   budgetYear: number,
   payDayOfMonth: number | null,
 ): BudgetPeriodDateConstraints {
-  const currentPeriod = getBudgetPeriodForDate(new Date(), payDayOfMonth);
-  const isCurrentMonth =
-    budgetMonth === currentPeriod.month && budgetYear === currentPeriod.year;
-
-  if (!isCurrentMonth) {
-    return { isCurrentMonth, minDate: undefined, maxDate: undefined };
-  }
-
   const { startDate, endDate } = getBudgetPeriodDates(
     budgetMonth,
     budgetYear,
     payDayOfMonth,
   );
 
-  return { isCurrentMonth, minDate: startDate, maxDate: endDate };
+  const today = new Date();
+  const defaultDate =
+    today >= startDate && today <= endDate ? today : startDate;
+
+  return { minDate: startDate, maxDate: endDate, defaultDate };
 }
 
 export function createDateRangeValidator(
@@ -39,7 +35,8 @@ export function createDateRangeValidator(
 ): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
     const value = control.value;
-    if (!value || !(value instanceof Date)) return null;
+    if (!value || !(value instanceof Date) || isNaN(value.getTime()))
+      return null;
     if (!min && !max) return null;
 
     const time = value.getTime();

@@ -10,40 +10,41 @@ describe('computeBudgetPeriodDateConstraints', () => {
     vi.useRealTimers();
   });
 
-  it('should return isCurrentMonth true with min/max dates for current month budget', () => {
+  it('should return min/max dates for current month budget', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 0, 15)); // 15 Jan 2026
 
     const result = computeBudgetPeriodDateConstraints(1, 2026, null);
 
-    expect(result.isCurrentMonth).toBe(true);
     expect(result.minDate).toBeDefined();
     expect(result.maxDate).toBeDefined();
-    expect(result.minDate!.getTime()).toBeLessThanOrEqual(
-      result.maxDate!.getTime(),
+    expect(result.minDate.getTime()).toBeLessThanOrEqual(
+      result.maxDate.getTime(),
     );
   });
 
-  it('should return isCurrentMonth false with undefined dates for past month', () => {
+  it('should return min/max dates for past month budget', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 0, 15)); // 15 Jan 2026
 
     const result = computeBudgetPeriodDateConstraints(6, 2025, null);
 
-    expect(result.isCurrentMonth).toBe(false);
-    expect(result.minDate).toBeUndefined();
-    expect(result.maxDate).toBeUndefined();
+    expect(result.minDate).toBeDefined();
+    expect(result.maxDate).toBeDefined();
+    expect(result.minDate.getMonth()).toBe(5); // June (0-indexed)
+    expect(result.maxDate.getMonth()).toBe(5);
   });
 
-  it('should return isCurrentMonth false with undefined dates for future month', () => {
+  it('should return min/max dates for future month budget', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 0, 15)); // 15 Jan 2026
 
     const result = computeBudgetPeriodDateConstraints(3, 2026, null);
 
-    expect(result.isCurrentMonth).toBe(false);
-    expect(result.minDate).toBeUndefined();
-    expect(result.maxDate).toBeUndefined();
+    expect(result.minDate).toBeDefined();
+    expect(result.maxDate).toBeDefined();
+    expect(result.minDate.getMonth()).toBe(2); // March (0-indexed)
+    expect(result.maxDate.getMonth()).toBe(2);
   });
 
   it('should handle year boundary with null payDayOfMonth', () => {
@@ -52,7 +53,6 @@ describe('computeBudgetPeriodDateConstraints', () => {
 
     const result = computeBudgetPeriodDateConstraints(12, 2025, null);
 
-    expect(result.isCurrentMonth).toBe(true);
     expect(result.minDate).toBeDefined();
     expect(result.maxDate).toBeDefined();
   });
@@ -62,13 +62,11 @@ describe('computeBudgetPeriodDateConstraints', () => {
     vi.setSystemTime(new Date(2026, 0, 10)); // 10 Jan 2026
 
     // payDay=5, first half: period is named after start month
-    // Current date Jan 10, payDay 5 → current period = Jan 2026
     const result = computeBudgetPeriodDateConstraints(1, 2026, 5);
 
-    expect(result.isCurrentMonth).toBe(true);
     expect(result.minDate).toBeDefined();
     expect(result.maxDate).toBeDefined();
-    expect(result.minDate!.getDate()).toBe(5);
+    expect(result.minDate.getDate()).toBe(5);
   });
 
   it('should handle custom payDayOfMonth in second half of month', () => {
@@ -76,14 +74,11 @@ describe('computeBudgetPeriodDateConstraints', () => {
     vi.setSystemTime(new Date(2025, 5, 27)); // 27 Jun 2025
 
     // payDay=25, second half: period named after end month
-    // Current date Jun 27, payDay 25 → dayOfMonth >= payDay → resultMonth = Jun
-    // payDay > 15 → add 1 month → current period = Jul 2025
     const result = computeBudgetPeriodDateConstraints(7, 2025, 25);
 
-    expect(result.isCurrentMonth).toBe(true);
     expect(result.minDate).toBeDefined();
     expect(result.maxDate).toBeDefined();
-    expect(result.minDate!.getDate()).toBe(25);
+    expect(result.minDate.getDate()).toBe(25);
   });
 
   it('should return correct period dates for standard calendar month', () => {
@@ -92,11 +87,40 @@ describe('computeBudgetPeriodDateConstraints', () => {
 
     const result = computeBudgetPeriodDateConstraints(3, 2026, null);
 
-    expect(result.isCurrentMonth).toBe(true);
-    expect(result.minDate!.getMonth()).toBe(2); // March (0-indexed)
-    expect(result.minDate!.getDate()).toBe(1);
-    expect(result.maxDate!.getMonth()).toBe(2);
-    expect(result.maxDate!.getDate()).toBe(31);
+    expect(result.minDate.getMonth()).toBe(2); // March (0-indexed)
+    expect(result.minDate.getDate()).toBe(1);
+    expect(result.maxDate.getMonth()).toBe(2);
+    expect(result.maxDate.getDate()).toBe(31);
+  });
+
+  it('should return correct period dates for past month with payDay', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 15)); // 15 Jun 2026
+
+    // payDay=10, budget for March 2026
+    const result = computeBudgetPeriodDateConstraints(3, 2026, 10);
+
+    expect(result.minDate).toBeDefined();
+    expect(result.maxDate).toBeDefined();
+    expect(result.minDate.getDate()).toBe(10);
+  });
+
+  it('should return today as defaultDate when today is within the period', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 0, 15)); // 15 Jan 2026
+
+    const result = computeBudgetPeriodDateConstraints(1, 2026, null);
+
+    expect(result.defaultDate.getTime()).toBe(new Date(2026, 0, 15).getTime());
+  });
+
+  it('should return minDate as defaultDate when today is outside the period', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 15)); // 15 Jun 2026
+
+    const result = computeBudgetPeriodDateConstraints(3, 2026, null);
+
+    expect(result.defaultDate.getTime()).toBe(result.minDate.getTime());
   });
 });
 
@@ -176,6 +200,16 @@ describe('createDateRangeValidator', () => {
     const validator = createDateRangeValidator(new Date(2026, 0, 1), undefined);
 
     const control = new FormControl(new Date(2027, 0, 1));
+
+    expect(validator(control)).toBeNull();
+  });
+
+  it('should return null when date is invalid', () => {
+    const min = new Date(2026, 0, 1);
+    const max = new Date(2026, 0, 31);
+    const validator = createDateRangeValidator(min, max);
+
+    const control = new FormControl(new Date('invalid'));
 
     expect(validator(control)).toBeNull();
   });
