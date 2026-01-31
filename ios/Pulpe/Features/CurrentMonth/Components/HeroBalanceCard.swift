@@ -10,36 +10,26 @@ struct HeroBalanceCard: View {
 
     // MARK: - Computed Properties
 
-    private var isOverBudget: Bool {
-        metrics.remaining < 0
-    }
-
-    private var expenseRatio: Double {
-        guard metrics.available > 0 else { return 1 }
-        return Double(truncating: (metrics.totalExpenses / metrics.available) as NSDecimalNumber)
-    }
-
     private var progressPercentage: Double {
-        min(max(expenseRatio, 0), 1)
+        min(max(metrics.usagePercentage / 100, 0), 1)
     }
 
     private var displayPercentage: Int {
-        Int(expenseRatio * 100)
+        Int(metrics.usagePercentage)
     }
 
     private var progressColor: Color {
-        if isOverBudget { return .financialOverBudget }
+        if metrics.isDeficit { return .financialOverBudget }
         if progressPercentage >= 0.80 { return .orange }
         return .pulpePrimary
     }
 
     private var balanceColor: Color {
-        isOverBudget ? .financialOverBudget : .primary
+        metrics.isDeficit ? .financialOverBudget : .primary
     }
 
     // MARK: - Body
 
-    @ViewBuilder
     var body: some View {
         let content = VStack(spacing: DesignTokens.Spacing.xl) {
             // Main balance section
@@ -61,37 +51,33 @@ struct HeroBalanceCard: View {
     // MARK: - Balance Section
 
     private var balanceSection: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 6) {
+        HStack(alignment: .center, spacing: DesignTokens.Spacing.xxl) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text("Disponible")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    .font(.callout.weight(.medium))
                     .foregroundStyle(.secondary)
 
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(metrics.remaining.formatted(.number.precision(.fractionLength(0...2))))
-                        .font(PulpeTypography.amountHero)
-                        .foregroundStyle(balanceColor)
-                        .contentTransition(.numericText())
-                        .accessibilityLabel(metrics.remaining.asCHF)
+                Text(metrics.remaining.formatted(.number.precision(.fractionLength(0...2)).locale(Locale(identifier: "de_CH"))))
+                    .font(.system(size: 40, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(balanceColor)
+                    .contentTransition(.numericText())
+                    .accessibilityLabel(metrics.remaining.asCHF)
 
-                }
-
-                if isOverBudget {
-                    Label("Tu as dépassé ton budget — ça arrive", systemImage: "info.circle.fill")
+                if metrics.isDeficit {
+                    Label("Budget dépassé", systemImage: "info.circle.fill")
                         .font(.caption)
                         .fontWeight(.medium)
                         .foregroundStyle(Color.financialOverBudget)
                 } else if let days = daysRemaining, let daily = dailyBudget, daily > 0 {
-                    Text("\(days) jours restants · ~\(daily.asCompactCHF)/jour")
+                    Text("\(days) jours · ~\(daily.asCompactCHF)/jour")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.tertiary)
                 }
             }
 
             Spacer()
 
-            // Circular progress indicator
             progressIndicator
         }
     }
@@ -102,26 +88,29 @@ struct HeroBalanceCard: View {
         Button(action: onTapProgress) {
             ZStack {
                 Circle()
-                    .stroke(Color.progressTrack, lineWidth: DesignTokens.ProgressBar.circularLineWidth)
+                    .stroke(Color.progressTrack, lineWidth: 10)
 
                 Circle()
                     .trim(from: 0, to: CGFloat(progressPercentage))
-                    .stroke(progressColor, style: StrokeStyle(lineWidth: DesignTokens.ProgressBar.circularLineWidth, lineCap: .round))
+                    .stroke(
+                        progressColor.gradient,
+                        style: StrokeStyle(lineWidth: 10, lineCap: .round)
+                    )
                     .rotationEffect(.degrees(-90))
                     .animation(.spring(duration: 0.6), value: progressPercentage)
 
-                HStack(spacing: 2) {
+                VStack(spacing: 0) {
                     Text("\(displayPercentage)")
-                        .font(PulpeTypography.progressValue)
+                        .font(.system(.title2, design: .rounded, weight: .bold))
+                        .monospacedDigit()
                         .foregroundStyle(progressColor)
                         .contentTransition(.numericText())
-
                     Text("%")
-                        .font(PulpeTypography.progressUnit)
+                        .font(.caption2.weight(.medium))
                         .foregroundStyle(.secondary)
                 }
             }
-            .frame(width: 64, height: 64)
+            .frame(width: 88, height: 88)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Voir le détail des dépenses")
