@@ -62,9 +62,14 @@ extension View {
     func pulpeBackground() -> some View {
         modifier(PulpeBackgroundModifier())
     }
+
+    /// Status-tinted background for budget details: green (positive) or amber (negative)
+    func pulpeStatusBackground(isDeficit: Bool) -> some View {
+        modifier(PulpeStatusBackgroundModifier(isDeficit: isDeficit))
+    }
 }
 
-// MARK: - Background Modifier
+// MARK: - Background Modifiers
 
 private struct PulpeBackgroundModifier: ViewModifier {
     func body(content: Content) -> some View {
@@ -76,6 +81,42 @@ private struct PulpeBackgroundModifier: ViewModifier {
         }
         #else
         content.background { Color.appPremiumBackground.ignoresSafeArea() }
+        #endif
+    }
+}
+
+private struct PulpeStatusBackgroundModifier: ViewModifier {
+    let isDeficit: Bool
+
+    func body(content: Content) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            content.background {
+                MeshBackground(tint: isDeficit ? .negative : .positive)
+            }
+        } else {
+            content.background {
+                Group {
+                    if isDeficit {
+                        Color.appNegativeBackground
+                    } else {
+                        Color.appPositiveBackground
+                    }
+                }
+                .ignoresSafeArea()
+            }
+        }
+        #else
+        content.background {
+            Group {
+                if isDeficit {
+                    Color.appNegativeBackground
+                } else {
+                    Color.appPositiveBackground
+                }
+            }
+            .ignoresSafeArea()
+        }
         #endif
     }
 }
