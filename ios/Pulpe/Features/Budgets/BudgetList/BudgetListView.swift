@@ -161,10 +161,30 @@ struct YearSection: View {
         budgets.first { $0.isCurrentMonth }
     }
 
-    /// All visible months except the current month (shown in hero)
-    private var gridMonths: [MonthSlot] {
-        guard currentMonthBudget != nil else { return visibleMonths }
-        return visibleMonths.filter { !($0.budget?.isCurrentMonth == true) }
+    /// Current month number (for splitting the timeline)
+    private var currentMonthNumber: Int {
+        Calendar.current.component(.month, from: Date())
+    }
+
+    /// Months before the current month
+    private var monthsBefore: [MonthSlot] {
+        visibleMonths.filter { slot in
+            if slot.budget?.isCurrentMonth == true { return false }
+            return slot.month < currentMonthNumber
+        }
+    }
+
+    /// Months after the current month
+    private var monthsAfter: [MonthSlot] {
+        visibleMonths.filter { slot in
+            if slot.budget?.isCurrentMonth == true { return false }
+            return slot.month > currentMonthNumber
+        }
+    }
+
+    /// All non-current months (used when no current month exists in this year)
+    private var allMonths: [MonthSlot] {
+        visibleMonths.filter { !($0.budget?.isCurrentMonth == true) }
     }
 
     /// Last month's remaining (year-end position)
@@ -180,22 +200,34 @@ struct YearSection: View {
 
             if isExpanded {
                 VStack(spacing: 12) {
-                    // Hero card for current month
-                    if let current = currentMonthBudget {
-                        CurrentMonthHeroCard(budget: current) {
-                            onSelect(current)
+                    if currentMonthBudget != nil {
+                        // Timeline layout: before → hero → after
+                        if !monthsBefore.isEmpty {
+                            monthListCard(months: monthsBefore, baseIndex: 0)
                         }
-                        .opacity(cardsAppeared ? 1 : 0)
-                        .scaleEffect(cardsAppeared ? 1 : 0.95)
-                        .animation(
-                            .spring(response: 0.45, dampingFraction: 0.8),
-                            value: cardsAppeared
-                        )
-                    }
 
-                    // Grid of other months
-                    if !gridMonths.isEmpty {
-                        monthGrid
+                        if let current = currentMonthBudget {
+                            CurrentMonthHeroCard(budget: current) {
+                                onSelect(current)
+                            }
+                            .opacity(cardsAppeared ? 1 : 0)
+                            .scaleEffect(cardsAppeared ? 1 : 0.95)
+                            .animation(
+                                .spring(response: 0.45, dampingFraction: 0.8)
+                                    .delay(Double(monthsBefore.count) * 0.04),
+                                value: cardsAppeared
+                            )
+                        }
+
+                        if !monthsAfter.isEmpty {
+                            monthListCard(
+                                months: monthsAfter,
+                                baseIndex: monthsBefore.count + 1
+                            )
+                        }
+                    } else if !allMonths.isEmpty {
+                        // No current month in this year — show all months as a single list
+                        monthListCard(months: allMonths, baseIndex: 0)
                     }
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
@@ -268,36 +300,40 @@ struct YearSection: View {
         .accessibilityHint(isExpanded ? "Appuie pour réduire" : "Appuie pour développer")
     }
 
-    // MARK: - Month Grid
+    // MARK: - Month List Card
 
-    private var monthGrid: some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible(), spacing: 12),
-            GridItem(.flexible(), spacing: 12),
-            GridItem(.flexible(), spacing: 12)
-        ], spacing: 12) {
-            ForEach(Array(gridMonths.enumerated()), id: \.element.month) { index, slot in
+    private func monthListCard(months: [MonthSlot], baseIndex: Int) -> some View {
+        VStack(spacing: 0) {
+            ForEach(Array(months.enumerated()), id: \.element.month) { index, slot in
                 if let budget = slot.budget {
-                    BudgetMonthCard(budget: budget) {
+                    BudgetMonthRow(budget: budget) {
                         onSelect(budget)
                     }
                     .opacity(cardsAppeared ? 1 : 0)
-                    .scaleEffect(cardsAppeared ? 1 : 0.9)
+                    .offset(y: cardsAppeared ? 0 : 8)
                     .animation(
-                        .spring(response: 0.4, dampingFraction: 0.75).delay(Double(index) * 0.045),
+                        .spring(response: 0.4, dampingFraction: 0.8)
+                            .delay(Double(baseIndex + index) * 0.04),
                         value: cardsAppeared
                     )
                 } else {
                     NextMonthPlaceholder(month: slot.month, year: year)
                         .opacity(cardsAppeared ? 1 : 0)
-                        .scaleEffect(cardsAppeared ? 1 : 0.95)
+                        .offset(y: cardsAppeared ? 0 : 8)
                         .animation(
-                            .spring(response: 0.4, dampingFraction: 0.8).delay(Double(index) * 0.045),
+                            .spring(response: 0.4, dampingFraction: 0.8)
+                                .delay(Double(baseIndex + index) * 0.04),
                             value: cardsAppeared
                         )
                 }
+
+                if index < months.count - 1 {
+                    Divider()
+                        .padding(.leading, 16)
+                }
             }
         }
+        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.lg)
     }
 }
 
@@ -375,26 +411,20 @@ struct CurrentMonthHeroCard: View {
     }
 }
 
-// MARK: - Budget Month Card
+// MARK: - Budget Month Row
 
-struct BudgetMonthCard: View {
+struct BudgetMonthRow: View {
     let budget: BudgetSparse
     let onTap: () -> Void
 
-    @State private var isPressed = false
-
     private var monthName: String {
         guard let month = budget.month, month >= 1, month <= 12 else { return "—" }
-        return Formatters.shortMonth.shortMonthSymbols[month - 1].capitalized
+        return Formatters.monthYear.monthSymbols[month - 1].capitalized
     }
 
     private var isPastMonth: Bool {
         guard let month = budget.month, let year = budget.year else { return false }
         return Date.isPast(month: month, year: year)
-    }
-
-    private var isNegative: Bool {
-        (budget.remaining ?? 0) < 0
     }
 
     private var amountColor: Color {
@@ -407,32 +437,29 @@ struct BudgetMonthCard: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 8) {
+            HStack(spacing: 12) {
                 Text(monthName)
-                    .font(.system(.footnote, design: .rounded, weight: .medium))
-                    .foregroundStyle(.secondary)
+                    .font(.system(.body, design: .rounded, weight: .medium))
+                    .foregroundStyle(isPastMonth ? .secondary : .primary)
+
+                Spacer()
 
                 if let remaining = budget.remaining {
                     Text(remaining.asCompactCHF)
-                        .font(.system(.callout, design: .rounded, weight: .bold))
+                        .font(.system(.callout, design: .rounded, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(amountColor)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
                 }
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.quaternary)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .padding(.horizontal, 8)
-            .background(Color.surfaceCard.opacity(0.6), in: .rect(cornerRadius: DesignTokens.CornerRadius.md))
-            .scaleEffect(isPressed ? 0.96 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .opacity(isPastMonth ? 0.55 : 1)
-        .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
-            isPressed = pressing
-        }, perform: {})
         .accessibilityLabel("\(monthName), solde \(budget.remaining?.asCompactCHF ?? "non défini")")
         .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)
@@ -446,29 +473,27 @@ struct NextMonthPlaceholder: View {
     let year: Int
 
     private var monthName: String {
-        Formatters.shortMonth.shortMonthSymbols[month - 1].capitalized
+        Formatters.monthYear.monthSymbols[month - 1].capitalized
     }
 
     var body: some View {
-        VStack(spacing: 8) {
+        HStack(spacing: 12) {
             Text(monthName)
-                .font(.system(.footnote, design: .rounded, weight: .medium))
+                .font(.system(.body, design: .rounded, weight: .medium))
                 .foregroundStyle(.tertiary)
 
-            Image(systemName: "plus")
-                .font(.system(.callout, weight: .medium))
+            Spacer()
+
+            Text("Pas de budget")
+                .font(.system(.subheadline, design: .rounded))
                 .foregroundStyle(.quaternary)
+
+            Image(systemName: "plus.circle")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(Color.pulpePrimary.opacity(0.5))
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .padding(.horizontal, 8)
-        .background(
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                .strokeBorder(
-                    Color.pulpePrimary.opacity(0.2),
-                    style: StrokeStyle(lineWidth: 1, dash: [5, 4])
-                )
-        )
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
         .accessibilityLabel("\(monthName), aucun budget")
         .accessibilityAddTraits(.isStaticText)
     }
