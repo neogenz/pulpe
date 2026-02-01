@@ -34,6 +34,14 @@ export class ClientKeyService {
     this.#persistToSessionStorage(keyHex);
   }
 
+  setDirectKey(keyHex: string): void {
+    if (!isValidClientKeyHex(keyHex)) {
+      throw new Error('Invalid client key hex');
+    }
+    this.#clientKeyHex.set(keyHex);
+    this.#persistToSessionStorage(keyHex);
+  }
+
   clear(): void {
     this.#clientKeyHex.set(null);
     try {

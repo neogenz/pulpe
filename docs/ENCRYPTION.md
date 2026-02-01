@@ -47,9 +47,15 @@ Chaque table a une colonne `amount_encrypted` (ou équivalent) à côté de la c
 | `savings_goal` | `target_amount` | `target_amount_encrypted` |
 | `monthly_budget` | `ending_balance` | `ending_balance_encrypted` |
 
-Quand le chiffrement est actif (clientKey présent), les colonnes en clair contiennent `0` et seules les colonnes `*_encrypted` contiennent les montants réels. En mode démo (pas de clientKey), les montants réels sont écrits en clair.
+Quand le chiffrement est actif (clientKey présent), les colonnes en clair contiennent `0` et seules les colonnes `*_encrypted` contiennent les montants réels.
 
-> **Important :** Une fois les colonnes plaintext à 0, "mot de passe oublié" = perte d'accès aux montants. Une **recovery key** est prévue avant la suppression définitive des colonnes en clair.
+## Mode démo
+
+Le mode démo utilise un `clientKey` déterministe (`DEMO_CLIENT_KEY`) pour emprunter le même chemin de code que les vrais utilisateurs. Ce n'est pas un secret — les données démo sont publiques.
+
+- **Frontend** : `DEMO_CLIENT_KEY` est défini dans `crypto.utils.ts` et injecté via `ClientKeyService.setDirectKey()` à l'activation du mode démo.
+- **Backend** : reçoit le clientKey via le header `X-Client-Key` comme n'importe quel utilisateur. La DEK est dérivée normalement.
+- **Backfill** : les données de seed (insérées sans encryption) sont chiffrées automatiquement lors de la première requête grâce au `EncryptionBackfillInterceptor`.
 
 ## Flux requête typique
 
@@ -74,6 +80,47 @@ Quand un utilisateur change son mot de passe, son `clientKey` change. Il faut do
 3. Toutes les données sont déchiffrées avec l'ancienne DEK et re-chiffrées avec la nouvelle
 4. L'opération est atomique côté SQL via la RPC `rekey_user_encrypted_data`
 5. En cas d'échec, le salt est restauré à sa valeur précédente
+
+## Recovery key
+
+La recovery key permet de récupérer l'accès aux données chiffrées si l'utilisateur oublie son mot de passe.
+
+### Architecture
+
+```
+Setup (depuis les paramètres) :
+  1. recoveryKey = randomBytes(32)                      // affiché une fois
+  2. wrappedDEK = AES-256-GCM(DEK, recoveryKey)        // DEK chiffrée
+  3. Stocker wrappedDEK dans user_encryption_key.wrapped_dek
+
+Recovery (mot de passe oublié) :
+  1. User fournit recoveryKey + nouveau mot de passe
+  2. DEK = AES-GCM-decrypt(wrappedDEK, recoveryKey)
+  3. Nouveau clientKey dérivé du nouveau mot de passe
+  4. Nouveau salt, nouvelle DEK' = HKDF(newClientKey + masterKey, newSalt)
+  5. Re-chiffrer toutes les données avec DEK'
+  6. Nouveau wrappedDEK' = AES-GCM(DEK', recoveryKey)
+```
+
+### Format (UX)
+
+- 32 bytes encodés en **base32 groupé** : `XXXX-XXXX-XXXX-XXXX-...`
+- Pas d'ambiguïté 0/O, 1/l (alphabet RFC 4648)
+- Confirmation obligatoire (coller la clé) avant fermeture de la modal
+
+### Sécurité
+
+- La recovery key n'est **jamais stockée** côté serveur (seul `wrappedDEK` l'est)
+- Le serveur ne peut pas déchiffrer `wrappedDEK` sans la recovery key
+- Rate limiting sur `/v1/encryption/recover` (5 tentatives/heure)
+- Après un changement de mot de passe, `wrappedDEK` est invalidé (l'utilisateur doit re-générer une recovery key)
+
+### Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /v1/encryption/setup-recovery` | Génère une recovery key, wrap la DEK, stocke `wrapped_dek` |
+| `POST /v1/encryption/recover` | Recovery key + nouveau clientKey → rekey complet |
 
 ## Sécurité de la table `user_encryption_key`
 
@@ -126,9 +173,13 @@ Si la validation échoue, le serveur refuse de démarrer.
 
 | Fichier | Rôle |
 |---------|------|
-| `encryption.service.ts` | Dérivation DEK, chiffrement/déchiffrement AES-GCM, gestion du cache |
-| `encryption-key.repository.ts` | CRUD de la table `user_encryption_key` |
+| `encryption.service.ts` | Dérivation DEK, chiffrement/déchiffrement AES-GCM, wrap/unwrap DEK, cache |
+| `encryption-key.repository.ts` | CRUD de la table `user_encryption_key` (salt, wrapped_dek) |
 | `encryption-rekey.service.ts` | Re-chiffrement de toutes les données lors d'un changement de mot de passe |
-| `encryption.controller.ts` | Endpoints `/salt` et `/password-change` |
+| `encryption.controller.ts` | Endpoints `/salt`, `/password-change`, `/setup-recovery`, `/recover` |
 | `client-key-cleanup.interceptor.ts` | Efface le clientKey de la mémoire après chaque requête |
+| `encryption-backfill.interceptor.ts` | Chiffre les données plaintext existantes à la première requête |
 | `auth.guard.ts` | Extrait et valide le `X-Client-Key` du header |
+| `crypto.utils.ts` (frontend) | Dérivation PBKDF2, `DEMO_CLIENT_KEY` |
+| `client-key.service.ts` (frontend) | Gestion du clientKey en sessionStorage |
+| `recovery-key-dialog.ts` (frontend) | Modal d'affichage et confirmation de la recovery key |

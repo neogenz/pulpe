@@ -18,6 +18,9 @@ const KDF_ITERATIONS = 600_000;
 const HKDF_DIGEST = 'sha256';
 const DEK_CACHE_TTL_MS = 5 * 60 * 1000;
 
+// Base32 alphabet (RFC 4648, no padding) — avoids 0/O and 1/l ambiguity
+const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+
 interface CachedDEK {
   dek: Buffer;
   expiry: number;
@@ -197,6 +200,99 @@ export class EncryptionService {
     }
   }
 
+  generateRecoveryKey(): { raw: Buffer; formatted: string } {
+    const raw = randomBytes(KEY_LENGTH);
+    const formatted = formatRecoveryKey(encodeBase32(raw));
+    return { raw, formatted };
+  }
+
+  wrapDEK(dek: Buffer, recoveryKey: Buffer): string {
+    const iv = randomBytes(IV_LENGTH);
+    const cipher = createCipheriv(ALGORITHM, recoveryKey, iv, {
+      authTagLength: AUTH_TAG_LENGTH,
+    });
+    const encrypted = Buffer.concat([cipher.update(dek), cipher.final()]);
+    const authTag = cipher.getAuthTag();
+    return Buffer.concat([iv, authTag, encrypted]).toString('base64');
+  }
+
+  unwrapDEK(wrappedDEK: string, recoveryKey: Buffer): Buffer {
+    const payload = Buffer.from(wrappedDEK, 'base64');
+    const iv = payload.subarray(0, IV_LENGTH);
+    const authTag = payload.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH);
+    const encrypted = payload.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
+
+    const decipher = createDecipheriv(ALGORITHM, recoveryKey, iv, {
+      authTagLength: AUTH_TAG_LENGTH,
+    });
+    decipher.setAuthTag(authTag);
+
+    const dek = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+
+    if (dek.length !== KEY_LENGTH) {
+      throw new Error('Unwrapped DEK has invalid length');
+    }
+    return dek;
+  }
+
+  async setupRecoveryKey(
+    userId: string,
+    clientKey: Buffer,
+  ): Promise<{ formatted: string }> {
+    const dek = await this.getUserDEK(userId, clientKey);
+    const { raw, formatted } = this.generateRecoveryKey();
+
+    const wrappedDEK = this.wrapDEK(dek, raw);
+    await this.#repository.updateWrappedDEK(userId, wrappedDEK);
+
+    // Zero recovery key from memory — caller receives only the formatted string
+    raw.fill(0);
+
+    return { formatted };
+  }
+
+  async recoverWithKey(
+    userId: string,
+    recoveryKeyFormatted: string,
+    newClientKey: Buffer,
+    reEncryptUserData: (oldDek: Buffer, newDek: Buffer) => Promise<void>,
+  ): Promise<void> {
+    const row = await this.#repository.findByUserId(userId);
+    if (!row?.wrapped_dek) {
+      throw new Error('No recovery key configured for this user');
+    }
+
+    const recoveryKey = decodeBase32(recoveryKeyFormatted.replace(/-/g, ''));
+    if (recoveryKey.length !== KEY_LENGTH) {
+      throw new Error('Invalid recovery key format');
+    }
+
+    const oldDek = this.unwrapDEK(row.wrapped_dek, recoveryKey);
+
+    // Generate new salt and derive new DEK
+    const newSalt = randomBytes(SALT_LENGTH);
+    const newDek = this.#deriveDEK(newClientKey, newSalt, userId);
+
+    this.#invalidateUserDEKCache(userId);
+    await this.#repository.updateSalt(userId, newSalt.toString('hex'));
+
+    try {
+      await reEncryptUserData(oldDek, newDek);
+    } catch (error) {
+      await this.#repository.updateSalt(userId, row.salt);
+      throw error;
+    }
+
+    // Wrap new DEK with the same recovery key
+    const newWrappedDEK = this.wrapDEK(newDek, recoveryKey);
+    await this.#repository.updateWrappedDEK(userId, newWrappedDEK);
+
+    // Zero sensitive material
+    recoveryKey.fill(0);
+    oldDek.fill(0);
+    newDek.fill(0);
+  }
+
   async #executePasswordChange(
     userId: string,
     oldClientKey: Buffer,
@@ -214,38 +310,48 @@ export class EncryptionService {
     const newSalt = randomBytes(SALT_LENGTH);
     const newDek = this.#deriveDEK(newClientKey, newSalt, userId);
 
-    // Invalidate cached DEKs BEFORE salt update to prevent concurrent requests
-    // from using stale cache during re-encryption window
-    for (const key of this.#dekCache.keys()) {
-      if (key.startsWith(`${userId}:`)) {
-        this.#dekCache.delete(key);
-      }
-    }
+    this.#invalidateUserDEKCache(userId);
 
-    // Update salt BEFORE re-encryption for atomicity.
-    // If re-encryption fails, rollback salt to old value.
     await this.#repository.updateSalt(userId, newSalt.toString('hex'));
 
     try {
       await reEncryptUserData(oldDek, newDek);
     } catch (error) {
-      try {
-        await this.#repository.updateSalt(userId, oldSalt.toString('hex'));
-      } catch (rollbackError) {
-        this.#logger.error(
-          {
-            userId,
-            originalError:
-              error instanceof Error ? error.message : String(error),
-            rollbackError:
-              rollbackError instanceof Error
-                ? rollbackError.message
-                : String(rollbackError),
-          },
-          'Salt rollback failed after re-encryption error',
-        );
-      }
+      await this.#rollbackSalt(userId, oldSalt.toString('hex'), error);
       throw error;
+    }
+
+    // DEK changed but we don't have the recovery key to re-wrap
+    await this.#repository.updateWrappedDEK(userId, null);
+  }
+
+  #invalidateUserDEKCache(userId: string): void {
+    for (const key of this.#dekCache.keys()) {
+      if (key.startsWith(`${userId}:`)) {
+        this.#dekCache.delete(key);
+      }
+    }
+  }
+
+  async #rollbackSalt(
+    userId: string,
+    originalSaltHex: string,
+    error: unknown,
+  ): Promise<void> {
+    try {
+      await this.#repository.updateSalt(userId, originalSaltHex);
+    } catch (rollbackError) {
+      this.#logger.error(
+        {
+          userId,
+          originalError: error instanceof Error ? error.message : String(error),
+          rollbackError:
+            rollbackError instanceof Error
+              ? rollbackError.message
+              : String(rollbackError),
+        },
+        'Salt rollback failed after re-encryption error',
+      );
     }
   }
 
@@ -302,4 +408,51 @@ export class EncryptionService {
     const salt = randomBytes(SALT_LENGTH).toString('hex');
     return { salt, kdfIterations: KDF_ITERATIONS };
   }
+}
+
+function encodeBase32(buffer: Buffer): string {
+  let bits = 0;
+  let value = 0;
+  let result = '';
+
+  for (const byte of buffer) {
+    value = (value << 8) | byte;
+    bits += 8;
+    while (bits >= 5) {
+      bits -= 5;
+      result += BASE32_ALPHABET[(value >>> bits) & 0x1f];
+    }
+  }
+  if (bits > 0) {
+    result += BASE32_ALPHABET[(value << (5 - bits)) & 0x1f];
+  }
+  return result;
+}
+
+function decodeBase32(encoded: string): Buffer {
+  let bits = 0;
+  let value = 0;
+  const bytes: number[] = [];
+
+  for (const char of encoded.toUpperCase()) {
+    const index = BASE32_ALPHABET.indexOf(char);
+    if (index === -1) {
+      throw new Error(`Invalid base32 character: ${char}`);
+    }
+    value = (value << 5) | index;
+    bits += 5;
+    if (bits >= 8) {
+      bits -= 8;
+      bytes.push((value >>> bits) & 0xff);
+    }
+  }
+  return Buffer.from(bytes);
+}
+
+function formatRecoveryKey(base32: string): string {
+  const groups: string[] = [];
+  for (let i = 0; i < base32.length; i += 4) {
+    groups.push(base32.slice(i, i + 4));
+  }
+  return groups.join('-');
 }
