@@ -99,7 +99,7 @@ extension Color {
     private static let gradientAccentSage = Color(light: Color(hex: 0xC5E0C8), dark: Color(hex: 0x1D1E1D))
     private static let gradientCenterGlow = Color(light: Color(hex: 0xD8EDD8), dark: Color(hex: 0x1E1F1E))
 
-    // MARK: - Mesh Gradient Data (used by PulpeBackgroundModifier via @Environment(\.colorScheme))
+    // MARK: - Mesh Gradient Data (light mode only — dark mode uses system background)
 
     static let meshPoints: [SIMD2<Float>] = [
         .init(x: 0, y: 0),    .init(x: 0.5, y: 0),    .init(x: 1, y: 0),
@@ -118,14 +118,6 @@ extension Color {
         Color(hex: 0xD8ECDA).opacity(0.50),
         Color(hex: 0xBDE4C4).opacity(0.60),
         Color(hex: 0xD5EDD8).opacity(0.45)
-    ]
-
-    @available(iOS 18.0, *)
-    static let darkMeshColors: [Color] = [
-        // Near-black base (~system dark #000000) so elevated cards (#1C1C1E) clearly stand out
-        Color(hex: 0x0C0C0E), Color(hex: 0x0E0E10), Color(hex: 0x0C0C0E),
-        Color(hex: 0x0E0E10), Color(hex: 0x0D0D0F), Color(hex: 0x0C0C0E),
-        Color(hex: 0x0C0C0E), Color(hex: 0x0E0E10), Color(hex: 0x0C0C0E)
     ]
 
     @ViewBuilder

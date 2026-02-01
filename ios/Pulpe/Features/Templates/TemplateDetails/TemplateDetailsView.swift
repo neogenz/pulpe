@@ -56,6 +56,7 @@ struct TemplateDetailsView: View {
                         .foregroundStyle(Color.financialIncome)
                     Spacer()
                     Text(viewModel.totals.totalIncome.asCHF)
+                        .sensitiveAmount()
                 }
 
                 HStack {
@@ -63,6 +64,7 @@ struct TemplateDetailsView: View {
                         .foregroundStyle(Color.financialExpense)
                     Spacer()
                     Text(viewModel.totals.totalExpenses.asCHF)
+                        .sensitiveAmount()
                 }
 
                 HStack {
@@ -72,6 +74,7 @@ struct TemplateDetailsView: View {
                     Text(viewModel.totals.balance.asCHF)
                         .foregroundStyle(viewModel.totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
                         .fontWeight(.semibold)
+                        .sensitiveAmount()
                 }
             } header: {
                 Text("Récapitulatif")
@@ -108,6 +111,7 @@ struct TemplateDetailsView: View {
                 Spacer()
                 Text(lines.reduce(Decimal.zero) { $0 + $1.amount }.asCHF)
                     .font(.caption)
+                    .sensitiveAmount()
             }
         }
     }

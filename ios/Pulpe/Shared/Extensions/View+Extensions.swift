@@ -1,5 +1,131 @@
 import SwiftUI
 
+// MARK: - Amount Visibility Environment
+
+private struct AmountsHiddenKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var amountsHidden: Bool {
+        get { self[AmountsHiddenKey.self] }
+        set { self[AmountsHiddenKey.self] = newValue }
+    }
+}
+
+// MARK: - Sensitive Amount Modifier
+
+private struct SensitiveAmountModifier: ViewModifier {
+    @Environment(\.amountsHidden) private var amountsHidden
+
+    func body(content: Content) -> some View {
+        content
+            .blur(radius: amountsHidden ? 8 : 0)
+            .accessibilityLabel(amountsHidden ? "Montant masqué" : "")
+            .accessibilityHidden(amountsHidden)
+            .animation(.easeInOut(duration: 0.2), value: amountsHidden)
+    }
+}
+
+extension View {
+    /// Blur this view when amounts are hidden (shake-to-hide feature)
+    func sensitiveAmount() -> some View {
+        modifier(SensitiveAmountModifier())
+    }
+}
+
+// MARK: - Shake Gesture Detection
+
+/// Invisible UIViewControllerRepresentable that stays first responder to receive motion events.
+/// Motion events (shake) are delivered to the first responder and forwarded up the responder chain.
+/// Without an active first responder, UIKit silently drops shake events — this VC ensures one always exists.
+/// It re-claims first responder after returning from background via UIScene.didActivateNotification.
+private struct ShakeDetectorRepresentable: UIViewControllerRepresentable {
+    let action: () -> Void
+
+    func makeUIViewController(context: Context) -> ShakeDetectorViewController {
+        ShakeDetectorViewController(action: action)
+    }
+
+    func updateUIViewController(_ uiViewController: ShakeDetectorViewController, context: Context) {
+        uiViewController.action = action
+    }
+}
+
+private class ShakeDetectorViewController: UIViewController {
+    var action: () -> Void
+    private var activationObserver: NSObjectProtocol?
+
+    init(action: @escaping () -> Void) {
+        self.action = action
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    override var canBecomeFirstResponder: Bool { true }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        claimFirstResponderIfNeeded()
+
+        // Re-claim first responder when app returns from background —
+        // UIKit may have dropped the first responder during the transition.
+        activationObserver = NotificationCenter.default.addObserver(
+            forName: UIScene.didActivateNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.claimFirstResponderIfNeeded()
+        }
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        if let observer = activationObserver {
+            NotificationCenter.default.removeObserver(observer)
+            activationObserver = nil
+        }
+    }
+
+    override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+        guard motion == .motionShake else {
+            super.motionEnded(motion, with: event)
+            return
+        }
+        action()
+    }
+
+    /// Only become first responder if nobody else holds it (avoids stealing keyboard focus)
+    private func claimFirstResponderIfNeeded() {
+        guard !isFirstResponder,
+              view?.window?.findFirstResponder() == nil
+        else { return }
+        becomeFirstResponder()
+    }
+}
+
+private extension UIView {
+    /// Walk the view hierarchy to find the current first responder, if any
+    func findFirstResponder() -> UIResponder? {
+        if isFirstResponder { return self }
+        for subview in subviews {
+            if let responder = subview.findFirstResponder() {
+                return responder
+            }
+        }
+        return nil
+    }
+}
+
+extension View {
+    /// Detect device shake gesture
+    func onShake(perform action: @escaping () -> Void) -> some View {
+        background(ShakeDetectorRepresentable(action: action))
+    }
+}
+
 extension View {
     /// Apply modifier if value is not nil
     @ViewBuilder
@@ -76,17 +202,20 @@ private struct PulpeBackgroundModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content.background {
-            meshOrFallbackBackground.ignoresSafeArea()
+            backgroundView.ignoresSafeArea()
         }
     }
 
     @ViewBuilder
-    private var meshOrFallbackBackground: some View {
-        if #available(iOS 18.0, *) {
+    private var backgroundView: some View {
+        if colorScheme == .dark {
+            // Dark mode: use system background so elevated cards (#1C1C1E) stand out naturally
+            Color(uiColor: .systemGroupedBackground)
+        } else if #available(iOS 18.0, *) {
             MeshGradient(
                 width: 3, height: 3,
                 points: Color.meshPoints,
-                colors: colorScheme == .dark ? Color.darkMeshColors : Color.lightMeshColors
+                colors: Color.lightMeshColors
             )
         } else {
             Color.appFallbackBackground
@@ -96,14 +225,23 @@ private struct PulpeBackgroundModifier: ViewModifier {
 
 private struct PulpeStatusBackgroundModifier: ViewModifier {
     let isDeficit: Bool
+    @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
         content.background {
-            if isDeficit {
-                Color.appNegativeBackground.ignoresSafeArea()
-            } else {
-                Color.appPositiveBackground.ignoresSafeArea()
-            }
+            statusBackground.ignoresSafeArea()
+        }
+    }
+
+    @ViewBuilder
+    private var statusBackground: some View {
+        if colorScheme == .dark {
+            // Dark mode: system background for consistent card contrast
+            Color(uiColor: .systemGroupedBackground)
+        } else if isDeficit {
+            Color.appNegativeBackground
+        } else {
+            Color.appPositiveBackground
         }
     }
 }

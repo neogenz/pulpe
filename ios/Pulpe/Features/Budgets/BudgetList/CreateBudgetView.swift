@@ -333,6 +333,7 @@ struct TemplateSelectionCard: View {
                 Text(totals.totalIncome.asCompactCHF)
                     .font(.system(.caption, design: .rounded, weight: .medium))
                     .foregroundStyle(Color.financialIncome)
+                    .sensitiveAmount()
             }
 
             HStack(spacing: 4) {
@@ -343,6 +344,7 @@ struct TemplateSelectionCard: View {
                 Text(totals.totalExpenses.asCompactCHF)
                     .font(.system(.caption, design: .rounded, weight: .medium))
                     .foregroundStyle(Color.financialExpense)
+                    .sensitiveAmount()
             }
 
             // Balance indicator
@@ -354,6 +356,7 @@ struct TemplateSelectionCard: View {
                 Text(totals.balance.asCompactCHF)
                     .font(.system(.caption, design: .rounded, weight: .medium))
                     .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
+                    .sensitiveAmount()
             }
         }
     }

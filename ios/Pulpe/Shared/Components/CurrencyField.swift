@@ -126,6 +126,7 @@ struct CurrencyText: View {
     var body: some View {
         Text(formattedAmount)
             .font(font)
+            .sensitiveAmount()
     }
 
     private var font: Font {

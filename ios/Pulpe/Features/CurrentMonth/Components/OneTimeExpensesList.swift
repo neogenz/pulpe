@@ -161,6 +161,7 @@ struct TransactionRow: View {
                 Text(transaction.amount.asCHF)
                     .font(.system(.callout, design: .rounded, weight: .semibold))
                     .foregroundStyle(transaction.isChecked ? .secondary : transaction.kind.color)
+                    .sensitiveAmount()
             }
             .padding(.vertical, 8)
             .contentShape(Rectangle())

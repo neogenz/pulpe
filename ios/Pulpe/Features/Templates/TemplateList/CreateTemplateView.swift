@@ -52,9 +52,12 @@ struct CreateTemplateView: View {
                         let totals = calculateTotals()
                         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                             Text("Revenus: \(totals.income.asCHF)")
+                                .sensitiveAmount()
                             Text("Dépenses: \(totals.expenses.asCHF)")
+                                .sensitiveAmount()
                             Text("Solde: \(totals.balance.asCHF)")
                                 .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
+                                .sensitiveAmount()
                         }
                     }
                 }

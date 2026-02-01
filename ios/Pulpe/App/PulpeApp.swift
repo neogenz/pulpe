@@ -70,6 +70,7 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Binding var deepLinkDestination: DeepLinkDestination?
     @State private var showAddExpenseSheet = false
+    @State private var showAmountsToggleAlert = false
     @State private var widgetSyncViewModel = WidgetSyncViewModel()
 
     var body: some View {
@@ -162,6 +163,20 @@ struct RootView: View {
             DeepLinkAddExpenseSheet()
                 .environment(appState.toastManager)
         }
+        .onShake {
+            guard appState.authState == .authenticated else { return }
+            showAmountsToggleAlert = true
+        }
+        .alert(
+            appState.amountsHidden ? "Afficher les montants ?" : "Masquer les montants ?",
+            isPresented: $showAmountsToggleAlert
+        ) {
+            Button("Confirmer") {
+                appState.toggleAmountsVisibility()
+            }
+            Button("Annuler", role: .cancel) {}
+        }
+        .environment(\.amountsHidden, appState.amountsHidden)
     }
 
     private func handlePendingDeepLink() {

@@ -746,6 +746,7 @@ private struct RolloverInfoRow: View {
                 .font(.headline)
                 .fontWeight(.semibold)
                 .foregroundStyle(isPositive ? Color.financialSavings : Color.financialOverBudget)
+                .sensitiveAmount()
         }
         .padding()
         .background(
