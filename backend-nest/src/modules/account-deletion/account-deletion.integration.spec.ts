@@ -25,6 +25,7 @@ async function isSupabaseReachable(): Promise<boolean> {
 }
 
 let hasSupabase = false;
+
 beforeAll(async () => {
   hasSupabase = await isSupabaseReachable();
 });
@@ -39,6 +40,7 @@ describe('AccountDeletionService Integration', () => {
 
   beforeAll(async () => {
     if (!hasSupabase) return;
+
     adminClient = createClient<Database>(supabaseUrl!, serviceRoleKey!);
 
     const moduleRef = await Test.createTestingModule({
