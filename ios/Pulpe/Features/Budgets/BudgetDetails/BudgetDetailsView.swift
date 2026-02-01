@@ -654,6 +654,7 @@ final class BudgetDetailsViewModel {
 
         do {
             try await transactionService.deleteTransaction(id: transaction.id)
+            await reloadCurrentBudget()
         } catch {
             transactions = originalTransactions
             self.error = error
@@ -677,6 +678,7 @@ final class BudgetDetailsViewModel {
 
         do {
             try await budgetLineService.deleteBudgetLine(id: line.id)
+            await reloadCurrentBudget()
         } catch {
             budgetLines = originalLines
             self.error = error

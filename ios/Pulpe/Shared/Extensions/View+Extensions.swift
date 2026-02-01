@@ -137,16 +137,6 @@ extension View {
         }
     }
 
-    /// Hide view conditionally
-    @ViewBuilder
-    func hidden(_ isHidden: Bool) -> some View {
-        if isHidden {
-            self.hidden()
-        } else {
-            self
-        }
-    }
-
     /// Apply loading overlay
     func loadingOverlay(_ isLoading: Bool, message: String? = nil) -> some View {
         overlay {
