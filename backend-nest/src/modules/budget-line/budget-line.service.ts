@@ -534,9 +534,12 @@ export class BudgetLineService {
     try {
       const budgetLine = await this.fetchBudgetLineById(id, user, supabase);
 
+      const now = new Date().toISOString();
+      const newCheckedAt = budgetLine.checked_at ? null : now;
+
       const updateData = {
-        checked_at: budgetLine.checked_at ? null : new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        checked_at: newCheckedAt,
+        updated_at: now,
       };
 
       const updatedBudgetLine = await this.updateBudgetLineInDb(
@@ -545,6 +548,27 @@ export class BudgetLineService {
         supabase,
         user,
       );
+
+      // Cascade: toggle all allocated transactions in the same direction
+      const { error: cascadeError } = await supabase
+        .from('transaction')
+        .update({ checked_at: newCheckedAt, updated_at: now })
+        .eq('budget_line_id', id);
+
+      if (cascadeError) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+          undefined,
+          {
+            operation: 'toggleCheck:cascadeTransactions',
+            userId: user.id,
+            entityId: id,
+            entityType: 'budget_line',
+            supabaseError: cascadeError,
+          },
+          { cause: cascadeError },
+        );
+      }
 
       return {
         success: true,
