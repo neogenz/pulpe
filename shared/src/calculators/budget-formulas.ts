@@ -167,35 +167,59 @@ export class BudgetFormulas {
   }
 
   /**
-   * Calcule les dépenses réalisées (uniquement les éléments cochés)
-   * Formule: Σ(items WHERE (kind IN ('expense', 'saving')) AND checkedAt != null)
+   * Calcule les dépenses réalisées (uniquement les éléments cochés) avec logique d'enveloppe
    *
-   * Note: Le saving est traité comme une expense selon SPECS
+   * Règle métier:
+   * - Pour une prévision cochée, on utilise max(montant_enveloppe, montant_consommé_par_transactions)
+   * - Les transactions allouées à une prévision cochée ne sont pas comptées une deuxième fois
+   * - Les transactions libres (sans budgetLineId) cochées sont comptées directement
    *
-   * @param budgetLines - Lignes budgétaires planifiées
-   * @param transactions - Transactions réelles
-   * @returns Montant total des dépenses + épargnes cochées
+   * @param budgetLines - Lignes budgétaires planifiées avec IDs
+   * @param transactions - Transactions réelles avec budgetLineId optionnel
+   * @returns Montant total des dépenses + épargnes cochées (sans double comptage)
    */
   static calculateRealizedExpenses(
-    budgetLines: FinancialItem[],
-    transactions: FinancialItem[] = [],
+    budgetLines: FinancialItemWithId[],
+    transactions: TransactionWithBudgetLineId[] = [],
   ): number {
-    const checkedBudgetExpenses = budgetLines
-      .filter(
-        (line) =>
-          line.checkedAt != null &&
-          (line.kind === 'expense' || line.kind === 'saving'),
-      )
-      .reduce((sum, line) => sum + line.amount, 0);
+    let total = 0;
 
-    const checkedTransactionExpenses = transactions
-      .filter(
-        (t) =>
-          t.checkedAt != null && (t.kind === 'expense' || t.kind === 'saving'),
-      )
-      .reduce((sum, t) => sum + t.amount, 0);
+    // Pour chaque prévision cochée de type expense/saving, utiliser max(enveloppe, consommé)
+    budgetLines.forEach((line) => {
+      if (
+        line.checkedAt != null &&
+        (line.kind === 'expense' || line.kind === 'saving')
+      ) {
+        // Ignorer les lignes virtuelles de rollover
+        if (line.id.startsWith('rollover-')) return;
 
-    return checkedBudgetExpenses + checkedTransactionExpenses;
+        // Calculer le montant consommé par les transactions cochées allouées
+        const consumed = transactions
+          .filter(
+            (tx) =>
+              tx.budgetLineId === line.id &&
+              tx.checkedAt != null &&
+              (tx.kind === 'expense' || tx.kind === 'saving'),
+          )
+          .reduce((sum, tx) => sum + tx.amount, 0);
+
+        const effectiveAmount = Math.max(line.amount, consumed);
+        total += effectiveAmount;
+      }
+    });
+
+    // Ajouter les transactions libres (sans budgetLineId) qui sont cochées
+    transactions.forEach((tx) => {
+      if (
+        !tx.budgetLineId &&
+        tx.checkedAt != null &&
+        (tx.kind === 'expense' || tx.kind === 'saving')
+      ) {
+        total += tx.amount;
+      }
+    });
+
+    return total;
   }
 
   /**
@@ -207,8 +231,8 @@ export class BudgetFormulas {
    * @returns Solde calculé depuis les éléments cochés uniquement
    */
   static calculateRealizedBalance(
-    budgetLines: FinancialItem[],
-    transactions: FinancialItem[] = [],
+    budgetLines: FinancialItemWithId[],
+    transactions: TransactionWithBudgetLineId[] = [],
   ): number {
     const realizedIncome = this.calculateRealizedIncome(
       budgetLines,
