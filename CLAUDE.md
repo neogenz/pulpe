@@ -72,6 +72,7 @@ paths: "**/*.ts"
 - **NEVER** destructive Supabase commands (`db reset`, `db push --force`)
 - **ALWAYS** run `pnpm quality` before committing
 - **AFTER** DB schema changes: `bun run generate-types:local` in backend
+- **ALWAYS** write to both `amount` and `amount_encrypted` columns when handling financial amounts (see `docs/ENCRYPTION.md`)
 
 ## Vocabulary
 
@@ -91,6 +92,7 @@ paths: "**/*.ts"
 | Business rules | `memory-bank/productContext.md` |
 | Tech decisions | `memory-bank/techContext.md` |
 | Architecture | `memory-bank/systemPatterns.md` |
+| Encryption (AES-256-GCM) | `docs/ENCRYPTION.md` |
 
 ## Bug Reporting
 
