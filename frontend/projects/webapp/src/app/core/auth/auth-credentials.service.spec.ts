@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import type { Session, User } from '@supabase/supabase-js';
+import { of } from 'rxjs';
+import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import { AuthCredentialsService } from './auth-credentials.service';
 import { AuthSessionService } from './auth-session.service';
 import { AuthStateService } from './auth-state.service';
@@ -20,6 +22,8 @@ describe('AuthCredentialsService', () => {
   let mockState: Partial<AuthStateService>;
   let mockErrorLocalizer: Partial<AuthErrorLocalizer>;
   let mockLogger: Partial<Logger>;
+  let mockClientKeyService: Partial<ClientKeyService>;
+  let mockEncryptionApi: Partial<EncryptionApi>;
   let mockSupabaseClient: MockSupabaseClient;
 
   beforeEach(() => {
@@ -43,6 +47,17 @@ describe('AuthCredentialsService', () => {
       error: vi.fn(),
     };
 
+    mockClientKeyService = {
+      deriveAndStore: vi.fn().mockResolvedValue(undefined),
+      clear: vi.fn(),
+    };
+
+    mockEncryptionApi = {
+      getSalt$: vi
+        .fn()
+        .mockReturnValue(of({ salt: 'abcd1234', kdfIterations: 600000 })),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         AuthCredentialsService,
@@ -50,6 +65,8 @@ describe('AuthCredentialsService', () => {
         { provide: AuthStateService, useValue: mockState },
         { provide: AuthErrorLocalizer, useValue: mockErrorLocalizer },
         { provide: Logger, useValue: mockLogger },
+        { provide: ClientKeyService, useValue: mockClientKeyService },
+        { provide: EncryptionApi, useValue: mockEncryptionApi },
       ],
     });
 

@@ -4,6 +4,7 @@ import { signal } from '@angular/core';
 import type { User } from '@supabase/supabase-js';
 import { AuthCleanupService } from './auth-cleanup.service';
 import { AuthStateService } from './auth-state.service';
+import { ClientKeyService } from '@core/encryption';
 import { DemoModeService } from '../demo/demo-mode.service';
 import { HasBudgetCache } from './has-budget-cache';
 import { PostHogService } from '../analytics/posthog';
@@ -14,6 +15,7 @@ import { type E2EWindow } from './e2e-window';
 describe('AuthCleanupService', () => {
   let service: AuthCleanupService;
   let mockState: Partial<AuthStateService>;
+  let mockClientKey: Partial<ClientKeyService>;
   let mockDemoMode: Partial<DemoModeService>;
   let mockHasBudgetCache: Partial<HasBudgetCache>;
   let mockPostHog: Partial<PostHogService>;
@@ -27,6 +29,10 @@ describe('AuthCleanupService', () => {
       user: userSignal.asReadonly(),
       setSession: vi.fn(),
       setLoading: vi.fn(),
+    };
+
+    mockClientKey = {
+      clear: vi.fn(),
     };
 
     mockDemoMode = {
@@ -55,6 +61,7 @@ describe('AuthCleanupService', () => {
       providers: [
         AuthCleanupService,
         { provide: AuthStateService, useValue: mockState },
+        { provide: ClientKeyService, useValue: mockClientKey },
         { provide: DemoModeService, useValue: mockDemoMode },
         { provide: HasBudgetCache, useValue: mockHasBudgetCache },
         { provide: PostHogService, useValue: mockPostHog },
@@ -81,6 +88,7 @@ describe('AuthCleanupService', () => {
 
     service.performCleanup();
 
+    expect(mockClientKey.clear).toHaveBeenCalled();
     expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
     expect(mockHasBudgetCache.clear).toHaveBeenCalled();
     expect(mockPostHog.reset).toHaveBeenCalled();

@@ -36,6 +36,7 @@ import { environment } from '@env/environment';
 import { Logger } from './logging/logger';
 import { StorageMigrationRunnerService } from './storage/storage-migration-runner.service';
 import { provideSplashRemoval } from './splash-removal';
+import { ClientKeyService } from './encryption/client-key.service';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -132,11 +133,15 @@ export function provideCore({ routes }: CoreOptions) {
       const authSession = inject(AuthSessionService);
       const analyticsService = inject(AnalyticsService);
       const storageMigrationRunner = inject(StorageMigrationRunnerService);
+      const clientKeyService = inject(ClientKeyService);
       const injector = inject(Injector);
       const logger = inject(Logger);
 
       // 0. Run storage migrations first (before any data is read)
       storageMigrationRunner.runMigrations();
+
+      // 0b. Restore client encryption key from sessionStorage (if available)
+      clientKeyService.initialize();
 
       // 1. Charger la configuration d'abord (requise par PostHog et Auth)
       await applicationConfig.initialize();
