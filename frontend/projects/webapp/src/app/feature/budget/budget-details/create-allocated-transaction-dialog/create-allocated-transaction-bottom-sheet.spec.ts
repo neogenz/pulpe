@@ -57,10 +57,15 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
 
   describe('submit', () => {
     it('should dismiss with transaction data when form is valid', () => {
+      const midMonth = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        15,
+      );
       component.form.patchValue({
         name: 'Consultation médecin',
         amount: 45.5,
-        transactionDate: new Date('2026-01-15'),
+        transactionDate: midMonth,
       });
 
       component.submit();
