@@ -203,7 +203,11 @@ export class BudgetService {
       : new Map();
 
     const rolloversMap = needsRollover
-      ? await this.fetchRolloversForBudgets(budgetsList, supabase)
+      ? await this.fetchRolloversForBudgets(
+          budgetsList,
+          supabase,
+          user.clientKey,
+        )
       : new Map<string, number>();
 
     const sparseData = budgetsList.map((budget) =>
@@ -268,6 +272,7 @@ export class BudgetService {
   private async fetchRolloversForBudgets(
     budgets: Tables<'monthly_budget'>[],
     supabase: AuthenticatedSupabaseClient,
+    clientKey: Buffer,
   ): Promise<Map<string, number>> {
     const payDayOfMonth = await this.getPayDayOfMonth(supabase);
     const rolloversMap = new Map<string, number>();
@@ -279,6 +284,7 @@ export class BudgetService {
             budget.id,
             payDayOfMonth,
             supabase,
+            clientKey,
           );
           rolloversMap.set(budget.id, rolloverData.rollover);
         } catch (error) {
