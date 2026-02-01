@@ -102,6 +102,7 @@ export class AuthSessionService {
           switch (event) {
             case 'SIGNED_IN':
             case 'TOKEN_REFRESHED':
+            case 'PASSWORD_RECOVERY':
               this.#updateAuthState(session);
               break;
             case 'SIGNED_OUT':
@@ -281,6 +282,38 @@ export class AuthSessionService {
     } finally {
       this.#updateAuthState(null);
       this.#cleanup.performCleanup();
+    }
+  }
+
+  async resetPasswordForEmail(
+    email: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const redirectTo = `${window.location.origin}/reset-password`;
+      const { error } = await this.getClient().auth.resetPasswordForEmail(
+        email,
+        { redirectTo },
+      );
+
+      if (error) {
+        return {
+          success: false,
+          error: this.#errorLocalizer.localizeError(error.message),
+        };
+      }
+
+      return { success: true };
+    } catch (error) {
+      this.#logger.error('Error sending password reset email:', {
+        error,
+        errorType:
+          error instanceof Error ? error.constructor.name : typeof error,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return {
+        success: false,
+        error: AUTH_ERROR_MESSAGES.UNEXPECTED_SESSION_ERROR,
+      };
     }
   }
 

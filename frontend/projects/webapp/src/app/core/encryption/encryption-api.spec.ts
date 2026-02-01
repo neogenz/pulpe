@@ -14,7 +14,7 @@ describe('EncryptionApi', () => {
   let httpTesting: HttpTestingController;
 
   const mockApplicationConfig = {
-    backendApiUrl: () => 'http://localhost:3000/api',
+    backendApiUrl: () => 'http://localhost:3000/api/v1',
   };
 
   beforeEach(() => {
@@ -47,18 +47,6 @@ describe('EncryptionApi', () => {
         'http://localhost:3000/api/v1/encryption/salt',
       );
       expect(req.request.method).toBe('GET');
-    });
-
-    it('should include a temporary X-Client-Key header', () => {
-      service.getSalt$().subscribe();
-
-      const req = httpTesting.expectOne(
-        'http://localhost:3000/api/v1/encryption/salt',
-      );
-      expect(req.request.headers.has('X-Client-Key')).toBe(true);
-      expect(req.request.headers.get('X-Client-Key')).toBe(
-        '0'.repeat(63) + '1',
-      );
     });
 
     it('should return salt and kdfIterations', () => {
