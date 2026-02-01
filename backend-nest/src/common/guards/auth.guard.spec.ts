@@ -30,6 +30,7 @@ describe('AuthGuard', () => {
 
     const mockReflector = {
       get: () => undefined,
+      getAllAndOverride: () => false,
     };
 
     const mockPinoLogger = {
@@ -76,6 +77,8 @@ describe('AuthGuard', () => {
           },
         }),
       }),
+      getHandler: () => ({}),
+      getClass: () => ({}),
     }) as ExecutionContext;
 
   describe('canActivate', () => {
@@ -193,6 +196,8 @@ describe('AuthGuard', () => {
       };
       const mockContext = {
         switchToHttp: () => ({ getRequest: () => mockRequest }),
+        getHandler: () => ({}),
+        getClass: () => ({}),
       } as ExecutionContext;
 
       // Set up the auth mock to return a user in the expected format
@@ -233,6 +238,8 @@ describe('AuthGuard', () => {
       };
       const mockContext = {
         switchToHttp: () => ({ getRequest: () => mockRequest }),
+        getHandler: () => ({}),
+        getClass: () => ({}),
       } as ExecutionContext;
 
       // Act
@@ -263,6 +270,8 @@ describe('AuthGuard', () => {
       };
       const mockContext = {
         switchToHttp: () => ({ getRequest: () => mockRequest }),
+        getHandler: () => ({}),
+        getClass: () => ({}),
       } as ExecutionContext;
 
       mockSupabaseClient
@@ -299,6 +308,8 @@ describe('AuthGuard', () => {
       };
       const mockContext = {
         switchToHttp: () => ({ getRequest: () => mockRequest }),
+        getHandler: () => ({}),
+        getClass: () => ({}),
       } as ExecutionContext;
 
       // Mock createAuthenticatedClient to throw
@@ -315,7 +326,7 @@ describe('AuthGuard', () => {
           },
           {
             provide: Reflector,
-            useValue: { get: () => undefined },
+            useValue: { get: () => undefined, getAllAndOverride: () => false },
           },
           {
             provide: `INFO_LOGGER:${AuthGuard.name}`,
@@ -347,6 +358,8 @@ describe('AuthGuard', () => {
       };
       const mockContext = {
         switchToHttp: () => ({ getRequest: () => mockRequest }),
+        getHandler: () => ({}),
+        getClass: () => ({}),
       } as ExecutionContext;
 
       // Set up the auth mock to return a user with scheduledDeletionAt

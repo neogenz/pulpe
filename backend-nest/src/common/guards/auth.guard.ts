@@ -1,4 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { Request } from 'express';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -6,6 +7,7 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { SupabaseClient } from '@/types/supabase-helpers';
+import { SKIP_CLIENT_KEY } from '@common/decorators/skip-client-key.decorator';
 
 interface RequestWithCache extends Request {
   __throttlerUserCache?: AuthenticatedUser | null;
@@ -19,9 +21,15 @@ export class AuthGuard implements CanActivate {
     @InjectInfoLogger(AuthGuard.name)
     private readonly logger: InfoLogger,
     private readonly supabaseService: SupabaseService,
+    private readonly reflector: Reflector,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const skipClientKey = this.reflector.getAllAndOverride<boolean>(
+      SKIP_CLIENT_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+
     const request: RequestWithCache = context.switchToHttp().getRequest();
     const accessToken = this.extractTokenFromHeader(request);
 
@@ -30,15 +38,16 @@ export class AuthGuard implements CanActivate {
     }
 
     if (request.__throttlerUserCache) {
-      return this.authenticateWithCache(request, accessToken);
+      return this.authenticateWithCache(request, accessToken, skipClientKey);
     }
 
-    return this.authenticateWithSupabase(request, accessToken);
+    return this.authenticateWithSupabase(request, accessToken, skipClientKey);
   }
 
   private authenticateWithCache(
     request: RequestWithCache,
     accessToken: string,
+    skipClientKey: boolean,
   ): boolean {
     try {
       const cachedUser = request.__throttlerUserCache!;
@@ -50,7 +59,7 @@ export class AuthGuard implements CanActivate {
         'Reusing cached user from throttler guard',
       );
 
-      const clientKey = this.extractClientKey(request);
+      const clientKey = this.#resolveClientKey(request, skipClientKey);
       request.user = { ...cachedUser, accessToken, clientKey };
       request.supabase = supabase;
       return true;
@@ -65,6 +74,7 @@ export class AuthGuard implements CanActivate {
   private async authenticateWithSupabase(
     request: RequestWithCache,
     accessToken: string,
+    skipClientKey: boolean,
   ): Promise<boolean> {
     try {
       const supabase =
@@ -83,7 +93,7 @@ export class AuthGuard implements CanActivate {
         throw new BusinessException(ERROR_DEFINITIONS.USER_ACCOUNT_BLOCKED);
       }
 
-      const clientKey = this.extractClientKey(request);
+      const clientKey = this.#resolveClientKey(request, skipClientKey);
 
       const authenticatedUser: AuthenticatedUser = {
         id: user.id,
@@ -116,7 +126,13 @@ export class AuthGuard implements CanActivate {
     return type === 'Bearer' ? token : undefined;
   }
 
-  private extractClientKey(request: RequestWithCache): Buffer {
+  #resolveClientKey(request: RequestWithCache, skipClientKey: boolean): Buffer {
+    return skipClientKey
+      ? Buffer.alloc(32, 0)
+      : this.#extractClientKey(request);
+  }
+
+  #extractClientKey(request: RequestWithCache): Buffer {
     const clientKeyHex = request.headers?.['x-client-key'] as
       | string
       | undefined;

@@ -19,6 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '@common/guards/auth.guard';
+import { SkipClientKey } from '@common/decorators/skip-client-key.decorator';
 import {
   User,
   SupabaseClient,
@@ -54,6 +55,7 @@ export class EncryptionController {
     private readonly rekeyService: EncryptionRekeyService,
   ) {}
 
+  @SkipClientKey()
   @Get('salt')
   @ApiOperation({ summary: 'Get user encryption salt and KDF parameters' })
   @ApiResponse({

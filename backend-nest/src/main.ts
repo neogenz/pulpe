@@ -22,6 +22,7 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
       'Content-Type',
       'Authorization',
       'ngrok-skip-browser-warning',
+      'X-Client-Key',
     ],
     credentials: true,
   });
