@@ -1,4 +1,8 @@
 import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+
+import { ClientKeyService, EncryptionApi } from '@core/encryption';
+
 import { AuthSessionService } from './auth-session.service';
 import { AuthStateService } from './auth-state.service';
 import { AuthErrorLocalizer } from './auth-error-localizer';
@@ -14,6 +18,8 @@ export class AuthCredentialsService {
   readonly #state = inject(AuthStateService);
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
   readonly #logger = inject(Logger);
+  readonly #clientKeyService = inject(ClientKeyService);
+  readonly #encryptionApi = inject(EncryptionApi);
 
   async signInWithEmail(
     email: string,
@@ -53,6 +59,7 @@ export class AuthCredentialsService {
       }
 
       this.#state.setSession(data.session ?? null);
+      await this.#deriveClientKey(password);
       return { success: true };
     } catch (error) {
       this.#logger.error('Unexpected error during sign-in', {
@@ -94,6 +101,7 @@ export class AuthCredentialsService {
       }
 
       this.#state.setSession(data.session ?? null);
+      await this.#deriveClientKey(password);
       return { success: true };
     } catch (error) {
       this.#logger.error('Unexpected error during sign-up', {
@@ -109,6 +117,13 @@ export class AuthCredentialsService {
     } finally {
       this.#state.setLoading(false);
     }
+  }
+
+  async #deriveClientKey(password: string): Promise<void> {
+    const { salt, kdfIterations } = await firstValueFrom(
+      this.#encryptionApi.getSalt$(),
+    );
+    await this.#clientKeyService.deriveAndStore(password, salt, kdfIterations);
   }
 
   #isE2EBypass(): boolean {

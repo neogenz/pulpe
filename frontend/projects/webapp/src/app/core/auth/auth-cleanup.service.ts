@@ -1,4 +1,7 @@
 import { Injectable, inject, DestroyRef } from '@angular/core';
+
+import { ClientKeyService } from '@core/encryption';
+
 import { DemoModeService } from '../demo/demo-mode.service';
 import { HasBudgetCache } from './has-budget-cache';
 import { PostHogService } from '../analytics/posthog';
@@ -13,6 +16,7 @@ const CLEANUP_RESET_DELAY_MS = 100;
   providedIn: 'root',
 })
 export class AuthCleanupService {
+  readonly #clientKeyService = inject(ClientKeyService);
   readonly #demoModeService = inject(DemoModeService);
   readonly #hasBudgetCache = inject(HasBudgetCache);
   readonly #postHogService = inject(PostHogService);
@@ -47,6 +51,10 @@ export class AuthCleanupService {
     this.#cleanupInProgress = true;
 
     try {
+      this.#safeCleanup(
+        () => this.#clientKeyService.clear(),
+        'client key',
+      );
       this.#safeCleanup(
         () => this.#demoModeService.deactivateDemoMode(),
         'demo mode',
