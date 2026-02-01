@@ -4,9 +4,13 @@ import SwiftUI
 /// The gradient card contains balance + progress, pills sit outside for readability.
 struct HeroBalanceCard: View {
     let metrics: BudgetFormulas.Metrics
-    var daysRemaining: Int? = nil
-    var dailyBudget: Decimal? = nil
     let onTapProgress: () -> Void
+
+    // MARK: - Constants
+
+    private static let twentyPercent: Decimal = 2 / 10
+
+    @ScaledMetric(relativeTo: .largeTitle) private var heroFontSize: CGFloat = 40
 
     // MARK: - Computed Properties
 
@@ -30,7 +34,7 @@ struct HeroBalanceCard: View {
         if metrics.isDeficit {
             return "Ce mois sera serré — mais tu le sais"
         }
-        if metrics.totalIncome > 0, metrics.remaining > metrics.totalIncome * Decimal(string: "0.2")! {
+        if metrics.totalIncome > 0, metrics.remaining > metrics.totalIncome * Self.twentyPercent {
             return "Belle marge ce mois"
         }
         if metrics.remaining > 0 {
@@ -67,10 +71,11 @@ struct HeroBalanceCard: View {
                     .number.precision(.fractionLength(0 ... 2))
                         .locale(Locale(identifier: "de_CH"))
                 ))
-                .font(.system(size: 40, weight: .bold, design: .rounded))
+                .font(.system(size: heroFontSize, weight: .bold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(.white)
                 .contentTransition(.numericText())
+                .sensitiveAmount()
                 .accessibilityLabel(metrics.remaining.asCHF)
 
                 Text(motivationalMessage)
@@ -111,6 +116,7 @@ struct HeroBalanceCard: View {
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(.white.opacity(0.7))
                 }
+                .sensitiveAmount()
             }
             .frame(width: 88, height: 88)
         }
@@ -161,6 +167,7 @@ struct HeroBalanceCard: View {
                     .font(.system(.callout, design: .rounded, weight: .semibold))
                     .foregroundStyle(color)
                     .contentTransition(.numericText())
+                    .sensitiveAmount()
             }
         }
         .padding(.horizontal, 14)
@@ -201,8 +208,6 @@ private func abs(_ value: Decimal) -> Decimal {
                     remaining: 2500,
                     rollover: 500
                 ),
-                daysRemaining: 15,
-                dailyBudget: 167,
                 onTapProgress: {}
             )
 

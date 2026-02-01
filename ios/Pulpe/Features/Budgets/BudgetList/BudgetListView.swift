@@ -318,6 +318,7 @@ struct YearSection: View {
                             .font(.system(.subheadline, design: .rounded, weight: .semibold))
                             .monospacedDigit()
                             .foregroundStyle(endBalance >= 0 ? Color.financialSavings : .financialOverBudget)
+                            .sensitiveAmount()
                     }
                 }
             }
@@ -439,6 +440,7 @@ struct CurrentMonthHeroCard: View {
                             .font(.system(.title2, design: .rounded, weight: .bold))
                             .monospacedDigit()
                             .foregroundStyle(isNegative ? Color.financialOverBudget : .financialSavings)
+                            .sensitiveAmount()
 
                         Text("Disponible")
                             .font(.system(.caption2, design: .rounded))
@@ -510,6 +512,7 @@ struct BudgetMonthRow: View {
                                 .font(.system(.callout, design: .rounded, weight: .semibold))
                                 .monospacedDigit()
                                 .foregroundStyle(amountColor)
+                                .sensitiveAmount()
                         }
                     }
 
@@ -526,6 +529,7 @@ struct BudgetMonthRow: View {
                             .font(.system(.callout, design: .rounded, weight: .semibold))
                             .monospacedDigit()
                             .foregroundStyle(amountColor)
+                            .sensitiveAmount()
                     }
                 }
 

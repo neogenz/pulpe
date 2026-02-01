@@ -48,6 +48,7 @@ struct YearOverviewCard: View {
                 .foregroundStyle(color)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
+                .sensitiveAmount()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, DesignTokens.Spacing.lg)

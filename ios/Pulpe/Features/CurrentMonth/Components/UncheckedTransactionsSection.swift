@@ -73,6 +73,7 @@ private struct UncheckedTransactionRow: View {
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(transaction.kind.color)
+                .sensitiveAmount()
         }
         .padding(.vertical, 4)
     }

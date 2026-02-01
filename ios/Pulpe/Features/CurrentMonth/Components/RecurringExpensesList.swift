@@ -217,6 +217,7 @@ struct BudgetLineRow: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
+                            .sensitiveAmount()
                     } else {
                         Text(line.recurrence.label)
                             .font(.caption)
@@ -234,6 +235,7 @@ struct BudgetLineRow: View {
                     Text(hasConsumption ? consumption.available.asCHF : line.amount.asCHF)
                         .font(.system(.callout, design: .rounded, weight: .semibold))
                         .foregroundStyle(amountTextColor)
+                        .sensitiveAmount()
 
                     if hasConsumption {
                         Text("reste")

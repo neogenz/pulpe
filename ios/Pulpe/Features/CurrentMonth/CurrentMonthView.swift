@@ -92,8 +92,6 @@ struct CurrentMonthView: View {
                 // Hero card with available balance and circular progress
                 HeroBalanceCard(
                     metrics: store.metrics,
-                    daysRemaining: store.daysRemaining,
-                    dailyBudget: store.dailyBudget,
                     onTapProgress: { activeSheet = .realizedBalance }
                 )
 
