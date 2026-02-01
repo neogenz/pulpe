@@ -132,6 +132,7 @@ export class EncryptionController {
     return { recoveryKey: formatted };
   }
 
+  @SkipClientKey()
   @Post('recover')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 5, ttl: 3600000 } })

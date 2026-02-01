@@ -3,6 +3,8 @@ export const ROUTES = {
   WELCOME: 'welcome',
   LOGIN: 'login',
   SIGNUP: 'signup',
+  FORGOT_PASSWORD: 'forgot-password',
+  RESET_PASSWORD: 'reset-password',
   DASHBOARD: 'dashboard',
   COMPLETE_PROFILE: 'complete-profile',
   BUDGET: 'budget',
@@ -20,6 +22,8 @@ export const ROUTES = {
 export const PAGE_TITLES = {
   LOGIN: 'Connexion',
   SIGNUP: 'Créer un compte',
+  FORGOT_PASSWORD: 'Mot de passe oublié',
+  RESET_PASSWORD: 'Réinitialiser le mot de passe',
   DASHBOARD: 'Mois en cours',
   COMPLETE_PROFILE: 'Finaliser mon profil',
   BUDGET: 'Mes budgets',

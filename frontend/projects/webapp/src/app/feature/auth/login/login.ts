@@ -131,6 +131,16 @@ import { LoadingButton } from '@ui/loading-button';
             }
           </mat-form-field>
 
+          <div class="flex justify-end -mt-2">
+            <a
+              [routerLink]="['/', ROUTES.FORGOT_PASSWORD]"
+              class="text-body-small text-primary hover:underline"
+              data-testid="forgot-password-link"
+            >
+              Mot de passe oublié ?
+            </a>
+          </div>
+
           <pulpe-error-alert [message]="errorMessage()" />
 
           <pulpe-loading-button

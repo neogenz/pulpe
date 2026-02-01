@@ -29,6 +29,19 @@ export const routes: Routes = [
     loadComponent: () => import('./feature/auth/signup/signup'),
   },
   {
+    path: ROUTES.FORGOT_PASSWORD,
+    title: PAGE_TITLES.FORGOT_PASSWORD,
+    canActivate: [maintenanceGuard, publicGuard],
+    loadComponent: () =>
+      import('./feature/auth/forgot-password/forgot-password'),
+  },
+  {
+    path: ROUTES.RESET_PASSWORD,
+    title: PAGE_TITLES.RESET_PASSWORD,
+    canActivate: [maintenanceGuard],
+    loadComponent: () => import('./feature/auth/reset-password/reset-password'),
+  },
+  {
     path: ROUTES.MAINTENANCE,
     title: PAGE_TITLES.MAINTENANCE,
     loadChildren: () => import('./feature/maintenance/maintenance.routes'),
