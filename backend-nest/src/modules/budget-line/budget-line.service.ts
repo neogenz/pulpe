@@ -532,41 +532,24 @@ export class BudgetLineService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
     try {
-      const budgetLine = await this.fetchBudgetLineById(id, user, supabase);
+      const { data: updatedBudgetLine, error } = await supabase
+        .rpc('toggle_budget_line_check', {
+          p_budget_line_id: id,
+        })
+        .single();
 
-      const now = new Date().toISOString();
-      const newCheckedAt = budgetLine.checked_at ? null : now;
-
-      const updateData = {
-        checked_at: newCheckedAt,
-        updated_at: now,
-      };
-
-      const updatedBudgetLine = await this.updateBudgetLineInDb(
-        id,
-        updateData,
-        supabase,
-        user,
-      );
-
-      // Cascade: toggle all allocated transactions in the same direction
-      const { error: cascadeError } = await supabase
-        .from('transaction')
-        .update({ checked_at: newCheckedAt, updated_at: now })
-        .eq('budget_line_id', id);
-
-      if (cascadeError) {
+      if (error || !updatedBudgetLine) {
         throw new BusinessException(
           ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
           undefined,
           {
-            operation: 'toggleCheck:cascadeTransactions',
+            operation: 'toggleCheck',
             userId: user.id,
             entityId: id,
             entityType: 'budget_line',
-            supabaseError: cascadeError,
+            supabaseError: error,
           },
-          { cause: cascadeError },
+          { cause: error },
         );
       }
 
