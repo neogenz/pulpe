@@ -6,7 +6,7 @@ import {
   type ExecutionContext,
 } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { randomUUID } from 'crypto';
 import { CurlGenerator } from 'curl-generator';
@@ -21,6 +21,7 @@ import { BudgetTemplateModule } from '@modules/budget-template/budget-template.m
 import { BudgetModule } from '@modules/budget/budget.module';
 import { DebugModule } from '@modules/debug/debug.module';
 import { DemoModule } from '@modules/demo/demo.module';
+import { EncryptionModule } from '@modules/encryption/encryption.module';
 import { SupabaseModule } from '@modules/supabase/supabase.module';
 import { TransactionModule } from '@modules/transaction/transaction.module';
 import { UserModule } from '@modules/user/user.module';
@@ -34,6 +35,10 @@ import { CommonModule } from '@common/common.module';
 
 // Guards
 import { UserThrottlerGuard } from '@common/guards/user-throttler.guard';
+
+// Interceptors
+import { ClientKeyCleanupInterceptor } from '@common/interceptors/client-key-cleanup.interceptor';
+import { EncryptionBackfillInterceptor } from '@modules/encryption/encryption-backfill.interceptor';
 
 // Middleware
 import { DelayMiddleware } from '@common/middleware/delay.middleware';
@@ -275,6 +280,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
     }),
     ScheduleModule.forRoot(),
     SupabaseModule,
+    EncryptionModule,
     AuthModule,
     DemoModule,
     BudgetModule,
@@ -295,6 +301,14 @@ function createPinoLoggerConfig(configService: ConfigService) {
     {
       provide: APP_GUARD,
       useClass: UserThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: EncryptionBackfillInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ClientKeyCleanupInterceptor,
     },
     MaintenanceMiddleware,
     ResponseLoggerMiddleware,

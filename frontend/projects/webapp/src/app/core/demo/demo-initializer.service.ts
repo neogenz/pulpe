@@ -10,6 +10,8 @@ import { ApplicationConfiguration } from '@core/config/application-configuration
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
 import { AuthSessionService } from '@core/auth/auth-session.service';
+import { ClientKeyService } from '@core/encryption/client-key.service';
+import { DEMO_CLIENT_KEY } from '@core/encryption/crypto.utils';
 import { DemoModeService } from './demo-mode.service';
 import { type E2EWindow } from '@core/auth';
 
@@ -28,6 +30,7 @@ export class DemoInitializerService {
   readonly #config = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);
   readonly #authSession = inject(AuthSessionService);
+  readonly #clientKeyService = inject(ClientKeyService);
   readonly #demoModeService = inject(DemoModeService);
 
   readonly #isInitializing = signal(false);
@@ -94,6 +97,7 @@ export class DemoInitializerService {
 
       // Activate demo mode (manages localStorage via reactive signals)
       this.#demoModeService.activateDemoMode(session.user.email);
+      this.#clientKeyService.setDirectKey(DEMO_CLIENT_KEY);
 
       this.#logger.info('Demo mode activated successfully');
 
@@ -166,6 +170,7 @@ export class DemoInitializerService {
 
     // Activate demo mode
     this.#demoModeService.activateDemoMode(mockSession.user.email);
+    this.#clientKeyService.setDirectKey(DEMO_CLIENT_KEY);
 
     this.#logger.info('E2E Demo mode activated successfully');
 

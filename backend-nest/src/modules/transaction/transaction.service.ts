@@ -17,8 +17,9 @@ import {
 } from 'pulpe-shared';
 import * as transactionMappers from './transaction.mappers';
 import { TRANSACTION_CONSTANTS } from './entities';
-import type { Database } from '../../types/database.types';
+import type { Database, TablesInsert } from '../../types/database.types';
 import { BudgetService } from '../budget/budget.service';
+import { EncryptionService } from '@modules/encryption/encryption.service';
 
 @Injectable()
 export class TransactionService {
@@ -26,9 +27,11 @@ export class TransactionService {
     @InjectInfoLogger(TransactionService.name)
     private readonly logger: InfoLogger,
     private readonly budgetService: BudgetService,
+    private readonly encryptionService: EncryptionService,
   ) {}
 
   async findAll(
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
     try {
@@ -50,7 +53,12 @@ export class TransactionService {
         );
       }
 
-      const apiData = transactionMappers.toApiList(transactionsDb || []);
+      const decryptedTransactions = await this.decryptTransactions(
+        transactionsDb || [],
+        user.id,
+        user.clientKey,
+      );
+      const apiData = transactionMappers.toApiList(decryptedTransactions);
 
       return {
         success: true as const,
@@ -182,7 +190,7 @@ export class TransactionService {
   }
 
   private async insertTransaction(
-    transactionData: ReturnType<typeof this.prepareTransactionData>,
+    transactionData: TablesInsert<'transaction'>,
     supabase: AuthenticatedSupabaseClient,
     userId?: string,
   ): Promise<Database['public']['Tables']['transaction']['Row']> {
@@ -210,6 +218,48 @@ export class TransactionService {
     return transactionDb;
   }
 
+  private decryptTransactionWithDEK(
+    transaction: Database['public']['Tables']['transaction']['Row'],
+    dek: Buffer,
+  ): Database['public']['Tables']['transaction']['Row'] {
+    const amountEncrypted = (transaction as Record<string, unknown>)
+      .amount_encrypted as string | undefined;
+
+    if (amountEncrypted) {
+      const decryptedAmount = this.encryptionService.tryDecryptAmount(
+        amountEncrypted,
+        dek,
+        transaction.amount,
+      );
+      return {
+        ...transaction,
+        amount: decryptedAmount,
+      };
+    }
+
+    return transaction;
+  }
+
+  private async decryptTransaction(
+    transaction: Database['public']['Tables']['transaction']['Row'],
+    userId: string,
+    clientKey: Buffer,
+  ): Promise<Database['public']['Tables']['transaction']['Row']> {
+    const dek = await this.encryptionService.getUserDEK(userId, clientKey);
+    return this.decryptTransactionWithDEK(transaction, dek);
+  }
+
+  private async decryptTransactions(
+    transactions: Database['public']['Tables']['transaction']['Row'][],
+    userId: string,
+    clientKey: Buffer,
+  ): Promise<Database['public']['Tables']['transaction']['Row'][]> {
+    const dek = await this.encryptionService.getUserDEK(userId, clientKey);
+    return transactions.map((transaction) =>
+      this.decryptTransactionWithDEK(transaction, dek),
+    );
+  }
+
   async create(
     createTransactionDto: TransactionCreate,
     user: AuthenticatedUser,
@@ -229,8 +279,24 @@ export class TransactionService {
       }
 
       const transactionData = this.prepareTransactionData(createTransactionDto);
+
+      // Get user DEK and encrypt amount
+      const dek = await this.encryptionService.ensureUserDEK(
+        user.id,
+        user.clientKey,
+      );
+      const encryptedAmount = this.encryptionService.encryptAmount(
+        createTransactionDto.amount,
+        dek,
+      );
+      const dataWithEncryption = {
+        ...transactionData,
+        amount: 0,
+        amount_encrypted: encryptedAmount,
+      };
+
       const transactionDb = await this.insertTransaction(
-        transactionData,
+        dataWithEncryption,
         supabase,
         user.id,
       );
@@ -238,6 +304,7 @@ export class TransactionService {
       await this.budgetService.recalculateBalances(
         transactionDb.budget_id,
         supabase,
+        user.clientKey,
       );
 
       const apiData = transactionMappers.toApi(transactionDb);
@@ -267,7 +334,12 @@ export class TransactionService {
   ): Promise<TransactionResponse> {
     try {
       const transactionDb = await this.fetchTransactionById(id, user, supabase);
-      const apiData = transactionMappers.toApi(transactionDb);
+      const decryptedTransaction = await this.decryptTransaction(
+        transactionDb,
+        user.id,
+        user.clientKey,
+      );
+      const apiData = transactionMappers.toApi(decryptedTransaction);
 
       return {
         success: true,
@@ -427,6 +499,21 @@ export class TransactionService {
 
       const updateData =
         this.prepareTransactionUpdateData(updateTransactionDto);
+
+      // If amount is being updated, encrypt it
+      if (updateTransactionDto.amount !== undefined) {
+        const dek = await this.encryptionService.ensureUserDEK(
+          user.id,
+          user.clientKey,
+        );
+        const encryptedAmount = this.encryptionService.encryptAmount(
+          updateTransactionDto.amount,
+          dek,
+        );
+        updateData.amount = 0;
+        updateData.amount_encrypted = encryptedAmount;
+      }
+
       const transactionDb = await this.updateTransactionInDb(
         id,
         updateData,
@@ -437,6 +524,7 @@ export class TransactionService {
       await this.budgetService.recalculateBalances(
         transactionDb.budget_id,
         supabase,
+        user.clientKey,
       );
 
       const apiData = transactionMappers.toApi(transactionDb);
@@ -480,6 +568,7 @@ export class TransactionService {
         await this.budgetService.recalculateBalances(
           transaction.budget_id,
           supabase,
+          user.clientKey,
         );
       }
 
@@ -560,6 +649,7 @@ export class TransactionService {
 
   async findByBudgetId(
     budgetId: string,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
     try {
@@ -583,7 +673,12 @@ export class TransactionService {
         );
       }
 
-      const apiData = transactionMappers.toApiList(transactionsDb || []);
+      const decryptedTransactions = await this.decryptTransactions(
+        transactionsDb || [],
+        user.id,
+        user.clientKey,
+      );
+      const apiData = transactionMappers.toApiList(decryptedTransactions);
 
       return {
         success: true as const,
@@ -637,6 +732,7 @@ export class TransactionService {
    */
   async findByBudgetLineId(
     budgetLineId: string,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
     try {
@@ -662,7 +758,12 @@ export class TransactionService {
         );
       }
 
-      const apiData = transactionMappers.toApiList(transactionsDb || []);
+      const decryptedTransactions = await this.decryptTransactions(
+        transactionsDb || [],
+        user.id,
+        user.clientKey,
+      );
+      const apiData = transactionMappers.toApiList(decryptedTransactions);
 
       return {
         success: true as const,
@@ -748,6 +849,7 @@ export class TransactionService {
    */
   async search(
     query: string,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
     years?: number[],
   ): Promise<TransactionSearchResponse> {
@@ -767,9 +869,42 @@ export class TransactionService {
         this.#fetchBudgetLinesByPattern(searchPattern, budgetIds, supabase),
       ]);
 
+      const dek = await this.encryptionService.getUserDEK(
+        user.id,
+        user.clientKey,
+      );
+
+      const decryptedTransactions = transactionsDb.map((t) => {
+        if (!t.amount_encrypted) return t;
+        return {
+          ...t,
+          amount: this.encryptionService.tryDecryptAmount(
+            t.amount_encrypted,
+            dek,
+            t.amount,
+          ),
+        };
+      });
+
+      const decryptedBudgetLines = budgetLinesDb.map((bl) => {
+        if (!bl.amount_encrypted) return bl;
+        return {
+          ...bl,
+          amount: this.encryptionService.tryDecryptAmount(
+            bl.amount_encrypted,
+            dek,
+            bl.amount,
+          ),
+        };
+      });
+
       const allResults = [
-        ...transactionsDb.map((t) => this.#mapTransactionToSearchResult(t)),
-        ...budgetLinesDb.map((bl) => this.#mapBudgetLineToSearchResult(bl)),
+        ...decryptedTransactions.map((t) =>
+          this.#mapTransactionToSearchResult(t),
+        ),
+        ...decryptedBudgetLines.map((bl) =>
+          this.#mapBudgetLineToSearchResult(bl),
+        ),
       ].sort((a, b) => b.year - a.year || b.month - a.month);
 
       return {
@@ -831,6 +966,7 @@ export class TransactionService {
         id,
         name,
         amount,
+        amount_encrypted,
         kind,
         transaction_date,
         category,
@@ -880,6 +1016,7 @@ export class TransactionService {
         id,
         name,
         amount,
+        amount_encrypted,
         kind,
         recurrence,
         budget_id,

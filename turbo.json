@@ -56,7 +56,8 @@
         "SUPABASE_URL",
         "SUPABASE_ANON_KEY",
         "SUPABASE_SERVICE_ROLE_KEY",
-        "TURNSTILE_SECRET_KEY"
+        "TURNSTILE_SECRET_KEY",
+        "ENCRYPTION_MASTER_KEY"
       ]
     },
     "test:watch": {

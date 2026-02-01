@@ -79,10 +79,12 @@ export const toDbTemplateUpdate = (
 export const toDbTemplateLineInsert = (
   dto: TemplateLineCreateWithoutTemplateId,
   templateId: string,
+  amountEncrypted?: string | null,
 ): TablesInsert<'template_line'> => ({
   template_id: templateId,
   name: dto.name,
-  amount: dto.amount,
+  amount: amountEncrypted ? 0 : dto.amount,
+  amount_encrypted: amountEncrypted ?? null,
   kind: dto.kind,
   recurrence: dto.recurrence,
   description: dto.description,
@@ -90,10 +92,14 @@ export const toDbTemplateLineInsert = (
 
 export const toDbTemplateLineUpdate = (
   dto: TemplateLineUpdate,
+  amountEncrypted?: string | null,
 ): Partial<TablesInsert<'template_line'>> => {
   const update: Partial<TablesInsert<'template_line'>> = {};
   if (dto.name !== undefined) update.name = dto.name;
-  if (dto.amount !== undefined) update.amount = dto.amount;
+  if (dto.amount !== undefined) {
+    update.amount = amountEncrypted ? 0 : dto.amount;
+    update.amount_encrypted = amountEncrypted ?? null;
+  }
   if (dto.kind !== undefined) update.kind = dto.kind;
   if (dto.recurrence !== undefined) update.recurrence = dto.recurrence;
   if (dto.description !== undefined) update.description = dto.description;

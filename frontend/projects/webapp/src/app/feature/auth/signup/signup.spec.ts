@@ -1,24 +1,59 @@
-import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import Signup from './signup';
+import { of, throwError } from 'rxjs';
+
 import { AuthCredentialsService, PASSWORD_MIN_LENGTH } from '@core/auth';
+import { EncryptionApi } from '@core/encryption';
 import { Logger } from '@core/logging/logger';
+
+import Signup from './signup';
 
 describe('Signup', () => {
   let component: Signup;
   let mockAuthCredentials: { signUpWithEmail: ReturnType<typeof vi.fn> };
-  let mockLogger: { error: ReturnType<typeof vi.fn> };
+  let mockLogger: {
+    error: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+  };
+  let mockEncryptionApi: {
+    setupRecoveryKey$: ReturnType<typeof vi.fn>;
+  };
+  let mockDialog: { open: ReturnType<typeof vi.fn> };
+  let mockSnackBar: { open: ReturnType<typeof vi.fn> };
+  let mockDialogRef: { afterClosed: ReturnType<typeof vi.fn> };
+  let navigateSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
+    mockDialogRef = {
+      afterClosed: vi.fn().mockReturnValue(of(true)),
+    };
+
     mockAuthCredentials = {
       signUpWithEmail: vi.fn(),
     };
 
     mockLogger = {
       error: vi.fn(),
+      warn: vi.fn(),
+    };
+
+    mockEncryptionApi = {
+      setupRecoveryKey$: vi
+        .fn()
+        .mockReturnValue(of({ recoveryKey: 'ABCD-EFGH-1234' })),
+    };
+
+    mockDialog = {
+      open: vi.fn().mockReturnValue(mockDialogRef),
+    };
+
+    mockSnackBar = {
+      open: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -29,11 +64,26 @@ describe('Signup', () => {
         provideRouter([]),
         { provide: AuthCredentialsService, useValue: mockAuthCredentials },
         { provide: Logger, useValue: mockLogger },
+        { provide: EncryptionApi, useValue: mockEncryptionApi },
+        { provide: MatDialog, useValue: mockDialog },
+        { provide: MatSnackBar, useValue: mockSnackBar },
       ],
     }).compileComponents();
 
     component = TestBed.createComponent(Signup).componentInstance;
+
+    const router = TestBed.inject(Router);
+    navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
   });
+
+  function fillValidForm(): void {
+    component['signupForm'].patchValue({
+      email: 'test@example.com',
+      password: 'password123',
+      confirmPassword: 'password123',
+      acceptTerms: true,
+    });
+  }
 
   describe('Component Structure', () => {
     it('should create successfully', () => {
@@ -179,23 +229,13 @@ describe('Signup', () => {
     });
 
     it('should return false when isSubmitting is true', () => {
-      component['signupForm'].patchValue({
-        email: 'test@example.com',
-        password: 'password123',
-        confirmPassword: 'password123',
-        acceptTerms: true,
-      });
+      fillValidForm();
       component['isSubmitting'].set(true);
       expect(component['canSubmit']()).toBe(false);
     });
 
     it('should return true when form is valid and not submitting', () => {
-      component['signupForm'].patchValue({
-        email: 'test@example.com',
-        password: 'password123',
-        confirmPassword: 'password123',
-        acceptTerms: true,
-      });
+      fillValidForm();
       expect(component['canSubmit']()).toBe(true);
     });
   });
@@ -263,12 +303,7 @@ describe('Signup', () => {
 
   describe('signUp - Valid Form', () => {
     beforeEach(() => {
-      component['signupForm'].patchValue({
-        email: 'test@example.com',
-        password: 'password123',
-        confirmPassword: 'password123',
-        acceptTerms: true,
-      });
+      fillValidForm();
     });
 
     it('should set isSubmitting to true when called', async () => {
@@ -311,12 +346,7 @@ describe('Signup', () => {
 
   describe('signUp - API Failure', () => {
     beforeEach(() => {
-      component['signupForm'].patchValue({
-        email: 'test@example.com',
-        password: 'password123',
-        confirmPassword: 'password123',
-        acceptTerms: true,
-      });
+      fillValidForm();
     });
 
     it('should set error message from API response', async () => {
@@ -351,12 +381,7 @@ describe('Signup', () => {
 
   describe('signUp - Exception', () => {
     beforeEach(() => {
-      component['signupForm'].patchValue({
-        email: 'test@example.com',
-        password: 'password123',
-        confirmPassword: 'password123',
-        acceptTerms: true,
-      });
+      fillValidForm();
     });
 
     it('should set generic error message on exception', async () => {
@@ -391,6 +416,86 @@ describe('Signup', () => {
       await component['signUp']();
 
       expect(component['isSubmitting']()).toBe(false);
+    });
+  });
+
+  describe('Recovery Key Prompt after Signup', () => {
+    beforeEach(() => {
+      fillValidForm();
+      mockAuthCredentials.signUpWithEmail.mockResolvedValue({ success: true });
+    });
+
+    it('should call setupRecoveryKey$ after successful signup', async () => {
+      await component['signUp']();
+
+      expect(mockEncryptionApi.setupRecoveryKey$).toHaveBeenCalled();
+    });
+
+    it('should open RecoveryKeyDialog with disableClose after successful signup', async () => {
+      await component['signUp']();
+
+      expect(mockDialog.open).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: { recoveryKey: 'ABCD-EFGH-1234' },
+          width: '480px',
+          disableClose: true,
+        }),
+      );
+    });
+
+    it('should navigate to dashboard after recovery key dialog closes', async () => {
+      mockDialogRef.afterClosed.mockReturnValue(of(true));
+
+      await component['signUp']();
+
+      expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']);
+    });
+
+    it('should show snackbar when user confirms recovery key', async () => {
+      mockDialogRef.afterClosed.mockReturnValue(of(true));
+
+      await component['signUp']();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Clé de récupération enregistrée',
+        'OK',
+        expect.objectContaining({ duration: 3000 }),
+      );
+    });
+
+    it('should not show snackbar when user dismisses dialog without confirming', async () => {
+      mockDialogRef.afterClosed.mockReturnValue(of(false));
+
+      await component['signUp']();
+
+      expect(mockSnackBar.open).not.toHaveBeenCalled();
+    });
+
+    it('should navigate to dashboard even if recovery key setup fails', async () => {
+      mockEncryptionApi.setupRecoveryKey$.mockReturnValue(
+        throwError(() => new Error('API error')),
+      );
+
+      await component['signUp']();
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Recovery key setup failed during signup — user can generate later from settings',
+        expect.any(Error),
+      );
+      expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']);
+    });
+
+    it('should not call setupRecoveryKey$ when signup fails', async () => {
+      mockAuthCredentials.signUpWithEmail.mockResolvedValue({
+        success: false,
+        error: 'Email already exists',
+      });
+
+      await component['signUp']();
+
+      expect(mockEncryptionApi.setupRecoveryKey$).not.toHaveBeenCalled();
+      expect(navigateSpy).not.toHaveBeenCalled();
     });
   });
 });
