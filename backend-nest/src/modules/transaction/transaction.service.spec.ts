@@ -44,6 +44,9 @@ describe('TransactionService', () => {
       ensureUserDEK: mock(() => Promise.resolve(Buffer.alloc(32))),
       encryptAmount: mock(() => 'encrypted-mock'),
       decryptAmount: mock(() => 100),
+      tryDecryptAmount: mock(
+        (_ct: string, _dek: Buffer, fallback: number) => fallback,
+      ),
     };
     service = new TransactionService(
       mockLogger as InfoLogger,

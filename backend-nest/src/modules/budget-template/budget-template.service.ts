@@ -244,7 +244,7 @@ export class BudgetTemplateService {
 
     const rpcLines = validated.lines.map((line) => ({
       name: line.name,
-      amount: line.amount,
+      amount: 0,
       amount_encrypted: this.encryptionService.encryptAmount(line.amount, dek),
       kind: line.kind as Database['public']['Enums']['transaction_kind'],
       recurrence:

@@ -1,79 +1,121 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
+import {
+  HttpClient,
+  provideHttpClient,
+  withInterceptors,
+} from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 
-function shouldAddClientKey(
-  clientKeyHex: string | null,
-  requestUrl: string,
-  backendApiUrl: string,
-  hasExistingHeader: boolean,
-): boolean {
-  return !!clientKeyHex && requestUrl.startsWith(backendApiUrl) && !hasExistingHeader;
-}
+import { ApplicationConfiguration } from '@core/config/application-configuration';
 
-describe('shouldAddClientKey', () => {
-  const backendApiUrl = 'https://api.pulpe.ch';
-  const clientKey = 'abc123def456';
+import { ClientKeyService } from './client-key.service';
+import { clientKeyInterceptor } from './client-key.interceptor';
 
-  it('should return true when clientKey exists and URL matches backend', () => {
-    expect(
-      shouldAddClientKey(clientKey, 'https://api.pulpe.ch/users', backendApiUrl, false),
-    ).toBe(true);
-    expect(
-      shouldAddClientKey(clientKey, 'https://api.pulpe.ch/auth/login', backendApiUrl, false),
-    ).toBe(true);
-    expect(shouldAddClientKey(clientKey, 'https://api.pulpe.ch', backendApiUrl, false)).toBe(
-      true,
-    );
+describe('clientKeyInterceptor', () => {
+  let http: HttpClient;
+  let httpTesting: HttpTestingController;
+  let clientKeyService: ClientKeyService;
+
+  const backendApiUrl = 'http://localhost:3000/api';
+  const validKeyHex = 'a'.repeat(64);
+
+  let getItemSpy: ReturnType<typeof vi.spyOn>;
+  let setItemSpy: ReturnType<typeof vi.spyOn>;
+  let removeItemSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    getItemSpy = vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
+    setItemSpy = vi
+      .spyOn(Storage.prototype, 'setItem')
+      .mockReturnValue(undefined);
+    removeItemSpy = vi
+      .spyOn(Storage.prototype, 'removeItem')
+      .mockReturnValue(undefined);
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        provideHttpClient(withInterceptors([clientKeyInterceptor])),
+        provideHttpClientTesting(),
+        {
+          provide: ApplicationConfiguration,
+          useValue: { backendApiUrl: () => backendApiUrl },
+        },
+      ],
+    });
+
+    http = TestBed.inject(HttpClient);
+    httpTesting = TestBed.inject(HttpTestingController);
+    clientKeyService = TestBed.inject(ClientKeyService);
   });
 
-  it('should return false when no clientKey', () => {
-    expect(
-      shouldAddClientKey(null, 'https://api.pulpe.ch/users', backendApiUrl, false),
-    ).toBe(false);
-    expect(
-      shouldAddClientKey('', 'https://api.pulpe.ch/users', backendApiUrl, false),
-    ).toBe(false);
+  afterEach(() => {
+    httpTesting.verify();
+    getItemSpy.mockRestore();
+    setItemSpy.mockRestore();
+    removeItemSpy.mockRestore();
   });
 
-  it('should return false when URL does not match backend', () => {
-    expect(
-      shouldAddClientKey(clientKey, 'https://external-api.com/data', backendApiUrl, false),
-    ).toBe(false);
-    expect(shouldAddClientKey(clientKey, 'https://google.com', backendApiUrl, false)).toBe(
-      false,
-    );
-    expect(
-      shouldAddClientKey(clientKey, 'http://localhost:3000', backendApiUrl, false),
-    ).toBe(false);
+  it('should add X-Client-Key header to backend requests when key exists', () => {
+    getItemSpy.mockReturnValue(validKeyHex);
+    clientKeyService.initialize();
+
+    http.get(`${backendApiUrl}/users`).subscribe();
+
+    const req = httpTesting.expectOne(`${backendApiUrl}/users`);
+    expect(req.request.headers.get('X-Client-Key')).toBe(validKeyHex);
+    req.flush([]);
   });
 
-  it('should return false when request already has X-Client-Key header', () => {
-    expect(
-      shouldAddClientKey(clientKey, 'https://api.pulpe.ch/users', backendApiUrl, true),
-    ).toBe(false);
-    expect(
-      shouldAddClientKey(clientKey, 'https://api.pulpe.ch/auth/login', backendApiUrl, true),
-    ).toBe(false);
+  it('should not add header when no client key is set', () => {
+    http.get(`${backendApiUrl}/users`).subscribe();
+
+    const req = httpTesting.expectOne(`${backendApiUrl}/users`);
+    expect(req.request.headers.has('X-Client-Key')).toBe(false);
+    req.flush([]);
   });
 
-  it('should handle different backend URL formats', () => {
-    expect(
-      shouldAddClientKey(clientKey, 'https://api.pulpe.ch/users', 'https://api.pulpe.ch', false),
-    ).toBe(true);
-    expect(
-      shouldAddClientKey(
-        clientKey,
-        'http://localhost:8080/api/users',
-        'http://localhost:8080/api',
-        false,
-      ),
-    ).toBe(true);
-    expect(
-      shouldAddClientKey(
-        clientKey,
-        'https://api.pulpe.ch/users',
-        'http://api.pulpe.ch',
-        false,
-      ),
-    ).toBe(false);
+  it('should not add header for non-backend URLs', () => {
+    getItemSpy.mockReturnValue(validKeyHex);
+    clientKeyService.initialize();
+
+    http.get('https://external-api.com/data').subscribe();
+
+    const req = httpTesting.expectOne('https://external-api.com/data');
+    expect(req.request.headers.has('X-Client-Key')).toBe(false);
+    req.flush([]);
+  });
+
+  it('should not override an existing X-Client-Key header', () => {
+    getItemSpy.mockReturnValue(validKeyHex);
+    clientKeyService.initialize();
+
+    const existingKey = 'b'.repeat(64);
+    http
+      .get(`${backendApiUrl}/salt`, {
+        headers: { 'X-Client-Key': existingKey },
+      })
+      .subscribe();
+
+    const req = httpTesting.expectOne(`${backendApiUrl}/salt`);
+    expect(req.request.headers.get('X-Client-Key')).toBe(existingKey);
+    req.flush({});
+  });
+
+  it('should stop adding header after client key is cleared', () => {
+    getItemSpy.mockReturnValue(validKeyHex);
+    clientKeyService.initialize();
+    clientKeyService.clear();
+
+    http.get(`${backendApiUrl}/users`).subscribe();
+
+    const req = httpTesting.expectOne(`${backendApiUrl}/users`);
+    expect(req.request.headers.has('X-Client-Key')).toBe(false);
+    req.flush([]);
   });
 });

@@ -83,7 +83,7 @@ export const toDbTemplateLineInsert = (
 ): TablesInsert<'template_line'> => ({
   template_id: templateId,
   name: dto.name,
-  amount: dto.amount,
+  amount: amountEncrypted ? 0 : dto.amount,
   amount_encrypted: amountEncrypted ?? null,
   kind: dto.kind,
   recurrence: dto.recurrence,
@@ -97,7 +97,7 @@ export const toDbTemplateLineUpdate = (
   const update: Partial<TablesInsert<'template_line'>> = {};
   if (dto.name !== undefined) update.name = dto.name;
   if (dto.amount !== undefined) {
-    update.amount = dto.amount;
+    update.amount = amountEncrypted ? 0 : dto.amount;
     update.amount_encrypted = amountEncrypted ?? null;
   }
   if (dto.kind !== undefined) update.kind = dto.kind;

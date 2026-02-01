@@ -6,4 +6,6 @@ export const AUTH_ERROR_MESSAGES = {
   UNEXPECTED_SIGNUP_ERROR:
     "La création du compte n'a pas abouti — on retente ?",
   UNEXPECTED_SESSION_ERROR: "Quelque chose n'a pas fonctionné — réessayons",
+  ENCRYPTION_SETUP_ERROR:
+    'La préparation de ton espace sécurisé a échoué — réessaie de te connecter. Si le problème persiste, contacte le support.',
 } as const;

@@ -59,7 +59,20 @@ export class AuthCredentialsService {
       }
 
       this.#state.setSession(data.session ?? null);
-      await this.#deriveClientKey(password);
+
+      try {
+        await this.#deriveClientKey(password);
+      } catch (encryptionError) {
+        this.#logger.error('Encryption key derivation failed during sign-in', {
+          error: encryptionError,
+        });
+        await this.#session.signOut();
+        return {
+          success: false,
+          error: AUTH_ERROR_MESSAGES.ENCRYPTION_SETUP_ERROR,
+        };
+      }
+
       return { success: true };
     } catch (error) {
       this.#logger.error('Unexpected error during sign-in', {
@@ -101,7 +114,20 @@ export class AuthCredentialsService {
       }
 
       this.#state.setSession(data.session ?? null);
-      await this.#deriveClientKey(password);
+
+      try {
+        await this.#deriveClientKey(password);
+      } catch (encryptionError) {
+        this.#logger.error('Encryption key derivation failed during sign-up', {
+          error: encryptionError,
+        });
+        await this.#session.signOut();
+        return {
+          success: false,
+          error: AUTH_ERROR_MESSAGES.ENCRYPTION_SETUP_ERROR,
+        };
+      }
+
       return { success: true };
     } catch (error) {
       this.#logger.error('Unexpected error during sign-up', {

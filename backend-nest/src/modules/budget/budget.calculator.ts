@@ -30,28 +30,42 @@ export class BudgetCalculator {
   async calculateEndingBalance(
     budgetId: string,
     supabase: AuthenticatedSupabaseClient,
+    clientKey: Buffer | null,
   ): Promise<number> {
     const { budgetLines, transactions } = await this.repository.fetchBudgetData(
       budgetId,
       supabase,
       {
-        budgetLineFields: 'id, kind, amount',
-        transactionFields: 'id, kind, amount, budget_line_id',
+        budgetLineFields: 'id, kind, amount, amount_encrypted',
+        transactionFields: 'id, kind, amount, amount_encrypted, budget_line_id',
       },
     );
 
+    const decryptedBudgetLines = await this.#decryptAmounts(
+      budgetLines,
+      budgetId,
+      supabase,
+      clientKey,
+    );
+    const decryptedTransactions = await this.#decryptAmounts(
+      transactions,
+      budgetId,
+      supabase,
+      clientKey,
+    );
+
     // Map snake_case budget_line_id to camelCase budgetLineId for shared calculation
-    const mappedTransactions = transactions.map((tx) => ({
+    const mappedTransactions = decryptedTransactions.map((tx) => ({
       ...tx,
       budgetLineId: tx.budget_line_id,
     }));
 
     const totalIncome = BudgetFormulas.calculateTotalIncome(
-      budgetLines,
-      transactions,
+      decryptedBudgetLines,
+      decryptedTransactions,
     );
     const totalExpenses = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
-      budgetLines,
+      decryptedBudgetLines,
       mappedTransactions,
     );
 
@@ -69,7 +83,11 @@ export class BudgetCalculator {
     supabase: AuthenticatedSupabaseClient,
     clientKey: Buffer | null,
   ): Promise<void> {
-    const endingBalance = await this.calculateEndingBalance(budgetId, supabase);
+    const endingBalance = await this.calculateEndingBalance(
+      budgetId,
+      supabase,
+      clientKey,
+    );
     await this.persistEndingBalance(
       budgetId,
       endingBalance,
@@ -129,6 +147,35 @@ export class BudgetCalculator {
         },
       );
     }
+  }
+
+  async #decryptAmounts<
+    T extends { amount: number; amount_encrypted?: string | null },
+  >(
+    rows: T[],
+    budgetId: string,
+    supabase: AuthenticatedSupabaseClient,
+    clientKey: Buffer | null,
+  ): Promise<T[]> {
+    if (!clientKey) return rows;
+
+    const hasEncrypted = rows.some((r) => r.amount_encrypted);
+    if (!hasEncrypted) return rows;
+
+    const userId = await this.#fetchBudgetUserId(budgetId, supabase);
+    const dek = await this.encryptionService.getUserDEK(userId, clientKey);
+
+    return rows.map((row) => {
+      if (!row.amount_encrypted) return row;
+      return {
+        ...row,
+        amount: this.encryptionService.tryDecryptAmount(
+          row.amount_encrypted,
+          dek,
+          row.amount,
+        ),
+      };
+    });
   }
 
   async #fetchAndDecryptBudgets(
@@ -226,7 +273,7 @@ export class BudgetCalculator {
     const { error } = await supabase
       .from('monthly_budget')
       .update({
-        ending_balance: endingBalance,
+        ending_balance: encryptedBalance ? 0 : endingBalance,
         ending_balance_encrypted: encryptedBalance,
       })
       .eq('id', budgetId);

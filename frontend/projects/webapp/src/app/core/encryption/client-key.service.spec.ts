@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, vi, afterEach, type Mock } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  vi,
+  afterEach,
+  type Mock,
+} from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { ClientKeyService } from './client-key.service';
 
@@ -7,7 +15,10 @@ vi.mock('@core/encryption/crypto.utils', () => ({
   isValidClientKeyHex: vi.fn(),
 }));
 
-import { deriveClientKey, isValidClientKeyHex } from '@core/encryption/crypto.utils';
+import {
+  deriveClientKey,
+  isValidClientKeyHex,
+} from '@core/encryption/crypto.utils';
 
 const mockedDeriveClientKey = deriveClientKey as Mock;
 const mockedIsValidClientKeyHex = isValidClientKeyHex as Mock;
@@ -26,8 +37,12 @@ describe('ClientKeyService', () => {
     service = TestBed.inject(ClientKeyService);
 
     getItemSpy = vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
-    setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockReturnValue(undefined);
-    removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem').mockReturnValue(undefined);
+    setItemSpy = vi
+      .spyOn(Storage.prototype, 'setItem')
+      .mockReturnValue(undefined);
+    removeItemSpy = vi
+      .spyOn(Storage.prototype, 'removeItem')
+      .mockReturnValue(undefined);
 
     vi.clearAllMocks();
   });

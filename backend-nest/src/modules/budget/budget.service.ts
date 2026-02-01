@@ -31,6 +31,7 @@ import * as budgetLineMappers from '../budget-line/budget-line.mappers';
 import { BudgetCalculator } from './budget.calculator';
 import { BudgetValidator } from './budget.validator';
 import { BudgetRepository } from './budget.repository';
+import { EncryptionService } from '@modules/encryption/encryption.service';
 
 const DEFAULT_PAY_DAY = PAY_DAY_MIN;
 
@@ -48,6 +49,7 @@ export class BudgetService {
     private readonly calculator: BudgetCalculator,
     private readonly validator: BudgetValidator,
     private readonly repository: BudgetRepository,
+    private readonly encryptionService: EncryptionService,
   ) {}
 
   private async getPayDayOfMonth(
@@ -399,13 +401,45 @@ export class BudgetService {
       clientKey,
     );
 
+    const dek = await this.encryptionService.getUserDEK(
+      budget.user_id!,
+      clientKey,
+    );
+
+    const decryptedBudgetLines = (budgetLines || []).map((line) => {
+      if (!line.amount_encrypted) return line;
+      return {
+        ...line,
+        amount: this.encryptionService.tryDecryptAmount(
+          line.amount_encrypted,
+          dek,
+          line.amount,
+        ),
+      };
+    });
+
+    const decryptedTransactions = (transactions || []).map((tx) => {
+      const encrypted = (tx as Record<string, unknown>).amount_encrypted as
+        | string
+        | undefined;
+      if (!encrypted) return tx;
+      return {
+        ...tx,
+        amount: this.encryptionService.tryDecryptAmount(
+          encrypted,
+          dek,
+          tx.amount,
+        ),
+      };
+    });
+
     return {
       ...budgetMappers.toApi(budget),
       rollover: rolloverData.rollover,
       previousBudgetId: rolloverData.previousBudgetId,
       remaining,
-      transactions: transactionMappers.toApiList(transactions || []),
-      budgetLines: budgetLineMappers.toApiList(budgetLines || []),
+      transactions: transactionMappers.toApiList(decryptedTransactions),
+      budgetLines: budgetLineMappers.toApiList(decryptedBudgetLines),
     };
   }
 
@@ -528,6 +562,7 @@ export class BudgetService {
         budgetId,
         budgetData,
         supabase,
+        user,
       );
       await this.addRolloverToBudget(
         budgetId,
@@ -588,6 +623,7 @@ export class BudgetService {
     budgetId: string,
     budgetData: Tables<'monthly_budget'>,
     supabase: AuthenticatedSupabaseClient,
+    user: AuthenticatedUser,
   ) {
     const results = await this.repository.fetchBudgetData(budgetId, supabase, {
       budgetLineFields: '*',
@@ -597,10 +633,42 @@ export class BudgetService {
 
     results.budget = budgetData;
 
+    const dek = await this.encryptionService.getUserDEK(
+      user.id,
+      user.clientKey,
+    );
+
+    const decryptedBudgetLines = (results.budgetLines || []).map((line) => {
+      if (!line.amount_encrypted) return line;
+      return {
+        ...line,
+        amount: this.encryptionService.tryDecryptAmount(
+          line.amount_encrypted,
+          dek,
+          line.amount,
+        ),
+      };
+    });
+
+    const decryptedTransactions = (results.transactions || []).map((tx) => {
+      const encrypted = (tx as Record<string, unknown>).amount_encrypted as
+        | string
+        | undefined;
+      if (!encrypted) return tx;
+      return {
+        ...tx,
+        amount: this.encryptionService.tryDecryptAmount(
+          encrypted,
+          dek,
+          tx.amount,
+        ),
+      };
+    });
+
     return {
       budget: budgetMappers.toApi(results.budget as Tables<'monthly_budget'>),
-      transactions: transactionMappers.toApiList(results.transactions || []),
-      budgetLines: budgetLineMappers.toApiList(results.budgetLines || []),
+      transactions: transactionMappers.toApiList(decryptedTransactions),
+      budgetLines: budgetLineMappers.toApiList(decryptedBudgetLines),
     };
   }
 
@@ -987,9 +1055,13 @@ export class BudgetService {
             'Failed to calculate remaining for budget, using fallback',
           );
 
+          const fallbackBalance = await this.#decryptEndingBalance(
+            budget,
+            clientKey,
+          );
           return {
             ...budget,
-            remaining: budget.ending_balance ?? 0,
+            remaining: fallbackBalance,
           };
         }
       }),
@@ -1008,6 +1080,7 @@ export class BudgetService {
       const currentBalance = await this.calculator.calculateEndingBalance(
         budget.id,
         supabase,
+        clientKey,
       );
       const rolloverData = await this.calculator.getRollover(
         budget.id,
@@ -1033,8 +1106,30 @@ export class BudgetService {
         supabase,
         clientKey,
       );
-      const endingBalanceStored = budget.ending_balance ?? 0;
+      const endingBalanceStored = await this.#decryptEndingBalance(
+        budget,
+        clientKey,
+      );
       return endingBalanceStored + rolloverData.rollover;
     }
+  }
+
+  async #decryptEndingBalance(
+    budget: Tables<'monthly_budget'>,
+    clientKey: Buffer,
+  ): Promise<number> {
+    const encrypted = (budget as Record<string, unknown>)
+      .ending_balance_encrypted as string | undefined;
+    if (!encrypted) return budget.ending_balance ?? 0;
+
+    const dek = await this.encryptionService.getUserDEK(
+      budget.user_id!,
+      clientKey,
+    );
+    return this.encryptionService.tryDecryptAmount(
+      encrypted,
+      dek,
+      budget.ending_balance ?? 0,
+    );
   }
 }

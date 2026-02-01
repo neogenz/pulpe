@@ -174,6 +174,7 @@ export class BudgetLineService {
     );
     const dataWithEncryption = {
       ...budgetLineData,
+      amount: 0,
       amount_encrypted: amountEncrypted,
     };
 
@@ -412,6 +413,7 @@ export class BudgetLineService {
         );
         updateData = {
           ...updateData,
+          amount: 0,
           amount_encrypted: amountEncrypted,
         };
       }
@@ -540,6 +542,7 @@ export class BudgetLineService {
       const templateLine = await this.fetchTemplateLineById(
         budgetLine.template_line_id!,
         supabase,
+        user,
       );
 
       let updateData = this.prepareResetUpdateData(templateLine);
@@ -549,6 +552,7 @@ export class BudgetLineService {
       );
       updateData = {
         ...updateData,
+        amount: 0,
         amount_encrypted: amountEncrypted,
       };
 
@@ -617,10 +621,11 @@ export class BudgetLineService {
   private async fetchTemplateLineById(
     templateLineId: string,
     supabase: AuthenticatedSupabaseClient,
+    user: AuthenticatedUser,
   ) {
     const { data: templateLine, error } = await supabase
       .from('template_line')
-      .select('name, amount, kind, recurrence')
+      .select('name, amount, amount_encrypted, kind, recurrence')
       .eq('id', templateLineId)
       .single();
 
@@ -628,6 +633,21 @@ export class BudgetLineService {
       throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND, {
         id: templateLineId,
       });
+    }
+
+    if (templateLine.amount_encrypted) {
+      const dek = await this.encryptionService.getUserDEK(
+        user.id,
+        user.clientKey,
+      );
+      return {
+        ...templateLine,
+        amount: this.encryptionService.tryDecryptAmount(
+          templateLine.amount_encrypted,
+          dek,
+          templateLine.amount,
+        ),
+      };
     }
 
     return templateLine;

@@ -4,6 +4,7 @@ import { BudgetService } from './budget.service';
 import { BudgetCalculator } from './budget.calculator';
 import { BudgetValidator } from './budget.validator';
 import { BudgetRepository } from './budget.repository';
+import { EncryptionService } from '@modules/encryption/encryption.service';
 import {
   createMockAuthenticatedUser,
   createMockSupabaseClient,
@@ -192,6 +193,16 @@ describe('BudgetService', () => {
         {
           provide: BudgetRepository,
           useValue: mockRepository,
+        },
+        {
+          provide: EncryptionService,
+          useValue: {
+            getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+            ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+            encryptAmount: () => 'encrypted-mock',
+            tryDecryptAmount: (_ct: string, _dek: Buffer, fallback: number) =>
+              fallback,
+          },
         },
       ],
     }).compile();
