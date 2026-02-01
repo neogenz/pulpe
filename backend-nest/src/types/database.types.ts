@@ -370,6 +370,25 @@ export type Database = {
           rollover: number;
         }[];
       };
+      toggle_budget_line_check: {
+        Args: {
+          p_budget_line_id: string;
+        };
+        Returns: {
+          amount: number;
+          budget_id: string;
+          checked_at: string | null;
+          created_at: string;
+          id: string;
+          is_manually_adjusted: boolean;
+          kind: Database['public']['Enums']['transaction_kind'];
+          name: string;
+          recurrence: Database['public']['Enums']['transaction_recurrence'];
+          savings_goal_id: string | null;
+          template_line_id: string | null;
+          updated_at: string;
+        }[];
+      };
     };
     Enums: {
       priority_level: 'HIGH' | 'MEDIUM' | 'LOW';
