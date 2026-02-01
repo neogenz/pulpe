@@ -78,6 +78,8 @@ coverage-report.json
 # Claude Code generated outputs
 .claude/output/
 .claude/analysis/
+.claude/ralph/
+.claude/plans/
 
 docs/angular-full.txt
 
