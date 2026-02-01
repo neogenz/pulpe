@@ -191,7 +191,7 @@ export class CreateAllocatedTransactionBottomSheet {
       name: formValue.name!.trim(),
       amount: formValue.amount!,
       kind: this.data.budgetLine.kind,
-      transactionDate: formatLocalDate(formValue.transactionDate as Date),
+      transactionDate: formatLocalDate(formValue.transactionDate!),
       category: null,
     };
 
