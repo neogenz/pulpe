@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
@@ -8,10 +8,6 @@ import {
 } from '@angular/common/http/testing';
 import { EncryptionApi } from './encryption-api';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
-
-vi.mock('./crypto.utils', () => ({
-  generateRandomKeyHex: vi.fn(() => 'mock-random-key-hex'),
-}));
 
 describe('EncryptionApi', () => {
   let service: EncryptionApi;
@@ -61,7 +57,7 @@ describe('EncryptionApi', () => {
       );
       expect(req.request.headers.has('X-Client-Key')).toBe(true);
       expect(req.request.headers.get('X-Client-Key')).toBe(
-        'mock-random-key-hex',
+        '0'.repeat(63) + '1',
       );
     });
 

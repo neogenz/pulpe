@@ -62,6 +62,16 @@ describe('Rollover with payDayOfMonth', () => {
           provide: `${INFO_LOGGER_TOKEN}:${BudgetService.name}`,
           useValue: mockPinoLogger,
         },
+        {
+          provide: EncryptionService,
+          useValue: {
+            getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+            ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+            encryptAmount: () => 'encrypted-mock',
+            tryDecryptAmount: (_ct: string, _dek: Buffer, fallback: number) =>
+              fallback,
+          },
+        },
       ],
     }).compile();
 

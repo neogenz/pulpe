@@ -16,6 +16,6 @@ import { EncryptionController } from './encryption.controller';
     EncryptionBackfillService,
     EncryptionBackfillInterceptor,
   ],
-  exports: [EncryptionService],
+  exports: [EncryptionService, EncryptionBackfillService],
 })
 export class EncryptionModule {}

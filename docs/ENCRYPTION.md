@@ -12,7 +12,7 @@ DEK = HKDF-SHA256(clientKey + masterKey, salt, "pulpe-dek-{userId}")
 
 | Facteur | Origine | Stockage |
 |---------|---------|----------|
-| `clientKey` | Dérivé du mot de passe utilisateur côté frontend | Jamais stocké. Envoyé dans le header `X-Client-Key` à chaque requête, effacé de la mémoire après usage. |
+| `clientKey` | Dérivé du mot de passe utilisateur côté frontend | Conservé en `sessionStorage` (limité à l'onglet, effacé à la fermeture ou au logout). Envoyé dans le header `X-Client-Key` à chaque requête. Voir section « Stockage du clientKey » ci-dessous. |
 | `masterKey` | Variable d'environnement `ENCRYPTION_MASTER_KEY` | Serveur uniquement. GitHub Secrets en prod, `.env` en local. |
 | `salt` | Généré aléatoirement par utilisateur | Table `user_encryption_key` (accessible uniquement au `service_role`). |
 
@@ -47,7 +47,9 @@ Chaque table a une colonne `amount_encrypted` (ou équivalent) à côté de la c
 | `savings_goal` | `target_amount` | `target_amount_encrypted` |
 | `monthly_budget` | `ending_balance` | `ending_balance_encrypted` |
 
-La colonne claire reste remplie pour permettre un rollback. Une migration future supprimera les colonnes en clair une fois la migration validée.
+Quand le chiffrement est actif (clientKey présent), les colonnes en clair contiennent `0` et seules les colonnes `*_encrypted` contiennent les montants réels. En mode démo (pas de clientKey), les montants réels sont écrits en clair.
+
+> **Important :** Une fois les colonnes plaintext à 0, "mot de passe oublié" = perte d'accès aux montants. Une **recovery key** est prévue avant la suppression définitive des colonnes en clair.
 
 ## Flux requête typique
 
@@ -78,6 +80,22 @@ Quand un utilisateur change son mot de passe, son `clientKey` change. Il faut do
 - RLS activé : seul `service_role` peut lire/écrire
 - `REVOKE ALL` sur les rôles `authenticated` et `anon`
 - Pas de politique DELETE (suppression uniquement via `ON DELETE CASCADE` depuis `auth.users`)
+
+## Stockage du clientKey
+
+Le `clientKey` est conservé dans `sessionStorage` sous la clé `pulpe:client-key` pour éviter de redemander le mot de passe à chaque rechargement de page.
+
+**Propriétés de `sessionStorage` :**
+- Limité à l'onglet du navigateur (non partagé entre onglets)
+- Effacé automatiquement à la fermeture de l'onglet
+- Effacé explicitement au logout (`ClientKeyService.clear()`)
+
+**Risque accepté :** une vulnérabilité XSS dans l'application permettrait de lire le `clientKey` depuis `sessionStorage`. Ce risque est atténué par :
+1. La politique CSP (Content Security Policy) qui limite l'exécution de scripts tiers
+2. Le fait qu'une XSS permettrait aussi d'intercepter le mot de passe directement à la saisie
+3. Le `clientKey` seul est insuffisant pour déchiffrer (il faut aussi la `masterKey` serveur)
+
+**Alternative rejetée :** stocker le `clientKey` uniquement en mémoire (signal Angular) imposerait une re-saisie du mot de passe à chaque rechargement de page, dégradant fortement l'expérience utilisateur.
 
 ## Configuration
 

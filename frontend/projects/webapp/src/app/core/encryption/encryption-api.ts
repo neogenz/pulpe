@@ -4,7 +4,11 @@ import { type Observable } from 'rxjs';
 
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 
-import { generateRandomKeyHex } from './crypto.utils';
+// Deterministic placeholder sent with the salt request. The backend AuthGuard
+// requires X-Client-Key on every request, but the salt endpoint doesn't use it
+// (chicken-and-egg: we need the salt to derive the real key). Using a fixed
+// sentinel avoids leaking random entropy that could be mistaken for a real key.
+const SALT_REQUEST_PLACEHOLDER_KEY = '0'.repeat(63) + '1';
 
 interface SaltResponse {
   salt: string;
@@ -27,12 +31,9 @@ export class EncryptionApi {
   }
 
   getSalt$(): Observable<SaltResponse> {
-    // AuthGuard requires X-Client-Key on all endpoints, but the salt endpoint
-    // doesn't use it. We send a random placeholder to satisfy validation since
-    // the real clientKey hasn't been derived yet (it depends on the salt).
     return this.#http.get<SaltResponse>(`${this.#baseUrl}/salt`, {
       headers: {
-        'X-Client-Key': generateRandomKeyHex(),
+        'X-Client-Key': SALT_REQUEST_PLACEHOLDER_KEY,
       },
     });
   }

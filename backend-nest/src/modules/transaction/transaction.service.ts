@@ -289,6 +289,7 @@ export class TransactionService {
         createTransactionDto.amount,
         dek,
       );
+      (transactionData as Record<string, unknown>).amount = 0;
       (transactionData as Record<string, unknown>).amount_encrypted =
         encryptedAmount;
 
@@ -507,6 +508,7 @@ export class TransactionService {
           updateTransactionDto.amount,
           dek,
         );
+        updateData.amount = 0;
         updateData.amount_encrypted = encryptedAmount;
       }
 
@@ -865,11 +867,48 @@ export class TransactionService {
         this.#fetchBudgetLinesByPattern(searchPattern, budgetIds, supabase),
       ]);
 
-      // Search uses plaintext amount column (dual-column phase)
-      // No decryption needed since search selects specific columns
+      const dek = await this.encryptionService.getUserDEK(
+        user.id,
+        user.clientKey,
+      );
+
+      const decryptedTransactions = transactionsDb.map((t) => {
+        const encrypted = (t as Record<string, unknown>).amount_encrypted as
+          | string
+          | undefined;
+        if (!encrypted) return t;
+        return {
+          ...t,
+          amount: this.encryptionService.tryDecryptAmount(
+            encrypted,
+            dek,
+            t.amount,
+          ),
+        };
+      });
+
+      const decryptedBudgetLines = budgetLinesDb.map((bl) => {
+        const encrypted = (bl as Record<string, unknown>).amount_encrypted as
+          | string
+          | undefined;
+        if (!encrypted) return bl;
+        return {
+          ...bl,
+          amount: this.encryptionService.tryDecryptAmount(
+            encrypted,
+            dek,
+            bl.amount,
+          ),
+        };
+      });
+
       const allResults = [
-        ...transactionsDb.map((t) => this.#mapTransactionToSearchResult(t)),
-        ...budgetLinesDb.map((bl) => this.#mapBudgetLineToSearchResult(bl)),
+        ...decryptedTransactions.map((t) =>
+          this.#mapTransactionToSearchResult(t),
+        ),
+        ...decryptedBudgetLines.map((bl) =>
+          this.#mapBudgetLineToSearchResult(bl),
+        ),
       ].sort((a, b) => b.year - a.year || b.month - a.month);
 
       return {
@@ -931,6 +970,7 @@ export class TransactionService {
         id,
         name,
         amount,
+        amount_encrypted,
         kind,
         transaction_date,
         category,
@@ -980,6 +1020,7 @@ export class TransactionService {
         id,
         name,
         amount,
+        amount_encrypted,
         kind,
         recurrence,
         budget_id,

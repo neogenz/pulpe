@@ -72,7 +72,7 @@ paths: "**/*.ts"
 - **NEVER** destructive Supabase commands (`db reset`, `db push --force`)
 - **ALWAYS** run `pnpm quality` before committing
 - **AFTER** DB schema changes: `bun run generate-types:local` in backend
-- **ALWAYS** write to both `amount` and `amount_encrypted` columns when handling financial amounts (see `docs/ENCRYPTION.md`)
+- **ALWAYS** write `0` to plaintext amount columns (`amount`, `target_amount`, `ending_balance`) and the real encrypted value to `*_encrypted` when `clientKey` is present. Demo mode (no clientKey) writes real values to plaintext. (see `docs/ENCRYPTION.md`)
 
 ## Vocabulary
 
