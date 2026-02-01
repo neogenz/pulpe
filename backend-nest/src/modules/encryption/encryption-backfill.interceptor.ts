@@ -5,27 +5,38 @@ import {
   Logger,
   NestInterceptor,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { SKIP_CLIENT_KEY } from '@common/decorators/skip-client-key.decorator';
 import { EncryptionBackfillService } from './encryption-backfill.service';
 import { EncryptionService } from './encryption.service';
 
 @Injectable()
 export class EncryptionBackfillInterceptor implements NestInterceptor {
   readonly #logger = new Logger(EncryptionBackfillInterceptor.name);
+  readonly #reflector: Reflector;
   readonly #backfillService: EncryptionBackfillService;
   readonly #encryptionService: EncryptionService;
   readonly #processedUsers = new Set<string>();
 
   constructor(
+    reflector: Reflector,
     backfillService: EncryptionBackfillService,
     encryptionService: EncryptionService,
   ) {
+    this.#reflector = reflector;
     this.#backfillService = backfillService;
     this.#encryptionService = encryptionService;
   }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const skipClientKey = this.#reflector.getAllAndOverride<boolean>(
+      SKIP_CLIENT_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    if (skipClientKey) return next.handle();
+
     const request = context.switchToHttp().getRequest();
     const user = request.user;
     const supabase = request.supabase;

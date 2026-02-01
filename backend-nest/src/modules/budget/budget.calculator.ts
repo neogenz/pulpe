@@ -223,7 +223,7 @@ export class BudgetCalculator {
               dek,
               b.ending_balance ?? 0,
             )
-          : b.ending_balance,
+          : (b.ending_balance ?? 0),
     }));
   }
 

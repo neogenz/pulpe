@@ -101,18 +101,16 @@ export class EncryptionService {
     try {
       return this.decryptAmount(ciphertext, dek);
     } catch (error) {
-      if (fallbackAmount === 0) {
-        this.#logger.error(
-          { error: error instanceof Error ? error.message : String(error) },
-          'Decryption failed and plaintext is zeroed — data unrecoverable',
-        );
-        throw error;
-      }
+      // Always use fallback, never throw - this prevents cascading failures
+      // when data was encrypted with a different key (e.g., after password change
+      // or salt rotation without re-encryption)
       this.#logger.warn(
         {
           error: error instanceof Error ? error.message : String(error),
+          fallbackAmount,
+          ciphertextLength: ciphertext.length,
         },
-        'Decryption failed, using plaintext fallback',
+        'Decryption failed, using fallback amount',
       );
       return fallbackAmount;
     }

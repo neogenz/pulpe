@@ -248,14 +248,15 @@ describe('EncryptionService', () => {
       expect(result).toBe(fallback);
     });
 
-    it('should throw when decryption fails and fallback is 0 (post-zero-out)', () => {
+    it('should return 0 fallback when decryption fails and fallback is 0', () => {
       const dek1 = randomBytes(32);
       const dek2 = randomBytes(32);
       const amount = 1234.56;
 
       const encrypted = service.encryptAmount(amount, dek1);
+      const result = service.tryDecryptAmount(encrypted, dek2, 0);
 
-      expect(() => service.tryDecryptAmount(encrypted, dek2, 0)).toThrow();
+      expect(result).toBe(0);
     });
 
     it('should return non-zero fallback when decryption fails (transition mode)', () => {
