@@ -131,7 +131,18 @@ To check roadmap progress:
 
 ### 5. Write User Stories
 
-Use the format from `references/user-story-format.md`. Read it before writing any story.
+**MANDATORY:** Before writing any user story, read `references/user-story-format.md` and apply the template **exactly** as defined. Every user story MUST follow this deterministic structure:
+
+1. **Title (issue title):** Action-oriented, starts with a verb infinitif, describes the user benefit. French.
+2. **Body:** Copy the exact template from `references/user-story-format.md` and fill in each section. **Never skip or reorder a section.**
+
+Checklist before creating the issue:
+- [ ] All 6 sections present (Persona+action, Contexte, CA, Règles métier, Notes techniques, Hors périmètre)
+- [ ] CA are numbered `CA1:`, `CA2:`, etc. with `- [ ]` checkboxes
+- [ ] CA grouped by platform if multi-package (`**Web :**`, `**iOS :**`, `**Commun :**`)
+- [ ] Notes techniques starts with `**Package(s) concerné(s)**`
+- [ ] Estimation line at the end after `---` separator
+- [ ] Domain vocabulary from glossary used consistently
 
 ### 6. Issue Triage
 
