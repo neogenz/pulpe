@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
-import { calculateBudgetLineToggle } from './budget-details-check.utils';
 
 /**
  * Tests unitaires métier pour BudgetDetailsStore
@@ -178,78 +177,6 @@ describe('BudgetDetailsStore - Logique Métier', () => {
       ).toBeUndefined();
       expect(optimisticState[0].name).toBe('Salaire');
       expect(optimisticState[1].name).toBe('Courses');
-    });
-  });
-
-  describe('Race condition - temp ID replaced before parent toggle', () => {
-    it('should only produce real IDs in cascade when temp ID is replaced before toggle', () => {
-      // Production bug: createAllocatedTransaction triggered toggleCheck on the
-      // parent budget line BEFORE replacing the temp ID with the server ID.
-      // calculateBudgetLineToggle then returned transactionsToToggle containing
-      // temp-xxx IDs, causing 404s on the backend.
-      //
-      // Fix: replace temp ID → then call calculateBudgetLineToggle.
-      // This test verifies the cascade output with both orderings.
-
-      const tempId = 'temp-d8948d20-f63f-4031-b946-b270622513aa';
-      const realId = 'efa28612-390b-47c8-8245-04581268fd2f';
-
-      const uncheckedParent = {
-        id: 'line-1',
-        budgetId: 'budget-1',
-        name: 'Loyer',
-        amount: 1500,
-        kind: 'expense' as const,
-        recurrence: 'fixed' as const,
-        isManuallyAdjusted: false,
-        templateLineId: null,
-        savingsGoalId: null,
-        checkedAt: null,
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z',
-      };
-
-      const baseTransaction = {
-        budgetId: 'budget-1',
-        budgetLineId: 'line-1',
-        name: 'Test',
-        amount: 50,
-        kind: 'expense' as const,
-        transactionDate: '2024-01-15T00:00:00.000Z',
-        category: null,
-        checkedAt: null,
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z',
-      };
-
-      // BUG scenario: cascade runs with temp ID still in state
-      const buggyResult = calculateBudgetLineToggle('line-1', {
-        budgetLines: [uncheckedParent],
-        transactions: [
-          { ...baseTransaction, id: 'existing-tx' },
-          { ...baseTransaction, id: tempId },
-        ],
-      });
-      expect(
-        buggyResult!.transactionsToToggle.some((tx) => tx.id === tempId),
-      ).toBe(true);
-
-      // FIX scenario: temp ID replaced before cascade
-      const fixedResult = calculateBudgetLineToggle('line-1', {
-        budgetLines: [uncheckedParent],
-        transactions: [
-          { ...baseTransaction, id: 'existing-tx' },
-          { ...baseTransaction, id: realId },
-        ],
-      });
-      expect(
-        fixedResult!.transactionsToToggle.every(
-          (tx) => !tx.id.startsWith('temp-'),
-        ),
-      ).toBe(true);
-      expect(fixedResult!.transactionsToToggle.map((tx) => tx.id)).toContain(
-        realId,
-      );
     });
   });
 

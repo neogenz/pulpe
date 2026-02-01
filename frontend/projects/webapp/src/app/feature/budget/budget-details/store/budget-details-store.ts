@@ -454,19 +454,12 @@ export class BudgetDetailsStore {
 
   /**
    * Create an allocated transaction with optimistic updates
-   * New transactions always start unchecked; if parent was checked, uncheck it
+   * New transactions always start unchecked
    */
   async createAllocatedTransaction(
     transactionData: TransactionCreate,
   ): Promise<void> {
     const newId = `temp-${uuidv4()}`;
-    const details = this.budgetDetails();
-
-    const parentBudgetLine = details?.budgetLines.find(
-      (line) => line.id === transactionData.budgetLineId,
-    );
-    const shouldUncheckParent =
-      parentBudgetLine != null && parentBudgetLine.checkedAt !== null;
 
     // Create temporary transaction for optimistic update
     const tempTransaction: Transaction = {
@@ -484,26 +477,11 @@ export class BudgetDetailsStore {
       checkedAt: null,
     };
 
-    // Optimistic update - add the new transaction and uncheck parent if needed
     this.#budgetDetailsResource.update((details) => {
       if (!details) return details;
 
-      const updatedBudgetLines =
-        shouldUncheckParent && parentBudgetLine
-          ? details.budgetLines.map((line) =>
-              line.id === parentBudgetLine.id
-                ? {
-                    ...line,
-                    checkedAt: null,
-                    updatedAt: new Date().toISOString(),
-                  }
-                : line,
-            )
-          : details.budgetLines;
-
       return {
         ...details,
-        budgetLines: updatedBudgetLines,
         transactions: [...(details.transactions ?? []), tempTransaction],
       };
     });
@@ -516,8 +494,6 @@ export class BudgetDetailsStore {
         }),
       );
 
-      // Replace temporary transaction with server response BEFORE toggling parent
-      // to avoid cascade toggle-check calls using the temp ID (which doesn't exist on backend)
       this.#budgetDetailsResource.update((details) => {
         if (!details) return details;
 
@@ -528,13 +504,6 @@ export class BudgetDetailsStore {
           ),
         };
       });
-
-      // Uncheck parent budget line on backend if it was checked
-      if (shouldUncheckParent && parentBudgetLine) {
-        await this.#enqueueMutation(() =>
-          this.#budgetLineApi.toggleCheck$(parentBudgetLine.id),
-        );
-      }
 
       this.#clearError();
     } catch (error) {
@@ -613,13 +582,6 @@ export class BudgetDetailsStore {
         this.#budgetLineApi.toggleCheck$(id),
       );
 
-      // Execute transaction toggles sequentially through the mutation queue
-      for (const tx of result.transactionsToToggle) {
-        await this.#enqueueMutation(() =>
-          this.#transactionApi.toggleCheck$(tx.id),
-        );
-      }
-
       this.#budgetDetailsResource.update((d) => {
         if (!d) return d;
         return {
@@ -653,7 +615,6 @@ export class BudgetDetailsStore {
       if (!d) return d;
       return {
         ...d,
-        budgetLines: result.updatedBudgetLines,
         transactions: result.updatedTransactions,
       };
     });
@@ -662,12 +623,6 @@ export class BudgetDetailsStore {
       const response = await this.#enqueueMutation(() =>
         this.#transactionApi.toggleCheck$(id),
       );
-
-      if (result.shouldToggleBudgetLine && result.budgetLineId) {
-        await this.#enqueueMutation(() =>
-          this.#budgetLineApi.toggleCheck$(result.budgetLineId!),
-        );
-      }
 
       this.#budgetDetailsResource.update((d) => {
         if (!d) return d;

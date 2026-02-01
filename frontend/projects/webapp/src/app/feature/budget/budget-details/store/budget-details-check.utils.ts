@@ -9,30 +9,11 @@ export interface BudgetLineToggleResult {
   isChecking: boolean;
   updatedBudgetLines: BudgetLine[];
   updatedTransactions: Transaction[];
-  transactionsToToggle: Transaction[];
 }
 
 export interface TransactionToggleResult {
   isChecking: boolean;
-  updatedBudgetLines: BudgetLine[];
   updatedTransactions: Transaction[];
-  shouldToggleBudgetLine: boolean;
-  budgetLineId: string | null;
-}
-
-export function findAllocatedTransactions(
-  budgetLineId: string,
-  transactions: Transaction[],
-): Transaction[] {
-  return transactions.filter((tx) => tx.budgetLineId === budgetLineId);
-}
-
-export function areAllAllocatedTransactionsChecked(
-  budgetLineId: string,
-  transactions: Transaction[],
-): boolean {
-  const allocated = findAllocatedTransactions(budgetLineId, transactions);
-  return allocated.length > 0 && allocated.every((tx) => tx.checkedAt !== null);
 }
 
 export function calculateBudgetLineToggle(
@@ -46,14 +27,6 @@ export function calculateBudgetLineToggle(
 
   const isChecking = budgetLine.checkedAt === null;
   const now = new Date().toISOString();
-  const allocatedTransactions = findAllocatedTransactions(
-    budgetLineId,
-    context.transactions,
-  );
-
-  const transactionsToToggle = allocatedTransactions.filter((tx) =>
-    isChecking ? tx.checkedAt === null : tx.checkedAt !== null,
-  );
 
   const updatedBudgetLines = context.budgetLines.map((line) =>
     line.id === budgetLineId
@@ -71,7 +44,6 @@ export function calculateBudgetLineToggle(
     isChecking,
     updatedBudgetLines,
     updatedTransactions,
-    transactionsToToggle,
   };
 }
 
@@ -86,7 +58,6 @@ export function calculateTransactionToggle(
 
   const isChecking = transaction.checkedAt === null;
   const now = new Date().toISOString();
-  const budgetLineId = transaction.budgetLineId;
 
   const updatedTransactions = context.transactions.map((tx) =>
     tx.id === transactionId
@@ -94,42 +65,8 @@ export function calculateTransactionToggle(
       : tx,
   );
 
-  let updatedBudgetLines = context.budgetLines;
-  let shouldToggleBudgetLine = false;
-
-  if (budgetLineId) {
-    const budgetLine = context.budgetLines.find(
-      (line) => line.id === budgetLineId,
-    );
-
-    if (!isChecking && budgetLine?.checkedAt !== null) {
-      updatedBudgetLines = context.budgetLines.map((line) =>
-        line.id === budgetLineId
-          ? { ...line, checkedAt: null, updatedAt: now }
-          : line,
-      );
-      shouldToggleBudgetLine = true;
-    } else if (isChecking) {
-      const allChecked = areAllAllocatedTransactionsChecked(
-        budgetLineId,
-        updatedTransactions,
-      );
-      if (allChecked && budgetLine?.checkedAt === null) {
-        updatedBudgetLines = context.budgetLines.map((line) =>
-          line.id === budgetLineId
-            ? { ...line, checkedAt: now, updatedAt: now }
-            : line,
-        );
-        shouldToggleBudgetLine = true;
-      }
-    }
-  }
-
   return {
     isChecking,
-    updatedBudgetLines,
     updatedTransactions,
-    shouldToggleBudgetLine,
-    budgetLineId,
   };
 }

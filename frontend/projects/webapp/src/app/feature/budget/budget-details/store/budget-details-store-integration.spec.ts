@@ -690,7 +690,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
   });
 
   describe('User creates allocated transactions', () => {
-    it('should create transaction unchecked and uncheck parent budget line when parent was checked', async () => {
+    it('should create transaction unchecked without affecting parent budget line state', async () => {
       const checkedTimestamp = '2024-01-15T10:00:00Z';
 
       // Parent budget line has checkedAt
@@ -735,12 +735,6 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         .fn()
         .mockReturnValue(of({ data: serverTransaction }));
 
-      mockBudgetLineApi.toggleCheck$ = vi
-        .fn()
-        .mockReturnValue(
-          of({ data: { ...checkedParentLine, checkedAt: null } }),
-        );
-
       // User creates transaction linked to checked parent
       await service.createAllocatedTransaction({
         budgetId: mockBudgetId,
@@ -766,14 +760,12 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         }),
       );
 
-      // Parent budget line should have been unchecked
-      expect(mockBudgetLineApi.toggleCheck$).toHaveBeenCalledWith(
-        'line-checked',
-      );
+      // Parent budget line should NOT have been unchecked (no child→parent sync)
+      expect(mockBudgetLineApi.toggleCheck$).not.toHaveBeenCalled();
 
       const budgetLines = service.budgetDetails()?.budgetLines ?? [];
       const parentLine = budgetLines.find((l) => l.id === 'line-checked');
-      expect(parentLine?.checkedAt).toBeNull();
+      expect(parentLine?.checkedAt).toBe(checkedTimestamp);
     });
 
     it('should not inherit checked state when parent budget line is unchecked', async () => {
@@ -832,138 +824,6 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       expect(createdTx).toBeDefined();
       expect(createdTx?.checkedAt).toBeNull();
-    });
-
-    it('should replace temp ID in state before calling toggleCheck on parent', async () => {
-      const checkedTimestamp = '2024-01-15T10:00:00Z';
-
-      const checkedParentLine = createMockBudgetLine({
-        id: 'line-checked',
-        budgetId: mockBudgetId,
-        name: 'Checked Parent',
-        amount: 1000,
-        kind: 'expense',
-        recurrence: 'fixed',
-        checkedAt: checkedTimestamp,
-      });
-
-      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
-        of(
-          createMockBudgetDetailsResponse({
-            budget: { id: mockBudgetId },
-            budgetLines: [checkedParentLine],
-            transactions: [],
-          }),
-        ),
-      );
-
-      service.setBudgetId(mockBudgetId);
-      TestBed.tick();
-      await waitForResourceStable();
-
-      const serverTransaction = createMockTransaction({
-        id: 'tx-real-server-id',
-        budgetId: mockBudgetId,
-        budgetLineId: 'line-checked',
-        name: 'Allocated Tx',
-        amount: 200,
-        kind: 'expense',
-        checkedAt: null,
-      });
-
-      mockTransactionApi.create$ = vi
-        .fn()
-        .mockReturnValue(of({ data: serverTransaction }));
-
-      // Capture store state at the moment toggleCheck$ is called
-      let transactionsAtToggleTime: { id: string }[] = [];
-      mockBudgetLineApi.toggleCheck$ = vi.fn().mockImplementation(() => {
-        transactionsAtToggleTime = [
-          ...(service.budgetDetails()?.transactions ?? []),
-        ];
-        return of({ data: { ...checkedParentLine, checkedAt: null } });
-      });
-
-      await service.createAllocatedTransaction({
-        budgetId: mockBudgetId,
-        budgetLineId: 'line-checked',
-        name: 'Allocated Tx',
-        amount: 200,
-        kind: 'expense',
-      });
-
-      // toggleCheck$ was called
-      expect(mockBudgetLineApi.toggleCheck$).toHaveBeenCalledWith(
-        'line-checked',
-      );
-
-      // At the moment toggleCheck$ was called, state must contain the real ID (not temp)
-      const hasTempId = transactionsAtToggleTime.some((tx) =>
-        tx.id.startsWith('temp-'),
-      );
-      expect(hasTempId).toBe(false);
-      expect(
-        transactionsAtToggleTime.some((tx) => tx.id === 'tx-real-server-id'),
-      ).toBe(true);
-    });
-
-    it('should rollback optimistic updates when toggleCheck fails after transaction creation', async () => {
-      const checkedTimestamp = '2024-01-15T10:00:00Z';
-
-      const checkedParentLine = createMockBudgetLine({
-        id: 'line-checked-fail',
-        budgetId: mockBudgetId,
-        name: 'Checked Parent Fail',
-        amount: 1000,
-        kind: 'expense',
-        recurrence: 'fixed',
-        checkedAt: checkedTimestamp,
-      });
-
-      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
-        of(
-          createMockBudgetDetailsResponse({
-            budget: { id: mockBudgetId },
-            budgetLines: [checkedParentLine],
-            transactions: [],
-          }),
-        ),
-      );
-
-      service.setBudgetId(mockBudgetId);
-      TestBed.tick();
-      await waitForResourceStable();
-
-      const serverTransaction = createMockTransaction({
-        id: 'tx-server-fail',
-        budgetId: mockBudgetId,
-        budgetLineId: 'line-checked-fail',
-        name: 'Transaction Before Fail',
-        amount: 200,
-        kind: 'expense',
-        checkedAt: null,
-      });
-
-      mockTransactionApi.create$ = vi
-        .fn()
-        .mockReturnValue(of({ data: serverTransaction }));
-
-      mockBudgetLineApi.toggleCheck$ = vi
-        .fn()
-        .mockReturnValue(throwError(() => new Error('Toggle check failed')));
-
-      await service.createAllocatedTransaction({
-        budgetId: mockBudgetId,
-        budgetLineId: 'line-checked-fail',
-        name: 'Transaction Before Fail',
-        amount: 200,
-        kind: 'expense',
-      });
-
-      expect(service.error()).toBeTruthy();
-      expect(mockBudgetLineApi.toggleCheck$).toHaveBeenCalledWith(
-        'line-checked-fail',
-      );
     });
   });
 
