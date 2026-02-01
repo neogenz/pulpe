@@ -179,10 +179,11 @@ export class CurrentMonthStore {
     }));
   }
 
-  // No mutation queue needed: the dashboard is a single-action-at-a-time view
-  // with low concurrency risk. Toggle methods use snapshot-based rollback
-  // for optimistic updates. CRUD mutations go through #performOptimisticMutation
-  // which does a single atomic set() after API + server reconciliation.
+  // Mutation pattern: More complex than other stores because CurrentMonth is a
+  // high-interaction dashboard where users toggle many items while mutations process.
+  // #performOptimisticMutation merges concurrent toggle states (lines 326-336) to
+  // prevent data loss — see commit e107b23c and DR-010. Toggle methods use snapshot
+  // rollback without cache invalidation (toggles are UI-only, server already synced).
 
   async addTransaction(transactionData: TransactionCreate): Promise<void> {
     return this.#performOptimisticMutation<Transaction>(

@@ -248,6 +248,11 @@ export class BudgetDetailsStore {
 
   // ─── Mutation Helper ───────────────────────────────────────────
 
+  // Mutation pattern: Simpler than CurrentMonthStore's #performOptimisticMutation
+  // because BudgetDetails is a single-focus page with low concurrent interaction risk.
+  // Does NOT include toggle merge logic (CurrentMonthStore:326-336) — not needed for
+  // this use case. If concurrent toggle data loss is observed in production, apply
+  // mergeToggleStates pattern from commit e107b23c.
   async #runMutation<T>(options: {
     optimisticUpdate?: (d: BudgetDetailsViewModel) => BudgetDetailsViewModel;
     apiCall: () => Promise<T>;
