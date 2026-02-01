@@ -25,7 +25,6 @@ async function isSupabaseReachable(): Promise<boolean> {
 }
 
 let hasSupabase = false;
-
 beforeAll(async () => {
   hasSupabase = await isSupabaseReachable();
 });
@@ -40,7 +39,6 @@ describe('AccountDeletionService Integration', () => {
 
   beforeAll(async () => {
     if (!hasSupabase) return;
-
     adminClient = createClient<Database>(supabaseUrl!, serviceRoleKey!);
 
     const moduleRef = await Test.createTestingModule({
@@ -62,7 +60,8 @@ describe('AccountDeletionService Integration', () => {
             encryptAmount: () => 'encrypted-mock',
             getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
             decryptAmount: () => 100,
-            generateUserDEK: () => Promise.resolve(),
+            tryDecryptAmount: (_ct: string, _dek: Buffer, fallback: number) =>
+              fallback,
           },
         },
       ],

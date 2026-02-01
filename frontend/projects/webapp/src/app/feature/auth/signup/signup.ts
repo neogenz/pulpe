@@ -19,13 +19,22 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
+
 import { AuthCredentialsService, PASSWORD_MIN_LENGTH } from '@core/auth';
 import { PostHogService } from '@core/analytics/posthog';
+import { EncryptionApi } from '@core/encryption';
 import { Logger } from '@core/logging/logger';
-import { GoogleOAuthButton } from '@app/pattern/google-oauth';
 import { ROUTES } from '@core/routing/routes-constants';
+import { GoogleOAuthButton } from '@app/pattern/google-oauth';
 import { ErrorAlert } from '@ui/error-alert';
+import {
+  RecoveryKeyDialog,
+  type RecoveryKeyDialogData,
+} from '@ui/dialogs/recovery-key-dialog';
 import { LoadingButton } from '@ui/loading-button';
 
 function passwordsMatchValidator(
@@ -287,6 +296,9 @@ export default class Signup {
   readonly #logger = inject(Logger);
   readonly #formBuilder = inject(FormBuilder);
   readonly #postHogService = inject(PostHogService);
+  readonly #dialog = inject(MatDialog);
+  readonly #snackBar = inject(MatSnackBar);
+  readonly #encryptionApi = inject(EncryptionApi);
 
   protected readonly ROUTES = ROUTES;
 
@@ -330,6 +342,35 @@ export default class Signup {
     this.errorMessage.set('');
   }
 
+  async #promptRecoveryKey(): Promise<void> {
+    try {
+      const { recoveryKey } = await firstValueFrom(
+        this.#encryptionApi.setupRecoveryKey$(),
+      );
+
+      const dialogData: RecoveryKeyDialogData = { recoveryKey };
+      const dialogRef = this.#dialog.open(RecoveryKeyDialog, {
+        data: dialogData,
+        width: '480px',
+        disableClose: true,
+      });
+
+      const confirmed = await firstValueFrom(dialogRef.afterClosed());
+      if (confirmed) {
+        this.#snackBar.open('Clé de récupération enregistrée', 'OK', {
+          duration: 3000,
+          horizontalPosition: 'center',
+          verticalPosition: 'bottom',
+        });
+      }
+    } catch (error) {
+      this.#logger.warn(
+        'Recovery key setup failed during signup — user can generate later from settings',
+        error,
+      );
+    }
+  }
+
   protected async signUp(): Promise<void> {
     if (!this.signupForm.valid) {
       this.signupForm.markAllAsTouched();
@@ -352,6 +393,7 @@ export default class Signup {
         this.#postHogService.captureEvent('signup_completed', {
           method: 'email',
         });
+        await this.#promptRecoveryKey();
         this.#router.navigate(['/', ROUTES.DASHBOARD]);
       } else {
         this.errorMessage.set(
