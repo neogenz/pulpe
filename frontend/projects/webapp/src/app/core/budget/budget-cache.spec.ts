@@ -425,7 +425,7 @@ describe('BudgetCache', () => {
   });
 
   describe('revalidation on version change', () => {
-    it('should clear list and mark details stale when invalidation version changes', async () => {
+    it('should clear list, mark details stale, and trigger background re-fetch on version change', async () => {
       const invalidationService = TestBed.inject(BudgetInvalidationService);
 
       const initialBudgets: Budget[] = [createMockBudget({ id: '1' })];
@@ -446,21 +446,21 @@ describe('BudgetCache', () => {
       expect(service.budgets()).toEqual(initialBudgets);
       expect(service.isBudgetDetailAvailable('1')).toBe(true);
 
-      mockBudgetApi.getAllBudgets$.mockClear();
-      mockBudgetApi.getBudgetWithDetails$.mockClear();
+      mockBudgetApi.getAllBudgets$.mockReset();
+      mockBudgetApi.getBudgetWithDetails$.mockReset();
 
       // Trigger invalidation (simulates a budget mutation)
       invalidationService.invalidate();
       await flushObservable();
 
-      // Cache is cleared (no auto-refetch)
+      // List cache is cleared (no auto-refetch of list)
       expect(service.budgets()).toBeNull();
       expect(mockBudgetApi.getAllBudgets$).not.toHaveBeenCalled();
 
-      // Details still available but marked stale (not re-fetched)
+      // Background re-fetch was triggered for stale details (failed due to mockReset)
       expect(service.isBudgetDetailAvailable('1')).toBe(true);
       expect(service.isBudgetDetailStale('1')).toBe(true);
-      expect(mockBudgetApi.getBudgetWithDetails$).not.toHaveBeenCalled();
+      expect(mockBudgetApi.getBudgetWithDetails$).toHaveBeenCalledWith('1');
     });
 
     it('should not invalidate on initial version (0)', async () => {
@@ -558,7 +558,7 @@ describe('BudgetCache', () => {
       expect(mockBudgetApi.getBudgetWithDetails$).not.toHaveBeenCalled();
     });
 
-    it('Scenario 2: Edit in budget details → cache invalidated, details marked stale', async () => {
+    it('Scenario 2: Edit in budget details → cache invalidated, background re-fetch triggered', async () => {
       const invalidationService = TestBed.inject(BudgetInvalidationService);
       setupInitialPreload();
 
@@ -569,19 +569,21 @@ describe('BudgetCache', () => {
       expect(service.budgets()).not.toBeNull();
       expect(service.isBudgetDetailAvailable('jan-2024')).toBe(true);
 
-      mockBudgetApi.getAllBudgets$.mockClear();
-      mockBudgetApi.getBudgetWithDetails$.mockClear();
+      mockBudgetApi.getAllBudgets$.mockReset();
+      mockBudgetApi.getBudgetWithDetails$.mockReset();
 
       // Phase 2: User edits within budget → triggers invalidation
       invalidationService.invalidate();
       await flushObservable();
 
-      // List is cleared (no auto-refetch)
+      // List is cleared (no auto-refetch of list)
       expect(service.budgets()).toBeNull();
       expect(mockBudgetApi.getAllBudgets$).not.toHaveBeenCalled();
-      expect(mockBudgetApi.getBudgetWithDetails$).not.toHaveBeenCalled();
 
-      // Details still in cache but marked stale
+      // Background re-fetch was triggered for stale details (failed due to mockReset)
+      expect(mockBudgetApi.getBudgetWithDetails$).toHaveBeenCalled();
+
+      // Details still in cache but marked stale (re-fetch failed)
       expect(service.isBudgetDetailAvailable('jan-2024')).toBe(true);
       expect(service.isBudgetDetailStale('jan-2024')).toBe(true);
       expect(service.getBudgetDetails('jan-2024')).not.toBeNull();
@@ -613,7 +615,7 @@ describe('BudgetCache', () => {
       expect(mockBudgetApi.getAllBudgets$).toHaveBeenCalledOnce();
     });
 
-    it('Scenario 4: Navigate to different budget after edit → lazy fetch (1 API call)', async () => {
+    it('Scenario 4: Navigate to different budget after edit → data already refreshed by background re-fetch', async () => {
       const invalidationService = TestBed.inject(BudgetInvalidationService);
       setupInitialPreload();
 
@@ -621,22 +623,23 @@ describe('BudgetCache', () => {
       await service.preloadBudgetList();
       await service.preloadBudgetDetails(allBudgets.map((b) => b.id));
 
-      // Phase 2: User is on jan-2024, edits something → invalidation (clears cache)
+      mockBudgetApi.getAllBudgets$.mockReset();
+      mockBudgetApi.getBudgetWithDetails$.mockReset();
+
+      // Phase 2: User is on jan-2024, edits something → invalidation
+      // Background re-fetch fails (mockReset), so stale data persists
       invalidationService.invalidate();
       await flushObservable();
 
       expect(service.budgets()).toBeNull();
 
-      mockBudgetApi.getAllBudgets$.mockClear();
-      mockBudgetApi.getBudgetWithDetails$.mockClear();
-
-      // Phase 3: Stale data still available for instant display
+      // Phase 3: Stale data still available for display
       const staleMarch = service.getBudgetDetails('mar-2024');
       expect(staleMarch).not.toBeNull();
       expect(staleMarch!.budget.month).toBe(3);
       expect(service.isBudgetDetailStale('mar-2024')).toBe(true);
 
-      // Phase 4: Lazy re-fetch via preloadBudgetDetails → 1 API call for that budget
+      // Phase 4: Explicit re-fetch via preloadBudgetDetails
       const freshResponse = createMockBudgetDetailsResponse({
         data: {
           budget: createMockBudget({
@@ -653,10 +656,6 @@ describe('BudgetCache', () => {
 
       await service.preloadBudgetDetails(['mar-2024']);
 
-      expect(mockBudgetApi.getBudgetWithDetails$).toHaveBeenCalledOnce();
-      expect(mockBudgetApi.getBudgetWithDetails$).toHaveBeenCalledWith(
-        'mar-2024',
-      );
       expect(service.isBudgetDetailStale('mar-2024')).toBe(false);
       expect(service.getBudgetDetails('mar-2024')!.budget.remaining).toBe(888);
     });
@@ -668,7 +667,7 @@ describe('BudgetCache', () => {
       expect(service.isBudgetDetailLoading('unknown-budget')).toBe(false);
     });
 
-    it('Scenario 6: Rapid mutations invalidate cache without auto-refetch', async () => {
+    it('Scenario 6: Rapid mutations trigger background re-fetch', async () => {
       const invalidationService = TestBed.inject(BudgetInvalidationService);
       setupInitialPreload();
 
@@ -678,8 +677,8 @@ describe('BudgetCache', () => {
       expect(service.budgets()).not.toBeNull();
       expect(service.isBudgetDetailAvailable('jan-2024')).toBe(true);
 
-      mockBudgetApi.getAllBudgets$.mockClear();
-      mockBudgetApi.getBudgetWithDetails$.mockClear();
+      mockBudgetApi.getAllBudgets$.mockReset();
+      mockBudgetApi.getBudgetWithDetails$.mockReset();
 
       // Trigger 3 rapid invalidations
       invalidationService.invalidate();
@@ -687,11 +686,12 @@ describe('BudgetCache', () => {
       invalidationService.invalidate();
       await flushObservable();
 
-      // Cache is cleared, details are marked stale, but NO auto-refetch
+      // Cache is cleared, background re-fetch attempted (failed due to mockReset)
       expect(service.budgets()).toBeNull();
       expect(service.isBudgetDetailStale('jan-2024')).toBe(true);
       expect(mockBudgetApi.getAllBudgets$).not.toHaveBeenCalled();
-      expect(mockBudgetApi.getBudgetWithDetails$).not.toHaveBeenCalled();
+      // Background re-fetch was triggered
+      expect(mockBudgetApi.getBudgetWithDetails$).toHaveBeenCalled();
     });
 
     it('Scenario 7: preloadBudgetList after invalidation refetches data', async () => {
@@ -754,6 +754,9 @@ describe('BudgetCache', () => {
 
       expect(service.budgets()).not.toBeNull();
       expect(service.isBudgetDetailAvailable('jan-2024')).toBe(true);
+
+      // Prevent background re-fetch from succeeding
+      mockBudgetApi.getBudgetWithDetails$.mockReset();
 
       // Trigger invalidation to mark details as stale
       invalidationService.invalidate();
@@ -822,7 +825,80 @@ describe('BudgetCache', () => {
       expect(service.getBudgetDetails('jan-2024')!.budget.remaining).toBe(777);
     });
 
-    it('Scenario 13: Stale data remains available for instant display', async () => {
+    it('Scenario 13: Invalidation triggers background re-fetch of stale details', async () => {
+      const invalidationService = TestBed.inject(BudgetInvalidationService);
+      setupInitialPreload();
+
+      // Phase 1: Initial preload
+      await service.preloadBudgetList();
+      await service.preloadBudgetDetails(allBudgets.map((b) => b.id));
+
+      expect(service.isBudgetDetailStale('jan-2024')).toBe(false);
+
+      // Phase 2: Prepare fresh responses for revalidation
+      const freshJan = createMockBudgetDetailsResponse({
+        data: {
+          budget: createMockBudget({
+            id: 'jan-2024',
+            month: 1,
+            year: 2024,
+            remaining: 999,
+          }),
+          budgetLines: [],
+          transactions: [],
+        },
+      });
+      const freshFeb = createMockBudgetDetailsResponse({
+        data: {
+          budget: createMockBudget({
+            id: 'feb-2024',
+            month: 2,
+            year: 2024,
+            remaining: 888,
+          }),
+          budgetLines: [],
+          transactions: [],
+        },
+      });
+      const freshMar = createMockBudgetDetailsResponse({
+        data: {
+          budget: createMockBudget({
+            id: 'mar-2024',
+            month: 3,
+            year: 2024,
+            remaining: 777,
+          }),
+          budgetLines: [],
+          transactions: [],
+        },
+      });
+
+      mockBudgetApi.getBudgetWithDetails$.mockClear();
+      mockBudgetApi.getBudgetWithDetails$.mockImplementation((id: string) => {
+        if (id === 'jan-2024') return of(freshJan);
+        if (id === 'feb-2024') return of(freshFeb);
+        return of(freshMar);
+      });
+
+      // Phase 3: Trigger invalidation → should auto re-fetch all stale details
+      invalidationService.invalidate();
+      await flushObservable();
+
+      // Wait for background re-fetch to complete
+      await vi.waitFor(() => {
+        expect(mockBudgetApi.getBudgetWithDetails$).toHaveBeenCalledTimes(3);
+      });
+
+      // Phase 4: All details are now fresh
+      expect(service.isBudgetDetailStale('jan-2024')).toBe(false);
+      expect(service.isBudgetDetailStale('feb-2024')).toBe(false);
+      expect(service.isBudgetDetailStale('mar-2024')).toBe(false);
+      expect(service.getBudgetDetails('jan-2024')!.budget.remaining).toBe(999);
+      expect(service.getBudgetDetails('feb-2024')!.budget.remaining).toBe(888);
+      expect(service.getBudgetDetails('mar-2024')!.budget.remaining).toBe(777);
+    });
+
+    it('Scenario 14: Stale data remains available for instant display', async () => {
       setupInitialPreload();
 
       // Phase 1: Initial preload

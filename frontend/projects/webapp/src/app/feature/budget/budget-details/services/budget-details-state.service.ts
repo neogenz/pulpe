@@ -109,10 +109,12 @@ export class BudgetDetailsStateService {
   // ─── Public API ────────────────────────────────────────────────
 
   // Cache-first display: seed stale data before resource triggers — see DR-006
+  // Skip stale entries to avoid flashing outdated numbers — see DR-009
   setBudgetId(budgetId: string): void {
     const cached = this.#budgetCache.getBudgetDetails(budgetId);
+    const isFresh = cached && !this.#budgetCache.isBudgetDetailStale(budgetId);
     this.#swr.setStaleData(
-      cached
+      isFresh
         ? {
             ...cached.budget,
             budgetLines: cached.budgetLines,

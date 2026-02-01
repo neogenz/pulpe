@@ -27,6 +27,7 @@ export class BudgetCache {
         this.markAllDetailsStale();
         this.#listCache.invalidate();
         this.#failedDetailIds.set(new Set());
+        this.#revalidateStaleDetails();
       });
   }
 
@@ -170,6 +171,12 @@ export class BudgetCache {
   markAllDetailsStale(): void {
     const currentIds = this.#budgetDetailsMap().keys();
     this.#staleDetailIds.set(new Set(currentIds));
+  }
+
+  #revalidateStaleDetails(): void {
+    const staleIds = [...this.#staleDetailIds()];
+    if (staleIds.length === 0) return;
+    this.preloadBudgetDetails(staleIds);
   }
 
   invalidateBudgetList(): void {

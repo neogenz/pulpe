@@ -28,7 +28,7 @@ export function createDashboardDataLoader(
         }
 
         const cachedDetails = budgetCache.getBudgetDetails(budget.id);
-        if (cachedDetails) {
+        if (cachedDetails && !budgetCache.isBudgetDetailStale(budget.id)) {
           return of({
             budget: cachedDetails.budget,
             transactions: cachedDetails.transactions,
