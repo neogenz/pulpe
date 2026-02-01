@@ -15,6 +15,7 @@ export function computeBudgetPeriodDateConstraints(
   budgetMonth: number,
   budgetYear: number,
   payDayOfMonth: number | null,
+  now = new Date(),
 ): BudgetPeriodDateConstraints {
   const { startDate, endDate } = getBudgetPeriodDates(
     budgetMonth,
@@ -22,9 +23,7 @@ export function computeBudgetPeriodDateConstraints(
     payDayOfMonth,
   );
 
-  const today = new Date();
-  const defaultDate =
-    today >= startDate && today <= endDate ? today : startDate;
+  const defaultDate = now >= startDate && now <= endDate ? now : startDate;
 
   return { minDate: startDate, maxDate: endDate, defaultDate };
 }

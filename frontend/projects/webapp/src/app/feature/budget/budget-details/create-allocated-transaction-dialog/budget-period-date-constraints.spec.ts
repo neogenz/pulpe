@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { FormControl } from '@angular/forms';
 import {
   computeBudgetPeriodDateConstraints,
@@ -6,15 +6,10 @@ import {
 } from './budget-period-date-constraints';
 
 describe('computeBudgetPeriodDateConstraints', () => {
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
   it('should return min/max dates for current month budget', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 0, 15)); // 15 Jan 2026
+    const now = new Date(2026, 0, 15); // 15 Jan 2026
 
-    const result = computeBudgetPeriodDateConstraints(1, 2026, null);
+    const result = computeBudgetPeriodDateConstraints(1, 2026, null, now);
 
     expect(result.minDate).toBeDefined();
     expect(result.maxDate).toBeDefined();
@@ -24,10 +19,9 @@ describe('computeBudgetPeriodDateConstraints', () => {
   });
 
   it('should return min/max dates for past month budget', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 0, 15)); // 15 Jan 2026
+    const now = new Date(2026, 0, 15); // 15 Jan 2026
 
-    const result = computeBudgetPeriodDateConstraints(6, 2025, null);
+    const result = computeBudgetPeriodDateConstraints(6, 2025, null, now);
 
     expect(result.minDate).toBeDefined();
     expect(result.maxDate).toBeDefined();
@@ -36,10 +30,9 @@ describe('computeBudgetPeriodDateConstraints', () => {
   });
 
   it('should return min/max dates for future month budget', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 0, 15)); // 15 Jan 2026
+    const now = new Date(2026, 0, 15); // 15 Jan 2026
 
-    const result = computeBudgetPeriodDateConstraints(3, 2026, null);
+    const result = computeBudgetPeriodDateConstraints(3, 2026, null, now);
 
     expect(result.minDate).toBeDefined();
     expect(result.maxDate).toBeDefined();
@@ -48,21 +41,19 @@ describe('computeBudgetPeriodDateConstraints', () => {
   });
 
   it('should handle year boundary with null payDayOfMonth', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2025, 11, 20)); // 20 Dec 2025
+    const now = new Date(2025, 11, 20); // 20 Dec 2025
 
-    const result = computeBudgetPeriodDateConstraints(12, 2025, null);
+    const result = computeBudgetPeriodDateConstraints(12, 2025, null, now);
 
     expect(result.minDate).toBeDefined();
     expect(result.maxDate).toBeDefined();
   });
 
   it('should handle custom payDayOfMonth in first half of month', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 0, 10)); // 10 Jan 2026
+    const now = new Date(2026, 0, 10); // 10 Jan 2026
 
     // payDay=5, first half: period is named after start month
-    const result = computeBudgetPeriodDateConstraints(1, 2026, 5);
+    const result = computeBudgetPeriodDateConstraints(1, 2026, 5, now);
 
     expect(result.minDate).toBeDefined();
     expect(result.maxDate).toBeDefined();
@@ -70,11 +61,10 @@ describe('computeBudgetPeriodDateConstraints', () => {
   });
 
   it('should handle custom payDayOfMonth in second half of month', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2025, 5, 27)); // 27 Jun 2025
+    const now = new Date(2025, 5, 27); // 27 Jun 2025
 
     // payDay=25, second half: period named after end month
-    const result = computeBudgetPeriodDateConstraints(7, 2025, 25);
+    const result = computeBudgetPeriodDateConstraints(7, 2025, 25, now);
 
     expect(result.minDate).toBeDefined();
     expect(result.maxDate).toBeDefined();
@@ -82,10 +72,9 @@ describe('computeBudgetPeriodDateConstraints', () => {
   });
 
   it('should return correct period dates for standard calendar month', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 2, 15)); // 15 Mar 2026
+    const now = new Date(2026, 2, 15); // 15 Mar 2026
 
-    const result = computeBudgetPeriodDateConstraints(3, 2026, null);
+    const result = computeBudgetPeriodDateConstraints(3, 2026, null, now);
 
     expect(result.minDate.getMonth()).toBe(2); // March (0-indexed)
     expect(result.minDate.getDate()).toBe(1);
@@ -94,11 +83,10 @@ describe('computeBudgetPeriodDateConstraints', () => {
   });
 
   it('should return correct period dates for past month with payDay', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 5, 15)); // 15 Jun 2026
+    const now = new Date(2026, 5, 15); // 15 Jun 2026
 
     // payDay=10, budget for March 2026
-    const result = computeBudgetPeriodDateConstraints(3, 2026, 10);
+    const result = computeBudgetPeriodDateConstraints(3, 2026, 10, now);
 
     expect(result.minDate).toBeDefined();
     expect(result.maxDate).toBeDefined();
@@ -106,19 +94,17 @@ describe('computeBudgetPeriodDateConstraints', () => {
   });
 
   it('should return today as defaultDate when today is within the period', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 0, 15)); // 15 Jan 2026
+    const now = new Date(2026, 0, 15); // 15 Jan 2026
 
-    const result = computeBudgetPeriodDateConstraints(1, 2026, null);
+    const result = computeBudgetPeriodDateConstraints(1, 2026, null, now);
 
     expect(result.defaultDate.getTime()).toBe(new Date(2026, 0, 15).getTime());
   });
 
   it('should return minDate as defaultDate when today is outside the period', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 5, 15)); // 15 Jun 2026
+    const now = new Date(2026, 5, 15); // 15 Jun 2026
 
-    const result = computeBudgetPeriodDateConstraints(3, 2026, null);
+    const result = computeBudgetPeriodDateConstraints(3, 2026, null, now);
 
     expect(result.defaultDate.getTime()).toBe(result.minDate.getTime());
   });
