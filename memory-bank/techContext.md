@@ -132,6 +132,37 @@ After every budget mutation, `BudgetCache.#revalidate()` cleared the entire cach
 | Resource loader skips stale cache hits | `!isBudgetDetailStale(id)` guard | Forces API call for stale entries while allowing fresh cache hits |
 | Initial preload unchanged | Still loads list + all details at login | First load fills cache for zero-spinner navigation across all months |
 
+### Two Invalidation Strategies
+
+Different stores use different invalidation strategies based on their use case:
+
+**Strategy A: Eager Reload (Version-Based)**
+```typescript
+// Example: BudgetListStore, CurrentMonthStore
+resource({
+  params: () => ({ version: invalidationService.version() })
+})
+```
+- **When:** Data displayed immediately after mutation (list pages, current month dashboard)
+- **How:** Include `version` in resource params → auto-reload when version increments
+- **Trade-off:** More API calls, always fresh data
+- **Use case:** Pages where mutations happen frequently and fresh data is critical
+
+**Strategy B: Lazy Stale Marking**
+```typescript
+// Example: BudgetDetailsStore
+loader: async ({ params }) => {
+  if (cached && !isStale(id)) return cached;
+  return await fetchFresh();
+}
+```
+- **When:** Detail pages where freshness can wait until next access
+- **How:** Mark cache as stale but don't reload until user navigates to that budget
+- **Trade-off:** Fewer API calls, may show stale data briefly on next access
+- **Use case:** Historical budget details that rarely change after creation
+
+**Decision:** Use Strategy A for lists/dashboards, Strategy B for detail pages.
+
 ### API Call Volume Comparison
 
 | Scenario | Before (DR-006) | After (DR-009) |
