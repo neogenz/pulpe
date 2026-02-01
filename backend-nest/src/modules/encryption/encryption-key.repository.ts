@@ -6,6 +6,10 @@ interface UserEncryptionKeyRow {
   kdf_iterations: number;
 }
 
+interface UserEncryptionKeyFullRow extends UserEncryptionKeyRow {
+  wrapped_dek: string | null;
+}
+
 @Injectable()
 export class EncryptionKeyRepository {
   readonly #logger = new Logger(EncryptionKeyRepository.name);
@@ -55,6 +59,40 @@ export class EncryptionKeyRepository {
         error: error.message,
       });
       throw new Error(`Failed to create encryption salt for user ${userId}`);
+    }
+  }
+
+  async findByUserId(userId: string): Promise<UserEncryptionKeyFullRow | null> {
+    const supabase = this.#supabaseService.getServiceRoleClient();
+    const { data, error } = await supabase
+      .from('user_encryption_key')
+      .select('salt, kdf_iterations, wrapped_dek')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw new Error(
+        `Failed to fetch encryption key for user ${userId}: ${error.message}`,
+      );
+    }
+    return data ?? null;
+  }
+
+  async updateWrappedDEK(
+    userId: string,
+    wrappedDEK: string | null,
+  ): Promise<void> {
+    const supabase = this.#supabaseService.getServiceRoleClient();
+    const { error } = await supabase
+      .from('user_encryption_key')
+      .update({ wrapped_dek: wrappedDEK })
+      .eq('user_id', userId);
+
+    if (error) {
+      throw new Error(
+        `Failed to update wrapped DEK for user ${userId}: ${error.message}`,
+      );
     }
   }
 

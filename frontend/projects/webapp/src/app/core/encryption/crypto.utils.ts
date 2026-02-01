@@ -1,6 +1,11 @@
 const KEY_LENGTH_BYTES = 32;
 const KEY_LENGTH_HEX = KEY_LENGTH_BYTES * 2;
 
+// Deterministic client key for demo mode. Not a secret — demo data is public.
+// Allows demo mode to use the same encryption code path as real users.
+export const DEMO_CLIENT_KEY =
+  '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+
 export function uint8ArrayToHex(bytes: Uint8Array): string {
   let hex = '';
   for (const byte of bytes) {

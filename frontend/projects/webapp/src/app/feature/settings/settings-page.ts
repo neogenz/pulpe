@@ -24,11 +24,16 @@ import { firstValueFrom } from 'rxjs';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsApi } from '@core/user-settings';
 import { AuthSessionService } from '@core/auth/auth-session.service';
+import { EncryptionApi } from '@core/encryption';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import {
   ConfirmationDialog,
   type ConfirmationDialogData,
 } from '@ui/dialogs/confirmation-dialog';
+import {
+  RecoveryKeyDialog,
+  type RecoveryKeyDialogData,
+} from '@ui/dialogs/recovery-key-dialog';
 import { PAY_DAY_MAX } from 'pulpe-shared';
 
 @Component({
@@ -147,6 +152,43 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
         </mat-card-content>
       </mat-card>
 
+      <!-- Security - hidden in demo mode -->
+      @if (!isDemoMode()) {
+        <mat-card appearance="outlined" class="mb-6">
+          <mat-card-header>
+            <div
+              mat-card-avatar
+              class="flex items-center justify-center bg-primary-container rounded-full"
+            >
+              <mat-icon class="text-on-primary-container!">vpn_key</mat-icon>
+            </div>
+            <mat-card-title>Sécurité</mat-card-title>
+            <mat-card-subtitle>
+              Clé de récupération pour protéger tes données
+            </mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content>
+            <p class="text-body-medium text-on-surface mb-4">
+              Si tu oublies ton mot de passe, la clé de récupération est le seul
+              moyen de retrouver l'accès à tes données chiffrées.
+            </p>
+            <button
+              matButton="filled"
+              color="primary"
+              data-testid="generate-recovery-key-button"
+              [disabled]="isGeneratingRecoveryKey()"
+              (click)="onGenerateRecoveryKey()"
+            >
+              @if (isGeneratingRecoveryKey()) {
+                <mat-spinner diameter="20" class="mr-2" />
+              }
+              Générer une clé de récupération
+            </button>
+          </mat-card-content>
+        </mat-card>
+      }
+
       <!-- Danger zone - hidden in demo mode -->
       @if (!isDemoMode()) {
         <mat-card
@@ -189,10 +231,12 @@ export default class SettingsPage {
   readonly #router = inject(Router);
   readonly #authSession = inject(AuthSessionService);
   readonly #demoMode = inject(DemoModeService);
+  readonly #encryptionApi = inject(EncryptionApi);
 
   readonly isDemoMode = this.#demoMode.isDemoMode;
   readonly isSaving = signal(false);
   readonly isDeleting = signal(false);
+  readonly isGeneratingRecoveryKey = signal(false);
   readonly availableDays = Array.from({ length: PAY_DAY_MAX }, (_, i) => i + 1);
 
   // linkedSignal syncs with API value but can be locally modified by user
@@ -287,6 +331,47 @@ export default class SettingsPage {
       );
     }
     await this.#router.navigate(['/login']);
+  }
+
+  async onGenerateRecoveryKey(): Promise<void> {
+    if (this.isGeneratingRecoveryKey()) return;
+
+    try {
+      this.isGeneratingRecoveryKey.set(true);
+
+      const { recoveryKey } = await firstValueFrom(
+        this.#encryptionApi.setupRecoveryKey$(),
+      );
+
+      const dialogData: RecoveryKeyDialogData = { recoveryKey };
+      const dialogRef = this.#dialog.open(RecoveryKeyDialog, {
+        data: dialogData,
+        width: '480px',
+        disableClose: true,
+      });
+
+      const confirmed = await firstValueFrom(dialogRef.afterClosed());
+      if (confirmed) {
+        this.#snackBar.open('Clé de récupération enregistrée', 'OK', {
+          duration: 3000,
+          horizontalPosition: 'center',
+          verticalPosition: 'bottom',
+        });
+      }
+    } catch (error) {
+      this.#logger.error('Failed to generate recovery key', error);
+      this.#snackBar.open(
+        'La génération de la clé a échoué — réessaie plus tard',
+        'OK',
+        {
+          duration: 5000,
+          horizontalPosition: 'center',
+          verticalPosition: 'bottom',
+        },
+      );
+    } finally {
+      this.isGeneratingRecoveryKey.set(false);
+    }
   }
 
   #getDeleteAccountErrorMessage(error: unknown): string {

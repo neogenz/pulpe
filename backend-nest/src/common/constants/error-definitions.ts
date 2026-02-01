@@ -72,6 +72,16 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Client encryption key is invalid',
     httpStatus: HttpStatus.BAD_REQUEST,
   },
+  RECOVERY_KEY_NOT_CONFIGURED: {
+    code: 'ERR_RECOVERY_KEY_NOT_CONFIGURED',
+    message: () => 'No recovery key configured for this account',
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
+  RECOVERY_KEY_INVALID: {
+    code: 'ERR_RECOVERY_KEY_INVALID',
+    message: () => 'Invalid recovery key',
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
 
   // Budget Errors
   BUDGET_NOT_FOUND: {

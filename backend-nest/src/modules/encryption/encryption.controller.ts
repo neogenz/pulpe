@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, UseGuards, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Logger,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -8,6 +17,7 @@ import {
   ApiInternalServerErrorResponse,
   ApiBadRequestResponse,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
   User,
@@ -73,17 +83,7 @@ export class EncryptionController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
     @Body() body: { newClientKey: string },
   ): Promise<{ success: boolean }> {
-    if (!body.newClientKey || !HEX_KEY_REGEX.test(body.newClientKey)) {
-      throw new BusinessException(ERROR_DEFINITIONS.AUTH_CLIENT_KEY_INVALID);
-    }
-
-    const newKeyBuffer = Buffer.from(body.newClientKey, 'hex');
-    if (
-      newKeyBuffer.length !== CLIENT_KEY_LENGTH ||
-      !newKeyBuffer.some((byte) => byte !== 0)
-    ) {
-      throw new BusinessException(ERROR_DEFINITIONS.AUTH_CLIENT_KEY_INVALID);
-    }
+    const newKeyBuffer = this.#validateClientKeyHex(body.newClientKey);
 
     await this.encryptionService.onPasswordChange(
       user.id,
@@ -105,5 +105,115 @@ export class EncryptionController {
     );
 
     return { success: true };
+  }
+
+  @Post('setup-recovery')
+  @ApiOperation({ summary: 'Generate a recovery key and wrap the current DEK' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Recovery key generated (shown once, never stored server-side)',
+  })
+  async setupRecovery(
+    @User() user: AuthenticatedUser,
+  ): Promise<{ recoveryKey: string }> {
+    const { formatted } = await this.encryptionService.setupRecoveryKey(
+      user.id,
+      user.clientKey,
+    );
+
+    this.#logger.log(
+      { userId: user.id, operation: 'recovery_key.setup' },
+      'Recovery key generated and DEK wrapped',
+    );
+
+    return { recoveryKey: formatted };
+  }
+
+  @Post('recover')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 3600000 } })
+  @ApiOperation({
+    summary: 'Recover account using recovery key after password reset',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Account recovered and data re-encrypted',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid recovery key or new client key',
+    type: ErrorResponseDto,
+  })
+  async recover(
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+    @Body() body: { recoveryKey: string; newClientKey: string },
+  ): Promise<{ success: boolean }> {
+    if (!body.recoveryKey) {
+      throw new BusinessException(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID);
+    }
+
+    const newKeyBuffer = this.#validateClientKeyHex(body.newClientKey);
+
+    try {
+      await this.encryptionService.recoverWithKey(
+        user.id,
+        body.recoveryKey,
+        newKeyBuffer,
+        async (oldDek, newDek) => {
+          await this.rekeyService.reEncryptAllUserData(
+            user.id,
+            oldDek,
+            newDek,
+            supabase,
+          );
+        },
+      );
+    } catch (error) {
+      this.#handleRecoveryError(user.id, error);
+    }
+
+    this.#logger.log(
+      { userId: user.id, operation: 'recovery.complete' },
+      'Account recovered with recovery key',
+    );
+
+    return { success: true };
+  }
+
+  #validateClientKeyHex(hex: string): Buffer {
+    if (!hex || !HEX_KEY_REGEX.test(hex)) {
+      throw new BusinessException(ERROR_DEFINITIONS.AUTH_CLIENT_KEY_INVALID);
+    }
+
+    const buffer = Buffer.from(hex, 'hex');
+    if (
+      buffer.length !== CLIENT_KEY_LENGTH ||
+      !buffer.some((byte) => byte !== 0)
+    ) {
+      throw new BusinessException(ERROR_DEFINITIONS.AUTH_CLIENT_KEY_INVALID);
+    }
+
+    return buffer;
+  }
+
+  #handleRecoveryError(userId: string, error: unknown): never {
+    this.#logger.warn(
+      {
+        userId,
+        operation: 'recovery.failed',
+        error: error instanceof Error ? error.message : String(error),
+      },
+      'Recovery attempt failed',
+    );
+
+    if (
+      error instanceof Error &&
+      (error.message.includes('No recovery key configured') ||
+        error.message.includes('Invalid recovery key'))
+    ) {
+      throw new BusinessException(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID);
+    }
+    throw error;
   }
 }

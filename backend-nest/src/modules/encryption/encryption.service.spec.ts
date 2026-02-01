@@ -15,13 +15,18 @@ const createMockConfigService = () => ({
 
 const createMockRepository = (overrides?: {
   findSaltByUserId?: ReturnType<typeof mock>;
+  findByUserId?: ReturnType<typeof mock>;
   upsertSalt?: ReturnType<typeof mock>;
   updateSalt?: ReturnType<typeof mock>;
+  updateWrappedDEK?: ReturnType<typeof mock>;
 }) => ({
   findSaltByUserId:
     overrides?.findSaltByUserId ?? mock(() => Promise.resolve(null)),
+  findByUserId: overrides?.findByUserId ?? mock(() => Promise.resolve(null)),
   upsertSalt: overrides?.upsertSalt ?? mock(() => Promise.resolve()),
   updateSalt: overrides?.updateSalt ?? mock(() => Promise.resolve()),
+  updateWrappedDEK:
+    overrides?.updateWrappedDEK ?? mock(() => Promise.resolve()),
 });
 
 describe('EncryptionService', () => {
@@ -639,6 +644,108 @@ describe('EncryptionService', () => {
       const decrypted = service.decryptAmount(encrypted, dek);
 
       expect(decrypted).toBe(amount);
+    });
+  });
+
+  describe('generateRecoveryKey', () => {
+    beforeEach(() => {
+      service = new EncryptionService(
+        mockConfigService as any,
+        mockRepository as any,
+      );
+    });
+
+    it('should generate a 32-byte raw key', () => {
+      const { raw } = service.generateRecoveryKey();
+      expect(raw.length).toBe(32);
+    });
+
+    it('should return a formatted base32 string with dashes', () => {
+      const { formatted } = service.generateRecoveryKey();
+      expect(formatted).toMatch(/^[A-Z2-7]{4}(-[A-Z2-7]{4})+$/);
+    });
+
+    it('should generate different keys on each call', () => {
+      const key1 = service.generateRecoveryKey();
+      const key2 = service.generateRecoveryKey();
+      expect(key1.formatted).not.toBe(key2.formatted);
+    });
+  });
+
+  describe('wrapDEK and unwrapDEK', () => {
+    beforeEach(() => {
+      service = new EncryptionService(
+        mockConfigService as any,
+        mockRepository as any,
+      );
+    });
+
+    it('should roundtrip wrap and unwrap DEK', () => {
+      const dek = randomBytes(32);
+      const recoveryKey = randomBytes(32);
+
+      const wrapped = service.wrapDEK(dek, recoveryKey);
+      const unwrapped = service.unwrapDEK(wrapped, recoveryKey);
+
+      expect(unwrapped).toEqual(dek);
+    });
+
+    it('should produce base64 encoded wrapped DEK', () => {
+      const dek = randomBytes(32);
+      const recoveryKey = randomBytes(32);
+
+      const wrapped = service.wrapDEK(dek, recoveryKey);
+
+      expect(() => Buffer.from(wrapped, 'base64')).not.toThrow();
+    });
+
+    it('should fail unwrap with wrong recovery key', () => {
+      const dek = randomBytes(32);
+      const recoveryKey1 = randomBytes(32);
+      const recoveryKey2 = randomBytes(32);
+
+      const wrapped = service.wrapDEK(dek, recoveryKey1);
+
+      expect(() => service.unwrapDEK(wrapped, recoveryKey2)).toThrow();
+    });
+
+    it('should fail unwrap with tampered wrapped DEK', () => {
+      const dek = randomBytes(32);
+      const recoveryKey = randomBytes(32);
+
+      const wrapped = service.wrapDEK(dek, recoveryKey);
+      const payload = Buffer.from(wrapped, 'base64');
+      payload[payload.length - 1] ^= 0xff;
+      const tampered = payload.toString('base64');
+
+      expect(() => service.unwrapDEK(tampered, recoveryKey)).toThrow();
+    });
+  });
+
+  describe('onPasswordChange wrapped_dek invalidation', () => {
+    it('should null out wrapped_dek after password change', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+      );
+      const updateSalt = mock(() => Promise.resolve());
+      const updateWrappedDEK = mock(() => Promise.resolve());
+
+      const repo = createMockRepository({
+        findSaltByUserId,
+        updateSalt,
+        updateWrappedDEK,
+      });
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      await service.onPasswordChange(
+        TEST_USER_ID,
+        randomBytes(32),
+        randomBytes(32),
+        async () => {},
+      );
+
+      expect(updateWrappedDEK).toHaveBeenCalledWith(TEST_USER_ID, null);
     });
   });
 });

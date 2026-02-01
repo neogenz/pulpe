@@ -19,6 +19,14 @@ interface PasswordChangeResponse {
   success: boolean;
 }
 
+interface SetupRecoveryResponse {
+  recoveryKey: string;
+}
+
+interface RecoverResponse {
+  success: boolean;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -45,5 +53,22 @@ export class EncryptionApi {
       `${this.#baseUrl}/password-change`,
       { newClientKey: newClientKeyHex },
     );
+  }
+
+  setupRecoveryKey$(): Observable<SetupRecoveryResponse> {
+    return this.#http.post<SetupRecoveryResponse>(
+      `${this.#baseUrl}/setup-recovery`,
+      {},
+    );
+  }
+
+  recover$(
+    recoveryKey: string,
+    newClientKeyHex: string,
+  ): Observable<RecoverResponse> {
+    return this.#http.post<RecoverResponse>(`${this.#baseUrl}/recover`, {
+      recoveryKey,
+      newClientKey: newClientKeyHex,
+    });
   }
 }
