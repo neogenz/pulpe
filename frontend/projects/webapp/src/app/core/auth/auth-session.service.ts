@@ -230,6 +230,36 @@ export class AuthSessionService {
     }
   }
 
+  async updatePassword(
+    newPassword: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await this.getClient().auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        return {
+          success: false,
+          error: this.#errorLocalizer.localizeError(error.message),
+        };
+      }
+
+      return { success: true };
+    } catch (error) {
+      this.#logger.error('Error updating password:', {
+        error,
+        errorType:
+          error instanceof Error ? error.constructor.name : typeof error,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return {
+        success: false,
+        error: AUTH_ERROR_MESSAGES.UNEXPECTED_SESSION_ERROR,
+      };
+    }
+  }
+
   async signOut(): Promise<void> {
     try {
       if (this.#isE2EBypass()) {
