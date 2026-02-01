@@ -14,38 +14,15 @@ import {
   BudgetFormulas,
   getBudgetPeriodForDate,
 } from 'pulpe-shared';
-import { firstValueFrom, type Observable } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
+
 import {
   type CurrentMonthState,
   type DashboardData,
 } from './current-month-state';
 import { createInitialCurrentMonthInternalState } from './current-month-state';
 import { createDashboardDataLoader } from './current-month-data-loader';
-
-/**
- * Merges checkedAt states from latest data into items from updated data.
- * Preserves concurrent toggle updates that occurred during mutation.
- *
- * @param items - Items with mutation applied (from updateData callback)
- * @param latestItems - Items with latest toggle states (from resource)
- * @returns Merged items with mutation + latest toggle states
- */
-function mergeToggleStates<T extends { id: string; checkedAt: string | null }>(
-  items: T[],
-  latestItems: T[],
-): T[] {
-  const latestCheckedAtMap = new Map(
-    latestItems.map((item) => [item.id, item.checkedAt]),
-  );
-
-  return items.map((item) => {
-    const latestCheckedAt = latestCheckedAtMap.get(item.id);
-    if (latestCheckedAt !== undefined) {
-      return { ...item, checkedAt: latestCheckedAt };
-    }
-    return item;
-  });
-}
+import { CurrentMonthMutationsService } from './current-month-mutations.service';
 
 @Injectable()
 export class CurrentMonthStore {
@@ -54,6 +31,7 @@ export class CurrentMonthStore {
   readonly #transactionApi = inject(TransactionApi);
   readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #invalidationService = inject(BudgetInvalidationService);
+  readonly #mutations = inject(CurrentMonthMutationsService);
 
   readonly #state = signal<CurrentMonthState>(
     createInitialCurrentMonthInternalState(),
@@ -138,7 +116,7 @@ export class CurrentMonthStore {
 
   readonly rolloverAmount = computed<number>(() => {
     const budget = this.dashboardData()?.budget;
-    return budget?.rollover || 0;
+    return budget?.rollover ?? 0;
   });
 
   readonly totalIncome = computed<number>(() => {
@@ -166,6 +144,8 @@ export class CurrentMonthStore {
     return BudgetFormulas.calculateRemaining(available, expenses);
   });
 
+  // ─── Public API ────────────────────────────────────────────────
+
   refreshData(): void {
     if (!this.isLoading()) {
       this.#dashboardResource.reload();
@@ -179,31 +159,23 @@ export class CurrentMonthStore {
     }));
   }
 
-  // Mutation pattern: More complex than other stores because CurrentMonth is a
-  // high-interaction dashboard where users toggle many items while mutations process.
-  // #performOptimisticMutation merges concurrent toggle states (lines 326-336) to
-  // prevent data loss — see commit e107b23c and DR-010. Toggle methods use snapshot
-  // rollback without cache invalidation (toggles are UI-only, server already synced).
+  get #mutationContext() {
+    return {
+      resource: this.#dashboardResource,
+    };
+  }
 
   async addTransaction(transactionData: TransactionCreate): Promise<void> {
-    return this.#performOptimisticMutation<Transaction>(
-      () => this.#transactionApi.create$(transactionData),
-      (currentData, response) => ({
-        ...currentData,
-        transactions: [...currentData.transactions, response],
-      }),
+    return this.#mutations.addTransaction(
+      transactionData,
+      this.#mutationContext,
     );
   }
 
   async deleteTransaction(transactionId: string): Promise<void> {
-    return this.#performOptimisticMutation(
-      () => this.#transactionApi.remove$(transactionId),
-      (currentData) => ({
-        ...currentData,
-        transactions: currentData.transactions.filter(
-          (t: Transaction) => t.id !== transactionId,
-        ),
-      }),
+    return this.#mutations.deleteTransaction(
+      transactionId,
+      this.#mutationContext,
     );
   }
 
@@ -211,16 +183,15 @@ export class CurrentMonthStore {
     transactionId: string,
     transactionData: TransactionUpdate,
   ): Promise<void> {
-    return this.#performOptimisticMutation<Transaction>(
-      () => this.#transactionApi.update$(transactionId, transactionData),
-      (currentData, response) => ({
-        ...currentData,
-        transactions: currentData.transactions.map((t: Transaction) =>
-          t.id === transactionId ? response : t,
-        ),
-      }),
+    return this.#mutations.updateTransaction(
+      transactionId,
+      transactionData,
+      this.#mutationContext,
     );
   }
+
+  // Toggle operations remain here: they use snapshot rollback
+  // without cache invalidation (toggles are UI-only, server already synced).
 
   async toggleBudgetLineCheck(budgetLineId: string): Promise<void> {
     const originalData = this.#dashboardResource.value();
@@ -245,8 +216,6 @@ export class CurrentMonthStore {
       await firstValueFrom(
         this.#budgetApi.toggleBudgetLineCheck$(budgetLineId),
       );
-      // Cache invalidation removed: toggles are UI-only, no need to reload
-      // Server state is synced, next mutation reload will include the toggle
     } catch (error) {
       this.#dashboardResource.set(originalData);
       throw error;
@@ -274,90 +243,9 @@ export class CurrentMonthStore {
 
     try {
       await firstValueFrom(this.#transactionApi.toggleCheck$(transactionId));
-      // Cache invalidation removed: toggles are UI-only, no need to reload
-      // Server state is synced, next mutation reload will include the toggle
     } catch (error) {
       this.#dashboardResource.set(originalData);
       throw error;
     }
-  }
-
-  async #performOptimisticMutation<T>(
-    operation: () => Observable<{ data: T }>,
-    updateData: (currentData: DashboardData, response: T) => DashboardData,
-  ): Promise<void>;
-  async #performOptimisticMutation(
-    operation: () => Observable<void>,
-    updateData: (currentData: DashboardData) => DashboardData,
-  ): Promise<void>;
-  async #performOptimisticMutation<T>(
-    operation: () => Observable<{ data: T } | void>,
-    updateData: (currentData: DashboardData, response?: T) => DashboardData,
-  ): Promise<void> {
-    const originalData = this.#dashboardResource.value();
-
-    try {
-      const response = await firstValueFrom(operation());
-
-      const currentData = this.#dashboardResource.value();
-      if (!currentData?.budget) return;
-
-      const responseData =
-        response && typeof response === 'object' && 'data' in response
-          ? (response as { data: T }).data
-          : undefined;
-      const updatedData = updateData(currentData, responseData);
-
-      // Fetch server-computed budget (endingBalance, etc.) after mutation is persisted.
-      // The server budget already reflects the mutation, so local metrics
-      // calculation is unnecessary — we use the authoritative server values.
-      const serverBudget = await firstValueFrom(
-        this.#budgetApi.getBudgetById$(currentData.budget.id),
-      );
-
-      // Single atomic set — avoids a race condition from two sequential set() calls
-      // where a concurrent mutation could be overwritten between them.
-      // Read latest data right before setting to preserve concurrent toggle updates.
-      const latestData = this.#dashboardResource.value();
-      if (!latestData?.budget) return;
-
-      this.#dashboardResource.set({
-        ...updatedData,
-        // Preserve concurrent toggle states on budgetLines and transactions
-        budgetLines:
-          updatedData.budgetLines && latestData.budgetLines
-            ? mergeToggleStates(updatedData.budgetLines, latestData.budgetLines)
-            : updatedData.budgetLines,
-        transactions:
-          updatedData.transactions && latestData.transactions
-            ? mergeToggleStates(
-                updatedData.transactions,
-                latestData.transactions,
-              )
-            : updatedData.transactions,
-        budget: {
-          ...(serverBudget ?? latestData.budget),
-          rollover: latestData.budget.rollover,
-          previousBudgetId: latestData.budget.previousBudgetId,
-        },
-      });
-
-      this.#invalidateCache();
-    } catch (error) {
-      if (originalData) {
-        this.#dashboardResource.set(originalData);
-      } else {
-        this.refreshData();
-      }
-      throw error;
-    }
-  }
-
-  #invalidateCache(): void {
-    const budgetId = this.dashboardData()?.budget?.id;
-    if (budgetId) {
-      this.#budgetCache.invalidateBudgetDetails(budgetId);
-    }
-    this.#invalidationService.invalidate();
   }
 }

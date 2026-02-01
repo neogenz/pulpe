@@ -27,7 +27,11 @@ import {
 import { formatDate } from 'date-fns';
 import { frCH } from 'date-fns/locale';
 import { BaseLoading } from '@ui/loading';
-import { BudgetDetailsStore } from './store/budget-details-store';
+import { BudgetDetailsFacade as BudgetDetailsStore } from './services/budget-details.facade';
+import { BudgetDetailsStateService } from './services/budget-details-state.service';
+import { BudgetNavigationService } from './services/budget-navigation.service';
+import { BudgetDetailsMutationsService } from './services/budget-details-mutations.service';
+import { BudgetDetailsToggleService } from './services/budget-details-toggle.service';
 import { BudgetLineApi } from './budget-line-api/budget-line-api';
 import { BudgetItemsContainer } from './budget-items-container';
 import { BudgetFinancialOverview } from './budget-financial-overview';
@@ -53,7 +57,15 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
     BudgetFinancialOverview,
     BaseLoading,
   ],
-  providers: [BudgetDetailsStore, BudgetLineApi, BudgetDetailsDialogService],
+  providers: [
+    BudgetDetailsStore,
+    BudgetDetailsStateService,
+    BudgetNavigationService,
+    BudgetDetailsMutationsService,
+    BudgetDetailsToggleService,
+    BudgetLineApi,
+    BudgetDetailsDialogService,
+  ],
   templateUrl: './budget-details-page.html',
   styles: `
     :host {

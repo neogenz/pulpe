@@ -21,7 +21,7 @@ import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { BudgetLineTableItem } from '../data-core';
 import { BudgetProgressBar } from '../components/budget-progress-bar';
 import { BudgetKindIndicator } from '../components/budget-kind-indicator';
-import { BudgetDetailsStore } from '../store/budget-details-store';
+import { BudgetDetailsFacade as BudgetDetailsStore } from '../services/budget-details.facade';
 
 export interface BudgetDetailPanelData {
   item: BudgetLineTableItem;

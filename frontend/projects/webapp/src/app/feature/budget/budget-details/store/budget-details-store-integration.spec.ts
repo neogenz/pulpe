@@ -9,7 +9,11 @@ import { Observable, of, throwError, Subject } from 'rxjs';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
 
-import { BudgetDetailsStore } from './budget-details-store';
+import { BudgetDetailsFacade as BudgetDetailsStore } from '../services/budget-details.facade';
+import { BudgetDetailsStateService } from '../services/budget-details-state.service';
+import { BudgetNavigationService } from '../services/budget-navigation.service';
+import { BudgetDetailsMutationsService } from '../services/budget-details-mutations.service';
+import { BudgetDetailsToggleService } from '../services/budget-details-toggle.service';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetCache } from '@core/budget/budget-cache';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
@@ -158,6 +162,10 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         BudgetDetailsStore,
+        BudgetDetailsStateService,
+        BudgetNavigationService,
+        BudgetDetailsMutationsService,
+        BudgetDetailsToggleService,
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: BudgetLineApi, useValue: mockBudgetLineApi },
         { provide: TransactionApi, useValue: mockTransactionApi },
@@ -1301,6 +1309,113 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       await promise2;
 
       expect(mockBudgetLineApi.toggleCheck$).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('User filters budget items', () => {
+    beforeEach(async () => {
+      const checkedLine = createMockBudgetLine({
+        id: 'line-checked',
+        budgetId: mockBudgetId,
+        name: 'Loyer',
+        amount: 1500,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: '2024-01-15T10:00:00Z',
+      });
+
+      const uncheckedLine = createMockBudgetLine({
+        id: 'line-unchecked',
+        budgetId: mockBudgetId,
+        name: 'Courses',
+        amount: 400,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: null,
+      });
+
+      const checkedTx = createMockTransaction({
+        id: 'tx-checked',
+        budgetId: mockBudgetId,
+        budgetLineId: 'line-checked',
+        name: 'Paiement loyer',
+        amount: 1500,
+        kind: 'expense',
+        checkedAt: '2024-01-15T10:00:00Z',
+      });
+
+      const uncheckedTx = createMockTransaction({
+        id: 'tx-unchecked',
+        budgetId: mockBudgetId,
+        budgetLineId: 'line-unchecked',
+        name: 'Supermarché',
+        amount: 80,
+        kind: 'expense',
+        checkedAt: null,
+      });
+
+      const unallocatedTx = createMockTransaction({
+        id: 'tx-unallocated',
+        budgetId: mockBudgetId,
+        budgetLineId: null,
+        name: 'Café',
+        amount: 5,
+        kind: 'expense',
+        checkedAt: null,
+      });
+
+      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
+        of(
+          createMockBudgetDetailsResponse({
+            budget: { id: mockBudgetId },
+            budgetLines: [checkedLine, uncheckedLine],
+            transactions: [checkedTx, uncheckedTx, unallocatedTx],
+          }),
+        ),
+      );
+
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+    });
+
+    it('hides checked budget lines when user enables unchecked filter', () => {
+      service.setIsShowingOnlyUnchecked(true);
+
+      const visible = service.filteredBudgetLines();
+      expect(visible.every((l) => l.checkedAt === null)).toBe(true);
+      expect(visible.find((l) => l.id === 'line-checked')).toBeUndefined();
+      expect(visible.find((l) => l.id === 'line-unchecked')).toBeDefined();
+    });
+
+    it('shows all budget lines when user disables unchecked filter', () => {
+      service.setIsShowingOnlyUnchecked(false);
+
+      const visible = service.filteredBudgetLines();
+      expect(visible.find((l) => l.id === 'line-checked')).toBeDefined();
+      expect(visible.find((l) => l.id === 'line-unchecked')).toBeDefined();
+    });
+
+    it('hides transactions linked to checked budget lines when filter is active', () => {
+      service.setIsShowingOnlyUnchecked(true);
+
+      const visibleTx = service.filteredTransactions();
+
+      // Transaction linked to checked line is hidden
+      expect(visibleTx.find((t) => t.id === 'tx-checked')).toBeUndefined();
+
+      // Transaction linked to unchecked line remains visible
+      expect(visibleTx.find((t) => t.id === 'tx-unchecked')).toBeDefined();
+
+      // Unallocated unchecked transaction remains visible
+      expect(visibleTx.find((t) => t.id === 'tx-unallocated')).toBeDefined();
+    });
+
+    it('shows all transactions when user disables filter', () => {
+      service.setIsShowingOnlyUnchecked(false);
+
+      const visibleTx = service.filteredTransactions();
+      expect(visibleTx).toHaveLength(3);
     });
   });
 });

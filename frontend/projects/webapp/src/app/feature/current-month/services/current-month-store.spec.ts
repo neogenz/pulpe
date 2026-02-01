@@ -12,6 +12,7 @@ import type {
 } from 'pulpe-shared';
 
 import { CurrentMonthStore } from './current-month-store';
+import { CurrentMonthMutationsService } from './current-month-mutations.service';
 import { BudgetApi } from '@core/budget';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { TransactionApi } from '@core/transaction/transaction-api';
@@ -138,6 +139,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         CurrentMonthStore,
+        CurrentMonthMutationsService,
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: TransactionApi, useValue: mockTransactionApi },
         { provide: UserSettingsApi, useValue: mockUserSettingsApi },
@@ -474,6 +476,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
           provideHttpClient(),
           provideHttpClientTesting(),
           CurrentMonthStore,
+          CurrentMonthMutationsService,
           { provide: BudgetApi, useValue: mockBudgetApi },
           { provide: TransactionApi, useValue: mockTransactionApi },
           { provide: UserSettingsApi, useValue: mockUserSettingsApi },
@@ -583,6 +586,7 @@ describe('CurrentMonthStore - Pay Day Integration', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         CurrentMonthStore,
+        CurrentMonthMutationsService,
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: TransactionApi, useValue: mockTransactionApi },
         { provide: UserSettingsApi, useValue: mockUserSettingsApi },
@@ -798,6 +802,7 @@ describe('CurrentMonthStore - Envelope Allocation Logic', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         CurrentMonthStore,
+        CurrentMonthMutationsService,
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: TransactionApi, useValue: mockTransactionApi },
         { provide: UserSettingsApi, useValue: mockUserSettingsApi },
@@ -1067,6 +1072,7 @@ describe('CurrentMonthStore - Cache Invalidation', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         CurrentMonthStore,
+        CurrentMonthMutationsService,
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: TransactionApi, useValue: mockTransactionApi },
         { provide: UserSettingsApi, useValue: mockUserSettingsApi },
@@ -1272,6 +1278,7 @@ describe('CurrentMonthStore - Optimistic Mutation Race Conditions', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         CurrentMonthStore,
+        CurrentMonthMutationsService,
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: TransactionApi, useValue: mockTransactionApi },
         { provide: UserSettingsApi, useValue: mockUserSettingsApi },
