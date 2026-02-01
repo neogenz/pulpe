@@ -419,14 +419,11 @@ export class BudgetService {
     });
 
     const decryptedTransactions = (transactions || []).map((tx) => {
-      const encrypted = (tx as Record<string, unknown>).amount_encrypted as
-        | string
-        | undefined;
-      if (!encrypted) return tx;
+      if (!tx.amount_encrypted) return tx;
       return {
         ...tx,
         amount: this.encryptionService.tryDecryptAmount(
-          encrypted,
+          tx.amount_encrypted,
           dek,
           tx.amount,
         ),
@@ -651,14 +648,11 @@ export class BudgetService {
     });
 
     const decryptedTransactions = (results.transactions || []).map((tx) => {
-      const encrypted = (tx as Record<string, unknown>).amount_encrypted as
-        | string
-        | undefined;
-      if (!encrypted) return tx;
+      if (!tx.amount_encrypted) return tx;
       return {
         ...tx,
         amount: this.encryptionService.tryDecryptAmount(
-          encrypted,
+          tx.amount_encrypted,
           dek,
           tx.amount,
         ),
@@ -1118,16 +1112,14 @@ export class BudgetService {
     budget: Tables<'monthly_budget'>,
     clientKey: Buffer,
   ): Promise<number> {
-    const encrypted = (budget as Record<string, unknown>)
-      .ending_balance_encrypted as string | undefined;
-    if (!encrypted) return budget.ending_balance ?? 0;
+    if (!budget.ending_balance_encrypted) return budget.ending_balance ?? 0;
 
     const dek = await this.encryptionService.getUserDEK(
       budget.user_id!,
       clientKey,
     );
     return this.encryptionService.tryDecryptAmount(
-      encrypted,
+      budget.ending_balance_encrypted,
       dek,
       budget.ending_balance ?? 0,
     );

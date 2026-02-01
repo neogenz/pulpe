@@ -17,7 +17,7 @@ import {
 } from 'pulpe-shared';
 import * as transactionMappers from './transaction.mappers';
 import { TRANSACTION_CONSTANTS } from './entities';
-import type { Database } from '../../types/database.types';
+import type { Database, TablesInsert } from '../../types/database.types';
 import { BudgetService } from '../budget/budget.service';
 import { EncryptionService } from '@modules/encryption/encryption.service';
 
@@ -190,7 +190,7 @@ export class TransactionService {
   }
 
   private async insertTransaction(
-    transactionData: ReturnType<typeof this.prepareTransactionData>,
+    transactionData: TablesInsert<'transaction'>,
     supabase: AuthenticatedSupabaseClient,
     userId?: string,
   ): Promise<Database['public']['Tables']['transaction']['Row']> {
@@ -289,12 +289,14 @@ export class TransactionService {
         createTransactionDto.amount,
         dek,
       );
-      (transactionData as Record<string, unknown>).amount = 0;
-      (transactionData as Record<string, unknown>).amount_encrypted =
-        encryptedAmount;
+      const dataWithEncryption = {
+        ...transactionData,
+        amount: 0,
+        amount_encrypted: encryptedAmount,
+      };
 
       const transactionDb = await this.insertTransaction(
-        transactionData,
+        dataWithEncryption,
         supabase,
         user.id,
       );
@@ -873,14 +875,11 @@ export class TransactionService {
       );
 
       const decryptedTransactions = transactionsDb.map((t) => {
-        const encrypted = (t as Record<string, unknown>).amount_encrypted as
-          | string
-          | undefined;
-        if (!encrypted) return t;
+        if (!t.amount_encrypted) return t;
         return {
           ...t,
           amount: this.encryptionService.tryDecryptAmount(
-            encrypted,
+            t.amount_encrypted,
             dek,
             t.amount,
           ),
@@ -888,14 +887,11 @@ export class TransactionService {
       });
 
       const decryptedBudgetLines = budgetLinesDb.map((bl) => {
-        const encrypted = (bl as Record<string, unknown>).amount_encrypted as
-          | string
-          | undefined;
-        if (!encrypted) return bl;
+        if (!bl.amount_encrypted) return bl;
         return {
           ...bl,
           amount: this.encryptionService.tryDecryptAmount(
-            encrypted,
+            bl.amount_encrypted,
             dek,
             bl.amount,
           ),

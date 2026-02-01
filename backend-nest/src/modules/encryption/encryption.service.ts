@@ -101,6 +101,13 @@ export class EncryptionService {
     try {
       return this.decryptAmount(ciphertext, dek);
     } catch (error) {
+      if (fallbackAmount === 0) {
+        this.#logger.error(
+          { error: error instanceof Error ? error.message : String(error) },
+          'Decryption failed and plaintext is zeroed — data unrecoverable',
+        );
+        throw error;
+      }
       this.#logger.warn(
         {
           error: error instanceof Error ? error.message : String(error),
