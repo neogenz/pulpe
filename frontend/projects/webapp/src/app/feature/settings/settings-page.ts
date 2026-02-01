@@ -35,6 +35,7 @@ import {
   type RecoveryKeyDialogData,
 } from '@ui/dialogs/recovery-key-dialog';
 import { PAY_DAY_MAX } from 'pulpe-shared';
+import { ChangePasswordCard } from './change-password-card';
 
 @Component({
   selector: 'pulpe-settings-page',
@@ -48,6 +49,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
     MatProgressSpinnerModule,
     MatSelectModule,
     MatSnackBarModule,
+    ChangePasswordCard,
   ],
   styles: `
     .mat-mdc-card-content {
@@ -152,8 +154,10 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
         </mat-card-content>
       </mat-card>
 
-      <!-- Security - hidden in demo mode -->
+      <!-- Password & Security - hidden in demo mode -->
       @if (!isDemoMode()) {
+        <pulpe-change-password-card />
+
         <mat-card appearance="outlined" class="mb-6">
           <mat-card-header>
             <div

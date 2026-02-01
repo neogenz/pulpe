@@ -19,16 +19,12 @@
 - [x] Migration SQL : `wrapped_dek` column
 - [x] Tests : 70 backend, 1020 frontend, `pnpm quality` OK
 - [x] Documentation `ENCRYPTION.md` à jour
+- [x] Prompt recovery key au signup — #295
+- [x] Nudge recovery key après changement de mdp — #297
 
 ## Ce qui reste sur cette branche
 
-### 1. Prompt recovery key au signup — #295
-
-Le plus important. Sans ça, les nouveaux utilisateurs n'auront jamais de recovery key.
-
-**Fichiers :** `signup.ts` → après signup réussi, appeler `setupRecoveryKey$()` et ouvrir `RecoveryKeyDialog` (disableClose).
-
-### 2. Page "mot de passe oublié" — #296
+### 1. Page "mot de passe oublié" — #296
 
 Sans cette page, un utilisateur qui oublie son mot de passe perd ses données.
 
@@ -40,13 +36,13 @@ Sans cette page, un utilisateur qui oublie son mot de passe perd ses données.
 
 **Flow :** email → lien Supabase → `/reset-password` → recovery key + nouveau mdp → `POST /v1/encryption/recover` → nouvelle recovery key affichée.
 
-### 3. Nudge recovery key après changement de mdp — #297
+### ~~2. Nudge recovery key après changement de mdp — #297~~ ✅
 
-Après un changement de mot de passe, `wrapped_dek` est nullifié. L'utilisateur doit être invité à re-générer une recovery key.
+~~Après un changement de mot de passe, `wrapped_dek` est nullifié. L'utilisateur doit être invité à re-générer une recovery key.~~
 
-**Fichier :** là où le changement de mot de passe est géré côté frontend → après succès, appeler `setupRecoveryKey$()` + ouvrir la dialog.
+**Implémenté :** `change-password-card.ts` dans `feature/settings/`. Après changement de mdp + rekey, la dialog recovery key s'ouvre automatiquement.
 
-### 4. Déployer et vérifier la migration prod
+### 3. Déployer et vérifier la migration prod
 
 - Déployer la branche en prod
 - Les 3 utilisateurs existants seront migrés au premier login (backfill interceptor)
@@ -65,7 +61,7 @@ SELECT 'monthly_budget', count(*) FROM monthly_budget WHERE ending_balance_encry
 -- Attendu : 0 partout
 ```
 
-### 5. Cleanup backfill — #293
+### 4. Cleanup backfill — #293
 
 Une fois les 3 users migrés et vérifiés, supprimer le code temporaire :
 - `encryption-backfill.service.ts`
@@ -73,7 +69,7 @@ Une fois les 3 users migrés et vérifiés, supprimer le code temporaire :
 - `encryption-backfill.service.spec.ts`
 - Références dans `encryption.module.ts` et `app.module.ts`
 
-### 6. Drop colonnes plaintext (dernière étape)
+### 5. Drop colonnes plaintext (dernière étape)
 
 Migration SQL pour supprimer les colonnes `amount`, `target_amount`, `ending_balance` des 5 tables. **Uniquement** après :
 - Tous les users migrés
@@ -85,10 +81,10 @@ Migration SQL pour supprimer les colonnes `amount`, `target_amount`, `ending_bal
 
 | # | Tâche | Ticket | Bloqué par |
 |---|-------|--------|------------|
-| 1 | Prompt recovery key au signup | #295 | — |
-| 2 | Nudge recovery key post-password-change | #297 | — |
-| 3 | Page mot de passe oublié | #296 | #295 |
-| 4 | Déploiement + migration prod | — | #295, #296 |
+| ~~1~~ | ~~Prompt recovery key au signup~~ | ~~#295~~ | ~~—~~ ✅ |
+| ~~2~~ | ~~Nudge recovery key post-password-change~~ | ~~#297~~ | ~~—~~ ✅ |
+| 3 | Page mot de passe oublié | #296 | ~~#295~~ |
+| 4 | Déploiement + migration prod | — | #296 |
 | 5 | Vérification prod | — | Déploiement |
 | 6 | Cleanup backfill | #293 | Vérification |
 | 7 | Drop colonnes plaintext | — | #293 |
@@ -97,9 +93,9 @@ Migration SQL pour supprimer les colonnes `amount`, `target_amount`, `ending_bal
 
 ```
 #274 (epic)
-├── #294 (recovery key) ← backend + settings DONE, reste #295 #296 #297
-├── #295 (prompt signup)
-├── #296 (forgot-password) ← bloqué par #295
-├── #297 (nudge post-password-change)
+├── #294 (recovery key) ← DONE
+├── #295 (prompt signup) ← DONE
+├── #296 (forgot-password) ← débloqué
+├── #297 (nudge post-password-change) ← DONE
 └── #293 (cleanup backfill) ← bloqué par déploiement + vérification
 ```
