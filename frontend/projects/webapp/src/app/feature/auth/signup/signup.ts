@@ -47,13 +47,14 @@ import { createFieldsMatchValidator } from '@core/validators';
       <div
         class="w-full max-w-md bg-surface rounded-3xl p-8 flex flex-col shadow-xl"
       >
-        <a
+        <button
+          matButton
           [routerLink]="['/', ROUTES.WELCOME]"
           class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
         >
           <mat-icon class="text-lg">arrow_back</mat-icon>
           <span>Retour à l'accueil</span>
-        </a>
+        </button>
 
         <div class="text-center mb-8 mt-4">
           <h1

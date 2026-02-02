@@ -59,7 +59,7 @@ export interface BreadcrumbItemViewModel {
               <li class="flex-shrink-0">
                 @if (!isLast) {
                   <a
-                    mat-button
+                    matButton
                     [routerLink]="item.url"
                     [style.--mat-button-text-label-text-color]="
                       'var(--mat-sys-primary)'

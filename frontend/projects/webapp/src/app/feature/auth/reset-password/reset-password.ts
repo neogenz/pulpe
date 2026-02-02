@@ -88,13 +88,14 @@ import { createFieldsMatchValidator } from '@core/validators';
             </a>
           </div>
         } @else {
-          <a
+          <button
+          matButton
             [routerLink]="['/', ROUTES.LOGIN]"
             class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
           >
             <mat-icon class="text-lg">arrow_back</mat-icon>
             <span>Retour à la connexion</span>
-          </a>
+        </button>
 
           <div class="text-center mb-8 mt-4">
             <h1

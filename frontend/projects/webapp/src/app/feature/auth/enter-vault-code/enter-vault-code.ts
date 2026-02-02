@@ -12,6 +12,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { firstValueFrom } from 'rxjs';
@@ -21,10 +22,12 @@ import {
   EncryptionApi,
   deriveClientKey,
 } from '@core/encryption';
+import { AuthSessionService } from '@core/auth/auth-session.service';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
+import { LogoutDialog } from '@layout/logout-dialog';
 
 @Component({
   selector: 'pulpe-enter-vault-code',
@@ -128,13 +131,26 @@ import { LoadingButton } from '@ui/loading-button';
           <div class="text-center mt-2">
             <a
               [routerLink]="['/', ROUTES.RECOVER_VAULT_CODE]"
-              class="text-body-medium text-on-surface-variant hover:text-primary"
+              class="text-body-small text-primary hover:underline"
               data-testid="lost-code-link"
             >
               Code perdu ?
             </a>
           </div>
         </form>
+
+        <div class="text-center mt-4 pt-4 border-t border-outline-variant">
+          <button
+            matButton
+            type="button"
+            (click)="onLogout()"
+            [disabled]="isLoggingOut()"
+            data-testid="vault-code-logout-button"
+          >
+            <mat-icon>logout</mat-icon>
+            Se déconnecter
+          </button>
+        </div>
       </div>
     </div>
   `,
@@ -142,12 +158,15 @@ import { LoadingButton } from '@ui/loading-button';
 export default class EnterVaultCode {
   readonly #clientKeyService = inject(ClientKeyService);
   readonly #encryptionApi = inject(EncryptionApi);
+  readonly #authSession = inject(AuthSessionService);
+  readonly #dialog = inject(MatDialog);
   readonly #formBuilder = inject(FormBuilder);
   readonly #router = inject(Router);
   readonly #logger = inject(Logger);
 
   protected readonly ROUTES = ROUTES;
   protected readonly isSubmitting = signal(false);
+  protected readonly isLoggingOut = signal(false);
   protected readonly errorMessage = signal('');
   protected readonly isCodeHidden = signal(true);
 
@@ -212,5 +231,22 @@ export default class EnterVaultCode {
       this.form.enable();
       this.isSubmitting.set(false);
     }
+  }
+
+  protected async onLogout(): Promise<void> {
+    if (this.isLoggingOut()) return;
+
+    this.isLoggingOut.set(true);
+    this.#dialog.open(LogoutDialog, { disableClose: true });
+
+    try {
+      await this.#authSession.signOut();
+    } catch (error) {
+      this.#logger.error('Erreur lors de la déconnexion:', error);
+    } finally {
+      this.isLoggingOut.set(false);
+    }
+
+    window.location.href = '/' + ROUTES.LOGIN;
   }
 }

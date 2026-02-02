@@ -31,12 +31,11 @@ export interface RecoveryKeyDialogData {
   ],
   template: `
     <div data-testid="recovery-key-dialog">
-      <h2 mat-dialog-title class="text-headline-small">Clé de récupération</h2>
+      <h2 mat-dialog-title class="text-headline-small">Ta clé de secours</h2>
 
       <mat-dialog-content>
         <p class="text-body-medium text-on-surface mb-4">
-          Cette clé te permet de récupérer tes données si tu oublies ton mot de
-          passe. Note-la dans un endroit sûr — elle ne sera plus affichée.
+          Prends un instant pour mettre cette clé en lieu sûr (comme dans un gestionnaire de mots de passe). C'est ton unique filet de sécurité : si tu oublies ton code de coffre-fort et que tu perds cette clé, tes données seront perdues pour toujours. C'est le garant de ta totale confidentialité.
         </p>
 
         <div
@@ -61,7 +60,7 @@ export interface RecoveryKeyDialogData {
           class="w-full"
           subscriptSizing="dynamic"
         >
-          <mat-label>Colle ta clé ici pour confirmer</mat-label>
+          <mat-label>Recopie ou colle ta clé pour confirmer</mat-label>
           <input
             matInput
             data-testid="recovery-key-confirm-input"
@@ -78,7 +77,7 @@ export interface RecoveryKeyDialogData {
           (click)="onConfirm()"
           data-testid="recovery-key-confirm-button"
         >
-          J'ai bien noté ma clé
+          C'est mis en lieu sûr
         </button>
       </mat-dialog-actions>
     </div>
