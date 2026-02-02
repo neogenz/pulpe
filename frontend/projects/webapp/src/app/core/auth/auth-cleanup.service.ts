@@ -4,6 +4,7 @@ import { HasBudgetCache } from './has-budget-cache';
 import { PostHogService } from '../analytics/posthog';
 import { StorageService } from '../storage';
 import { Logger } from '../logging/logger';
+import { AppPreloader } from '../preloader/app-preloader';
 
 // Debounce delay before allowing another cleanup. Prevents duplicate calls
 // when multiple logout events fire in quick succession (e.g., auth state change + manual signOut).
@@ -19,6 +20,7 @@ export class AuthCleanupService {
   readonly #storageService = inject(StorageService);
   readonly #logger = inject(Logger);
   readonly #destroyRef = inject(DestroyRef);
+  readonly #appPreloader = inject(AppPreloader);
 
   #cleanupInProgress = false;
   #resetTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -52,6 +54,7 @@ export class AuthCleanupService {
         'demo mode',
       );
       this.#safeCleanup(() => this.#hasBudgetCache.clear(), 'budget cache');
+      this.#safeCleanup(() => this.#appPreloader.reset(), 'app preloader');
       this.#safeCleanup(() => this.#postHogService.reset(), 'PostHog');
       this.#safeCleanup(
         () => this.#storageService.clearAllUserData(),

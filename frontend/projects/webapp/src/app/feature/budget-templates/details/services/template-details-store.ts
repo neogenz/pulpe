@@ -1,37 +1,24 @@
-import { inject, Injectable, signal, computed, resource } from '@angular/core';
+import { inject, Injectable, computed, resource } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { createStaleFallback } from '@core/cache';
 import {
   BudgetTemplatesApi,
   type BudgetTemplateDetailViewModel,
 } from '../../services/budget-templates-api';
-import {
-  type TemplateDetailsState,
-  createInitialTemplateDetailsState,
-} from './template-details-state';
+import { createInitialTemplateDetailsState } from './template-details-state';
 
-/**
- * Signal-based store for template details state management
- * Implements SWR (Stale-While-Revalidate) pattern for instant display after creation
- */
 @Injectable()
 export class TemplateDetailsStore {
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
 
-  // Single source of truth - private state signal for non-resource data
-  readonly #state = signal<TemplateDetailsState>(
-    createInitialTemplateDetailsState(),
-  );
-
-  // Stale data from navigation (POST response via router state)
-  // Used for SWR: display immediately while fresh data loads in background
-  readonly #staleData = signal<BudgetTemplateDetailViewModel | null>(null);
+  readonly #state = createInitialTemplateDetailsState();
 
   // Resource for fresh data (background revalidation)
   readonly #templateDetailsResource = resource<
     BudgetTemplateDetailViewModel,
     string | null
   >({
-    params: () => this.#state().templateId,
+    params: () => this.#state.templateId(),
     loader: async ({ params: templateId }) => {
       if (!templateId) {
         throw new Error('Template ID is required');
@@ -42,20 +29,15 @@ export class TemplateDetailsStore {
     },
   });
 
-  // SWR with computed(): fresh data takes priority, fallback to stale
-  // Conforms to Angular 21 guidelines: "Derived read-only state" → computed()
-  readonly templateDetails = computed<BudgetTemplateDetailViewModel | null>(
-    () => this.#templateDetailsResource.value() ?? this.#staleData(),
-  );
-
+  readonly #swr = createStaleFallback({
+    resource: this.#templateDetailsResource,
+  });
+  readonly templateDetails = this.#swr.data;
   // Loading hidden if stale data available (smooth UX)
-  readonly isLoading = computed(
-    () => this.#templateDetailsResource.isLoading() && !this.#staleData(),
-  );
-
-  readonly hasValue = computed(() => !!this.templateDetails());
+  readonly isLoading = this.#swr.isInitialLoading;
+  readonly hasValue = this.#swr.hasValue;
   readonly error = computed(
-    () => this.#templateDetailsResource.error() || this.#state().error,
+    () => this.#templateDetailsResource.error() || this.#state.error(),
   );
 
   // Derived selectors for convenience
@@ -68,16 +50,6 @@ export class TemplateDetailsStore {
 
   // Public Actions
 
-  /**
-   * Initialize template ID with optional stale data for SWR
-   *
-   * @param id - Template ID from route
-   * @param staleData - Optional cached data from navigation (POST response)
-   *
-   * Behavior:
-   * - With staleData: instant render + background fetch
-   * - Without staleData: normal loading spinner (e.g., direct URL access)
-   */
   initializeTemplateId(
     id: string,
     staleData?: BudgetTemplateDetailViewModel,
@@ -86,31 +58,19 @@ export class TemplateDetailsStore {
     // When templateId changes, resource triggers isLoading=true
     // Having staleData already set makes isLoading computed return false
     if (staleData) {
-      this.#staleData.set(staleData);
+      this.#swr.setStaleData(staleData);
     }
 
-    this.#state.update((state) => ({
-      ...state,
-      templateId: id,
-      error: null,
-    }));
+    this.#state.templateId.set(id);
+    this.#state.error.set(null);
   }
 
-  /**
-   * Manually reload template details from the server
-   */
   reloadTemplateDetails(): void {
     this.#templateDetailsResource.reload();
     this.#clearError();
   }
 
-  /**
-   * Clear the error state
-   */
   #clearError(): void {
-    this.#state.update((state) => ({
-      ...state,
-      error: null,
-    }));
+    this.#state.error.set(null);
   }
 }

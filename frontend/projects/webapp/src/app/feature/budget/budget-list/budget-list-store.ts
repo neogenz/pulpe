@@ -5,11 +5,10 @@ import {
   linkedSignal,
   resource,
 } from '@angular/core';
-import { BudgetApi } from '@core/budget/budget-api';
+import { BudgetCache } from '@core/budget/budget-cache';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { Logger } from '@core/logging/logger';
 import { type Budget } from 'pulpe-shared';
-import { firstValueFrom } from 'rxjs';
 
 export interface BudgetPlaceholder {
   month: number;
@@ -18,11 +17,12 @@ export interface BudgetPlaceholder {
 
 @Injectable()
 export class BudgetListStore {
-  readonly #budgetApi = inject(BudgetApi);
+  readonly #budgetCache = inject(BudgetCache);
   readonly #logger = inject(Logger);
   readonly #invalidationService = inject(BudgetInvalidationService);
 
   // Maximum de mois à rechercher dans le futur (3 ans)
+  // private static uses TS keyword (not #) because static # is incompatible with class decorators
   private static readonly MAX_FUTURE_MONTHS_TO_SEARCH = 36;
 
   /**
@@ -173,9 +173,8 @@ export class BudgetListStore {
 
   async #loadBudgets(): Promise<Budget[]> {
     try {
-      const budgets = await firstValueFrom(this.#budgetApi.getAllBudgets$());
+      const budgets = await this.#budgetCache.preloadBudgetList();
       return budgets.sort((a: Budget, b: Budget) => {
-        // Trier par année décroissante puis par mois décroissant
         if (a.year !== b.year) {
           return a.year - b.year;
         }

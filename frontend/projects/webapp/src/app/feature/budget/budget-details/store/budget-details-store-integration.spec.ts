@@ -5,12 +5,18 @@ import {
   provideHttpClientTesting,
   HttpTestingController,
 } from '@angular/common/http/testing';
-import { of, throwError, Subject } from 'rxjs';
+import { Observable, of, throwError, Subject } from 'rxjs';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
 
-import { BudgetDetailsStore } from './budget-details-store';
+import { BudgetDetailsFacade as BudgetDetailsStore } from '../services/budget-details.facade';
+import { BudgetDetailsStateService } from '../services/budget-details-state.service';
+import { BudgetNavigationService } from '../services/budget-navigation.service';
+import { BudgetDetailsMutationsService } from '../services/budget-details-mutations.service';
+import { BudgetDetailsToggleService } from '../services/budget-details-toggle.service';
 import { BudgetApi } from '@core/budget/budget-api';
+import { BudgetCache } from '@core/budget/budget-cache';
+import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { BudgetLineApi } from '../budget-line-api/budget-line-api';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { Logger } from '@core/logging/logger';
@@ -69,6 +75,8 @@ const mockBudgetDetailsResponse = createMockBudgetDetailsResponse({
 describe('BudgetDetailsStore - User Behavior Tests', () => {
   let service: BudgetDetailsStore;
   let httpMock: HttpTestingController;
+  let budgetCache: BudgetCache;
+  let invalidationService: BudgetInvalidationService;
   let mockBudgetApi: {
     getBudgetWithDetails$: ReturnType<typeof vi.fn>;
   };
@@ -81,6 +89,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
   let mockTransactionApi: {
     create$: ReturnType<typeof vi.fn>;
     remove$: ReturnType<typeof vi.fn>;
+    toggleCheck$: ReturnType<typeof vi.fn>;
   };
   let mockLogger: {
     error: ReturnType<typeof vi.fn>;
@@ -130,6 +139,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     mockTransactionApi = {
       create$: vi.fn(),
       remove$: vi.fn(),
+      toggleCheck$: vi.fn(),
     };
 
     mockLogger = {
@@ -152,6 +162,10 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         BudgetDetailsStore,
+        BudgetDetailsStateService,
+        BudgetNavigationService,
+        BudgetDetailsMutationsService,
+        BudgetDetailsToggleService,
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: BudgetLineApi, useValue: mockBudgetLineApi },
         { provide: TransactionApi, useValue: mockTransactionApi },
@@ -166,6 +180,8 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
     service = TestBed.inject(BudgetDetailsStore);
     httpMock = TestBed.inject(HttpTestingController);
+    budgetCache = TestBed.inject(BudgetCache);
+    invalidationService = TestBed.inject(BudgetInvalidationService);
   });
 
   afterEach(() => {
@@ -690,7 +706,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
   });
 
   describe('User creates allocated transactions', () => {
-    it('should create transaction unchecked and uncheck parent budget line when parent was checked', async () => {
+    it('should inherit checked state from parent budget line when parent was checked', async () => {
       const checkedTimestamp = '2024-01-15T10:00:00Z';
 
       // Parent budget line has checkedAt
@@ -720,7 +736,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       TestBed.tick();
       await waitForResourceStable();
 
-      // Mock server response for transaction creation
+      // Mock server response for transaction creation (inherits parent checkedAt)
       const serverTransaction = createMockTransaction({
         id: 'tx-server-1',
         budgetId: mockBudgetId,
@@ -728,18 +744,12 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         name: 'New Allocated Transaction',
         amount: 200,
         kind: 'expense',
-        checkedAt: null,
+        checkedAt: checkedTimestamp,
       });
 
       mockTransactionApi.create$ = vi
         .fn()
         .mockReturnValue(of({ data: serverTransaction }));
-
-      mockBudgetLineApi.toggleCheck$ = vi
-        .fn()
-        .mockReturnValue(
-          of({ data: { ...checkedParentLine, checkedAt: null } }),
-        );
 
       // User creates transaction linked to checked parent
       await service.createAllocatedTransaction({
@@ -750,30 +760,26 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         kind: 'expense',
       });
 
-      // Transaction should be created unchecked
+      // Transaction inherits parent's checkedAt
       const transactions = service.budgetDetails()?.transactions ?? [];
       const createdTx = transactions.find(
         (tx) => tx.name === 'New Allocated Transaction',
       );
 
       expect(createdTx).toBeDefined();
-      expect(createdTx?.checkedAt).toBeNull();
+      expect(createdTx?.checkedAt).toBe(checkedTimestamp);
 
-      // Verify API was called with checkedAt: null
+      // Verify API was called with inherited checkedAt (toISOString adds .000Z)
       expect(mockTransactionApi.create$).toHaveBeenCalledWith(
         expect.objectContaining({
-          checkedAt: null,
+          checkedAt: new Date(checkedTimestamp).toISOString(),
         }),
       );
 
-      // Parent budget line should have been unchecked
-      expect(mockBudgetLineApi.toggleCheck$).toHaveBeenCalledWith(
-        'line-checked',
-      );
-
+      // Parent budget line remains unchanged
       const budgetLines = service.budgetDetails()?.budgetLines ?? [];
       const parentLine = budgetLines.find((l) => l.id === 'line-checked');
-      expect(parentLine?.checkedAt).toBeNull();
+      expect(parentLine?.checkedAt).toBe(checkedTimestamp);
     });
 
     it('should not inherit checked state when parent budget line is unchecked', async () => {
@@ -834,82 +840,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       expect(createdTx?.checkedAt).toBeNull();
     });
 
-    it('should replace temp ID in state before calling toggleCheck on parent', async () => {
-      const checkedTimestamp = '2024-01-15T10:00:00Z';
-
-      const checkedParentLine = createMockBudgetLine({
-        id: 'line-checked',
-        budgetId: mockBudgetId,
-        name: 'Checked Parent',
-        amount: 1000,
-        kind: 'expense',
-        recurrence: 'fixed',
-        checkedAt: checkedTimestamp,
-      });
-
-      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
-        of(
-          createMockBudgetDetailsResponse({
-            budget: { id: mockBudgetId },
-            budgetLines: [checkedParentLine],
-            transactions: [],
-          }),
-        ),
-      );
-
-      service.setBudgetId(mockBudgetId);
-      TestBed.tick();
-      await waitForResourceStable();
-
-      const serverTransaction = createMockTransaction({
-        id: 'tx-real-server-id',
-        budgetId: mockBudgetId,
-        budgetLineId: 'line-checked',
-        name: 'Allocated Tx',
-        amount: 200,
-        kind: 'expense',
-        checkedAt: null,
-      });
-
-      mockTransactionApi.create$ = vi
-        .fn()
-        .mockReturnValue(of({ data: serverTransaction }));
-
-      // Capture store state at the moment toggleCheck$ is called
-      let transactionsAtToggleTime: { id: string }[] = [];
-      mockBudgetLineApi.toggleCheck$ = vi.fn().mockImplementation(() => {
-        transactionsAtToggleTime = [
-          ...(service.budgetDetails()?.transactions ?? []),
-        ];
-        return of({ data: { ...checkedParentLine, checkedAt: null } });
-      });
-
-      await service.createAllocatedTransaction({
-        budgetId: mockBudgetId,
-        budgetLineId: 'line-checked',
-        name: 'Allocated Tx',
-        amount: 200,
-        kind: 'expense',
-      });
-
-      // toggleCheck$ was called
-      expect(mockBudgetLineApi.toggleCheck$).toHaveBeenCalledWith(
-        'line-checked',
-      );
-
-      // At the moment toggleCheck$ was called, state must contain the real ID (not temp)
-      const hasTempId = transactionsAtToggleTime.some((tx) =>
-        tx.id.startsWith('temp-'),
-      );
-      expect(hasTempId).toBe(false);
-      expect(
-        transactionsAtToggleTime.some((tx) => tx.id === 'tx-real-server-id'),
-      ).toBe(true);
-    });
-
-    it('should rollback optimistic updates when toggleCheck fails after transaction creation', async () => {
-      const checkedTimestamp = '2024-01-15T10:00:00Z';
-
+    it('should rollback optimistic updates when transaction creation fails', async () => {
       const checkedParentLine = createMockBudgetLine({
         id: 'line-checked-fail',
         budgetId: mockBudgetId,
@@ -917,7 +848,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         amount: 1000,
         kind: 'expense',
         recurrence: 'fixed',
-        checkedAt: checkedTimestamp,
+        checkedAt: '2024-01-15T10:00:00Z',
       });
 
       mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
@@ -934,23 +865,11 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       TestBed.tick();
       await waitForResourceStable();
 
-      const serverTransaction = createMockTransaction({
-        id: 'tx-server-fail',
-        budgetId: mockBudgetId,
-        budgetLineId: 'line-checked-fail',
-        name: 'Transaction Before Fail',
-        amount: 200,
-        kind: 'expense',
-        checkedAt: null,
-      });
-
       mockTransactionApi.create$ = vi
         .fn()
-        .mockReturnValue(of({ data: serverTransaction }));
-
-      mockBudgetLineApi.toggleCheck$ = vi
-        .fn()
-        .mockReturnValue(throwError(() => new Error('Toggle check failed')));
+        .mockReturnValue(
+          throwError(() => new Error('Transaction creation failed')),
+        );
 
       await service.createAllocatedTransaction({
         budgetId: mockBudgetId,
@@ -961,9 +880,6 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       });
 
       expect(service.error()).toBeTruthy();
-      expect(mockBudgetLineApi.toggleCheck$).toHaveBeenCalledWith(
-        'line-checked-fail',
-      );
     });
   });
 
@@ -1176,6 +1092,330 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       // Total items: 3 budget lines + 2 transactions = 5
       expect(service.totalItemsCount()).toBe(5);
+    });
+  });
+
+  describe('Cache-first loading', () => {
+    it('displays cached budget instantly without initial loading state', async () => {
+      // Pre-populate cache with budget details
+      await budgetCache.preloadBudgetDetails([mockBudgetId]);
+      TestBed.tick();
+
+      // User navigates to cached budget
+      service.setBudgetId(mockBudgetId);
+
+      // Budget data is available immediately via cache
+      expect(service.budgetDetails()).toBeDefined();
+      expect(service.budgetDetails()?.id).toBe(mockBudgetId);
+      expect(service.isInitialLoading()).toBe(false);
+    });
+
+    it('shows initial loading when budget is not cached', () => {
+      // No cache populated — user navigates to a budget
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+
+      // No cached data available, so isInitialLoading should be true
+      // (resource is loading and budgetDetails is null)
+      expect(service.budgetDetails()).toBeNull();
+      expect(service.isInitialLoading()).toBe(true);
+    });
+
+    it('resolves to fresh data after cache-first display', async () => {
+      // Pre-populate cache
+      await budgetCache.preloadBudgetDetails([mockBudgetId]);
+      TestBed.tick();
+
+      // Navigate to budget (cache hit provides instant data)
+      service.setBudgetId(mockBudgetId);
+      expect(service.budgetDetails()).toBeDefined();
+
+      // Wait for resource to resolve with fresh data
+      await waitForResourceStable();
+
+      // Resource has resolved — data still present
+      expect(service.budgetDetails()).toBeDefined();
+      expect(service.budgetDetails()?.budgetLines).toHaveLength(2);
+    });
+  });
+
+  describe('Cache invalidation propagates to budget list', () => {
+    beforeEach(async () => {
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+    });
+
+    it('invalidates budget list cache when user adds a budget line', async () => {
+      const versionBefore = invalidationService.version();
+
+      mockBudgetLineApi.createBudgetLine$ = vi.fn().mockReturnValue(
+        of({
+          data: {
+            id: 'line-new',
+            budgetId: mockBudgetId,
+            name: 'Courses',
+            amount: 400,
+            kind: 'expense',
+            recurrence: 'fixed',
+            templateLineId: null,
+            savingsGoalId: null,
+            isManuallyAdjusted: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            updatedAt: '2024-01-15T10:00:00Z',
+          },
+        }),
+      );
+
+      await service.createBudgetLine({
+        budgetId: mockBudgetId,
+        name: 'Courses',
+        amount: 400,
+        kind: 'expense',
+        recurrence: 'fixed',
+        isManuallyAdjusted: false,
+      });
+
+      expect(invalidationService.version()).toBeGreaterThan(versionBefore);
+    });
+
+    it('invalidates budget list cache when user deletes a budget line', async () => {
+      const versionBefore = invalidationService.version();
+
+      mockBudgetLineApi.deleteBudgetLine$ = vi.fn().mockReturnValue(of({}));
+
+      await service.deleteBudgetLine('line-2');
+
+      expect(invalidationService.version()).toBeGreaterThan(versionBefore);
+    });
+
+    it('invalidates budget list cache when user deletes a transaction', async () => {
+      const versionBefore = invalidationService.version();
+
+      mockTransactionApi.remove$ = vi.fn().mockReturnValue(of({}));
+
+      await service.deleteTransaction('tx-1');
+
+      expect(invalidationService.version()).toBeGreaterThan(versionBefore);
+    });
+  });
+
+  describe('Toggle serialization', () => {
+    beforeEach(async () => {
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+    });
+
+    const flushMicrotasks = () =>
+      new Promise((resolve) => setTimeout(resolve, 0));
+
+    it('should serialize rapid toggle API calls sequentially, not in parallel', async () => {
+      const callOrder: string[] = [];
+
+      let resolveToggle1!: (value: unknown) => void;
+      let resolveToggle2!: (value: unknown) => void;
+
+      mockBudgetLineApi.toggleCheck$ = vi
+        .fn()
+        .mockImplementation((id: string) => {
+          callOrder.push(`start:${id}`);
+          return new Observable((subscriber) => {
+            if (id === 'line-1') {
+              resolveToggle1 = (value) => {
+                subscriber.next(value);
+                subscriber.complete();
+              };
+            } else {
+              resolveToggle2 = (value) => {
+                subscriber.next(value);
+                subscriber.complete();
+              };
+            }
+          });
+        });
+
+      // Fire two toggles rapidly without awaiting
+      const promise1 = service.toggleCheck('line-1');
+      const promise2 = service.toggleCheck('line-2');
+
+      // Flush microtasks so the first enqueued Promise starts
+      await flushMicrotasks();
+
+      // Only the first API call should have started
+      expect(callOrder).toEqual(['start:line-1']);
+
+      // Resolve first toggle
+      resolveToggle1({
+        data: createMockBudgetLine({
+          id: 'line-1',
+          budgetId: mockBudgetId,
+          name: 'Salary',
+          amount: 5000,
+          kind: 'income',
+          recurrence: 'fixed',
+          checkedAt: new Date().toISOString(),
+        }),
+      });
+      await promise1;
+
+      // Flush so the second enqueued Promise starts
+      await flushMicrotasks();
+
+      // Now the second API call should have started
+      expect(callOrder).toEqual(['start:line-1', 'start:line-2']);
+
+      // Resolve second toggle
+      resolveToggle2({
+        data: createMockBudgetLine({
+          id: 'line-2',
+          budgetId: mockBudgetId,
+          name: 'Rent',
+          amount: 1500,
+          kind: 'expense',
+          recurrence: 'fixed',
+          checkedAt: new Date().toISOString(),
+        }),
+      });
+      await promise2;
+    });
+
+    it('should not block subsequent toggles when a toggle fails', async () => {
+      mockBudgetLineApi.toggleCheck$ = vi
+        .fn()
+        .mockReturnValueOnce(throwError(() => new Error('Network error')))
+        .mockReturnValueOnce(
+          of({
+            data: createMockBudgetLine({
+              id: 'line-2',
+              budgetId: mockBudgetId,
+              name: 'Rent',
+              amount: 1500,
+              kind: 'expense',
+              recurrence: 'fixed',
+              checkedAt: new Date().toISOString(),
+            }),
+          }),
+        );
+
+      // First toggle fails
+      const promise1 = service.toggleCheck('line-1');
+      await flushMicrotasks();
+      await promise1;
+
+      // Second toggle should still work despite the first one failing
+      const promise2 = service.toggleCheck('line-2');
+      await flushMicrotasks();
+      await promise2;
+
+      expect(mockBudgetLineApi.toggleCheck$).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('User filters budget items', () => {
+    beforeEach(async () => {
+      const checkedLine = createMockBudgetLine({
+        id: 'line-checked',
+        budgetId: mockBudgetId,
+        name: 'Loyer',
+        amount: 1500,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: '2024-01-15T10:00:00Z',
+      });
+
+      const uncheckedLine = createMockBudgetLine({
+        id: 'line-unchecked',
+        budgetId: mockBudgetId,
+        name: 'Courses',
+        amount: 400,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: null,
+      });
+
+      const checkedTx = createMockTransaction({
+        id: 'tx-checked',
+        budgetId: mockBudgetId,
+        budgetLineId: 'line-checked',
+        name: 'Paiement loyer',
+        amount: 1500,
+        kind: 'expense',
+        checkedAt: '2024-01-15T10:00:00Z',
+      });
+
+      const uncheckedTx = createMockTransaction({
+        id: 'tx-unchecked',
+        budgetId: mockBudgetId,
+        budgetLineId: 'line-unchecked',
+        name: 'Supermarché',
+        amount: 80,
+        kind: 'expense',
+        checkedAt: null,
+      });
+
+      const unallocatedTx = createMockTransaction({
+        id: 'tx-unallocated',
+        budgetId: mockBudgetId,
+        budgetLineId: null,
+        name: 'Café',
+        amount: 5,
+        kind: 'expense',
+        checkedAt: null,
+      });
+
+      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
+        of(
+          createMockBudgetDetailsResponse({
+            budget: { id: mockBudgetId },
+            budgetLines: [checkedLine, uncheckedLine],
+            transactions: [checkedTx, uncheckedTx, unallocatedTx],
+          }),
+        ),
+      );
+
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+    });
+
+    it('hides checked budget lines when user enables unchecked filter', () => {
+      service.setIsShowingOnlyUnchecked(true);
+
+      const visible = service.filteredBudgetLines();
+      expect(visible.every((l) => l.checkedAt === null)).toBe(true);
+      expect(visible.find((l) => l.id === 'line-checked')).toBeUndefined();
+      expect(visible.find((l) => l.id === 'line-unchecked')).toBeDefined();
+    });
+
+    it('shows all budget lines when user disables unchecked filter', () => {
+      service.setIsShowingOnlyUnchecked(false);
+
+      const visible = service.filteredBudgetLines();
+      expect(visible.find((l) => l.id === 'line-checked')).toBeDefined();
+      expect(visible.find((l) => l.id === 'line-unchecked')).toBeDefined();
+    });
+
+    it('hides transactions linked to checked budget lines when filter is active', () => {
+      service.setIsShowingOnlyUnchecked(true);
+
+      const visibleTx = service.filteredTransactions();
+
+      // Transaction linked to checked line is hidden
+      expect(visibleTx.find((t) => t.id === 'tx-checked')).toBeUndefined();
+
+      // Transaction linked to unchecked line remains visible
+      expect(visibleTx.find((t) => t.id === 'tx-unchecked')).toBeDefined();
+
+      // Unallocated unchecked transaction remains visible
+      expect(visibleTx.find((t) => t.id === 'tx-unallocated')).toBeDefined();
+    });
+
+    it('shows all transactions when user disables filter', () => {
+      service.setIsShowingOnlyUnchecked(false);
+
+      const visibleTx = service.filteredTransactions();
+      expect(visibleTx).toHaveLength(3);
     });
   });
 });
