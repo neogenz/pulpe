@@ -12,6 +12,9 @@ export const ROUTES = {
   SETTINGS: 'settings',
   LEGAL: 'legal',
   MAINTENANCE: 'maintenance',
+  SETUP_VAULT_CODE: 'setup-vault-code',
+  ENTER_VAULT_CODE: 'enter-vault-code',
+  RECOVER_VAULT_CODE: 'recover-vault-code',
 
   // Legal paths
   LEGAL_TERMS: 'cgu',
@@ -24,6 +27,9 @@ export const PAGE_TITLES = {
   SIGNUP: 'Créer un compte',
   FORGOT_PASSWORD: 'Mot de passe oublié',
   RESET_PASSWORD: 'Réinitialiser le mot de passe',
+  SETUP_VAULT_CODE: 'Créer mon code coffre-fort',
+  ENTER_VAULT_CODE: 'Saisir mon code coffre-fort',
+  RECOVER_VAULT_CODE: 'Récupérer mon code coffre-fort',
   DASHBOARD: 'Mois en cours',
   COMPLETE_PROFILE: 'Finaliser mon profil',
   BUDGET: 'Mes budgets',

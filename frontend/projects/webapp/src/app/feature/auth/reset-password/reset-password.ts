@@ -9,13 +9,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
-import {
-  type AbstractControl,
-  FormBuilder,
-  ReactiveFormsModule,
-  type ValidationErrors,
-  Validators,
-} from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -42,22 +36,7 @@ import {
   RecoveryKeyDialog,
   type RecoveryKeyDialogData,
 } from '@ui/dialogs/recovery-key-dialog';
-
-function passwordsMatchValidator(
-  control: AbstractControl,
-): ValidationErrors | null {
-  const password = control.get('newPassword')?.value as string;
-  const confirmPassword = control.get('confirmPassword')?.value as string;
-
-  if (!password || !confirmPassword) return null;
-
-  if (password !== confirmPassword) {
-    control.get('confirmPassword')?.setErrors({ passwordsMismatch: true });
-    return { passwordsMismatch: true };
-  }
-
-  return null;
-}
+import { createFieldsMatchValidator } from '@core/validators';
 
 @Component({
   selector: 'pulpe-reset-password',
@@ -278,7 +257,13 @@ export default class ResetPassword {
       ],
       confirmPassword: ['', [Validators.required]],
     },
-    { validators: passwordsMatchValidator },
+    {
+      validators: createFieldsMatchValidator(
+        'newPassword',
+        'confirmPassword',
+        'passwordsMismatch',
+      ),
+    },
   );
 
   readonly #formStatus = toSignal(this.form.statusChanges, {

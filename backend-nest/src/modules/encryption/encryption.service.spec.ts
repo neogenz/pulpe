@@ -504,10 +504,20 @@ describe('EncryptionService', () => {
       expect(result.kdfIterations).toBe(600000);
     });
 
-    it('should generate new salt when none exists', async () => {
-      const findSaltByUserId = mock(() => Promise.resolve(null));
+    it('should generate and persist new salt when none exists', async () => {
+      const generatedSalt = randomBytes(16).toString('hex');
+      let callCount = 0;
+      const findSaltByUserId = mock(() => {
+        callCount++;
+        if (callCount === 1) return Promise.resolve(null);
+        return Promise.resolve({
+          salt: generatedSalt,
+          kdf_iterations: 600000,
+        });
+      });
+      const upsertSalt = mock(() => Promise.resolve());
 
-      const repo = createMockRepository({ findSaltByUserId });
+      const repo = createMockRepository({ findSaltByUserId, upsertSalt });
 
       service = new EncryptionService(mockConfigService as any, repo as any);
 
@@ -515,6 +525,7 @@ describe('EncryptionService', () => {
       expect(result.salt).toBeDefined();
       expect(result.salt.length).toBe(32); // 16 bytes hex = 32 chars
       expect(result.kdfIterations).toBe(600000);
+      expect(upsertSalt).toHaveBeenCalled();
     });
   });
 

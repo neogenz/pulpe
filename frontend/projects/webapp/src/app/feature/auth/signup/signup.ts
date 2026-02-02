@@ -6,13 +6,7 @@ import {
   signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import {
-  type AbstractControl,
-  FormBuilder,
-  ReactiveFormsModule,
-  type ValidationErrors,
-  Validators,
-} from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDividerModule } from '@angular/material/divider';
@@ -36,24 +30,7 @@ import {
   type RecoveryKeyDialogData,
 } from '@ui/dialogs/recovery-key-dialog';
 import { LoadingButton } from '@ui/loading-button';
-
-function passwordsMatchValidator(
-  control: AbstractControl,
-): ValidationErrors | null {
-  const password = control.get('password')?.value as string;
-  const confirmPassword = control.get('confirmPassword')?.value as string;
-
-  if (!password || !confirmPassword) {
-    return null;
-  }
-
-  if (password !== confirmPassword) {
-    control.get('confirmPassword')?.setErrors({ passwordsMismatch: true });
-    return { passwordsMismatch: true };
-  }
-
-  return null;
-}
+import { createFieldsMatchValidator } from '@core/validators';
 
 @Component({
   selector: 'pulpe-signup',
@@ -317,7 +294,13 @@ export default class Signup {
       confirmPassword: ['', [Validators.required]],
       acceptTerms: [false, [Validators.requiredTrue]],
     },
-    { validators: passwordsMatchValidator },
+    {
+      validators: createFieldsMatchValidator(
+        'password',
+        'confirmPassword',
+        'passwordsMismatch',
+      ),
+    },
   );
 
   protected readonly formStatus = toSignal(this.signupForm.statusChanges, {

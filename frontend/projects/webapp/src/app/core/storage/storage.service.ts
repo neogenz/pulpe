@@ -8,6 +8,7 @@ import {
   type StorageKey,
   type StorageSchemaConfig,
   type StorageScope,
+  type StorageType,
 } from './storage.types';
 
 // Re-export for backwards compatibility
@@ -34,12 +35,20 @@ export class StorageService {
   readonly #migratedKeys = new Set<StorageKey>();
 
   /**
-   * Get a value from localStorage.
+   * Get the storage instance for the given type.
+   */
+  #getStorage(type: StorageType): Storage {
+    return type === 'session' ? sessionStorage : localStorage;
+  }
+
+  /**
+   * Get a value from storage.
    * Returns null if key doesn't exist, validation fails, or data is legacy format.
    */
-  get<T>(key: StorageKey): T | null {
+  get<T>(key: StorageKey, storageType?: StorageType): T | null {
+    const storage = this.#getStorage(storageType ?? 'local');
     try {
-      const raw = localStorage.getItem(key);
+      const raw = storage.getItem(key);
       if (raw === null) {
         return null;
       }
@@ -48,15 +57,23 @@ export class StorageService {
       const schemaConfig = getSchemaConfig(key);
 
       if (isStorageEntry(parsed)) {
-        return this.#handleVersionedValue<T>(key, parsed, schemaConfig);
+        return this.#handleVersionedValue<T>(
+          key,
+          parsed,
+          schemaConfig,
+          storageType,
+        );
       }
 
       // Legacy format detected - clear and return null
       this.#logger.debug(`Legacy format for '${key}', clearing`);
-      this.remove(key);
+      this.remove(key, storageType);
       return null;
     } catch (error) {
-      this.#logger.warn(`Failed to read '${key}' from localStorage:`, error);
+      this.#logger.warn(
+        `Failed to read '${key}' from ${storage === sessionStorage ? 'sessionStorage' : 'localStorage'}:`,
+        error,
+      );
       return null;
     }
   }
@@ -65,6 +82,7 @@ export class StorageService {
     key: StorageKey,
     entry: StorageEntry<unknown>,
     schemaConfig: StorageSchemaConfig | undefined,
+    storageType: StorageType = 'local',
   ): T | null {
     // No schema registered - return data without validation
     if (!schemaConfig) {
@@ -77,6 +95,7 @@ export class StorageService {
         entry.data,
         entry.version,
         schemaConfig,
+        storageType,
       );
       return this.#validateAndReturn<T>(migrated, schemaConfig);
     }
@@ -89,6 +108,7 @@ export class StorageService {
     data: unknown,
     fromVersion: number,
     schemaConfig: StorageSchemaConfig,
+    storageType: StorageType = 'local',
   ): unknown {
     if (fromVersion >= schemaConfig.version) {
       return data;
@@ -116,7 +136,7 @@ export class StorageService {
         { originalData: data, error: result.error },
       );
       this.#migratedKeys.add(key);
-      this.remove(key);
+      this.remove(key, storageType);
       return null;
     }
 
@@ -125,7 +145,7 @@ export class StorageService {
     );
 
     this.#migratedKeys.add(key);
-    this.set(key, result.data);
+    this.set(key, result.data, storageType);
     return result.data;
   }
 
@@ -148,11 +168,12 @@ export class StorageService {
   }
 
   /**
-   * Get a string value from localStorage.
+   * Get a string value from storage.
    */
-  getString(key: StorageKey): string | null {
+  getString(key: StorageKey, storageType?: StorageType): string | null {
+    const storage = this.#getStorage(storageType ?? 'local');
     try {
-      const raw = localStorage.getItem(key);
+      const raw = storage.getItem(key);
       if (raw === null) {
         return null;
       }
@@ -169,19 +190,23 @@ export class StorageService {
 
       // Legacy format - clear and return null
       this.#logger.debug(`Legacy format for '${key}', clearing`);
-      this.remove(key);
+      this.remove(key, storageType);
       return null;
     } catch (error) {
-      this.#logger.warn(`Failed to read '${key}' from localStorage:`, error);
+      this.#logger.warn(
+        `Failed to read '${key}' from ${storage === sessionStorage ? 'sessionStorage' : 'localStorage'}:`,
+        error,
+      );
       return null;
     }
   }
 
   /**
-   * Set a value in localStorage.
+   * Set a value in storage.
    * If the key has a registered schema, the value is wrapped with version and timestamp.
    */
-  set<T>(key: StorageKey, value: T): void {
+  set<T>(key: StorageKey, value: T, storageType?: StorageType): void {
+    const storage = this.#getStorage(storageType ?? 'local');
     try {
       const schemaConfig = getSchemaConfig(key);
 
@@ -202,36 +227,44 @@ export class StorageService {
         updatedAt: new Date().toISOString(),
       };
 
-      localStorage.setItem(key, JSON.stringify(entry));
+      storage.setItem(key, JSON.stringify(entry));
     } catch (error) {
-      this.#logger.warn(`Failed to write '${key}' to localStorage:`, error);
+      this.#logger.warn(
+        `Failed to write '${key}' to ${storage === sessionStorage ? 'sessionStorage' : 'localStorage'}:`,
+        error,
+      );
     }
   }
 
   /**
-   * Set a string value in localStorage.
+   * Set a string value in storage.
    */
-  setString(key: StorageKey, value: string): void {
-    this.set(key, value);
+  setString(key: StorageKey, value: string, storageType?: StorageType): void {
+    this.set(key, value, storageType);
   }
 
   /**
-   * Remove a value from localStorage.
+   * Remove a value from storage.
    */
-  remove(key: StorageKey): void {
+  remove(key: StorageKey, storageType?: StorageType): void {
+    const storage = this.#getStorage(storageType ?? 'local');
     try {
-      localStorage.removeItem(key);
+      storage.removeItem(key);
     } catch (error) {
-      this.#logger.warn(`Failed to remove '${key}' from localStorage:`, error);
+      this.#logger.warn(
+        `Failed to remove '${key}' from ${storage === sessionStorage ? 'sessionStorage' : 'localStorage'}:`,
+        error,
+      );
     }
   }
 
   /**
-   * Check if a key exists in localStorage with valid format.
+   * Check if a key exists in storage with valid format.
    */
-  has(key: StorageKey): boolean {
+  has(key: StorageKey, storageType?: StorageType): boolean {
+    const storage = this.#getStorage(storageType ?? 'local');
     try {
-      const raw = localStorage.getItem(key);
+      const raw = storage.getItem(key);
       if (raw === null) {
         return false;
       }
@@ -244,23 +277,26 @@ export class StorageService {
   }
 
   /**
-   * Clear all USER-scoped data from localStorage.
+   * Clear all USER-scoped data from both localStorage and sessionStorage.
    * Keys with scope 'app' (like tour progress) are preserved.
    */
   clearAllUserData(): void {
-    this.#clearByScope('user');
+    this.#clearByScope('user', 'local');
+    this.#clearByScope('user', 'session');
   }
 
   /**
-   * Clear all APP-scoped data from localStorage.
+   * Clear all APP-scoped data from both localStorage and sessionStorage.
    */
   clearAllAppData(): void {
-    this.#clearByScope('app');
+    this.#clearByScope('app', 'local');
+    this.#clearByScope('app', 'session');
   }
 
-  #clearByScope(targetScope: StorageScope): void {
+  #clearByScope(targetScope: StorageScope, storageType: StorageType): void {
+    const storage = this.#getStorage(storageType);
     try {
-      const keysToRemove = Object.keys(localStorage).filter((key) => {
+      const keysToRemove = Object.keys(storage).filter((key) => {
         if (!key.startsWith('pulpe')) return false;
 
         const schemaConfig = getSchemaConfig(key);
@@ -273,14 +309,14 @@ export class StorageService {
         return effectiveScope === targetScope;
       });
 
-      keysToRemove.forEach((key) => localStorage.removeItem(key));
+      keysToRemove.forEach((key) => storage.removeItem(key));
 
       this.#logger.debug(
-        `Cleared ${keysToRemove.length} ${targetScope} items from localStorage`,
+        `Cleared ${keysToRemove.length} ${targetScope} items from ${storageType}Storage`,
       );
     } catch (error) {
       this.#logger.warn(
-        `Failed to clear ${targetScope} data from localStorage:`,
+        `Failed to clear ${targetScope} data from ${storageType}Storage:`,
         error,
       );
     }

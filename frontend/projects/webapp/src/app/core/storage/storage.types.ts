@@ -17,6 +17,13 @@ export interface StorageEntry<T> {
 }
 
 /**
+ * Storage backend type:
+ * - 'local': localStorage (persists across sessions)
+ * - 'session': sessionStorage (cleared when tab closes)
+ */
+export type StorageType = 'local' | 'session';
+
+/**
  * Scope defines cleanup behavior:
  * - 'user': Cleared on logout (user-specific data)
  * - 'app': Preserved across sessions (device/app settings)
@@ -30,6 +37,10 @@ export interface StorageSchemaConfig<T = unknown> {
   version: number;
   schema: ZodSchema<T>;
   scope: StorageScope;
+  /**
+   * Storage backend type. Defaults to 'local' if not specified.
+   */
+  storageType?: StorageType;
 }
 
 /**

@@ -1,0 +1,211 @@
+import {
+  Component,
+  ChangeDetectionStrategy,
+  signal,
+  inject,
+  computed,
+} from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Router, RouterLink } from '@angular/router';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { firstValueFrom } from 'rxjs';
+
+import {
+  ClientKeyService,
+  EncryptionApi,
+  deriveClientKey,
+} from '@core/encryption';
+import { ROUTES } from '@core/routing/routes-constants';
+import { Logger } from '@core/logging/logger';
+import { ErrorAlert } from '@ui/error-alert';
+import { LoadingButton } from '@ui/loading-button';
+
+@Component({
+  selector: 'pulpe-enter-vault-code',
+  imports: [
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatCheckboxModule,
+    RouterLink,
+    ErrorAlert,
+    LoadingButton,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div
+      class="min-h-screen pulpe-gradient flex items-center justify-center p-4"
+    >
+      <div
+        class="w-full max-w-md bg-surface rounded-3xl p-8 flex flex-col shadow-xl"
+        data-testid="enter-vault-code-page"
+      >
+        <div class="text-center mb-8">
+          <mat-icon class="text-6xl text-primary mb-4">lock_open</mat-icon>
+          <h1
+            class="text-2xl md:text-4xl font-bold text-on-surface mb-2 leading-tight"
+          >
+            Saisis ton code coffre-fort
+          </h1>
+          <p class="text-base md:text-lg text-on-surface-variant">
+            Entre ton code pour accéder à tes données.
+          </p>
+        </div>
+
+        <form
+          [formGroup]="form"
+          (ngSubmit)="onSubmit()"
+          class="space-y-4"
+          data-testid="enter-vault-code-form"
+        >
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Code coffre-fort</mat-label>
+            <input
+              matInput
+              [type]="hideCode() ? 'password' : 'text'"
+              formControlName="vaultCode"
+              data-testid="vault-code-input"
+              (input)="clearError()"
+              placeholder="Code coffre-fort"
+            />
+            <mat-icon matPrefix>lock</mat-icon>
+            <button
+              type="button"
+              matIconButton
+              matSuffix
+              (click)="hideCode.set(!hideCode())"
+              [attr.aria-label]="'Afficher le code'"
+              [attr.aria-pressed]="!hideCode()"
+            >
+              <mat-icon>{{
+                hideCode() ? 'visibility_off' : 'visibility'
+              }}</mat-icon>
+            </button>
+            @if (
+              form.get('vaultCode')?.invalid && form.get('vaultCode')?.touched
+            ) {
+              <mat-error>
+                @if (form.get('vaultCode')?.hasError('required')) {
+                  Ton code coffre-fort est nécessaire
+                } @else if (form.get('vaultCode')?.hasError('minlength')) {
+                  8 caractères minimum
+                }
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <div class="flex items-center">
+            <mat-checkbox
+              formControlName="rememberDevice"
+              data-testid="remember-device-checkbox"
+            >
+              <span class="text-body-medium text-on-surface">
+                Ne plus me demander sur cet appareil
+              </span>
+            </mat-checkbox>
+          </div>
+
+          <pulpe-error-alert [message]="errorMessage()" />
+
+          <pulpe-loading-button
+            [loading]="isSubmitting()"
+            [disabled]="!canSubmit()"
+            loadingText="Vérification..."
+            icon="arrow_forward"
+            testId="enter-vault-code-submit-button"
+          >
+            <span class="ml-2">Continuer</span>
+          </pulpe-loading-button>
+
+          <div class="text-center mt-2">
+            <a
+              [routerLink]="['/', ROUTES.RECOVER_VAULT_CODE]"
+              class="text-body-medium text-on-surface-variant hover:text-primary"
+              data-testid="lost-code-link"
+            >
+              Code perdu ?
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  `,
+})
+export default class EnterVaultCode {
+  readonly #clientKeyService = inject(ClientKeyService);
+  readonly #encryptionApi = inject(EncryptionApi);
+  readonly #formBuilder = inject(FormBuilder);
+  readonly #router = inject(Router);
+  readonly #logger = inject(Logger);
+
+  protected readonly ROUTES = ROUTES;
+  protected readonly isSubmitting = signal(false);
+  protected readonly errorMessage = signal('');
+  protected readonly hideCode = signal(true);
+
+  protected readonly form = this.#formBuilder.nonNullable.group({
+    vaultCode: ['', [Validators.required, Validators.minLength(8)]],
+    rememberDevice: [false],
+  });
+
+  readonly #formStatus = toSignal(this.form.statusChanges, {
+    initialValue: this.form.status,
+  });
+
+  protected readonly canSubmit = computed(() => {
+    return this.#formStatus() === 'VALID' && !this.isSubmitting();
+  });
+
+  protected clearError(): void {
+    this.errorMessage.set('');
+  }
+
+  protected async onSubmit(): Promise<void> {
+    if (!this.form.valid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    this.isSubmitting.set(true);
+    this.form.disable();
+    this.clearError();
+
+    const { vaultCode } = this.form.getRawValue();
+
+    try {
+      const { salt, kdfIterations } = await firstValueFrom(
+        this.#encryptionApi.getSalt$(),
+      );
+      const clientKeyHex = await deriveClientKey(
+        vaultCode,
+        salt,
+        kdfIterations,
+      );
+
+      this.#clientKeyService.setDirectKey(clientKeyHex, true);
+
+      this.#router.navigate(['/', ROUTES.DASHBOARD]);
+    } catch (error) {
+      this.#logger.error('Enter vault code failed:', error);
+
+      if (error instanceof HttpErrorResponse && error.status === 400) {
+        this.errorMessage.set('Code incorrect — vérifie ton code et réessaie');
+      } else {
+        this.errorMessage.set(
+          "Quelque chose n'a pas fonctionné — réessaie plus tard",
+        );
+      }
+    } finally {
+      this.form.enable();
+      this.isSubmitting.set(false);
+    }
+  }
+}

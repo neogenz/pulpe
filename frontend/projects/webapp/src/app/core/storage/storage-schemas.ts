@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isValidClientKeyHex } from '../encryption/crypto.utils';
 import { STORAGE_KEYS } from './storage-keys';
 import type { StorageSchemaConfig } from './storage.types';
 
@@ -38,6 +39,25 @@ export const STORAGE_SCHEMAS = {
     version: 1,
     schema: z.boolean(),
     scope: 'user',
+  },
+
+  // Vault client keys - hex string representing the AES-256 key
+  // Session storage is cleared when tab closes, local persists with "remember device"
+  [STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION]: {
+    version: 1,
+    schema: z.string().refine(isValidClientKeyHex, {
+      message: 'Invalid client key hex format',
+    }),
+    scope: 'user',
+    storageType: 'session',
+  },
+  [STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL]: {
+    version: 1,
+    schema: z.string().refine(isValidClientKeyHex, {
+      message: 'Invalid client key hex format',
+    }),
+    scope: 'user',
+    storageType: 'local',
   },
 } as const satisfies Record<string, StorageSchemaConfig>;
 

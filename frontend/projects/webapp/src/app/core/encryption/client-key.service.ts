@@ -1,26 +1,37 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, inject, computed, signal } from '@angular/core';
 
 import { deriveClientKey, isValidClientKeyHex } from './crypto.utils';
-
-const SESSION_STORAGE_KEY = 'pulpe:client-key';
+import { STORAGE_KEYS } from '../storage/storage-keys';
+import { StorageService } from '../storage/storage.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ClientKeyService {
+  readonly #storage = inject(StorageService);
   readonly #clientKeyHex = signal<string | null>(null);
 
   readonly clientKeyHex = this.#clientKeyHex.asReadonly();
   readonly hasClientKey = computed(() => this.#clientKeyHex() !== null);
 
   initialize(): void {
-    try {
-      const stored = sessionStorage.getItem(SESSION_STORAGE_KEY);
-      if (stored && isValidClientKeyHex(stored)) {
-        this.#clientKeyHex.set(stored);
-      }
-    } catch {
-      // sessionStorage unavailable (e.g. private browsing restrictions)
+    // Try session storage first (more secure, cleared when tab closes)
+    const sessionKey = this.#storage.getString(
+      STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION,
+      'session',
+    );
+    if (sessionKey && isValidClientKeyHex(sessionKey)) {
+      this.#clientKeyHex.set(sessionKey);
+      return;
+    }
+
+    // Fall back to local storage ("remember device" option)
+    const localKey = this.#storage.getString(
+      STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
+      'local',
+    );
+    if (localKey && isValidClientKeyHex(localKey)) {
+      this.#clientKeyHex.set(localKey);
     }
   }
 
@@ -28,34 +39,44 @@ export class ClientKeyService {
     password: string,
     saltHex: string,
     iterations: number,
+    useLocalStorage = false,
   ): Promise<void> {
     const keyHex = await deriveClientKey(password, saltHex, iterations);
     this.#clientKeyHex.set(keyHex);
-    this.#persistToSessionStorage(keyHex);
+    this.#persist(keyHex, useLocalStorage);
   }
 
-  setDirectKey(keyHex: string): void {
+  setDirectKey(keyHex: string, useLocalStorage = false): void {
     if (!isValidClientKeyHex(keyHex)) {
       throw new Error('Invalid client key hex');
     }
     this.#clientKeyHex.set(keyHex);
-    this.#persistToSessionStorage(keyHex);
+    this.#persist(keyHex, useLocalStorage);
   }
 
   clear(): void {
     this.#clientKeyHex.set(null);
-    try {
-      sessionStorage.removeItem(SESSION_STORAGE_KEY);
-    } catch {
-      // sessionStorage unavailable
-    }
+    this.#storage.remove(STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION, 'session');
+    this.#storage.remove(STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL, 'local');
   }
 
-  #persistToSessionStorage(keyHex: string): void {
-    try {
-      sessionStorage.setItem(SESSION_STORAGE_KEY, keyHex);
-    } catch {
-      // sessionStorage unavailable or full
+  #persist(keyHex: string, useLocalStorage: boolean): void {
+    if (useLocalStorage) {
+      this.#storage.setString(
+        STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
+        keyHex,
+        'local',
+      );
+      // Clear session storage to avoid conflicts
+      this.#storage.remove(STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION, 'session');
+    } else {
+      this.#storage.setString(
+        STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION,
+        keyHex,
+        'session',
+      );
+      // Clear local storage to avoid conflicts
+      this.#storage.remove(STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL, 'local');
     }
   }
 }
