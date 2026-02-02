@@ -175,7 +175,7 @@ struct LinkedTransactionsSheet: View {
                 }
             }
             .background(Color.surfaceCard)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
             .padding(.horizontal)
         }
     }
@@ -221,6 +221,7 @@ private struct MetricCard: View {
                 Text(value.asCompactCHF)
                     .font(.system(.callout, design: .rounded, weight: .bold))
                     .foregroundStyle(color == .secondary ? .primary : color)
+                    .sensitiveAmount()
             }
         }
         .frame(maxWidth: .infinity)
@@ -258,6 +259,7 @@ private struct LinkedTransactionRow: View {
             Text(transaction.amount.asCHF)
                 .font(.system(.body, design: .rounded, weight: .semibold))
                 .foregroundStyle(transaction.kind.color)
+                .sensitiveAmount()
 
             Button {
                 showDeleteConfirmation = true

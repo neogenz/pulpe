@@ -53,6 +53,7 @@ struct RealizedBalanceSheet: View {
             Text(realizedMetrics.realizedBalance.asCHF)
                 .font(PulpeTypography.amountHero)
                 .foregroundStyle(isPositiveBalance ? .primary : Color.financialOverBudget)
+                .sensitiveAmount()
 
             // Status badge
             HStack(spacing: 6) {
@@ -107,7 +108,7 @@ struct RealizedBalanceSheet: View {
             // Savings row
             ProgressRow(
                 label: "Épargne",
-                icon: "banknote.fill",
+                icon: TransactionKind.savingsIcon,
                 iconColor: .financialSavings,
                 realized: realizedSavings,
                 planned: metrics.totalSavings
@@ -189,6 +190,7 @@ private struct ProgressRow: View {
                 Text("\(realized.asCompactCHF) / \(planned.asCompactCHF)")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .sensitiveAmount()
             }
 
             // Progress bar

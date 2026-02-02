@@ -17,6 +17,7 @@ struct TrendsCard: View {
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundStyle(.primary)
+                        .sensitiveAmount()
 
                     if let variation = variation {
                         variationLabel(variation)

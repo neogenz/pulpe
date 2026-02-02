@@ -72,6 +72,7 @@ struct TemplateListView: View {
                 }
             } footer: {
                 Text("\(viewModel.templates.count)/\(AppConfiguration.maxTemplates) modèles")
+                    .foregroundStyle(.secondary)
             }
         }
         .scrollContentBackground(.hidden)

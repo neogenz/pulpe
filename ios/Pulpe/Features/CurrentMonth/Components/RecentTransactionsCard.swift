@@ -45,7 +45,7 @@ private struct RecentTransactionCardRow: View {
                 .fill(transaction.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
                 .frame(width: 40, height: 40)
                 .overlay {
-                    Image(systemName: transaction.kind.listIcon)
+                    Image(systemName: transaction.kind.icon)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(transaction.kind.color)
                 }
@@ -67,6 +67,7 @@ private struct RecentTransactionCardRow: View {
             Text(transaction.signedAmount.asCHF)
                 .font(.system(.callout, design: .rounded, weight: .semibold))
                 .foregroundStyle(transaction.kind.color)
+                .sensitiveAmount()
         }
         .padding(.vertical, 8)
         .accessibilityElement(children: .combine)
