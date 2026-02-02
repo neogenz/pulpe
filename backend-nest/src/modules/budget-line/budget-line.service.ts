@@ -532,19 +532,26 @@ export class BudgetLineService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
     try {
-      const budgetLine = await this.fetchBudgetLineById(id, user, supabase);
+      const { data: updatedBudgetLine, error } = await supabase
+        .rpc('toggle_budget_line_check', {
+          p_budget_line_id: id,
+        })
+        .single();
 
-      const updateData = {
-        checked_at: budgetLine.checked_at ? null : new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      const updatedBudgetLine = await this.updateBudgetLineInDb(
-        id,
-        updateData,
-        supabase,
-        user,
-      );
+      if (error || !updatedBudgetLine) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+          undefined,
+          {
+            operation: 'toggleCheck',
+            userId: user.id,
+            entityId: id,
+            entityType: 'budget_line',
+            supabaseError: error,
+          },
+          { cause: error },
+        );
+      }
 
       return {
         success: true,
