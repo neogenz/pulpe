@@ -4,7 +4,7 @@ import { BudgetApi } from '@core/budget';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { TransactionApi } from '@core/transaction';
 import { UserSettingsApi } from '@core/user-settings';
-import { createRolloverLine } from '@core/rollover/rollover-types';
+import { createRolloverLine } from '@core/budget/rollover/rollover-types';
 import {
   type BudgetLine,
   type Transaction,

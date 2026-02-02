@@ -21,7 +21,7 @@ import { provideLocale } from '@core/locale';
 import { Subject, defer, of, throwError } from 'rxjs';
 
 import { BudgetApi } from '@core/budget/budget-api';
-import { TemplateApi } from '@core/template/template-api';
+import { TemplateApi } from '@core/budget-template/template-api';
 import { type BudgetTemplate } from 'pulpe-shared';
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
 import { TemplateStore, type TemplateTotals } from './services/template-store';
