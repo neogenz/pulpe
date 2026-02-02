@@ -94,4 +94,86 @@ describe('EncryptionApi', () => {
       req.flush(expectedResponse);
     });
   });
+
+  describe('setupRecoveryKey$()', () => {
+    it('should POST to /encryption/setup-recovery with empty body', () => {
+      service.setupRecoveryKey$().subscribe();
+
+      const req = httpTesting.expectOne(
+        'http://localhost:3000/api/v1/encryption/setup-recovery',
+      );
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({});
+    });
+
+    it('should return recoveryKey on success', () => {
+      const expectedResponse = { recoveryKey: 'ABCD-EFGH-1234-5678' };
+
+      service.setupRecoveryKey$().subscribe((response) => {
+        expect(response.recoveryKey).toBe('ABCD-EFGH-1234-5678');
+      });
+
+      const req = httpTesting.expectOne(
+        'http://localhost:3000/api/v1/encryption/setup-recovery',
+      );
+      req.flush(expectedResponse);
+    });
+  });
+
+  describe('validateKey$()', () => {
+    it('should POST to /encryption/validate-key with clientKey body', () => {
+      service.validateKey$('client-key-hex').subscribe();
+
+      const req = httpTesting.expectOne(
+        'http://localhost:3000/api/v1/encryption/validate-key',
+      );
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ clientKey: 'client-key-hex' });
+    });
+
+    it('should complete without error on 204', () => {
+      let completed = false;
+
+      service.validateKey$('client-key-hex').subscribe({
+        complete: () => (completed = true),
+      });
+
+      const req = httpTesting.expectOne(
+        'http://localhost:3000/api/v1/encryption/validate-key',
+      );
+      req.flush(null, { status: 204, statusText: 'No Content' });
+
+      expect(completed).toBe(true);
+    });
+  });
+
+  describe('recover$()', () => {
+    it('should POST to /encryption/recover with recoveryKey and newClientKey', () => {
+      service.recover$('ABCD-EFGH-1234-5678', 'new-key-hex').subscribe();
+
+      const req = httpTesting.expectOne(
+        'http://localhost:3000/api/v1/encryption/recover',
+      );
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({
+        recoveryKey: 'ABCD-EFGH-1234-5678',
+        newClientKey: 'new-key-hex',
+      });
+    });
+
+    it('should return success response', () => {
+      const expectedResponse = { success: true };
+
+      service
+        .recover$('ABCD-EFGH-1234-5678', 'new-key-hex')
+        .subscribe((response) => {
+          expect(response.success).toBe(true);
+        });
+
+      const req = httpTesting.expectOne(
+        'http://localhost:3000/api/v1/encryption/recover',
+      );
+      req.flush(expectedResponse);
+    });
+  });
 });

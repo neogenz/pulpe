@@ -22,7 +22,10 @@ describe('RecoverVaultCode', () => {
     setupRecoveryKey$: ReturnType<typeof vi.fn>;
   };
   let mockDialog: { open: ReturnType<typeof vi.fn> };
-  let mockLogger: { error: ReturnType<typeof vi.fn> };
+  let mockLogger: {
+    error: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+  };
   let mockDialogRef: { afterClosed: ReturnType<typeof vi.fn> };
   let navigateSpy: ReturnType<typeof vi.fn>;
   let deriveClientKeySpy: ReturnType<typeof vi.spyOn>;
@@ -55,6 +58,7 @@ describe('RecoverVaultCode', () => {
 
     mockLogger = {
       error: vi.fn(),
+      warn: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -286,6 +290,38 @@ describe('RecoverVaultCode', () => {
       );
       await component['onSubmit']();
       expect(navigateSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onSubmit - Incomplete recovery', () => {
+    beforeEach(() => {
+      fillValidForm();
+    });
+
+    it('should show error when setDirectKey throws after successful recover$', async () => {
+      mockClientKeyService.setDirectKey.mockImplementation(() => {
+        throw new Error('Invalid client key hex');
+      });
+
+      await component['onSubmit']();
+
+      expect(mockEncryptionApi.recover$).toHaveBeenCalled();
+      expect(mockEncryptionApi.setupRecoveryKey$).not.toHaveBeenCalled();
+      expect(component['errorMessage']()).toContain(
+        "Quelque chose n'a pas fonctionné",
+      );
+    });
+
+    it('should handle setupRecoveryKey$ failure gracefully after successful recovery', async () => {
+      mockEncryptionApi.setupRecoveryKey$.mockReturnValue(
+        throwError(() => new Error('Recovery key setup failed')),
+      );
+
+      await component['onSubmit']();
+
+      expect(mockClientKeyService.setDirectKey).toHaveBeenCalled();
+      expect(mockLogger.warn).toHaveBeenCalled();
+      expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']);
     });
   });
 });

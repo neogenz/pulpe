@@ -1,4 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, Router } from '@angular/router';
@@ -16,6 +17,7 @@ describe('EnterVaultCode', () => {
   let mockClientKeyService: { setDirectKey: ReturnType<typeof vi.fn> };
   let mockEncryptionApi: {
     getSalt$: ReturnType<typeof vi.fn>;
+    validateKey$: ReturnType<typeof vi.fn>;
   };
   let mockLogger: { error: ReturnType<typeof vi.fn> };
   let navigateSpy: ReturnType<typeof vi.fn>;
@@ -34,6 +36,7 @@ describe('EnterVaultCode', () => {
       getSalt$: vi
         .fn()
         .mockReturnValue(of({ salt: 'salt-value', kdfIterations: 100000 })),
+      validateKey$: vi.fn().mockReturnValue(of(undefined)),
     };
 
     mockLogger = {
@@ -130,16 +133,23 @@ describe('EnterVaultCode', () => {
       );
     });
 
-    it('should call setDirectKey with derived client key and localStorage', async () => {
+    it('should call validateKey$ with derived client key', async () => {
       await component['onSubmit']();
-      expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
+      expect(mockEncryptionApi.validateKey$).toHaveBeenCalledWith(
         'abcd'.repeat(16),
-        true,
       );
     });
 
-    it('should always use localStorage regardless of rememberDevice', async () => {
-      component['form'].patchValue({ rememberDevice: false });
+    it('should call setDirectKey with derived client key and rememberDevice value', async () => {
+      await component['onSubmit']();
+      expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
+        'abcd'.repeat(16),
+        false,
+      );
+    });
+
+    it('should use localStorage when rememberDevice is checked', async () => {
+      component['form'].patchValue({ rememberDevice: true });
       await component['onSubmit']();
       expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
         'abcd'.repeat(16),
@@ -193,6 +203,59 @@ describe('EnterVaultCode', () => {
       );
       await component['onSubmit']();
       expect(navigateSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onSubmit - HTTP errors', () => {
+    beforeEach(() => {
+      fillValidForm();
+    });
+
+    it('should show specific error when validateKey$ returns HTTP 400', async () => {
+      mockEncryptionApi.validateKey$.mockReturnValue(
+        throwError(
+          () =>
+            new HttpErrorResponse({ status: 400, statusText: 'Bad Request' }),
+        ),
+      );
+
+      await component['onSubmit']();
+
+      expect(component['errorMessage']()).toContain(
+        'Ce code ne semble pas correct',
+      );
+    });
+
+    it('should not store key or navigate when validateKey$ returns HTTP 400', async () => {
+      mockEncryptionApi.validateKey$.mockReturnValue(
+        throwError(
+          () =>
+            new HttpErrorResponse({ status: 400, statusText: 'Bad Request' }),
+        ),
+      );
+
+      await component['onSubmit']();
+
+      expect(mockClientKeyService.setDirectKey).not.toHaveBeenCalled();
+      expect(navigateSpy).not.toHaveBeenCalled();
+    });
+
+    it('should show generic error when getSalt$ returns HTTP 500', async () => {
+      mockEncryptionApi.getSalt$.mockReturnValue(
+        throwError(
+          () =>
+            new HttpErrorResponse({
+              status: 500,
+              statusText: 'Server Error',
+            }),
+        ),
+      );
+
+      await component['onSubmit']();
+
+      expect(component['errorMessage']()).toContain(
+        "Quelque chose n'a pas fonctionné",
+      );
     });
   });
 });

@@ -68,6 +68,40 @@ export class EncryptionController {
     return this.encryptionService.getUserSalt(user.id);
   }
 
+  @SkipClientKey()
+  @Post('validate-key')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @ApiOperation({ summary: 'Verify that a client key can decrypt user data' })
+  @ApiResponse({
+    status: 204,
+    description: 'Client key is valid',
+  })
+  @ApiBadRequestResponse({
+    description: 'Client key verification failed',
+    type: ErrorResponseDto,
+  })
+  async validateKey(
+    @User() user: AuthenticatedUser,
+    @Body() body: { clientKey: string },
+  ): Promise<void> {
+    const keyBuffer = this.#validateClientKeyHex(body.clientKey);
+    const isValid = await this.encryptionService.verifyAndEnsureKeyCheck(
+      user.id,
+      keyBuffer,
+    );
+
+    if (!isValid) {
+      this.#logger.warn(
+        { userId: user.id, operation: 'validate_key.failed' },
+        'Client key verification failed',
+      );
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+      );
+    }
+  }
+
   @Post('password-change')
   @ApiOperation({
     summary: 'Re-encrypt all user data after password change',
@@ -101,6 +135,14 @@ export class EncryptionController {
       },
     );
 
+    // Regenerate key_check with the new DEK
+    const newDek = await this.encryptionService.getUserDEK(
+      user.id,
+      newKeyBuffer,
+    );
+    const keyCheck = this.encryptionService.generateKeyCheck(newDek);
+    await this.encryptionService.storeKeyCheck(user.id, keyCheck);
+
     this.#logger.log(
       { userId: user.id, operation: 'password_change.complete' },
       'User password change completed with data re-encryption',
@@ -123,6 +165,14 @@ export class EncryptionController {
       user.id,
       user.clientKey,
     );
+
+    // Ensure key_check is stored (for users who set up before migration)
+    const dek = await this.encryptionService.getUserDEK(
+      user.id,
+      user.clientKey,
+    );
+    const keyCheck = this.encryptionService.generateKeyCheck(dek);
+    await this.encryptionService.storeKeyCheck(user.id, keyCheck);
 
     this.#logger.log(
       { userId: user.id, operation: 'recovery_key.setup' },
@@ -175,6 +225,14 @@ export class EncryptionController {
     } catch (error) {
       this.#handleRecoveryError(user.id, error);
     }
+
+    // Regenerate key_check with the new DEK
+    const newDek = await this.encryptionService.getUserDEK(
+      user.id,
+      newKeyBuffer,
+    );
+    const recoveryKeyCheck = this.encryptionService.generateKeyCheck(newDek);
+    await this.encryptionService.storeKeyCheck(user.id, recoveryKeyCheck);
 
     this.#logger.log(
       { userId: user.id, operation: 'recovery.complete' },

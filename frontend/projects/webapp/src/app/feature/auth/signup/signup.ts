@@ -13,22 +13,14 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatDialog } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterLink } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
 
 import { AuthCredentialsService, PASSWORD_MIN_LENGTH } from '@core/auth';
 import { PostHogService } from '@core/analytics/posthog';
-import { EncryptionApi } from '@core/encryption';
 import { Logger } from '@core/logging/logger';
 import { ROUTES } from '@core/routing/routes-constants';
 import { GoogleOAuthButton } from '@app/pattern/google-oauth';
 import { ErrorAlert } from '@ui/error-alert';
-import {
-  RecoveryKeyDialog,
-  type RecoveryKeyDialogData,
-} from '@ui/dialogs/recovery-key-dialog';
 import { LoadingButton } from '@ui/loading-button';
 import { createFieldsMatchValidator } from '@core/validators';
 
@@ -110,7 +102,7 @@ import { createFieldsMatchValidator } from '@core/validators';
             <mat-label>Mot de passe</mat-label>
             <input
               matInput
-              [type]="hidePassword() ? 'password' : 'text'"
+              [type]="isPasswordHidden() ? 'password' : 'text'"
               formControlName="password"
               data-testid="password-input"
               (input)="clearMessages()"
@@ -124,10 +116,10 @@ import { createFieldsMatchValidator } from '@core/validators';
               matSuffix
               (click)="togglePasswordVisibility()"
               [attr.aria-label]="'Afficher le mot de passe'"
-              [attr.aria-pressed]="!hidePassword()"
+              [attr.aria-pressed]="!isPasswordHidden()"
             >
               <mat-icon>{{
-                hidePassword() ? 'visibility_off' : 'visibility'
+                isPasswordHidden() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
             <mat-hint>8 caractères minimum pour sécuriser ton compte</mat-hint>
@@ -149,7 +141,7 @@ import { createFieldsMatchValidator } from '@core/validators';
             <mat-label>Confirmer le mot de passe</mat-label>
             <input
               matInput
-              [type]="hideConfirmPassword() ? 'password' : 'text'"
+              [type]="isConfirmPasswordHidden() ? 'password' : 'text'"
               formControlName="confirmPassword"
               data-testid="confirm-password-input"
               (input)="clearMessages()"
@@ -163,10 +155,10 @@ import { createFieldsMatchValidator } from '@core/validators';
               matSuffix
               (click)="toggleConfirmPasswordVisibility()"
               [attr.aria-label]="'Afficher le mot de passe'"
-              [attr.aria-pressed]="!hideConfirmPassword()"
+              [attr.aria-pressed]="!isConfirmPasswordHidden()"
             >
               <mat-icon>{{
-                hideConfirmPassword() ? 'visibility_off' : 'visibility'
+                isConfirmPasswordHidden() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
             @if (
@@ -273,14 +265,11 @@ export default class Signup {
   readonly #logger = inject(Logger);
   readonly #formBuilder = inject(FormBuilder);
   readonly #postHogService = inject(PostHogService);
-  readonly #dialog = inject(MatDialog);
-  readonly #snackBar = inject(MatSnackBar);
-  readonly #encryptionApi = inject(EncryptionApi);
 
   protected readonly ROUTES = ROUTES;
 
-  protected hidePassword = signal<boolean>(true);
-  protected hideConfirmPassword = signal<boolean>(true);
+  protected isPasswordHidden = signal<boolean>(true);
+  protected isConfirmPasswordHidden = signal<boolean>(true);
   protected isSubmitting = signal<boolean>(false);
   protected errorMessage = signal<string>('');
 
@@ -314,44 +303,15 @@ export default class Signup {
   });
 
   protected togglePasswordVisibility(): void {
-    this.hidePassword.set(!this.hidePassword());
+    this.isPasswordHidden.set(!this.isPasswordHidden());
   }
 
   protected toggleConfirmPasswordVisibility(): void {
-    this.hideConfirmPassword.set(!this.hideConfirmPassword());
+    this.isConfirmPasswordHidden.set(!this.isConfirmPasswordHidden());
   }
 
   protected clearMessages(): void {
     this.errorMessage.set('');
-  }
-
-  async #promptRecoveryKey(): Promise<void> {
-    try {
-      const { recoveryKey } = await firstValueFrom(
-        this.#encryptionApi.setupRecoveryKey$(),
-      );
-
-      const dialogData: RecoveryKeyDialogData = { recoveryKey };
-      const dialogRef = this.#dialog.open(RecoveryKeyDialog, {
-        data: dialogData,
-        width: '480px',
-        disableClose: true,
-      });
-
-      const confirmed = await firstValueFrom(dialogRef.afterClosed());
-      if (confirmed) {
-        this.#snackBar.open('Clé de récupération enregistrée', 'OK', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'bottom',
-        });
-      }
-    } catch (error) {
-      this.#logger.warn(
-        'Recovery key setup failed during signup — user can generate later from settings',
-        error,
-      );
-    }
   }
 
   protected async signUp(): Promise<void> {
@@ -376,7 +336,7 @@ export default class Signup {
         this.#postHogService.captureEvent('signup_completed', {
           method: 'email',
         });
-        await this.#promptRecoveryKey();
+        // Guard redirects to setup-vault-code where recovery key is set up
         this.#router.navigate(['/', ROUTES.DASHBOARD]);
       } else {
         this.errorMessage.set(

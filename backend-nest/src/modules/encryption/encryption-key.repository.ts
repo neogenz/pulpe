@@ -8,6 +8,7 @@ interface UserEncryptionKeyRow {
 
 interface UserEncryptionKeyFullRow extends UserEncryptionKeyRow {
   wrapped_dek: string | null;
+  key_check: string | null;
 }
 
 @Injectable()
@@ -66,7 +67,7 @@ export class EncryptionKeyRepository {
     const supabase = this.#supabaseService.getServiceRoleClient();
     const { data, error } = await supabase
       .from('user_encryption_key')
-      .select('salt, kdf_iterations, wrapped_dek')
+      .select('salt, kdf_iterations, wrapped_dek, key_check')
       .eq('user_id', userId)
       .single();
 
@@ -92,6 +93,20 @@ export class EncryptionKeyRepository {
     if (error) {
       throw new Error(
         `Failed to update wrapped DEK for user ${userId}: ${error.message}`,
+      );
+    }
+  }
+
+  async updateKeyCheck(userId: string, keyCheck: string): Promise<void> {
+    const supabase = this.#supabaseService.getServiceRoleClient();
+    const { error } = await supabase
+      .from('user_encryption_key')
+      .update({ key_check: keyCheck })
+      .eq('user_id', userId);
+
+    if (error) {
+      throw new Error(
+        `Failed to update key_check for user ${userId}: ${error.message}`,
       );
     }
   }

@@ -101,10 +101,12 @@ export class RecoveryKeyDialog {
   protected confirmValue = '';
 
   isConfirmed(): boolean {
-    return (
-      this.confirmValue.trim().replace(/\s+/g, '') ===
-      this.data.recoveryKey.replace(/-/g, '')
-    );
+    const normalize = (s: string) =>
+      s
+        .trim()
+        .replace(/[\s-]+/g, '')
+        .toUpperCase();
+    return normalize(this.confirmValue) === normalize(this.data.recoveryKey);
   }
 
   async copyToClipboard(): Promise<void> {

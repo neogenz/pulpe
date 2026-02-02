@@ -24,6 +24,7 @@ describe('ResetPassword', () => {
   let mockAuthStateService: {
     isLoading: ReturnType<typeof vi.fn>;
     isAuthenticated: ReturnType<typeof vi.fn>;
+    authState: ReturnType<typeof vi.fn>;
   };
   let mockClientKeyService: { setDirectKey: ReturnType<typeof vi.fn> };
   let mockEncryptionApi: {
@@ -55,6 +56,12 @@ describe('ResetPassword', () => {
     mockAuthStateService = {
       isLoading: vi.fn().mockReturnValue(false),
       isAuthenticated: vi.fn().mockReturnValue(true),
+      authState: vi.fn().mockReturnValue({
+        user: { user_metadata: {} },
+        session: {},
+        isLoading: false,
+        isAuthenticated: true,
+      }),
     };
 
     mockClientKeyService = {
@@ -123,8 +130,8 @@ describe('ResetPassword', () => {
       expect(component['isSessionValid']).toBeDefined();
       expect(component['isSubmitting']).toBeDefined();
       expect(component['errorMessage']).toBeDefined();
-      expect(component['hidePassword']).toBeDefined();
-      expect(component['hideConfirmPassword']).toBeDefined();
+      expect(component['isPasswordHidden']).toBeDefined();
+      expect(component['isConfirmPasswordHidden']).toBeDefined();
     });
 
     it('should have form defined', () => {
@@ -163,12 +170,12 @@ describe('ResetPassword', () => {
   });
 
   describe('Default Values', () => {
-    it('should have hidePassword true by default', () => {
-      expect(component['hidePassword']()).toBe(true);
+    it('should have isPasswordHidden true by default', () => {
+      expect(component['isPasswordHidden']()).toBe(true);
     });
 
-    it('should have hideConfirmPassword true by default', () => {
-      expect(component['hideConfirmPassword']()).toBe(true);
+    it('should have isConfirmPasswordHidden true by default', () => {
+      expect(component['isConfirmPasswordHidden']()).toBe(true);
     });
 
     it('should have isSubmitting false by default', () => {
@@ -189,15 +196,9 @@ describe('ResetPassword', () => {
   });
 
   describe('Form Validation', () => {
-    it('should require recoveryKey', () => {
+    it('should have recoveryKey field without required validator (validated at submit)', () => {
       const recoveryKeyControl = component['form'].get('recoveryKey');
       recoveryKeyControl?.setValue('');
-      expect(recoveryKeyControl?.hasError('required')).toBe(true);
-    });
-
-    it('should allow valid recoveryKey', () => {
-      const recoveryKeyControl = component['form'].get('recoveryKey');
-      recoveryKeyControl?.setValue('ABCD-EFGH-1234-5678');
       expect(recoveryKeyControl?.hasError('required')).toBe(false);
     });
 

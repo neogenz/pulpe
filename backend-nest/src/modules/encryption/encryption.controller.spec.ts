@@ -9,12 +9,22 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 const createMockEncryptionService = (overrides?: {
   getUserSalt?: ReturnType<typeof mock>;
   onPasswordChange?: ReturnType<typeof mock>;
+  getUserDEK?: ReturnType<typeof mock>;
+  generateKeyCheck?: ReturnType<typeof mock>;
+  storeKeyCheck?: ReturnType<typeof mock>;
+  verifyAndEnsureKeyCheck?: ReturnType<typeof mock>;
 }) => ({
   getUserSalt:
     overrides?.getUserSalt ??
     mock(() => Promise.resolve({ salt: 'test-salt', kdfIterations: 600000 })),
   onPasswordChange:
     overrides?.onPasswordChange ?? mock(() => Promise.resolve()),
+  getUserDEK:
+    overrides?.getUserDEK ?? mock(() => Promise.resolve(randomBytes(32))),
+  generateKeyCheck: overrides?.generateKeyCheck ?? mock(() => 'mock-key-check'),
+  storeKeyCheck: overrides?.storeKeyCheck ?? mock(() => Promise.resolve()),
+  verifyAndEnsureKeyCheck:
+    overrides?.verifyAndEnsureKeyCheck ?? mock(() => Promise.resolve(true)),
 });
 
 const createMockRekeyService = (overrides?: {
