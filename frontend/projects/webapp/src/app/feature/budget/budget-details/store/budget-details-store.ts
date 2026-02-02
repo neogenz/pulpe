@@ -57,7 +57,6 @@ export class BudgetDetailsStore {
    */
   readonly #mutations$ = new Subject<() => Observable<unknown>>();
 
-  // Single source of truth - private state signal for non-resource data
   readonly #state = createInitialBudgetDetailsState();
 
   // Filter state - show only unchecked items by default
@@ -573,7 +572,6 @@ export class BudgetDetailsStore {
       return {
         ...d,
         budgetLines: result.updatedBudgetLines,
-        transactions: result.updatedTransactions,
       };
     });
 
@@ -582,12 +580,22 @@ export class BudgetDetailsStore {
         this.#budgetLineApi.toggleCheck$(id),
       );
 
+      const updatedLine = response.data;
       this.#budgetDetailsResource.update((d) => {
         if (!d) return d;
         return {
           ...d,
           budgetLines: d.budgetLines.map((line) =>
-            line.id === id ? response.data : line,
+            line.id === id ? updatedLine : line,
+          ),
+          transactions: d.transactions.map((tx) =>
+            tx.budgetLineId === id
+              ? {
+                  ...tx,
+                  checkedAt: updatedLine.checkedAt,
+                  updatedAt: updatedLine.updatedAt,
+                }
+              : tx,
           ),
         };
       });

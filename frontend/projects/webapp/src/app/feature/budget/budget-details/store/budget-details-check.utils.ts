@@ -8,7 +8,6 @@ export interface CascadeContext {
 export interface BudgetLineToggleResult {
   isChecking: boolean;
   updatedBudgetLines: BudgetLine[];
-  updatedTransactions: Transaction[];
 }
 
 export interface TransactionToggleResult {
@@ -34,16 +33,9 @@ export function calculateBudgetLineToggle(
       : line,
   );
 
-  const updatedTransactions = context.transactions.map((tx) =>
-    tx.budgetLineId === budgetLineId
-      ? { ...tx, checkedAt: isChecking ? now : null, updatedAt: now }
-      : tx,
-  );
-
   return {
     isChecking,
     updatedBudgetLines,
-    updatedTransactions,
   };
 }
 

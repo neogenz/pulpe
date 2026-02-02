@@ -40,6 +40,7 @@ interface FinancialItem {
  */
 interface FinancialItemWithId extends FinancialItem {
   id: string;
+  isRollover?: boolean;
 }
 
 interface TransactionWithBudgetLineId extends FinancialItem {
@@ -121,7 +122,7 @@ export class BudgetFormulas {
     budgetLines.forEach((line) => {
       if (line.kind === 'expense' || line.kind === 'saving') {
         // Skip virtual rollover lines
-        if (line.id.startsWith('rollover-')) return;
+        if (line.isRollover) return;
 
         // Calculate consumed amount for this envelope
         const consumed = transactions
@@ -152,8 +153,8 @@ export class BudgetFormulas {
    * @returns Montant total des revenus cochés
    */
   static calculateRealizedIncome(
-    budgetLines: FinancialItem[],
-    transactions: FinancialItem[] = [],
+    budgetLines: FinancialItemWithId[],
+    transactions: TransactionWithBudgetLineId[] = [],
   ): number {
     const checkedBudgetIncome = budgetLines
       .filter((line) => line.checkedAt != null && line.kind === 'income')
@@ -191,7 +192,7 @@ export class BudgetFormulas {
         (line.kind === 'expense' || line.kind === 'saving')
       ) {
         // Ignorer les lignes virtuelles de rollover
-        if (line.id.startsWith('rollover-')) return;
+        if (line.isRollover) return;
 
         // Calculer le montant consommé par les transactions cochées allouées
         const consumed = transactions

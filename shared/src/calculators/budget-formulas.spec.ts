@@ -188,42 +188,63 @@ describe('BudgetFormulas', () => {
 
   describe('calculateRealizedIncome', () => {
     it('should only count checked income items', () => {
-      const budgetLines: Array<{
-        kind: TransactionKind;
-        amount: number;
-        checkedAt: string | null;
-      }> = [
-        { kind: 'income', amount: 5000, checkedAt: '2025-01-15T10:00:00Z' },
-        { kind: 'income', amount: 1000, checkedAt: null },
+      const budgetLines = [
+        {
+          id: 'line-1',
+          kind: 'income' as const,
+          amount: 5000,
+          checkedAt: '2025-01-15T10:00:00Z',
+        },
+        {
+          id: 'line-2',
+          kind: 'income' as const,
+          amount: 1000,
+          checkedAt: null,
+        },
       ];
       expect(BudgetFormulas.calculateRealizedIncome(budgetLines)).toBe(5000);
     });
 
     it('should return 0 when no items are checked', () => {
-      const budgetLines: Array<{
-        kind: TransactionKind;
-        amount: number;
-        checkedAt: string | null;
-      }> = [{ kind: 'income', amount: 5000, checkedAt: null }];
+      const budgetLines = [
+        {
+          id: 'line-1',
+          kind: 'income' as const,
+          amount: 5000,
+          checkedAt: null,
+        },
+      ];
       expect(BudgetFormulas.calculateRealizedIncome(budgetLines)).toBe(0);
     });
 
     it('should combine checked budget lines and transactions', () => {
-      const budgetLines: Array<{
-        kind: TransactionKind;
-        amount: number;
-        checkedAt: string | null;
-      }> = [
-        { kind: 'income', amount: 5000, checkedAt: '2025-01-15' },
-        { kind: 'income', amount: 1000, checkedAt: null },
+      const budgetLines = [
+        {
+          id: 'line-1',
+          kind: 'income' as const,
+          amount: 5000,
+          checkedAt: '2025-01-15',
+        },
+        {
+          id: 'line-2',
+          kind: 'income' as const,
+          amount: 1000,
+          checkedAt: null,
+        },
       ];
-      const transactions: Array<{
-        kind: TransactionKind;
-        amount: number;
-        checkedAt: string | null;
-      }> = [
-        { kind: 'income', amount: 300, checkedAt: '2025-01-16' },
-        { kind: 'income', amount: 200, checkedAt: null },
+      const transactions = [
+        {
+          kind: 'income' as const,
+          amount: 300,
+          checkedAt: '2025-01-16',
+          budgetLineId: 'line-1',
+        },
+        {
+          kind: 'income' as const,
+          amount: 200,
+          checkedAt: null,
+          budgetLineId: null,
+        },
       ];
       expect(
         BudgetFormulas.calculateRealizedIncome(budgetLines, transactions),
@@ -231,13 +252,19 @@ describe('BudgetFormulas', () => {
     });
 
     it('should ignore non-income items', () => {
-      const budgetLines: Array<{
-        kind: TransactionKind;
-        amount: number;
-        checkedAt: string | null;
-      }> = [
-        { kind: 'expense', amount: 1000, checkedAt: '2025-01-15' },
-        { kind: 'saving', amount: 500, checkedAt: '2025-01-15' },
+      const budgetLines = [
+        {
+          id: 'line-1',
+          kind: 'expense' as const,
+          amount: 1000,
+          checkedAt: '2025-01-15',
+        },
+        {
+          id: 'line-2',
+          kind: 'saving' as const,
+          amount: 500,
+          checkedAt: '2025-01-15',
+        },
       ];
       expect(BudgetFormulas.calculateRealizedIncome(budgetLines)).toBe(0);
     });
@@ -509,7 +536,15 @@ describe('BudgetFormulas', () => {
     it('should skip virtual rollover lines', () => {
       const budgetLines = [
         createBudgetLineWithId('line-1', 'expense', 100, '2025-01-15'),
-        createBudgetLineWithId('rollover-prev', 'expense', 50, '2025-01-15'), // virtual
+        {
+          ...createBudgetLineWithId(
+            'rollover-prev',
+            'expense',
+            50,
+            '2025-01-15',
+          ),
+          isRollover: true,
+        },
       ];
       const transactions: ReturnType<
         typeof createTransactionWithBudgetLineId
@@ -1172,7 +1207,10 @@ describe('BudgetFormulas', () => {
         it('should skip rollover budget lines', () => {
           const budgetLines = [
             createBudgetLine('line-1', 'expense', 500),
-            createBudgetLine('rollover-previous', 'expense', 100), // Virtual line
+            {
+              ...createBudgetLine('rollover-previous', 'expense', 100),
+              isRollover: true,
+            },
           ];
 
           const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
