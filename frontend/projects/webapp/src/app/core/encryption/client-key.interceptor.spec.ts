@@ -62,8 +62,7 @@ describe('clientKeyInterceptor', () => {
   });
 
   it('should add X-Client-Key header to backend requests when key exists', () => {
-    getItemSpy.mockReturnValue(validKeyHex);
-    clientKeyService.initialize();
+    clientKeyService.setDirectKey(validKeyHex);
 
     http.get(`${backendApiUrl}/users`).subscribe();
 
@@ -81,8 +80,7 @@ describe('clientKeyInterceptor', () => {
   });
 
   it('should not add header for non-backend URLs', () => {
-    getItemSpy.mockReturnValue(validKeyHex);
-    clientKeyService.initialize();
+    clientKeyService.setDirectKey(validKeyHex);
 
     http.get('https://external-api.com/data').subscribe();
 
@@ -92,8 +90,7 @@ describe('clientKeyInterceptor', () => {
   });
 
   it('should not override an existing X-Client-Key header', () => {
-    getItemSpy.mockReturnValue(validKeyHex);
-    clientKeyService.initialize();
+    clientKeyService.setDirectKey(validKeyHex);
 
     const existingKey = 'b'.repeat(64);
     http
@@ -108,8 +105,7 @@ describe('clientKeyInterceptor', () => {
   });
 
   it('should stop adding header after client key is cleared', () => {
-    getItemSpy.mockReturnValue(validKeyHex);
-    clientKeyService.initialize();
+    clientKeyService.setDirectKey(validKeyHex);
     clientKeyService.clear();
 
     http.get(`${backendApiUrl}/users`).subscribe();

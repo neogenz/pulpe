@@ -1,14 +1,8 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  vi,
-  afterEach,
-  type Mock,
-} from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { ClientKeyService } from './client-key.service';
+import { StorageService } from '../storage/storage.service';
+import { STORAGE_KEYS } from '../storage/storage-keys';
 
 vi.mock('@core/encryption/crypto.utils', () => ({
   deriveClientKey: vi.fn(),
@@ -25,32 +19,30 @@ const mockedIsValidClientKeyHex = isValidClientKeyHex as Mock;
 
 describe('ClientKeyService', () => {
   let service: ClientKeyService;
-  let getItemSpy: ReturnType<typeof vi.spyOn>;
-  let setItemSpy: ReturnType<typeof vi.spyOn>;
-  let removeItemSpy: ReturnType<typeof vi.spyOn>;
+  let mockStorageService: {
+    getString: Mock;
+    setString: Mock;
+    remove: Mock;
+  };
 
   beforeEach(() => {
+    mockStorageService = {
+      getString: vi.fn(),
+      setString: vi.fn(),
+      remove: vi.fn(),
+    };
+
     TestBed.configureTestingModule({
-      providers: [ClientKeyService],
+      providers: [
+        ClientKeyService,
+        {
+          provide: StorageService,
+          useValue: mockStorageService,
+        },
+      ],
     });
 
     service = TestBed.inject(ClientKeyService);
-
-    getItemSpy = vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
-    setItemSpy = vi
-      .spyOn(Storage.prototype, 'setItem')
-      .mockReturnValue(undefined);
-    removeItemSpy = vi
-      .spyOn(Storage.prototype, 'removeItem')
-      .mockReturnValue(undefined);
-
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    getItemSpy.mockRestore();
-    setItemSpy.mockRestore();
-    removeItemSpy.mockRestore();
   });
 
   it('should start with null clientKey', () => {
@@ -61,75 +53,149 @@ describe('ClientKeyService', () => {
     expect(service.hasClientKey()).toBe(false);
   });
 
-  it('initialize() should restore key from sessionStorage', () => {
-    const storedKey = 'deadbeef1234567890abcdef';
-    getItemSpy.mockReturnValue(storedKey);
-    mockedIsValidClientKeyHex.mockReturnValue(true);
+  describe('initialize()', () => {
+    it('should restore key from sessionStorage first', () => {
+      const storedKey = 'deadbeef1234567890abcdef';
+      mockStorageService.getString.mockReturnValueOnce(storedKey);
+      mockedIsValidClientKeyHex.mockReturnValue(true);
 
-    service.initialize();
+      service.initialize();
 
-    expect(getItemSpy).toHaveBeenCalledWith('pulpe:client-key');
-    expect(isValidClientKeyHex).toHaveBeenCalledWith(storedKey);
-    expect(service.clientKeyHex()).toBe(storedKey);
-  });
-
-  it('initialize() should ignore invalid keys in sessionStorage', () => {
-    const invalidKey = 'invalid-key';
-    getItemSpy.mockReturnValue(invalidKey);
-    mockedIsValidClientKeyHex.mockReturnValue(false);
-
-    service.initialize();
-
-    expect(service.clientKeyHex()).toBeNull();
-    expect(service.hasClientKey()).toBe(false);
-  });
-
-  it('deriveAndStore() should derive key and update signal', async () => {
-    const password = 'test-password';
-    const salt = 'test-salt';
-    const iterations = 100000;
-    const derivedKey = 'derived-key-hex';
-
-    mockedDeriveClientKey.mockResolvedValue(derivedKey);
-
-    await service.deriveAndStore(password, salt, iterations);
-
-    expect(deriveClientKey).toHaveBeenCalledWith(password, salt, iterations);
-    expect(service.clientKeyHex()).toBe(derivedKey);
-  });
-
-  it('deriveAndStore() should persist to sessionStorage', async () => {
-    const derivedKey = 'derived-key-hex';
-    mockedDeriveClientKey.mockResolvedValue(derivedKey);
-
-    await service.deriveAndStore('test-password', 'test-salt', 100000);
-
-    expect(setItemSpy).toHaveBeenCalledWith('pulpe:client-key', derivedKey);
-  });
-
-  it('clear() should reset signal to null and remove from sessionStorage', async () => {
-    const derivedKey = 'derived-key-hex';
-    mockedDeriveClientKey.mockResolvedValue(derivedKey);
-    await service.deriveAndStore('password', 'salt', 100000);
-
-    expect(service.clientKeyHex()).toBe(derivedKey);
-
-    service.clear();
-
-    expect(service.clientKeyHex()).toBeNull();
-    expect(removeItemSpy).toHaveBeenCalledWith('pulpe:client-key');
-  });
-
-  it('clear() should handle sessionStorage errors gracefully', async () => {
-    const derivedKey = 'derived-key-hex';
-    mockedDeriveClientKey.mockResolvedValue(derivedKey);
-    await service.deriveAndStore('password', 'salt', 100000);
-
-    removeItemSpy.mockImplementation(() => {
-      throw new Error('sessionStorage unavailable');
+      expect(mockStorageService.getString).toHaveBeenCalledWith(
+        STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION,
+        'session',
+      );
+      expect(service.clientKeyHex()).toBe(storedKey);
     });
 
-    expect(() => service.clear()).not.toThrow();
-    expect(service.clientKeyHex()).toBeNull();
+    it('should fallback to localStorage when sessionStorage is empty', () => {
+      const storedKey = 'deadbeef1234567890abcdef';
+      mockStorageService.getString.mockReturnValueOnce(null);
+      mockStorageService.getString.mockReturnValueOnce(storedKey);
+      mockedIsValidClientKeyHex.mockReturnValue(true);
+
+      service.initialize();
+
+      expect(mockStorageService.getString).toHaveBeenNthCalledWith(
+        1,
+        STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION,
+        'session',
+      );
+      expect(mockStorageService.getString).toHaveBeenNthCalledWith(
+        2,
+        STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
+        'local',
+      );
+      expect(service.clientKeyHex()).toBe(storedKey);
+    });
+
+    it('should ignore invalid keys', () => {
+      mockStorageService.getString.mockReturnValueOnce('invalid-key');
+      mockedIsValidClientKeyHex.mockReturnValue(false);
+      mockStorageService.getString.mockReturnValueOnce(null);
+
+      service.initialize();
+
+      expect(service.clientKeyHex()).toBeNull();
+    });
+  });
+
+  describe('deriveAndStore()', () => {
+    it('should derive key and persist to sessionStorage by default', async () => {
+      const derivedKey = 'derived-key-hex';
+      mockedDeriveClientKey.mockResolvedValue(derivedKey);
+
+      await service.deriveAndStore('password', 'salt', 100000);
+
+      expect(deriveClientKey).toHaveBeenCalledWith('password', 'salt', 100000);
+      expect(service.clientKeyHex()).toBe(derivedKey);
+      expect(mockStorageService.setString).toHaveBeenCalledWith(
+        STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION,
+        derivedKey,
+        'session',
+      );
+      expect(mockStorageService.remove).toHaveBeenCalledWith(
+        STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
+        'local',
+      );
+    });
+
+    it('should persist to localStorage when useLocalStorage=true', async () => {
+      const derivedKey = 'derived-key-hex';
+      mockedDeriveClientKey.mockResolvedValue(derivedKey);
+
+      await service.deriveAndStore('password', 'salt', 100000, true);
+
+      expect(mockStorageService.setString).toHaveBeenCalledWith(
+        STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
+        derivedKey,
+        'local',
+      );
+      expect(mockStorageService.remove).toHaveBeenCalledWith(
+        STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION,
+        'session',
+      );
+    });
+  });
+
+  describe('setDirectKey()', () => {
+    it('should store in sessionStorage by default', () => {
+      mockedIsValidClientKeyHex.mockReturnValue(true);
+
+      service.setDirectKey('valid-key-hex');
+
+      expect(mockStorageService.setString).toHaveBeenCalledWith(
+        STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION,
+        'valid-key-hex',
+        'session',
+      );
+      expect(mockStorageService.remove).toHaveBeenCalledWith(
+        STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
+        'local',
+      );
+    });
+
+    it('should store in localStorage when useLocalStorage=true', () => {
+      mockedIsValidClientKeyHex.mockReturnValue(true);
+
+      service.setDirectKey('valid-key-hex', true);
+
+      expect(mockStorageService.setString).toHaveBeenCalledWith(
+        STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
+        'valid-key-hex',
+        'local',
+      );
+      expect(mockStorageService.remove).toHaveBeenCalledWith(
+        STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION,
+        'session',
+      );
+    });
+
+    it('should throw for invalid key', () => {
+      mockedIsValidClientKeyHex.mockReturnValue(false);
+
+      expect(() => service.setDirectKey('bad')).toThrow(
+        'Invalid client key hex',
+      );
+    });
+  });
+
+  describe('clear()', () => {
+    it('should reset signal and remove from both storages', async () => {
+      mockedDeriveClientKey.mockResolvedValue('key');
+      await service.deriveAndStore('p', 's', 1);
+
+      service.clear();
+
+      expect(service.clientKeyHex()).toBeNull();
+      expect(mockStorageService.remove).toHaveBeenCalledWith(
+        STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION,
+        'session',
+      );
+      expect(mockStorageService.remove).toHaveBeenCalledWith(
+        STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
+        'local',
+      );
+    });
   });
 });

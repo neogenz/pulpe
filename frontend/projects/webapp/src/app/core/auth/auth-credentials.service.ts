@@ -149,7 +149,7 @@ export class AuthCredentialsService {
     const { salt, kdfIterations } = await firstValueFrom(
       this.#encryptionApi.getSalt$(),
     );
-    await this.#clientKeyService.deriveAndStore(password, salt, kdfIterations);
+    await this.#clientKeyService.deriveAndStore(password, salt, kdfIterations, true);
   }
 
   #isE2EBypass(): boolean {

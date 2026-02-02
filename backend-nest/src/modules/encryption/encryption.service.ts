@@ -405,13 +405,8 @@ export class EncryptionService {
   async #getOrGenerateClientSalt(
     userId: string,
   ): Promise<{ salt: string; kdfIterations: number }> {
-    const row = await this.#repository.findSaltByUserId(userId);
-    if (row) {
-      return { salt: row.salt, kdfIterations: row.kdf_iterations };
-    }
-
-    const salt = randomBytes(SALT_LENGTH).toString('hex');
-    return { salt, kdfIterations: KDF_ITERATIONS };
+    const salt = await this.#ensureUserSalt(userId);
+    return { salt: salt.toString('hex'), kdfIterations: KDF_ITERATIONS };
   }
 }
 
