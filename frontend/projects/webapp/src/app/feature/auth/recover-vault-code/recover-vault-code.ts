@@ -54,13 +54,14 @@ import {
         class="w-full max-w-md bg-surface rounded-3xl p-8 flex flex-col shadow-xl"
         data-testid="recover-vault-code-page"
       >
-        <a
+        <button
+          matButton
           [routerLink]="['/', ROUTES.ENTER_VAULT_CODE]"
           class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
         >
           <mat-icon class="text-lg">arrow_back</mat-icon>
           <span>Retour</span>
-        </a>
+        </button>
 
         <div class="text-center mb-8 mt-4">
           <mat-icon class="text-6xl text-primary mb-4">key</mat-icon>
@@ -82,16 +83,16 @@ import {
         >
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>Clé de récupération</mat-label>
-            <textarea
+            <input
               matInput
               formControlName="recoveryKey"
               data-testid="recovery-key-input"
-              (input)="clearError()"
-              placeholder="XXXX-XXXX-XXXX-..."
-              rows="3"
-              class="font-mono"
-            ></textarea>
-            <mat-icon matPrefix>key</mat-icon>
+              (input)="onRecoveryKeyInput()"
+              placeholder="XXXX-XXXX-XXXX-XXXX-..."
+              class="font-mono text-sm uppercase tracking-wide"
+              autocomplete="off"
+              spellcheck="false"
+            />
             @if (
               form.get('recoveryKey')?.invalid &&
               form.get('recoveryKey')?.touched
@@ -250,6 +251,17 @@ export default class RecoverVaultCode {
   protected readonly canSubmit = computed(() => {
     return this.#formStatus() === 'VALID' && !this.isSubmitting();
   });
+
+  protected onRecoveryKeyInput(): void {
+    const raw = this.form.controls.recoveryKey.value;
+    const stripped = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    const formatted = stripped.match(/.{1,4}/g)?.join('-') ?? stripped;
+
+    if (formatted !== raw) {
+      this.form.controls.recoveryKey.setValue(formatted, { emitEvent: false });
+    }
+    this.clearError();
+  }
 
   protected clearError(): void {
     this.errorMessage.set('');

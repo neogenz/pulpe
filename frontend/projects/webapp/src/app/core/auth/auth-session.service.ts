@@ -231,6 +231,42 @@ export class AuthSessionService {
     }
   }
 
+  async verifyPassword(
+    password: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const email = this.#state.user()?.email;
+      if (!email) {
+        return { success: false, error: 'Utilisateur non connecté' };
+      }
+
+      const { error } = await this.getClient().auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        return {
+          success: false,
+          error: this.#errorLocalizer.localizeError(error.message),
+        };
+      }
+
+      return { success: true };
+    } catch (error) {
+      this.#logger.error('Error verifying password:', {
+        error,
+        errorType:
+          error instanceof Error ? error.constructor.name : typeof error,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return {
+        success: false,
+        error: AUTH_ERROR_MESSAGES.UNEXPECTED_SESSION_ERROR,
+      };
+    }
+  }
+
   async updatePassword(
     newPassword: string,
   ): Promise<{ success: boolean; error?: string }> {
