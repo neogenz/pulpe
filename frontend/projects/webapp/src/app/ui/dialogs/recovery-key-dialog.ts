@@ -1,10 +1,10 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -22,7 +22,6 @@ export interface RecoveryKeyDialogData {
 @Component({
   selector: 'pulpe-recovery-key-dialog',
   imports: [
-    FormsModule,
     MatButtonModule,
     MatDialogModule,
     MatFormFieldModule,
@@ -35,7 +34,11 @@ export interface RecoveryKeyDialogData {
 
       <mat-dialog-content>
         <p class="text-body-medium text-on-surface mb-4">
-          Prends un instant pour mettre cette clé en lieu sûr (comme dans un gestionnaire de mots de passe). C'est ton unique filet de sécurité : si tu oublies ton code de coffre-fort et que tu perds cette clé, tes données seront perdues pour toujours. C'est le garant de ta totale confidentialité.
+          Prends un instant pour mettre cette clé en lieu sûr (comme dans un
+          gestionnaire de mots de passe). C'est ton unique filet de sécurité :
+          si tu oublies ton code de coffre-fort et que tu perds cette clé, tes
+          données seront perdues pour toujours. C'est le garant de ta totale
+          confidentialité.
         </p>
 
         <div
@@ -64,7 +67,8 @@ export interface RecoveryKeyDialogData {
           <input
             matInput
             data-testid="recovery-key-confirm-input"
-            [(ngModel)]="confirmValue"
+            [value]="confirmValue()"
+            (input)="confirmValue.set($any($event.target).value)"
           />
         </mat-form-field>
       </mat-dialog-content>
@@ -96,17 +100,17 @@ export class RecoveryKeyDialog {
   readonly #dialogRef = inject(MatDialogRef<RecoveryKeyDialog>);
   readonly data = inject<RecoveryKeyDialogData>(MAT_DIALOG_DATA);
 
-  readonly isCopied = signal(false);
-  protected confirmValue = '';
+  protected readonly isCopied = signal(false);
+  protected readonly confirmValue = signal('');
 
-  isConfirmed(): boolean {
+  protected readonly isConfirmed = computed(() => {
     const normalize = (s: string) =>
       s
         .trim()
         .replace(/[\s-]+/g, '')
         .toUpperCase();
-    return normalize(this.confirmValue) === normalize(this.data.recoveryKey);
-  }
+    return normalize(this.confirmValue()) === normalize(this.data.recoveryKey);
+  });
 
   async copyToClipboard(): Promise<void> {
     await navigator.clipboard.writeText(this.data.recoveryKey);

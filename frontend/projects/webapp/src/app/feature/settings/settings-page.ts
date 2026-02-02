@@ -35,7 +35,8 @@ import {
   type RecoveryKeyDialogData,
 } from '@ui/dialogs/recovery-key-dialog';
 import { PAY_DAY_MAX } from 'pulpe-shared';
-import { ChangePasswordCard } from './change-password-card';
+import { ChangePasswordDialog } from './components/change-password-dialog';
+import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-key-dialog';
 
 @Component({
   selector: 'pulpe-settings-page',
@@ -49,18 +50,15 @@ import { ChangePasswordCard } from './change-password-card';
     MatProgressSpinnerModule,
     MatSelectModule,
     MatSnackBarModule,
-    ChangePasswordCard,
   ],
-  styles: `
-    .mat-mdc-card-content {
-      padding: 16px;
-    }
-  `,
   template: `
     <div class="max-w-2xl mx-auto" data-testid="settings-page">
       <h1 class="text-headline-medium mb-6">Paramètres</h1>
 
-      <mat-card appearance="outlined" class="mb-6">
+      <!-- ═══ Section: Compte ═══ -->
+      <h2 class="text-title-large mb-4">Compte</h2>
+
+      <mat-card appearance="outlined" class="mb-4">
         <mat-card-header>
           <div
             mat-card-avatar
@@ -76,7 +74,7 @@ import { ChangePasswordCard } from './change-password-card';
           </mat-card-subtitle>
         </mat-card-header>
 
-        <mat-card-content>
+        <mat-card-content class="p-4">
           <mat-form-field
             appearance="outline"
             subscriptSizing="dynamic"
@@ -135,9 +133,8 @@ import { ChangePasswordCard } from './change-password-card';
         }
       </mat-card>
 
-      <!-- Info card about pay day -->
       <mat-card appearance="outlined" class="bg-secondary-container! mb-6">
-        <mat-card-content class="flex! gap-4">
+        <mat-card-content class="flex! gap-4 p-4">
           <div class="flex items-center justify-center">
             <mat-icon class="text-on-secondary-container!">lightbulb</mat-icon>
           </div>
@@ -154,9 +151,38 @@ import { ChangePasswordCard } from './change-password-card';
         </mat-card-content>
       </mat-card>
 
-      <!-- Password & Security - hidden in demo mode -->
+      <!-- ═══ Section: Sécurité ═══ -->
       @if (!isDemoMode()) {
-        <pulpe-change-password-card />
+        <h2 class="text-title-large mb-4">Sécurité</h2>
+
+        <mat-card appearance="outlined" class="mb-4">
+          <mat-card-header>
+            <div
+              mat-card-avatar
+              class="flex items-center justify-center bg-primary-container rounded-full"
+            >
+              <mat-icon class="text-on-primary-container!">lock</mat-icon>
+            </div>
+            <mat-card-title>Mot de passe</mat-card-title>
+            <mat-card-subtitle>
+              Modifier ton mot de passe de connexion
+            </mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content class="p-4">
+            <p class="text-body-medium text-on-surface mb-4">
+              Tu devras saisir ton mot de passe actuel pour le modifier.
+            </p>
+            <button
+              matButton="filled"
+              color="primary"
+              data-testid="change-password-button"
+              (click)="onChangePassword()"
+            >
+              Modifier le mot de passe
+            </button>
+          </mat-card-content>
+        </mat-card>
 
         <mat-card appearance="outlined" class="mb-6">
           <mat-card-header>
@@ -166,43 +192,42 @@ import { ChangePasswordCard } from './change-password-card';
             >
               <mat-icon class="text-on-primary-container!">vpn_key</mat-icon>
             </div>
-            <mat-card-title>Sécurité</mat-card-title>
+            <mat-card-title>Clé de récupération</mat-card-title>
             <mat-card-subtitle>
-              Clé de récupération pour protéger tes données
+              Protège l'accès à tes données chiffrées
             </mat-card-subtitle>
           </mat-card-header>
 
-          <mat-card-content>
+          <mat-card-content class="p-4">
             <p class="text-body-medium text-on-surface mb-4">
-              Si tu oublies ton mot de passe, la clé de récupération est le seul
-              moyen de retrouver l'accès à tes données chiffrées.
+              Si tu oublies ton code de coffre-fort, la clé de récupération est
+              le seul moyen de retrouver l'accès à tes données chiffrées.
             </p>
             <button
               matButton="filled"
               color="primary"
               data-testid="generate-recovery-key-button"
               [disabled]="isGeneratingRecoveryKey()"
-              (click)="onGenerateRecoveryKey()"
+              (click)="onRegenerateRecoveryKey()"
             >
               @if (isGeneratingRecoveryKey()) {
                 <mat-spinner diameter="20" class="mr-2" />
               }
-              Générer une clé de récupération
+              Régénérer ma clé de récupération
             </button>
           </mat-card-content>
         </mat-card>
       }
 
-      <!-- Danger zone - hidden in demo mode -->
+      <!-- ═══ Section: Zone de danger ═══ -->
       @if (!isDemoMode()) {
+        <h2 class="text-title-large text-error mb-4">Zone de danger</h2>
+
         <mat-card
           appearance="outlined"
           class="bg-error-container! border-error!"
         >
-          <mat-card-content>
-            <p class="text-title-medium text-on-error-container font-medium">
-              Zone de danger
-            </p>
+          <mat-card-content class="p-4">
             <p class="text-body-medium text-on-error-container mt-1">
               La suppression de ton compte est définitive. Tu perdras l'accès à
               toutes tes données après un délai de 3 jours.
@@ -238,12 +263,11 @@ export default class SettingsPage {
   readonly #encryptionApi = inject(EncryptionApi);
 
   readonly isDemoMode = this.#demoMode.isDemoMode;
-  readonly isSaving = signal(false);
-  readonly isDeleting = signal(false);
-  readonly isGeneratingRecoveryKey = signal(false);
+  protected readonly isSaving = signal(false);
+  protected readonly isDeleting = signal(false);
+  protected readonly isGeneratingRecoveryKey = signal(false);
   readonly availableDays = Array.from({ length: PAY_DAY_MAX }, (_, i) => i + 1);
 
-  // linkedSignal syncs with API value but can be locally modified by user
   readonly selectedPayDay = linkedSignal(
     () => this.#userSettingsApi.payDayOfMonth() ?? null,
   );
@@ -289,6 +313,36 @@ export default class SettingsPage {
     this.selectedPayDay.set(this.initialValue());
   }
 
+  async onChangePassword(): Promise<void> {
+    const dialogRef = this.#dialog.open(ChangePasswordDialog, {
+      width: '480px',
+    });
+
+    const changed = await firstValueFrom(dialogRef.afterClosed());
+    if (!changed) return;
+
+    this.#snackBar.open('Mot de passe modifié', 'OK', {
+      duration: 3000,
+      horizontalPosition: 'center',
+      verticalPosition: 'bottom',
+    });
+
+    await this.#promptRecoveryKey();
+  }
+
+  async onRegenerateRecoveryKey(): Promise<void> {
+    if (this.isGeneratingRecoveryKey()) return;
+
+    const verifyRef = this.#dialog.open(RegenerateRecoveryKeyDialog, {
+      width: '480px',
+    });
+
+    const verified = await firstValueFrom(verifyRef.afterClosed());
+    if (!verified) return;
+
+    await this.#generateAndShowRecoveryKey();
+  }
+
   async onDeleteAccount(): Promise<void> {
     const dialogData: ConfirmationDialogData = {
       title: 'Supprimer ton compte ?',
@@ -320,15 +374,12 @@ export default class SettingsPage {
         horizontalPosition: 'center',
         verticalPosition: 'bottom',
       });
-      // Early return prevents signOut and redirect if deleteAccount() failed
       return;
     }
 
-    // Deletion succeeded - sign out and redirect (errors here are non-critical)
     try {
       await this.#authSession.signOut();
     } catch (error) {
-      // Ignore signOut errors but log them - account is already scheduled for deletion
       this.#logger.warn(
         'Sign out failed after account deletion scheduling',
         error,
@@ -337,7 +388,36 @@ export default class SettingsPage {
     await this.#router.navigate(['/login']);
   }
 
-  async onGenerateRecoveryKey(): Promise<void> {
+  async #promptRecoveryKey(): Promise<void> {
+    try {
+      const { recoveryKey } = await firstValueFrom(
+        this.#encryptionApi.setupRecoveryKey$(),
+      );
+
+      const dialogData: RecoveryKeyDialogData = { recoveryKey };
+      const dialogRef = this.#dialog.open(RecoveryKeyDialog, {
+        data: dialogData,
+        width: '480px',
+        disableClose: true,
+      });
+
+      const confirmed = await firstValueFrom(dialogRef.afterClosed());
+      if (confirmed) {
+        this.#snackBar.open('Clé de récupération enregistrée', 'OK', {
+          duration: 3000,
+          horizontalPosition: 'center',
+          verticalPosition: 'bottom',
+        });
+      }
+    } catch (error) {
+      this.#logger.warn(
+        'Recovery key setup failed after password change — user can generate later from settings',
+        error,
+      );
+    }
+  }
+
+  async #generateAndShowRecoveryKey(): Promise<void> {
     if (this.isGeneratingRecoveryKey()) return;
 
     try {
@@ -356,7 +436,7 @@ export default class SettingsPage {
 
       const confirmed = await firstValueFrom(dialogRef.afterClosed());
       if (confirmed) {
-        this.#snackBar.open('Clé de récupération enregistrée', 'OK', {
+        this.#snackBar.open('Nouvelle clé de récupération enregistrée', 'OK', {
           duration: 3000,
           horizontalPosition: 'center',
           verticalPosition: 'bottom',
@@ -380,7 +460,6 @@ export default class SettingsPage {
 
   #getDeleteAccountErrorMessage(error: unknown): string {
     if (error instanceof HttpErrorResponse) {
-      // Check network error first (status 0 means no response received)
       if (error.status === 0) {
         return 'Erreur réseau — vérifie ta connexion';
       }
