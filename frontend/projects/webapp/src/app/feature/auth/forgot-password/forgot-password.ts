@@ -40,13 +40,14 @@ import { LoadingButton } from '@ui/loading-button';
         class="w-full max-w-md bg-surface rounded-3xl p-8 flex flex-col shadow-xl"
         data-testid="forgot-password-page"
       >
-        <a
+        <button
+          matButton
           [routerLink]="['/', ROUTES.LOGIN]"
           class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
         >
           <mat-icon class="text-lg">arrow_back</mat-icon>
           <span>Retour à la connexion</span>
-        </a>
+        </button>
 
         <div class="text-center mb-8 mt-4">
           <h1
@@ -114,15 +115,15 @@ import { LoadingButton } from '@ui/loading-button';
             <p class="text-body-medium text-on-surface-variant">
               Pense à vérifier tes spams si tu ne le vois pas.
             </p>
-            <a
+            <button
               [routerLink]="['/', ROUTES.LOGIN]"
-              mat-flat-button
+              matButton
               color="primary"
               class="w-full"
               data-testid="back-to-login-button"
             >
               Retour à la connexion
-            </a>
+            </button>
           </div>
         }
       </div>
