@@ -60,17 +60,24 @@ export class AuthCredentialsService {
 
       this.#state.setSession(data.session ?? null);
 
-      try {
-        await this.#deriveClientKey(password);
-      } catch (encryptionError) {
-        this.#logger.error('Encryption key derivation failed during sign-in', {
-          error: encryptionError,
-        });
-        await this.#session.signOut();
-        return {
-          success: false,
-          error: AUTH_ERROR_MESSAGES.ENCRYPTION_SETUP_ERROR,
-        };
+      // Migration: derive client key from password for existing users
+      // who have not yet set up a vault code. New vault-code users skip this.
+      const hasVaultCode =
+        !!data.session?.user?.user_metadata?.['vaultCodeConfigured'];
+      if (!hasVaultCode) {
+        try {
+          await this.#deriveClientKey(password);
+        } catch (encryptionError) {
+          this.#logger.error(
+            'Encryption key derivation failed during sign-in',
+            { error: encryptionError },
+          );
+          await this.#session.signOut();
+          return {
+            success: false,
+            error: AUTH_ERROR_MESSAGES.ENCRYPTION_SETUP_ERROR,
+          };
+        }
       }
 
       return { success: true };
@@ -115,18 +122,9 @@ export class AuthCredentialsService {
 
       this.#state.setSession(data.session ?? null);
 
-      try {
-        await this.#deriveClientKey(password);
-      } catch (encryptionError) {
-        this.#logger.error('Encryption key derivation failed during sign-up', {
-          error: encryptionError,
-        });
-        await this.#session.signOut();
-        return {
-          success: false,
-          error: AUTH_ERROR_MESSAGES.ENCRYPTION_SETUP_ERROR,
-        };
-      }
+      // New users will set up their vault code after signup.
+      // No client key derivation from password — the encryption guard
+      // redirects to setup-vault-code.
 
       return { success: true };
     } catch (error) {
@@ -149,7 +147,12 @@ export class AuthCredentialsService {
     const { salt, kdfIterations } = await firstValueFrom(
       this.#encryptionApi.getSalt$(),
     );
-    await this.#clientKeyService.deriveAndStore(password, salt, kdfIterations, true);
+    await this.#clientKeyService.deriveAndStore(
+      password,
+      salt,
+      kdfIterations,
+      true,
+    );
   }
 
   #isE2EBypass(): boolean {

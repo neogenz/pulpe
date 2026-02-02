@@ -240,6 +240,40 @@ export class EncryptionService {
     return dek;
   }
 
+  generateKeyCheck(dek: Buffer): string {
+    return this.encryptAmount(0, dek);
+  }
+
+  validateKeyCheck(keyCheck: string, dek: Buffer): boolean {
+    try {
+      this.decryptAmount(keyCheck, dek);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async verifyAndEnsureKeyCheck(
+    userId: string,
+    clientKey: Buffer,
+  ): Promise<boolean> {
+    const row = await this.#repository.findByUserId(userId);
+    const dek = await this.ensureUserDEK(userId, clientKey);
+
+    if (row?.key_check) {
+      return this.validateKeyCheck(row.key_check, dek);
+    }
+
+    // No key_check stored yet (existing user before migration) — store it now
+    const keyCheck = this.generateKeyCheck(dek);
+    await this.#repository.updateKeyCheck(userId, keyCheck);
+    return true;
+  }
+
+  async storeKeyCheck(userId: string, keyCheck: string): Promise<void> {
+    await this.#repository.updateKeyCheck(userId, keyCheck);
+  }
+
   async setupRecoveryKey(
     userId: string,
     clientKey: Buffer,

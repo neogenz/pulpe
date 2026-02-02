@@ -122,6 +122,44 @@ Recovery (mot de passe oublié) :
 | `POST /v1/encryption/setup-recovery` | Génère une recovery key, wrap la DEK, stocke `wrapped_dek` |
 | `POST /v1/encryption/recover` | Recovery key + nouveau clientKey → rekey complet |
 
+## Vérification du code coffre-fort (key check canary)
+
+Quand un utilisateur saisit son code coffre-fort, l'app vérifie que le `clientKey` dérivé est correct **avant** de donner accès au dashboard. Ce mécanisme empêche un utilisateur de se retrouver avec des écrans cassés (montants à 0) en cas de code incorrect.
+
+### Principe
+
+La colonne `key_check` de `user_encryption_key` stocke un ciphertext canary : `AES-256-GCM(DEK, 0)`. Comme AES-GCM est un chiffrement authentifié, le déchiffrement échoue si la DEK est incorrecte (l'auth tag ne correspond pas).
+
+### Flux de validation
+
+```
+1. Frontend dérive clientKey depuis le code coffre-fort (PBKDF2)
+2. Frontend appelle POST /v1/encryption/validate-key { clientKey }
+3. Backend dérive DEK = HKDF(clientKey + masterKey, salt)
+4. Backend tente de déchiffrer key_check avec la DEK
+5. Si succès → 204 (code correct, accès autorisé)
+   Si échec → 400 (code incorrect, accès refusé)
+```
+
+### Cycle de vie du key_check
+
+| Événement | Action |
+|-----------|--------|
+| Première validation (key_check absent) | Généré et stocké (migration backward compat) |
+| Changement de mot de passe | Régénéré avec la nouvelle DEK |
+| Setup recovery key | Régénéré (assure la cohérence) |
+| Récupération de compte | Régénéré avec la nouvelle DEK |
+
+### Rate limiting
+
+L'endpoint `validate-key` est limité à 10 tentatives par minute par utilisateur pour prévenir le brute-force.
+
+### Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /v1/encryption/validate-key` | Vérifie le clientKey via le canary key_check |
+
 ## Sécurité de la table `user_encryption_key`
 
 - RLS activé : seul `service_role` peut lire/écrire
@@ -176,7 +214,7 @@ Si la validation échoue, le serveur refuse de démarrer.
 | `encryption.service.ts` | Dérivation DEK, chiffrement/déchiffrement AES-GCM, wrap/unwrap DEK, cache |
 | `encryption-key.repository.ts` | CRUD de la table `user_encryption_key` (salt, wrapped_dek) |
 | `encryption-rekey.service.ts` | Re-chiffrement de toutes les données lors d'un changement de mot de passe |
-| `encryption.controller.ts` | Endpoints `/salt`, `/password-change`, `/setup-recovery`, `/recover` |
+| `encryption.controller.ts` | Endpoints `/salt`, `/validate-key`, `/password-change`, `/setup-recovery`, `/recover` |
 | `client-key-cleanup.interceptor.ts` | Efface le clientKey de la mémoire après chaque requête |
 | `encryption-backfill.interceptor.ts` | Chiffre les données plaintext existantes à la première requête |
 | `auth.guard.ts` | Extrait et valide le `X-Client-Key` du header |

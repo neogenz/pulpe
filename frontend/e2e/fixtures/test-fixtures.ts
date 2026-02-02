@@ -1,5 +1,6 @@
 import { test as base, type Page } from '@playwright/test';
 import { LoginPage } from '../pages/auth/login.page';
+import { VaultCodePage } from '../pages/auth/vault-code.page';
 import { CurrentMonthPage } from '../pages/current-month.page';
 import { BudgetTemplatesPage } from '../pages/budget-templates.page';
 import { BudgetDetailsPage } from '../pages/budget-details.page';
@@ -10,6 +11,7 @@ import { setupAuthBypass, setupMaintenanceMock } from '../utils/auth-bypass';
 // Simple fixture types - only what we actually use
 interface AppFixtures {
   loginPage: LoginPage;
+  vaultCodePage: VaultCodePage;
   currentMonthPage: CurrentMonthPage;
   budgetTemplatesPage: BudgetTemplatesPage;
   budgetDetailsPage: BudgetDetailsPage;
@@ -30,6 +32,10 @@ export const test = base.extend<AppFixtures>({
   // Page Objects - simple instantiation
   loginPage: async ({ page }, use) => {
     await use(new LoginPage(page));
+  },
+
+  vaultCodePage: async ({ page }, use) => {
+    await use(new VaultCodePage(page));
   },
 
   currentMonthPage: async ({ page }, use) => {
@@ -53,11 +59,23 @@ export const test = base.extend<AppFixtures>({
   },
 
   // Authenticated page - for feature tests with mocks
+  // Includes vaultCodeConfigured + client key to pass encryptionSetupGuard
   authenticatedPage: async ({ page }, use) => {
-    // Setup auth bypass with API mocks and localStorage for feature tests
-    await setupAuthBypass(page, { 
-      includeApiMocks: true, 
-      setLocalStorage: true 
+    await setupAuthBypass(page, {
+      includeApiMocks: true,
+      setLocalStorage: true,
+      vaultCodeConfigured: true,
+    });
+
+    // Inject a valid client key so encryptionSetupGuard allows through
+    await page.addInitScript(() => {
+      const validKeyHex = 'aa'.repeat(32);
+      const entry = {
+        version: 1,
+        data: validKeyHex,
+        updatedAt: new Date().toISOString(),
+      };
+      sessionStorage.setItem('pulpe-vault-client-key-session', JSON.stringify(entry));
     });
 
     await use(page);

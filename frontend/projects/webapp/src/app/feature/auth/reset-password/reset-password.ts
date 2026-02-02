@@ -103,7 +103,11 @@ import { createFieldsMatchValidator } from '@core/validators';
               Réinitialiser le mot de passe
             </h1>
             <p class="text-base md:text-lg text-on-surface-variant">
-              Entre ta clé de récupération et ton nouveau mot de passe
+              @if (hasVaultCode()) {
+                Entre ton nouveau mot de passe
+              } @else {
+                Entre ta clé de récupération et ton nouveau mot de passe
+              }
             </p>
           </div>
 
@@ -113,32 +117,34 @@ import { createFieldsMatchValidator } from '@core/validators';
             class="space-y-4"
             data-testid="reset-password-form"
           >
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Clé de récupération</mat-label>
-              <textarea
-                matInput
-                formControlName="recoveryKey"
-                data-testid="recovery-key-input"
-                (input)="clearError()"
-                placeholder="XXXX-XXXX-XXXX-..."
-                rows="3"
-                class="font-mono"
-                [disabled]="isSubmitting()"
-              ></textarea>
-              <mat-icon matPrefix>key</mat-icon>
-              @if (
-                form.get('recoveryKey')?.invalid &&
-                form.get('recoveryKey')?.touched
-              ) {
-                <mat-error> Ta clé de récupération est nécessaire </mat-error>
-              }
-            </mat-form-field>
+            @if (!hasVaultCode()) {
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Clé de récupération</mat-label>
+                <textarea
+                  matInput
+                  formControlName="recoveryKey"
+                  data-testid="recovery-key-input"
+                  (input)="clearError()"
+                  placeholder="XXXX-XXXX-XXXX-..."
+                  rows="3"
+                  class="font-mono"
+                  [disabled]="isSubmitting()"
+                ></textarea>
+                <mat-icon matPrefix>key</mat-icon>
+                @if (
+                  form.get('recoveryKey')?.invalid &&
+                  form.get('recoveryKey')?.touched
+                ) {
+                  <mat-error> Ta clé de récupération est nécessaire </mat-error>
+                }
+              </mat-form-field>
+            }
 
             <mat-form-field appearance="outline" class="w-full">
               <mat-label>Nouveau mot de passe</mat-label>
               <input
                 matInput
-                [type]="hidePassword() ? 'password' : 'text'"
+                [type]="isPasswordHidden() ? 'password' : 'text'"
                 formControlName="newPassword"
                 data-testid="new-password-input"
                 (input)="clearError()"
@@ -150,12 +156,12 @@ import { createFieldsMatchValidator } from '@core/validators';
                 type="button"
                 matIconButton
                 matSuffix
-                (click)="hidePassword.set(!hidePassword())"
+                (click)="isPasswordHidden.set(!isPasswordHidden())"
                 [attr.aria-label]="'Afficher le mot de passe'"
-                [attr.aria-pressed]="!hidePassword()"
+                [attr.aria-pressed]="!isPasswordHidden()"
               >
                 <mat-icon>{{
-                  hidePassword() ? 'visibility_off' : 'visibility'
+                  isPasswordHidden() ? 'visibility_off' : 'visibility'
                 }}</mat-icon>
               </button>
               <mat-hint>8 caractères minimum</mat-hint>
@@ -177,7 +183,7 @@ import { createFieldsMatchValidator } from '@core/validators';
               <mat-label>Confirmer le mot de passe</mat-label>
               <input
                 matInput
-                [type]="hideConfirmPassword() ? 'password' : 'text'"
+                [type]="isConfirmPasswordHidden() ? 'password' : 'text'"
                 formControlName="confirmPassword"
                 data-testid="confirm-password-input"
                 (input)="clearError()"
@@ -189,12 +195,14 @@ import { createFieldsMatchValidator } from '@core/validators';
                 type="button"
                 matIconButton
                 matSuffix
-                (click)="hideConfirmPassword.set(!hideConfirmPassword())"
+                (click)="
+                  isConfirmPasswordHidden.set(!isConfirmPasswordHidden())
+                "
                 [attr.aria-label]="'Afficher le mot de passe'"
-                [attr.aria-pressed]="!hideConfirmPassword()"
+                [attr.aria-pressed]="!isConfirmPasswordHidden()"
               >
                 <mat-icon>{{
-                  hideConfirmPassword() ? 'visibility_off' : 'visibility'
+                  isConfirmPasswordHidden() ? 'visibility_off' : 'visibility'
                 }}</mat-icon>
               </button>
               @if (
@@ -241,16 +249,27 @@ export default class ResetPassword {
   readonly #logger = inject(Logger);
 
   protected readonly ROUTES = ROUTES;
-  protected readonly isCheckingSession = signal(true);
-  protected readonly isSessionValid = signal(false);
+  protected readonly isCheckingSession = computed(() =>
+    this.#authState.isLoading(),
+  );
+  protected readonly isSessionValid = computed(
+    () => !this.#authState.isLoading() && this.#authState.isAuthenticated(),
+  );
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
-  protected readonly hidePassword = signal(true);
-  protected readonly hideConfirmPassword = signal(true);
+  protected readonly isPasswordHidden = signal(true);
+  protected readonly isConfirmPasswordHidden = signal(true);
+
+  // Vault-code users only need to change their password (no encryption impact).
+  // Legacy users (no vault code) need recovery key to rekey their data.
+  protected readonly hasVaultCode = computed(() => {
+    const user = this.#authState.authState().user;
+    return !!user?.user_metadata?.['vaultCodeConfigured'];
+  });
 
   protected readonly form = this.#formBuilder.nonNullable.group(
     {
-      recoveryKey: ['', [Validators.required]],
+      recoveryKey: [''],
       newPassword: [
         '',
         [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)],
@@ -275,18 +294,11 @@ export default class ResetPassword {
   });
 
   constructor() {
-    // Reactively wait for Supabase to process the URL tokens and establish a session.
-    // No arbitrary timeout — the effect fires as soon as isLoading becomes false.
     effect(() => {
-      if (!this.#authState.isLoading()) {
-        this.isSessionValid.set(this.#authState.isAuthenticated());
-        this.isCheckingSession.set(false);
-
-        if (!this.#authState.isAuthenticated()) {
-          this.#logger.warn(
-            'Reset password: no valid session after token exchange',
-          );
-        }
+      if (!this.#authState.isLoading() && !this.#authState.isAuthenticated()) {
+        this.#logger.warn(
+          'Reset password: no valid session after token exchange',
+        );
       }
     });
   }
@@ -301,10 +313,52 @@ export default class ResetPassword {
       return;
     }
 
+    if (this.hasVaultCode()) {
+      await this.#resetPasswordSimple();
+    } else {
+      await this.#resetPasswordWithRecovery();
+    }
+  }
+
+  // Vault-code users: password change has no encryption impact.
+  async #resetPasswordSimple(): Promise<void> {
+    this.isSubmitting.set(true);
+    this.clearError();
+
+    const { newPassword } = this.form.getRawValue();
+
+    try {
+      const passwordResult =
+        await this.#authSession.updatePassword(newPassword);
+      if (!passwordResult.success) {
+        this.errorMessage.set(
+          passwordResult.error ||
+            'La mise à jour du mot de passe a échoué — réessaie',
+        );
+        return;
+      }
+
+      this.#router.navigate(['/', ROUTES.DASHBOARD]);
+    } catch (error) {
+      this.#logger.error('Reset password (simple) failed:', error);
+      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessayons");
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  // Legacy users: need recovery key to rekey data with new password-derived key.
+  async #resetPasswordWithRecovery(): Promise<void> {
     this.isSubmitting.set(true);
     this.clearError();
 
     const { recoveryKey, newPassword } = this.form.getRawValue();
+
+    if (!recoveryKey.trim()) {
+      this.errorMessage.set('Ta clé de récupération est nécessaire');
+      this.isSubmitting.set(false);
+      return;
+    }
 
     try {
       // 1. Get current salt and derive new client key
@@ -330,7 +384,6 @@ export default class ResetPassword {
       }
 
       // 3. Recover encryption: unwrap DEK with recovery key, rekey with new client key.
-      //    If this fails, the user can retry — they can still log in with the new password.
       await firstValueFrom(
         this.#encryptionApi.recover$(recoveryKey.trim(), newClientKeyHex),
       );

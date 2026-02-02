@@ -138,4 +138,66 @@ describe('AuthCleanupService', () => {
     clearTimeoutSpy.mockRestore();
     vi.useRealTimers();
   });
+
+  describe('Error isolation', () => {
+    beforeEach(() => {
+      userSignal.set({
+        id: 'user-err',
+        aud: 'authenticated',
+        role: 'authenticated',
+      } as User);
+    });
+
+    it('should continue cleanup when clientKeyService.clear() throws', () => {
+      (mockClientKey.clear as ReturnType<typeof vi.fn>).mockImplementation(
+        () => {
+          throw new Error('Clear failed');
+        },
+      );
+
+      service.performCleanup();
+
+      expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
+      expect(mockHasBudgetCache.clear).toHaveBeenCalled();
+      expect(mockPostHog.reset).toHaveBeenCalled();
+      expect(mockStorage.clearAllUserData).toHaveBeenCalled();
+    });
+
+    it('should continue cleanup when storageService.clearAllUserData() throws', () => {
+      (
+        mockStorage.clearAllUserData as ReturnType<typeof vi.fn>
+      ).mockImplementation(() => {
+        throw new Error('Storage clear failed');
+      });
+
+      service.performCleanup();
+
+      expect(mockClientKey.clear).toHaveBeenCalled();
+      expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
+      expect(mockHasBudgetCache.clear).toHaveBeenCalled();
+      expect(mockPostHog.reset).toHaveBeenCalled();
+    });
+  });
+
+  describe('Debounce reset', () => {
+    it('should allow second cleanup after debounce timer expires', () => {
+      vi.useFakeTimers();
+
+      userSignal.set({
+        id: 'user-debounce',
+        aud: 'authenticated',
+        role: 'authenticated',
+      } as User);
+
+      service.performCleanup();
+      expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalledTimes(1);
+
+      vi.advanceTimersByTime(100);
+
+      service.performCleanup();
+      expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalledTimes(2);
+
+      vi.useRealTimers();
+    });
+  });
 });

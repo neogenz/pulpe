@@ -76,7 +76,7 @@ import {
             <mat-label>Code coffre-fort</mat-label>
             <input
               matInput
-              [type]="hideCode() ? 'password' : 'text'"
+              [type]="isCodeHidden() ? 'password' : 'text'"
               formControlName="vaultCode"
               data-testid="vault-code-input"
               (input)="clearError()"
@@ -87,12 +87,12 @@ import {
               type="button"
               matIconButton
               matSuffix
-              (click)="hideCode.set(!hideCode())"
+              (click)="isCodeHidden.set(!isCodeHidden())"
               [attr.aria-label]="'Afficher le code'"
-              [attr.aria-pressed]="!hideCode()"
+              [attr.aria-pressed]="!isCodeHidden()"
             >
               <mat-icon>{{
-                hideCode() ? 'visibility_off' : 'visibility'
+                isCodeHidden() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
             <mat-hint>8 caractères minimum</mat-hint>
@@ -113,7 +113,7 @@ import {
             <mat-label>Confirmer le code</mat-label>
             <input
               matInput
-              [type]="hideConfirmCode() ? 'password' : 'text'"
+              [type]="isConfirmCodeHidden() ? 'password' : 'text'"
               formControlName="confirmCode"
               data-testid="confirm-vault-code-input"
               (input)="clearError()"
@@ -124,12 +124,12 @@ import {
               type="button"
               matIconButton
               matSuffix
-              (click)="hideConfirmCode.set(!hideConfirmCode())"
+              (click)="isConfirmCodeHidden.set(!isConfirmCodeHidden())"
               [attr.aria-label]="'Afficher le code'"
-              [attr.aria-pressed]="!hideConfirmCode()"
+              [attr.aria-pressed]="!isConfirmCodeHidden()"
             >
               <mat-icon>{{
-                hideConfirmCode() ? 'visibility_off' : 'visibility'
+                isConfirmCodeHidden() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
             @if (
@@ -187,8 +187,14 @@ export default class SetupVaultCode {
   protected readonly ROUTES = ROUTES;
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
-  protected readonly hideCode = signal(true);
-  protected readonly hideConfirmCode = signal(true);
+  protected readonly isCodeHidden = signal(true);
+  protected readonly isConfirmCodeHidden = signal(true);
+
+  // Migration mode: existing email/password user whose data is keyed to their password.
+  // The password-derived key is already in ClientKeyService from signIn.
+  protected readonly isMigrationMode = computed(() =>
+    this.#clientKeyService.hasClientKey(),
+  );
 
   protected readonly form = this.#formBuilder.nonNullable.group(
     {
@@ -227,10 +233,10 @@ export default class SetupVaultCode {
     this.form.disable();
     this.clearError();
 
-    const { vaultCode } = this.form.getRawValue();
+    const { vaultCode, rememberDevice } = this.form.getRawValue();
 
     try {
-      // 1. Get salt and derive client key
+      // 1. Get salt and derive client key from vault code
       const { salt, kdfIterations } = await firstValueFrom(
         this.#encryptionApi.getSalt$(),
       );
@@ -240,18 +246,26 @@ export default class SetupVaultCode {
         kdfIterations,
       );
 
-      // 2. Store client key
-      this.#clientKeyService.setDirectKey(clientKeyHex, true);
+      // 2. Migration: rekey data from password-derived key to vault-code-derived key.
+      //    The old key is sent automatically via X-Client-Key interceptor.
+      if (this.isMigrationMode()) {
+        await firstValueFrom(
+          this.#encryptionApi.notifyPasswordChange$(clientKeyHex),
+        );
+      }
 
-      // 3. Setup recovery key (must succeed before marking configured)
+      // 3. Store new client key (replaces old password-derived key in migration)
+      this.#clientKeyService.setDirectKey(clientKeyHex, rememberDevice);
+
+      // 4. Setup recovery key (must succeed before marking configured)
       await this.#showRecoveryKey();
 
-      // 4. Mark user as configured only after recovery key is saved
+      // 5. Mark user as configured only after recovery key is saved
       await this.#authSession
         .getClient()
         .auth.updateUser({ data: { vaultCodeConfigured: true } });
 
-      // 5. Redirect to dashboard
+      // 6. Redirect to dashboard
       this.#router.navigate(['/', ROUTES.DASHBOARD]);
     } catch (error) {
       this.#logger.error('Setup vault code failed:', error);

@@ -82,6 +82,11 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Invalid recovery key',
     httpStatus: HttpStatus.BAD_REQUEST,
   },
+  ENCRYPTION_KEY_CHECK_FAILED: {
+    code: 'ERR_ENCRYPTION_KEY_CHECK_FAILED',
+    message: () => 'Client key verification failed',
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
 
   // Budget Errors
   BUDGET_NOT_FOUND: {

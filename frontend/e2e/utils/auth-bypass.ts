@@ -16,24 +16,38 @@ const TOUR_IDS = ['intro', 'current-month', 'budget-list', 'budget-details', 'te
 export async function setupAuthBypass(page: Page, options: {
   includeApiMocks?: boolean;
   setLocalStorage?: boolean;
+  provider?: 'email' | 'google';
+  vaultCodeConfigured?: boolean;
 } = {}) {
-  const { includeApiMocks = true, setLocalStorage = false } = options;
+  const { includeApiMocks = true, setLocalStorage = false, provider, vaultCodeConfigured } = options;
 
   // Inject E2E auth bypass
   await page.addInitScript((config) => {
     const e2eWindow = window as unknown as E2ETestWindow;
     e2eWindow.__E2E_AUTH_BYPASS__ = true;
+
+    const userMetadata: Record<string, unknown> = {};
+    const appMetadata: Record<string, unknown> = {};
+
+    if (config.provider) {
+      appMetadata['provider'] = config.provider;
+    }
+    if (config.vaultCodeConfigured !== undefined) {
+      userMetadata['vaultCodeConfigured'] = config.vaultCodeConfigured;
+    }
+
+    const mockUser = {
+      id: config.USER.ID,
+      email: config.USER.EMAIL,
+      ...(Object.keys(appMetadata).length > 0 && { app_metadata: appMetadata }),
+      ...(Object.keys(userMetadata).length > 0 && { user_metadata: userMetadata }),
+    };
+
     e2eWindow.__E2E_MOCK_AUTH_STATE__ = {
-      user: {
-        id: config.USER.ID,
-        email: config.USER.EMAIL
-      },
+      user: mockUser,
       session: {
         access_token: config.TOKENS.ACCESS,
-        user: {
-          id: config.USER.ID,
-          email: config.USER.EMAIL
-        }
+        user: mockUser,
       },
       isLoading: false,
       isAuthenticated: true
@@ -56,7 +70,7 @@ export async function setupAuthBypass(page: Page, options: {
       };
       localStorage.setItem(`pulpe-tour-${tourId}`, JSON.stringify(entry));
     }
-  }, { ...TEST_CONFIG, setLocalStorage, tourIds: TOUR_IDS });
+  }, { ...TEST_CONFIG, setLocalStorage, tourIds: TOUR_IDS, provider, vaultCodeConfigured });
 
   // Setup API mocks if requested
   if (includeApiMocks) {
@@ -156,6 +170,29 @@ export async function setupApiMocks(page: Page) {
           }),
         });
       }
+    }
+
+    // Encryption endpoints
+    if (url.includes('encryption/salt')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ salt: '00000000000000000000000000000000', kdfIterations: 1 }),
+      });
+    }
+    if (url.includes('encryption/setup-recovery')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ recoveryKey: 'AAAA-BBBB-CCCC-DDDD' }),
+      });
+    }
+    if (url.includes('encryption/recover')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true }),
+      });
     }
 
     // Template endpoints - handle different patterns

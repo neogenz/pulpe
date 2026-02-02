@@ -24,6 +24,15 @@
 
 ## Ce qui reste sur cette branche
 
+### 0. Validation du code coffre-fort — #305
+
+Un code coffre-fort incorrect ne doit pas donner accès à l'app. Key check canary (pattern Bitwarden).
+
+**Fichiers modifiés :**
+- Backend : `encryption.controller.ts`, `encryption.service.ts`, `encryption-key.repository.ts`, `error-definitions.ts`
+- Frontend : `encryption-api.ts`, `enter-vault-code.ts`
+- Migration : `20260202100000_add_key_check_column.sql`
+
 ### 1. Page "mot de passe oublié" — #296
 
 Sans cette page, un utilisateur qui oublie son mot de passe perd ses données.
@@ -83,6 +92,7 @@ Migration SQL pour supprimer les colonnes `amount`, `target_amount`, `ending_bal
 |---|-------|--------|------------|
 | ~~1~~ | ~~Prompt recovery key au signup~~ | ~~#295~~ | ~~—~~ ✅ |
 | ~~2~~ | ~~Nudge recovery key post-password-change~~ | ~~#297~~ | ~~—~~ ✅ |
+| 2b | Validation du code coffre-fort | #305 | — |
 | 3 | Page mot de passe oublié | #296 | ~~#295~~ |
 | 4 | Déploiement + migration prod | — | #296 |
 | 5 | Vérification prod | — | Déploiement |
@@ -97,5 +107,6 @@ Migration SQL pour supprimer les colonnes `amount`, `target_amount`, `ending_bal
 ├── #295 (prompt signup) ← DONE
 ├── #296 (forgot-password) ← débloqué
 ├── #297 (nudge post-password-change) ← DONE
+├── #305 (validation code coffre-fort) ← EN COURS
 └── #293 (cleanup backfill) ← bloqué par déploiement + vérification
 ```

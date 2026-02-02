@@ -110,7 +110,7 @@ import {
             <mat-label>Nouveau code coffre-fort</mat-label>
             <input
               matInput
-              [type]="hideVaultCode() ? 'password' : 'text'"
+              [type]="isVaultCodeHidden() ? 'password' : 'text'"
               formControlName="newVaultCode"
               data-testid="new-vault-code-input"
               (input)="clearError()"
@@ -121,12 +121,12 @@ import {
               type="button"
               matIconButton
               matSuffix
-              (click)="hideVaultCode.set(!hideVaultCode())"
+              (click)="isVaultCodeHidden.set(!isVaultCodeHidden())"
               [attr.aria-label]="'Afficher le code'"
-              [attr.aria-pressed]="!hideVaultCode()"
+              [attr.aria-pressed]="!isVaultCodeHidden()"
             >
               <mat-icon>{{
-                hideVaultCode() ? 'visibility_off' : 'visibility'
+                isVaultCodeHidden() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
             <mat-hint>8 caractères minimum</mat-hint>
@@ -148,7 +148,7 @@ import {
             <mat-label>Confirmer le code coffre-fort</mat-label>
             <input
               matInput
-              [type]="hideConfirmCode() ? 'password' : 'text'"
+              [type]="isConfirmCodeHidden() ? 'password' : 'text'"
               formControlName="confirmCode"
               data-testid="confirm-vault-code-input"
               (input)="clearError()"
@@ -159,12 +159,12 @@ import {
               type="button"
               matIconButton
               matSuffix
-              (click)="hideConfirmCode.set(!hideConfirmCode())"
+              (click)="isConfirmCodeHidden.set(!isConfirmCodeHidden())"
               [attr.aria-label]="'Afficher le code'"
-              [attr.aria-pressed]="!hideConfirmCode()"
+              [attr.aria-pressed]="!isConfirmCodeHidden()"
             >
               <mat-icon>{{
-                hideConfirmCode() ? 'visibility_off' : 'visibility'
+                isConfirmCodeHidden() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
             @if (
@@ -221,8 +221,8 @@ export default class RecoverVaultCode {
   protected readonly ROUTES = ROUTES;
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
-  protected readonly hideVaultCode = signal(true);
-  protected readonly hideConfirmCode = signal(true);
+  protected readonly isVaultCodeHidden = signal(true);
+  protected readonly isConfirmCodeHidden = signal(true);
 
   protected readonly form = this.#formBuilder.nonNullable.group(
     {

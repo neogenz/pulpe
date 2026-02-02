@@ -1,14 +1,10 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { MatDialog } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { of, throwError } from 'rxjs';
 
 import { AuthCredentialsService, PASSWORD_MIN_LENGTH } from '@core/auth';
-import { EncryptionApi } from '@core/encryption';
 import { Logger } from '@core/logging/logger';
 
 import Signup from './signup';
@@ -20,19 +16,9 @@ describe('Signup', () => {
     error: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
   };
-  let mockEncryptionApi: {
-    setupRecoveryKey$: ReturnType<typeof vi.fn>;
-  };
-  let mockDialog: { open: ReturnType<typeof vi.fn> };
-  let mockSnackBar: { open: ReturnType<typeof vi.fn> };
-  let mockDialogRef: { afterClosed: ReturnType<typeof vi.fn> };
   let navigateSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
-    mockDialogRef = {
-      afterClosed: vi.fn().mockReturnValue(of(true)),
-    };
-
     mockAuthCredentials = {
       signUpWithEmail: vi.fn(),
     };
@@ -40,20 +26,6 @@ describe('Signup', () => {
     mockLogger = {
       error: vi.fn(),
       warn: vi.fn(),
-    };
-
-    mockEncryptionApi = {
-      setupRecoveryKey$: vi
-        .fn()
-        .mockReturnValue(of({ recoveryKey: 'ABCD-EFGH-1234' })),
-    };
-
-    mockDialog = {
-      open: vi.fn().mockReturnValue(mockDialogRef),
-    };
-
-    mockSnackBar = {
-      open: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -64,9 +36,6 @@ describe('Signup', () => {
         provideRouter([]),
         { provide: AuthCredentialsService, useValue: mockAuthCredentials },
         { provide: Logger, useValue: mockLogger },
-        { provide: EncryptionApi, useValue: mockEncryptionApi },
-        { provide: MatDialog, useValue: mockDialog },
-        { provide: MatSnackBar, useValue: mockSnackBar },
       ],
     }).compileComponents();
 
@@ -91,8 +60,8 @@ describe('Signup', () => {
     });
 
     it('should have signal properties defined', () => {
-      expect(component['hidePassword']).toBeDefined();
-      expect(component['hideConfirmPassword']).toBeDefined();
+      expect(component['isPasswordHidden']).toBeDefined();
+      expect(component['isConfirmPasswordHidden']).toBeDefined();
       expect(component['isSubmitting']).toBeDefined();
       expect(component['errorMessage']).toBeDefined();
     });
@@ -112,12 +81,12 @@ describe('Signup', () => {
   });
 
   describe('Default Values', () => {
-    it('should have hidePassword true by default', () => {
-      expect(component['hidePassword']()).toBe(true);
+    it('should have isPasswordHidden true by default', () => {
+      expect(component['isPasswordHidden']()).toBe(true);
     });
 
-    it('should have hideConfirmPassword true by default', () => {
-      expect(component['hideConfirmPassword']()).toBe(true);
+    it('should have isConfirmPasswordHidden true by default', () => {
+      expect(component['isConfirmPasswordHidden']()).toBe(true);
     });
 
     it('should have isSubmitting false by default', () => {
@@ -241,30 +210,30 @@ describe('Signup', () => {
   });
 
   describe('togglePasswordVisibility', () => {
-    it('should toggle hidePassword from true to false', () => {
-      expect(component['hidePassword']()).toBe(true);
+    it('should toggle isPasswordHidden from true to false', () => {
+      expect(component['isPasswordHidden']()).toBe(true);
       component['togglePasswordVisibility']();
-      expect(component['hidePassword']()).toBe(false);
+      expect(component['isPasswordHidden']()).toBe(false);
     });
 
-    it('should toggle hidePassword from false to true', () => {
-      component['hidePassword'].set(false);
+    it('should toggle isPasswordHidden from false to true', () => {
+      component['isPasswordHidden'].set(false);
       component['togglePasswordVisibility']();
-      expect(component['hidePassword']()).toBe(true);
+      expect(component['isPasswordHidden']()).toBe(true);
     });
   });
 
   describe('toggleConfirmPasswordVisibility', () => {
-    it('should toggle hideConfirmPassword from true to false', () => {
-      expect(component['hideConfirmPassword']()).toBe(true);
+    it('should toggle isConfirmPasswordHidden from true to false', () => {
+      expect(component['isConfirmPasswordHidden']()).toBe(true);
       component['toggleConfirmPasswordVisibility']();
-      expect(component['hideConfirmPassword']()).toBe(false);
+      expect(component['isConfirmPasswordHidden']()).toBe(false);
     });
 
-    it('should toggle hideConfirmPassword from false to true', () => {
-      component['hideConfirmPassword'].set(false);
+    it('should toggle isConfirmPasswordHidden from false to true', () => {
+      component['isConfirmPasswordHidden'].set(false);
       component['toggleConfirmPasswordVisibility']();
-      expect(component['hideConfirmPassword']()).toBe(true);
+      expect(component['isConfirmPasswordHidden']()).toBe(true);
     });
   });
 
@@ -419,74 +388,18 @@ describe('Signup', () => {
     });
   });
 
-  describe('Recovery Key Prompt after Signup', () => {
+  describe('signUp - Navigation after Success', () => {
     beforeEach(() => {
       fillValidForm();
       mockAuthCredentials.signUpWithEmail.mockResolvedValue({ success: true });
     });
 
-    it('should call setupRecoveryKey$ after successful signup', async () => {
+    it('should navigate to dashboard after successful signup', async () => {
       await component['signUp']();
-
-      expect(mockEncryptionApi.setupRecoveryKey$).toHaveBeenCalled();
-    });
-
-    it('should open RecoveryKeyDialog with disableClose after successful signup', async () => {
-      await component['signUp']();
-
-      expect(mockDialog.open).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: { recoveryKey: 'ABCD-EFGH-1234' },
-          width: '480px',
-          disableClose: true,
-        }),
-      );
-    });
-
-    it('should navigate to dashboard after recovery key dialog closes', async () => {
-      mockDialogRef.afterClosed.mockReturnValue(of(true));
-
-      await component['signUp']();
-
       expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']);
     });
 
-    it('should show snackbar when user confirms recovery key', async () => {
-      mockDialogRef.afterClosed.mockReturnValue(of(true));
-
-      await component['signUp']();
-
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Clé de récupération enregistrée',
-        'OK',
-        expect.objectContaining({ duration: 3000 }),
-      );
-    });
-
-    it('should not show snackbar when user dismisses dialog without confirming', async () => {
-      mockDialogRef.afterClosed.mockReturnValue(of(false));
-
-      await component['signUp']();
-
-      expect(mockSnackBar.open).not.toHaveBeenCalled();
-    });
-
-    it('should navigate to dashboard even if recovery key setup fails', async () => {
-      mockEncryptionApi.setupRecoveryKey$.mockReturnValue(
-        throwError(() => new Error('API error')),
-      );
-
-      await component['signUp']();
-
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Recovery key setup failed during signup — user can generate later from settings',
-        expect.any(Error),
-      );
-      expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']);
-    });
-
-    it('should not call setupRecoveryKey$ when signup fails', async () => {
+    it('should not navigate when signup fails', async () => {
       mockAuthCredentials.signUpWithEmail.mockResolvedValue({
         success: false,
         error: 'Email already exists',
@@ -494,7 +407,6 @@ describe('Signup', () => {
 
       await component['signUp']();
 
-      expect(mockEncryptionApi.setupRecoveryKey$).not.toHaveBeenCalled();
       expect(navigateSpy).not.toHaveBeenCalled();
     });
   });

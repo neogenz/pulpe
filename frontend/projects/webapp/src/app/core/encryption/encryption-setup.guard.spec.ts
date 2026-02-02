@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
   type ActivatedRouteSnapshot,
@@ -6,6 +7,7 @@ import {
   type UrlTree,
 } from '@angular/router';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { firstValueFrom, type Observable } from 'rxjs';
 import { encryptionSetupGuard } from './encryption-setup.guard';
 import { ClientKeyService } from './client-key.service';
 import { AuthStateService } from '@core/auth/auth-state.service';
@@ -15,10 +17,14 @@ const dummyRoute = {} as ActivatedRouteSnapshot;
 const dummyState = {} as RouterStateSnapshot;
 
 describe('encryptionSetupGuard', () => {
-  let mockClientKeyService: { hasClientKey: ReturnType<typeof vi.fn> };
+  let mockClientKeyService: {
+    hasClientKey: ReturnType<typeof vi.fn>;
+    clear: ReturnType<typeof vi.fn>;
+  };
   let mockAuthState: {
     authState: ReturnType<typeof vi.fn>;
   };
+  let authStateSignal: ReturnType<typeof signal>;
   let mockRouter: { createUrlTree: ReturnType<typeof vi.fn> };
 
   function createAuthState(
@@ -36,6 +42,7 @@ describe('encryptionSetupGuard', () => {
   beforeEach(() => {
     mockClientKeyService = {
       hasClientKey: vi.fn(),
+      clear: vi.fn(),
     };
 
     mockAuthState = {
@@ -55,23 +62,11 @@ describe('encryptionSetupGuard', () => {
     });
   });
 
-  it('should allow navigation when clientKey exists', () => {
+  it('should allow navigation when clientKey exists and user has vaultCodeConfigured', () => {
     mockClientKeyService.hasClientKey.mockReturnValue(true);
-    mockAuthState.authState.mockReturnValue(createAuthState(null));
-
-    const result = TestBed.runInInjectionContext(() =>
-      encryptionSetupGuard(dummyRoute, dummyState),
-    );
-
-    expect(result).toBe(true);
-  });
-
-  it('should allow navigation for email users', () => {
-    mockClientKeyService.hasClientKey.mockReturnValue(false);
     mockAuthState.authState.mockReturnValue(
       createAuthState({
-        app_metadata: { provider: 'email' },
-        user_metadata: {},
+        user_metadata: { vaultCodeConfigured: true },
       }),
     );
 
@@ -82,11 +77,30 @@ describe('encryptionSetupGuard', () => {
     expect(result).toBe(true);
   });
 
-  it('should redirect to ENTER_VAULT_CODE for returning Google user', () => {
+  it('should clear stale key and redirect to SETUP_VAULT_CODE when clientKey exists but user has no vaultCodeConfigured', () => {
+    mockClientKeyService.hasClientKey.mockReturnValue(true);
+    mockAuthState.authState.mockReturnValue(
+      createAuthState({
+        user_metadata: {},
+      }),
+    );
+
+    const result = TestBed.runInInjectionContext(() =>
+      encryptionSetupGuard(dummyRoute, dummyState),
+    );
+
+    expect(mockClientKeyService.clear).toHaveBeenCalled();
+    expect(result).toEqual({});
+    expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
+      '/',
+      ROUTES.SETUP_VAULT_CODE,
+    ]);
+  });
+
+  it('should redirect to ENTER_VAULT_CODE for user with vaultCodeConfigured', () => {
     mockClientKeyService.hasClientKey.mockReturnValue(false);
     mockAuthState.authState.mockReturnValue(
       createAuthState({
-        app_metadata: { provider: 'google' },
         user_metadata: { vaultCodeConfigured: true },
       }),
     );
@@ -102,11 +116,10 @@ describe('encryptionSetupGuard', () => {
     ]);
   });
 
-  it('should redirect to SETUP_VAULT_CODE for new Google user', () => {
+  it('should redirect to SETUP_VAULT_CODE for user without vaultCodeConfigured', () => {
     mockClientKeyService.hasClientKey.mockReturnValue(false);
     mockAuthState.authState.mockReturnValue(
       createAuthState({
-        app_metadata: { provider: 'google' },
         user_metadata: {},
       }),
     );
@@ -122,7 +135,27 @@ describe('encryptionSetupGuard', () => {
     ]);
   });
 
-  it('should allow navigation when user is null', () => {
+  it('should redirect to SETUP_VAULT_CODE for email user without vault code', () => {
+    mockClientKeyService.hasClientKey.mockReturnValue(false);
+    mockAuthState.authState.mockReturnValue(
+      createAuthState({
+        app_metadata: { provider: 'email' },
+        user_metadata: {},
+      }),
+    );
+
+    const result = TestBed.runInInjectionContext(() =>
+      encryptionSetupGuard(dummyRoute, dummyState),
+    );
+
+    expect(result).toEqual({});
+    expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
+      '/',
+      ROUTES.SETUP_VAULT_CODE,
+    ]);
+  });
+
+  it('should redirect to SETUP_VAULT_CODE when user is null', () => {
     mockClientKeyService.hasClientKey.mockReturnValue(false);
     mockAuthState.authState.mockReturnValue(createAuthState(null));
 
@@ -130,6 +163,84 @@ describe('encryptionSetupGuard', () => {
       encryptionSetupGuard(dummyRoute, dummyState),
     );
 
-    expect(result).toBe(true);
+    expect(result).toEqual({});
+    expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
+      '/',
+      ROUTES.SETUP_VAULT_CODE,
+    ]);
+  });
+
+  describe('Async auth state (isLoading=true)', () => {
+    beforeEach(() => {
+      authStateSignal = signal(createAuthState(null, true));
+      mockAuthState.authState = authStateSignal as unknown as ReturnType<
+        typeof vi.fn
+      >;
+    });
+
+    it('should wait and allow when auth resolves with key + vaultCodeConfigured', async () => {
+      mockClientKeyService.hasClientKey.mockReturnValue(true);
+
+      const result = TestBed.runInInjectionContext(() =>
+        encryptionSetupGuard(dummyRoute, dummyState),
+      ) as Observable<boolean | UrlTree>;
+
+      const promise = firstValueFrom(result);
+
+      authStateSignal.set(
+        createAuthState({
+          user_metadata: { vaultCodeConfigured: true },
+        }),
+      );
+
+      expect(await promise).toBe(true);
+    });
+
+    it('should wait and redirect to ENTER_VAULT_CODE when no key', async () => {
+      mockClientKeyService.hasClientKey.mockReturnValue(false);
+
+      const result = TestBed.runInInjectionContext(() =>
+        encryptionSetupGuard(dummyRoute, dummyState),
+      ) as Observable<boolean | UrlTree>;
+
+      const promise = firstValueFrom(result);
+
+      authStateSignal.set(
+        createAuthState({
+          user_metadata: { vaultCodeConfigured: true },
+        }),
+      );
+
+      await promise;
+
+      expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
+        '/',
+        ROUTES.ENTER_VAULT_CODE,
+      ]);
+    });
+
+    it('should clear stale key when async state resolves without vaultCodeConfigured', async () => {
+      mockClientKeyService.hasClientKey.mockReturnValue(true);
+
+      const result = TestBed.runInInjectionContext(() =>
+        encryptionSetupGuard(dummyRoute, dummyState),
+      ) as Observable<boolean | UrlTree>;
+
+      const promise = firstValueFrom(result);
+
+      authStateSignal.set(
+        createAuthState({
+          user_metadata: {},
+        }),
+      );
+
+      await promise;
+
+      expect(mockClientKeyService.clear).toHaveBeenCalled();
+      expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
+        '/',
+        ROUTES.SETUP_VAULT_CODE,
+      ]);
+    });
   });
 });

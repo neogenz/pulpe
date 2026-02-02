@@ -70,7 +70,7 @@ import { LoadingButton } from '@ui/loading-button';
             <mat-label>Code coffre-fort</mat-label>
             <input
               matInput
-              [type]="hideCode() ? 'password' : 'text'"
+              [type]="isCodeHidden() ? 'password' : 'text'"
               formControlName="vaultCode"
               data-testid="vault-code-input"
               (input)="clearError()"
@@ -81,12 +81,12 @@ import { LoadingButton } from '@ui/loading-button';
               type="button"
               matIconButton
               matSuffix
-              (click)="hideCode.set(!hideCode())"
+              (click)="isCodeHidden.set(!isCodeHidden())"
               [attr.aria-label]="'Afficher le code'"
-              [attr.aria-pressed]="!hideCode()"
+              [attr.aria-pressed]="!isCodeHidden()"
             >
               <mat-icon>{{
-                hideCode() ? 'visibility_off' : 'visibility'
+                isCodeHidden() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
             @if (
@@ -149,7 +149,7 @@ export default class EnterVaultCode {
   protected readonly ROUTES = ROUTES;
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
-  protected readonly hideCode = signal(true);
+  protected readonly isCodeHidden = signal(true);
 
   protected readonly form = this.#formBuilder.nonNullable.group({
     vaultCode: ['', [Validators.required, Validators.minLength(8)]],
@@ -190,14 +190,19 @@ export default class EnterVaultCode {
         kdfIterations,
       );
 
-      this.#clientKeyService.setDirectKey(clientKeyHex, true);
+      await firstValueFrom(this.#encryptionApi.validateKey$(clientKeyHex));
+
+      const rememberDevice = this.form.getRawValue().rememberDevice;
+      this.#clientKeyService.setDirectKey(clientKeyHex, rememberDevice);
 
       this.#router.navigate(['/', ROUTES.DASHBOARD]);
     } catch (error) {
       this.#logger.error('Enter vault code failed:', error);
 
       if (error instanceof HttpErrorResponse && error.status === 400) {
-        this.errorMessage.set('Code incorrect — vérifie ton code et réessaie');
+        this.errorMessage.set(
+          'Ce code ne semble pas correct — vérifie et réessaie',
+        );
       } else {
         this.errorMessage.set(
           "Quelque chose n'a pas fonctionné — réessaie plus tard",

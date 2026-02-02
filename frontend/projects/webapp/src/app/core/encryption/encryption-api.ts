@@ -36,6 +36,12 @@ export class EncryptionApi {
     return this.#http.get<SaltResponse>(`${this.#baseUrl}/salt`);
   }
 
+  validateKey$(clientKeyHex: string): Observable<void> {
+    return this.#http.post<void>(`${this.#baseUrl}/validate-key`, {
+      clientKey: clientKeyHex,
+    });
+  }
+
   notifyPasswordChange$(
     newClientKeyHex: string,
   ): Observable<PasswordChangeResponse> {

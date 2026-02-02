@@ -128,6 +128,12 @@ test.describe('Template Details View', () => {
     await setupAuthBypass(page, {
       includeApiMocks: false,
       setLocalStorage: true,
+      vaultCodeConfigured: true,
+    });
+
+    await page.addInitScript(() => {
+      const entry = { version: 1, data: 'aa'.repeat(32), updatedAt: new Date().toISOString() };
+      sessionStorage.setItem('pulpe-vault-client-key-session', JSON.stringify(entry));
     });
 
     // Navigate and wait for the error response using Promise-based approach
