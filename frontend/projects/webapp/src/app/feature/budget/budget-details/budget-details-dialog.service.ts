@@ -88,8 +88,16 @@ export class BudgetDetailsDialogService {
   async openCreateAllocatedTransactionDialog(
     budgetLine: BudgetLine,
     isMobile: boolean,
+    budgetPeriod: {
+      budgetMonth: number;
+      budgetYear: number;
+      payDayOfMonth: number | null;
+    },
   ): Promise<TransactionCreate | undefined> {
-    const data: CreateAllocatedTransactionDialogData = { budgetLine };
+    const data: CreateAllocatedTransactionDialogData = {
+      budgetLine,
+      ...budgetPeriod,
+    };
 
     if (isMobile) {
       const bottomSheetRef = this.#bottomSheet.open(

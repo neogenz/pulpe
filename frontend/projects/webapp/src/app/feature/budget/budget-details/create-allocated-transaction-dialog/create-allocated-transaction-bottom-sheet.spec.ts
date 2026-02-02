@@ -25,6 +25,9 @@ const createDialogData = (
     rolloverSourceBudgetId: undefined,
     ...overrides,
   } as CreateAllocatedTransactionDialogData['budgetLine'],
+  budgetMonth: new Date().getMonth() + 1,
+  budgetYear: new Date().getFullYear(),
+  payDayOfMonth: null,
 });
 
 describe('CreateAllocatedTransactionBottomSheet', () => {
@@ -54,10 +57,15 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
 
   describe('submit', () => {
     it('should dismiss with transaction data when form is valid', () => {
+      const midMonth = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        15,
+      );
       component.form.patchValue({
         name: 'Consultation médecin',
         amount: 45.5,
-        transactionDate: new Date('2026-01-15'),
+        transactionDate: midMonth,
       });
 
       component.submit();
@@ -83,10 +91,15 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
     });
 
     it('should trim whitespace from name', () => {
+      const midMonth = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        15,
+      );
       component.form.patchValue({
         name: '  Courses  ',
         amount: 20,
-        transactionDate: new Date(),
+        transactionDate: midMonth,
       });
 
       component.submit();
@@ -96,11 +109,16 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
       );
     });
 
-    it('should use absolute value of amount', () => {
+    it('should pass amount as-is to transaction', () => {
+      const midMonth = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        15,
+      );
       component.form.patchValue({
         name: 'Test',
         amount: 42.5,
-        transactionDate: new Date(),
+        transactionDate: midMonth,
       });
 
       component.submit();
@@ -156,6 +174,86 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
       expect(component.form.get('transactionDate')?.hasError('required')).toBe(
         true,
       );
+    });
+  });
+
+  describe('date constraints', () => {
+    it('should set minDate and maxDate for current month budget', () => {
+      expect(component.minDate).toBeDefined();
+      expect(component.maxDate).toBeDefined();
+      expect(component.minDate!.getTime()).toBeLessThanOrEqual(
+        component.maxDate!.getTime(),
+      );
+    });
+
+    it('should set minDate and maxDate for past month budget', async () => {
+      const pastData: CreateAllocatedTransactionDialogData = {
+        ...createDialogData(),
+        budgetMonth: 1,
+        budgetYear: 2020,
+      };
+
+      const pastRef = { dismiss: vi.fn() };
+
+      await TestBed.resetTestingModule()
+        .configureTestingModule({
+          imports: [CreateAllocatedTransactionBottomSheet],
+          providers: [
+            provideZonelessChangeDetection(),
+            provideAnimationsAsync(),
+            provideNativeDateAdapter(),
+            { provide: MAT_BOTTOM_SHEET_DATA, useValue: pastData },
+            { provide: MatBottomSheetRef, useValue: pastRef },
+          ],
+        })
+        .compileComponents();
+
+      const pastComponent = TestBed.createComponent(
+        CreateAllocatedTransactionBottomSheet,
+      ).componentInstance;
+
+      expect(pastComponent.minDate).toBeDefined();
+      expect(pastComponent.maxDate).toBeDefined();
+      expect(pastComponent.minDate!.getMonth()).toBe(0); // January
+      expect(pastComponent.minDate!.getFullYear()).toBe(2020);
+    });
+
+    it('should respect custom payDayOfMonth', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2025, 5, 27));
+
+      const customPayDayData: CreateAllocatedTransactionDialogData = {
+        ...createDialogData(),
+        budgetMonth: 7,
+        budgetYear: 2025,
+        payDayOfMonth: 25,
+      };
+
+      const customRef = { dismiss: vi.fn() };
+
+      await TestBed.resetTestingModule()
+        .configureTestingModule({
+          imports: [CreateAllocatedTransactionBottomSheet],
+          providers: [
+            provideZonelessChangeDetection(),
+            provideAnimationsAsync(),
+            provideNativeDateAdapter(),
+            { provide: MAT_BOTTOM_SHEET_DATA, useValue: customPayDayData },
+            { provide: MatBottomSheetRef, useValue: customRef },
+          ],
+        })
+        .compileComponents();
+
+      const customComponent = TestBed.createComponent(
+        CreateAllocatedTransactionBottomSheet,
+      ).componentInstance;
+
+      expect(customComponent.minDate).toBeDefined();
+      expect(customComponent.maxDate).toBeDefined();
+      expect(customComponent.minDate!.getDate()).toBe(25);
+      expect(customComponent.maxDate!.getDate()).toBe(24);
+
+      vi.useRealTimers();
     });
   });
 });
