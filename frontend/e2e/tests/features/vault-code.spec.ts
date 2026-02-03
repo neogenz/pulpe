@@ -150,12 +150,12 @@ test.describe('Vault Code', () => {
         vaultCodeConfigured: true,
       });
 
-      // Override salt endpoint to return 400
-      await page.route('**/api/v1/encryption/salt', (route: Route) => {
+      // Override validate-key endpoint to return 400 (simulates wrong vault code)
+      await page.route('**/api/v1/encryption/validate-key', (route: Route) => {
         return route.fulfill({
           status: 400,
           contentType: 'application/json',
-          body: JSON.stringify({ message: 'Invalid vault code' }),
+          body: JSON.stringify({ message: 'Key check failed' }),
         });
       });
 
