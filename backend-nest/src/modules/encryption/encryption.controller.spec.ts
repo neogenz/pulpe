@@ -61,6 +61,7 @@ describe('EncryptionController', () => {
       const expectedResult = {
         salt: 'generated-salt-abc123',
         kdfIterations: 600000,
+        hasRecoveryKey: false,
       };
 
       mockEncryptionService = createMockEncryptionService({

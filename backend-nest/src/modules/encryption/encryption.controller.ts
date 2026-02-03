@@ -60,11 +60,11 @@ export class EncryptionController {
   @ApiOperation({ summary: 'Get user encryption salt and KDF parameters' })
   @ApiResponse({
     status: 200,
-    description: 'Salt and KDF iterations for client-side key derivation',
+    description: 'Salt, KDF iterations, and recovery key status',
   })
   async getSalt(
     @User() user: AuthenticatedUser,
-  ): Promise<{ salt: string; kdfIterations: number }> {
+  ): Promise<{ salt: string; kdfIterations: number; hasRecoveryKey: boolean }> {
     return this.encryptionService.getUserSalt(user.id);
   }
 

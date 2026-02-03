@@ -19,6 +19,7 @@ const createMockRepository = (overrides?: {
   upsertSalt?: ReturnType<typeof mock>;
   updateSalt?: ReturnType<typeof mock>;
   updateWrappedDEK?: ReturnType<typeof mock>;
+  hasRecoveryKey?: ReturnType<typeof mock>;
 }) => ({
   findSaltByUserId:
     overrides?.findSaltByUserId ?? mock(() => Promise.resolve(null)),
@@ -27,6 +28,8 @@ const createMockRepository = (overrides?: {
   updateSalt: overrides?.updateSalt ?? mock(() => Promise.resolve()),
   updateWrappedDEK:
     overrides?.updateWrappedDEK ?? mock(() => Promise.resolve()),
+  hasRecoveryKey:
+    overrides?.hasRecoveryKey ?? mock(() => Promise.resolve(false)),
 });
 
 describe('EncryptionService', () => {
@@ -489,19 +492,38 @@ describe('EncryptionService', () => {
   });
 
   describe('getUserSalt', () => {
-    it('should return existing salt and iterations', async () => {
+    it('should return existing salt, iterations, and hasRecoveryKey=false when no recovery key', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
         Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
       );
+      const hasRecoveryKey = mock(() => Promise.resolve(false));
 
-      const repo = createMockRepository({ findSaltByUserId });
+      const repo = createMockRepository({ findSaltByUserId, hasRecoveryKey });
 
       service = new EncryptionService(mockConfigService as any, repo as any);
 
       const result = await service.getUserSalt(TEST_USER_ID);
       expect(result.salt).toBe(existingSalt);
       expect(result.kdfIterations).toBe(600000);
+      expect(result.hasRecoveryKey).toBe(false);
+    });
+
+    it('should return hasRecoveryKey=true when user has recovery key', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+      );
+      const hasRecoveryKey = mock(() => Promise.resolve(true));
+
+      const repo = createMockRepository({ findSaltByUserId, hasRecoveryKey });
+
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      const result = await service.getUserSalt(TEST_USER_ID);
+      expect(result.salt).toBe(existingSalt);
+      expect(result.kdfIterations).toBe(600000);
+      expect(result.hasRecoveryKey).toBe(true);
     });
 
     it('should generate and persist new salt when none exists', async () => {
@@ -516,8 +538,13 @@ describe('EncryptionService', () => {
         });
       });
       const upsertSalt = mock(() => Promise.resolve());
+      const hasRecoveryKey = mock(() => Promise.resolve(false));
 
-      const repo = createMockRepository({ findSaltByUserId, upsertSalt });
+      const repo = createMockRepository({
+        findSaltByUserId,
+        upsertSalt,
+        hasRecoveryKey,
+      });
 
       service = new EncryptionService(mockConfigService as any, repo as any);
 
@@ -525,6 +552,7 @@ describe('EncryptionService', () => {
       expect(result.salt).toBeDefined();
       expect(result.salt.length).toBe(32); // 16 bytes hex = 32 chars
       expect(result.kdfIterations).toBe(600000);
+      expect(result.hasRecoveryKey).toBe(false);
       expect(upsertSalt).toHaveBeenCalled();
     });
   });

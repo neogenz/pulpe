@@ -7,6 +7,7 @@ import { ApplicationConfiguration } from '@core/config/application-configuration
 interface SaltResponse {
   salt: string;
   kdfIterations: number;
+  hasRecoveryKey: boolean;
 }
 
 interface PasswordChangeResponse {
