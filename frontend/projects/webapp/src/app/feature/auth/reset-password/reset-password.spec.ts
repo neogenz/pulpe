@@ -69,9 +69,13 @@ describe('ResetPassword', () => {
     };
 
     mockEncryptionApi = {
-      getSalt$: vi
-        .fn()
-        .mockReturnValue(of({ salt: 'salt-value', kdfIterations: 100000 })),
+      getSalt$: vi.fn().mockReturnValue(
+        of({
+          salt: 'salt-value',
+          kdfIterations: 100000,
+          hasRecoveryKey: true, // Default: user HAS recovery key configured
+        }),
+      ),
       recover$: vi.fn().mockReturnValue(of({ success: true })),
       setupRecoveryKey$: vi
         .fn()
@@ -107,9 +111,8 @@ describe('ResetPassword', () => {
     const router = TestBed.inject(Router);
     navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
-    await vi.waitFor(() =>
-      expect(component['isCheckingSession']()).toBe(false),
-    );
+    // Wait for session check AND salt fetch to complete
+    await vi.waitFor(() => expect(component['isSessionValid']()).toBe(true));
   });
 
   function fillValidForm(): void {
@@ -157,6 +160,7 @@ describe('ResetPassword', () => {
 
       const newComponent =
         TestBed.createComponent(ResetPassword).componentInstance;
+      // When not authenticated, salt fetch doesn't start, so just wait for auth check
       await vi.waitFor(() =>
         expect(newComponent['isCheckingSession']()).toBe(false),
       );
@@ -196,10 +200,11 @@ describe('ResetPassword', () => {
   });
 
   describe('Form Validation', () => {
-    it('should have recoveryKey field without required validator (validated at submit)', () => {
+    it('should have recoveryKey field with required validator when hasRecoveryKey is true', () => {
+      // When user has recovery key configured, the recovery key field is shown and required
       const recoveryKeyControl = component['form'].get('recoveryKey');
       recoveryKeyControl?.setValue('');
-      expect(recoveryKeyControl?.hasError('required')).toBe(false);
+      expect(recoveryKeyControl?.hasError('required')).toBe(true);
     });
 
     it('should require newPassword', () => {
@@ -297,8 +302,13 @@ describe('ResetPassword', () => {
 
   describe('onSubmit - Invalid Form', () => {
     it('should not submit when form is invalid', async () => {
+      // getSalt$ is called on init, so reset the mock
+      mockEncryptionApi.recover$.mockClear();
+
       await component['onSubmit']();
-      expect(mockEncryptionApi.getSalt$).not.toHaveBeenCalled();
+
+      // With invalid form, recover$ should not be called
+      expect(mockEncryptionApi.recover$).not.toHaveBeenCalled();
     });
 
     it('should mark form as touched when invalid', async () => {
@@ -478,6 +488,111 @@ describe('ResetPassword', () => {
       await component['onSubmit']();
 
       expect(navigateSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onSubmit - Existing user without recovery key (hasRecoveryKey=false)', () => {
+    beforeEach(async () => {
+      // User without vault code AND without recovery key (existing user before migration)
+      mockEncryptionApi.getSalt$.mockReturnValue(
+        of({
+          salt: 'salt-value',
+          kdfIterations: 100000,
+          hasRecoveryKey: false, // <-- No recovery key configured
+        }),
+      );
+
+      // Recreate component with new mock
+      const newFixture = TestBed.createComponent(ResetPassword);
+      component = newFixture.componentInstance;
+
+      // Wait for salt fetch to complete
+      await vi.waitFor(() => expect(component['isSessionValid']()).toBe(true));
+
+      // Fill form with just passwords (no recovery key needed)
+      component['form'].patchValue({
+        newPassword: 'newpassword123',
+        confirmPassword: 'newpassword123',
+      });
+
+      mockAuthSessionService.updatePassword.mockResolvedValue({
+        success: true,
+      });
+    });
+
+    it('should have showRecoveryKeyField as false', () => {
+      expect(component['showRecoveryKeyField']()).toBe(false);
+    });
+
+    it('should not call recover$ (no recovery key flow)', async () => {
+      await component['onSubmit']();
+
+      expect(mockEncryptionApi.recover$).not.toHaveBeenCalled();
+    });
+
+    it('should not call setupRecoveryKey$ (will happen in setup-vault-code)', async () => {
+      await component['onSubmit']();
+
+      expect(mockEncryptionApi.setupRecoveryKey$).not.toHaveBeenCalled();
+    });
+
+    it('should navigate to setup-vault-code instead of dashboard', async () => {
+      const router = TestBed.inject(Router);
+      const spy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+      await component['onSubmit']();
+
+      expect(spy).toHaveBeenCalledWith(['/', 'setup-vault-code']);
+    });
+
+    it('should call updatePassword with new password', async () => {
+      await component['onSubmit']();
+
+      expect(mockAuthSessionService.updatePassword).toHaveBeenCalledWith(
+        'newpassword123',
+      );
+    });
+  });
+
+  describe('Salt fetch error handling', () => {
+    it('should show error state when salt fetch fails', async () => {
+      // Reset the mock to throw an error BEFORE creating new component
+      mockEncryptionApi.getSalt$.mockReturnValue(
+        throwError(() => new Error('Network error')),
+      );
+
+      const newFixture = TestBed.createComponent(ResetPassword);
+      const newComponent = newFixture.componentInstance;
+
+      // Wait for the error to be set (async fetch must complete)
+      await vi.waitFor(() =>
+        expect(newComponent['saltFetchError']()).toBeTruthy(),
+      );
+
+      expect(newComponent['saltFetchError']()).toBe(
+        'Impossible de charger les informations de sécurité',
+      );
+      expect(newComponent['isSessionValid']()).toBe(false);
+      expect(newComponent['isCheckingSession']()).toBe(false);
+    });
+
+    it('should distinguish salt fetch error from invalid session', async () => {
+      mockEncryptionApi.getSalt$.mockReturnValue(
+        throwError(() => new Error('Network error')),
+      );
+
+      const newFixture = TestBed.createComponent(ResetPassword);
+      const newComponent = newFixture.componentInstance;
+
+      // Wait for the error to be set
+      await vi.waitFor(() =>
+        expect(newComponent['saltFetchError']()).toBeTruthy(),
+      );
+
+      // saltFetchError should be set, not just isSessionValid being false
+      expect(newComponent['saltFetchError']()).toBeTruthy();
+      // Session is considered invalid due to error, even though user is authenticated
+      expect(newComponent['isSessionValid']()).toBe(false);
     });
   });
 });

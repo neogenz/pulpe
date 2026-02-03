@@ -80,6 +80,23 @@ export class EncryptionKeyRepository {
     return data ?? null;
   }
 
+  async hasRecoveryKey(userId: string): Promise<boolean> {
+    const supabase = this.#supabaseService.getServiceRoleClient();
+    const { data, error } = await supabase
+      .from('user_encryption_key')
+      .select('wrapped_dek')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return false;
+      throw new Error(
+        `Failed to check recovery key for user ${userId}: ${error.message}`,
+      );
+    }
+    return !!data?.wrapped_dek;
+  }
+
   async updateWrappedDEK(
     userId: string,
     wrappedDEK: string | null,
