@@ -36,7 +36,11 @@ import {
   RecoveryKeyDialog,
   type RecoveryKeyDialogData,
 } from '@ui/dialogs/recovery-key-dialog';
-import { createFieldsMatchValidator } from '@core/validators';
+import {
+  createFieldsMatchValidator,
+  recoveryKeyValidators,
+  formatRecoveryKeyInput,
+} from '@core/validators';
 
 @Component({
   selector: 'pulpe-reset-password',
@@ -121,22 +125,28 @@ import { createFieldsMatchValidator } from '@core/validators';
             @if (!hasVaultCode()) {
               <mat-form-field appearance="outline" class="w-full">
                 <mat-label>Clé de récupération</mat-label>
-                <textarea
+                <input
                   matInput
                   formControlName="recoveryKey"
                   data-testid="recovery-key-input"
-                  (input)="clearError()"
-                  placeholder="XXXX-XXXX-XXXX-..."
-                  rows="3"
-                  class="font-mono"
+                  (input)="onRecoveryKeyInput()"
+                  placeholder="XXXX-XXXX-XXXX-XXXX-..."
+                  class="font-mono text-sm uppercase tracking-wide"
+                  autocomplete="off"
+                  spellcheck="false"
                   [disabled]="isSubmitting()"
-                ></textarea>
-                <mat-icon matPrefix>key</mat-icon>
+                />
                 @if (
                   form.get('recoveryKey')?.invalid &&
                   form.get('recoveryKey')?.touched
                 ) {
-                  <mat-error> Ta clé de récupération est nécessaire </mat-error>
+                  <mat-error>
+                    @if (form.get('recoveryKey')?.hasError('required')) {
+                      Ta clé de récupération est nécessaire
+                    } @else if (form.get('recoveryKey')?.hasError('pattern')) {
+                      Format invalide — vérifie que tu as bien copié la clé
+                    }
+                  </mat-error>
                 }
               </mat-form-field>
             }
@@ -270,7 +280,7 @@ export default class ResetPassword {
 
   protected readonly form = this.#formBuilder.nonNullable.group(
     {
-      recoveryKey: [''],
+      recoveryKey: ['', recoveryKeyValidators],
       newPassword: [
         '',
         [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)],
@@ -302,6 +312,16 @@ export default class ResetPassword {
         );
       }
     });
+  }
+
+  protected onRecoveryKeyInput(): void {
+    const raw = this.form.controls.recoveryKey.value;
+    const formatted = formatRecoveryKeyInput(raw);
+
+    if (formatted !== raw) {
+      this.form.controls.recoveryKey.setValue(formatted, { emitEvent: false });
+    }
+    this.clearError();
   }
 
   protected clearError(): void {

@@ -16,7 +16,11 @@ import SetupVaultCode from './setup-vault-code';
 describe('SetupVaultCode', () => {
   let component: SetupVaultCode;
   let mockUpdateUser: ReturnType<typeof vi.fn>;
-  let mockAuthSessionService: { getClient: ReturnType<typeof vi.fn> };
+  let mockSignOut: ReturnType<typeof vi.fn>;
+  let mockAuthSessionService: {
+    getClient: ReturnType<typeof vi.fn>;
+    signOut: ReturnType<typeof vi.fn>;
+  };
   let mockClientKeyService: {
     setDirectKey: ReturnType<typeof vi.fn>;
     hasClientKey: ReturnType<typeof vi.fn>;
@@ -41,10 +45,12 @@ describe('SetupVaultCode', () => {
     };
 
     mockUpdateUser = vi.fn().mockResolvedValue({ data: {}, error: null });
+    mockSignOut = vi.fn().mockResolvedValue(undefined);
     mockAuthSessionService = {
       getClient: vi.fn().mockReturnValue({
         auth: { updateUser: mockUpdateUser },
       }),
+      signOut: mockSignOut,
     };
 
     mockClientKeyService = {
@@ -357,6 +363,65 @@ describe('SetupVaultCode', () => {
 
       expect(mockEncryptionApi.setupRecoveryKey$).not.toHaveBeenCalled();
       expect(mockUpdateUser).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onLogout', () => {
+    it('should not proceed if already logging out', async () => {
+      component['isLoggingOut'].set(true);
+
+      await component['onLogout']();
+
+      expect(mockSignOut).not.toHaveBeenCalled();
+    });
+
+    it('should set isLoggingOut to true when starting logout', async () => {
+      const promise = component['onLogout']();
+
+      expect(component['isLoggingOut']()).toBe(true);
+
+      await promise;
+    });
+
+    it('should open LogoutDialog with disableClose', async () => {
+      await component['onLogout']();
+
+      expect(mockDialog.open).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ disableClose: true }),
+      );
+    });
+
+    it('should call authSessionService.signOut', async () => {
+      await component['onLogout']();
+
+      expect(mockSignOut).toHaveBeenCalled();
+    });
+
+    it('should reset isLoggingOut on signOut success', async () => {
+      await component['onLogout']();
+
+      expect(component['isLoggingOut']()).toBe(false);
+    });
+
+    it('should reset isLoggingOut on signOut error', async () => {
+      mockSignOut.mockRejectedValue(new Error('Logout failed'));
+
+      await component['onLogout']();
+
+      expect(component['isLoggingOut']()).toBe(false);
+    });
+
+    it('should log error when signOut fails', async () => {
+      const error = new Error('Logout failed');
+      mockSignOut.mockRejectedValue(error);
+
+      await component['onLogout']();
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Erreur lors de la déconnexion:',
+        error,
+      );
     });
   });
 });

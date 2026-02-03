@@ -24,7 +24,11 @@ import {
 } from '@core/encryption';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
-import { createFieldsMatchValidator } from '@core/validators';
+import {
+  createFieldsMatchValidator,
+  recoveryKeyValidators,
+  formatRecoveryKeyInput,
+} from '@core/validators';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
 import {
@@ -63,8 +67,10 @@ import {
           <span>Retour</span>
         </button>
 
-        <div class="text-center mb-8 mt-4">
-          <mat-icon class="text-6xl text-primary mb-4">key</mat-icon>
+        <div class="text-center mb-8">
+          <mat-icon class="text-6xl! w-auto! h-auto! text-primary"
+            >key</mat-icon
+          >
           <h1
             class="text-2xl md:text-4xl font-bold text-on-surface mb-2 leading-tight"
           >
@@ -227,10 +233,7 @@ export default class RecoverVaultCode {
 
   protected readonly form = this.#formBuilder.nonNullable.group(
     {
-      recoveryKey: [
-        '',
-        [Validators.required, Validators.pattern(/^[A-Za-z0-9\-\s]+$/)],
-      ],
+      recoveryKey: ['', recoveryKeyValidators],
       newVaultCode: ['', [Validators.required, Validators.minLength(8)]],
       confirmCode: ['', [Validators.required]],
       rememberDevice: [false],
@@ -254,8 +257,7 @@ export default class RecoverVaultCode {
 
   protected onRecoveryKeyInput(): void {
     const raw = this.form.controls.recoveryKey.value;
-    const stripped = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-    const formatted = stripped.match(/.{1,4}/g)?.join('-') ?? stripped;
+    const formatted = formatRecoveryKeyInput(raw);
 
     if (formatted !== raw) {
       this.form.controls.recoveryKey.setValue(formatted, { emitEvent: false });

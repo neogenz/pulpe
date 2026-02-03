@@ -12,6 +12,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import {
   type MatSelectChange,
@@ -27,15 +28,12 @@ import { AuthSessionService } from '@core/auth/auth-session.service';
 import { EncryptionApi } from '@core/encryption';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import {
-  ConfirmationDialog,
-  type ConfirmationDialogData,
-} from '@ui/dialogs/confirmation-dialog';
-import {
   RecoveryKeyDialog,
   type RecoveryKeyDialogData,
 } from '@ui/dialogs/recovery-key-dialog';
 import { PAY_DAY_MAX } from 'pulpe-shared';
 import { ChangePasswordDialog } from './components/change-password-dialog';
+import { DeleteAccountDialog } from './components/delete-account-dialog';
 import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-key-dialog';
 
 @Component({
@@ -47,206 +45,199 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatDividerModule,
     MatProgressSpinnerModule,
     MatSelectModule,
     MatSnackBarModule,
   ],
   template: `
-    <div class="max-w-2xl mx-auto" data-testid="settings-page">
-      <h1 class="text-headline-medium mb-6">Paramètres</h1>
+    <div data-testid="settings-page">
+      <h1 class="text-headline-medium mb-16">Paramètres</h1>
 
       <!-- ═══ Section: Compte ═══ -->
-      <h2 class="text-title-large mb-4">Compte</h2>
+      <section class="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-8">
+        <div>
+          <h2 class="text-title-medium font-bold mb-2">Compte</h2>
+          <p class="text-body-small text-on-surface-variant leading-relaxed">
+            Gère tes préférences de compte et ton cycle budgétaire.
+          </p>
+        </div>
 
-      <mat-card appearance="outlined" class="mb-4">
-        <mat-card-header>
+        <div class="md:col-span-2 space-y-8">
+          <!-- Tip: Comment ça marche ? -->
           <div
-            mat-card-avatar
-            class="flex items-center justify-center bg-primary-container rounded-full"
+            class="rounded-2xl bg-surface-container/50 p-5 text-on-surface-container! flex gap-4 items-start border border-outline-variant"
           >
-            <mat-icon class="text-on-primary-container!"
-              >calendar_today</mat-icon
+            <mat-icon class="text-on-surface-container! shrink-0 opacity-70"
+              >lightbulb</mat-icon
             >
+            <div class="space-y-1">
+              <p class="text-body-medium font-medium">Comment ça marche ?</p>
+              <p class="text-body-small leading-relaxed">
+                Si tu es payé le 27, ton budget de janvier couvrira la période
+                du 27 décembre au 26 janvier. Tu planifies ainsi tes dépenses
+                selon ton vrai rythme financier.
+              </p>
+            </div>
           </div>
-          <mat-card-title>Jour de paie</mat-card-title>
-          <mat-card-subtitle>
-            Ton budget commence le jour où tu reçois ton salaire
-          </mat-card-subtitle>
-        </mat-card-header>
 
-        <mat-card-content class="p-4">
-          <mat-form-field
-            appearance="outline"
-            subscriptSizing="dynamic"
-            class="w-full"
-          >
-            <mat-label>Jour de paie</mat-label>
-            <mat-select
-              data-testid="pay-day-select"
-              [value]="selectedPayDay()"
-              (selectionChange)="onPayDayChange($event)"
+          <div class="space-y-4">
+            <mat-form-field
+              appearance="outline"
+              subscriptSizing="dynamic"
+              class="w-full"
             >
-              <mat-option [value]="null"> 1er du mois </mat-option>
-              @for (day of availableDays; track day) {
-                <mat-option [value]="day"> Le {{ day }} </mat-option>
-              }
-            </mat-select>
-            <mat-hint data-testid="pay-day-hint">
-              @if (selectedPayDay(); as day) {
-                @if (day > 28) {
-                  Ton budget commence le {{ day }}. Si le mois a moins de jours,
-                  il débutera le dernier jour disponible.
-                } @else {
-                  Ton budget commence le {{ day }} de chaque mois
+              <mat-label>Jour de paie</mat-label>
+              <mat-select
+                data-testid="pay-day-select"
+                [value]="selectedPayDay()"
+                (selectionChange)="onPayDayChange($event)"
+              >
+                <mat-option [value]="null"> 1er du mois </mat-option>
+                @for (day of availableDays; track day) {
+                  <mat-option [value]="day"> Le {{ day }} </mat-option>
                 }
-              } @else {
-                Ton budget suit le calendrier standard
-              }
-            </mat-hint>
-          </mat-form-field>
-        </mat-card-content>
+              </mat-select>
+              <mat-hint data-testid="pay-day-hint">
+                @if (selectedPayDay(); as day) {
+                  @if (day > 28) {
+                    Ton budget commence le {{ day }}. Si le mois a moins de
+                    jours, il débutera le dernier jour disponible.
+                  } @else {
+                    Ton budget commence le {{ day }} de chaque mois
+                  }
+                } @else {
+                  Ton budget suit le calendrier standard
+                }
+              </mat-hint>
+            </mat-form-field>
 
-        @if (hasChanges()) {
-          <mat-card-actions class="gap-2">
-            <button
-              matButton
-              color="warn"
-              data-testid="cancel-settings-button"
-              [disabled]="isSaving()"
-              (click)="resetChanges()"
-            >
-              Annuler
-            </button>
-            <button
-              matButton="filled"
-              color="primary"
-              data-testid="save-settings-button"
-              [disabled]="isSaving()"
-              (click)="saveSettings()"
-            >
-              @if (isSaving()) {
-                <mat-spinner diameter="20" class="mr-2" />
-              }
-              Enregistrer
-            </button>
-          </mat-card-actions>
-        }
-      </mat-card>
+            @if (hasChanges()) {
+              <div class="flex justify-end gap-3 pt-2">
+                <button
+                  matButton
+                  data-testid="cancel-settings-button"
+                  [disabled]="isSaving()"
+                  (click)="resetChanges()"
+                >
+                  Annuler
+                </button>
+                <button
+                  matButton="filled"
+                  color="primary"
+                  data-testid="save-settings-button"
+                  [disabled]="isSaving()"
+                  (click)="saveSettings()"
+                >
+                  @if (isSaving()) {
+                    <mat-spinner diameter="20" class="mr-2" />
+                  }
+                  Enregistrer
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      </section>
 
-      <mat-card appearance="outlined" class="bg-secondary-container! mb-6">
-        <mat-card-content class="flex! gap-4 p-4">
-          <div class="flex items-center justify-center">
-            <mat-icon class="text-on-secondary-container!">lightbulb</mat-icon>
-          </div>
-          <div class="flex-1">
-            <p class="text-body-medium text-on-secondary-container font-medium">
-              Comment ça marche ?
-            </p>
-            <p class="text-body-small text-on-secondary-container mt-1">
-              Si tu es payé le 27, ton budget de janvier couvrira la période du
-              27 décembre au 26 janvier. Tu planifies ainsi tes dépenses selon
-              ton vrai rythme financier.
-            </p>
-          </div>
-        </mat-card-content>
-      </mat-card>
+      <mat-divider class="my-6!"></mat-divider>
 
       <!-- ═══ Section: Sécurité ═══ -->
       @if (!isDemoMode()) {
-        <h2 class="text-title-large mb-4">Sécurité</h2>
-
-        <mat-card appearance="outlined" class="mb-4">
-          <mat-card-header>
-            <div
-              mat-card-avatar
-              class="flex items-center justify-center bg-primary-container rounded-full"
-            >
-              <mat-icon class="text-on-primary-container!">lock</mat-icon>
-            </div>
-            <mat-card-title>Mot de passe</mat-card-title>
-            <mat-card-subtitle>
-              Modifier ton mot de passe de connexion
-            </mat-card-subtitle>
-          </mat-card-header>
-
-          <mat-card-content class="p-4">
-            <p class="text-body-medium text-on-surface mb-4">
-              Tu devras saisir ton mot de passe actuel pour le modifier.
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-12">
+          <div>
+            <h2 class="text-title-medium font-bold mb-2">Sécurité</h2>
+            <p class="text-body-small text-on-surface-variant leading-relaxed">
+              Protège l'accès à tes données et gère tes clés de chiffrement.
             </p>
-            <button
-              matButton="filled"
-              color="primary"
-              data-testid="change-password-button"
-              (click)="onChangePassword()"
-            >
-              Modifier le mot de passe
-            </button>
-          </mat-card-content>
-        </mat-card>
+          </div>
 
-        <mat-card appearance="outlined" class="mb-6">
-          <mat-card-header>
+          <div class="md:col-span-2 space-y-10">
+            <!-- Mot de passe -->
             <div
-              mat-card-avatar
-              class="flex items-center justify-center bg-primary-container rounded-full"
+              class="flex items-center justify-between gap-6 pb-6 border-b border-outline-variant/20"
             >
-              <mat-icon class="text-on-primary-container!">vpn_key</mat-icon>
+              <div class="space-y-1">
+                <h3 class="text-title-small">Mot de passe</h3>
+                <p class="text-body-medium text-on-surface-variant">
+                  Modifier ton mot de passe de connexion.
+                </p>
+              </div>
+              <button
+                mat-stroked-button
+                data-testid="change-password-button"
+                (click)="onChangePassword()"
+              >
+                Modifier
+              </button>
             </div>
-            <mat-card-title>Clé de récupération</mat-card-title>
-            <mat-card-subtitle>
-              Protège l'accès à tes données chiffrées
-            </mat-card-subtitle>
-          </mat-card-header>
 
-          <mat-card-content class="p-4">
-            <p class="text-body-medium text-on-surface mb-4">
-              Si tu oublies ton code de coffre-fort, la clé de récupération est
-              le seul moyen de retrouver l'accès à tes données chiffrées.
-            </p>
-            <button
-              matButton="filled"
-              color="primary"
-              data-testid="generate-recovery-key-button"
-              [disabled]="isGeneratingRecoveryKey()"
-              (click)="onRegenerateRecoveryKey()"
-            >
-              @if (isGeneratingRecoveryKey()) {
-                <mat-spinner diameter="20" class="mr-2" />
-              }
-              Régénérer ma clé de récupération
-            </button>
-          </mat-card-content>
-        </mat-card>
+            <!-- Clé de récupération -->
+            <div class="flex items-center justify-between gap-6">
+              <div class="space-y-1">
+                <h3 class="text-title-small">Clé de récupération</h3>
+                <p class="text-body-medium text-on-surface-variant">
+                  Indispensable si tu oublies ton code de coffre-fort.
+                </p>
+              </div>
+              <button
+                mat-stroked-button
+                data-testid="generate-recovery-key-button"
+                [disabled]="isGeneratingRecoveryKey()"
+                (click)="onRegenerateRecoveryKey()"
+              >
+                @if (isGeneratingRecoveryKey()) {
+                  <mat-spinner diameter="20" class="mr-2" />
+                }
+                Régénérer
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <mat-divider class="my-6!"></mat-divider>
       }
 
       <!-- ═══ Section: Zone de danger ═══ -->
       @if (!isDemoMode()) {
-        <h2 class="text-title-large text-error mb-4">Zone de danger</h2>
-
-        <mat-card
-          appearance="outlined"
-          class="bg-error-container! border-error!"
-        >
-          <mat-card-content class="p-4">
-            <p class="text-body-medium text-on-error-container mt-1">
-              La suppression de ton compte est définitive. Tu perdras l'accès à
-              toutes tes données après un délai de 3 jours.
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-8 pb-12">
+          <div>
+            <h2 class="text-title-medium text-error font-bold mb-2">
+              Zone de danger
+            </h2>
+            <p class="text-body-small text-error opacity-70 leading-relaxed">
+              Actions irréversibles sur ton compte.
             </p>
-            <button
-              matButton="filled"
-              color="warn"
-              class="mt-4"
-              data-testid="delete-account-button"
-              [disabled]="isDeleting()"
-              (click)="onDeleteAccount()"
+          </div>
+
+          <div class="md:col-span-2">
+            <div
+              class="bg-error-container/30 rounded-2xl border border-error/50 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6"
             >
-              @if (isDeleting()) {
-                <mat-spinner diameter="20" class="mr-2" />
-              }
-              Supprimer mon compte
-            </button>
-          </mat-card-content>
-        </mat-card>
+              <div class="space-y-1">
+                <h3 class="text-title-small font-bold text-error">
+                  Supprimer mon compte
+                </h3>
+                <p class="text-body-medium text-error opacity-90">
+                  Tes données seront supprimées définitivement après 3 jours.
+                </p>
+              </div>
+              <button
+                matButton="filled"
+                color="warn"
+                data-testid="delete-account-button"
+                [disabled]="isDeleting()"
+                (click)="onDeleteAccount()"
+                class="shrink-0"
+              >
+                @if (isDeleting()) {
+                  <mat-spinner diameter="20" class="mr-2" />
+                }
+                Supprimer le compte
+              </button>
+            </div>
+          </div>
+        </section>
       }
     </div>
   `,
@@ -344,19 +335,8 @@ export default class SettingsPage {
   }
 
   async onDeleteAccount(): Promise<void> {
-    const dialogData: ConfirmationDialogData = {
-      title: 'Supprimer ton compte ?',
-      message:
-        'Tu perdras immédiatement accès à ton compte. ' +
-        'Toutes tes données seront supprimées définitivement après 3 jours.',
-      confirmText: 'Supprimer mon compte',
-      cancelText: 'Annuler',
-      confirmColor: 'warn',
-    };
-
-    const dialogRef = this.#dialog.open(ConfirmationDialog, {
-      data: dialogData,
-      width: '400px',
+    const dialogRef = this.#dialog.open(DeleteAccountDialog, {
+      width: '440px',
     });
 
     const confirmed = await firstValueFrom(dialogRef.afterClosed());

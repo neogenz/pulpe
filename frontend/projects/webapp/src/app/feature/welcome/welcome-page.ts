@@ -176,12 +176,13 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
         <!-- Login link -->
         <p class="text-sm text-on-surface-variant mt-4">
           Tu as déjà un compte ?
-          <a
+          <button
+            matButton
             [routerLink]="['/', ROUTES.LOGIN]"
             class="text-primary font-semibold"
           >
             Se connecter
-          </a>
+          </button>
         </p>
       </div>
     </div>

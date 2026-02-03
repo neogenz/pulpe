@@ -55,9 +55,11 @@ import { LoadingButton } from '@ui/loading-button';
           >
             Mot de passe oublié
           </h1>
-          <p class="text-base md:text-lg text-on-surface-variant">
-            Entre ton email pour recevoir un lien de réinitialisation
-          </p>
+          @if (!isSuccess()) {
+            <p class="text-base md:text-lg text-on-surface-variant">
+              Entre ton email pour recevoir un lien de réinitialisation
+            </p>
+          }
         </div>
 
         @if (!isSuccess()) {

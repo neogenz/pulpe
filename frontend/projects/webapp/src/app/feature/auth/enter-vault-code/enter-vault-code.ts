@@ -27,7 +27,7 @@ import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
-import { LogoutDialog } from '@layout/logout-dialog';
+import { LogoutDialog } from '@ui/dialogs/logout-dialog';
 
 @Component({
   selector: 'pulpe-enter-vault-code',
@@ -52,7 +52,9 @@ import { LogoutDialog } from '@layout/logout-dialog';
         data-testid="enter-vault-code-page"
       >
         <div class="text-center mb-8">
-          <mat-icon class="text-6xl text-primary mb-4">lock_open</mat-icon>
+          <mat-icon class="text-6xl! w-auto! h-auto! text-primary"
+            >lock_open</mat-icon
+          >
           <h1
             class="text-2xl md:text-4xl font-bold text-on-surface mb-2 leading-tight"
           >

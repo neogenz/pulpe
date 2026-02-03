@@ -28,71 +28,62 @@ export interface RecoveryKeyDialogData {
     MatIconModule,
     MatInputModule,
   ],
+  host: { 'data-testid': 'recovery-key-dialog' },
   template: `
-    <div data-testid="recovery-key-dialog">
-      <h2 mat-dialog-title class="text-headline-small">Ta clé de secours</h2>
+    <h2 mat-dialog-title>Ta clé de secours</h2>
 
-      <mat-dialog-content>
-        <p class="text-body-medium text-on-surface mb-4">
-          Prends un instant pour mettre cette clé en lieu sûr (comme dans un
-          gestionnaire de mots de passe). C'est ton unique filet de sécurité :
-          si tu oublies ton code de coffre-fort et que tu perds cette clé, tes
-          données seront perdues pour toujours. C'est le garant de ta totale
-          confidentialité.
-        </p>
+    <mat-dialog-content>
+      <p class="text-body-medium text-on-surface mb-4">
+        Prends un instant pour mettre cette clé en lieu sûr (comme dans un
+        gestionnaire de mots de passe). C'est ton unique filet de sécurité : si
+        tu oublies ton code de coffre-fort et que tu perds cette clé, tes
+        données seront perdues pour toujours. C'est le garant de ta totale
+        confidentialité.
+      </p>
 
-        <div
-          class="bg-surface-container rounded-lg p-4 mb-4 font-mono text-body-large text-center select-all break-all"
-          data-testid="recovery-key-display"
-        >
-          {{ data.recoveryKey }}
-        </div>
+      <div
+        class="bg-surface-container rounded-lg p-4 mb-4 font-mono text-body-large text-center select-all break-all"
+        data-testid="recovery-key-display"
+      >
+        {{ data.recoveryKey }}
+      </div>
 
-        <button
-          matButton
-          class="w-full mb-4"
-          (click)="copyToClipboard()"
-          data-testid="copy-recovery-key-button"
-        >
-          <mat-icon>content_copy</mat-icon>
-          {{ isCopied() ? 'Copié !' : 'Copier la clé' }}
-        </button>
+      <button
+        matButton
+        class="w-full mb-4"
+        (click)="copyToClipboard()"
+        data-testid="copy-recovery-key-button"
+      >
+        <mat-icon>content_copy</mat-icon>
+        {{ isCopied() ? 'Copié !' : 'Copier la clé' }}
+      </button>
 
-        <mat-form-field
-          appearance="outline"
-          class="w-full"
-          subscriptSizing="dynamic"
-        >
-          <mat-label>Recopie ou colle ta clé pour confirmer</mat-label>
-          <input
-            matInput
-            data-testid="recovery-key-confirm-input"
-            [value]="confirmValue()"
-            (input)="confirmValue.set($any($event.target).value)"
-          />
-        </mat-form-field>
-      </mat-dialog-content>
+      <mat-form-field
+        appearance="outline"
+        class="w-full"
+        subscriptSizing="dynamic"
+      >
+        <mat-label>Recopie ou colle ta clé pour confirmer</mat-label>
+        <input
+          matInput
+          data-testid="recovery-key-confirm-input"
+          [value]="confirmValue()"
+          (input)="confirmValue.set($any($event.target).value)"
+        />
+      </mat-form-field>
+    </mat-dialog-content>
 
-      <mat-dialog-actions align="end">
-        <button
-          matButton="filled"
-          color="primary"
-          [disabled]="!isConfirmed()"
-          (click)="onConfirm()"
-          data-testid="recovery-key-confirm-button"
-        >
-          C'est mis en lieu sûr
-        </button>
-      </mat-dialog-actions>
-    </div>
-  `,
-  styles: `
-    :host {
-      display: block;
-    }
-    mat-dialog-content {
-      max-width: 480px;
-    }
+    <mat-dialog-actions align="end">
+      <button
+        matButton="filled"
+        color="primary"
+        [disabled]="!isConfirmed()"
+        (click)="onConfirm()"
+        data-testid="recovery-key-confirm-button"
+      >
+        C'est mis en lieu sûr
+      </button>
+    </mat-dialog-actions>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
