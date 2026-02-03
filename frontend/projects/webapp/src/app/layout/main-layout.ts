@@ -48,7 +48,7 @@ import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
 import { of } from 'rxjs';
 import { delay, filter, map, shareReplay, switchMap } from 'rxjs/operators';
 import { AboutDialog } from './about-dialog';
-import { LogoutDialog } from './logout-dialog';
+import { LogoutDialog } from '@ui/dialogs/logout-dialog';
 
 interface NavigationItem {
   readonly route: string;

@@ -18,8 +18,13 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { firstValueFrom } from 'rxjs';
 
+import { PASSWORD_MIN_LENGTH } from '@core/auth';
 import { EncryptionApi, deriveClientKey } from '@core/encryption';
 import { Logger } from '@core/logging/logger';
+import {
+  recoveryKeyValidators,
+  formatRecoveryKeyInput,
+} from '@core/validators';
 
 @Component({
   selector: 'pulpe-regenerate-recovery-key-dialog',
@@ -33,22 +38,18 @@ import { Logger } from '@core/logging/logger';
     MatProgressSpinnerModule,
   ],
   template: `
-    <h2 mat-dialog-title class="text-headline-small">
-      Régénérer ta clé de récupération
-    </h2>
+    <h2 mat-dialog-title>Régénérer ma clé</h2>
 
     <mat-dialog-content>
       <div
-        class="bg-tertiary-container rounded-lg p-4 mb-4 flex gap-3 items-center"
+        class="bg-error-container rounded-2xl p-4 mb-6 flex gap-3 items-start"
       >
-        <mat-icon class="text-on-tertiary-container! shrink-0"
-          >warning</mat-icon
-        >
-        <div>
-          <p class="text-body-medium text-on-tertiary-container font-medium">
+        <mat-icon class="text-on-error-container! shrink-0">warning</mat-icon>
+        <div class="space-y-1">
+          <p class="text-body-medium text-on-error-container font-medium">
             Attention
           </p>
-          <p class="text-body-small text-on-tertiary-container mt-1">
+          <p class="text-body-small text-on-error-container opacity-90">
             Cette action invalide l'ancienne clé. Sans ton code ou ta clé de
             récupération, l'accès à tes données sera définitivement perdu.
           </p>
@@ -75,6 +76,8 @@ import { Logger } from '@core/logging/logger';
           />
           @if (verificationForm.get('password')?.hasError('required')) {
             <mat-error>Le mot de passe est requis</mat-error>
+          } @else if (verificationForm.get('password')?.hasError('minlength')) {
+            <mat-error>Au moins {{ PASSWORD_MIN_LENGTH }} caractères</mat-error>
           }
         </mat-form-field>
 
@@ -84,11 +87,20 @@ import { Logger } from '@core/logging/logger';
             matInput
             formControlName="currentRecoveryKey"
             data-testid="current-recovery-key-input"
+            (input)="onRecoveryKeyInput()"
+            placeholder="XXXX-XXXX-XXXX-..."
+            class="font-mono uppercase"
           />
           @if (
             verificationForm.get('currentRecoveryKey')?.hasError('required')
           ) {
             <mat-error>La clé de récupération actuelle est requise</mat-error>
+          } @else if (
+            verificationForm.get('currentRecoveryKey')?.hasError('pattern')
+          ) {
+            <mat-error
+              >Format invalide — vérifie que tu as bien copié la clé</mat-error
+            >
           }
         </mat-form-field>
       </form>
@@ -122,16 +134,32 @@ export class RegenerateRecoveryKeyDialog {
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
 
+  protected readonly PASSWORD_MIN_LENGTH = PASSWORD_MIN_LENGTH;
+
   protected readonly verificationForm = new FormGroup({
     password: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required],
+      validators: [
+        Validators.required,
+        Validators.minLength(PASSWORD_MIN_LENGTH),
+      ],
     }),
     currentRecoveryKey: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required],
+      validators: recoveryKeyValidators,
     }),
   });
+
+  protected onRecoveryKeyInput(): void {
+    const raw = this.verificationForm.controls.currentRecoveryKey.value;
+    const formatted = formatRecoveryKeyInput(raw);
+
+    if (formatted !== raw) {
+      this.verificationForm.controls.currentRecoveryKey.setValue(formatted, {
+        emitEvent: false,
+      });
+    }
+  }
 
   protected async onSubmit(): Promise<void> {
     if (this.isSubmitting() || !this.verificationForm.valid) return;

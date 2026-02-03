@@ -27,6 +27,7 @@ import {
   deriveClientKey,
 } from '@core/encryption';
 import { Logger } from '@core/logging/logger';
+import { MatDivider } from '@angular/material/divider';
 
 @Component({
   selector: 'pulpe-change-password-dialog',
@@ -38,13 +39,15 @@ import { Logger } from '@core/logging/logger';
     MatIconModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    MatDivider,
   ],
   template: `
-    <h2 mat-dialog-title class="text-headline-small">
-      Modifier le mot de passe
-    </h2>
+    <h2 mat-dialog-title class="pb-2!">Modifier le mot de passe</h2>
 
-    <mat-dialog-content class="pt-2!">
+    <mat-dialog-content>
+      <p class="text-body-medium text-on-surface-variant mb-4">
+        Confirme ton identité pour modifier ton accès
+      </p>
       @if (errorMessage(); as error) {
         <p
           class="text-body-medium text-error mb-4"
@@ -55,7 +58,8 @@ import { Logger } from '@core/logging/logger';
       }
 
       <form [formGroup]="passwordForm" (ngSubmit)="onSubmit()">
-        <mat-form-field appearance="outline" class="w-full mb-2">
+        <!-- Section: Ancien mot de passe -->
+        <mat-form-field appearance="outline" class="w-full">
           <mat-label>Mot de passe actuel</mat-label>
           <input
             matInput
@@ -68,35 +72,43 @@ import { Logger } from '@core/logging/logger';
           }
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="w-full mb-2">
-          <mat-label>Nouveau mot de passe</mat-label>
-          <input
-            matInput
-            type="password"
-            formControlName="newPassword"
-            data-testid="new-password-input"
-          />
-          @if (passwordForm.get('newPassword')?.hasError('required')) {
-            <mat-error>Le nouveau mot de passe est requis</mat-error>
-          } @else if (passwordForm.get('newPassword')?.hasError('minlength')) {
-            <mat-error>
-              Au moins {{ PASSWORD_MIN_LENGTH }} caractères
-            </mat-error>
-          }
-        </mat-form-field>
+        <h3 class="text-title-medium pt-2!">Nouveau mot de passe</h3>
+        <mat-divider class="mb-4! mt-2!"></mat-divider>
 
-        <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Confirmer le nouveau mot de passe</mat-label>
-          <input
-            matInput
-            type="password"
-            formControlName="confirmPassword"
-            data-testid="confirm-password-input"
-          />
-          @if (passwordForm.get('confirmPassword')?.hasError('required')) {
-            <mat-error>La confirmation est requise</mat-error>
-          }
-        </mat-form-field>
+        <!-- Section: Nouveau mot de passe -->
+        <div class="space-y-4">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Nouveau mot de passe</mat-label>
+            <input
+              matInput
+              type="password"
+              formControlName="newPassword"
+              data-testid="new-password-input"
+            />
+            @if (passwordForm.get('newPassword')?.hasError('required')) {
+              <mat-error>Le nouveau mot de passe est requis</mat-error>
+            } @else if (
+              passwordForm.get('newPassword')?.hasError('minlength')
+            ) {
+              <mat-error>
+                Au moins {{ PASSWORD_MIN_LENGTH }} caractères
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Confirmer le nouveau mot de passe</mat-label>
+            <input
+              matInput
+              type="password"
+              formControlName="confirmPassword"
+              data-testid="confirm-password-input"
+            />
+            @if (passwordForm.get('confirmPassword')?.hasError('required')) {
+              <mat-error>La confirmation est requise</mat-error>
+            }
+          </mat-form-field>
+        </div>
       </form>
     </mat-dialog-content>
 

@@ -31,6 +31,7 @@ import {
   RecoveryKeyDialog,
   type RecoveryKeyDialogData,
 } from '@ui/dialogs/recovery-key-dialog';
+import { LogoutDialog } from '@ui/dialogs/logout-dialog';
 
 @Component({
   selector: 'pulpe-setup-vault-code',
@@ -171,6 +172,19 @@ import {
             <span class="ml-2">Continuer</span>
           </pulpe-loading-button>
         </form>
+
+        <div class="text-center mt-4 pt-4 border-t border-outline-variant">
+          <button
+            matButton
+            type="button"
+            (click)="onLogout()"
+            [disabled]="isLoggingOut()"
+            data-testid="setup-vault-code-logout-button"
+          >
+            <mat-icon>logout</mat-icon>
+            Se déconnecter
+          </button>
+        </div>
       </div>
     </div>
   `,
@@ -186,6 +200,7 @@ export default class SetupVaultCode {
 
   protected readonly ROUTES = ROUTES;
   protected readonly isSubmitting = signal(false);
+  protected readonly isLoggingOut = signal(false);
   protected readonly errorMessage = signal('');
   protected readonly isCodeHidden = signal(true);
   protected readonly isConfirmCodeHidden = signal(true);
@@ -289,5 +304,22 @@ export default class SetupVaultCode {
     });
 
     await firstValueFrom(dialogRef.afterClosed());
+  }
+
+  protected async onLogout(): Promise<void> {
+    if (this.isLoggingOut()) return;
+
+    this.isLoggingOut.set(true);
+    this.#dialog.open(LogoutDialog, { disableClose: true });
+
+    try {
+      await this.#authSession.signOut();
+    } catch (error) {
+      this.#logger.error('Erreur lors de la déconnexion:', error);
+    } finally {
+      this.isLoggingOut.set(false);
+    }
+
+    window.location.href = '/' + ROUTES.LOGIN;
   }
 }
