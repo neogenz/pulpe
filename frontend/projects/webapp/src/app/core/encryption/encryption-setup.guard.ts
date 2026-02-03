@@ -5,12 +5,19 @@ import { filter, map, take } from 'rxjs/operators';
 
 import { ClientKeyService } from './client-key.service';
 import { AuthStateService } from '@core/auth/auth-state.service';
+import { DemoModeService } from '@core/demo/demo-mode.service';
 import { ROUTES } from '@core/routing/routes-constants';
 
 export const encryptionSetupGuard: CanActivateFn = () => {
   const clientKeyService = inject(ClientKeyService);
   const authState = inject(AuthStateService);
+  const demoModeService = inject(DemoModeService);
   const router = inject(Router);
+
+  // Demo mode bypasses vault code setup - demo data is ephemeral and public
+  if (demoModeService.isDemoMode()) {
+    return true;
+  }
 
   const evaluate = (
     user: { user_metadata?: Record<string, unknown> } | null,

@@ -11,6 +11,7 @@ import { firstValueFrom, type Observable } from 'rxjs';
 import { encryptionSetupGuard } from './encryption-setup.guard';
 import { ClientKeyService } from './client-key.service';
 import { AuthStateService } from '@core/auth/auth-state.service';
+import { DemoModeService } from '@core/demo/demo-mode.service';
 import { ROUTES } from '@core/routing/routes-constants';
 
 const dummyRoute = {} as ActivatedRouteSnapshot;
@@ -23,6 +24,9 @@ describe('encryptionSetupGuard', () => {
   };
   let mockAuthState: {
     authState: ReturnType<typeof vi.fn>;
+  };
+  let mockDemoModeService: {
+    isDemoMode: ReturnType<typeof vi.fn>;
   };
   let authStateSignal: ReturnType<typeof signal>;
   let mockRouter: { createUrlTree: ReturnType<typeof vi.fn> };
@@ -49,6 +53,10 @@ describe('encryptionSetupGuard', () => {
       authState: vi.fn(),
     };
 
+    mockDemoModeService = {
+      isDemoMode: vi.fn().mockReturnValue(false),
+    };
+
     mockRouter = {
       createUrlTree: vi.fn().mockReturnValue({} as UrlTree),
     };
@@ -57,6 +65,7 @@ describe('encryptionSetupGuard', () => {
       providers: [
         { provide: ClientKeyService, useValue: mockClientKeyService },
         { provide: AuthStateService, useValue: mockAuthState },
+        { provide: DemoModeService, useValue: mockDemoModeService },
         { provide: Router, useValue: mockRouter },
       ],
     });
@@ -75,6 +84,23 @@ describe('encryptionSetupGuard', () => {
     );
 
     expect(result).toBe(true);
+  });
+
+  it('should allow navigation when demo mode is active', () => {
+    mockDemoModeService.isDemoMode.mockReturnValue(true);
+    mockClientKeyService.hasClientKey.mockReturnValue(false);
+    mockAuthState.authState.mockReturnValue(
+      createAuthState({
+        user_metadata: {},
+      }),
+    );
+
+    const result = TestBed.runInInjectionContext(() =>
+      encryptionSetupGuard(dummyRoute, dummyState),
+    );
+
+    expect(result).toBe(true);
+    expect(mockRouter.createUrlTree).not.toHaveBeenCalled();
   });
 
   it('should clear stale key and redirect to SETUP_VAULT_CODE when clientKey exists but user has no vaultCodeConfigured', () => {
