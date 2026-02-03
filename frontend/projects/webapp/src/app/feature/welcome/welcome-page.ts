@@ -103,14 +103,24 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
         <div class="flex flex-col gap-3 w-full">
           <pulpe-google-oauth-button
             class="w-full"
-            buttonType="filled"
+            buttonType="outlined"
             testId="google-oauth-button"
             (authError)="errorMessage.set($event)"
             (loadingChange)="onGoogleLoadingChange($event)"
           />
 
+          <!-- Separator -->
+          <div class="flex items-center gap-4 my-1">
+            <div class="flex-1 h-px bg-outline-variant/30"></div>
+            <span
+              class="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest"
+              >OU</span
+            >
+            <div class="flex-1 h-px bg-outline-variant/30"></div>
+          </div>
+
           <button
-            matButton="outlined"
+            matButton="filled"
             class="w-full h-12"
             data-testid="email-signup-button"
             [disabled]="isLoading()"
@@ -119,7 +129,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
           >
             <div class="flex items-center justify-center gap-2">
               <mat-icon>email</mat-icon>
-              <span>Continuer avec mon email</span>
+              <span>S'inscrire par e-mail</span>
             </div>
           </button>
 
@@ -157,7 +167,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
 
         <!-- Legal -->
         <p class="text-xs text-on-surface-variant text-center mt-5">
-          En continuant, j'accepte les
+          En continuant, tu acceptes les
           <a
             [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
             target="_blank"
@@ -175,7 +185,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
 
         <!-- Login link -->
         <p class="text-sm text-on-surface-variant mt-4">
-          Tu as déjà un compte ?
+          Déjà un compte ?
           <button
             matButton
             [routerLink]="['/', ROUTES.LOGIN]"

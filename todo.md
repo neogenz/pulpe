@@ -33,17 +33,7 @@ Un code coffre-fort incorrect ne doit pas donner accès à l'app. Key check cana
 - Frontend : `encryption-api.ts`, `enter-vault-code.ts`
 - Migration : `20260202100000_add_key_check_column.sql`
 
-### 1. Page "mot de passe oublié" — #296
-
-Sans cette page, un utilisateur qui oublie son mot de passe perd ses données.
-
-**Fichiers à créer :**
-- `feature/auth/forgot-password/` (envoi email Supabase)
-- `feature/auth/reset-password/` (recovery key + nouveau mdp → rekey)
-- Routes dans `app.routes.ts`
-- Lien "Mot de passe oublié ?" dans `login.ts`
-
-**Flow :** email → lien Supabase → `/reset-password` → recovery key + nouveau mdp → `POST /v1/encryption/recover` → nouvelle recovery key affichée.
+- [x] Page "mot de passe oublié" — #296
 
 ### ~~2. Nudge recovery key après changement de mdp — #297~~ ✅
 
@@ -93,11 +83,11 @@ Migration SQL pour supprimer les colonnes `amount`, `target_amount`, `ending_bal
 | ~~1~~ | ~~Prompt recovery key au signup~~ | ~~#295~~ | ~~—~~ ✅ |
 | ~~2~~ | ~~Nudge recovery key post-password-change~~ | ~~#297~~ | ~~—~~ ✅ |
 | 2b | Validation du code coffre-fort | #305 | — |
-| 3 | Page mot de passe oublié | #296 | ~~#295~~ |
-| 4 | Déploiement + migration prod | — | #296 |
-| 5 | Vérification prod | — | Déploiement |
-| 6 | Cleanup backfill | #293 | Vérification |
-| 7 | Drop colonnes plaintext | — | #293 |
+| ~~3~~ | ~~Page mot de passe oublié~~ | ~~#296~~ | ~~#295~~ | ✅ |
+| 4 | Déploiement + migration prod | — | #305 | |
+| 5 | Vérification prod | — | Déploiement | |
+| 6 | Cleanup backfill | #293 | Vérification | |
+| 7 | Drop colonnes plaintext | — | #293 | |
 
 ## Chaîne de dépendances GitHub
 
@@ -105,7 +95,7 @@ Migration SQL pour supprimer les colonnes `amount`, `target_amount`, `ending_bal
 #274 (epic)
 ├── #294 (recovery key) ← DONE
 ├── #295 (prompt signup) ← DONE
-├── #296 (forgot-password) ← débloqué
+├── #296 (forgot-password) ← DONE
 ├── #297 (nudge post-password-change) ← DONE
 ├── #305 (validation code coffre-fort) ← EN COURS
 └── #293 (cleanup backfill) ← bloqué par déploiement + vérification
