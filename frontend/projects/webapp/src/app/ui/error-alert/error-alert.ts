@@ -9,7 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
   template: `
     @if (message()) {
       <div
-        class="bg-error-container text-on-error-container p-3 rounded-lg flex items-center gap-2"
+        class="bg-error-container text-on-error-container p-3 rounded-lg flex items-center gap-2 my-4"
         role="alert"
       >
         <mat-icon class="flex-shrink-0">error_outline</mat-icon>

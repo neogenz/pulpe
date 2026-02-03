@@ -34,11 +34,10 @@ export interface RecoveryKeyDialogData {
 
     <mat-dialog-content>
       <p class="text-body-medium text-on-surface mb-4">
-        Prends un instant pour mettre cette clé en lieu sûr (comme dans un
-        gestionnaire de mots de passe). C'est ton unique filet de sécurité : si
-        tu oublies ton code de coffre-fort et que tu perds cette clé, tes
-        données seront perdues pour toujours. C'est le garant de ta totale
-        confidentialité.
+        Cette clé est ton filet de sécurité. Si tu oublies ton code secret, elle
+        sera le seul moyen de retrouver tes données. Copie-la dans un endroit
+        sûr : personne d'autre n'y a accès, et on ne pourra pas la retrouver
+        pour toi.
       </p>
 
       <div
@@ -63,7 +62,7 @@ export interface RecoveryKeyDialogData {
         class="w-full"
         subscriptSizing="dynamic"
       >
-        <mat-label>Recopie ou colle ta clé pour confirmer</mat-label>
+        <mat-label>Copie ou colle ta clé ici pour confirmer</mat-label>
         <input
           matInput
           data-testid="recovery-key-confirm-input"
@@ -81,7 +80,7 @@ export interface RecoveryKeyDialogData {
         (click)="onConfirm()"
         data-testid="recovery-key-confirm-button"
       >
-        C'est mis en lieu sûr
+        C'est enregistré en lieu sûr
       </button>
     </mat-dialog-actions>
   `,
