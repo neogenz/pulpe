@@ -136,6 +136,7 @@ import {
                   spellcheck="false"
                   [disabled]="isSubmitting()"
                 />
+                <mat-icon matPrefix>key</mat-icon>
                 @if (
                   form.get('recoveryKey')?.invalid &&
                   form.get('recoveryKey')?.touched

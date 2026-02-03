@@ -28,6 +28,7 @@ import {
 } from '@core/encryption';
 import { Logger } from '@core/logging/logger';
 import { MatDivider } from '@angular/material/divider';
+import { ErrorAlert } from '@ui/error-alert';
 
 @Component({
   selector: 'pulpe-change-password-dialog',
@@ -40,6 +41,7 @@ import { MatDivider } from '@angular/material/divider';
     MatInputModule,
     MatProgressSpinnerModule,
     MatDivider,
+    ErrorAlert,
   ],
   template: `
     <h2 mat-dialog-title class="pb-2!">Modifier le mot de passe</h2>
@@ -48,14 +50,11 @@ import { MatDivider } from '@angular/material/divider';
       <p class="text-body-medium text-on-surface-variant mb-4">
         Confirme ton identité pour modifier ton accès
       </p>
-      @if (errorMessage(); as error) {
-        <p
-          class="text-body-medium text-error mb-4"
-          data-testid="change-password-error"
-        >
-          {{ error }}
-        </p>
-      }
+
+      <pulpe-error-alert
+        [message]="errorMessage()"
+        data-testid="change-password-error"
+      />
 
       <form [formGroup]="passwordForm" (ngSubmit)="onSubmit()">
         <!-- Section: Ancien mot de passe -->
@@ -63,10 +62,23 @@ import { MatDivider } from '@angular/material/divider';
           <mat-label>Mot de passe actuel</mat-label>
           <input
             matInput
-            type="password"
+            [type]="isCurrentPasswordHidden() ? 'password' : 'text'"
             formControlName="currentPassword"
             data-testid="current-password-input"
           />
+          <mat-icon matPrefix>lock</mat-icon>
+          <button
+            type="button"
+            matIconButton
+            matSuffix
+            (click)="isCurrentPasswordHidden.set(!isCurrentPasswordHidden())"
+            [attr.aria-label]="'Afficher le mot de passe'"
+            [attr.aria-pressed]="!isCurrentPasswordHidden()"
+          >
+            <mat-icon>{{
+              isCurrentPasswordHidden() ? 'visibility_off' : 'visibility'
+            }}</mat-icon>
+          </button>
           @if (passwordForm.get('currentPassword')?.hasError('required')) {
             <mat-error>Le mot de passe actuel est requis</mat-error>
           }
@@ -81,10 +93,24 @@ import { MatDivider } from '@angular/material/divider';
             <mat-label>Nouveau mot de passe</mat-label>
             <input
               matInput
-              type="password"
+              [type]="isNewPasswordHidden() ? 'password' : 'text'"
               formControlName="newPassword"
               data-testid="new-password-input"
             />
+            <mat-icon matPrefix>lock</mat-icon>
+            <button
+              type="button"
+              matIconButton
+              matSuffix
+              (click)="isNewPasswordHidden.set(!isNewPasswordHidden())"
+              [attr.aria-label]="'Afficher le mot de passe'"
+              [attr.aria-pressed]="!isNewPasswordHidden()"
+            >
+              <mat-icon>{{
+                isNewPasswordHidden() ? 'visibility_off' : 'visibility'
+              }}</mat-icon>
+            </button>
+            <mat-hint>{{ PASSWORD_MIN_LENGTH }} caractères minimum</mat-hint>
             @if (passwordForm.get('newPassword')?.hasError('required')) {
               <mat-error>Le nouveau mot de passe est requis</mat-error>
             } @else if (
@@ -100,10 +126,23 @@ import { MatDivider } from '@angular/material/divider';
             <mat-label>Confirmer le nouveau mot de passe</mat-label>
             <input
               matInput
-              type="password"
+              [type]="isConfirmPasswordHidden() ? 'password' : 'text'"
               formControlName="confirmPassword"
               data-testid="confirm-password-input"
             />
+            <mat-icon matPrefix>lock</mat-icon>
+            <button
+              type="button"
+              matIconButton
+              matSuffix
+              (click)="isConfirmPasswordHidden.set(!isConfirmPasswordHidden())"
+              [attr.aria-label]="'Afficher le mot de passe'"
+              [attr.aria-pressed]="!isConfirmPasswordHidden()"
+            >
+              <mat-icon>{{
+                isConfirmPasswordHidden() ? 'visibility_off' : 'visibility'
+              }}</mat-icon>
+            </button>
             @if (passwordForm.get('confirmPassword')?.hasError('required')) {
               <mat-error>La confirmation est requise</mat-error>
             }
@@ -143,6 +182,9 @@ export class ChangePasswordDialog {
 
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
+  protected readonly isCurrentPasswordHidden = signal(true);
+  protected readonly isNewPasswordHidden = signal(true);
+  protected readonly isConfirmPasswordHidden = signal(true);
 
   protected readonly passwordForm = new FormGroup({
     currentPassword: new FormControl('', {

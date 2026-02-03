@@ -19,6 +19,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { AuthSessionService, PASSWORD_MIN_LENGTH } from '@core/auth';
 import { Logger } from '@core/logging/logger';
+import { ErrorAlert } from '@ui/error-alert';
 
 @Component({
   selector: 'pulpe-delete-account-dialog',
@@ -30,6 +31,7 @@ import { Logger } from '@core/logging/logger';
     MatIconModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    ErrorAlert,
   ],
   template: `
     <div class="flex items-center justify-between pr-2">
@@ -50,26 +52,32 @@ import { Logger } from '@core/logging/logger';
         retour en arrière possible.
       </p>
 
+      <pulpe-error-alert
+        [message]="errorMessage()"
+        data-testid="delete-account-error"
+      />
+
       <form [formGroup]="deleteForm" (ngSubmit)="onSubmit()">
         <mat-form-field appearance="outline" class="w-full">
           <mat-label>Confirme avec ton mot de passe</mat-label>
           <input
             matInput
-            [type]="hidePassword() ? 'password' : 'text'"
+            [type]="isPasswordHidden() ? 'password' : 'text'"
             formControlName="password"
             data-testid="delete-confirm-password-input"
             placeholder="Ton mot de passe"
           />
+          <mat-icon matPrefix>lock</mat-icon>
           <button
-            mat-icon-button
-            matSuffix
             type="button"
-            (click)="hidePassword.set(!hidePassword())"
-            [attr.aria-label]="hidePassword() ? 'Afficher' : 'Masquer'"
-            [attr.aria-pressed]="!hidePassword()"
+            matIconButton
+            matSuffix
+            (click)="isPasswordHidden.set(!isPasswordHidden())"
+            [attr.aria-label]="'Afficher le mot de passe'"
+            [attr.aria-pressed]="!isPasswordHidden()"
           >
             <mat-icon>{{
-              hidePassword() ? 'visibility_off' : 'visibility'
+              isPasswordHidden() ? 'visibility_off' : 'visibility'
             }}</mat-icon>
           </button>
           @if (deleteForm.get('password')?.hasError('required')) {
@@ -115,7 +123,7 @@ export class DeleteAccountDialog {
 
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
-  protected readonly hidePassword = signal(true);
+  protected readonly isPasswordHidden = signal(true);
 
   protected readonly PASSWORD_MIN_LENGTH = PASSWORD_MIN_LENGTH;
 

@@ -99,6 +99,7 @@ import {
               autocomplete="off"
               spellcheck="false"
             />
+            <mat-icon matPrefix>key</mat-icon>
             @if (
               form.get('recoveryKey')?.invalid &&
               form.get('recoveryKey')?.touched

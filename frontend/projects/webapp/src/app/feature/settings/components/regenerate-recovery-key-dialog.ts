@@ -25,6 +25,7 @@ import {
   recoveryKeyValidators,
   formatRecoveryKeyInput,
 } from '@core/validators';
+import { ErrorAlert } from '@ui/error-alert';
 
 @Component({
   selector: 'pulpe-regenerate-recovery-key-dialog',
@@ -36,6 +37,7 @@ import {
     MatIconModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    ErrorAlert,
   ],
   template: `
     <h2 mat-dialog-title>Régénérer ma clé</h2>
@@ -56,24 +58,33 @@ import {
         </div>
       </div>
 
-      @if (errorMessage(); as error) {
-        <p
-          class="text-body-medium text-error mb-4"
-          data-testid="regenerate-key-error"
-        >
-          {{ error }}
-        </p>
-      }
+      <pulpe-error-alert
+        [message]="errorMessage()"
+        data-testid="regenerate-key-error"
+      />
 
       <form [formGroup]="verificationForm" (ngSubmit)="onSubmit()">
         <mat-form-field appearance="outline" class="w-full mb-2">
           <mat-label>Mot de passe</mat-label>
           <input
             matInput
-            type="password"
+            [type]="isPasswordHidden() ? 'password' : 'text'"
             formControlName="password"
             data-testid="verify-password-input"
           />
+          <mat-icon matPrefix>lock</mat-icon>
+          <button
+            type="button"
+            matIconButton
+            matSuffix
+            (click)="isPasswordHidden.set(!isPasswordHidden())"
+            [attr.aria-label]="'Afficher le mot de passe'"
+            [attr.aria-pressed]="!isPasswordHidden()"
+          >
+            <mat-icon>{{
+              isPasswordHidden() ? 'visibility_off' : 'visibility'
+            }}</mat-icon>
+          </button>
           @if (verificationForm.get('password')?.hasError('required')) {
             <mat-error>Le mot de passe est requis</mat-error>
           } @else if (verificationForm.get('password')?.hasError('minlength')) {
@@ -91,6 +102,7 @@ import {
             placeholder="XXXX-XXXX-XXXX-..."
             class="font-mono uppercase"
           />
+          <mat-icon matPrefix>key</mat-icon>
           @if (
             verificationForm.get('currentRecoveryKey')?.hasError('required')
           ) {
@@ -133,6 +145,7 @@ export class RegenerateRecoveryKeyDialog {
 
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
+  protected readonly isPasswordHidden = signal(true);
 
   protected readonly PASSWORD_MIN_LENGTH = PASSWORD_MIN_LENGTH;
 

@@ -55,15 +55,18 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
         data-testid="setup-vault-code-page"
       >
         <div class="text-center mb-8">
-          <mat-icon class="text-6xl text-primary mb-4">lock</mat-icon>
+          <mat-icon class="text-6xl! w-auto! h-auto! text-primary"
+            >lock</mat-icon
+          >
           <h1
             class="text-2xl md:text-4xl font-bold text-on-surface mb-2 leading-tight"
           >
-            Crée ton code coffre-fort
+            Crée ton code secret
           </h1>
           <p class="text-base md:text-lg text-on-surface-variant">
-            Ce code protège tes données financières. Pulpe ne peut pas le
-            retrouver pour toi.
+            C'est la clé unique pour ouvrir ton coffre Pulpe. Garde-le
+            précieusement : personne d'autre ne peut l'ouvrir à ta place, et on
+            ne pourra pas le retrouver si tu l'oublies.
           </p>
         </div>
 
@@ -74,7 +77,7 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
           data-testid="setup-vault-code-form"
         >
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Code coffre-fort</mat-label>
+            <mat-label>Ton code secret</mat-label>
             <input
               matInput
               [type]="isCodeHidden() ? 'password' : 'text'"
@@ -96,13 +99,16 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
                 isCodeHidden() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
-            <mat-hint>8 caractères minimum</mat-hint>
+            <mat-hint
+              >8 caractères minimum (une courte phrase est facile à retenir
+              !)</mat-hint
+            >
             @if (
               form.get('vaultCode')?.invalid && form.get('vaultCode')?.touched
             ) {
               <mat-error>
                 @if (form.get('vaultCode')?.hasError('required')) {
-                  Ton code coffre-fort est nécessaire
+                  Ton code secret est nécessaire
                 } @else if (form.get('vaultCode')?.hasError('minlength')) {
                   8 caractères minimum
                 }
@@ -110,7 +116,7 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
             }
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="w-full">
+          <mat-form-field appearance="outline" class="w-full mt-4">
             <mat-label>Confirmer le code</mat-label>
             <input
               matInput
@@ -143,7 +149,7 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
                 } @else if (
                   form.get('confirmCode')?.hasError('fieldsMismatch')
                 ) {
-                  Les codes ne correspondent pas
+                  Les deux codes ne sont pas identiques — on réessaie ?
                 }
               </mat-error>
             }
@@ -165,11 +171,11 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
           <pulpe-loading-button
             [loading]="isSubmitting()"
             [disabled]="!canSubmit()"
-            loadingText="Configuration..."
+            loadingText="On prépare ton coffre..."
             icon="arrow_forward"
             testId="setup-vault-code-submit-button"
           >
-            <span class="ml-2">Continuer</span>
+            <span class="ml-2">Créer mon coffre</span>
           </pulpe-loading-button>
         </form>
 
