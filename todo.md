@@ -82,7 +82,7 @@ Migration SQL pour supprimer les colonnes `amount`, `target_amount`, `ending_bal
 |---|-------|--------|------------|
 | ~~1~~ | ~~Prompt recovery key au signup~~ | ~~#295~~ | ~~—~~ ✅ |
 | ~~2~~ | ~~Nudge recovery key post-password-change~~ | ~~#297~~ | ~~—~~ ✅ |
-| 2b | Validation du code coffre-fort | #305 | — |
+| 2b | Validation du code coffre-fort | ~~#305~~ | — | ✅ |
 | ~~3~~ | ~~Page mot de passe oublié~~ | ~~#296~~ | ~~#295~~ | ✅ |
 | 4 | Déploiement + migration prod | — | #305 | |
 | 5 | Vérification prod | — | Déploiement | |
@@ -97,6 +97,6 @@ Migration SQL pour supprimer les colonnes `amount`, `target_amount`, `ending_bal
 ├── #295 (prompt signup) ← DONE
 ├── #296 (forgot-password) ← DONE
 ├── #297 (nudge post-password-change) ← DONE
-├── #305 (validation code coffre-fort) ← EN COURS
+├── #305 (validation code coffre-fort) ← DONE
 └── #293 (cleanup backfill) ← bloqué par déploiement + vérification
 ```
