@@ -20,6 +20,7 @@ const createMockRepository = (overrides?: {
   updateSalt?: ReturnType<typeof mock>;
   updateWrappedDEK?: ReturnType<typeof mock>;
   hasRecoveryKey?: ReturnType<typeof mock>;
+  updateKeyCheck?: ReturnType<typeof mock>;
 }) => ({
   findSaltByUserId:
     overrides?.findSaltByUserId ?? mock(() => Promise.resolve(null)),
@@ -30,6 +31,7 @@ const createMockRepository = (overrides?: {
     overrides?.updateWrappedDEK ?? mock(() => Promise.resolve()),
   hasRecoveryKey:
     overrides?.hasRecoveryKey ?? mock(() => Promise.resolve(false)),
+  updateKeyCheck: overrides?.updateKeyCheck ?? mock(() => Promise.resolve()),
 });
 
 describe('EncryptionService', () => {
@@ -796,6 +798,218 @@ describe('EncryptionService', () => {
       );
 
       expect(updateWrappedDEK).toHaveBeenCalledWith(TEST_USER_ID, null);
+    });
+  });
+
+  describe('generateKeyCheck', () => {
+    it('should encrypt value 0 and return base64 string', () => {
+      const dek = randomBytes(32);
+      const keyCheck = service.generateKeyCheck(dek);
+
+      expect(typeof keyCheck).toBe('string');
+      expect(keyCheck.length).toBeGreaterThan(0);
+      // Base64 pattern validation
+      expect(keyCheck).toMatch(/^[A-Za-z0-9+/]+=*$/);
+    });
+
+    it('should produce consistent key_check for same DEK', () => {
+      const dek = randomBytes(32);
+      const keyCheck1 = service.generateKeyCheck(dek);
+      const keyCheck2 = service.generateKeyCheck(dek);
+
+      // Different due to random IV, but both should be valid
+      expect(keyCheck1).not.toBe(keyCheck2);
+      // Both should decrypt successfully
+      expect(service.validateKeyCheck(keyCheck1, dek)).toBe(true);
+      expect(service.validateKeyCheck(keyCheck2, dek)).toBe(true);
+    });
+
+    it('should produce different key_checks for different DEKs', () => {
+      const dek1 = randomBytes(32);
+      const dek2 = randomBytes(32);
+      const keyCheck1 = service.generateKeyCheck(dek1);
+      const keyCheck2 = service.generateKeyCheck(dek2);
+
+      // Cannot decrypt with wrong DEK
+      expect(service.validateKeyCheck(keyCheck1, dek2)).toBe(false);
+      expect(service.validateKeyCheck(keyCheck2, dek1)).toBe(false);
+    });
+  });
+
+  describe('validateKeyCheck', () => {
+    it('should return true when key_check decrypts successfully', () => {
+      const dek = randomBytes(32);
+      const keyCheck = service.generateKeyCheck(dek);
+
+      expect(service.validateKeyCheck(keyCheck, dek)).toBe(true);
+    });
+
+    it('should return false when key_check is tampered', () => {
+      const dek = randomBytes(32);
+      const keyCheck = service.generateKeyCheck(dek);
+
+      // Tamper with the key_check
+      const tamperedKeyCheck = `${keyCheck.slice(0, -4)}XXXX`;
+
+      expect(service.validateKeyCheck(tamperedKeyCheck, dek)).toBe(false);
+    });
+
+    it('should return false when wrong DEK is used', () => {
+      const dek1 = randomBytes(32);
+      const dek2 = randomBytes(32);
+      const keyCheck = service.generateKeyCheck(dek1);
+
+      expect(service.validateKeyCheck(keyCheck, dek2)).toBe(false);
+    });
+  });
+
+  describe('verifyAndEnsureKeyCheck', () => {
+    it('should validate existing key_check and return true', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+
+      // First, create service to derive the DEK and generate valid keyCheck
+      const initialFindSaltByUserId = mock(() =>
+        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+      );
+      const initialRepo = createMockRepository({
+        findSaltByUserId: initialFindSaltByUserId,
+      });
+      const initialService = new EncryptionService(
+        mockConfigService as any,
+        initialRepo as any,
+      );
+      const dek = await initialService.getUserDEK(
+        TEST_USER_ID,
+        TEST_CLIENT_KEY,
+      );
+      const validKeyCheck = initialService.generateKeyCheck(dek);
+
+      // Now create the actual test with the valid keyCheck
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: null,
+          key_check: validKeyCheck,
+        }),
+      );
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+      );
+
+      const repo = createMockRepository({ findByUserId, findSaltByUserId });
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      const result = await service.verifyAndEnsureKeyCheck(
+        TEST_USER_ID,
+        TEST_CLIENT_KEY,
+      );
+
+      expect(result).toBe(true);
+      expect(findByUserId).toHaveBeenCalledWith(TEST_USER_ID);
+    });
+
+    it('should return false when existing key_check fails validation', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const wrongDek = randomBytes(32);
+      const invalidKeyCheck = service.generateKeyCheck(wrongDek);
+
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: null,
+          key_check: invalidKeyCheck,
+        }),
+      );
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+      );
+
+      const repo = createMockRepository({ findByUserId, findSaltByUserId });
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      const result = await service.verifyAndEnsureKeyCheck(
+        TEST_USER_ID,
+        TEST_CLIENT_KEY,
+      );
+
+      expect(result).toBe(false);
+    });
+
+    it('should generate and store key_check for user without one (migration)', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const updateKeyCheck = mock(() => Promise.resolve());
+
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: null,
+          key_check: null,
+        }),
+      );
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+      );
+
+      const repo = createMockRepository({
+        findByUserId,
+        findSaltByUserId,
+        updateKeyCheck,
+      });
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      const result = await service.verifyAndEnsureKeyCheck(
+        TEST_USER_ID,
+        TEST_CLIENT_KEY,
+      );
+
+      expect(result).toBe(true);
+      expect(updateKeyCheck).toHaveBeenCalledTimes(1);
+      const updateKeyCheckCalls = updateKeyCheck.mock.calls as unknown[][];
+      expect(updateKeyCheckCalls[0][0]).toBe(TEST_USER_ID);
+      expect(typeof updateKeyCheckCalls[0][1]).toBe('string');
+    });
+
+    it('should propagate repository errors on findByUserId failure', async () => {
+      const findByUserId = mock(() =>
+        Promise.reject(new Error('Database connection failed')),
+      );
+
+      const repo = createMockRepository({ findByUserId });
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      await expect(
+        service.verifyAndEnsureKeyCheck(TEST_USER_ID, TEST_CLIENT_KEY),
+      ).rejects.toThrow('Database connection failed');
+    });
+  });
+
+  describe('storeKeyCheck', () => {
+    it('should delegate to repository updateKeyCheck', async () => {
+      const updateKeyCheck = mock(() => Promise.resolve());
+      const repo = createMockRepository({ updateKeyCheck });
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      const keyCheck = 'test-key-check-value';
+      await service.storeKeyCheck(TEST_USER_ID, keyCheck);
+
+      expect(updateKeyCheck).toHaveBeenCalledWith(TEST_USER_ID, keyCheck);
+    });
+
+    it('should await repository call', async () => {
+      let resolved = false;
+      const updateKeyCheck = mock(async () => {
+        await new Promise((r) => setTimeout(r, 10));
+        resolved = true;
+      });
+      const repo = createMockRepository({ updateKeyCheck });
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      await service.storeKeyCheck(TEST_USER_ID, 'test-key-check');
+
+      expect(resolved).toBe(true);
     });
   });
 });
