@@ -165,10 +165,12 @@ export class EncryptionService {
     return dek;
   }
 
-  getUserSalt(
+  async getUserSalt(
     userId: string,
-  ): Promise<{ salt: string; kdfIterations: number }> {
-    return this.#getOrGenerateClientSalt(userId);
+  ): Promise<{ salt: string; kdfIterations: number; hasRecoveryKey: boolean }> {
+    const { salt, kdfIterations } = await this.#getOrGenerateClientSalt(userId);
+    const hasRecoveryKey = await this.#repository.hasRecoveryKey(userId);
+    return { salt, kdfIterations, hasRecoveryKey };
   }
 
   async onPasswordChange(
