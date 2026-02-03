@@ -71,6 +71,25 @@ import {
               Vérification de ton lien...
             </p>
           </div>
+        } @else if (saltFetchError()) {
+          <div class="text-center space-y-6" data-testid="salt-fetch-error">
+            <mat-icon class="text-6xl text-error">error_outline</mat-icon>
+            <h1 class="text-2xl font-bold text-on-surface">
+              Erreur de chargement
+            </h1>
+            <p class="text-body-medium text-on-surface-variant">
+              {{ saltFetchError() }}
+            </p>
+            <a
+              [routerLink]="['/', ROUTES.FORGOT_PASSWORD]"
+              mat-flat-button
+              color="primary"
+              class="w-full"
+              data-testid="back-to-forgot-password-button"
+            >
+              Réessayer
+            </a>
+          </div>
         } @else if (!isSessionValid()) {
           <div class="text-center space-y-6" data-testid="invalid-link-message">
             <mat-icon class="text-6xl text-error">link_off</mat-icon>
@@ -108,7 +127,7 @@ import {
               Réinitialiser le mot de passe
             </h1>
             <p class="text-base md:text-lg text-on-surface-variant">
-              @if (hasVaultCode()) {
+              @if (hasVaultCode() || !hasRecoveryKey()) {
                 Entre ton nouveau mot de passe
               } @else {
                 Entre ta clé de récupération et ton nouveau mot de passe
@@ -122,7 +141,7 @@ import {
             class="space-y-4"
             data-testid="reset-password-form"
           >
-            @if (!hasVaultCode()) {
+            @if (showRecoveryKeyField()) {
               <mat-form-field appearance="outline" class="w-full">
                 <mat-label>Clé de récupération</mat-label>
                 <input
@@ -261,23 +280,47 @@ export default class ResetPassword {
   readonly #logger = inject(Logger);
 
   protected readonly ROUTES = ROUTES;
-  protected readonly isCheckingSession = computed(() =>
-    this.#authState.isLoading(),
-  );
-  protected readonly isSessionValid = computed(
-    () => !this.#authState.isLoading() && this.#authState.isAuthenticated(),
-  );
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
   protected readonly isPasswordHidden = signal(true);
   protected readonly isConfirmPasswordHidden = signal(true);
 
+  // Salt info fetched on session valid - includes hasRecoveryKey flag
+  readonly #saltInfo = signal<{
+    salt: string;
+    kdfIterations: number;
+    hasRecoveryKey: boolean;
+  } | null>(null);
+  readonly #isFetchingSalt = signal(false);
+  readonly #saltFetchError = signal<string | null>(null);
+  protected readonly saltFetchError = this.#saltFetchError.asReadonly();
+
+  protected readonly isCheckingSession = computed(
+    () => this.#authState.isLoading() || this.#isFetchingSalt(),
+  );
+  protected readonly isSessionValid = computed(
+    () =>
+      !this.#authState.isLoading() &&
+      this.#authState.isAuthenticated() &&
+      this.#saltInfo() !== null &&
+      !this.#saltFetchError(),
+  );
+
   // Vault-code users only need to change their password (no encryption impact).
-  // Legacy users (no vault code) need recovery key to rekey their data.
   protected readonly hasVaultCode = computed(() => {
     const user = this.#authState.authState().user;
     return !!user?.user_metadata?.['vaultCodeConfigured'];
   });
+
+  // Existing users before migration have no recovery key - they need setup flow
+  protected readonly hasRecoveryKey = computed(
+    () => this.#saltInfo()?.hasRecoveryKey ?? false,
+  );
+
+  // Show recovery key field only if user doesn't have vault code BUT has a recovery key
+  protected readonly showRecoveryKeyField = computed(
+    () => !this.hasVaultCode() && this.hasRecoveryKey(),
+  );
 
   protected readonly form = this.#formBuilder.nonNullable.group(
     {
@@ -313,6 +356,45 @@ export default class ResetPassword {
         );
       }
     });
+
+    // Fetch salt info when session becomes valid to determine hasRecoveryKey
+    effect(() => {
+      const isAuthenticated = this.#authState.isAuthenticated();
+      const isLoading = this.#authState.isLoading();
+      const saltInfo = this.#saltInfo();
+
+      if (!isLoading && isAuthenticated && saltInfo === null) {
+        this.#fetchSaltInfo();
+      }
+    });
+
+    // Disable recovery key validators when field is not shown
+    effect(() => {
+      const showField = this.showRecoveryKeyField();
+      const control = this.form.controls.recoveryKey;
+
+      if (showField) {
+        control.setValidators(recoveryKeyValidators);
+      } else {
+        control.clearValidators();
+      }
+      control.updateValueAndValidity();
+    });
+  }
+
+  async #fetchSaltInfo(): Promise<void> {
+    this.#isFetchingSalt.set(true);
+    try {
+      const saltInfo = await firstValueFrom(this.#encryptionApi.getSalt$());
+      this.#saltInfo.set(saltInfo);
+    } catch (error) {
+      this.#logger.error('Failed to fetch salt info:', error);
+      this.#saltFetchError.set(
+        'Impossible de charger les informations de sécurité',
+      );
+    } finally {
+      this.#isFetchingSalt.set(false);
+    }
   }
 
   protected onRecoveryKeyInput(): void {
@@ -336,9 +418,14 @@ export default class ResetPassword {
     }
 
     if (this.hasVaultCode()) {
+      // User has vault code: simple password reset, no encryption impact
       await this.#resetPasswordSimple();
-    } else {
+    } else if (this.hasRecoveryKey()) {
+      // User has recovery key: use it to rekey data
       await this.#resetPasswordWithRecovery();
+    } else {
+      // Existing user without vault code/recovery key: reset password, then setup vault code
+      await this.#resetPasswordAndSetupVaultCode();
     }
   }
 
@@ -369,7 +456,36 @@ export default class ResetPassword {
     }
   }
 
-  // Legacy users: need recovery key to rekey data with new password-derived key.
+  // Existing users before migration: no vault code or recovery key yet.
+  // Reset password, then redirect to setup-vault-code to create their first vault code.
+  async #resetPasswordAndSetupVaultCode(): Promise<void> {
+    this.isSubmitting.set(true);
+    this.clearError();
+
+    const { newPassword } = this.form.getRawValue();
+
+    try {
+      const passwordResult =
+        await this.#authSession.updatePassword(newPassword);
+      if (!passwordResult.success) {
+        this.errorMessage.set(
+          passwordResult.error ||
+            'La mise à jour du mot de passe a échoué — réessaie',
+        );
+        return;
+      }
+
+      // Redirect to setup vault code - user will create their first vault code and recovery key
+      this.#router.navigate(['/', ROUTES.SETUP_VAULT_CODE]);
+    } catch (error) {
+      this.#logger.error('Reset password (setup vault code) failed:', error);
+      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessayons");
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  // Legacy users with recovery key: need it to rekey data with new password-derived key.
   async #resetPasswordWithRecovery(): Promise<void> {
     this.isSubmitting.set(true);
     this.clearError();
@@ -382,11 +498,18 @@ export default class ResetPassword {
       return;
     }
 
-    try {
-      // 1. Get current salt and derive new client key
-      const { salt, kdfIterations } = await firstValueFrom(
-        this.#encryptionApi.getSalt$(),
+    const saltInfo = this.#saltInfo();
+    if (!saltInfo) {
+      this.errorMessage.set(
+        'Impossible de charger les informations de chiffrement',
       );
+      this.isSubmitting.set(false);
+      return;
+    }
+
+    try {
+      // 1. Use cached salt info and derive new client key
+      const { salt, kdfIterations } = saltInfo;
       const newClientKeyHex = await deriveClientKey(
         newPassword,
         salt,
