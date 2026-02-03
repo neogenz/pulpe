@@ -193,7 +193,7 @@ otp_expiry = 3600
 # Email templates (French, Pulpe branding)
 [auth.email.template.recovery]
 subject = "Réinitialise ton mot de passe - Pulpe"
-content_path = "./supabase/templates/recovery.html"
+content_path = "supabase/templates/recovery.html"
 
 # [auth.email.template.invite]
 # subject = "Tu as été invité sur Pulpe"
