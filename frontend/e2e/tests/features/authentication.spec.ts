@@ -84,4 +84,34 @@ test.describe('Authentication', () => {
     // Should redirect away from app
     await expect(authenticatedPage).toHaveURL(/\/(login|welcome)/);
   });
+
+  test('should clear vault client keys on logout', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto('/dashboard');
+    await authenticatedPage.waitForLoadState('domcontentloaded');
+
+    await authenticatedPage.evaluate(() => {
+      const entry = {
+        version: 1,
+        data: 'aa'.repeat(32),
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem('pulpe-vault-client-key-local', JSON.stringify(entry));
+      sessionStorage.setItem('pulpe-vault-client-key-session', JSON.stringify(entry));
+    });
+
+    await expect(authenticatedPage.getByTestId('user-menu-trigger')).toBeVisible();
+    await authenticatedPage.getByTestId('user-menu-trigger').click();
+    await expect(authenticatedPage.getByTestId('logout-button')).toBeVisible();
+    await authenticatedPage.getByTestId('logout-button').click();
+
+    await expect(authenticatedPage).toHaveURL(/\/(login|welcome)/);
+
+    const storage = await authenticatedPage.evaluate(() => ({
+      local: localStorage.getItem('pulpe-vault-client-key-local'),
+      session: sessionStorage.getItem('pulpe-vault-client-key-session'),
+    }));
+
+    expect(storage.local).toBeNull();
+    expect(storage.session).toBeNull();
+  });
 });

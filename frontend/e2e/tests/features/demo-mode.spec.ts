@@ -118,4 +118,32 @@ test.describe('Demo Mode', () => {
     // Should land on dashboard
     await expect(page).toHaveURL(/\/dashboard/);
   });
+
+  test('should hide security section in settings for demo mode', async ({ page }) => {
+    await setupAuthBypass(page, {
+      includeApiMocks: true,
+      setLocalStorage: true,
+      vaultCodeConfigured: false,
+    });
+
+    await setupDemoBypass(page, {
+      userId: 'demo-settings-test',
+      userEmail: 'demo-settings@test.local',
+    });
+
+    await page.addInitScript(() => {
+      const entry = {
+        version: 1,
+        data: true,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem('pulpe-demo-mode', JSON.stringify(entry));
+    });
+
+    await page.goto('/settings', { waitUntil: 'domcontentloaded', timeout: 15000 });
+
+    await expect(page.getByTestId('settings-page')).toBeVisible();
+    await expect(page.getByTestId('change-password-button')).toHaveCount(0);
+    await expect(page.getByTestId('generate-recovery-key-button')).toHaveCount(0);
+  });
 });
