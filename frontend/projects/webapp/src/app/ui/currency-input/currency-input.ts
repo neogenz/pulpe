@@ -10,13 +10,19 @@ import {
 import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'pulpe-currency-input',
-  imports: [FormsModule, MatFormFieldModule, MatInputModule],
+  imports: [FormsModule, MatFormFieldModule, MatInputModule, MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <mat-form-field class="w-full" appearance="fill">
+    <mat-form-field class="w-full" appearance="outline">
+      @if (icon()) {
+        <mat-icon matPrefix class="mr-3 text-on-surface-variant/70">{{
+          icon()
+        }}</mat-icon>
+      }
       <mat-label class="ph-no-capture">{{ label() }}</mat-label>
       <input
         matInput
@@ -31,7 +37,7 @@ import { MatInputModule } from '@angular/material/input';
         step="0.01"
         [attr.data-testid]="testId()"
       />
-      <span matTextSuffix class="text-gray-600 font-medium">{{
+      <span matTextSuffix class="text-on-surface-variant font-medium">{{
         currency()
       }}</span>
       @if (ariaDescribedBy()) {
@@ -48,6 +54,7 @@ export class CurrencyInput {
   readonly label = input.required<string>();
   readonly value = model<number | null>(null);
   readonly placeholder = input<string>('0.00');
+  readonly icon = input<string | null>(null);
   readonly ariaDescribedBy = input<string>();
   readonly required = input<boolean>(false);
   readonly testId = input<string>('currency-input');

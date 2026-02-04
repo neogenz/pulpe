@@ -1,7 +1,19 @@
-import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  inject,
+  signal,
+} from '@angular/core';
+import {
+  trigger,
+  transition,
+  style,
+  animate,
+  query,
+  stagger,
+} from '@angular/animations';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MatStepperModule } from '@angular/material/stepper';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -20,7 +32,6 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
   selector: 'pulpe-complete-profile-page',
   imports: [
     FormsModule,
-    MatStepperModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
@@ -33,173 +44,287 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
   ],
   providers: [CompleteProfileStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  animations: [
+    trigger('fadeInTranslate', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(16px)' }),
+        animate(
+          '350ms cubic-bezier(0.22, 1, 0.36, 1)',
+          style({ opacity: 1, transform: 'translateY(0)' }),
+        ),
+      ]),
+    ]),
+    trigger('staggerList', [
+      transition('* => *', [
+        query(
+          ':enter',
+          [
+            style({ opacity: 0, transform: 'translateY(12px)' }),
+            stagger(70, [
+              animate(
+                '300ms cubic-bezier(0.22, 1, 0.36, 1)',
+                style({ opacity: 1, transform: 'translateY(0)' }),
+              ),
+            ]),
+          ],
+          { optional: true },
+        ),
+      ]),
+    ]),
+  ],
   template: `
-    @if (store.isCheckingExistingBudget()) {
-      <div class="flex items-center justify-center min-h-[400px]">
-        <mat-progress-spinner mode="indeterminate" [diameter]="48" />
-      </div>
-    } @else {
-      <div class="max-w-2xl mx-auto p-6">
-        <div class="text-center mb-8">
-          <h1 class="text-headline-large text-on-surface mb-2">
-            Encore quelques détails
-          </h1>
-          <p class="text-body-large text-on-surface-variant">
-            On prépare ton espace — c'est rapide
+    <div class="max-w-md mx-auto px-6 py-14 sm:py-20">
+      @if (store.isCheckingExistingBudget()) {
+        <div class="flex flex-col items-center justify-center min-h-96 gap-6">
+          <mat-progress-spinner mode="indeterminate" [diameter]="40" />
+          <p class="text-body-large text-on-surface-variant animate-pulse">
+            Préparation de ton espace de liberté...
           </p>
         </div>
+      } @else {
+        <div class="relative">
+          <!-- Modern Stepper (Dots) -->
+          <div class="flex items-center justify-center gap-3 mb-10">
+            @for (step of [1, 2]; track step) {
+              <div
+                class="h-1.5 rounded-full transition-all duration-500 ease-emphasized"
+                [class.w-8]="currentStep() === step"
+                [class.w-2]="currentStep() !== step"
+                [class.bg-primary]="currentStep() === step"
+                [class.bg-outline-variant]="currentStep() !== step"
+              ></div>
+            }
+          </div>
 
-        <mat-stepper #stepper linear class="complete-profile-stepper">
-          <!-- Step 1: Essential info -->
-          <mat-step [completed]="store.isStep1Valid()">
-            <ng-template matStepLabel>Informations essentielles</ng-template>
-
-            <div class="py-6 space-y-6">
-              <mat-form-field class="w-full" appearance="fill">
-                <mat-label>Prénom</mat-label>
-                <input
-                  matInput
-                  type="text"
-                  [ngModel]="store.firstName()"
-                  (ngModelChange)="store.updateFirstName($event)"
-                  placeholder="Ton prénom"
-                  data-testid="first-name-input"
-                  required
-                />
-                <mat-icon matPrefix>person</mat-icon>
-              </mat-form-field>
-
-              <pulpe-currency-input
-                label="Revenus mensuels"
-                [value]="store.monthlyIncome()"
-                (valueChange)="store.updateMonthlyIncome($event)"
-                [required]="true"
-                testId="monthly-income-input"
-                [autoFocus]="false"
-              />
-            </div>
-
-            <div class="flex justify-end">
-              <button
-                matButton="filled"
-                color="primary"
-                matStepperNext
-                [disabled]="!store.isStep1Valid()"
-                data-testid="next-step-button"
-                (click)="onStep1Complete()"
-              >
-                Suivant
-              </button>
-            </div>
-          </mat-step>
-
-          <!-- Step 2: Optional expenses -->
-          <mat-step optional>
-            <ng-template matStepLabel>Charges (optionnel)</ng-template>
-
-            <div class="py-6 space-y-4">
-              <p class="text-body-medium text-on-surface-variant mb-4">
-                Tu peux personnaliser ton budget. Cette étape est optionnelle.
-              </p>
-
-              <!-- Pay day selector -->
-              <mat-form-field class="w-full" appearance="fill">
-                <mat-label>Jour de paie</mat-label>
-                <mat-select
-                  [ngModel]="store.payDayOfMonth()"
-                  (ngModelChange)="store.updatePayDayOfMonth($event)"
-                  data-testid="pay-day-select"
+          <!-- Step 1 Content -->
+          @if (currentStep() === 1) {
+            <div @fadeInTranslate class="flex flex-col items-center">
+              <div class="mb-10 text-center max-w-sm">
+                <h1
+                  class="text-display-small font-bold mb-3 tracking-tight text-on-surface"
                 >
-                  <mat-option [value]="null"
-                    >1er du mois (calendaire)</mat-option
+                  Salut{{ store.firstName() ? ' ' + store.firstName() : '' }} 👋
+                </h1>
+                <p
+                  class="text-body-large text-on-surface-variant leading-relaxed"
+                >
+                  On va personnaliser ton espace ensemble en deux petites
+                  étapes.
+                </p>
+              </div>
+
+              <div class="w-full space-y-6">
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-icon matPrefix class="mr-3 text-on-surface-variant"
+                    >person</mat-icon
                   >
-                  @for (day of availableDays; track day) {
-                    <mat-option [value]="day">Le {{ day }}</mat-option>
-                  }
-                </mat-select>
-                <mat-icon matPrefix>calendar_today</mat-icon>
-                <mat-hint>
-                  @if (store.payDayOfMonth(); as day) {
-                    @if (day > 28) {
-                      Ton budget commencera le {{ day }}. Si le mois a moins de
-                      jours, il débutera le dernier jour disponible.
-                    } @else {
-                      Ton budget commencera le {{ day }} de chaque mois
+                  <mat-label>Ton prénom</mat-label>
+                  <input
+                    matInput
+                    type="text"
+                    [ngModel]="store.firstName()"
+                    (ngModelChange)="store.updateFirstName($event)"
+                    placeholder="Comment t'appeler ?"
+                    data-testid="first-name-input"
+                  />
+                </mat-form-field>
+
+                <pulpe-currency-input
+                  label="Revenus mensuels"
+                  [value]="store.monthlyIncome()"
+                  (valueChange)="store.updateMonthlyIncome($event)"
+                  [required]="true"
+                  icon="payments"
+                  testId="monthly-income-input"
+                  [autoFocus]="false"
+                />
+              </div>
+
+              <div class="mt-10 w-full flex flex-col items-center gap-4">
+                <button
+                  matButton="filled"
+                  class="w-full h-14 text-title-medium rounded-2xl"
+                  [disabled]="!store.isStep1Valid()"
+                  data-testid="next-step-button"
+                  (click)="nextStep()"
+                >
+                  <span class="flex items-center justify-center gap-2">
+                    Suivant
+                    <mat-icon class="!text-xl">arrow_forward</mat-icon>
+                  </span>
+                </button>
+
+                <div
+                  class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-outline-variant/20"
+                >
+                  <mat-icon class="text-tertiary !text-lg">shield</mat-icon>
+                  <span class="text-label-medium text-on-surface-variant">
+                    Tes données restent privées et sécurisées
+                  </span>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Step 2 Content -->
+          @if (currentStep() === 2) {
+            <div @fadeInTranslate>
+              <div class="mb-10 text-center">
+                <h1
+                  class="text-display-small font-bold mb-2 tracking-tight text-on-surface"
+                >
+                  Presque terminé 🎯
+                </h1>
+                <p
+                  class="text-body-large text-on-surface-variant leading-relaxed"
+                >
+                  Quelques infos pour affiner — ou passe directement.
+                </p>
+              </div>
+
+              <div class="space-y-6">
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-icon matPrefix class="mr-3 text-on-surface-variant"
+                    >event_repeat</mat-icon
+                  >
+                  <mat-label>Quand reçois-tu ton salaire ?</mat-label>
+                  <mat-select
+                    [ngModel]="store.payDayOfMonth()"
+                    (ngModelChange)="store.updatePayDayOfMonth($event)"
+                    data-testid="pay-day-select"
+                  >
+                    <mat-option [value]="null"
+                      >1er du mois (calendaire)</mat-option
+                    >
+                    @for (day of availableDays; track day) {
+                      <mat-option [value]="day">Le {{ day }}</mat-option>
                     }
-                  } @else {
-                    Ton budget suivra le calendrier standard (1er au dernier)
+                  </mat-select>
+                </mat-form-field>
+
+                <!-- Collapsible charges section -->
+                <div
+                  class="rounded-2xl border border-outline-variant/30 overflow-hidden"
+                >
+                  <button
+                    type="button"
+                    class="w-full flex items-center justify-between p-4 hover:bg-surface-container/30 transition-colors"
+                    (click)="isChargesExpanded.set(!isChargesExpanded())"
+                    data-testid="toggle-charges-button"
+                  >
+                    <div class="flex items-center gap-3">
+                      <mat-icon class="text-on-surface-variant"
+                        >receipt_long</mat-icon
+                      >
+                      <div class="text-left">
+                        <p class="text-title-medium text-on-surface">
+                          Charges mensuelles
+                        </p>
+                        <p class="text-body-small text-on-surface-variant">
+                          Facultatif — tu pourras ajuster plus tard
+                        </p>
+                      </div>
+                    </div>
+                    <mat-icon
+                      class="text-on-surface-variant transition-transform duration-200"
+                      [class.rotate-180]="isChargesExpanded()"
+                      >expand_more</mat-icon
+                    >
+                  </button>
+
+                  @if (isChargesExpanded()) {
+                    <div class="px-4 pb-4 space-y-4" @staggerList>
+                      <pulpe-currency-input
+                        label="Loyer / Crédit"
+                        [value]="store.housingCosts()"
+                        (valueChange)="store.updateHousingCosts($event)"
+                        icon="home"
+                        placeholder="0"
+                        testId="housing-costs-input"
+                        [autoFocus]="false"
+                      />
+                      <pulpe-currency-input
+                        label="Assurances"
+                        [value]="store.healthInsurance()"
+                        (valueChange)="store.updateHealthInsurance($event)"
+                        icon="health_and_safety"
+                        placeholder="0"
+                        testId="health-insurance-input"
+                        [autoFocus]="false"
+                      />
+                      <pulpe-currency-input
+                        label="Abonnements"
+                        [value]="store.phonePlan()"
+                        (valueChange)="store.updatePhonePlan($event)"
+                        icon="star"
+                        placeholder="0"
+                        testId="phone-plan-input"
+                        [autoFocus]="false"
+                      />
+                      <pulpe-currency-input
+                        label="Transport"
+                        [value]="store.transportCosts()"
+                        (valueChange)="store.updateTransportCosts($event)"
+                        icon="directions_car"
+                        placeholder="0"
+                        testId="transport-costs-input"
+                        [autoFocus]="false"
+                      />
+                      <pulpe-currency-input
+                        label="Autres charges"
+                        [value]="store.leasingCredit()"
+                        (valueChange)="store.updateLeasingCredit($event)"
+                        icon="more_horiz"
+                        placeholder="0"
+                        testId="leasing-credit-input"
+                        [autoFocus]="false"
+                      />
+                    </div>
                   }
-                </mat-hint>
-              </mat-form-field>
+                </div>
+              </div>
 
-              <p class="text-body-small text-on-surface-variant mt-2 mb-4">
-                Charges fixes (optionnel)
-              </p>
+              <pulpe-error-alert [message]="store.error()" class="mt-8" />
 
-              <pulpe-currency-input
-                label="Loyer"
-                [value]="store.housingCosts()"
-                (valueChange)="store.updateHousingCosts($event)"
-                placeholder="0 (optionnel)"
-                testId="housing-costs-input"
-                [autoFocus]="false"
-              />
+              <div class="mt-10 flex flex-col gap-3">
+                <pulpe-loading-button
+                  [loading]="store.isLoading()"
+                  loadingText="Préparation de ton espace..."
+                  testId="submit-button"
+                  class="w-full rounded-2xl"
+                  (click)="onSubmit()"
+                >
+                  <span class="flex items-center justify-center gap-2">
+                    C'est parti
+                    <mat-icon class="!text-xl">rocket_launch</mat-icon>
+                  </span>
+                </pulpe-loading-button>
 
-              <pulpe-currency-input
-                label="Assurance maladie"
-                [value]="store.healthInsurance()"
-                (valueChange)="store.updateHealthInsurance($event)"
-                placeholder="0 (optionnel)"
-                testId="health-insurance-input"
-                [autoFocus]="false"
-              />
+                <div class="flex gap-3">
+                  <button
+                    matButton="text"
+                    class="flex-1 h-12 text-on-surface-variant rounded-2xl hover:bg-surface-container/50"
+                    (click)="goToStep(1)"
+                    data-testid="back-button"
+                  >
+                    <span class="flex items-center justify-center gap-1">
+                      <mat-icon class="!text-lg">arrow_back</mat-icon>
+                      Retour
+                    </span>
+                  </button>
+                </div>
 
-              <pulpe-currency-input
-                label="Téléphone"
-                [value]="store.phonePlan()"
-                (valueChange)="store.updatePhonePlan($event)"
-                placeholder="0 (optionnel)"
-                testId="phone-plan-input"
-                [autoFocus]="false"
-              />
-
-              <pulpe-currency-input
-                label="Transport"
-                [value]="store.transportCosts()"
-                (valueChange)="store.updateTransportCosts($event)"
-                placeholder="0 (optionnel)"
-                testId="transport-costs-input"
-                [autoFocus]="false"
-              />
-
-              <pulpe-currency-input
-                label="Leasing / Crédits"
-                [value]="store.leasingCredit()"
-                (valueChange)="store.updateLeasingCredit($event)"
-                placeholder="0 (optionnel)"
-                testId="leasing-credit-input"
-                [autoFocus]="false"
-              />
+                <p
+                  class="text-center text-body-small text-on-surface-variant mt-2"
+                >
+                  Tu pourras tout modifier dans les paramètres
+                </p>
+              </div>
             </div>
-
-            <div class="flex justify-between">
-              <button matButton="outlined" matStepperPrevious>Précédent</button>
-              <pulpe-loading-button
-                [loading]="store.isLoading()"
-                loadingText="Création..."
-                testId="submit-button"
-                [fullWidth]="false"
-                (click)="onSubmit()"
-              >
-                Créer mon budget
-              </pulpe-loading-button>
-            </div>
-          </mat-step>
-        </mat-stepper>
-
-        <pulpe-error-alert [message]="store.error()" class="mt-6" />
-      </div>
-    }
+          }
+        </div>
+      }
+    </div>
   `,
   host: { class: 'block' },
 })
@@ -207,6 +332,9 @@ export default class CompleteProfilePage {
   protected readonly store = inject(CompleteProfileStore);
   readonly #router = inject(Router);
   readonly #postHogService = inject(PostHogService);
+
+  protected readonly currentStep = signal<1 | 2>(1);
+  protected readonly isChargesExpanded = signal(false);
 
   protected readonly availableDays = Array.from(
     { length: PAY_DAY_MAX },
@@ -225,10 +353,15 @@ export default class CompleteProfilePage {
     }
   }
 
-  onStep1Complete(): void {
+  protected nextStep(): void {
     if (this.store.isStep1Valid()) {
       this.#postHogService.captureEvent('profile_step1_completed');
+      this.currentStep.set(2);
     }
+  }
+
+  protected goToStep(step: 1 | 2): void {
+    this.currentStep.set(step);
   }
 
   protected async onSubmit(): Promise<void> {
