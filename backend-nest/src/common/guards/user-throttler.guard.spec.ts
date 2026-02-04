@@ -35,6 +35,12 @@ describe('UserThrottlerGuard', () => {
       fatal: mock(() => {}),
     };
 
+    // Mock ClsService
+    const mockClsService = {
+      get: mock(() => false),
+      set: mock(() => {}),
+    };
+
     // Mock ThrottlerGuard dependencies
     const mockThrottlerOptions = {} as any;
     const mockThrottlerStorage = {} as any;
@@ -47,6 +53,7 @@ describe('UserThrottlerGuard', () => {
       mockReflector,
       mockLogger,
       mockSupabaseService,
+      mockClsService as any,
     );
   });
 

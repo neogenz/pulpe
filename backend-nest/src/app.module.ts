@@ -11,6 +11,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { randomUUID } from 'crypto';
 import { CurlGenerator } from 'curl-generator';
 import type { IncomingMessage, ServerResponse } from 'http';
+import { ClsModule } from 'nestjs-cls';
 import { LoggerModule } from 'nestjs-pino';
 import { ZodValidationPipe } from 'nestjs-zod';
 
@@ -233,6 +234,10 @@ function createPinoLoggerConfig(configService: ConfigService) {
 
 @Module({
   imports: [
+    ClsModule.forRoot({
+      global: true,
+      middleware: { mount: true },
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [

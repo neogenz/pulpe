@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ClsService } from 'nestjs-cls';
 import {
   createCipheriv,
   createDecipheriv,
@@ -7,6 +8,7 @@ import {
   hkdfSync,
   randomBytes,
 } from 'node:crypto';
+import type { AppClsStore } from '@common/types/cls-store.interface';
 import { EncryptionKeyRepository } from './encryption-key.repository';
 
 const ALGORITHM = 'aes-256-gcm';
@@ -21,6 +23,9 @@ const DEK_CACHE_TTL_MS = 5 * 60 * 1000;
 // Base32 alphabet (RFC 4648, no padding) — avoids 0/O and 1/l ambiguity
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
+// Deterministic salt for demo users - no DB persistence needed since demo data is plaintext
+const DEMO_SALT = Buffer.alloc(SALT_LENGTH, 0x00);
+
 interface CachedDEK {
   dek: Buffer;
   expiry: number;
@@ -33,10 +38,12 @@ export class EncryptionService {
   readonly #dekCache = new Map<string, CachedDEK>();
   readonly #repository: EncryptionKeyRepository;
   readonly #passwordChangeLocks = new Map<string, Promise<void>>();
+  readonly #cls: ClsService<AppClsStore>;
 
   constructor(
     configService: ConfigService,
     repository: EncryptionKeyRepository,
+    cls: ClsService<AppClsStore>,
   ) {
     const masterKeyHex = configService.get<string>('ENCRYPTION_MASTER_KEY');
     if (!masterKeyHex) {
@@ -49,6 +56,11 @@ export class EncryptionService {
       );
     }
     this.#repository = repository;
+    this.#cls = cls;
+  }
+
+  #isDemo(): boolean {
+    return this.#cls.get('isDemo') ?? false;
   }
 
   encryptAmount(amount: number, dek: Buffer): string {
@@ -149,6 +161,16 @@ export class EncryptionService {
       return cached.dek;
     }
 
+    // Demo users use deterministic salt without DB lookup
+    if (this.#isDemo()) {
+      const dek = this.#deriveDEK(clientKey, DEMO_SALT, userId);
+      this.#dekCache.set(cacheKey, {
+        dek,
+        expiry: Date.now() + DEK_CACHE_TTL_MS,
+      });
+      return dek;
+    }
+
     const row = await this.#repository.findSaltByUserId(userId);
     if (!row) {
       throw new Error(`No encryption key found for user ${userId}`);
@@ -169,7 +191,10 @@ export class EncryptionService {
     userId: string,
   ): Promise<{ salt: string; kdfIterations: number; hasRecoveryKey: boolean }> {
     const { salt, kdfIterations } = await this.#getOrGenerateClientSalt(userId);
-    const hasRecoveryKey = await this.#repository.hasRecoveryKey(userId);
+    // Demo users don't have recovery keys
+    const hasRecoveryKey = this.#isDemo()
+      ? false
+      : await this.#repository.hasRecoveryKey(userId);
     return { salt, kdfIterations, hasRecoveryKey };
   }
 
@@ -415,6 +440,11 @@ export class EncryptionService {
   }
 
   async #ensureUserSalt(userId: string): Promise<Buffer> {
+    // Demo users use deterministic salt without DB persistence
+    if (this.#isDemo()) {
+      return DEMO_SALT;
+    }
+
     // Check existing first
     const existing = await this.#repository.findSaltByUserId(userId);
     if (existing) {

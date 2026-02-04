@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { type ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { ClsService } from 'nestjs-cls';
 import { AuthGuard } from './auth.guard';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -42,6 +43,11 @@ describe('AuthGuard', () => {
       fatal: () => {},
     };
 
+    const mockClsService = {
+      get: () => false,
+      set: () => {},
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthGuard,
@@ -56,6 +62,10 @@ describe('AuthGuard', () => {
         {
           provide: `INFO_LOGGER:${AuthGuard.name}`,
           useValue: mockPinoLogger,
+        },
+        {
+          provide: ClsService,
+          useValue: mockClsService,
         },
       ],
     }).compile();
@@ -334,6 +344,10 @@ describe('AuthGuard', () => {
               error: () => {},
               debug: () => {},
             },
+          },
+          {
+            provide: ClsService,
+            useValue: { get: () => false, set: () => {} },
           },
         ],
       }).compile();

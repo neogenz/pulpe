@@ -99,6 +99,6 @@ Migration SQL pour supprimer les colonnes `amount`, `target_amount`, `ending_bal
 ├── #297 (nudge post-password-change) ← DONE
 ├── #300 (code coffre-fort Google OAuth) ← DONE
 ├── #305 (validation code coffre-fort) ← DONE
-├── #308 (mode démo ne doit pas demander de code coffre-fort) ← TODO
+├── #308 (mode démo ne doit pas demander de code coffre-fort) ← DONE
 └── #293 (cleanup backfill) ← bloqué par déploiement + vérification
 ```

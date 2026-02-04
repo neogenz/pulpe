@@ -25,6 +25,7 @@ export class BudgetCalculator {
    * Uses shared BudgetFormulas with envelope-aware expense calculation
    * @param budgetId - The budget ID
    * @param supabase - Authenticated Supabase client
+   * @param clientKey - Client encryption key for DEK operations (null to skip encryption, e.g. demo mode)
    * @returns The calculated ending balance
    */
   async calculateEndingBalance(
