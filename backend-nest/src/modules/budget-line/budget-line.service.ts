@@ -58,17 +58,6 @@ export class BudgetLineService {
     );
   }
 
-  async #encryptAmount(
-    amount: number,
-    user: AuthenticatedUser,
-  ): Promise<string> {
-    const dek = await this.encryptionService.ensureUserDEK(
-      user.id,
-      user.clientKey,
-    );
-    return this.encryptionService.encryptAmount(amount, dek);
-  }
-
   async findAll(
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
@@ -168,13 +157,15 @@ export class BudgetLineService {
     supabase: AuthenticatedSupabaseClient,
     user: AuthenticatedUser,
   ): Promise<Database['public']['Tables']['budget_line']['Row']> {
-    const amountEncrypted = await this.#encryptAmount(
-      budgetLineData.amount,
-      user,
-    );
+    const { amount, amount_encrypted: amountEncrypted } =
+      await this.encryptionService.prepareAmountData(
+        budgetLineData.amount,
+        user.id,
+        user.clientKey,
+      );
     const dataWithEncryption = {
       ...budgetLineData,
-      amount: 0,
+      amount,
       amount_encrypted: amountEncrypted,
     };
 
@@ -407,13 +398,15 @@ export class BudgetLineService {
 
       let updateData = this.prepareBudgetLineUpdateData(updateBudgetLineDto);
       if (updateBudgetLineDto.amount !== undefined) {
-        const amountEncrypted = await this.#encryptAmount(
-          updateBudgetLineDto.amount,
-          user,
-        );
+        const { amount, amount_encrypted: amountEncrypted } =
+          await this.encryptionService.prepareAmountData(
+            updateBudgetLineDto.amount,
+            user.id,
+            user.clientKey,
+          );
         updateData = {
           ...updateData,
-          amount: 0,
+          amount,
           amount_encrypted: amountEncrypted,
         };
       }
@@ -546,13 +539,15 @@ export class BudgetLineService {
       );
 
       let updateData = this.prepareResetUpdateData(templateLine);
-      const amountEncrypted = await this.#encryptAmount(
-        templateLine.amount,
-        user,
-      );
+      const { amount, amount_encrypted: amountEncrypted } =
+        await this.encryptionService.prepareAmountData(
+          templateLine.amount,
+          user.id,
+          user.clientKey,
+        );
       updateData = {
         ...updateData,
-        amount: 0,
+        amount,
         amount_encrypted: amountEncrypted,
       };
 

@@ -1122,4 +1122,229 @@ describe('EncryptionService', () => {
       expect(resolved).toBe(true);
     });
   });
+
+  describe('prepareAmountData', () => {
+    it('should return plaintext amount with null encryption in demo mode', async () => {
+      const demoClsService = createMockClsService(true);
+      service = new EncryptionService(
+        mockConfigService as any,
+        mockRepository as any,
+        demoClsService as any,
+      );
+
+      const amount = 1234.56;
+      const result = await service.prepareAmountData(
+        amount,
+        TEST_USER_ID,
+        TEST_CLIENT_KEY,
+      );
+
+      expect(result.amount).toBe(amount);
+      expect(result.amount_encrypted).toBeNull();
+    });
+
+    it('should return 0 for amount and encrypted value in normal mode', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+      );
+      const repo = createMockRepository({ findSaltByUserId });
+
+      service = new EncryptionService(
+        mockConfigService as any,
+        repo as any,
+        mockClsService as any,
+      );
+
+      const amount = 1234.56;
+      const result = await service.prepareAmountData(
+        amount,
+        TEST_USER_ID,
+        TEST_CLIENT_KEY,
+      );
+
+      expect(result.amount).toBe(0);
+      expect(result.amount_encrypted).not.toBeNull();
+      expect(typeof result.amount_encrypted).toBe('string');
+    });
+
+    it('should produce encrypted value that can be decrypted back to original amount', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+      );
+      const repo = createMockRepository({ findSaltByUserId });
+
+      service = new EncryptionService(
+        mockConfigService as any,
+        repo as any,
+        mockClsService as any,
+      );
+
+      const amount = 1234.56;
+      const result = await service.prepareAmountData(
+        amount,
+        TEST_USER_ID,
+        TEST_CLIENT_KEY,
+      );
+
+      const dek = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
+      const decrypted = service.decryptAmount(result.amount_encrypted!, dek);
+
+      expect(decrypted).toBe(amount);
+    });
+
+    it('should handle zero amount correctly', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+      );
+      const repo = createMockRepository({ findSaltByUserId });
+
+      service = new EncryptionService(
+        mockConfigService as any,
+        repo as any,
+        mockClsService as any,
+      );
+
+      const result = await service.prepareAmountData(
+        0,
+        TEST_USER_ID,
+        TEST_CLIENT_KEY,
+      );
+
+      expect(result.amount).toBe(0);
+      expect(result.amount_encrypted).not.toBeNull();
+
+      const dek = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
+      const decrypted = service.decryptAmount(result.amount_encrypted!, dek);
+      expect(decrypted).toBe(0);
+    });
+  });
+
+  describe('prepareAmountsData', () => {
+    it('should return plaintext amounts with null encryption in demo mode', async () => {
+      const demoClsService = createMockClsService(true);
+      service = new EncryptionService(
+        mockConfigService as any,
+        mockRepository as any,
+        demoClsService as any,
+      );
+
+      const amounts = [100.5, 200.75, 300.25];
+      const results = await service.prepareAmountsData(
+        amounts,
+        TEST_USER_ID,
+        TEST_CLIENT_KEY,
+      );
+
+      expect(results.length).toBe(amounts.length);
+      results.forEach((result, index) => {
+        expect(result.amount).toBe(amounts[index]);
+        expect(result.amount_encrypted).toBeNull();
+      });
+    });
+
+    it('should return 0 for amounts and encrypted values in normal mode', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+      );
+      const repo = createMockRepository({ findSaltByUserId });
+
+      service = new EncryptionService(
+        mockConfigService as any,
+        repo as any,
+        mockClsService as any,
+      );
+
+      const amounts = [100.5, 200.75, 300.25];
+      const results = await service.prepareAmountsData(
+        amounts,
+        TEST_USER_ID,
+        TEST_CLIENT_KEY,
+      );
+
+      expect(results.length).toBe(amounts.length);
+      results.forEach((result) => {
+        expect(result.amount).toBe(0);
+        expect(result.amount_encrypted).not.toBeNull();
+        expect(typeof result.amount_encrypted).toBe('string');
+      });
+    });
+
+    it('should produce encrypted values that can be decrypted back to original amounts', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+      );
+      const repo = createMockRepository({ findSaltByUserId });
+
+      service = new EncryptionService(
+        mockConfigService as any,
+        repo as any,
+        mockClsService as any,
+      );
+
+      const amounts = [100.5, 200.75, 300.25];
+      const results = await service.prepareAmountsData(
+        amounts,
+        TEST_USER_ID,
+        TEST_CLIENT_KEY,
+      );
+
+      const dek = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
+      results.forEach((result, index) => {
+        const decrypted = service.decryptAmount(result.amount_encrypted!, dek);
+        expect(decrypted).toBe(amounts[index]);
+      });
+    });
+
+    it('should handle empty array', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+      );
+      const repo = createMockRepository({ findSaltByUserId });
+
+      service = new EncryptionService(
+        mockConfigService as any,
+        repo as any,
+        mockClsService as any,
+      );
+
+      const results = await service.prepareAmountsData(
+        [],
+        TEST_USER_ID,
+        TEST_CLIENT_KEY,
+      );
+
+      expect(results).toEqual([]);
+    });
+
+    it('should handle single amount', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+      );
+      const repo = createMockRepository({ findSaltByUserId });
+
+      service = new EncryptionService(
+        mockConfigService as any,
+        repo as any,
+        mockClsService as any,
+      );
+
+      const amounts = [1234.56];
+      const results = await service.prepareAmountsData(
+        amounts,
+        TEST_USER_ID,
+        TEST_CLIENT_KEY,
+      );
+
+      expect(results.length).toBe(1);
+      expect(results[0].amount).toBe(0);
+      expect(results[0].amount_encrypted).not.toBeNull();
+    });
+  });
 });
