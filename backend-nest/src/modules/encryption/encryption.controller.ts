@@ -268,12 +268,16 @@ export class EncryptionController {
       'Recovery attempt failed',
     );
 
-    if (
-      error instanceof Error &&
-      (error.message.includes('No recovery key configured') ||
-        error.message.includes('Invalid recovery key'))
-    ) {
-      throw new BusinessException(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID);
+    if (error instanceof Error) {
+      const isRecoveryKeyError =
+        error.message.includes('No recovery key configured') ||
+        error.message.includes('Invalid recovery key') ||
+        error.message.includes('Unsupported state or unable to authenticate') ||
+        error.message.includes('Unwrapped DEK has invalid length');
+
+      if (isRecoveryKeyError) {
+        throw new BusinessException(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID);
+      }
     }
     throw error;
   }

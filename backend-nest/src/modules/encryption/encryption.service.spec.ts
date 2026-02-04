@@ -664,7 +664,7 @@ describe('EncryptionService', () => {
       expect(executionOrder).toEqual([1, 2, 3]);
     });
 
-    it('should rollback salt on re-encryption failure', async () => {
+    it('should propagate re-encryption failure without salt change', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
         Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
@@ -692,11 +692,8 @@ describe('EncryptionService', () => {
         expect(error.message).toBe('Re-encryption failed');
       }
 
-      // updateSalt called twice: once for new salt, once for rollback
-      expect(updateSalt.mock.calls.length).toBe(2);
-      // Second call should restore the original salt
-      const rollbackCall = updateSalt.mock.calls[1] as unknown[];
-      expect(rollbackCall[1]).toBe(existingSalt);
+      // Salt is reused (not changed), so updateSalt should NOT be called
+      expect(updateSalt.mock.calls.length).toBe(0);
     });
   });
 
@@ -1345,6 +1342,134 @@ describe('EncryptionService', () => {
       expect(results.length).toBe(1);
       expect(results[0].amount).toBe(0);
       expect(results[0].amount_encrypted).not.toBeNull();
+    });
+  });
+
+  describe('unwrapDEK', () => {
+    beforeEach(() => {
+      service = new EncryptionService(
+        mockConfigService as any,
+        mockRepository as any,
+        mockClsService as any,
+      );
+    });
+
+    it('should unwrap DEK with valid recovery key', () => {
+      const dek = randomBytes(32);
+      const recoveryKey = randomBytes(32);
+
+      const wrappedDEK = service.wrapDEK(dek, recoveryKey);
+      const unwrappedDEK = service.unwrapDEK(wrappedDEK, recoveryKey);
+
+      expect(unwrappedDEK).toEqual(dek);
+    });
+
+    it('should throw on invalid recovery key', () => {
+      const dek = randomBytes(32);
+      const validRecoveryKey = randomBytes(32);
+      const invalidRecoveryKey = randomBytes(32);
+
+      const wrappedDEK = service.wrapDEK(dek, validRecoveryKey);
+
+      expect(() => service.unwrapDEK(wrappedDEK, invalidRecoveryKey)).toThrow();
+    });
+
+    it('should throw on tampered wrapped DEK', () => {
+      const dek = randomBytes(32);
+      const recoveryKey = randomBytes(32);
+
+      const wrappedDEK = service.wrapDEK(dek, recoveryKey);
+      const payload = Buffer.from(wrappedDEK, 'base64');
+      payload[payload.length - 1] ^= 0xff;
+      const tamperedWrappedDEK = payload.toString('base64');
+
+      expect(() =>
+        service.unwrapDEK(tamperedWrappedDEK, recoveryKey),
+      ).toThrow();
+    });
+  });
+
+  describe('recoverWithKey', () => {
+    beforeEach(() => {
+      service = new EncryptionService(
+        mockConfigService as any,
+        mockRepository as any,
+        mockClsService as any,
+      );
+    });
+
+    it('should throw when user has no recovery key configured', async () => {
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: randomBytes(16).toString('hex'),
+          kdf_iterations: 600000,
+          wrapped_dek: null,
+          key_check: null,
+        }),
+      );
+
+      const repo = createMockRepository({ findByUserId });
+
+      service = new EncryptionService(
+        mockConfigService as any,
+        repo as any,
+        mockClsService as any,
+      );
+
+      const newClientKey = randomBytes(32);
+      const recoveryKeyFormatted =
+        'AAAA-BBBB-CCCC-DDDD-EEEE-FFFF-GGGG-HHHH-IIII-JJJJ-KKKK-LLLL-MMMM';
+
+      try {
+        await service.recoverWithKey(
+          TEST_USER_ID,
+          recoveryKeyFormatted,
+          newClientKey,
+          mock(() => Promise.resolve()),
+        );
+        expect.unreachable('Should have thrown');
+      } catch (error: any) {
+        expect(error.message).toContain('No recovery key configured');
+      }
+    });
+
+    it('should throw when recovery key format is invalid', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const dek = randomBytes(32);
+      const validRecoveryKey = randomBytes(32);
+
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: service.wrapDEK(dek, validRecoveryKey),
+          key_check: null,
+        }),
+      );
+
+      const repo = createMockRepository({ findByUserId });
+
+      service = new EncryptionService(
+        mockConfigService as any,
+        repo as any,
+        mockClsService as any,
+      );
+
+      const newClientKey = randomBytes(32);
+      // Invalid recovery key (too short after base32 decode)
+      const invalidRecoveryKey = 'AAAA-BBBB';
+
+      try {
+        await service.recoverWithKey(
+          TEST_USER_ID,
+          invalidRecoveryKey,
+          newClientKey,
+          mock(() => Promise.resolve()),
+        );
+        expect.unreachable('Should have thrown');
+      } catch (error: any) {
+        expect(error.message).toContain('Invalid recovery key');
+      }
     });
   });
 });
