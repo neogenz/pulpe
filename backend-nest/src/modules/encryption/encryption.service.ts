@@ -374,28 +374,25 @@ export class EncryptionService {
 
     const oldDek = this.unwrapDEK(row.wrapped_dek, recoveryKey);
 
-    // Generate new salt and derive new DEK
-    const newSalt = randomBytes(SALT_LENGTH);
-    const newDek = this.#deriveDEK(newClientKey, newSalt, userId);
+    // Reuse existing salt - newClientKey was derived with this salt on frontend
+    const existingSalt = Buffer.from(row.salt, 'hex');
+    const newDek = this.#deriveDEK(newClientKey, existingSalt, userId);
 
     this.#invalidateUserDEKCache(userId);
-    await this.#repository.updateSalt(userId, newSalt.toString('hex'));
 
     try {
+      // Re-encrypt user data with new DEK (newClientKey produces different DEK)
       await reEncryptUserData(oldDek, newDek);
-    } catch (error) {
-      await this.#repository.updateSalt(userId, row.salt);
-      throw error;
+
+      // Wrap new DEK with the same recovery key
+      const newWrappedDEK = this.wrapDEK(newDek, recoveryKey);
+      await this.#repository.updateWrappedDEK(userId, newWrappedDEK);
+    } finally {
+      // Zero sensitive material (even on error)
+      recoveryKey.fill(0);
+      oldDek.fill(0);
+      newDek.fill(0);
     }
-
-    // Wrap new DEK with the same recovery key
-    const newWrappedDEK = this.wrapDEK(newDek, recoveryKey);
-    await this.#repository.updateWrappedDEK(userId, newWrappedDEK);
-
-    // Zero sensitive material
-    recoveryKey.fill(0);
-    oldDek.fill(0);
-    newDek.fill(0);
   }
 
   async #executePasswordChange(
@@ -409,25 +406,24 @@ export class EncryptionService {
       throw new Error(`No encryption key found for user ${userId}`);
     }
 
-    const oldSalt = Buffer.from(row.salt, 'hex');
-    const oldDek = this.#deriveDEK(oldClientKey, oldSalt, userId);
-
-    const newSalt = randomBytes(SALT_LENGTH);
-    const newDek = this.#deriveDEK(newClientKey, newSalt, userId);
+    // Reuse existing salt - both clientKeys were derived with this salt on frontend
+    const existingSalt = Buffer.from(row.salt, 'hex');
+    const oldDek = this.#deriveDEK(oldClientKey, existingSalt, userId);
+    const newDek = this.#deriveDEK(newClientKey, existingSalt, userId);
 
     this.#invalidateUserDEKCache(userId);
 
-    await this.#repository.updateSalt(userId, newSalt.toString('hex'));
-
     try {
+      // Re-encrypt user data with new DEK
       await reEncryptUserData(oldDek, newDek);
-    } catch (error) {
-      await this.#rollbackSalt(userId, oldSalt.toString('hex'), error);
-      throw error;
-    }
 
-    // DEK changed but we don't have the recovery key to re-wrap
-    await this.#repository.updateWrappedDEK(userId, null);
+      // DEK changed but we don't have the recovery key to re-wrap
+      await this.#repository.updateWrappedDEK(userId, null);
+    } finally {
+      // Zero sensitive material (even on error)
+      oldDek.fill(0);
+      newDek.fill(0);
+    }
   }
 
   #invalidateUserDEKCache(userId: string): void {

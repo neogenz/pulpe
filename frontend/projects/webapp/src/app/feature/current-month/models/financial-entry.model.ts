@@ -5,7 +5,8 @@ export const financialEntrySchema = z.object({
   id: z.string().uuid(),
   budgetId: z.string().uuid(),
   name: z.string().min(1).max(100).trim(),
-  amount: z.number().positive(),
+  // nonnegative: API may return 0 when encryption is active (real value in *_encrypted)
+  amount: z.number().nonnegative(),
   kind: transactionKindSchema,
   transactionDate: z.string().datetime(),
   createdAt: z.string().datetime(),

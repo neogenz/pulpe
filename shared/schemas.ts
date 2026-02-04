@@ -180,7 +180,8 @@ export const budgetLineSchema = z.object({
   // NOTE: savingsGoalId pour feature future (pas dans SPECS V1)
   savingsGoalId: z.uuid().nullable(),
   name: z.string().min(1).max(100).trim(),
-  amount: z.number().positive(),
+  // nonnegative: API may return 0 when encryption is active (real value in *_encrypted)
+  amount: z.number().nonnegative(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   isManuallyAdjusted: z.boolean(),
@@ -238,7 +239,8 @@ export const transactionSchema = z.object({
   budgetId: z.uuid(),
   budgetLineId: z.uuid().nullable(),
   name: z.string().min(1).max(100).trim(),
-  amount: z.number().positive(),
+  // nonnegative: API may return 0 when encryption is active (real value in *_encrypted)
+  amount: z.number().nonnegative(),
   kind: transactionKindSchema,
   transactionDate: z.iso.datetime({ offset: true }),
   // NOTE: category pas définie dans SPECS V1 - "Pas de catégorisation avancée"
@@ -332,7 +334,8 @@ export const templateLineSchema = z.object({
   id: z.uuid(),
   templateId: z.uuid(),
   name: z.string().min(1).max(100).trim(),
-  amount: z.number().positive(),
+  // nonnegative: API may return 0 when encryption is active (real value in *_encrypted)
+  amount: z.number().nonnegative(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   description: z.string().max(500).trim(),
