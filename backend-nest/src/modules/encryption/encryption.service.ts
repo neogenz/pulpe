@@ -136,6 +136,45 @@ export class EncryptionService {
     return ciphertexts.map((ct) => this.decryptAmount(ct, dek));
   }
 
+  /**
+   * Prepare amount data for database storage based on demo mode.
+   * In demo mode: keeps plaintext amount, no encryption
+   * In normal mode: zeros plaintext amount, encrypts to amount_encrypted
+   */
+  async prepareAmountData(
+    amount: number,
+    userId: string,
+    clientKey: Buffer,
+  ): Promise<{ amount: number; amount_encrypted: string | null }> {
+    if (this.#isDemo()) {
+      return { amount, amount_encrypted: null };
+    }
+
+    const dek = await this.ensureUserDEK(userId, clientKey);
+    const encrypted = this.encryptAmount(amount, dek);
+    return { amount: 0, amount_encrypted: encrypted };
+  }
+
+  /**
+   * Batch version of prepareAmountData for bulk operations.
+   * Returns array of { amount, amount_encrypted } matching input order.
+   */
+  async prepareAmountsData(
+    amounts: number[],
+    userId: string,
+    clientKey: Buffer,
+  ): Promise<Array<{ amount: number; amount_encrypted: string | null }>> {
+    if (this.#isDemo()) {
+      return amounts.map((amount) => ({ amount, amount_encrypted: null }));
+    }
+
+    const dek = await this.ensureUserDEK(userId, clientKey);
+    return amounts.map((amount) => ({
+      amount: 0,
+      amount_encrypted: this.encryptAmount(amount, dek),
+    }));
+  }
+
   async ensureUserDEK(userId: string, clientKey: Buffer): Promise<Buffer> {
     const cacheKey = this.#buildCacheKey(userId, clientKey);
     const cached = this.#dekCache.get(cacheKey);

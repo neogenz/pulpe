@@ -280,19 +280,16 @@ export class TransactionService {
 
       const transactionData = this.prepareTransactionData(createTransactionDto);
 
-      // Get user DEK and encrypt amount
-      const dek = await this.encryptionService.ensureUserDEK(
-        user.id,
-        user.clientKey,
-      );
-      const encryptedAmount = this.encryptionService.encryptAmount(
-        createTransactionDto.amount,
-        dek,
-      );
+      const { amount, amount_encrypted: amountEncrypted } =
+        await this.encryptionService.prepareAmountData(
+          createTransactionDto.amount,
+          user.id,
+          user.clientKey,
+        );
       const dataWithEncryption = {
         ...transactionData,
-        amount: 0,
-        amount_encrypted: encryptedAmount,
+        amount,
+        amount_encrypted: amountEncrypted,
       };
 
       const transactionDb = await this.insertTransaction(
@@ -307,7 +304,13 @@ export class TransactionService {
         user.clientKey,
       );
 
-      const apiData = transactionMappers.toApi(transactionDb);
+      // Decrypt for API response (needed in normal mode where amount is 0 in DB)
+      const decryptedTransaction = await this.decryptTransaction(
+        transactionDb,
+        user.id,
+        user.clientKey,
+      );
+      const apiData = transactionMappers.toApi(decryptedTransaction);
 
       return {
         success: true,
@@ -500,18 +503,16 @@ export class TransactionService {
       const updateData =
         this.prepareTransactionUpdateData(updateTransactionDto);
 
-      // If amount is being updated, encrypt it
+      // If amount is being updated, prepare encrypted data
       if (updateTransactionDto.amount !== undefined) {
-        const dek = await this.encryptionService.ensureUserDEK(
-          user.id,
-          user.clientKey,
-        );
-        const encryptedAmount = this.encryptionService.encryptAmount(
-          updateTransactionDto.amount,
-          dek,
-        );
-        updateData.amount = 0;
-        updateData.amount_encrypted = encryptedAmount;
+        const { amount, amount_encrypted: amountEncrypted } =
+          await this.encryptionService.prepareAmountData(
+            updateTransactionDto.amount,
+            user.id,
+            user.clientKey,
+          );
+        updateData.amount = amount;
+        updateData.amount_encrypted = amountEncrypted;
       }
 
       const transactionDb = await this.updateTransactionInDb(
@@ -527,7 +528,13 @@ export class TransactionService {
         user.clientKey,
       );
 
-      const apiData = transactionMappers.toApi(transactionDb);
+      // Decrypt for API response (needed in normal mode where amount is 0 in DB)
+      const decryptedTransaction = await this.decryptTransaction(
+        transactionDb,
+        user.id,
+        user.clientKey,
+      );
+      const apiData = transactionMappers.toApi(decryptedTransaction);
 
       return {
         success: true,
