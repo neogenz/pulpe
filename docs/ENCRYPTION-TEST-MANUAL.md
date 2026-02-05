@@ -171,13 +171,13 @@ LIMIT 5;
 
 | # | Test | Status | Notes |
 |---|------|--------|-------|
-| 7.1 | Cliquer "Se connecter avec Google" (première fois) | ⏳ | |
-| 7.2 | Autoriser l'app côté Google | ⏳ | |
-| 7.3 | Vérifier : écran "Crée ton code coffre-fort" s'affiche | ⏳ | |
-| 7.4 | Saisir un code coffre-fort + confirmation | ⏳ | |
-| 7.5 | Vérifier : modal recovery key s'affiche | ⏳ | |
-| 7.6 | Sauvegarder la recovery key | ⏳ | Noter ici : `________________` |
-| 7.7 | Vérifier : accès au dashboard | ⏳ | |
+| 7.1 | Cliquer "Se connecter avec Google" (première fois) | ✅ | Automatisé E2E (mock Google) |
+| 7.2 | Autoriser l'app côté Google | ✅ | Simulé en E2E (bypass OAuth) |
+| 7.3 | Vérifier : écran "Crée ton code coffre-fort" s'affiche | ✅ | Automatisé E2E |
+| 7.4 | Saisir un code coffre-fort + confirmation | ✅ | Automatisé E2E |
+| 7.5 | Vérifier : modal recovery key s'affiche | ✅ | Automatisé E2E |
+| 7.6 | Sauvegarder la recovery key | ✅ | Automatisé E2E (confirmation) |
+| 7.7 | Vérifier : accès au dashboard | ✅ | Automatisé E2E |
 
 ---
 
@@ -187,11 +187,11 @@ LIMIT 5;
 
 | # | Test | Status | Notes |
 |---|------|--------|-------|
-| 8.1 | Ouvrir DevTools > Application > Local Storage > Clear | ⏳ | |
-| 8.2 | Rafraîchir la page | ⏳ | |
-| 8.3 | Vérifier : écran "Entre ton code coffre-fort" s'affiche | ⏳ | |
-| 8.4 | Saisir le code coffre-fort créé en 7.4 | ⏳ | |
-| 8.5 | Vérifier : accès au dashboard, données intactes | ⏳ | |
+| 8.1 | Ouvrir DevTools > Application > Local Storage > Clear | ✅ | Automatisé E2E (localStorage vidé) |
+| 8.2 | Rafraîchir la page | ✅ | Automatisé E2E |
+| 8.3 | Vérifier : écran "Entre ton code coffre-fort" s'affiche | ✅ | Automatisé E2E |
+| 8.4 | Saisir le code coffre-fort créé en 7.4 | ✅ | Automatisé E2E |
+| 8.5 | Vérifier : accès au dashboard, données intactes | ✅ | Automatisé E2E |
 
 ---
 
@@ -389,12 +389,12 @@ SELECT 'monthly_budget', count(*) FROM monthly_budget WHERE ending_balance_encry
 
 | # | Test | Status | Notes |
 |---|------|--------|-------|
-| 17.1 | Ouvrir l'app dans un premier onglet, se connecter complètement | ⏳ | |
-| 17.2 | Ouvrir l'app dans un second onglet | ⏳ | |
-| 17.3 | Vérifier : le second onglet a accès au dashboard (clé partagée) | ⏳ | |
-| 17.4 | Se déconnecter dans le premier onglet | ⏳ | |
-| 17.5 | Rafraîchir le second onglet | ⏳ | |
-| 17.6 | Vérifier : retour à l'écran de login | ⏳ | |
+| 17.1 | Ouvrir l'app dans un premier onglet, se connecter complètement | ✅ | Automatisé E2E |
+| 17.2 | Ouvrir l'app dans un second onglet | ✅ | Automatisé E2E |
+| 17.3 | Vérifier : le second onglet a accès au dashboard (clé partagée) | ✅ | Automatisé E2E (clé locale) |
+| 17.4 | Se déconnecter dans le premier onglet | ✅ | Automatisé E2E |
+| 17.5 | Rafraîchir le second onglet | ✅ | Automatisé E2E |
+| 17.6 | Vérifier : retour à l'écran de login | ✅ | Automatisé E2E |
 
 ---
 
