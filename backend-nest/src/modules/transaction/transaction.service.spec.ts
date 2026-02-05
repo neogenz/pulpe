@@ -43,6 +43,9 @@ describe('TransactionService', () => {
       getUserDEK: mock(() => Promise.resolve(Buffer.alloc(32))),
       ensureUserDEK: mock(() => Promise.resolve(Buffer.alloc(32))),
       encryptAmount: mock(() => 'encrypted-mock'),
+      prepareAmountData: mock((amount: number) =>
+        Promise.resolve({ amount, amount_encrypted: null }),
+      ),
       decryptAmount: mock(() => 100),
       tryDecryptAmount: mock(
         (_ct: string, _dek: Buffer, fallback: number) => fallback,

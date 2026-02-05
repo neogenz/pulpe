@@ -128,6 +128,11 @@ describe('BudgetLineService', () => {
             getUserDEK: jest.fn().mockResolvedValue(Buffer.alloc(32)),
             ensureUserDEK: jest.fn().mockResolvedValue(Buffer.alloc(32)),
             encryptAmount: jest.fn().mockReturnValue('encrypted-mock'),
+            prepareAmountData: jest
+              .fn()
+              .mockImplementation((amount: number) =>
+                Promise.resolve({ amount, amount_encrypted: null }),
+              ),
             decryptAmount: jest
               .fn()
               .mockImplementation((_ct: string, _dek: Buffer) => 100),
