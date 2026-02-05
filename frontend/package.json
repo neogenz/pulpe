@@ -14,7 +14,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "generate:build-info": "node scripts/generate-build-info.js",
-    "generate:config": "tsx scripts/generate-config.ts",
+    "generate:config": "node --import tsx scripts/generate-config.ts",
     "pretest": "pnpm run generate:build-info",
     "test": "vitest run",
     "test:strict": "pnpm run typecheck:spec && vitest run",

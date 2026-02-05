@@ -39,7 +39,7 @@ test.describe('Vault Code', () => {
       await page.getByTestId('vault-code-input').focus();
       await page.getByTestId('vault-code-input').blur();
 
-      await expect(page.locator('mat-error')).toContainText('Ton code coffre-fort est nécessaire');
+      await expect(page.locator('mat-error')).toContainText('Ton code secret est nécessaire');
     });
 
     test('shows error when codes do not match', async ({ page, vaultCodePage }) => {
@@ -56,7 +56,7 @@ test.describe('Vault Code', () => {
       // Blur to trigger cross-field validation
       await page.getByTestId('confirm-vault-code-input').blur();
 
-      await expect(page.locator('mat-error')).toContainText('Les codes ne correspondent pas');
+      await expect(page.locator('mat-error')).toContainText('Les deux codes ne sont pas identiques — on réessaie ?');
     });
 
     test('shows minlength error for short code', async ({ page, vaultCodePage }) => {
@@ -330,7 +330,7 @@ test.describe('Vault Code', () => {
       await vaultCodePage.gotoRecover();
 
       // Click the "Retour" back link
-      await page.locator('a', { hasText: 'Retour' }).click();
+      await page.getByRole('button', { name: 'Retour' }).click();
 
       await expect(page).toHaveURL(/\/enter-vault-code/);
     });

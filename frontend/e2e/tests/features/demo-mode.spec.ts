@@ -99,14 +99,20 @@ test.describe('Demo Mode', () => {
     });
 
     // Inject demo mode flag in localStorage (as DemoModeService would)
-    await page.addInitScript(() => {
+    await page.addInitScript((userEmail) => {
       const entry = {
-        version: 1,
+        version: 2,
         data: true,
         updatedAt: new Date().toISOString(),
       };
       localStorage.setItem('pulpe-demo-mode', JSON.stringify(entry));
-    });
+      const emailEntry = {
+        version: 1,
+        data: userEmail,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem('pulpe-demo-user-email', JSON.stringify(emailEntry));
+    }, 'demo-vault@test.local');
 
     // Navigate to dashboard
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 15000 });
@@ -131,14 +137,20 @@ test.describe('Demo Mode', () => {
       userEmail: 'demo-settings@test.local',
     });
 
-    await page.addInitScript(() => {
+    await page.addInitScript((userEmail) => {
       const entry = {
-        version: 1,
+        version: 2,
         data: true,
         updatedAt: new Date().toISOString(),
       };
       localStorage.setItem('pulpe-demo-mode', JSON.stringify(entry));
-    });
+      const emailEntry = {
+        version: 1,
+        data: userEmail,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem('pulpe-demo-user-email', JSON.stringify(emailEntry));
+    }, 'demo-settings@test.local');
 
     await page.goto('/settings', { waitUntil: 'domcontentloaded', timeout: 15000 });
 

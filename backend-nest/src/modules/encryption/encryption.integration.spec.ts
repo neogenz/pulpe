@@ -64,7 +64,9 @@ async function createTestUser(
   });
 
   if (error || !data?.user) {
-    throw new Error(`Failed to create test user: ${error?.message ?? 'unknown'}`);
+    throw new Error(
+      `Failed to create test user: ${error?.message ?? 'unknown'}`,
+    );
   }
 
   return { id: data.user.id, email };
@@ -81,10 +83,16 @@ async function cleanupUserData(
   await adminClient.from('transaction').delete().eq('budget_id', ids.budgetId);
   await adminClient.from('budget_line').delete().eq('budget_id', ids.budgetId);
   await adminClient.from('monthly_budget').delete().eq('id', ids.budgetId);
-  await adminClient.from('template_line').delete().eq('template_id', ids.templateId);
+  await adminClient
+    .from('template_line')
+    .delete()
+    .eq('template_id', ids.templateId);
   await adminClient.from('template').delete().eq('id', ids.templateId);
   await adminClient.from('savings_goal').delete().eq('user_id', ids.userId);
-  await adminClient.from('user_encryption_key').delete().eq('user_id', ids.userId);
+  await adminClient
+    .from('user_encryption_key')
+    .delete()
+    .eq('user_id', ids.userId);
   await adminClient.auth.admin.deleteUser(ids.userId);
 }
 
@@ -108,11 +116,9 @@ describe('Encryption integration (local Supabase)', () => {
     const repository = new EncryptionKeyRepository(supabaseService);
 
     adminClient = supabaseService.getServiceRoleClient();
-    encryptionService = new EncryptionService(
-      configService,
-      repository,
-      { get: () => false } as any,
-    );
+    encryptionService = new EncryptionService(configService, repository, {
+      get: () => false,
+    } as any);
     backfillService = new EncryptionBackfillService(encryptionService);
     rekeyService = new EncryptionRekeyService(encryptionService);
   });
@@ -341,10 +347,13 @@ describe('Encryption integration (local Supabase)', () => {
         target_date: '2026-12-31',
       });
 
-      await adminClient.from('monthly_budget').update({
-        ending_balance: 0,
-        ending_balance_encrypted: oldEncrypted.monthlyBudget,
-      }).eq('id', budgetId);
+      await adminClient
+        .from('monthly_budget')
+        .update({
+          ending_balance: 0,
+          ending_balance_encrypted: oldEncrypted.monthlyBudget,
+        })
+        .eq('id', budgetId);
 
       await encryptionService.onPasswordChange(
         userId,
@@ -360,10 +369,7 @@ describe('Encryption integration (local Supabase)', () => {
         },
       );
 
-      const newDek = await encryptionService.getUserDEK(
-        userId,
-        newClientKey,
-      );
+      const newDek = await encryptionService.getUserDEK(userId, newClientKey);
 
       const { data: budgetLine } = await adminClient
         .from('budget_line')
@@ -399,9 +405,15 @@ describe('Encryption integration (local Supabase)', () => {
 
       expect(budgetLine?.amount_encrypted).not.toBe(oldEncrypted.budgetLine);
       expect(transaction?.amount_encrypted).not.toBe(oldEncrypted.transaction);
-      expect(templateLine?.amount_encrypted).not.toBe(oldEncrypted.templateLine);
-      expect(savingsGoal?.target_amount_encrypted).not.toBe(oldEncrypted.savingsGoal);
-      expect(monthlyBudget?.ending_balance_encrypted).not.toBe(oldEncrypted.monthlyBudget);
+      expect(templateLine?.amount_encrypted).not.toBe(
+        oldEncrypted.templateLine,
+      );
+      expect(savingsGoal?.target_amount_encrypted).not.toBe(
+        oldEncrypted.savingsGoal,
+      );
+      expect(monthlyBudget?.ending_balance_encrypted).not.toBe(
+        oldEncrypted.monthlyBudget,
+      );
 
       expect(
         encryptionService.decryptAmount(budgetLine!.amount_encrypted!, newDek),
@@ -410,7 +422,10 @@ describe('Encryption integration (local Supabase)', () => {
         encryptionService.decryptAmount(transaction!.amount_encrypted!, newDek),
       ).toBe(75);
       expect(
-        encryptionService.decryptAmount(templateLine!.amount_encrypted!, newDek),
+        encryptionService.decryptAmount(
+          templateLine!.amount_encrypted!,
+          newDek,
+        ),
       ).toBe(45);
       expect(
         encryptionService.decryptAmount(
