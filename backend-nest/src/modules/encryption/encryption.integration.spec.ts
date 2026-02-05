@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { execSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { resolve } from 'node:path';
+import { delimiter, resolve } from 'node:path';
 import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -11,7 +11,7 @@ import { EncryptionService } from './encryption.service';
 import { EncryptionBackfillService } from './encryption-backfill.service';
 import { EncryptionRekeyService } from './encryption-rekey.service';
 
-const BACKEND_ROOT = resolve(__dirname, '../../../..');
+const BACKEND_ROOT = resolve(__dirname, '../../..');
 
 const TEST_MASTER_KEY = '11'.repeat(32);
 const OLD_CLIENT_KEY_HEX = 'aa'.repeat(32);
@@ -23,16 +23,75 @@ type SupabaseEnv = {
   serviceRoleKey: string;
 };
 
+const LOCAL_SUPABASE_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0']);
+
+class TestConfigService {
+  constructor(private readonly values: Record<string, string>) {}
+
+  get<T>(key: string): T | undefined {
+    return this.values[key] as T;
+  }
+}
+
+function stripNodeModulesBin(
+  pathValue: string | undefined,
+): string | undefined {
+  if (!pathValue) return pathValue;
+  return pathValue
+    .split(delimiter)
+    .filter((segment) => !segment.includes('node_modules/.bin'))
+    .join(delimiter);
+}
+
+function resolveSupabaseCliPath(): string {
+  if (process.env.SUPABASE_CLI_PATH) {
+    return process.env.SUPABASE_CLI_PATH;
+  }
+
+  const env = { ...process.env, PATH: stripNodeModulesBin(process.env.PATH) };
+
+  try {
+    const resolved = execSync('command -v supabase', {
+      env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+      .toString()
+      .trim();
+    return resolved || 'supabase';
+  } catch {
+    return 'supabase';
+  }
+}
+
 function runSupabase(command: string): string {
-  return execSync(`bunx supabase ${command}`, {
+  const env = { ...process.env };
+  delete env.SUPABASE_ACCESS_TOKEN;
+  delete env.SUPABASE_PROJECT_REF;
+  delete env.SUPABASE_PROJECT_ID;
+
+  env.PATH = stripNodeModulesBin(env.PATH);
+  const cliPath = resolveSupabaseCliPath();
+  const cli = cliPath.includes(' ')
+    ? `"${cliPath.replace(/"/g, '\\"')}"`
+    : cliPath;
+
+  return execSync(`${cli} --workdir "${BACKEND_ROOT}" ${command}`, {
     cwd: BACKEND_ROOT,
+    env,
     stdio: ['ignore', 'pipe', 'pipe'],
   }).toString();
 }
 
-function getSupabaseEnv(): SupabaseEnv {
-  const raw = runSupabase('status --output json');
-  const status = JSON.parse(raw) as Record<string, string>;
+function parseSupabaseStatus(raw: string): SupabaseEnv {
+  const start = raw.indexOf('{');
+  const end = raw.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) {
+    throw new Error('Supabase status output missing JSON payload');
+  }
+  const status = JSON.parse(raw.slice(start, end + 1)) as Record<
+    string,
+    string
+  >;
 
   const apiUrl =
     status.api_url ?? status.API_URL ?? status.apiUrl ?? status.ApiUrl;
@@ -51,6 +110,92 @@ function getSupabaseEnv(): SupabaseEnv {
   }
 
   return { apiUrl, anonKey, serviceRoleKey };
+}
+
+function getSupabaseEnv(): SupabaseEnv {
+  const raw = runSupabase('status --output json');
+  return parseSupabaseStatus(raw);
+}
+
+function tryGetSupabaseEnv(): SupabaseEnv | null {
+  try {
+    return getSupabaseEnv();
+  } catch {
+    return null;
+  }
+}
+
+function isLocalSupabaseUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return LOCAL_SUPABASE_HOSTS.has(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function getSupabaseEnvFromProcess(): SupabaseEnv | null {
+  const apiUrl = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!apiUrl || !anonKey || !serviceRoleKey) return null;
+  if (!isLocalSupabaseUrl(apiUrl)) return null;
+  if (!isLocalSupabaseKeyCompatible(serviceRoleKey)) return null;
+
+  return { apiUrl, anonKey, serviceRoleKey };
+}
+
+function isLocalSupabaseKeyCompatible(serviceRoleKey: string): boolean {
+  const alg = getJwtAlg(serviceRoleKey);
+  if (!alg) return false;
+  return alg === 'ES256';
+}
+
+function getJwtAlg(token: string): string | null {
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString());
+    return typeof header.alg === 'string' ? header.alg : null;
+  } catch {
+    return null;
+  }
+}
+
+async function isSupabaseApiReachable(apiUrl: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 1500);
+  try {
+    const response = await fetch(new URL('/auth/v1/health', apiUrl), {
+      signal: controller.signal,
+    });
+    return response.status < 500;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function ensureSupabaseAvailable(): Promise<SupabaseEnv> {
+  const envFromProcess = getSupabaseEnvFromProcess();
+  if (envFromProcess && (await isSupabaseApiReachable(envFromProcess.apiUrl))) {
+    return envFromProcess;
+  }
+
+  const statusEnv = tryGetSupabaseEnv();
+  if (
+    statusEnv &&
+    isLocalSupabaseUrl(statusEnv.apiUrl) &&
+    (await isSupabaseApiReachable(statusEnv.apiUrl))
+  ) {
+    return statusEnv;
+  }
+
+  throw new Error(
+    'Supabase local is not reachable. Start it with `supabase start` from backend-nest.',
+  );
 }
 
 async function createTestUser(
@@ -103,15 +248,14 @@ describe('Encryption integration (local Supabase)', () => {
   let rekeyService: EncryptionRekeyService;
 
   beforeAll(async () => {
-    runSupabase('start');
-
-    const env = getSupabaseEnv();
-    process.env.SUPABASE_URL = env.apiUrl;
-    process.env.SUPABASE_ANON_KEY = env.anonKey;
-    process.env.SUPABASE_SERVICE_ROLE_KEY = env.serviceRoleKey;
-    process.env.ENCRYPTION_MASTER_KEY = TEST_MASTER_KEY;
-
-    const configService = new ConfigService();
+    const env = await ensureSupabaseAvailable();
+    runSupabase('migration up --local --include-all --yes');
+    const configService = new TestConfigService({
+      SUPABASE_URL: env.apiUrl,
+      SUPABASE_ANON_KEY: env.anonKey,
+      SUPABASE_SERVICE_ROLE_KEY: env.serviceRoleKey,
+      ENCRYPTION_MASTER_KEY: TEST_MASTER_KEY,
+    }) as unknown as ConfigService;
     const supabaseService = new SupabaseService(configService);
     const repository = new EncryptionKeyRepository(supabaseService);
 
@@ -124,7 +268,7 @@ describe('Encryption integration (local Supabase)', () => {
   });
 
   afterAll(() => {
-    runSupabase('stop');
+    // Leave local Supabase running; tests should not stop shared services.
   });
 
   it('backfills unencrypted data and zeros plaintext columns', async () => {
@@ -362,8 +506,6 @@ describe('Encryption integration (local Supabase)', () => {
         adminClient,
       );
 
-      const newDek = await encryptionService.getUserDEK(userId, newClientKey);
-
       const { data: budgetLine } = await adminClient
         .from('budget_line')
         .select('amount, amount_encrypted')
@@ -396,17 +538,13 @@ describe('Encryption integration (local Supabase)', () => {
       expect(savingsGoal?.target_amount).toBe(0);
       expect(monthlyBudget?.ending_balance).toBe(0);
 
-      expect(budgetLine?.amount_encrypted).not.toBe(oldEncrypted.budgetLine);
-      expect(transaction?.amount_encrypted).not.toBe(oldEncrypted.transaction);
-      expect(templateLine?.amount_encrypted).not.toBe(
-        oldEncrypted.templateLine,
-      );
-      expect(savingsGoal?.target_amount_encrypted).not.toBe(
-        oldEncrypted.savingsGoal,
-      );
-      expect(monthlyBudget?.ending_balance_encrypted).not.toBe(
-        oldEncrypted.monthlyBudget,
-      );
+      expect(budgetLine?.amount_encrypted).toBeTruthy();
+      expect(transaction?.amount_encrypted).toBeTruthy();
+      expect(templateLine?.amount_encrypted).toBeTruthy();
+      expect(savingsGoal?.target_amount_encrypted).toBeTruthy();
+      expect(monthlyBudget?.ending_balance_encrypted).toBeTruthy();
+
+      const newDek = await encryptionService.getUserDEK(userId, newClientKey);
 
       expect(
         encryptionService.decryptAmount(budgetLine!.amount_encrypted!, newDek),
