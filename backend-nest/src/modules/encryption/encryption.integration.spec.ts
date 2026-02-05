@@ -355,18 +355,11 @@ describe('Encryption integration (local Supabase)', () => {
         })
         .eq('id', budgetId);
 
-      await encryptionService.onPasswordChange(
+      await rekeyService.rekeyUserData(
         userId,
         oldClientKey,
         newClientKey,
-        async (oldDekValue, newDekValue) => {
-          await rekeyService.reEncryptAllUserData(
-            userId,
-            oldDekValue,
-            newDekValue,
-            adminClient,
-          );
-        },
+        adminClient,
       );
 
       const newDek = await encryptionService.getUserDEK(userId, newClientKey);

@@ -61,6 +61,12 @@ describe('BudgetTemplateService - Simplified Tests', () => {
     const mockEncryptionService = {
       ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
       encryptAmount: () => 'encrypted-mock',
+      prepareAmountData: (amount: number) =>
+        Promise.resolve({ amount, amount_encrypted: null }),
+      prepareAmountsData: (amounts: number[]) =>
+        Promise.resolve(
+          amounts.map((amount) => ({ amount, amount_encrypted: null })),
+        ),
       decryptAmount: () => 100,
       getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
     };
