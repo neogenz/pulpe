@@ -187,6 +187,13 @@ export async function setupApiMocks(page: Page) {
         body: JSON.stringify({ recoveryKey: 'AAAA-BBBB-CCCC-DDDD' }),
       });
     }
+    if (url.includes('encryption/password-change')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true }),
+      });
+    }
     if (url.includes('encryption/recover')) {
       return route.fulfill({
         status: 200,
