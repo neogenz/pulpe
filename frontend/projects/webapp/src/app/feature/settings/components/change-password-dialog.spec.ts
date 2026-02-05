@@ -12,7 +12,7 @@ describe('ChangePasswordDialog', () => {
     verifyPassword: Mock;
     updatePassword: Mock;
   };
-  let mockLogger: { debug: Mock; info: Mock; warn: Mock; error: Mock };
+  let mockLogger: { error: Mock };
 
   beforeEach(() => {
     mockDialogRef = { close: vi.fn() };
@@ -20,12 +20,7 @@ describe('ChangePasswordDialog', () => {
       verifyPassword: vi.fn(),
       updatePassword: vi.fn(),
     };
-    mockLogger = {
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    };
+    mockLogger = { error: vi.fn() };
 
     TestBed.configureTestingModule({
       providers: [
