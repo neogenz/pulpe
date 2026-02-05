@@ -102,9 +102,18 @@ export class EncryptionController {
     }
   }
 
-  @Post('password-change')
+  /**
+   * Re-encrypt all user data with a new client key.
+   * Used during vault code setup when migrating existing users from plaintext
+   * or password-derived encryption to vault-code-derived encryption.
+   *
+   * NOTE: This is NOT for account password changes. Password and vault code
+   * are independent - changing password does not affect encryption.
+   */
+  @Post('rekey')
   @ApiOperation({
-    summary: 'Re-encrypt all user data after password change',
+    summary:
+      'Re-encrypt all user data with new key (for vault code migration only)',
   })
   @ApiResponse({
     status: 200,
@@ -114,25 +123,18 @@ export class EncryptionController {
     description: 'Invalid new client key',
     type: ErrorResponseDto,
   })
-  async onPasswordChange(
+  async rekey(
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
     @Body() body: { newClientKey: string },
   ): Promise<{ success: boolean }> {
     const newKeyBuffer = this.#validateClientKeyHex(body.newClientKey);
 
-    await this.encryptionService.onPasswordChange(
+    await this.rekeyService.rekeyUserData(
       user.id,
       user.clientKey,
       newKeyBuffer,
-      async (oldDek, newDek) => {
-        await this.rekeyService.reEncryptAllUserData(
-          user.id,
-          oldDek,
-          newDek,
-          supabase,
-        );
-      },
+      supabase,
     );
 
     // Regenerate key_check with the new DEK
@@ -144,8 +146,8 @@ export class EncryptionController {
     await this.encryptionService.storeKeyCheck(user.id, keyCheck);
 
     this.#logger.log(
-      { userId: user.id, operation: 'password_change.complete' },
-      'User password change completed with data re-encryption',
+      { userId: user.id, operation: 'rekey.complete' },
+      'User data re-encrypted with new key',
     );
 
     return { success: true };

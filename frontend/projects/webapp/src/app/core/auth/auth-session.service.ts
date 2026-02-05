@@ -270,6 +270,13 @@ export class AuthSessionService {
   async updatePassword(
     newPassword: string,
   ): Promise<{ success: boolean; error?: string }> {
+    if (this.#isE2EBypass()) {
+      this.#logger.info(
+        '🎭 Mode test E2E: Simulation du changement de mot de passe',
+      );
+      return { success: true };
+    }
+
     try {
       const { error } = await this.getClient().auth.updateUser({
         password: newPassword,

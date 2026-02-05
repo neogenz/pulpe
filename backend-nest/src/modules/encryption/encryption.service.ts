@@ -37,7 +37,6 @@ export class EncryptionService {
   readonly #masterKey: Buffer;
   readonly #dekCache = new Map<string, CachedDEK>();
   readonly #repository: EncryptionKeyRepository;
-  readonly #passwordChangeLocks = new Map<string, Promise<void>>();
   readonly #cls: ClsService<AppClsStore>;
 
   constructor(
@@ -237,40 +236,6 @@ export class EncryptionService {
     return { salt, kdfIterations, hasRecoveryKey };
   }
 
-  async onPasswordChange(
-    userId: string,
-    oldClientKey: Buffer,
-    newClientKey: Buffer,
-    reEncryptUserData: (oldDek: Buffer, newDek: Buffer) => Promise<void>,
-  ): Promise<void> {
-    // Chain onto existing lock to serialize password changes per user.
-    // The lock is set BEFORE the operation starts to prevent race conditions
-    // between checking and setting.
-    const existing = this.#passwordChangeLocks.get(userId);
-    const operation = (existing ?? Promise.resolve())
-      .catch(() => {
-        // Ignore errors from previous operation — each caller handles its own
-      })
-      .then(() =>
-        this.#executePasswordChange(
-          userId,
-          oldClientKey,
-          newClientKey,
-          reEncryptUserData,
-        ),
-      );
-
-    this.#passwordChangeLocks.set(userId, operation);
-    try {
-      await operation;
-    } finally {
-      // Only delete if this is still the latest operation in the chain
-      if (this.#passwordChangeLocks.get(userId) === operation) {
-        this.#passwordChangeLocks.delete(userId);
-      }
-    }
-  }
-
   generateRecoveryKey(): { raw: Buffer; formatted: string } {
     const raw = randomBytes(KEY_LENGTH);
     const formatted = formatRecoveryKey(encodeBase32(raw));
@@ -390,37 +355,6 @@ export class EncryptionService {
     } finally {
       // Zero sensitive material (even on error)
       recoveryKey.fill(0);
-      oldDek.fill(0);
-      newDek.fill(0);
-    }
-  }
-
-  async #executePasswordChange(
-    userId: string,
-    oldClientKey: Buffer,
-    newClientKey: Buffer,
-    reEncryptUserData: (oldDek: Buffer, newDek: Buffer) => Promise<void>,
-  ): Promise<void> {
-    const row = await this.#repository.findSaltByUserId(userId);
-    if (!row) {
-      throw new Error(`No encryption key found for user ${userId}`);
-    }
-
-    // Reuse existing salt - both clientKeys were derived with this salt on frontend
-    const existingSalt = Buffer.from(row.salt, 'hex');
-    const oldDek = this.#deriveDEK(oldClientKey, existingSalt, userId);
-    const newDek = this.#deriveDEK(newClientKey, existingSalt, userId);
-
-    this.#invalidateUserDEKCache(userId);
-
-    try {
-      // Re-encrypt user data with new DEK
-      await reEncryptUserData(oldDek, newDek);
-
-      // DEK changed but we don't have the recovery key to re-wrap
-      await this.#repository.updateWrappedDEK(userId, null);
-    } finally {
-      // Zero sensitive material (even on error)
       oldDek.fill(0);
       newDek.fill(0);
     }

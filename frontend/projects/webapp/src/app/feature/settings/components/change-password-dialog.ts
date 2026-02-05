@@ -18,14 +18,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { firstValueFrom } from 'rxjs';
 
 import { AuthSessionService, PASSWORD_MIN_LENGTH } from '@core/auth';
-import {
-  ClientKeyService,
-  EncryptionApi,
-  deriveClientKey,
-} from '@core/encryption';
 import { Logger } from '@core/logging/logger';
 import { MatDivider } from '@angular/material/divider';
 import { ErrorAlert } from '@ui/error-alert';
@@ -177,8 +171,6 @@ export class ChangePasswordDialog {
   readonly #logger = inject(Logger);
   readonly #dialogRef = inject(MatDialogRef<ChangePasswordDialog>);
   readonly #authSession = inject(AuthSessionService);
-  readonly #encryptionApi = inject(EncryptionApi);
-  readonly #clientKeyService = inject(ClientKeyService);
 
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
@@ -239,7 +231,8 @@ export class ChangePasswordDialog {
         return;
       }
 
-      await this.#rekeyEncryption(newPassword);
+      // Password change is purely Supabase auth - no encryption impact.
+      // The vault code (and thus client key) remains unchanged.
       this.#dialogRef.close(true);
     } catch (error) {
       this.#logger.error('Password change failed', error);
@@ -249,22 +242,5 @@ export class ChangePasswordDialog {
     } finally {
       this.isSubmitting.set(false);
     }
-  }
-
-  async #rekeyEncryption(newPassword: string): Promise<void> {
-    const { salt, kdfIterations } = await firstValueFrom(
-      this.#encryptionApi.getSalt$(),
-    );
-    const newClientKeyHex = await deriveClientKey(
-      newPassword,
-      salt,
-      kdfIterations,
-    );
-
-    await firstValueFrom(
-      this.#encryptionApi.notifyPasswordChange$(newClientKeyHex),
-    );
-
-    this.#clientKeyService.setDirectKey(newClientKeyHex);
   }
 }

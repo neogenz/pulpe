@@ -28,7 +28,7 @@ describe('SetupVaultCode', () => {
   let mockEncryptionApi: {
     getSalt$: ReturnType<typeof vi.fn>;
     setupRecoveryKey$: ReturnType<typeof vi.fn>;
-    notifyPasswordChange$: ReturnType<typeof vi.fn>;
+    rekeyEncryption$: ReturnType<typeof vi.fn>;
   };
   let mockDialog: { open: ReturnType<typeof vi.fn> };
   let mockLogger: { error: ReturnType<typeof vi.fn> };
@@ -65,7 +65,7 @@ describe('SetupVaultCode', () => {
       setupRecoveryKey$: vi
         .fn()
         .mockReturnValue(of({ recoveryKey: 'ABCD-EFGH-1234-5678' })),
-      notifyPasswordChange$: vi.fn().mockReturnValue(of({ success: true })),
+      rekeyEncryption$: vi.fn().mockReturnValue(of({ success: true })),
     };
 
     mockDialog = {
@@ -233,9 +233,9 @@ describe('SetupVaultCode', () => {
       );
     });
 
-    it('should not call notifyPasswordChange$ in standard mode', async () => {
+    it('should not call rekeyEncryption$ in standard mode', async () => {
       await component['onSubmit']();
-      expect(mockEncryptionApi.notifyPasswordChange$).not.toHaveBeenCalled();
+      expect(mockEncryptionApi.rekeyEncryption$).not.toHaveBeenCalled();
     });
   });
 
@@ -249,9 +249,9 @@ describe('SetupVaultCode', () => {
       expect(component['isMigrationMode']()).toBe(true);
     });
 
-    it('should call notifyPasswordChange$ to rekey data', async () => {
+    it('should call rekeyEncryption$ to rekey data', async () => {
       await component['onSubmit']();
-      expect(mockEncryptionApi.notifyPasswordChange$).toHaveBeenCalledWith(
+      expect(mockEncryptionApi.rekeyEncryption$).toHaveBeenCalledWith(
         'abcd'.repeat(16),
       );
     });
@@ -277,7 +277,7 @@ describe('SetupVaultCode', () => {
     });
 
     it('should set error on migration failure', async () => {
-      mockEncryptionApi.notifyPasswordChange$.mockReturnValue(
+      mockEncryptionApi.rekeyEncryption$.mockReturnValue(
         throwError(() => new Error('Rekey failed')),
       );
       await component['onSubmit']();
@@ -322,9 +322,9 @@ describe('SetupVaultCode', () => {
       fillValidForm();
     });
 
-    it('should not store key when notifyPasswordChange$ fails in migration mode', async () => {
+    it('should not store key when rekeyEncryption$ fails in migration mode', async () => {
       mockClientKeyService.hasClientKey.mockReturnValue(true);
-      mockEncryptionApi.notifyPasswordChange$.mockReturnValue(
+      mockEncryptionApi.rekeyEncryption$.mockReturnValue(
         throwError(() => new Error('Rekey failed')),
       );
 
