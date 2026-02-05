@@ -271,7 +271,7 @@ export default class SetupVaultCode {
       //    The old key is sent automatically via X-Client-Key interceptor.
       if (this.isMigrationMode()) {
         await firstValueFrom(
-          this.#encryptionApi.notifyPasswordChange$(clientKeyHex),
+          this.#encryptionApi.rekeyEncryption$(clientKeyHex),
         );
       }
 

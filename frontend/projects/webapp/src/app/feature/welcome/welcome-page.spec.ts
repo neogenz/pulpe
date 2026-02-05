@@ -92,11 +92,15 @@ describe('WelcomePage', () => {
     });
 
     it('should display value proposition', () => {
-      const subtitle = fixture.nativeElement.querySelector(
-        'p.text-on-surface-variant.text-center',
+      const paragraphs = fixture.nativeElement.querySelectorAll(
+        'p',
+      ) as NodeListOf<HTMLElement>;
+      const subtitle = Array.from(paragraphs).find((paragraph) =>
+        paragraph.textContent?.includes('Planifie ton année'),
       );
 
-      expect(subtitle.textContent).toContain(
+      expect(subtitle).toBeTruthy();
+      expect(subtitle?.textContent).toContain(
         'Planifie ton année, sache toujours ce que tu peux dépenser',
       );
     });
@@ -116,7 +120,7 @@ describe('WelcomePage', () => {
       );
 
       expect(button).toBeTruthy();
-      expect(button.textContent).toContain('Continuer avec mon email');
+      expect(button.textContent).toContain("S'inscrire par e-mail");
     });
 
     it('should have demo mode button', () => {
@@ -129,11 +133,11 @@ describe('WelcomePage', () => {
     });
 
     it('should have login link', () => {
-      const links = fixture.nativeElement.querySelectorAll('a');
-      const loginLink = Array.from(links).find(
-        (link) =>
-          link instanceof HTMLElement &&
-          link.textContent?.includes('Se connecter'),
+      const clickableElements = fixture.nativeElement.querySelectorAll(
+        'a,button',
+      ) as NodeListOf<HTMLElement>;
+      const loginLink = Array.from(clickableElements).find((element) =>
+        element.textContent?.includes('Se connecter'),
       );
 
       expect(loginLink).toBeTruthy();

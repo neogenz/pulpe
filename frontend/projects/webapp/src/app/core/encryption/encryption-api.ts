@@ -10,7 +10,7 @@ interface SaltResponse {
   hasRecoveryKey: boolean;
 }
 
-interface PasswordChangeResponse {
+interface RekeyResponse {
   success: boolean;
 }
 
@@ -43,13 +43,15 @@ export class EncryptionApi {
     });
   }
 
-  notifyPasswordChange$(
-    newClientKeyHex: string,
-  ): Observable<PasswordChangeResponse> {
-    return this.#http.post<PasswordChangeResponse>(
-      `${this.#baseUrl}/password-change`,
-      { newClientKey: newClientKeyHex },
-    );
+  /**
+   * Re-encrypt all user data with a new client key.
+   * Used during migration when existing users set up vault code for the first time.
+   * NOT used for password changes (password and vault code are independent).
+   */
+  rekeyEncryption$(newClientKeyHex: string): Observable<RekeyResponse> {
+    return this.#http.post<RekeyResponse>(`${this.#baseUrl}/rekey`, {
+      newClientKey: newClientKeyHex,
+    });
   }
 
   setupRecoveryKey$(): Observable<SetupRecoveryResponse> {

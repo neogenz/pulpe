@@ -621,82 +621,6 @@ describe('EncryptionService', () => {
     });
   });
 
-  describe('onPasswordChange', () => {
-    it('should serialize concurrent password changes for same user', async () => {
-      const existingSalt = randomBytes(16).toString('hex');
-      const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
-      );
-      const updateSalt = mock(() => Promise.resolve());
-
-      const repo = createMockRepository({ findSaltByUserId, updateSalt });
-      service = new EncryptionService(
-        mockConfigService as any,
-        repo as any,
-        mockClsService as any,
-      );
-
-      const executionOrder: number[] = [];
-
-      const change1 = service.onPasswordChange(
-        TEST_USER_ID,
-        randomBytes(32),
-        randomBytes(32),
-        async () => {
-          executionOrder.push(1);
-          await new Promise((r) => setTimeout(r, 50));
-          executionOrder.push(2);
-        },
-      );
-
-      const change2 = service.onPasswordChange(
-        TEST_USER_ID,
-        randomBytes(32),
-        randomBytes(32),
-        async () => {
-          executionOrder.push(3);
-        },
-      );
-
-      await Promise.all([change1, change2]);
-
-      // change1 must complete (1,2) before change2 starts (3)
-      expect(executionOrder).toEqual([1, 2, 3]);
-    });
-
-    it('should propagate re-encryption failure without salt change', async () => {
-      const existingSalt = randomBytes(16).toString('hex');
-      const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
-      );
-      const updateSalt = mock(() => Promise.resolve());
-
-      const repo = createMockRepository({ findSaltByUserId, updateSalt });
-      service = new EncryptionService(
-        mockConfigService as any,
-        repo as any,
-        mockClsService as any,
-      );
-
-      try {
-        await service.onPasswordChange(
-          TEST_USER_ID,
-          randomBytes(32),
-          randomBytes(32),
-          async () => {
-            throw new Error('Re-encryption failed');
-          },
-        );
-        expect.unreachable('Should have thrown');
-      } catch (error: any) {
-        expect(error.message).toBe('Re-encryption failed');
-      }
-
-      // Salt is reused (not changed), so updateSalt should NOT be called
-      expect(updateSalt.mock.calls.length).toBe(0);
-    });
-  });
-
   describe('findSaltByUserId error propagation', () => {
     it('should propagate non-PGRST116 repository errors in ensureUserDEK', async () => {
       const findSaltByUserId = mock(() =>
@@ -849,37 +773,6 @@ describe('EncryptionService', () => {
       const tampered = payload.toString('base64');
 
       expect(() => service.unwrapDEK(tampered, recoveryKey)).toThrow();
-    });
-  });
-
-  describe('onPasswordChange wrapped_dek invalidation', () => {
-    it('should null out wrapped_dek after password change', async () => {
-      const existingSalt = randomBytes(16).toString('hex');
-      const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
-      );
-      const updateSalt = mock(() => Promise.resolve());
-      const updateWrappedDEK = mock(() => Promise.resolve());
-
-      const repo = createMockRepository({
-        findSaltByUserId,
-        updateSalt,
-        updateWrappedDEK,
-      });
-      service = new EncryptionService(
-        mockConfigService as any,
-        repo as any,
-        mockClsService as any,
-      );
-
-      await service.onPasswordChange(
-        TEST_USER_ID,
-        randomBytes(32),
-        randomBytes(32),
-        async () => {},
-      );
-
-      expect(updateWrappedDEK).toHaveBeenCalledWith(TEST_USER_ID, null);
     });
   });
 

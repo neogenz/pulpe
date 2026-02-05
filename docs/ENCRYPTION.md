@@ -71,12 +71,12 @@ Le mode démo utilise un `clientKey` déterministe (`DEMO_CLIENT_KEY`) pour empr
 7. ClientKeyCleanupInterceptor efface le clientKey de la mémoire (buffer.fill(0))
 ```
 
-## Changement de mot de passe (rekey)
+## Migration vers vault code (rekey)
 
-Quand un utilisateur change son mot de passe, son `clientKey` change. Il faut donc re-chiffrer toutes ses données.
+Quand un utilisateur existant migre vers le système de **vault code**, on doit re-chiffrer ses données avec une nouvelle `clientKey` (issue du vault code) — y compris si certaines données étaient en clair ou chiffrées avec une ancienne clé.
 
-1. Le frontend appelle `POST /v1/encryption/password-change` avec le nouveau `clientKey`
-2. Le backend dérive l'ancienne DEK (ancien clientKey + masterKey + ancien salt) et la nouvelle DEK (nouveau clientKey + masterKey + nouveau salt)
+1. Le frontend appelle `POST /v1/encryption/rekey` avec le nouveau `clientKey`
+2. Le backend dérive l'ancienne DEK (ancien clientKey + masterKey + salt) et la nouvelle DEK (nouveau clientKey + masterKey + salt)
 3. Toutes les données sont déchiffrées avec l'ancienne DEK et re-chiffrées avec la nouvelle
 4. L'opération est atomique côté SQL via la RPC `rekey_user_encrypted_data`
 5. En cas d'échec, le salt est restauré à sa valeur précédente
@@ -213,8 +213,8 @@ Si la validation échoue, le serveur refuse de démarrer.
 |---------|------|
 | `encryption.service.ts` | Dérivation DEK, chiffrement/déchiffrement AES-GCM, wrap/unwrap DEK, cache |
 | `encryption-key.repository.ts` | CRUD de la table `user_encryption_key` (salt, wrapped_dek) |
-| `encryption-rekey.service.ts` | Re-chiffrement de toutes les données lors d'un changement de mot de passe |
-| `encryption.controller.ts` | Endpoints `/salt`, `/validate-key`, `/password-change`, `/setup-recovery`, `/recover` |
+| `encryption-rekey.service.ts` | Re-chiffrement de toutes les données lors de la migration vers vault code |
+| `encryption.controller.ts` | Endpoints `/salt`, `/validate-key`, `/rekey`, `/setup-recovery`, `/recover` |
 | `client-key-cleanup.interceptor.ts` | Efface le clientKey de la mémoire après chaque requête |
 | `encryption-backfill.interceptor.ts` | Chiffre les données plaintext existantes à la première requête |
 | `auth.guard.ts` | Extrait et valide le `X-Client-Key` du header |

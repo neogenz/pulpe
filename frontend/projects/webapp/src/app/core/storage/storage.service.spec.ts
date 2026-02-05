@@ -261,8 +261,8 @@ describe('StorageService', () => {
 
   describe('Error handling', () => {
     it('should handle localStorage.getItem errors gracefully', () => {
-      const originalGetItem = Storage.prototype.getItem;
-      Storage.prototype.getItem = () => {
+      const originalGetItem = localStorage.getItem;
+      localStorage.getItem = () => {
         throw new Error('localStorage disabled');
       };
 
@@ -271,24 +271,24 @@ describe('StorageService', () => {
       expect(result).toBeNull();
       expect(mockLogger.warn).toHaveBeenCalled();
 
-      Storage.prototype.getItem = originalGetItem;
+      localStorage.getItem = originalGetItem;
     });
 
     it('should handle localStorage.setItem errors gracefully', () => {
-      const originalSetItem = Storage.prototype.setItem;
-      Storage.prototype.setItem = () => {
+      const originalSetItem = localStorage.setItem;
+      localStorage.setItem = () => {
         throw new Error('QuotaExceededError');
       };
 
       expect(() => service.set('pulpe-test', { data: 'value' })).not.toThrow();
       expect(mockLogger.warn).toHaveBeenCalled();
 
-      Storage.prototype.setItem = originalSetItem;
+      localStorage.setItem = originalSetItem;
     });
 
     it('should return false from has() on localStorage error', () => {
-      const originalGetItem = Storage.prototype.getItem;
-      Storage.prototype.getItem = () => {
+      const originalGetItem = localStorage.getItem;
+      localStorage.getItem = () => {
         throw new Error('localStorage disabled');
       };
 
@@ -296,7 +296,7 @@ describe('StorageService', () => {
 
       expect(result).toBe(false);
 
-      Storage.prototype.getItem = originalGetItem;
+      localStorage.getItem = originalGetItem;
     });
   });
 });

@@ -67,14 +67,14 @@ describe('EncryptionApi', () => {
     });
   });
 
-  describe('notifyPasswordChange$()', () => {
-    it('should call POST /v1/encryption/password-change with newClientKey body', () => {
+  describe('rekeyEncryption$()', () => {
+    it('should call POST /v1/encryption/rekey with newClientKey body', () => {
       const newClientKeyHex = 'new-client-key-hex';
 
-      service.notifyPasswordChange$(newClientKeyHex).subscribe();
+      service.rekeyEncryption$(newClientKeyHex).subscribe();
 
       const req = httpTesting.expectOne(
-        'http://localhost:3000/api/v1/encryption/password-change',
+        'http://localhost:3000/api/v1/encryption/rekey',
       );
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual({ newClientKey: newClientKeyHex });
@@ -84,12 +84,12 @@ describe('EncryptionApi', () => {
       const newClientKeyHex = 'new-client-key-hex';
       const expectedResponse = { success: true };
 
-      service.notifyPasswordChange$(newClientKeyHex).subscribe((response) => {
+      service.rekeyEncryption$(newClientKeyHex).subscribe((response) => {
         expect(response.success).toBe(true);
       });
 
       const req = httpTesting.expectOne(
-        'http://localhost:3000/api/v1/encryption/password-change',
+        'http://localhost:3000/api/v1/encryption/rekey',
       );
       req.flush(expectedResponse);
     });

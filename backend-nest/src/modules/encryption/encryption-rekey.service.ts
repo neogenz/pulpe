@@ -11,6 +11,29 @@ export class EncryptionRekeyService {
     this.#encryptionService = encryptionService;
   }
 
+  /**
+   * Re-encrypt all user data using client keys.
+   * Derives DEKs from client keys and then performs rekey operation.
+   * Used during vault code setup migration.
+   */
+  async rekeyUserData(
+    userId: string,
+    oldClientKey: Buffer,
+    newClientKey: Buffer,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const oldDek = await this.#encryptionService.getUserDEK(
+      userId,
+      oldClientKey,
+    );
+    const newDek = await this.#encryptionService.ensureUserDEK(
+      userId,
+      newClientKey,
+    );
+
+    await this.reEncryptAllUserData(userId, oldDek, newDek, supabase);
+  }
+
   async reEncryptAllUserData(
     userId: string,
     oldDek: Buffer,

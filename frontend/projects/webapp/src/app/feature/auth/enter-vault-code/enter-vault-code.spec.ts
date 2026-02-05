@@ -19,7 +19,12 @@ describe('EnterVaultCode', () => {
     getSalt$: ReturnType<typeof vi.fn>;
     validateKey$: ReturnType<typeof vi.fn>;
   };
-  let mockLogger: { error: ReturnType<typeof vi.fn> };
+  let mockLogger: {
+    debug: ReturnType<typeof vi.fn>;
+    info: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+    error: ReturnType<typeof vi.fn>;
+  };
   let navigateSpy: ReturnType<typeof vi.fn>;
   let deriveClientKeySpy: ReturnType<typeof vi.spyOn>;
 
@@ -40,6 +45,9 @@ describe('EnterVaultCode', () => {
     };
 
     mockLogger = {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
       error: vi.fn(),
     };
 

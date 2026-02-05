@@ -1,23 +1,9 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
-import { of } from 'rxjs';
 import { ChangePasswordDialog } from './change-password-dialog';
 import { Logger } from '@core/logging/logger';
 import { AuthSessionService } from '@core/auth';
-import { EncryptionApi, ClientKeyService } from '@core/encryption';
-
-const { deriveClientKeyMock } = vi.hoisted(() => ({
-  deriveClientKeyMock: vi.fn(),
-}));
-
-vi.mock('@core/encryption', async () => {
-  const actual = await vi.importActual('@core/encryption');
-  return {
-    ...actual,
-    deriveClientKey: deriveClientKeyMock,
-  };
-});
 
 describe('ChangePasswordDialog', () => {
   let component: ChangePasswordDialog;
@@ -26,12 +12,7 @@ describe('ChangePasswordDialog', () => {
     verifyPassword: Mock;
     updatePassword: Mock;
   };
-  let mockEncryptionApi: {
-    getSalt$: Mock;
-    notifyPasswordChange$: Mock;
-  };
-  let mockClientKeyService: { setDirectKey: Mock };
-  let mockLogger: { error: Mock };
+  let mockLogger: { debug: Mock; info: Mock; warn: Mock; error: Mock };
 
   beforeEach(() => {
     mockDialogRef = { close: vi.fn() };
@@ -39,20 +20,18 @@ describe('ChangePasswordDialog', () => {
       verifyPassword: vi.fn(),
       updatePassword: vi.fn(),
     };
-    mockEncryptionApi = {
-      getSalt$: vi.fn(),
-      notifyPasswordChange$: vi.fn(),
+    mockLogger = {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
     };
-    mockClientKeyService = { setDirectKey: vi.fn() };
-    mockLogger = { error: vi.fn() };
 
     TestBed.configureTestingModule({
       providers: [
         ChangePasswordDialog,
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: AuthSessionService, useValue: mockAuthSession },
-        { provide: EncryptionApi, useValue: mockEncryptionApi },
-        { provide: ClientKeyService, useValue: mockClientKeyService },
         { provide: Logger, useValue: mockLogger },
       ],
     });
@@ -118,13 +97,6 @@ describe('ChangePasswordDialog', () => {
   it('should close dialog on successful password change', async () => {
     mockAuthSession.verifyPassword.mockResolvedValue({ success: true });
     mockAuthSession.updatePassword.mockResolvedValue({ success: true });
-    mockEncryptionApi.getSalt$.mockReturnValue(
-      of({ salt: 'test-salt', kdfIterations: 100000 }),
-    );
-    deriveClientKeyMock.mockResolvedValue('new-client-key-hex');
-    mockEncryptionApi.notifyPasswordChange$.mockReturnValue(
-      of({ success: true }),
-    );
 
     component['passwordForm'].patchValue({
       currentPassword: 'currentPass123',
@@ -140,9 +112,7 @@ describe('ChangePasswordDialog', () => {
       'currentPass123',
     );
     expect(mockAuthSession.updatePassword).toHaveBeenCalledWith('newPass123');
-    expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
-      'new-client-key-hex',
-    );
+    // Password change is purely Supabase auth - no encryption APIs should be called
     expect(mockDialogRef.close).toHaveBeenCalledWith(true);
   });
 
@@ -160,5 +130,40 @@ describe('ChangePasswordDialog', () => {
     ).onSubmit();
 
     expect(mockAuthSession.verifyPassword).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Password change should NOT interact with encryption at all.
+   *
+   * The vault code (code coffre-fort) is different from the account password.
+   * When changing password:
+   * - Only Supabase auth is involved
+   * - The vault code stays the same
+   * - Therefore the client key stays the same
+   * - No encryption APIs should be called
+   */
+  it('should not call any encryption APIs during password change', async () => {
+    mockAuthSession.verifyPassword.mockResolvedValue({ success: true });
+    mockAuthSession.updatePassword.mockResolvedValue({ success: true });
+
+    component['passwordForm'].patchValue({
+      currentPassword: 'currentPass123',
+      newPassword: 'newPass123',
+      confirmPassword: 'newPass123',
+    });
+
+    await (
+      component as unknown as { onSubmit: () => Promise<void> }
+    ).onSubmit();
+
+    // Password change is purely Supabase auth
+    expect(mockAuthSession.verifyPassword).toHaveBeenCalledWith(
+      'currentPass123',
+    );
+    expect(mockAuthSession.updatePassword).toHaveBeenCalledWith('newPass123');
+    expect(mockDialogRef.close).toHaveBeenCalledWith(true);
+
+    // No encryption-related calls should happen
+    // (verified by the fact that no encryption mocks are configured)
   });
 });

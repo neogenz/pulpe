@@ -25,7 +25,7 @@ describe('RegenerateRecoveryKeyDialog', () => {
     getSalt$: Mock;
     validateKey$: Mock;
   };
-  let mockLogger: { error: Mock };
+  let mockLogger: { debug: Mock; info: Mock; warn: Mock; error: Mock };
 
   beforeEach(() => {
     mockDialogRef = { close: vi.fn() };
@@ -33,7 +33,12 @@ describe('RegenerateRecoveryKeyDialog', () => {
       getSalt$: vi.fn(),
       validateKey$: vi.fn(),
     };
-    mockLogger = { error: vi.fn() };
+    mockLogger = {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
 
     TestBed.configureTestingModule({
       providers: [

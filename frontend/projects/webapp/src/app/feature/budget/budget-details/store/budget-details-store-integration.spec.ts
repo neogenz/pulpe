@@ -85,6 +85,9 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     toggleCheck$: ReturnType<typeof vi.fn>;
   };
   let mockLogger: {
+    debug: ReturnType<typeof vi.fn>;
+    info: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
   };
@@ -138,6 +141,9 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     };
 
     mockLogger = {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
       error: vi.fn(),
       warn: vi.fn(),
     };
