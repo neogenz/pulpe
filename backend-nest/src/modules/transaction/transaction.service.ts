@@ -816,7 +816,13 @@ export class TransactionService {
         user.id,
       );
 
-      const apiData = transactionMappers.toApi(updatedTransaction);
+      // Decrypt for API response (needed in normal mode where amount is 0 in DB)
+      const decryptedTransaction = await this.decryptTransaction(
+        updatedTransaction,
+        user.id,
+        user.clientKey,
+      );
+      const apiData = transactionMappers.toApi(decryptedTransaction);
 
       this.logger.info(
         {
