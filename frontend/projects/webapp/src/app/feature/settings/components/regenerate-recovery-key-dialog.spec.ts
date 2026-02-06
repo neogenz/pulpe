@@ -59,7 +59,6 @@ describe('RegenerateRecoveryKeyDialog', () => {
   it('should have valid form when all fields filled', () => {
     component['verificationForm'].patchValue({
       password: 'testPassword123',
-      currentRecoveryKey: 'XXXX-XXXX-XXXX',
     });
     expect(component['verificationForm'].valid).toBe(true);
   });
@@ -75,7 +74,6 @@ describe('RegenerateRecoveryKeyDialog', () => {
 
     component['verificationForm'].patchValue({
       password: 'wrongPassword',
-      currentRecoveryKey: 'XXXX-XXXX-XXXX',
     });
 
     await (
@@ -97,7 +95,6 @@ describe('RegenerateRecoveryKeyDialog', () => {
 
     component['verificationForm'].patchValue({
       password: 'testPassword123',
-      currentRecoveryKey: 'XXXX-XXXX-XXXX',
     });
 
     await (
@@ -112,7 +109,6 @@ describe('RegenerateRecoveryKeyDialog', () => {
 
     component['verificationForm'].patchValue({
       password: 'testPassword123',
-      currentRecoveryKey: 'XXXX-XXXX-XXXX',
     });
 
     await (

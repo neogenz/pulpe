@@ -21,10 +21,6 @@ import { firstValueFrom } from 'rxjs';
 import { PASSWORD_MIN_LENGTH } from '@core/auth';
 import { EncryptionApi, deriveClientKey } from '@core/encryption';
 import { Logger } from '@core/logging/logger';
-import {
-  recoveryKeyValidators,
-  formatRecoveryKeyInput,
-} from '@core/validators';
 import { ErrorAlert } from '@ui/error-alert';
 
 @Component({
@@ -91,30 +87,6 @@ import { ErrorAlert } from '@ui/error-alert';
             <mat-error>Au moins {{ PASSWORD_MIN_LENGTH }} caractères</mat-error>
           }
         </mat-form-field>
-
-        <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Clé de récupération actuelle</mat-label>
-          <input
-            matInput
-            formControlName="currentRecoveryKey"
-            data-testid="current-recovery-key-input"
-            (input)="onRecoveryKeyInput()"
-            placeholder="XXXX-XXXX-XXXX-..."
-            class="font-mono uppercase"
-          />
-          <mat-icon matPrefix>key</mat-icon>
-          @if (
-            verificationForm.get('currentRecoveryKey')?.hasError('required')
-          ) {
-            <mat-error>La clé de récupération actuelle est requise</mat-error>
-          } @else if (
-            verificationForm.get('currentRecoveryKey')?.hasError('pattern')
-          ) {
-            <mat-error
-              >Format invalide — vérifie que tu as bien copié la clé</mat-error
-            >
-          }
-        </mat-form-field>
       </form>
     </mat-dialog-content>
 
@@ -157,22 +129,7 @@ export class RegenerateRecoveryKeyDialog {
         Validators.minLength(PASSWORD_MIN_LENGTH),
       ],
     }),
-    currentRecoveryKey: new FormControl('', {
-      nonNullable: true,
-      validators: recoveryKeyValidators,
-    }),
   });
-
-  protected onRecoveryKeyInput(): void {
-    const raw = this.verificationForm.controls.currentRecoveryKey.value;
-    const formatted = formatRecoveryKeyInput(raw);
-
-    if (formatted !== raw) {
-      this.verificationForm.controls.currentRecoveryKey.setValue(formatted, {
-        emitEvent: false,
-      });
-    }
-  }
 
   protected async onSubmit(): Promise<void> {
     if (this.isSubmitting() || !this.verificationForm.valid) return;
