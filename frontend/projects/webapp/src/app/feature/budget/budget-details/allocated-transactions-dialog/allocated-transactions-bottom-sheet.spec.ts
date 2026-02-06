@@ -124,7 +124,7 @@ describe('AllocatedTransactionsBottomSheet', () => {
       setup({ transactions: [] });
       const el: HTMLElement = fixture.nativeElement;
 
-      expect(el.textContent).toContain('Aucune transaction');
+      expect(el.textContent).toContain('Pas de transaction');
     });
 
     it('should show consumption percentage', () => {

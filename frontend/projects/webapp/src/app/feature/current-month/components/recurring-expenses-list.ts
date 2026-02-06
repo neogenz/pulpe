@@ -60,7 +60,7 @@ export class RecurringExpensesList {
         }
       }, 0),
       emptyStateIcon: 'event_repeat',
-      emptyStateTitle: "Aucune prévision récurrente pour l'instant",
+      emptyStateTitle: 'Pas encore de prévision récurrente',
       emptyStateSubtitle:
         'Tes charges fixes et revenus réguliers apparaîtront ici',
       defaultExpanded: false,

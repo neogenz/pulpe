@@ -75,9 +75,9 @@ import { type TemplateViewModel } from './template-view-model';
           <mat-icon class="text-display-small mb-2">inbox</mat-icon>
           <p class="text-label-large">
             @if (searchTerm()) {
-              Aucun modèle trouvé pour "{{ searchTerm() }}"
+              Pas de modèle pour "{{ searchTerm() }}"
             } @else {
-              Aucun modèle disponible
+              Pas encore de modèle
             }
           </p>
         </div>
