@@ -19,7 +19,7 @@ import { type BudgetLine } from 'pulpe-shared';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { RecurrenceLabelPipe } from '@ui/transaction-display';
 import { formatMatchAnnotation, type BudgetLineTableItem } from '../data-core';
-import { BudgetProgressBar } from '../components/budget-progress-bar';
+import { SegmentedBudgetProgress } from '../components/budget-progress-bar';
 import { BudgetKindIndicator } from '../components/budget-kind-indicator';
 import { BudgetActionMenu } from '../components/budget-action-menu';
 
@@ -42,14 +42,14 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
     FinancialKindDirective,
     RecurrenceLabelPipe,
     RolloverFormatPipe,
-    BudgetProgressBar,
+    SegmentedBudgetProgress,
     BudgetKindIndicator,
     BudgetActionMenu,
   ],
   template: `
     <mat-card
       appearance="outlined"
-      class="!rounded-2xl"
+      class="!rounded-2xl min-h-[188px]"
       [class.ring-2]="isSelected()"
       [class.ring-primary]="isSelected()"
       [class.opacity-60]="item().metadata.isLoading"
@@ -151,7 +151,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
           item().consumption?.hasTransactions && !item().metadata.isRollover
         ) {
           <div class="mb-4">
-            <pulpe-budget-progress-bar
+            <pulpe-segmented-budget-progress
               [percentage]="item().consumption!.percentage"
               [segmentCount]="10"
               [height]="6"
