@@ -19,7 +19,7 @@ import { type BudgetLine, type Transaction } from 'pulpe-shared';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { BudgetLineTableItem } from '../data-core';
-import { BudgetProgressBar } from '../components/budget-progress-bar';
+import { SegmentedBudgetProgress } from '../components/budget-progress-bar';
 import { BudgetKindIndicator } from '../components/budget-kind-indicator';
 import { BudgetDetailsStore } from '../store/budget-details-store';
 
@@ -64,7 +64,7 @@ const DETAIL_SEGMENT_COUNT = 12;
     DatePipe,
     FinancialKindDirective,
     TransactionLabelPipe,
-    BudgetProgressBar,
+    SegmentedBudgetProgress,
     BudgetKindIndicator,
   ],
   template: `
@@ -132,7 +132,7 @@ const DETAIL_SEGMENT_COUNT = 12;
 
         <!-- Progress Bar (12 segments for more detail) -->
         @if (envelope.consumption?.hasTransactions) {
-          <pulpe-budget-progress-bar
+          <pulpe-segmented-budget-progress
             [percentage]="envelope.consumption!.percentage"
             [segmentCount]="detailSegmentCount"
             [height]="10"
@@ -177,7 +177,7 @@ const DETAIL_SEGMENT_COUNT = 12;
           @if (allocatedTransactions().length === 0) {
             <div class="text-center py-8 text-on-surface-variant">
               <mat-icon class="mb-2 opacity-50">receipt_long</mat-icon>
-              <p class="text-body-medium">Aucune transaction</p>
+              <p class="text-body-medium">Pas de transaction</p>
               <p class="text-body-small">
                 Ajoute une transaction pour suivre tes dépenses
               </p>
