@@ -1,41 +1,19 @@
 import { ChangeDetectionStrategy, Component, output } from '@angular/core';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
+import { StateCard } from '@ui/state-card/state-card';
 
 @Component({
   selector: 'pulpe-dashboard-error',
-  imports: [MatCardModule, MatIconModule, MatButtonModule],
+  imports: [StateCard],
   template: `
-    <div
-      class="flex flex-col items-center justify-center"
+    <pulpe-state-card
       data-testid="dashboard-error-container"
-    >
-      <mat-card appearance="outlined" data-testid="error-card">
-        <mat-card-header>
-          <mat-card-title>
-            <div
-              class="flex items-center justify-center gap-2 shrink-0"
-              data-testid="error-title"
-            >
-              <mat-icon data-testid="error-icon">error_outline</mat-icon>
-              Impossible de charger vos données
-            </div>
-          </mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <p class="pt-4" data-testid="error-message">
-            Une erreur s'est produite lors du chargement de vos informations
-            budgétaires. Vos données sont en sécurité.
-          </p>
-        </mat-card-content>
-        <mat-card-actions align="end">
-          <button (click)="reload.emit()" matButton data-testid="retry-button">
-            Réessayer
-          </button>
-        </mat-card-actions>
-      </mat-card>
-    </div>
+      testId="dashboard-error-container"
+      variant="error"
+      title="On n'arrive pas à charger ton tableau de bord"
+      message="Ta connexion a peut-être coupé. Réessaie pour récupérer tes données."
+      actionLabel="Réessayer"
+      (action)="reload.emit()"
+    />
   `,
   styles: `
     :host {

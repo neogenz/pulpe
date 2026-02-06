@@ -1,33 +1,18 @@
 import { ChangeDetectionStrategy, Component, output } from '@angular/core';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
+import { StateCard } from '@ui/state-card/state-card';
 
 @Component({
   selector: 'pulpe-months-error',
-  imports: [MatCardModule, MatIconModule, MatButtonModule],
+  imports: [StateCard],
   template: `
-    <div class="flex flex-col items-center justify-center">
-      <mat-card appearance="outlined">
-        <mat-card-header>
-          <mat-card-title>
-            <div class="flex items-center justify-center gap-2">
-              <mat-icon>error_outline</mat-icon>
-              Impossible de charger vos mois
-            </div>
-          </mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <p class="pt-4">
-            Une erreur s'est produite lors du chargement de vos mois
-            budgétaires. Vos données sont en sécurité.
-          </p>
-        </mat-card-content>
-        <mat-card-actions align="end">
-          <button (click)="reload.emit()" matButton>Réessayer</button>
-        </mat-card-actions>
-      </mat-card>
-    </div>
+    <pulpe-state-card
+      variant="error"
+      title="Impossible de charger tes budgets"
+      message="Le chargement a bloqué. Réessaie pour afficher tes mois."
+      actionLabel="Réessayer"
+      testId="months-error-card"
+      (action)="reload.emit()"
+    />
   `,
   styles: `
     :host {

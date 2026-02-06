@@ -9,9 +9,7 @@ import {
   DestroyRef,
   inject,
 } from '@angular/core';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
+import { StateCard } from '@ui/state-card/state-card';
 
 import { type HttpErrorResponse } from '@angular/common/http';
 
@@ -30,39 +28,23 @@ type TemplateErrorType = HttpErrorResponse | ApiError | Error | null;
 
 @Component({
   selector: 'pulpe-templates-error',
-  imports: [MatCardModule, MatButtonModule, MatIconModule],
+  imports: [StateCard],
   template: `
-    <mat-card
-      class="flex flex-col items-center justify-center p-8 text-center"
-      data-testid="templates-error-card"
-    >
-      <mat-icon class="text-error text-5xl mb-4" data-testid="error-icon">{{
-        errorIcon()
-      }}</mat-icon>
-      <h2 class="text-title-large mb-2 shrink-0" data-testid="error-title">
-        {{ errorTitle() }}
-      </h2>
-      <p
-        class="text-body-large text-on-surface-variant mb-4"
-        data-testid="error-message"
-      >
-        {{ errorMessage() }}
+    <pulpe-state-card
+      testId="templates-error-card"
+      variant="error"
+      [title]="errorTitle()"
+      [message]="errorMessage()"
+      [actionLabel]="retryButtonLabel()"
+      [actionDisabled]="retryDisabled()"
+      (action)="handleRetry()"
+    />
+
+    @if (isRateLimited()) {
+      <p class="text-body-medium text-on-surface-variant mt-4 text-center">
+        Patiente encore {{ retryCountdown() }} secondes avant de réessayer.
       </p>
-      @if (isRateLimited()) {
-        <p class="text-body-medium text-on-surface-variant mb-4">
-          Veuillez patienter {{ retryCountdown() }} secondes avant de réessayer.
-        </p>
-      }
-      <button
-        matButton="elevated"
-        (click)="handleRetry()"
-        [disabled]="retryDisabled()"
-        data-testid="retry-button"
-      >
-        <mat-icon>refresh</mat-icon>
-        {{ retryButtonLabel() }}
-      </button>
-    </mat-card>
+    }
   `,
   styles: `
     :host {
@@ -102,19 +84,17 @@ export class TemplatesError {
     return false;
   });
 
-  readonly errorIcon = computed(() => {
-    return this.isRateLimited() ? 'schedule' : 'error';
-  });
-
   readonly errorTitle = computed(() => {
-    return this.isRateLimited() ? 'Trop de requêtes' : 'Erreur de chargement';
+    return this.isRateLimited()
+      ? 'Trop de requêtes pour le moment'
+      : 'Impossible de charger tes modèles';
   });
 
   readonly errorMessage = computed(() => {
     if (this.isRateLimited()) {
-      return 'Le serveur a reçu trop de requêtes. Veuillez patienter un instant.';
+      return 'Le serveur est temporairement surchargé. On réessaie dans un instant.';
     }
-    return 'Impossible de charger les modèles de budget.';
+    return 'Le chargement des modèles a échoué. Réessaie pour continuer.';
   });
 
   readonly retryButtonLabel = computed(() => {

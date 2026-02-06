@@ -1,29 +1,19 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { MatIconModule } from '@angular/material/icon';
 import { type BudgetTemplate } from 'pulpe-shared';
+import { StateCard } from '@ui/state-card/state-card';
 import { TemplateCard } from './template-card';
 
 @Component({
   selector: 'pulpe-template-list',
-  imports: [TemplateCard, MatIconModule],
+  imports: [TemplateCard, StateCard],
   template: `
     @if (templates().length === 0) {
-      <div
-        class="flex flex-col items-center justify-center p-12 text-center bg-surface-container-highest rounded-xl"
-        data-testid="empty-state"
-      >
-        <mat-icon class="text-6xl mb-4 text-primary">library_books</mat-icon>
-        <h2 class="text-headline-medium mb-2" data-testid="empty-state-title">
-          Tu n'as pas encore de modèle
-        </h2>
-        <p
-          class="text-body-large text-on-surface-variant max-w-md"
-          data-testid="empty-state-subtitle"
-        >
-          Crée ton premier modèle pour gagner du temps chaque mois. Un modèle te
-          permet de réutiliser la même structure en un clic.
-        </p>
-      </div>
+      <pulpe-state-card
+        testId="empty-state"
+        variant="empty"
+        title="Tu n'as pas encore de modèle"
+        message="Crée ton premier modèle pour réutiliser ta structure chaque mois."
+      />
     } @else {
       <div
         class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
