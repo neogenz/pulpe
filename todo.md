@@ -5,45 +5,35 @@
 ## Ce qui est fait
 
 - [x] Architecture split-key (PBKDF2 frontend + HKDF backend + AES-256-GCM)
-- [x] Dérivation clientKey au login et signup
+- [x] Dérivation clientKey via **vault code** (login, signup, recovery)
 - [x] Interceptor `X-Client-Key` sur chaque requête
 - [x] `EncryptionService` : chiffrement, déchiffrement, DEK cache 5 min
-- [x] Table `user_encryption_key` (salt, kdf_iterations, wrapped_dek)
+- [x] Table `user_encryption_key` (salt, kdf_iterations, wrapped_dek, key_check)
 - [x] Colonnes `*_encrypted` sur les 5 tables
 - [x] Dual-write : plaintext = 0, encrypted = valeur réelle
-- [x] Changement de mot de passe → rekey atomique
+- [x] Changement de mot de passe → indépendant du chiffrement (vault code découplé)
 - [x] Backfill lazy (chiffre au premier login post-migration)
-- [x] Mode démo : `DEMO_CLIENT_KEY` déterministe, même code path
-- [x] Recovery key backend : generate, wrap/unwrap DEK, endpoints
-- [x] Recovery key frontend : modal dans Paramètres > Sécurité
-- [x] Migration SQL : `wrapped_dek` column
-- [x] Tests : 70 backend, 1020 frontend, `pnpm quality` OK
-- [x] Documentation `ENCRYPTION.md` à jour
+- [x] Mode démo : `DEMO_CLIENT_KEY` déterministe, même code path — #308
+- [x] Recovery key backend : generate, wrap/unwrap DEK, endpoints — #294
+- [x] Recovery key frontend : modal dans Paramètres > Sécurité — #294
 - [x] Prompt recovery key au signup — #295
 - [x] Nudge recovery key après changement de mdp — #297
+- [x] Page mot de passe oublié + reset-password — #296
+- [x] Code coffre-fort Google OAuth — #300
+- [x] Validation du code coffre-fort (key check canary) — #305
+- [x] Mode démo bypass vault code — #308
+- [x] Migration SQL : `wrapped_dek`, `key_check` columns
+- [x] Migration design : tokens Material 3, StateCard, progress bars
+- [x] Code review : 3 bugs corrigés (validator stale error, timezone bottom sheet, dead form field)
+- [x] Documentation `ENCRYPTION.md` à jour
+- [x] Tests : 87 fichiers frontend (1233 tests), backend, `pnpm quality` OK
 
-## Ce qui reste sur cette branche
+## Ce qui reste
 
-### 0. Validation du code coffre-fort — #305
+### 1. Déployer et vérifier la migration prod
 
-Un code coffre-fort incorrect ne doit pas donner accès à l'app. Key check canary (pattern Bitwarden).
-
-**Fichiers modifiés :**
-- Backend : `encryption.controller.ts`, `encryption.service.ts`, `encryption-key.repository.ts`, `error-definitions.ts`
-- Frontend : `encryption-api.ts`, `enter-vault-code.ts`
-- Migration : `20260202100000_add_key_check_column.sql`
-
-- [x] Page "mot de passe oublié" — #296
-
-### ~~2. Nudge recovery key après changement de mdp — #297~~ ✅
-
-~~Après un changement de mot de passe, `wrapped_dek` est nullifié. L'utilisateur doit être invité à re-générer une recovery key.~~
-
-**Implémenté :** `change-password-card.ts` dans `feature/settings/`. Après changement de mdp + rekey, la dialog recovery key s'ouvre automatiquement.
-
-### 3. Déployer et vérifier la migration prod
-
-- Déployer la branche en prod
+- Merger la branche en `main`
+- Déployer en prod
 - Les 3 utilisateurs existants seront migrés au premier login (backfill interceptor)
 - Vérifier en DB :
 
@@ -60,7 +50,7 @@ SELECT 'monthly_budget', count(*) FROM monthly_budget WHERE ending_balance_encry
 -- Attendu : 0 partout
 ```
 
-### 4. Cleanup backfill — #293
+### 2. Cleanup backfill — #293
 
 Une fois les 3 users migrés et vérifiés, supprimer le code temporaire :
 - `encryption-backfill.service.ts`
@@ -68,7 +58,7 @@ Une fois les 3 users migrés et vérifiés, supprimer le code temporaire :
 - `encryption-backfill.service.spec.ts`
 - Références dans `encryption.module.ts` et `app.module.ts`
 
-### 5. Drop colonnes plaintext (dernière étape)
+### 3. Drop colonnes plaintext (dernière étape)
 
 Migration SQL pour supprimer les colonnes `amount`, `target_amount`, `ending_balance` des 5 tables. **Uniquement** après :
 - Tous les users migrés
@@ -76,29 +66,34 @@ Migration SQL pour supprimer les colonnes `amount`, `target_amount`, `ending_bal
 - Code backfill nettoyé
 - Période d'observation en prod
 
-## Ordre recommandé
+## Ordre de completion
 
-| # | Tâche | Ticket | Bloqué par |
-|---|-------|--------|------------|
-| ~~1~~ | ~~Prompt recovery key au signup~~ | ~~#295~~ | ~~—~~ ✅ |
-| ~~2~~ | ~~Nudge recovery key post-password-change~~ | ~~#297~~ | ~~—~~ ✅ |
-| 2b | Validation du code coffre-fort | ~~#305~~ | — | ✅ |
-| ~~3~~ | ~~Page mot de passe oublié~~ | ~~#296~~ | ~~#295~~ | ✅ |
-| 4 | Déploiement + migration prod | — | #305 | |
-| 5 | Vérification prod | — | Déploiement | |
-| 6 | Cleanup backfill | #293 | Vérification | |
-| 7 | Drop colonnes plaintext | — | #293 | |
+| # | Tâche | Ticket | Status |
+|---|-------|--------|--------|
+| 1 | Architecture split-key + colonnes encrypted | #274 | ✅ Done |
+| 2 | Recovery key (backend + frontend) | #294 | ✅ Done |
+| 3 | Prompt recovery key au signup | #295 | ✅ Done |
+| 4 | Nudge recovery key post-password-change | #297 | ✅ Done |
+| 5 | Page mot de passe oublié | #296 | ✅ Done |
+| 6 | Code coffre-fort Google OAuth | #300 | ✅ Done |
+| 7 | Validation du code coffre-fort | #305 | ✅ Done |
+| 8 | Mode démo sans code coffre-fort | #308 | ✅ Done |
+| 9 | Code review + bug fixes | — | ✅ Done |
+| 10 | **Déploiement + migration prod** | — | ⏳ Prochaine étape |
+| 11 | Vérification prod | — | 🔒 Bloqué par #10 |
+| 12 | Cleanup backfill | #293 | 🔒 Bloqué par #11 |
+| 13 | Drop colonnes plaintext | — | 🔒 Bloqué par #12 |
 
 ## Chaîne de dépendances GitHub
 
 ```
 #274 (epic)
-├── #294 (recovery key) ← DONE
-├── #295 (prompt signup) ← DONE
-├── #296 (forgot-password) ← DONE
-├── #297 (nudge post-password-change) ← DONE
-├── #300 (code coffre-fort Google OAuth) ← DONE
-├── #305 (validation code coffre-fort) ← DONE
-├── #308 (mode démo ne doit pas demander de code coffre-fort) ← DONE
-└── #293 (cleanup backfill) ← bloqué par déploiement + vérification
+├── #294 (recovery key) ✅
+├── #295 (prompt signup) ✅
+├── #296 (forgot-password) ✅
+├── #297 (nudge post-password-change) ✅
+├── #300 (code coffre-fort Google OAuth) ✅
+├── #305 (validation code coffre-fort) ✅
+├── #308 (mode démo bypass vault code) ✅
+└── #293 (cleanup backfill) ⏳ bloqué par déploiement + vérification
 ```

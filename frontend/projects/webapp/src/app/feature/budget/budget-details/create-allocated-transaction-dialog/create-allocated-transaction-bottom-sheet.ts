@@ -10,6 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import type { TransactionCreate } from 'pulpe-shared';
+import { formatLocalDate } from '@core/date/format-local-date';
 import type { CreateAllocatedTransactionDialogData } from './create-allocated-transaction-dialog';
 
 @Component({
@@ -157,8 +158,8 @@ export class CreateAllocatedTransactionBottomSheet {
     const formValue = this.form.getRawValue();
     const transactionDate =
       formValue.transactionDate instanceof Date
-        ? formValue.transactionDate.toISOString()
-        : new Date().toISOString();
+        ? formatLocalDate(formValue.transactionDate)
+        : formatLocalDate(new Date());
 
     const transaction: TransactionCreate = {
       budgetId: this.data.budgetLine.budgetId,
