@@ -6,7 +6,11 @@ import {
   computed,
   effect,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import {
+  takeUntilDestroyed,
+  toObservable,
+  toSignal,
+} from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -16,7 +20,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { firstValueFrom } from 'rxjs';
+import { filter, firstValueFrom, take } from 'rxjs';
 
 import {
   AuthSessionService,
@@ -322,7 +326,7 @@ export default class ResetPassword {
 
   protected readonly form = this.#formBuilder.nonNullable.group(
     {
-      recoveryKey: ['', recoveryKeyValidators],
+      recoveryKey: [''],
       newPassword: [
         '',
         [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)],
@@ -355,29 +359,14 @@ export default class ResetPassword {
       }
     });
 
-    // Fetch salt info when session becomes valid to determine hasRecoveryKey
-    effect(() => {
-      const isAuthenticated = this.#authState.isAuthenticated();
-      const isLoading = this.#authState.isLoading();
-      const saltInfo = this.#saltInfo();
-
-      if (!isLoading && isAuthenticated && saltInfo === null) {
-        this.#fetchSaltInfo();
-      }
-    });
-
-    // Disable recovery key validators when field is not shown
-    effect(() => {
-      const showField = this.showRecoveryKeyField();
-      const control = this.form.controls.recoveryKey;
-
-      if (showField) {
-        control.setValidators(recoveryKeyValidators);
-      } else {
-        control.clearValidators();
-      }
-      control.updateValueAndValidity();
-    });
+    // Fetch salt info when session becomes valid
+    toObservable(
+      computed(
+        () => !this.#authState.isLoading() && this.#authState.isAuthenticated(),
+      ),
+    )
+      .pipe(filter(Boolean), take(1), takeUntilDestroyed())
+      .subscribe(() => this.#fetchSaltInfo());
   }
 
   async #fetchSaltInfo(): Promise<void> {
@@ -385,6 +374,11 @@ export default class ResetPassword {
     try {
       const saltInfo = await firstValueFrom(this.#encryptionApi.getSalt$());
       this.#saltInfo.set(saltInfo);
+
+      if (this.showRecoveryKeyField()) {
+        this.form.controls.recoveryKey.setValidators(recoveryKeyValidators);
+        this.form.controls.recoveryKey.updateValueAndValidity();
+      }
     } catch (error) {
       this.#logger.error('Failed to fetch salt info:', error);
       this.#saltFetchError.set(

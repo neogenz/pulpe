@@ -94,7 +94,7 @@ import { LoadingButton } from '@ui/loading-button';
             <mat-label>Mot de passe</mat-label>
             <input
               matInput
-              [type]="hidePassword() ? 'password' : 'text'"
+              [type]="isPasswordHidden() ? 'password' : 'text'"
               formControlName="password"
               data-testid="password-input"
               (input)="clearMessages()"
@@ -108,10 +108,10 @@ import { LoadingButton } from '@ui/loading-button';
               matSuffix
               (click)="togglePasswordVisibility()"
               [attr.aria-label]="'Afficher le mot de passe'"
-              [attr.aria-pressed]="!hidePassword()"
+              [attr.aria-pressed]="!isPasswordHidden()"
             >
               <mat-icon>{{
-                hidePassword() ? 'visibility_off' : 'visibility'
+                isPasswordHidden() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
             @if (
@@ -187,9 +187,9 @@ export default class Login {
   readonly #logger = inject(Logger);
 
   protected readonly ROUTES = ROUTES;
-  protected hidePassword = signal<boolean>(true);
-  protected isSubmitting = signal<boolean>(false);
-  protected errorMessage = signal<string>('');
+  protected readonly isPasswordHidden = signal(true);
+  protected readonly isSubmitting = signal(false);
+  protected readonly errorMessage = signal('');
 
   protected loginForm = this.#formBuilder.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -210,7 +210,7 @@ export default class Login {
   });
 
   protected togglePasswordVisibility(): void {
-    this.hidePassword.set(!this.hidePassword());
+    this.isPasswordHidden.set(!this.isPasswordHidden());
   }
 
   protected clearMessages(): void {
