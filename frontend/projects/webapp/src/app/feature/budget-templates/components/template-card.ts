@@ -11,6 +11,7 @@ import { type BudgetTemplate } from 'pulpe-shared';
   template: `
     <mat-card
       appearance="outlined"
+      class="transition-shadow"
       [attr.data-testid]="'template-' + template().name"
     >
       <mat-card-header>
@@ -52,6 +53,17 @@ import { type BudgetTemplate } from 'pulpe-shared';
 
     :host {
       display: block;
+
+      mat-card {
+        border-radius: var(--pulpe-surface-radius-panel);
+        border: var(--pulpe-surface-border-subtle);
+        transition: box-shadow var(--pulpe-motion-base)
+          var(--pulpe-ease-standard);
+      }
+
+      mat-card:hover {
+        box-shadow: var(--mat-sys-level1);
+      }
 
       @include mat.card-overrides(
         (

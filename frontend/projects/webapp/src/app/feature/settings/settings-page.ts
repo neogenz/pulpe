@@ -52,7 +52,7 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
   ],
   template: `
     <div data-testid="settings-page">
-      <h1 class="text-headline-medium mb-16">Paramètres</h1>
+      <h1 class="text-headline-medium mb-8">Paramètres</h1>
 
       <!-- ═══ Section: Compte ═══ -->
       <section class="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-8">
@@ -140,7 +140,7 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
         </div>
       </section>
 
-      <mat-divider class="my-6!"></mat-divider>
+      <mat-divider class="my-8!"></mat-divider>
 
       <!-- ═══ Section: Sécurité ═══ -->
       @if (!isDemoMode()) {
@@ -195,7 +195,7 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
           </div>
         </section>
 
-        <mat-divider class="my-6!"></mat-divider>
+        <mat-divider class="my-8!"></mat-divider>
       }
 
       <!-- ═══ Section: Zone de danger ═══ -->

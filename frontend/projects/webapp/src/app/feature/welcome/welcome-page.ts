@@ -34,11 +34,9 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div
-      class="min-h-screen pulpe-gradient flex items-center justify-center p-4"
-    >
+    <div class="pulpe-entry-shell pulpe-gradient">
       <div
-        class="w-full max-w-lg bg-surface rounded-3xl p-8 md:p-10 flex flex-col items-center shadow-xl"
+        class="pulpe-entry-card w-full max-w-lg items-center"
         data-testid="welcome-page"
       >
         <!-- Branding -->
@@ -53,14 +51,14 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
 
         <!-- Title -->
         <h1
-          class="text-2xl md:text-4xl font-bold text-on-surface leading-tight text-center mb-2"
+          class="text-headline-large md:text-display-small font-bold text-on-surface leading-tight text-center mb-2"
         >
           Vois clair dans tes finances
         </h1>
 
         <!-- Subtitle -->
         <p
-          class="text-sm md:text-base text-on-surface-variant text-center leading-relaxed mb-4"
+          class="text-body-large text-on-surface-variant text-center leading-relaxed mb-4"
         >
           Planifie ton année, sache toujours ce que tu peux dépenser.
         </p>
@@ -151,7 +149,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
           <pulpe-loading-button
             [loading]="isDemoLoading()"
             [disabled]="isLoading()"
-            variant="tonal"
+            variant=""
             type="button"
             loadingText="Préparation..."
             icon="play_arrow"
@@ -159,7 +157,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
             class="w-full"
             (click)="startDemoMode()"
           >
-            Essayer gratuitement
+            Essayer sans compte
           </pulpe-loading-button>
 
           <pulpe-error-alert [message]="errorMessage()" class="w-full" />

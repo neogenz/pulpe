@@ -51,11 +51,9 @@ import {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div
-      class="min-h-screen pulpe-gradient flex items-center justify-center p-4"
-    >
+    <div class="pulpe-entry-shell pulpe-gradient">
       <div
-        class="w-full max-w-md bg-surface rounded-3xl p-8 flex flex-col shadow-xl"
+        class="pulpe-entry-card w-full max-w-md"
         data-testid="recover-vault-code-page"
       >
         <button
@@ -72,11 +70,11 @@ import {
             >key</mat-icon
           >
           <h1
-            class="text-2xl md:text-4xl font-bold text-on-surface mb-2 leading-tight"
+            class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
           >
             Récupère ton code coffre-fort
           </h1>
-          <p class="text-base md:text-lg text-on-surface-variant">
+          <p class="text-body-large text-on-surface-variant">
             Entre ta clé de récupération et ton nouveau code
           </p>
         </div>

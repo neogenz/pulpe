@@ -47,11 +47,9 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div
-      class="min-h-screen pulpe-gradient flex items-center justify-center p-4"
-    >
+    <div class="pulpe-entry-shell pulpe-gradient">
       <div
-        class="w-full max-w-md bg-surface rounded-3xl p-8 flex flex-col shadow-xl"
+        class="pulpe-entry-card w-full max-w-md"
         data-testid="setup-vault-code-page"
       >
         <div class="text-center mb-8">
@@ -59,11 +57,11 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
             >lock</mat-icon
           >
           <h1
-            class="text-2xl md:text-4xl font-bold text-on-surface mb-2 leading-tight"
+            class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
           >
             Crée ton code secret
           </h1>
-          <p class="text-base md:text-lg text-on-surface-variant">
+          <p class="text-body-large text-on-surface-variant">
             C'est la clé unique pour ouvrir ton coffre Pulpe. Garde-le
             précieusement : personne d'autre ne peut l'ouvrir à ta place, et on
             ne pourra pas le retrouver si tu l'oublies.

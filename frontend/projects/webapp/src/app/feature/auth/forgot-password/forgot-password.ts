@@ -33,11 +33,9 @@ import { LoadingButton } from '@ui/loading-button';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div
-      class="min-h-screen pulpe-gradient flex items-center justify-center p-4"
-    >
+    <div class="pulpe-entry-shell pulpe-gradient">
       <div
-        class="w-full max-w-md bg-surface rounded-3xl p-8 flex flex-col shadow-xl"
+        class="pulpe-entry-card w-full max-w-md"
         data-testid="forgot-password-page"
       >
         <button
@@ -51,12 +49,12 @@ import { LoadingButton } from '@ui/loading-button';
 
         <div class="text-center mb-8 mt-4">
           <h1
-            class="text-2xl md:text-4xl font-bold text-on-surface mb-2 leading-tight"
+            class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
           >
             Mot de passe oublié
           </h1>
           @if (!isSuccess()) {
-            <p class="text-base md:text-lg text-on-surface-variant">
+            <p class="text-body-large text-on-surface-variant">
               Entre ton email pour recevoir un lien de réinitialisation
             </p>
           }
