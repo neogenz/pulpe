@@ -368,28 +368,6 @@ export class EncryptionService {
     }
   }
 
-  async #rollbackSalt(
-    userId: string,
-    originalSaltHex: string,
-    error: unknown,
-  ): Promise<void> {
-    try {
-      await this.#repository.updateSalt(userId, originalSaltHex);
-    } catch (rollbackError) {
-      this.#logger.error(
-        {
-          userId,
-          originalError: error instanceof Error ? error.message : String(error),
-          rollbackError:
-            rollbackError instanceof Error
-              ? rollbackError.message
-              : String(rollbackError),
-        },
-        'Salt rollback failed after re-encryption error',
-      );
-    }
-  }
-
   #buildCacheKey(userId: string, clientKey: Buffer): string {
     const fingerprint = createHash('sha256')
       .update(clientKey)

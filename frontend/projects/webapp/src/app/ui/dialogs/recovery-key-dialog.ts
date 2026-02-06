@@ -34,10 +34,10 @@ export interface RecoveryKeyDialogData {
 
     <mat-dialog-content>
       <p class="text-body-medium text-on-surface mb-4">
-        Cette clé est ton filet de sécurité. Si tu oublies ton code secret, elle
-        sera le seul moyen de retrouver tes données. Copie-la dans un endroit
-        sûr : personne d'autre n'y a accès, et on ne pourra pas la retrouver
-        pour toi.
+        Cette clé est ton filet de sécurité. Si tu oublies ton code coffre-fort,
+        elle sera le seul moyen de retrouver tes données. Copie-la dans un
+        endroit sûr : personne d'autre n'y a accès, et on ne pourra pas la
+        retrouver pour toi.
       </p>
 
       <div

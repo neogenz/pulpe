@@ -127,18 +127,4 @@ export class EncryptionKeyRepository {
       );
     }
   }
-
-  async updateSalt(userId: string, saltHex: string): Promise<void> {
-    const supabase = this.#supabaseService.getServiceRoleClient();
-    const { error } = await supabase
-      .from('user_encryption_key')
-      .update({ salt: saltHex })
-      .eq('user_id', userId);
-
-    if (error) {
-      throw new Error(
-        `Failed to update salt for user ${userId}: ${error.message}`,
-      );
-    }
-  }
 }

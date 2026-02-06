@@ -141,7 +141,7 @@ export const savingsGoalSchema = z.object({
   id: z.uuid(),
   userId: z.uuid(),
   name: z.string().min(1).max(100).trim(),
-  targetAmount: z.number().positive(),
+  targetAmount: z.number().nonnegative(),
   targetDate: z.string(), // Date in ISO format
   priority: priorityLevelSchema,
   status: savingsGoalStatusSchema,
