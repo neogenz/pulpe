@@ -284,7 +284,7 @@ export default class TemplateDetail implements OnInit {
     this.templateDetailsStore.initializeTemplateId(templateId, staleData);
   }
 
-  private get templateId(): string | null {
+  get #templateId(): string | null {
     return this.#route.snapshot.paramMap.get('templateId');
   }
 
@@ -388,7 +388,7 @@ export default class TemplateDetail implements OnInit {
   editTemplate() {
     const template = this.templateDetailsStore.template();
     const transactions = this.templateDetailsStore.transactions();
-    const templateId = this.templateId;
+    const templateId = this.#templateId;
 
     if (!template || !transactions || !templateId) {
       return;
@@ -450,7 +450,7 @@ export default class TemplateDetail implements OnInit {
 
   async deleteTemplate() {
     const template = this.templateDetailsStore.template();
-    const templateId = this.templateId;
+    const templateId = this.#templateId;
     if (!template || !templateId) {
       return;
     }
@@ -518,7 +518,7 @@ export default class TemplateDetail implements OnInit {
   }
 
   async #performDeletion() {
-    const templateId = this.templateId;
+    const templateId = this.#templateId;
     if (!templateId) {
       return;
     }
