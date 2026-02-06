@@ -104,6 +104,54 @@ Utility classes win thanks to `@layer utilities`.
 
 `--p-border-radius-xs` (4px) · `--p-border-radius-sm` (8px) · `--p-border-radius-md` (12px)
 
+## Pulpe Semantic Tokens
+
+### Layout Rhythm
+
+| Token | CSS Variable | Value |
+|-------|--------------|-------|
+| `page-gutter-mobile` | `--pulpe-page-gutter-mobile` | `16px` |
+| `page-gutter-tablet` | `--pulpe-page-gutter-tablet` | `24px` |
+| `page-gutter-desktop` | `--pulpe-page-gutter-desktop` | `32px` |
+| `section-gap-sm` | `--pulpe-section-gap-sm` | `16px` |
+| `section-gap-md` | `--pulpe-section-gap-md` | `24px` |
+| `section-gap-lg` | `--pulpe-section-gap-lg` | `32px` |
+
+### Surfaces
+
+| Token | CSS Variable | Value |
+|-------|--------------|-------|
+| `surface-radius-card` | `--pulpe-surface-radius-card` | `24px` |
+| `surface-radius-panel` | `--pulpe-surface-radius-panel` | `16px` |
+| `surface-border-subtle` | `--pulpe-surface-border-subtle` | `1px solid var(--mat-sys-outline-variant)` |
+
+### Motion
+
+| Token | CSS Variable | Value |
+|-------|--------------|-------|
+| `motion-fast` | `--pulpe-motion-fast` | `150ms` |
+| `motion-base` | `--pulpe-motion-base` | `220ms` |
+| `motion-slow` | `--pulpe-motion-slow` | `320ms` |
+| `ease-standard` | `--pulpe-ease-standard` | `cubic-bezier(0.2, 0, 0, 1)` |
+| `ease-emphasized` | `--pulpe-ease-emphasized` | `cubic-bezier(0.22, 1, 0.36, 1)` |
+
+### Financial Semantics
+
+- Use semantic financial tokens only (`--pulpe-financial-*`).
+- Do not hardcode financial hex values in components.
+- Financial token values must map to Material system tokens for theme consistency.
+
+## State Card Spec
+
+- Component: `pulpe-state-card`
+- Inputs: `variant: 'error' | 'empty' | 'loading'`, `title`, `message`, optional `actionLabel`.
+- Optional behavior: disabled action state via `actionDisabled`.
+- Structure:
+  - icon/spinner
+  - title (single clear statement)
+  - message (one actionable sentence)
+  - optional action button aligned to end
+
 ## Anti-Patterns
 
 | Don't | Do |
