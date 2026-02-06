@@ -19,7 +19,7 @@ import { type BudgetLine, type Transaction } from 'pulpe-shared';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { BudgetLineTableItem } from '../data-core';
-import { SegmentedBudgetProgress } from '../components/budget-progress-bar';
+import { SegmentedBudgetProgress } from '../components/segmented-budget-progress';
 import { BudgetKindIndicator } from '../components/budget-kind-indicator';
 import { BudgetDetailsStore } from '../store/budget-details-store';
 

@@ -39,7 +39,7 @@ import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
 import { firstValueFrom } from 'rxjs';
 import { AddTransactionBottomSheet } from './components/add-transaction-bottom-sheet';
-import { MonthBudgetProgress } from './components/budget-progress-bar';
+import { MonthBudgetProgress } from './components/month-budget-progress';
 import { DashboardError } from './components/dashboard-error';
 import {
   EditTransactionDialog,
