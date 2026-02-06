@@ -14,7 +14,7 @@ const DEFAULT_SEGMENT_COUNT = 10;
  * ████████████░░░░░░░░  80%
  */
 @Component({
-  selector: 'pulpe-budget-progress-bar',
+  selector: 'pulpe-segmented-budget-progress',
   template: `
     <div class="flex gap-0.5" [style.height.px]="height()">
       @for (i of segments(); track i) {
@@ -39,7 +39,7 @@ const DEFAULT_SEGMENT_COUNT = 10;
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BudgetProgressBar {
+export class SegmentedBudgetProgress {
   readonly percentage = input.required<number>();
   readonly segmentCount = input(DEFAULT_SEGMENT_COUNT);
   readonly height = input(6);
