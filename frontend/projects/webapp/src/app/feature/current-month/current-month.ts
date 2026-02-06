@@ -36,9 +36,10 @@ import {
 import { type TransactionCreate } from 'pulpe-shared';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { BaseLoading } from '@ui/loading';
+import { StateCard } from '@ui/state-card/state-card';
 import { firstValueFrom } from 'rxjs';
 import { AddTransactionBottomSheet } from './components/add-transaction-bottom-sheet';
-import { BudgetProgressBar } from './components/budget-progress-bar';
+import { MonthBudgetProgress } from './components/budget-progress-bar';
 import { DashboardError } from './components/dashboard-error';
 import {
   EditTransactionDialog,
@@ -69,7 +70,7 @@ type TransactionFormData = Pick<
     },
   ],
   imports: [
-    BudgetProgressBar,
+    MonthBudgetProgress,
     MatCardModule,
     MatButtonModule,
     MatBottomSheetModule,
@@ -81,14 +82,12 @@ type TransactionFormData = Pick<
     RecurringExpensesList,
     DashboardError,
     BaseLoading,
+    StateCard,
     OneTimeExpensesList,
   ],
   template: `
     <div class="flex flex-col gap-4 min-w-0" data-testid="current-month-page">
-      <header
-        class="flex flex-wrap justify-between items-center gap-2"
-        data-testid="page-header"
-      >
+      <header class="pulpe-page-header" data-testid="page-header">
         <h1
           class="text-headline-medium md:text-display-small truncate min-w-0 flex-shrink"
           data-testid="page-title"
@@ -112,7 +111,7 @@ type TransactionFormData = Pick<
       @switch (true) {
         @case (store.isInitialLoading()) {
           <pulpe-base-loading
-            message="Chargement du tableau de bord..."
+            message="Préparation de ton tableau de bord..."
             size="large"
             testId="dashboard-loading"
           />
@@ -129,7 +128,7 @@ type TransactionFormData = Pick<
           store.status() === 'reloading'
         ) {
           @if (store.dashboardData()?.budget) {
-            <pulpe-budget-progress-bar
+            <pulpe-month-budget-progress
               [expenses]="store.totalExpenses()"
               [available]="store.totalAvailable()"
               data-tour="progress-bar"
@@ -187,18 +186,12 @@ type TransactionFormData = Pick<
               />
             </div>
           } @else {
-            <div class="empty-state" data-testid="empty-state">
-              <h2 class="text-title-large mt-4" data-testid="empty-state-title">
-                Aucun budget trouvé
-              </h2>
-              <p
-                class="text-body-large text-on-surface-variant mt-2"
-                data-testid="empty-state-description"
-              >
-                Aucun budget n'a été créé pour
-                {{ budgetPeriodDisplayName() }}.
-              </p>
-            </div>
+            <pulpe-state-card
+              variant="empty"
+              testId="empty-state"
+              [title]="'Pas encore de budget pour ' + budgetPeriodDisplayName()"
+              message="Crée-le depuis tes modèles pour commencer à suivre ton mois."
+            />
           }
         }
       }
@@ -226,9 +219,22 @@ type TransactionFormData = Pick<
 
     .fab-button {
       position: fixed;
-      bottom: 24px;
+      bottom: calc(24px + env(safe-area-inset-bottom));
       right: 24px;
       z-index: 1000;
+      animation: fab-scale-in var(--pulpe-motion-base)
+        var(--pulpe-ease-emphasized);
+    }
+
+    @keyframes fab-scale-in {
+      from {
+        transform: scale(0);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

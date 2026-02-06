@@ -23,7 +23,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
  * - Budget exceeded if Remaining < 0
  */
 @Component({
-  selector: 'pulpe-budget-progress-bar',
+  selector: 'pulpe-month-budget-progress',
   imports: [
     MatCardModule,
     MatIconModule,
@@ -120,7 +120,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BudgetProgressBar {
+export class MonthBudgetProgress {
   /**
    * Total expenses (expenses + savings) WITHOUT rollover
    */
