@@ -59,7 +59,7 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
           <h1
             class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
           >
-            Crée ton code secret
+            Crée ton code coffre-fort
           </h1>
           <p class="text-body-large text-on-surface-variant">
             C'est la clé unique pour ouvrir ton coffre Pulpe. Garde-le
@@ -75,14 +75,14 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
           data-testid="setup-vault-code-form"
         >
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Ton code secret</mat-label>
+            <mat-label>Ton code coffre-fort</mat-label>
             <input
               matInput
               [type]="isCodeHidden() ? 'password' : 'text'"
               formControlName="vaultCode"
               data-testid="vault-code-input"
               (input)="clearError()"
-              placeholder="Ton code secret"
+              placeholder="Ton code coffre-fort"
             />
             <mat-icon matPrefix>lock</mat-icon>
             <button
@@ -106,7 +106,7 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
             ) {
               <mat-error>
                 @if (form.get('vaultCode')?.hasError('required')) {
-                  Ton code secret est nécessaire
+                  Ton code coffre-fort est nécessaire
                 } @else if (form.get('vaultCode')?.hasError('minlength')) {
                   8 caractères minimum
                 }

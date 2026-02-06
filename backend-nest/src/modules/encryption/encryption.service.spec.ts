@@ -18,7 +18,6 @@ const createMockRepository = (overrides?: {
   findSaltByUserId?: ReturnType<typeof mock>;
   findByUserId?: ReturnType<typeof mock>;
   upsertSalt?: ReturnType<typeof mock>;
-  updateSalt?: ReturnType<typeof mock>;
   updateWrappedDEK?: ReturnType<typeof mock>;
   hasRecoveryKey?: ReturnType<typeof mock>;
   updateKeyCheck?: ReturnType<typeof mock>;
@@ -27,7 +26,6 @@ const createMockRepository = (overrides?: {
     overrides?.findSaltByUserId ?? mock(() => Promise.resolve(null)),
   findByUserId: overrides?.findByUserId ?? mock(() => Promise.resolve(null)),
   upsertSalt: overrides?.upsertSalt ?? mock(() => Promise.resolve()),
-  updateSalt: overrides?.updateSalt ?? mock(() => Promise.resolve()),
   updateWrappedDEK:
     overrides?.updateWrappedDEK ?? mock(() => Promise.resolve()),
   hasRecoveryKey:
