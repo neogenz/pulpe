@@ -1,6 +1,6 @@
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { MonthBudgetProgress } from './budget-progress-bar';
+import { MonthBudgetProgress } from './month-budget-progress';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { registerLocaleData } from '@angular/common';
 import { setTestInput } from '../../../testing/signal-test-utils';
