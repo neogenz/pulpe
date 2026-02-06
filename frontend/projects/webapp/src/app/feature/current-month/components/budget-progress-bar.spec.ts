@@ -1,6 +1,6 @@
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { BudgetProgressBar } from './budget-progress-bar';
+import { MonthBudgetProgress } from './budget-progress-bar';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { registerLocaleData } from '@angular/common';
 import { setTestInput } from '../../../testing/signal-test-utils';
@@ -9,13 +9,13 @@ import localeDE from '@angular/common/locales/de-CH';
 // Register locale data for Swiss German
 registerLocaleData(localeDE);
 
-describe('BudgetProgressBar', () => {
-  let component: BudgetProgressBar;
-  let fixture: ComponentFixture<BudgetProgressBar>;
+describe('MonthBudgetProgress', () => {
+  let component: MonthBudgetProgress;
+  let fixture: ComponentFixture<MonthBudgetProgress>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [BudgetProgressBar],
+      imports: [MonthBudgetProgress],
       providers: [provideZonelessChangeDetection()],
     }).compileComponents();
   });
@@ -24,10 +24,10 @@ describe('BudgetProgressBar', () => {
     expenses: number,
     available: number,
   ): {
-    component: BudgetProgressBar;
-    fixture: ComponentFixture<BudgetProgressBar>;
+    component: MonthBudgetProgress;
+    fixture: ComponentFixture<MonthBudgetProgress>;
   } {
-    fixture = TestBed.createComponent(BudgetProgressBar);
+    fixture = TestBed.createComponent(MonthBudgetProgress);
     component = fixture.componentInstance;
 
     setTestInput(component.expenses, expenses);
