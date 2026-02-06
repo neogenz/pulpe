@@ -129,7 +129,7 @@ describe('WelcomePage', () => {
       );
 
       expect(loadingButton).toBeTruthy();
-      expect(loadingButton.textContent).toContain('Essayer gratuitement');
+      expect(loadingButton.textContent).toContain('Essayer sans compte');
     });
 
     it('should have login link', () => {

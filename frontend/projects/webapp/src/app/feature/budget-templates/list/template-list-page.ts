@@ -38,10 +38,7 @@ import {
       class="flex flex-col gap-4 h-full min-w-0"
       data-testid="budget-templates-page"
     >
-      <header
-        class="flex flex-wrap justify-between items-center gap-2"
-        data-testid="page-header"
-      >
+      <header class="pulpe-page-header" data-testid="page-header">
         <div class="min-w-0">
           <h1
             class="text-headline-medium md:text-display-small truncate min-w-0 flex-shrink"

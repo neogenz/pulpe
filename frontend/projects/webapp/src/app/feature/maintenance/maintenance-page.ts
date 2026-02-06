@@ -13,11 +13,9 @@ import { LoadingButton } from '@ui/loading-button';
   imports: [LottieComponent, LoadingButton],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div
-      class="min-h-screen pulpe-gradient flex items-center justify-center p-4"
-    >
+    <div class="pulpe-entry-shell pulpe-gradient">
       <div
-        class="w-full max-w-lg bg-surface rounded-2xl p-8 md:p-12 flex flex-col items-center gap-6 text-center"
+        class="pulpe-entry-card w-full max-w-lg items-center gap-6 text-center"
       >
         <ng-lottie [options]="lottieOptions" class="w-48 h-48" />
 
