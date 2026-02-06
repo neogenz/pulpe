@@ -79,12 +79,12 @@ export const EnvSchema = z.object({
     .min(1, { error: 'Supabase anon key is required' })
     .refine(
       (key) => {
-        // Basic JWT format validation (header.payload.signature)
-        const parts = key.split('.');
-        return parts.length === 3;
+        // Accept new sb_publishable_ format (Supabase CLI v2.70+) or legacy JWT format
+        return key.startsWith('sb_publishable_') || key.split('.').length === 3;
       },
       {
-        error: 'Supabase anon key must be a valid JWT token',
+        error:
+          'Supabase anon key must be a valid key (sb_publishable_* or JWT)',
       },
     ),
   PUBLIC_BACKEND_API_URL: z
@@ -270,12 +270,14 @@ export const ConfigSchema = z.object({
       .min(1, { error: 'Supabase anon key is required' })
       .refine(
         (key) => {
-          // Basic JWT format validation (header.payload.signature)
-          const parts = key.split('.');
-          return parts.length === 3;
+          // Accept new sb_publishable_ format (Supabase CLI v2.70+) or legacy JWT format
+          return (
+            key.startsWith('sb_publishable_') || key.split('.').length === 3
+          );
         },
         {
-          error: 'Supabase anon key must be a valid JWT token',
+          error:
+            'Supabase anon key must be a valid key (sb_publishable_* or JWT)',
         },
       ),
   }),
