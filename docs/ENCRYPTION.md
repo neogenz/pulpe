@@ -12,7 +12,7 @@ DEK = HKDF-SHA256(clientKey + masterKey, salt, "pulpe-dek-{userId}")
 
 | Facteur | Origine | Stockage |
 |---------|---------|----------|
-| `clientKey` | Dérivé du mot de passe utilisateur côté frontend | Conservé en `sessionStorage` (limité à l'onglet, effacé à la fermeture ou au logout). Envoyé dans le header `X-Client-Key` à chaque requête. Voir section « Stockage du clientKey » ci-dessous. |
+| `clientKey` | Dérivé du **vault code** côté frontend (PBKDF2). Pour les comptes legacy pré‑migration, il peut encore être dérivé du mot de passe lors des flows de reset/recovery. | Conservé en `sessionStorage` par défaut (ou `localStorage` via « Se souvenir de cet appareil »). Effacé au logout. Envoyé dans le header `X-Client-Key` à chaque requête. Voir section « Stockage du clientKey » ci-dessous. |
 | `masterKey` | Variable d'environnement `ENCRYPTION_MASTER_KEY` | Serveur uniquement. GitHub Secrets en prod, `.env` en local. |
 | `salt` | Généré aléatoirement par utilisateur | Table `user_encryption_key` (accessible uniquement au `service_role`). |
 
@@ -60,7 +60,7 @@ Le mode démo utilise un `clientKey` déterministe (`DEMO_CLIENT_KEY`) pour empr
 ## Flux requête typique
 
 ```
-1. Frontend dérive clientKey depuis le mot de passe (PBKDF2)
+1. Frontend dérive le clientKey depuis le **vault code** (PBKDF2) ou utilise un clientKey déjà stocké
 2. Frontend envoie la requête avec :
    - Authorization: Bearer {jwt}
    - X-Client-Key: {clientKey en hex}
@@ -81,9 +81,18 @@ Quand un utilisateur existant migre vers le système de **vault code**, on doit 
 4. L'opération est atomique côté SQL via la RPC `rekey_user_encrypted_data`
 5. En cas d'échec, le salt est restauré à sa valeur précédente
 
+## Changement / reset de mot de passe (auth uniquement)
+
+Le mot de passe Supabase et le vault code sont **indépendants**.
+
+- **Vault code configuré** : changer ou réinitialiser le mot de passe ne touche pas au chiffrement. Aucun endpoint encryption n'est appelé et le `clientKey` reste valable.
+- **Comptes legacy sans vault code** :
+  - Avec recovery key : `/v1/encryption/recover` re-chiffre avec un nouveau `clientKey` dérivé du nouveau mot de passe.
+  - Sans recovery key : reset mot de passe puis redirection vers `setup-vault-code` (le rekey/backfill se fera lors de la création du vault code).
+
 ## Recovery key
 
-La recovery key permet de récupérer l'accès aux données chiffrées si l'utilisateur oublie son mot de passe.
+La recovery key permet de récupérer l'accès aux données chiffrées quand le **vault code** est perdu (ou pour les comptes legacy sans vault code lors d’un reset du mot de passe).
 
 ### Architecture
 
@@ -93,13 +102,13 @@ Setup (depuis les paramètres) :
   2. wrappedDEK = AES-256-GCM(DEK, recoveryKey)        // DEK chiffrée
   3. Stocker wrappedDEK dans user_encryption_key.wrapped_dek
 
-Recovery (mot de passe oublié) :
-  1. User fournit recoveryKey + nouveau mot de passe
+Recovery (vault code oublié / reset password legacy) :
+  1. User fournit recoveryKey + nouveau vault code (ou nouveau mot de passe legacy)
   2. DEK = AES-GCM-decrypt(wrappedDEK, recoveryKey)
-  3. Nouveau clientKey dérivé du nouveau mot de passe
-  4. Nouveau salt, nouvelle DEK' = HKDF(newClientKey + masterKey, newSalt)
-  5. Re-chiffrer toutes les données avec DEK'
-  6. Nouveau wrappedDEK' = AES-GCM(DEK', recoveryKey)
+  3. Nouveau clientKey dérivé du vault code / mot de passe avec le **salt existant**
+  4. Re-chiffrer toutes les données avec la nouvelle DEK
+  5. `wrapped_dek` est mis à jour avec la même recovery key
+  6. Le frontend génère ensuite une **nouvelle** recovery key (setup-recovery) et l’affiche
 ```
 
 ### Format (UX)
@@ -113,7 +122,7 @@ Recovery (mot de passe oublié) :
 - La recovery key n'est **jamais stockée** côté serveur (seul `wrappedDEK` l'est)
 - Le serveur ne peut pas déchiffrer `wrappedDEK` sans la recovery key
 - Rate limiting sur `/v1/encryption/recover` (5 tentatives/heure)
-- Après un changement de mot de passe, `wrappedDEK` est invalidé (l'utilisateur doit re-générer une recovery key)
+- Le `wrapped_dek` ne change que lors d'un setup recovery ou d'une récupération (recover)
 
 ### Endpoints
 
@@ -146,9 +155,9 @@ La colonne `key_check` de `user_encryption_key` stocke un ciphertext canary : `A
 | Événement | Action |
 |-----------|--------|
 | Première validation (key_check absent) | Généré et stocké (migration backward compat) |
-| Changement de mot de passe | Régénéré avec la nouvelle DEK |
+| Rekey (setup vault code) | Régénéré avec la nouvelle DEK |
+| Recovery (`/recover`) | Régénéré avec la nouvelle DEK |
 | Setup recovery key | Régénéré (assure la cohérence) |
-| Récupération de compte | Régénéré avec la nouvelle DEK |
 
 ### Rate limiting
 
@@ -168,19 +177,21 @@ L'endpoint `validate-key` est limité à 10 tentatives par minute par utilisateu
 
 ## Stockage du clientKey
 
-Le `clientKey` est conservé dans `sessionStorage` sous la clé `pulpe:client-key` pour éviter de redemander le mot de passe à chaque rechargement de page.
+Le `clientKey` est stocké côté client via `StorageService` :
+- `sessionStorage` : `pulpe-vault-client-key-session` (par défaut)
+- `localStorage` : `pulpe-vault-client-key-local` (option « Se souvenir de cet appareil »)
 
-**Propriétés de `sessionStorage` :**
-- Limité à l'onglet du navigateur (non partagé entre onglets)
-- Effacé automatiquement à la fermeture de l'onglet
-- Effacé explicitement au logout (`ClientKeyService.clear()`)
+**Propriétés :**
+- `sessionStorage` est limité à l'onglet (non partagé entre onglets)
+- `localStorage` persiste entre sessions (si l'utilisateur choisit « Se souvenir »)
+- Les deux sont effacés explicitement au logout (`ClientKeyService.clear()` + `AuthCleanupService`)
 
 **Risque accepté :** une vulnérabilité XSS dans l'application permettrait de lire le `clientKey` depuis `sessionStorage`. Ce risque est atténué par :
 1. La politique CSP (Content Security Policy) qui limite l'exécution de scripts tiers
-2. Le fait qu'une XSS permettrait aussi d'intercepter le mot de passe directement à la saisie
+2. Le fait qu'une XSS permettrait aussi d'intercepter le vault code ou le mot de passe directement à la saisie
 3. Le `clientKey` seul est insuffisant pour déchiffrer (il faut aussi la `masterKey` serveur)
 
-**Alternative rejetée :** stocker le `clientKey` uniquement en mémoire (signal Angular) imposerait une re-saisie du mot de passe à chaque rechargement de page, dégradant fortement l'expérience utilisateur.
+**Alternative rejetée :** stocker le `clientKey` uniquement en mémoire (signal Angular) imposerait une re-saisie du vault code à chaque rechargement de page, dégradant fortement l'expérience utilisateur.
 
 ## Configuration
 
