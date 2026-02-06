@@ -209,7 +209,7 @@ import type {
             [attr.colspan]="displayedColumns.length"
           >
             <p class="text-body-medium text-on-surface-variant">
-              Aucune prévision définie
+              Pas encore de prévision
             </p>
             <button
               matButton="outlined"
@@ -236,7 +236,8 @@ import type {
     }
 
     .mat-mdc-row {
-      transition: background-color 150ms ease-out;
+      transition: background-color var(--pulpe-motion-fast)
+        var(--pulpe-ease-standard);
     }
 
     .mat-mdc-row:hover {
@@ -244,7 +245,7 @@ import type {
     }
 
     .mat-mdc-row:not(.group-header-row) {
-      height: 64px;
+      height: 60px;
     }
 
     .chip-on-secondary-container {

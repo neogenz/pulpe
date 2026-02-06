@@ -58,7 +58,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
       @if (templateDetailsStore.isLoading()) {
         <!-- Loading state with proper accessibility -->
         <pulpe-base-loading
-          message="Chargement des détails du modèle..."
+          message="Préparation du modèle..."
           size="large"
           [fullHeight]="true"
           testId="template-details-loading"

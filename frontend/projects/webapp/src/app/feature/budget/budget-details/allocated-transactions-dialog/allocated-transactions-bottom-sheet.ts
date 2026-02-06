@@ -143,7 +143,7 @@ import type {
         } @else {
           <div class="text-center py-6 text-on-surface-variant">
             <mat-icon class="mb-2!">receipt_long</mat-icon>
-            <p class="text-body-medium">Aucune transaction</p>
+            <p class="text-body-medium">Pas de transaction</p>
           </div>
         }
       </div>

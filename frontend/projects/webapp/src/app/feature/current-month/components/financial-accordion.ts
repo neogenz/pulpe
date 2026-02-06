@@ -107,12 +107,12 @@ export interface FinancialAccordionConfig {
                 {{ config().emptyStateIcon || 'inbox' }}
               </mat-icon>
               <p class="text-body-large text-(--color-on-surface-variant) mb-1">
-                {{ config().emptyStateTitle || 'Aucune transaction' }}
+                {{ config().emptyStateTitle || 'Pas de transaction' }}
               </p>
               <p class="text-body-small text-(--color-outline)">
                 {{
                   config().emptyStateSubtitle ||
-                    'Les transactions apparaîtront ici'
+                    'Tes transactions apparaîtront ici'
                 }}
               </p>
             </div>
