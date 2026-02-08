@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react'
 import { Section, Screenshot, FadeIn } from '@/components/ui'
 
 export function Solution() {
@@ -16,19 +17,19 @@ export function Solution() {
           </p>
           <ul className="text-left text-text-secondary space-y-3 max-w-xl mx-auto">
             <li className="flex items-start gap-3">
-              <span className="text-primary mt-1 shrink-0">✓</span>
+              <Check className="w-4 h-4 text-primary mt-1 shrink-0" />
               <span>
                 Tes impôts dans 4 mois ? Déjà budgétés.
               </span>
             </li>
             <li className="flex items-start gap-3">
-              <span className="text-primary mt-1 shrink-0">✓</span>
+              <Check className="w-4 h-4 text-primary mt-1 shrink-0" />
               <span>
                 Vacances en août ? Anticipées depuis janvier.
               </span>
             </li>
             <li className="flex items-start gap-3">
-              <span className="text-primary mt-1 shrink-0">✓</span>
+              <Check className="w-4 h-4 text-primary mt-1 shrink-0" />
               <span>
                 Ce qu'il te reste ce mois ? Toujours visible, au centime près.
               </span>

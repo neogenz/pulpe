@@ -1,5 +1,5 @@
 import { Globe, Smartphone, Apple } from 'lucide-react'
-import { Section, Badge, Button, FadeIn } from '@/components/ui'
+import { Section, Badge, Button, FadeIn, Card } from '@/components/ui'
 import { ANGULAR_APP_URL } from '@/lib/config'
 
 const IOS_APP_URL = '#' // TODO: Remplacer par le lien App Store
@@ -19,7 +19,7 @@ export function Platforms() {
       <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
         {/* Web App */}
         <FadeIn delay={0.1}>
-          <div className="bg-surface rounded-[var(--radius-card)] p-6 lg:p-8 border border-text/5 shadow-[var(--shadow-card)] h-full flex flex-col items-center text-center">
+          <Card variant="elevated" className="h-full flex flex-col items-center text-center p-6 lg:p-8">
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
               <Globe className="w-6 h-6 text-primary" />
             </div>
@@ -27,24 +27,20 @@ export function Platforms() {
             <p className="text-text-secondary mb-6 flex-1">
               Utilise Pulpe directement dans ton navigateur, sur ordinateur ou téléphone. Aucune installation requise.
             </p>
-            <a href={`${ANGULAR_APP_URL}/welcome`}>
-              <Button variant="secondary" className="w-full">
-                Ouvrir dans le navigateur
-              </Button>
-            </a>
-          </div>
+            <Button href={`${ANGULAR_APP_URL}/welcome`} variant="secondary" className="w-full">
+              Ouvrir dans le navigateur
+            </Button>
+          </Card>
         </FadeIn>
 
         {/* iOS App */}
         <FadeIn delay={0.2}>
-          <div className="bg-surface rounded-[var(--radius-card)] p-6 lg:p-8 border border-text/5 shadow-[var(--shadow-card)] h-full flex flex-col items-center text-center">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Apple className="w-6 h-6 text-primary" />
-              </div>
-              <Badge>Nouveau</Badge>
+          <Card variant="elevated" className="h-full flex flex-col items-center text-center p-6 lg:p-8">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Apple className="w-6 h-6 text-primary" />
             </div>
             <h3 className="text-xl font-semibold mb-2">App iOS</h3>
+            <Badge className="mb-4">Nouveau</Badge>
             <p className="text-text-secondary mb-6 flex-1">
               Une app native optimisée pour iPhone. Notifications, widgets, et expérience fluide.
             </p>
@@ -64,26 +60,24 @@ export function Platforms() {
                 className="h-12 mx-auto"
               />
             </a>
-          </div>
+          </Card>
         </FadeIn>
 
         {/* Android */}
         <FadeIn delay={0.3}>
-          <div className="bg-surface rounded-[var(--radius-card)] p-6 lg:p-8 border border-text/5 shadow-[var(--shadow-card)] h-full flex flex-col items-center text-center opacity-75">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-text/5 flex items-center justify-center">
-                <Smartphone className="w-6 h-6 text-text-secondary" />
-              </div>
-              <Badge>Bientôt</Badge>
+          <Card variant="elevated" className="h-full flex flex-col items-center text-center p-6 lg:p-8 opacity-75">
+            <div className="w-12 h-12 rounded-full bg-text/5 flex items-center justify-center mb-4">
+              <Smartphone className="w-6 h-6 text-text-secondary" />
             </div>
             <h3 className="text-xl font-semibold mb-2">App Android</h3>
+            <Badge className="mb-4">Bientôt</Badge>
             <p className="text-text-secondary mb-6 flex-1">
               L'app Android est en cours de développement. En attendant, utilise la web app sur ton téléphone.
             </p>
             <Button variant="ghost" disabled className="w-full">
               Arrive bientôt
             </Button>
-          </div>
+          </Card>
         </FadeIn>
       </div>
     </Section>

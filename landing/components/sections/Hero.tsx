@@ -46,7 +46,7 @@ const FLOATING_CARDS: FloatingCardConfig[] = [
   {
     id: "courses",
     position: "top-8 right-[35%]",
-    delay: "delay-200",
+    delay: "delay-100",
     variant: "pill",
     animationDelay: -0.5,
     content: (
@@ -59,7 +59,7 @@ const FLOATING_CARDS: FloatingCardConfig[] = [
   {
     id: "trend-up",
     position: "-top-2 right-[20%]",
-    delay: "delay-400",
+    delay: "delay-200",
     variant: "trend",
     animationDelay: -1,
     content: (
@@ -72,7 +72,7 @@ const FLOATING_CARDS: FloatingCardConfig[] = [
   {
     id: "disponible",
     position: "top-4 -right-2",
-    delay: "delay-600",
+    delay: "delay-300",
     variant: "highlight",
     animationDelay: -1.5,
     content: (
@@ -88,7 +88,7 @@ const FLOATING_CARDS: FloatingCardConfig[] = [
   {
     id: "epargne-mois",
     position: "top-[30%] right-[38%]",
-    delay: "delay-800",
+    delay: "delay-400",
     variant: "large",
     animationDelay: -2,
     content: (
@@ -106,7 +106,7 @@ const FLOATING_CARDS: FloatingCardConfig[] = [
   {
     id: "loisirs",
     position: "top-[48%] right-[-5%]",
-    delay: "delay-1000",
+    delay: "delay-500",
     variant: "pill",
     animationDelay: -2.5,
     content: (
@@ -119,7 +119,7 @@ const FLOATING_CARDS: FloatingCardConfig[] = [
   {
     id: "epargne",
     position: "bottom-14 right-[38%]",
-    delay: "delay-1200",
+    delay: "delay-600",
     variant: "pill",
     animationDelay: -3,
     content: (
@@ -132,7 +132,7 @@ const FLOATING_CARDS: FloatingCardConfig[] = [
   {
     id: "a-jour",
     position: "bottom-0 right-[24%]",
-    delay: "delay-1300",
+    delay: "delay-700",
     variant: "trend",
     animationDelay: -3.5,
     content: (
@@ -145,7 +145,7 @@ const FLOATING_CARDS: FloatingCardConfig[] = [
   {
     id: "notification",
     position: "bottom-12 right-[-4%]",
-    delay: "delay-1400",
+    delay: "delay-800",
     variant: "notification",
     animationDelay: -4,
     content: (
@@ -207,7 +207,7 @@ export function Hero() {
               Pulpe planifie ton année pour que tu saches toujours ce que tu
               peux dépenser. Sans prise de tête.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start justify-center lg:justify-start">
               <div className="flex flex-col items-center gap-3">
                 <a href={`${ANGULAR_APP_URL}/signup`}>
                   <ShineBorder

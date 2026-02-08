@@ -1,11 +1,12 @@
 import { Section, Button, FadeIn } from '@/components/ui'
 import { ANGULAR_APP_URL } from '@/lib/config'
+import { Check } from 'lucide-react'
 
 const STEPS = [
   { number: '1', title: 'Tes revenus', description: 'Ce qui rentre chaque mois' },
   { number: '2', title: 'Frais fixes', description: 'Loyer, abonnements, assurances' },
   { number: '3', title: 'Frais variables', description: 'Vacances, impôts, anniversaires' },
-  { number: '✓', title: 'Ton année est prête', description: 'Tu vois chaque mois, chaque dépense, ce qu\'il te reste' },
+  { number: 'done', title: 'Ton année est prête', description: 'Tu vois chaque mois, chaque dépense, ce qu\'il te reste' },
 ]
 
 export function HowItWorks() {
@@ -20,12 +21,12 @@ export function HowItWorks() {
         </p>
       </FadeIn>
 
-      <div className="grid md:grid-cols-4 gap-8 mb-12">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
         {STEPS.map((step, index) => (
           <FadeIn key={step.title} delay={index * 0.1}>
             <div className="text-center">
-              <div className={`w-12 h-12 rounded-full font-bold text-xl flex items-center justify-center mx-auto mb-4 ${step.number === '✓' ? 'bg-primary/10 text-primary' : 'bg-primary text-white'}`}>
-                {step.number}
+              <div className={`w-12 h-12 rounded-full font-bold text-xl flex items-center justify-center mx-auto mb-4 ${step.number === 'done' ? 'bg-primary/10 text-primary' : 'bg-primary text-white'}`}>
+                {step.number === 'done' ? <Check className="w-5 h-5" /> : step.number}
               </div>
               <h3 className="font-semibold text-lg mb-2">{step.title}</h3>
               <p className="text-text-secondary">{step.description}</p>
@@ -36,9 +37,7 @@ export function HowItWorks() {
 
       <FadeIn delay={0.3}>
         <div className="text-center">
-          <a href={`${ANGULAR_APP_URL}/signup`}>
-            <Button>Créer mon budget</Button>
-          </a>
+          <Button href={`${ANGULAR_APP_URL}/signup`}>Créer mon budget</Button>
         </div>
       </FadeIn>
     </Section>

@@ -1,16 +1,28 @@
 import { memo } from 'react'
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost'
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+type ButtonBaseProps = {
   variant?: ButtonVariant
+  size?: 'sm' | 'default'
   children: ReactNode
+  className?: string
 }
 
+type ButtonAsButton = ButtonBaseProps & Omit<ButtonHTMLAttributes<HTMLButtonElement>, keyof ButtonBaseProps> & { href?: never }
+type ButtonAsAnchor = ButtonBaseProps & Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof ButtonBaseProps> & { href: string }
+
+type ButtonProps = ButtonAsButton | ButtonAsAnchor
+
 const BASE_STYLES =
-  'inline-flex items-center justify-center font-semibold transition-all duration-200 ease-out rounded-[var(--radius-button)] min-h-[56px] px-8 text-lg cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none'
+  'inline-flex items-center justify-center font-semibold transition-all duration-200 ease-out rounded-[var(--radius-button)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none'
+
+const SIZE_STYLES = {
+  sm: 'min-h-[40px] px-4 text-sm',
+  default: 'min-h-[56px] px-8 text-lg',
+} as const
 
 const VARIANT_STYLES: Record<ButtonVariant, string> = {
   primary:
@@ -23,15 +35,24 @@ const VARIANT_STYLES: Record<ButtonVariant, string> = {
 
 export const Button = memo(function Button({
   variant = 'primary',
+  size = 'default',
   children,
   className = '',
   ...props
 }: ButtonProps) {
+  const classes = cn(BASE_STYLES, SIZE_STYLES[size], VARIANT_STYLES[variant], className)
+
+  if ('href' in props && props.href) {
+    const { href, ...anchorProps } = props as ButtonAsAnchor
+    return (
+      <a href={href} className={classes} {...anchorProps}>
+        {children}
+      </a>
+    )
+  }
+
   return (
-    <button
-      className={cn(BASE_STYLES, VARIANT_STYLES[variant], className)}
-      {...props}
-    >
+    <button className={classes} {...(props as ButtonAsButton)}>
       {children}
     </button>
   )

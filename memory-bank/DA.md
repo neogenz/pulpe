@@ -74,7 +74,7 @@ Le "calm technology" appliqué aux finances. Pas de jugement, pas de stress.
 | **Tertiary** | Bleu info | #0061A6 | Actions secondaires, liens, information |
 | **Fond principal** | Blanc verdâtre | #F6FFF0 | Background général |
 | **Surfaces/cartes** | Vert très clair | #EBFFE6 | Cartes, modales (ou blanc pur selon contexte) |
-| **Texte principal** | Noir doux | #181D17 | Texte (éviter le noir pur #000) |
+| **Texte principal** | Noir doux | #1A1C19 | Texte (éviter le noir pur #000) |
 | **Accent positif** | Vert moyen | #48A353 | Succès, économies atteintes |
 
 **Principes :**
@@ -106,8 +106,9 @@ L'icône actuelle (tranche d'agrume neumorphique) :
 
 | Usage | Police | Alternative |
 |-------|--------|-------------|
-| **Titres** | Manrope | Plus Jakarta Sans |
-| **Corps** | DM Sans | Nunito Sans |
+| **Titres (app)** | Manrope | Plus Jakarta Sans |
+| **Corps (app)** | DM Sans | Nunito Sans |
+| **Landing page** | Poppins | — |
 | **Chiffres/montants** | Police avec chiffres tabulaires (alignés) | — |
 
 **Principes :**

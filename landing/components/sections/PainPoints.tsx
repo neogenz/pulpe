@@ -33,7 +33,7 @@ export function PainPoints() {
           <FadeIn key={point.title} delay={index * 0.1}>
             <Card variant="elevated" className="h-full text-center">
               <div className="flex justify-center mb-4">
-                <point.icon className="w-10 h-10 text-primary" strokeWidth={1.5} />
+                <point.icon className="w-8 h-8 text-primary" strokeWidth={1.5} />
               </div>
               <h3 className="font-semibold text-text mb-2">{point.title}</h3>
               <p className="text-text-secondary">{point.text}</p>

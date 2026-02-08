@@ -7,7 +7,7 @@
   --color-primary-hover: #2B883B;
   --color-background: #F6FFF0;
   --color-surface: #FFFFFF;
-  --color-surface-alt: #EBFFE6;
+  --color-surface-alt: #E2FBDC;
   --color-text: #1A1C19;
   --color-text-secondary: #5D5F5B;
   --color-accent: #0061A6;
@@ -180,14 +180,14 @@ body {
 }
 
 /* Staggered delays for floating cards */
+.delay-100 { animation-delay: 0.1s; }
 .delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
 .delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
 .delay-600 { animation-delay: 0.6s; }
+.delay-700 { animation-delay: 0.7s; }
 .delay-800 { animation-delay: 0.8s; }
-.delay-1000 { animation-delay: 1.0s; }
-.delay-1200 { animation-delay: 1.2s; }
-.delay-1300 { animation-delay: 1.3s; }
-.delay-1400 { animation-delay: 1.4s; }
 
 /* Intersection Observer based fade-in */
 .fade-in-view {
