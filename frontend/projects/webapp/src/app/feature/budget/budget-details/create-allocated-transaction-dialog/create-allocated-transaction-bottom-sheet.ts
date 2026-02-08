@@ -184,10 +184,6 @@ export class CreateAllocatedTransactionBottomSheet {
     if (this.form.invalid) return;
 
     const formValue = this.form.getRawValue();
-    const transactionDate =
-      formValue.transactionDate instanceof Date
-        ? formatLocalDate(formValue.transactionDate)
-        : formatLocalDate(new Date());
 
     const transaction: TransactionCreate = {
       budgetId: this.data.budgetLine.budgetId,

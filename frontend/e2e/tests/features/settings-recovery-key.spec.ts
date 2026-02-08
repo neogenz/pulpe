@@ -38,10 +38,6 @@ test.describe('Settings Recovery Key', () => {
     await expect(page.getByTestId('verify-password-input')).toBeVisible();
     await page.getByTestId('verify-password-input').fill('current-password');
 
-    const recoveryInput = page.getByTestId('current-recovery-key-input');
-    await recoveryInput.fill('aaaa-bbbb-cccc-dddd');
-    await expect(recoveryInput).toHaveValue('AAAA-BBBB-CCCC-DDDD');
-
     await page.getByTestId('submit-regenerate-button').click();
 
     await expect(page.getByTestId('recovery-key-dialog')).toBeVisible();
@@ -80,9 +76,6 @@ test.describe('Settings Recovery Key', () => {
     await page.getByTestId('generate-recovery-key-button').click();
 
     await page.getByTestId('verify-password-input').fill('wrong-password');
-    await page.getByTestId('current-recovery-key-input').fill(
-      'AAAA-BBBB-CCCC-DDDD',
-    );
 
     await page.getByTestId('submit-regenerate-button').click();
 

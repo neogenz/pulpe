@@ -39,7 +39,7 @@ test.describe('Vault Code', () => {
       await page.getByTestId('vault-code-input').focus();
       await page.getByTestId('vault-code-input').blur();
 
-      await expect(page.locator('mat-error')).toContainText('Ton code secret est nécessaire');
+      await expect(page.locator('mat-error')).toContainText('Ton code coffre-fort est nécessaire');
     });
 
     test('shows error when codes do not match', async ({ page, vaultCodePage }) => {
