@@ -185,7 +185,6 @@ export class BudgetDetailsStore {
     const details = this.budgetDetails();
     if (!details) return [];
 
-    const lines = [...details.budgetLines];
     const rollover = details.rollover;
     const previousBudgetId = details.previousBudgetId;
 
@@ -202,11 +201,10 @@ export class BudgetDetailsStore {
       // Apply local checked state for rollover
       rolloverLine.checkedAt = this.#state.rolloverCheckedAt();
 
-      // Add rollover at the beginning of the list
-      lines.unshift(rolloverLine);
+      return [rolloverLine, ...details.budgetLines];
     }
 
-    return lines;
+    return [...details.budgetLines];
   });
 
   readonly realizedBalance = computed<number>(() => {

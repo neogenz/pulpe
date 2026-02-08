@@ -63,8 +63,8 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class BudgetDetailsPage {
-  readonly isDevMode = isDevMode();
-  readonly store = inject(BudgetDetailsStore);
+  protected readonly isDevMode = isDevMode();
+  protected readonly store = inject(BudgetDetailsStore);
   readonly #dialogService = inject(BudgetDetailsDialogService);
   readonly #router = inject(Router);
   readonly #breadcrumbState = inject(BreadcrumbState);
