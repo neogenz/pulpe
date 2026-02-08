@@ -58,6 +58,7 @@ describe('BudgetLineService', () => {
 
   let mockSupabase: {
     from: jest.Mock;
+    rpc: jest.Mock;
   };
   let mockUser: AuthenticatedUser;
 
@@ -98,6 +99,7 @@ describe('BudgetLineService', () => {
   beforeEach(async () => {
     mockSupabase = {
       from: jest.fn(),
+      rpc: jest.fn(),
     };
 
     mockUser = {
@@ -540,24 +542,11 @@ describe('BudgetLineService', () => {
       const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
       const checkedTimestamp = '2024-01-15T10:30:00.000Z';
 
-      let callCount = 0;
-      mockSupabase.from.mockImplementation(() => {
-        callCount++;
-        if (callCount === 1) {
-          // First call: fetch budget line (unchecked)
-          return createMockQueryBuilder({
-            data: { ...mockBudgetLineDb, checked_at: null },
-            error: null,
-          });
-        }
-        // Second call: update budget line
-        return createMockQueryBuilder({
-          data: {
-            ...mockBudgetLineDb,
-            checked_at: checkedTimestamp,
-          },
+      mockSupabase.rpc.mockReturnValue({
+        single: jest.fn().mockResolvedValue({
+          data: { ...mockBudgetLineDb, checked_at: checkedTimestamp },
           error: null,
-        });
+        }),
       });
 
       const result = await service.toggleCheck(
@@ -572,26 +561,12 @@ describe('BudgetLineService', () => {
 
     it('should clear checked_at when budget line is checked', async () => {
       const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
-      const existingCheckedAt = '2024-01-10T08:00:00.000Z';
 
-      let callCount = 0;
-      mockSupabase.from.mockImplementation(() => {
-        callCount++;
-        if (callCount === 1) {
-          // First call: fetch budget line (already checked)
-          return createMockQueryBuilder({
-            data: { ...mockBudgetLineDb, checked_at: existingCheckedAt },
-            error: null,
-          });
-        }
-        // Second call: update budget line
-        return createMockQueryBuilder({
-          data: {
-            ...mockBudgetLineDb,
-            checked_at: null,
-          },
+      mockSupabase.rpc.mockReturnValue({
+        single: jest.fn().mockResolvedValue({
+          data: { ...mockBudgetLineDb, checked_at: null },
           error: null,
-        });
+        }),
       });
 
       const result = await service.toggleCheck(
@@ -607,12 +582,12 @@ describe('BudgetLineService', () => {
     it('should throw BusinessException when budget line not found', async () => {
       const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
 
-      mockSupabase.from.mockReturnValue(
-        createMockQueryBuilder({
+      mockSupabase.rpc.mockReturnValue({
+        single: jest.fn().mockResolvedValue({
           data: null,
           error: new Error('Not found'),
         }),
-      );
+      });
 
       await expect(
         service.toggleCheck(budgetLineId, mockUser, getMockSupabaseClient()),
