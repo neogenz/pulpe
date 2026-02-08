@@ -648,6 +648,26 @@ describe('BudgetFormulas', () => {
       // Unchecked parent = not counted, even with checked allocated transactions
       expect(result).toBe(0);
     });
+
+    it('should use envelope amount when budget line is checked but allocated transactions are unchecked', () => {
+      // Scenario: user checks a prévision but none of its transactions are checked yet
+      // Expected: the full envelope amount counts as realized expense
+      const budgetLines = [
+        createBudgetLineWithId('line-1', 'expense', 500, '2025-01-15'),
+      ];
+      const transactions = [
+        createTransactionWithBudgetLineId('expense', 200, null, 'line-1'),
+        createTransactionWithBudgetLineId('expense', 150, null, 'line-1'),
+      ];
+
+      const result = BudgetFormulas.calculateRealizedExpenses(
+        budgetLines,
+        transactions,
+      );
+
+      // Envelope: 500, consumed (checked only): 0 -> max(500, 0) = 500
+      expect(result).toBe(500);
+    });
   });
 
   describe('calculateRealizedBalance', () => {
