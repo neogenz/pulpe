@@ -1,4 +1,4 @@
-import { NgTemplateOutlet } from '@angular/common';
+import { CurrencyPipe, NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -9,9 +9,10 @@ import {
   ViewContainerRef,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
+import { MatRippleModule } from '@angular/material/core';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
 import type { TransactionViewModel } from '../models/transaction-view-model';
@@ -20,87 +21,125 @@ import {
   BudgetDetailPanel,
   type BudgetDetailPanelData,
 } from './budget-detail-panel';
-import { BudgetGridCard } from './budget-grid-card';
-import { BudgetGridMobileCard } from './budget-grid-mobile-card';
-import { BudgetGridSection } from './budget-grid-section';
+import { BudgetListRow } from './budget-list-row';
 
 /**
- * Grid view component displaying budget lines as cards.
- * Handles both desktop grid layout and mobile card list.
+ * List view component displaying budget lines as compact rows.
+ * Groups by category (income/saving/expense) with collapsible sections.
  */
 @Component({
   selector: 'pulpe-budget-grid',
   imports: [
     NgTemplateOutlet,
     MatButtonModule,
-    MatCardModule,
+    MatExpansionModule,
     MatIconModule,
-    BudgetGridCard,
-    BudgetGridMobileCard,
-    BudgetGridSection,
+    MatRippleModule,
     MatSlideToggleModule,
+    CurrencyPipe,
+    BudgetListRow,
   ],
   template: `
-    @if (isMobile()) {
-      <!-- Mobile view -->
-      <div class="flex flex-col gap-3">
-        @for (item of budgetLineItems(); track item.data.id) {
-          <pulpe-budget-grid-mobile-card
-            [item]="item"
-            (edit)="edit.emit($event)"
-            (delete)="delete.emit($event)"
-            (addTransaction)="addTransaction.emit($event)"
-            (viewTransactions)="viewTransactions.emit($event)"
-            (resetFromTemplate)="resetFromTemplate.emit($event)"
-            (toggleCheck)="toggleCheck.emit($event)"
-          />
-        } @empty {
-          <ng-container *ngTemplateOutlet="emptyState" />
-        }
-
-        <!-- Transactions section -->
-        @if (transactionItems().length > 0) {
-          <div class="pt-4 border-outline-variant">
-            <h3 class="text-title-medium text-on-surface-variant mb-3">
-              Transactions
-            </h3>
-            @for (item of transactionItems(); track item.data.id) {
-              <ng-container
-                *ngTemplateOutlet="
-                  mobileTransactionCard;
-                  context: { $implicit: item }
-                "
-              />
-            }
-          </div>
-        }
-      </div>
+    @if (budgetLineItems().length === 0) {
+      <ng-container *ngTemplateOutlet="emptyState" />
     } @else {
-      <!-- Desktop Card Grid View -->
-      @if (budgetLineItems().length === 0) {
-        <ng-container *ngTemplateOutlet="emptyState" />
-      } @else {
-        <div class="space-y-4">
-          @for (category of categories(); track category.title) {
-            @if (category.items.length > 0) {
-              <pulpe-budget-grid-section
-                title="{{ category.title }}"
-                icon="{{ category.icon }}"
-                [itemCount]="category.items.length"
-              >
-                @for (item of category.items; track item.data.id) {
-                  <pulpe-budget-grid-card
+      <!-- Compact list grouped by category -->
+      <div class="rounded-xl border border-outline-variant overflow-hidden">
+        @for (
+          category of categories();
+          track category.title;
+          let isLast = $last
+        ) {
+          @if (category.items.length > 0) {
+            <mat-expansion-panel
+              [expanded]="true"
+              class="!shadow-none !rounded-none"
+              [class.border-b]="!isLast"
+              [class.border-outline-variant]="!isLast"
+            >
+              <mat-expansion-panel-header class="!h-10 !px-3">
+                <mat-panel-title>
+                  <div class="flex items-center gap-2">
+                    <mat-icon class="text-base! text-on-surface-variant">
+                      {{ category.icon }}
+                    </mat-icon>
+                    <span class="text-body-medium font-medium">
+                      {{ category.title }}
+                    </span>
+                    <span class="text-label-small text-on-surface-variant">
+                      ({{ category.items.length }})
+                    </span>
+                    <span
+                      class="text-label-small font-medium ml-auto mr-4"
+                      [class.text-pulpe-financial-income]="
+                        category.kind === 'income'
+                      "
+                      [class.text-pulpe-financial-savings]="
+                        category.kind === 'saving'
+                      "
+                      [class.text-pulpe-financial-expense]="
+                        category.kind === 'expense'
+                      "
+                    >
+                      {{
+                        category.total | currency: 'CHF' : 'symbol' : '1.0-0'
+                      }}
+                    </span>
+                  </div>
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+
+              <div class="bg-surface">
+                @for (
+                  item of category.items;
+                  track item.data.id;
+                  let idx = $index
+                ) {
+                  <pulpe-budget-list-row
                     [item]="item"
-                    (cardClick)="openDetailPanel($event)"
+                    [isEven]="idx % 2 === 0"
+                    (rowClick)="openDetailPanel($event)"
                     (edit)="edit.emit($event)"
                     (delete)="delete.emit($event)"
                     (addTransaction)="addTransaction.emit($event)"
+                    (viewTransactions)="viewTransactions.emit($event)"
                     (resetFromTemplate)="resetFromTemplate.emit($event)"
                     (toggleCheck)="toggleCheck.emit($event)"
                   />
                 }
-              </pulpe-budget-grid-section>
-            }
+              </div>
+            </mat-expansion-panel>
+          }
+        }
+      </div>
+
+      <!-- Free transactions section -->
+      @if (transactionItems().length > 0) {
+        <div
+          class="mt-4 rounded-xl border border-outline-variant overflow-hidden"
+        >
+          <div
+            class="flex items-center gap-2 px-3 py-2 bg-surface-container-low"
+          >
+            <mat-icon class="text-base! text-on-surface-variant">
+              receipt
+            </mat-icon>
+            <span class="text-body-medium font-medium">Transactions</span>
+            <span class="text-label-small text-on-surface-variant">
+              ({{ transactionItems().length }})
+            </span>
+          </div>
+          @for (
+            item of transactionItems();
+            track item.data.id;
+            let idx = $index
+          ) {
+            <ng-container
+              *ngTemplateOutlet="
+                transactionRow;
+                context: { $implicit: item, idx: idx }
+              "
+            />
           }
         </div>
       }
@@ -112,9 +151,9 @@ import { BudgetGridSection } from './budget-grid-section';
         <div
           class="w-16 h-16 mx-auto mb-4 rounded-full bg-primary-container/30 flex items-center justify-center"
         >
-          <mat-icon class="text-primary text-3xl! shrink-0"
-            >account_balance_wallet</mat-icon
-          >
+          <mat-icon class="text-primary text-3xl! shrink-0">
+            account_balance_wallet
+          </mat-icon>
         </div>
         <p class="text-body-large text-on-surface mb-2">
           Pas encore d'enveloppe
@@ -134,72 +173,79 @@ import { BudgetGridSection } from './budget-grid-section';
       </div>
     </ng-template>
 
-    <!-- Mobile Transaction Card Template -->
-    <ng-template #mobileTransactionCard let-item>
-      <mat-card
-        appearance="outlined"
-        class="mb-3"
+    <!-- Transaction Row Template -->
+    <ng-template #transactionRow let-item let-idx="idx">
+      <div
+        matRipple
+        class="flex items-center gap-3 px-3 py-2 hover:bg-surface-container-low transition-colors border-b border-outline-variant/30 last:border-b-0"
+        [class.bg-surface-container-lowest]="idx % 2 === 0"
         [class.opacity-50]="item.metadata.isLoading"
-        [attr.data-testid]="'transaction-card-' + item.data.id"
+        [attr.data-testid]="'transaction-row-' + item.data.id"
       >
-        <mat-card-content>
-          <div
-            class="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-1 items-center"
+        <!-- Envelope indicator -->
+        @if (item.metadata.envelopeName) {
+          <mat-icon class="text-sm! text-on-surface-variant shrink-0">
+            subdirectory_arrow_right
+          </mat-icon>
+        }
+
+        <!-- Name -->
+        <span class="flex-1 text-body-medium truncate">
+          {{ item.data.name }}
+        </span>
+
+        <!-- Envelope name badge -->
+        @if (item.metadata.envelopeName) {
+          <span
+            class="text-label-small text-on-surface-variant px-2 py-0.5 bg-surface-container rounded hidden sm:block"
           >
-            <div class="min-w-0 space-y-0.5">
-              <span class="text-body-medium font-medium block truncate">
-                {{ item.data.name }}
-              </span>
-              <div class="text-label-small text-on-surface-variant">
-                {{ item.data.kind }}
-              </div>
-              @if (item.metadata.envelopeName) {
-                <div
-                  class="flex items-center text-label-small text-on-surface-variant"
-                >
-                  <mat-icon class="text-sm! leading-none! w-4! h-4!"
-                    >folder</mat-icon
-                  >
-                  <span>{{ item.metadata.envelopeName }}</span>
-                </div>
-              }
-            </div>
-            <div
-              class="text-title-medium font-bold"
-              [class.text-financial-income]="item.data.amount > 0"
-              [class.text-error]="item.data.amount < 0"
-            >
-              {{ item.data.amount }}
-            </div>
-            <div class="flex items-center">
-              <mat-slide-toggle
-                [checked]="!!item.data.checkedAt"
-                (change)="toggleTransactionCheck.emit(item.data.id)"
-                (click)="$event.stopPropagation()"
-                [attr.data-testid]="'toggle-check-tx-' + item.data.id"
-                [attr.aria-label]="
-                  item.data.checkedAt
-                    ? 'Marquer comme non vérifié'
-                    : 'Marquer comme vérifié'
-                "
-              />
-              <button
-                matIconButton
-                (click)="deleteTransaction.emit(item.data.id)"
-                [attr.data-testid]="'delete-tx-' + item.data.id"
-                aria-label="Supprimer la transaction"
-              >
-                <mat-icon class="text-xl!">delete</mat-icon>
-              </button>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
+            {{ item.metadata.envelopeName }}
+          </span>
+        }
+
+        <!-- Amount -->
+        <span
+          class="text-body-medium font-semibold tabular-nums w-20 text-right shrink-0"
+          [class.text-pulpe-financial-income]="item.data.kind === 'income'"
+          [class.text-pulpe-financial-expense]="item.data.kind === 'expense'"
+          [class.text-pulpe-financial-savings]="item.data.kind === 'saving'"
+        >
+          {{ item.data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+        </span>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-0.5 shrink-0">
+          <mat-slide-toggle
+            class="!scale-75"
+            [checked]="!!item.data.checkedAt"
+            (change)="toggleTransactionCheck.emit(item.data.id)"
+            [attr.data-testid]="'toggle-check-tx-' + item.data.id"
+            [attr.aria-label]="
+              item.data.checkedAt
+                ? 'Marquer comme non vérifié'
+                : 'Marquer comme vérifié'
+            "
+          />
+          <button
+            matIconButton
+            class="!size-8"
+            (click)="deleteTransaction.emit(item.data.id)"
+            [attr.data-testid]="'delete-tx-' + item.data.id"
+            aria-label="Supprimer"
+          >
+            <mat-icon class="text-lg!">delete</mat-icon>
+          </button>
+        </div>
+      </div>
     </ng-template>
   `,
   styles: `
     :host {
       display: block;
+    }
+
+    ::ng-deep .mat-expansion-panel-body {
+      padding: 0 !important;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -232,22 +278,37 @@ export class BudgetGrid {
 
   protected readonly categories = computed(() => {
     const items = this.budgetLineItems();
-    const income = {
-      title: 'Revenus',
-      icon: 'trending_up',
-      items: items.filter((item) => item.data.kind === 'income'),
-    };
-    const saving = {
-      title: 'Épargnes',
-      icon: 'savings',
-      items: items.filter((item) => item.data.kind === 'saving'),
-    };
-    const expense = {
-      title: 'Dépenses',
-      icon: 'shopping_cart',
-      items: items.filter((item) => item.data.kind === 'expense'),
-    };
-    return [income, saving, expense];
+
+    const calcTotal = (list: BudgetLineTableItem[]) =>
+      list.reduce((sum, i) => sum + i.data.amount, 0);
+
+    const incomeItems = items.filter((item) => item.data.kind === 'income');
+    const savingItems = items.filter((item) => item.data.kind === 'saving');
+    const expenseItems = items.filter((item) => item.data.kind === 'expense');
+
+    return [
+      {
+        title: 'Revenus',
+        icon: 'trending_up',
+        kind: 'income' as const,
+        items: incomeItems,
+        total: calcTotal(incomeItems),
+      },
+      {
+        title: 'Épargnes',
+        icon: 'savings',
+        kind: 'saving' as const,
+        items: savingItems,
+        total: calcTotal(savingItems),
+      },
+      {
+        title: 'Dépenses',
+        icon: 'shopping_cart',
+        kind: 'expense' as const,
+        items: expenseItems,
+        total: calcTotal(expenseItems),
+      },
+    ];
   });
 
   protected openDetailPanel(item: BudgetLineTableItem): void {
