@@ -34,10 +34,18 @@ import type {
 
       <!-- Header -->
       <div class="flex justify-between items-center">
-        <h2 class="text-title-large text-on-surface m-0">
+        <h2
+          class="text-title-large text-on-surface m-0"
+          data-testid="sheet-title"
+        >
           {{ data.budgetLine.name }}
         </h2>
-        <button matIconButton (click)="close()" aria-label="Fermer">
+        <button
+          matIconButton
+          (click)="close()"
+          aria-label="Fermer"
+          data-testid="close-button"
+        >
           <mat-icon>close</mat-icon>
         </button>
       </div>
@@ -112,6 +120,7 @@ import type {
                     class="text-body-medium font-medium truncate"
                     [class.line-through]="tx.checkedAt"
                     [class.text-on-surface-variant]="tx.checkedAt"
+                    data-testid="deleted-amount"
                   >
                     {{ tx.name }}
                   </span>

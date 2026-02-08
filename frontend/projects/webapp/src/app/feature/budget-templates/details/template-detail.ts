@@ -9,7 +9,7 @@ import {
   type OnInit,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DecimalPipe, NgClass } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -44,7 +44,6 @@ import { TemplateDetailsStore } from './services/template-details-store';
 
   imports: [
     DecimalPipe,
-    NgClass,
     MatButtonModule,
     MatIconModule,
     MatSnackBarModule,
@@ -199,7 +198,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
                   class="snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full"
                   [style.background-color]="pill.bgStyle"
                 >
-                  <mat-icon class="mat-icon-sm" [ngClass]="pill.colorClass">{{
+                  <mat-icon [class]="'mat-icon-sm ' + pill.colorClass">{{
                     pill.icon
                   }}</mat-icon>
                   <div class="flex flex-col">
@@ -208,8 +207,10 @@ import { TemplateDetailsStore } from './services/template-details-store';
                       >{{ pill.label }}</span
                     >
                     <span
-                      class="text-label-large font-semibold ph-no-capture"
-                      [ngClass]="pill.colorClass"
+                      [class]="
+                        'text-label-large font-semibold ph-no-capture ' +
+                        pill.colorClass
+                      "
                     >
                       {{ pill.amount | number: '1.0-0' : 'de-CH' }} CHF
                     </span>

@@ -76,9 +76,7 @@ describe('RegenerateRecoveryKeyDialog', () => {
       password: 'wrongPassword',
     });
 
-    await (
-      component as unknown as { onSubmit: () => Promise<void> }
-    ).onSubmit();
+    await component['onSubmit']();
 
     expect(component['errorMessage']()).toBe(
       'Mot de passe incorrect ou clé de chiffrement invalide',
@@ -97,9 +95,7 @@ describe('RegenerateRecoveryKeyDialog', () => {
       password: 'testPassword123',
     });
 
-    await (
-      component as unknown as { onSubmit: () => Promise<void> }
-    ).onSubmit();
+    await component['onSubmit']();
 
     expect(mockDialogRef.close).toHaveBeenCalledWith(true);
   });
@@ -111,9 +107,7 @@ describe('RegenerateRecoveryKeyDialog', () => {
       password: 'testPassword123',
     });
 
-    await (
-      component as unknown as { onSubmit: () => Promise<void> }
-    ).onSubmit();
+    await component['onSubmit']();
 
     expect(mockEncryptionApi.getSalt$).not.toHaveBeenCalled();
   });

@@ -60,9 +60,7 @@ describe('ChangePasswordDialog', () => {
     });
 
     // Access protected method via bracket notation for testing
-    await (
-      component as unknown as { onSubmit: () => Promise<void> }
-    ).onSubmit();
+    await component['onSubmit']();
 
     expect(component['errorMessage']()).toBe('Mot de passe actuel incorrect');
     expect(mockDialogRef.close).not.toHaveBeenCalled();
@@ -81,9 +79,7 @@ describe('ChangePasswordDialog', () => {
       confirmPassword: 'newPass123',
     });
 
-    await (
-      component as unknown as { onSubmit: () => Promise<void> }
-    ).onSubmit();
+    await component['onSubmit']();
 
     expect(component['errorMessage']()).toBe('Échec de la mise à jour');
     expect(mockDialogRef.close).not.toHaveBeenCalled();
@@ -99,9 +95,7 @@ describe('ChangePasswordDialog', () => {
       confirmPassword: 'newPass123',
     });
 
-    await (
-      component as unknown as { onSubmit: () => Promise<void> }
-    ).onSubmit();
+    await component['onSubmit']();
 
     expect(mockAuthSession.verifyPassword).toHaveBeenCalledWith(
       'currentPass123',
@@ -120,9 +114,7 @@ describe('ChangePasswordDialog', () => {
       confirmPassword: 'newPass123',
     });
 
-    await (
-      component as unknown as { onSubmit: () => Promise<void> }
-    ).onSubmit();
+    await component['onSubmit']();
 
     expect(mockAuthSession.verifyPassword).not.toHaveBeenCalled();
   });
@@ -147,9 +139,7 @@ describe('ChangePasswordDialog', () => {
       confirmPassword: 'newPass123',
     });
 
-    await (
-      component as unknown as { onSubmit: () => Promise<void> }
-    ).onSubmit();
+    await component['onSubmit']();
 
     // Password change is purely Supabase auth
     expect(mockAuthSession.verifyPassword).toHaveBeenCalledWith(

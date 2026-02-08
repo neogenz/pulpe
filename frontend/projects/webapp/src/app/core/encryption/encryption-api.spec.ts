@@ -6,6 +6,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
+import { firstValueFrom } from 'rxjs';
 import { EncryptionApi } from './encryption-api';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 
@@ -49,21 +50,22 @@ describe('EncryptionApi', () => {
       expect(req.request.method).toBe('GET');
     });
 
-    it('should return salt and kdfIterations', () => {
+    it('should return salt and kdfIterations', async () => {
       const expectedResponse = {
         salt: 'base64-encoded-salt',
         kdfIterations: 100000,
       };
 
-      service.getSalt$().subscribe((response) => {
-        expect(response.salt).toBe('base64-encoded-salt');
-        expect(response.kdfIterations).toBe(100000);
-      });
+      const promise = firstValueFrom(service.getSalt$());
 
       const req = httpTesting.expectOne(
         'http://localhost:3000/api/v1/encryption/salt',
       );
       req.flush(expectedResponse);
+
+      const response = await promise;
+      expect(response.salt).toBe('base64-encoded-salt');
+      expect(response.kdfIterations).toBe(100000);
     });
   });
 
@@ -80,18 +82,19 @@ describe('EncryptionApi', () => {
       expect(req.request.body).toEqual({ newClientKey: newClientKeyHex });
     });
 
-    it('should return success response', () => {
+    it('should return success response', async () => {
       const newClientKeyHex = 'new-client-key-hex';
       const expectedResponse = { success: true };
 
-      service.rekeyEncryption$(newClientKeyHex).subscribe((response) => {
-        expect(response.success).toBe(true);
-      });
+      const promise = firstValueFrom(service.rekeyEncryption$(newClientKeyHex));
 
       const req = httpTesting.expectOne(
         'http://localhost:3000/api/v1/encryption/rekey',
       );
       req.flush(expectedResponse);
+
+      const response = await promise;
+      expect(response.success).toBe(true);
     });
   });
 
@@ -106,17 +109,18 @@ describe('EncryptionApi', () => {
       expect(req.request.body).toEqual({});
     });
 
-    it('should return recoveryKey on success', () => {
+    it('should return recoveryKey on success', async () => {
       const expectedResponse = { recoveryKey: 'ABCD-EFGH-1234-5678' };
 
-      service.setupRecoveryKey$().subscribe((response) => {
-        expect(response.recoveryKey).toBe('ABCD-EFGH-1234-5678');
-      });
+      const promise = firstValueFrom(service.setupRecoveryKey$());
 
       const req = httpTesting.expectOne(
         'http://localhost:3000/api/v1/encryption/setup-recovery',
       );
       req.flush(expectedResponse);
+
+      const response = await promise;
+      expect(response.recoveryKey).toBe('ABCD-EFGH-1234-5678');
     });
   });
 
@@ -161,19 +165,20 @@ describe('EncryptionApi', () => {
       });
     });
 
-    it('should return success response', () => {
+    it('should return success response', async () => {
       const expectedResponse = { success: true };
 
-      service
-        .recover$('ABCD-EFGH-1234-5678', 'new-key-hex')
-        .subscribe((response) => {
-          expect(response.success).toBe(true);
-        });
+      const promise = firstValueFrom(
+        service.recover$('ABCD-EFGH-1234-5678', 'new-key-hex'),
+      );
 
       const req = httpTesting.expectOne(
         'http://localhost:3000/api/v1/encryption/recover',
       );
       req.flush(expectedResponse);
+
+      const response = await promise;
+      expect(response.success).toBe(true);
     });
   });
 });

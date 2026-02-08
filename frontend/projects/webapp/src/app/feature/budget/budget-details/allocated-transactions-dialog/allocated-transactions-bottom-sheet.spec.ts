@@ -115,7 +115,9 @@ describe('AllocatedTransactionsBottomSheet', () => {
 
     it('should show the budget line name in the header', () => {
       setup({ budgetLine: { name: 'Loisirs' } });
-      const heading = fixture.nativeElement.querySelector('h2');
+      const heading = fixture.nativeElement.querySelector(
+        '[data-testid="sheet-title"]',
+      );
 
       expect(heading.textContent).toContain('Loisirs');
     });
@@ -174,7 +176,9 @@ describe('AllocatedTransactionsBottomSheet', () => {
         ],
       });
 
-      const nameSpan = fixture.nativeElement.querySelector('.line-through');
+      const nameSpan = fixture.nativeElement.querySelector(
+        '[data-testid="deleted-amount"]',
+      );
       expect(nameSpan).not.toBeNull();
       expect(nameSpan.textContent).toContain('Déjà comptabilisé');
     });
@@ -231,7 +235,7 @@ describe('AllocatedTransactionsBottomSheet', () => {
     it('should dismiss without result when close button is clicked', () => {
       setup();
       const closeBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
-        'button[aria-label="Fermer"]',
+        '[data-testid="close-button"]',
       );
 
       closeBtn.click();

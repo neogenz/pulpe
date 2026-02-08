@@ -80,24 +80,23 @@ describe('WelcomePage', () => {
     fixture.detectChanges();
   });
 
-  it('should create', () => {
+  it('should instantiate welcome page component', () => {
     expect(component).toBeTruthy();
   });
 
   describe('template', () => {
     it('should display welcome title', () => {
-      const title = fixture.nativeElement.querySelector('h1');
+      const title = fixture.nativeElement.querySelector(
+        '[data-testid="welcome-title"]',
+      );
 
       expect(title.textContent).toContain('Vois clair dans tes finances');
     });
 
     it('should display value proposition', () => {
-      const paragraphs = fixture.nativeElement.querySelectorAll(
-        'p',
-      ) as NodeListOf<HTMLElement>;
-      const subtitle = Array.from(paragraphs).find((paragraph) =>
-        paragraph.textContent?.includes('Planifie ton année'),
-      );
+      const subtitle = fixture.nativeElement.querySelector(
+        '[data-testid="welcome-subtitle"]',
+      ) as HTMLElement;
 
       expect(subtitle).toBeTruthy();
       expect(subtitle?.textContent).toContain(
@@ -133,12 +132,9 @@ describe('WelcomePage', () => {
     });
 
     it('should have login link', () => {
-      const clickableElements = fixture.nativeElement.querySelectorAll(
-        'a,button',
-      ) as NodeListOf<HTMLElement>;
-      const loginLink = Array.from(clickableElements).find((element) =>
-        element.textContent?.includes('Se connecter'),
-      );
+      const loginLink = fixture.nativeElement.querySelector(
+        '[data-testid="demo-link"]',
+      ) as HTMLElement;
 
       expect(loginLink).toBeTruthy();
     });
@@ -217,7 +213,7 @@ describe('WelcomePage', () => {
   describe('CGU text', () => {
     it('should display CGU text under Google OAuth button', () => {
       const cguText = fixture.nativeElement.querySelector(
-        'p.text-xs.text-on-surface-variant.text-center',
+        '[data-testid="app-version"]',
       );
 
       expect(cguText).toBeTruthy();

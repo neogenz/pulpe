@@ -196,7 +196,9 @@ export class ChangePasswordDialog {
     }),
   });
 
-  readonly #formChanges = toSignal(this.passwordForm.valueChanges);
+  readonly #formChanges = toSignal(this.passwordForm.valueChanges, {
+    initialValue: this.passwordForm.value,
+  });
 
   protected readonly isFormValid = computed(() => {
     this.#formChanges();

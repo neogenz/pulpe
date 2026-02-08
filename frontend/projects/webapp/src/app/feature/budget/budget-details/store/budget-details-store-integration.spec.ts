@@ -102,20 +102,12 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
   // Helper function to wait for resource to stabilize
   const waitForResourceStable = async (timeout = 1000): Promise<void> => {
-    const startTime = Date.now();
-
-    while (Date.now() - startTime < timeout) {
-      if (!service.isLoading()) {
-        // Wait a bit more to ensure stability
-        await new Promise((resolve) => setTimeout(resolve, 10));
-        if (!service.isLoading()) {
-          return;
-        }
-      }
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    }
-
-    throw new Error(`Resource did not stabilize within ${timeout}ms`);
+    await vi.waitFor(
+      () => {
+        expect(service.isLoading()).toBe(false);
+      },
+      { timeout },
+    );
   };
 
   beforeEach(() => {
@@ -185,7 +177,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     httpMock?.verify();
   });
 
-  it('should create', () => {
+  it('should instantiate budget details store', () => {
     expect(service).toBeTruthy();
   });
 

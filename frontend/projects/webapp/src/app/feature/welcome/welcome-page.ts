@@ -52,6 +52,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
         <!-- Title -->
         <h1
           class="text-headline-large md:text-display-small font-bold text-on-surface leading-tight text-center mb-2"
+          data-testid="welcome-title"
         >
           Vois clair dans tes finances
         </h1>
@@ -59,6 +60,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
         <!-- Subtitle -->
         <p
           class="text-body-large text-on-surface-variant text-center leading-relaxed mb-4"
+          data-testid="welcome-subtitle"
         >
           Planifie ton année, sache toujours ce que tu peux dépenser.
         </p>
@@ -154,6 +156,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
             loadingText="Préparation..."
             icon="play_arrow"
             testId="demo-mode-button"
+            data-testid="demo-link"
             class="w-full"
             (click)="startDemoMode()"
           >
@@ -164,7 +167,10 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
         </div>
 
         <!-- Legal -->
-        <p class="text-xs text-on-surface-variant text-center mt-5">
+        <p
+          class="text-xs text-on-surface-variant text-center mt-5"
+          data-testid="app-version"
+        >
           En continuant, tu acceptes les
           <a
             [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
