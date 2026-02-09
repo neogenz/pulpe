@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Heart } from 'lucide-react'
 import { Container } from '@/components/ui'
 import { ANGULAR_APP_URL } from '@/lib/config'
 
@@ -12,7 +13,7 @@ export function Footer() {
             <span>Pulpe</span>
           </div>
 
-          <nav className="flex flex-wrap items-center justify-center gap-4 md:gap-6 text-sm text-text-secondary">
+          <nav aria-label="Liens utiles" className="flex flex-wrap items-center justify-center gap-4 md:gap-6 text-sm text-text-secondary">
             <a
               href="https://github.com/neogenz/pulpe"
               target="_blank"
@@ -42,7 +43,7 @@ export function Footer() {
           </nav>
 
           <p className="text-sm text-text-secondary">
-            Fait avec <span role="img" aria-label="amour">❤️</span> en Suisse
+            Fait avec <Heart className="w-4 h-4 text-red-500 inline-block align-text-bottom" aria-hidden="true" /> en Suisse
           </p>
         </div>
       </Container>

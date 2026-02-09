@@ -13,7 +13,7 @@ export function WhyFree() {
 
         <FadeIn delay={0.1}>
           <div className="space-y-8 text-text-secondary">
-            <div>
+            <div className="border-l-2 border-primary/20 pl-6">
               <h3 className="font-semibold text-text mb-2">Un projet né d'un vrai besoin</h3>
               <p>
                 J'ai créé Pulpe parce que j'en avais marre de galérer à suivre mon budget sur mobile.
@@ -21,14 +21,14 @@ export function WhyFree() {
               </p>
             </div>
 
-            <div>
+            <div className="border-l-2 border-primary/20 pl-6">
               <h3 className="font-semibold text-text mb-2">Gratuit et open source</h3>
               <p>
                 Pas de publicité, pas d'abonnement caché. Un projet personnel développé par passion.
               </p>
             </div>
 
-            <div>
+            <div className="border-l-2 border-primary/20 pl-6">
               <h3 className="font-semibold text-text mb-2">Tes données sont protégées</h3>
               <p>
                 Analytics hébergés en Europe, tes montants sont protégés par chiffrement et contrôle d'accès.

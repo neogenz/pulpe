@@ -2,29 +2,37 @@ import dynamic from 'next/dynamic'
 import { ImageLightboxProvider } from '@/contexts/ImageLightboxProvider'
 import { Header, Hero } from '@/components/sections'
 
-const PainPoints = dynamic(() =>
-  import('@/components/sections').then((mod) => mod.PainPoints)
+const PainPoints = dynamic(
+  () => import('@/components/sections').then((mod) => mod.PainPoints),
+  { loading: () => <div className="min-h-[200px]" /> }
 )
-const Solution = dynamic(() =>
-  import('@/components/sections').then((mod) => mod.Solution)
+const Solution = dynamic(
+  () => import('@/components/sections').then((mod) => mod.Solution),
+  { loading: () => <div className="min-h-[200px]" /> }
 )
-const Features = dynamic(() =>
-  import('@/components/sections').then((mod) => mod.Features)
+const Features = dynamic(
+  () => import('@/components/sections').then((mod) => mod.Features),
+  { loading: () => <div className="min-h-[200px]" /> }
 )
-const HowItWorks = dynamic(() =>
-  import('@/components/sections').then((mod) => mod.HowItWorks)
+const HowItWorks = dynamic(
+  () => import('@/components/sections').then((mod) => mod.HowItWorks),
+  { loading: () => <div className="min-h-[200px]" /> }
 )
-const Platforms = dynamic(() =>
-  import('@/components/sections').then((mod) => mod.Platforms)
+const Platforms = dynamic(
+  () => import('@/components/sections').then((mod) => mod.Platforms),
+  { loading: () => <div className="min-h-[200px]" /> }
 )
-const WhyFree = dynamic(() =>
-  import('@/components/sections').then((mod) => mod.WhyFree)
+const WhyFree = dynamic(
+  () => import('@/components/sections').then((mod) => mod.WhyFree),
+  { loading: () => <div className="min-h-[200px]" /> }
 )
-const FinalCTA = dynamic(() =>
-  import('@/components/sections').then((mod) => mod.FinalCTA)
+const FinalCTA = dynamic(
+  () => import('@/components/sections').then((mod) => mod.FinalCTA),
+  { loading: () => <div className="min-h-[200px]" /> }
 )
-const Footer = dynamic(() =>
-  import('@/components/sections').then((mod) => mod.Footer)
+const Footer = dynamic(
+  () => import('@/components/sections').then((mod) => mod.Footer),
+  { loading: () => <div className="min-h-[200px]" /> }
 )
 
 export default function LandingPage() {

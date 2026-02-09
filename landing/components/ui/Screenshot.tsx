@@ -1,6 +1,7 @@
 'use client'
 
 import { memo, useCallback, useSyncExternalStore } from 'react'
+import { Maximize2 } from 'lucide-react'
 import { useImageLightbox } from '@/contexts/useImageLightbox'
 
 interface ScreenshotProps {
@@ -74,7 +75,7 @@ export const Screenshot = memo(function Screenshot({
       <button
         type="button"
         onClick={handleClick}
-        className="block w-full cursor-pointer transition-transform duration-200 hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-xl md:rounded-[var(--radius-large)]"
+        className="group relative block w-full cursor-pointer transition-transform duration-200 hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-xl md:rounded-[var(--radius-large)]"
         aria-label={`Agrandir : ${label}`}
       >
         <picture>
@@ -103,6 +104,11 @@ export const Screenshot = memo(function Screenshot({
             className={`rounded-xl md:rounded-[var(--radius-large)] shadow-[var(--shadow-screenshot)] w-full ${className}`}
           />
         </picture>
+        <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-xl md:rounded-[var(--radius-large)] pointer-events-none">
+          <span className="bg-black/50 backdrop-blur-sm rounded-full p-3">
+            <Maximize2 className="w-5 h-5 text-white" />
+          </span>
+        </span>
       </button>
     )
   }

@@ -19,6 +19,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const lastScrollTime = useRef(0)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,6 +31,12 @@ export function Header() {
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  useEffect(() => {
+    if (!mobileMenuOpen && menuButtonRef.current) {
+      menuButtonRef.current.focus()
+    }
+  }, [mobileMenuOpen])
 
   return (
     <>
@@ -87,9 +94,9 @@ export function Header() {
           }}
           aria-label="Navigation principale"
         >
-          {/* Layer 1: Distortion effect */}
+          {/* Layer 1: Distortion effect — desktop only (causes clipping artifacts on mobile) */}
           <div
-            className="liquidGlass-effect absolute inset-0 rounded-full overflow-hidden"
+            className="liquidGlass-effect absolute inset-0 rounded-full overflow-hidden hidden md:block"
             style={{
               backdropFilter: 'blur(2px)',
               WebkitBackdropFilter: 'blur(2px)',
@@ -144,13 +151,12 @@ export function Header() {
           </div>
 
           <div className="relative z-10 flex items-center gap-2">
-            <a href={`${ANGULAR_APP_URL}/welcome`}>
-              <Button className="text-sm px-4 py-2 min-h-[40px] rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow">
-                Essayer
-              </Button>
-            </a>
+            <Button href={`${ANGULAR_APP_URL}/welcome`} size="sm" className="rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow">
+              Essayer
+            </Button>
 
             <button
+              ref={menuButtonRef}
               type="button"
               className="md:hidden p-2 text-text-secondary hover:text-text hover:bg-white/30 rounded-full transition-all duration-200 active:scale-95"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -169,6 +175,7 @@ export function Header() {
               ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
               : 'opacity-0 -translate-y-2.5 scale-95 pointer-events-none'
           }`}
+          {...(mobileMenuOpen && { role: 'dialog', 'aria-modal': true, 'aria-label': 'Menu de navigation' })}
         >
           {/* Mobile: Distortion */}
           <div
