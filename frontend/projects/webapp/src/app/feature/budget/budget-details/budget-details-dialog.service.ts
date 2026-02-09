@@ -151,7 +151,8 @@ export class BudgetDetailsDialogService {
         confirmText: 'Oui, tout comptabiliser',
         cancelText: "Non, juste l'enveloppe",
       } satisfies ConfirmationDialogData,
-      width: '400px',
+      width: '500px',
+      maxWidth: '90vw',
     });
 
     const confirmed = await firstValueFrom(dialogRef.afterClosed());

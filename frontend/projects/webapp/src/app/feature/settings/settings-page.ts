@@ -250,7 +250,6 @@ export default class SettingsPage {
       confirmText: 'Supprimer mon compte',
       cancelText: 'Annuler',
       confirmColor: 'warn',
-      destructive: true,
     };
 
     const dialogRef = this.#dialog.open(ConfirmationDialog, {
