@@ -572,6 +572,11 @@ jobs:
         working-directory: ios
         run: xcodegen generate
 
+      - name: 📱 Prepare iOS Simulator
+        run: |
+          xcrun simctl create "iPhone 17" com.apple.CoreSimulator.SimDeviceType.iPhone-17 com.apple.CoreSimulator.SimRuntime.iOS-26-2
+          xcrun simctl boot "iPhone 17"
+
       - name: 🧪 Run Unit Tests
         working-directory: ios
         run: |
