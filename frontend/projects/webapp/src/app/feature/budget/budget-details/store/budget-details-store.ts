@@ -546,24 +546,24 @@ export class BudgetDetailsStore {
     }
   }
 
-  async toggleCheck(id: string): Promise<void> {
+  async toggleCheck(id: string): Promise<boolean> {
     if (id === 'rollover-display') {
       const currentCheckedAt = this.#state.rolloverCheckedAt();
       this.#state.rolloverCheckedAt.set(
         currentCheckedAt === null ? new Date().toISOString() : null,
       );
-      return;
+      return true;
     }
 
     const details = this.budgetDetails();
-    if (!details) return;
+    if (!details) return false;
 
     const result = calculateBudgetLineToggle(id, {
       budgetLines: details.budgetLines,
       transactions: details.transactions ?? [],
     });
 
-    if (!result) return;
+    if (!result) return false;
 
     this.#budgetDetailsResource.update((d) => {
       if (!d) return d;
@@ -587,23 +587,16 @@ export class BudgetDetailsStore {
           budgetLines: d.budgetLines.map((line) =>
             line.id === id ? updatedLine : line,
           ),
-          transactions: d.transactions.map((tx) =>
-            tx.budgetLineId === id
-              ? {
-                  ...tx,
-                  checkedAt: updatedLine.checkedAt,
-                  updatedAt: updatedLine.updatedAt,
-                }
-              : tx,
-          ),
         };
       });
 
       this.#clearError();
+      return true;
     } catch (error) {
       this.reloadBudgetDetails();
       this.#setError('Erreur lors du basculement du statut de la prévision');
       this.#logger.error('Error toggling budget line check', error);
+      return false;
     }
   }
 
@@ -646,6 +639,22 @@ export class BudgetDetailsStore {
       this.reloadBudgetDetails();
       this.#setError('Erreur lors du basculement du statut de la transaction');
       this.#logger.error('Error toggling transaction check', error);
+    }
+  }
+
+  async checkAllAllocatedTransactions(budgetLineId: string): Promise<void> {
+    const details = this.budgetDetails();
+    if (!details) return;
+
+    const uncheckedTransactions = (details.transactions ?? []).filter(
+      (tx) =>
+        tx.budgetLineId === budgetLineId &&
+        tx.checkedAt === null &&
+        !tx.id.startsWith('temp-'),
+    );
+
+    for (const tx of uncheckedTransactions) {
+      await this.toggleTransactionCheck(tx.id);
     }
   }
 

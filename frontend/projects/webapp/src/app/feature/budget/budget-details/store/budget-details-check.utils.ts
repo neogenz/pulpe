@@ -34,11 +34,7 @@ export function calculateBudgetLineToggle(
       : line,
   );
 
-  const updatedTransactions = context.transactions.map((tx) =>
-    tx.budgetLineId === budgetLineId
-      ? { ...tx, checkedAt: isChecking ? now : null, updatedAt: now }
-      : tx,
-  );
+  const updatedTransactions = context.transactions;
 
   return {
     isChecking,
@@ -69,4 +65,24 @@ export function calculateTransactionToggle(
     isChecking,
     updatedTransactions,
   };
+}
+
+export type CheckBehavior = 'toggle-only' | 'ask-cascade';
+
+export function determineCheckBehavior(
+  budgetLineId: string,
+  budgetLines: BudgetLine[],
+  transactions: Transaction[],
+): CheckBehavior | null {
+  const budgetLine = budgetLines.find((line) => line.id === budgetLineId);
+  if (!budgetLine) return null;
+
+  const isBeingChecked = budgetLine.checkedAt === null;
+  if (!isBeingChecked) return null;
+
+  const hasUncheckedTransactions = transactions.some(
+    (tx) => tx.budgetLineId === budgetLineId && tx.checkedAt === null,
+  );
+
+  return hasUncheckedTransactions ? 'ask-cascade' : 'toggle-only';
 }

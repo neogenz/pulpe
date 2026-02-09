@@ -3,6 +3,7 @@ import type { BudgetLine, Transaction } from 'pulpe-shared';
 import {
   calculateBudgetLineToggle,
   calculateTransactionToggle,
+  determineCheckBehavior,
 } from './budget-details-check.utils';
 
 const createBudgetLine = (overrides: Partial<BudgetLine> = {}): BudgetLine => ({
@@ -40,7 +41,7 @@ const createTransaction = (
 
 describe('Budget Details Check Utils', () => {
   describe('calculateBudgetLineToggle - cascade to transactions', () => {
-    it('should cascade checkedAt to allocated transactions when checking', () => {
+    it('should NOT cascade checkedAt to allocated transactions when checking', () => {
       // Arrange
       const budgetLines = [createBudgetLine({ id: 'line-1', checkedAt: null })];
       const transactions = [
@@ -66,11 +67,11 @@ describe('Budget Details Check Utils', () => {
       expect(result).not.toBeNull();
       expect(result!.isChecking).toBe(true);
       expect(result!.updatedBudgetLines[0].checkedAt).not.toBeNull();
-      expect(result!.updatedTransactions[0].checkedAt).not.toBeNull();
-      expect(result!.updatedTransactions[1].checkedAt).not.toBeNull();
+      expect(result!.updatedTransactions[0].checkedAt).toBeNull();
+      expect(result!.updatedTransactions[1].checkedAt).toBeNull();
     });
 
-    it('should cascade null checkedAt to allocated transactions when unchecking', () => {
+    it('should NOT cascade checkedAt to allocated transactions when unchecking', () => {
       // Arrange
       const checkedAt = '2024-01-01T00:00:00.000Z';
       const budgetLines = [createBudgetLine({ id: 'line-1', checkedAt })];
@@ -92,7 +93,7 @@ describe('Budget Details Check Utils', () => {
       expect(result).not.toBeNull();
       expect(result!.isChecking).toBe(false);
       expect(result!.updatedBudgetLines[0].checkedAt).toBeNull();
-      expect(result!.updatedTransactions[0].checkedAt).toBeNull();
+      expect(result!.updatedTransactions[0].checkedAt).toBe(checkedAt);
     });
 
     it('should only update the targeted budget line, not others', () => {
@@ -113,7 +114,7 @@ describe('Budget Details Check Utils', () => {
       expect(result!.updatedBudgetLines[1].checkedAt).toBeNull();
     });
 
-    it('should not cascade to transactions from other budget lines', () => {
+    it('should not cascade to any transactions when checking', () => {
       // Arrange
       const budgetLines = [createBudgetLine({ id: 'line-1', checkedAt: null })];
       const transactions = [
@@ -139,7 +140,7 @@ describe('Budget Details Check Utils', () => {
       // Assert
       expect(
         result!.updatedTransactions.find((tx) => tx.id === 'tx-1')!.checkedAt,
-      ).not.toBeNull();
+      ).toBeNull();
       expect(
         result!.updatedTransactions.find((tx) => tx.id === 'tx-2')!.checkedAt,
       ).toBeNull();
@@ -317,6 +318,95 @@ describe('Budget Details Check Utils', () => {
 
       // Assert
       expect(originalTransactions[0].checkedAt).toBe(originalCheckedAt);
+    });
+  });
+
+  describe('determineCheckBehavior - dialog cascade decision', () => {
+    it('should return null when unchecking an envelope (no dialog needed)', () => {
+      const budgetLines = [
+        createBudgetLine({
+          id: 'line-1',
+          checkedAt: '2024-01-01T00:00:00.000Z',
+        }),
+      ];
+      const transactions = [
+        createTransaction({
+          id: 'tx-1',
+          budgetLineId: 'line-1',
+          checkedAt: null,
+        }),
+      ];
+
+      const result = determineCheckBehavior(
+        'line-1',
+        budgetLines,
+        transactions,
+      );
+      expect(result).toBeNull();
+    });
+
+    it('should return toggle-only when checking with no unchecked transactions', () => {
+      const budgetLines = [createBudgetLine({ id: 'line-1', checkedAt: null })];
+      const transactions = [
+        createTransaction({
+          id: 'tx-1',
+          budgetLineId: 'line-1',
+          checkedAt: '2024-01-01T00:00:00.000Z',
+        }),
+      ];
+
+      const result = determineCheckBehavior(
+        'line-1',
+        budgetLines,
+        transactions,
+      );
+      expect(result).toBe('toggle-only');
+    });
+
+    it('should return ask-cascade when checking with unchecked allocated transactions', () => {
+      const budgetLines = [createBudgetLine({ id: 'line-1', checkedAt: null })];
+      const transactions = [
+        createTransaction({
+          id: 'tx-1',
+          budgetLineId: 'line-1',
+          checkedAt: null,
+        }),
+        createTransaction({
+          id: 'tx-2',
+          budgetLineId: 'line-1',
+          checkedAt: '2024-01-01T00:00:00.000Z',
+        }),
+      ];
+
+      const result = determineCheckBehavior(
+        'line-1',
+        budgetLines,
+        transactions,
+      );
+      expect(result).toBe('ask-cascade');
+    });
+
+    it('should return null when budget line not found', () => {
+      const result = determineCheckBehavior('non-existent', [], []);
+      expect(result).toBeNull();
+    });
+
+    it('should return toggle-only when unchecked transactions belong to other budget line', () => {
+      const budgetLines = [createBudgetLine({ id: 'line-1', checkedAt: null })];
+      const transactions = [
+        createTransaction({
+          id: 'tx-1',
+          budgetLineId: 'line-2',
+          checkedAt: null,
+        }),
+      ];
+
+      const result = determineCheckBehavior(
+        'line-1',
+        budgetLines,
+        transactions,
+      );
+      expect(result).toBe('toggle-only');
     });
   });
 });

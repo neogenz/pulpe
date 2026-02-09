@@ -32,6 +32,7 @@ import { BudgetLineApi } from './budget-line-api/budget-line-api';
 import { BudgetItemsContainer } from './budget-items-container';
 import { BudgetFinancialOverview } from './budget-financial-overview';
 import { BudgetDetailsDialogService } from './budget-details-dialog.service';
+import { determineCheckBehavior } from './store/budget-details-check.utils';
 import {
   type BudgetLineCreate,
   type BudgetLineUpdate,
@@ -308,16 +309,51 @@ export default class BudgetDetailsPage {
     }
 
     const details = this.store.budgetDetails();
-    const budgetLine = details?.budgetLines.find(
+    if (!details) return;
+
+    const behavior = determineCheckBehavior(
+      budgetLineId,
+      details.budgetLines,
+      details.transactions ?? [],
+    );
+
+    if (behavior === null) {
+      await this.store.toggleCheck(budgetLineId);
+      return;
+    }
+
+    if (behavior === 'ask-cascade') {
+      const shouldCheckAll =
+        await this.#dialogService.confirmCheckAllocatedTransactions();
+      const succeeded = await this.store.toggleCheck(budgetLineId);
+      if (!succeeded) return;
+      if (shouldCheckAll) {
+        await this.store.checkAllAllocatedTransactions(budgetLineId);
+      }
+    } else {
+      const succeeded = await this.store.toggleCheck(budgetLineId);
+      if (!succeeded) return;
+    }
+
+    const freshDetails = this.store.budgetDetails();
+    const freshBudgetLine = freshDetails?.budgetLines.find(
       (line) => line.id === budgetLineId,
     );
-    const isBeingChecked = budgetLine && !budgetLine.checkedAt;
+    if (freshBudgetLine && freshDetails) {
+      this.#showEnvelopeSnackbar(
+        freshBudgetLine,
+        freshDetails.transactions,
+        budgetLineId,
+      );
+    }
+  }
 
-    await this.store.toggleCheck(budgetLineId);
-
-    if (!isBeingChecked || !budgetLine) return;
-
-    const consumed = details!.transactions
+  #showEnvelopeSnackbar(
+    budgetLine: BudgetLine,
+    transactions: Transaction[],
+    budgetLineId: string,
+  ): void {
+    const consumed = transactions
       .filter(
         (tx) =>
           tx.budgetLineId === budgetLineId &&
@@ -327,13 +363,13 @@ export default class BudgetDetailsPage {
       .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
     const envelopeAmount = Math.abs(budgetLine.amount);
-    if (envelopeAmount <= consumed || consumed === 0) return;
-
-    this.#snackBar.open(
-      `Comptabilisé ${envelopeAmount} CHF (enveloppe)`,
-      undefined,
-      { duration: 3000 },
-    );
+    if (envelopeAmount > consumed && consumed > 0) {
+      this.#snackBar.open(
+        `Comptabilisé ${envelopeAmount} CHF (enveloppe)`,
+        undefined,
+        { duration: 3000 },
+      );
+    }
   }
 
   async handleToggleTransactionCheck(transactionId: string): Promise<void> {
