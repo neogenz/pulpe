@@ -37,6 +37,7 @@ import { UserThrottlerGuard } from '@common/guards/user-throttler.guard';
 
 // Middleware
 import { DelayMiddleware } from '@common/middleware/delay.middleware';
+import { IpBlacklistMiddleware } from '@common/middleware/ip-blacklist.middleware';
 import { MaintenanceMiddleware } from '@common/middleware/maintenance.middleware';
 import { PayloadSizeMiddleware } from '@common/middleware/payload-size.middleware';
 import { ResponseLoggerMiddleware } from '@common/middleware/response-logger.middleware';
@@ -254,14 +255,25 @@ function createPinoLoggerConfig(configService: ConfigService) {
           throttlers: [
             {
               name: 'default',
-              ttl: config.get<number>('THROTTLE_TTL', 60000), // Default: 1 minute
-              limit: config.get<number>('THROTTLE_LIMIT', 1000), // 1000 requests per minute (same in dev/prod for authenticated users)
+              ttl: config.get<number>('THROTTLE_TTL', 60000),
+              limit: config.get<number>('THROTTLE_LIMIT', 200), // 200 req/min for authenticated users
+            },
+            {
+              name: 'public',
+              ttl: 60000,
+              limit: isDev ? 1000 : 20, // 20 req/min for unauthenticated requests in prod
+              skipIf: (context: ExecutionContext) => {
+                const request = context
+                  .switchToHttp()
+                  .getRequest<{ headers?: Record<string, string> }>();
+                const auth = request?.headers?.authorization;
+                return !!auth && auth.startsWith('Bearer ');
+              },
             },
             {
               name: 'demo',
-              ttl: 3600000, // 1 hour in milliseconds
-              limit: isDev ? 1000 : 30, // No limit in dev, 30 requests per hour in prod
-              // Only apply demo throttler to /api/v1/demo/* routes
+              ttl: 3600000,
+              limit: isDev ? 1000 : 30,
               skipIf: (context: ExecutionContext) => {
                 const request = context
                   .switchToHttp()
@@ -296,6 +308,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
       provide: APP_GUARD,
       useClass: UserThrottlerGuard,
     },
+    IpBlacklistMiddleware,
     MaintenanceMiddleware,
     ResponseLoggerMiddleware,
     PayloadSizeMiddleware,
@@ -304,6 +317,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
+    consumer.apply(IpBlacklistMiddleware).forRoutes('*');
     consumer
       .apply(MaintenanceMiddleware)
       .exclude(
