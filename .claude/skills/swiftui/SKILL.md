@@ -1,6 +1,6 @@
 ---
 name: swiftui
-description: Use when building SwiftUI interfaces for iOS, iPadOS, macOS, or visionOS. Triggers on Liquid Glass adoption, SwiftUI animation/transitions, layout patterns, state management, design tokens, performance optimization, accessibility in SwiftUI, or creating "Apple-level" UI quality.
+description: Write, review, and improve SwiftUI code following Apple-level design and implementation best practices. Use when building SwiftUI interfaces for iOS, iPadOS, macOS, or visionOS. Triggers on Liquid Glass adoption, animation/transitions, layout patterns, state management, design tokens, performance, or accessibility. Do NOT use for UIKit, AppKit, or non-UI Swift tasks.
 ---
 
 # SwiftUI Excellence Playbook
@@ -102,8 +102,51 @@ Tactical guide for designing and building world-class SwiftUI interfaces—the k
 9. Form field row
 10. Chip/tag/pill
 
+## Examples
+
+### Example 1: New screen
+User says: "Create a settings screen"
+1. Define experience spec (goal, states, platforms)
+2. Build tokens + components
+3. Integrate NavigationStack/List
+4. Accessibility + performance pass
+Result: Accessible, Liquid Glass-ready settings screen
+
+### Example 2: Fix animation jitter
+User says: "My drag reorder is jittery"
+1. Identify declarative/imperative conflict
+2. Apply overlay technique (section 7 of playbook)
+Result: Smooth drag with isolated animation layers
+
+### Example 3: Adopt Liquid Glass
+User says: "Update my app for iOS 26 Liquid Glass"
+1. Remove custom toolbar backgrounds
+2. Apply glass effects to navigation/control layer
+3. Group nearby glass in GlassEffectContainer
+4. Review tinting (only primary actions)
+Result: Native-feeling iOS 26 interface
+
+## Common Issues
+
+### Preview crashes with new iOS 26 APIs
+- Check `#available(iOS 26, *)` guards
+- Ensure Xcode 26+ with matching SDK
+
+### Animation jitter or conflict
+- Never mix declarative `.animation()` and imperative `withAnimation` on the same state
+- Use overlay technique for drag-and-drop (see playbook section 7)
+
+### Layout breaks at large Dynamic Type
+- Use `ViewThatFits` for adaptive layouts
+- Test at Accessibility XXL size
+- Avoid fixed frames on text containers
+
 ## Full Reference
 
 For complete implementation patterns, code recipes, design tokens, Liquid Glass details, and the full ADA review checklist:
 
-See: [swiftui-playbook.md](swiftui-playbook.md)
+See: [references/swiftui-playbook.md](references/swiftui-playbook.md)
+
+For debugging patterns and hard-won lessons:
+
+See: [references/gotchas.md](references/gotchas.md)
