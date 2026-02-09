@@ -35,8 +35,8 @@ test.describe('Settings Recovery Key', () => {
 
     await page.getByTestId('generate-recovery-key-button').click();
 
-    await expect(page.getByTestId('verify-password-input')).toBeVisible();
-    await page.getByTestId('verify-password-input').fill('current-password');
+    await expect(page.getByTestId('verify-vault-code-input')).toBeVisible();
+    await page.getByTestId('verify-vault-code-input').fill('current-vault-code');
 
     await page.getByTestId('submit-regenerate-button').click();
 
@@ -75,12 +75,12 @@ test.describe('Settings Recovery Key', () => {
 
     await page.getByTestId('generate-recovery-key-button').click();
 
-    await page.getByTestId('verify-password-input').fill('wrong-password');
+    await page.getByTestId('verify-vault-code-input').fill('wrong-vault-code');
 
     await page.getByTestId('submit-regenerate-button').click();
 
     await expect(page.getByTestId('regenerate-key-error')).toContainText(
-      'Mot de passe incorrect ou clé de chiffrement invalide',
+      'Code coffre-fort incorrect ou clé de chiffrement invalide',
     );
     await expect(page.getByTestId('recovery-key-dialog')).toHaveCount(0);
   });

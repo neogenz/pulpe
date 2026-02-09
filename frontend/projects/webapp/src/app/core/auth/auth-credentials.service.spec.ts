@@ -144,6 +144,34 @@ describe('AuthCredentialsService', () => {
       );
       expect(mockSupabaseClient.auth.signInWithPassword).not.toHaveBeenCalled();
     });
+
+    it('should derive and store legacy client key in session storage for users without vault code', async () => {
+      vi.mocked(mockSupabaseClient.auth.signInWithPassword).mockResolvedValue({
+        data: {
+          user: {} as User,
+          session: {
+            user: {
+              user_metadata: { vaultCodeConfigured: false },
+            } as unknown as User,
+          } as Session,
+        },
+        error: null,
+      } satisfies AuthSessionResult);
+
+      const result = await service.signInWithEmail(
+        'legacy@example.com',
+        'legacy-password',
+      );
+
+      expect(result).toEqual({ success: true });
+      expect(mockEncryptionApi.getSalt$).toHaveBeenCalled();
+      expect(mockClientKeyService.deriveAndStore).toHaveBeenCalledWith(
+        'legacy-password',
+        'abcd1234',
+        600000,
+        false,
+      );
+    });
   });
 
   describe('signUpWithEmail', () => {

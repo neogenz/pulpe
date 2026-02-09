@@ -49,7 +49,7 @@ describe('RecoverVaultCode', () => {
       recover$: vi.fn().mockReturnValue(of({ success: true })),
       setupRecoveryKey$: vi
         .fn()
-        .mockReturnValue(of({ recoveryKey: 'ABCD-EFGH-1234-5678' })),
+        .mockReturnValue(of({ recoveryKey: 'ABCD-EFGH-IJKL-MNOP' })),
     };
 
     mockDialog = {
@@ -82,7 +82,7 @@ describe('RecoverVaultCode', () => {
 
   function fillValidForm(): void {
     component['form'].patchValue({
-      recoveryKey: 'ABCD-EFGH-1234-5678',
+      recoveryKey: 'ABCD-EFGH-IJKL-MNOP',
       newVaultCode: 'newvaultcode123',
       confirmCode: 'newvaultcode123',
     });
@@ -110,7 +110,7 @@ describe('RecoverVaultCode', () => {
 
     it('should allow valid recoveryKey', () => {
       const control = component['form'].get('recoveryKey');
-      control?.setValue('ABCD-EFGH-1234-5678');
+      control?.setValue('ABCD-EFGH-IJKL-MNOP');
       expect(control?.hasError('required')).toBe(false);
     });
 
@@ -187,7 +187,7 @@ describe('RecoverVaultCode', () => {
     it('should call recover$ with recovery key and derived client key', async () => {
       await component['onSubmit']();
       expect(mockEncryptionApi.recover$).toHaveBeenCalledWith(
-        'ABCD-EFGH-1234-5678',
+        'ABCD-EFGH-IJKL-MNOP',
         'abcd'.repeat(16),
       );
     });

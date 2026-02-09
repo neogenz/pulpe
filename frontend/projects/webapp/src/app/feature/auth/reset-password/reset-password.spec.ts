@@ -79,7 +79,7 @@ describe('ResetPassword', () => {
       recover$: vi.fn().mockReturnValue(of({ success: true })),
       setupRecoveryKey$: vi
         .fn()
-        .mockReturnValue(of({ recoveryKey: 'ABCD-EFGH-1234-5678' })),
+        .mockReturnValue(of({ recoveryKey: 'ABCD-EFGH-IJKL-MNOP' })),
     };
 
     mockDialog = {
@@ -117,7 +117,7 @@ describe('ResetPassword', () => {
 
   function fillValidForm(): void {
     component['form'].patchValue({
-      recoveryKey: 'ABCD-EFGH-1234-5678',
+      recoveryKey: 'ABCD-EFGH-IJKL-MNOP',
       newPassword: 'newpassword123',
       confirmPassword: 'newpassword123',
     });
@@ -366,7 +366,7 @@ describe('ResetPassword', () => {
       await component['onSubmit']();
 
       expect(mockEncryptionApi.recover$).toHaveBeenCalledWith(
-        'ABCD-EFGH-1234-5678',
+        'ABCD-EFGH-IJKL-MNOP',
         'abcd'.repeat(16),
       );
     });

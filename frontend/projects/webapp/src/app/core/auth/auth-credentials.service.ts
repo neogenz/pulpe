@@ -121,6 +121,9 @@ export class AuthCredentialsService {
       }
 
       this.#state.setSession(data.session ?? null);
+      // Signup never migrates existing encrypted data. Clear any leftover key
+      // to avoid treating new users as migration mode in setup-vault-code.
+      this.#clientKeyService.clear();
 
       // New users will set up their vault code after signup.
       // No client key derivation from password — the encryption guard
@@ -151,7 +154,7 @@ export class AuthCredentialsService {
       password,
       salt,
       kdfIterations,
-      true,
+      false,
     );
   }
 

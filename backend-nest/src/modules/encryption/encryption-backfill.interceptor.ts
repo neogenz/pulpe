@@ -12,13 +12,16 @@ import { SKIP_CLIENT_KEY } from '@common/decorators/skip-client-key.decorator';
 import { EncryptionBackfillService } from './encryption-backfill.service';
 import { EncryptionService } from './encryption.service';
 
+const PROCESSED_USER_TTL_MS = 24 * 60 * 60 * 1000;
+const MAX_TRACKED_USERS = 1000;
+
 @Injectable()
 export class EncryptionBackfillInterceptor implements NestInterceptor {
   readonly #logger = new Logger(EncryptionBackfillInterceptor.name);
   readonly #reflector: Reflector;
   readonly #backfillService: EncryptionBackfillService;
   readonly #encryptionService: EncryptionService;
-  readonly #processedUsers = new Set<string>();
+  readonly #processedUsers = new Map<string, number>();
 
   constructor(
     reflector: Reflector,
@@ -40,18 +43,21 @@ export class EncryptionBackfillInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
     const supabase = request.supabase;
+    const userId: string | undefined = user?.id;
+
+    this.#pruneProcessedUsers();
 
     if (
       !user?.clientKey ||
       !Buffer.isBuffer(user.clientKey) ||
-      this.#processedUsers.has(user.id)
+      !userId ||
+      this.#isUserRecentlyProcessed(userId)
     ) {
       return next.handle();
     }
 
     const clientKeyCopy = Buffer.from(user.clientKey);
-    const userId: string = user.id;
-    this.#processedUsers.add(userId);
+    this.#trackProcessedUser(userId);
 
     return next.handle().pipe(
       tap(() => {
@@ -85,5 +91,42 @@ export class EncryptionBackfillInterceptor implements NestInterceptor {
       .finally(() => {
         clientKeyCopy.fill(0);
       });
+  }
+
+  #isUserRecentlyProcessed(userId: string): boolean {
+    const expiry = this.#processedUsers.get(userId);
+    if (!expiry) return false;
+
+    if (expiry <= Date.now()) {
+      this.#processedUsers.delete(userId);
+      return false;
+    }
+
+    return true;
+  }
+
+  #trackProcessedUser(userId: string): void {
+    // Bounded cache: keep only recently processed users to avoid unbounded memory growth.
+    if (this.#processedUsers.has(userId)) {
+      this.#processedUsers.delete(userId);
+    }
+
+    this.#processedUsers.set(userId, Date.now() + PROCESSED_USER_TTL_MS);
+
+    if (this.#processedUsers.size > MAX_TRACKED_USERS) {
+      const oldestUserId = this.#processedUsers.keys().next().value;
+      if (oldestUserId) {
+        this.#processedUsers.delete(oldestUserId);
+      }
+    }
+  }
+
+  #pruneProcessedUsers(): void {
+    const now = Date.now();
+    for (const [userId, expiry] of this.#processedUsers) {
+      if (expiry <= now) {
+        this.#processedUsers.delete(userId);
+      }
+    }
   }
 }

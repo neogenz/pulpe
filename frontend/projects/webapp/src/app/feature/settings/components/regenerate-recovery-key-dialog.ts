@@ -18,10 +18,11 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { firstValueFrom } from 'rxjs';
 
-import { PASSWORD_MIN_LENGTH } from '@core/auth';
 import { EncryptionApi, deriveClientKey } from '@core/encryption';
 import { Logger } from '@core/logging/logger';
 import { ErrorAlert } from '@ui/error-alert';
+
+const VAULT_CODE_MIN_LENGTH = 8;
 
 @Component({
   selector: 'pulpe-regenerate-recovery-key-dialog',
@@ -61,30 +62,34 @@ import { ErrorAlert } from '@ui/error-alert';
 
       <form [formGroup]="verificationForm" (ngSubmit)="onSubmit()">
         <mat-form-field appearance="outline" class="w-full mb-2">
-          <mat-label>Mot de passe</mat-label>
+          <mat-label>Code coffre-fort</mat-label>
           <input
             matInput
-            [type]="isPasswordHidden() ? 'password' : 'text'"
-            formControlName="password"
-            data-testid="verify-password-input"
+            [type]="isVaultCodeHidden() ? 'password' : 'text'"
+            formControlName="vaultCode"
+            data-testid="verify-vault-code-input"
           />
           <mat-icon matPrefix>lock</mat-icon>
           <button
             type="button"
             matIconButton
             matSuffix
-            (click)="isPasswordHidden.set(!isPasswordHidden())"
-            [attr.aria-label]="'Afficher le mot de passe'"
-            [attr.aria-pressed]="!isPasswordHidden()"
+            (click)="isVaultCodeHidden.set(!isVaultCodeHidden())"
+            [attr.aria-label]="'Afficher le code coffre-fort'"
+            [attr.aria-pressed]="!isVaultCodeHidden()"
           >
             <mat-icon>{{
-              isPasswordHidden() ? 'visibility_off' : 'visibility'
+              isVaultCodeHidden() ? 'visibility_off' : 'visibility'
             }}</mat-icon>
           </button>
-          @if (verificationForm.get('password')?.hasError('required')) {
-            <mat-error>Le mot de passe est requis</mat-error>
-          } @else if (verificationForm.get('password')?.hasError('minlength')) {
-            <mat-error>Au moins {{ PASSWORD_MIN_LENGTH }} caractères</mat-error>
+          @if (verificationForm.get('vaultCode')?.hasError('required')) {
+            <mat-error>Le code coffre-fort est requis</mat-error>
+          } @else if (
+            verificationForm.get('vaultCode')?.hasError('minlength')
+          ) {
+            <mat-error
+              >Au moins {{ VAULT_CODE_MIN_LENGTH }} caractères</mat-error
+            >
           }
         </mat-form-field>
       </form>
@@ -117,16 +122,15 @@ export class RegenerateRecoveryKeyDialog {
 
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
-  protected readonly isPasswordHidden = signal(true);
-
-  protected readonly PASSWORD_MIN_LENGTH = PASSWORD_MIN_LENGTH;
+  protected readonly isVaultCodeHidden = signal(true);
+  protected readonly VAULT_CODE_MIN_LENGTH = VAULT_CODE_MIN_LENGTH;
 
   protected readonly verificationForm = new FormGroup({
-    password: new FormControl('', {
+    vaultCode: new FormControl('', {
       nonNullable: true,
       validators: [
         Validators.required,
-        Validators.minLength(PASSWORD_MIN_LENGTH),
+        Validators.minLength(VAULT_CODE_MIN_LENGTH),
       ],
     }),
   });
@@ -134,7 +138,7 @@ export class RegenerateRecoveryKeyDialog {
   protected async onSubmit(): Promise<void> {
     if (this.isSubmitting() || !this.verificationForm.valid) return;
 
-    const { password } = this.verificationForm.getRawValue();
+    const { vaultCode } = this.verificationForm.getRawValue();
 
     this.isSubmitting.set(true);
     this.errorMessage.set('');
@@ -143,14 +147,18 @@ export class RegenerateRecoveryKeyDialog {
       const { salt, kdfIterations } = await firstValueFrom(
         this.#encryptionApi.getSalt$(),
       );
-      const clientKeyHex = await deriveClientKey(password, salt, kdfIterations);
+      const clientKeyHex = await deriveClientKey(
+        vaultCode,
+        salt,
+        kdfIterations,
+      );
 
       await firstValueFrom(this.#encryptionApi.validateKey$(clientKeyHex));
       this.#dialogRef.close(true);
     } catch (error) {
       this.#logger.error('Recovery key verification failed', error);
       this.errorMessage.set(
-        'Mot de passe incorrect ou clé de chiffrement invalide',
+        'Code coffre-fort incorrect ou clé de chiffrement invalide',
       );
     } finally {
       this.isSubmitting.set(false);

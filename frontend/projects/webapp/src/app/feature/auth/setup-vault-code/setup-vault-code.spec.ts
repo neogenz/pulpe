@@ -64,7 +64,7 @@ describe('SetupVaultCode', () => {
         .mockReturnValue(of({ salt: 'salt-value', kdfIterations: 100000 })),
       setupRecoveryKey$: vi
         .fn()
-        .mockReturnValue(of({ recoveryKey: 'ABCD-EFGH-1234-5678' })),
+        .mockReturnValue(of({ recoveryKey: 'ABCD-EFGH-IJKL-MNOP' })),
       rekeyEncryption$: vi.fn().mockReturnValue(of({ success: true })),
     };
 

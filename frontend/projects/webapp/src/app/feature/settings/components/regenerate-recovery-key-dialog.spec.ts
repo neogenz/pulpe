@@ -56,9 +56,14 @@ describe('RegenerateRecoveryKeyDialog', () => {
     expect(component['verificationForm'].valid).toBe(false);
   });
 
+  it('should expose vaultCode field for verification', () => {
+    expect(component['verificationForm'].get('vaultCode')).toBeTruthy();
+    expect(component['verificationForm'].get('password')).toBeNull();
+  });
+
   it('should have valid form when all fields filled', () => {
     component['verificationForm'].patchValue({
-      password: 'testPassword123',
+      vaultCode: 'testVaultCode123',
     });
     expect(component['verificationForm'].valid).toBe(true);
   });
@@ -73,13 +78,13 @@ describe('RegenerateRecoveryKeyDialog', () => {
     );
 
     component['verificationForm'].patchValue({
-      password: 'wrongPassword',
+      vaultCode: 'wrongVaultCode',
     });
 
     await component['onSubmit']();
 
     expect(component['errorMessage']()).toBe(
-      'Mot de passe incorrect ou clé de chiffrement invalide',
+      'Code coffre-fort incorrect ou clé de chiffrement invalide',
     );
     expect(mockDialogRef.close).not.toHaveBeenCalled();
   });
@@ -92,7 +97,7 @@ describe('RegenerateRecoveryKeyDialog', () => {
     mockEncryptionApi.validateKey$.mockReturnValue(of(undefined));
 
     component['verificationForm'].patchValue({
-      password: 'testPassword123',
+      vaultCode: 'testVaultCode123',
     });
 
     await component['onSubmit']();
@@ -104,7 +109,7 @@ describe('RegenerateRecoveryKeyDialog', () => {
     component['isSubmitting'].set(true);
 
     component['verificationForm'].patchValue({
-      password: 'testPassword123',
+      vaultCode: 'testVaultCode123',
     });
 
     await component['onSubmit']();

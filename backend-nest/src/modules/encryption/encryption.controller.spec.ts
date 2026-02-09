@@ -328,6 +328,33 @@ describe('EncryptionController', () => {
       }
     });
 
+    it('should map invalid base32 recovery key errors to BusinessException', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = {
+        recoveryKey: 'INVALID-KEY',
+        newClientKey: 'ab'.repeat(32),
+      };
+
+      mockEncryptionService = createMockEncryptionService({
+        recoverWithKey: mock(() =>
+          Promise.reject(new Error('Invalid base32 character: 1')),
+        ),
+      });
+      controller = new EncryptionController(
+        mockEncryptionService as any,
+        mockRekeyService as any,
+      );
+
+      try {
+        await controller.recover(user, mockSupabase as any, body);
+        expect.unreachable('Should have thrown BusinessException');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect(error.code).toBe(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID.code);
+      }
+    });
+
     it('should call recoverWithKey with correct callback', async () => {
       const user = createMockUser();
       const mockSupabase = { test: 'supabase' };

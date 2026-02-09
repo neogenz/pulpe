@@ -274,6 +274,7 @@ export class EncryptionController {
       const isRecoveryKeyError =
         error.message.includes('No recovery key configured') ||
         error.message.includes('Invalid recovery key') ||
+        error.message.includes('Invalid base32 character') ||
         error.message.includes('Unsupported state or unable to authenticate') ||
         error.message.includes('Unwrapped DEK has invalid length');
 

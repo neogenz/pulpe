@@ -20,17 +20,24 @@ export const encryptionSetupGuard: CanActivateFn = () => {
   }
 
   const evaluate = (
-    user: { user_metadata?: Record<string, unknown> } | null,
+    user: {
+      user_metadata?: Record<string, unknown>;
+      app_metadata?: Record<string, unknown>;
+    } | null,
   ): boolean | ReturnType<Router['createUrlTree']> => {
+    const hasClientKey = clientKeyService.hasClientKey();
     const hasVaultCode = !!user?.user_metadata?.['vaultCodeConfigured'];
+    const provider = user?.app_metadata?.['provider'];
+    const isEmailMigrationUser = !hasVaultCode && provider === 'email';
 
     // Client key in memory AND user has vault code configured → allow
-    if (clientKeyService.hasClientKey() && hasVaultCode) {
+    if (hasClientKey && hasVaultCode) {
       return true;
     }
 
-    // Stale key from different account → clear it
-    if (clientKeyService.hasClientKey() && !hasVaultCode) {
+    // Keep the legacy password-derived key for email users during vault setup.
+    // For all other users without vault code, treat it as stale key material.
+    if (hasClientKey && !isEmailMigrationUser) {
       clientKeyService.clear();
     }
 

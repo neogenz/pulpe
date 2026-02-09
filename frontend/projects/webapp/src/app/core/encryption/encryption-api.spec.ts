@@ -110,7 +110,7 @@ describe('EncryptionApi', () => {
     });
 
     it('should return recoveryKey on success', async () => {
-      const expectedResponse = { recoveryKey: 'ABCD-EFGH-1234-5678' };
+      const expectedResponse = { recoveryKey: 'ABCD-EFGH-IJKL-MNOP' };
 
       const promise = firstValueFrom(service.setupRecoveryKey$());
 
@@ -120,7 +120,7 @@ describe('EncryptionApi', () => {
       req.flush(expectedResponse);
 
       const response = await promise;
-      expect(response.recoveryKey).toBe('ABCD-EFGH-1234-5678');
+      expect(response.recoveryKey).toBe('ABCD-EFGH-IJKL-MNOP');
     });
   });
 
@@ -153,14 +153,14 @@ describe('EncryptionApi', () => {
 
   describe('recover$()', () => {
     it('should POST to /encryption/recover with recoveryKey and newClientKey', () => {
-      service.recover$('ABCD-EFGH-1234-5678', 'new-key-hex').subscribe();
+      service.recover$('ABCD-EFGH-IJKL-MNOP', 'new-key-hex').subscribe();
 
       const req = httpTesting.expectOne(
         'http://localhost:3000/api/v1/encryption/recover',
       );
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual({
-        recoveryKey: 'ABCD-EFGH-1234-5678',
+        recoveryKey: 'ABCD-EFGH-IJKL-MNOP',
         newClientKey: 'new-key-hex',
       });
     });
@@ -169,7 +169,7 @@ describe('EncryptionApi', () => {
       const expectedResponse = { success: true };
 
       const promise = firstValueFrom(
-        service.recover$('ABCD-EFGH-1234-5678', 'new-key-hex'),
+        service.recover$('ABCD-EFGH-IJKL-MNOP', 'new-key-hex'),
       );
 
       const req = httpTesting.expectOne(
