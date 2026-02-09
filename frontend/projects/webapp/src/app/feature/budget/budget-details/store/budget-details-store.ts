@@ -570,6 +570,7 @@ export class BudgetDetailsStore {
       return {
         ...d,
         budgetLines: result.updatedBudgetLines,
+        transactions: result.updatedTransactions,
       };
     });
 

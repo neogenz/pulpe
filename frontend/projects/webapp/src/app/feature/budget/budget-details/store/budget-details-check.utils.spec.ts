@@ -40,12 +40,17 @@ const createTransaction = (
 
 describe('Budget Details Check Utils', () => {
   describe('calculateBudgetLineToggle - cascade to transactions', () => {
-    it('should check budget line without cascading to transactions (backend handles cascade)', () => {
+    it('should cascade checkedAt to allocated transactions when checking', () => {
       // Arrange
       const budgetLines = [createBudgetLine({ id: 'line-1', checkedAt: null })];
       const transactions = [
         createTransaction({
           id: 'tx-1',
+          budgetLineId: 'line-1',
+          checkedAt: null,
+        }),
+        createTransaction({
+          id: 'tx-2',
           budgetLineId: 'line-1',
           checkedAt: null,
         }),
@@ -61,22 +66,19 @@ describe('Budget Details Check Utils', () => {
       expect(result).not.toBeNull();
       expect(result!.isChecking).toBe(true);
       expect(result!.updatedBudgetLines[0].checkedAt).not.toBeNull();
-      expect(result!).not.toHaveProperty('updatedTransactions');
+      expect(result!.updatedTransactions[0].checkedAt).not.toBeNull();
+      expect(result!.updatedTransactions[1].checkedAt).not.toBeNull();
     });
 
-    it('should uncheck budget line without cascading to transactions (backend handles cascade)', () => {
+    it('should cascade null checkedAt to allocated transactions when unchecking', () => {
       // Arrange
-      const budgetLines = [
-        createBudgetLine({
-          id: 'line-1',
-          checkedAt: '2024-01-01T00:00:00.000Z',
-        }),
-      ];
+      const checkedAt = '2024-01-01T00:00:00.000Z';
+      const budgetLines = [createBudgetLine({ id: 'line-1', checkedAt })];
       const transactions = [
         createTransaction({
           id: 'tx-1',
           budgetLineId: 'line-1',
-          checkedAt: '2024-01-01T00:00:00.000Z',
+          checkedAt,
         }),
       ];
 
@@ -90,6 +92,7 @@ describe('Budget Details Check Utils', () => {
       expect(result).not.toBeNull();
       expect(result!.isChecking).toBe(false);
       expect(result!.updatedBudgetLines[0].checkedAt).toBeNull();
+      expect(result!.updatedTransactions[0].checkedAt).toBeNull();
     });
 
     it('should only update the targeted budget line, not others', () => {
@@ -108,6 +111,41 @@ describe('Budget Details Check Utils', () => {
       // Assert
       expect(result!.updatedBudgetLines[0].checkedAt).not.toBeNull();
       expect(result!.updatedBudgetLines[1].checkedAt).toBeNull();
+    });
+
+    it('should not cascade to transactions from other budget lines', () => {
+      // Arrange
+      const budgetLines = [createBudgetLine({ id: 'line-1', checkedAt: null })];
+      const transactions = [
+        createTransaction({
+          id: 'tx-1',
+          budgetLineId: 'line-1',
+          checkedAt: null,
+        }),
+        createTransaction({
+          id: 'tx-2',
+          budgetLineId: 'line-2',
+          checkedAt: null,
+        }),
+        createTransaction({ id: 'tx-3', budgetLineId: null, checkedAt: null }),
+      ];
+
+      // Act
+      const result = calculateBudgetLineToggle('line-1', {
+        budgetLines,
+        transactions,
+      });
+
+      // Assert
+      expect(
+        result!.updatedTransactions.find((tx) => tx.id === 'tx-1')!.checkedAt,
+      ).not.toBeNull();
+      expect(
+        result!.updatedTransactions.find((tx) => tx.id === 'tx-2')!.checkedAt,
+      ).toBeNull();
+      expect(
+        result!.updatedTransactions.find((tx) => tx.id === 'tx-3')!.checkedAt,
+      ).toBeNull();
     });
 
     it('should return null when budget line does not exist', () => {
@@ -231,6 +269,30 @@ describe('Budget Details Check Utils', () => {
 
       // Assert
       expect(originalBudgetLines[0].checkedAt).toBe(originalCheckedAt);
+    });
+
+    it('should not mutate original transactions array (calculateBudgetLineToggle)', () => {
+      // Arrange
+      const originalBudgetLines = [
+        createBudgetLine({ id: 'line-1', checkedAt: null }),
+      ];
+      const originalTransactions = [
+        createTransaction({
+          id: 'tx-1',
+          budgetLineId: 'line-1',
+          checkedAt: null,
+        }),
+      ];
+      const originalCheckedAt = originalTransactions[0].checkedAt;
+
+      // Act
+      calculateBudgetLineToggle('line-1', {
+        budgetLines: originalBudgetLines,
+        transactions: originalTransactions,
+      });
+
+      // Assert
+      expect(originalTransactions[0].checkedAt).toBe(originalCheckedAt);
     });
 
     it('should not mutate original transactions array (calculateTransactionToggle)', () => {
