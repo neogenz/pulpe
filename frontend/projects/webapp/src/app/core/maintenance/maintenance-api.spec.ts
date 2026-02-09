@@ -46,6 +46,34 @@ describe('MaintenanceApi', () => {
       expect(result).toEqual(mockStatus);
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:3000/api/v1/maintenance/status',
+        {},
+      );
+    });
+
+    it('should include ngrok header only when URL contains ngrok', async () => {
+      // Arrange
+      const ngrokConfig = {
+        backendApiUrl: () => 'https://abc123.ngrok-free.app/api/v1',
+      };
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          MaintenanceApi,
+          { provide: ApplicationConfiguration, useValue: ngrokConfig },
+        ],
+      });
+      const ngrokService = TestBed.inject(MaintenanceApi);
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ maintenanceMode: false }),
+      });
+
+      // Act
+      await ngrokService.checkStatus();
+
+      // Assert
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://abc123.ngrok-free.app/api/v1/maintenance/status',
         { headers: NGROK_SKIP_HEADER },
       );
     });

@@ -18,9 +18,12 @@ export class MaintenanceApi {
   readonly #config = inject(ApplicationConfiguration);
 
   async checkStatus(): Promise<MaintenanceStatus> {
+    const url = `${this.#config.backendApiUrl()}/maintenance/status`;
+    const isNgrok = url.includes('ngrok');
+
     const response = await fetch(
-      `${this.#config.backendApiUrl()}/maintenance/status`,
-      { headers: NGROK_SKIP_HEADER },
+      url,
+      isNgrok ? { headers: NGROK_SKIP_HEADER } : {},
     );
 
     if (!response.ok) {

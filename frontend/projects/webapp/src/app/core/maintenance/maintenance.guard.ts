@@ -7,7 +7,7 @@ import { MaintenanceApi } from './maintenance-api';
 /**
  * Guard that checks if the application is in maintenance mode.
  * Waits for the server response (no client-side timeout).
- * Uses fail-closed on network errors to prevent bypassing maintenance.
+ * Uses fail-open on network errors: the maintenanceInterceptor catches 503s as backup.
  */
 export const maintenanceGuard: CanActivateFn = async () => {
   const logger = inject(Logger);
@@ -27,11 +27,8 @@ export const maintenanceGuard: CanActivateFn = async () => {
     }
     return true;
   } catch (error) {
-    // If status check fails or network error: assume maintenance (fail-closed)
-    logger.warn('Maintenance status check failed, redirecting to maintenance', {
-      error,
-    });
-    window.location.href = '/' + ROUTES.MAINTENANCE;
-    return false;
+    // Fail-open: allow access on network/CORS errors. maintenanceInterceptor handles 503s.
+    logger.warn('Maintenance status check failed, allowing access', { error });
+    return true;
   }
 };

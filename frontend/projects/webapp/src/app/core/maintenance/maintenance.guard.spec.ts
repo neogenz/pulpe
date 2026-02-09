@@ -104,7 +104,7 @@ describe('maintenanceGuard', () => {
     );
   });
 
-  it('should redirect to maintenance page on network error (fail-closed)', async () => {
+  it('should allow access on network error (fail-open)', async () => {
     // Arrange
     mockMaintenanceApi.checkStatus.mockRejectedValue(
       new Error('Network error'),
@@ -116,15 +116,15 @@ describe('maintenanceGuard', () => {
     );
 
     // Assert
-    expect(result).toBe(false);
-    expect(window.location.href).toBe('/' + ROUTES.MAINTENANCE);
+    expect(result).toBe(true);
+    expect(window.location.href).toBe('');
     expect(mockLogger.warn).toHaveBeenCalledWith(
-      'Maintenance status check failed, redirecting to maintenance',
+      'Maintenance status check failed, allowing access',
       { error: expect.any(Error) },
     );
   });
 
-  it('should redirect to maintenance page on fetch failure (fail-closed)', async () => {
+  it('should allow access on fetch failure (fail-open)', async () => {
     // Arrange
     mockMaintenanceApi.checkStatus.mockRejectedValue(
       new TypeError('Failed to fetch'),
@@ -136,7 +136,7 @@ describe('maintenanceGuard', () => {
     );
 
     // Assert
-    expect(result).toBe(false);
-    expect(window.location.href).toBe('/' + ROUTES.MAINTENANCE);
+    expect(result).toBe(true);
+    expect(window.location.href).toBe('');
   });
 });
