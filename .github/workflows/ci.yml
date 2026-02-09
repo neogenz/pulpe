@@ -573,16 +573,30 @@ jobs:
         run: xcodegen generate
 
       - name: 📱 Prepare iOS Simulator
+        id: simulator
         run: |
-          xcrun simctl create "iPhone 17" com.apple.CoreSimulator.SimDeviceType.iPhone-17 com.apple.CoreSimulator.SimRuntime.iOS-26-2
-          xcrun simctl boot "iPhone 17"
+          # Find existing iPhone 17 (iOS 26.2) or create one
+          DEVICE_ID=$(xcrun simctl list devices "iPhone 17" -j 2>/dev/null | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          for rt, devs in data.get('devices', {}).items():
+            if '26-2' in rt:
+              for d in devs:
+                if d.get('name') == 'iPhone 17' and d.get('isAvailable', False):
+                  print(d['udid']); sys.exit(0)
+          " 2>/dev/null) || DEVICE_ID=""
+          if [ -z "$DEVICE_ID" ]; then
+            DEVICE_ID=$(xcrun simctl create "iPhone 17" com.apple.CoreSimulator.SimDeviceType.iPhone-17 com.apple.CoreSimulator.SimRuntime.iOS-26-2)
+          fi
+          xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
+          echo "device_id=$DEVICE_ID" >> $GITHUB_OUTPUT
 
       - name: 🧪 Run Unit Tests
         working-directory: ios
         run: |
           xcodebuild test \
             -scheme PulpeTests \
-            -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.2' \
+            -destination 'id=${{ steps.simulator.outputs.device_id }}' \
             CODE_SIGNING_ALLOWED=NO \
             -quiet
 
