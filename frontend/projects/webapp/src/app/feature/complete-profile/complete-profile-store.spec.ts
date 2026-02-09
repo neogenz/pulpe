@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { CompleteProfileStore } from './complete-profile-store';
-import { ProfileSetupService } from '@core/profile';
+import { ProfileSetupService } from '@core/complete-profile';
 import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
 import { PostHogService } from '@core/analytics/posthog';
