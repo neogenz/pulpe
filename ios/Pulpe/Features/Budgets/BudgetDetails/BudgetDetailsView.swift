@@ -368,9 +368,11 @@ final class BudgetDetailsViewModel {
     private let budgetService = BudgetService.shared
     private let budgetLineService = BudgetLineService.shared
     private let transactionService = TransactionService.shared
+    private let toastManager: ToastManager
 
-    init(budgetId: String) {
+    init(budgetId: String, toastManager: ToastManager = AppState.shared.toastManager) {
         self.budgetId = budgetId
+        self.toastManager = toastManager
         // Load persisted filter preference (default: show only unchecked)
         let showOnlyUnchecked = UserDefaults.standard.object(forKey: BudgetDetailsUserDefaultsKey.showOnlyUnchecked) as? Bool ?? true
         self.checkedFilter = showOnlyUnchecked ? .unchecked : .all
@@ -546,6 +548,7 @@ final class BudgetDetailsViewModel {
         guard !(line.isRollover ?? false) else { return }
         guard !syncingBudgetLineIds.contains(line.id) else { return }
 
+        let wasUnchecked = !line.isChecked
         syncingBudgetLineIds.insert(line.id)
 
         let originalLines = budgetLines
@@ -556,6 +559,16 @@ final class BudgetDetailsViewModel {
         do {
             _ = try await budgetLineService.toggleCheck(id: line.id)
             await reloadCurrentBudget()
+
+            if wasUnchecked, line.kind.isOutflow {
+                let consumed = transactions
+                    .filter { $0.budgetLineId == line.id && $0.isChecked && $0.kind.isOutflow }
+                    .reduce(Decimal.zero) { $0 + $1.amount }
+                let effective = max(line.amount, consumed)
+                if effective > consumed, consumed > 0 {
+                    toastManager.show("Comptabilisé \(effective.asCHF) (enveloppe)")
+                }
+            }
         } catch {
             budgetLines = originalLines
             self.error = error

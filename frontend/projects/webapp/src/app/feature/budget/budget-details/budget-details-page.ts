@@ -302,7 +302,38 @@ export default class BudgetDetailsPage {
   }
 
   async handleToggleCheck(budgetLineId: string): Promise<void> {
+    if (budgetLineId.startsWith('rollover')) {
+      await this.store.toggleCheck(budgetLineId);
+      return;
+    }
+
+    const details = this.store.budgetDetails();
+    const budgetLine = details?.budgetLines.find(
+      (line) => line.id === budgetLineId,
+    );
+    const isBeingChecked = budgetLine && !budgetLine.checkedAt;
+
     await this.store.toggleCheck(budgetLineId);
+
+    if (!isBeingChecked || !budgetLine) return;
+
+    const consumed = details!.transactions
+      .filter(
+        (tx) =>
+          tx.budgetLineId === budgetLineId &&
+          tx.checkedAt != null &&
+          (tx.kind === 'expense' || tx.kind === 'saving'),
+      )
+      .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+
+    const envelopeAmount = Math.abs(budgetLine.amount);
+    if (envelopeAmount <= consumed || consumed === 0) return;
+
+    this.#snackBar.open(
+      `Comptabilisé ${envelopeAmount} CHF (enveloppe)`,
+      undefined,
+      { duration: 3000 },
+    );
   }
 
   async handleToggleTransactionCheck(transactionId: string): Promise<void> {
