@@ -50,7 +50,8 @@ actor APIClient {
     func request<T: Decodable>(
         _ endpoint: Endpoint,
         body: Encodable? = nil,
-        method: HTTPMethod? = nil
+        method: HTTPMethod? = nil,
+        isRetry: Bool = false
     ) async throws -> T {
         var request = endpoint.urlRequest(baseURL: baseURL)
 
@@ -72,7 +73,7 @@ actor APIClient {
 
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
-        return try await performRequest(request, endpoint: endpoint, body: body)
+        return try await performRequest(request, endpoint: endpoint, body: body, isRetry: isRetry)
     }
 
     /// Perform a request without response body
@@ -117,10 +118,11 @@ actor APIClient {
             throw APIError.invalidResponse
         }
 
-        // Handle 401 - try token refresh
+        // Handle 401 - try token refresh (once only to prevent infinite retry loop)
         if httpResponse.statusCode == 401 {
+            guard !isRetry else { throw APIError.unauthorized }
             if try await refreshTokenAndRetry() {
-                try await requestVoid(endpoint, body: body, method: method)
+                try await requestVoid(endpoint, body: body, method: method, isRetry: true)
                 return
             }
             throw APIError.unauthorized
@@ -161,10 +163,11 @@ actor APIClient {
         logRequest(request, response: httpResponse, data: data)
         #endif
 
-        // Handle 401 - try token refresh
+        // Handle 401 - try token refresh (once only to prevent infinite retry loop)
         if httpResponse.statusCode == 401 {
+            guard !isRetry else { throw APIError.unauthorized }
             if try await refreshTokenAndRetry() {
-                return try await self.request(endpoint, body: body)
+                return try await self.request(endpoint, body: body, isRetry: true)
             }
             throw APIError.unauthorized
         }
