@@ -185,27 +185,23 @@ export class BudgetFormulas {
   ): number {
     let total = 0;
 
-    // Pour chaque prévision cochée de type expense/saving, utiliser max(enveloppe, consommé)
     budgetLines.forEach((line) => {
-      if (
-        line.checkedAt != null &&
-        (line.kind === 'expense' || line.kind === 'saving')
-      ) {
-        // Ignorer les lignes virtuelles de rollover
-        if (line.isRollover) return;
+      if (line.kind !== 'expense' && line.kind !== 'saving') return;
+      if (line.isRollover) return;
 
-        // Calculer le montant consommé par les transactions cochées allouées
-        const consumed = transactions
-          .filter(
-            (tx) =>
-              tx.budgetLineId === line.id &&
-              tx.checkedAt != null &&
-              (tx.kind === 'expense' || tx.kind === 'saving'),
-          )
-          .reduce((sum, tx) => sum + tx.amount, 0);
+      const consumed = transactions
+        .filter(
+          (tx) =>
+            tx.budgetLineId === line.id &&
+            tx.checkedAt != null &&
+            (tx.kind === 'expense' || tx.kind === 'saving'),
+        )
+        .reduce((sum, tx) => sum + tx.amount, 0);
 
-        const effectiveAmount = Math.max(line.amount, consumed);
-        total += effectiveAmount;
+      if (line.checkedAt != null) {
+        total += Math.max(line.amount, consumed);
+      } else {
+        total += consumed;
       }
     });
 

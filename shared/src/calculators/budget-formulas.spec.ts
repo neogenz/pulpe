@@ -456,7 +456,7 @@ describe('BudgetFormulas', () => {
       expect(result).toBe(100);
     });
 
-    it('should not count unchecked budget lines', () => {
+    it('should count checked allocated transactions even with unchecked parent', () => {
       const budgetLines = [
         createBudgetLineWithId('line-1', 'expense', 100, null), // unchecked
       ];
@@ -474,8 +474,8 @@ describe('BudgetFormulas', () => {
         transactions,
       );
 
-      // Unchecked envelope shouldn't contribute, even with checked transactions
-      expect(result).toBe(0);
+      // Unchecked envelope but checked transaction → count transaction
+      expect(result).toBe(50);
     });
 
     it('should count free checked transactions directly (AC3)', () => {
@@ -626,18 +626,18 @@ describe('BudgetFormulas', () => {
       expect(result).not.toBe(naiveResult);
     });
 
-    it('should handle checked allocated transactions with unchecked parent', () => {
-      // Edge case: transaction is checked but parent envelope is not
+    it('should count only checked transactions when parent is unchecked', () => {
       const budgetLines = [
-        createBudgetLineWithId('line-1', 'expense', 100, null), // unchecked
+        createBudgetLineWithId('line-1', 'expense', 500, null), // unchecked
       ];
       const transactions = [
         createTransactionWithBudgetLineId(
           'expense',
-          50,
+          200,
           '2025-01-16',
           'line-1',
         ), // checked
+        createTransactionWithBudgetLineId('expense', 150, null, 'line-1'), // unchecked
       ];
 
       const result = BudgetFormulas.calculateRealizedExpenses(
@@ -645,8 +645,31 @@ describe('BudgetFormulas', () => {
         transactions,
       );
 
-      // Unchecked parent = not counted, even with checked allocated transactions
-      expect(result).toBe(0);
+      // Unchecked parent → only checked transactions count (not envelope)
+      expect(result).toBe(200);
+    });
+
+    it('should use max(envelope, consumed) when parent is then checked', () => {
+      const budgetLines = [
+        createBudgetLineWithId('line-1', 'expense', 500, '2025-01-20'), // checked
+      ];
+      const transactions = [
+        createTransactionWithBudgetLineId(
+          'expense',
+          200,
+          '2025-01-16',
+          'line-1',
+        ), // checked
+        createTransactionWithBudgetLineId('expense', 150, null, 'line-1'), // unchecked
+      ];
+
+      const result = BudgetFormulas.calculateRealizedExpenses(
+        budgetLines,
+        transactions,
+      );
+
+      // Checked parent → max(500, 200) = 500
+      expect(result).toBe(500);
     });
 
     it('should use envelope amount when budget line is checked but allocated transactions are unchecked', () => {

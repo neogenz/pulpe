@@ -187,18 +187,72 @@ final class BudgetFormulasTests: XCTestCase {
         XCTAssertEqual(result, 3000, "Only checked items should be counted in realized income")
     }
 
-    func testCalculateRealizedExpenses_onlyCountsCheckedItems() {
-        // Arrange
+    func testCalculateRealizedExpenses_checkedEnvelopeUsesMaxOfEnvelopeAndConsumed() {
+        let lines = [
+            TestDataFactory.createBudgetLine(id: "1", amount: 500, kind: .expense, isChecked: true)
+        ]
+        let transactions = [
+            TestDataFactory.createTransaction(id: "tx-1", budgetLineId: "1", amount: 200, kind: .expense, isChecked: true),
+            TestDataFactory.createTransaction(id: "tx-2", budgetLineId: "1", amount: 150, kind: .expense, isChecked: true)
+        ]
+
+        let result = BudgetFormulas.calculateRealizedExpenses(budgetLines: lines, transactions: transactions)
+
+        // max(500, 350) = 500
+        XCTAssertEqual(result, 500)
+    }
+
+    func testCalculateRealizedExpenses_uncheckedParentCountsCheckedTransactions() {
+        let lines = [
+            TestDataFactory.createBudgetLine(id: "1", amount: 500, kind: .expense, isChecked: false)
+        ]
+        let transactions = [
+            TestDataFactory.createTransaction(id: "tx-1", budgetLineId: "1", amount: 200, kind: .expense, isChecked: true),
+            TestDataFactory.createTransaction(id: "tx-2", budgetLineId: "1", amount: 150, kind: .expense, isChecked: false)
+        ]
+
+        let result = BudgetFormulas.calculateRealizedExpenses(budgetLines: lines, transactions: transactions)
+
+        // Unchecked parent → only checked transactions count
+        XCTAssertEqual(result, 200)
+    }
+
+    func testCalculateRealizedExpenses_checkedParentUsesMaxWhenTransactionsExceedEnvelope() {
+        let lines = [
+            TestDataFactory.createBudgetLine(id: "1", amount: 100, kind: .expense, isChecked: true)
+        ]
+        let transactions = [
+            TestDataFactory.createTransaction(id: "tx-1", budgetLineId: "1", amount: 150, kind: .expense, isChecked: true)
+        ]
+
+        let result = BudgetFormulas.calculateRealizedExpenses(budgetLines: lines, transactions: transactions)
+
+        // max(100, 150) = 150
+        XCTAssertEqual(result, 150)
+    }
+
+    func testCalculateRealizedExpenses_freeTransactionsCountedDirectly() {
+        let lines: [BudgetLine] = []
+        let transactions = [
+            TestDataFactory.createTransaction(id: "tx-1", amount: 50, kind: .expense, isChecked: true),
+            TestDataFactory.createTransaction(id: "tx-2", amount: 30, kind: .expense, isChecked: true)
+        ]
+
+        let result = BudgetFormulas.calculateRealizedExpenses(budgetLines: lines, transactions: transactions)
+
+        XCTAssertEqual(result, 80)
+    }
+
+    func testCalculateRealizedExpenses_checkedEnvelopeWithoutTransactions() {
         let lines = [
             TestDataFactory.createBudgetLine(id: "1", amount: 800, kind: .expense, isChecked: true),
             TestDataFactory.createBudgetLine(id: "2", amount: 200, kind: .expense, isChecked: false)
         ]
 
-        // Act
         let result = BudgetFormulas.calculateRealizedExpenses(budgetLines: lines)
 
-        // Assert
-        XCTAssertEqual(result, 800, "Only checked items should be counted in realized expenses")
+        // Checked: max(800, 0) = 800. Unchecked with no transactions: 0
+        XCTAssertEqual(result, 800)
     }
 
     func testCalculateRealizedBalance_correctlyCalculatesDifference() {
