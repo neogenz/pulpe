@@ -276,7 +276,7 @@ struct BudgetDetailsView: View {
                         transactions: viewModel.transactions,
                         syncingIds: viewModel.syncingBudgetLineIds,
                         onToggle: { line in
-                            Task { await viewModel.toggleBudgetLine(line) }
+                            Task { await viewModel.toggleBudgetLine(line, toastManager: appState.toastManager) }
                         },
                         onDelete: { line in
                             Task { await viewModel.deleteBudgetLine(line) }
@@ -368,11 +368,8 @@ final class BudgetDetailsViewModel {
     private let budgetService = BudgetService.shared
     private let budgetLineService = BudgetLineService.shared
     private let transactionService = TransactionService.shared
-    private let toastManager: ToastManager
-
-    init(budgetId: String, toastManager: ToastManager = AppState.shared.toastManager) {
+    init(budgetId: String) {
         self.budgetId = budgetId
-        self.toastManager = toastManager
         // Load persisted filter preference (default: show only unchecked)
         let showOnlyUnchecked = UserDefaults.standard.object(forKey: BudgetDetailsUserDefaultsKey.showOnlyUnchecked) as? Bool ?? true
         self.checkedFilter = showOnlyUnchecked ? .unchecked : .all
@@ -544,7 +541,7 @@ final class BudgetDetailsViewModel {
         nextBudgetId = currentIndex < sorted.count - 1 ? sorted[currentIndex + 1].id : nil
     }
 
-    func toggleBudgetLine(_ line: BudgetLine) async {
+    func toggleBudgetLine(_ line: BudgetLine, toastManager: ToastManager) async {
         guard !(line.isRollover ?? false) else { return }
         guard !syncingBudgetLineIds.contains(line.id) else { return }
 
