@@ -288,9 +288,9 @@ test.describe('Vault Code', () => {
       await vaultCodePage.gotoRecover();
 
       const recoveryInput = page.getByTestId('recovery-key-input');
-      await recoveryInput.fill('abcd1234efgh');
+      await recoveryInput.fill('abcd2345efgh');
 
-      await expect(recoveryInput).toHaveValue('ABCD-1234-EFGH');
+      await expect(recoveryInput).toHaveValue('ABCD-2345-EFGH');
     });
 
     test('shows error on invalid recovery key (400)', async ({ page, vaultCodePage }) => {
