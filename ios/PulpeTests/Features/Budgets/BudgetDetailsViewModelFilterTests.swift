@@ -217,3 +217,240 @@ final class BudgetDetailsFilterLogicTests: XCTestCase {
     }
 
 }
+
+// MARK: - Search Filter Tests
+
+/// Tests for search filtering on budget lines and free transactions
+/// Verifies that search matches by name (partial, case-insensitive) and by amount
+final class BudgetDetailsSearchFilterTests: XCTestCase {
+
+    // MARK: - Test Data
+
+    private let loyer = TestDataFactory.createBudgetLine(
+        id: "line-1", name: "Loyer appartement", amount: 1500, kind: .expense
+    )
+    private let courses = TestDataFactory.createBudgetLine(
+        id: "line-2", name: "Courses alimentaires", amount: 350, kind: .expense
+    )
+    private let salaire = TestDataFactory.createBudgetLine(
+        id: "line-3", name: "Salaire mensuel", amount: 5000, kind: .income
+    )
+    private let epargne = TestDataFactory.createBudgetLine(
+        id: "line-4", name: "Épargne retraite", amount: 200, kind: .saving
+    )
+
+    private lazy var allLines: [BudgetLine] = [loyer, courses, salaire, epargne]
+
+    private let txCoop = TestDataFactory.createTransaction(
+        id: "tx-1", name: "Coop Pronto", amount: 45
+    )
+    private let txMigros = TestDataFactory.createTransaction(
+        id: "tx-2", name: "Migros Zürich", amount: 150
+    )
+    private let txSbb = TestDataFactory.createTransaction(
+        id: "tx-3", name: "CFF abonnement", amount: 340
+    )
+
+    private lazy var allFreeTransactions: [Transaction] = [txCoop, txMigros, txSbb]
+
+    // MARK: - CA7: Empty search returns all items
+
+    func testSearchBudgetLines_emptyText_returnsAll() {
+        // Given: Budget lines and empty search text
+
+        // When: Filtering with empty search
+        let result = filterLines(allLines, searchText: "", transactions: [])
+
+        // Then: All lines are returned
+        XCTAssertEqual(result.count, allLines.count)
+    }
+
+    func testSearchFreeTransactions_emptyText_returnsAll() {
+        // Given: Free transactions and empty search text
+
+        // When: Filtering with empty search
+        let result = filterFreeTransactions(allFreeTransactions, searchText: "")
+
+        // Then: All transactions are returned
+        XCTAssertEqual(result.count, allFreeTransactions.count)
+    }
+
+    // MARK: - CA3: Name matching (partial, case-insensitive)
+
+    func testSearchBudgetLines_partialName_matchesSubstring() {
+        // Given: Lines including "Loyer appartement"
+
+        // When: Searching for partial name "loy"
+        let result = filterLines(allLines, searchText: "loy", transactions: [])
+
+        // Then: Only loyer is matched
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result.first?.id, "line-1")
+    }
+
+    func testSearchBudgetLines_caseInsensitive_matchesRegardlessOfCase() {
+        // Given: Lines including "Salaire mensuel"
+
+        // When: Searching with different case "SALAIRE"
+        let result = filterLines(allLines, searchText: "SALAIRE", transactions: [])
+
+        // Then: Salaire line is matched
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result.first?.id, "line-3")
+    }
+
+    func testSearchBudgetLines_accentInsensitive_matchesWithoutAccent() {
+        // Given: Lines including "Épargne retraite"
+
+        // When: Searching without accent "epargne"
+        let result = filterLines(allLines, searchText: "epargne", transactions: [])
+
+        // Then: Epargne line is matched
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result.first?.id, "line-4")
+    }
+
+    func testSearchFreeTransactions_partialName_matchesSubstring() {
+        // Given: Transactions including "Migros Zürich"
+
+        // When: Searching for "migros"
+        let result = filterFreeTransactions(allFreeTransactions, searchText: "migros")
+
+        // Then: Migros transaction is matched
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result.first?.id, "tx-2")
+    }
+
+    // MARK: - CA4: Amount matching
+
+    func testSearchBudgetLines_amount_matchesExactAmount() {
+        // Given: Lines with various amounts (1500, 350, 5000, 200)
+
+        // When: Searching for "1500"
+        let result = filterLines(allLines, searchText: "1500", transactions: [])
+
+        // Then: Loyer (amount 1500) is matched
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result.first?.id, "line-1")
+    }
+
+    func testSearchBudgetLines_partialAmount_matchesContainedDigits() {
+        // Given: Lines with amounts 1500, 350, 5000, 200
+
+        // When: Searching for "50" (contained in 1500, 350, 5000)
+        let result = filterLines(allLines, searchText: "50", transactions: [])
+
+        // Then: Lines with "50" in their amount string are matched
+        XCTAssertTrue(result.contains { $0.id == "line-1" }, "1500 contains '50'")
+        XCTAssertTrue(result.contains { $0.id == "line-2" }, "350 contains '50'")
+        XCTAssertTrue(result.contains { $0.id == "line-3" }, "5000 contains '50'")
+    }
+
+    func testSearchFreeTransactions_amount_matchesExactAmount() {
+        // Given: Transactions with amounts 45, 150, 340
+
+        // When: Searching for "150"
+        let result = filterFreeTransactions(allFreeTransactions, searchText: "150")
+
+        // Then: Migros transaction (amount 150) is matched
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result.first?.id, "tx-2")
+    }
+
+    func testSearchFreeTransactions_partialAmount_matchesContainedDigits() {
+        // Given: Transactions with amounts 45, 150, 340
+
+        // When: Searching for "4" (contained in 45 and 340)
+        let result = filterFreeTransactions(allFreeTransactions, searchText: "4")
+
+        // Then: Transactions with "4" in amount are matched
+        XCTAssertTrue(result.contains { $0.id == "tx-1" }, "45 contains '4'")
+        XCTAssertTrue(result.contains { $0.id == "tx-3" }, "340 contains '4'")
+    }
+
+    // MARK: - CA4: Linked transaction name matching
+
+    func testSearchBudgetLines_matchesLinkedTransactionName() {
+        // Given: A budget line with a linked transaction
+        let line = TestDataFactory.createBudgetLine(id: "line-x", name: "Courses", amount: 300)
+        let linkedTx = TestDataFactory.createTransaction(
+            id: "tx-linked", budgetLineId: "line-x", name: "Migros Lausanne", amount: 55
+        )
+
+        // When: Searching for the transaction name "Migros"
+        let result = filterLines([line], searchText: "Migros", transactions: [linkedTx])
+
+        // Then: The parent line is matched via its linked transaction
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result.first?.id, "line-x")
+    }
+
+    func testSearchBudgetLines_matchesLinkedTransactionAmount() {
+        // Given: A budget line with a linked transaction whose amount doesn't match the line
+        let line = TestDataFactory.createBudgetLine(id: "line-x", name: "Courses", amount: 300)
+        let linkedTx = TestDataFactory.createTransaction(
+            id: "tx-linked", budgetLineId: "line-x", name: "Migros Lausanne", amount: 55
+        )
+
+        // When: Searching for the transaction amount "55"
+        let result = filterLines([line], searchText: "55", transactions: [linkedTx])
+
+        // Then: The parent line is matched via its linked transaction amount
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result.first?.id, "line-x")
+    }
+
+    // MARK: - CA6: No match returns empty
+
+    func testSearchBudgetLines_noMatch_returnsEmpty() {
+        // Given: Lines with names and amounts that don't contain "xyz"
+
+        // When: Searching for "xyz"
+        let result = filterLines(allLines, searchText: "xyz", transactions: [])
+
+        // Then: No results
+        XCTAssertTrue(result.isEmpty)
+    }
+
+    func testSearchFreeTransactions_noMatch_returnsEmpty() {
+        // Given: Transactions that don't match "zzz999"
+
+        // When: Searching for "zzz999"
+        let result = filterFreeTransactions(allFreeTransactions, searchText: "zzz999")
+
+        // Then: No results
+        XCTAssertTrue(result.isEmpty)
+    }
+
+    // MARK: - Test Helpers
+
+    /// Replicates BudgetDetailsViewModel.filteredLines(_:searchText:)
+    private func filterLines(
+        _ lines: [BudgetLine],
+        searchText: String,
+        transactions: [Transaction]
+    ) -> [BudgetLine] {
+        guard !searchText.isEmpty else { return lines }
+        return lines.filter { line in
+            line.name.localizedStandardContains(searchText) ||
+                "\(line.amount)".contains(searchText) ||
+                transactions.contains {
+                    $0.budgetLineId == line.id &&
+                        ($0.name.localizedStandardContains(searchText) ||
+                         "\($0.amount)".contains(searchText))
+                }
+        }
+    }
+
+    /// Replicates BudgetDetailsViewModel.filteredFreeTransactions(searchText:)
+    private func filterFreeTransactions(
+        _ transactions: [Transaction],
+        searchText: String
+    ) -> [Transaction] {
+        guard !searchText.isEmpty else { return transactions }
+        return transactions.filter {
+            $0.name.localizedStandardContains(searchText) ||
+                "\($0.amount)".contains(searchText)
+        }
+    }
+}
