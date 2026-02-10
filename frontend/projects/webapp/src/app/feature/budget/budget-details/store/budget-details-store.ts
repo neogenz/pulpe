@@ -259,16 +259,23 @@ export class BudgetDetailsStore {
     const search = normalizeText(this.#searchText());
     if (!search) return lines;
     const transactions = this.budgetDetails()?.transactions ?? [];
+
+    const budgetLineIdsWithMatchingTx = new Set(
+      transactions
+        .filter(
+          (tx) =>
+            tx.budgetLineId &&
+            (normalizeText(tx.name).includes(search) ||
+              String(tx.amount).includes(search)),
+        )
+        .map((tx) => tx.budgetLineId),
+    );
+
     return lines.filter(
       (line) =>
         normalizeText(line.name).includes(search) ||
         String(line.amount).includes(search) ||
-        transactions.some(
-          (tx) =>
-            tx.budgetLineId === line.id &&
-            (normalizeText(tx.name).includes(search) ||
-              String(tx.amount).includes(search)),
-        ),
+        budgetLineIdsWithMatchingTx.has(line.id),
     );
   });
 
