@@ -109,7 +109,7 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
       );
     });
 
-    it('should pass amount as-is to transaction', () => {
+    it('should apply Math.abs on amount', () => {
       const midMonth = new Date(
         new Date().getFullYear(),
         new Date().getMonth(),

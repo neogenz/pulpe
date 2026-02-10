@@ -40,6 +40,8 @@ import {
 } from './budget-details-check.utils';
 import { createInitialBudgetDetailsState } from './budget-details-state';
 
+const TEMP_ID_PREFIX = 'temp-';
+
 /**
  * Signal-based store for budget details state management
  * Follows the reactive patterns with single state signal and resource separation
@@ -57,7 +59,6 @@ export class BudgetDetailsStore {
    */
   readonly #mutations$ = new Subject<() => Observable<unknown>>();
 
-  // Single source of truth - private state signal for non-resource data
   readonly #state = createInitialBudgetDetailsState();
 
   // Filter state - show only unchecked items by default
@@ -135,7 +136,6 @@ export class BudgetDetailsStore {
     },
   });
 
-  // Computed pour l'état dérivé
   readonly budgetDetails = computed(
     () => this.#budgetDetailsResource.value() ?? null,
   );
@@ -186,7 +186,6 @@ export class BudgetDetailsStore {
     const details = this.budgetDetails();
     if (!details) return [];
 
-    const lines = [...details.budgetLines];
     const rollover = details.rollover;
     const previousBudgetId = details.previousBudgetId;
 
@@ -203,11 +202,10 @@ export class BudgetDetailsStore {
       // Apply local checked state for rollover
       rolloverLine.checkedAt = this.#state.rolloverCheckedAt();
 
-      // Add rollover at the beginning of the list
-      lines.unshift(rolloverLine);
+      return [rolloverLine, ...details.budgetLines];
     }
 
-    return lines;
+    return [...details.budgetLines];
   });
 
   readonly realizedBalance = computed<number>(() => {
@@ -219,9 +217,6 @@ export class BudgetDetailsStore {
     );
   });
 
-  /**
-   * Dépenses réalisées (uniquement les éléments cochés)
-   */
   readonly realizedExpenses = computed<number>(() => {
     if (!this.#budgetDetailsResource.hasValue()) return 0;
     const details = this.#budgetDetailsResource.value();
@@ -231,9 +226,6 @@ export class BudgetDetailsStore {
     );
   });
 
-  /**
-   * Nombre d'éléments cochés (budget lines + transactions)
-   */
   readonly checkedItemsCount = computed<number>(() => {
     if (!this.#budgetDetailsResource.hasValue()) return 0;
     const details = this.#budgetDetailsResource.value();
@@ -243,9 +235,6 @@ export class BudgetDetailsStore {
       .length;
   });
 
-  /**
-   * Nombre total d'éléments (budget lines + transactions)
-   */
   readonly totalItemsCount = computed<number>(() => {
     if (!this.#budgetDetailsResource.hasValue()) return 0;
     const details = this.#budgetDetailsResource.value();
@@ -311,7 +300,7 @@ export class BudgetDetailsStore {
    * Create a new budget line with optimistic updates
    */
   async createBudgetLine(budgetLine: BudgetLineCreate): Promise<void> {
-    const newId = `temp-${uuidv4()}`;
+    const newId = `${TEMP_ID_PREFIX}${uuidv4()}`;
 
     // Create temporary budget line for optimistic update
     const tempBudgetLine: BudgetLine = {
@@ -454,19 +443,12 @@ export class BudgetDetailsStore {
 
   /**
    * Create an allocated transaction with optimistic updates
-   * New transactions always start unchecked; if parent was checked, uncheck it
+   * New transactions always start unchecked
    */
   async createAllocatedTransaction(
     transactionData: TransactionCreate,
   ): Promise<void> {
-    const newId = `temp-${uuidv4()}`;
-    const details = this.budgetDetails();
-
-    const parentBudgetLine = details?.budgetLines.find(
-      (line) => line.id === transactionData.budgetLineId,
-    );
-    const shouldUncheckParent =
-      parentBudgetLine != null && parentBudgetLine.checkedAt !== null;
+    const newId = `${TEMP_ID_PREFIX}${uuidv4()}`;
 
     // Create temporary transaction for optimistic update
     const tempTransaction: Transaction = {
@@ -484,26 +466,11 @@ export class BudgetDetailsStore {
       checkedAt: null,
     };
 
-    // Optimistic update - add the new transaction and uncheck parent if needed
     this.#budgetDetailsResource.update((details) => {
       if (!details) return details;
 
-      const updatedBudgetLines =
-        shouldUncheckParent && parentBudgetLine
-          ? details.budgetLines.map((line) =>
-              line.id === parentBudgetLine.id
-                ? {
-                    ...line,
-                    checkedAt: null,
-                    updatedAt: new Date().toISOString(),
-                  }
-                : line,
-            )
-          : details.budgetLines;
-
       return {
         ...details,
-        budgetLines: updatedBudgetLines,
         transactions: [...(details.transactions ?? []), tempTransaction],
       };
     });
@@ -516,8 +483,6 @@ export class BudgetDetailsStore {
         }),
       );
 
-      // Replace temporary transaction with server response BEFORE toggling parent
-      // to avoid cascade toggle-check calls using the temp ID (which doesn't exist on backend)
       this.#budgetDetailsResource.update((details) => {
         if (!details) return details;
 
@@ -528,13 +493,6 @@ export class BudgetDetailsStore {
           ),
         };
       });
-
-      // Uncheck parent budget line on backend if it was checked
-      if (shouldUncheckParent && parentBudgetLine) {
-        await this.#enqueueMutation(() =>
-          this.#budgetLineApi.toggleCheck$(parentBudgetLine.id),
-        );
-      }
 
       this.#clearError();
     } catch (error) {
@@ -580,24 +538,24 @@ export class BudgetDetailsStore {
     }
   }
 
-  async toggleCheck(id: string): Promise<void> {
+  async toggleCheck(id: string): Promise<boolean> {
     if (id === 'rollover-display') {
       const currentCheckedAt = this.#state.rolloverCheckedAt();
       this.#state.rolloverCheckedAt.set(
         currentCheckedAt === null ? new Date().toISOString() : null,
       );
-      return;
+      return true;
     }
 
     const details = this.budgetDetails();
-    if (!details) return;
+    if (!details) return false;
 
     const result = calculateBudgetLineToggle(id, {
       budgetLines: details.budgetLines,
       transactions: details.transactions ?? [],
     });
 
-    if (!result) return;
+    if (!result) return false;
 
     this.#budgetDetailsResource.update((d) => {
       if (!d) return d;
@@ -613,28 +571,24 @@ export class BudgetDetailsStore {
         this.#budgetLineApi.toggleCheck$(id),
       );
 
-      // Execute transaction toggles sequentially through the mutation queue
-      for (const tx of result.transactionsToToggle) {
-        await this.#enqueueMutation(() =>
-          this.#transactionApi.toggleCheck$(tx.id),
-        );
-      }
-
+      const updatedLine = response.data;
       this.#budgetDetailsResource.update((d) => {
         if (!d) return d;
         return {
           ...d,
           budgetLines: d.budgetLines.map((line) =>
-            line.id === id ? response.data : line,
+            line.id === id ? updatedLine : line,
           ),
         };
       });
 
       this.#clearError();
+      return true;
     } catch (error) {
       this.reloadBudgetDetails();
       this.#setError('Erreur lors du basculement du statut de la prévision');
       this.#logger.error('Error toggling budget line check', error);
+      return false;
     }
   }
 
@@ -653,7 +607,6 @@ export class BudgetDetailsStore {
       if (!d) return d;
       return {
         ...d,
-        budgetLines: result.updatedBudgetLines,
         transactions: result.updatedTransactions,
       };
     });
@@ -662,12 +615,6 @@ export class BudgetDetailsStore {
       const response = await this.#enqueueMutation(() =>
         this.#transactionApi.toggleCheck$(id),
       );
-
-      if (result.shouldToggleBudgetLine && result.budgetLineId) {
-        await this.#enqueueMutation(() =>
-          this.#budgetLineApi.toggleCheck$(result.budgetLineId!),
-        );
-      }
 
       this.#budgetDetailsResource.update((d) => {
         if (!d) return d;
@@ -684,6 +631,53 @@ export class BudgetDetailsStore {
       this.reloadBudgetDetails();
       this.#setError('Erreur lors du basculement du statut de la transaction');
       this.#logger.error('Error toggling transaction check', error);
+    }
+  }
+
+  async checkAllAllocatedTransactions(budgetLineId: string): Promise<void> {
+    const details = this.budgetDetails();
+    if (!details) return;
+
+    const uncheckedTransactions = (details.transactions ?? []).filter(
+      (tx) =>
+        tx.budgetLineId === budgetLineId &&
+        tx.checkedAt === null &&
+        !tx.id.startsWith(TEMP_ID_PREFIX),
+    );
+    if (uncheckedTransactions.length === 0) return;
+
+    const now = new Date().toISOString();
+    const uncheckedIds = new Set(uncheckedTransactions.map((tx) => tx.id));
+    this.#budgetDetailsResource.update((d) => {
+      if (!d) return d;
+      return {
+        ...d,
+        transactions: (d.transactions ?? []).map((tx) =>
+          uncheckedIds.has(tx.id) ? { ...tx, checkedAt: now } : tx,
+        ),
+      };
+    });
+
+    try {
+      const response = await this.#enqueueMutation(() =>
+        this.#budgetLineApi.checkTransactions$(budgetLineId),
+      );
+
+      const responseMap = new Map(response.data.map((tx) => [tx.id, tx]));
+      this.#budgetDetailsResource.update((d) => {
+        if (!d) return d;
+        return {
+          ...d,
+          transactions: (d.transactions ?? []).map((tx) =>
+            responseMap.has(tx.id) ? responseMap.get(tx.id)! : tx,
+          ),
+        };
+      });
+      this.#clearError();
+    } catch (error) {
+      this.reloadBudgetDetails();
+      this.#setError('Erreur lors de la comptabilisation des transactions');
+      this.#logger.error('Error checking all allocated transactions', error);
     }
   }
 

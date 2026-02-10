@@ -141,4 +141,21 @@ export class BudgetDetailsDialogService {
     const confirmed = await firstValueFrom(dialogRef.afterClosed());
     return confirmed === true;
   }
+
+  async confirmCheckAllocatedTransactions(): Promise<boolean> {
+    const dialogRef = this.#dialog.open(ConfirmationDialog, {
+      data: {
+        title: 'Comptabiliser les transactions ?',
+        message:
+          'Des transactions non comptabilisées sont liées à cette enveloppe. Voulez-vous toutes les comptabiliser ?',
+        confirmText: 'Oui, tout comptabiliser',
+        cancelText: "Non, juste l'enveloppe",
+      } satisfies ConfirmationDialogData,
+      width: '500px',
+      maxWidth: '90vw',
+    });
+
+    const confirmed = await firstValueFrom(dialogRef.afterClosed());
+    return confirmed === true;
+  }
 }

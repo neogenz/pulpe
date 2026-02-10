@@ -10,8 +10,10 @@ import {
   type BudgetLineResponse,
   type BudgetLineUpdate,
   type BudgetLineDeleteResponse,
+  type TransactionListResponse,
 } from 'pulpe-shared';
 import * as budgetLineMappers from './budget-line.mappers';
+import * as transactionMappers from '../transaction/transaction.mappers';
 import type { Database } from '../../types/database.types';
 import { BudgetService } from '../budget/budget.service';
 
@@ -532,19 +534,26 @@ export class BudgetLineService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
     try {
-      const budgetLine = await this.fetchBudgetLineById(id, user, supabase);
+      const { data: updatedBudgetLine, error } = await supabase
+        .rpc('toggle_budget_line_check', {
+          p_budget_line_id: id,
+        })
+        .single();
 
-      const updateData = {
-        checked_at: budgetLine.checked_at ? null : new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      const updatedBudgetLine = await this.updateBudgetLineInDb(
-        id,
-        updateData,
-        supabase,
-        user,
-      );
+      if (error || !updatedBudgetLine) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+          undefined,
+          {
+            operation: 'toggleCheck',
+            userId: user.id,
+            entityId: id,
+            entityType: 'budget_line',
+            supabaseError: error,
+          },
+          { cause: error },
+        );
+      }
 
       return {
         success: true,
@@ -557,6 +566,51 @@ export class BudgetLineService {
         { id },
         {
           operation: 'toggleCheck',
+          userId: user.id,
+          entityId: id,
+          entityType: 'budget_line',
+        },
+      );
+    }
+  }
+
+  async checkTransactions(
+    id: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<TransactionListResponse> {
+    try {
+      const { data: updatedTransactions, error } = await supabase.rpc(
+        'check_unchecked_transactions',
+        { p_budget_line_id: id },
+      );
+
+      if (error) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+          undefined,
+          {
+            operation: 'checkTransactions',
+            userId: user.id,
+            entityId: id,
+            entityType: 'budget_line',
+            supabaseError: error,
+          },
+          { cause: error },
+        );
+      }
+
+      return {
+        success: true,
+        data: transactionMappers.toApiList(updatedTransactions ?? []),
+      };
+    } catch (error) {
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+        { id },
+        {
+          operation: 'checkTransactions',
           userId: user.id,
           entityId: id,
           entityType: 'budget_line',

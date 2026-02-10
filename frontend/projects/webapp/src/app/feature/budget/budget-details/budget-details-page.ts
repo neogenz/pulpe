@@ -32,6 +32,7 @@ import { BudgetLineApi } from './budget-line-api/budget-line-api';
 import { BudgetItemsContainer } from './budget-items-container';
 import { BudgetFinancialOverview } from './budget-financial-overview';
 import { BudgetDetailsDialogService } from './budget-details-dialog.service';
+import { determineCheckBehavior } from './store/budget-details-check.utils';
 import {
   type BudgetLineCreate,
   type BudgetLineUpdate,
@@ -39,6 +40,10 @@ import {
   type Transaction,
   formatBudgetPeriod,
 } from 'pulpe-shared';
+import {
+  computeEnvelopeSnackbarMessage,
+  computeTransactionSnackbarMessage,
+} from './budget-details-snackbar.utils';
 import { UserSettingsApi } from '@core/user-settings/user-settings-api';
 
 @Component({
@@ -63,8 +68,8 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class BudgetDetailsPage {
-  readonly isDevMode = isDevMode();
-  readonly store = inject(BudgetDetailsStore);
+  protected readonly isDevMode = isDevMode();
+  protected readonly store = inject(BudgetDetailsStore);
   readonly #dialogService = inject(BudgetDetailsDialogService);
   readonly #router = inject(Router);
   readonly #breadcrumbState = inject(BreadcrumbState);
@@ -302,10 +307,57 @@ export default class BudgetDetailsPage {
   }
 
   async handleToggleCheck(budgetLineId: string): Promise<void> {
-    await this.store.toggleCheck(budgetLineId);
+    if (budgetLineId.startsWith('rollover')) {
+      await this.store.toggleCheck(budgetLineId);
+      return;
+    }
+
+    const details = this.store.budgetDetails();
+    if (!details) return;
+
+    const behavior = determineCheckBehavior(
+      budgetLineId,
+      details.budgetLines,
+      details.transactions ?? [],
+    );
+
+    const shouldCascade =
+      behavior === 'ask-cascade' &&
+      (await this.#dialogService.confirmCheckAllocatedTransactions());
+
+    const succeeded = await this.store.toggleCheck(budgetLineId);
+    if (!succeeded) return;
+
+    if (shouldCascade) {
+      await this.store.checkAllAllocatedTransactions(budgetLineId);
+    }
+
+    this.#showEnvelopeSnackbar(budgetLineId);
+  }
+
+  #showEnvelopeSnackbar(budgetLineId: string): void {
+    const details = this.store.budgetDetails();
+    if (!details) return;
+    const message = computeEnvelopeSnackbarMessage(
+      budgetLineId,
+      details.budgetLines,
+      details.transactions,
+    );
+    if (message) this.#snackBar.open(message, undefined, { duration: 3000 });
   }
 
   async handleToggleTransactionCheck(transactionId: string): Promise<void> {
     await this.store.toggleTransactionCheck(transactionId);
+    this.#showTransactionSnackbar(transactionId);
+  }
+
+  #showTransactionSnackbar(transactionId: string): void {
+    const details = this.store.budgetDetails();
+    if (!details) return;
+    const message = computeTransactionSnackbarMessage(
+      transactionId,
+      details.transactions,
+    );
+    if (message) this.#snackBar.open(message, undefined, { duration: 3000 });
   }
 }
