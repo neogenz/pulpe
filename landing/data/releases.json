@@ -7,6 +7,10 @@
     "changes": {
       "features": [
         {
+          "title": "Recherche dans le detail du budget",
+          "description": "Recherchez rapidement une prevision ou transaction dans le detail de votre budget mensuel"
+        },
+        {
           "title": "Restriction des dates de previsions",
           "description": "Les dates de debut et fin des previsions sont desormais limitees a la periode du mois en cours"
         },
