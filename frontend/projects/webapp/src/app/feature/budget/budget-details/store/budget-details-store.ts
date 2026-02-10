@@ -40,6 +40,8 @@ import {
 } from './budget-details-check.utils';
 import { createInitialBudgetDetailsState } from './budget-details-state';
 
+const TEMP_ID_PREFIX = 'temp-';
+
 /**
  * Signal-based store for budget details state management
  * Follows the reactive patterns with single state signal and resource separation
@@ -298,7 +300,7 @@ export class BudgetDetailsStore {
    * Create a new budget line with optimistic updates
    */
   async createBudgetLine(budgetLine: BudgetLineCreate): Promise<void> {
-    const newId = `temp-${uuidv4()}`;
+    const newId = `${TEMP_ID_PREFIX}${uuidv4()}`;
 
     // Create temporary budget line for optimistic update
     const tempBudgetLine: BudgetLine = {
@@ -446,7 +448,7 @@ export class BudgetDetailsStore {
   async createAllocatedTransaction(
     transactionData: TransactionCreate,
   ): Promise<void> {
-    const newId = `temp-${uuidv4()}`;
+    const newId = `${TEMP_ID_PREFIX}${uuidv4()}`;
 
     // Create temporary transaction for optimistic update
     const tempTransaction: Transaction = {
@@ -640,7 +642,7 @@ export class BudgetDetailsStore {
       (tx) =>
         tx.budgetLineId === budgetLineId &&
         tx.checkedAt === null &&
-        !tx.id.startsWith('temp-'),
+        !tx.id.startsWith(TEMP_ID_PREFIX),
     );
     if (uncheckedTransactions.length === 0) return;
 
