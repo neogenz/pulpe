@@ -84,6 +84,19 @@ export function getSignedAmount(kind: TransactionKind, amount: number): number {
   }
 }
 
+const MAX_DISPLAYED_MATCH_NAMES = 3;
+
+export function formatMatchAnnotation(
+  names: string[] | undefined,
+): string | null {
+  if (!names?.length) return null;
+  const displayed = names.slice(0, MAX_DISPLAYED_MATCH_NAMES);
+  const quoted = displayed.map((n) => `« ${n} »`).join(', ');
+  const remaining = names.length - MAX_DISPLAYED_MATCH_NAMES;
+  if (remaining > 0) return `${quoted} +${remaining}`;
+  return quoted;
+}
+
 export function safeParseDate(value: string | null | undefined): number {
   if (!value) return Number.MAX_SAFE_INTEGER;
   const timestamp = Date.parse(value);

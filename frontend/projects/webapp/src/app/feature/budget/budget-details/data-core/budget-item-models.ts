@@ -46,6 +46,8 @@ export interface TableItem {
     envelopeName?: string | null;
     /** Transaction imbriquée sous une enveloppe (pour indentation visuelle) */
     isNestedUnderEnvelope?: boolean;
+    /** Noms des transactions allouées ayant matché la recherche (contexte visuel) */
+    matchingTransactionNames?: string[];
   } & TableItemDisplayMetadata;
 }
 

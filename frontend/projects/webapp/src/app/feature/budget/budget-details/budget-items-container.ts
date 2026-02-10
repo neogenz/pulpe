@@ -213,6 +213,7 @@ export class BudgetItemsContainer {
       budgetLines: this.budgetLines(),
       transactions: this.transactions(),
       viewMode: this.viewMode(),
+      searchText: this.searchText(),
     }),
   );
 

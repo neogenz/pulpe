@@ -2,6 +2,7 @@ import { CurrencyPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   input,
   output,
 } from '@angular/core';
@@ -17,7 +18,7 @@ import { RolloverFormatPipe } from '@app/ui/rollover-format';
 import { type BudgetLine } from 'pulpe-shared';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { RecurrenceLabelPipe } from '@ui/transaction-display';
-import type { BudgetLineTableItem } from '../data-core';
+import { formatMatchAnnotation, type BudgetLineTableItem } from '../data-core';
 import { BudgetProgressBar } from '../components/budget-progress-bar';
 import { BudgetKindIndicator } from '../components/budget-kind-indicator';
 import { BudgetActionMenu } from '../components/budget-action-menu';
@@ -103,6 +104,14 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
             />
           }
         </div>
+
+        @if (matchAnnotation()) {
+          <p
+            class="text-label-small text-on-surface-variant -mt-2 mb-3 ml-8 truncate"
+          >
+            ↳ {{ matchAnnotation() }}
+          </p>
+        }
 
         <!-- Row 2: Amount prominently left-aligned with consumption on right -->
         <div class="flex items-end justify-between mb-4">
@@ -218,6 +227,10 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
 export class BudgetGridMobileCard {
   readonly item = input.required<BudgetLineTableItem>();
   readonly isSelected = input<boolean>(false);
+
+  readonly matchAnnotation = computed(() =>
+    formatMatchAnnotation(this.item().metadata.matchingTransactionNames),
+  );
 
   readonly edit = output<BudgetLineTableItem>();
   readonly delete = output<string>();

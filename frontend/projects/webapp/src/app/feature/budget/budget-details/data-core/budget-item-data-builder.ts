@@ -262,8 +262,9 @@ function mapToTableItems(
 export function buildViewData(params: {
   budgetLines: BudgetLine[];
   transactions: Transaction[];
+  searchText?: string;
 }): TableRowItem[] {
-  const { budgetLines, transactions } = params;
+  const { budgetLines, transactions, searchText } = params;
 
   const consumptionMap = calculateAllConsumptions(budgetLines, transactions);
   const items = [...createDisplayItems(budgetLines, transactions)].sort(
@@ -271,6 +272,24 @@ export function buildViewData(params: {
   );
 
   const mappedItems = mapToTableItems(items, consumptionMap);
+
+  if (searchText) {
+    const search = searchText.toLowerCase();
+    for (const item of mappedItems) {
+      if (item.metadata.itemType !== 'budget_line') continue;
+      const names = transactions
+        .filter(
+          (tx) =>
+            tx.budgetLineId === item.data.id &&
+            (tx.name.toLowerCase().includes(search) ||
+              String(tx.amount).includes(search)),
+        )
+        .map((tx) => tx.name);
+      if (names.length > 0) {
+        item.metadata.matchingTransactionNames = names;
+      }
+    }
+  }
 
   const result = insertGroupHeaders(mappedItems);
   calculateBalancesInDisplayOrder(result, consumptionMap);
