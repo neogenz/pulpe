@@ -12,6 +12,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { SearchBar } from '@ui/index';
 import {
   calculateAllEnrichedConsumptions,
   type BudgetLineConsumption,
@@ -42,6 +43,7 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
   imports: [
     MatButtonModule,
     MatIconModule,
+    SearchBar,
     BudgetGrid,
     BudgetTable,
     BudgetViewToggle,
@@ -63,6 +65,13 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
         }
       </div>
 
+      <!-- Search -->
+      <pulpe-search-bar
+        placeholder="Rechercher une prévision..."
+        [value]="searchText()"
+        (valueChange)="searchTextChange.emit($event)"
+      />
+
       <!-- Filter -->
       <pulpe-budget-table-checked-filter
         [isShowingOnlyUnchecked]="isShowingOnlyUnchecked()"
@@ -72,7 +81,14 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
       />
 
       <!-- Content -->
-      @if (isMobile() || viewMode() === 'envelopes') {
+      @if (budgetTableData().length === 0 && searchText()) {
+        <div
+          class="flex flex-col items-center gap-2 py-8 text-on-surface-variant"
+        >
+          <mat-icon class="!text-5xl !w-12 !h-12">search_off</mat-icon>
+          <p class="text-body-large">Aucune prévision trouvée</p>
+        </div>
+      } @else if (isMobile() || viewMode() === 'envelopes') {
         <pulpe-budget-grid
           [budgetLineItems]="budgetLineItems()"
           [transactionItems]="transactionItems()"
@@ -135,8 +151,10 @@ export class BudgetItemsContainer {
   readonly budgetLines = input.required<BudgetLineViewModel[]>();
   readonly transactions = input.required<TransactionViewModel[]>();
   readonly isShowingOnlyUnchecked = input<boolean>(true);
+  readonly searchText = input('');
 
   // Outputs
+  readonly searchTextChange = output<string>();
   readonly isShowingOnlyUncheckedChange = output<boolean>();
   readonly update = output<BudgetLineUpdate>();
   readonly delete = output<string>();
@@ -173,6 +191,7 @@ export class BudgetItemsContainer {
       budgetLines: this.budgetLines(),
       transactions: this.transactions(),
       viewMode: this.viewMode(),
+      searchText: this.searchText(),
     }),
   );
 

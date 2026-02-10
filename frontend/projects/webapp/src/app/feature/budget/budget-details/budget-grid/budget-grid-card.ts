@@ -2,16 +2,18 @@ import { CurrencyPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   input,
   output,
 } from '@angular/core';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { type BudgetLine } from 'pulpe-shared';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { RecurrenceLabelPipe } from '@ui/transaction-display';
-import type { BudgetLineTableItem } from '../data-core';
+import { formatMatchAnnotation, type BudgetLineTableItem } from '../data-core';
 import { BudgetProgressBar } from '../components/budget-progress-bar';
 import { BudgetKindIndicator } from '../components/budget-kind-indicator';
 import { BudgetActionMenu } from '../components/budget-action-menu';
@@ -36,6 +38,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
   imports: [
     MatBadgeModule,
     MatChipsModule,
+    MatIconModule,
     MatSlideToggleModule,
     CurrencyPipe,
     FinancialKindDirective,
@@ -87,6 +90,17 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
           />
         }
       </div>
+
+      @if (matchAnnotation()) {
+        <div
+          class="-mt-2 mb-3 mx-auto flex items-center gap-1.5 text-body-small
+                 bg-tertiary-container/50 text-on-tertiary-container
+                 rounded-full px-2.5 py-1 w-fit max-w-full"
+        >
+          <mat-icon class="text-sm! shrink-0 h-auto! w-auto!">search</mat-icon>
+          <span class="truncate">{{ matchAnnotation() }}</span>
+        </div>
+      }
 
       <!-- Hero Amount -->
       <div class="text-center mb-4 flex-1 flex flex-col justify-center">
@@ -155,6 +169,10 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
 export class BudgetGridCard {
   readonly item = input.required<BudgetLineTableItem>();
   readonly isSelected = input<boolean>(false);
+
+  readonly matchAnnotation = computed(() =>
+    formatMatchAnnotation(this.item().metadata.matchingTransactionNames),
+  );
 
   readonly cardClick = output<BudgetLineTableItem>();
   readonly edit = output<BudgetLineTableItem>();

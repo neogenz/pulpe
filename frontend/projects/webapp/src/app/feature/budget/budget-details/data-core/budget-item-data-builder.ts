@@ -15,9 +15,11 @@ import {
   getKindIcon,
   getAllocationLabel,
   getTransactionCountLabel,
+  getSignedAmount,
   calculatePercentage,
   getRolloverSourceBudgetId,
   safeParseDate,
+  normalizeText,
 } from './budget-item-constants';
 
 type BudgetItemWithBalance =
@@ -76,18 +78,6 @@ function compareItems(
   return 0;
 }
 
-function getSignedAmount(kind: TransactionKind, amount: number): number {
-  switch (kind) {
-    case 'income':
-      return amount;
-    case 'expense':
-    case 'saving':
-      return -amount;
-    default:
-      return 0;
-  }
-}
-
 function createDisplayItems(
   budgetLines: BudgetLine[],
   transactions: Transaction[],
@@ -114,6 +104,12 @@ function createDisplayItems(
   return items;
 }
 
+function isDataItem(
+  item: TableRowItem,
+): item is BudgetLineTableItem | TransactionTableItem {
+  return item.metadata.itemType !== 'group_header';
+}
+
 function calculateBalancesInDisplayOrder(
   items: TableRowItem[],
   consumptionMap: Map<string, { consumed: number }>,
@@ -121,30 +117,29 @@ function calculateBalancesInDisplayOrder(
   let runningBalance = 0;
 
   items.forEach((item) => {
-    // Skip group headers
-    if (item.metadata.itemType === 'group_header') return;
+    if (!isDataItem(item)) return;
 
-    const dataItem = item as BudgetLineTableItem | TransactionTableItem;
-    const kind = dataItem.data.kind;
-    let effectiveAmount = dataItem.data.amount;
+    const kind = item.data.kind;
+    let effectiveAmount = item.data.amount;
 
-    if (dataItem.metadata.itemType === 'budget_line') {
-      const consumption = consumptionMap.get(dataItem.data.id);
+    if (item.metadata.itemType === 'budget_line') {
+      const consumption = consumptionMap.get(item.data.id);
       if (consumption) {
-        effectiveAmount = Math.max(dataItem.data.amount, consumption.consumed);
+        effectiveAmount = Math.max(item.data.amount, consumption.consumed);
       }
     }
 
     const isAllocatedTransaction =
-      dataItem.metadata.itemType === 'transaction' &&
-      !!(dataItem.data as Transaction).budgetLineId;
+      item.metadata.itemType === 'transaction' &&
+      'budgetLineId' in item.data &&
+      !!item.data.budgetLineId;
 
     if (!isAllocatedTransaction) {
       const signedAmount = getSignedAmount(kind, effectiveAmount);
       runningBalance += signedAmount;
     }
 
-    dataItem.metadata.cumulativeBalance = runningBalance;
+    item.metadata.cumulativeBalance = runningBalance;
   });
 }
 
@@ -171,15 +166,16 @@ function insertGroupHeaders(
     const kindItems = grouped.get(kind);
     if (!kindItems?.length) return;
 
-    result.push({
+    const header: GroupHeaderTableItem = {
       metadata: {
-        itemType: 'group_header',
+        itemType: 'group_header' as const,
         groupKind: kind,
         groupLabel: GROUP_LABELS[kind],
         groupIcon: KIND_ICONS[kind],
         itemCount: kindItems.length,
       },
-    } as GroupHeaderTableItem);
+    };
+    result.push(header);
 
     result.push(...kindItems);
   });
@@ -262,8 +258,9 @@ function mapToTableItems(
 export function buildViewData(params: {
   budgetLines: BudgetLine[];
   transactions: Transaction[];
+  searchText?: string;
 }): TableRowItem[] {
-  const { budgetLines, transactions } = params;
+  const { budgetLines, transactions, searchText } = params;
 
   const consumptionMap = calculateAllConsumptions(budgetLines, transactions);
   const items = [...createDisplayItems(budgetLines, transactions)].sort(
@@ -271,6 +268,24 @@ export function buildViewData(params: {
   );
 
   const mappedItems = mapToTableItems(items, consumptionMap);
+
+  if (searchText) {
+    const search = normalizeText(searchText);
+    for (const item of mappedItems) {
+      if (item.metadata.itemType !== 'budget_line') continue;
+      const names = transactions
+        .filter(
+          (tx) =>
+            tx.budgetLineId === item.data.id &&
+            (normalizeText(tx.name).includes(search) ||
+              String(tx.amount).includes(search)),
+        )
+        .map((tx) => tx.name);
+      if (names.length > 0) {
+        item.metadata.matchingTransactionNames = names;
+      }
+    }
+  }
 
   const result = insertGroupHeaders(mappedItems);
   calculateBalancesInDisplayOrder(result, consumptionMap);

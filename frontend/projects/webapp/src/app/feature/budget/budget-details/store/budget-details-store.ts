@@ -38,6 +38,7 @@ import {
   calculateBudgetLineToggle,
   calculateTransactionToggle,
 } from './budget-details-check.utils';
+import { normalizeText } from '../data-core/budget-item-constants';
 import { createInitialBudgetDetailsState } from './budget-details-state';
 
 const TEMP_ID_PREFIX = 'temp-';
@@ -66,6 +67,10 @@ export class BudgetDetailsStore {
     this.#storage.get<boolean>(STORAGE_KEYS.BUDGET_SHOW_ONLY_UNCHECKED) ?? true,
   );
   readonly isShowingOnlyUnchecked = this.#isShowingOnlyUnchecked.asReadonly();
+
+  // Search filter state
+  readonly #searchText = signal('');
+  readonly searchText = this.#searchText.asReadonly();
 
   constructor() {
     // Mutation queue subscription
@@ -244,42 +249,64 @@ export class BudgetDetailsStore {
   });
 
   /**
-   * Filtered budget lines based on showOnlyUnchecked preference
-   * When showOnlyUnchecked is true, only returns lines where checkedAt === null
+   * Filtered budget lines based on checked filter and search text
    */
   readonly filteredBudgetLines = computed<BudgetLine[]>(() => {
-    const lines = this.displayBudgetLines();
-    if (!this.#isShowingOnlyUnchecked()) {
-      return lines;
+    let lines = this.displayBudgetLines();
+    if (this.#isShowingOnlyUnchecked()) {
+      lines = lines.filter((line) => line.checkedAt === null);
     }
-    return lines.filter((line) => line.checkedAt === null);
+    const search = normalizeText(this.#searchText());
+    if (!search) return lines;
+    const transactions = this.budgetDetails()?.transactions ?? [];
+
+    const budgetLineIdsWithMatchingTx = new Set(
+      transactions
+        .filter(
+          (tx) =>
+            tx.budgetLineId &&
+            (normalizeText(tx.name).includes(search) ||
+              String(tx.amount).includes(search)),
+        )
+        .map((tx) => tx.budgetLineId),
+    );
+
+    return lines.filter(
+      (line) =>
+        normalizeText(line.name).includes(search) ||
+        String(line.amount).includes(search) ||
+        budgetLineIdsWithMatchingTx.has(line.id),
+    );
   });
 
   /**
-   * Filtered transactions based on showOnlyUnchecked preference
+   * Filtered transactions based on checked filter and search text
    * - Allocated transactions: follow their parent budget line's visibility
-   * - Free transactions: filtered by their own checkedAt
+   * - Free transactions: filtered by their own checkedAt and search text
    */
   readonly filteredTransactions = computed<Transaction[]>(() => {
     const details = this.budgetDetails();
     if (!details) return [];
 
     const transactions = details.transactions ?? [];
-    if (!this.#isShowingOnlyUnchecked()) {
-      return transactions;
-    }
-
     const visibleBudgetLineIds = new Set(
       this.filteredBudgetLines().map((line) => line.id),
     );
+    const search = normalizeText(this.#searchText());
 
     return transactions.filter((tx) => {
       if (tx.budgetLineId) {
-        // Allocated transaction: visible if parent is visible
         return visibleBudgetLineIds.has(tx.budgetLineId);
       }
-      // Free transaction: filtered by its own checkedAt
-      return tx.checkedAt === null;
+      // Free transaction
+      const passesCheckedFilter =
+        !this.#isShowingOnlyUnchecked() || tx.checkedAt === null;
+      if (!passesCheckedFilter) return false;
+      if (!search) return true;
+      return (
+        normalizeText(tx.name).includes(search) ||
+        String(tx.amount).includes(search)
+      );
     });
   });
 
@@ -288,6 +315,10 @@ export class BudgetDetailsStore {
    */
   setIsShowingOnlyUnchecked(value: boolean): void {
     this.#isShowingOnlyUnchecked.set(value);
+  }
+
+  setSearchText(value: string): void {
+    this.#searchText.set(value);
   }
 
   setBudgetId(budgetId: string): void {

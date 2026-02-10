@@ -66,10 +66,9 @@ export function calculatePercentage(
 export function getRolloverSourceBudgetId(
   data: BudgetLine,
 ): string | undefined {
-  return 'rolloverSourceBudgetId' in data
-    ? (data as BudgetLine & { rolloverSourceBudgetId?: string })
-        .rolloverSourceBudgetId
-    : undefined;
+  if (!('rolloverSourceBudgetId' in data)) return undefined;
+  const value = data.rolloverSourceBudgetId;
+  return typeof value === 'string' ? value : undefined;
 }
 
 export function getSignedAmount(kind: TransactionKind, amount: number): number {
@@ -82,6 +81,25 @@ export function getSignedAmount(kind: TransactionKind, amount: number): number {
     default:
       return 0;
   }
+}
+
+const DIACRITICS_RE = /[\u0300-\u036f]/g;
+
+export function normalizeText(text: string): string {
+  return text.normalize('NFD').replace(DIACRITICS_RE, '').toLowerCase();
+}
+
+const MAX_DISPLAYED_MATCH_NAMES = 3;
+
+export function formatMatchAnnotation(
+  names: string[] | undefined,
+): string | null {
+  if (!names?.length) return null;
+  const displayed = names.slice(0, MAX_DISPLAYED_MATCH_NAMES);
+  const quoted = displayed.map((n) => `« ${n} »`).join(', ');
+  const remaining = names.length - MAX_DISPLAYED_MATCH_NAMES;
+  const suffix = remaining > 0 ? ` +${remaining}` : '';
+  return `Contient ${quoted}${suffix}`;
 }
 
 export function safeParseDate(value: string | null | undefined): number {

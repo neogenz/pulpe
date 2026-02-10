@@ -24,6 +24,8 @@ export {
   getRolloverSourceBudgetId,
   getSignedAmount,
   safeParseDate,
+  formatMatchAnnotation,
+  normalizeText,
 } from './budget-item-constants';
 
 // View mode type

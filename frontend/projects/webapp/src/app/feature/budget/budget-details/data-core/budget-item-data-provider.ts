@@ -10,9 +10,8 @@ export class BudgetItemDataProvider {
     budgetLines: BudgetLine[];
     transactions: Transaction[];
     viewMode?: BudgetViewMode;
+    searchText?: string;
   }): TableRowItem[] {
-    // Both 'envelopes' and 'table' view modes use the same data structure
-    // The difference is only in how the data is displayed (cards vs table)
     return buildViewData(params);
   }
 }

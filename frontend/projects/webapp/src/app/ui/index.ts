@@ -7,4 +7,5 @@ export * from './error-alert';
 export * from './error-card';
 export * from './financial-summary/financial-summary';
 export * from './loading-button';
+export * from './search-bar';
 export * from './transaction-display';

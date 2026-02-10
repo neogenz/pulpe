@@ -1,5 +1,10 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -7,9 +12,10 @@ import { RouterLink } from '@angular/router';
 import { RolloverFormatPipe } from '@app/ui/rollover-format';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { TransactionLabelPipe } from '@ui/transaction-display';
-import type {
-  BudgetLineTableItem,
-  TransactionTableItem,
+import {
+  formatMatchAnnotation,
+  type BudgetLineTableItem,
+  type TransactionTableItem,
 } from '../../data-core';
 
 @Component({
@@ -83,6 +89,18 @@ import type {
                 {{ line().metadata.envelopeName }}
               </span>
             }
+            @if (matchAnnotation()) {
+              <span
+                class="inline-flex items-center gap-1 text-label-small
+                       bg-tertiary-container/50 text-on-tertiary-container
+                       rounded-full px-2 py-0.5 w-fit"
+              >
+                <mat-icon class="text-xs! shrink-0 h-auto! w-auto!">
+                  search
+                </mat-icon>
+                {{ matchAnnotation() }}
+              </span>
+            }
           </div>
         }
         @if (line().data.checkedAt) {
@@ -97,4 +115,8 @@ import type {
 })
 export class NameCell {
   readonly line = input.required<BudgetLineTableItem | TransactionTableItem>();
+
+  readonly matchAnnotation = computed(() =>
+    formatMatchAnnotation(this.line().metadata.matchingTransactionNames),
+  );
 }

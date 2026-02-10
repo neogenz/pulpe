@@ -109,6 +109,8 @@
     [transactions]="store.filteredTransactions()"
     [isShowingOnlyUnchecked]="store.isShowingOnlyUnchecked()"
     (isShowingOnlyUncheckedChange)="store.setIsShowingOnlyUnchecked($event)"
+    [searchText]="store.searchText()"
+    (searchTextChange)="store.setSearchText($event)"
     (update)="handleUpdateBudgetLine($event)"
     (delete)="handleDeleteItem($event)"
     (deleteTransaction)="handleDeleteItem($event)"

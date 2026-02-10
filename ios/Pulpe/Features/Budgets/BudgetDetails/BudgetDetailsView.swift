@@ -295,6 +295,13 @@ struct BudgetDetailsView: View {
                 .listRowSeparator(.hidden)
             }
 
+            // Empty search state
+            if !searchText.isEmpty && filteredIncome.isEmpty && filteredExpenses.isEmpty && filteredSavings.isEmpty && filteredFree.isEmpty {
+                ContentUnavailableView("Aucune prévision trouvée", systemImage: "magnifyingglass")
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            }
+
             // Budget line sections (income, expenses, savings)
             ForEach(
                 [("Revenus", filteredIncome), ("Dépenses", filteredExpenses), ("Épargne", filteredSavings)],
@@ -494,9 +501,11 @@ final class BudgetDetailsViewModel {
         guard !searchText.isEmpty else { return lines }
         return lines.filter { line in
             line.name.localizedStandardContains(searchText) ||
+                "\(line.amount)".contains(searchText) ||
                 transactions.contains {
                     $0.budgetLineId == line.id &&
-                        $0.name.localizedStandardContains(searchText)
+                        ($0.name.localizedStandardContains(searchText) ||
+                         "\($0.amount)".contains(searchText))
                 }
         }
     }
@@ -505,7 +514,8 @@ final class BudgetDetailsViewModel {
     func filteredFreeTransactions(searchText: String) -> [Transaction] {
         guard !searchText.isEmpty else { return freeTransactions }
         return freeTransactions.filter {
-            $0.name.localizedStandardContains(searchText)
+            $0.name.localizedStandardContains(searchText) ||
+                "\($0.amount)".contains(searchText)
         }
     }
 
