@@ -83,6 +83,12 @@ export function getSignedAmount(kind: TransactionKind, amount: number): number {
   }
 }
 
+const DIACRITICS_RE = /[\u0300-\u036f]/g;
+
+export function normalizeText(text: string): string {
+  return text.normalize('NFD').replace(DIACRITICS_RE, '').toLowerCase();
+}
+
 const MAX_DISPLAYED_MATCH_NAMES = 3;
 
 export function formatMatchAnnotation(

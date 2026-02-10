@@ -336,4 +336,28 @@ describe('BudgetDetailsStore - Search Filtering', () => {
       expect(transactions[0].name).toBe('Achat imprévu');
     });
   });
+
+  describe('Accent-insensitive search', () => {
+    it('matches budget line without accents — "epargne" finds "Épargne mensuelle"', () => {
+      store.setSearchText('epargne');
+
+      const names = store.filteredBudgetLines().map((l) => l.name);
+      expect(names).toContain('Épargne mensuelle');
+    });
+
+    it('matches allocated transaction without accents — "proprietaire" surfaces parent line', () => {
+      store.setSearchText('proprietaire');
+
+      const lines = store.filteredBudgetLines();
+      expect(lines.map((l) => l.name)).toContain('Loyer');
+    });
+
+    it('matches free transaction without accents — "imprevu" finds "Achat imprévu"', () => {
+      store.setSearchText('imprevu');
+
+      const transactions = store.filteredTransactions();
+      expect(transactions.length).toBe(1);
+      expect(transactions[0].name).toBe('Achat imprévu');
+    });
+  });
 });

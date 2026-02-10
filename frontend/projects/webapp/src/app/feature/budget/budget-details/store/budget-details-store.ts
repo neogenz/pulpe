@@ -38,6 +38,7 @@ import {
   calculateBudgetLineToggle,
   calculateTransactionToggle,
 } from './budget-details-check.utils';
+import { normalizeText } from '../data-core/budget-item-constants';
 import { createInitialBudgetDetailsState } from './budget-details-state';
 
 const TEMP_ID_PREFIX = 'temp-';
@@ -255,17 +256,17 @@ export class BudgetDetailsStore {
     if (this.#isShowingOnlyUnchecked()) {
       lines = lines.filter((line) => line.checkedAt === null);
     }
-    const search = this.#searchText().toLowerCase();
+    const search = normalizeText(this.#searchText());
     if (!search) return lines;
     const transactions = this.budgetDetails()?.transactions ?? [];
     return lines.filter(
       (line) =>
-        line.name.toLowerCase().includes(search) ||
+        normalizeText(line.name).includes(search) ||
         String(line.amount).includes(search) ||
         transactions.some(
           (tx) =>
             tx.budgetLineId === line.id &&
-            (tx.name.toLowerCase().includes(search) ||
+            (normalizeText(tx.name).includes(search) ||
               String(tx.amount).includes(search)),
         ),
     );
@@ -284,7 +285,7 @@ export class BudgetDetailsStore {
     const visibleBudgetLineIds = new Set(
       this.filteredBudgetLines().map((line) => line.id),
     );
-    const search = this.#searchText().toLowerCase();
+    const search = normalizeText(this.#searchText());
 
     return transactions.filter((tx) => {
       if (tx.budgetLineId) {
@@ -296,7 +297,7 @@ export class BudgetDetailsStore {
       if (!passesCheckedFilter) return false;
       if (!search) return true;
       return (
-        tx.name.toLowerCase().includes(search) ||
+        normalizeText(tx.name).includes(search) ||
         String(tx.amount).includes(search)
       );
     });

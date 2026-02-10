@@ -19,6 +19,7 @@ import {
   calculatePercentage,
   getRolloverSourceBudgetId,
   safeParseDate,
+  normalizeText,
 } from './budget-item-constants';
 
 type BudgetItemWithBalance =
@@ -269,14 +270,14 @@ export function buildViewData(params: {
   const mappedItems = mapToTableItems(items, consumptionMap);
 
   if (searchText) {
-    const search = searchText.toLowerCase();
+    const search = normalizeText(searchText);
     for (const item of mappedItems) {
       if (item.metadata.itemType !== 'budget_line') continue;
       const names = transactions
         .filter(
           (tx) =>
             tx.budgetLineId === item.data.id &&
-            (tx.name.toLowerCase().includes(search) ||
+            (normalizeText(tx.name).includes(search) ||
               String(tx.amount).includes(search)),
         )
         .map((tx) => tx.name);
