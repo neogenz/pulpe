@@ -93,17 +93,33 @@ describe('computeEnvelopeSnackbarMessage', () => {
       transactions,
     );
 
-    expect(result).toBe('Comptabilisé 1574 CHF (enveloppe)');
+    expect(result).toBe('Comptabilisé 1574 sur 408 CHF (enveloppe)');
   });
 
-  it('AC3 — displays envelope when envelope > consumed (408 > 200)', () => {
+  it('AC3 — displays envelope amount when consumed < envelope (123 < 408)', () => {
     const budgetLine = makeBudgetLine({ amount: 408 });
-    const tx = makeTransaction({ amount: 200, checkedAt: NOW });
+    const tx = makeTransaction({ amount: 123, checkedAt: NOW });
 
     const result = computeEnvelopeSnackbarMessage(
       budgetLine.id,
       [budgetLine],
       [tx],
+    );
+
+    expect(result).toBe('Comptabilisé 408 CHF (enveloppe)');
+  });
+
+  it('AC3 — displays envelope amount when consumed = envelope (408 = 408)', () => {
+    const budgetLine = makeBudgetLine({ amount: 408 });
+    const transactions = [
+      makeTransaction({ id: 'tx-1', amount: 200, checkedAt: NOW }),
+      makeTransaction({ id: 'tx-2', amount: 208, checkedAt: NOW }),
+    ];
+
+    const result = computeEnvelopeSnackbarMessage(
+      budgetLine.id,
+      [budgetLine],
+      transactions,
     );
 
     expect(result).toBe('Comptabilisé 408 CHF (enveloppe)');

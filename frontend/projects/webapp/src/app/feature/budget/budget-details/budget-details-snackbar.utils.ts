@@ -18,8 +18,13 @@ export function computeEnvelopeSnackbarMessage(
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
   const envelopeAmount = Math.abs(budgetLine.amount);
-  const displayedAmount = Math.round(Math.max(envelopeAmount, consumed));
-  return `Comptabilisé ${displayedAmount} CHF (enveloppe)`;
+  const roundedConsumed = Math.round(consumed);
+  const roundedEnvelope = Math.round(envelopeAmount);
+
+  if (roundedConsumed > roundedEnvelope) {
+    return `Comptabilisé ${roundedConsumed} sur ${roundedEnvelope} CHF (enveloppe)`;
+  }
+  return `Comptabilisé ${roundedEnvelope} CHF (enveloppe)`;
 }
 
 export function computeTransactionSnackbarMessage(

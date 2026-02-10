@@ -642,9 +642,40 @@ export class BudgetDetailsStore {
         tx.checkedAt === null &&
         !tx.id.startsWith('temp-'),
     );
+    if (uncheckedTransactions.length === 0) return;
 
-    for (const tx of uncheckedTransactions) {
-      await this.toggleTransactionCheck(tx.id);
+    const now = new Date().toISOString();
+    const uncheckedIds = new Set(uncheckedTransactions.map((tx) => tx.id));
+    this.#budgetDetailsResource.update((d) => {
+      if (!d) return d;
+      return {
+        ...d,
+        transactions: (d.transactions ?? []).map((tx) =>
+          uncheckedIds.has(tx.id) ? { ...tx, checkedAt: now } : tx,
+        ),
+      };
+    });
+
+    try {
+      const response = await this.#enqueueMutation(() =>
+        this.#budgetLineApi.checkTransactions$(budgetLineId),
+      );
+
+      const responseMap = new Map(response.data.map((tx) => [tx.id, tx]));
+      this.#budgetDetailsResource.update((d) => {
+        if (!d) return d;
+        return {
+          ...d,
+          transactions: (d.transactions ?? []).map((tx) =>
+            responseMap.has(tx.id) ? responseMap.get(tx.id)! : tx,
+          ),
+        };
+      });
+      this.#clearError();
+    } catch (error) {
+      this.reloadBudgetDetails();
+      this.#setError('Erreur lors de la comptabilisation des transactions');
+      this.#logger.error('Error checking all allocated transactions', error);
     }
   }
 

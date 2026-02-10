@@ -537,6 +537,97 @@ describe('BudgetLineService', () => {
     });
   });
 
+  describe('checkTransactions', () => {
+    const mockTransactionRow = {
+      id: 'tx-123',
+      budget_id: '123e4567-e89b-12d3-a456-426614174001',
+      budget_line_id: '123e4567-e89b-12d3-a456-426614174000',
+      name: 'Test Transaction',
+      amount: 100,
+      kind: 'expense' as const,
+      transaction_date: '2024-01-15',
+      category: null,
+      checked_at: '2024-01-15T10:30:00.000Z',
+      created_at: '2024-01-01T00:00:00.000Z',
+      updated_at: '2024-01-15T10:30:00.000Z',
+    };
+
+    it('should check all unchecked transactions and return mapped results', async () => {
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+
+      mockSupabase.rpc.mockResolvedValue({
+        data: [mockTransactionRow],
+        error: null,
+      });
+
+      const result = await service.checkTransactions(
+        budgetLineId,
+        mockUser,
+        getMockSupabaseClient(),
+      );
+
+      expect(mockSupabase.rpc).toHaveBeenCalledWith(
+        'check_unchecked_transactions',
+        { p_budget_line_id: budgetLineId },
+      );
+      expect(result).toEqual({
+        success: true,
+        data: [
+          {
+            id: 'tx-123',
+            budgetId: '123e4567-e89b-12d3-a456-426614174001',
+            budgetLineId: '123e4567-e89b-12d3-a456-426614174000',
+            name: 'Test Transaction',
+            amount: 100,
+            kind: 'expense',
+            transactionDate: '2024-01-15',
+            category: null,
+            checkedAt: '2024-01-15T10:30:00.000Z',
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-15T10:30:00.000Z',
+          },
+        ],
+      });
+    });
+
+    it('should throw BusinessException on rpc error', async () => {
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+
+      mockSupabase.rpc.mockResolvedValue({
+        data: null,
+        error: new Error('RPC error'),
+      });
+
+      await expect(
+        service.checkTransactions(
+          budgetLineId,
+          mockUser,
+          getMockSupabaseClient(),
+        ),
+      ).rejects.toThrow(BusinessException);
+    });
+
+    it('should return empty array when no unchecked transactions', async () => {
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+
+      mockSupabase.rpc.mockResolvedValue({
+        data: [],
+        error: null,
+      });
+
+      const result = await service.checkTransactions(
+        budgetLineId,
+        mockUser,
+        getMockSupabaseClient(),
+      );
+
+      expect(result).toEqual({
+        success: true,
+        data: [],
+      });
+    });
+  });
+
   describe('toggleCheck', () => {
     it('should set checked_at when budget line is unchecked', async () => {
       const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';

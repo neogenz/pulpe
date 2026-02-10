@@ -77,6 +77,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     updateBudgetLine$: ReturnType<typeof vi.fn>;
     deleteBudgetLine$: ReturnType<typeof vi.fn>;
     toggleCheck$: ReturnType<typeof vi.fn>;
+    checkTransactions$: ReturnType<typeof vi.fn>;
   };
   let mockTransactionApi: {
     create$: ReturnType<typeof vi.fn>;
@@ -127,6 +128,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       updateBudgetLine$: vi.fn(),
       deleteBudgetLine$: vi.fn(),
       toggleCheck$: vi.fn(),
+      checkTransactions$: vi.fn(),
     };
 
     mockTransactionApi = {
@@ -1005,25 +1007,27 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       TestBed.tick();
       await waitForResourceStable();
 
-      mockTransactionApi.toggleCheck$ = vi.fn().mockImplementation((id) => {
-        const transaction = service
-          .budgetDetails()
-          ?.transactions.find((tx) => tx.id === id);
-        return of({
-          data: {
-            ...transaction!,
-            checkedAt: '2024-01-20T11:00:00Z',
-            updatedAt: '2024-01-20T11:00:00Z',
-          },
-        });
-      });
+      mockBudgetLineApi.checkTransactions$ = vi.fn().mockReturnValue(
+        of({
+          success: true,
+          data: [
+            {
+              ...txRealUnchecked,
+              checkedAt: '2024-01-20T11:00:00Z',
+              updatedAt: '2024-01-20T11:00:00Z',
+            },
+          ],
+        }),
+      );
 
       await service.checkAllAllocatedTransactions('line-parent');
 
-      expect(mockTransactionApi.toggleCheck$).toHaveBeenCalledTimes(1);
-      expect(mockTransactionApi.toggleCheck$).toHaveBeenCalledWith(
-        'tx-real-unchecked',
+      expect(mockBudgetLineApi.checkTransactions$).toHaveBeenCalledTimes(1);
+      expect(mockBudgetLineApi.checkTransactions$).toHaveBeenCalledWith(
+        'line-parent',
       );
+      expect(mockTransactionApi.toggleCheck$).not.toHaveBeenCalled();
+
       const currentTransactions = service.budgetDetails()?.transactions ?? [];
       const realUncheckedAfter = currentTransactions.find(
         (tx) => tx.id === 'tx-real-unchecked',

@@ -1,12 +1,14 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { type Observable, catchError, throwError } from 'rxjs';
+import { type Observable, catchError, map, throwError } from 'rxjs';
 import {
   type BudgetLineResponse,
   type BudgetLineListResponse,
   type BudgetLineDeleteResponse,
   type BudgetLineCreate,
   type BudgetLineUpdate,
+  type TransactionListResponse,
+  transactionListResponseSchema,
 } from 'pulpe-shared';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { Logger } from '@core/logging/logger';
@@ -105,6 +107,22 @@ export class BudgetLineApi {
           this.#logger.error('Error toggling budget line check:', error);
           return throwError(
             () => new Error('Impossible de basculer le statut de la prévision'),
+          );
+        }),
+      );
+  }
+
+  checkTransactions$(
+    budgetLineId: string,
+  ): Observable<TransactionListResponse> {
+    return this.#http
+      .post<unknown>(`${this.#apiUrl}/${budgetLineId}/check-transactions`, {})
+      .pipe(
+        map((response) => transactionListResponseSchema.parse(response)),
+        catchError((error) => {
+          this.#logger.error('Error checking transactions:', error);
+          return throwError(
+            () => new Error('Impossible de comptabiliser les transactions'),
           );
         }),
       );
