@@ -224,6 +224,7 @@ jobs:
           - En francais.
           - Si aucun probleme : 0 issues + points positifs + APPROVE.
           - NE RETOURNE PAS le texte en message. Poste TOUT via les outils.
+          - NE VERIFIE PAS le statut des checks CI/CD (gh pr checks). Concentre-toi uniquement sur la review du code.
           ENDOFPUBLISH
 
           # Replace NUM placeholder with actual PR number
@@ -246,4 +247,4 @@ jobs:
           claude_args: |
             --max-turns 15
             --model claude-sonnet-4-5-20250929
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr files:*),Read,Glob,Grep"
+            --allowedTools "mcp__github_inline_comment__create_inline_comment" "Bash(gh pr comment *)" "Bash(gh pr diff *)" "Bash(gh pr view *)" "Bash(gh pr files *)" "Bash(gh pr checks *)" "Read" "Glob" "Grep"
