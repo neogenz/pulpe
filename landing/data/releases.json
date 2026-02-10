@@ -1,5 +1,51 @@
 [
   {
+    "version": "0.19.0",
+    "date": "2026-02-10",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.19.0",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "Restriction des dates de previsions",
+          "description": "Les dates de debut et fin des previsions sont desormais limitees a la periode du mois en cours"
+        },
+        {
+          "title": "Page changelog",
+          "description": "Nouvelle page changelog sur le site vitrine avec liens vers les releases GitHub"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Calcul des depenses realisees",
+          "description": "Correction du double comptage des depenses realisees dans le budget"
+        },
+        {
+          "title": "Mode maintenance",
+          "description": "Le garde de maintenance fonctionne en fail-open pour eviter les faux blocages"
+        },
+        {
+          "title": "Session iOS",
+          "description": "Correction d'une boucle infinie de retry lors d'une session expiree"
+        }
+      ],
+      "technical": [
+        {
+          "title": "Migration base de donnees",
+          "description": "Migration vers une nouvelle base de donnees"
+        },
+        {
+          "title": "Protection IP",
+          "description": "Ajout d'un middleware de blocage IP et renforcement du rate limiting"
+        },
+        {
+          "title": "Compatibilite Supabase",
+          "description": "Prise en charge du nouveau format de cle publique Supabase"
+        }
+      ]
+    }
+  },
+  {
     "version": "0.18.0",
     "date": "2026-01-30",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.18.0",

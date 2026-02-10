@@ -1,5 +1,11 @@
 # pulpe-landing
 
+## 0.3.0
+
+### Minor Changes
+
+- Restriction des dates de previsions au mois en cours, corrections de calcul et stabilite.
+
 ## 0.2.0
 
 ### Minor Changes

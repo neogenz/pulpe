@@ -1,5 +1,11 @@
 # pulpe-shared
 
+## 0.7.1
+
+### Patch Changes
+
+- Restriction des dates de previsions au mois en cours, corrections de calcul et stabilite.
+
 ## 0.7.0
 
 ### Minor Changes

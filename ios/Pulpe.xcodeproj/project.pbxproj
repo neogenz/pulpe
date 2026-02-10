@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -29,7 +29,6 @@
 		2449B859079E22FB3637CAA0 /* HeroBalanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5BB996AAB135A9A73AF8762 /* HeroBalanceCard.swift */; };
 		2853D6EE9F8A3C9AE950ED92 /* CurrentMonthProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 582814846F9F2F4CA61E10CC /* CurrentMonthProvider.swift */; };
 		28C02954EA533A650FADCD88 /* InsightsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0D72F529D604F502CBFB45 /* InsightsCard.swift */; };
-		2C89C400C91BC71742A6C697 /* BudgetWidgetData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4337403CDB985DFEA70C9D76 /* BudgetWidgetData.swift */; };
 		2D9213003E2378D76B409DC9 /* CurrencyField.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE22DCB355C9C3F1FC0E520 /* CurrencyField.swift */; };
 		2E0E70844EE2D8F27D02C720 /* TransactionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D01817526FAA87D773269A9 /* TransactionService.swift */; };
 		2E268AE159FD5D392D027D23 /* maintenance-animation.json in Resources */ = {isa = PBXBuildFile; fileRef = 8E370F96AA76DABDBB00B7DC /* maintenance-animation.json */; };
@@ -57,6 +56,7 @@
 		547E46730E438D89507B7693 /* CreateTemplateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94DA9F16798B6DC1691A2DB8 /* CreateTemplateView.swift */; };
 		55D79FD3DF0AFD08A0E9F743 /* YearOverviewCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A8EDD631A46B3AE54C26D5 /* YearOverviewCard.swift */; };
 		56C95E28B17F927063FCB76C /* TemplateListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B63C48FA85869F486C3CBE3 /* TemplateListView.swift */; };
+		58C351BD5A7D2587AA2478D0 /* BudgetWidgetData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0BBC363A42BAA70A604800 /* BudgetWidgetData.swift */; };
 		5B556B010CD1598EAA240A4A /* IncomeStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0B8C94F0B71D25CF2D5D563 /* IncomeStep.swift */; };
 		5C97FFCDD334B97DFCC1963A /* TrendsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F53DA4313197B9B2DDDA1D46 /* TrendsCard.swift */; };
 		5D719B9EE5D21901291A6C57 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4925C570E82F5C95331C1B9 /* Typography.swift */; };
@@ -141,12 +141,12 @@
 		E44DBC6596E8B65A93A5C72F /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = CA19A781CBCEDB20DD80697D /* Supabase */; };
 		E6E71E80DF877A5B12551898 /* MonthYearTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAEE16A3F433B50FF474CC42 /* MonthYearTests.swift */; };
 		E8A78C65A41468055C304281 /* BackgroundTaskService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E175FB541AF3F3EF6AD8096 /* BackgroundTaskService.swift */; };
-		E8BA16D4D6E28F24B0C71626 /* BudgetWidgetData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4337403CDB985DFEA70C9D76 /* BudgetWidgetData.swift */; };
 		E8DEE99514F84114E6915A37 /* OnboardingStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F739E9A1FBA1FA323B033EDE /* OnboardingStateTests.swift */; };
 		E95C325CB627C9D66F929675 /* BudgetLineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 560EDBC9A29B4FA0528D9F98 /* BudgetLineTests.swift */; };
 		E9723E285117007368341692 /* BudgetService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E56340C03DD8EE1F7DF7638 /* BudgetService.swift */; };
 		EB35983A7D10C7881D79060C /* PulpeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C594C36815E25499F4B73532 /* PulpeUITests.swift */; };
 		EBACB0B221E57277720423E8 /* Logger+Pulpe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0572D9902FC26A1AE849B414 /* Logger+Pulpe.swift */; };
+		EC10CB5D93B7F1FDBB650AA0 /* BudgetWidgetData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0BBC363A42BAA70A604800 /* BudgetWidgetData.swift */; };
 		EC88348DD8DBF4F6B166D265 /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = D576CD613CD0E637C83249E9 /* Formatters.swift */; };
 		EDDD3545AF89F29F118A14A8 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFC463766B410987FE96534C /* APIError.swift */; };
 		F28AE4EA87CA967C9EAE1B9F /* RecurringExpensesList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2947DBEF8A6264E9FF73AEDA /* RecurringExpensesList.swift */; };
@@ -220,6 +220,7 @@
 		28F77BA6BE7228F88ED96032 /* StringParsedAsAmountTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringParsedAsAmountTests.swift; sourceTree = "<group>"; };
 		2947DBEF8A6264E9FF73AEDA /* RecurringExpensesList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecurringExpensesList.swift; sourceTree = "<group>"; };
 		29D91A4D1401A217165EAD49 /* CreateBudgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateBudgetView.swift; sourceTree = "<group>"; };
+		2A0BBC363A42BAA70A604800 /* BudgetWidgetData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetWidgetData.swift; sourceTree = "<group>"; };
 		2D05E8BCE893AAA486F2F8BE /* AddBudgetLineSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBudgetLineSheet.swift; sourceTree = "<group>"; };
 		30CFADFD464BFA965E68F5F0 /* HousingStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HousingStep.swift; sourceTree = "<group>"; };
 		316F2D062F9E6DD584B93A84 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>"; };
@@ -233,7 +234,6 @@
 		3C27CCFC10A47950AD4CE973 /* BudgetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetTests.swift; sourceTree = "<group>"; };
 		3D40738D2E35392D83F668E7 /* WidgetDataSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetDataSyncService.swift; sourceTree = "<group>"; };
 		40EC58ED46B8CA086F6A633D /* PulpeIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PulpeIcon.swift; sourceTree = "<group>"; };
-		4337403CDB985DFEA70C9D76 /* BudgetWidgetData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetWidgetData.swift; sourceTree = "<group>"; };
 		4377A27005BBA73FC6616969 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		45FEC83C64BDA8605515A7E1 /* BudgetFormulasTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetFormulasTests.swift; sourceTree = "<group>"; };
 		4984437F60E14525E1E6BD20 /* OnboardingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingState.swift; sourceTree = "<group>"; };
@@ -258,7 +258,7 @@
 		6B68A90534D06367C77B1427 /* DashboardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardStore.swift; sourceTree = "<group>"; };
 		6E4F47F7A88B6744CA6D788C /* Color+Pulpe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Pulpe.swift"; sourceTree = "<group>"; };
 		6E873F06201D0A4D69F356ED /* AddAllocatedTransactionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddAllocatedTransactionSheet.swift; sourceTree = "<group>"; };
-		723AB344C1BB78CCBA3446C8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		723AB344C1BB78CCBA3446C8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		76DBD55125DA1270DC47F0BE /* CheckedFilterPickerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckedFilterPickerTests.swift; sourceTree = "<group>"; };
 		77C8421EEBFDB74A00EE05B5 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
 		7D01817526FAA87D773269A9 /* TransactionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionService.swift; sourceTree = "<group>"; };
@@ -269,7 +269,7 @@
 		88250064A726B3B6AAAE9ADF /* welcome-animation.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "welcome-animation.json"; sourceTree = "<group>"; };
 		8C9C2806F868DBC404A44317 /* OnboardingNavigationButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingNavigationButtons.swift; sourceTree = "<group>"; };
 		8E370F96AA76DABDBB00B7DC /* maintenance-animation.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "maintenance-animation.json"; sourceTree = "<group>"; };
-		94570CEB6CD57FB35C06DE92 /* Pulpe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pulpe.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		94570CEB6CD57FB35C06DE92 /* Pulpe.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Pulpe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		94DA9F16798B6DC1691A2DB8 /* CreateTemplateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTemplateView.swift; sourceTree = "<group>"; };
 		955B1199FD862E3761B3435A /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		9A05FA792057CD53B266EE9F /* TransactionEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionEnums.swift; sourceTree = "<group>"; };
@@ -278,7 +278,7 @@
 		9E56340C03DD8EE1F7DF7638 /* BudgetService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetService.swift; sourceTree = "<group>"; };
 		A1A0EA391775C63723A83BF3 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
 		A3D2CDB198623A6C39D6F3EF /* PulpeUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PulpeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		A40110A09E6DF69EDAD88EFA /* PulpeWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PulpeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A40110A09E6DF69EDAD88EFA /* PulpeWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PulpeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A4090237752EF9DF63F659AA /* Transaction+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Transaction+Extensions.swift"; sourceTree = "<group>"; };
 		A4952E464DEEA5F04D784FD0 /* NetworkUnavailableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkUnavailableView.swift; sourceTree = "<group>"; };
 		A77FEC48FC6CEA8465118A09 /* ToastManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastManager.swift; sourceTree = "<group>"; };
@@ -460,7 +460,7 @@
 				34ECAA4ED629633771F020F4 /* WidgetDataCoordinator.swift */,
 			);
 			name = Services;
-			path = PulpeWidget/Services;
+			path = Services;
 			sourceTree = "<group>";
 		};
 		36482C69F35D03C095901A50 /* Components */ = {
@@ -606,6 +606,15 @@
 			path = Helpers;
 			sourceTree = "<group>";
 		};
+		63B0D6F049FA68993E605332 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				2A0BBC363A42BAA70A604800 /* BudgetWidgetData.swift */,
+			);
+			name = Models;
+			path = Models;
+			sourceTree = "<group>";
+		};
 		6592FE0F6BA5D1D3BDF1CB1A /* Design */ = {
 			isa = PBXGroup;
 			children = (
@@ -633,7 +642,9 @@
 		6D00927D5E35AD49432F228E /* PulpeWidget */ = {
 			isa = PBXGroup;
 			children = (
+				63B0D6F049FA68993E605332 /* Models */,
 				AD0CAF35FBFF805D67F8AD1C /* Resources */,
+				35A07FFF4A09B0C4045409BF /* Services */,
 				5CCD294071AF1411A6856A16 /* Widgets */,
 				9C02340FB2A3D93553E9CA15 /* Info.plist */,
 				1D358058CCE0A379A8189DA6 /* PulpeWidget.entitlements */,
@@ -790,23 +801,12 @@
 		BD1EE6F7D43070B7056ECA8D = {
 			isa = PBXGroup;
 			children = (
-				BF32797555067F58F521F8FD /* Models */,
 				0AEDD62EFE9E1084625551DC /* Pulpe */,
 				F4AA324A302F8F42EB9D96B7 /* PulpeTests */,
 				96F4CD3C388E5D16FE1BB5CC /* PulpeUITests */,
 				6D00927D5E35AD49432F228E /* PulpeWidget */,
-				35A07FFF4A09B0C4045409BF /* Services */,
 				F1BC99C651523435231F4EC2 /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		BF32797555067F58F521F8FD /* Models */ = {
-			isa = PBXGroup;
-			children = (
-				4337403CDB985DFEA70C9D76 /* BudgetWidgetData.swift */,
-			);
-			name = Models;
-			path = PulpeWidget/Models;
 			sourceTree = "<group>";
 		};
 		BFF2FF2FE16B8DA59042E982 /* Budgets */ = {
@@ -1058,9 +1058,11 @@
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					07BEE599D482CF9B6643DCEB = {
+						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 					4E3C22AB1CE882331E727F8E = {
+						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 					DE37C1D30CE2CD31E5FB0C65 = {
@@ -1088,6 +1090,7 @@
 				104B6E33E10617F89EF7ECD9 /* XCRemoteSwiftPackageReference "lottie-spm" */,
 				09998022D4D87255D2EAE15A /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -1131,7 +1134,7 @@
 				ACD378D31C9EB04E21410D53 /* BudgetFormulas.swift in Sources */,
 				3BF2AAAEDD2456443E233D23 /* BudgetLine.swift in Sources */,
 				7BB479C9C1133347490C1C98 /* BudgetTemplate.swift in Sources */,
-				2C89C400C91BC71742A6C697 /* BudgetWidgetData.swift in Sources */,
+				EC10CB5D93B7F1FDBB650AA0 /* BudgetWidgetData.swift in Sources */,
 				DD543D40C2FDC4FEE11D8283 /* Color+Pulpe.swift in Sources */,
 				B2BDF3BA8887F1843D2AA3DE /* CurrentMonthEntry.swift in Sources */,
 				2853D6EE9F8A3C9AE950ED92 /* CurrentMonthProvider.swift in Sources */,
@@ -1213,7 +1216,7 @@
 				FE6501D7F3A0BBA2FA54CD7C /* BudgetListView.swift in Sources */,
 				E9723E285117007368341692 /* BudgetService.swift in Sources */,
 				4491DFC84F384660F238F4F8 /* BudgetTemplate.swift in Sources */,
-				E8BA16D4D6E28F24B0C71626 /* BudgetWidgetData.swift in Sources */,
+				58C351BD5A7D2587AA2478D0 /* BudgetWidgetData.swift in Sources */,
 				F5B4314C55C6C8D7648865F0 /* CheckedFilterPicker.swift in Sources */,
 				F2F1195BE9107FF339538B3E /* Color+Pulpe.swift in Sources */,
 				83A455CF99981A6CD2A65ED3 /* CreateBudgetView.swift in Sources */,
@@ -1335,7 +1338,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Pulpe/Pulpe.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = Pulpe/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1407,7 +1409,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Pulpe/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				MARKETING_VERSION = 1.6.0;
+				MARKETING_VERSION = 0.19.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1425,7 +1427,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				CODE_SIGN_ENTITLEMENTS = PulpeWidget/PulpeWidget.entitlements;
-				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = PulpeWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1463,7 +1464,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Pulpe/Pulpe.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = Pulpe/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1529,7 +1529,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Pulpe/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				MARKETING_VERSION = 1.6.0;
+				MARKETING_VERSION = 0.19.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1563,7 +1563,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				CODE_SIGN_ENTITLEMENTS = PulpeWidget/PulpeWidget.entitlements;
-				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = PulpeWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (

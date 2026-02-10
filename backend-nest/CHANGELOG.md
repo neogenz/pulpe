@@ -1,5 +1,16 @@
 # backend-nest
 
+## 0.12.0
+
+### Minor Changes
+
+- Restriction des dates de previsions au mois en cours, corrections de calcul et stabilite.
+
+### Patch Changes
+
+- Updated dependencies
+  - pulpe-shared@0.7.1
+
 ## 0.11.0
 
 ### Minor Changes

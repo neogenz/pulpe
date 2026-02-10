@@ -1,5 +1,16 @@
 # pulpe-frontend
 
+## 0.19.0
+
+### Minor Changes
+
+- Restriction des dates de previsions au mois en cours, corrections de calcul et stabilite.
+
+### Patch Changes
+
+- Updated dependencies
+  - pulpe-shared@0.7.1
+
 ## 0.18.0
 
 ### Minor Changes
