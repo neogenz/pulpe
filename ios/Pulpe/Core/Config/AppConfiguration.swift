@@ -20,8 +20,8 @@ enum AppConfiguration {
         #if DEBUG
         URL(string: ProcessInfo.processInfo.environment["SUPABASE_URL"] ?? "http://localhost:54321")!
         #else
-        // Production - replace with your Supabase project URL
-        URL(string: "https://xvrbcvltpkqwiiexvfxh.supabase.co")!
+        // Production - Supabase EU (eu-central-2 Zurich)
+        URL(string: "https://qhhlloqisgzwcsrbdppn.supabase.co")!
         #endif
     }
 
@@ -30,8 +30,8 @@ enum AppConfiguration {
         ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"]
             ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
         #else
-        // Production - replace with your Supabase anon key
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2cmJjdmx0cGtxd2lpZXh2ZnhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNjM2NTgsImV4cCI6MjA2NDYzOTY1OH0.xkOV-IR9h5T08YH1_BZ8VevlWF0VCoZDctiO4lbeLmc"
+        // Production - Supabase publishable key (eu-central-2)
+        "sb_publishable_sOPmrqc7yz2nnZRxAOUhwQ_Yr8lfRY2"
         #endif
     }
 
