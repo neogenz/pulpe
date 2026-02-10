@@ -572,23 +572,28 @@ jobs:
         working-directory: ios
         run: xcodegen generate
 
-      - name: 📱 Prepare iOS Simulator
+      - name: 📱 Resolve iOS Simulator
+        id: sim
         run: |
-          # Ensure exactly one iPhone 17 (iOS 26.2) simulator exists
-          RUNTIME="com.apple.CoreSimulator.SimRuntime.iOS-26-2"
-          EXISTING=$(xcrun simctl list devices "$RUNTIME" -j 2>/dev/null \
-            | grep -c '"name" : "iPhone 17"' || true)
-          if [ "$EXISTING" -eq 0 ]; then
-            xcrun simctl create "iPhone 17" \
-              com.apple.CoreSimulator.SimDeviceType.iPhone-17 "$RUNTIME"
-          fi
+          # Pick the first available iPhone 17 (iOS 26.2) — avoids duplicate-name ambiguity
+          UDID=$(xcrun simctl list devices available -j \
+            | python3 -c "
+          import sys, json
+          for rt, devs in json.load(sys.stdin)['devices'].items():
+            if '26-2' in rt:
+              for d in devs:
+                if d['name'] == 'iPhone 17':
+                  print(d['udid']); sys.exit(0)
+          sys.exit(1)
+          ")
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
 
       - name: 🧪 Run Unit Tests
         working-directory: ios
         run: |
           xcodebuild test \
             -scheme PulpeTests \
-            -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.2' \
+            -destination 'id=${{ steps.sim.outputs.udid }}' \
             CODE_SIGNING_ALLOWED=NO \
             -quiet
 
