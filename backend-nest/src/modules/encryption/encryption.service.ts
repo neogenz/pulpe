@@ -118,7 +118,6 @@ export class EncryptionService {
       this.#logger.warn(
         {
           error: error instanceof Error ? error.message : String(error),
-          fallbackAmount,
           ciphertextLength: ciphertext.length,
         },
         'Decryption failed, using fallback amount',

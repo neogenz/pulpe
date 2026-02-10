@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock, spyOn } from 'bun:test';
+import { describe, it, expect, mock, spyOn } from 'bun:test';
 import { Logger } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { EncryptionController } from './encryption.controller';
@@ -32,9 +32,11 @@ const createMockEncryptionService = (overrides?: {
 
 const createMockRekeyService = (overrides?: {
   reEncryptAllUserData?: ReturnType<typeof mock>;
+  rekeyUserData?: ReturnType<typeof mock>;
 }) => ({
   reEncryptAllUserData:
     overrides?.reEncryptAllUserData ?? mock(() => Promise.resolve()),
+  rekeyUserData: overrides?.rekeyUserData ?? mock(() => Promise.resolve()),
 });
 
 const createMockUser = (): AuthenticatedUser => ({
@@ -44,20 +46,21 @@ const createMockUser = (): AuthenticatedUser => ({
   clientKey: Buffer.alloc(32, 0xab),
 });
 
+function setupController(
+  encryptionOverrides?: Parameters<typeof createMockEncryptionService>[0],
+  rekeyOverrides?: Parameters<typeof createMockRekeyService>[0],
+) {
+  const mockEncryptionService =
+    createMockEncryptionService(encryptionOverrides);
+  const mockRekeyService = createMockRekeyService(rekeyOverrides);
+  const controller = new EncryptionController(
+    mockEncryptionService as any,
+    mockRekeyService as any,
+  );
+  return { controller, mockEncryptionService, mockRekeyService };
+}
+
 describe('EncryptionController', () => {
-  let controller: EncryptionController;
-  let mockEncryptionService: ReturnType<typeof createMockEncryptionService>;
-  let mockRekeyService: ReturnType<typeof createMockRekeyService>;
-
-  beforeEach(() => {
-    mockEncryptionService = createMockEncryptionService();
-    mockRekeyService = createMockRekeyService();
-    controller = new EncryptionController(
-      mockEncryptionService as any,
-      mockRekeyService as any,
-    );
-  });
-
   describe('getSalt', () => {
     it('should return salt and kdfIterations from encryption service', async () => {
       const user = createMockUser();
@@ -67,13 +70,9 @@ describe('EncryptionController', () => {
         hasRecoveryKey: false,
       };
 
-      mockEncryptionService = createMockEncryptionService({
+      const { controller, mockEncryptionService } = setupController({
         getUserSalt: mock(() => Promise.resolve(expectedResult)),
       });
-      controller = new EncryptionController(
-        mockEncryptionService as any,
-        mockRekeyService as any,
-      );
 
       const result = await controller.getSalt(user);
 
@@ -88,13 +87,9 @@ describe('EncryptionController', () => {
       const user = createMockUser();
       const body = { clientKey: 'ab'.repeat(32) };
 
-      mockEncryptionService = createMockEncryptionService({
+      const { controller, mockEncryptionService } = setupController({
         verifyAndEnsureKeyCheck: mock(() => Promise.resolve(true)),
       });
-      controller = new EncryptionController(
-        mockEncryptionService as any,
-        mockRekeyService as any,
-      );
 
       const result = await controller.validateKey(user, body);
 
@@ -108,13 +103,9 @@ describe('EncryptionController', () => {
       const user = createMockUser();
       const body = { clientKey: 'ab'.repeat(32) };
 
-      mockEncryptionService = createMockEncryptionService({
+      const { controller } = setupController({
         verifyAndEnsureKeyCheck: mock(() => Promise.resolve(false)),
       });
-      controller = new EncryptionController(
-        mockEncryptionService as any,
-        mockRekeyService as any,
-      );
 
       try {
         await controller.validateKey(user, body);
@@ -133,16 +124,12 @@ describe('EncryptionController', () => {
       const body = { clientKey: clientKeyHex };
 
       const callArguments: any[] = [];
-      mockEncryptionService = createMockEncryptionService({
+      const { controller } = setupController({
         verifyAndEnsureKeyCheck: mock(async (...args) => {
           callArguments.push(...args);
           return true;
         }),
       });
-      controller = new EncryptionController(
-        mockEncryptionService as any,
-        mockRekeyService as any,
-      );
 
       await controller.validateKey(user, body);
 
@@ -153,6 +140,8 @@ describe('EncryptionController', () => {
     it('should throw BusinessException for invalid hex format', async () => {
       const user = createMockUser();
       const body = { clientKey: 'not-valid-hex' };
+
+      const { controller } = setupController();
 
       try {
         await controller.validateKey(user, body);
@@ -168,13 +157,9 @@ describe('EncryptionController', () => {
       const body = { clientKey: 'ab'.repeat(32) };
       const warnSpy = spyOn(Logger.prototype, 'warn');
 
-      mockEncryptionService = createMockEncryptionService({
+      const { controller } = setupController({
         verifyAndEnsureKeyCheck: mock(() => Promise.resolve(false)),
       });
-      controller = new EncryptionController(
-        mockEncryptionService as any,
-        mockRekeyService as any,
-      );
 
       try {
         await controller.validateKey(user, body);
@@ -189,6 +174,21 @@ describe('EncryptionController', () => {
 
       warnSpy.mockRestore();
     });
+
+    it('should throw BusinessException for all-zero client key', async () => {
+      const user = createMockUser();
+      const body = { clientKey: '00'.repeat(32) };
+
+      const { controller } = setupController();
+
+      try {
+        await controller.validateKey(user, body);
+        expect.unreachable('Should have thrown BusinessException');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect(error.code).toBe(ERROR_DEFINITIONS.AUTH_CLIENT_KEY_INVALID.code);
+      }
+    });
   });
 
   describe('setupRecovery', () => {
@@ -196,15 +196,11 @@ describe('EncryptionController', () => {
       const user = createMockUser();
       const expectedRecoveryKey = 'XXXX-YYYY-ZZZZ-1234';
 
-      mockEncryptionService = createMockEncryptionService({
+      const { controller } = setupController({
         setupRecoveryKey: mock(() =>
           Promise.resolve({ formatted: expectedRecoveryKey }),
         ),
       });
-      controller = new EncryptionController(
-        mockEncryptionService as any,
-        mockRekeyService as any,
-      );
 
       const result = await controller.setupRecovery(user);
 
@@ -220,15 +216,11 @@ describe('EncryptionController', () => {
       const generateKeyCheck = mock(() => mockKeyCheck);
       const storeKeyCheck = mock(() => Promise.resolve());
 
-      mockEncryptionService = createMockEncryptionService({
+      const { controller } = setupController({
         getUserDEK,
         generateKeyCheck,
         storeKeyCheck,
       });
-      controller = new EncryptionController(
-        mockEncryptionService as any,
-        mockRekeyService as any,
-      );
 
       await controller.setupRecovery(user);
 
@@ -251,6 +243,8 @@ describe('EncryptionController', () => {
       const user = createMockUser();
       const logSpy = spyOn(Logger.prototype, 'log');
 
+      const { controller } = setupController();
+
       await controller.setupRecovery(user);
 
       expect(logSpy).toHaveBeenCalledWith(
@@ -265,21 +259,108 @@ describe('EncryptionController', () => {
       const user = createMockUser();
       const callArguments: any[] = [];
 
-      mockEncryptionService = createMockEncryptionService({
+      const { controller } = setupController({
         setupRecoveryKey: mock(async (...args) => {
           callArguments.push(...args);
           return { formatted: 'XXXX-YYYY-ZZZZ-1234' };
         }),
       });
-      controller = new EncryptionController(
-        mockEncryptionService as any,
-        mockRekeyService as any,
-      );
 
       await controller.setupRecovery(user);
 
       expect(callArguments[0]).toBe(user.id);
       expect(callArguments[1]).toEqual(user.clientKey);
+    });
+  });
+
+  describe('rekey', () => {
+    it('should return success true and call rekeyService with correct args', async () => {
+      const user = createMockUser();
+      const mockSupabase = { test: 'supabase' };
+      const body = { newClientKey: 'ab'.repeat(32) };
+
+      const { controller, mockRekeyService } = setupController();
+
+      const result = await controller.rekey(user, mockSupabase as any, body);
+
+      expect(result).toEqual({ success: true });
+      expect(mockRekeyService.rekeyUserData.mock.calls.length).toBe(1);
+      const rekeyArgs = mockRekeyService.rekeyUserData.mock
+        .calls[0] as unknown[];
+      expect(rekeyArgs[0]).toBe(user.id);
+      expect(rekeyArgs[1]).toEqual(user.clientKey);
+      expect(rekeyArgs[2]).toEqual(Buffer.from(body.newClientKey, 'hex'));
+      expect(rekeyArgs[3]).toBe(mockSupabase);
+    });
+
+    it('should throw BusinessException for invalid hex newClientKey', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = { newClientKey: 'not-valid-hex' };
+
+      const { controller } = setupController();
+
+      try {
+        await controller.rekey(user, mockSupabase as any, body);
+        expect.unreachable('Should have thrown BusinessException');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect(error.code).toBe(ERROR_DEFINITIONS.AUTH_CLIENT_KEY_INVALID.code);
+      }
+    });
+
+    it('should regenerate key_check after rekey', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = { newClientKey: 'ab'.repeat(32) };
+
+      const mockDek = randomBytes(32);
+      const mockKeyCheck = 'rekey-key-check';
+      const getUserDEK = mock(() => Promise.resolve(mockDek));
+      const generateKeyCheck = mock(() => mockKeyCheck);
+      const storeKeyCheck = mock(() => Promise.resolve());
+
+      const { controller } = setupController({
+        getUserDEK,
+        generateKeyCheck,
+        storeKeyCheck,
+      });
+
+      await controller.rekey(user, mockSupabase as any, body);
+
+      const getUserDEKCalls = getUserDEK.mock.calls as unknown[][];
+      expect(getUserDEKCalls.length).toBe(1);
+      expect(getUserDEKCalls[0][0]).toBe(user.id);
+      expect(getUserDEKCalls[0][1]).toEqual(
+        Buffer.from(body.newClientKey, 'hex'),
+      );
+
+      const generateKeyCheckCalls = generateKeyCheck.mock.calls as unknown[][];
+      expect(generateKeyCheckCalls.length).toBe(1);
+      expect(generateKeyCheckCalls[0][0]).toEqual(mockDek);
+
+      const storeKeyCheckCalls = storeKeyCheck.mock.calls as unknown[][];
+      expect(storeKeyCheckCalls.length).toBe(1);
+      expect(storeKeyCheckCalls[0][0]).toBe(user.id);
+      expect(storeKeyCheckCalls[0][1]).toBe(mockKeyCheck);
+    });
+
+    it('should log audit event with rekey.complete operation', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = { newClientKey: 'ab'.repeat(32) };
+      const logSpy = spyOn(Logger.prototype, 'log');
+
+      const { controller } = setupController();
+
+      await controller.rekey(user, mockSupabase as any, body);
+
+      expect(logSpy).toHaveBeenCalledWith(
+        { userId: user.id, operation: 'rekey.complete' },
+        'User data re-encrypted with new key',
+      );
+
+      logSpy.mockRestore();
     });
   });
 
@@ -292,6 +373,8 @@ describe('EncryptionController', () => {
         newClientKey: 'ab'.repeat(32),
       };
 
+      const { controller } = setupController();
+
       const result = await controller.recover(user, mockSupabase as any, body);
 
       expect(result).toEqual({ success: true });
@@ -301,6 +384,8 @@ describe('EncryptionController', () => {
       const user = createMockUser();
       const mockSupabase = {};
       const body = { recoveryKey: '', newClientKey: 'ab'.repeat(32) };
+
+      const { controller } = setupController();
 
       try {
         await controller.recover(user, mockSupabase as any, body);
@@ -319,6 +404,8 @@ describe('EncryptionController', () => {
         newClientKey: 'not-valid-hex',
       };
 
+      const { controller } = setupController();
+
       try {
         await controller.recover(user, mockSupabase as any, body);
         expect.unreachable('Should have thrown BusinessException');
@@ -336,15 +423,36 @@ describe('EncryptionController', () => {
         newClientKey: 'ab'.repeat(32),
       };
 
-      mockEncryptionService = createMockEncryptionService({
+      const { controller } = setupController({
         recoverWithKey: mock(() =>
           Promise.reject(new Error('Invalid base32 character: 1')),
         ),
       });
-      controller = new EncryptionController(
-        mockEncryptionService as any,
-        mockRekeyService as any,
-      );
+
+      try {
+        await controller.recover(user, mockSupabase as any, body);
+        expect.unreachable('Should have thrown BusinessException');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect(error.code).toBe(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID.code);
+      }
+    });
+
+    it('should map AES-GCM auth failures to BusinessException', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = {
+        recoveryKey: 'ABCD-EFGH-IJKL-MNOP',
+        newClientKey: 'ab'.repeat(32),
+      };
+
+      const { controller } = setupController({
+        recoverWithKey: mock(() =>
+          Promise.reject(
+            new Error('Unsupported state or unable to authenticate data'),
+          ),
+        ),
+      });
 
       try {
         await controller.recover(user, mockSupabase as any, body);
@@ -364,18 +472,16 @@ describe('EncryptionController', () => {
       };
 
       let callbackCalled = false;
-      mockEncryptionService = createMockEncryptionService({
-        recoverWithKey: mock(
-          async (_userId, _recoveryKey, _newKey, callback) => {
-            callbackCalled = true;
-            await callback(randomBytes(32), randomBytes(32));
-          },
-        ),
-      });
-      mockRekeyService = createMockRekeyService();
-      controller = new EncryptionController(
-        mockEncryptionService as any,
-        mockRekeyService as any,
+      const { controller, mockRekeyService } = setupController(
+        {
+          recoverWithKey: mock(
+            async (_userId, _recoveryKey, _newKey, callback) => {
+              callbackCalled = true;
+              await callback(randomBytes(32), randomBytes(32));
+            },
+          ),
+        },
+        {},
       );
 
       await controller.recover(user, mockSupabase as any, body);
@@ -398,15 +504,11 @@ describe('EncryptionController', () => {
       const generateKeyCheck = mock(() => mockKeyCheck);
       const storeKeyCheck = mock(() => Promise.resolve());
 
-      mockEncryptionService = createMockEncryptionService({
+      const { controller } = setupController({
         getUserDEK,
         generateKeyCheck,
         storeKeyCheck,
       });
-      controller = new EncryptionController(
-        mockEncryptionService as any,
-        mockRekeyService as any,
-      );
 
       await controller.recover(user, mockSupabase as any, body);
 
@@ -434,6 +536,8 @@ describe('EncryptionController', () => {
       };
       const logSpy = spyOn(Logger.prototype, 'log');
 
+      const { controller } = setupController();
+
       await controller.recover(user, mockSupabase as any, body);
 
       expect(logSpy).toHaveBeenCalledWith(
@@ -442,6 +546,48 @@ describe('EncryptionController', () => {
       );
 
       logSpy.mockRestore();
+    });
+
+    it('should throw BusinessException for all-zero newClientKey', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = {
+        recoveryKey: 'XXXX-YYYY-ZZZZ-1234',
+        newClientKey: '00'.repeat(32),
+      };
+
+      const { controller } = setupController();
+
+      try {
+        await controller.recover(user, mockSupabase as any, body);
+        expect.unreachable('Should have thrown BusinessException');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect(error.code).toBe(ERROR_DEFINITIONS.AUTH_CLIENT_KEY_INVALID.code);
+      }
+    });
+
+    it('should re-throw non-recovery errors without wrapping', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = {
+        recoveryKey: 'XXXX-YYYY-ZZZZ-1234',
+        newClientKey: 'ab'.repeat(32),
+      };
+
+      const originalError = new Error('DB connection lost');
+      const { controller } = setupController({
+        recoverWithKey: mock(() => Promise.reject(originalError)),
+      });
+
+      try {
+        await controller.recover(user, mockSupabase as any, body);
+        expect.unreachable('Should have thrown original error');
+      } catch (error: any) {
+        expect(error).not.toBeInstanceOf(BusinessException);
+        expect(error).toBe(originalError);
+        expect(error.message).toBe('DB connection lost');
+      }
     });
   });
 });

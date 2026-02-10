@@ -111,6 +111,7 @@ export class EncryptionController {
    * are independent - changing password does not affect encryption.
    */
   @Post('rekey')
+  @Throttle({ default: { limit: 3, ttl: 3600000 } })
   @ApiOperation({
     summary:
       'Re-encrypt all user data with new key (for vault code migration only)',

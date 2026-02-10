@@ -491,6 +491,55 @@ describe('ResetPassword', () => {
     });
   });
 
+  describe('onSubmit - Vault-code user (hasVaultCode=true)', () => {
+    beforeEach(async () => {
+      mockAuthStateService.authState.mockReturnValue({
+        user: { user_metadata: { vaultCodeConfigured: true } },
+        session: {},
+        isLoading: false,
+        isAuthenticated: true,
+      });
+      mockEncryptionApi.getSalt$.mockReturnValue(
+        of({
+          salt: 'salt-value',
+          kdfIterations: 100000,
+          hasRecoveryKey: true,
+        }),
+      );
+
+      const newFixture = TestBed.createComponent(ResetPassword);
+      component = newFixture.componentInstance;
+
+      await vi.waitFor(() => expect(component['isSessionValid']()).toBe(true));
+
+      component['form'].patchValue({
+        newPassword: 'newpassword123',
+        confirmPassword: 'newpassword123',
+      });
+
+      mockAuthSessionService.updatePassword.mockResolvedValue({
+        success: true,
+      });
+    });
+
+    it('should hide recovery key field for vault-code users', () => {
+      expect(component['hasVaultCode']()).toBe(true);
+      expect(component['showRecoveryKeyField']()).toBe(false);
+    });
+
+    it('should use simple password reset flow without encryption recovery', async () => {
+      await component['onSubmit']();
+
+      expect(mockAuthSessionService.updatePassword).toHaveBeenCalledWith(
+        'newpassword123',
+      );
+      expect(mockEncryptionApi.recover$).not.toHaveBeenCalled();
+      expect(mockEncryptionApi.setupRecoveryKey$).not.toHaveBeenCalled();
+      expect(mockClientKeyService.setDirectKey).not.toHaveBeenCalled();
+      expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']);
+    });
+  });
+
   describe('onSubmit - Existing user without recovery key (hasRecoveryKey=false)', () => {
     beforeEach(async () => {
       // User without vault code AND without recovery key (existing user before migration)
