@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { type BudgetLine } from 'pulpe-shared';
 import { FinancialKindDirective } from '@ui/financial-kind';
@@ -37,6 +38,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
   imports: [
     MatBadgeModule,
     MatChipsModule,
+    MatIconModule,
     MatSlideToggleModule,
     CurrencyPipe,
     FinancialKindDirective,
@@ -90,11 +92,14 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
       </div>
 
       @if (matchAnnotation()) {
-        <p
-          class="text-label-small text-on-surface-variant -mt-2 mb-3 ml-8 truncate"
+        <div
+          class="-mt-2 mb-3 mx-auto flex items-center gap-1.5 text-body-small
+                 bg-tertiary-container/50 text-on-tertiary-container
+                 rounded-full px-2.5 py-1 w-fit max-w-full"
         >
-          ↳ {{ matchAnnotation() }}
-        </p>
+          <mat-icon class="text-sm! shrink-0 h-auto! w-auto!">search</mat-icon>
+          <span class="truncate">{{ matchAnnotation() }}</span>
+        </div>
       }
 
       <!-- Hero Amount -->

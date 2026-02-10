@@ -93,8 +93,8 @@ export function formatMatchAnnotation(
   const displayed = names.slice(0, MAX_DISPLAYED_MATCH_NAMES);
   const quoted = displayed.map((n) => `« ${n} »`).join(', ');
   const remaining = names.length - MAX_DISPLAYED_MATCH_NAMES;
-  if (remaining > 0) return `${quoted} +${remaining}`;
-  return quoted;
+  const suffix = remaining > 0 ? ` +${remaining}` : '';
+  return `Contient ${quoted}${suffix}`;
 }
 
 export function safeParseDate(value: string | null | undefined): number {

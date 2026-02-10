@@ -68,11 +68,7 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
       </div>
 
       <!-- Search -->
-      <mat-form-field
-        appearance="outline"
-        class="w-full"
-        subscriptSizing="dynamic"
-      >
+      <mat-form-field appearance="outline" class="w-full">
         <mat-icon matPrefix>search</mat-icon>
         <input
           matInput

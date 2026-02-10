@@ -91,9 +91,14 @@ import {
             }
             @if (matchAnnotation()) {
               <span
-                class="flex items-center gap-1 text-label-small text-on-surface-variant"
+                class="inline-flex items-center gap-1 text-label-small
+                       bg-tertiary-container/50 text-on-tertiary-container
+                       rounded-full px-2 py-0.5 w-fit"
               >
-                ↳ {{ matchAnnotation() }}
+                <mat-icon class="text-xs! shrink-0 h-auto! w-auto!">
+                  search
+                </mat-icon>
+                {{ matchAnnotation() }}
               </span>
             }
           </div>

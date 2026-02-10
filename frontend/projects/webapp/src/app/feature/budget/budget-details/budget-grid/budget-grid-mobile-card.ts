@@ -106,11 +106,16 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
         </div>
 
         @if (matchAnnotation()) {
-          <p
-            class="text-label-small text-on-surface-variant -mt-2 mb-3 ml-8 truncate"
+          <div
+            class="-mt-2 mb-3 mx-auto flex items-center gap-1.5 text-body-small
+                   bg-tertiary-container/50 text-on-tertiary-container
+                   rounded-full px-2.5 py-1 w-fit max-w-full"
           >
-            ↳ {{ matchAnnotation() }}
-          </p>
+            <mat-icon class="text-sm! shrink-0 h-auto! w-auto!">
+              search
+            </mat-icon>
+            <span class="truncate">{{ matchAnnotation() }}</span>
+          </div>
         }
 
         <!-- Row 2: Amount prominently left-aligned with consumption on right -->
