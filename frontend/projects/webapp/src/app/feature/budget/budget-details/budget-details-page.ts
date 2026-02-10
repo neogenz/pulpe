@@ -40,6 +40,10 @@ import {
   type Transaction,
   formatBudgetPeriod,
 } from 'pulpe-shared';
+import {
+  computeEnvelopeSnackbarMessage,
+  computeTransactionSnackbarMessage,
+} from './budget-details-snackbar.utils';
 import { UserSettingsApi } from '@core/user-settings/user-settings-api';
 
 @Component({
@@ -317,62 +321,43 @@ export default class BudgetDetailsPage {
       details.transactions ?? [],
     );
 
-    if (behavior === null) {
-      await this.store.toggleCheck(budgetLineId);
-      return;
+    const shouldCascade =
+      behavior === 'ask-cascade' &&
+      (await this.#dialogService.confirmCheckAllocatedTransactions());
+
+    const succeeded = await this.store.toggleCheck(budgetLineId);
+    if (!succeeded) return;
+
+    if (shouldCascade) {
+      await this.store.checkAllAllocatedTransactions(budgetLineId);
     }
 
-    if (behavior === 'ask-cascade') {
-      const shouldCheckAll =
-        await this.#dialogService.confirmCheckAllocatedTransactions();
-      const succeeded = await this.store.toggleCheck(budgetLineId);
-      if (!succeeded) return;
-      if (shouldCheckAll) {
-        await this.store.checkAllAllocatedTransactions(budgetLineId);
-      }
-    } else {
-      const succeeded = await this.store.toggleCheck(budgetLineId);
-      if (!succeeded) return;
-    }
-
-    const freshDetails = this.store.budgetDetails();
-    const freshBudgetLine = freshDetails?.budgetLines.find(
-      (line) => line.id === budgetLineId,
-    );
-    if (freshBudgetLine && freshDetails) {
-      this.#showEnvelopeSnackbar(
-        freshBudgetLine,
-        freshDetails.transactions,
-        budgetLineId,
-      );
-    }
+    this.#showEnvelopeSnackbar(budgetLineId);
   }
 
-  #showEnvelopeSnackbar(
-    budgetLine: BudgetLine,
-    transactions: Transaction[],
-    budgetLineId: string,
-  ): void {
-    const consumed = transactions
-      .filter(
-        (tx) =>
-          tx.budgetLineId === budgetLineId &&
-          tx.checkedAt != null &&
-          (tx.kind === 'expense' || tx.kind === 'saving'),
-      )
-      .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
-
-    const envelopeAmount = Math.abs(budgetLine.amount);
-    if (envelopeAmount > consumed && consumed > 0) {
-      this.#snackBar.open(
-        `Comptabilisé ${envelopeAmount} CHF (enveloppe)`,
-        undefined,
-        { duration: 3000 },
-      );
-    }
+  #showEnvelopeSnackbar(budgetLineId: string): void {
+    const details = this.store.budgetDetails();
+    if (!details) return;
+    const message = computeEnvelopeSnackbarMessage(
+      budgetLineId,
+      details.budgetLines,
+      details.transactions,
+    );
+    if (message) this.#snackBar.open(message, undefined, { duration: 3000 });
   }
 
   async handleToggleTransactionCheck(transactionId: string): Promise<void> {
     await this.store.toggleTransactionCheck(transactionId);
+    this.#showTransactionSnackbar(transactionId);
+  }
+
+  #showTransactionSnackbar(transactionId: string): void {
+    const details = this.store.budgetDetails();
+    if (!details) return;
+    const message = computeTransactionSnackbarMessage(
+      transactionId,
+      details.transactions,
+    );
+    if (message) this.#snackBar.open(message, undefined, { duration: 3000 });
   }
 }

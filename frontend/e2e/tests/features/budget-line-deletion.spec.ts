@@ -40,10 +40,10 @@ test.describe('Budget Line Deletion', () => {
 
     // Test actual deletion flow
     await budgetDetailsPage.clickDeleteBudgetLine('Groceries');
-    await expect(authenticatedPage.getByTestId('delete-confirmation-dialog')).toBeVisible();
+    await expect(authenticatedPage.getByTestId('confirmation-dialog')).toBeVisible();
     
     await budgetDetailsPage.confirmDelete();
-    await expect(authenticatedPage.getByTestId('delete-confirmation-dialog')).toBeHidden();
+    await expect(authenticatedPage.getByTestId('confirmation-dialog')).toBeHidden();
   });
 
   test('should cancel deletion when clicking cancel', async ({
@@ -74,10 +74,10 @@ test.describe('Budget Line Deletion', () => {
 
     // Test cancellation flow
     await budgetDetailsPage.clickDeleteBudgetLine('Transport');
-    await expect(authenticatedPage.getByTestId('delete-confirmation-dialog')).toBeVisible();
+    await expect(authenticatedPage.getByTestId('confirmation-dialog')).toBeVisible();
     
     await budgetDetailsPage.cancelDelete();
-    await expect(authenticatedPage.getByTestId('delete-confirmation-dialog')).toBeHidden();
+    await expect(authenticatedPage.getByTestId('confirmation-dialog')).toBeHidden();
     
     // Verify line is still visible
     await budgetDetailsPage.expectBudgetLineVisible('Transport');

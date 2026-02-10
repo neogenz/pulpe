@@ -134,7 +134,6 @@ export class BudgetDetailsStore {
     },
   });
 
-  // Computed pour l'état dérivé
   readonly budgetDetails = computed(
     () => this.#budgetDetailsResource.value() ?? null,
   );
@@ -216,9 +215,6 @@ export class BudgetDetailsStore {
     );
   });
 
-  /**
-   * Dépenses réalisées (uniquement les éléments cochés)
-   */
   readonly realizedExpenses = computed<number>(() => {
     if (!this.#budgetDetailsResource.hasValue()) return 0;
     const details = this.#budgetDetailsResource.value();
@@ -228,9 +224,6 @@ export class BudgetDetailsStore {
     );
   });
 
-  /**
-   * Nombre d'éléments cochés (budget lines + transactions)
-   */
   readonly checkedItemsCount = computed<number>(() => {
     if (!this.#budgetDetailsResource.hasValue()) return 0;
     const details = this.#budgetDetailsResource.value();
@@ -240,9 +233,6 @@ export class BudgetDetailsStore {
       .length;
   });
 
-  /**
-   * Nombre total d'éléments (budget lines + transactions)
-   */
   readonly totalItemsCount = computed<number>(() => {
     if (!this.#budgetDetailsResource.hasValue()) return 0;
     const details = this.#budgetDetailsResource.value();

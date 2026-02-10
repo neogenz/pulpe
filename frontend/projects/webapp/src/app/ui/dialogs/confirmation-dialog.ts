@@ -16,7 +16,7 @@ export interface ConfirmationDialogData {
 
 @Component({
   selector: 'pulpe-confirmation-dialog',
-  host: { 'data-testid': 'delete-confirmation-dialog' },
+  host: { 'data-testid': 'confirmation-dialog' },
   imports: [MatDialogModule, MatButtonModule],
   template: `
     <h2 mat-dialog-title>{{ data.title }}</h2>
@@ -26,14 +26,18 @@ export interface ConfirmationDialogData {
     </mat-dialog-content>
 
     <mat-dialog-actions align="end" class="gap-2">
-      <button matButton (click)="onCancel()" data-testid="cancel-delete-button">
+      <button
+        matButton
+        (click)="onCancel()"
+        data-testid="confirmation-cancel-button"
+      >
         {{ data.cancelText || 'Annuler' }}
       </button>
       <button
         matButton="filled"
         [class.confirm-warn]="data.confirmColor === 'warn'"
         (click)="onConfirm()"
-        data-testid="confirm-delete-button"
+        data-testid="confirmation-confirm-button"
       >
         {{ data.confirmText || 'Confirmer' }}
       </button>
@@ -53,13 +57,13 @@ export interface ConfirmationDialogData {
 })
 export class ConfirmationDialog {
   readonly #dialogRef = inject(MatDialogRef<ConfirmationDialog>);
-  readonly data = inject<ConfirmationDialogData>(MAT_DIALOG_DATA);
+  protected readonly data = inject<ConfirmationDialogData>(MAT_DIALOG_DATA);
 
-  onConfirm(): void {
+  protected onConfirm(): void {
     this.#dialogRef.close(true);
   }
 
-  onCancel(): void {
+  protected onCancel(): void {
     this.#dialogRef.close(false);
   }
 }
