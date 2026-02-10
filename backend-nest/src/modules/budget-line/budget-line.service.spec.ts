@@ -555,6 +555,10 @@ describe('BudgetLineService', () => {
         getMockSupabaseClient(),
       );
 
+      expect(mockSupabase.rpc).toHaveBeenCalledWith(
+        'toggle_budget_line_check',
+        { p_budget_line_id: budgetLineId },
+      );
       expect(result.success).toBe(true);
       expect(result.data.checkedAt).not.toBeNull();
     });
@@ -575,6 +579,10 @@ describe('BudgetLineService', () => {
         getMockSupabaseClient(),
       );
 
+      expect(mockSupabase.rpc).toHaveBeenCalledWith(
+        'toggle_budget_line_check',
+        { p_budget_line_id: budgetLineId },
+      );
       expect(result.success).toBe(true);
       expect(result.data.checkedAt).toBeNull();
     });

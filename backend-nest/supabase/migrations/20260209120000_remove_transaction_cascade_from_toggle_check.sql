@@ -1,6 +1,8 @@
 -- Remove transaction cascade from toggle_budget_line_check RPC.
--- Transaction check state is now managed by the application layer (optimistic update)
--- to allow independent checking of envelopes and their transactions.
+-- Context: The envelope logic requires independent checking of budget lines and transactions.
+-- Previously, checking a budget line would cascade to all its transactions, preventing users
+-- from tracking partial expense realization (e.g., 50 CHF envelope with only 25 CHF spent).
+-- Transaction check state is now managed by the application layer (optimistic update in frontend store).
 CREATE OR REPLACE FUNCTION public.toggle_budget_line_check(
   p_budget_line_id uuid
 ) RETURNS public.budget_line
