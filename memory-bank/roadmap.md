@@ -1,6 +1,6 @@
 # Pulpe - Roadmap
 
-> Product roadmap organized by release milestones. Updated January 2026.
+> Product roadmap organized by release milestones. Updated February 2026.
 >
 > Sources: [GitHub Issues](https://github.com/neogenz/pulpe/issues) — [Project Board](https://github.com/users/neogenz/projects/1)
 
@@ -14,7 +14,18 @@ Pulpe is an open-source passion project, in production with 3 users, no marketin
 
 ---
 
-## R1 — App Store Ready
+## MVP (93% — 2 issues restantes)
+
+> **Goal:** Core features, production-ready webapp + backend.
+
+| Issue | Description | Label |
+|-------|-------------|-------|
+| #274 | Chiffrer les montants utilisateurs en base de données (AES-256-GCM) | technical |
+| #293 | Supprimer le code temporaire de backfill encryption après migration | technical |
+
+---
+
+## R1 — App Store Ready (15 issues)
 
 > **Goal:** Submit iOS to the App Store with a solid, bug-free core experience.
 
@@ -22,25 +33,22 @@ Pulpe is an open-source passion project, in production with 3 users, no marketin
 
 | Issue | Description | Platform |
 |-------|-------------|----------|
-| #270 | Onboarding: 1er budget ignore le payday | Web |
-| #267 | Support du PayDay dans l'app iOS | iOS |
-| #268 | Bug affichage + comptabilisation transactions mois courant | Web |
+| #302 | Bug onboarding : le budget initial ne couvre pas la bonne période quand le payDay est dans le futur proche | Web |
 | #269 | Comptabiliser les dépenses allouées depuis current-month | Web |
-| #266 | Restreindre la date des prévisions dans le mois courant | Web |
-| #251 | Réseau lent → affiche page maintenance | Web + iOS |
+| #268 | Bug d'affichage et de comptabilisation des transactions du mois courant | Web |
+| #267 | Support du PayDay dans l'app iOS | iOS |
+| #251 | Mauvaise erreur quand réseau lent | Web + iOS |
 
-### iOS polish
+### Fonctionnalités
 
-| Issue | Description |
-|-------|-------------|
-| #242 | Skeletons de chargement iOS |
-| #244 | Optimiser les appels réseau iOS |
-
-### Dashboard iOS
-
-| Issue | Description |
-|-------|-------------|
-| #243 | Dashboard iOS "Vue d'ensemble" |
+| Issue | Description | Platform |
+|-------|-------------|----------|
+| #309 | Ajouter un bouton + pour créer des prévisions custom dans l'onboarding | Web |
+| #303 | Améliorer l'empty state de CurrentMonth quand aucun budget n'existe | Web |
+| #290 | Relancer l'authentification biométrique après mise en arrière-plan prolongée | iOS |
+| #289 | Intégrer PostHog Analytics sur l'app iOS | iOS |
+| #278 | Report du mois précédent en bottom sheet | iOS |
+| #242 | Skeletons de chargement | iOS |
 
 ### Préparation App Store
 
@@ -49,17 +57,24 @@ Pulpe is an open-source passion project, in production with 3 users, no marketin
 | #276 | Définir le scope MVP iOS |
 | #277 | Checklist soumission App Store |
 
----
-
-## R2 — Worth Sharing
-
-> **Goal:** Make the product polished enough to share — with friends, communities, or on socials.
-
-### Dashboard web
+### Technique
 
 | Issue | Description |
 |-------|-------------|
-| #271 | Dashboard actionable (hero, prévisions non cochées, chart 6 mois) |
+| #244 | Optimiser les appels réseau iOS |
+| #206 | Gérer les releases PostHog |
+
+---
+
+## R2 — Worth Sharing (20 issues)
+
+> **Goal:** Make the product polished enough to share — with friends, communities, or on socials.
+
+### Dashboard
+
+| Issue | Description |
+|-------|-------------|
+| #271 | Refactorer "Mois courant" en Dashboard actionable |
 
 ### UX polish
 
@@ -67,6 +82,8 @@ Pulpe is an open-source passion project, in production with 3 users, no marketin
 |-------|-------------|
 | #107 | Checkbox via bouton "sélectionner" |
 | #22 | Supprimer le budget d'un mois |
+| #288 | Masquer les montants pour partager son écran en toute confidentialité |
+| #306 | Renforcer la validation et l'affichage de la sécurité des mots de passe |
 
 ### Épargne (nouveau pilier de valeur)
 
@@ -96,27 +113,36 @@ Pulpe is an open-source passion project, in production with 3 users, no marketin
 | Issue | Description |
 |-------|-------------|
 | #193 | Migration tokens Supabase |
-| #206 | Gérer les releases PostHog |
-| #274 | Chiffrement montants DB (AES-256-GCM) — argument commercial |
+| #307 | Configurer SMTP personnalisé pour les emails transactionnels (Resend) |
 
 ---
 
-## Ice Box
+## Ice Box (11 issues)
 
 > Ideas without spec, demand, or explicitly out of V1 scope. Revisit after R2.
 
 | Issue | Description | Reason |
 |-------|-------------|--------|
 | #248 | Convertisseur de devise | CHF only in V1 |
-| #36 | Mode hors-ligne basique | Enormous complexity, no demand |
 | #247 | Import JSON des dépenses | No demand |
+| #36 | Mode hors-ligne basique | Enormous complexity, no demand |
+| #284 | Explorer le skill Remotion pour générer des vidéos | Exploration |
+| #283 | Renommage BudgetLine/Transaction → Prévu/Réalisé | Refactoring scope à définir |
+| #310 | Afficher un signe "-" devant les montants de dépenses | Exploration UX |
+| #311 | Uniformiser l'accès données via repositories (backend) | Tech debt, pas urgent |
+| #312 | Cache in-memory simple (backend) | Pas de problème de perf constaté |
+| #299 | Alternative : chiffrement server-side (sans zero-knowledge) | Alternative architecture |
+| #301 | Alternative : chiffrement Google OAuth device-bound | Alternative architecture |
+| #304 | Préremplir les montants du onboarding en mode localhost | DX uniquement |
 
 ---
 
-## Closed (housekeeping Jan 2026)
+## Closed (housekeeping)
 
 | Issue | Reason |
 |-------|--------|
+| #316 | Livré dans v0.19.0 (recherche budget details) |
+| #270 | Doublon de #302 |
 | #27 | Superseded by #271 |
 | #33 | Duplicate of #85 |
 | #119 | Already implemented (payday) |
