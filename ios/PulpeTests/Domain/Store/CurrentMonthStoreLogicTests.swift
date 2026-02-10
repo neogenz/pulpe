@@ -70,15 +70,11 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
     }
 
     func testDailyBudgetLogic_withZeroDays_returns0() {
-        // Arrange
-        let remaining: Decimal = 1000
-        let daysRemaining = 0
-
-        // Act
-        let dailyBudget = daysRemaining > 0 ? remaining / Decimal(daysRemaining) : 0
-
-        // Assert
-        XCTAssertEqual(dailyBudget, 0, "Should return 0 when no days remaining")
+        XCTAssertEqual(
+            Self.calculateDailyBudget(remaining: 1000, daysRemaining: 0),
+            0,
+            "Should return 0 when no days remaining"
+        )
     }
 
     func testDailyBudgetLogic_withNegativeRemaining_returns0() {
@@ -455,6 +451,14 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
 
         // Assert
         XCTAssertTrue(yearGroups.isEmpty, "Should return empty array for no budgets")
+    }
+
+    // MARK: - Helpers
+
+    /// Mirrors CurrentMonthStore.dailyBudget logic
+    private static func calculateDailyBudget(remaining: Decimal, daysRemaining: Int) -> Decimal {
+        guard daysRemaining > 0, remaining > 0 else { return 0 }
+        return remaining / Decimal(daysRemaining)
     }
 
     func testGroupedByYearLogic_singleBudget_createsSingleGroup() {

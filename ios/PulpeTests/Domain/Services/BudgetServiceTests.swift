@@ -120,7 +120,6 @@ final class BudgetServiceTests: XCTestCase {
 
     func testGetNextAvailableMonth_handlesYearTransition() {
         // Arrange
-        let december = Date.from(month: 12, year: 2025)!
         let decemberBudget = TestDataFactory.createBudget(month: 12, year: 2025)
 
         // Act

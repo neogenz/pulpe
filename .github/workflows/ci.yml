@@ -594,6 +594,7 @@ jobs:
           xcodebuild test \
             -scheme PulpeTests \
             -destination 'id=${{ steps.sim.outputs.udid }}' \
+            -arch arm64 \
             CODE_SIGNING_ALLOWED=NO \
             -quiet
 

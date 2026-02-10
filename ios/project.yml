@@ -41,9 +41,11 @@ targets:
         excludes:
           - "**/.DS_Store"
       - path: PulpeWidget/Models
+        group: PulpeWidget
         excludes:
           - "**/.DS_Store"
       - path: PulpeWidget/Services
+        group: PulpeWidget
         excludes:
           - "**/.DS_Store"
     dependencies:
