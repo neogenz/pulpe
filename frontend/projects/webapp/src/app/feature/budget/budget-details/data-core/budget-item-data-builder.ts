@@ -266,8 +266,9 @@ export function buildViewData(params: {
   const { budgetLines, transactions } = params;
 
   const consumptionMap = calculateAllConsumptions(budgetLines, transactions);
-  const items = createDisplayItems(budgetLines, transactions);
-  items.sort(compareItems);
+  const items = [...createDisplayItems(budgetLines, transactions)].sort(
+    compareItems,
+  );
 
   const mappedItems = mapToTableItems(items, consumptionMap);
 

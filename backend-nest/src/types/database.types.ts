@@ -341,6 +341,22 @@ export type Database = {
           updated_at: string;
         }[];
       };
+      check_unchecked_transactions: {
+        Args: { p_budget_line_id: string };
+        Returns: {
+          amount: number;
+          budget_id: string;
+          budget_line_id: string | null;
+          category: string | null;
+          checked_at: string | null;
+          created_at: string;
+          id: string;
+          kind: Database['public']['Enums']['transaction_kind'];
+          name: string;
+          transaction_date: string;
+          updated_at: string;
+        }[];
+      };
       create_budget_from_template: {
         Args: {
           p_description: string;
@@ -369,6 +385,55 @@ export type Database = {
           previous_budget_id: string;
           rollover: number;
         }[];
+      };
+      gtrgm_compress: {
+        Args: { '': unknown };
+        Returns: unknown;
+      };
+      gtrgm_decompress: {
+        Args: { '': unknown };
+        Returns: unknown;
+      };
+      gtrgm_in: {
+        Args: { '': unknown };
+        Returns: unknown;
+      };
+      gtrgm_options: {
+        Args: { '': unknown };
+        Returns: undefined;
+      };
+      gtrgm_out: {
+        Args: { '': unknown };
+        Returns: unknown;
+      };
+      set_limit: {
+        Args: { '': number };
+        Returns: number;
+      };
+      show_limit: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
+      };
+      show_trgm: {
+        Args: { '': string };
+        Returns: string[];
+      };
+      toggle_budget_line_check: {
+        Args: { p_budget_line_id: string };
+        Returns: {
+          amount: number;
+          budget_id: string;
+          checked_at: string | null;
+          created_at: string;
+          id: string;
+          is_manually_adjusted: boolean;
+          kind: Database['public']['Enums']['transaction_kind'];
+          name: string;
+          recurrence: Database['public']['Enums']['transaction_recurrence'];
+          savings_goal_id: string | null;
+          template_line_id: string | null;
+          updated_at: string;
+        };
       };
     };
     Enums: {

@@ -1,10 +1,15 @@
 import { inject, Injectable } from '@angular/core';
+
+import { z } from 'zod';
+
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { NGROK_SKIP_HEADER } from '../config/ngrok.constants';
 
-export interface MaintenanceStatus {
-  maintenanceMode: boolean;
-}
+const maintenanceStatusSchema = z.object({
+  maintenanceMode: z.boolean(),
+});
+
+export type MaintenanceStatus = z.infer<typeof maintenanceStatusSchema>;
 
 /**
  * Service for checking maintenance mode status.
@@ -30,6 +35,6 @@ export class MaintenanceApi {
       throw new Error(`Maintenance check failed: ${response.status}`);
     }
 
-    return (await response.json()) as MaintenanceStatus;
+    return maintenanceStatusSchema.parse(await response.json());
   }
 }

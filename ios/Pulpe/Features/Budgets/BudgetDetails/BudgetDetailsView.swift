@@ -171,6 +171,37 @@ struct BudgetDetailsView: View {
                 }
             )
         }
+        .alert(
+            "Comptabiliser les transactions ?",
+            isPresented: $viewModel.showCheckAllTransactionsAlert,
+            presenting: viewModel.budgetLineToCheckAll
+        ) { line in
+            Button("Non, juste l'enveloppe", role: .cancel) {
+                Task {
+                    guard let toastManager = viewModel.toastManagerForCheckAll else { return }
+                    let succeeded = await viewModel.performToggleBudgetLine(line)
+                    if succeeded {
+                        viewModel.showEnvelopeToastIfNeeded(for: line, toastManager: toastManager)
+                    }
+                    viewModel.budgetLineToCheckAll = nil
+                    viewModel.toastManagerForCheckAll = nil
+                }
+            }
+            Button("Oui, tout comptabiliser") {
+                Task {
+                    guard let toastManager = viewModel.toastManagerForCheckAll else { return }
+                    let succeeded = await viewModel.performToggleBudgetLine(line)
+                    if succeeded {
+                        await viewModel.checkAllAllocatedTransactions(for: line.id)
+                        viewModel.showEnvelopeToastIfNeeded(for: line, toastManager: toastManager)
+                    }
+                    viewModel.budgetLineToCheckAll = nil
+                    viewModel.toastManagerForCheckAll = nil
+                }
+            }
+        } message: { _ in
+            Text("Des transactions non comptabilisées sont liées à cette enveloppe.")
+        }
     }
 
     // MARK: - Navigation
@@ -276,7 +307,7 @@ struct BudgetDetailsView: View {
                         transactions: viewModel.transactions,
                         syncingIds: viewModel.syncingBudgetLineIds,
                         onToggle: { line in
-                            Task { await viewModel.toggleBudgetLine(line) }
+                            Task { await viewModel.toggleBudgetLine(line, toastManager: appState.toastManager) }
                         },
                         onDelete: { line in
                             Task { await viewModel.deleteBudgetLine(line) }
@@ -348,6 +379,11 @@ final class BudgetDetailsViewModel {
     private(set) var syncingBudgetLineIds: Set<String> = []
     private(set) var syncingTransactionIds: Set<String> = []
 
+    // Alert state for checking all transactions when toggling an envelope
+    var showCheckAllTransactionsAlert = false
+    var budgetLineToCheckAll: BudgetLine?
+    var toastManagerForCheckAll: ToastManager?
+
     // Navigation between months
     private(set) var allBudgets: [BudgetSparse] = []
     private(set) var previousBudgetId: String?
@@ -368,7 +404,6 @@ final class BudgetDetailsViewModel {
     private let budgetService = BudgetService.shared
     private let budgetLineService = BudgetLineService.shared
     private let transactionService = TransactionService.shared
-
     init(budgetId: String) {
         self.budgetId = budgetId
         // Load persisted filter preference (default: show only unchecked)
@@ -542,11 +577,37 @@ final class BudgetDetailsViewModel {
         nextBudgetId = currentIndex < sorted.count - 1 ? sorted[currentIndex + 1].id : nil
     }
 
-    func toggleBudgetLine(_ line: BudgetLine) async {
+    func toggleBudgetLine(_ line: BudgetLine, toastManager: ToastManager) async {
         guard !(line.isRollover ?? false) else { return }
         guard !syncingBudgetLineIds.contains(line.id) else { return }
 
+        let wasUnchecked = !line.isChecked
+
+        // If checking and there are unchecked transactions, show alert
+        if wasUnchecked {
+            let uncheckedTransactions = transactions.filter {
+                $0.budgetLineId == line.id && !$0.isChecked
+            }
+            if !uncheckedTransactions.isEmpty {
+                budgetLineToCheckAll = line
+                toastManagerForCheckAll = toastManager
+                showCheckAllTransactionsAlert = true
+                return
+            }
+        }
+
+        let succeeded = await performToggleBudgetLine(line)
+        if succeeded {
+            showEnvelopeToastIfNeeded(for: line, toastManager: toastManager)
+        }
+    }
+
+    @discardableResult
+    func performToggleBudgetLine(_ line: BudgetLine) async -> Bool {
+        guard !syncingBudgetLineIds.contains(line.id) else { return false }
+
         syncingBudgetLineIds.insert(line.id)
+        defer { syncingBudgetLineIds.remove(line.id) }
 
         let originalLines = budgetLines
         if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
@@ -556,12 +617,32 @@ final class BudgetDetailsViewModel {
         do {
             _ = try await budgetLineService.toggleCheck(id: line.id)
             await reloadCurrentBudget()
+            return true
         } catch {
             budgetLines = originalLines
             self.error = error
+            return false
         }
+    }
 
-        syncingBudgetLineIds.remove(line.id)
+    func showEnvelopeToastIfNeeded(for line: BudgetLine, toastManager: ToastManager) {
+        guard !line.isChecked, line.kind.isOutflow else { return }
+
+        let consumed = transactions
+            .filter { $0.budgetLineId == line.id && $0.isChecked && $0.kind.isOutflow }
+            .reduce(Decimal.zero) { $0 + $1.amount }
+        let effective = max(line.amount, consumed)
+        guard effective > consumed, consumed > 0 else { return }
+        toastManager.show("Comptabilisé \(effective.asCHF) (enveloppe)")
+    }
+
+    func checkAllAllocatedTransactions(for budgetLineId: String) async {
+        let unchecked = transactions.filter {
+            $0.budgetLineId == budgetLineId && !$0.isChecked
+        }
+        for tx in unchecked {
+            await toggleTransaction(tx)
+        }
     }
 
     func toggleTransaction(_ transaction: Transaction) async {

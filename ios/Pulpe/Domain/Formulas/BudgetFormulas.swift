@@ -119,20 +119,37 @@ enum BudgetFormulas {
         return checkedBudgetIncome + checkedTransactionIncome
     }
 
-    /// Calculate realized expenses (only checked items)
+    /// Calculate realized expenses using envelope logic
+    /// - Checked parent: max(envelope, consumed by checked transactions)
+    /// - Unchecked parent: sum of checked allocated transactions
+    /// - Free transactions: counted directly when checked
     static func calculateRealizedExpenses(
         budgetLines: [BudgetLine],
         transactions: [Transaction] = []
     ) -> Decimal {
-        let checkedBudgetExpenses = budgetLines
-            .filter { $0.isChecked && $0.kind.isOutflow }
+        var total: Decimal = 0
+
+        for line in budgetLines {
+            guard line.kind.isOutflow else { continue }
+            guard line.isRollover != true else { continue }
+
+            let consumed = transactions
+                .filter { $0.budgetLineId == line.id && $0.isChecked && $0.kind.isOutflow }
+                .reduce(Decimal.zero) { $0 + $1.amount }
+
+            if line.isChecked {
+                total += max(line.amount, consumed)
+            } else {
+                total += consumed
+            }
+        }
+
+        // Free transactions (no parent envelope)
+        let freeTransactions = transactions
+            .filter { $0.budgetLineId == nil && $0.isChecked && $0.kind.isOutflow }
             .reduce(Decimal.zero) { $0 + $1.amount }
 
-        let checkedTransactionExpenses = transactions
-            .filter { $0.isChecked && $0.kind.isOutflow }
-            .reduce(Decimal.zero) { $0 + $1.amount }
-
-        return checkedBudgetExpenses + checkedTransactionExpenses
+        return total + freeTransactions
     }
 
     /// Calculate realized balance (checked income - checked expenses)

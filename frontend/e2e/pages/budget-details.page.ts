@@ -61,10 +61,10 @@ export class BudgetDetailsPage {
   }
 
   async confirmDelete(): Promise<void> {
-    await this.page.getByTestId('confirm-delete-button').click();
+    await this.page.getByTestId('confirmation-confirm-button').click();
   }
 
   async cancelDelete(): Promise<void> {
-    await this.page.getByTestId('cancel-delete-button').click();
+    await this.page.getByTestId('confirmation-cancel-button').click();
   }
 }

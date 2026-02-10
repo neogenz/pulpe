@@ -23,6 +23,7 @@ import {
   type BudgetLineResponse,
   type BudgetLineListResponse,
   type BudgetLineDeleteResponse,
+  type TransactionListResponse,
 } from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -38,6 +39,7 @@ import {
   BudgetLineResponseDto,
   BudgetLineListResponseDto,
   BudgetLineDeleteResponseDto,
+  TransactionListResponseDto,
 } from './dto/budget-line-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 
@@ -207,6 +209,32 @@ export class BudgetLineController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
     return this.budgetLineService.toggleCheck(id, user, supabase);
+  }
+
+  @Post(':id/check-transactions')
+  @ApiOperation({
+    summary: 'Check all unchecked transactions for a budget line',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Identifiant unique de la ligne budgétaire',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Transactions cochées avec succès',
+    type: TransactionListResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Ligne budgétaire non trouvée',
+    type: ErrorResponseDto,
+  })
+  async checkTransactions(
+    @Param('id') id: string,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<TransactionListResponse> {
+    return this.budgetLineService.checkTransactions(id, user, supabase);
   }
 
   @Delete(':id')
