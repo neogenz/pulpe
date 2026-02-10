@@ -25,7 +25,7 @@ import { MatIconModule } from '@angular/material/icon';
       />
       @if (value()) {
         <button
-          mat-icon-button
+          matIconButton
           aria-label="Effacer la recherche"
           (click)="value.set('')"
         >

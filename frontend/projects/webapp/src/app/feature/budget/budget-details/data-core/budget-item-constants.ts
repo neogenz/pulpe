@@ -66,10 +66,9 @@ export function calculatePercentage(
 export function getRolloverSourceBudgetId(
   data: BudgetLine,
 ): string | undefined {
-  return 'rolloverSourceBudgetId' in data
-    ? (data as BudgetLine & { rolloverSourceBudgetId?: string })
-        .rolloverSourceBudgetId
-    : undefined;
+  if (!('rolloverSourceBudgetId' in data)) return undefined;
+  const value = data.rolloverSourceBudgetId;
+  return typeof value === 'string' ? value : undefined;
 }
 
 export function getSignedAmount(kind: TransactionKind, amount: number): number {
