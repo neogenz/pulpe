@@ -11,9 +11,8 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
+import { SearchBar } from '@ui/index';
 import {
   calculateAllEnrichedConsumptions,
   type BudgetLineConsumption,
@@ -43,9 +42,8 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
   selector: 'pulpe-budget-items',
   imports: [
     MatButtonModule,
-    MatFormFieldModule,
     MatIconModule,
-    MatInputModule,
+    SearchBar,
     BudgetGrid,
     BudgetTable,
     BudgetViewToggle,
@@ -68,27 +66,11 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
       </div>
 
       <!-- Search -->
-      <mat-form-field appearance="outline" class="w-full">
-        <mat-icon matPrefix>search</mat-icon>
-        <input
-          matInput
-          placeholder="Rechercher une prévision..."
-          [value]="searchText()"
-          (input)="searchTextChange.emit(searchInput.value)"
-          #searchInput
-          data-testid="budget-search-input"
-        />
-        @if (searchText()) {
-          <button
-            matSuffix
-            matIconButton
-            aria-label="Effacer la recherche"
-            (click)="searchTextChange.emit('')"
-          >
-            <mat-icon>close</mat-icon>
-          </button>
-        }
-      </mat-form-field>
+      <pulpe-search-bar
+        placeholder="Rechercher une prévision..."
+        [value]="searchText()"
+        (valueChange)="searchTextChange.emit($event)"
+      />
 
       <!-- Filter -->
       <pulpe-budget-table-checked-filter
