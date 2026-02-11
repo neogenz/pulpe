@@ -1,5 +1,11 @@
 # pulpe-shared
 
+## 0.7.2
+
+### Patch Changes
+
+- Correction du calcul du Solde actuel pour inclure le report realise des mois precedents.
+
 ## 0.7.1
 
 ### Patch Changes

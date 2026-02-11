@@ -1,5 +1,13 @@
 # pulpe-frontend
 
+## 0.19.1
+
+### Patch Changes
+
+- Correction du calcul du Solde actuel pour inclure le report realise des mois precedents.
+- Updated dependencies
+  - pulpe-shared@0.7.2
+
 ## 0.19.0
 
 ### Minor Changes

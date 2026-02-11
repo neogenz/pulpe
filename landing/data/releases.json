@@ -1,5 +1,21 @@
 [
   {
+    "version": "0.19.1",
+    "date": "2026-02-11",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.19.1",
+    "platforms": ["web"],
+    "changes": {
+      "features": [],
+      "fixes": [
+        {
+          "title": "Solde actuel corrige",
+          "description": "Le report realise des mois precedents est desormais inclus dans le calcul du Solde actuel"
+        }
+      ],
+      "technical": []
+    }
+  },
+  {
     "version": "0.19.0",
     "date": "2026-02-10",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.19.0",
