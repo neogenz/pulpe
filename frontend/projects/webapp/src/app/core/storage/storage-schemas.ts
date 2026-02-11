@@ -56,7 +56,7 @@ export const STORAGE_SCHEMAS = {
     schema: z.string().refine(isValidClientKeyHex, {
       message: 'Invalid client key hex format',
     }),
-    scope: 'app',
+    scope: 'user',
     storageType: 'local',
   },
 } as const satisfies Record<string, StorageSchemaConfig>;
