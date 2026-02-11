@@ -7,7 +7,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
   imports: [MatIconModule, MatTooltipModule],
   template: `
     <mat-icon
-      matTooltip="Ce solde est calculé à partir des dépenses que tu as cochées. Compare-le à ton solde bancaire pour vérifier que tout colle."
+      matTooltip="Ce solde est calculé à partir des éléments cochés, report compris. Compare-le à ton solde bancaire pour vérifier que tout colle."
       matTooltipPosition="above"
       matTooltipTouchGestures="auto"
       matTooltipClass="text-center"

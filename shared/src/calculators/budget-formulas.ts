@@ -121,9 +121,6 @@ export class BudgetFormulas {
     // For each expense/saving budget line, use max(envelope, consumed)
     budgetLines.forEach((line) => {
       if (line.kind === 'expense' || line.kind === 'saving') {
-        // Skip virtual rollover lines
-        if (line.isRollover) return;
-
         // Calculate consumed amount for this envelope
         const consumed = transactions
           .filter((tx) => tx.budgetLineId === line.id)
@@ -187,7 +184,6 @@ export class BudgetFormulas {
 
     budgetLines.forEach((line) => {
       if (line.kind !== 'expense' && line.kind !== 'saving') return;
-      if (line.isRollover) return;
 
       const consumed = transactions
         .filter(

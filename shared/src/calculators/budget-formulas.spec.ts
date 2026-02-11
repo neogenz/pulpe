@@ -533,7 +533,7 @@ describe('BudgetFormulas', () => {
       expect(result).toBe(125);
     });
 
-    it('should skip virtual rollover lines', () => {
+    it('should include rollover lines in realized expenses', () => {
       const budgetLines = [
         createBudgetLineWithId('line-1', 'expense', 100, '2025-01-15'),
         {
@@ -555,8 +555,8 @@ describe('BudgetFormulas', () => {
         transactions,
       );
 
-      // Only non-rollover line counted
-      expect(result).toBe(100);
+      // Both lines counted including rollover
+      expect(result).toBe(150);
     });
 
     it('should apply envelope logic to savings (treated as expenses)', () => {
@@ -1247,7 +1247,7 @@ describe('BudgetFormulas', () => {
           expect(result).toBe(800);
         });
 
-        it('should skip rollover budget lines', () => {
+        it('should include rollover budget lines in expenses', () => {
           const budgetLines = [
             createBudgetLine('line-1', 'expense', 500),
             {
@@ -1261,7 +1261,7 @@ describe('BudgetFormulas', () => {
             [],
           );
 
-          expect(result).toBe(500);
+          expect(result).toBe(600);
         });
 
         it('should handle transactions without budgetLineId field', () => {
