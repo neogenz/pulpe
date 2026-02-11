@@ -32,7 +32,10 @@ jobs:
         id: prompt
         run: |
           set -e
-          CHANGED_FILES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only) || exit 1
+          CHANGED_FILES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only 2>/dev/null) || {
+            echo "::notice::PR diff too large for automated review — skipping."
+            exit 0
+          }
           echo "Changed files:"
           echo "$CHANGED_FILES"
 
