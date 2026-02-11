@@ -181,31 +181,11 @@ describe('ClientKeyService', () => {
   });
 
   describe('clear()', () => {
-    it('should reset signal and remove from session storage only', async () => {
+    it('should reset signal and remove from both storages', async () => {
       mockedDeriveClientKey.mockResolvedValue('key');
       await service.deriveAndStore('p', 's', 1);
-      (mockStorageService.remove as ReturnType<typeof vi.fn>).mockClear();
 
       service.clear();
-
-      expect(service.clientKeyHex()).toBeNull();
-      expect(mockStorageService.remove).toHaveBeenCalledWith(
-        STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION,
-        'session',
-      );
-      expect(mockStorageService.remove).not.toHaveBeenCalledWith(
-        STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
-        'local',
-      );
-    });
-  });
-
-  describe('clearAll()', () => {
-    it('should reset signal and remove from both storages', async () => {
-      await service.deriveAndStore('test-salt', 'test-password', 600000);
-      (mockStorageService.remove as ReturnType<typeof vi.fn>).mockClear();
-
-      service.clearAll();
 
       expect(service.clientKeyHex()).toBeNull();
       expect(mockStorageService.remove).toHaveBeenCalledWith(
