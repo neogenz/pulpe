@@ -36,7 +36,7 @@ interface TransactionFormControls {
   category: FormControl<string | null>;
 }
 
-import { TransactionValidators } from '../utils/transaction-form-validators';
+import { TransactionValidators } from '@core/transaction';
 
 @Component({
   selector: 'pulpe-add-transaction-bottom-sheet',

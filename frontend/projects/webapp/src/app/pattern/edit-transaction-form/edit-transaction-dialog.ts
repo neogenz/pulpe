@@ -12,18 +12,16 @@ import {
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
-import { EditTransactionForm } from './edit-transaction-form';
-import { type Transaction, type TransactionCreate } from 'pulpe-shared';
-
-type EditTransactionFormData = Pick<
-  TransactionCreate,
-  'name' | 'amount' | 'kind' | 'category'
-> & {
-  transactionDate: string;
-};
+import {
+  EditTransactionForm,
+  type EditTransactionFormData,
+  type HideableField,
+} from './edit-transaction-form';
+import { type Transaction } from 'pulpe-shared';
 
 export interface EditTransactionDialogData {
   transaction: Transaction;
+  hiddenFields?: HideableField[];
 }
 
 @Component({
@@ -52,6 +50,7 @@ export interface EditTransactionDialogData {
         #editForm
         class="block pt-4"
         [transaction]="data.transaction"
+        [hiddenFields]="data.hiddenFields ?? []"
         (updateTransaction)="onUpdateTransaction($event)"
         (cancelEdit)="closeDialog()"
         role="main"
@@ -105,8 +104,6 @@ export class EditTransactionDialog {
   protected onUpdateTransaction(
     transactionData: EditTransactionFormData,
   ): void {
-    // Note: loading state is managed by the form component
-    // It will be reset by the parent component after API call completes
     this.#dialogRef.close(transactionData);
   }
 }

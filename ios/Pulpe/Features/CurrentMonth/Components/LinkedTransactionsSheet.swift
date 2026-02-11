@@ -4,6 +4,7 @@ struct LinkedTransactionsSheet: View {
     let budgetLine: BudgetLine
     let transactions: [Transaction]
     let onToggle: (Transaction) -> Void
+    let onEdit: (Transaction) -> Void
     let onDelete: (Transaction) -> Void
     let onAddTransaction: () -> Void
 
@@ -170,6 +171,7 @@ struct LinkedTransactionsSheet: View {
                         transaction: transaction,
                         isFirst: transaction.id == transactions.first?.id,
                         isLast: transaction.id == transactions.last?.id,
+                        onEdit: { onEdit(transaction) },
                         onDelete: { onDelete(transaction) }
                     )
                 }
@@ -236,38 +238,44 @@ private struct LinkedTransactionRow: View {
     let transaction: Transaction
     let isFirst: Bool
     let isLast: Bool
+    let onEdit: () -> Void
     let onDelete: () -> Void
 
     @State private var showDeleteConfirmation = false
 
     var body: some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(transaction.name)
-                    .font(.body)
-                    .fontWeight(.medium)
-                    .lineLimit(1)
+        Button {
+            onEdit()
+        } label: {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(transaction.name)
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
 
-                Text(transaction.transactionDate.formatted(date: .abbreviated, time: .omitted))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    Text(transaction.transactionDate.formatted(date: .abbreviated, time: .omitted))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 8)
+
+                Text(transaction.amount.asCHF)
+                    .font(.system(.body, design: .rounded, weight: .semibold))
+                    .foregroundStyle(transaction.kind.color)
+
+                Button {
+                    showDeleteConfirmation = true
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color.errorPrimary)
+                }
+                .buttonStyle(.plain)
             }
-
-            Spacer(minLength: 8)
-
-            Text(transaction.amount.asCHF)
-                .font(.system(.body, design: .rounded, weight: .semibold))
-                .foregroundStyle(transaction.kind.color)
-
-            Button {
-                showDeleteConfirmation = true
-            } label: {
-                Image(systemName: "trash")
-                    .font(.system(size: 15))
-                    .foregroundStyle(Color.errorPrimary)
-            }
-            .buttonStyle(.plain)
         }
+        .buttonStyle(.plain)
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, 14)
         .background(Color.surfaceCard)
@@ -327,6 +335,7 @@ private struct LinkedTransactionRow: View {
                     )
                 ],
                 onToggle: { _ in },
+                onEdit: { _ in },
                 onDelete: { _ in },
                 onAddTransaction: {}
             )
@@ -380,6 +389,7 @@ private struct LinkedTransactionRow: View {
                     )
                 ],
                 onToggle: { _ in },
+                onEdit: { _ in },
                 onDelete: { _ in },
                 onAddTransaction: {}
             )
@@ -406,6 +416,7 @@ private struct LinkedTransactionRow: View {
                 ),
                 transactions: [],
                 onToggle: { _ in },
+                onEdit: { _ in },
                 onDelete: { _ in },
                 onAddTransaction: {}
             )

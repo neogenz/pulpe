@@ -40,7 +40,10 @@ import { firstValueFrom } from 'rxjs';
 import { AddTransactionBottomSheet } from './components/add-transaction-bottom-sheet';
 import { BudgetProgressBar } from './components/budget-progress-bar';
 import { DashboardError } from './components/dashboard-error';
-import { EditTransactionDialog } from './components/edit-transaction-dialog';
+import {
+  EditTransactionDialog,
+  type EditTransactionFormData,
+} from '@pattern/edit-transaction-form';
 import { OneTimeExpensesList } from './components/one-time-expenses-list';
 import { RecurringExpensesList } from './components/recurring-expenses-list';
 import { type FinancialEntryModel } from './models/financial-entry.model';
@@ -54,12 +57,6 @@ type TransactionFormData = Pick<
   TransactionCreate,
   'name' | 'amount' | 'kind' | 'category'
 >;
-type EditTransactionFormData = Pick<
-  TransactionCreate,
-  'name' | 'amount' | 'kind' | 'category'
-> & {
-  transactionDate: string;
-};
 
 @Component({
   selector: 'pulpe-current-month',
@@ -262,13 +259,9 @@ export default class CurrentMonth {
   constructor() {
     this.store.refreshData();
 
-    effect(() => {
-      const status = this.store.status();
-      this.#loadingIndicator.setLoading(status === 'reloading');
-    });
-
-    this.#destroyRef.onDestroy(() => {
-      this.#loadingIndicator.setLoading(false);
+    effect((onCleanup) => {
+      this.#loadingIndicator.setLoading(this.store.status() === 'reloading');
+      onCleanup(() => this.#loadingIndicator.setLoading(false));
     });
 
     afterNextRender(() => {

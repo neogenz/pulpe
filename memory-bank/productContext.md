@@ -88,7 +88,9 @@ Mar: income=5100, expenses=5200, rollover=900  → ending=800
 
 - Manual entry only
 - Added to budget lines (don't replace them)
-- No modification after entry (V1)
+- Modification allowed for allocated transactions (name, amount)
+- Reallocation to another envelope is not allowed
+- Free transaction editing follows the same pattern
 - Impact remaining immediately
 
 ---

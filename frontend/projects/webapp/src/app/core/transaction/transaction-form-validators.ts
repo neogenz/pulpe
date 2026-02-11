@@ -1,9 +1,5 @@
 import { Validators } from '@angular/forms';
 
-/**
- * Shared validators for transaction forms to ensure consistency across the application.
- * Following KISS principle - direct, simple validation rules without abstraction.
- */
 export const TransactionValidators = {
   name: [
     Validators.required,

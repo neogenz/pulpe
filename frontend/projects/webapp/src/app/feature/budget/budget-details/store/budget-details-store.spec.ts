@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
+import type {
+  BudgetLineCreate,
+  BudgetLineUpdate,
+  TransactionUpdate,
+} from 'pulpe-shared';
 
 /**
  * Tests unitaires métier pour BudgetDetailsStore
@@ -82,6 +86,32 @@ describe('BudgetDetailsStore - Logique Métier', () => {
     });
   });
 
+  describe('Validation des transactions', () => {
+    it('should validate transaction updates correctly', () => {
+      const isValidTransactionUpdate = (update: TransactionUpdate): boolean => {
+        if (update.name !== undefined && update.name.trim().length === 0) {
+          return false;
+        }
+        if (update.amount !== undefined && update.amount <= 0) {
+          return false;
+        }
+        return true;
+      };
+
+      expect(isValidTransactionUpdate({ name: 'Courses modifiées' })).toBe(
+        true,
+      );
+      expect(isValidTransactionUpdate({ amount: 150 })).toBe(true);
+      expect(
+        isValidTransactionUpdate({ name: 'Mis à jour', amount: 200 }),
+      ).toBe(true);
+      expect(isValidTransactionUpdate({ name: '' })).toBe(false);
+      expect(isValidTransactionUpdate({ name: '  ' })).toBe(false);
+      expect(isValidTransactionUpdate({ amount: 0 })).toBe(false);
+      expect(isValidTransactionUpdate({ amount: -50 })).toBe(false);
+    });
+  });
+
   describe('Mises à jour optimistes', () => {
     it('should show new budget line immediately before server confirmation', () => {
       // Arrange - Simulate user adding a new budget line
@@ -155,6 +185,24 @@ describe('BudgetDetailsStore - Logique Métier', () => {
       expect(rolledBackState).toHaveLength(2);
       expect(rolledBackState).toEqual(originalLines);
       expect(rolledBackState.find((l) => l.id === 'temp-fail')).toBeUndefined();
+    });
+
+    it('should update transaction optimistically with new values', () => {
+      const existingTransactions = [
+        { id: 'tx-1', name: 'Courses', amount: 50, budgetLineId: 'bl-1' },
+        { id: 'tx-2', name: 'Restaurant', amount: 30, budgetLineId: 'bl-1' },
+      ];
+
+      const update = { name: 'Courses Migros', amount: 85 };
+
+      const optimisticState = existingTransactions.map((tx) =>
+        tx.id === 'tx-1' ? { ...tx, ...update } : tx,
+      );
+
+      expect(optimisticState[0].name).toBe('Courses Migros');
+      expect(optimisticState[0].amount).toBe(85);
+      expect(optimisticState[1].name).toBe('Restaurant');
+      expect(optimisticState[1].amount).toBe(30);
     });
 
     it('should handle deletion immediately with rollback capability', () => {

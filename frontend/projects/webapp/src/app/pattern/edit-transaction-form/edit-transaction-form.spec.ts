@@ -70,8 +70,7 @@ describe('EditTransactionForm', () => {
       amountControl?.setValue(0.01);
       expect(amountControl?.hasError('min')).toBe(false);
 
-      // @ts-expect-error: setValue can accept string for testing purposes
-      kindControl?.setValue('');
+      kindControl?.setValue(null!);
       expect(kindControl?.hasError('required')).toBe(true);
 
       dateControl?.setValue(null);
@@ -169,7 +168,37 @@ describe('EditTransactionForm', () => {
       expect(maxDate.getFullYear()).toBe(now.getFullYear());
     });
   });
-});
 
-// NOTE: Integration tests with actual transaction data are handled in higher-level component tests
-// due to Angular 20's input.required() limitations in unit tests
+  describe('hiddenFields', () => {
+    it('should default to empty array (no hidden fields)', () => {
+      expect(component.hiddenFields()).toEqual([]);
+      expect(component['isFieldHidden']('kind')).toBe(false);
+      expect(component['isFieldHidden']('category')).toBe(false);
+    });
+
+    it('should still emit original values for hidden fields on submit', () => {
+      // hiddenFields only controls template visibility, not form data
+      // Even with hidden fields, the form group still contains all values
+      component.transactionForm.patchValue({
+        name: 'Test',
+        amount: 100,
+        kind: 'expense',
+        transactionDate: new Date(),
+        category: 'Notes',
+      });
+
+      let emittedData: unknown;
+      component.updateTransaction.subscribe((data) => {
+        emittedData = data;
+      });
+
+      component.onSubmit();
+
+      expect(emittedData).toBeDefined();
+      expect((emittedData as Record<string, unknown>)['kind']).toBe('expense');
+      expect((emittedData as Record<string, unknown>)['category']).toBe(
+        'Notes',
+      );
+    });
+  });
+});

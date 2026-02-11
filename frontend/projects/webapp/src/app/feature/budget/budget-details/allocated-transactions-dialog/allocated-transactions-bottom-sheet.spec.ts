@@ -194,6 +194,23 @@ describe('AllocatedTransactionsBottomSheet', () => {
       });
     });
 
+    it('should dismiss with edit action when edit button is clicked', () => {
+      setup({
+        transactions: [
+          buildTransaction({ id: 'tx-1', name: 'Courses', amount: 50 }),
+        ],
+      });
+
+      const editBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
+        'button[aria-label="Modifier la transaction"]',
+      );
+      editBtn.click();
+
+      expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'edit' }),
+      );
+    });
+
     it('should dismiss with delete action when delete button is clicked', () => {
       setup({
         transactions: [

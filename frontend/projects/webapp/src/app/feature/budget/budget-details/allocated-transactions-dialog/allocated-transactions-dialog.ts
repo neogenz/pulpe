@@ -128,8 +128,15 @@ export interface AllocatedTransactionsDialogResult {
             </ng-container>
 
             <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef class="w-20"></th>
+              <th mat-header-cell *matHeaderCellDef class="w-28"></th>
               <td mat-cell *matCellDef="let tx" class="text-right">
+                <button
+                  matIconButton
+                  (click)="editTransaction(tx)"
+                  matTooltip="Modifier"
+                >
+                  <mat-icon>edit</mat-icon>
+                </button>
                 <button
                   matIconButton
                   (click)="deleteTransaction(tx)"
@@ -203,6 +210,10 @@ export class AllocatedTransactionsDialog {
 
   addTransaction(): void {
     this.#dialogRef.close({ action: 'add' });
+  }
+
+  editTransaction(transaction: Transaction): void {
+    this.#dialogRef.close({ action: 'edit', transaction });
   }
 
   deleteTransaction(transaction: Transaction): void {

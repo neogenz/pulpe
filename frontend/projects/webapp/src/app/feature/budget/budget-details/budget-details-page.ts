@@ -38,6 +38,7 @@ import {
   type BudgetLineUpdate,
   type BudgetLine,
   type Transaction,
+  type TransactionUpdate,
   formatBudgetPeriod,
 } from 'pulpe-shared';
 import {
@@ -175,6 +176,16 @@ export default class BudgetDetailsPage {
     });
   }
 
+  async handleUpdateTransaction(
+    data: TransactionUpdate & { id: string },
+  ): Promise<void> {
+    await this.store.updateTransaction(data.id, data);
+    this.#snackBar.open('Modification enregistrée', 'Fermer', {
+      duration: 5000,
+      panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
+    });
+  }
+
   async handleDeleteItem(id: string): Promise<void> {
     const data = this.store.budgetDetails();
     if (!data) return;
@@ -234,6 +245,14 @@ export default class BudgetDetailsPage {
       await this.openCreateAllocatedTransactionDialog(event.budgetLine);
     } else if (result.action === 'delete' && result.transaction) {
       await this.handleDeleteTransaction(result.transaction);
+    } else if (result.action === 'edit' && result.transaction) {
+      const editResult =
+        await this.#dialogService.openEditAllocatedTransactionDialog(
+          result.transaction,
+        );
+      if (editResult) {
+        await this.handleUpdateTransaction(editResult);
+      }
     }
   }
 
