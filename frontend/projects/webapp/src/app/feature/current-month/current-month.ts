@@ -259,9 +259,13 @@ export default class CurrentMonth {
   constructor() {
     this.store.refreshData();
 
-    effect((onCleanup) => {
-      this.#loadingIndicator.setLoading(this.store.status() === 'reloading');
-      onCleanup(() => this.#loadingIndicator.setLoading(false));
+    effect(() => {
+      const status = this.store.status();
+      this.#loadingIndicator.setLoading(status === 'reloading');
+    });
+
+    this.#destroyRef.onDestroy(() => {
+      this.#loadingIndicator.setLoading(false);
     });
 
     afterNextRender(() => {

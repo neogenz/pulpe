@@ -312,6 +312,9 @@ export class EditTransactionForm implements OnInit {
     if (minInput) this.minDate = minInput;
     if (maxInput) this.maxDate = maxInput;
     this.#initializeForm();
+    this.transactionForm
+      .get('transactionDate')
+      ?.updateValueAndValidity({ emitEvent: false });
   }
 
   #initializeForm(): void {
