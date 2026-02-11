@@ -1,7 +1,7 @@
 import { type CallHandler, type ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { lastValueFrom, of } from 'rxjs';
+import { lastValueFrom, of, throwError } from 'rxjs';
 import { SKIP_BACKFILL } from '@common/decorators/skip-backfill.decorator';
 import { EncryptionBackfillInterceptor } from './encryption-backfill.interceptor';
 
@@ -136,5 +136,32 @@ describe('EncryptionBackfillInterceptor', () => {
 
     expect(encryptionService.ensureUserDEK).not.toHaveBeenCalled();
     expect(backfillService.backfillUserData).not.toHaveBeenCalled();
+  });
+
+  it('should not mark user as processed when handler errors, allowing retry', async () => {
+    const errorHandler: CallHandler = {
+      handle: () => throwError(() => new Error('request failed')),
+    };
+
+    // First request errors — user should NOT be tracked
+    try {
+      await lastValueFrom(
+        interceptor.intercept(createExecutionContext('user-err'), errorHandler),
+      );
+    } catch {
+      // expected
+    }
+
+    expect(encryptionService.ensureUserDEK).not.toHaveBeenCalled();
+
+    // Second request succeeds — backfill should fire
+    await lastValueFrom(
+      interceptor.intercept(createExecutionContext('user-err'), handler),
+    );
+
+    const ensureCalls = encryptionService.ensureUserDEK.mock
+      .calls as unknown[][];
+    const userErrCalls = ensureCalls.filter((call) => call[0] === 'user-err');
+    expect(userErrCalls).toHaveLength(1);
   });
 });

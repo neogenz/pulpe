@@ -9,6 +9,8 @@ import {
   randomBytes,
 } from 'node:crypto';
 import type { AppClsStore } from '@common/types/cls-store.interface';
+import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { EncryptionKeyRepository } from './encryption-key.repository';
 
 const ALGORITHM = 'aes-256-gcm';
@@ -180,8 +182,14 @@ export class EncryptionService {
       return cached.dek;
     }
 
-    const salt = await this.#ensureUserSalt(userId);
+    const { salt, keyCheck } = await this.#ensureUserSalt(userId);
     const dek = this.#deriveDEK(clientKey, salt, userId);
+
+    if (keyCheck && !this.validateKeyCheck(keyCheck, dek)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+      );
+    }
 
     this.#dekCache.set(cacheKey, {
       dek,
@@ -382,16 +390,21 @@ export class EncryptionService {
     return Buffer.from(derived);
   }
 
-  async #ensureUserSalt(userId: string): Promise<Buffer> {
+  async #ensureUserSalt(
+    userId: string,
+  ): Promise<{ salt: Buffer; keyCheck: string | null }> {
     // Demo users use deterministic salt without DB persistence
     if (this.#isDemo()) {
-      return DEMO_SALT;
+      return { salt: DEMO_SALT, keyCheck: null };
     }
 
     // Check existing first
     const existing = await this.#repository.findSaltByUserId(userId);
     if (existing) {
-      return Buffer.from(existing.salt, 'hex');
+      return {
+        salt: Buffer.from(existing.salt, 'hex'),
+        keyCheck: existing.key_check,
+      };
     }
 
     // Generate and upsert (ignoreDuplicates handles race condition)
@@ -408,13 +421,16 @@ export class EncryptionService {
       throw new Error(`Failed to retrieve salt for user ${userId}`);
     }
 
-    return Buffer.from(winner.salt, 'hex');
+    return {
+      salt: Buffer.from(winner.salt, 'hex'),
+      keyCheck: winner.key_check,
+    };
   }
 
   async #getOrGenerateClientSalt(
     userId: string,
   ): Promise<{ salt: string; kdfIterations: number }> {
-    const salt = await this.#ensureUserSalt(userId);
+    const { salt } = await this.#ensureUserSalt(userId);
     return { salt: salt.toString('hex'), kdfIterations: KDF_ITERATIONS };
   }
 }

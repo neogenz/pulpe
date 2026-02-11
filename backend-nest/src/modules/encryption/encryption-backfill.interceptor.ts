@@ -64,10 +64,10 @@ export class EncryptionBackfillInterceptor implements NestInterceptor {
     }
 
     const clientKeyCopy = Buffer.from(user.clientKey);
-    this.#trackProcessedUser(userId);
 
     return next.handle().pipe(
       tap(() => {
+        this.#trackProcessedUser(userId);
         this.#runBackfill(userId, clientKeyCopy, supabase);
       }),
     );

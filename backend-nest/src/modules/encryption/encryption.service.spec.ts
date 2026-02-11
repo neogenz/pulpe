@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import type { AppClsStore } from '@common/types/cls-store.interface';
+import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { EncryptionService } from './encryption.service';
 
 const TEST_MASTER_KEY = randomBytes(32).toString('hex');
@@ -387,6 +389,7 @@ describe('EncryptionService', () => {
         return Promise.resolve({
           salt: generatedSalt,
           kdf_iterations: 600000,
+          key_check: null,
         });
       });
       const upsertSalt = mock(() => Promise.resolve());
@@ -409,7 +412,11 @@ describe('EncryptionService', () => {
     it('should derive DEK from existing salt', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
 
       const repo = createMockRepository({ findSaltByUserId });
@@ -429,7 +436,11 @@ describe('EncryptionService', () => {
     it('should return cached DEK on second call', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
 
       const repo = createMockRepository({ findSaltByUserId });
@@ -450,7 +461,11 @@ describe('EncryptionService', () => {
     it('should derive same DEK for same clientKey and salt', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
 
       const repo = createMockRepository({ findSaltByUserId });
@@ -475,7 +490,11 @@ describe('EncryptionService', () => {
     it('should derive different DEK for different clientKeys', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
 
       const repo = createMockRepository({ findSaltByUserId });
@@ -498,6 +517,164 @@ describe('EncryptionService', () => {
       const dek2 = await service2.ensureUserDEK(TEST_USER_ID, clientKey2);
 
       expect(dek1).not.toEqual(dek2);
+    });
+
+    it('should return DEK when key_check is valid', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+
+      // First, derive DEK to generate a valid key_check
+      const initialFindSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
+      );
+      const initialRepo = createMockRepository({
+        findSaltByUserId: initialFindSaltByUserId,
+      });
+      const initialService = new EncryptionService(
+        mockConfigService as any,
+        initialRepo as any,
+        mockClsService as any,
+      );
+      const dek = await initialService.ensureUserDEK(
+        TEST_USER_ID,
+        TEST_CLIENT_KEY,
+      );
+      const validKeyCheck = initialService.generateKeyCheck(dek);
+
+      // Now test with valid key_check
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: validKeyCheck,
+        }),
+      );
+      const repo = createMockRepository({ findSaltByUserId });
+      service = new EncryptionService(
+        mockConfigService as any,
+        repo as any,
+        mockClsService as any,
+      );
+
+      const result = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
+      expect(result).toEqual(dek);
+    });
+
+    it('should throw ENCRYPTION_KEY_CHECK_FAILED when key_check mismatches', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const wrongDek = randomBytes(32);
+
+      service = new EncryptionService(
+        mockConfigService as any,
+        mockRepository as any,
+        mockClsService as any,
+      );
+      const invalidKeyCheck = service.generateKeyCheck(wrongDek);
+
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: invalidKeyCheck,
+        }),
+      );
+      const repo = createMockRepository({ findSaltByUserId });
+      service = new EncryptionService(
+        mockConfigService as any,
+        repo as any,
+        mockClsService as any,
+      );
+
+      try {
+        await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
+        expect.unreachable('Should have thrown');
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
+        );
+      }
+    });
+
+    it('should pass through when key_check is null (pre-migration user)', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
+      );
+      const repo = createMockRepository({ findSaltByUserId });
+
+      service = new EncryptionService(
+        mockConfigService as any,
+        repo as any,
+        mockClsService as any,
+      );
+
+      const dek = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
+      expect(dek).toBeDefined();
+      expect(dek.length).toBe(32);
+    });
+
+    it('should skip key_check validation on cache hit', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const wrongDek = randomBytes(32);
+
+      service = new EncryptionService(
+        mockConfigService as any,
+        mockRepository as any,
+        mockClsService as any,
+      );
+      const invalidKeyCheck = service.generateKeyCheck(wrongDek);
+
+      // First call: no key_check → caches DEK
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null as string | null,
+        }),
+      );
+      const repo = createMockRepository({ findSaltByUserId });
+      service = new EncryptionService(
+        mockConfigService as any,
+        repo as any,
+        mockClsService as any,
+      );
+
+      const dek = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
+
+      // Swap mock to return invalid key_check — should not matter because cache hit
+      findSaltByUserId.mockImplementation(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: invalidKeyCheck,
+        }),
+      );
+
+      const dek2 = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
+      expect(dek2).toEqual(dek);
+      // Only 1 DB call — second was served from cache
+      expect(findSaltByUserId.mock.calls.length).toBe(1);
+    });
+
+    it('should skip key_check validation for demo user', async () => {
+      const demoClsService = createMockClsService(true);
+      service = new EncryptionService(
+        mockConfigService as any,
+        mockRepository as any,
+        demoClsService as any,
+      );
+
+      const dek = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
+      expect(dek).toBeDefined();
+      expect(dek.length).toBe(32);
     });
   });
 
@@ -524,7 +701,11 @@ describe('EncryptionService', () => {
     it('should derive DEK from existing salt', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
 
       const repo = createMockRepository({ findSaltByUserId });
@@ -545,7 +726,11 @@ describe('EncryptionService', () => {
     it('should return existing salt, iterations, and hasRecoveryKey=false when no recovery key', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
       const hasRecoveryKey = mock(() => Promise.resolve(false));
 
@@ -566,7 +751,11 @@ describe('EncryptionService', () => {
     it('should return hasRecoveryKey=true when user has recovery key', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
       const hasRecoveryKey = mock(() => Promise.resolve(true));
 
@@ -593,6 +782,7 @@ describe('EncryptionService', () => {
         return Promise.resolve({
           salt: generatedSalt,
           kdf_iterations: 600000,
+          key_check: null,
         });
       });
       const upsertSalt = mock(() => Promise.resolve());
@@ -676,7 +866,11 @@ describe('EncryptionService', () => {
     it('should encrypt and decrypt with derived DEK end-to-end', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
 
       const repo = createMockRepository({ findSaltByUserId });
@@ -842,7 +1036,11 @@ describe('EncryptionService', () => {
 
       // First, create service to derive the DEK and generate valid keyCheck
       const initialFindSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
       const initialRepo = createMockRepository({
         findSaltByUserId: initialFindSaltByUserId,
@@ -868,7 +1066,11 @@ describe('EncryptionService', () => {
         }),
       );
       const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
 
       const repo = createMockRepository({ findByUserId, findSaltByUserId });
@@ -901,7 +1103,11 @@ describe('EncryptionService', () => {
         }),
       );
       const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
 
       const repo = createMockRepository({ findByUserId, findSaltByUserId });
@@ -932,7 +1138,11 @@ describe('EncryptionService', () => {
         }),
       );
       const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
 
       const repo = createMockRepository({
@@ -1034,7 +1244,11 @@ describe('EncryptionService', () => {
     it('should return 0 for amount and encrypted value in normal mode', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
       const repo = createMockRepository({ findSaltByUserId });
 
@@ -1059,7 +1273,11 @@ describe('EncryptionService', () => {
     it('should produce encrypted value that can be decrypted back to original amount', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
       const repo = createMockRepository({ findSaltByUserId });
 
@@ -1085,7 +1303,11 @@ describe('EncryptionService', () => {
     it('should handle zero amount correctly', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
       const repo = createMockRepository({ findSaltByUserId });
 
@@ -1136,7 +1358,11 @@ describe('EncryptionService', () => {
     it('should return 0 for amounts and encrypted values in normal mode', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
       const repo = createMockRepository({ findSaltByUserId });
 
@@ -1164,7 +1390,11 @@ describe('EncryptionService', () => {
     it('should produce encrypted values that can be decrypted back to original amounts', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
       const repo = createMockRepository({ findSaltByUserId });
 
@@ -1191,7 +1421,11 @@ describe('EncryptionService', () => {
     it('should handle empty array', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
       const repo = createMockRepository({ findSaltByUserId });
 
@@ -1213,7 +1447,11 @@ describe('EncryptionService', () => {
     it('should handle single amount', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
       const repo = createMockRepository({ findSaltByUserId });
 
@@ -1368,7 +1606,11 @@ describe('EncryptionService', () => {
       let wrappedDek: string | null = null;
 
       const findSaltByUserId = mock(() =>
-        Promise.resolve({ salt: existingSalt, kdf_iterations: 600000 }),
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
       );
       const findByUserId = mock(() =>
         Promise.resolve({

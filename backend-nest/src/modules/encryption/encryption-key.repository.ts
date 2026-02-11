@@ -4,6 +4,7 @@ import { SupabaseService } from '@modules/supabase/supabase.service';
 interface UserEncryptionKeyRow {
   salt: string;
   kdf_iterations: number;
+  key_check: string | null;
 }
 
 interface UserEncryptionKeyFullRow extends UserEncryptionKeyRow {
@@ -24,7 +25,7 @@ export class EncryptionKeyRepository {
     const supabase = this.#supabaseService.getServiceRoleClient();
     const { data, error } = await supabase
       .from('user_encryption_key')
-      .select('salt, kdf_iterations')
+      .select('salt, kdf_iterations, key_check')
       .eq('user_id', userId)
       .single();
 

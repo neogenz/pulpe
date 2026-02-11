@@ -77,7 +77,6 @@ export class ClientKeyService {
         keyHex,
         'local',
       );
-      // Clear session storage to avoid conflicts
       this.#storage.remove(STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION, 'session');
     } else {
       this.#storage.setString(
@@ -85,7 +84,6 @@ export class ClientKeyService {
         keyHex,
         'session',
       );
-      // Clear local storage to avoid conflicts
       this.#storage.remove(STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL, 'local');
     }
   }
