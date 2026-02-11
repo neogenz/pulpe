@@ -533,7 +533,7 @@ describe('BudgetFormulas', () => {
       expect(result).toBe(125);
     });
 
-    it('should skip virtual rollover lines', () => {
+    it('should include rollover lines in realized expenses', () => {
       const budgetLines = [
         createBudgetLineWithId('line-1', 'expense', 100, '2025-01-15'),
         {
@@ -555,8 +555,8 @@ describe('BudgetFormulas', () => {
         transactions,
       );
 
-      // Only non-rollover line counted
-      expect(result).toBe(100);
+      // Both lines counted including rollover
+      expect(result).toBe(150);
     });
 
     it('should apply envelope logic to savings (treated as expenses)', () => {
@@ -793,6 +793,84 @@ describe('BudgetFormulas', () => {
         },
       ];
       expect(BudgetFormulas.calculateRealizedBalance(budgetLines)).toBe(-1000);
+    });
+
+    it('should include checked negative rollover (expense) in realized balance', () => {
+      const budgetLines = [
+        {
+          id: 'line-1',
+          kind: 'income' as const,
+          amount: 5000,
+          checkedAt: '2025-01-15',
+        },
+        {
+          id: 'line-2',
+          kind: 'expense' as const,
+          amount: 3000,
+          checkedAt: '2025-01-15',
+        },
+        {
+          id: 'rollover-display',
+          kind: 'expense' as const,
+          amount: 1950,
+          checkedAt: '2025-01-15',
+          isRollover: true,
+        },
+      ];
+      // 5000 income - (3000 + 1950) expenses = 50
+      expect(BudgetFormulas.calculateRealizedBalance(budgetLines)).toBe(50);
+    });
+
+    it('should include checked positive rollover (income) in realized balance', () => {
+      const budgetLines = [
+        {
+          id: 'line-1',
+          kind: 'income' as const,
+          amount: 5000,
+          checkedAt: '2025-01-15',
+        },
+        {
+          id: 'rollover-display',
+          kind: 'income' as const,
+          amount: 3094,
+          checkedAt: '2025-01-15',
+          isRollover: true,
+        },
+        {
+          id: 'line-2',
+          kind: 'expense' as const,
+          amount: 8000,
+          checkedAt: '2025-01-15',
+        },
+      ];
+      // (5000 + 3094) income - 8000 expenses = 94
+      expect(BudgetFormulas.calculateRealizedBalance(budgetLines)).toBe(94);
+    });
+
+    it('should not include unchecked rollover in realized balance', () => {
+      const budgetLines = [
+        {
+          id: 'line-1',
+          kind: 'income' as const,
+          amount: 5000,
+          checkedAt: '2025-01-15',
+        },
+        {
+          id: 'rollover-display',
+          kind: 'expense' as const,
+          amount: 1950,
+          checkedAt: null,
+          isRollover: true,
+        },
+        {
+          id: 'line-2',
+          kind: 'expense' as const,
+          amount: 3000,
+          checkedAt: '2025-01-15',
+        },
+      ];
+      // Rollover unchecked → ignored. 5000 - 3000 = 2000
+      expect(BudgetFormulas.calculateRealizedBalance(budgetLines)).toBe(2000);
     });
   });
 
@@ -1247,7 +1325,7 @@ describe('BudgetFormulas', () => {
           expect(result).toBe(800);
         });
 
-        it('should skip rollover budget lines', () => {
+        it('should include rollover budget lines in expenses', () => {
           const budgetLines = [
             createBudgetLine('line-1', 'expense', 500),
             {
@@ -1261,7 +1339,7 @@ describe('BudgetFormulas', () => {
             [],
           );
 
-          expect(result).toBe(500);
+          expect(result).toBe(600);
         });
 
         it('should handle transactions without budgetLineId field', () => {
