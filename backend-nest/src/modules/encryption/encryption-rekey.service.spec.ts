@@ -266,6 +266,48 @@ describe('EncryptionRekeyService', () => {
     ).rejects.toThrow('RPC transaction failed');
   });
 
+  it('should encrypt plaintext amounts directly when amount_encrypted is null', async () => {
+    const nullSupabase = createMockSupabaseClient({
+      budgetLines: [
+        { id: 'bl-1', amount: 100, amount_encrypted: 'enc-100' },
+        { id: 'bl-null', amount: 150, amount_encrypted: null },
+      ],
+      transactions: [],
+      templateLines: [],
+      savingsGoals: [],
+      monthlyBudgets: [],
+    });
+
+    await service.reEncryptAllUserData(
+      TEST_USER_ID,
+      OLD_DEK,
+      NEW_DEK,
+      nullSupabase as any,
+    );
+
+    expect(mockEncryption.tryDecryptAmount).toHaveBeenCalledTimes(1);
+    expect(mockEncryption.tryDecryptAmount).toHaveBeenCalledWith(
+      'enc-100',
+      OLD_DEK,
+      100,
+    );
+
+    const encryptCalls = mockEncryption.encryptAmount.mock.calls as unknown[][];
+    const directEncryptCall = encryptCalls.find(
+      (call) => call[0] === 150 && call[1] === NEW_DEK,
+    );
+    expect(directEncryptCall).toBeDefined();
+
+    const params = nullSupabase.getRpcCalls()[0].params as Record<
+      string,
+      unknown[]
+    >;
+    expect(params.p_budget_lines).toEqual([
+      { id: 'bl-1', amount_encrypted: 're-encrypted-100' },
+      { id: 'bl-null', amount_encrypted: 're-encrypted-150' },
+    ]);
+  });
+
   it('should skip budget_line and transaction when no budgets exist', async () => {
     const noBudgets = createMockSupabaseClient({
       budgetIds: [],

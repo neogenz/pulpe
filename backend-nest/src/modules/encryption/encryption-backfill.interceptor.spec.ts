@@ -72,6 +72,36 @@ describe('EncryptionBackfillInterceptor', () => {
     expect(userOneCalls).toHaveLength(1);
   });
 
+  it('should prune expired users when tracking a new user', async () => {
+    const originalNow = Date.now;
+
+    let currentTime = 1000000;
+    Date.now = () => currentTime;
+
+    await lastValueFrom(
+      interceptor.intercept(createExecutionContext('expired-user'), handler),
+    );
+
+    currentTime += 25 * 60 * 60 * 1000;
+
+    await lastValueFrom(
+      interceptor.intercept(createExecutionContext('new-user'), handler),
+    );
+
+    await lastValueFrom(
+      interceptor.intercept(createExecutionContext('expired-user'), handler),
+    );
+
+    const ensureCalls = encryptionService.ensureUserDEK.mock
+      .calls as unknown[][];
+    const expiredUserCalls = ensureCalls.filter(
+      (call) => call[0] === 'expired-user',
+    );
+    expect(expiredUserCalls).toHaveLength(2);
+
+    Date.now = originalNow;
+  });
+
   it('should evict old tracked users to avoid unbounded memory growth', async () => {
     await lastValueFrom(
       interceptor.intercept(createExecutionContext('user-0'), handler),

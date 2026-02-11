@@ -127,33 +127,35 @@ export class EncryptionRekeyService {
     oldDek: Buffer,
     newDek: Buffer,
   ) {
-    const rekey = (ciphertext: string, fallback: number) =>
-      this.#reEncryptAmount(ciphertext, fallback, oldDek, newDek);
+    const rekey = (ciphertext: string | null, fallback: number) =>
+      ciphertext
+        ? this.#reEncryptAmount(ciphertext, fallback, oldDek, newDek)
+        : this.#encryptionService.encryptAmount(fallback, newDek);
 
     return {
       budgetLines: rows.budgetLines.map((r) => ({
         id: r.id,
-        amount_encrypted: rekey(r.amount_encrypted!, r.amount),
+        amount_encrypted: rekey(r.amount_encrypted, r.amount),
       })),
       transactions: rows.transactions.map((r) => ({
         id: r.id,
-        amount_encrypted: rekey(r.amount_encrypted!, r.amount),
+        amount_encrypted: rekey(r.amount_encrypted, r.amount),
       })),
       templateLines: rows.templateLines.map((r) => ({
         id: r.id,
-        amount_encrypted: rekey(r.amount_encrypted!, r.amount),
+        amount_encrypted: rekey(r.amount_encrypted, r.amount),
       })),
       savingsGoals: rows.savingsGoals.map((r) => ({
         id: r.id,
         target_amount_encrypted: rekey(
-          r.target_amount_encrypted!,
+          r.target_amount_encrypted,
           r.target_amount,
         ),
       })),
       monthlyBudgets: rows.monthlyBudgets.map((r) => ({
         id: r.id,
         ending_balance_encrypted: rekey(
-          r.ending_balance_encrypted!,
+          r.ending_balance_encrypted,
           r.ending_balance ?? 0,
         ),
       })),

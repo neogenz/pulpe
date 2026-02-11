@@ -368,10 +368,7 @@ export class EncryptionService {
   }
 
   #buildCacheKey(userId: string, clientKey: Buffer): string {
-    const fingerprint = createHash('sha256')
-      .update(clientKey)
-      .digest('hex')
-      .slice(0, 32);
+    const fingerprint = createHash('sha256').update(clientKey).digest('hex');
     return `${userId}:${fingerprint}`;
   }
 

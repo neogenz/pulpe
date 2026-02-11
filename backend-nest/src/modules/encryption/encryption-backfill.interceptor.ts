@@ -106,7 +106,8 @@ export class EncryptionBackfillInterceptor implements NestInterceptor {
   }
 
   #trackProcessedUser(userId: string): void {
-    // Bounded cache: keep only recently processed users to avoid unbounded memory growth.
+    this.#pruneProcessedUsers();
+
     if (this.#processedUsers.has(userId)) {
       this.#processedUsers.delete(userId);
     }

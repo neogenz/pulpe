@@ -8,7 +8,7 @@ export type AuthErrorTranslations = Record<string, string>;
   providedIn: 'root',
 })
 export class AuthErrorLocalizer {
-  private readonly errorTranslations: AuthErrorTranslations = {
+  readonly #errorTranslations: AuthErrorTranslations = {
     'Invalid login credentials':
       'Email ou mot de passe incorrect — on réessaie ?',
     'Email not confirmed':
@@ -73,28 +73,28 @@ export class AuthErrorLocalizer {
     }
 
     const trimmedMessage = originalErrorMessage.trim();
-    const translatedMessage = this.errorTranslations[trimmedMessage];
+    const translatedMessage = this.#errorTranslations[trimmedMessage];
 
     if (translatedMessage) {
       return translatedMessage;
     }
 
-    if (this.containsWeakPasswordError(trimmedMessage)) {
+    if (this.#containsWeakPasswordError(trimmedMessage)) {
       return 'Choisis un mot de passe plus sécurisé — 8 caractères avec lettres et chiffres';
     }
 
-    if (this.containsRateLimitError(trimmedMessage)) {
+    if (this.#containsRateLimitError(trimmedMessage)) {
       return 'Trop de tentatives — patiente quelques minutes';
     }
 
-    if (this.containsNetworkError(trimmedMessage)) {
+    if (this.#containsNetworkError(trimmedMessage)) {
       return 'Problème de connexion — vérifie ton réseau';
     }
 
     return "Quelque chose n'a pas fonctionné — réessayons";
   }
 
-  private containsWeakPasswordError(message: string): boolean {
+  #containsWeakPasswordError(message: string): boolean {
     const weakPasswordKeywords = ['weak', 'password', 'strength', 'complex'];
     const lowerMessage = message.toLowerCase();
     return weakPasswordKeywords.some((keyword) =>
@@ -102,13 +102,13 @@ export class AuthErrorLocalizer {
     );
   }
 
-  private containsRateLimitError(message: string): boolean {
+  #containsRateLimitError(message: string): boolean {
     const rateLimitKeywords = ['rate', 'limit', 'too many', 'throttle'];
     const lowerMessage = message.toLowerCase();
     return rateLimitKeywords.some((keyword) => lowerMessage.includes(keyword));
   }
 
-  private containsNetworkError(message: string): boolean {
+  #containsNetworkError(message: string): boolean {
     const networkKeywords = ['network', 'connection', 'timeout', 'fetch'];
     const lowerMessage = message.toLowerCase();
     return networkKeywords.some((keyword) => lowerMessage.includes(keyword));

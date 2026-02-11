@@ -150,16 +150,24 @@ export class AuthGuard implements CanActivate {
       | string
       | undefined;
 
+    const metadata = {
+      userAgent: request.headers?.['user-agent'],
+      ip: request.ip,
+    };
+
     if (!clientKeyHex) {
+      this.logger.warn(metadata, 'Missing X-Client-Key header');
       throw new BusinessException(ERROR_DEFINITIONS.AUTH_CLIENT_KEY_MISSING);
     }
 
     const clientKey = Buffer.from(clientKeyHex, 'hex');
     if (clientKey.length !== 32) {
+      this.logger.warn(metadata, 'X-Client-Key is not 32 bytes');
       throw new BusinessException(ERROR_DEFINITIONS.AUTH_CLIENT_KEY_INVALID);
     }
 
-    if (!clientKey.some((byte) => byte !== 0)) {
+    if (clientKey.every((byte) => byte === 0)) {
+      this.logger.warn(metadata, 'X-Client-Key is all zeros');
       throw new BusinessException(ERROR_DEFINITIONS.AUTH_CLIENT_KEY_INVALID);
     }
 

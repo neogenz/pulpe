@@ -397,4 +397,74 @@ describe('AuthGuard', () => {
       );
     });
   });
+
+  describe('client key validation', () => {
+    const createContextWithClientKey = (
+      clientKeyHeader?: string,
+    ): ExecutionContext => {
+      const headers: Record<string, string> = {
+        authorization: 'Bearer valid-token',
+      };
+      if (clientKeyHeader !== undefined) {
+        headers['x-client-key'] = clientKeyHeader;
+      }
+
+      return {
+        switchToHttp: () => ({
+          getRequest: () => ({ headers, ip: '127.0.0.1' }),
+        }),
+        getHandler: () => ({}),
+        getClass: () => ({}),
+      } as ExecutionContext;
+    };
+
+    it('should reject request when X-Client-Key header is missing', async () => {
+      const mockUser = createMockAuthenticatedUser();
+      mockSupabaseClient.setMockData(mockUser).setMockError(null);
+
+      const mockContext = createContextWithClientKey();
+
+      await expectErrorThrown(
+        () => authGuard.canActivate(mockContext),
+        BusinessException,
+        'Client encryption key missing',
+      );
+    });
+
+    it('should reject request when X-Client-Key is not 32 bytes', async () => {
+      const mockUser = createMockAuthenticatedUser();
+      mockSupabaseClient.setMockData(mockUser).setMockError(null);
+
+      const mockContext = createContextWithClientKey('abcd');
+
+      await expectErrorThrown(
+        () => authGuard.canActivate(mockContext),
+        BusinessException,
+        'Client encryption key is invalid',
+      );
+    });
+
+    it('should reject request when X-Client-Key is all zeros', async () => {
+      const mockUser = createMockAuthenticatedUser();
+      mockSupabaseClient.setMockData(mockUser).setMockError(null);
+
+      const mockContext = createContextWithClientKey('00'.repeat(32));
+
+      await expectErrorThrown(
+        () => authGuard.canActivate(mockContext),
+        BusinessException,
+        'Client encryption key is invalid',
+      );
+    });
+
+    it('should accept request with valid 32-byte non-zero X-Client-Key', async () => {
+      const mockUser = createMockAuthenticatedUser();
+      mockSupabaseClient.setMockData(mockUser).setMockError(null);
+
+      const mockContext = createContextWithClientKey('ab'.repeat(32));
+
+      const result = await authGuard.canActivate(mockContext);
+      expect(result).toBe(true);
+    });
+  });
 });
