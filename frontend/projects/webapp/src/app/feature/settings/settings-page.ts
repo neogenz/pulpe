@@ -317,8 +317,6 @@ export default class SettingsPage {
       horizontalPosition: 'center',
       verticalPosition: 'bottom',
     });
-
-    await this.#promptRecoveryKey();
   }
 
   async onRegenerateRecoveryKey(): Promise<void> {
@@ -366,35 +364,6 @@ export default class SettingsPage {
       );
     }
     await this.#router.navigate(['/login']);
-  }
-
-  async #promptRecoveryKey(): Promise<void> {
-    try {
-      const { recoveryKey } = await firstValueFrom(
-        this.#encryptionApi.setupRecoveryKey$(),
-      );
-
-      const dialogData: RecoveryKeyDialogData = { recoveryKey };
-      const dialogRef = this.#dialog.open(RecoveryKeyDialog, {
-        data: dialogData,
-        width: '480px',
-        disableClose: true,
-      });
-
-      const confirmed = await firstValueFrom(dialogRef.afterClosed());
-      if (confirmed) {
-        this.#snackBar.open('Clé de récupération enregistrée', 'OK', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'bottom',
-        });
-      }
-    } catch (error) {
-      this.#logger.warn(
-        'Recovery key setup failed after password change — user can generate later from settings',
-        error,
-      );
-    }
   }
 
   async #generateAndShowRecoveryKey(): Promise<void> {
