@@ -71,7 +71,7 @@ describe('EnterVaultCode', () => {
 
   function fillValidForm(): void {
     component['form'].patchValue({
-      vaultCode: 'myvaultcode123',
+      vaultCode: '123456',
       rememberDevice: false,
     });
   }
@@ -97,11 +97,20 @@ describe('EnterVaultCode', () => {
 
     it('should validate vaultCode minimum length of 4', () => {
       const control = component['form'].get('vaultCode');
-      control?.setValue('abc');
+      control?.setValue('123');
       expect(control?.hasError('minlength')).toBe(true);
 
-      control?.setValue('abcd');
+      control?.setValue('1234');
       expect(control?.hasError('minlength')).toBe(false);
+    });
+
+    it('should reject non-numeric vaultCode', () => {
+      const control = component['form'].get('vaultCode');
+      control?.setValue('abcd');
+      expect(control?.hasError('pattern')).toBe(true);
+
+      control?.setValue('1234');
+      expect(control?.hasError('pattern')).toBe(false);
     });
   });
 
@@ -135,7 +144,7 @@ describe('EnterVaultCode', () => {
     it('should call deriveClientKey with vault code and salt', async () => {
       await component['onSubmit']();
       expect(deriveClientKeySpy).toHaveBeenCalledWith(
-        'myvaultcode123',
+        '123456',
         'salt-value',
         100000,
       );

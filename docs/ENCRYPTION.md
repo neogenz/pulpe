@@ -60,7 +60,7 @@ Le mode démo utilise un `clientKey` déterministe (`DEMO_CLIENT_KEY`) pour empr
 ## Flux requête typique
 
 ```
-1. Frontend dérive le clientKey depuis le **vault code** (PBKDF2) ou utilise un clientKey déjà stocké
+1. Frontend dérive le clientKey depuis le **code PIN** (PBKDF2) ou utilise un clientKey déjà stocké
 2. Frontend envoie la requête avec :
    - Authorization: Bearer {jwt}
    - X-Client-Key: {clientKey en hex}
@@ -71,9 +71,9 @@ Le mode démo utilise un `clientKey` déterministe (`DEMO_CLIENT_KEY`) pour empr
 7. ClientKeyCleanupInterceptor efface le clientKey de la mémoire (buffer.fill(0))
 ```
 
-## Migration vers vault code (rekey)
+## Migration vers code PIN (rekey)
 
-Quand un utilisateur existant migre vers le système de **vault code**, on doit re-chiffrer ses données avec une nouvelle `clientKey` (issue du vault code) — y compris si certaines données étaient en clair ou chiffrées avec une ancienne clé.
+Quand un utilisateur existant migre vers le système de **code PIN**, on doit re-chiffrer ses données avec une nouvelle `clientKey` (issue du code PIN) — y compris si certaines données étaient en clair ou chiffrées avec une ancienne clé.
 
 1. Le frontend appelle `POST /v1/encryption/rekey` avec le nouveau `clientKey`
 2. Le backend dérive l'ancienne DEK (ancien clientKey + masterKey + salt) et la nouvelle DEK (nouveau clientKey + masterKey + salt)
@@ -92,16 +92,16 @@ Quand un utilisateur existant migre vers le système de **vault code**, on doit 
 
 ## Changement / reset de mot de passe (auth uniquement)
 
-Le mot de passe Supabase et le vault code sont **indépendants**.
+Le mot de passe Supabase et le code PIN sont **indépendants**.
 
-- **Vault code configuré** : changer ou réinitialiser le mot de passe ne touche pas au chiffrement. Aucun endpoint encryption n'est appelé et le `clientKey` reste valable.
-- **Comptes legacy sans vault code** :
+- **Code PIN configuré** : changer ou réinitialiser le mot de passe ne touche pas au chiffrement. Aucun endpoint encryption n'est appelé et le `clientKey` reste valable.
+- **Comptes legacy sans code PIN** :
   - Avec recovery key : `/v1/encryption/recover` re-chiffre avec un nouveau `clientKey` dérivé du nouveau mot de passe.
-  - Sans recovery key : reset mot de passe puis redirection vers `setup-vault-code` (le rekey complet se fera lors de la création du vault code).
+  - Sans recovery key : reset mot de passe puis redirection vers `setup-vault-code` (le rekey complet se fera lors de la création du code PIN).
 
 ## Recovery key
 
-La recovery key permet de récupérer l'accès aux données chiffrées quand le **code PIN** est perdu (ou pour les comptes legacy sans vault code lors d'un reset du mot de passe).
+La recovery key permet de récupérer l'accès aux données chiffrées quand le **code PIN** est perdu (ou pour les comptes legacy sans code PIN lors d'un reset du mot de passe).
 
 ### Architecture
 
@@ -111,10 +111,10 @@ Setup (depuis les paramètres) :
   2. wrappedDEK = AES-256-GCM(DEK, recoveryKey)        // DEK chiffrée
   3. Stocker wrappedDEK dans user_encryption_key.wrapped_dek
 
-Recovery (vault code oublié / reset password legacy) :
-  1. User fournit recoveryKey + nouveau vault code (ou nouveau mot de passe legacy)
+Recovery (code PIN oublié / reset password legacy) :
+  1. User fournit recoveryKey + nouveau code PIN (ou nouveau mot de passe legacy)
   2. DEK = AES-GCM-decrypt(wrappedDEK, recoveryKey)
-  3. Nouveau clientKey dérivé du vault code / mot de passe avec le **salt existant**
+  3. Nouveau clientKey dérivé du code PIN / mot de passe avec le **salt existant**
   4. Re-chiffrer toutes les données avec la nouvelle DEK
   5. `wrapped_dek` est mis à jour avec la même recovery key
   6. Le frontend génère ensuite une **nouvelle** recovery key (setup-recovery) et l’affiche
@@ -164,7 +164,7 @@ La colonne `key_check` de `user_encryption_key` stocke un ciphertext canary : `A
 | Événement | Action |
 |-----------|--------|
 | Première validation (key_check absent) | Généré et stocké (migration backward compat) |
-| Rekey (setup vault code) | Régénéré avec la nouvelle DEK |
+| Rekey (setup code PIN) | Régénéré avec la nouvelle DEK |
 | Recovery (`/recover`) | Régénéré avec la nouvelle DEK |
 | Setup recovery key | Régénéré (assure la cohérence) |
 
@@ -197,10 +197,10 @@ Le `clientKey` est stocké côté client via `StorageService` :
 
 **Risque accepté :** une vulnérabilité XSS dans l'application permettrait de lire le `clientKey` depuis `sessionStorage`. Ce risque est atténué par :
 1. La politique CSP (Content Security Policy) qui limite l'exécution de scripts tiers
-2. Le fait qu'une XSS permettrait aussi d'intercepter le vault code ou le mot de passe directement à la saisie
+2. Le fait qu'une XSS permettrait aussi d'intercepter le code PIN ou le mot de passe directement à la saisie
 3. Le `clientKey` seul est insuffisant pour déchiffrer (il faut aussi la `masterKey` serveur)
 
-**Alternative rejetée :** stocker le `clientKey` uniquement en mémoire (signal Angular) imposerait une re-saisie du vault code à chaque rechargement de page, dégradant fortement l'expérience utilisateur.
+**Alternative rejetée :** stocker le `clientKey` uniquement en mémoire (signal Angular) imposerait une re-saisie du code PIN à chaque rechargement de page, dégradant fortement l'expérience utilisateur.
 
 ## Configuration
 
@@ -233,7 +233,7 @@ Si la validation échoue, le serveur refuse de démarrer.
 |---------|------|
 | `encryption.service.ts` | Dérivation DEK, chiffrement/déchiffrement AES-GCM, wrap/unwrap DEK, cache |
 | `encryption-key.repository.ts` | CRUD de la table `user_encryption_key` (salt, wrapped_dek) |
-| `encryption-rekey.service.ts` | Re-chiffrement de toutes les données lors de la migration vers vault code |
+| `encryption-rekey.service.ts` | Re-chiffrement de toutes les données lors de la migration vers code PIN |
 | `encryption.controller.ts` | Endpoints `/salt`, `/validate-key`, `/rekey`, `/setup-recovery`, `/recover` |
 | `client-key-cleanup.interceptor.ts` | Efface le clientKey de la mémoire après chaque requête |
 | `encryption-backfill.interceptor.ts` | Chiffre les données plaintext existantes à la première requête |

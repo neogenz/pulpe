@@ -101,7 +101,9 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
                 @if (form.get('vaultCode')?.hasError('required')) {
                   Ton code PIN est nécessaire
                 } @else if (form.get('vaultCode')?.hasError('minlength')) {
-                  4 caractères minimum
+                  4 chiffres minimum
+                } @else if (form.get('vaultCode')?.hasError('pattern')) {
+                  Le code PIN ne doit contenir que des chiffres
                 }
               </mat-error>
             }
@@ -175,7 +177,11 @@ export default class EnterVaultCode {
   protected readonly form = this.#formBuilder.nonNullable.group({
     vaultCode: [
       '',
-      [Validators.required, Validators.minLength(VAULT_CODE_MIN_LENGTH)],
+      [
+        Validators.required,
+        Validators.minLength(VAULT_CODE_MIN_LENGTH),
+        Validators.pattern(/^\d+$/),
+      ],
     ],
     rememberDevice: [false],
   });

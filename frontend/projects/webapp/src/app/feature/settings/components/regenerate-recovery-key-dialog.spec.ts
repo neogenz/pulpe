@@ -63,9 +63,19 @@ describe('RegenerateRecoveryKeyDialog', () => {
 
   it('should have valid form when all fields filled', () => {
     component['verificationForm'].patchValue({
-      vaultCode: 'testVaultCode123',
+      vaultCode: '123456',
     });
     expect(component['verificationForm'].valid).toBe(true);
+  });
+
+  it('should reject non-numeric vaultCode', () => {
+    component['verificationForm'].patchValue({
+      vaultCode: 'abcd',
+    });
+    expect(component['verificationForm'].valid).toBe(false);
+    expect(
+      component['verificationForm'].get('vaultCode')?.hasError('pattern'),
+    ).toBe(true);
   });
 
   it('should show error when password verification fails', async () => {
@@ -78,7 +88,7 @@ describe('RegenerateRecoveryKeyDialog', () => {
     );
 
     component['verificationForm'].patchValue({
-      vaultCode: 'wrongVaultCode',
+      vaultCode: '999999',
     });
 
     await component['onSubmit']();
@@ -97,7 +107,7 @@ describe('RegenerateRecoveryKeyDialog', () => {
     mockEncryptionApi.validateKey$.mockReturnValue(of(undefined));
 
     component['verificationForm'].patchValue({
-      vaultCode: 'testVaultCode123',
+      vaultCode: '123456',
     });
 
     await component['onSubmit']();
@@ -109,7 +119,7 @@ describe('RegenerateRecoveryKeyDialog', () => {
     component['isSubmitting'].set(true);
 
     component['verificationForm'].patchValue({
-      vaultCode: 'testVaultCode123',
+      vaultCode: '123456',
     });
 
     await component['onSubmit']();

@@ -38,7 +38,7 @@ test.describe('Settings Recovery Key', () => {
     await expect(page.getByTestId('verify-vault-code-input')).toBeVisible();
     await page
       .getByTestId('verify-vault-code-input')
-      .fill('current-vault-code');
+      .fill('123456');
 
     await page.getByTestId('submit-regenerate-button').click();
 
@@ -77,7 +77,7 @@ test.describe('Settings Recovery Key', () => {
 
     await page.getByTestId('generate-recovery-key-button').click();
 
-    await page.getByTestId('verify-vault-code-input').fill('wrong-vault-code');
+    await page.getByTestId('verify-vault-code-input').fill('999999');
 
     await page.getByTestId('submit-regenerate-button').click();
 

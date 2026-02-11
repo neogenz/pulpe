@@ -48,7 +48,7 @@ import { ErrorAlert } from '@ui/error-alert';
             Attention
           </p>
           <p class="text-body-small text-on-error-container opacity-90">
-            Cette action invalide l'ancienne clé. Sans ton code ou ta clé de
+            Cette action invalide l'ancienne clé. Sans ton code PIN ou ta clé de
             récupération, l'accès à tes données sera définitivement perdu.
           </p>
         </div>
@@ -87,9 +87,9 @@ import { ErrorAlert } from '@ui/error-alert';
           } @else if (
             verificationForm.get('vaultCode')?.hasError('minlength')
           ) {
-            <mat-error
-              >Au moins {{ VAULT_CODE_MIN_LENGTH }} caractères</mat-error
-            >
+            <mat-error>Au moins {{ VAULT_CODE_MIN_LENGTH }} chiffres</mat-error>
+          } @else if (verificationForm.get('vaultCode')?.hasError('pattern')) {
+            <mat-error>Le code PIN ne doit contenir que des chiffres</mat-error>
           }
         </mat-form-field>
       </form>
@@ -131,6 +131,7 @@ export class RegenerateRecoveryKeyDialog {
       validators: [
         Validators.required,
         Validators.minLength(VAULT_CODE_MIN_LENGTH),
+        Validators.pattern(/^\d+$/),
       ],
     }),
   });
