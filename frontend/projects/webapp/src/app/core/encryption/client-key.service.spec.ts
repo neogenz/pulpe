@@ -14,8 +14,8 @@ import {
   isValidClientKeyHex,
 } from '@core/encryption/crypto.utils';
 
-const mockedDeriveClientKey = deriveClientKey as Mock;
-const mockedIsValidClientKeyHex = isValidClientKeyHex as Mock;
+const mockedDeriveClientKey = vi.mocked(deriveClientKey);
+const mockedIsValidClientKeyHex = vi.mocked(isValidClientKeyHex);
 
 describe('ClientKeyService', () => {
   let service: ClientKeyService;
@@ -53,6 +53,10 @@ describe('ClientKeyService', () => {
     expect(service.hasClientKey()).toBe(false);
   });
 
+  it('needsServerValidation should be false initially', () => {
+    expect(service.needsServerValidation()).toBe(false);
+  });
+
   describe('initialize()', () => {
     it('should restore key from sessionStorage first', () => {
       const storedKey = 'deadbeef1234567890abcdef';
@@ -66,6 +70,15 @@ describe('ClientKeyService', () => {
         'session',
       );
       expect(service.clientKeyHex()).toBe(storedKey);
+    });
+
+    it('should need server validation when restored from sessionStorage (multi-tab stale key)', () => {
+      mockStorageService.getString.mockReturnValueOnce('session-key');
+      mockedIsValidClientKeyHex.mockReturnValue(true);
+
+      service.initialize();
+
+      expect(service.needsServerValidation()).toBe(true);
     });
 
     it('should fallback to localStorage when sessionStorage is empty', () => {
@@ -89,6 +102,16 @@ describe('ClientKeyService', () => {
       expect(service.clientKeyHex()).toBe(storedKey);
     });
 
+    it('should need server validation when restored from localStorage', () => {
+      mockStorageService.getString.mockReturnValueOnce(null);
+      mockStorageService.getString.mockReturnValueOnce('local-key');
+      mockedIsValidClientKeyHex.mockReturnValue(true);
+
+      service.initialize();
+
+      expect(service.needsServerValidation()).toBe(true);
+    });
+
     it('should ignore invalid keys', () => {
       mockStorageService.getString.mockReturnValueOnce('invalid-key');
       mockedIsValidClientKeyHex.mockReturnValue(false);
@@ -97,6 +120,20 @@ describe('ClientKeyService', () => {
       service.initialize();
 
       expect(service.clientKeyHex()).toBeNull();
+    });
+  });
+
+  describe('markValidated()', () => {
+    it('should clear needsServerValidation flag', () => {
+      mockStorageService.getString.mockReturnValueOnce(null);
+      mockStorageService.getString.mockReturnValueOnce('local-key');
+      mockedIsValidClientKeyHex.mockReturnValue(true);
+
+      service.initialize();
+      expect(service.needsServerValidation()).toBe(true);
+
+      service.markValidated();
+      expect(service.needsServerValidation()).toBe(false);
     });
   });
 
@@ -118,6 +155,14 @@ describe('ClientKeyService', () => {
         STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
         'local',
       );
+    });
+
+    it('should not need server validation (key was just derived from user input)', async () => {
+      mockedDeriveClientKey.mockResolvedValue('derived-key');
+
+      await service.deriveAndStore('password', 'salt', 100000);
+
+      expect(service.needsServerValidation()).toBe(false);
     });
 
     it('should persist to localStorage when useLocalStorage=true', async () => {
@@ -153,6 +198,14 @@ describe('ClientKeyService', () => {
         STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
         'local',
       );
+    });
+
+    it('should not need server validation (key was just validated by caller)', () => {
+      mockedIsValidClientKeyHex.mockReturnValue(true);
+
+      service.setDirectKey('valid-key-hex');
+
+      expect(service.needsServerValidation()).toBe(false);
     });
 
     it('should store in localStorage when useLocalStorage=true', () => {
@@ -196,6 +249,18 @@ describe('ClientKeyService', () => {
         STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
         'local',
       );
+    });
+
+    it('should reset needsServerValidation flag', () => {
+      mockStorageService.getString.mockReturnValueOnce(null);
+      mockStorageService.getString.mockReturnValueOnce('local-key');
+      mockedIsValidClientKeyHex.mockReturnValue(true);
+
+      service.initialize();
+      expect(service.needsServerValidation()).toBe(true);
+
+      service.clear();
+      expect(service.needsServerValidation()).toBe(false);
     });
   });
 

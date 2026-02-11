@@ -10,29 +10,38 @@ import { StorageService } from '../storage/storage.service';
 export class ClientKeyService {
   readonly #storage = inject(StorageService);
   readonly #clientKeyHex = signal<string | null>(null);
+  readonly #needsServerValidation = signal(false);
 
   readonly clientKeyHex = this.#clientKeyHex.asReadonly();
   readonly hasClientKey = computed(() => this.#clientKeyHex() !== null);
+  readonly needsServerValidation = this.#needsServerValidation.asReadonly();
 
   initialize(): void {
-    // Try session storage first (more secure, cleared when tab closes)
+    // Try session storage first (per-tab, but can be stale in multi-tab scenarios:
+    // user changes vault code in tab A, tab B still has the old key)
     const sessionKey = this.#storage.getString(
       STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION,
       'session',
     );
     if (sessionKey && isValidClientKeyHex(sessionKey)) {
       this.#clientKeyHex.set(sessionKey);
+      this.#needsServerValidation.set(true);
       return;
     }
 
-    // Fall back to local storage ("remember device" option)
+    // Fall back to local storage ("remember device" — may be stale after vault code change on another device)
     const localKey = this.#storage.getString(
       STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
       'local',
     );
     if (localKey && isValidClientKeyHex(localKey)) {
       this.#clientKeyHex.set(localKey);
+      this.#needsServerValidation.set(true);
     }
+  }
+
+  markValidated(): void {
+    this.#needsServerValidation.set(false);
   }
 
   async deriveAndStore(
@@ -56,6 +65,7 @@ export class ClientKeyService {
 
   clear(): void {
     this.#clientKeyHex.set(null);
+    this.#needsServerValidation.set(false);
     this.#storage.remove(STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION, 'session');
     this.#storage.remove(STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL, 'local');
   }
