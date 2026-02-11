@@ -2,6 +2,7 @@ import { type CallHandler, type ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { lastValueFrom, of } from 'rxjs';
+import { SKIP_BACKFILL } from '@common/decorators/skip-backfill.decorator';
 import { EncryptionBackfillInterceptor } from './encryption-backfill.interceptor';
 
 function createExecutionContext(
@@ -122,5 +123,18 @@ describe('EncryptionBackfillInterceptor', () => {
     const userZeroCalls = ensureCalls.filter((call) => call[0] === 'user-0');
 
     expect(userZeroCalls).toHaveLength(2);
+  });
+
+  it('should skip backfill when SKIP_BACKFILL metadata is set', async () => {
+    (reflector as any).getAllAndOverride = mock(
+      (key: string) => key === SKIP_BACKFILL,
+    );
+
+    await lastValueFrom(
+      interceptor.intercept(createExecutionContext('user-skip'), handler),
+    );
+
+    expect(encryptionService.ensureUserDEK).not.toHaveBeenCalled();
+    expect(backfillService.backfillUserData).not.toHaveBeenCalled();
   });
 });

@@ -77,9 +77,18 @@ Quand un utilisateur existant migre vers le système de **vault code**, on doit 
 
 1. Le frontend appelle `POST /v1/encryption/rekey` avec le nouveau `clientKey`
 2. Le backend dérive l'ancienne DEK (ancien clientKey + masterKey + salt) et la nouvelle DEK (nouveau clientKey + masterKey + salt)
-3. Toutes les données sont déchiffrées avec l'ancienne DEK et re-chiffrées avec la nouvelle
-4. L'opération est atomique côté SQL via la RPC `rekey_user_encrypted_data`
-5. En cas d'échec, le salt est restauré à sa valeur précédente
+3. **Toutes** les données utilisateur sont traitées dans `rekey` :
+   - lignes déjà chiffrées : déchiffrement strict avec l'ancienne DEK puis re-chiffrement avec la nouvelle
+   - lignes plaintext : chiffrement direct avec la nouvelle DEK
+4. L'opération SQL finale reste atomique via la RPC `rekey_user_encrypted_data`
+5. Si une ligne chiffrée ne peut pas être déchiffrée avec l'ancienne DEK, `rekey` échoue explicitement (pas de fallback silencieux)
+
+> **Note :** l'endpoint `rekey` est annoté `@SkipBackfill()` pour empêcher le backfill interceptor
+> de se déclencher avec l'ancienne `clientKey` (celle du header) pendant que `rekey` re-chiffre
+> avec la nouvelle. Sans ce décorateur, le backfill écraserait les données avec une mauvaise DEK.
+> Rate limiting : 3 tentatives par heure.
+
+`setup-recovery` n'est pas le mécanisme qui finalise la migration des montants : il sert uniquement à générer/mettre à jour la recovery key (`wrapped_dek`).
 
 ## Changement / reset de mot de passe (auth uniquement)
 
@@ -88,7 +97,7 @@ Le mot de passe Supabase et le vault code sont **indépendants**.
 - **Vault code configuré** : changer ou réinitialiser le mot de passe ne touche pas au chiffrement. Aucun endpoint encryption n'est appelé et le `clientKey` reste valable.
 - **Comptes legacy sans vault code** :
   - Avec recovery key : `/v1/encryption/recover` re-chiffre avec un nouveau `clientKey` dérivé du nouveau mot de passe.
-  - Sans recovery key : reset mot de passe puis redirection vers `setup-vault-code` (le rekey/backfill se fera lors de la création du vault code).
+  - Sans recovery key : reset mot de passe puis redirection vers `setup-vault-code` (le rekey complet se fera lors de la création du vault code).
 
 ## Recovery key
 
@@ -231,4 +240,6 @@ Si la validation échoue, le serveur refuse de démarrer.
 | `auth.guard.ts` | Extrait et valide le `X-Client-Key` du header |
 | `crypto.utils.ts` (frontend) | Dérivation PBKDF2, `DEMO_CLIENT_KEY` |
 | `client-key.service.ts` (frontend) | Gestion du clientKey en sessionStorage |
+| `skip-backfill.decorator.ts` | Empêche le backfill interceptor sur les endpoints annotés (`@SkipBackfill()`) |
+| `encryption-backfill.service.ts` | Chiffre les données plaintext existantes (appelé par l'interceptor) |
 | `recovery-key-dialog.ts` (frontend) | Modal d'affichage et confirmation de la recovery key |

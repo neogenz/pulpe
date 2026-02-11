@@ -52,11 +52,11 @@ export class EncryptionRekeyService {
       savingsGoals,
       monthlyBudgets,
     ] = await Promise.all([
-      this.#fetchEncryptedBudgetLines(budgetIds, supabase),
-      this.#fetchEncryptedTransactions(budgetIds, supabase),
-      this.#fetchEncryptedTemplateLines(templateIds, supabase),
-      this.#fetchEncryptedSavingsGoals(userId, supabase),
-      this.#fetchEncryptedMonthlyBudgets(userId, supabase),
+      this.#fetchBudgetLines(budgetIds, supabase),
+      this.#fetchTransactions(budgetIds, supabase),
+      this.#fetchTemplateLines(templateIds, supabase),
+      this.#fetchSavingsGoals(userId, supabase),
+      this.#fetchMonthlyBudgets(userId, supabase),
     ]);
 
     const payloads = this.#buildRekeyPayloads(
@@ -129,7 +129,7 @@ export class EncryptionRekeyService {
   ) {
     const rekey = (ciphertext: string | null, fallback: number) =>
       ciphertext
-        ? this.#reEncryptAmount(ciphertext, fallback, oldDek, newDek)
+        ? this.#reEncryptAmountStrict(ciphertext, oldDek, newDek)
         : this.#encryptionService.encryptAmount(fallback, newDek);
 
     return {
@@ -188,7 +188,7 @@ export class EncryptionRekeyService {
     return data?.map((t) => t.id) ?? [];
   }
 
-  async #fetchEncryptedBudgetLines(
+  async #fetchBudgetLines(
     budgetIds: string[],
     supabase: AuthenticatedSupabaseClient,
   ) {
@@ -197,14 +197,13 @@ export class EncryptionRekeyService {
     const { data, error } = await supabase
       .from('budget_line')
       .select('id, amount, amount_encrypted')
-      .not('amount_encrypted', 'is', null)
       .in('budget_id', budgetIds);
 
     if (error) throw error;
     return data ?? [];
   }
 
-  async #fetchEncryptedTransactions(
+  async #fetchTransactions(
     budgetIds: string[],
     supabase: AuthenticatedSupabaseClient,
   ) {
@@ -213,14 +212,13 @@ export class EncryptionRekeyService {
     const { data, error } = await supabase
       .from('transaction')
       .select('id, amount, amount_encrypted')
-      .not('amount_encrypted', 'is', null)
       .in('budget_id', budgetIds);
 
     if (error) throw error;
     return data ?? [];
   }
 
-  async #fetchEncryptedTemplateLines(
+  async #fetchTemplateLines(
     templateIds: string[],
     supabase: AuthenticatedSupabaseClient,
   ) {
@@ -229,52 +227,44 @@ export class EncryptionRekeyService {
     const { data, error } = await supabase
       .from('template_line')
       .select('id, amount, amount_encrypted')
-      .not('amount_encrypted', 'is', null)
       .in('template_id', templateIds);
 
     if (error) throw error;
     return data ?? [];
   }
 
-  async #fetchEncryptedSavingsGoals(
+  async #fetchSavingsGoals(
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ) {
     const { data, error } = await supabase
       .from('savings_goal')
       .select('id, target_amount, target_amount_encrypted')
-      .eq('user_id', userId)
-      .not('target_amount_encrypted', 'is', null);
+      .eq('user_id', userId);
 
     if (error) throw error;
     return data ?? [];
   }
 
-  async #fetchEncryptedMonthlyBudgets(
+  async #fetchMonthlyBudgets(
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ) {
     const { data, error } = await supabase
       .from('monthly_budget')
       .select('id, ending_balance, ending_balance_encrypted')
-      .eq('user_id', userId)
-      .not('ending_balance_encrypted', 'is', null);
+      .eq('user_id', userId);
 
     if (error) throw error;
     return data ?? [];
   }
 
-  #reEncryptAmount(
+  #reEncryptAmountStrict(
     ciphertext: string,
-    fallbackAmount: number,
     oldDek: Buffer,
     newDek: Buffer,
   ): string {
-    const plaintext = this.#encryptionService.tryDecryptAmount(
-      ciphertext,
-      oldDek,
-      fallbackAmount,
-    );
+    const plaintext = this.#encryptionService.decryptAmount(ciphertext, oldDek);
     return this.#encryptionService.encryptAmount(plaintext, newDek);
   }
 }

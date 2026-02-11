@@ -7,9 +7,13 @@ const NEW_DEK = Buffer.alloc(32, 0xbb);
 
 function createMockEncryptionService() {
   return {
-    tryDecryptAmount: mock(
-      (_ciphertext: string, _dek: Buffer, fallback: number) => fallback,
-    ),
+    decryptAmount: mock((ciphertext: string, _dek: Buffer) => {
+      if (ciphertext.startsWith('invalid-')) {
+        throw new Error('Unable to decrypt with old key');
+      }
+      const value = Number(ciphertext.replace('enc-', ''));
+      return Number.isNaN(value) ? 0 : value;
+    }),
     encryptAmount: mock(
       (amount: number, _dek: Buffer) => `re-encrypted-${amount}`,
     ),
@@ -67,46 +71,41 @@ function createMockSupabaseClient(overrides?: {
       };
 
       return {
-        select: (_fields: string) => ({
-          eq: (_field: string, _value: unknown) => {
+        select: (fields: string) => {
+          const failOr = (data: unknown[]) => {
             if (overrides?.fetchError) {
               return Promise.resolve({
                 data: null,
                 error: overrides.fetchError,
               });
             }
-            if (table === 'monthly_budget' && _field === 'user_id') {
-              monthlyBudgetCallCount++;
-              if (monthlyBudgetCallCount === 1) {
-                return Promise.resolve({ data: budgetIds, error: null });
+            return Promise.resolve({
+              data,
+              error: null,
+            });
+          };
+
+          return {
+            eq: (field: string, _value: unknown) => {
+              if (table === 'monthly_budget' && field === 'user_id') {
+                monthlyBudgetCallCount++;
+                if (fields === 'id' && monthlyBudgetCallCount === 1) {
+                  return failOr(budgetIds);
+                }
+                return failOr(tableData[table] ?? []);
               }
-              return {
-                not: () =>
-                  Promise.resolve({
-                    data: tableData[table] ?? [],
-                    error: null,
-                  }),
-              };
-            }
-            if (table === 'template' && _field === 'user_id') {
-              return Promise.resolve({ data: templateIds, error: null });
-            }
-            return {
-              not: () =>
-                Promise.resolve({
-                  data: tableData[table] ?? [],
-                  error: null,
-                }),
-            };
-          },
-          not: (_nf: string, _op: string, _nv: unknown) => ({
-            in: () =>
-              Promise.resolve({
-                data: tableData[table] ?? [],
-                error: null,
-              }),
-          }),
-        }),
+              if (
+                table === 'template' &&
+                field === 'user_id' &&
+                fields === 'id'
+              ) {
+                return failOr(templateIds);
+              }
+              return failOr(tableData[table] ?? []);
+            },
+            in: () => failOr(tableData[table] ?? []),
+          };
+        },
       };
     },
     rpc: (fnName: string, params: unknown) => {
@@ -141,7 +140,7 @@ describe('EncryptionRekeyService', () => {
     );
 
     // 2 budget_lines + 1 transaction + 1 template_line + 1 savings_goal + 1 monthly_budget = 6
-    expect(mockEncryption.tryDecryptAmount).toHaveBeenCalledTimes(6);
+    expect(mockEncryption.decryptAmount).toHaveBeenCalledTimes(6);
     expect(mockEncryption.encryptAmount).toHaveBeenCalledTimes(6);
 
     const rpcCalls = mockSupabase.getRpcCalls();
@@ -180,7 +179,7 @@ describe('EncryptionRekeyService', () => {
     ]);
   });
 
-  it('should call tryDecryptAmount with oldDek', async () => {
+  it('should call decryptAmount with oldDek', async () => {
     await service.reEncryptAllUserData(
       TEST_USER_ID,
       OLD_DEK,
@@ -188,7 +187,7 @@ describe('EncryptionRekeyService', () => {
       mockSupabase as any,
     );
 
-    for (const call of mockEncryption.tryDecryptAmount.mock.calls) {
+    for (const call of mockEncryption.decryptAmount.mock.calls) {
       expect(call[1]).toEqual(OLD_DEK);
     }
   });
@@ -222,7 +221,7 @@ describe('EncryptionRekeyService', () => {
       emptySupabase as any,
     );
 
-    expect(mockEncryption.tryDecryptAmount).not.toHaveBeenCalled();
+    expect(mockEncryption.decryptAmount).not.toHaveBeenCalled();
     expect(mockEncryption.encryptAmount).not.toHaveBeenCalled();
 
     const params = emptySupabase.getRpcCalls()[0].params as Record<
@@ -285,11 +284,10 @@ describe('EncryptionRekeyService', () => {
       nullSupabase as any,
     );
 
-    expect(mockEncryption.tryDecryptAmount).toHaveBeenCalledTimes(1);
-    expect(mockEncryption.tryDecryptAmount).toHaveBeenCalledWith(
+    expect(mockEncryption.decryptAmount).toHaveBeenCalledTimes(1);
+    expect(mockEncryption.decryptAmount).toHaveBeenCalledWith(
       'enc-100',
       OLD_DEK,
-      100,
     );
 
     const encryptCalls = mockEncryption.encryptAmount.mock.calls as unknown[][];
@@ -323,6 +321,29 @@ describe('EncryptionRekeyService', () => {
       noBudgets as any,
     );
 
-    expect(mockEncryption.tryDecryptAmount).not.toHaveBeenCalled();
+    expect(mockEncryption.decryptAmount).not.toHaveBeenCalled();
+  });
+
+  it('should fail strictly when encrypted data cannot be decrypted with old key', async () => {
+    const strictSupabase = createMockSupabaseClient({
+      budgetLines: [
+        { id: 'bl-1', amount: 100, amount_encrypted: 'invalid-100' },
+      ],
+      transactions: [],
+      templateLines: [],
+      savingsGoals: [],
+      monthlyBudgets: [],
+    });
+
+    await expect(
+      service.reEncryptAllUserData(
+        TEST_USER_ID,
+        OLD_DEK,
+        NEW_DEK,
+        strictSupabase as any,
+      ),
+    ).rejects.toThrow('Unable to decrypt with old key');
+
+    expect(strictSupabase.getRpcCalls()).toHaveLength(0);
   });
 });

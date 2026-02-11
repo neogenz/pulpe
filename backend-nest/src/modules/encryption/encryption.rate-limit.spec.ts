@@ -79,6 +79,20 @@ describe('EncryptionController Rate Limiting', () => {
     }
   });
 
+  it('throttles rekey after 3 attempts per hour', async () => {
+    const guard = await createGuard();
+    const handler = EncryptionController.prototype.rekey;
+
+    await runAttempts(guard, handler, 3);
+
+    try {
+      await guard.canActivate(createContext(handler) as any);
+      expect.unreachable('Expected throttling exception after 3 attempts');
+    } catch (error) {
+      expect(error).toBeInstanceOf(ThrottlerException);
+    }
+  });
+
   it('throttles recover after 5 attempts per hour', async () => {
     const guard = await createGuard();
     const handler = EncryptionController.prototype.recover;
