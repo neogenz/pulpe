@@ -1,13 +1,17 @@
-import { TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { provideNativeDateAdapter } from '@angular/material/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { EditTransactionForm } from './edit-transaction-form';
+import {
+  EditTransactionForm,
+  type EditTransactionFormData,
+} from './edit-transaction-form';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 describe('EditTransactionForm', () => {
   let component: EditTransactionForm;
+  let fixture: ComponentFixture<EditTransactionForm>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -20,7 +24,8 @@ describe('EditTransactionForm', () => {
     }).compileComponents();
 
     // Create component instance directly for unit testing
-    component = TestBed.createComponent(EditTransactionForm).componentInstance;
+    fixture = TestBed.createComponent(EditTransactionForm);
+    component = fixture.componentInstance;
   });
 
   describe('Component Structure', () => {
@@ -170,11 +175,12 @@ describe('EditTransactionForm', () => {
     });
 
     it('should validate against custom date bounds when overridden', () => {
-      // Arrange — override date bounds to a past month
+      // Arrange — override protected date bounds for validator testing
       const customMin = new Date(2025, 5, 1);
       const customMax = new Date(2025, 5, 30);
-      (component as unknown as Record<string, Date>)['minDate'] = customMin;
-      (component as unknown as Record<string, Date>)['maxDate'] = customMax;
+      const bounds = component as unknown as { minDate: Date; maxDate: Date };
+      bounds.minDate = customMin;
+      bounds.maxDate = customMax;
 
       const dateControl = component.transactionForm.get('transactionDate');
 
@@ -186,11 +192,12 @@ describe('EditTransactionForm', () => {
     });
 
     it('should reject dates outside custom date bounds', () => {
-      // Arrange — override date bounds to a past month
+      // Arrange — override protected date bounds for validator testing
       const customMin = new Date(2025, 5, 1);
       const customMax = new Date(2025, 5, 30);
-      (component as unknown as Record<string, Date>)['minDate'] = customMin;
-      (component as unknown as Record<string, Date>)['maxDate'] = customMax;
+      const bounds = component as unknown as { minDate: Date; maxDate: Date };
+      bounds.minDate = customMin;
+      bounds.maxDate = customMax;
 
       const dateControl = component.transactionForm.get('transactionDate');
 
@@ -220,7 +227,7 @@ describe('EditTransactionForm', () => {
         category: 'Notes',
       });
 
-      let emittedData: unknown;
+      let emittedData: EditTransactionFormData | undefined;
       component.updateTransaction.subscribe((data) => {
         emittedData = data;
       });
@@ -228,10 +235,8 @@ describe('EditTransactionForm', () => {
       component.onSubmit();
 
       expect(emittedData).toBeDefined();
-      expect((emittedData as Record<string, unknown>)['kind']).toBe('expense');
-      expect((emittedData as Record<string, unknown>)['category']).toBe(
-        'Notes',
-      );
+      expect(emittedData!.kind).toBe('expense');
+      expect(emittedData!.category).toBe('Notes');
     });
   });
 });

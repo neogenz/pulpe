@@ -347,15 +347,25 @@ export class EditTransactionForm implements OnInit {
     }
 
     const { name, amount, kind, transactionDate, category } =
-      this.transactionForm.getRawValue();
+      this.transactionForm.getRawValue() as {
+        name: string;
+        amount: number | null;
+        kind: 'expense' | 'income' | 'saving';
+        transactionDate: Date | null;
+        category: string | null;
+      };
+
+    // Form is valid so all required fields are guaranteed non-null
+    if (!name || !amount || !kind || !transactionDate) return;
+
     this.isUpdating.set(true);
 
     this.updateTransaction.emit({
-      name: name as string,
-      amount: amount as number,
-      kind: kind as 'expense' | 'income' | 'saving',
-      transactionDate: formatLocalDate(transactionDate as Date),
-      category: (category as string) || null,
+      name,
+      amount,
+      kind,
+      transactionDate: formatLocalDate(transactionDate),
+      category: category || null,
     });
   }
 }
