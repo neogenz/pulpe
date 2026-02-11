@@ -794,6 +794,84 @@ describe('BudgetFormulas', () => {
       ];
       expect(BudgetFormulas.calculateRealizedBalance(budgetLines)).toBe(-1000);
     });
+
+    it('should include checked negative rollover (expense) in realized balance', () => {
+      const budgetLines = [
+        {
+          id: 'line-1',
+          kind: 'income' as const,
+          amount: 5000,
+          checkedAt: '2025-01-15',
+        },
+        {
+          id: 'line-2',
+          kind: 'expense' as const,
+          amount: 3000,
+          checkedAt: '2025-01-15',
+        },
+        {
+          id: 'rollover-display',
+          kind: 'expense' as const,
+          amount: 1950,
+          checkedAt: '2025-01-15',
+          isRollover: true,
+        },
+      ];
+      // 5000 income - (3000 + 1950) expenses = 50
+      expect(BudgetFormulas.calculateRealizedBalance(budgetLines)).toBe(50);
+    });
+
+    it('should include checked positive rollover (income) in realized balance', () => {
+      const budgetLines = [
+        {
+          id: 'line-1',
+          kind: 'income' as const,
+          amount: 5000,
+          checkedAt: '2025-01-15',
+        },
+        {
+          id: 'rollover-display',
+          kind: 'income' as const,
+          amount: 3094,
+          checkedAt: '2025-01-15',
+          isRollover: true,
+        },
+        {
+          id: 'line-2',
+          kind: 'expense' as const,
+          amount: 8000,
+          checkedAt: '2025-01-15',
+        },
+      ];
+      // (5000 + 3094) income - 8000 expenses = 94
+      expect(BudgetFormulas.calculateRealizedBalance(budgetLines)).toBe(94);
+    });
+
+    it('should not include unchecked rollover in realized balance', () => {
+      const budgetLines = [
+        {
+          id: 'line-1',
+          kind: 'income' as const,
+          amount: 5000,
+          checkedAt: '2025-01-15',
+        },
+        {
+          id: 'rollover-display',
+          kind: 'expense' as const,
+          amount: 1950,
+          checkedAt: null,
+          isRollover: true,
+        },
+        {
+          id: 'line-2',
+          kind: 'expense' as const,
+          amount: 3000,
+          checkedAt: '2025-01-15',
+        },
+      ];
+      // Rollover unchecked → ignored. 5000 - 3000 = 2000
+      expect(BudgetFormulas.calculateRealizedBalance(budgetLines)).toBe(2000);
+    });
   });
 
   describe('validateMetricsCoherence', () => {
