@@ -22,6 +22,8 @@ import { type Transaction } from 'pulpe-shared';
 export interface EditTransactionDialogData {
   transaction: Transaction;
   hiddenFields?: HideableField[];
+  minDate?: Date;
+  maxDate?: Date;
 }
 
 @Component({
@@ -51,6 +53,8 @@ export interface EditTransactionDialogData {
         class="block pt-4"
         [transaction]="data.transaction"
         [hiddenFields]="data.hiddenFields ?? []"
+        [minDateInput]="data.minDate"
+        [maxDateInput]="data.maxDate"
         (updateTransaction)="onUpdateTransaction($event)"
         (cancelEdit)="closeDialog()"
         role="main"

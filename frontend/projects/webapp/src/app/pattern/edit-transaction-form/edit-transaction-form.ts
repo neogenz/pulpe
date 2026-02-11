@@ -184,7 +184,11 @@ export type EditTransactionFormData = Pick<
           aria-label="Ouvrir le calendrier"
         ></mat-datepicker-toggle>
         <mat-datepicker #picker></mat-datepicker>
-        <mat-hint id="date-hint">Doit être dans le mois en cours</mat-hint>
+        <mat-hint id="date-hint">{{
+          minDateInput()
+            ? 'Doit être dans la période du budget'
+            : 'Doit être dans le mois en cours'
+        }}</mat-hint>
         @if (
           transactionForm.get('transactionDate')?.hasError('required') &&
           transactionForm.get('transactionDate')?.touched
@@ -252,13 +256,15 @@ export class EditTransactionForm implements OnInit {
 
   readonly transaction = input.required<Transaction>();
   readonly hiddenFields = input<HideableField[]>([]);
+  readonly minDateInput = input<Date>();
+  readonly maxDateInput = input<Date>();
   readonly updateTransaction = output<EditTransactionFormData>();
   readonly cancelEdit = output<void>();
   readonly isUpdating = signal(false);
 
-  // Date constraints for current month
-  protected readonly minDate = startOfMonth(new Date());
-  protected readonly maxDate = endOfMonth(new Date());
+  // Date constraints — defaults to current month, overridden in ngOnInit if inputs provided
+  protected minDate = startOfMonth(new Date());
+  protected maxDate = endOfMonth(new Date());
 
   // Custom validator for date range
   readonly #dateRangeValidator = (
@@ -301,6 +307,10 @@ export class EditTransactionForm implements OnInit {
   }
 
   ngOnInit(): void {
+    const minInput = this.minDateInput();
+    const maxInput = this.maxDateInput();
+    if (minInput) this.minDate = minInput;
+    if (maxInput) this.maxDate = maxInput;
     this.#initializeForm();
   }
 

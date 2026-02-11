@@ -145,27 +145,60 @@ describe('EditTransactionForm', () => {
   });
 
   describe('Date Constraints', () => {
-    it('should have minDate and maxDate defined', () => {
-      expect(component['minDate']).toBeDefined();
-      expect(component['maxDate']).toBeDefined();
-
-      // Verify they are Date objects
-      expect(component['minDate']).toBeInstanceOf(Date);
-      expect(component['maxDate']).toBeInstanceOf(Date);
-
-      // Verify minDate is start of month
+    it('should default to current month bounds', () => {
+      // Arrange
+      const dateControl = component.transactionForm.get('transactionDate');
       const now = new Date();
-      const minDate = component['minDate'];
-      expect(minDate.getDate()).toBe(1);
-      expect(minDate.getMonth()).toBe(now.getMonth());
-      expect(minDate.getFullYear()).toBe(now.getFullYear());
 
-      // Verify maxDate is end of month
-      const maxDate = component['maxDate'];
-      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      expect(maxDate.getDate()).toBe(nextMonth.getDate());
-      expect(maxDate.getMonth()).toBe(now.getMonth());
-      expect(maxDate.getFullYear()).toBe(now.getFullYear());
+      // Act — set a date in the current month
+      dateControl?.setValue(now);
+
+      // Assert — date in current month is valid
+      expect(dateControl?.hasError('dateOutOfRange')).toBe(false);
+    });
+
+    it('should reject dates outside current month when no custom bounds', () => {
+      // Arrange
+      const dateControl = component.transactionForm.get('transactionDate');
+      const lastYear = new Date(new Date().getFullYear() - 1, 0, 15);
+
+      // Act
+      dateControl?.setValue(lastYear);
+
+      // Assert
+      expect(dateControl?.hasError('dateOutOfRange')).toBe(true);
+    });
+
+    it('should validate against custom date bounds when overridden', () => {
+      // Arrange — override date bounds to a past month
+      const customMin = new Date(2025, 5, 1);
+      const customMax = new Date(2025, 5, 30);
+      (component as unknown as Record<string, Date>)['minDate'] = customMin;
+      (component as unknown as Record<string, Date>)['maxDate'] = customMax;
+
+      const dateControl = component.transactionForm.get('transactionDate');
+
+      // Act — set a date within custom bounds
+      dateControl?.setValue(new Date(2025, 5, 15));
+
+      // Assert — date in custom range is valid
+      expect(dateControl?.hasError('dateOutOfRange')).toBe(false);
+    });
+
+    it('should reject dates outside custom date bounds', () => {
+      // Arrange — override date bounds to a past month
+      const customMin = new Date(2025, 5, 1);
+      const customMax = new Date(2025, 5, 30);
+      (component as unknown as Record<string, Date>)['minDate'] = customMin;
+      (component as unknown as Record<string, Date>)['maxDate'] = customMax;
+
+      const dateControl = component.transactionForm.get('transactionDate');
+
+      // Act — set a date outside custom bounds
+      dateControl?.setValue(new Date(2025, 0, 15));
+
+      // Assert — date outside range is invalid
+      expect(dateControl?.hasError('dateOutOfRange')).toBe(true);
     });
   });
 

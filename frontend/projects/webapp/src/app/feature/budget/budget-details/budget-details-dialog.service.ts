@@ -25,6 +25,7 @@ import {
   CreateAllocatedTransactionDialog,
   type CreateAllocatedTransactionDialogData,
 } from './create-allocated-transaction-dialog/create-allocated-transaction-dialog';
+import { computeBudgetPeriodDateConstraints } from './create-allocated-transaction-dialog/budget-period-date-constraints';
 import { CreateAllocatedTransactionBottomSheet } from './create-allocated-transaction-dialog/create-allocated-transaction-bottom-sheet';
 import {
   ConfirmationDialog,
@@ -136,11 +137,24 @@ export class BudgetDetailsDialogService {
 
   async openEditAllocatedTransactionDialog(
     transaction: Transaction,
+    budgetPeriod: {
+      budgetMonth: number;
+      budgetYear: number;
+      payDayOfMonth: number | null;
+    },
   ): Promise<(TransactionUpdate & { id: string }) | undefined> {
+    const { minDate, maxDate } = computeBudgetPeriodDateConstraints(
+      budgetPeriod.budgetMonth,
+      budgetPeriod.budgetYear,
+      budgetPeriod.payDayOfMonth,
+    );
+
     const dialogRef = this.#dialog.open(EditTransactionDialog, {
       data: {
         transaction,
         hiddenFields: ['kind', 'category'],
+        minDate,
+        maxDate,
       } satisfies EditTransactionDialogData,
       width: '500px',
       maxWidth: '90vw',
