@@ -391,6 +391,7 @@ export type Database = {
         Args: { p_budget_line_id: string };
         Returns: {
           amount: number;
+          amount_encrypted: string | null;
           budget_id: string;
           budget_line_id: string | null;
           category: string | null;
@@ -402,6 +403,12 @@ export type Database = {
           transaction_date: string;
           updated_at: string;
         }[];
+        SetofOptions: {
+          from: '*';
+          to: 'transaction';
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
       };
       create_budget_from_template: {
         Args: {
@@ -423,26 +430,6 @@ export type Database = {
         };
         Returns: Json;
       };
-      gtrgm_compress: {
-        Args: { '': unknown };
-        Returns: unknown;
-      };
-      gtrgm_decompress: {
-        Args: { '': unknown };
-        Returns: unknown;
-      };
-      gtrgm_in: {
-        Args: { '': unknown };
-        Returns: unknown;
-      };
-      gtrgm_options: {
-        Args: { '': unknown };
-        Returns: undefined;
-      };
-      gtrgm_out: {
-        Args: { '': unknown };
-        Returns: unknown;
-      };
       rekey_user_encrypted_data: {
         Args: {
           p_budget_lines?: Json;
@@ -453,54 +440,13 @@ export type Database = {
         };
         Returns: undefined;
       };
-      set_limit: {
-        Args: { '': number };
-        Returns: number;
-      };
-      show_limit: {
-        Args: Record<PropertyKey, never>;
-        Returns: number;
-      };
-      show_trgm: {
-        Args: { '': string };
-        Returns: string[];
-      };
-      gtrgm_compress: {
-        Args: { '': unknown };
-        Returns: unknown;
-      };
-      gtrgm_decompress: {
-        Args: { '': unknown };
-        Returns: unknown;
-      };
-      gtrgm_in: {
-        Args: { '': unknown };
-        Returns: unknown;
-      };
-      gtrgm_options: {
-        Args: { '': unknown };
-        Returns: undefined;
-      };
-      gtrgm_out: {
-        Args: { '': unknown };
-        Returns: unknown;
-      };
-      set_limit: {
-        Args: { '': number };
-        Returns: number;
-      };
-      show_limit: {
-        Args: Record<PropertyKey, never>;
-        Returns: number;
-      };
-      show_trgm: {
-        Args: { '': string };
-        Returns: string[];
-      };
+      show_limit: { Args: never; Returns: number };
+      show_trgm: { Args: { '': string }; Returns: string[] };
       toggle_budget_line_check: {
         Args: { p_budget_line_id: string };
         Returns: {
           amount: number;
+          amount_encrypted: string | null;
           budget_id: string;
           checked_at: string | null;
           created_at: string;
@@ -512,6 +458,12 @@ export type Database = {
           savings_goal_id: string | null;
           template_line_id: string | null;
           updated_at: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'budget_line';
+          isOneToOne: true;
+          isSetofReturn: false;
         };
       };
     };
