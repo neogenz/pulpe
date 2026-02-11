@@ -186,6 +186,25 @@ export default class BudgetDetailsPage {
     });
   }
 
+  async handleEditAllocatedTransaction(
+    transaction: Transaction,
+  ): Promise<void> {
+    const budget = this.store.budgetDetails();
+    if (!budget) return;
+    const editResult =
+      await this.#dialogService.openEditAllocatedTransactionDialog(
+        transaction,
+        {
+          budgetMonth: budget.month,
+          budgetYear: budget.year,
+          payDayOfMonth: this.#userSettingsApi.payDayOfMonth(),
+        },
+      );
+    if (editResult) {
+      await this.handleUpdateTransaction(editResult);
+    }
+  }
+
   async handleDeleteItem(id: string): Promise<void> {
     const data = this.store.budgetDetails();
     if (!data) return;

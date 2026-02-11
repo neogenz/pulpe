@@ -18,7 +18,11 @@ import {
   type BudgetLineConsumption,
 } from '@core/budget';
 import { STORAGE_KEYS, StorageService } from '@core/storage';
-import { type BudgetLine, type BudgetLineUpdate } from 'pulpe-shared';
+import {
+  type BudgetLine,
+  type BudgetLineUpdate,
+  type Transaction,
+} from 'pulpe-shared';
 import { map } from 'rxjs/operators';
 import { BudgetGrid } from './budget-grid';
 import { BudgetTable } from './budget-table/budget-table';
@@ -97,6 +101,7 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
           (edit)="startEditBudgetLine($event)"
           (delete)="delete.emit($event)"
           (deleteTransaction)="deleteTransaction.emit($event)"
+          (editTransaction)="editTransaction.emit($event)"
           (add)="add.emit()"
           (addTransaction)="createAllocatedTransaction.emit($event)"
           (viewTransactions)="onViewTransactions($event)"
@@ -159,6 +164,7 @@ export class BudgetItemsContainer {
   readonly update = output<BudgetLineUpdate>();
   readonly delete = output<string>();
   readonly deleteTransaction = output<string>();
+  readonly editTransaction = output<Transaction>();
   readonly add = output<void>();
   readonly viewAllocatedTransactions = output<{
     budgetLine: BudgetLine;
