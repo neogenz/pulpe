@@ -98,8 +98,8 @@ describe('SetupVaultCode', () => {
 
   function fillValidForm(): void {
     component['form'].patchValue({
-      vaultCode: 'myvaultcode123',
-      confirmCode: 'myvaultcode123',
+      vaultCode: '123456',
+      confirmCode: '123456',
       rememberDevice: false,
     });
   }
@@ -124,13 +124,22 @@ describe('SetupVaultCode', () => {
       expect(control?.hasError('required')).toBe(true);
     });
 
-    it('should validate vaultCode minimum length of 8', () => {
+    it('should validate vaultCode minimum length of 4', () => {
       const control = component['form'].get('vaultCode');
-      control?.setValue('short');
+      control?.setValue('12');
       expect(control?.hasError('minlength')).toBe(true);
 
-      control?.setValue('validcode123');
+      control?.setValue('1234');
       expect(control?.hasError('minlength')).toBe(false);
+    });
+
+    it('should reject non-numeric vaultCode', () => {
+      const control = component['form'].get('vaultCode');
+      control?.setValue('abcd');
+      expect(control?.hasError('pattern')).toBe(true);
+
+      control?.setValue('1234');
+      expect(control?.hasError('pattern')).toBe(false);
     });
 
     it('should require confirmCode', () => {
@@ -140,14 +149,14 @@ describe('SetupVaultCode', () => {
     });
 
     it('should require matching vault codes', () => {
-      component['form'].get('vaultCode')?.setValue('vaultcode123');
-      component['form'].get('confirmCode')?.setValue('different123');
+      component['form'].get('vaultCode')?.setValue('123456');
+      component['form'].get('confirmCode')?.setValue('654321');
       expect(component['form'].hasError('fieldsMismatch')).toBe(true);
     });
 
     it('should allow matching vault codes', () => {
-      component['form'].get('vaultCode')?.setValue('vaultcode123');
-      component['form'].get('confirmCode')?.setValue('vaultcode123');
+      component['form'].get('vaultCode')?.setValue('123456');
+      component['form'].get('confirmCode')?.setValue('123456');
       expect(component['form'].hasError('fieldsMismatch')).toBe(false);
     });
   });
@@ -182,7 +191,7 @@ describe('SetupVaultCode', () => {
     it('should call deriveClientKey with vault code and salt', async () => {
       await component['onSubmit']();
       expect(deriveClientKeySpy).toHaveBeenCalledWith(
-        'myvaultcode123',
+        '123456',
         'salt-value',
         100000,
       );

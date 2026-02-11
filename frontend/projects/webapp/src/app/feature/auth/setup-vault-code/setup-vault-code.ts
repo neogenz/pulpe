@@ -16,7 +16,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialog } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
 
-import { AuthSessionService } from '@core/auth';
+import { AuthSessionService, VAULT_CODE_MIN_LENGTH } from '@core/auth';
 import {
   ClientKeyService,
   EncryptionApi,
@@ -59,12 +59,12 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
           <h1
             class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
           >
-            Crée ton code coffre-fort
+            Crée ton code PIN
           </h1>
           <p class="text-body-large text-on-surface-variant">
-            C'est la clé unique pour ouvrir ton coffre Pulpe. Garde-le
-            précieusement : personne d'autre ne peut l'ouvrir à ta place, et on
-            ne pourra pas le retrouver si tu l'oublies.
+            Ce code protège tes données chiffrées. Garde-le précieusement :
+            personne d'autre ne peut y accéder à ta place, et on ne pourra pas
+            le retrouver si tu l'oublies.
           </p>
         </div>
 
@@ -75,14 +75,15 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
           data-testid="setup-vault-code-form"
         >
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Ton code coffre-fort</mat-label>
+            <mat-label>Ton code PIN</mat-label>
             <input
               matInput
               [type]="isCodeHidden() ? 'password' : 'text'"
+              inputmode="numeric"
               formControlName="vaultCode"
               data-testid="vault-code-input"
               (input)="clearError()"
-              placeholder="Ton code coffre-fort"
+              placeholder="Ton code PIN"
             />
             <mat-icon matPrefix>lock</mat-icon>
             <button
@@ -90,25 +91,24 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
               matIconButton
               matSuffix
               (click)="isCodeHidden.set(!isCodeHidden())"
-              [attr.aria-label]="'Afficher le code'"
+              [attr.aria-label]="'Afficher le code PIN'"
               [attr.aria-pressed]="!isCodeHidden()"
             >
               <mat-icon>{{
                 isCodeHidden() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
-            <mat-hint
-              >8 caractères minimum (une courte phrase est facile à retenir
-              !)</mat-hint
-            >
+            <mat-hint>4 chiffres minimum (6+ recommandé)</mat-hint>
             @if (
               form.get('vaultCode')?.invalid && form.get('vaultCode')?.touched
             ) {
               <mat-error>
                 @if (form.get('vaultCode')?.hasError('required')) {
-                  Ton code coffre-fort est nécessaire
+                  Ton code PIN est nécessaire
                 } @else if (form.get('vaultCode')?.hasError('minlength')) {
-                  8 caractères minimum
+                  4 chiffres minimum
+                } @else if (form.get('vaultCode')?.hasError('pattern')) {
+                  Le code PIN ne doit contenir que des chiffres
                 }
               </mat-error>
             }
@@ -119,6 +119,7 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
             <input
               matInput
               [type]="isConfirmCodeHidden() ? 'password' : 'text'"
+              inputmode="numeric"
               formControlName="confirmCode"
               data-testid="confirm-vault-code-input"
               (input)="clearError()"
@@ -169,11 +170,11 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
           <pulpe-loading-button
             [loading]="isSubmitting()"
             [disabled]="!canSubmit()"
-            loadingText="On prépare ton coffre..."
+            loadingText="On prépare ton espace..."
             icon="arrow_forward"
             testId="setup-vault-code-submit-button"
           >
-            <span class="ml-2">Créer mon coffre</span>
+            <span class="ml-2">Créer mon code PIN</span>
           </pulpe-loading-button>
         </form>
 
@@ -217,7 +218,14 @@ export default class SetupVaultCode {
 
   protected readonly form = this.#formBuilder.nonNullable.group(
     {
-      vaultCode: ['', [Validators.required, Validators.minLength(8)]],
+      vaultCode: [
+        '',
+        [
+          Validators.required,
+          Validators.minLength(VAULT_CODE_MIN_LENGTH),
+          Validators.pattern(/^\d+$/),
+        ],
+      ],
       confirmCode: ['', [Validators.required]],
       rememberDevice: [false],
     },

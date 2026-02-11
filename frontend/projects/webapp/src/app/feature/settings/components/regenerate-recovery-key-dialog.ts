@@ -18,11 +18,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { firstValueFrom } from 'rxjs';
 
+import { VAULT_CODE_MIN_LENGTH } from '@core/auth';
 import { EncryptionApi, deriveClientKey } from '@core/encryption';
 import { Logger } from '@core/logging/logger';
 import { ErrorAlert } from '@ui/error-alert';
-
-const VAULT_CODE_MIN_LENGTH = 8;
 
 @Component({
   selector: 'pulpe-regenerate-recovery-key-dialog',
@@ -62,10 +61,11 @@ const VAULT_CODE_MIN_LENGTH = 8;
 
       <form [formGroup]="verificationForm" (ngSubmit)="onSubmit()">
         <mat-form-field appearance="outline" class="w-full mb-2">
-          <mat-label>Code coffre-fort</mat-label>
+          <mat-label>Code PIN</mat-label>
           <input
             matInput
             [type]="isVaultCodeHidden() ? 'password' : 'text'"
+            inputmode="numeric"
             formControlName="vaultCode"
             data-testid="verify-vault-code-input"
           />
@@ -75,7 +75,7 @@ const VAULT_CODE_MIN_LENGTH = 8;
             matIconButton
             matSuffix
             (click)="isVaultCodeHidden.set(!isVaultCodeHidden())"
-            [attr.aria-label]="'Afficher le code coffre-fort'"
+            [attr.aria-label]="'Afficher le code PIN'"
             [attr.aria-pressed]="!isVaultCodeHidden()"
           >
             <mat-icon>{{
@@ -83,7 +83,7 @@ const VAULT_CODE_MIN_LENGTH = 8;
             }}</mat-icon>
           </button>
           @if (verificationForm.get('vaultCode')?.hasError('required')) {
-            <mat-error>Le code coffre-fort est requis</mat-error>
+            <mat-error>Le code PIN est requis</mat-error>
           } @else if (
             verificationForm.get('vaultCode')?.hasError('minlength')
           ) {
@@ -158,7 +158,7 @@ export class RegenerateRecoveryKeyDialog {
     } catch (error) {
       this.#logger.error('Recovery key verification failed', error);
       this.errorMessage.set(
-        'Code coffre-fort incorrect ou clé de chiffrement invalide',
+        'Code PIN incorrect ou clé de chiffrement invalide',
       );
     } finally {
       this.isSubmitting.set(false);

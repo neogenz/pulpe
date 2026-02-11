@@ -22,6 +22,7 @@ import {
   EncryptionApi,
   deriveClientKey,
 } from '@core/encryption';
+import { VAULT_CODE_MIN_LENGTH } from '@core/auth';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
 import {
@@ -72,7 +73,7 @@ import {
           <h1
             class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
           >
-            Récupère ton code coffre-fort
+            Récupère ton code PIN
           </h1>
           <p class="text-body-large text-on-surface-variant">
             Entre ta clé de récupération et ton nouveau code
@@ -113,14 +114,15 @@ import {
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Nouveau code coffre-fort</mat-label>
+            <mat-label>Nouveau code PIN</mat-label>
             <input
               matInput
               [type]="isVaultCodeHidden() ? 'password' : 'text'"
+              inputmode="numeric"
               formControlName="newVaultCode"
               data-testid="new-vault-code-input"
               (input)="clearError()"
-              placeholder="Nouveau code coffre-fort"
+              placeholder="Nouveau code PIN"
             />
             <mat-icon matPrefix>lock</mat-icon>
             <button
@@ -135,7 +137,7 @@ import {
                 isVaultCodeHidden() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
-            <mat-hint>8 caractères minimum</mat-hint>
+            <mat-hint>4 chiffres minimum (6+ recommandé)</mat-hint>
             @if (
               form.get('newVaultCode')?.invalid &&
               form.get('newVaultCode')?.touched
@@ -144,21 +146,24 @@ import {
                 @if (form.get('newVaultCode')?.hasError('required')) {
                   Ton nouveau code est nécessaire
                 } @else if (form.get('newVaultCode')?.hasError('minlength')) {
-                  8 caractères minimum
+                  4 chiffres minimum
+                } @else if (form.get('newVaultCode')?.hasError('pattern')) {
+                  Le code PIN ne doit contenir que des chiffres
                 }
               </mat-error>
             }
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Confirmer le code coffre-fort</mat-label>
+            <mat-label>Confirmer le code PIN</mat-label>
             <input
               matInput
               [type]="isConfirmCodeHidden() ? 'password' : 'text'"
+              inputmode="numeric"
               formControlName="confirmCode"
               data-testid="confirm-vault-code-input"
               (input)="clearError()"
-              placeholder="Confirmer le code coffre-fort"
+              placeholder="Confirmer le code PIN"
             />
             <mat-icon matPrefix>lock</mat-icon>
             <button
@@ -233,7 +238,14 @@ export default class RecoverVaultCode {
   protected readonly form = this.#formBuilder.nonNullable.group(
     {
       recoveryKey: ['', recoveryKeyValidators],
-      newVaultCode: ['', [Validators.required, Validators.minLength(8)]],
+      newVaultCode: [
+        '',
+        [
+          Validators.required,
+          Validators.minLength(VAULT_CODE_MIN_LENGTH),
+          Validators.pattern(/^\d+$/),
+        ],
+      ],
       confirmCode: ['', [Validators.required]],
       rememberDevice: [false],
     },

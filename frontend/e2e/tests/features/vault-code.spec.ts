@@ -39,7 +39,7 @@ test.describe('Vault Code', () => {
       await page.getByTestId('vault-code-input').focus();
       await page.getByTestId('vault-code-input').blur();
 
-      await expect(page.locator('mat-error')).toContainText('Ton code coffre-fort est nécessaire');
+      await expect(page.locator('mat-error')).toContainText('Ton code PIN est nécessaire');
     });
 
     test('shows error when codes do not match', async ({ page, vaultCodePage }) => {
@@ -51,8 +51,8 @@ test.describe('Vault Code', () => {
 
       await vaultCodePage.gotoSetup();
 
-      await vaultCodePage.fillVaultCode('mySecureCode123');
-      await vaultCodePage.fillConfirmCode('differentCode99');
+      await vaultCodePage.fillVaultCode('123456');
+      await vaultCodePage.fillConfirmCode('654321');
       // Blur to trigger cross-field validation
       await page.getByTestId('confirm-vault-code-input').blur();
 
@@ -68,11 +68,11 @@ test.describe('Vault Code', () => {
 
       await vaultCodePage.gotoSetup();
 
-      await vaultCodePage.fillVaultCode('short');
+      await vaultCodePage.fillVaultCode('12');
       // Blur to trigger validation
       await page.getByTestId('vault-code-input').blur();
 
-      await expect(page.locator('mat-error')).toContainText('8 caractères minimum');
+      await expect(page.locator('mat-error')).toContainText('4 chiffres minimum');
     });
 
     test('happy path: setup completes with recovery key dialog', async ({ page, vaultCodePage }) => {
@@ -96,8 +96,8 @@ test.describe('Vault Code', () => {
 
       await vaultCodePage.gotoSetup();
 
-      await vaultCodePage.fillVaultCode('mySecureCode123');
-      await vaultCodePage.fillConfirmCode('mySecureCode123');
+      await vaultCodePage.fillVaultCode('123456');
+      await vaultCodePage.fillConfirmCode('123456');
 
       await vaultCodePage.submitSetup();
 
@@ -141,8 +141,8 @@ test.describe('Vault Code', () => {
       });
 
       await vaultCodePage.gotoSetup();
-      await vaultCodePage.fillVaultCode('mySecureCode123');
-      await vaultCodePage.fillConfirmCode('mySecureCode123');
+      await vaultCodePage.fillVaultCode('123456');
+      await vaultCodePage.fillConfirmCode('123456');
       await vaultCodePage.submitSetup();
 
       await vaultCodePage.expectRecoveryKeyDialogVisible();
@@ -192,7 +192,7 @@ test.describe('Vault Code', () => {
 
       await vaultCodePage.gotoEnter();
 
-      await vaultCodePage.fillVaultCode('mySecureCode123');
+      await vaultCodePage.fillVaultCode('123456');
       await vaultCodePage.submitEnter();
 
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
@@ -216,7 +216,7 @@ test.describe('Vault Code', () => {
 
       await vaultCodePage.gotoEnter();
 
-      await vaultCodePage.fillVaultCode('wrongCode123');
+      await vaultCodePage.fillVaultCode('999999');
       await vaultCodePage.submitEnter();
 
       // Error alert should show
@@ -264,8 +264,8 @@ test.describe('Vault Code', () => {
       await vaultCodePage.gotoRecover();
 
       await vaultCodePage.fillRecoveryKey('XXXX-YYYY-ZZZZ-1234');
-      await vaultCodePage.fillNewVaultCode('newSecureCode1');
-      await vaultCodePage.fillConfirmCode('newSecureCode1');
+      await vaultCodePage.fillNewVaultCode('654321');
+      await vaultCodePage.fillConfirmCode('654321');
 
       await vaultCodePage.submitRecover();
 
@@ -312,8 +312,8 @@ test.describe('Vault Code', () => {
       await vaultCodePage.gotoRecover();
 
       await vaultCodePage.fillRecoveryKey('INVALID-KEY-HERE');
-      await vaultCodePage.fillNewVaultCode('newSecureCode1');
-      await vaultCodePage.fillConfirmCode('newSecureCode1');
+      await vaultCodePage.fillNewVaultCode('654321');
+      await vaultCodePage.fillConfirmCode('654321');
 
       await vaultCodePage.submitRecover();
 
@@ -348,7 +348,7 @@ test.describe('Vault Code', () => {
 
       await vaultCodePage.gotoEnter();
       await vaultCodePage.toggleRememberDevice();
-      await vaultCodePage.fillVaultCode('mySecureCode123');
+      await vaultCodePage.fillVaultCode('123456');
       await vaultCodePage.submitEnter();
 
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
@@ -373,7 +373,7 @@ test.describe('Vault Code', () => {
       });
 
       await vaultCodePage.gotoEnter();
-      await vaultCodePage.fillVaultCode('mySecureCode123');
+      await vaultCodePage.fillVaultCode('123456');
       await vaultCodePage.submitEnter();
 
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
@@ -399,7 +399,7 @@ test.describe('Vault Code', () => {
 
       await vaultCodePage.gotoEnter();
       await vaultCodePage.toggleRememberDevice();
-      await vaultCodePage.fillVaultCode('mySecureCode123');
+      await vaultCodePage.fillVaultCode('123456');
       await vaultCodePage.submitEnter();
 
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
@@ -429,7 +429,7 @@ test.describe('Vault Code', () => {
       });
 
       await vaultCodePage.gotoEnter();
-      await vaultCodePage.fillVaultCode('mySecureCode123');
+      await vaultCodePage.fillVaultCode('123456');
       await vaultCodePage.submitEnter();
 
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });

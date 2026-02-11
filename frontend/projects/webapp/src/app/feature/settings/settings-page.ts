@@ -177,7 +177,7 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
               <div class="space-y-1">
                 <h3 class="text-title-small">Clé de récupération</h3>
                 <p class="text-body-medium text-on-surface-variant">
-                  Indispensable si tu oublies ton code de coffre-fort.
+                  Indispensable si tu oublies ton code PIN.
                 </p>
               </div>
               <button

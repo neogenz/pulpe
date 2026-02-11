@@ -84,7 +84,7 @@ describe('RegenerateRecoveryKeyDialog', () => {
     await component['onSubmit']();
 
     expect(component['errorMessage']()).toBe(
-      'Code coffre-fort incorrect ou clé de chiffrement invalide',
+      'Code PIN incorrect ou clé de chiffrement invalide',
     );
     expect(mockDialogRef.close).not.toHaveBeenCalled();
   });

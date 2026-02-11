@@ -122,7 +122,7 @@ describe('ChangePasswordDialog', () => {
   /**
    * Password change should NOT interact with encryption at all.
    *
-   * The vault code (code coffre-fort) is different from the account password.
+   * The vault code (code PIN) is different from the account password.
    * When changing password:
    * - Only Supabase auth is involved
    * - The vault code stays the same

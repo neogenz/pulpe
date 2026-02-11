@@ -83,8 +83,8 @@ describe('RecoverVaultCode', () => {
   function fillValidForm(): void {
     component['form'].patchValue({
       recoveryKey: 'ABCD-EFGH-IJKL-MNOP',
-      newVaultCode: 'newvaultcode123',
-      confirmCode: 'newvaultcode123',
+      newVaultCode: '123456',
+      confirmCode: '123456',
     });
   }
 
@@ -120,13 +120,22 @@ describe('RecoverVaultCode', () => {
       expect(control?.hasError('required')).toBe(true);
     });
 
-    it('should validate newVaultCode minimum length of 8', () => {
+    it('should validate newVaultCode minimum length of 4', () => {
       const control = component['form'].get('newVaultCode');
-      control?.setValue('short');
+      control?.setValue('12');
       expect(control?.hasError('minlength')).toBe(true);
 
-      control?.setValue('validcode123');
+      control?.setValue('1234');
       expect(control?.hasError('minlength')).toBe(false);
+    });
+
+    it('should reject non-numeric newVaultCode', () => {
+      const control = component['form'].get('newVaultCode');
+      control?.setValue('abcd');
+      expect(control?.hasError('pattern')).toBe(true);
+
+      control?.setValue('1234');
+      expect(control?.hasError('pattern')).toBe(false);
     });
 
     it('should require confirmCode', () => {
@@ -136,14 +145,14 @@ describe('RecoverVaultCode', () => {
     });
 
     it('should require matching vault codes', () => {
-      component['form'].get('newVaultCode')?.setValue('vaultcode123');
-      component['form'].get('confirmCode')?.setValue('different123');
+      component['form'].get('newVaultCode')?.setValue('123456');
+      component['form'].get('confirmCode')?.setValue('654321');
       expect(component['form'].hasError('fieldsMismatch')).toBe(true);
     });
 
     it('should allow matching vault codes', () => {
-      component['form'].get('newVaultCode')?.setValue('vaultcode123');
-      component['form'].get('confirmCode')?.setValue('vaultcode123');
+      component['form'].get('newVaultCode')?.setValue('123456');
+      component['form'].get('confirmCode')?.setValue('123456');
       expect(component['form'].hasError('fieldsMismatch')).toBe(false);
     });
   });
@@ -178,7 +187,7 @@ describe('RecoverVaultCode', () => {
     it('should call deriveClientKey with new vault code and salt', async () => {
       await component['onSubmit']();
       expect(deriveClientKeySpy).toHaveBeenCalledWith(
-        'newvaultcode123',
+        '123456',
         'salt-value',
         100000,
       );

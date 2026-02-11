@@ -95,12 +95,12 @@ describe('EnterVaultCode', () => {
       expect(control?.hasError('required')).toBe(true);
     });
 
-    it('should validate vaultCode minimum length of 8', () => {
+    it('should validate vaultCode minimum length of 4', () => {
       const control = component['form'].get('vaultCode');
-      control?.setValue('short');
+      control?.setValue('abc');
       expect(control?.hasError('minlength')).toBe(true);
 
-      control?.setValue('validcode123');
+      control?.setValue('abcd');
       expect(control?.hasError('minlength')).toBe(false);
     });
   });

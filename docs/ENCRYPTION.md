@@ -12,7 +12,7 @@ DEK = HKDF-SHA256(clientKey + masterKey, salt, "pulpe-dek-{userId}")
 
 | Facteur | Origine | Stockage |
 |---------|---------|----------|
-| `clientKey` | Dérivé du **vault code** côté frontend (PBKDF2). Pour les comptes legacy pré‑migration, il peut encore être dérivé du mot de passe lors des flows de reset/recovery. | Conservé en `sessionStorage` par défaut (ou `localStorage` via « Se souvenir de cet appareil »). Effacé au logout. Envoyé dans le header `X-Client-Key` à chaque requête. Voir section « Stockage du clientKey » ci-dessous. |
+| `clientKey` | Dérivé du **code PIN** (4 chiffres minimum) côté frontend (PBKDF2). Pour les comptes legacy pré‑migration, il peut encore être dérivé du mot de passe lors des flows de reset/recovery. | Conservé en `sessionStorage` par défaut (ou `localStorage` via « Se souvenir de cet appareil »). Effacé au logout. Envoyé dans le header `X-Client-Key` à chaque requête. Voir section « Stockage du clientKey » ci-dessous. |
 | `masterKey` | Variable d'environnement `ENCRYPTION_MASTER_KEY` | Serveur uniquement. GitHub Secrets en prod, `.env` en local. |
 | `salt` | Généré aléatoirement par utilisateur | Table `user_encryption_key` (accessible uniquement au `service_role`). |
 
@@ -101,7 +101,7 @@ Le mot de passe Supabase et le vault code sont **indépendants**.
 
 ## Recovery key
 
-La recovery key permet de récupérer l'accès aux données chiffrées quand le **vault code** est perdu (ou pour les comptes legacy sans vault code lors d’un reset du mot de passe).
+La recovery key permet de récupérer l'accès aux données chiffrées quand le **code PIN** est perdu (ou pour les comptes legacy sans vault code lors d'un reset du mot de passe).
 
 ### Architecture
 
@@ -140,9 +140,9 @@ Recovery (vault code oublié / reset password legacy) :
 | `POST /v1/encryption/setup-recovery` | Génère une recovery key, wrap la DEK, stocke `wrapped_dek` |
 | `POST /v1/encryption/recover` | Recovery key + nouveau clientKey → rekey complet |
 
-## Vérification du code coffre-fort (key check canary)
+## Vérification du code PIN (key check canary)
 
-Quand un utilisateur saisit son code coffre-fort, l'app vérifie que le `clientKey` dérivé est correct **avant** de donner accès au dashboard. Ce mécanisme empêche un utilisateur de se retrouver avec des écrans cassés (montants à 0) en cas de code incorrect.
+Quand un utilisateur saisit son code PIN, l'app vérifie que le `clientKey` dérivé est correct **avant** de donner accès au dashboard. Ce mécanisme empêche un utilisateur de se retrouver avec des écrans cassés (montants à 0) en cas de code incorrect.
 
 ### Principe
 
@@ -151,7 +151,7 @@ La colonne `key_check` de `user_encryption_key` stocke un ciphertext canary : `A
 ### Flux de validation
 
 ```
-1. Frontend dérive clientKey depuis le code coffre-fort (PBKDF2)
+1. Frontend dérive clientKey depuis le code PIN (PBKDF2)
 2. Frontend appelle POST /v1/encryption/validate-key { clientKey }
 3. Backend dérive DEK = HKDF(clientKey + masterKey, salt)
 4. Backend tente de déchiffrer key_check avec la DEK

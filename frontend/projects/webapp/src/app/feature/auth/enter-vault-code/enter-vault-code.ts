@@ -23,6 +23,7 @@ import {
   deriveClientKey,
 } from '@core/encryption';
 import { AuthSessionService } from '@core/auth/auth-session.service';
+import { VAULT_CODE_MIN_LENGTH } from '@core/auth';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
 import { ErrorAlert } from '@ui/error-alert';
@@ -56,7 +57,7 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
           <h1
             class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
           >
-            Saisis ton code coffre-fort
+            Saisis ton code PIN
           </h1>
           <p class="text-body-large text-on-surface-variant">
             Entre ton code pour accéder à tes données.
@@ -70,14 +71,15 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
           data-testid="enter-vault-code-form"
         >
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Code coffre-fort</mat-label>
+            <mat-label>Code PIN</mat-label>
             <input
               matInput
               [type]="isCodeHidden() ? 'password' : 'text'"
+              inputmode="numeric"
               formControlName="vaultCode"
               data-testid="vault-code-input"
               (input)="clearError()"
-              placeholder="Code coffre-fort"
+              placeholder="Code PIN"
             />
             <mat-icon matPrefix>lock</mat-icon>
             <button
@@ -97,9 +99,9 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
             ) {
               <mat-error>
                 @if (form.get('vaultCode')?.hasError('required')) {
-                  Ton code coffre-fort est nécessaire
+                  Ton code PIN est nécessaire
                 } @else if (form.get('vaultCode')?.hasError('minlength')) {
-                  8 caractères minimum
+                  4 caractères minimum
                 }
               </mat-error>
             }
@@ -171,7 +173,10 @@ export default class EnterVaultCode {
   protected readonly isCodeHidden = signal(true);
 
   protected readonly form = this.#formBuilder.nonNullable.group({
-    vaultCode: ['', [Validators.required, Validators.minLength(8)]],
+    vaultCode: [
+      '',
+      [Validators.required, Validators.minLength(VAULT_CODE_MIN_LENGTH)],
+    ],
     rememberDevice: [false],
   });
 
