@@ -170,7 +170,7 @@ La colonne `key_check` de `user_encryption_key` stocke un ciphertext canary : `A
 
 ### Rate limiting
 
-L'endpoint `validate-key` est limité à 10 tentatives par minute par utilisateur pour prévenir le brute-force.
+L'endpoint `validate-key` est limité à 5 tentatives par minute par utilisateur pour prévenir le brute-force.
 
 ### Endpoints
 

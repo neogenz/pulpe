@@ -65,15 +65,15 @@ const runAttempts = async (
 };
 
 describe('EncryptionController Rate Limiting', () => {
-  it('throttles validate-key after 10 attempts per minute', async () => {
+  it('throttles validate-key after 5 attempts per minute', async () => {
     const guard = await createGuard();
     const handler = EncryptionController.prototype.validateKey;
 
-    await runAttempts(guard, handler, 10);
+    await runAttempts(guard, handler, 5);
 
     try {
       await guard.canActivate(createContext(handler) as any);
-      expect.unreachable('Expected throttling exception after 10 attempts');
+      expect.unreachable('Expected throttling exception after 5 attempts');
     } catch (error) {
       expect(error).toBeInstanceOf(ThrottlerException);
     }
