@@ -20,6 +20,7 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '@common/guards/auth.guard';
 import { SkipClientKey } from '@common/decorators/skip-client-key.decorator';
+import { SkipBackfill } from '@common/decorators/skip-backfill.decorator';
 import {
   User,
   SupabaseClient,
@@ -110,6 +111,7 @@ export class EncryptionController {
    * NOTE: This is NOT for account password changes. Password and vault code
    * are independent - changing password does not affect encryption.
    */
+  @SkipBackfill()
   @Post('rekey')
   @Throttle({ default: { limit: 3, ttl: 3600000 } })
   @ApiOperation({

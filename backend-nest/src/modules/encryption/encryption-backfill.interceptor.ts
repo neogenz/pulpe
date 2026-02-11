@@ -9,6 +9,7 @@ import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { SKIP_CLIENT_KEY } from '@common/decorators/skip-client-key.decorator';
+import { SKIP_BACKFILL } from '@common/decorators/skip-backfill.decorator';
 import { EncryptionBackfillService } from './encryption-backfill.service';
 import { EncryptionService } from './encryption.service';
 
@@ -39,6 +40,12 @@ export class EncryptionBackfillInterceptor implements NestInterceptor {
       [context.getHandler(), context.getClass()],
     );
     if (skipClientKey) return next.handle();
+
+    const skipBackfill = this.#reflector.getAllAndOverride<boolean>(
+      SKIP_BACKFILL,
+      [context.getHandler(), context.getClass()],
+    );
+    if (skipBackfill) return next.handle();
 
     const request = context.switchToHttp().getRequest();
     const user = request.user;
