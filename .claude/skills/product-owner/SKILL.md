@@ -60,6 +60,18 @@ Read only the files relevant to the current request. Do not load everything syst
 | `R2 - Worth Sharing` (#3) | Second release: product worth sharing |
 | `Ice Box` (#4) | Parked ideas for later |
 
+### Project Board
+
+- **Project:** `@neogenz's Pulpe board` (project #1, owner `neogenz`)
+- **Project ID:** `PVT_kwHOAEglYc4A9mcK`
+- **Status field ID:** `PVTSSF_lAHOAEglYc4A9mcKzgxQU90`
+- **Status options:**
+  - Todo: `f75ad846`
+  - In Progress: `47fc9ee4`
+  - Done: `98236657`
+
+**Every issue** created or triaged MUST be added to the project board with the appropriate status.
+
 ### Releases & Versioning
 
 Pulpe uses **unified product versioning** (SemVer). Each package has its own version:
@@ -89,12 +101,20 @@ Use these terms consistently in issues and stories:
 ### 1. Create GitHub Issue
 
 ```bash
+# Step 1: Create the issue
 gh issue create --repo neogenz/pulpe \
   --title "Title" \
   --body "Body in markdown" \
   --label "enhancement" \
   --milestone "R1 - App Store Ready" \
   --assignee "neogenz"
+
+# Step 2: Add to project board and set status to Todo
+ISSUE_URL="https://github.com/neogenz/pulpe/issues/NUMBER"
+ITEM_ID=$(gh project item-add 1 --owner neogenz --url "$ISSUE_URL" --format json | jq -r '.id')
+gh project item-edit --project-id "PVT_kwHOAEglYc4A9mcK" --id "$ITEM_ID" \
+  --field-id "PVTSSF_lAHOAEglYc4A9mcKzgxQU90" \
+  --single-select-option-id "f75ad846"
 ```
 
 When creating issues:
@@ -104,6 +124,7 @@ When creating issues:
 - Always assign to `neogenz`
 - Always set a milestone (ask if unclear)
 - Always set at least one label
+- **Always add to the project board with status "Todo"** (step 2 above is mandatory)
 
 ### 2. Backlog Grooming
 
