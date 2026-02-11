@@ -33,6 +33,7 @@ describe('AuthCleanupService', () => {
 
     mockClientKey = {
       clear: vi.fn(),
+      clearAll: vi.fn(),
     };
 
     mockDemoMode = {
@@ -93,6 +94,19 @@ describe('AuthCleanupService', () => {
     expect(mockHasBudgetCache.clear).toHaveBeenCalled();
     expect(mockPostHog.reset).toHaveBeenCalled();
     expect(mockStorage.clearAllUserData).toHaveBeenCalled();
+  });
+
+  it('should call clear (not clearAll) to preserve localStorage client key', () => {
+    userSignal.set({
+      id: 'user-456',
+      aud: 'authenticated',
+      role: 'authenticated',
+    } as User);
+
+    service.performCleanup();
+
+    expect(mockClientKey.clear).toHaveBeenCalled();
+    expect(mockClientKey.clearAll).not.toHaveBeenCalled();
   });
 
   it('should prevent double cleanup when called rapidly', () => {

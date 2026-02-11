@@ -57,6 +57,11 @@ export class ClientKeyService {
   clear(): void {
     this.#clientKeyHex.set(null);
     this.#storage.remove(STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION, 'session');
+  }
+
+  clearAll(): void {
+    this.#clientKeyHex.set(null);
+    this.#storage.remove(STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION, 'session');
     this.#storage.remove(STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL, 'local');
   }
 
