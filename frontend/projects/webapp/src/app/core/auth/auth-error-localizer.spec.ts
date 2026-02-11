@@ -1,3 +1,5 @@
+import { AuthApiError, AuthWeakPasswordError } from '@supabase/supabase-js';
+
 import { AuthErrorLocalizer } from './auth-error-localizer';
 
 describe('AuthErrorLocalizer', () => {
@@ -73,5 +75,39 @@ describe('AuthErrorLocalizer', () => {
       'Connexion annulée',
     );
     expect(service.localizeError('Access denied')).toBe('Connexion annulée');
+  });
+
+  describe('localizeAuthError', () => {
+    it('should return pwned message for weak password with pwned reason', () => {
+      const error = new AuthWeakPasswordError('Password is too weak', 422, [
+        'pwned',
+      ]);
+
+      expect(service.localizeAuthError(error)).toBe(
+        'Ce mot de passe est trop courant — choisis-en un plus unique',
+      );
+    });
+
+    it('should return generic weak password message for non-pwned reasons', () => {
+      const error = new AuthWeakPasswordError('Password is too weak', 422, [
+        'characters',
+      ]);
+
+      expect(service.localizeAuthError(error)).toBe(
+        'Ce mot de passe est trop simple — ajoute des caractères',
+      );
+    });
+
+    it('should delegate to localizeError for non-weak-password errors', () => {
+      const error = new AuthApiError(
+        'Invalid login credentials',
+        401,
+        'invalid_credentials',
+      );
+
+      expect(service.localizeAuthError(error)).toBe(
+        'Email ou mot de passe incorrect — on réessaie ?',
+      );
+    });
   });
 });

@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
 
+import { type AuthError, isAuthWeakPasswordError } from '@supabase/supabase-js';
+
 export type AuthErrorTranslations = Record<string, string>;
 
 @Injectable({
@@ -56,6 +58,14 @@ export class AuthErrorLocalizer {
     'Provider not enabled': "Cette méthode de connexion n'est pas disponible",
     ERR_USER_ACCOUNT_BLOCKED: 'Ton compte est en cours de suppression.',
   };
+
+  localizeAuthError(error: AuthError): string {
+    if (isAuthWeakPasswordError(error) && error.reasons.includes('pwned')) {
+      return 'Ce mot de passe est trop courant — choisis-en un plus unique';
+    }
+
+    return this.localizeError(error.message);
+  }
 
   localizeError(originalErrorMessage: string): string {
     if (!originalErrorMessage) {

@@ -40,6 +40,7 @@ describe('AuthCredentialsService', () => {
 
     mockErrorLocalizer = {
       localizeError: vi.fn().mockReturnValue('Erreur localisée'),
+      localizeAuthError: vi.fn().mockReturnValue('Erreur localisée'),
     };
 
     mockLogger = {
@@ -109,9 +110,7 @@ describe('AuthCredentialsService', () => {
         success: false,
         error: 'Erreur localisée',
       });
-      expect(mockErrorLocalizer.localizeError).toHaveBeenCalledWith(
-        'Invalid credentials',
-      );
+      expect(mockErrorLocalizer.localizeAuthError).toHaveBeenCalledWith(error);
     });
 
     it('should return unexpected error when exception occurs', async () => {
@@ -232,9 +231,7 @@ describe('AuthCredentialsService', () => {
         success: false,
         error: 'Erreur localisée',
       });
-      expect(mockErrorLocalizer.localizeError).toHaveBeenCalledWith(
-        'Email already registered',
-      );
+      expect(mockErrorLocalizer.localizeAuthError).toHaveBeenCalledWith(error);
     });
 
     it('should return unexpected error when exception occurs', async () => {

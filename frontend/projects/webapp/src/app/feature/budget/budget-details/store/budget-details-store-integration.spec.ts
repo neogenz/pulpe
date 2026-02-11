@@ -89,7 +89,6 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     info: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
   };
   let mockApplicationConfiguration: {
     backendApiUrl: ReturnType<typeof vi.fn>;
@@ -137,7 +136,6 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       info: vi.fn(),
       warn: vi.fn(),
       error: vi.fn(),
-      warn: vi.fn(),
     };
 
     mockApplicationConfiguration = {

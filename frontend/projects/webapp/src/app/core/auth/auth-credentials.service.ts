@@ -42,7 +42,7 @@ export class AuthCredentialsService {
       if (error) {
         return {
           success: false,
-          error: this.#errorLocalizer.localizeError(error.message),
+          error: this.#errorLocalizer.localizeAuthError(error),
         };
       }
 
@@ -116,7 +116,7 @@ export class AuthCredentialsService {
       if (error) {
         return {
           success: false,
-          error: this.#errorLocalizer.localizeError(error.message),
+          error: this.#errorLocalizer.localizeAuthError(error),
         };
       }
 
