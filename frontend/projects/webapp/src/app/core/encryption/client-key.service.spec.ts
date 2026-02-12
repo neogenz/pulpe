@@ -264,6 +264,39 @@ describe('ClientKeyService', () => {
     });
   });
 
+  describe('clearPreservingDeviceTrust()', () => {
+    it('should reset signal and remove from sessionStorage only, preserving localStorage', async () => {
+      const derivedKey = 'derived-key-hex';
+      mockedDeriveClientKey.mockResolvedValue(derivedKey);
+
+      await service.deriveAndStore('password', 'salt', 100000, true);
+
+      service.clearPreservingDeviceTrust();
+
+      expect(service.clientKeyHex()).toBeNull();
+      expect(mockStorageService.remove).toHaveBeenCalledWith(
+        STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION,
+        'session',
+      );
+      expect(mockStorageService.remove).not.toHaveBeenCalledWith(
+        STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
+        'local',
+      );
+    });
+
+    it('should reset needsServerValidation flag', () => {
+      mockStorageService.getString.mockReturnValueOnce(null);
+      mockStorageService.getString.mockReturnValueOnce('local-key');
+      mockedIsValidClientKeyHex.mockReturnValue(true);
+
+      service.initialize();
+      expect(service.needsServerValidation()).toBe(true);
+
+      service.clearPreservingDeviceTrust();
+      expect(service.needsServerValidation()).toBe(false);
+    });
+  });
+
   describe('initialize() - conflicting storages', () => {
     it('should prefer sessionStorage over localStorage when both have valid keys', () => {
       const sessionKey = 'session-key-hex-value';

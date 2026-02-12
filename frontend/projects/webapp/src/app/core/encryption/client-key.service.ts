@@ -63,10 +63,14 @@ export class ClientKeyService {
     this.#persist(keyHex, useLocalStorage);
   }
 
-  clear(): void {
+  clearPreservingDeviceTrust(): void {
     this.#clientKeyHex.set(null);
     this.#needsServerValidation.set(false);
     this.#storage.remove(STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION, 'session');
+  }
+
+  clear(): void {
+    this.clearPreservingDeviceTrust();
     this.#storage.remove(STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL, 'local');
   }
 

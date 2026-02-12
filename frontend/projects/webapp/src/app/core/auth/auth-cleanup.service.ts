@@ -51,7 +51,10 @@ export class AuthCleanupService {
     this.#cleanupInProgress = true;
 
     try {
-      this.#safeCleanup(() => this.#clientKeyService.clear(), 'client key');
+      this.#safeCleanup(
+        () => this.#clientKeyService.clearPreservingDeviceTrust(),
+        'client key',
+      );
       this.#safeCleanup(
         () => this.#demoModeService.deactivateDemoMode(),
         'demo mode',

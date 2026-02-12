@@ -230,6 +230,22 @@ describe('StorageService', () => {
       expect(localStorage.getItem('pulpe-tour-current-month')).toBe('true');
     });
 
+    it('should preserve vault client key local (app-scoped device trust)', () => {
+      service.set('pulpe-budget', 'budget-data');
+      service.setString(
+        'pulpe-vault-client-key-local',
+        'a'.repeat(64),
+        'local',
+      );
+
+      service.clearAllUserData();
+
+      expect(localStorage.getItem('pulpe-budget')).toBeNull();
+      expect(
+        localStorage.getItem('pulpe-vault-client-key-local'),
+      ).not.toBeNull();
+    });
+
     it('should handle empty localStorage gracefully', () => {
       localStorage.clear();
       expect(() => service.clearAllUserData()).not.toThrow();

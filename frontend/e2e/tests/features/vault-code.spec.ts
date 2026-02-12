@@ -294,7 +294,7 @@ test.describe('Vault Code', () => {
       );
     });
 
-    test('remember device checkbox stores key in localStorage and clears on logout', async ({ page, vaultCodePage }) => {
+    test('remember device checkbox stores key in localStorage and persists after logout', async ({ page, vaultCodePage }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -321,7 +321,7 @@ test.describe('Vault Code', () => {
       const storageAfterLogout = await page.evaluate(() =>
         localStorage.getItem('pulpe-vault-client-key-local'),
       );
-      expect(storageAfterLogout).toBeNull();
+      expect(storageAfterLogout).not.toBeNull();
     });
   });
 

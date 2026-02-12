@@ -33,6 +33,7 @@ describe('AuthCleanupService', () => {
 
     mockClientKey = {
       clear: vi.fn(),
+      clearPreservingDeviceTrust: vi.fn(),
     };
 
     mockDemoMode = {
@@ -88,7 +89,7 @@ describe('AuthCleanupService', () => {
 
     service.performCleanup();
 
-    expect(mockClientKey.clear).toHaveBeenCalled();
+    expect(mockClientKey.clearPreservingDeviceTrust).toHaveBeenCalled();
     expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
     expect(mockHasBudgetCache.clear).toHaveBeenCalled();
     expect(mockPostHog.reset).toHaveBeenCalled();
@@ -148,12 +149,12 @@ describe('AuthCleanupService', () => {
       } as User);
     });
 
-    it('should continue cleanup when clientKeyService.clear() throws', () => {
-      (mockClientKey.clear as ReturnType<typeof vi.fn>).mockImplementation(
-        () => {
-          throw new Error('Clear failed');
-        },
-      );
+    it('should continue cleanup when clientKeyService.clearPreservingDeviceTrust() throws', () => {
+      (
+        mockClientKey.clearPreservingDeviceTrust as ReturnType<typeof vi.fn>
+      ).mockImplementation(() => {
+        throw new Error('Clear failed');
+      });
 
       service.performCleanup();
 
@@ -172,7 +173,7 @@ describe('AuthCleanupService', () => {
 
       service.performCleanup();
 
-      expect(mockClientKey.clear).toHaveBeenCalled();
+      expect(mockClientKey.clearPreservingDeviceTrust).toHaveBeenCalled();
       expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
       expect(mockHasBudgetCache.clear).toHaveBeenCalled();
       expect(mockPostHog.reset).toHaveBeenCalled();
