@@ -86,7 +86,7 @@ test.describe('Authentication', () => {
     await expect(authenticatedPage).toHaveURL(/\/(login|welcome)/);
   });
 
-  test('should clear vault client keys on logout', async ({ page }) => {
+  test('should clear session vault key on logout but preserve device trust key', async ({ page }) => {
     await setupAuthBypass(page, {
       includeApiMocks: true,
       setLocalStorage: true,
@@ -128,7 +128,9 @@ test.describe('Authentication', () => {
       session: sessionStorage.getItem('pulpe-vault-client-key-session'),
     }));
 
-    expect(storage.local).toBeNull();
+    // Device trust key (app-scoped) is preserved across logout
+    expect(storage.local).not.toBeNull();
+    // Session key (user-scoped) is cleared on logout
     expect(storage.session).toBeNull();
   });
 });
