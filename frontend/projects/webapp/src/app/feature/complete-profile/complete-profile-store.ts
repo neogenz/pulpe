@@ -14,6 +14,7 @@ interface CompleteProfileState {
   housingCosts: number | null;
   healthInsurance: number | null;
   phonePlan: number | null;
+  internetPlan: number | null;
   transportCosts: number | null;
   leasingCredit: number | null;
   payDayOfMonth: number | null;
@@ -29,6 +30,7 @@ function createInitialState(): CompleteProfileState {
     housingCosts: null,
     healthInsurance: null,
     phonePlan: null,
+    internetPlan: null,
     transportCosts: null,
     leasingCredit: null,
     payDayOfMonth: null,
@@ -55,6 +57,7 @@ export class CompleteProfileStore {
   readonly housingCosts = computed(() => this.#state().housingCosts);
   readonly healthInsurance = computed(() => this.#state().healthInsurance);
   readonly phonePlan = computed(() => this.#state().phonePlan);
+  readonly internetPlan = computed(() => this.#state().internetPlan);
   readonly transportCosts = computed(() => this.#state().transportCosts);
   readonly leasingCredit = computed(() => this.#state().leasingCredit);
   readonly payDayOfMonth = computed(() => this.#state().payDayOfMonth);
@@ -91,6 +94,10 @@ export class CompleteProfileStore {
 
   updatePhonePlan(value: number | null): void {
     this.#state.update((s) => ({ ...s, phonePlan: value }));
+  }
+
+  updateInternetPlan(value: number | null): void {
+    this.#state.update((s) => ({ ...s, internetPlan: value }));
   }
 
   updateTransportCosts(value: number | null): void {
@@ -170,6 +177,7 @@ export class CompleteProfileStore {
       housingCosts: state.housingCosts ?? undefined,
       healthInsurance: state.healthInsurance ?? undefined,
       phonePlan: state.phonePlan ?? undefined,
+      internetPlan: state.internetPlan ?? undefined,
       transportCosts: state.transportCosts ?? undefined,
       leasingCredit: state.leasingCredit ?? undefined,
     };
@@ -239,6 +247,7 @@ export class CompleteProfileStore {
       state.housingCosts,
       state.healthInsurance,
       state.phonePlan,
+      state.internetPlan,
       state.transportCosts,
       state.leasingCredit,
     ];

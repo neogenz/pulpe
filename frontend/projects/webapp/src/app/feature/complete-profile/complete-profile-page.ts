@@ -244,7 +244,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         [autoFocus]="false"
                       />
                       <pulpe-currency-input
-                        label="Assurances"
+                        label="Assurance maladie"
                         [value]="store.healthInsurance()"
                         (valueChange)="store.updateHealthInsurance($event)"
                         icon="health_and_safety"
@@ -253,12 +253,21 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         [autoFocus]="false"
                       />
                       <pulpe-currency-input
-                        label="Abonnements"
+                        label="Abonnement téléphonique"
                         [value]="store.phonePlan()"
                         (valueChange)="store.updatePhonePlan($event)"
-                        icon="star"
+                        icon="smartphone"
                         placeholder="0"
                         testId="phone-plan-input"
+                        [autoFocus]="false"
+                      />
+                      <pulpe-currency-input
+                        label="Abonnement internet"
+                        [value]="store.internetPlan()"
+                        (valueChange)="store.updateInternetPlan($event)"
+                        icon="wifi"
+                        placeholder="0"
+                        testId="internet-plan-input"
                         [autoFocus]="false"
                       />
                       <pulpe-currency-input
@@ -271,7 +280,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         [autoFocus]="false"
                       />
                       <pulpe-currency-input
-                        label="Autres charges"
+                        label="Leasing"
                         [value]="store.leasingCredit()"
                         (valueChange)="store.updateLeasingCredit($event)"
                         icon="more_horiz"
@@ -279,6 +288,11 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         testId="leasing-credit-input"
                         [autoFocus]="false"
                       />
+                      <p
+                        class="text-body-small text-on-surface-variant text-center pt-2"
+                      >
+                        Tu pourras ajouter d'autres dépenses depuis ton modèle
+                      </p>
                     </div>
                   }
                 </div>
@@ -378,6 +392,7 @@ export default class CompleteProfilePage {
       this.store.housingCosts() !== null ||
       this.store.healthInsurance() !== null ||
       this.store.phonePlan() !== null ||
+      this.store.internetPlan() !== null ||
       this.store.transportCosts() !== null ||
       this.store.leasingCredit() !== null ||
       this.store.payDayOfMonth() !== null;

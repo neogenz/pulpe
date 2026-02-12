@@ -540,6 +540,12 @@ export class BudgetTemplateService {
         description: 'Frais de téléphone',
       },
       {
+        field: 'internetPlan',
+        name: 'Internet',
+        kind: 'expense',
+        description: 'Abonnement internet',
+      },
+      {
         field: 'transportCosts',
         name: 'Transport',
         kind: 'expense',

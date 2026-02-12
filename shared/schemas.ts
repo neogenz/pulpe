@@ -112,6 +112,7 @@ export const budgetTemplateCreateFromOnboardingSchema = z.object({
   healthInsurance: z.number().min(0).default(0).optional(),
   leasingCredit: z.number().min(0).default(0).optional(),
   phonePlan: z.number().min(0).default(0).optional(),
+  internetPlan: z.number().min(0).default(0).optional(),
   transportCosts: z.number().min(0).default(0).optional(),
   customTransactions: z.array(onboardingTransactionSchema).default([]),
 });
