@@ -71,12 +71,15 @@ export class EncryptionRekeyService {
       newDek,
     );
 
+    const keyCheck = this.#encryptionService.generateKeyCheck(newDek);
+
     const { error } = await supabase.rpc('rekey_user_encrypted_data', {
       p_budget_lines: payloads.budgetLines,
       p_transactions: payloads.transactions,
       p_template_lines: payloads.templateLines,
       p_savings_goals: payloads.savingsGoals,
       p_monthly_budgets: payloads.monthlyBudgets,
+      p_key_check: keyCheck,
     });
     if (error) throw error;
 

@@ -17,6 +17,7 @@ function createMockEncryptionService() {
     encryptAmount: mock(
       (amount: number, _dek: Buffer) => `re-encrypted-${amount}`,
     ),
+    generateKeyCheck: mock(() => 'mock-key-check'),
   };
 }
 
@@ -158,7 +159,7 @@ describe('EncryptionRekeyService', () => {
 
     const params = mockSupabase.getRpcCalls()[0].params as Record<
       string,
-      unknown[]
+      unknown
     >;
 
     expect(params.p_budget_lines).toEqual([
@@ -177,6 +178,7 @@ describe('EncryptionRekeyService', () => {
     expect(params.p_monthly_budgets).toEqual([
       { id: 'mb-1', ending_balance_encrypted: 're-encrypted-500' },
     ]);
+    expect(params.p_key_check).toBe('mock-key-check');
   });
 
   it('should call decryptAmount with oldDek', async () => {
@@ -203,6 +205,24 @@ describe('EncryptionRekeyService', () => {
     for (const call of mockEncryption.encryptAmount.mock.calls) {
       expect(call[1]).toEqual(NEW_DEK);
     }
+  });
+
+  it('should include key_check in atomic RPC call', async () => {
+    await service.reEncryptAllUserData(
+      TEST_USER_ID,
+      OLD_DEK,
+      NEW_DEK,
+      mockSupabase as any,
+    );
+
+    expect(mockEncryption.generateKeyCheck).toHaveBeenCalledTimes(1);
+    expect(mockEncryption.generateKeyCheck).toHaveBeenCalledWith(NEW_DEK);
+
+    const params = mockSupabase.getRpcCalls()[0].params as Record<
+      string,
+      unknown
+    >;
+    expect(params.p_key_check).toBe('mock-key-check');
   });
 
   it('should skip tables with no encrypted rows and send empty arrays', async () => {

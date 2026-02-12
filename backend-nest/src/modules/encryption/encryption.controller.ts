@@ -140,14 +140,6 @@ export class EncryptionController {
       supabase,
     );
 
-    // Regenerate key_check with the new DEK
-    const newDek = await this.encryptionService.getUserDEK(
-      user.id,
-      newKeyBuffer,
-    );
-    const keyCheck = this.encryptionService.generateKeyCheck(newDek);
-    await this.encryptionService.storeKeyCheck(user.id, keyCheck);
-
     this.#logger.log(
       { userId: user.id, operation: 'rekey.complete' },
       'User data re-encrypted with new key',
@@ -230,14 +222,6 @@ export class EncryptionController {
     } catch (error) {
       this.#handleRecoveryError(user.id, error);
     }
-
-    // Regenerate key_check with the new DEK
-    const newDek = await this.encryptionService.getUserDEK(
-      user.id,
-      newKeyBuffer,
-    );
-    const recoveryKeyCheck = this.encryptionService.generateKeyCheck(newDek);
-    await this.encryptionService.storeKeyCheck(user.id, recoveryKeyCheck);
 
     this.#logger.log(
       { userId: user.id, operation: 'recovery.complete' },

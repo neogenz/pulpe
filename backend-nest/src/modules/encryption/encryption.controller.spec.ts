@@ -309,18 +309,16 @@ describe('EncryptionController', () => {
       }
     });
 
-    it('should regenerate key_check after rekey', async () => {
+    it('should delegate key_check to rekey service (atomic RPC)', async () => {
       const user = createMockUser();
       const mockSupabase = {};
       const body = { newClientKey: 'ab'.repeat(32) };
 
-      const mockDek = randomBytes(32);
-      const mockKeyCheck = 'rekey-key-check';
-      const getUserDEK = mock(() => Promise.resolve(mockDek));
-      const generateKeyCheck = mock(() => mockKeyCheck);
+      const getUserDEK = mock(() => Promise.resolve(randomBytes(32)));
+      const generateKeyCheck = mock(() => 'should-not-be-called');
       const storeKeyCheck = mock(() => Promise.resolve());
 
-      const { controller } = setupController({
+      const { controller, mockRekeyService } = setupController({
         getUserDEK,
         generateKeyCheck,
         storeKeyCheck,
@@ -328,21 +326,10 @@ describe('EncryptionController', () => {
 
       await controller.rekey(user, mockSupabase as any, body);
 
-      const getUserDEKCalls = getUserDEK.mock.calls as unknown[][];
-      expect(getUserDEKCalls.length).toBe(1);
-      expect(getUserDEKCalls[0][0]).toBe(user.id);
-      expect(getUserDEKCalls[0][1]).toEqual(
-        Buffer.from(body.newClientKey, 'hex'),
-      );
-
-      const generateKeyCheckCalls = generateKeyCheck.mock.calls as unknown[][];
-      expect(generateKeyCheckCalls.length).toBe(1);
-      expect(generateKeyCheckCalls[0][0]).toEqual(mockDek);
-
-      const storeKeyCheckCalls = storeKeyCheck.mock.calls as unknown[][];
-      expect(storeKeyCheckCalls.length).toBe(1);
-      expect(storeKeyCheckCalls[0][0]).toBe(user.id);
-      expect(storeKeyCheckCalls[0][1]).toBe(mockKeyCheck);
+      expect(mockRekeyService.rekeyUserData.mock.calls.length).toBe(1);
+      expect(getUserDEK).not.toHaveBeenCalled();
+      expect(generateKeyCheck).not.toHaveBeenCalled();
+      expect(storeKeyCheck).not.toHaveBeenCalled();
     });
 
     it('should log audit event with rekey.complete operation', async () => {
@@ -490,7 +477,7 @@ describe('EncryptionController', () => {
       expect(mockRekeyService.reEncryptAllUserData.mock.calls.length).toBe(1);
     });
 
-    it('should regenerate key_check after recovery', async () => {
+    it('should delegate key_check to rekey service (atomic RPC)', async () => {
       const user = createMockUser();
       const mockSupabase = {};
       const body = {
@@ -498,13 +485,11 @@ describe('EncryptionController', () => {
         newClientKey: 'ab'.repeat(32),
       };
 
-      const mockDek = randomBytes(32);
-      const mockKeyCheck = 'recovery-key-check';
-      const getUserDEK = mock(() => Promise.resolve(mockDek));
-      const generateKeyCheck = mock(() => mockKeyCheck);
+      const getUserDEK = mock(() => Promise.resolve(randomBytes(32)));
+      const generateKeyCheck = mock(() => 'should-not-be-called');
       const storeKeyCheck = mock(() => Promise.resolve());
 
-      const { controller } = setupController({
+      const { controller, mockRekeyService } = setupController({
         getUserDEK,
         generateKeyCheck,
         storeKeyCheck,
@@ -512,19 +497,10 @@ describe('EncryptionController', () => {
 
       await controller.recover(user, mockSupabase as any, body);
 
-      const getUserDEKCalls = getUserDEK.mock.calls as unknown[][];
-      expect(getUserDEKCalls.length).toBe(1);
-      expect(getUserDEKCalls[0][0]).toBe(user.id);
-      expect(getUserDEKCalls[0][1]).toEqual(
-        Buffer.from(body.newClientKey, 'hex'),
-      );
-
-      const generateKeyCheckCalls = generateKeyCheck.mock.calls as unknown[][];
-      const storeKeyCheckCalls = storeKeyCheck.mock.calls as unknown[][];
-      expect(generateKeyCheckCalls.length).toBe(1);
-      expect(storeKeyCheckCalls.length).toBe(1);
-      expect(storeKeyCheckCalls[0][0]).toBe(user.id);
-      expect(storeKeyCheckCalls[0][1]).toBe(mockKeyCheck);
+      expect(mockRekeyService.reEncryptAllUserData.mock.calls.length).toBe(0);
+      expect(getUserDEK).not.toHaveBeenCalled();
+      expect(generateKeyCheck).not.toHaveBeenCalled();
+      expect(storeKeyCheck).not.toHaveBeenCalled();
     });
 
     it('should log audit event with recovery.complete operation', async () => {

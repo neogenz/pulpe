@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { delimiter, resolve } from 'node:path';
 import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from '@modules/supabase/supabase.service';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database.types';
 import { EncryptionKeyRepository } from './encryption-key.repository';
 import { EncryptionService } from './encryption.service';
@@ -275,6 +275,7 @@ async function getUserEncryptionKeyState(
 
 describe('Encryption integration (local Supabase)', () => {
   let hasSupabase = false;
+  let supabaseEnv: SupabaseEnv;
   let adminClient: SupabaseClient<Database>;
   let encryptionService: EncryptionService;
   let backfillService: EncryptionBackfillService;
@@ -287,6 +288,7 @@ describe('Encryption integration (local Supabase)', () => {
     });
     if (!env) return;
 
+    supabaseEnv = env;
     const configService = new TestConfigService({
       SUPABASE_URL: env.apiUrl,
       SUPABASE_ANON_KEY: env.anonKey,
@@ -1265,6 +1267,116 @@ describe('Encryption integration (local Supabase)', () => {
       expect(
         encryptionService.decryptAmount(rowAfter!.amount_encrypted!, oldDek),
       ).toBe(89.5);
+    } finally {
+      await cleanupUserData(adminClient, { userId, budgetId, templateId });
+    }
+  });
+
+  it('atomically updates key_check during rekey via authenticated client', async () => {
+    if (!hasSupabase) return;
+
+    const email = `encryption-auth-it-${Date.now()}@test.local`;
+    const password = 'test-password-123';
+    const { data: created, error: createErr } =
+      await adminClient.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+      });
+    if (createErr || !created?.user) {
+      throw new Error(
+        `Failed to create test user: ${createErr?.message ?? 'unknown'}`,
+      );
+    }
+    const userId = created.user.id;
+
+    const templateId = randomUUID();
+    const budgetId = randomUUID();
+    const budgetLineId = randomUUID();
+
+    try {
+      await adminClient.from('template').insert({
+        id: templateId,
+        user_id: userId,
+        name: 'Auth Key Check Template',
+        is_default: false,
+      });
+
+      await adminClient.from('monthly_budget').insert({
+        id: budgetId,
+        user_id: userId,
+        template_id: templateId,
+        month: 8,
+        year: 2026,
+        description: 'Auth Key Check Budget',
+      });
+
+      const oldClientKey = Buffer.from(OLD_CLIENT_KEY_HEX, 'hex');
+      const newClientKey = Buffer.from(NEW_CLIENT_KEY_HEX, 'hex');
+      const oldDek = await encryptionService.ensureUserDEK(
+        userId,
+        oldClientKey,
+      );
+
+      // Verify key_check is NULL before rekey
+      const stateBefore = await getUserEncryptionKeyState(adminClient, userId);
+      expect(stateBefore.key_check).toBeNull();
+
+      const encryptedBudgetLine = encryptionService.encryptAmount(42, oldDek);
+      await adminClient.from('budget_line').insert({
+        id: budgetLineId,
+        budget_id: budgetId,
+        name: 'Auth key check line',
+        amount: 0,
+        amount_encrypted: encryptedBudgetLine,
+        kind: 'expense',
+        recurrence: 'fixed',
+        is_manually_adjusted: false,
+      });
+
+      // Sign in to get an authenticated client
+      const authClient = createClient<Database>(
+        supabaseEnv.apiUrl,
+        supabaseEnv.anonKey,
+      );
+      const { error: signInErr } = await authClient.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (signInErr) {
+        throw new Error(`Failed to sign in: ${signInErr.message}`);
+      }
+
+      // Rekey via authenticated client (same path as production)
+      await rekeyService.rekeyUserData(
+        userId,
+        oldClientKey,
+        newClientKey,
+        authClient as unknown as SupabaseClient<Database>,
+      );
+
+      // Verify key_check was atomically set by the RPC
+      const keyState = await getUserEncryptionKeyState(adminClient, userId);
+      expect(keyState.key_check).toBeTruthy();
+
+      // Verify key_check validates against new DEK (not old DEK)
+      const newDek = await encryptionService.getUserDEK(userId, newClientKey);
+      expect(
+        encryptionService.validateKeyCheck(keyState.key_check!, newDek),
+      ).toBe(true);
+      expect(
+        encryptionService.validateKeyCheck(keyState.key_check!, oldDek),
+      ).toBe(false);
+
+      // Verify data was re-encrypted with new DEK
+      const { data: budgetLine } = await adminClient
+        .from('budget_line')
+        .select('amount_encrypted')
+        .eq('id', budgetLineId)
+        .single();
+      expect(
+        encryptionService.decryptAmount(budgetLine!.amount_encrypted!, newDek),
+      ).toBe(42);
     } finally {
       await cleanupUserData(adminClient, { userId, budgetId, templateId });
     }
