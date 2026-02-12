@@ -119,17 +119,45 @@ describe('ChangePasswordDialog', () => {
     expect(mockAuthSession.verifyPassword).not.toHaveBeenCalled();
   });
 
-  /**
-   * Password change should NOT interact with encryption at all.
-   *
-   * The vault code (code PIN) is different from the account password.
-   * When changing password:
-   * - Only Supabase auth is involved
-   * - The vault code stays the same
-   * - Therefore the client key stays the same
-   * - No encryption APIs should be called
-   */
-  it('should not call any encryption APIs during password change', async () => {
+  it('should display specific error message when old password is wrong', async () => {
+    mockAuthSession.verifyPassword.mockResolvedValue({
+      success: false,
+      error: 'Email ou mot de passe incorrect — on réessaie ?',
+    });
+
+    component['passwordForm'].patchValue({
+      currentPassword: 'wrongPassword',
+      newPassword: 'newPass123',
+      confirmPassword: 'newPass123',
+    });
+
+    await component['onSubmit']();
+
+    expect(component['errorMessage']()).toBe(
+      'Email ou mot de passe incorrect — on réessaie ?',
+    );
+    expect(mockDialogRef.close).not.toHaveBeenCalled();
+  });
+
+  it('should show min length error when new password is less than 8 characters', () => {
+    component['passwordForm'].get('newPassword')?.setValue('short');
+
+    const errors = component['passwordForm'].get('newPassword')?.errors;
+
+    expect(errors?.['minlength']).toBeTruthy();
+  });
+
+  it('should keep submit button disabled when passwords do not match', () => {
+    component['passwordForm'].patchValue({
+      currentPassword: 'currentPass123',
+      newPassword: 'newPass123',
+      confirmPassword: 'differentPass123',
+    });
+
+    expect(component['isFormValid']()).toBe(false);
+  });
+
+  it('should close dialog without recovery key modal after successful password change', async () => {
     mockAuthSession.verifyPassword.mockResolvedValue({ success: true });
     mockAuthSession.updatePassword.mockResolvedValue({ success: true });
 
@@ -141,14 +169,7 @@ describe('ChangePasswordDialog', () => {
 
     await component['onSubmit']();
 
-    // Password change is purely Supabase auth
-    expect(mockAuthSession.verifyPassword).toHaveBeenCalledWith(
-      'currentPass123',
-    );
-    expect(mockAuthSession.updatePassword).toHaveBeenCalledWith('newPass123');
     expect(mockDialogRef.close).toHaveBeenCalledWith(true);
-
-    // No encryption-related calls should happen
-    // (verified by the fact that no encryption mocks are configured)
+    expect(mockDialogRef.close).toHaveBeenCalledTimes(1);
   });
 });

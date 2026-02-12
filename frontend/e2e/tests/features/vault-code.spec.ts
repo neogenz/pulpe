@@ -249,6 +249,79 @@ test.describe('Vault Code', () => {
 
       await expect(page).toHaveURL(/\/(login|welcome)/);
     });
+
+    test('rate limiting (429) shows error after multiple failed attempts', async ({ page, vaultCodePage }) => {
+      let attemptCount = 0;
+
+      await setupAuthBypass(page, {
+        includeApiMocks: true,
+        setLocalStorage: true,
+        vaultCodeConfigured: true,
+      });
+
+      await page.route('**/api/v1/encryption/validate-key', (route: Route) => {
+        attemptCount++;
+        if (attemptCount >= 6) {
+          return route.fulfill({
+            status: 429,
+            contentType: 'application/json',
+            body: JSON.stringify({ message: 'Too many requests' }),
+          });
+        }
+        return route.fulfill({
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({ message: 'Key check failed' }),
+        });
+      });
+
+      await vaultCodePage.gotoEnter();
+
+      for (let i = 0; i < 6; i++) {
+        await vaultCodePage.fillVaultCode('999999');
+        await vaultCodePage.submitEnter();
+
+        if (i < 5) {
+          await expect(page.locator('[role="alert"]')).toContainText(
+            'Ce code ne semble pas correct',
+          );
+          await page.getByTestId('vault-code-input').clear();
+        }
+      }
+
+      await expect(page.locator('[role="alert"]')).toContainText(
+        'Quelque chose n\'a pas fonctionné — réessaie plus tard',
+      );
+    });
+
+    test('remember device checkbox stores key in localStorage and clears on logout', async ({ page, vaultCodePage }) => {
+      await setupAuthBypass(page, {
+        includeApiMocks: true,
+        setLocalStorage: true,
+        vaultCodeConfigured: true,
+      });
+
+      await vaultCodePage.gotoEnter();
+      await vaultCodePage.toggleRememberDevice();
+      await vaultCodePage.fillVaultCode('123456');
+      await vaultCodePage.submitEnter();
+
+      await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
+
+      const storageBeforeLogout = await page.evaluate(() =>
+        localStorage.getItem('pulpe-vault-client-key-local'),
+      );
+      expect(storageBeforeLogout).not.toBeNull();
+
+      await page.getByTestId('logout-button').click();
+
+      await expect(page).toHaveURL(/\/(login|welcome)/);
+
+      const storageAfterLogout = await page.evaluate(() =>
+        localStorage.getItem('pulpe-vault-client-key-local'),
+      );
+      expect(storageAfterLogout).toBeNull();
+    });
   });
 
   // --- Scenario C: Recover vault code ---

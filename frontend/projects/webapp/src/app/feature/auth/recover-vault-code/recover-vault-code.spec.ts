@@ -10,6 +10,7 @@ import { of, throwError } from 'rxjs';
 import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import * as cryptoUtils from '@core/encryption/crypto.utils';
 import { Logger } from '@core/logging/logger';
+import { ROUTES } from '@core/routing/routes-constants';
 
 import RecoverVaultCode from './recover-vault-code';
 
@@ -331,6 +332,46 @@ describe('RecoverVaultCode', () => {
       expect(mockClientKeyService.setDirectKey).toHaveBeenCalled();
       expect(mockLogger.warn).toHaveBeenCalled();
       expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']);
+    });
+  });
+
+  describe('Recovery key auto-formatting', () => {
+    it('should auto-format recovery key with dashes on input', () => {
+      const control = component['form'].get('recoveryKey');
+      control?.setValue('ABCDEFGHIJKLMNOPQRST');
+      component['onRecoveryKeyInput']();
+      expect(control?.value).toContain('-');
+    });
+
+    it('should preserve formatted value if already formatted', () => {
+      const control = component['form'].get('recoveryKey');
+      const formatted = 'ABCD-EFGH-IJKL-MNOP';
+      control?.setValue(formatted);
+      component['onRecoveryKeyInput']();
+      expect(control?.value).toBe(formatted);
+    });
+  });
+
+  describe('Recovery key case insensitivity', () => {
+    it('should accept lowercase recovery key and convert to uppercase', () => {
+      const control = component['form'].get('recoveryKey');
+      control?.setValue('abcd-efgh-ijkl-mnop');
+      component['onRecoveryKeyInput']();
+      expect(control?.value).toBe('ABCD-EFGH-IJKL-MNOP');
+    });
+
+    it('should accept mixed case recovery key', () => {
+      const control = component['form'].get('recoveryKey');
+      control?.setValue('AbCd-EfGh-IjKl-MnOp');
+      component['onRecoveryKeyInput']();
+      expect(control?.value).toMatch(/^[A-Z-]+$/);
+    });
+  });
+
+  describe('Back button navigation', () => {
+    it('should have ROUTES.ENTER_VAULT_CODE constant available for back link', () => {
+      expect(ROUTES.ENTER_VAULT_CODE).toBe('enter-vault-code');
+      expect(component['ROUTES']).toBe(ROUTES);
     });
   });
 });

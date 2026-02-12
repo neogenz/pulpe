@@ -9,6 +9,7 @@ import { of, throwError } from 'rxjs';
 import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import * as cryptoUtils from '@core/encryption/crypto.utils';
 import { Logger } from '@core/logging/logger';
+import { AuthSessionService } from '@core/auth/auth-session.service';
 
 import EnterVaultCode from './enter-vault-code';
 
@@ -273,6 +274,87 @@ describe('EnterVaultCode', () => {
       expect(component['errorMessage']()).toContain(
         "Quelque chose n'a pas fonctionné",
       );
+    });
+
+    it('should show generic error when validateKey$ returns HTTP 429', async () => {
+      fillValidForm();
+      mockEncryptionApi.validateKey$.mockReturnValue(
+        throwError(
+          () =>
+            new HttpErrorResponse({
+              status: 429,
+              statusText: 'Too Many Requests',
+            }),
+        ),
+      );
+
+      await component['onSubmit']();
+
+      expect(component['errorMessage']()).toContain(
+        "Quelque chose n'a pas fonctionné",
+      );
+    });
+  });
+
+  describe('Logout Button', () => {
+    let mockAuthSession: {
+      signOut: ReturnType<typeof vi.fn>;
+    };
+
+    beforeEach(async () => {
+      mockAuthSession = {
+        signOut: vi.fn().mockResolvedValue(undefined),
+      };
+
+      await TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [EnterVaultCode],
+        providers: [
+          provideZonelessChangeDetection(),
+          provideAnimationsAsync(),
+          provideRouter([]),
+          { provide: ClientKeyService, useValue: mockClientKeyService },
+          { provide: EncryptionApi, useValue: mockEncryptionApi },
+          { provide: AuthSessionService, useValue: mockAuthSession },
+          { provide: Logger, useValue: mockLogger },
+        ],
+      }).compileComponents();
+
+      component = TestBed.createComponent(EnterVaultCode).componentInstance;
+    });
+
+    it('should call authSession.signOut when logout is initiated', async () => {
+      vi.spyOn(window, 'location', 'get').mockReturnValue({
+        ...window.location,
+        href: '/',
+      });
+
+      await component['onLogout']();
+      expect(mockAuthSession.signOut).toHaveBeenCalled();
+    });
+  });
+
+  describe('Navigation Links', () => {
+    it('should have "Code perdu?" link with correct routerLink', () => {
+      const fixture = TestBed.createComponent(EnterVaultCode);
+      fixture.detectChanges();
+      const link = fixture.nativeElement.querySelector(
+        '[data-testid="lost-code-link"]',
+      );
+      expect(link).toBeTruthy();
+      expect(link.textContent).toContain('Code perdu');
+    });
+  });
+
+  describe('PIN Visibility Toggle', () => {
+    it('should toggle PIN visibility signal', () => {
+      expect(component['isCodeHidden']()).toBe(true);
+
+      component['isCodeHidden'].set(false);
+      expect(component['isCodeHidden']()).toBe(false);
+
+      component['isCodeHidden'].set(true);
+      expect(component['isCodeHidden']()).toBe(true);
     });
   });
 });
