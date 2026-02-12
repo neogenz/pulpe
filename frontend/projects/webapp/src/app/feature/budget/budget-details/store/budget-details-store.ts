@@ -442,6 +442,7 @@ export class BudgetDetailsStore {
       await firstValueFrom(this.#transactionApi.update$(id, data));
 
       this.#clearError();
+      this.reloadBudgetDetails();
     } catch (error) {
       this.reloadBudgetDetails();
 

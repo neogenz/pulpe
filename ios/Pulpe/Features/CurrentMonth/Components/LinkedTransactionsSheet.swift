@@ -244,38 +244,44 @@ private struct LinkedTransactionRow: View {
     @State private var showDeleteConfirmation = false
 
     var body: some View {
-        Button {
-            onEdit()
-        } label: {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(transaction.name)
-                        .font(.body)
-                        .fontWeight(.medium)
-                        .lineLimit(1)
+        HStack(spacing: DesignTokens.Spacing.md) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(transaction.name)
+                    .font(.body)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
 
-                    Text(transaction.transactionDate.formatted(date: .abbreviated, time: .omitted))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer(minLength: 8)
-
-                Text(transaction.amount.asCHF)
-                    .font(.system(.body, design: .rounded, weight: .semibold))
-                    .foregroundStyle(transaction.kind.color)
-
-                Button {
-                    showDeleteConfirmation = true
-                } label: {
-                    Image(systemName: "trash")
-                        .font(.system(size: 15))
-                        .foregroundStyle(Color.errorPrimary)
-                }
-                .buttonStyle(.plain)
+                Text(transaction.transactionDate.formatted(date: .abbreviated, time: .omitted))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
+
+            Spacer(minLength: 8)
+
+            Text(transaction.amount.asCHF)
+                .font(.system(.body, design: .rounded, weight: .semibold))
+                .foregroundStyle(transaction.kind.color)
+
+            Button {
+                onEdit()
+            } label: {
+                Image(systemName: "pencil")
+                    .font(.system(size: 15))
+                    .foregroundStyle(.secondary)
+                    .frame(minWidth: 44, minHeight: 44)
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                showDeleteConfirmation = true
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.errorPrimary)
+                    .frame(minWidth: 44, minHeight: 44)
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, 14)
         .background(Color.surfaceCard)

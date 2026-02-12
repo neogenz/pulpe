@@ -265,20 +265,7 @@ export default class BudgetDetailsPage {
     } else if (result.action === 'delete' && result.transaction) {
       await this.handleDeleteTransaction(result.transaction);
     } else if (result.action === 'edit' && result.transaction) {
-      const budget = this.store.budgetDetails();
-      if (!budget) return;
-      const editResult =
-        await this.#dialogService.openEditAllocatedTransactionDialog(
-          result.transaction,
-          {
-            budgetMonth: budget.month,
-            budgetYear: budget.year,
-            payDayOfMonth: this.#userSettingsApi.payDayOfMonth(),
-          },
-        );
-      if (editResult) {
-        await this.handleUpdateTransaction(editResult);
-      }
+      await this.handleEditAllocatedTransaction(result.transaction);
     }
   }
 
