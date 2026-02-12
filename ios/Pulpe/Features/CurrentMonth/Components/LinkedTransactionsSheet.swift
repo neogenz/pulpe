@@ -4,6 +4,7 @@ struct LinkedTransactionsSheet: View {
     let budgetLine: BudgetLine
     let transactions: [Transaction]
     let onToggle: (Transaction) -> Void
+    let onEdit: (Transaction) -> Void
     let onDelete: (Transaction) -> Void
     let onAddTransaction: () -> Void
 
@@ -170,6 +171,7 @@ struct LinkedTransactionsSheet: View {
                         transaction: transaction,
                         isFirst: transaction.id == transactions.first?.id,
                         isLast: transaction.id == transactions.last?.id,
+                        onEdit: { onEdit(transaction) },
                         onDelete: { onDelete(transaction) }
                     )
                 }
@@ -236,6 +238,7 @@ private struct LinkedTransactionRow: View {
     let transaction: Transaction
     let isFirst: Bool
     let isLast: Bool
+    let onEdit: () -> Void
     let onDelete: () -> Void
 
     @State private var showDeleteConfirmation = false
@@ -260,11 +263,22 @@ private struct LinkedTransactionRow: View {
                 .foregroundStyle(transaction.kind.color)
 
             Button {
+                onEdit()
+            } label: {
+                Image(systemName: "pencil")
+                    .font(.system(size: 15))
+                    .foregroundStyle(.secondary)
+                    .frame(minWidth: 44, minHeight: 44)
+            }
+            .buttonStyle(.plain)
+
+            Button {
                 showDeleteConfirmation = true
             } label: {
                 Image(systemName: "trash")
                     .font(.system(size: 15))
                     .foregroundStyle(Color.errorPrimary)
+                    .frame(minWidth: 44, minHeight: 44)
             }
             .buttonStyle(.plain)
         }
@@ -327,6 +341,7 @@ private struct LinkedTransactionRow: View {
                     )
                 ],
                 onToggle: { _ in },
+                onEdit: { _ in },
                 onDelete: { _ in },
                 onAddTransaction: {}
             )
@@ -380,6 +395,7 @@ private struct LinkedTransactionRow: View {
                     )
                 ],
                 onToggle: { _ in },
+                onEdit: { _ in },
                 onDelete: { _ in },
                 onAddTransaction: {}
             )
@@ -406,6 +422,7 @@ private struct LinkedTransactionRow: View {
                 ),
                 transactions: [],
                 onToggle: { _ in },
+                onEdit: { _ in },
                 onDelete: { _ in },
                 onAddTransaction: {}
             )

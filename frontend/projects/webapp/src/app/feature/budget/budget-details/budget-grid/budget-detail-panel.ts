@@ -15,7 +15,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { type BudgetLine } from 'pulpe-shared';
+import { type BudgetLine, type Transaction } from 'pulpe-shared';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { BudgetLineTableItem } from '../data-core';
@@ -28,6 +28,7 @@ export interface BudgetDetailPanelData {
   onAddTransaction: (budgetLine: BudgetLine) => void;
   onDeleteTransaction: (id: string) => void;
   onToggleTransactionCheck: (id: string) => void;
+  onEditTransaction: (transaction: Transaction) => void;
 }
 
 const DETAIL_SEGMENT_COUNT = 12;
@@ -218,11 +219,19 @@ const DETAIL_SEGMENT_COUNT = 12;
                     />
                     <button
                       matIconButton
+                      (click)="onEditTransaction(tx)"
+                      matTooltip="Modifier"
+                      [attr.data-testid]="'edit-tx-' + tx.id"
+                    >
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button
+                      matIconButton
                       (click)="onDeleteTransaction(tx.id)"
                       matTooltip="Supprimer"
                       [attr.data-testid]="'delete-tx-' + tx.id"
                     >
-                      <mat-icon class="text-xl! text-error">delete</mat-icon>
+                      <mat-icon class="text-error">delete</mat-icon>
                     </button>
                   </div>
                 </div>
@@ -270,6 +279,10 @@ export class BudgetDetailPanel {
 
   onDeleteTransaction(id: string): void {
     this.data.onDeleteTransaction(id);
+  }
+
+  onEditTransaction(tx: Transaction): void {
+    this.data.onEditTransaction(tx);
   }
 
   onToggleCheck(id: string): void {

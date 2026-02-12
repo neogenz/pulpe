@@ -23,12 +23,14 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { type Transaction, type TransactionCreate } from 'pulpe-shared';
 import { startOfMonth, endOfMonth } from 'date-fns';
-import { TransactionValidators } from '../utils/transaction-form-validators';
+import { TransactionValidators } from '@core/transaction';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { Logger } from '@core/logging/logger';
 import { formatLocalDate } from '@core/date/format-local-date';
 
-type EditTransactionFormData = Pick<
+export type HideableField = 'kind' | 'category';
+
+export type EditTransactionFormData = Pick<
   TransactionCreate,
   'name' | 'amount' | 'kind' | 'category'
 > & {
@@ -143,23 +145,25 @@ type EditTransactionFormData = Pick<
       </mat-form-field>
 
       <!-- Type Field -->
-      <mat-form-field class="w-full" subscriptSizing="dynamic">
-        <mat-label>Type de transaction</mat-label>
-        <mat-select formControlName="kind" aria-label="Type de transaction">
-          <mat-option value="expense">
-            <mat-icon class="mr-2 icon-filled">remove_circle</mat-icon>
-            {{ 'expense' | transactionLabel }}
-          </mat-option>
-          <mat-option value="income">
-            <mat-icon class="mr-2 icon-filled">add_circle</mat-icon>
-            {{ 'income' | transactionLabel }}
-          </mat-option>
-          <mat-option value="saving">
-            <mat-icon class="mr-2 icon-filled">savings</mat-icon>
-            {{ 'saving' | transactionLabel }}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
+      @if (!isFieldHidden('kind')) {
+        <mat-form-field class="w-full" subscriptSizing="dynamic">
+          <mat-label>Type de transaction</mat-label>
+          <mat-select formControlName="kind" aria-label="Type de transaction">
+            <mat-option value="expense">
+              <mat-icon class="mr-2 icon-filled">remove_circle</mat-icon>
+              {{ 'expense' | transactionLabel }}
+            </mat-option>
+            <mat-option value="income">
+              <mat-icon class="mr-2 icon-filled">add_circle</mat-icon>
+              {{ 'income' | transactionLabel }}
+            </mat-option>
+            <mat-option value="saving">
+              <mat-icon class="mr-2 icon-filled">savings</mat-icon>
+              {{ 'saving' | transactionLabel }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      }
 
       <!-- Date Field -->
       <mat-form-field class="w-full" subscriptSizing="dynamic">
@@ -180,7 +184,11 @@ type EditTransactionFormData = Pick<
           aria-label="Ouvrir le calendrier"
         ></mat-datepicker-toggle>
         <mat-datepicker #picker></mat-datepicker>
-        <mat-hint id="date-hint">Doit être dans le mois en cours</mat-hint>
+        <mat-hint id="date-hint">{{
+          minDateInput()
+            ? 'Doit être dans la période du budget'
+            : 'Doit être dans le mois en cours'
+        }}</mat-hint>
         @if (
           transactionForm.get('transactionDate')?.hasError('required') &&
           transactionForm.get('transactionDate')?.touched
@@ -209,28 +217,30 @@ type EditTransactionFormData = Pick<
       </mat-form-field>
 
       <!-- Category Field -->
-      <mat-form-field class="w-full" subscriptSizing="dynamic">
-        <mat-label>Notes</mat-label>
-        <input
-          matInput
-          formControlName="category"
-          placeholder="Ex: Alimentation, Transport"
-          maxlength="50"
-          aria-describedby="category-hint"
-        />
-        <mat-hint id="category-hint" align="end"
-          >{{ transactionForm.get('category')?.value?.length || 0 }}/50
-          (optionnel)</mat-hint
-        >
-        @if (
-          transactionForm.get('category')?.hasError('maxlength') &&
-          transactionForm.get('category')?.touched
-        ) {
-          <mat-error role="alert" aria-live="assertive"
-            >La catégorie ne peut pas dépasser 50 caractères</mat-error
+      @if (!isFieldHidden('category')) {
+        <mat-form-field class="w-full" subscriptSizing="dynamic">
+          <mat-label>Notes</mat-label>
+          <input
+            matInput
+            formControlName="category"
+            placeholder="Ex: Alimentation, Transport"
+            maxlength="50"
+            aria-describedby="category-hint"
+          />
+          <mat-hint id="category-hint" align="end"
+            >{{ transactionForm.get('category')?.value?.length || 0 }}/50
+            (optionnel)</mat-hint
           >
-        }
-      </mat-form-field>
+          @if (
+            transactionForm.get('category')?.hasError('maxlength') &&
+            transactionForm.get('category')?.touched
+          ) {
+            <mat-error role="alert" aria-live="assertive"
+              >La catégorie ne peut pas dépasser 50 caractères</mat-error
+            >
+          }
+        </mat-form-field>
+      }
     </form>
   `,
   styles: `
@@ -245,13 +255,16 @@ export class EditTransactionForm implements OnInit {
   readonly #logger = inject(Logger);
 
   readonly transaction = input.required<Transaction>();
+  readonly hiddenFields = input<HideableField[]>([]);
+  readonly minDateInput = input<Date>();
+  readonly maxDateInput = input<Date>();
   readonly updateTransaction = output<EditTransactionFormData>();
   readonly cancelEdit = output<void>();
   readonly isUpdating = signal(false);
 
-  // Date constraints for current month
-  protected readonly minDate = startOfMonth(new Date());
-  protected readonly maxDate = endOfMonth(new Date());
+  // Date constraints — defaults to current month, overridden in ngOnInit if inputs provided
+  protected minDate = startOfMonth(new Date());
+  protected maxDate = endOfMonth(new Date());
 
   // Custom validator for date range
   readonly #dateRangeValidator = (
@@ -289,8 +302,19 @@ export class EditTransactionForm implements OnInit {
     category: ['', TransactionValidators.category],
   });
 
+  protected isFieldHidden(field: HideableField): boolean {
+    return this.hiddenFields().includes(field);
+  }
+
   ngOnInit(): void {
+    const minInput = this.minDateInput();
+    const maxInput = this.maxDateInput();
+    if (minInput) this.minDate = minInput;
+    if (maxInput) this.maxDate = maxInput;
     this.#initializeForm();
+    this.transactionForm
+      .get('transactionDate')
+      ?.updateValueAndValidity({ emitEvent: false });
   }
 
   #initializeForm(): void {
@@ -323,15 +347,25 @@ export class EditTransactionForm implements OnInit {
     }
 
     const { name, amount, kind, transactionDate, category } =
-      this.transactionForm.getRawValue();
+      this.transactionForm.getRawValue() as {
+        name: string;
+        amount: number | null;
+        kind: 'expense' | 'income' | 'saving';
+        transactionDate: Date | null;
+        category: string | null;
+      };
+
+    // Form is valid so all required fields are guaranteed non-null
+    if (!name || !amount || !kind || !transactionDate) return;
+
     this.isUpdating.set(true);
 
     this.updateTransaction.emit({
-      name: name as string,
-      amount: amount as number,
-      kind: kind as 'expense' | 'income' | 'saving',
-      transactionDate: formatLocalDate(transactionDate as Date),
-      category: (category as string) || null,
+      name,
+      amount,
+      kind,
+      transactionDate: formatLocalDate(transactionDate),
+      category: category || null,
     });
   }
 }

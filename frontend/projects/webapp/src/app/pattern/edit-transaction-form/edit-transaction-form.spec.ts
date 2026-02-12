@@ -1,13 +1,17 @@
-import { TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { provideNativeDateAdapter } from '@angular/material/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { EditTransactionForm } from './edit-transaction-form';
+import {
+  EditTransactionForm,
+  type EditTransactionFormData,
+} from './edit-transaction-form';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 describe('EditTransactionForm', () => {
   let component: EditTransactionForm;
+  let fixture: ComponentFixture<EditTransactionForm>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -20,7 +24,8 @@ describe('EditTransactionForm', () => {
     }).compileComponents();
 
     // Create component instance directly for unit testing
-    component = TestBed.createComponent(EditTransactionForm).componentInstance;
+    fixture = TestBed.createComponent(EditTransactionForm);
+    component = fixture.componentInstance;
   });
 
   describe('Component Structure', () => {
@@ -70,8 +75,7 @@ describe('EditTransactionForm', () => {
       amountControl?.setValue(0.01);
       expect(amountControl?.hasError('min')).toBe(false);
 
-      // @ts-expect-error: setValue can accept string for testing purposes
-      kindControl?.setValue('');
+      kindControl?.setValue(null!);
       expect(kindControl?.hasError('required')).toBe(true);
 
       dateControl?.setValue(null);
@@ -146,30 +150,93 @@ describe('EditTransactionForm', () => {
   });
 
   describe('Date Constraints', () => {
-    it('should have minDate and maxDate defined', () => {
-      expect(component['minDate']).toBeDefined();
-      expect(component['maxDate']).toBeDefined();
-
-      // Verify they are Date objects
-      expect(component['minDate']).toBeInstanceOf(Date);
-      expect(component['maxDate']).toBeInstanceOf(Date);
-
-      // Verify minDate is start of month
+    it('should default to current month bounds', () => {
+      // Arrange
+      const dateControl = component.transactionForm.get('transactionDate');
       const now = new Date();
-      const minDate = component['minDate'];
-      expect(minDate.getDate()).toBe(1);
-      expect(minDate.getMonth()).toBe(now.getMonth());
-      expect(minDate.getFullYear()).toBe(now.getFullYear());
 
-      // Verify maxDate is end of month
-      const maxDate = component['maxDate'];
-      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      expect(maxDate.getDate()).toBe(nextMonth.getDate());
-      expect(maxDate.getMonth()).toBe(now.getMonth());
-      expect(maxDate.getFullYear()).toBe(now.getFullYear());
+      // Act — set a date in the current month
+      dateControl?.setValue(now);
+
+      // Assert — date in current month is valid
+      expect(dateControl?.hasError('dateOutOfRange')).toBe(false);
+    });
+
+    it('should reject dates outside current month when no custom bounds', () => {
+      // Arrange
+      const dateControl = component.transactionForm.get('transactionDate');
+      const lastYear = new Date(new Date().getFullYear() - 1, 0, 15);
+
+      // Act
+      dateControl?.setValue(lastYear);
+
+      // Assert
+      expect(dateControl?.hasError('dateOutOfRange')).toBe(true);
+    });
+
+    it('should validate against custom date bounds when overridden', () => {
+      // Arrange — override protected date bounds for validator testing
+      const customMin = new Date(2025, 5, 1);
+      const customMax = new Date(2025, 5, 30);
+      const bounds = component as unknown as { minDate: Date; maxDate: Date };
+      bounds.minDate = customMin;
+      bounds.maxDate = customMax;
+
+      const dateControl = component.transactionForm.get('transactionDate');
+
+      // Act — set a date within custom bounds
+      dateControl?.setValue(new Date(2025, 5, 15));
+
+      // Assert — date in custom range is valid
+      expect(dateControl?.hasError('dateOutOfRange')).toBe(false);
+    });
+
+    it('should reject dates outside custom date bounds', () => {
+      // Arrange — override protected date bounds for validator testing
+      const customMin = new Date(2025, 5, 1);
+      const customMax = new Date(2025, 5, 30);
+      const bounds = component as unknown as { minDate: Date; maxDate: Date };
+      bounds.minDate = customMin;
+      bounds.maxDate = customMax;
+
+      const dateControl = component.transactionForm.get('transactionDate');
+
+      // Act — set a date outside custom bounds
+      dateControl?.setValue(new Date(2025, 0, 15));
+
+      // Assert — date outside range is invalid
+      expect(dateControl?.hasError('dateOutOfRange')).toBe(true);
+    });
+  });
+
+  describe('hiddenFields', () => {
+    it('should default to empty array (no hidden fields)', () => {
+      expect(component.hiddenFields()).toEqual([]);
+      expect(component['isFieldHidden']('kind')).toBe(false);
+      expect(component['isFieldHidden']('category')).toBe(false);
+    });
+
+    it('should still emit original values for hidden fields on submit', () => {
+      // hiddenFields only controls template visibility, not form data
+      // Even with hidden fields, the form group still contains all values
+      component.transactionForm.patchValue({
+        name: 'Test',
+        amount: 100,
+        kind: 'expense',
+        transactionDate: new Date(),
+        category: 'Notes',
+      });
+
+      let emittedData: EditTransactionFormData | undefined;
+      component.updateTransaction.subscribe((data) => {
+        emittedData = data;
+      });
+
+      component.onSubmit();
+
+      expect(emittedData).toBeDefined();
+      expect(emittedData!.kind).toBe('expense');
+      expect(emittedData!.category).toBe('Notes');
     });
   });
 });
-
-// NOTE: Integration tests with actual transaction data are handled in higher-level component tests
-// due to Angular 20's input.required() limitations in unit tests

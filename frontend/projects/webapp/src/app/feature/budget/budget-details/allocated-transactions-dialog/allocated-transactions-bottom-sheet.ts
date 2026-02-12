@@ -124,6 +124,13 @@ import type {
                 </span>
                 <button
                   matIconButton
+                  (click)="editTransaction(tx)"
+                  aria-label="Modifier la transaction"
+                >
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button
+                  matIconButton
                   (click)="deleteTransaction(tx)"
                   aria-label="Supprimer la transaction"
                   class="text-error"
@@ -184,6 +191,10 @@ export class AllocatedTransactionsBottomSheet {
 
   addTransaction(): void {
     this.#bottomSheetRef.dismiss({ action: 'add' });
+  }
+
+  editTransaction(transaction: Transaction): void {
+    this.#bottomSheetRef.dismiss({ action: 'edit', transaction });
   }
 
   deleteTransaction(transaction: Transaction): void {

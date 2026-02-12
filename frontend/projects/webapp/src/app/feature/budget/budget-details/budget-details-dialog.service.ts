@@ -6,7 +6,9 @@ import type {
   BudgetLine,
   BudgetLineCreate,
   BudgetLineUpdate,
+  Transaction,
   TransactionCreate,
+  TransactionUpdate,
 } from 'pulpe-shared';
 import type { BudgetLineConsumption } from '@core/budget';
 import {
@@ -23,12 +25,18 @@ import {
   CreateAllocatedTransactionDialog,
   type CreateAllocatedTransactionDialogData,
 } from './create-allocated-transaction-dialog/create-allocated-transaction-dialog';
+import { computeBudgetPeriodDateConstraints } from './create-allocated-transaction-dialog/budget-period-date-constraints';
 import { CreateAllocatedTransactionBottomSheet } from './create-allocated-transaction-dialog/create-allocated-transaction-bottom-sheet';
 import {
   ConfirmationDialog,
   type ConfirmationDialogData,
 } from '@ui/dialogs/confirmation-dialog';
 import { EditBudgetLineDialog } from './edit-budget-line/edit-budget-line-dialog';
+import {
+  EditTransactionDialog,
+  type EditTransactionDialogData,
+  type EditTransactionFormData,
+} from '@pattern/edit-transaction-form';
 
 export interface ConfirmDeleteOptions {
   title: string;
@@ -125,6 +133,44 @@ export class BudgetDetailsDialogService {
     });
 
     return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  async openEditAllocatedTransactionDialog(
+    transaction: Transaction,
+    budgetPeriod: {
+      budgetMonth: number;
+      budgetYear: number;
+      payDayOfMonth: number | null;
+    },
+  ): Promise<(TransactionUpdate & { id: string }) | undefined> {
+    const { minDate, maxDate } = computeBudgetPeriodDateConstraints(
+      budgetPeriod.budgetMonth,
+      budgetPeriod.budgetYear,
+      budgetPeriod.payDayOfMonth,
+    );
+
+    const dialogRef = this.#dialog.open(EditTransactionDialog, {
+      data: {
+        transaction,
+        hiddenFields: ['kind', 'category'],
+        minDate,
+        maxDate,
+      } satisfies EditTransactionDialogData,
+      width: '500px',
+      maxWidth: '90vw',
+    });
+
+    const result = await firstValueFrom<EditTransactionFormData | undefined>(
+      dialogRef.afterClosed(),
+    );
+    if (!result) return undefined;
+
+    return {
+      id: transaction.id,
+      name: result.name,
+      amount: result.amount,
+      transactionDate: result.transactionDate,
+    };
   }
 
   async confirmDelete(options: ConfirmDeleteOptions): Promise<boolean> {

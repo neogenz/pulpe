@@ -189,7 +189,7 @@ import { BudgetGridSection } from './budget-grid-section';
                 [attr.data-testid]="'delete-tx-' + item.data.id"
                 aria-label="Supprimer la transaction"
               >
-                <mat-icon class="text-xl!">delete</mat-icon>
+                <mat-icon>delete</mat-icon>
               </button>
             </div>
           </div>
@@ -223,6 +223,7 @@ export class BudgetGrid {
   readonly edit = output<BudgetLineTableItem>();
   readonly delete = output<string>();
   readonly deleteTransaction = output<string>();
+  readonly editTransaction = output<Transaction>();
   readonly add = output<void>();
   readonly addTransaction = output<BudgetLine>();
   readonly viewTransactions = output<BudgetLineTableItem>();
@@ -256,6 +257,7 @@ export class BudgetGrid {
       onAddTransaction: (budgetLine) => this.addTransaction.emit(budgetLine),
       onDeleteTransaction: (id) => this.deleteTransaction.emit(id),
       onToggleTransactionCheck: (id) => this.toggleTransactionCheck.emit(id),
+      onEditTransaction: (tx) => this.editTransaction.emit(tx),
     };
 
     this.#dialog.open(BudgetDetailPanel, {

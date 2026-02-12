@@ -19,6 +19,7 @@ import {
   type BudgetLineUpdate,
   type Transaction,
   type TransactionCreate,
+  type TransactionUpdate,
   BudgetFormulas,
 } from 'pulpe-shared';
 
@@ -415,6 +416,39 @@ export class BudgetDetailsStore {
       const errorMessage = 'Erreur lors de la modification de la prévision';
       this.#setError(errorMessage);
       this.#logger.error('Error updating budget line', error);
+    }
+  }
+
+  /**
+   * Update an existing transaction with optimistic updates
+   */
+  async updateTransaction(id: string, data: TransactionUpdate): Promise<void> {
+    this.#budgetDetailsResource.update((details) => {
+      if (!details) return details;
+
+      const updatedTransactions = (details.transactions ?? []).map((tx) =>
+        tx.id === id
+          ? { ...tx, ...data, updatedAt: new Date().toISOString() }
+          : tx,
+      );
+
+      return {
+        ...details,
+        transactions: updatedTransactions,
+      };
+    });
+
+    try {
+      await firstValueFrom(this.#transactionApi.update$(id, data));
+
+      this.#clearError();
+      this.reloadBudgetDetails();
+    } catch (error) {
+      this.reloadBudgetDetails();
+
+      const errorMessage = 'Erreur lors de la modification de la transaction';
+      this.#setError(errorMessage);
+      this.#logger.error('Error updating transaction', error);
     }
   }
 

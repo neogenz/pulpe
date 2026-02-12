@@ -143,6 +143,9 @@ struct BudgetDetailsView: View {
                 onToggle: { transaction in
                     Task { await viewModel.toggleTransaction(transaction) }
                 },
+                onEdit: { transaction in
+                    selectedTransactionForEdit = transaction
+                },
                 onDelete: { transaction in
                     Task { await viewModel.deleteTransaction(transaction) }
                 },
