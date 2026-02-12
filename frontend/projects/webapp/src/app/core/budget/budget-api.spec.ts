@@ -11,6 +11,7 @@ import { BudgetInvalidationService } from './budget-invalidation.service';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { HasBudgetCache } from '../auth/has-budget-cache';
+import { ApiError } from '../api/api-error';
 
 describe('BudgetApi', () => {
   const mockLogger = {
@@ -77,12 +78,17 @@ describe('BudgetApi', () => {
         updatedAt: '2024-02-01T00:00:00+00:00',
       };
 
-      service.createBudget$(templateData).subscribe();
+      let result: unknown;
+      service.createBudget$(templateData).subscribe((r) => (result = r));
 
       const req = httpTesting.expectOne('http://localhost:3000/api/v1/budgets');
       expect(req.request.method).toBe('POST');
       req.flush({ success: true, data: responseBudget });
 
+      expect(result).toEqual({
+        budget: responseBudget,
+        message: 'Budget créé avec succès à partir du template',
+      });
       expect(mockHasBudgetCache.setHasBudget).toHaveBeenCalledWith(true);
       expect(mockInvalidation.invalidate).toHaveBeenCalled();
     });
@@ -105,16 +111,18 @@ describe('BudgetApi', () => {
 
       const req = httpTesting.expectOne('http://localhost:3000/api/v1/budgets');
       req.flush(
-        { message: 'Budget already exists', code: 'ERR_BUDGET_ALREADY_EXISTS' },
+        {
+          success: false,
+          error: 'Budget already exists',
+          code: 'ERR_BUDGET_ALREADY_EXISTS',
+        },
         { status: 400, statusText: 'Bad Request' },
       );
 
-      expect(error).toEqual({
-        message:
-          'Un budget existe déjà pour cette période. Veuillez sélectionner un autre mois.',
-        details: undefined,
-        code: 'ERR_BUDGET_ALREADY_EXISTS',
-      });
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).status).toBe(400);
+      expect((error as ApiError).code).toBe('ERR_BUDGET_ALREADY_EXISTS');
+      expect((error as ApiError).message).toBe('Budget already exists');
       expect(mockHasBudgetCache.setHasBudget).not.toHaveBeenCalled();
     });
   });
@@ -175,15 +183,13 @@ describe('BudgetApi', () => {
         `http://localhost:3000/api/v1/budgets/${budgetId}`,
       );
       deleteReq.flush(
-        { message: 'Budget not found' },
+        { success: false, error: 'Budget not found' },
         { status: 404, statusText: 'Not Found' },
       );
 
-      expect(error).toEqual({
-        message: 'Budget not found',
-        details: undefined,
-        code: undefined,
-      });
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).status).toBe(404);
+      expect((error as ApiError).message).toBe('Budget not found');
       expect(mockHasBudgetCache.setHasBudget).not.toHaveBeenCalled();
     });
   });

@@ -37,6 +37,7 @@ import { Logger } from './logging/logger';
 import { StorageMigrationRunnerService } from './storage/storage-migration-runner.service';
 import { provideSplashRemoval } from './splash-removal';
 import { ClientKeyService } from './encryption/client-key.service';
+import { PreloadService } from './preload/preload.service';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -176,6 +177,9 @@ export function provideCore({ routes }: CoreOptions) {
         logger.error("Erreur lors de l'initialisation", error);
         throw error;
       }
+
+      // Force instantiation — effect() inside will preload data when authenticated
+      inject(PreloadService);
     }),
 
     ...provideLocale(),

@@ -29,7 +29,8 @@ import { type TemplateViewModel } from './ui/template-view-model';
 import { TemplateDetailsDialog } from './template-details-dialog';
 import { TemplateStore } from './services/template-store';
 import { TemplateTotalsCalculator } from './services/template-totals-calculator';
-import { BudgetApi, type BudgetApiError } from '@core/budget/budget-api';
+import { BudgetApi } from '@core/budget/budget-api';
+import { isApiError } from '@core/api/api-error';
 
 const BUDGET_CREATION_CONSTANTS = {
   // Form validation constraints
@@ -377,17 +378,7 @@ export class CreateBudgetDialogComponent {
     } catch (error: unknown) {
       this.isCreating.set(false);
 
-      // Extract message from BudgetApiError (already localized by the service)
-      const isBudgetApiError = (err: unknown): err is BudgetApiError => {
-        return (
-          typeof err === 'object' &&
-          err !== null &&
-          'message' in err &&
-          typeof (err as BudgetApiError).message === 'string'
-        );
-      };
-
-      const errorMessage = isBudgetApiError(error)
+      const errorMessage = isApiError(error)
         ? error.message
         : 'Une erreur est survenue lors de la création du budget. Veuillez réessayer.';
 

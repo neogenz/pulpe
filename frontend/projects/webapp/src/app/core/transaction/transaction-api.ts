@@ -1,5 +1,4 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import {
   type TransactionCreate,
   type TransactionCreateResponse,
@@ -13,69 +12,66 @@ import {
   transactionSearchResponseSchema,
 } from 'pulpe-shared';
 import { type Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { ApplicationConfiguration } from '../config/application-configuration';
+import { ApiClient } from '@core/api/api-client';
 
 @Injectable({
   providedIn: 'root',
 })
 export class TransactionApi {
-  readonly #http = inject(HttpClient);
-  readonly #applicationConfig = inject(ApplicationConfiguration);
-
-  get #apiUrl(): string {
-    return `${this.#applicationConfig.backendApiUrl()}/transactions`;
-  }
+  readonly #api = inject(ApiClient);
 
   findByBudget$(budgetId: string): Observable<TransactionListResponse> {
-    return this.#http
-      .get<unknown>(`${this.#apiUrl}/budget/${budgetId}`)
-      .pipe(map((response) => transactionListResponseSchema.parse(response)));
+    return this.#api.get$(
+      `/transactions/budget/${budgetId}`,
+      transactionListResponseSchema,
+    );
   }
 
   create$(
     transaction: TransactionCreate,
   ): Observable<TransactionCreateResponse> {
-    return this.#http
-      .post<unknown>(this.#apiUrl, transaction)
-      .pipe(map((response) => transactionResponseSchema.parse(response)));
+    return this.#api.post$(
+      '/transactions',
+      transaction,
+      transactionResponseSchema,
+    );
   }
 
   findOne$(id: string): Observable<TransactionFindOneResponse> {
-    return this.#http
-      .get<unknown>(`${this.#apiUrl}/${id}`)
-      .pipe(map((response) => transactionResponseSchema.parse(response)));
+    return this.#api.get$(`/transactions/${id}`, transactionResponseSchema);
   }
 
   update$(
     id: string,
     transaction: TransactionUpdate,
   ): Observable<TransactionUpdateResponse> {
-    return this.#http
-      .patch<unknown>(`${this.#apiUrl}/${id}`, transaction)
-      .pipe(map((response) => transactionResponseSchema.parse(response)));
+    return this.#api.patch$(
+      `/transactions/${id}`,
+      transaction,
+      transactionResponseSchema,
+    );
   }
 
   remove$(id: string): Observable<void> {
-    return this.#http.delete<void>(`${this.#apiUrl}/${id}`);
+    return this.#api.deleteVoid$(`/transactions/${id}`);
   }
 
   toggleCheck$(id: string): Observable<TransactionUpdateResponse> {
-    return this.#http
-      .post<unknown>(`${this.#apiUrl}/${id}/toggle-check`, {})
-      .pipe(map((response) => transactionResponseSchema.parse(response)));
+    return this.#api.post$(
+      `/transactions/${id}/toggle-check`,
+      {},
+      transactionResponseSchema,
+    );
   }
 
   search$(
     query: string,
     years?: number[],
   ): Observable<TransactionSearchResponse> {
-    const params: Record<string, string | string[]> = { q: query };
-    if (years && years.length > 0) {
-      params['years'] = years.map(String);
+    let path = `/transactions/search?q=${encodeURIComponent(query)}`;
+    if (years?.length) {
+      path += years.map((y) => `&years=${y}`).join('');
     }
-    return this.#http
-      .get<unknown>(`${this.#apiUrl}/search`, { params })
-      .pipe(map((response) => transactionSearchResponseSchema.parse(response)));
+    return this.#api.get$(path, transactionSearchResponseSchema);
   }
 }

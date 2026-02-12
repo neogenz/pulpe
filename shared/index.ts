@@ -113,6 +113,12 @@ export {
   demoCleanupResponseSchema,
 } from './schemas.js';
 
+// Export response schema factories
+export {
+  createSuccessResponse,
+  createListResponse,
+} from './src/api-response.js';
+
 // Export calculators
 export { BudgetFormulas } from './src/calculators/index.js';
 
