@@ -9,7 +9,7 @@ import {
   type OnInit,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DecimalPipe, NgClass } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -44,7 +44,6 @@ import { TemplateDetailsStore } from './services/template-details-store';
 
   imports: [
     DecimalPipe,
-    NgClass,
     MatButtonModule,
     MatIconModule,
     MatSnackBarModule,
@@ -58,7 +57,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
       @if (templateDetailsStore.isLoading()) {
         <!-- Loading state with proper accessibility -->
         <pulpe-base-loading
-          message="Chargement des détails du modèle..."
+          message="Préparation du modèle..."
           size="large"
           [fullHeight]="true"
           testId="template-details-loading"
@@ -199,7 +198,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
                   class="snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full"
                   [style.background-color]="pill.bgStyle"
                 >
-                  <mat-icon class="mat-icon-sm" [ngClass]="pill.colorClass">{{
+                  <mat-icon [class]="'mat-icon-sm ' + pill.colorClass">{{
                     pill.icon
                   }}</mat-icon>
                   <div class="flex flex-col">
@@ -208,8 +207,10 @@ import { TemplateDetailsStore } from './services/template-details-store';
                       >{{ pill.label }}</span
                     >
                     <span
-                      class="text-label-large font-semibold ph-no-capture"
-                      [ngClass]="pill.colorClass"
+                      [class]="
+                        'text-label-large font-semibold ph-no-capture ' +
+                        pill.colorClass
+                      "
                     >
                       {{ pill.amount | number: '1.0-0' : 'de-CH' }} CHF
                     </span>
@@ -284,7 +285,7 @@ export default class TemplateDetail implements OnInit {
     this.templateDetailsStore.initializeTemplateId(templateId, staleData);
   }
 
-  private get templateId(): string | null {
+  get #templateId(): string | null {
     return this.#route.snapshot.paramMap.get('templateId');
   }
 
@@ -388,7 +389,7 @@ export default class TemplateDetail implements OnInit {
   editTemplate() {
     const template = this.templateDetailsStore.template();
     const transactions = this.templateDetailsStore.transactions();
-    const templateId = this.templateId;
+    const templateId = this.#templateId;
 
     if (!template || !transactions || !templateId) {
       return;
@@ -450,7 +451,7 @@ export default class TemplateDetail implements OnInit {
 
   async deleteTemplate() {
     const template = this.templateDetailsStore.template();
-    const templateId = this.templateId;
+    const templateId = this.#templateId;
     if (!template || !templateId) {
       return;
     }
@@ -518,7 +519,7 @@ export default class TemplateDetail implements OnInit {
   }
 
   async #performDeletion() {
-    const templateId = this.templateId;
+    const templateId = this.#templateId;
     if (!templateId) {
       return;
     }

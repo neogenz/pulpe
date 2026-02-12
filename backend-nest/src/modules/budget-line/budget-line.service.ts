@@ -16,12 +16,50 @@ import * as budgetLineMappers from './budget-line.mappers';
 import * as transactionMappers from '../transaction/transaction.mappers';
 import type { Database } from '../../types/database.types';
 import { BudgetService } from '../budget/budget.service';
+import { EncryptionService } from '@modules/encryption/encryption.service';
 
 @Injectable()
 export class BudgetLineService {
-  constructor(private readonly budgetService: BudgetService) {}
+  constructor(
+    private readonly budgetService: BudgetService,
+    private readonly encryptionService: EncryptionService,
+  ) {}
+
+  async #decryptBudgetLine(
+    budgetLine: Database['public']['Tables']['budget_line']['Row'],
+    user: AuthenticatedUser,
+  ): Promise<Database['public']['Tables']['budget_line']['Row']> {
+    if (!('amount_encrypted' in budgetLine) || !budgetLine.amount_encrypted) {
+      return budgetLine;
+    }
+
+    const dek = await this.encryptionService.getUserDEK(
+      user.id,
+      user.clientKey,
+    );
+    const decryptedAmount = this.encryptionService.tryDecryptAmount(
+      budgetLine.amount_encrypted as string,
+      dek,
+      budgetLine.amount,
+    );
+
+    return {
+      ...budgetLine,
+      amount: decryptedAmount,
+    };
+  }
+
+  async #decryptBudgetLines(
+    budgetLines: Database['public']['Tables']['budget_line']['Row'][],
+    user: AuthenticatedUser,
+  ): Promise<Database['public']['Tables']['budget_line']['Row'][]> {
+    return Promise.all(
+      budgetLines.map((line) => this.#decryptBudgetLine(line, user)),
+    );
+  }
 
   async findAll(
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineListResponse> {
     try {
@@ -43,7 +81,11 @@ export class BudgetLineService {
         );
       }
 
-      const apiData = budgetLineMappers.toApiList(budgetLinesDb || []);
+      const decryptedLines = await this.#decryptBudgetLines(
+        budgetLinesDb || [],
+        user,
+      );
+      const apiData = budgetLineMappers.toApiList(decryptedLines);
 
       return {
         success: true as const,
@@ -115,9 +157,21 @@ export class BudgetLineService {
     supabase: AuthenticatedSupabaseClient,
     user: AuthenticatedUser,
   ): Promise<Database['public']['Tables']['budget_line']['Row']> {
+    const { amount, amount_encrypted: amountEncrypted } =
+      await this.encryptionService.prepareAmountData(
+        budgetLineData.amount,
+        user.id,
+        user.clientKey,
+      );
+    const dataWithEncryption = {
+      ...budgetLineData,
+      amount,
+      amount_encrypted: amountEncrypted,
+    };
+
     const { data: budgetLineDb, error } = await supabase
       .from('budget_line')
-      .insert(budgetLineData)
+      .insert(dataWithEncryption)
       .select()
       .single();
 
@@ -153,12 +207,18 @@ export class BudgetLineService {
         user,
       );
 
+      const decryptedBudgetLine = await this.#decryptBudgetLine(
+        budgetLineDb,
+        user,
+      );
+
       await this.budgetService.recalculateBalances(
         budgetLineDb.budget_id,
         supabase,
+        user.clientKey,
       );
 
-      const apiData = budgetLineMappers.toApi(budgetLineDb);
+      const apiData = budgetLineMappers.toApi(decryptedBudgetLine);
 
       return {
         success: true,
@@ -185,7 +245,11 @@ export class BudgetLineService {
   ): Promise<BudgetLineResponse> {
     try {
       const budgetLineDb = await this.fetchBudgetLineById(id, user, supabase);
-      const apiData = budgetLineMappers.toApi(budgetLineDb);
+      const decryptedBudgetLine = await this.#decryptBudgetLine(
+        budgetLineDb,
+        user,
+      );
+      const apiData = budgetLineMappers.toApi(decryptedBudgetLine);
 
       return {
         success: true,
@@ -332,7 +396,21 @@ export class BudgetLineService {
     try {
       this.validateUpdateBudgetLineDto(updateBudgetLineDto);
 
-      const updateData = this.prepareBudgetLineUpdateData(updateBudgetLineDto);
+      let updateData = this.prepareBudgetLineUpdateData(updateBudgetLineDto);
+      if (updateBudgetLineDto.amount !== undefined) {
+        const { amount, amount_encrypted: amountEncrypted } =
+          await this.encryptionService.prepareAmountData(
+            updateBudgetLineDto.amount,
+            user.id,
+            user.clientKey,
+          );
+        updateData = {
+          ...updateData,
+          amount,
+          amount_encrypted: amountEncrypted,
+        };
+      }
+
       const budgetLineDb = await this.updateBudgetLineInDb(
         id,
         updateData,
@@ -340,12 +418,18 @@ export class BudgetLineService {
         user,
       );
 
+      const decryptedBudgetLine = await this.#decryptBudgetLine(
+        budgetLineDb,
+        user,
+      );
+
       await this.budgetService.recalculateBalances(
         budgetLineDb.budget_id,
         supabase,
+        user.clientKey,
       );
 
-      const apiData = budgetLineMappers.toApi(budgetLineDb);
+      const apiData = budgetLineMappers.toApi(decryptedBudgetLine);
 
       return {
         success: true,
@@ -383,6 +467,7 @@ export class BudgetLineService {
         await this.budgetService.recalculateBalances(
           budgetLine.budget_id,
           supabase,
+          user.clientKey,
         );
       }
 
@@ -450,9 +535,22 @@ export class BudgetLineService {
       const templateLine = await this.fetchTemplateLineById(
         budgetLine.template_line_id!,
         supabase,
+        user,
       );
 
-      const updateData = this.prepareResetUpdateData(templateLine);
+      let updateData = this.prepareResetUpdateData(templateLine);
+      const { amount, amount_encrypted: amountEncrypted } =
+        await this.encryptionService.prepareAmountData(
+          templateLine.amount,
+          user.id,
+          user.clientKey,
+        );
+      updateData = {
+        ...updateData,
+        amount,
+        amount_encrypted: amountEncrypted,
+      };
+
       const updatedBudgetLine = await this.updateBudgetLineInDb(
         id,
         updateData,
@@ -460,14 +558,20 @@ export class BudgetLineService {
         user,
       );
 
+      const decryptedBudgetLine = await this.#decryptBudgetLine(
+        updatedBudgetLine,
+        user,
+      );
+
       await this.budgetService.recalculateBalances(
         updatedBudgetLine.budget_id,
         supabase,
+        user.clientKey,
       );
 
       return {
         success: true,
-        data: budgetLineMappers.toApi(updatedBudgetLine),
+        data: budgetLineMappers.toApi(decryptedBudgetLine),
       };
     } catch (error) {
       handleServiceError(
@@ -512,10 +616,11 @@ export class BudgetLineService {
   private async fetchTemplateLineById(
     templateLineId: string,
     supabase: AuthenticatedSupabaseClient,
+    user: AuthenticatedUser,
   ) {
     const { data: templateLine, error } = await supabase
       .from('template_line')
-      .select('name, amount, kind, recurrence')
+      .select('name, amount, amount_encrypted, kind, recurrence')
       .eq('id', templateLineId)
       .single();
 
@@ -523,6 +628,21 @@ export class BudgetLineService {
       throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND, {
         id: templateLineId,
       });
+    }
+
+    if (templateLine.amount_encrypted) {
+      const dek = await this.encryptionService.getUserDEK(
+        user.id,
+        user.clientKey,
+      );
+      return {
+        ...templateLine,
+        amount: this.encryptionService.tryDecryptAmount(
+          templateLine.amount_encrypted,
+          dek,
+          templateLine.amount,
+        ),
+      };
     }
 
     return templateLine;
@@ -555,9 +675,14 @@ export class BudgetLineService {
         );
       }
 
+      const decryptedBudgetLine = await this.#decryptBudgetLine(
+        updatedBudgetLine,
+        user,
+      );
+
       return {
         success: true,
-        data: budgetLineMappers.toApi(updatedBudgetLine),
+        data: budgetLineMappers.toApi(decryptedBudgetLine),
       };
     } catch (error) {
       handleServiceError(
@@ -621,6 +746,7 @@ export class BudgetLineService {
 
   async findByBudgetId(
     budgetId: string,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineListResponse> {
     try {
@@ -644,7 +770,11 @@ export class BudgetLineService {
         );
       }
 
-      const apiData = budgetLineMappers.toApiList(budgetLinesDb || []);
+      const decryptedLines = await this.#decryptBudgetLines(
+        budgetLinesDb || [],
+        user,
+      );
+      const apiData = budgetLineMappers.toApiList(decryptedLines);
 
       return {
         success: true as const,

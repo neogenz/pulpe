@@ -37,27 +37,24 @@ import { LoadingButton } from '@ui/loading-button';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div
-      class="min-h-screen pulpe-gradient flex items-center justify-center p-4"
-    >
-      <div
-        class="w-full max-w-md bg-surface rounded-3xl p-8 flex flex-col shadow-xl"
-      >
-        <a
+    <div class="pulpe-entry-shell pulpe-gradient">
+      <div class="pulpe-entry-card w-full max-w-md">
+        <button
+          matButton
           [routerLink]="['/', ROUTES.WELCOME]"
           class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
         >
           <mat-icon class="text-lg">arrow_back</mat-icon>
           <span>Retour à l'accueil</span>
-        </a>
+        </button>
 
         <div class="text-center mb-8 mt-4">
           <h1
-            class="text-2xl md:text-4xl font-bold text-on-surface mb-2 leading-tight"
+            class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
           >
             Content de te revoir
           </h1>
-          <p class="text-base md:text-lg text-on-surface-variant">
+          <p class="text-body-large text-on-surface-variant">
             Retrouve ton budget là où tu l'as laissé
           </p>
         </div>
@@ -97,7 +94,7 @@ import { LoadingButton } from '@ui/loading-button';
             <mat-label>Mot de passe</mat-label>
             <input
               matInput
-              [type]="hidePassword() ? 'password' : 'text'"
+              [type]="isPasswordHidden() ? 'password' : 'text'"
               formControlName="password"
               data-testid="password-input"
               (input)="clearMessages()"
@@ -111,10 +108,10 @@ import { LoadingButton } from '@ui/loading-button';
               matSuffix
               (click)="togglePasswordVisibility()"
               [attr.aria-label]="'Afficher le mot de passe'"
-              [attr.aria-pressed]="!hidePassword()"
+              [attr.aria-pressed]="!isPasswordHidden()"
             >
               <mat-icon>{{
-                hidePassword() ? 'visibility_off' : 'visibility'
+                isPasswordHidden() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
             @if (
@@ -130,6 +127,16 @@ import { LoadingButton } from '@ui/loading-button';
               </mat-error>
             }
           </mat-form-field>
+
+          <div class="flex justify-end -mt-2">
+            <a
+              [routerLink]="['/', ROUTES.FORGOT_PASSWORD]"
+              class="text-body-small text-primary hover:underline"
+              data-testid="forgot-password-link"
+            >
+              Mot de passe oublié ?
+            </a>
+          </div>
 
           <pulpe-error-alert [message]="errorMessage()" />
 
@@ -180,9 +187,9 @@ export default class Login {
   readonly #logger = inject(Logger);
 
   protected readonly ROUTES = ROUTES;
-  protected hidePassword = signal<boolean>(true);
-  protected isSubmitting = signal<boolean>(false);
-  protected errorMessage = signal<string>('');
+  protected readonly isPasswordHidden = signal(true);
+  protected readonly isSubmitting = signal(false);
+  protected readonly errorMessage = signal('');
 
   protected loginForm = this.#formBuilder.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -203,7 +210,7 @@ export default class Login {
   });
 
   protected togglePasswordVisibility(): void {
-    this.hidePassword.set(!this.hidePassword());
+    this.isPasswordHidden.set(!this.isPasswordHidden());
   }
 
   protected clearMessages(): void {

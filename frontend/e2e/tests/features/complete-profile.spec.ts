@@ -15,6 +15,12 @@ import { setupAuthBypass } from '../../utils/auth-bypass';
 base.describe('Complete Profile Flow', () => {
   base.describe.configure({ mode: 'parallel' });
 
+  base.beforeEach(async ({ page }) => {
+    await page.route('**/api/v1/encryption/validate-key', (route) => {
+      return route.fulfill({ status: 204, body: '' });
+    });
+  });
+
   base('should redirect returning user with existing budget to dashboard', async ({
     page,
   }) => {
@@ -82,6 +88,12 @@ base.describe('Complete Profile Flow', () => {
     await setupAuthBypass(page, {
       includeApiMocks: false,
       setLocalStorage: true,
+      vaultCodeConfigured: true,
+    });
+
+    await page.addInitScript(() => {
+      const entry = { version: 1, data: 'aa'.repeat(32), updatedAt: new Date().toISOString() };
+      sessionStorage.setItem('pulpe-vault-client-key-session', JSON.stringify(entry));
     });
 
     await page.goto('/complete-profile');
@@ -120,6 +132,12 @@ base.describe('Complete Profile Flow', () => {
     await setupAuthBypass(page, {
       includeApiMocks: false,
       setLocalStorage: true,
+      vaultCodeConfigured: true,
+    });
+
+    await page.addInitScript(() => {
+      const entry = { version: 1, data: 'aa'.repeat(32), updatedAt: new Date().toISOString() };
+      sessionStorage.setItem('pulpe-vault-client-key-session', JSON.stringify(entry));
     });
 
     await page.goto('/complete-profile');
@@ -222,6 +240,12 @@ base.describe('Complete Profile Flow', () => {
     await setupAuthBypass(page, {
       includeApiMocks: false,
       setLocalStorage: true,
+      vaultCodeConfigured: true,
+    });
+
+    await page.addInitScript(() => {
+      const entry = { version: 1, data: 'aa'.repeat(32), updatedAt: new Date().toISOString() };
+      sessionStorage.setItem('pulpe-vault-client-key-session', JSON.stringify(entry));
     });
 
     await page.goto('/complete-profile');

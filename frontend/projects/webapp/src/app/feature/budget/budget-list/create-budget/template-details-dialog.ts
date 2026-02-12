@@ -117,7 +117,7 @@ export interface TemplateDetailsDialogData {
         >
           <mat-icon class="text-display-small mb-2">inbox</mat-icon>
           <p class="text-body-medium font-medium">
-            Aucune prévision dans ce modèle
+            Pas de prévision dans ce modèle
           </p>
         </div>
       }

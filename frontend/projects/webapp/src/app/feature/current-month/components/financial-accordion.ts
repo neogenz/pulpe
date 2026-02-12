@@ -100,19 +100,16 @@ export interface FinancialAccordionConfig {
             <div
               class="flex flex-col items-center justify-center py-8 text-center"
             >
-              <mat-icon
-                class="text-(--color-outline) mb-3"
-                style="font-size: 48px; width: 48px; height: 48px;"
-              >
+              <mat-icon class="text-(--color-outline) mb-3 text-5xl size-12">
                 {{ config().emptyStateIcon || 'inbox' }}
               </mat-icon>
               <p class="text-body-large text-(--color-on-surface-variant) mb-1">
-                {{ config().emptyStateTitle || 'Aucune transaction' }}
+                {{ config().emptyStateTitle || 'Pas de transaction' }}
               </p>
               <p class="text-body-small text-(--color-outline)">
                 {{
                   config().emptyStateSubtitle ||
-                    'Les transactions apparaîtront ici'
+                    'Tes transactions apparaîtront ici'
                 }}
               </p>
             </div>
@@ -195,7 +192,7 @@ export class FinancialAccordion {
         ({
           ...financialEntry,
           isSelected: selectedIds.has(financialEntry.id),
-          isRollover: financialEntry.rollover.sourceBudgetId ?? false,
+          isRollover: financialEntry.rollover.sourceBudgetId != null,
         }) as FinancialEntryViewModel,
     );
   });

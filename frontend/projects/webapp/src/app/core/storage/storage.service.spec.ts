@@ -230,6 +230,22 @@ describe('StorageService', () => {
       expect(localStorage.getItem('pulpe-tour-current-month')).toBe('true');
     });
 
+    it('should preserve vault client key local (app-scoped device trust)', () => {
+      service.set('pulpe-budget', 'budget-data');
+      service.setString(
+        'pulpe-vault-client-key-local',
+        'a'.repeat(64),
+        'local',
+      );
+
+      service.clearAllUserData();
+
+      expect(localStorage.getItem('pulpe-budget')).toBeNull();
+      expect(
+        localStorage.getItem('pulpe-vault-client-key-local'),
+      ).not.toBeNull();
+    });
+
     it('should handle empty localStorage gracefully', () => {
       localStorage.clear();
       expect(() => service.clearAllUserData()).not.toThrow();
@@ -261,8 +277,8 @@ describe('StorageService', () => {
 
   describe('Error handling', () => {
     it('should handle localStorage.getItem errors gracefully', () => {
-      const originalGetItem = Storage.prototype.getItem;
-      Storage.prototype.getItem = () => {
+      const originalGetItem = localStorage.getItem;
+      localStorage.getItem = () => {
         throw new Error('localStorage disabled');
       };
 
@@ -271,24 +287,24 @@ describe('StorageService', () => {
       expect(result).toBeNull();
       expect(mockLogger.warn).toHaveBeenCalled();
 
-      Storage.prototype.getItem = originalGetItem;
+      localStorage.getItem = originalGetItem;
     });
 
     it('should handle localStorage.setItem errors gracefully', () => {
-      const originalSetItem = Storage.prototype.setItem;
-      Storage.prototype.setItem = () => {
+      const originalSetItem = localStorage.setItem;
+      localStorage.setItem = () => {
         throw new Error('QuotaExceededError');
       };
 
       expect(() => service.set('pulpe-test', { data: 'value' })).not.toThrow();
       expect(mockLogger.warn).toHaveBeenCalled();
 
-      Storage.prototype.setItem = originalSetItem;
+      localStorage.setItem = originalSetItem;
     });
 
     it('should return false from has() on localStorage error', () => {
-      const originalGetItem = Storage.prototype.getItem;
-      Storage.prototype.getItem = () => {
+      const originalGetItem = localStorage.getItem;
+      localStorage.getItem = () => {
         throw new Error('localStorage disabled');
       };
 
@@ -296,7 +312,7 @@ describe('StorageService', () => {
 
       expect(result).toBe(false);
 
-      Storage.prototype.getItem = originalGetItem;
+      localStorage.getItem = originalGetItem;
     });
   });
 });

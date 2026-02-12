@@ -4,6 +4,7 @@ export interface ProfileData {
   housingCosts?: number;
   healthInsurance?: number;
   phonePlan?: number;
+  internetPlan?: number;
   transportCosts?: number;
   leasingCredit?: number;
 }

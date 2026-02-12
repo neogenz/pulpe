@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { BudgetCalculator } from './budget.calculator';
 import { BudgetRepository } from './budget.repository';
+import { EncryptionService } from '@modules/encryption/encryption.service';
 import { createMockPinoLogger } from '../../test/test-mocks';
 
 describe('BudgetCalculator', () => {
@@ -26,6 +27,11 @@ describe('BudgetCalculator', () => {
           }),
       };
 
+      const mockEncryptionService = {
+        ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+        encryptAmount: () => 'encrypted-mock',
+      };
+
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           BudgetCalculator,
@@ -37,6 +43,10 @@ describe('BudgetCalculator', () => {
             provide: BudgetRepository,
             useValue: mockRepository,
           },
+          {
+            provide: EncryptionService,
+            useValue: mockEncryptionService,
+          },
         ],
       }).compile();
 
@@ -46,6 +56,7 @@ describe('BudgetCalculator', () => {
       const result = await calculator.calculateEndingBalance(
         'budget-id',
         {} as any,
+        null,
       );
 
       // ASSERT
@@ -75,6 +86,11 @@ describe('BudgetCalculator', () => {
           }),
       };
 
+      const mockEncryptionService = {
+        ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+        encryptAmount: () => 'encrypted-mock',
+      };
+
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           BudgetCalculator,
@@ -86,6 +102,10 @@ describe('BudgetCalculator', () => {
             provide: BudgetRepository,
             useValue: mockRepository,
           },
+          {
+            provide: EncryptionService,
+            useValue: mockEncryptionService,
+          },
         ],
       }).compile();
 
@@ -95,6 +115,7 @@ describe('BudgetCalculator', () => {
       const result = await calculator.calculateEndingBalance(
         'budget-id',
         {} as any,
+        null,
       );
 
       // ASSERT
@@ -123,6 +144,11 @@ describe('BudgetCalculator', () => {
         },
       };
 
+      const mockEncryptionService = {
+        ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+        encryptAmount: () => 'encrypted-mock',
+      };
+
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           BudgetCalculator,
@@ -134,19 +160,25 @@ describe('BudgetCalculator', () => {
             provide: BudgetRepository,
             useValue: mockRepository,
           },
+          {
+            provide: EncryptionService,
+            useValue: mockEncryptionService,
+          },
         ],
       }).compile();
 
       const calculator = module.get<BudgetCalculator>(BudgetCalculator);
 
       // ACT
-      await calculator.calculateEndingBalance('budget-id', {} as any);
+      await calculator.calculateEndingBalance('budget-id', {} as any, null);
 
       // ASSERT - Verify the calculator requests the right fields
       expect(capturedOptions).not.toBeNull();
-      expect(capturedOptions!.budgetLineFields).toBe('id, kind, amount');
+      expect(capturedOptions!.budgetLineFields).toBe(
+        'id, kind, amount, amount_encrypted',
+      );
       expect(capturedOptions!.transactionFields).toBe(
-        'id, kind, amount, budget_line_id',
+        'id, kind, amount, amount_encrypted, budget_line_id',
       );
     });
 
@@ -171,6 +203,11 @@ describe('BudgetCalculator', () => {
           }),
       };
 
+      const mockEncryptionService = {
+        ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+        encryptAmount: () => 'encrypted-mock',
+      };
+
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           BudgetCalculator,
@@ -182,6 +219,10 @@ describe('BudgetCalculator', () => {
             provide: BudgetRepository,
             useValue: mockRepository,
           },
+          {
+            provide: EncryptionService,
+            useValue: mockEncryptionService,
+          },
         ],
       }).compile();
 
@@ -191,6 +232,7 @@ describe('BudgetCalculator', () => {
       const result = await calculator.calculateEndingBalance(
         'budget-id',
         {} as any,
+        null,
       );
 
       // ASSERT
@@ -226,6 +268,11 @@ describe('BudgetCalculator', () => {
           }),
       };
 
+      const mockEncryptionService = {
+        ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+        encryptAmount: () => 'encrypted-mock',
+      };
+
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           BudgetCalculator,
@@ -237,6 +284,10 @@ describe('BudgetCalculator', () => {
             provide: BudgetRepository,
             useValue: mockRepository,
           },
+          {
+            provide: EncryptionService,
+            useValue: mockEncryptionService,
+          },
         ],
       }).compile();
 
@@ -246,6 +297,7 @@ describe('BudgetCalculator', () => {
       const result = await calculator.calculateEndingBalance(
         'budget-id',
         {} as any,
+        null,
       );
 
       // ASSERT
@@ -269,6 +321,11 @@ describe('BudgetCalculator', () => {
           }),
       };
 
+      const mockEncryptionService = {
+        ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+        encryptAmount: () => 'encrypted-mock',
+      };
+
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           BudgetCalculator,
@@ -280,6 +337,10 @@ describe('BudgetCalculator', () => {
             provide: BudgetRepository,
             useValue: mockRepository,
           },
+          {
+            provide: EncryptionService,
+            useValue: mockEncryptionService,
+          },
         ],
       }).compile();
 
@@ -289,6 +350,7 @@ describe('BudgetCalculator', () => {
       const result = await calculator.calculateEndingBalance(
         'budget-id',
         {} as any,
+        null,
       );
 
       // ASSERT
@@ -308,6 +370,11 @@ describe('BudgetCalculator', () => {
           }),
       };
 
+      const mockEncryptionService = {
+        ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+        encryptAmount: () => 'encrypted-mock',
+      };
+
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           BudgetCalculator,
@@ -319,6 +386,10 @@ describe('BudgetCalculator', () => {
             provide: BudgetRepository,
             useValue: mockRepository,
           },
+          {
+            provide: EncryptionService,
+            useValue: mockEncryptionService,
+          },
         ],
       }).compile();
 
@@ -328,6 +399,7 @@ describe('BudgetCalculator', () => {
       const result = await calculator.calculateEndingBalance(
         'budget-id',
         {} as any,
+        null,
       );
 
       // ASSERT
@@ -346,6 +418,11 @@ describe('BudgetCalculator', () => {
           }),
       };
 
+      const mockEncryptionService = {
+        ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+        encryptAmount: () => 'encrypted-mock',
+      };
+
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           BudgetCalculator,
@@ -357,6 +434,10 @@ describe('BudgetCalculator', () => {
             provide: BudgetRepository,
             useValue: mockRepository,
           },
+          {
+            provide: EncryptionService,
+            useValue: mockEncryptionService,
+          },
         ],
       }).compile();
 
@@ -366,6 +447,7 @@ describe('BudgetCalculator', () => {
       const result = await calculator.calculateEndingBalance(
         'budget-id',
         {} as any,
+        null,
       );
 
       // ASSERT

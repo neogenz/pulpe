@@ -1,4 +1,8 @@
 import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+
+import { ClientKeyService, EncryptionApi } from '@core/encryption';
+
 import { AuthSessionService } from './auth-session.service';
 import { AuthStateService } from './auth-state.service';
 import { AuthErrorLocalizer } from './auth-error-localizer';
@@ -14,6 +18,8 @@ export class AuthCredentialsService {
   readonly #state = inject(AuthStateService);
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
   readonly #logger = inject(Logger);
+  readonly #clientKeyService = inject(ClientKeyService);
+  readonly #encryptionApi = inject(EncryptionApi);
 
   async signInWithEmail(
     email: string,
@@ -36,7 +42,7 @@ export class AuthCredentialsService {
       if (error) {
         return {
           success: false,
-          error: this.#errorLocalizer.localizeError(error.message),
+          error: this.#errorLocalizer.localizeAuthError(error),
         };
       }
 
@@ -53,6 +59,27 @@ export class AuthCredentialsService {
       }
 
       this.#state.setSession(data.session ?? null);
+
+      // Migration: derive client key from password for existing users
+      // who have not yet set up a vault code. New vault-code users skip this.
+      const hasVaultCode =
+        !!data.session?.user?.user_metadata?.['vaultCodeConfigured'];
+      if (!hasVaultCode) {
+        try {
+          await this.#deriveClientKey(password);
+        } catch (encryptionError) {
+          this.#logger.error(
+            'Encryption key derivation failed during sign-in',
+            { error: encryptionError },
+          );
+          await this.#session.signOut();
+          return {
+            success: false,
+            error: AUTH_ERROR_MESSAGES.ENCRYPTION_SETUP_ERROR,
+          };
+        }
+      }
+
       return { success: true };
     } catch (error) {
       this.#logger.error('Unexpected error during sign-in', {
@@ -89,11 +116,19 @@ export class AuthCredentialsService {
       if (error) {
         return {
           success: false,
-          error: this.#errorLocalizer.localizeError(error.message),
+          error: this.#errorLocalizer.localizeAuthError(error),
         };
       }
 
       this.#state.setSession(data.session ?? null);
+      // Signup never migrates existing encrypted data. Clear any leftover key
+      // to avoid treating new users as migration mode in setup-vault-code.
+      this.#clientKeyService.clear();
+
+      // New users will set up their vault code after signup.
+      // No client key derivation from password — the encryption guard
+      // redirects to setup-vault-code.
+
       return { success: true };
     } catch (error) {
       this.#logger.error('Unexpected error during sign-up', {
@@ -109,6 +144,18 @@ export class AuthCredentialsService {
     } finally {
       this.#state.setLoading(false);
     }
+  }
+
+  async #deriveClientKey(password: string): Promise<void> {
+    const { salt, kdfIterations } = await firstValueFrom(
+      this.#encryptionApi.getSalt$(),
+    );
+    await this.#clientKeyService.deriveAndStore(
+      password,
+      salt,
+      kdfIterations,
+      false,
+    );
   }
 
   #isE2EBypass(): boolean {

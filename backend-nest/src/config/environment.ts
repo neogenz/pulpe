@@ -16,6 +16,15 @@ const envSchema = z.object({
   TURNSTILE_SECRET_KEY: z
     .string()
     .min(1, { error: 'TURNSTILE_SECRET_KEY is required' }),
+  ENCRYPTION_MASTER_KEY: z
+    .string()
+    .length(64, {
+      error:
+        'ENCRYPTION_MASTER_KEY must be exactly 64 hex characters (32 bytes)',
+    })
+    .regex(/^[0-9a-f]+$/i, {
+      error: 'ENCRYPTION_MASTER_KEY must be a valid hex string',
+    }),
   CORS_ORIGIN: z.string().optional(),
   DEBUG_HTTP_FULL: z.string().optional(),
   MAINTENANCE_MODE: z.string().optional(),
@@ -32,6 +41,7 @@ export function validateEnvironment(configService: ConfigService): Environment {
     SUPABASE_ANON_KEY: configService.get('SUPABASE_ANON_KEY'),
     SUPABASE_SERVICE_ROLE_KEY: configService.get('SUPABASE_SERVICE_ROLE_KEY'),
     TURNSTILE_SECRET_KEY: configService.get('TURNSTILE_SECRET_KEY'),
+    ENCRYPTION_MASTER_KEY: configService.get('ENCRYPTION_MASTER_KEY'),
     CORS_ORIGIN: configService.get('CORS_ORIGIN'),
     DEBUG_HTTP_FULL: configService.get('DEBUG_HTTP_FULL'),
     MAINTENANCE_MODE: configService.get('MAINTENANCE_MODE'),

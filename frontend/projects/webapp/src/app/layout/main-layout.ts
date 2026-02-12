@@ -48,7 +48,7 @@ import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
 import { of } from 'rxjs';
 import { delay, filter, map, shareReplay, switchMap } from 'rxjs/operators';
 import { AboutDialog } from './about-dialog';
-import { LogoutDialog } from './logout-dialog';
+import { LogoutDialog } from '@ui/dialogs/logout-dialog';
 
 interface NavigationItem {
   readonly route: string;
@@ -131,7 +131,7 @@ interface NavigationItem {
         } @else {
           <!-- Desktop: Material 3 Navigation Rail -->
           <nav
-            class="pt-4 px-3"
+            class="pt-6 px-3"
             data-testid="desktop-navigation"
             data-tour="navigation"
           >
@@ -140,14 +140,14 @@ interface NavigationItem {
                 [routerLink]="item.route"
                 routerLinkActive
                 #rla="routerLinkActive"
-                class="flex flex-col items-center mb-3 group transition-opacity"
+                class="flex flex-col items-center mb-4 group transition-opacity"
                 [class.pointer-events-none]="isNavigating()"
                 [class.opacity-50]="isNavigating()"
                 [matTooltip]="item.tooltip || item.label"
                 matTooltipPosition="right"
               >
                 <div
-                  class="w-14 h-8 flex items-center justify-center rounded-full transition-all duration-200"
+                  class="w-16 h-9 flex items-center justify-center rounded-full transition-all duration-200"
                   [class.bg-secondary-container]="rla.isActive"
                   [class.text-on-secondary-container]="rla.isActive"
                   [class.text-on-surface-variant]="!rla.isActive"
@@ -400,8 +400,9 @@ interface NavigationItem {
       /* Smooth transition for icon fill and scale */
       mat-icon {
         transition:
-          font-variation-settings 200ms ease-in-out,
-          transform 200ms ease-in-out;
+          font-variation-settings var(--pulpe-motion-base)
+            var(--pulpe-ease-standard),
+          transform var(--pulpe-motion-base) var(--pulpe-ease-standard);
       }
 
       /* Prevent layout shift on scale */
@@ -628,7 +629,7 @@ export default class MainLayout {
   );
 
   // State for logout process
-  readonly #isLoggingOut = signal<boolean>(false);
+  readonly #isLoggingOut = signal(false);
   readonly isLoggingOut = this.#isLoggingOut.asReadonly();
 
   protected closeDrawerOnMobile(drawer: { close: () => void }): void {

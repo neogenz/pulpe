@@ -14,7 +14,7 @@ import { type BudgetLine } from 'pulpe-shared';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { RecurrenceLabelPipe } from '@ui/transaction-display';
 import { formatMatchAnnotation, type BudgetLineTableItem } from '../data-core';
-import { BudgetProgressBar } from '../components/budget-progress-bar';
+import { SegmentedBudgetProgress } from '../components/segmented-budget-progress';
 import { BudgetKindIndicator } from '../components/budget-kind-indicator';
 import { BudgetActionMenu } from '../components/budget-action-menu';
 
@@ -43,7 +43,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
     CurrencyPipe,
     FinancialKindDirective,
     RecurrenceLabelPipe,
-    BudgetProgressBar,
+    SegmentedBudgetProgress,
     BudgetKindIndicator,
     BudgetActionMenu,
   ],
@@ -51,7 +51,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
     <div
       class="bg-surface rounded-2xl border border-outline-variant/50 p-5 cursor-pointer
              transition-all duration-200 hover:shadow-md hover:border-outline-variant
-             min-h-[200px] h-full flex flex-col"
+             min-h-[188px] h-full flex flex-col"
       [class.ring-2]="isSelected()"
       [class.ring-primary]="isSelected()"
       [class.opacity-60]="item().metadata.isLoading"
@@ -116,7 +116,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
       <!-- Segmented Progress -->
       @if (item().consumption?.hasTransactions && !item().metadata.isRollover) {
         <div class="mb-4">
-          <pulpe-budget-progress-bar
+          <pulpe-segmented-budget-progress
             [percentage]="item().consumption!.percentage"
             [segmentCount]="10"
             [height]="8"

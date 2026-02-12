@@ -1,4 +1,5 @@
 import { test, expect } from '../../fixtures/test-fixtures';
+import { setupAuthBypass } from '../../utils/auth-bypass';
 
 /**
  * Authentication Tests
@@ -83,5 +84,53 @@ test.describe('Authentication', () => {
 
     // Should redirect away from app
     await expect(authenticatedPage).toHaveURL(/\/(login|welcome)/);
+  });
+
+  test('should clear session vault key on logout but preserve device trust key', async ({ page }) => {
+    await setupAuthBypass(page, {
+      includeApiMocks: true,
+      setLocalStorage: true,
+      vaultCodeConfigured: true,
+    });
+
+    await page.addInitScript(() => {
+      const path = window.location.pathname;
+      if (path === '/login' || path === '/welcome') {
+        return;
+      }
+
+      const entry = {
+        version: 1,
+        data: 'aa'.repeat(32),
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(
+        'pulpe-vault-client-key-local',
+        JSON.stringify(entry),
+      );
+      sessionStorage.setItem(
+        'pulpe-vault-client-key-session',
+        JSON.stringify(entry),
+      );
+    });
+
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByTestId('user-menu-trigger')).toBeVisible();
+    await page.getByTestId('user-menu-trigger').click();
+    await expect(page.getByTestId('logout-button')).toBeVisible();
+    await page.getByTestId('logout-button').click();
+
+    await expect(page).toHaveURL(/\/(login|welcome)/);
+
+    const storage = await page.evaluate(() => ({
+      local: localStorage.getItem('pulpe-vault-client-key-local'),
+      session: sessionStorage.getItem('pulpe-vault-client-key-session'),
+    }));
+
+    // Device trust key (app-scoped) is preserved across logout
+    expect(storage.local).not.toBeNull();
+    // Session key (user-scoped) is cleared on logout
+    expect(storage.session).toBeNull();
   });
 });

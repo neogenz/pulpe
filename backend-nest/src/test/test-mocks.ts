@@ -19,6 +19,8 @@ export const createMockAuthenticatedUser = (
   firstName: 'John',
   lastName: 'Doe',
   accessToken: 'mock-access-token',
+  clientKey: Buffer.from('ab'.repeat(32), 'hex'),
+  isDemo: false,
   ...overrides,
 });
 
@@ -34,6 +36,7 @@ export const createMockBudgetEntity = (
   year: 2024,
   description: 'Test Budget',
   ending_balance: null,
+  ending_balance_encrypted: null,
   created_at: '2024-01-01T00:00:00.000Z',
   updated_at: '2024-01-01T00:00:00.000Z',
   ...overrides,
@@ -46,6 +49,7 @@ export const createMockTransactionEntity = (
   budget_id: MOCK_BUDGET_ID,
   name: 'Test Transaction',
   amount: 100,
+  amount_encrypted: null,
   kind: 'expense' as const,
   transaction_date: '2024-01-01T00:00:00.000Z',
   category: null,
@@ -75,6 +79,7 @@ export const createMockTemplateLineEntity = (
   template_id: MOCK_TEMPLATE_ID,
   name: 'Test Template Line',
   amount: 100,
+  amount_encrypted: null,
   kind: 'expense' as const,
   recurrence: 'fixed' as const,
   description: null,

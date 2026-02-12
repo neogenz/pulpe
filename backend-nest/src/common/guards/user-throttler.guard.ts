@@ -7,10 +7,12 @@ import {
   type ThrottlerModuleOptions,
   type ThrottlerStorage,
 } from '@nestjs/throttler';
+import { ClsService } from 'nestjs-cls';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { Request } from 'express';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import type { AppClsStore } from '@common/types/cls-store.interface';
 
 interface RequestWithThrottlerCache extends Request {
   __throttlerUserCache?: AuthenticatedUser | null;
@@ -59,6 +61,7 @@ export class UserThrottlerGuard extends ThrottlerGuard {
     @InjectPinoLogger(UserThrottlerGuard.name)
     private readonly logger: PinoLogger,
     private readonly supabaseService: SupabaseService,
+    private readonly cls: ClsService<AppClsStore>,
   ) {
     // Pass ThrottlerGuard dependencies (required even though we override getTracker)
     // These are used by the parent class for rate limit checks and reflection
@@ -77,9 +80,9 @@ export class UserThrottlerGuard extends ThrottlerGuard {
    * This ensures public endpoints continue to work while authenticated endpoints
    * benefit from user-based throttling.
    */
-  private async resolveUser(request: {
-    headers?: { authorization?: string };
-  }): Promise<AuthenticatedUser | undefined> {
+  private async resolveUser(
+    request: Request,
+  ): Promise<AuthenticatedUser | undefined> {
     try {
       const authHeader = request.headers?.authorization;
       if (!authHeader) return undefined;
@@ -99,12 +102,21 @@ export class UserThrottlerGuard extends ThrottlerGuard {
         return undefined;
       }
 
+      const clientKeyHex = request.headers?.['x-client-key'] as
+        | string
+        | undefined;
+      const clientKey = clientKeyHex
+        ? Buffer.from(clientKeyHex, 'hex')
+        : Buffer.alloc(0);
+
       return {
         id: user.id,
         email: user.email ?? '',
         firstName: user.user_metadata?.firstName,
         lastName: user.user_metadata?.lastName,
         accessToken: token,
+        clientKey,
+        isDemo: user.user_metadata?.is_demo === true,
       };
     } catch (error) {
       // Log errors at debug level (not warn) to avoid noise from invalid tokens
@@ -162,6 +174,9 @@ export class UserThrottlerGuard extends ThrottlerGuard {
 
     // Use user ID for authenticated requests
     if (user?.id) {
+      // Store isDemo in CLS early - AuthGuard will overwrite if it runs,
+      // but public routes may only hit this guard
+      this.cls.set('isDemo', user.isDemo === true);
       return `user:${user.id}`;
     }
 

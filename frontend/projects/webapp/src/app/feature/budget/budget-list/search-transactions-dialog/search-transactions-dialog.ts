@@ -177,10 +177,8 @@ import { Logger } from '@core/logging/logger';
       } @else if (hasSearched()) {
         <div class="text-center py-8 text-on-surface-variant">
           <mat-icon class="text-5xl! w-auto! h-auto! mb-2">search_off</mat-icon>
-          <p class="text-body-medium">Aucun résultat trouvé</p>
-          <p class="text-body-small">
-            Essayez avec un autre terme de recherche
-          </p>
+          <p class="text-body-medium">Pas de résultat</p>
+          <p class="text-body-small">Essaie avec un autre terme de recherche</p>
         </div>
       } @else {
         <div class="text-center py-8 text-on-surface-variant">

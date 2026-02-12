@@ -102,6 +102,7 @@ export class AuthSessionService {
           switch (event) {
             case 'SIGNED_IN':
             case 'TOKEN_REFRESHED':
+            case 'PASSWORD_RECOVERY':
               this.#updateAuthState(session);
               break;
             case 'SIGNED_OUT':
@@ -205,7 +206,7 @@ export class AuthSessionService {
       if (error) {
         return {
           success: false,
-          error: this.#errorLocalizer.localizeError(error.message),
+          error: this.#errorLocalizer.localizeAuthError(error),
         };
       }
 
@@ -218,6 +219,79 @@ export class AuthSessionService {
       return { success: true };
     } catch (error) {
       this.#logger.error('Error setting session:', {
+        error,
+        errorType:
+          error instanceof Error ? error.constructor.name : typeof error,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return {
+        success: false,
+        error: AUTH_ERROR_MESSAGES.UNEXPECTED_SESSION_ERROR,
+      };
+    }
+  }
+
+  async verifyPassword(
+    password: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const email = this.#state.user()?.email;
+      if (!email) {
+        return { success: false, error: 'Utilisateur non connecté' };
+      }
+
+      const { error } = await this.getClient().auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        return {
+          success: false,
+          error: this.#errorLocalizer.localizeAuthError(error),
+        };
+      }
+
+      return { success: true };
+    } catch (error) {
+      this.#logger.error('Error verifying password:', {
+        error,
+        errorType:
+          error instanceof Error ? error.constructor.name : typeof error,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return {
+        success: false,
+        error: AUTH_ERROR_MESSAGES.UNEXPECTED_SESSION_ERROR,
+      };
+    }
+  }
+
+  async updatePassword(
+    newPassword: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    if (this.#isE2EBypass()) {
+      this.#logger.info(
+        '🎭 Mode test E2E: Simulation du changement de mot de passe',
+      );
+      return { success: true };
+    }
+
+    try {
+      const { error } = await this.getClient().auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        return {
+          success: false,
+          error: this.#errorLocalizer.localizeAuthError(error),
+        };
+      }
+
+      return { success: true };
+    } catch (error) {
+      this.#logger.error('Error updating password:', {
         error,
         errorType:
           error instanceof Error ? error.constructor.name : typeof error,
@@ -251,6 +325,38 @@ export class AuthSessionService {
     } finally {
       this.#updateAuthState(null);
       this.#cleanup.performCleanup();
+    }
+  }
+
+  async resetPasswordForEmail(
+    email: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const redirectTo = `${window.location.origin}/reset-password`;
+      const { error } = await this.getClient().auth.resetPasswordForEmail(
+        email,
+        { redirectTo },
+      );
+
+      if (error) {
+        return {
+          success: false,
+          error: this.#errorLocalizer.localizeAuthError(error),
+        };
+      }
+
+      return { success: true };
+    } catch (error) {
+      this.#logger.error('Error sending password reset email:', {
+        error,
+        errorType:
+          error instanceof Error ? error.constructor.name : typeof error,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return {
+        success: false,
+        error: AUTH_ERROR_MESSAGES.UNEXPECTED_SESSION_ERROR,
+      };
     }
   }
 

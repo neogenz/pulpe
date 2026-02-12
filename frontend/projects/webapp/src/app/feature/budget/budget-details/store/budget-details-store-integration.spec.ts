@@ -85,8 +85,10 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     toggleCheck$: ReturnType<typeof vi.fn>;
   };
   let mockLogger: {
-    error: ReturnType<typeof vi.fn>;
+    debug: ReturnType<typeof vi.fn>;
+    info: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
+    error: ReturnType<typeof vi.fn>;
   };
   let mockApplicationConfiguration: {
     backendApiUrl: ReturnType<typeof vi.fn>;
@@ -99,20 +101,12 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
   // Helper function to wait for resource to stabilize
   const waitForResourceStable = async (timeout = 1000): Promise<void> => {
-    const startTime = Date.now();
-
-    while (Date.now() - startTime < timeout) {
-      if (!service.isLoading()) {
-        // Wait a bit more to ensure stability
-        await new Promise((resolve) => setTimeout(resolve, 10));
-        if (!service.isLoading()) {
-          return;
-        }
-      }
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    }
-
-    throw new Error(`Resource did not stabilize within ${timeout}ms`);
+    await vi.waitFor(
+      () => {
+        expect(service.isLoading()).toBe(false);
+      },
+      { timeout },
+    );
   };
 
   beforeEach(() => {
@@ -138,8 +132,10 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     };
 
     mockLogger = {
-      error: vi.fn(),
+      debug: vi.fn(),
+      info: vi.fn(),
       warn: vi.fn(),
+      error: vi.fn(),
     };
 
     mockApplicationConfiguration = {
@@ -179,7 +175,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     httpMock?.verify();
   });
 
-  it('should create', () => {
+  it('should instantiate budget details store', () => {
     expect(service).toBeTruthy();
   });
 

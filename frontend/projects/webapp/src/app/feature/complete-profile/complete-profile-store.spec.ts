@@ -101,6 +101,10 @@ describe('CompleteProfileStore', () => {
       expect(store.error()).toBe('');
     });
 
+    it('should have null internetPlan', () => {
+      expect(store.internetPlan()).toBeNull();
+    });
+
     it('should have null payDayOfMonth', () => {
       expect(store.payDayOfMonth()).toBeNull();
     });
@@ -231,6 +235,21 @@ describe('CompleteProfileStore', () => {
     });
   });
 
+  describe('updateInternetPlan', () => {
+    it('should update internetPlan', () => {
+      store.updateInternetPlan(60);
+
+      expect(store.internetPlan()).toBe(60);
+    });
+
+    it('should allow setting to null', () => {
+      store.updateInternetPlan(60);
+      store.updateInternetPlan(null);
+
+      expect(store.internetPlan()).toBeNull();
+    });
+  });
+
   describe('updatePayDayOfMonth', () => {
     it('should update payDayOfMonth', () => {
       store.updatePayDayOfMonth(27);
@@ -299,6 +318,7 @@ describe('CompleteProfileStore', () => {
         housingCosts: undefined,
         healthInsurance: undefined,
         phonePlan: undefined,
+        internetPlan: undefined,
         transportCosts: undefined,
         leasingCredit: undefined,
       });
@@ -432,6 +452,7 @@ describe('CompleteProfileStore', () => {
       store.updateMonthlyIncome(5000);
       store.updateHousingCosts(1000);
       store.updatePhonePlan(50);
+      store.updateInternetPlan(45);
       store.updatePayDayOfMonth(27);
 
       await store.submitProfile();
@@ -441,7 +462,7 @@ describe('CompleteProfileStore', () => {
         {
           signup_method: 'email',
           has_pay_day: true,
-          charges_count: 2,
+          charges_count: 3,
         },
       );
     });

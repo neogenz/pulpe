@@ -8,6 +8,8 @@ export { type E2EWindow, type DemoSession } from '../../projects/webapp/src/app/
 export interface E2EUser {
   id: string;
   email: string;
+  app_metadata?: Record<string, unknown>;
+  user_metadata?: Record<string, unknown>;
 }
 
 /**

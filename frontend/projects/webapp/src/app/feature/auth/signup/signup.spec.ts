@@ -1,16 +1,22 @@
-import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import Signup from './signup';
+
 import { AuthCredentialsService, PASSWORD_MIN_LENGTH } from '@core/auth';
 import { Logger } from '@core/logging/logger';
+
+import Signup from './signup';
 
 describe('Signup', () => {
   let component: Signup;
   let mockAuthCredentials: { signUpWithEmail: ReturnType<typeof vi.fn> };
-  let mockLogger: { error: ReturnType<typeof vi.fn> };
+  let mockLogger: {
+    error: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+  };
+  let navigateSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     mockAuthCredentials = {
@@ -19,6 +25,7 @@ describe('Signup', () => {
 
     mockLogger = {
       error: vi.fn(),
+      warn: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -33,7 +40,19 @@ describe('Signup', () => {
     }).compileComponents();
 
     component = TestBed.createComponent(Signup).componentInstance;
+
+    const router = TestBed.inject(Router);
+    navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
   });
+
+  function fillValidForm(): void {
+    component['signupForm'].patchValue({
+      email: 'test@example.com',
+      password: 'password123',
+      confirmPassword: 'password123',
+      acceptTerms: true,
+    });
+  }
 
   describe('Component Structure', () => {
     it('should create successfully', () => {
@@ -41,8 +60,8 @@ describe('Signup', () => {
     });
 
     it('should have signal properties defined', () => {
-      expect(component['hidePassword']).toBeDefined();
-      expect(component['hideConfirmPassword']).toBeDefined();
+      expect(component['isPasswordHidden']).toBeDefined();
+      expect(component['isConfirmPasswordHidden']).toBeDefined();
       expect(component['isSubmitting']).toBeDefined();
       expect(component['errorMessage']).toBeDefined();
     });
@@ -62,12 +81,12 @@ describe('Signup', () => {
   });
 
   describe('Default Values', () => {
-    it('should have hidePassword true by default', () => {
-      expect(component['hidePassword']()).toBe(true);
+    it('should have isPasswordHidden true by default', () => {
+      expect(component['isPasswordHidden']()).toBe(true);
     });
 
-    it('should have hideConfirmPassword true by default', () => {
-      expect(component['hideConfirmPassword']()).toBe(true);
+    it('should have isConfirmPasswordHidden true by default', () => {
+      expect(component['isConfirmPasswordHidden']()).toBe(true);
     });
 
     it('should have isSubmitting false by default', () => {
@@ -179,52 +198,42 @@ describe('Signup', () => {
     });
 
     it('should return false when isSubmitting is true', () => {
-      component['signupForm'].patchValue({
-        email: 'test@example.com',
-        password: 'password123',
-        confirmPassword: 'password123',
-        acceptTerms: true,
-      });
+      fillValidForm();
       component['isSubmitting'].set(true);
       expect(component['canSubmit']()).toBe(false);
     });
 
     it('should return true when form is valid and not submitting', () => {
-      component['signupForm'].patchValue({
-        email: 'test@example.com',
-        password: 'password123',
-        confirmPassword: 'password123',
-        acceptTerms: true,
-      });
+      fillValidForm();
       expect(component['canSubmit']()).toBe(true);
     });
   });
 
   describe('togglePasswordVisibility', () => {
-    it('should toggle hidePassword from true to false', () => {
-      expect(component['hidePassword']()).toBe(true);
+    it('should toggle isPasswordHidden from true to false', () => {
+      expect(component['isPasswordHidden']()).toBe(true);
       component['togglePasswordVisibility']();
-      expect(component['hidePassword']()).toBe(false);
+      expect(component['isPasswordHidden']()).toBe(false);
     });
 
-    it('should toggle hidePassword from false to true', () => {
-      component['hidePassword'].set(false);
+    it('should toggle isPasswordHidden from false to true', () => {
+      component['isPasswordHidden'].set(false);
       component['togglePasswordVisibility']();
-      expect(component['hidePassword']()).toBe(true);
+      expect(component['isPasswordHidden']()).toBe(true);
     });
   });
 
   describe('toggleConfirmPasswordVisibility', () => {
-    it('should toggle hideConfirmPassword from true to false', () => {
-      expect(component['hideConfirmPassword']()).toBe(true);
+    it('should toggle isConfirmPasswordHidden from true to false', () => {
+      expect(component['isConfirmPasswordHidden']()).toBe(true);
       component['toggleConfirmPasswordVisibility']();
-      expect(component['hideConfirmPassword']()).toBe(false);
+      expect(component['isConfirmPasswordHidden']()).toBe(false);
     });
 
-    it('should toggle hideConfirmPassword from false to true', () => {
-      component['hideConfirmPassword'].set(false);
+    it('should toggle isConfirmPasswordHidden from false to true', () => {
+      component['isConfirmPasswordHidden'].set(false);
       component['toggleConfirmPasswordVisibility']();
-      expect(component['hideConfirmPassword']()).toBe(true);
+      expect(component['isConfirmPasswordHidden']()).toBe(true);
     });
   });
 
@@ -263,12 +272,7 @@ describe('Signup', () => {
 
   describe('signUp - Valid Form', () => {
     beforeEach(() => {
-      component['signupForm'].patchValue({
-        email: 'test@example.com',
-        password: 'password123',
-        confirmPassword: 'password123',
-        acceptTerms: true,
-      });
+      fillValidForm();
     });
 
     it('should set isSubmitting to true when called', async () => {
@@ -311,12 +315,7 @@ describe('Signup', () => {
 
   describe('signUp - API Failure', () => {
     beforeEach(() => {
-      component['signupForm'].patchValue({
-        email: 'test@example.com',
-        password: 'password123',
-        confirmPassword: 'password123',
-        acceptTerms: true,
-      });
+      fillValidForm();
     });
 
     it('should set error message from API response', async () => {
@@ -351,12 +350,7 @@ describe('Signup', () => {
 
   describe('signUp - Exception', () => {
     beforeEach(() => {
-      component['signupForm'].patchValue({
-        email: 'test@example.com',
-        password: 'password123',
-        confirmPassword: 'password123',
-        acceptTerms: true,
-      });
+      fillValidForm();
     });
 
     it('should set generic error message on exception', async () => {
@@ -391,6 +385,29 @@ describe('Signup', () => {
       await component['signUp']();
 
       expect(component['isSubmitting']()).toBe(false);
+    });
+  });
+
+  describe('signUp - Navigation after Success', () => {
+    beforeEach(() => {
+      fillValidForm();
+      mockAuthCredentials.signUpWithEmail.mockResolvedValue({ success: true });
+    });
+
+    it('should navigate to dashboard after successful signup', async () => {
+      await component['signUp']();
+      expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']);
+    });
+
+    it('should not navigate when signup fails', async () => {
+      mockAuthCredentials.signUpWithEmail.mockResolvedValue({
+        success: false,
+        error: 'Email already exists',
+      });
+
+      await component['signUp']();
+
+      expect(navigateSpy).not.toHaveBeenCalled();
     });
   });
 });

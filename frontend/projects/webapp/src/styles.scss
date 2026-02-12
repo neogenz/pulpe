@@ -5,6 +5,16 @@
 @use "./variables";
 @use "./app/styles/themes/_theme-colors.scss" as theme;
 
+// Local font faces (self-hosted via @fontsource, no runtime Google Fonts dependency)
+@include meta.load-css("@fontsource/dm-sans/latin-400.css");
+@include meta.load-css("@fontsource/dm-sans/latin-500.css");
+@include meta.load-css("@fontsource/dm-sans/latin-600.css");
+@include meta.load-css("@fontsource/dm-sans/latin-700.css");
+@include meta.load-css("@fontsource/manrope/latin-500.css");
+@include meta.load-css("@fontsource/manrope/latin-600.css");
+@include meta.load-css("@fontsource/manrope/latin-700.css");
+@include meta.load-css("@fontsource/manrope/latin-800.css");
+
 // Product Tour
 @import "driver.js/dist/driver.css";
 @import "./app/core/product-tour/product-tour.css";
@@ -47,7 +57,7 @@ body {
     overflow-y: hidden;
   }
   font-family:
-    var(--mat-sys-typescale-body-medium-font-family-name), Poppins,
+    var(--mat-sys-typescale-body-medium-font-family-name), "DM Sans",
     "Helvetica Neue", sans-serif;
   background: var(--mat-sys-surface);
   color: var(--mat-sys-on-surface);
@@ -55,8 +65,29 @@ body {
   line-height: var(--mat-sys-typescale-body-medium-line-height);
 }
 
-// Pulpe brand gradient - electric DA: vivid blue → neon emerald → bright green → lime pop
+// Pulpe design tokens + brand gradient
 :root {
+  /* Layout */
+  --pulpe-page-gutter-mobile: 16px;
+  --pulpe-page-gutter-tablet: 24px;
+  --pulpe-page-gutter-desktop: 32px;
+  --pulpe-section-gap-sm: 16px;
+  --pulpe-section-gap-md: 24px;
+  --pulpe-section-gap-lg: 32px;
+
+  /* Surfaces */
+  --pulpe-surface-radius-card: 24px;
+  --pulpe-surface-radius-panel: 16px;
+  --pulpe-surface-border-subtle: 1px solid var(--mat-sys-outline-variant);
+
+  /* Motion */
+  --pulpe-motion-fast: 150ms;
+  --pulpe-motion-base: 220ms;
+  --pulpe-motion-slow: 320ms;
+  --pulpe-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --pulpe-ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Gradient */
   --pulpe-gradient-start: #009bff;
   --pulpe-gradient-mid1: #00edab;
   --pulpe-gradient-mid2: #30e868;
@@ -72,6 +103,13 @@ body {
   }
 }
 
+.dark-theme {
+  --pulpe-gradient-start: #003d7a;
+  --pulpe-gradient-mid1: #006b4e;
+  --pulpe-gradient-mid2: #0d7a30;
+  --pulpe-gradient-end: #2ba84a;
+}
+
 .pulpe-gradient {
   background: linear-gradient(
     135deg,
@@ -80,6 +118,42 @@ body {
     var(--pulpe-gradient-mid2) 66%,
     var(--pulpe-gradient-end) 100%
   );
+}
+
+.pulpe-entry-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--pulpe-page-gutter-mobile);
+
+  @media (min-width: 768px) {
+    padding: var(--pulpe-page-gutter-tablet);
+  }
+
+  @media (min-width: 1280px) {
+    padding: var(--pulpe-page-gutter-desktop);
+  }
+}
+
+.pulpe-entry-card {
+  width: 100%;
+  border: var(--pulpe-surface-border-subtle);
+  border-radius: var(--pulpe-surface-radius-card);
+  padding: clamp(1.5rem, 2vw, 2.5rem);
+  box-shadow: var(--mat-sys-level2);
+  background: var(--mat-sys-surface);
+  display: flex;
+  flex-direction: column;
+}
+
+.pulpe-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--pulpe-section-gap-sm);
+  margin-bottom: var(--pulpe-section-gap-sm);
 }
 
 // Budget section group - Material expansion panel overrides
@@ -110,7 +184,8 @@ body {
     border-radius: 16px 0 0 16px !important;
   }
 
-  animation: pulpe-slide-in-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: pulpe-slide-in-right var(--pulpe-motion-slow)
+    var(--pulpe-ease-standard);
 }
 
 // Keyframes - declared at root level with pulpe- prefix to avoid collisions

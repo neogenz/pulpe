@@ -3,6 +3,8 @@ export const ROUTES = {
   WELCOME: 'welcome',
   LOGIN: 'login',
   SIGNUP: 'signup',
+  FORGOT_PASSWORD: 'forgot-password',
+  RESET_PASSWORD: 'reset-password',
   DASHBOARD: 'dashboard',
   COMPLETE_PROFILE: 'complete-profile',
   BUDGET: 'budget',
@@ -10,6 +12,9 @@ export const ROUTES = {
   SETTINGS: 'settings',
   LEGAL: 'legal',
   MAINTENANCE: 'maintenance',
+  SETUP_VAULT_CODE: 'setup-vault-code',
+  ENTER_VAULT_CODE: 'enter-vault-code',
+  RECOVER_VAULT_CODE: 'recover-vault-code',
 
   // Legal paths
   LEGAL_TERMS: 'cgu',
@@ -20,6 +25,11 @@ export const ROUTES = {
 export const PAGE_TITLES = {
   LOGIN: 'Connexion',
   SIGNUP: 'Créer un compte',
+  FORGOT_PASSWORD: 'Mot de passe oublié',
+  RESET_PASSWORD: 'Réinitialiser le mot de passe',
+  SETUP_VAULT_CODE: 'Créer mon code PIN',
+  ENTER_VAULT_CODE: 'Saisir mon code PIN',
+  RECOVER_VAULT_CODE: 'Récupérer mon code PIN',
   DASHBOARD: 'Mois en cours',
   COMPLETE_PROFILE: 'Finaliser mon profil',
   BUDGET: 'Mes budgets',

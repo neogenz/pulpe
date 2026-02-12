@@ -1,6 +1,7 @@
 import { type Routes } from '@angular/router';
 import { publicGuard, hasBudgetGuard } from '@core/auth';
 import { authGuard } from '@core/auth/auth-guard';
+import { encryptionSetupGuard } from '@core/encryption';
 import { maintenanceGuard } from '@core/maintenance';
 import { PAGE_TITLES, ROUTES } from '@core/routing';
 
@@ -29,6 +30,40 @@ export const routes: Routes = [
     loadComponent: () => import('./feature/auth/signup/signup'),
   },
   {
+    path: ROUTES.FORGOT_PASSWORD,
+    title: PAGE_TITLES.FORGOT_PASSWORD,
+    canActivate: [maintenanceGuard, publicGuard],
+    loadComponent: () =>
+      import('./feature/auth/forgot-password/forgot-password'),
+  },
+  {
+    path: ROUTES.RESET_PASSWORD,
+    title: PAGE_TITLES.RESET_PASSWORD,
+    canActivate: [maintenanceGuard],
+    loadComponent: () => import('./feature/auth/reset-password/reset-password'),
+  },
+  {
+    path: ROUTES.SETUP_VAULT_CODE,
+    title: PAGE_TITLES.SETUP_VAULT_CODE,
+    canActivate: [maintenanceGuard, authGuard],
+    loadComponent: () =>
+      import('./feature/auth/setup-vault-code/setup-vault-code'),
+  },
+  {
+    path: ROUTES.ENTER_VAULT_CODE,
+    title: PAGE_TITLES.ENTER_VAULT_CODE,
+    canActivate: [maintenanceGuard, authGuard],
+    loadComponent: () =>
+      import('./feature/auth/enter-vault-code/enter-vault-code'),
+  },
+  {
+    path: ROUTES.RECOVER_VAULT_CODE,
+    title: PAGE_TITLES.RECOVER_VAULT_CODE,
+    canActivate: [maintenanceGuard, authGuard],
+    loadComponent: () =>
+      import('./feature/auth/recover-vault-code/recover-vault-code'),
+  },
+  {
     path: ROUTES.MAINTENANCE,
     title: PAGE_TITLES.MAINTENANCE,
     loadChildren: () => import('./feature/maintenance/maintenance.routes'),
@@ -42,7 +77,7 @@ export const routes: Routes = [
   {
     path: '',
     title: PAGE_TITLES.DASHBOARD,
-    canActivate: [maintenanceGuard, authGuard],
+    canActivate: [maintenanceGuard, authGuard, encryptionSetupGuard],
     loadComponent: () => import('@layout/main-layout'),
     children: [
       {

@@ -62,6 +62,31 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Failed to fetch user information',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+  AUTH_CLIENT_KEY_MISSING: {
+    code: 'ERR_AUTH_CLIENT_KEY_MISSING',
+    message: () => 'Client encryption key missing',
+    httpStatus: HttpStatus.UNAUTHORIZED,
+  },
+  AUTH_CLIENT_KEY_INVALID: {
+    code: 'ERR_AUTH_CLIENT_KEY_INVALID',
+    message: () => 'Client encryption key is invalid',
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
+  RECOVERY_KEY_NOT_CONFIGURED: {
+    code: 'ERR_RECOVERY_KEY_NOT_CONFIGURED',
+    message: () => 'No recovery key configured for this account',
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
+  RECOVERY_KEY_INVALID: {
+    code: 'ERR_RECOVERY_KEY_INVALID',
+    message: () => 'Invalid recovery key',
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
+  ENCRYPTION_KEY_CHECK_FAILED: {
+    code: 'ERR_ENCRYPTION_KEY_CHECK_FAILED',
+    message: () => 'Client key verification failed',
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
 
   // Budget Errors
   BUDGET_NOT_FOUND: {

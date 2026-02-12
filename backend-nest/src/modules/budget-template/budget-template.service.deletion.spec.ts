@@ -14,6 +14,7 @@ describe('BudgetTemplateService - Template Deletion', () => {
       id: 'user-123',
       email: 'test@example.com',
       accessToken: 'mock-token',
+      clientKey: Buffer.from('ab'.repeat(32), 'hex'),
     };
     const mockLogger = {
       info: mock(() => {}),
@@ -24,9 +25,16 @@ describe('BudgetTemplateService - Template Deletion', () => {
     const mockBudgetService = {
       recalculateBalances: mock(() => Promise.resolve()),
     };
+    const mockEncryptionService = {
+      ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+      encryptAmount: () => 'encrypted-mock',
+      decryptAmount: () => 100,
+      getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+    };
     service = new BudgetTemplateService(
       mockLogger as any,
       mockBudgetService as any,
+      mockEncryptionService as any,
     );
   });
 

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { type ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { ClsService } from 'nestjs-cls';
 import { AuthGuard } from './auth.guard';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -30,6 +31,7 @@ describe('AuthGuard', () => {
 
     const mockReflector = {
       get: () => undefined,
+      getAllAndOverride: () => false,
     };
 
     const mockPinoLogger = {
@@ -39,6 +41,11 @@ describe('AuthGuard', () => {
       debug: () => {},
       trace: () => {},
       fatal: () => {},
+    };
+
+    const mockClsService = {
+      get: () => false,
+      set: () => {},
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -56,6 +63,10 @@ describe('AuthGuard', () => {
           provide: `INFO_LOGGER:${AuthGuard.name}`,
           useValue: mockPinoLogger,
         },
+        {
+          provide: ClsService,
+          useValue: mockClsService,
+        },
       ],
     }).compile();
 
@@ -72,9 +83,12 @@ describe('AuthGuard', () => {
         getRequest: () => ({
           headers: {
             authorization,
+            'x-client-key': 'ab'.repeat(32),
           },
         }),
       }),
+      getHandler: () => ({}),
+      getClass: () => ({}),
     }) as ExecutionContext;
 
   describe('canActivate', () => {
@@ -184,9 +198,16 @@ describe('AuthGuard', () => {
       const mockUser = createMockAuthenticatedUser({
         accessToken: 'valid-token',
       });
-      const mockRequest = { headers: { authorization: 'Bearer valid-token' } };
+      const mockRequest = {
+        headers: {
+          authorization: 'Bearer valid-token',
+          'x-client-key': 'ab'.repeat(32),
+        },
+      };
       const mockContext = {
         switchToHttp: () => ({ getRequest: () => mockRequest }),
+        getHandler: () => ({}),
+        getClass: () => ({}),
       } as ExecutionContext;
 
       // Set up the auth mock to return a user in the expected format
@@ -219,11 +240,16 @@ describe('AuthGuard', () => {
         accessToken: 'valid-token',
       });
       const mockRequest = {
-        headers: { authorization: 'Bearer valid-token' },
+        headers: {
+          authorization: 'Bearer valid-token',
+          'x-client-key': 'ab'.repeat(32),
+        },
         __throttlerUserCache: mockUser, // Simulates cache populated by UserThrottlerGuard
       };
       const mockContext = {
         switchToHttp: () => ({ getRequest: () => mockRequest }),
+        getHandler: () => ({}),
+        getClass: () => ({}),
       } as ExecutionContext;
 
       // Act
@@ -246,11 +272,16 @@ describe('AuthGuard', () => {
         accessToken: 'valid-token',
       });
       const mockRequest = {
-        headers: { authorization: 'Bearer valid-token' },
+        headers: {
+          authorization: 'Bearer valid-token',
+          'x-client-key': 'ab'.repeat(32),
+        },
         __throttlerUserCache: null, // Cache indicates auth failed in throttler
       };
       const mockContext = {
         switchToHttp: () => ({ getRequest: () => mockRequest }),
+        getHandler: () => ({}),
+        getClass: () => ({}),
       } as ExecutionContext;
 
       mockSupabaseClient
@@ -279,11 +310,16 @@ describe('AuthGuard', () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
       const mockRequest = {
-        headers: { authorization: 'Bearer valid-token' },
+        headers: {
+          authorization: 'Bearer valid-token',
+          'x-client-key': 'ab'.repeat(32),
+        },
         __throttlerUserCache: mockUser, // Cache présent
       };
       const mockContext = {
         switchToHttp: () => ({ getRequest: () => mockRequest }),
+        getHandler: () => ({}),
+        getClass: () => ({}),
       } as ExecutionContext;
 
       // Mock createAuthenticatedClient to throw
@@ -300,7 +336,7 @@ describe('AuthGuard', () => {
           },
           {
             provide: Reflector,
-            useValue: { get: () => undefined },
+            useValue: { get: () => undefined, getAllAndOverride: () => false },
           },
           {
             provide: `INFO_LOGGER:${AuthGuard.name}`,
@@ -308,6 +344,10 @@ describe('AuthGuard', () => {
               error: () => {},
               debug: () => {},
             },
+          },
+          {
+            provide: ClsService,
+            useValue: { get: () => false, set: () => {} },
           },
         ],
       }).compile();
@@ -325,10 +365,15 @@ describe('AuthGuard', () => {
     it('should throw BusinessException when user account is scheduled for deletion', async () => {
       // Arrange
       const mockRequest = {
-        headers: { authorization: 'Bearer valid-token' },
+        headers: {
+          authorization: 'Bearer valid-token',
+          'x-client-key': 'ab'.repeat(32),
+        },
       };
       const mockContext = {
         switchToHttp: () => ({ getRequest: () => mockRequest }),
+        getHandler: () => ({}),
+        getClass: () => ({}),
       } as ExecutionContext;
 
       // Set up the auth mock to return a user with scheduledDeletionAt
@@ -350,6 +395,76 @@ describe('AuthGuard', () => {
         BusinessException,
         'Account is scheduled for deletion',
       );
+    });
+  });
+
+  describe('client key validation', () => {
+    const createContextWithClientKey = (
+      clientKeyHeader?: string,
+    ): ExecutionContext => {
+      const headers: Record<string, string> = {
+        authorization: 'Bearer valid-token',
+      };
+      if (clientKeyHeader !== undefined) {
+        headers['x-client-key'] = clientKeyHeader;
+      }
+
+      return {
+        switchToHttp: () => ({
+          getRequest: () => ({ headers, ip: '127.0.0.1' }),
+        }),
+        getHandler: () => ({}),
+        getClass: () => ({}),
+      } as ExecutionContext;
+    };
+
+    it('should reject request when X-Client-Key header is missing', async () => {
+      const mockUser = createMockAuthenticatedUser();
+      mockSupabaseClient.setMockData(mockUser).setMockError(null);
+
+      const mockContext = createContextWithClientKey();
+
+      await expectErrorThrown(
+        () => authGuard.canActivate(mockContext),
+        BusinessException,
+        'Client encryption key missing',
+      );
+    });
+
+    it('should reject request when X-Client-Key is not 32 bytes', async () => {
+      const mockUser = createMockAuthenticatedUser();
+      mockSupabaseClient.setMockData(mockUser).setMockError(null);
+
+      const mockContext = createContextWithClientKey('abcd');
+
+      await expectErrorThrown(
+        () => authGuard.canActivate(mockContext),
+        BusinessException,
+        'Client encryption key is invalid',
+      );
+    });
+
+    it('should reject request when X-Client-Key is all zeros', async () => {
+      const mockUser = createMockAuthenticatedUser();
+      mockSupabaseClient.setMockData(mockUser).setMockError(null);
+
+      const mockContext = createContextWithClientKey('00'.repeat(32));
+
+      await expectErrorThrown(
+        () => authGuard.canActivate(mockContext),
+        BusinessException,
+        'Client encryption key is invalid',
+      );
+    });
+
+    it('should accept request with valid 32-byte non-zero X-Client-Key', async () => {
+      const mockUser = createMockAuthenticatedUser();
+      mockSupabaseClient.setMockData(mockUser).setMockError(null);
+
+      const mockContext = createContextWithClientKey('ab'.repeat(32));
+
+      const result = await authGuard.canActivate(mockContext);
+      expect(result).toBe(true);
     });
   });
 });

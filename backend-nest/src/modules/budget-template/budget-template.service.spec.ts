@@ -30,6 +30,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
     template_id: 'template-123',
     name: 'Test Line',
     amount: 1000,
+    amount_encrypted: null,
     kind: 'expense',
     recurrence: 'fixed',
     description: 'Test description',
@@ -44,6 +45,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       id: 'user-123',
       email: 'test@example.com',
       accessToken: 'mock-token',
+      clientKey: Buffer.from('ab'.repeat(32), 'hex'),
     };
     mockLogger = {
       error: mock(() => {}),
@@ -56,9 +58,23 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       recalculateBalances: mock(() => Promise.resolve()),
     };
 
+    const mockEncryptionService = {
+      ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+      encryptAmount: () => 'encrypted-mock',
+      prepareAmountData: (amount: number) =>
+        Promise.resolve({ amount, amount_encrypted: null }),
+      prepareAmountsData: (amounts: number[]) =>
+        Promise.resolve(
+          amounts.map((amount) => ({ amount, amount_encrypted: null })),
+        ),
+      decryptAmount: () => 100,
+      getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+    };
+
     service = new BudgetTemplateService(
       mockLogger as any,
       mockBudgetService as any,
+      mockEncryptionService as any,
     );
   });
 
@@ -261,13 +277,18 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       const supabaseStub = {
         from: (table: string) => {
           if (table === 'monthly_budget') {
+            const resolved = { data: futureBudgets, error: null };
             return {
               select: () => ({
                 eq: () => ({
-                  eq: () => ({
-                    or: () =>
-                      Promise.resolve({ data: futureBudgets, error: null }),
-                  }),
+                  eq: () => {
+                    const p = Promise.resolve(resolved);
+                    return {
+                      or: () => Promise.resolve(resolved),
+                      then: p.then.bind(p),
+                      catch: p.catch.bind(p),
+                    };
+                  },
                 }),
               }),
             };
@@ -281,6 +302,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       const summary = await (service as any).propagateTemplateChangesToBudgets(
         templateId,
         operations,
+        mockUser.clientKey,
         mockUser,
         supabaseStub,
       );
@@ -301,6 +323,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       expect(mockBudgetService.recalculateBalances).toHaveBeenCalledWith(
         'budget-1',
         supabaseStub,
+        mockUser.clientKey,
       );
     });
 
@@ -315,12 +338,18 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       const supabaseStub = {
         from: (table: string) => {
           if (table === 'monthly_budget') {
+            const resolved = { data: [], error: null };
             return {
               select: () => ({
                 eq: () => ({
-                  eq: () => ({
-                    or: () => Promise.resolve({ data: [], error: null }),
-                  }),
+                  eq: () => {
+                    const p = Promise.resolve(resolved);
+                    return {
+                      or: () => Promise.resolve(resolved),
+                      then: p.then.bind(p),
+                      catch: p.catch.bind(p),
+                    };
+                  },
                 }),
               }),
             };
@@ -333,6 +362,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       const summary = await (service as any).propagateTemplateChangesToBudgets(
         templateId,
         operations,
+        mockUser.clientKey,
         mockUser,
         supabaseStub,
       );
@@ -354,6 +384,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
             template_id: templateId,
             name: 'Salary',
             amount: 1234.56,
+            amount_encrypted: null,
             kind: 'income',
             recurrence: 'fixed',
             description: null,
@@ -367,6 +398,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
             template_id: templateId,
             name: 'Bonus',
             amount: 200,
+            amount_encrypted: null,
             kind: 'income',
             recurrence: 'one_off',
             description: null,
@@ -382,16 +414,21 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       const supabaseStub = {
         from: (table: string) => {
           if (table === 'monthly_budget') {
+            const resolved = {
+              data: [{ id: 'budget-1', month: 1, year: 2026 }],
+              error: null,
+            };
             return {
               select: () => ({
                 eq: () => ({
-                  eq: () => ({
-                    or: () =>
-                      Promise.resolve({
-                        data: [{ id: 'budget-1', month: 1, year: 2026 }],
-                        error: null,
-                      }),
-                  }),
+                  eq: () => {
+                    const p = Promise.resolve(resolved);
+                    return {
+                      or: () => Promise.resolve(resolved),
+                      then: p.then.bind(p),
+                      catch: p.catch.bind(p),
+                    };
+                  },
                 }),
               }),
             };
@@ -404,6 +441,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       await (service as any).propagateTemplateChangesToBudgets(
         templateId,
         operations,
+        mockUser.clientKey,
         mockUser,
         supabaseStub,
       );

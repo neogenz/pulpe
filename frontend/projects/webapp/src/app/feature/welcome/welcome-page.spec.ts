@@ -80,23 +80,26 @@ describe('WelcomePage', () => {
     fixture.detectChanges();
   });
 
-  it('should create', () => {
+  it('should instantiate welcome page component', () => {
     expect(component).toBeTruthy();
   });
 
   describe('template', () => {
     it('should display welcome title', () => {
-      const title = fixture.nativeElement.querySelector('h1');
+      const title = fixture.nativeElement.querySelector(
+        '[data-testid="welcome-title"]',
+      );
 
       expect(title.textContent).toContain('Vois clair dans tes finances');
     });
 
     it('should display value proposition', () => {
       const subtitle = fixture.nativeElement.querySelector(
-        'p.text-on-surface-variant.text-center',
-      );
+        '[data-testid="welcome-subtitle"]',
+      ) as HTMLElement;
 
-      expect(subtitle.textContent).toContain(
+      expect(subtitle).toBeTruthy();
+      expect(subtitle?.textContent).toContain(
         'Planifie ton année, sache toujours ce que tu peux dépenser',
       );
     });
@@ -116,7 +119,7 @@ describe('WelcomePage', () => {
       );
 
       expect(button).toBeTruthy();
-      expect(button.textContent).toContain('Continuer avec mon email');
+      expect(button.textContent).toContain("S'inscrire par e-mail");
     });
 
     it('should have demo mode button', () => {
@@ -125,16 +128,13 @@ describe('WelcomePage', () => {
       );
 
       expect(loadingButton).toBeTruthy();
-      expect(loadingButton.textContent).toContain('Essayer gratuitement');
+      expect(loadingButton.textContent).toContain('Essayer sans compte');
     });
 
     it('should have login link', () => {
-      const links = fixture.nativeElement.querySelectorAll('a');
-      const loginLink = Array.from(links).find(
-        (link) =>
-          link instanceof HTMLElement &&
-          link.textContent?.includes('Se connecter'),
-      );
+      const loginLink = fixture.nativeElement.querySelector(
+        '[data-testid="demo-link"]',
+      ) as HTMLElement;
 
       expect(loginLink).toBeTruthy();
     });
@@ -213,7 +213,7 @@ describe('WelcomePage', () => {
   describe('CGU text', () => {
     it('should display CGU text under Google OAuth button', () => {
       const cguText = fixture.nativeElement.querySelector(
-        'p.text-xs.text-on-surface-variant.text-center',
+        '[data-testid="app-version"]',
       );
 
       expect(cguText).toBeTruthy();

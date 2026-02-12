@@ -45,6 +45,7 @@ describe('AuthSessionService', () => {
   };
   let mockErrorLocalizer: {
     localizeError: Mock;
+    localizeAuthError: Mock;
   };
   let mockSupabaseClient: MockSupabaseClient;
   let mockCleanup: {
@@ -101,7 +102,8 @@ describe('AuthSessionService', () => {
     };
 
     mockErrorLocalizer = {
-      localizeError: vi.fn()!.mockReturnValue('Erreur localisée'),
+      localizeError: vi.fn().mockReturnValue('Erreur localisée'),
+      localizeAuthError: vi.fn().mockReturnValue('Erreur localisée'),
     };
 
     mockCleanup = {
@@ -476,9 +478,7 @@ describe('AuthSessionService', () => {
       success: false,
       error: 'Erreur localisée',
     });
-    expect(mockErrorLocalizer.localizeError).toHaveBeenCalledWith(
-      'Invalid session',
-    );
+    expect(mockErrorLocalizer.localizeAuthError).toHaveBeenCalledWith(error);
   });
 
   it('should handle unexpected error in setSession', async () => {
@@ -644,5 +644,79 @@ describe('AuthSessionService', () => {
     expect(mockLogger.debug).toHaveBeenCalledWith(
       'Auth already initialized, skipping',
     );
+  });
+
+  it('should verify password successfully', async () => {
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    });
+    mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
+      data: { session: mockSession, user: mockSession.user },
+      error: null,
+    });
+
+    mockUserSignal.set(mockSession.user);
+
+    await service.initializeAuthState();
+
+    const result = await service.verifyPassword('correct-password');
+
+    expect(result).toEqual({ success: true });
+    expect(mockSupabaseClient.auth.signInWithPassword).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      password: 'correct-password',
+    });
+  });
+
+  it('should return error when password is incorrect', async () => {
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    });
+    mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
+      data: { session: null, user: null },
+      error: new Error('Invalid login credentials'),
+    });
+
+    mockUserSignal.set(mockSession.user);
+
+    await service.initializeAuthState();
+
+    const result = await service.verifyPassword('wrong-password');
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Erreur localisée',
+    });
+    expect(mockErrorLocalizer.localizeAuthError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Invalid login credentials' }),
+    );
+  });
+
+  it('should return error when user is not connected', async () => {
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    });
+
+    await service.initializeAuthState();
+
+    const result = await service.verifyPassword('some-password');
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Utilisateur non connecté',
+    });
+    expect(mockSupabaseClient.auth.signInWithPassword).not.toHaveBeenCalled();
   });
 });

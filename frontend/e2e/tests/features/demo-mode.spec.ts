@@ -77,4 +77,85 @@ test.describe('Demo Mode', () => {
     });
     expect(hasDemoBypass).toBe(true);
   });
+
+  /**
+   * Issue #308: Demo mode should bypass vault code setup
+   *
+   * Verifies that demo users are not redirected to vault code screens
+   * (setup-vault-code or enter-vault-code) even without vaultCodeConfigured.
+   */
+  test('should bypass vault code setup screen (issue #308)', async ({ page }) => {
+    // Setup auth bypass WITHOUT vaultCodeConfigured (simulates a new user)
+    await setupAuthBypass(page, {
+      includeApiMocks: true,
+      setLocalStorage: true,
+      vaultCodeConfigured: false,
+    });
+
+    // Also setup demo mode
+    await setupDemoBypass(page, {
+      userId: 'demo-vault-bypass-test',
+      userEmail: 'demo-vault@test.local',
+    });
+
+    // Inject demo mode flag in localStorage (as DemoModeService would)
+    await page.addInitScript((userEmail) => {
+      const entry = {
+        version: 2,
+        data: true,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem('pulpe-demo-mode', JSON.stringify(entry));
+      const emailEntry = {
+        version: 1,
+        data: userEmail,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem('pulpe-demo-user-email', JSON.stringify(emailEntry));
+    }, 'demo-vault@test.local');
+
+    // Navigate to dashboard
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 15000 });
+
+    // Should NOT be redirected to vault code pages
+    await expect(page).not.toHaveURL(/\/setup-vault-code/);
+    await expect(page).not.toHaveURL(/\/enter-vault-code/);
+
+    // Should land on dashboard
+    await expect(page).toHaveURL(/\/dashboard/);
+  });
+
+  test('should hide security section in settings for demo mode', async ({ page }) => {
+    await setupAuthBypass(page, {
+      includeApiMocks: true,
+      setLocalStorage: true,
+      vaultCodeConfigured: false,
+    });
+
+    await setupDemoBypass(page, {
+      userId: 'demo-settings-test',
+      userEmail: 'demo-settings@test.local',
+    });
+
+    await page.addInitScript((userEmail) => {
+      const entry = {
+        version: 2,
+        data: true,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem('pulpe-demo-mode', JSON.stringify(entry));
+      const emailEntry = {
+        version: 1,
+        data: userEmail,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem('pulpe-demo-user-email', JSON.stringify(emailEntry));
+    }, 'demo-settings@test.local');
+
+    await page.goto('/settings', { waitUntil: 'domcontentloaded', timeout: 15000 });
+
+    await expect(page.getByTestId('settings-page')).toBeVisible();
+    await expect(page.getByTestId('change-password-button')).toHaveCount(0);
+    await expect(page.getByTestId('generate-recovery-key-button')).toHaveCount(0);
+  });
 });

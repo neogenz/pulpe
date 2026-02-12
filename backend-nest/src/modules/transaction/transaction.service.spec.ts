@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { TransactionService } from './transaction.service';
 import { BudgetService } from '../budget/budget.service';
+import { EncryptionService } from '@modules/encryption/encryption.service';
 import type { InfoLogger } from '@common/logger';
 import type { TransactionCreate, TransactionUpdate } from 'pulpe-shared';
 import {
@@ -22,6 +23,7 @@ describe('TransactionService', () => {
   let service: TransactionService;
   let mockLogger: MockInfoLogger;
   let mockBudgetService: Partial<BudgetService>;
+  let mockEncryptionService: Partial<EncryptionService>;
   let mockSupabaseClient: MockSupabaseClient;
 
   beforeEach(() => {
@@ -37,15 +39,29 @@ describe('TransactionService', () => {
     mockBudgetService = {
       recalculateBalances: mock(() => Promise.resolve()),
     };
+    mockEncryptionService = {
+      getUserDEK: mock(() => Promise.resolve(Buffer.alloc(32))),
+      ensureUserDEK: mock(() => Promise.resolve(Buffer.alloc(32))),
+      encryptAmount: mock(() => 'encrypted-mock'),
+      prepareAmountData: mock((amount: number) =>
+        Promise.resolve({ amount, amount_encrypted: null }),
+      ),
+      decryptAmount: mock(() => 100),
+      tryDecryptAmount: mock(
+        (_ct: string, _dek: Buffer, fallback: number) => fallback,
+      ),
+    };
     service = new TransactionService(
       mockLogger as InfoLogger,
       mockBudgetService as BudgetService,
+      mockEncryptionService as EncryptionService,
     );
   });
 
   describe('findAll', () => {
     it('should return all transactions successfully', async () => {
       // Arrange
+      const mockUser = createMockAuthenticatedUser();
       const mockTransactions = [
         createMockTransactionEntity({ name: 'Transaction 1' }),
         createMockTransactionEntity({ name: 'Transaction 2' }),
@@ -53,7 +69,7 @@ describe('TransactionService', () => {
       mockSupabaseClient.setMockData(mockTransactions);
 
       // Act
-      const result = await service.findAll(mockSupabaseClient as any);
+      const result = await service.findAll(mockUser, mockSupabaseClient as any);
 
       // Assert
       expect(result.success).toBe(true);
@@ -64,10 +80,11 @@ describe('TransactionService', () => {
 
     it('should handle empty transaction list', async () => {
       // Arrange
+      const mockUser = createMockAuthenticatedUser();
       mockSupabaseClient.setMockData([]);
 
       // Act
-      const result = await service.findAll(mockSupabaseClient as any);
+      const result = await service.findAll(mockUser, mockSupabaseClient as any);
 
       // Assert
       expect(result.success).toBe(true);
@@ -76,12 +93,13 @@ describe('TransactionService', () => {
 
     it('should handle database error gracefully', async () => {
       // Arrange
+      const mockUser = createMockAuthenticatedUser();
       const mockError = { message: 'Database error' };
       mockSupabaseClient.reset().setMockError(mockError);
 
       // Act & Assert
       await expectBusinessExceptionThrown(
-        () => service.findAll(mockSupabaseClient as any),
+        () => service.findAll(mockUser, mockSupabaseClient as any),
         ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
       );
     });
@@ -419,6 +437,7 @@ describe('TransactionService', () => {
   describe('findByBudgetId', () => {
     it('should return all transactions for specific budget successfully', async () => {
       // Arrange
+      const mockUser = createMockAuthenticatedUser();
       const mockTransactions = [
         createMockTransactionEntity({ budget_id: MOCK_BUDGET_ID }),
         createMockTransactionEntity({ budget_id: MOCK_BUDGET_ID }),
@@ -428,6 +447,7 @@ describe('TransactionService', () => {
       // Act
       const result = await service.findByBudgetId(
         MOCK_BUDGET_ID,
+        mockUser,
         mockSupabaseClient as any,
       );
 
@@ -438,23 +458,31 @@ describe('TransactionService', () => {
 
     it('should handle database error gracefully when finding by budget', async () => {
       // Arrange
+      const mockUser = createMockAuthenticatedUser();
       const mockError = { message: 'Database error' };
       mockSupabaseClient.reset().setMockError(mockError);
 
       // Act & Assert
       await expectBusinessExceptionThrown(
-        () => service.findByBudgetId(MOCK_BUDGET_ID, mockSupabaseClient as any),
+        () =>
+          service.findByBudgetId(
+            MOCK_BUDGET_ID,
+            mockUser,
+            mockSupabaseClient as any,
+          ),
         ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
       );
     });
 
     it('should handle empty transaction list for budget', async () => {
       // Arrange
+      const mockUser = createMockAuthenticatedUser();
       mockSupabaseClient.setMockData([]);
 
       // Act
       const result = await service.findByBudgetId(
         MOCK_BUDGET_ID,
+        mockUser,
         mockSupabaseClient as any,
       );
 
@@ -465,11 +493,13 @@ describe('TransactionService', () => {
 
     it('should handle null data from database for budget transactions', async () => {
       // Arrange
+      const mockUser = createMockAuthenticatedUser();
       mockSupabaseClient.setMockData(null);
 
       // Act
       const result = await service.findByBudgetId(
         MOCK_BUDGET_ID,
+        mockUser,
         mockSupabaseClient as any,
       );
 

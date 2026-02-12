@@ -6,13 +6,7 @@ import {
   signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import {
-  type AbstractControl,
-  FormBuilder,
-  ReactiveFormsModule,
-  type ValidationErrors,
-  Validators,
-} from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDividerModule } from '@angular/material/divider';
@@ -20,31 +14,15 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { Router, RouterLink } from '@angular/router';
+
 import { AuthCredentialsService, PASSWORD_MIN_LENGTH } from '@core/auth';
 import { PostHogService } from '@core/analytics/posthog';
 import { Logger } from '@core/logging/logger';
-import { GoogleOAuthButton } from '@app/pattern/google-oauth';
 import { ROUTES } from '@core/routing/routes-constants';
+import { GoogleOAuthButton } from '@app/pattern/google-oauth';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
-
-function passwordsMatchValidator(
-  control: AbstractControl,
-): ValidationErrors | null {
-  const password = control.get('password')?.value as string;
-  const confirmPassword = control.get('confirmPassword')?.value as string;
-
-  if (!password || !confirmPassword) {
-    return null;
-  }
-
-  if (password !== confirmPassword) {
-    control.get('confirmPassword')?.setErrors({ passwordsMismatch: true });
-    return { passwordsMismatch: true };
-  }
-
-  return null;
-}
+import { createFieldsMatchValidator } from '@core/validators';
 
 @Component({
   selector: 'pulpe-signup',
@@ -63,27 +41,24 @@ function passwordsMatchValidator(
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div
-      class="min-h-screen pulpe-gradient flex items-center justify-center p-4"
-    >
-      <div
-        class="w-full max-w-md bg-surface rounded-3xl p-8 flex flex-col shadow-xl"
-      >
-        <a
+    <div class="pulpe-entry-shell pulpe-gradient">
+      <div class="pulpe-entry-card w-full max-w-md">
+        <button
+          matButton
           [routerLink]="['/', ROUTES.WELCOME]"
           class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
         >
           <mat-icon class="text-lg">arrow_back</mat-icon>
           <span>Retour à l'accueil</span>
-        </a>
+        </button>
 
         <div class="text-center mb-8 mt-4">
           <h1
-            class="text-2xl md:text-4xl font-bold text-on-surface mb-2 leading-tight"
+            class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
           >
             Prêt en 3 minutes
           </h1>
-          <p class="text-base md:text-lg text-on-surface-variant">
+          <p class="text-body-large text-on-surface-variant">
             Crée ton espace et vois clair dans tes finances
           </p>
         </div>
@@ -124,7 +99,7 @@ function passwordsMatchValidator(
             <mat-label>Mot de passe</mat-label>
             <input
               matInput
-              [type]="hidePassword() ? 'password' : 'text'"
+              [type]="isPasswordHidden() ? 'password' : 'text'"
               formControlName="password"
               data-testid="password-input"
               (input)="clearMessages()"
@@ -138,10 +113,10 @@ function passwordsMatchValidator(
               matSuffix
               (click)="togglePasswordVisibility()"
               [attr.aria-label]="'Afficher le mot de passe'"
-              [attr.aria-pressed]="!hidePassword()"
+              [attr.aria-pressed]="!isPasswordHidden()"
             >
               <mat-icon>{{
-                hidePassword() ? 'visibility_off' : 'visibility'
+                isPasswordHidden() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
             <mat-hint>8 caractères minimum pour sécuriser ton compte</mat-hint>
@@ -163,7 +138,7 @@ function passwordsMatchValidator(
             <mat-label>Confirmer le mot de passe</mat-label>
             <input
               matInput
-              [type]="hideConfirmPassword() ? 'password' : 'text'"
+              [type]="isConfirmPasswordHidden() ? 'password' : 'text'"
               formControlName="confirmPassword"
               data-testid="confirm-password-input"
               (input)="clearMessages()"
@@ -177,10 +152,10 @@ function passwordsMatchValidator(
               matSuffix
               (click)="toggleConfirmPasswordVisibility()"
               [attr.aria-label]="'Afficher le mot de passe'"
-              [attr.aria-pressed]="!hideConfirmPassword()"
+              [attr.aria-pressed]="!isConfirmPasswordHidden()"
             >
               <mat-icon>{{
-                hideConfirmPassword() ? 'visibility_off' : 'visibility'
+                isConfirmPasswordHidden() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
             @if (
@@ -290,8 +265,8 @@ export default class Signup {
 
   protected readonly ROUTES = ROUTES;
 
-  protected hidePassword = signal<boolean>(true);
-  protected hideConfirmPassword = signal<boolean>(true);
+  protected isPasswordHidden = signal<boolean>(true);
+  protected isConfirmPasswordHidden = signal<boolean>(true);
   protected isSubmitting = signal<boolean>(false);
   protected errorMessage = signal<string>('');
 
@@ -305,7 +280,13 @@ export default class Signup {
       confirmPassword: ['', [Validators.required]],
       acceptTerms: [false, [Validators.requiredTrue]],
     },
-    { validators: passwordsMatchValidator },
+    {
+      validators: createFieldsMatchValidator(
+        'password',
+        'confirmPassword',
+        'passwordsMismatch',
+      ),
+    },
   );
 
   protected readonly formStatus = toSignal(this.signupForm.statusChanges, {
@@ -319,11 +300,11 @@ export default class Signup {
   });
 
   protected togglePasswordVisibility(): void {
-    this.hidePassword.set(!this.hidePassword());
+    this.isPasswordHidden.set(!this.isPasswordHidden());
   }
 
   protected toggleConfirmPasswordVisibility(): void {
-    this.hideConfirmPassword.set(!this.hideConfirmPassword());
+    this.isConfirmPasswordHidden.set(!this.isConfirmPasswordHidden());
   }
 
   protected clearMessages(): void {
@@ -352,6 +333,7 @@ export default class Signup {
         this.#postHogService.captureEvent('signup_completed', {
           method: 'email',
         });
+        // Guard redirects to setup-vault-code where recovery key is set up
         this.#router.navigate(['/', ROUTES.DASHBOARD]);
       } else {
         this.errorMessage.set(

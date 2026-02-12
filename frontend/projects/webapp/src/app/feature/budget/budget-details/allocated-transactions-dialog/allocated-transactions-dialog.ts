@@ -154,9 +154,9 @@ export interface AllocatedTransactionsDialogResult {
         } @else {
           <div class="text-center py-8 text-on-surface-variant">
             <mat-icon class="!text-5xl mb-2">receipt_long</mat-icon>
-            <p class="text-body-medium">Aucune transaction enregistrée</p>
+            <p class="text-body-medium">Pas de transaction</p>
             <p class="text-body-small">
-              Ajoutez des transactions pour suivre vos dépenses réelles
+              Ajoute des transactions pour suivre tes dépenses réelles
             </p>
           </div>
         }

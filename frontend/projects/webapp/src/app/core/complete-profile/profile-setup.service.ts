@@ -50,6 +50,7 @@ export class ProfileSetupService {
         healthInsurance: profileData.healthInsurance ?? 0,
         leasingCredit: profileData.leasingCredit ?? 0,
         phonePlan: profileData.phonePlan ?? 0,
+        internetPlan: profileData.internetPlan ?? 0,
         transportCosts: profileData.transportCosts ?? 0,
         customTransactions: [],
       };

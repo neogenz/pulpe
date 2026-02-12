@@ -4,6 +4,10 @@
 -- This file populates the database with test data for development
 -- Test user credentials: maxime.desogus@gmail.com / 12345678
 
+-- Ensure required extensions are available (already enabled on local Supabase,
+-- but needed when seeding a remote branch database)
+CREATE EXTENSION IF NOT EXISTS pgcrypto SCHEMA extensions;
+
 -- Clean up existing test data (optional - comment out if you want to keep existing data)
 TRUNCATE TABLE
   public.transaction,
@@ -42,7 +46,7 @@ INSERT INTO auth.users (
     'authenticated',
     'authenticated',
     'maxime.desogus@gmail.com',
-    crypt('12345678', gen_salt('bf')),
+    extensions.crypt('12345678', extensions.gen_salt('bf')),
     current_timestamp,
     current_timestamp,
     current_timestamp,
@@ -67,8 +71,8 @@ INSERT INTO auth.identities (
     created_at,
     updated_at
 ) VALUES (
-    uuid_generate_v4(),
-    uuid_generate_v4(),
+    gen_random_uuid(),
+    gen_random_uuid(),
     '11111111-1111-1111-8111-111111111111',
     format('{"sub":"%s","email":"%s"}', '11111111-1111-1111-8111-111111111111', 'maxime.desogus@gmail.com')::jsonb,
     'email',
