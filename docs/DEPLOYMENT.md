@@ -82,7 +82,7 @@ PORT=3000
 SUPABASE_URL=https://[PROJECT_REF].supabase.co
 SUPABASE_ANON_KEY=[ANON_KEY]
 SUPABASE_SERVICE_ROLE_KEY=[SERVICE_ROLE_KEY]  # REQUIRED in production/preview
-CORS_ORIGIN=https://app.pulpe.ch
+CORS_ORIGIN=https://pulpe.app
 ```
 
 > ⚠️ **SUPABASE_SERVICE_ROLE_KEY est obligatoire** en production/preview pour le nettoyage automatique des utilisateurs démo. L'application **ne démarrera pas** sans cette variable.
@@ -261,47 +261,6 @@ git push origin main
 # → Supabase (Migrations si applicable)
 ```
 
-## 🔧 Troubleshooting Déploiement
-
-### GitHub Actions (CI/CD)
-
-```bash
-# Vérifier les derniers runs
-gh run list --limit 5
-
-# Inspecter les logs d'un run
-gh run view [RUN_ID] --log
-
-# Erreurs courantes
-# - Tests E2E timeout → relancer
-# - Build cache corrompu → clear cache via l'UI GitHub
-```
-
-### Backend (Railway)
-
-```bash
-# Logs et état du service	railway logs
-railway status
-```
-
-- **Backend build fail** : vérifier `RAILWAY_DOCKERFILE_PATH=backend-nest/Dockerfile`.
-- **Variables d'environnement manquantes** : s'assurer que `SUPABASE_*`, `CORS_ORIGIN` et `PORT` sont renseignés.
-- **CORS errors** : mettre à jour `CORS_ORIGIN` avec l'URL Vercel finale.
-- **Container OOM** : envisager un upgrade du plan Railway.
-- **Database connection fail** : vérifier les credentials Supabase côté Railway.
-
-### Frontend (Vercel)
-
-```bash
-# Récupérer la configuration actuelle
-vercel env pull
-```
-
-- **Config.json non généré** : vérifier que `frontend/scripts/generate-config.js` s'exécute bien dans les logs Vercel.
-- **Variables d'environnement manquantes** : toutes doivent commencer par `PUBLIC_` et être définies pour l'environnement correct.
-- **Mauvaise configuration utilisée** : consulter `/config.json` dans le navigateur pour voir la config générée.
-- **Supabase/PostHog keys incorrectes** : mettre à jour depuis le dashboard Vercel.
-
 ## 📊 Monitoring Post-Déploiement
 
 ### Health Checks Automatiques
@@ -312,14 +271,9 @@ vercel env pull
 ### Vérifications Manuelles
 
 ```bash
-# Frontend accessible
-curl https://app.pulpe.ch
-
-# Backend API
-curl https://pulpe-backend.railway.app/api/v1/health
-
-# PostHog sourcemaps uploaded
-# → Vercel build logs: "PostHog source maps processing completed!"
+curl https://www.pulpe.app                     # Frontend accessible
+curl https://api.pulpe.app/api/v1/health       # Backend API
+# PostHog sourcemaps → Vercel build logs: "PostHog source maps processing completed!"
 ```
 
 ## ⚠️ Checklist Pré-Production
@@ -336,16 +290,4 @@ curl https://pulpe-backend.railway.app/api/v1/health
 
 ---
 
-## 🎯 Commandes de Debug Rapide
-
-```bash
-# Status global
-gh run list --limit 3      # CI/CD status
-vercel ls                  # Frontend deployments
-railway status             # Backend status
-
-# Logs en cas de problème
-gh run view --log          # CI logs
-vercel logs                # Frontend logs
-railway logs               # Backend logs
-```
+**Problème en production ?** → [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)

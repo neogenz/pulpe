@@ -13,7 +13,7 @@
 # Vérifier présence Symbol Sets récents
 
 # Test error tracking
-curl https://app.pulpe.ch/api/debug/error  # Force une erreur (dev only)
+curl https://www.pulpe.app/api/debug/error  # Force une erreur (dev only)
 ```
 
 ### ⚡ Variables Critiques Vercel
@@ -220,7 +220,7 @@ user_id = "user-123"               # Erreurs utilisateur spécifique
 
 # 4. Test upload manuel (debug)
 cd frontend
-npm run upload:sourcemaps  # Nécessite POSTHOG_PERSONAL_API_KEY local
+pnpm upload:sourcemaps  # Nécessite POSTHOG_PERSONAL_API_KEY local
 ```
 
 ## 🔐 Sécurité & Données
@@ -255,7 +255,7 @@ env | grep POSTHOG                     # Vérifier variables
 
 # Test upload manuel (debug uniquement)
 cd frontend
-npm run upload:sourcemaps              # Nécessite POSTHOG_PERSONAL_API_KEY
+pnpm upload:sourcemaps              # Nécessite POSTHOG_PERSONAL_API_KEY
 
 # Dashboard liens rapides
 # PostHog → Settings → Error tracking → Symbol Sets
@@ -283,4 +283,4 @@ vercel ls                              # Status derniers deployments
 **Resources** :
 - **PostHog Error Tracking** : https://posthog.com/docs/error-tracking
 - **Symbol Sets Management** : Dashboard PostHog > Settings > Error tracking
-- **Variables critiques** : [DEPLOYMENT.md](./DEPLOYMENT.md#variables-environnement-critiques)
+- **Variables critiques** : [DEPLOYMENT.md](./DEPLOYMENT.md)

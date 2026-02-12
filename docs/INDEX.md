@@ -25,10 +25,6 @@
 - **[VERSIONING.md](./VERSIONING.md)** - Versioning produit unifié (SemVer, tags, releases)
 - **[IOS_VERSIONING.md](./IOS_VERSIONING.md)** - Versioning iOS selon standards Apple
 
-### 📖 Référence (Consultation)
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Vue d'ensemble système (focus développeur)
-- **[INFRASTRUCTURE_REFERENCE.md](./INFRASTRUCTURE_REFERENCE.md)** - Détails techniques infrastructure
-
 ## 🎯 Par Problème Spécifique
 
 ### Infrastructure & Déploiement
@@ -40,7 +36,7 @@
 ### Configuration Frontend
 - **Variables E2E tests** → [FRONTEND_CONFIG.md#e2e-env](./FRONTEND_CONFIG.md#e2e-env)
 - **Config Angular dynamique** → [FRONTEND_CONFIG.md#config-generation](./FRONTEND_CONFIG.md#config-generation)
-- **Tests Playwright setup** → [FRONTEND_CONFIG.md#playwright](./FRONTEND_CONFIG.md#playwright)
+- **Tests Playwright setup** → [FRONTEND_CONFIG.md#e2e-env](./FRONTEND_CONFIG.md#e2e-env)
 
 ### Monitoring & Erreurs
 - **PostHog sourcemaps** → [MONITORING.md#sourcemaps](./MONITORING.md#sourcemaps)

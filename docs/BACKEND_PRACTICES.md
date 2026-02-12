@@ -432,6 +432,5 @@ throw new BusinessException(
 ---
 
 **Resources** :
-- **Architecture backend** : [ARCHITECTURE.md](./ARCHITECTURE.md#backend-architecture)
 - **Troubleshooting** : [TROUBLESHOOTING.md](./TROUBLESHOOTING.md#database--auth)
 - **API Documentation** : http://localhost:3000/api/docs (Swagger)

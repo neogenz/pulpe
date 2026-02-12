@@ -7,8 +7,8 @@
 ### 🔥 Application inaccessible
 ```bash
 # 1. Vérifier status général
-curl https://app.pulpe.ch                    # Frontend
-curl https://pulpe-backend.railway.app/health # Backend
+curl https://www.pulpe.app                   # Frontend
+curl https://api.pulpe.app/api/v1/health     # Backend
 
 # 2. Si Frontend down
 vercel ls                     # Check deployments
@@ -61,7 +61,7 @@ vercel env pull
 
 # 3. Debug local
 cd frontend
-npm run build                 # Reproduire erreur localement
+pnpm build                    # Reproduire erreur localement
 ```
 
 ### Railway Backend Fail {#railway}
@@ -158,7 +158,7 @@ cp frontend/.env.e2e.example frontend/.env.e2e
 # PUBLIC_* pour frontend
 
 # 3. Test configuration
-cd frontend && npm run generate:config  # Should work
+cd frontend && pnpm generate:config  # Should work
 ```
 
 ## 📊 Monitoring & Performance
@@ -167,17 +167,11 @@ cd frontend && npm run generate:config  # Should work
 **Symptômes** : Stack traces minifiées, sourcemaps fail
 
 ```bash
-# 1. Vérifier upload dans build logs Vercel
+# Vérifier upload dans build logs Vercel
 # Chercher: "PostHog source maps processing completed!"
-
-# 2. Variables manquantes check
-# POSTHOG_PERSONAL_API_KEY=phc_...
-# POSTHOG_CLI_ENV_ID=12345
-
-# 3. Manual upload test
-cd frontend
-npm run upload:sourcemaps     # Test local
 ```
+
+→ Guide complet : [MONITORING.md#troubleshooting](./MONITORING.md#troubleshooting)
 
 ### Performance Issues
 **Symptômes** : App lente, bundle trop gros
@@ -201,16 +195,9 @@ DEBUG_PERFORMANCE=true bun test  # Perf tests
 ### RLS Policy Issues
 **Symptômes** : 403 Forbidden, unauthorized access
 
-```bash
-# 1. Vérifier policies dans Supabase Dashboard
-# Tables → [table] → RLS → Policies
+Vérifier policies dans Supabase Dashboard : Tables → [table] → RLS → Policies.
 
-# 2. Test auth local
-cd backend-nest
-# Check logs pour JWT validation errors
-
-# 3. Common fix: Policy missing auth.uid() check
-```
+→ Patterns détaillés : [BACKEND_PRACTICES.md#auth](./BACKEND_PRACTICES.md#auth)
 
 ### Migration Fails
 **Symptômes** : Schema out of sync, migration errors

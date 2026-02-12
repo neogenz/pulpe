@@ -16,7 +16,7 @@ PUBLIC_SUPABASE_URL=http://localhost:54321
 PUBLIC_BACKEND_API_URL=http://localhost:3000/api/v1
 
 # 3. Test configuration
-cd frontend && npm run generate:config  # Génère config.json
+cd frontend && pnpm generate:config  # Génère config.json
 pnpm test:e2e                          # Lance tests E2E
 ```
 
@@ -29,7 +29,7 @@ cat frontend/projects/webapp/public/config.json
 curl http://localhost:4200/config.json
 
 # Regenerate si problème
-cd frontend && npm run generate:config
+cd frontend && pnpm generate:config
 ```
 
 ## 📋 Configuration Dynamique Angular {#config-generation}
@@ -51,7 +51,7 @@ flowchart LR
 ### Génération Build-Time
 ```bash
 # Script: scripts/generate-config.ts
-npm run generate:config
+pnpm generate:config
 
 # Workflow:
 # 1. Lit variables d'environnement (process.env ou .env files)
@@ -91,12 +91,12 @@ PUBLIC_POSTHOG_API_KEY=xxx
 # Playwright démarre avec .env.e2e
 pnpm test:e2e
 # → DOTENV_CONFIG_PATH=.env.e2e pnpm run start:ci
-# → npm run generate:config (avec variables test)
+# → pnpm generate:config (avec variables test)
 # → ng serve (app avec config test)
 # → Tests E2E execute avec PostHog désactivé
 ```
 
-## 📱 Configuration Angular App {#playwright}
+## 📱 Configuration Angular App
 
 ### Structure de Configuration
 ```typescript
@@ -167,7 +167,7 @@ ls -la frontend/.env.e2e
 
 # 2. Variables manquantes check
 cd frontend
-DOTENV_CONFIG_PATH=.env.e2e npm run generate:config
+DOTENV_CONFIG_PATH=.env.e2e pnpm generate:config
 
 # 3. Debug Playwright
 DEBUG_TESTS=true pnpm test:e2e
@@ -185,7 +185,7 @@ curl http://localhost:4200/config.json
 # 3. Force regeneration
 cd frontend
 rm projects/webapp/public/config.json
-npm run generate:config
+pnpm generate:config
 ```
 
 ### Variables Production (Vercel)
@@ -195,7 +195,7 @@ vercel env pull
 
 # Test build production local
 cd frontend
-NODE_ENV=production npm run build
+NODE_ENV=production pnpm build
 
 # Variables critiques manquantes:
 # PUBLIC_SUPABASE_URL
@@ -241,7 +241,7 @@ export class MyComponent {
 ```bash
 # Configuration
 cd frontend
-npm run generate:config                # Génère config.json
+pnpm generate:config                # Génère config.json
 cat projects/webapp/public/config.json # Vérifier contenu
 
 # Tests E2E
