@@ -206,7 +206,7 @@ export class AuthSessionService {
       if (error) {
         return {
           success: false,
-          error: this.#errorLocalizer.localizeError(error.message),
+          error: this.#errorLocalizer.localizeAuthError(error),
         };
       }
 
@@ -248,7 +248,7 @@ export class AuthSessionService {
       if (error) {
         return {
           success: false,
-          error: this.#errorLocalizer.localizeError(error.message),
+          error: this.#errorLocalizer.localizeAuthError(error),
         };
       }
 
@@ -341,7 +341,7 @@ export class AuthSessionService {
       if (error) {
         return {
           success: false,
-          error: this.#errorLocalizer.localizeError(error.message),
+          error: this.#errorLocalizer.localizeAuthError(error),
         };
       }
 

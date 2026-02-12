@@ -45,6 +45,7 @@ describe('AuthSessionService', () => {
   };
   let mockErrorLocalizer: {
     localizeError: Mock;
+    localizeAuthError: Mock;
   };
   let mockSupabaseClient: MockSupabaseClient;
   let mockCleanup: {
@@ -102,6 +103,7 @@ describe('AuthSessionService', () => {
 
     mockErrorLocalizer = {
       localizeError: vi.fn().mockReturnValue('Erreur localisée'),
+      localizeAuthError: vi.fn().mockReturnValue('Erreur localisée'),
     };
 
     mockCleanup = {
@@ -476,9 +478,7 @@ describe('AuthSessionService', () => {
       success: false,
       error: 'Erreur localisée',
     });
-    expect(mockErrorLocalizer.localizeError).toHaveBeenCalledWith(
-      'Invalid session',
-    );
+    expect(mockErrorLocalizer.localizeAuthError).toHaveBeenCalledWith(error);
   });
 
   it('should handle unexpected error in setSession', async () => {
@@ -695,8 +695,8 @@ describe('AuthSessionService', () => {
       success: false,
       error: 'Erreur localisée',
     });
-    expect(mockErrorLocalizer.localizeError).toHaveBeenCalledWith(
-      'Invalid login credentials',
+    expect(mockErrorLocalizer.localizeAuthError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Invalid login credentials' }),
     );
   });
 
