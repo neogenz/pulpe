@@ -8,7 +8,7 @@
 ```bash
 # 1. Vérifier status général
 curl https://www.pulpe.app                   # Frontend
-curl https://api.pulpe.app/api/v1/health     # Backend
+curl https://api.pulpe.app/health            # Backend
 
 # 2. Si Frontend down
 vercel ls                     # Check deployments
@@ -87,7 +87,7 @@ railway logs
 
 ```bash
 # Solution rapide
-pnpm clean                    # Clear all caches
+rm -rf .turbo                 # Clear Turborepo cache
 turbo build --force           # Force rebuild all
 
 # Si problème persiste
@@ -126,7 +126,7 @@ ls -la frontend/.env.e2e
 
 # 3. Relancer tests avec debug
 cd frontend
-DEBUG_TESTS=true pnpm test:e2e
+pnpm test:e2e:debug
 ```
 
 ## 🔧 Configuration & Setup
@@ -150,8 +150,8 @@ pnpm build --filter=pulpe-shared
 
 ```bash
 # 1. Copier templates
-cp .env.example .env           # Root level
-cp frontend/.env.e2e.example frontend/.env.e2e
+cp backend-nest/.env.example backend-nest/.env
+# frontend/.env.e2e est déjà versionné
 
 # 2. Vérifier variables critiques
 # SUPABASE_URL, SUPABASE_ANON_KEY obligatoires

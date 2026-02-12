@@ -9,6 +9,7 @@ pulpe.app/
 ├── /                    → Landing page (Next.js) [si non connecté]
 ├── /                    → Redirect vers /dashboard [si connecté]
 ├── /support             → Page support/FAQ (Next.js)
+├── /changelog           → Changelog (Next.js)
 ├── /screenshots/*       → Assets landing
 ├── /icon.png            → Assets landing
 ├── /welcome, /dashboard → Angular SPA
@@ -76,24 +77,28 @@ Les rewrites routent les requêtes sans changer l'URL visible.
   { "source": "/icon.png", "destination": "/landing/icon.png" },
   { "source": "/icon-64.webp", "destination": "/landing/icon-64.webp" },
   { "source": "/app-store-badge.svg", "destination": "/landing/app-store-badge.svg" },
+  { "source": "/og-image.png", "destination": "/landing/og-image.png" },
   { "source": "/landing/_next/:path*", "destination": "/landing/_next/:path*" },
   { "source": "/_next/:path*", "destination": "/landing/_next/:path*" },
+  { "source": "/robots.txt", "destination": "/landing/robots.txt" },
+  { "source": "/sitemap.xml", "destination": "/landing/sitemap.xml" },
   { "source": "/support", "destination": "/landing/support.html" },
+  { "source": "/changelog", "destination": "/landing/changelog.html" },
   { "source": "/:path*", "destination": "/_app.html" }
 ]
 ```
 
-**Ordre important :** règles spécifiques avant le catch-all. Vercel évalue séquentiellement.
+**Ordre important :** regles specifiques avant le catch-all. Vercel evalue sequentiellement.
 
-| Règle | Requête | Destination |
+| Regle | Requete | Destination |
 |-------|---------|-------------|
 | 1 | `/` | Landing page |
-| 2 | `/screenshots/webapp/dashboard.png` | Image landing |
-| 3-4 | `/icon.png` | Icône landing |
-| 5 | `/landing/_next/...` | Assets Next.js landing (avec prefix) |
-| 6 | `/_next/...` | Assets Next.js landing (sans prefix) |
-| 7 | `/support` | Page support (Next.js) |
-| 8 | `/welcome`, `/dashboard`, etc. | Angular SPA |
+| 2 | `/screenshots/*` | Images landing |
+| 3-6 | `/icon.png`, `/icon-64.webp`, `/app-store-badge.svg`, `/og-image.png` | Assets landing |
+| 7-8 | `/landing/_next/*`, `/_next/*` | Assets Next.js |
+| 9-10 | `/robots.txt`, `/sitemap.xml` | SEO files |
+| 11-12 | `/support`, `/changelog` | Pages Next.js |
+| 13 | `/:path*` (catch-all) | Angular SPA |
 
 **Note importante sur `/_next/*` :** La règle 6 est essentielle pour éviter que les assets statiques (CSS/JS) de la landing page soient interceptés par la règle catch-all (règle 7). Sans elle, les requêtes vers `/_next/static/css/...` retourneraient du HTML (`_app.html`) au lieu des fichiers CSS/JS, causant des erreurs MIME type et un rendu cassé.
 
@@ -121,11 +126,14 @@ Redirections permanentes (301) pour les anciennes URLs.
     "headers": [
       { "key": "X-Frame-Options", "value": "DENY" },
       { "key": "X-Content-Type-Options", "value": "nosniff" },
-      { "key": "X-XSS-Protection", "value": "1; mode=block" }
+      { "key": "X-XSS-Protection", "value": "1; mode=block" },
+      { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains; preload" }
     ]
   }
 ]
 ```
+
+Des headers `Cache-Control` sont aussi definis pour les assets statiques (`/robots.txt`, `/sitemap.xml`, `/icon.png`, `/og-image.png`, `/screenshots/*`).
 
 ## Auth Redirect (Client-Side)
 
@@ -173,6 +181,9 @@ GET /screenshots/webapp/dashboard.png
 
 GET /support
   → Rewrite → /landing/support.html → Page support Next.js
+
+GET /changelog
+  → Rewrite → /landing/changelog.html → Changelog Next.js
 
 GET /welcome
   → Pas de fichier statique

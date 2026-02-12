@@ -6,10 +6,8 @@
 
 ### ⚡ Setup Variables E2E
 ```bash
-# 1. Copier template
-cp frontend/.env.e2e.example frontend/.env.e2e
-
-# 2. Variables critiques dans .env.e2e
+# Le fichier .env.e2e est déjà versionné dans Git
+# Variables critiques dans .env.e2e :
 PUBLIC_ENVIRONMENT=test
 PUBLIC_POSTHOG_ENABLED=false
 PUBLIC_SUPABASE_URL=http://localhost:54321
@@ -102,7 +100,7 @@ pnpm test:e2e
 ```typescript
 // Schéma de configuration (config.schema.ts)
 export const ConfigSchema = z.object({
-  environment: z.enum(['development', 'production', 'test']),
+  environment: z.enum(['development', 'production', 'preview', 'local', 'test']),
   supabase: z.object({
     url: z.string().url(),
     anonKey: z.string().min(1)
@@ -130,7 +128,7 @@ export const ConfigSchema = z.object({
 ```typescript
 // Service: application-configuration.ts
 @Injectable({ providedIn: 'root' })
-export class ApplicationConfigurationService {
+export class ApplicationConfiguration {
   // Signaux réactifs
   readonly config = signal<ApplicationConfig | null>(null);
   readonly isLoaded = computed(() => this.config() !== null);
@@ -170,7 +168,6 @@ cd frontend
 DOTENV_CONFIG_PATH=.env.e2e pnpm generate:config
 
 # 3. Debug Playwright
-DEBUG_TESTS=true pnpm test:e2e
 pnpm test:e2e:debug              # Mode debug interactif
 ```
 
@@ -224,7 +221,7 @@ type ApplicationConfig = z.infer<typeof ConfigSchema>;
 
 // Usage type-safe dans composants
 export class MyComponent {
-  constructor(private config: ApplicationConfigurationService) {
+  constructor(private config: ApplicationConfiguration) {
     effect(() => {
       const currentConfig = this.config.config();
       if (currentConfig) {

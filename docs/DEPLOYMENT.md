@@ -106,7 +106,7 @@ Configurer les variables d'environnement Production dans Vercel :
 | `PUBLIC_BACKEND_API_URL` | `https://[RAILWAY_URL]/api/v1` | URL du backend Railway |
 | `PUBLIC_ENVIRONMENT` | `production` | Environnement actuel |
 
-Le build Vercel exécute `frontend/scripts/generate-config.js`, qui lit les variables `PUBLIC_*`, génère `config.json` et applique des valeurs par défaut si nécessaire.
+Le build Vercel exécute `frontend/scripts/generate-config.ts` (via `pnpm generate:config`), qui lit les variables `PUBLIC_*`, valide avec Zod, et génère `config.json`.
 
 Variables additionnelles pour PostHog (Production) :
 
@@ -147,7 +147,7 @@ Le fichier est ignoré par Git. Ensuite :
 
 ```bash
 cd frontend
-node scripts/generate-config.js
+pnpm generate:config
 ```
 
 ### Domaine personnalisé (pulpe.app)
@@ -265,14 +265,14 @@ git push origin main
 
 ### Health Checks Automatiques
 - **Frontend (Vercel)** : monitoring intégré
-- **Backend (Railway)** : endpoint `/api/v1/health`
+- **Backend (Railway)** : endpoint `/health`
 - **Database (Supabase)** : dashboard monitoring
 
 ### Vérifications Manuelles
 
 ```bash
 curl https://www.pulpe.app                     # Frontend accessible
-curl https://api.pulpe.app/api/v1/health       # Backend API
+curl https://api.pulpe.app/health              # Backend API
 # PostHog sourcemaps → Vercel build logs: "PostHog source maps processing completed!"
 ```
 

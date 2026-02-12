@@ -32,8 +32,8 @@ async findOne(id: string): Promise<Budget> {
 @Injectable()
 export class BudgetService {
   constructor(
-    @InjectPinoLogger(BudgetService.name)
-    private readonly logger: PinoLogger,
+    @InjectInfoLogger(BudgetService.name)
+    private readonly logger: InfoLogger,
   ) {}
 
   async createBudget(dto: CreateBudgetDto): Promise<Budget> {
@@ -194,8 +194,8 @@ BUDGET_NOT_FOUND: {
 @Injectable()
 export class UserService {
   constructor(
-    @InjectPinoLogger(UserService.name)
-    private readonly logger: PinoLogger,
+    @InjectInfoLogger(UserService.name)
+    private readonly logger: InfoLogger,
   ) {}
 
   async updateUser(userId: string, data: UpdateUserDto): Promise<User> {
@@ -325,8 +325,8 @@ export class BudgetController {
 @Injectable()
 export class BudgetService {
   constructor(
-    @InjectPinoLogger(BudgetService.name)
-    private readonly logger: PinoLogger,
+    @InjectInfoLogger(BudgetService.name)
+    private readonly logger: InfoLogger,
     @SupabaseClient() private readonly supabase: SupabaseClient,
   ) {}
 

@@ -48,19 +48,18 @@ Chaque événement PostHog inclut automatiquement :
 
 ```typescript
 // Super Properties (tous les événements)
-app_version: "2025.11.0"
-app_commit: "abc123d"
-deployment_date: "2025-09-17T10:30:00Z"
+app_version: "0.19.1"
+app_commit: "e000f97"
 environment: "production"
+platform: "web"
 
 // Person Properties (profil utilisateur)
-first_app_version: "2025.11.0"
-first_commit: "abc123d"
+first_app_version: "0.19.1"
+first_commit: "e000f97"
 
 // Événements d'erreur spécifiques
-release: "2025.11.0"
-commit: "abc123d"
-build_date: "2025-09-17T10:30:00Z"
+release: "0.19.1"
+commit: "e000f97"
 ```
 
 ## 🔧 Sourcemaps Automatiques {#sourcemaps}

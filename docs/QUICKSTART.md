@@ -9,8 +9,8 @@
 pnpm install
 
 # 2. Setup environnement
-cp .env.example .env                    # Backend config
-cp frontend/.env.e2e.example frontend/.env.e2e  # Tests config
+cp backend-nest/.env.example backend-nest/.env  # Backend config
+# frontend/.env.e2e est déjà versionné (pas besoin de copier)
 
 # 3. Start services
 supabase start                          # Database local
@@ -42,7 +42,7 @@ cd backend-nest && bun run dev         # Backend seul (:3000)
 ```bash
 # Build production
 pnpm build                             # Build tous les packages
-pnpm build --filter=shared             # Build package spécifique
+pnpm build --filter=pulpe-shared       # Build package spécifique
 pnpm build --force                     # Ignore cache Turborepo
 
 # Quality assurance (avant commit)
@@ -122,7 +122,6 @@ bun run supabase:status                # Debug DB connection
 ### 🧹 Cache & Cleanup
 ```bash
 # Nettoyage complet
-pnpm clean                             # Clear tous caches Turborepo
 rm -rf node_modules .turbo && pnpm install  # Reset complet
 
 # Cache spécifique
@@ -189,7 +188,7 @@ pnpm dev                               # Start dev servers
 
 ```bash
 # Problème commun = solution rapide
-pnpm clean && pnpm install && pnpm build  # Reset global
+rm -rf node_modules .turbo && pnpm install && pnpm build  # Reset global
 supabase stop && supabase start           # Reset DB
 rm -rf node_modules && pnpm install       # Reset deps
 
