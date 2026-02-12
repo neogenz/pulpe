@@ -15,6 +15,12 @@ import { setupAuthBypass } from '../../utils/auth-bypass';
 base.describe('Complete Profile Flow', () => {
   base.describe.configure({ mode: 'parallel' });
 
+  base.beforeEach(async ({ page }) => {
+    await page.route('**/api/v1/encryption/validate-key', (route) => {
+      return route.fulfill({ status: 204, body: '' });
+    });
+  });
+
   base('should redirect returning user with existing budget to dashboard', async ({
     page,
   }) => {

@@ -64,7 +64,11 @@ test.describe('Settings Recovery Key', () => {
 
     await injectClientKey(page);
 
-    await page.route('**/api/v1/encryption/validate-key', (route: Route) => {
+    await page.route('**/api/v1/encryption/validate-key', async (route: Route) => {
+      const body = route.request().postDataJSON();
+      if (body?.clientKey === 'aa'.repeat(32)) {
+        return route.fulfill({ status: 204, body: '' });
+      }
       return route.fulfill({
         status: 400,
         contentType: 'application/json',

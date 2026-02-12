@@ -97,6 +97,10 @@ test.describe('Template Details View', () => {
       },
     );
 
+    await page.route('**/api/v1/encryption/validate-key', (route) => {
+      return route.fulfill({ status: 204, body: '' });
+    });
+
     // Mock maintenance status endpoint (required for all navigation)
     await page.route('**/maintenance/status', (route) => {
       return route.fulfill({

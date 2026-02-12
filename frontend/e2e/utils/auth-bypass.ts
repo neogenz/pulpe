@@ -201,6 +201,12 @@ export async function setupApiMocks(page: Page) {
         body: JSON.stringify({ success: true }),
       });
     }
+    if (url.includes('encryption/validate-key')) {
+      return route.fulfill({
+        status: 204,
+        body: '',
+      });
+    }
 
     // Template endpoints - handle different patterns
     if (url.includes('budget-templates')) {

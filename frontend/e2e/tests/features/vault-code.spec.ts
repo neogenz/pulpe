@@ -313,6 +313,7 @@ test.describe('Vault Code', () => {
       );
       expect(storageBeforeLogout).not.toBeNull();
 
+      await page.getByTestId('user-menu-trigger').click();
       await page.getByTestId('logout-button').click();
 
       await expect(page).toHaveURL(/\/(login|welcome)/);
@@ -434,7 +435,7 @@ test.describe('Vault Code', () => {
       expect(storage.local).not.toBeNull();
       expect(storage.session).toBeNull();
 
-      const parsed = JSON.parse(storage.local as string) as { data?: string };
+      const parsed: { data?: string } = JSON.parse(storage.local!);
       expect(parsed.data).toMatch(/^[0-9a-f]{64}$/i);
     });
 
@@ -459,7 +460,7 @@ test.describe('Vault Code', () => {
       expect(storage.local).toBeNull();
       expect(storage.session).not.toBeNull();
 
-      const parsed = JSON.parse(storage.session as string) as { data?: string };
+      const parsed: { data?: string } = JSON.parse(storage.session!);
       expect(parsed.data).toMatch(/^[0-9a-f]{64}$/i);
     });
 
