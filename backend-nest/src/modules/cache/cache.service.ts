@@ -2,6 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 
+const MAX_TRACKED_KEYS_PER_USER = 50;
+
 @Injectable()
 export class CacheService {
   readonly #userKeys = new Map<string, Set<string>>();
@@ -47,6 +49,9 @@ export class CacheService {
     if (!keys) {
       keys = new Set();
       this.#userKeys.set(userId, keys);
+    }
+    if (keys.size >= MAX_TRACKED_KEYS_PER_USER) {
+      keys.clear();
     }
     keys.add(fullKey);
   }

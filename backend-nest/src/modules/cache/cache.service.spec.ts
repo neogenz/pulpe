@@ -126,6 +126,16 @@ describe('CacheService', () => {
       expect(mockCache.del).not.toHaveBeenCalledWith('cache:user2:key2');
     });
 
+    it('should clear tracked keys when exceeding max per user', async () => {
+      for (let i = 0; i <= 50; i++) {
+        await cacheService.getOrSet('user1', `key${i}`, 5000, () =>
+          Promise.resolve(`val${i}`),
+        );
+      }
+      await cacheService.invalidateForUser('user1');
+      expect(mockCache.del).toHaveBeenCalledTimes(1);
+    });
+
     it('should clear tracking after invalidation', async () => {
       await cacheService.getOrSet('user1', 'key1', 5000, () =>
         Promise.resolve('a'),

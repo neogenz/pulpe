@@ -113,7 +113,13 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient,
     query?: ListBudgetsQuery,
   ): Promise<BudgetListResponse | BudgetSparseListResponse> {
-    const cacheKey = `budgets:list:${JSON.stringify(query ?? {})}`;
+    const keyParts = [
+      user.clientKey.toString('hex').slice(0, 16),
+      query?.fields ?? '',
+      query?.limit ?? '',
+      query?.year ?? '',
+    ].join(':');
+    const cacheKey = `budgets:list:${keyParts}`;
     return this.cacheService.getOrSet(user.id, cacheKey, 30_000, () =>
       this.#fetchBudgetList(user, supabase, query),
     );
