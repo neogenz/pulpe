@@ -210,10 +210,10 @@ export class CreateBudgetDialogComponent {
   readonly #snackBar = inject(MatSnackBar);
   readonly #budgetApi = inject(BudgetApi);
   readonly templateStore = inject(TemplateStore);
-  readonly #data = inject<{ month?: number; year?: number } | null>(
-    MAT_DIALOG_DATA,
-    { optional: true },
-  );
+  readonly #data = inject(MAT_DIALOG_DATA, { optional: true }) as {
+    month?: number;
+    year?: number;
+  } | null;
 
   // Expose constants for template usage
   readonly constants = BUDGET_CREATION_CONSTANTS;
@@ -255,15 +255,14 @@ export class CreateBudgetDialogComponent {
   readonly isCreating = signal(false);
 
   readonly #descriptionFormValue = toSignal(
-    this.budgetForm.get('description')!.valueChanges,
+    this.budgetForm.controls.description.valueChanges,
     {
-      initialValue: this.budgetForm.get('description')!.value || '',
+      initialValue: this.budgetForm.controls.description.value ?? '',
     },
   );
-  readonly descriptionLength = computed(() => {
-    const value = this.#descriptionFormValue();
-    return value?.length || 0;
-  });
+  readonly descriptionLength = computed(
+    () => this.#descriptionFormValue()?.length ?? 0,
+  );
 
   #getInitialDate(): Date {
     // Si month et year sont fournis dans data, les utiliser

@@ -731,8 +731,8 @@ export class BudgetDetailsStore {
         if (!d) return d;
         return {
           ...d,
-          transactions: (d.transactions ?? []).map((tx) =>
-            responseMap.has(tx.id) ? responseMap.get(tx.id)! : tx,
+          transactions: (d.transactions ?? []).map(
+            (tx) => responseMap.get(tx.id) ?? tx,
           ),
         };
       });
