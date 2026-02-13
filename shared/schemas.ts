@@ -146,7 +146,8 @@ export const savingsGoalSchema = z.object({
   id: z.uuid(),
   userId: z.uuid(),
   name: z.string().min(1).max(100).trim(),
-  targetAmount: z.number().nonnegative(),
+  // coerce: Supabase PostgREST returns numeric(12,2) columns as strings
+  targetAmount: z.coerce.number().nonnegative(),
   targetDate: z.string(), // Date in ISO format
   priority: priorityLevelSchema,
   status: savingsGoalStatusSchema,
@@ -294,7 +295,8 @@ export const transactionSearchResultSchema = z.object({
   id: z.uuid(),
   itemType: searchItemTypeSchema,
   name: z.string(),
-  amount: z.number(),
+  // coerce: Supabase PostgREST returns numeric(12,2) columns as strings
+  amount: z.coerce.number(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema.or(z.null()),
   transactionDate: z.iso.datetime({ offset: true }).or(z.null()),
