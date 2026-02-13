@@ -1,5 +1,4 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { type Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
@@ -9,42 +8,32 @@ import {
   type TemplateLine,
   templateLineListResponseSchema,
 } from 'pulpe-shared';
-import { ApplicationConfiguration } from '../config/application-configuration';
+import { ApiClient } from '@core/api/api-client';
 
 @Injectable({
   providedIn: 'root',
 })
 export class TemplateApi {
-  readonly #http = inject(HttpClient);
-  readonly #applicationConfig = inject(ApplicationConfiguration);
-
-  get #apiUrl(): string {
-    return `${this.#applicationConfig.backendApiUrl()}/budget-templates`;
-  }
+  readonly #api = inject(ApiClient);
 
   getAll$(): Observable<BudgetTemplate[]> {
-    return this.#http
-      .get<unknown>(this.#apiUrl)
-      .pipe(
-        map(
-          (response) => budgetTemplateListResponseSchema.parse(response).data,
-        ),
-      );
+    return this.#api
+      .get$('/budget-templates', budgetTemplateListResponseSchema)
+      .pipe(map((response) => response.data));
   }
 
   getById$(id: string): Observable<BudgetTemplate> {
-    return this.#http
-      .get<unknown>(`${this.#apiUrl}/${id}`)
-      .pipe(
-        map((response) => budgetTemplateResponseSchema.parse(response).data),
-      );
+    return this.#api
+      .get$(`/budget-templates/${id}`, budgetTemplateResponseSchema)
+      .pipe(map((response) => response.data));
   }
 
   getTemplateLines$(templateId: string): Observable<TemplateLine[]> {
-    return this.#http
-      .get<unknown>(`${this.#apiUrl}/${templateId}/lines`)
-      .pipe(
-        map((response) => templateLineListResponseSchema.parse(response).data),
-      );
+    return this.#api
+      .get$(
+        `/budget-templates/${templateId}/lines`,
+        templateLineListResponseSchema,
+      )
+      .pipe(map((response) => response.data));
   }
 }
