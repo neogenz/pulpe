@@ -1,24 +1,25 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
-import { ZodError } from 'zod';
 import { DemoInitializerService } from './demo-initializer.service';
 import { DemoModeService } from './demo-mode.service';
 import { AuthSessionService } from '../auth/auth-session.service';
-import { ApplicationConfiguration } from '../config/application-configuration';
+import { ApiClient } from '../api/api-client';
+import { ApiError } from '../api/api-error';
 import { ROUTES } from '../routing/routes-constants';
 import { Logger } from '../logging/logger';
 
 describe('DemoInitializerService', () => {
   let service: DemoInitializerService;
-  let mockHttp: { post: Mock };
+  let mockApi: { post$: Mock };
   let mockRouter: { navigate: Mock };
   let mockAuthSessionService: { setSession: Mock; signOut: Mock };
-  let mockDemoModeService: { activateDemoMode: Mock; deactivateDemoMode: Mock };
-  let mockConfig: { backendApiUrl: Mock };
+  let mockDemoModeService: {
+    activateDemoMode: Mock;
+    deactivateDemoMode: Mock;
+  };
 
   const TEST_TURNSTILE_TOKEN = 'XXXX.DUMMY.TOKEN.XXXX';
 
@@ -42,8 +43,8 @@ describe('DemoInitializerService', () => {
   };
 
   beforeEach(() => {
-    mockHttp = {
-      post: vi.fn(),
+    mockApi = {
+      post$: vi.fn(),
     };
 
     mockRouter = {
@@ -60,10 +61,6 @@ describe('DemoInitializerService', () => {
       deactivateDemoMode: vi.fn(),
     };
 
-    mockConfig = {
-      backendApiUrl: vi.fn().mockReturnValue('http://localhost:3000/api/v1'),
-    };
-
     const mockLogger = {
       info: vi.fn(),
       error: vi.fn(),
@@ -74,11 +71,10 @@ describe('DemoInitializerService', () => {
       providers: [
         provideZonelessChangeDetection(),
         DemoInitializerService,
-        { provide: HttpClient, useValue: mockHttp },
+        { provide: ApiClient, useValue: mockApi },
         { provide: Router, useValue: mockRouter },
         { provide: AuthSessionService, useValue: mockAuthSessionService },
         { provide: DemoModeService, useValue: mockDemoModeService },
-        { provide: ApplicationConfiguration, useValue: mockConfig },
         { provide: Logger, useValue: mockLogger },
       ],
     });
@@ -88,182 +84,160 @@ describe('DemoInitializerService', () => {
 
   describe('User starts demo session from welcome page', () => {
     it('should create demo session and navigate to dashboard', async () => {
-      // GIVEN: Backend returns successful demo session
-      mockHttp.post.mockReturnValue(of(mockDemoSession));
+      mockApi.post$.mockReturnValue(of(mockDemoSession));
 
-      // WHEN: User clicks "Try Demo" button
       await service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
-      // THEN: Session is set via AuthSessionService
       expect(mockAuthSessionService.setSession).toHaveBeenCalledWith({
         access_token: 'demo-access-token',
         refresh_token: 'demo-refresh-token',
       });
 
-      // AND: Demo mode is activated
       expect(mockDemoModeService.activateDemoMode).toHaveBeenCalledWith(
         'demo-abc123@pulpe.app',
       );
 
-      // AND: User is redirected to dashboard
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/', ROUTES.DASHBOARD]);
     });
 
     it('should show loading state during session creation', async () => {
-      // GIVEN: Backend request will complete
-      mockHttp.post.mockReturnValue(of(mockDemoSession));
+      mockApi.post$.mockReturnValue(of(mockDemoSession));
 
-      // WHEN: User starts demo session (async operation)
-      const promise = service.startDemoSession(TEST_TURNSTILE_TOKEN);
+      await service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
-      // THEN: Loading state should have been true during execution
-      // (We can't easily test intermediate states in async code,
-      // so we just verify final state and that the operation completes)
-      await promise;
-
-      // THEN: Loading state is false after completion
       expect(service.isInitializing()).toBe(false);
     });
 
-    it('should use correct backend URL', async () => {
-      // GIVEN: Backend URL is configured
-      mockHttp.post.mockReturnValue(of(mockDemoSession));
+    it('should call ApiClient with correct path and payload', async () => {
+      mockApi.post$.mockReturnValue(of(mockDemoSession));
 
-      // WHEN: User starts demo session
       await service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
-      // THEN: Correct endpoint is called
-      expect(mockHttp.post).toHaveBeenCalledWith(
-        'http://localhost:3000/api/v1/demo/session',
+      expect(mockApi.post$).toHaveBeenCalledWith(
+        '/demo/session',
         { turnstileToken: TEST_TURNSTILE_TOKEN },
+        expect.any(Object),
       );
     });
   });
 
   describe('Demo session creation fails', () => {
     it('should handle network errors gracefully', async () => {
-      // GIVEN: Network request fails
-      mockHttp.post.mockReturnValue(
-        throwError(() => new Error('Network error')),
+      mockApi.post$.mockReturnValue(
+        throwError(
+          () => new ApiError('Network error', undefined, 0, undefined),
+        ),
       );
 
-      // WHEN: User tries to start demo
       await expect(
         service.startDemoSession(TEST_TURNSTILE_TOKEN),
-      ).rejects.toThrow('Network error');
+      ).rejects.toThrow(
+        'Impossible de contacter le serveur. Vérifiez votre connexion internet.',
+      );
 
-      // THEN: Auth session is NOT set
       expect(mockAuthSessionService.setSession).not.toHaveBeenCalled();
-
-      // AND: Demo mode is NOT activated
       expect(mockDemoModeService.activateDemoMode).not.toHaveBeenCalled();
-
-      // AND: User is NOT redirected
       expect(mockRouter.navigate).not.toHaveBeenCalled();
     });
 
-    it('should handle backend error response', async () => {
-      // GIVEN: Backend returns error response (fails Zod validation)
-      const errorResponse = { success: false, error: 'Database unavailable' };
-      mockHttp.post.mockReturnValue(of(errorResponse));
+    it('should handle backend error response (5xx)', async () => {
+      mockApi.post$.mockReturnValue(
+        throwError(
+          () =>
+            new ApiError('Internal Server Error', undefined, 500, undefined),
+        ),
+      );
 
-      // WHEN: User tries to start demo
       await expect(
         service.startDemoSession(TEST_TURNSTILE_TOKEN),
-      ).rejects.toThrow(ZodError);
+      ).rejects.toThrow(
+        'Le serveur rencontre un problème. Veuillez réessayer dans quelques instants.',
+      );
 
-      // THEN: Auth session is NOT set
       expect(mockAuthSessionService.setSession).not.toHaveBeenCalled();
     });
 
-    it('should handle missing session data', async () => {
-      // GIVEN: Backend response is missing session (fails Zod validation)
-      const invalidResponse = {
-        success: true,
-        data: {},
-      };
-      mockHttp.post.mockReturnValue(of(invalidResponse));
+    it('should handle rate limiting (429)', async () => {
+      mockApi.post$.mockReturnValue(
+        throwError(
+          () => new ApiError('Too Many Requests', undefined, 429, undefined),
+        ),
+      );
 
-      // WHEN: User tries to start demo
       await expect(
         service.startDemoSession(TEST_TURNSTILE_TOKEN),
-      ).rejects.toThrow(ZodError);
+      ).rejects.toThrow(
+        'Trop de tentatives. Veuillez patienter avant de réessayer.',
+      );
+    });
+
+    it('should re-throw non-ApiError errors', async () => {
+      mockApi.post$.mockReturnValue(
+        throwError(() => new Error('Unknown error')),
+      );
+
+      await expect(
+        service.startDemoSession(TEST_TURNSTILE_TOKEN),
+      ).rejects.toThrow('Unknown error');
     });
 
     it('should handle auth session errors gracefully', async () => {
-      // GIVEN: Backend succeeds but setSession fails
-      mockHttp.post.mockReturnValue(of(mockDemoSession));
+      mockApi.post$.mockReturnValue(of(mockDemoSession));
       mockAuthSessionService.setSession.mockResolvedValue({
         success: false,
         error: 'Session expired',
       });
 
-      // WHEN: User tries to start demo
       await expect(
         service.startDemoSession(TEST_TURNSTILE_TOKEN),
       ).rejects.toThrow('Session expired');
 
-      // THEN: Demo mode is NOT activated
       expect(mockDemoModeService.activateDemoMode).not.toHaveBeenCalled();
-
-      // AND: User is NOT redirected
       expect(mockRouter.navigate).not.toHaveBeenCalled();
     });
 
     it('should reset loading state on error', async () => {
-      // GIVEN: Backend fails
-      mockHttp.post.mockReturnValue(
+      mockApi.post$.mockReturnValue(
         throwError(() => new Error('Backend error')),
       );
 
-      // WHEN: User tries to start demo
       try {
         await service.startDemoSession(TEST_TURNSTILE_TOKEN);
       } catch {
         // Expected error
       }
 
-      // THEN: Loading state is reset
       expect(service.isInitializing()).toBe(false);
     });
   });
 
   describe('Concurrent demo requests', () => {
     it('should prevent multiple simultaneous demo session requests', async () => {
-      // GIVEN: Backend will respond successfully
-      mockHttp.post.mockReturnValue(of(mockDemoSession));
+      mockApi.post$.mockReturnValue(of(mockDemoSession));
 
-      // WHEN: Multiple requests are made simultaneously
       const promise1 = service.startDemoSession(TEST_TURNSTILE_TOKEN);
       const promise2 = service.startDemoSession(TEST_TURNSTILE_TOKEN);
       const promise3 = service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
       await Promise.all([promise1, promise2, promise3]);
 
-      // THEN: Only one backend request is made (due to isInitializing guard)
-      expect(mockHttp.post).toHaveBeenCalledTimes(1);
-
-      // AND: Session is set only once
+      expect(mockApi.post$).toHaveBeenCalledTimes(1);
       expect(mockAuthSessionService.setSession).toHaveBeenCalledTimes(1);
     });
 
     it('should allow new request after previous completes', async () => {
-      // GIVEN: First request completes successfully
-      mockHttp.post.mockReturnValue(of(mockDemoSession));
+      mockApi.post$.mockReturnValue(of(mockDemoSession));
       await service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
-      // WHEN: New request is made after completion
-      mockHttp.post.mockClear();
+      mockApi.post$.mockClear();
       mockAuthSessionService.setSession.mockClear();
       await service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
-      // THEN: New request is allowed
-      expect(mockHttp.post).toHaveBeenCalledTimes(1);
+      expect(mockApi.post$).toHaveBeenCalledTimes(1);
     });
 
     it('should allow new request after previous fails', async () => {
-      // GIVEN: First request fails
-      mockHttp.post.mockReturnValue(
+      mockApi.post$.mockReturnValue(
         throwError(() => new Error('Network error')),
       );
 
@@ -273,45 +247,35 @@ describe('DemoInitializerService', () => {
         // Expected error
       }
 
-      // WHEN: New request is made after failure
-      mockHttp.post.mockClear();
-      mockHttp.post.mockReturnValue(of(mockDemoSession));
+      mockApi.post$.mockClear();
+      mockApi.post$.mockReturnValue(of(mockDemoSession));
       await service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
-      // THEN: New request is allowed
-      expect(mockHttp.post).toHaveBeenCalledTimes(1);
+      expect(mockApi.post$).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('User exits demo mode', () => {
     it('should deactivate demo mode and sign out user', async () => {
-      // WHEN: User exits demo mode
       await service.exitDemoMode();
 
-      // THEN: Demo mode is deactivated
       expect(mockDemoModeService.deactivateDemoMode).toHaveBeenCalled();
-
-      // AND: User is signed out
       expect(mockAuthSessionService.signOut).toHaveBeenCalled();
     });
 
     it('should handle sign out errors gracefully', async () => {
-      // GIVEN: Sign out throws error
       mockAuthSessionService.signOut.mockRejectedValue(
         new Error('Sign out failed'),
       );
 
-      // WHEN: User exits demo mode
       await expect(service.exitDemoMode()).rejects.toThrow('Sign out failed');
 
-      // THEN: Demo mode is still deactivated
       expect(mockDemoModeService.deactivateDemoMode).toHaveBeenCalled();
     });
   });
 
   describe('User email is correctly stored', () => {
     it('should activate demo mode with the email from backend session', async () => {
-      // GIVEN: Backend returns session with specific email
       const customSession = {
         ...mockDemoSession,
         data: {
@@ -324,17 +288,13 @@ describe('DemoInitializerService', () => {
           },
         },
       };
-      mockHttp.post.mockReturnValue(of(customSession));
+      mockApi.post$.mockReturnValue(of(customSession));
 
-      // WHEN: User starts demo
       await service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
-      // THEN: Demo mode is activated with correct email
       expect(mockDemoModeService.activateDemoMode).toHaveBeenCalledWith(
         'custom-demo@pulpe.app',
       );
-
-      // AND: User is redirected to dashboard
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/', ROUTES.DASHBOARD]);
     });
   });
