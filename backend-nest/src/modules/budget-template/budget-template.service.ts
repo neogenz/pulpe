@@ -40,12 +40,8 @@ import * as budgetTemplateMappers from './budget-template.mappers';
 
 type TemplateBulkOperationsResult = {
   deletedIds: string[];
-  updatedLines: (Omit<Tables<'template_line'>, 'amount'> & {
-    amount: number;
-  })[];
-  createdLines: (Omit<Tables<'template_line'>, 'amount'> & {
-    amount: number;
-  })[];
+  updatedLines: Tables<'template_line'>[];
+  createdLines: Tables<'template_line'>[];
 };
 
 @Injectable()
@@ -1123,10 +1119,28 @@ export class BudgetTemplateService {
       operationsResult,
     );
 
-    return this.buildBulkOperationsResponse(
-      operationsResult,
-      propagationSummary,
-    );
+    const [decryptedUpdated, decryptedCreated] = await Promise.all([
+      this.#decryptTemplateLines(
+        operationsResult.updatedLines,
+        user.id,
+        user.clientKey,
+      ),
+      this.#decryptTemplateLines(
+        operationsResult.createdLines,
+        user.id,
+        user.clientKey,
+      ),
+    ]);
+
+    return {
+      success: true,
+      data: {
+        created: budgetTemplateMappers.toApiTemplateLineList(decryptedCreated),
+        updated: budgetTemplateMappers.toApiTemplateLineList(decryptedUpdated),
+        deleted: operationsResult.deletedIds,
+        propagation: propagationSummary,
+      },
+    };
   }
 
   private async validateBulkOperationsInput(
@@ -1155,34 +1169,23 @@ export class BudgetTemplateService {
     deleteIds: string[],
     user: AuthenticatedUser,
   ): Promise<TemplateBulkOperationsResult> {
-    const rawUpdatedLines = await this.performBulkUpdates(
+    const updatedLines = await this.performBulkUpdates(
       operations.update,
       templateId,
       supabase,
       user,
     );
-    const rawCreatedLines = await this.performBulkCreates(
+    const createdLines = await this.performBulkCreates(
       operations.create,
       templateId,
       supabase,
       user,
     );
 
-    const decryptedUpdatedLines = await this.#decryptTemplateLines(
-      rawUpdatedLines,
-      user.id,
-      user.clientKey,
-    );
-    const decryptedCreatedLines = await this.#decryptTemplateLines(
-      rawCreatedLines,
-      user.id,
-      user.clientKey,
-    );
-
     return {
       deletedIds: deleteIds,
-      updatedLines: decryptedUpdatedLines,
-      createdLines: decryptedCreatedLines,
+      updatedLines,
+      createdLines,
     };
   }
 
@@ -1202,25 +1205,6 @@ export class BudgetTemplateService {
     );
 
     return propagationSummary;
-  }
-
-  private buildBulkOperationsResponse(
-    operationsResult: TemplateBulkOperationsResult,
-    propagationSummary: TemplateLinesPropagationSummary,
-  ): TemplateLinesBulkOperationsResponse {
-    return {
-      success: true,
-      data: {
-        created: budgetTemplateMappers.toApiTemplateLineList(
-          operationsResult.createdLines,
-        ),
-        updated: budgetTemplateMappers.toApiTemplateLineList(
-          operationsResult.updatedLines,
-        ),
-        deleted: operationsResult.deletedIds,
-        propagation: propagationSummary,
-      },
-    };
   }
 
   private async handlePropagationStrategy(
@@ -1371,22 +1355,17 @@ export class BudgetTemplateService {
     };
   }
 
-  private mapTemplateLinesForRpc(
-    lines: (Omit<Tables<'template_line'>, 'amount'> & { amount: number })[],
-  ): Array<{
+  private mapTemplateLinesForRpc(lines: Tables<'template_line'>[]): Array<{
     id: string;
     name: string;
     amount: string | null;
     kind: Tables<'template_line'>['kind'];
     recurrence: Tables<'template_line'>['recurrence'];
   }> {
-    // Note: Decrypted lines have numeric amounts, but RPC expects encrypted strings
-    // The amounts should be re-encrypted before RPC call (handled by caller)
-    // For type compatibility, cast as any since RPC will receive properly encrypted data
     return lines.map((line) => ({
       id: line.id,
       name: line.name,
-      amount: line.amount as any,
+      amount: line.amount,
       kind: line.kind,
       recurrence: line.recurrence,
     }));

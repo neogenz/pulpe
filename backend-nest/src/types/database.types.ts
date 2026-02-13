@@ -360,7 +360,7 @@ export type Database = {
       bulk_update_template_lines: {
         Args: { line_updates: Json; p_template_id: string };
         Returns: {
-          amount: string | null;
+          amount: string;
           created_at: string;
           description: string;
           id: string;
@@ -412,6 +412,17 @@ export type Database = {
           p_user_id: string;
         };
         Returns: Json;
+      };
+      rekey_user_encrypted_data: {
+        Args: {
+          p_budget_lines?: Json;
+          p_key_check?: string;
+          p_monthly_budgets?: Json;
+          p_savings_goals?: Json;
+          p_template_lines?: Json;
+          p_transactions?: Json;
+        };
+        Returns: undefined;
       };
       show_limit: { Args: never; Returns: number };
       show_trgm: { Args: { '': string }; Returns: string[] };

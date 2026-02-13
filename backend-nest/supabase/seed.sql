@@ -277,11 +277,7 @@ SELECT
   budget.id::uuid,
   tl.id,
   tl.name,
-  -- Augmentation de 2% pour l'inflation en 2026
-  CASE
-    WHEN tl.kind = 'income' THEN ROUND(tl.amount * 1.02, 2)
-    ELSE ROUND(tl.amount * 1.02, 2)
-  END as amount,
+  tl.amount,
   tl.kind,
   tl.recurrence
 FROM public.template_line tl

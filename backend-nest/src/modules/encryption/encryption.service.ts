@@ -379,40 +379,24 @@ export class EncryptionService {
 
     const keyCheck = this.generateKeyCheck(newDek);
 
-    await Promise.all([
-      ...payloads.budgetLines.map((p) =>
-        supabase
-          .from('budget_line')
-          .update({ amount: p.amount })
-          .eq('id', p.id),
-      ),
-      ...payloads.transactions.map((p) =>
-        supabase
-          .from('transaction')
-          .update({ amount: p.amount })
-          .eq('id', p.id),
-      ),
-      ...payloads.templateLines.map((p) =>
-        supabase
-          .from('template_line')
-          .update({ amount: p.amount })
-          .eq('id', p.id),
-      ),
-      ...payloads.savingsGoals.map((p) =>
-        supabase
-          .from('savings_goal')
-          .update({ target_amount: p.target_amount })
-          .eq('id', p.id),
-      ),
-      ...payloads.monthlyBudgets.map((p) =>
-        supabase
-          .from('monthly_budget')
-          .update({ ending_balance: p.ending_balance })
-          .eq('id', p.id),
-      ),
-    ]);
+    const { error } = await supabase.rpc('rekey_user_encrypted_data', {
+      p_budget_lines: payloads.budgetLines,
+      p_transactions: payloads.transactions,
+      p_template_lines: payloads.templateLines,
+      p_savings_goals: payloads.savingsGoals,
+      p_monthly_budgets: payloads.monthlyBudgets,
+      p_key_check: keyCheck,
+    });
 
-    await this.storeKeyCheck(userId, keyCheck);
+    if (error) {
+      this.#logger.error(
+        { userId, operation: 'rekey.rpc_failure', error: error.message },
+        'Atomic rekey RPC failed',
+      );
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
+      );
+    }
 
     this.#logger.log(
       {
