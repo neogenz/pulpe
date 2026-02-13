@@ -157,6 +157,24 @@ describe('ApiClient', () => {
     });
   });
 
+  describe('put$', () => {
+    it('should send PUT and parse response', () => {
+      const { client, httpTesting } = setup();
+      const body = { name: 'Replaced' };
+      const response = { success: true, data: { id: '1', name: 'Replaced' } };
+      let result: unknown;
+
+      client.put$('/items/1', body, testSchema).subscribe((r) => (result = r));
+
+      const request = httpTesting.expectOne(`${TEST_BASE_URL}/items/1`);
+      expect(request.request.method).toBe('PUT');
+      expect(request.request.body).toEqual(body);
+      request.flush(response);
+
+      expect(result).toEqual(response);
+    });
+  });
+
   describe('delete$', () => {
     it('should send DELETE and parse response', () => {
       const { client, httpTesting } = setup();

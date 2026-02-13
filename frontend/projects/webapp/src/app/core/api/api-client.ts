@@ -38,6 +38,13 @@ export class ApiClient {
     );
   }
 
+  put$<T>(path: string, body: unknown, schema: ZodType<T>): Observable<T> {
+    return this.#http.put<unknown>(`${this.#baseUrl}${path}`, body).pipe(
+      map((res) => schema.parse(res)),
+      catchError((error) => this.#handleError(error)),
+    );
+  }
+
   delete$<T>(path: string, schema: ZodType<T>): Observable<T> {
     return this.#http.delete<unknown>(`${this.#baseUrl}${path}`).pipe(
       map((res) => schema.parse(res)),
