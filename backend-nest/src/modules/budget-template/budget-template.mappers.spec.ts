@@ -6,15 +6,18 @@ import {
 } from './budget-template.mappers';
 import type { Tables } from '@/types/database.types';
 
+type DecryptedTemplateLine = Omit<Tables<'template_line'>, 'amount'> & {
+  amount: number;
+};
+
 describe('BudgetTemplate Mappers', () => {
   describe('toApiTemplateLine', () => {
     it('should map all fields from DB row to API entity', () => {
-      const dbRow: Tables<'template_line'> = {
+      const dbRow: DecryptedTemplateLine = {
         id: 'line-123',
         template_id: 'template-123',
         name: 'Salaire',
         amount: 5000,
-        amount_encrypted: null,
         kind: 'income',
         recurrence: 'fixed',
         description: 'Salaire mensuel',
@@ -35,13 +38,12 @@ describe('BudgetTemplate Mappers', () => {
 
   describe('toApiTemplateLineList', () => {
     it('should map all rows', () => {
-      const dbRows: Tables<'template_line'>[] = [
+      const dbRows: DecryptedTemplateLine[] = [
         {
           id: 'line-1',
           template_id: 'template-123',
           name: 'Salaire',
           amount: 5000,
-          amount_encrypted: null,
           kind: 'income',
           recurrence: 'fixed',
           description: '',
@@ -53,7 +55,6 @@ describe('BudgetTemplate Mappers', () => {
           template_id: 'template-123',
           name: 'Loyer',
           amount: 1200.5,
-          amount_encrypted: null,
           kind: 'expense',
           recurrence: 'fixed',
           description: '',
