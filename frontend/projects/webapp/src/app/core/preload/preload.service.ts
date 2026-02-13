@@ -30,19 +30,27 @@ export class PreloadService {
   async #preloadCriticalData(): Promise<void> {
     this.#logger.debug('[PreloadService] Preloading critical data');
 
-    const results = await Promise.allSettled([
-      firstValueFrom(this.#budgetApi.checkBudgetExists$()),
-      firstValueFrom(this.#budgetApi.getAllBudgets$()),
-      this.#userSettingsApi.initialize(),
-    ]);
+    const operations = [
+      {
+        name: 'checkBudgetExists',
+        task: firstValueFrom(this.#budgetApi.checkBudgetExists$()),
+      },
+      {
+        name: 'getAllBudgets',
+        task: firstValueFrom(this.#budgetApi.getAllBudgets$()),
+      },
+      { name: 'userSettings', task: this.#userSettingsApi.initialize() },
+    ];
 
-    for (const result of results) {
+    const results = await Promise.allSettled(operations.map((op) => op.task));
+
+    results.forEach((result, index) => {
       if (result.status === 'rejected') {
         this.#logger.warn(
-          '[PreloadService] Preload item failed',
+          `[PreloadService] Failed to preload ${operations[index].name}`,
           result.reason,
         );
       }
-    }
+    });
   }
 }

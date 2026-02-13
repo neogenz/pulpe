@@ -83,12 +83,16 @@ describe('PreloadService', () => {
 
     await vi.waitFor(() => {
       expect(mockLogger.warn).toHaveBeenCalledTimes(1);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('checkBudgetExists'),
+        expect.anything(),
+      );
       expect(mockBudgetApi.getAllBudgets$).toHaveBeenCalled();
       expect(mockUserSettingsApi.initialize).toHaveBeenCalled();
     });
   });
 
-  it('should log warnings for each failed preload item', async () => {
+  it('should log warnings with operation name for each failed preload item', async () => {
     const { mockBudgetApi, mockUserSettingsApi } = setup(true);
     mockBudgetApi.checkBudgetExists$.mockReturnValue(
       throwError(() => new Error('Budget check failed')),
@@ -104,6 +108,18 @@ describe('PreloadService', () => {
 
     await vi.waitFor(() => {
       expect(mockLogger.warn).toHaveBeenCalledTimes(3);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('checkBudgetExists'),
+        expect.anything(),
+      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('getAllBudgets'),
+        expect.anything(),
+      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('userSettings'),
+        expect.anything(),
+      );
     });
   });
 });
