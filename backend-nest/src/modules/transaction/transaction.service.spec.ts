@@ -51,10 +51,22 @@ describe('TransactionService', () => {
         (_ct: string, _dek: Buffer, fallback: number) => fallback,
       ),
     };
+    const mockCacheService = {
+      getOrSet: mock(
+        (
+          _userId: string,
+          _key: string,
+          _ttl: number,
+          fetcher: () => Promise<unknown>,
+        ) => fetcher(),
+      ),
+      invalidateForUser: mock(() => Promise.resolve()),
+    };
     service = new TransactionService(
       mockLogger as InfoLogger,
       mockBudgetService as BudgetService,
       mockEncryptionService as EncryptionService,
+      mockCacheService as any,
     );
   });
 

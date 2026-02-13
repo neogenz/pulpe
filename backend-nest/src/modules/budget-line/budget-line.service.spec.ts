@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BudgetLineService } from './budget-line.service';
 import { BudgetService } from '../budget/budget.service';
 import { EncryptionService } from '@modules/encryption/encryption.service';
+import { CacheService } from '@modules/cache/cache.service';
 import { BusinessException } from '@common/exceptions/business.exception';
 import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
@@ -141,6 +142,22 @@ describe('BudgetLineService', () => {
               .mockImplementation(
                 (_ct: string, _dek: Buffer, fallback: number) => fallback,
               ),
+          },
+        },
+        {
+          provide: CacheService,
+          useValue: {
+            getOrSet: jest
+              .fn()
+              .mockImplementation(
+                (
+                  _userId: string,
+                  _key: string,
+                  _ttl: number,
+                  fetcher: () => Promise<unknown>,
+                ) => fetcher(),
+              ),
+            invalidateForUser: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],

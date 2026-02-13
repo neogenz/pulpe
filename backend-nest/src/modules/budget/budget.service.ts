@@ -5,6 +5,7 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { handleServiceError } from '@common/utils/error-handler';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
+import { CacheService } from '@modules/cache/cache.service';
 import { ZodError } from 'zod';
 import { validateCreateBudgetResponse } from './schemas/rpc-responses.schema';
 import {
@@ -50,6 +51,7 @@ export class BudgetService {
     private readonly validator: BudgetValidator,
     private readonly repository: BudgetRepository,
     private readonly encryptionService: EncryptionService,
+    private readonly cacheService: CacheService,
   ) {}
 
   private async getPayDayOfMonth(
@@ -107,6 +109,17 @@ export class BudgetService {
   }
 
   async findAll(
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+    query?: ListBudgetsQuery,
+  ): Promise<BudgetListResponse | BudgetSparseListResponse> {
+    const cacheKey = `budgets:list:${JSON.stringify(query ?? {})}`;
+    return this.cacheService.getOrSet(user.id, cacheKey, 30_000, () =>
+      this.#fetchBudgetList(user, supabase, query),
+    );
+  }
+
+  async #fetchBudgetList(
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
     query?: ListBudgetsQuery,
@@ -503,6 +516,8 @@ export class BudgetService {
 
       const apiData = budgetMappers.toApi(processedResult.budgetData);
 
+      await this.cacheService.invalidateForUser(user.id);
+
       return {
         success: true,
         data: apiData,
@@ -726,6 +741,8 @@ export class BudgetService {
 
       const apiData = budgetMappers.toApi(budgetDb as Tables<'monthly_budget'>);
 
+      await this.cacheService.invalidateForUser(user.id);
+
       return {
         success: true,
         data: apiData,
@@ -788,6 +805,8 @@ export class BudgetService {
           { cause: error },
         );
       }
+
+      await this.cacheService.invalidateForUser(user.id);
 
       return {
         success: true,

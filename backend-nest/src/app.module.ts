@@ -16,6 +16,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { ZodValidationPipe } from 'nestjs-zod';
 
 // Modules
+import { AppCacheModule } from '@modules/cache/cache.module';
 import { AuthModule } from '@modules/auth/auth.module';
 import { BudgetLineModule } from '@modules/budget-line/budget-line.module';
 import { BudgetTemplateModule } from '@modules/budget-template/budget-template.module';
@@ -296,6 +297,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
       },
     }),
     ScheduleModule.forRoot(),
+    AppCacheModule,
     SupabaseModule,
     EncryptionModule,
     AuthModule,

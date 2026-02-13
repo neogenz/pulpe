@@ -5,6 +5,7 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { handleServiceError } from '@common/utils/error-handler';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
+import { CacheService } from '@modules/cache/cache.service';
 import {
   type TransactionCreate,
   type TransactionDeleteResponse,
@@ -28,6 +29,7 @@ export class TransactionService {
     private readonly logger: InfoLogger,
     private readonly budgetService: BudgetService,
     private readonly encryptionService: EncryptionService,
+    private readonly cacheService: CacheService,
   ) {}
 
   async findAll(
@@ -312,6 +314,8 @@ export class TransactionService {
       );
       const apiData = transactionMappers.toApi(decryptedTransaction);
 
+      await this.cacheService.invalidateForUser(user.id);
+
       return {
         success: true,
         data: apiData,
@@ -536,6 +540,8 @@ export class TransactionService {
       );
       const apiData = transactionMappers.toApi(decryptedTransaction);
 
+      await this.cacheService.invalidateForUser(user.id);
+
       return {
         success: true,
         data: apiData,
@@ -580,6 +586,8 @@ export class TransactionService {
       }
 
       this.logTransactionDeletionSuccess(user.id, id, startTime);
+
+      await this.cacheService.invalidateForUser(user.id);
 
       return {
         success: true,
@@ -835,6 +843,8 @@ export class TransactionService {
         },
         'Transaction check state toggled successfully',
       );
+
+      await this.cacheService.invalidateForUser(user.id);
 
       return {
         success: true,
