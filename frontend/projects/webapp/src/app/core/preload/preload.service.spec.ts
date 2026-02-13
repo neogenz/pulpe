@@ -5,6 +5,8 @@ import { of, throwError } from 'rxjs';
 import { PreloadService } from './preload.service';
 import { AuthStateService } from '../auth/auth-state.service';
 import { BudgetApi } from '../budget/budget-api';
+import { ClientKeyService } from '../encryption/client-key.service';
+import { DemoModeService } from '../demo/demo-mode.service';
 import { UserSettingsApi } from '../user-settings/user-settings-api';
 import { Logger } from '../logging/logger';
 
@@ -15,7 +17,15 @@ const mockLogger = {
   error: vi.fn(),
 };
 
-function setup(authenticated: boolean) {
+function setup({
+  authenticated = true,
+  hasClientKey = true,
+  isDemoMode = false,
+}: {
+  authenticated?: boolean;
+  hasClientKey?: boolean;
+  isDemoMode?: boolean;
+} = {}) {
   const mockBudgetApi = {
     checkBudgetExists$: vi.fn().mockReturnValue(of(true)),
     getAllBudgets$: vi.fn().mockReturnValue(of([])),
@@ -33,6 +43,14 @@ function setup(authenticated: boolean) {
         provide: AuthStateService,
         useValue: { isAuthenticated: signal(authenticated) },
       },
+      {
+        provide: ClientKeyService,
+        useValue: { hasClientKey: signal(hasClientKey) },
+      },
+      {
+        provide: DemoModeService,
+        useValue: { isDemoMode: () => isDemoMode },
+      },
       { provide: BudgetApi, useValue: mockBudgetApi },
       { provide: UserSettingsApi, useValue: mockUserSettingsApi },
       { provide: Logger, useValue: mockLogger },
@@ -49,8 +67,8 @@ describe('PreloadService', () => {
     vi.clearAllMocks();
   });
 
-  it('should preload budgets and user settings when authenticated', async () => {
-    const { mockBudgetApi, mockUserSettingsApi } = setup(true);
+  it('should preload budgets and user settings when authenticated with client key', async () => {
+    const { mockBudgetApi, mockUserSettingsApi } = setup();
 
     await TestBed.flushEffects();
 
@@ -61,8 +79,36 @@ describe('PreloadService', () => {
     });
   });
 
+  it('should preload in demo mode even without client key', async () => {
+    const { mockBudgetApi, mockUserSettingsApi } = setup({
+      hasClientKey: false,
+      isDemoMode: true,
+    });
+
+    await TestBed.flushEffects();
+
+    await vi.waitFor(() => {
+      expect(mockBudgetApi.checkBudgetExists$).toHaveBeenCalled();
+      expect(mockUserSettingsApi.initialize).toHaveBeenCalled();
+    });
+  });
+
   it('should not preload when not authenticated', async () => {
-    const { mockBudgetApi, mockUserSettingsApi } = setup(false);
+    const { mockBudgetApi, mockUserSettingsApi } = setup({
+      authenticated: false,
+    });
+
+    await TestBed.flushEffects();
+
+    expect(mockBudgetApi.checkBudgetExists$).not.toHaveBeenCalled();
+    expect(mockBudgetApi.getAllBudgets$).not.toHaveBeenCalled();
+    expect(mockUserSettingsApi.initialize).not.toHaveBeenCalled();
+  });
+
+  it('should not preload when authenticated but no client key (vault code not entered)', async () => {
+    const { mockBudgetApi, mockUserSettingsApi } = setup({
+      hasClientKey: false,
+    });
 
     await TestBed.flushEffects();
 
@@ -72,7 +118,7 @@ describe('PreloadService', () => {
   });
 
   it('should handle individual preload failures without blocking others (allSettled)', async () => {
-    const { mockBudgetApi, mockUserSettingsApi } = setup(true);
+    const { mockBudgetApi, mockUserSettingsApi } = setup();
     mockBudgetApi.checkBudgetExists$.mockReturnValue(
       throwError(() => new Error('Network error')),
     );
@@ -93,7 +139,7 @@ describe('PreloadService', () => {
   });
 
   it('should log warnings with operation name for each failed preload item', async () => {
-    const { mockBudgetApi, mockUserSettingsApi } = setup(true);
+    const { mockBudgetApi, mockUserSettingsApi } = setup();
     mockBudgetApi.checkBudgetExists$.mockReturnValue(
       throwError(() => new Error('Budget check failed')),
     );

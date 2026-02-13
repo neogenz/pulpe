@@ -9,6 +9,8 @@ import {
 import { firstValueFrom } from 'rxjs';
 import { ApiClient } from '@core/api/api-client';
 import { AuthStateService } from '../auth/auth-state.service';
+import { ClientKeyService } from '../encryption/client-key.service';
+import { DemoModeService } from '../demo/demo-mode.service';
 import { Logger } from '../logging/logger';
 
 @Injectable({
@@ -17,20 +19,24 @@ import { Logger } from '../logging/logger';
 export class UserSettingsApi {
   readonly #api = inject(ApiClient);
   readonly #authState = inject(AuthStateService);
+  readonly #clientKey = inject(ClientKeyService);
+  readonly #demoMode = inject(DemoModeService);
   readonly #logger = inject(Logger);
 
   readonly #reloadTrigger = signal(0);
 
   readonly #settingsResource = resource<
     UserSettings | null,
-    { isAuthenticated: boolean; trigger: number }
+    { isReady: boolean; trigger: number }
   >({
     params: () => ({
-      isAuthenticated: this.#authState.isAuthenticated(),
+      isReady:
+        this.#authState.isAuthenticated() &&
+        (this.#clientKey.hasClientKey() || this.#demoMode.isDemoMode()),
       trigger: this.#reloadTrigger(),
     }),
     loader: async ({ params }) =>
-      params.isAuthenticated ? this.#loadSettings() : null,
+      params.isReady ? this.#loadSettings() : null,
   });
 
   readonly settings = computed(() => this.#settingsResource.value());

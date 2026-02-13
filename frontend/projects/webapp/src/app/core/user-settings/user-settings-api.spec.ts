@@ -13,6 +13,8 @@ import {
 import { UserSettingsApi } from './user-settings-api';
 import { ApiClient } from '@core/api/api-client';
 import { AuthStateService } from '../auth/auth-state.service';
+import { ClientKeyService } from '../encryption/client-key.service';
+import { DemoModeService } from '../demo/demo-mode.service';
 import { Logger } from '../logging/logger';
 
 describe('UserSettingsApi', () => {
@@ -32,19 +34,29 @@ describe('UserSettingsApi', () => {
     error: vi.fn(),
   };
 
-  function setupTestBed(isAuthenticated: boolean) {
+  function setupTestBed(
+    isAuthenticated: boolean,
+    { hasClientKey = true, isDemoMode = false } = {},
+  ) {
     mockIsAuthenticated = signal(isAuthenticated);
-
-    const mockAuthStateService = {
-      isAuthenticated: mockIsAuthenticated.asReadonly(),
-    };
 
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         UserSettingsApi,
         { provide: ApiClient, useValue: mockApi },
-        { provide: AuthStateService, useValue: mockAuthStateService },
+        {
+          provide: AuthStateService,
+          useValue: { isAuthenticated: mockIsAuthenticated.asReadonly() },
+        },
+        {
+          provide: ClientKeyService,
+          useValue: { hasClientKey: signal(hasClientKey) },
+        },
+        {
+          provide: DemoModeService,
+          useValue: { isDemoMode: signal(isDemoMode) },
+        },
         { provide: Logger, useValue: mockLogger },
       ],
     });
@@ -72,6 +84,18 @@ describe('UserSettingsApi', () => {
         TestBed.flushEffects();
 
         expect(service.payDayOfMonth()).toBeNull();
+      });
+    });
+
+    describe('when user is authenticated but no client key', () => {
+      beforeEach(() => {
+        setupTestBed(true, { hasClientKey: false });
+      });
+
+      it('should NOT call api.get$ without client key', () => {
+        TestBed.flushEffects();
+
+        expect(mockApi.get$).not.toHaveBeenCalled();
       });
     });
 
