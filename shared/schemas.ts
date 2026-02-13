@@ -931,3 +931,34 @@ export const demoCleanupResponseSchema = z.object({
   message: z.string(),
 });
 export type DemoCleanupResponse = z.infer<typeof demoCleanupResponseSchema>;
+
+// Encryption schemas
+export const encryptionSaltResponseSchema = z.object({
+  salt: z.string(),
+  kdfIterations: z.number().int().positive(),
+  hasRecoveryKey: z.boolean(),
+});
+export type EncryptionSaltResponse = z.infer<
+  typeof encryptionSaltResponseSchema
+>;
+
+export const encryptionRekeyResponseSchema = z.object({
+  success: z.literal(true),
+});
+export type EncryptionRekeyResponse = z.infer<
+  typeof encryptionRekeyResponseSchema
+>;
+
+export const encryptionSetupRecoveryResponseSchema = z.object({
+  recoveryKey: z.string(),
+});
+export type EncryptionSetupRecoveryResponse = z.infer<
+  typeof encryptionSetupRecoveryResponseSchema
+>;
+
+export const encryptionRecoverResponseSchema = z.object({
+  success: z.literal(true),
+});
+export type EncryptionRecoverResponse = z.infer<
+  typeof encryptionRecoverResponseSchema
+>;

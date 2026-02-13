@@ -111,6 +111,12 @@ export {
   demoSessionCreateSchema,
   demoSessionResponseSchema,
   demoCleanupResponseSchema,
+
+  // Encryption schemas
+  encryptionSaltResponseSchema,
+  encryptionRekeyResponseSchema,
+  encryptionSetupRecoveryResponseSchema,
+  encryptionRecoverResponseSchema,
 } from './schemas.js';
 
 // Export response schema factories
@@ -243,4 +249,10 @@ export type {
   // Demo mode types
   DemoSessionCreate,
   DemoSessionResponse,
+
+  // Encryption types
+  EncryptionSaltResponse,
+  EncryptionRekeyResponse,
+  EncryptionSetupRecoveryResponse,
+  EncryptionRecoverResponse,
 } from './schemas.js';
