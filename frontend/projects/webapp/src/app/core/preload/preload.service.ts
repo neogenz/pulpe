@@ -2,6 +2,7 @@ import { effect, inject, Injectable, untracked } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { AuthStateService } from '../auth/auth-state.service';
 import { BudgetApi } from '../budget/budget-api';
+import { UserSettingsApi } from '../user-settings/user-settings-api';
 import { Logger } from '../logging/logger';
 
 /**
@@ -15,6 +16,7 @@ import { Logger } from '../logging/logger';
 export class PreloadService {
   readonly #authState = inject(AuthStateService);
   readonly #budgetApi = inject(BudgetApi);
+  readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #logger = inject(Logger);
 
   constructor() {
@@ -25,18 +27,22 @@ export class PreloadService {
     });
   }
 
-  #preloadCriticalData(): void {
+  async #preloadCriticalData(): Promise<void> {
     this.#logger.debug('[PreloadService] Preloading critical data');
 
-    firstValueFrom(this.#budgetApi.checkBudgetExists$()).catch((err) =>
-      this.#logger.warn(
-        '[PreloadService] Failed to preload budget existence',
-        err,
-      ),
-    );
+    const results = await Promise.allSettled([
+      firstValueFrom(this.#budgetApi.checkBudgetExists$()),
+      firstValueFrom(this.#budgetApi.getAllBudgets$()),
+      this.#userSettingsApi.initialize(),
+    ]);
 
-    firstValueFrom(this.#budgetApi.getAllBudgets$()).catch((err) =>
-      this.#logger.warn('[PreloadService] Failed to preload budgets', err),
-    );
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        this.#logger.warn(
+          '[PreloadService] Preload item failed',
+          result.reason,
+        );
+      }
+    }
   }
 }
