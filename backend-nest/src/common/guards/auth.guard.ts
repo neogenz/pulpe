@@ -1,6 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ClsService } from 'nestjs-cls';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { Request } from 'express';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -9,7 +8,6 @@ import { SupabaseService } from '@modules/supabase/supabase.service';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { SupabaseClient } from '@/types/supabase-helpers';
 import { SKIP_CLIENT_KEY } from '@common/decorators/skip-client-key.decorator';
-import type { AppClsStore } from '@common/types/cls-store.interface';
 
 interface RequestWithCache extends Request {
   __throttlerUserCache?: AuthenticatedUser | null;
@@ -24,7 +22,6 @@ export class AuthGuard implements CanActivate {
     private readonly logger: InfoLogger,
     private readonly supabaseService: SupabaseService,
     private readonly reflector: Reflector,
-    private readonly cls: ClsService<AppClsStore>,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -66,9 +63,6 @@ export class AuthGuard implements CanActivate {
       request.user = { ...cachedUser, accessToken, clientKey };
       request.supabase = supabase;
 
-      // Store isDemo in CLS for encryption service
-      this.cls.set('isDemo', cachedUser.isDemo === true);
-
       return true;
     } catch (error) {
       if (error instanceof BusinessException) {
@@ -102,8 +96,6 @@ export class AuthGuard implements CanActivate {
 
       const clientKey = this.#resolveClientKey(request, skipClientKey);
 
-      const isDemo = user.user_metadata?.is_demo === true;
-
       const authenticatedUser: AuthenticatedUser = {
         id: user.id,
         email: user.email!,
@@ -111,14 +103,10 @@ export class AuthGuard implements CanActivate {
         lastName: user.user_metadata?.lastName,
         accessToken,
         clientKey,
-        isDemo,
       };
 
       request.user = authenticatedUser;
       request.supabase = supabase;
-
-      // Store isDemo in CLS for encryption service
-      this.cls.set('isDemo', isDemo);
 
       return true;
     } catch (error) {

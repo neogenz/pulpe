@@ -334,11 +334,13 @@ export class BudgetRepository {
    * Calculates totalExpenses, totalSavings, totalIncome from budget_lines and transactions
    * @param budgetIds - Array of budget IDs
    * @param supabase - Authenticated Supabase client
+   * @param decryptFn - Function to decrypt amount values (default: returns 0)
    * @returns Map of budget ID to aggregates
    */
   async fetchBudgetAggregates(
     budgetIds: string[],
     supabase: AuthenticatedSupabaseClient,
+    decryptFn: (amount: string | null) => number = () => 0,
   ): Promise<Map<string, BudgetAggregates>> {
     const aggregatesMap = new Map<string, BudgetAggregates>();
 
@@ -366,8 +368,16 @@ export class BudgetRepository {
           .in('budget_id', budgetIds),
       ]);
 
-      this.accumulateAmounts(budgetLinesResult.data ?? [], aggregatesMap);
-      this.accumulateAmounts(transactionsResult.data ?? [], aggregatesMap);
+      this.accumulateAmounts(
+        budgetLinesResult.data ?? [],
+        aggregatesMap,
+        decryptFn,
+      );
+      this.accumulateAmounts(
+        transactionsResult.data ?? [],
+        aggregatesMap,
+        decryptFn,
+      );
     } catch (error) {
       this.logger.warn('Failed to fetch budget aggregates, returning zeros', {
         budgetIds,
@@ -379,22 +389,28 @@ export class BudgetRepository {
   }
 
   private accumulateAmounts(
-    items: Array<{ budget_id: string; kind: TransactionKind; amount: number }>,
+    items: Array<{
+      budget_id: string;
+      kind: TransactionKind;
+      amount: string | null;
+    }>,
     aggregatesMap: Map<string, BudgetAggregates>,
+    decryptFn: (amount: string | null) => number,
   ): void {
     for (const item of items) {
       const aggregates = aggregatesMap.get(item.budget_id);
       if (!aggregates) continue;
 
+      const value = decryptFn(item.amount);
       switch (item.kind) {
         case 'expense':
-          aggregates.totalExpenses += item.amount;
+          aggregates.totalExpenses += value;
           break;
         case 'saving':
-          aggregates.totalSavings += item.amount;
+          aggregates.totalSavings += value;
           break;
         case 'income':
-          aggregates.totalIncome += item.amount;
+          aggregates.totalIncome += value;
           break;
       }
     }

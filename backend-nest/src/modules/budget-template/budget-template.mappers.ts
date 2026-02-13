@@ -24,7 +24,7 @@ export const toApiTemplate = (db: Tables<'template'>): BudgetTemplate => ({
 });
 
 export const toApiTemplateLine = (
-  db: Tables<'template_line'>,
+  db: Omit<Tables<'template_line'>, 'amount'> & { amount: number },
 ): TemplateLine => ({
   id: db.id,
   description: db.description ?? '',
@@ -48,9 +48,10 @@ export const toApiTemplateList = (
 
 /**
  * Transform multiple database template line rows to API entities
+ * Expects decrypted linesDb where amount is already a number
  */
 export const toApiTemplateLineList = (
-  linesDb: Tables<'template_line'>[],
+  linesDb: (Omit<Tables<'template_line'>, 'amount'> & { amount: number })[],
 ): TemplateLine[] => {
   return linesDb.map(toApiTemplateLine);
 };
@@ -83,8 +84,7 @@ export const toDbTemplateLineInsert = (
 ): TablesInsert<'template_line'> => ({
   template_id: templateId,
   name: dto.name,
-  amount: amountEncrypted ? 0 : dto.amount,
-  amount_encrypted: amountEncrypted ?? null,
+  amount: amountEncrypted ?? null,
   kind: dto.kind,
   recurrence: dto.recurrence,
   description: dto.description,
@@ -97,8 +97,7 @@ export const toDbTemplateLineUpdate = (
   const update: Partial<TablesInsert<'template_line'>> = {};
   if (dto.name !== undefined) update.name = dto.name;
   if (dto.amount !== undefined) {
-    update.amount = amountEncrypted ? 0 : dto.amount;
-    update.amount_encrypted = amountEncrypted ?? null;
+    update.amount = amountEncrypted ?? null;
   }
   if (dto.kind !== undefined) update.kind = dto.kind;
   if (dto.recurrence !== undefined) update.recurrence = dto.recurrence;

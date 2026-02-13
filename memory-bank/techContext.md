@@ -409,24 +409,23 @@ L'administrateur Supabase peut lire tous les montants financiers en clair (`NUME
 ### Decision
 
 Architecture split-key :
-- **Client** : dérive un `clientKey` depuis le mot de passe via PBKDF2 (600k itérations, SHA-256) au login
+- **Client** : dérive un `clientKey` depuis le code PIN via PBKDF2 (600k itérations, SHA-256)
 - **Backend** : combine `clientKey` + `masterKey` via HKDF → DEK utilisée pour AES-256-GCM
-- **DEK jamais stockée** : dérivée à chaque requête, jetée après traitement
-- **Table `user_encryption_key`** : stocke uniquement `salt` et `kdf_iterations` par utilisateur
-- **Changement de mot de passe** : re-chiffrement complet des données utilisateur (acceptable au volume actuel)
-- **Migration** : stratégie dual-column (plaintext + encrypted) pour réversibilité
+- **DEK jamais stockée** : dérivée à chaque requête, jetée après traitement (cache 5 min en mémoire)
+- **Table `user_encryption_key`** : stocke `salt`, `kdf_iterations`, `key_check` (canary), `wrapped_dek` (recovery)
+- **Recovery key** : DEK wrappée avec une clé de récupération utilisateur (AES-256-GCM)
+- **Colonnes chiffrées** : `amount`, `target_amount`, `ending_balance` sont des colonnes `text` contenant des ciphertexts base64
 
 ### Rationale
 
 - masterKey seule insuffisante pour décrypter → admin ne peut pas lire les données at rest
 - Backend voit les données en clair en mémoire pendant les requêtes → permet les calculs serveur
 - PBKDF2 côté client = quelques lignes natives (Web Crypto API, CryptoKit, JCA) → pas de lib tierce
-- Dual-column protège les 3 users existants pendant la migration progressive
 
 ### Consequences
 
-- **Positive** : Claim marketing "même l'admin ne peut pas décrypter sans votre mot de passe" techniquement vrai
-- **Trade-off** : Perte de mot de passe = perte d'accès aux données (pas de recovery possible)
+- **Positive** : Claim marketing "même l'admin ne peut pas décrypter sans votre code PIN" techniquement vrai
+- **Trade-off** : Perte de code PIN sans recovery key = perte d'accès aux données
 - **Trade-off** : Changement de mot de passe re-chiffre toutes les données (négligeable au volume actuel)
 - **Trade-off** : ~300-500ms de PBKDF2 au login côté client (une seule fois)
 - **Dependencies** : Web Crypto API (Angular), CryptoKit (SwiftUI), JCA (Android)

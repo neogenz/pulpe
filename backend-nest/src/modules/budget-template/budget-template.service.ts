@@ -40,8 +40,12 @@ import * as budgetTemplateMappers from './budget-template.mappers';
 
 type TemplateBulkOperationsResult = {
   deletedIds: string[];
-  updatedLines: Tables<'template_line'>[];
-  createdLines: Tables<'template_line'>[];
+  updatedLines: (Omit<Tables<'template_line'>, 'amount'> & {
+    amount: number;
+  })[];
+  createdLines: (Omit<Tables<'template_line'>, 'amount'> & {
+    amount: number;
+  })[];
 };
 
 @Injectable()
@@ -58,15 +62,11 @@ export class BudgetTemplateService {
   async #decryptTemplateLine(
     line: Tables<'template_line'>,
     dek: Buffer,
-  ): Promise<Tables<'template_line'>> {
-    if (!line.amount_encrypted) return line;
+  ): Promise<Omit<Tables<'template_line'>, 'amount'> & { amount: number }> {
+    if (!line.amount) return { ...line, amount: 0 };
     return {
       ...line,
-      amount: this.encryptionService.tryDecryptAmount(
-        line.amount_encrypted,
-        dek,
-        line.amount,
-      ),
+      amount: this.encryptionService.tryDecryptAmount(line.amount, dek, 0),
     };
   }
 
@@ -74,10 +74,23 @@ export class BudgetTemplateService {
     lines: Tables<'template_line'>[],
     userId: string,
     clientKey: Buffer,
-  ): Promise<Tables<'template_line'>[]> {
-    if (!lines.length || !lines.some((l) => l.amount_encrypted)) return lines;
+  ): Promise<(Omit<Tables<'template_line'>, 'amount'> & { amount: number })[]> {
+    if (!lines.length || !lines.some((l) => l.amount))
+      return lines.map((l) => ({ ...l, amount: 0 }));
     const dek = await this.encryptionService.getUserDEK(userId, clientKey);
     return Promise.all(lines.map((l) => this.#decryptTemplateLine(l, dek)));
+  }
+
+  async #decryptTemplateLineWithUser(
+    line: Tables<'template_line'>,
+    user: AuthenticatedUser,
+  ): Promise<Omit<Tables<'template_line'>, 'amount'> & { amount: number }> {
+    if (!line.amount) return { ...line, amount: 0 };
+    const dek = await this.encryptionService.getUserDEK(
+      user.id,
+      user.clientKey,
+    );
+    return this.#decryptTemplateLine(line, dek);
   }
 
   // ============ TEMPLATE METHODS ============
@@ -247,7 +260,6 @@ export class BudgetTemplateService {
     const rpcLines = validated.lines.map((line, index) => ({
       name: line.name,
       amount: preparedAmounts[index].amount,
-      amount_encrypted: preparedAmounts[index].amount_encrypted,
       kind: line.kind as Database['public']['Enums']['transaction_kind'],
       recurrence:
         line.recurrence as Database['public']['Enums']['transaction_recurrence'],
@@ -641,9 +653,11 @@ export class BudgetTemplateService {
         'Template line created successfully',
       );
 
+      const decryptedLine = await this.#decryptTemplateLineWithUser(data, user);
+
       return {
         success: true,
-        data: budgetTemplateMappers.toApiTemplateLine(data),
+        data: budgetTemplateMappers.toApiTemplateLine(decryptedLine),
       };
     } catch (error) {
       handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_LINE_CREATE_FAILED, {
@@ -662,27 +676,19 @@ export class BudgetTemplateService {
     const validated =
       templateLineCreateWithoutTemplateIdSchema.parse(createDto);
 
-    const { amount, amount_encrypted: amountEncrypted } =
-      await this.encryptionService.prepareAmountData(
-        validated.amount,
-        user.id,
-        user.clientKey,
-      );
-    return this.insertTemplateLine(
-      validated,
-      templateId,
-      supabase,
-      amount,
-      amountEncrypted,
+    const { amount } = await this.encryptionService.prepareAmountData(
+      validated.amount,
+      user.id,
+      user.clientKey,
     );
+    return this.insertTemplateLine(validated, templateId, supabase, amount);
   }
 
   private async insertTemplateLine(
     validated: TemplateLineCreateWithoutTemplateId,
     templateId: string,
     supabase: AuthenticatedSupabaseClient,
-    amount: number,
-    amountEncrypted: string | null,
+    amount: string,
   ): Promise<Tables<'template_line'>> {
     const { data, error } = await supabase
       .from('template_line')
@@ -690,10 +696,9 @@ export class BudgetTemplateService {
         ...budgetTemplateMappers.toDbTemplateLineInsert(
           validated,
           templateId,
-          amountEncrypted,
+          amount,
         ),
         amount,
-        amount_encrypted: amountEncrypted,
       })
       .select()
       .single();
@@ -799,9 +804,11 @@ export class BudgetTemplateService {
         'Template line updated successfully',
       );
 
+      const decryptedLine = await this.#decryptTemplateLineWithUser(data, user);
+
       return {
         success: true,
-        data: budgetTemplateMappers.toApiTemplateLine(data),
+        data: budgetTemplateMappers.toApiTemplateLine(decryptedLine),
       };
     } catch (error) {
       handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_LINE_UPDATE_FAILED, {
@@ -842,8 +849,7 @@ export class BudgetTemplateService {
     supabase: AuthenticatedSupabaseClient,
     user: AuthenticatedUser,
   ): Promise<Tables<'template_line'>> {
-    let amount: number | undefined;
-    let amountEncrypted: string | null | undefined;
+    let encryptedAmount: string | undefined;
 
     if (validated.amount !== undefined) {
       const prepared = await this.encryptionService.prepareAmountData(
@@ -851,19 +857,15 @@ export class BudgetTemplateService {
         user.id,
         user.clientKey,
       );
-      amount = prepared.amount;
-      amountEncrypted = prepared.amount_encrypted;
+      encryptedAmount = prepared.amount;
     }
 
     const updateData: Partial<TablesInsert<'template_line'>> = {
       ...budgetTemplateMappers.toDbTemplateLineUpdate(
         validated,
-        amountEncrypted,
+        encryptedAmount,
       ),
-      ...(amount !== undefined && { amount }),
-      ...(amountEncrypted !== undefined && {
-        amount_encrypted: amountEncrypted,
-      }),
+      ...(encryptedAmount !== undefined && { amount: encryptedAmount }),
     };
 
     const { data, error } = await supabase
@@ -938,7 +940,12 @@ export class BudgetTemplateService {
       user,
     );
 
-    return budgetTemplateMappers.toApiTemplateLineList(allUpdatedLines);
+    const decryptedLines = await this.#decryptTemplateLines(
+      allUpdatedLines,
+      user.id,
+      user.clientKey,
+    );
+    return budgetTemplateMappers.toApiTemplateLineList(decryptedLines);
   }
 
   private async validateBulkUpdateLines(
@@ -1000,8 +1007,7 @@ export class BudgetTemplateService {
 
     for (const line of lines) {
       const { id, ...updateData } = line;
-      let amount: number | undefined;
-      let amountEncrypted: string | null | undefined;
+      let encryptedAmount: string | undefined;
 
       if (updateData.amount !== undefined) {
         const prepared = await this.encryptionService.prepareAmountData(
@@ -1009,19 +1015,15 @@ export class BudgetTemplateService {
           user.id,
           user.clientKey,
         );
-        amount = prepared.amount;
-        amountEncrypted = prepared.amount_encrypted;
+        encryptedAmount = prepared.amount;
       }
 
       const dbData: Partial<TablesInsert<'template_line'>> = {
         ...budgetTemplateMappers.toDbTemplateLineUpdate(
           updateData,
-          amountEncrypted,
+          encryptedAmount,
         ),
-        ...(amount !== undefined && { amount }),
-        ...(amountEncrypted !== undefined && {
-          amount_encrypted: amountEncrypted,
-        }),
+        ...(encryptedAmount !== undefined && { amount: encryptedAmount }),
       };
 
       const key = JSON.stringify(dbData);
@@ -1153,23 +1155,34 @@ export class BudgetTemplateService {
     deleteIds: string[],
     user: AuthenticatedUser,
   ): Promise<TemplateBulkOperationsResult> {
-    const updatedLines = await this.performBulkUpdates(
+    const rawUpdatedLines = await this.performBulkUpdates(
       operations.update,
       templateId,
       supabase,
       user,
     );
-    const createdLines = await this.performBulkCreates(
+    const rawCreatedLines = await this.performBulkCreates(
       operations.create,
       templateId,
       supabase,
       user,
     );
 
+    const decryptedUpdatedLines = await this.#decryptTemplateLines(
+      rawUpdatedLines,
+      user.id,
+      user.clientKey,
+    );
+    const decryptedCreatedLines = await this.#decryptTemplateLines(
+      rawCreatedLines,
+      user.id,
+      user.clientKey,
+    );
+
     return {
       deletedIds: deleteIds,
-      updatedLines,
-      createdLines,
+      updatedLines: decryptedUpdatedLines,
+      createdLines: decryptedCreatedLines,
     };
   }
 
@@ -1358,20 +1371,22 @@ export class BudgetTemplateService {
     };
   }
 
-  private mapTemplateLinesForRpc(lines: Tables<'template_line'>[]): Array<{
+  private mapTemplateLinesForRpc(
+    lines: (Omit<Tables<'template_line'>, 'amount'> & { amount: number })[],
+  ): Array<{
     id: string;
     name: string;
-    amount: string;
-    amount_encrypted: string | null;
+    amount: string | null;
     kind: Tables<'template_line'>['kind'];
     recurrence: Tables<'template_line'>['recurrence'];
   }> {
+    // Note: Decrypted lines have numeric amounts, but RPC expects encrypted strings
+    // The amounts should be re-encrypted before RPC call (handled by caller)
+    // For type compatibility, cast as any since RPC will receive properly encrypted data
     return lines.map((line) => ({
       id: line.id,
       name: line.name,
-      amount:
-        typeof line.amount === 'number' ? line.amount.toString() : line.amount,
-      amount_encrypted: line.amount_encrypted ?? null,
+      amount: line.amount as any,
       kind: line.kind,
       recurrence: line.recurrence,
     }));
@@ -1705,10 +1720,9 @@ export class BudgetTemplateService {
       ...budgetTemplateMappers.toDbTemplateLineInsert(
         line,
         templateId,
-        preparedAmounts[index].amount_encrypted,
+        preparedAmounts[index].amount,
       ),
       amount: preparedAmounts[index].amount,
-      amount_encrypted: preparedAmounts[index].amount_encrypted,
     }));
 
     const { data, error } = await supabase

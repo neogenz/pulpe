@@ -43,12 +43,12 @@ describe('TransactionService', () => {
       getUserDEK: mock(() => Promise.resolve(Buffer.alloc(32))),
       ensureUserDEK: mock(() => Promise.resolve(Buffer.alloc(32))),
       encryptAmount: mock(() => 'encrypted-mock'),
-      prepareAmountData: mock((amount: number) =>
-        Promise.resolve({ amount, amount_encrypted: null }),
+      prepareAmountData: mock((_amount: number) =>
+        Promise.resolve({ amount: 'encrypted-mock' }),
       ),
       decryptAmount: mock(() => 100),
       tryDecryptAmount: mock(
-        (_ct: string, _dek: Buffer, fallback: number) => fallback,
+        (_ct: string, _dek: Buffer, _fallback: number) => 100,
       ),
     };
     const mockCacheService = {
@@ -130,7 +130,7 @@ describe('TransactionService', () => {
       const mockCreatedTransaction = createMockTransactionEntity({
         budget_id: createTransactionDto.budgetId,
         name: createTransactionDto.name,
-        amount: createTransactionDto.amount,
+        amount: 'encrypted-string',
         kind: 'expense', // DB uses new enum
       });
 
@@ -311,7 +311,7 @@ describe('TransactionService', () => {
       };
       const mockUpdatedTransaction = createMockTransactionEntity({
         name: updateData.name,
-        amount: updateData.amount,
+        amount: 'encrypted-string',
       });
 
       mockSupabaseClient.reset().setMockData(mockUpdatedTransaction);
@@ -329,7 +329,7 @@ describe('TransactionService', () => {
       expect(result.data).toBeDefined();
       if (result.data && 'name' in result.data) {
         expect(result.data.name).toBe('Updated Transaction');
-        expect(result.data.amount).toBe(200);
+        expect(result.data.amount).toBe(100);
       }
     });
 

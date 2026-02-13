@@ -218,7 +218,20 @@ export class BudgetService {
     const budgetIds = budgetsList.map((b) => b.id);
 
     const aggregatesMap = needsAggregates
-      ? await this.repository.fetchBudgetAggregates(budgetIds, supabase)
+      ? await (async () => {
+          const dek = await this.encryptionService.getUserDEK(
+            user.id,
+            user.clientKey,
+          );
+          return this.repository.fetchBudgetAggregates(
+            budgetIds,
+            supabase,
+            (amount) =>
+              amount
+                ? this.encryptionService.tryDecryptAmount(amount, dek, 0)
+                : 0,
+          );
+        })()
       : new Map();
 
     const rolloversMap = needsRollover
@@ -432,36 +445,49 @@ export class BudgetService {
     );
 
     const decryptedBudgetLines = (budgetLines || []).map((line) => {
-      if (!line.amount_encrypted) return line;
+      if (!line.amount) return { ...line, amount: 0 };
       return {
         ...line,
-        amount: this.encryptionService.tryDecryptAmount(
-          line.amount_encrypted,
-          dek,
-          line.amount,
-        ),
+        amount: this.encryptionService.tryDecryptAmount(line.amount, dek, 0),
       };
     });
 
     const decryptedTransactions = (transactions || []).map((tx) => {
-      if (!tx.amount_encrypted) return tx;
+      if (!tx.amount) return { ...tx, amount: 0 };
       return {
         ...tx,
-        amount: this.encryptionService.tryDecryptAmount(
-          tx.amount_encrypted,
-          dek,
-          tx.amount,
-        ),
+        amount: this.encryptionService.tryDecryptAmount(tx.amount, dek, 0),
       };
     });
 
     return {
-      ...budgetMappers.toApi(budget),
+      ...budgetMappers.toApi({
+        ...budget,
+        ending_balance: budget.ending_balance
+          ? this.encryptionService.tryDecryptAmount(
+              budget.ending_balance,
+              dek,
+              0,
+            )
+          : null,
+      } as unknown as Omit<Tables<'monthly_budget'>, 'ending_balance'> & {
+        ending_balance: number | null;
+      }),
       rollover: rolloverData.rollover,
       previousBudgetId: rolloverData.previousBudgetId,
       remaining,
-      transactions: transactionMappers.toApiList(decryptedTransactions),
-      budgetLines: budgetLineMappers.toApiList(decryptedBudgetLines),
+      transactions: transactionMappers.toApiList(
+        decryptedTransactions as unknown as (Omit<
+          Tables<'transaction'>,
+          'amount'
+        > & { amount: number })[],
+      ),
+      budgetLines: budgetLineMappers.toApiList(
+        decryptedBudgetLines as unknown as (Omit<
+          Tables<'budget_line'>,
+          'amount'
+        > & { amount: number })[],
+      ),
     };
   }
 
@@ -675,33 +701,46 @@ export class BudgetService {
     );
 
     const decryptedBudgetLines = (results.budgetLines || []).map((line) => {
-      if (!line.amount_encrypted) return line;
+      if (!line.amount) return { ...line, amount: 0 };
       return {
         ...line,
-        amount: this.encryptionService.tryDecryptAmount(
-          line.amount_encrypted,
-          dek,
-          line.amount,
-        ),
+        amount: this.encryptionService.tryDecryptAmount(line.amount, dek, 0),
       };
     });
 
     const decryptedTransactions = (results.transactions || []).map((tx) => {
-      if (!tx.amount_encrypted) return tx;
+      if (!tx.amount) return { ...tx, amount: 0 };
       return {
         ...tx,
-        amount: this.encryptionService.tryDecryptAmount(
-          tx.amount_encrypted,
-          dek,
-          tx.amount,
-        ),
+        amount: this.encryptionService.tryDecryptAmount(tx.amount, dek, 0),
       };
     });
 
     return {
-      budget: budgetMappers.toApi(results.budget as Tables<'monthly_budget'>),
-      transactions: transactionMappers.toApiList(decryptedTransactions),
-      budgetLines: budgetLineMappers.toApiList(decryptedBudgetLines),
+      budget: budgetMappers.toApi({
+        ...results.budget,
+        ending_balance: results.budget.ending_balance
+          ? this.encryptionService.tryDecryptAmount(
+              results.budget.ending_balance,
+              dek,
+              0,
+            )
+          : null,
+      } as unknown as Omit<Tables<'monthly_budget'>, 'ending_balance'> & {
+        ending_balance: number | null;
+      }),
+      transactions: transactionMappers.toApiList(
+        decryptedTransactions as unknown as (Omit<
+          Tables<'transaction'>,
+          'amount'
+        > & { amount: number })[],
+      ),
+      budgetLines: budgetLineMappers.toApiList(
+        decryptedBudgetLines as unknown as (Omit<
+          Tables<'budget_line'>,
+          'amount'
+        > & { amount: number })[],
+      ),
     };
   }
 
@@ -1065,7 +1104,12 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient,
     payDayOfMonth: number,
     clientKey: Buffer,
-  ): Promise<(Tables<'monthly_budget'> & { remaining: number })[]> {
+  ): Promise<
+    (Omit<Tables<'monthly_budget'>, 'ending_balance'> & {
+      ending_balance: number | null;
+      remaining: number;
+    })[]
+  > {
     const enrichedBudgets = await Promise.all(
       budgets.map(async (budget) => {
         try {
@@ -1076,8 +1120,14 @@ export class BudgetService {
             clientKey,
           );
 
+          const decryptedBalance = await this.#decryptEndingBalance(
+            budget,
+            clientKey,
+          );
+
           return {
             ...budget,
+            ending_balance: decryptedBalance,
             remaining,
           };
         } catch (error) {
@@ -1098,6 +1148,7 @@ export class BudgetService {
           );
           return {
             ...budget,
+            ending_balance: fallbackBalance,
             remaining: fallbackBalance,
           };
         }
@@ -1155,16 +1206,16 @@ export class BudgetService {
     budget: Tables<'monthly_budget'>,
     clientKey: Buffer,
   ): Promise<number> {
-    if (!budget.ending_balance_encrypted) return budget.ending_balance ?? 0;
+    if (!budget.ending_balance) return 0;
 
     const dek = await this.encryptionService.getUserDEK(
       budget.user_id!,
       clientKey,
     );
     return this.encryptionService.tryDecryptAmount(
-      budget.ending_balance_encrypted,
+      budget.ending_balance,
       dek,
-      budget.ending_balance ?? 0,
+      0,
     );
   }
 }

@@ -40,7 +40,6 @@ import { UserThrottlerGuard } from '@common/guards/user-throttler.guard';
 
 // Interceptors
 import { ClientKeyCleanupInterceptor } from '@common/interceptors/client-key-cleanup.interceptor';
-import { EncryptionBackfillInterceptor } from '@modules/encryption/encryption-backfill.interceptor';
 
 // Middleware
 import { DelayMiddleware } from '@common/middleware/delay.middleware';
@@ -320,10 +319,6 @@ function createPinoLoggerConfig(configService: ConfigService) {
     {
       provide: APP_GUARD,
       useClass: UserThrottlerGuard,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: EncryptionBackfillInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,

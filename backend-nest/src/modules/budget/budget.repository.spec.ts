@@ -282,6 +282,7 @@ describe('BudgetRepository', () => {
       const result = await repository.fetchBudgetAggregates(
         ['budget-1', 'budget-2'],
         mockSupabase as any,
+        (amount) => Number(amount) || 0,
       );
 
       expect(result.size).toBe(2);

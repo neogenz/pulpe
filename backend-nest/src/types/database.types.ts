@@ -36,8 +36,7 @@ export type Database = {
     Tables: {
       budget_line: {
         Row: {
-          amount: number;
-          amount_encrypted: string | null;
+          amount: string | null;
           budget_id: string;
           checked_at: string | null;
           created_at: string;
@@ -51,8 +50,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
-          amount: number;
-          amount_encrypted?: string | null;
+          amount?: string | null;
           budget_id: string;
           checked_at?: string | null;
           created_at?: string;
@@ -66,8 +64,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
-          amount?: number;
-          amount_encrypted?: string | null;
+          amount?: string | null;
           budget_id?: string;
           checked_at?: string | null;
           created_at?: string;
@@ -108,8 +105,7 @@ export type Database = {
         Row: {
           created_at: string;
           description: string;
-          ending_balance: number | null;
-          ending_balance_encrypted: string | null;
+          ending_balance: string | null;
           id: string;
           month: number;
           template_id: string;
@@ -120,8 +116,7 @@ export type Database = {
         Insert: {
           created_at?: string;
           description: string;
-          ending_balance?: number | null;
-          ending_balance_encrypted?: string | null;
+          ending_balance?: string | null;
           id?: string;
           month: number;
           template_id: string;
@@ -132,8 +127,7 @@ export type Database = {
         Update: {
           created_at?: string;
           description?: string;
-          ending_balance?: number | null;
-          ending_balance_encrypted?: string | null;
+          ending_balance?: string | null;
           id?: string;
           month?: number;
           template_id?: string;
@@ -158,8 +152,7 @@ export type Database = {
           name: string;
           priority: Database['public']['Enums']['priority_level'];
           status: Database['public']['Enums']['savings_goal_status'];
-          target_amount: number;
-          target_amount_encrypted: string | null;
+          target_amount: string | null;
           target_date: string;
           updated_at: string;
           user_id: string;
@@ -170,8 +163,7 @@ export type Database = {
           name: string;
           priority: Database['public']['Enums']['priority_level'];
           status?: Database['public']['Enums']['savings_goal_status'];
-          target_amount: number;
-          target_amount_encrypted?: string | null;
+          target_amount?: string | null;
           target_date: string;
           updated_at?: string;
           user_id: string;
@@ -182,8 +174,7 @@ export type Database = {
           name?: string;
           priority?: Database['public']['Enums']['priority_level'];
           status?: Database['public']['Enums']['savings_goal_status'];
-          target_amount?: number;
-          target_amount_encrypted?: string | null;
+          target_amount?: string | null;
           target_date?: string;
           updated_at?: string;
           user_id?: string;
@@ -222,8 +213,7 @@ export type Database = {
       };
       template_line: {
         Row: {
-          amount: number;
-          amount_encrypted: string | null;
+          amount: string | null;
           created_at: string;
           description: string | null;
           id: string;
@@ -234,8 +224,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
-          amount: number;
-          amount_encrypted?: string | null;
+          amount?: string | null;
           created_at?: string;
           description?: string | null;
           id?: string;
@@ -246,8 +235,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
-          amount?: number;
-          amount_encrypted?: string | null;
+          amount?: string | null;
           created_at?: string;
           description?: string | null;
           id?: string;
@@ -269,8 +257,7 @@ export type Database = {
       };
       transaction: {
         Row: {
-          amount: number;
-          amount_encrypted: string | null;
+          amount: string | null;
           budget_id: string;
           budget_line_id: string | null;
           category: string | null;
@@ -283,8 +270,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
-          amount: number;
-          amount_encrypted?: string | null;
+          amount?: string | null;
           budget_id: string;
           budget_line_id?: string | null;
           category?: string | null;
@@ -297,8 +283,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
-          amount?: number;
-          amount_encrypted?: string | null;
+          amount?: string | null;
           budget_id?: string;
           budget_line_id?: string | null;
           category?: string | null;
@@ -375,8 +360,7 @@ export type Database = {
       bulk_update_template_lines: {
         Args: { line_updates: Json; p_template_id: string };
         Returns: {
-          amount: number;
-          amount_encrypted: string;
+          amount: string | null;
           created_at: string;
           description: string;
           id: string;
@@ -390,8 +374,7 @@ export type Database = {
       check_unchecked_transactions: {
         Args: { p_budget_line_id: string };
         Returns: {
-          amount: number;
-          amount_encrypted: string | null;
+          amount: string | null;
           budget_id: string;
           budget_line_id: string | null;
           category: string | null;
@@ -430,24 +413,12 @@ export type Database = {
         };
         Returns: Json;
       };
-      rekey_user_encrypted_data: {
-        Args: {
-          p_budget_lines?: Json;
-          p_key_check?: string;
-          p_monthly_budgets?: Json;
-          p_savings_goals?: Json;
-          p_template_lines?: Json;
-          p_transactions?: Json;
-        };
-        Returns: undefined;
-      };
       show_limit: { Args: never; Returns: number };
       show_trgm: { Args: { '': string }; Returns: string[] };
       toggle_budget_line_check: {
         Args: { p_budget_line_id: string };
         Returns: {
-          amount: number;
-          amount_encrypted: string | null;
+          amount: string | null;
           budget_id: string;
           checked_at: string | null;
           created_at: string;

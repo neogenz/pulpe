@@ -1,21 +1,19 @@
 import { describe, it, expect } from 'bun:test';
 import { toApi, toUpdate } from './budget-line.mappers';
-import type { BudgetLineRow } from './entities/budget-line.entity';
 import type { BudgetLineUpdate } from 'pulpe-shared';
 
 describe('BudgetLine Mappers', () => {
   describe('toApi', () => {
     it('should transform database row to API entity correctly', () => {
-      const dbRow: BudgetLineRow = {
+      const dbRow = {
         id: 'test-id',
         budget_id: 'budget-123',
         template_line_id: 'template-456',
         savings_goal_id: null,
         name: 'Test Budget Line',
         amount: 1500,
-        amount_encrypted: null,
-        kind: 'expense',
-        recurrence: 'fixed',
+        kind: 'expense' as const,
+        recurrence: 'fixed' as const,
         is_manually_adjusted: true,
         checked_at: null,
         created_at: '2025-01-01T00:00:00Z',
@@ -41,16 +39,15 @@ describe('BudgetLine Mappers', () => {
     });
 
     it('should handle false isManuallyAdjusted correctly', () => {
-      const dbRow: BudgetLineRow = {
+      const dbRow = {
         id: 'test-id',
         budget_id: 'budget-123',
         template_line_id: null,
         savings_goal_id: null,
         name: 'Test',
-        amount: 100,
-        amount_encrypted: null,
-        kind: 'income',
-        recurrence: 'one_off',
+        amount: 1000,
+        kind: 'income' as const,
+        recurrence: 'one_off' as const,
         is_manually_adjusted: false,
         checked_at: null,
         created_at: '2025-01-01T00:00:00Z',
@@ -72,11 +69,11 @@ describe('BudgetLine Mappers', () => {
         isManuallyAdjusted: true,
       };
 
-      const result = toUpdate(updateDto);
+      const result = toUpdate(updateDto, 'encrypted-string');
 
       expect(result).toHaveProperty('is_manually_adjusted', true);
       expect(result).toHaveProperty('name', 'Updated Name');
-      expect(result).toHaveProperty('amount', 2000);
+      expect(result).toHaveProperty('amount', 'encrypted-string');
     });
 
     it('should include is_manually_adjusted when isManuallyAdjusted is false', () => {
@@ -114,11 +111,11 @@ describe('BudgetLine Mappers', () => {
         isManuallyAdjusted: true,
       };
 
-      const result = toUpdate(updateDto);
+      const result = toUpdate(updateDto, 'encrypted-string');
 
       expect(result).toEqual({
         name: 'Full Update',
-        amount: 3000,
+        amount: 'encrypted-string',
         kind: 'saving',
         recurrence: 'one_off',
         template_line_id: 'template-789',

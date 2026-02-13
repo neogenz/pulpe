@@ -177,7 +177,7 @@ describe('encryptionSetupGuard', () => {
       ]);
     });
 
-    it('should clear stale key for non-email user without vaultCodeConfigured', async () => {
+    it('should clear stale key for user without vaultCodeConfigured', async () => {
       mockClientKeyService.hasClientKey.mockReturnValue(true);
       mockAuthState.authState.mockReturnValue(
         createAuthState({ user_metadata: {} }),
@@ -189,41 +189,6 @@ describe('encryptionSetupGuard', () => {
       expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
         '/',
         ROUTES.SETUP_VAULT_CODE,
-      ]);
-    });
-
-    it('should keep migration key for email user without vaultCodeConfigured', async () => {
-      mockClientKeyService.hasClientKey.mockReturnValue(true);
-      mockAuthState.authState.mockReturnValue(
-        createAuthState({
-          app_metadata: { provider: 'email' },
-          user_metadata: {},
-        }),
-      );
-
-      await resolveGuard();
-
-      expect(mockClientKeyService.clear).not.toHaveBeenCalled();
-      expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
-        '/',
-        ROUTES.SETUP_VAULT_CODE,
-      ]);
-    });
-
-    it('should redirect email user with vaultCodeConfigured but no key to ENTER_VAULT_CODE', async () => {
-      mockClientKeyService.hasClientKey.mockReturnValue(false);
-      mockAuthState.authState.mockReturnValue(
-        createAuthState({
-          app_metadata: { provider: 'email' },
-          user_metadata: { vaultCodeConfigured: true },
-        }),
-      );
-
-      await resolveGuard();
-
-      expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
-        '/',
-        ROUTES.ENTER_VAULT_CODE,
       ]);
     });
   });
@@ -358,28 +323,6 @@ describe('encryptionSetupGuard', () => {
       await promise;
 
       expect(mockClientKeyService.clear).toHaveBeenCalled();
-      expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
-        '/',
-        ROUTES.SETUP_VAULT_CODE,
-      ]);
-    });
-
-    it('should keep migration key in async flow for email user without vaultCodeConfigured', async () => {
-      mockClientKeyService.hasClientKey.mockReturnValue(true);
-
-      const result$ = runGuard() as Observable<boolean | UrlTree>;
-      const promise = firstValueFrom(result$);
-
-      authStateSignal.set(
-        createAuthState({
-          app_metadata: { provider: 'email' },
-          user_metadata: {},
-        }),
-      );
-
-      await promise;
-
-      expect(mockClientKeyService.clear).not.toHaveBeenCalled();
       expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
         '/',
         ROUTES.SETUP_VAULT_CODE,

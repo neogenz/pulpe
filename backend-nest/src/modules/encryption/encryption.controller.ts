@@ -20,7 +20,6 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '@common/guards/auth.guard';
 import { SkipClientKey } from '@common/decorators/skip-client-key.decorator';
-import { SkipBackfill } from '@common/decorators/skip-backfill.decorator';
 import {
   User,
   SupabaseClient,
@@ -31,7 +30,6 @@ import { ErrorResponseDto } from '@common/dto/response.dto';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { EncryptionService } from './encryption.service';
-import { EncryptionRekeyService } from './encryption-rekey.service';
 
 const CLIENT_KEY_LENGTH = 32;
 const HEX_KEY_REGEX = /^[0-9a-f]{64}$/i;
@@ -51,10 +49,7 @@ const HEX_KEY_REGEX = /^[0-9a-f]{64}$/i;
 export class EncryptionController {
   readonly #logger = new Logger(EncryptionController.name);
 
-  constructor(
-    private readonly encryptionService: EncryptionService,
-    private readonly rekeyService: EncryptionRekeyService,
-  ) {}
+  constructor(private readonly encryptionService: EncryptionService) {}
 
   @SkipClientKey()
   @Get('salt')
@@ -103,52 +98,8 @@ export class EncryptionController {
     }
   }
 
-  /**
-   * Re-encrypt all user data with a new client key.
-   * Used during vault code setup when migrating existing users from plaintext
-   * or password-derived encryption to vault-code-derived encryption.
-   *
-   * NOTE: This is NOT for account password changes. Password and vault code
-   * are independent - changing password does not affect encryption.
-   */
-  @SkipBackfill()
-  @Post('rekey')
-  @Throttle({ default: { limit: 3, ttl: 3600000 } })
-  @ApiOperation({
-    summary:
-      'Re-encrypt all user data with new key (for vault code migration only)',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'All user data re-encrypted with new key',
-  })
-  @ApiBadRequestResponse({
-    description: 'Invalid new client key',
-    type: ErrorResponseDto,
-  })
-  async rekey(
-    @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-    @Body() body: { newClientKey: string },
-  ): Promise<{ success: boolean }> {
-    const newKeyBuffer = this.#validateClientKeyHex(body.newClientKey);
-
-    await this.rekeyService.rekeyUserData(
-      user.id,
-      user.clientKey,
-      newKeyBuffer,
-      supabase,
-    );
-
-    this.#logger.log(
-      { userId: user.id, operation: 'rekey.complete' },
-      'User data re-encrypted with new key',
-    );
-
-    return { success: true };
-  }
-
   @Post('setup-recovery')
+  @Throttle({ default: { limit: 1, ttl: 3600000 } })
   @ApiOperation({ summary: 'Generate a recovery key and wrap the current DEK' })
   @ApiResponse({
     status: 200,
@@ -162,14 +113,6 @@ export class EncryptionController {
       user.id,
       user.clientKey,
     );
-
-    // Ensure key_check is stored (for users who set up before migration)
-    const dek = await this.encryptionService.getUserDEK(
-      user.id,
-      user.clientKey,
-    );
-    const keyCheck = this.encryptionService.generateKeyCheck(dek);
-    await this.encryptionService.storeKeyCheck(user.id, keyCheck);
 
     this.#logger.log(
       { userId: user.id, operation: 'recovery_key.setup' },
@@ -211,7 +154,7 @@ export class EncryptionController {
         body.recoveryKey,
         newKeyBuffer,
         async (oldDek, newDek) => {
-          await this.rekeyService.reEncryptAllUserData(
+          await this.encryptionService.reEncryptAllUserData(
             user.id,
             oldDek,
             newDek,

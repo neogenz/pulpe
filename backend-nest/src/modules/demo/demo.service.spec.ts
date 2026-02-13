@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { BudgetCalculator } from '../budget/budget.calculator';
+import { EncryptionService } from '../encryption/encryption.service';
 import { DemoService } from './demo.service';
 import { DemoDataGeneratorService } from './demo-data-generator.service';
 import { SupabaseService } from '../supabase/supabase.service';
@@ -34,6 +35,19 @@ describe('DemoService - Business Value Tests', () => {
           provide: BudgetCalculator,
           useValue: {
             recalculateAndPersist: async () => {},
+          },
+        },
+        {
+          provide: EncryptionService,
+          useValue: {
+            ensureUserDEK: async () => Buffer.from('00'.repeat(32), 'hex'),
+            encryptAmount: (amount: number) => {
+              return Buffer.from(`encrypted-${amount}`).toString('base64');
+            },
+            decryptAmount: (encrypted: string) => {
+              const match = encrypted.match(/encrypted-(.+)/);
+              return match ? parseFloat(match[1]) : 0;
+            },
           },
         },
         {

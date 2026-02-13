@@ -138,7 +138,7 @@ describe('AccountDeletionService Integration', () => {
         id: testTransactionId,
         budget_id: testBudgetId,
         name: 'Integration Test Transaction',
-        amount: 100,
+        amount: null,
         kind: 'expense',
         transaction_date: '2026-01-15',
       });

@@ -226,6 +226,8 @@ describe('BudgetCalculator.getRollover', () => {
   const mockEncryptionService = {
     ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
     encryptAmount: () => 'encrypted-mock',
+    getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+    tryDecryptAmount: (ct: string) => Number(ct),
   };
 
   beforeEach(async () => {
@@ -277,10 +279,7 @@ describe('BudgetCalculator.getRollover', () => {
                       : undefined,
                 };
               }
-              if (
-                fields ===
-                'id, month, year, ending_balance, ending_balance_encrypted'
-              ) {
+              if (fields === 'id, month, year, ending_balance') {
                 return {
                   eq: (col: string, val: string) =>
                     col === 'user_id' && val === userId
@@ -320,8 +319,8 @@ describe('BudgetCalculator.getRollover', () => {
     const payDayOfMonth = 27;
 
     const budgetsData = [
-      { id: previousBudgetId, month: 1, year: 2024, ending_balance: 100 },
-      { id: budgetId, month: 2, year: 2024, ending_balance: 150 },
+      { id: previousBudgetId, month: 1, year: 2024, ending_balance: '100' },
+      { id: budgetId, month: 2, year: 2024, ending_balance: '150' },
     ];
 
     const mockClient = {
@@ -343,10 +342,7 @@ describe('BudgetCalculator.getRollover', () => {
                       : undefined,
                 };
               }
-              if (
-                fields ===
-                'id, month, year, ending_balance, ending_balance_encrypted'
-              ) {
+              if (fields === 'id, month, year, ending_balance') {
                 return {
                   eq: (col: string, val: string) =>
                     col === 'user_id' && val === userId
@@ -384,8 +380,8 @@ describe('BudgetCalculator.getRollover', () => {
     const payDayOfMonth = 15;
 
     const budgetsData = [
-      { id: previousBudgetId, month: 12, year: 2023, ending_balance: 200 },
-      { id: budgetId, month: 1, year: 2024, ending_balance: 250 },
+      { id: previousBudgetId, month: 12, year: 2023, ending_balance: '200' },
+      { id: budgetId, month: 1, year: 2024, ending_balance: '250' },
     ];
 
     const mockClient = {
@@ -407,10 +403,7 @@ describe('BudgetCalculator.getRollover', () => {
                       : undefined,
                 };
               }
-              if (
-                fields ===
-                'id, month, year, ending_balance, ending_balance_encrypted'
-              ) {
+              if (fields === 'id, month, year, ending_balance') {
                 return {
                   eq: (col: string, val: string) =>
                     col === 'user_id' && val === userId

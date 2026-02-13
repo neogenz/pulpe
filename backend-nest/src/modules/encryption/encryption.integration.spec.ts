@@ -8,8 +8,6 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database.types';
 import { EncryptionKeyRepository } from './encryption-key.repository';
 import { EncryptionService } from './encryption.service';
-import { EncryptionBackfillService } from './encryption-backfill.service';
-import { EncryptionRekeyService } from './encryption-rekey.service';
 
 const BACKEND_ROOT = resolve(__dirname, '../../..');
 
@@ -278,8 +276,6 @@ describe('Encryption integration (local Supabase)', () => {
   let supabaseEnv: SupabaseEnv;
   let adminClient: SupabaseClient<Database>;
   let encryptionService: EncryptionService;
-  let backfillService: EncryptionBackfillService;
-  let rekeyService: EncryptionRekeyService;
 
   beforeAll(async () => {
     const env = await ensureSupabaseAvailable().catch((error) => {
@@ -317,153 +313,46 @@ describe('Encryption integration (local Supabase)', () => {
       );
     }
 
+    const testId = randomUUID();
+    const { error: insertError } = await adminClient
+      .from('budget_line')
+      .insert({
+        id: testId,
+        budget_id: randomUUID(),
+        name: 'Schema test',
+        amount: 'test-string-value',
+        kind: 'expense' as const,
+        recurrence: 'fixed' as const,
+        is_manually_adjusted: false,
+      });
+    if (
+      insertError?.message?.includes('invalid input syntax for type numeric')
+    ) {
+      if (process.env.CI !== 'true') {
+        console.warn(
+          'Supabase schema is outdated: amount columns are still numeric. ' +
+            'Run: supabase db reset',
+        );
+        return;
+      }
+      throw new Error(
+        'Supabase schema version mismatch: amount columns should be text (encrypted) but are numeric. ' +
+          'Run supabase db reset to apply the latest migrations.',
+      );
+    }
+    if (insertError && !insertError.message?.includes('no rows returned')) {
+      throw insertError;
+    }
+    if (!insertError) {
+      await adminClient.from('budget_line').delete().eq('id', testId);
+    }
+
     hasSupabase = true;
-    encryptionService = new EncryptionService(configService, repository, {
-      get: () => false,
-    } as any);
-    backfillService = new EncryptionBackfillService(encryptionService);
-    rekeyService = new EncryptionRekeyService(encryptionService);
+    encryptionService = new EncryptionService(configService, repository);
   });
 
   afterAll(() => {
     // Leave local Supabase running; tests should not stop shared services.
-  });
-
-  it('backfills unencrypted data and zeros plaintext columns', async () => {
-    if (!hasSupabase) return;
-
-    const { id: userId } = await createTestUser(adminClient);
-
-    const templateId = randomUUID();
-    const budgetId = randomUUID();
-    const budgetLineId = randomUUID();
-    const transactionId = randomUUID();
-    const templateLineId = randomUUID();
-    const savingsGoalId = randomUUID();
-
-    try {
-      await adminClient.from('template').insert({
-        id: templateId,
-        user_id: userId,
-        name: 'Integration Template',
-        is_default: false,
-      });
-
-      await adminClient.from('monthly_budget').insert({
-        id: budgetId,
-        user_id: userId,
-        template_id: templateId,
-        month: 1,
-        year: 2026,
-        description: 'Integration Budget',
-        ending_balance: 250,
-      });
-
-      await adminClient.from('budget_line').insert({
-        id: budgetLineId,
-        budget_id: budgetId,
-        name: 'Budget line',
-        amount: 150,
-        kind: 'expense',
-        recurrence: 'fixed',
-        is_manually_adjusted: false,
-      });
-
-      await adminClient.from('transaction').insert({
-        id: transactionId,
-        budget_id: budgetId,
-        name: 'Transaction',
-        amount: 75,
-        kind: 'expense',
-        transaction_date: '2026-01-15',
-      });
-
-      await adminClient.from('template_line').insert({
-        id: templateLineId,
-        template_id: templateId,
-        name: 'Template line',
-        amount: 45,
-        kind: 'expense',
-        recurrence: 'one_off',
-      });
-
-      await adminClient.from('savings_goal').insert({
-        id: savingsGoalId,
-        user_id: userId,
-        name: 'Savings goal',
-        priority: 'HIGH',
-        status: 'ACTIVE',
-        target_amount: 500,
-        target_date: '2026-12-31',
-      });
-
-      const clientKey = Buffer.from(OLD_CLIENT_KEY_HEX, 'hex');
-      const dek = await encryptionService.ensureUserDEK(userId, clientKey);
-
-      await backfillService.backfillUserData(userId, dek, adminClient);
-
-      const { data: budgetLine } = await adminClient
-        .from('budget_line')
-        .select('amount, amount_encrypted')
-        .eq('id', budgetLineId)
-        .single();
-      const { data: transaction } = await adminClient
-        .from('transaction')
-        .select('amount, amount_encrypted')
-        .eq('id', transactionId)
-        .single();
-      const { data: templateLine } = await adminClient
-        .from('template_line')
-        .select('amount, amount_encrypted')
-        .eq('id', templateLineId)
-        .single();
-      const { data: savingsGoal } = await adminClient
-        .from('savings_goal')
-        .select('target_amount, target_amount_encrypted')
-        .eq('id', savingsGoalId)
-        .single();
-      const { data: monthlyBudget } = await adminClient
-        .from('monthly_budget')
-        .select('ending_balance, ending_balance_encrypted')
-        .eq('id', budgetId)
-        .single();
-
-      expect(budgetLine?.amount).toBe(0);
-      expect(transaction?.amount).toBe(0);
-      expect(templateLine?.amount).toBe(0);
-      expect(savingsGoal?.target_amount).toBe(0);
-      expect(monthlyBudget?.ending_balance).toBe(0);
-
-      expect(budgetLine?.amount_encrypted).toBeTruthy();
-      expect(transaction?.amount_encrypted).toBeTruthy();
-      expect(templateLine?.amount_encrypted).toBeTruthy();
-      expect(savingsGoal?.target_amount_encrypted).toBeTruthy();
-      expect(monthlyBudget?.ending_balance_encrypted).toBeTruthy();
-
-      expect(
-        encryptionService.decryptAmount(budgetLine!.amount_encrypted!, dek),
-      ).toBe(150);
-      expect(
-        encryptionService.decryptAmount(transaction!.amount_encrypted!, dek),
-      ).toBe(75);
-      expect(
-        encryptionService.decryptAmount(templateLine!.amount_encrypted!, dek),
-      ).toBe(45);
-      expect(
-        encryptionService.decryptAmount(
-          savingsGoal!.target_amount_encrypted!,
-          dek,
-        ),
-      ).toBe(500);
-      expect(
-        encryptionService.decryptAmount(
-          monthlyBudget!.ending_balance_encrypted!,
-          dek,
-        ),
-      ).toBe(250);
-    } finally {
-      await cleanupUserData(adminClient, { userId, budgetId, templateId });
-    }
   });
 
   it('rekeys encrypted data with a new client key', async () => {
@@ -493,7 +382,7 @@ describe('Encryption integration (local Supabase)', () => {
         month: 2,
         year: 2026,
         description: 'Integration Budget',
-        ending_balance: 0,
+        ending_balance: null,
       });
 
       const oldClientKey = Buffer.from(OLD_CLIENT_KEY_HEX, 'hex');
@@ -511,57 +400,58 @@ describe('Encryption integration (local Supabase)', () => {
         monthlyBudget: encryptionService.encryptAmount(250, oldDek),
       };
 
-      await adminClient.from('budget_line').insert({
+      const { error: blError } = await adminClient.from('budget_line').insert({
         id: budgetLineId,
         budget_id: budgetId,
         name: 'Budget line',
-        amount: 0,
-        amount_encrypted: oldEncrypted.budgetLine,
+        amount: oldEncrypted.budgetLine,
         kind: 'expense',
         recurrence: 'fixed',
         is_manually_adjusted: false,
       });
+      if (blError) throw blError;
 
-      await adminClient.from('transaction').insert({
+      const { error: txError } = await adminClient.from('transaction').insert({
         id: transactionId,
         budget_id: budgetId,
         name: 'Transaction',
-        amount: 0,
-        amount_encrypted: oldEncrypted.transaction,
+        amount: oldEncrypted.transaction,
         kind: 'expense',
         transaction_date: '2026-02-15',
       });
+      if (txError) throw txError;
 
-      await adminClient.from('template_line').insert({
-        id: templateLineId,
-        template_id: templateId,
-        name: 'Template line',
-        amount: 0,
-        amount_encrypted: oldEncrypted.templateLine,
-        kind: 'expense',
-        recurrence: 'one_off',
-      });
+      const { error: tlError } = await adminClient
+        .from('template_line')
+        .insert({
+          id: templateLineId,
+          template_id: templateId,
+          name: 'Template line',
+          amount: oldEncrypted.templateLine,
+          kind: 'expense',
+          recurrence: 'one_off',
+        });
+      if (tlError) throw tlError;
 
-      await adminClient.from('savings_goal').insert({
+      const { error: sgError } = await adminClient.from('savings_goal').insert({
         id: savingsGoalId,
         user_id: userId,
         name: 'Savings goal',
         priority: 'HIGH',
         status: 'ACTIVE',
-        target_amount: 0,
-        target_amount_encrypted: oldEncrypted.savingsGoal,
+        target_amount: oldEncrypted.savingsGoal,
         target_date: '2026-12-31',
       });
+      if (sgError) throw sgError;
 
       await adminClient
         .from('monthly_budget')
         .update({
-          ending_balance: 0,
-          ending_balance_encrypted: oldEncrypted.monthlyBudget,
+          ending_balance: oldEncrypted.monthlyBudget,
         })
         .eq('id', budgetId);
 
-      await rekeyService.rekeyUserData(
+      await encryptionService.rekeyUserData(
         userId,
         oldClientKey,
         newClientKey,
@@ -570,379 +460,53 @@ describe('Encryption integration (local Supabase)', () => {
 
       const { data: budgetLine } = await adminClient
         .from('budget_line')
-        .select('amount, amount_encrypted')
+        .select('amount')
         .eq('id', budgetLineId)
         .single();
       const { data: transaction } = await adminClient
         .from('transaction')
-        .select('amount, amount_encrypted')
+        .select('amount')
         .eq('id', transactionId)
         .single();
       const { data: templateLine } = await adminClient
         .from('template_line')
-        .select('amount, amount_encrypted')
+        .select('amount')
         .eq('id', templateLineId)
         .single();
       const { data: savingsGoal } = await adminClient
         .from('savings_goal')
-        .select('target_amount, target_amount_encrypted')
+        .select('target_amount')
         .eq('id', savingsGoalId)
         .single();
       const { data: monthlyBudget } = await adminClient
         .from('monthly_budget')
-        .select('ending_balance, ending_balance_encrypted')
+        .select('ending_balance')
         .eq('id', budgetId)
         .single();
 
-      expect(budgetLine?.amount).toBe(0);
-      expect(transaction?.amount).toBe(0);
-      expect(templateLine?.amount).toBe(0);
-      expect(savingsGoal?.target_amount).toBe(0);
-      expect(monthlyBudget?.ending_balance).toBe(0);
-
-      expect(budgetLine?.amount_encrypted).toBeTruthy();
-      expect(transaction?.amount_encrypted).toBeTruthy();
-      expect(templateLine?.amount_encrypted).toBeTruthy();
-      expect(savingsGoal?.target_amount_encrypted).toBeTruthy();
-      expect(monthlyBudget?.ending_balance_encrypted).toBeTruthy();
+      expect(budgetLine?.amount).toBeTruthy();
+      expect(transaction?.amount).toBeTruthy();
+      expect(templateLine?.amount).toBeTruthy();
+      expect(savingsGoal?.target_amount).toBeTruthy();
+      expect(monthlyBudget?.ending_balance).toBeTruthy();
 
       const newDek = await encryptionService.getUserDEK(userId, newClientKey);
 
+      expect(encryptionService.decryptAmount(budgetLine!.amount!, newDek)).toBe(
+        150,
+      );
       expect(
-        encryptionService.decryptAmount(budgetLine!.amount_encrypted!, newDek),
-      ).toBe(150);
-      expect(
-        encryptionService.decryptAmount(transaction!.amount_encrypted!, newDek),
+        encryptionService.decryptAmount(transaction!.amount!, newDek),
       ).toBe(75);
       expect(
-        encryptionService.decryptAmount(
-          templateLine!.amount_encrypted!,
-          newDek,
-        ),
+        encryptionService.decryptAmount(templateLine!.amount!, newDek),
       ).toBe(45);
       expect(
-        encryptionService.decryptAmount(
-          savingsGoal!.target_amount_encrypted!,
-          newDek,
-        ),
+        encryptionService.decryptAmount(savingsGoal!.target_amount!, newDek),
       ).toBe(500);
       expect(
-        encryptionService.decryptAmount(
-          monthlyBudget!.ending_balance_encrypted!,
-          newDek,
-        ),
+        encryptionService.decryptAmount(monthlyBudget!.ending_balance!, newDek),
       ).toBe(250);
-    } finally {
-      await cleanupUserData(adminClient, { userId, budgetId, templateId });
-    }
-  });
-
-  it('rekeys legacy plaintext data with a new client key and zeroes plaintext columns', async () => {
-    if (!hasSupabase) return;
-
-    const { id: userId } = await createTestUser(adminClient);
-
-    const templateId = randomUUID();
-    const budgetId = randomUUID();
-    const budgetLineId = randomUUID();
-    const transactionId = randomUUID();
-    const templateLineId = randomUUID();
-    const savingsGoalId = randomUUID();
-
-    try {
-      await adminClient.from('template').insert({
-        id: templateId,
-        user_id: userId,
-        name: 'Legacy Plaintext Template',
-        is_default: false,
-      });
-
-      await adminClient.from('monthly_budget').insert({
-        id: budgetId,
-        user_id: userId,
-        template_id: templateId,
-        month: 5,
-        year: 2026,
-        description: 'Legacy Plaintext Budget',
-        ending_balance: 250,
-      });
-
-      await adminClient.from('budget_line').insert({
-        id: budgetLineId,
-        budget_id: budgetId,
-        name: 'Legacy budget line',
-        amount: 150,
-        kind: 'expense',
-        recurrence: 'fixed',
-        is_manually_adjusted: false,
-      });
-
-      await adminClient.from('transaction').insert({
-        id: transactionId,
-        budget_id: budgetId,
-        name: 'Legacy transaction',
-        amount: 75,
-        kind: 'expense',
-        transaction_date: '2026-05-15',
-      });
-
-      await adminClient.from('template_line').insert({
-        id: templateLineId,
-        template_id: templateId,
-        name: 'Legacy template line',
-        amount: 45,
-        kind: 'expense',
-        recurrence: 'one_off',
-      });
-
-      await adminClient.from('savings_goal').insert({
-        id: savingsGoalId,
-        user_id: userId,
-        name: 'Legacy savings goal',
-        priority: 'HIGH',
-        status: 'ACTIVE',
-        target_amount: 500,
-        target_date: '2026-12-31',
-      });
-
-      const oldClientKey = Buffer.from(OLD_CLIENT_KEY_HEX, 'hex');
-      const newClientKey = Buffer.from(NEW_CLIENT_KEY_HEX, 'hex');
-
-      // Ensure salt/key row exists as it would for a migrated legacy user.
-      await encryptionService.ensureUserDEK(userId, oldClientKey);
-
-      await rekeyService.rekeyUserData(
-        userId,
-        oldClientKey,
-        newClientKey,
-        adminClient,
-      );
-
-      const { data: budgetLine } = await adminClient
-        .from('budget_line')
-        .select('amount, amount_encrypted')
-        .eq('id', budgetLineId)
-        .single();
-      const { data: transaction } = await adminClient
-        .from('transaction')
-        .select('amount, amount_encrypted')
-        .eq('id', transactionId)
-        .single();
-      const { data: templateLine } = await adminClient
-        .from('template_line')
-        .select('amount, amount_encrypted')
-        .eq('id', templateLineId)
-        .single();
-      const { data: savingsGoal } = await adminClient
-        .from('savings_goal')
-        .select('target_amount, target_amount_encrypted')
-        .eq('id', savingsGoalId)
-        .single();
-      const { data: monthlyBudget } = await adminClient
-        .from('monthly_budget')
-        .select('ending_balance, ending_balance_encrypted')
-        .eq('id', budgetId)
-        .single();
-
-      expect(budgetLine?.amount).toBe(0);
-      expect(transaction?.amount).toBe(0);
-      expect(templateLine?.amount).toBe(0);
-      expect(savingsGoal?.target_amount).toBe(0);
-      expect(monthlyBudget?.ending_balance).toBe(0);
-
-      expect(budgetLine?.amount_encrypted).toBeTruthy();
-      expect(transaction?.amount_encrypted).toBeTruthy();
-      expect(templateLine?.amount_encrypted).toBeTruthy();
-      expect(savingsGoal?.target_amount_encrypted).toBeTruthy();
-      expect(monthlyBudget?.ending_balance_encrypted).toBeTruthy();
-
-      const newDek = await encryptionService.getUserDEK(userId, newClientKey);
-
-      expect(
-        encryptionService.decryptAmount(budgetLine!.amount_encrypted!, newDek),
-      ).toBe(150);
-      expect(
-        encryptionService.decryptAmount(transaction!.amount_encrypted!, newDek),
-      ).toBe(75);
-      expect(
-        encryptionService.decryptAmount(
-          templateLine!.amount_encrypted!,
-          newDek,
-        ),
-      ).toBe(45);
-      expect(
-        encryptionService.decryptAmount(
-          savingsGoal!.target_amount_encrypted!,
-          newDek,
-        ),
-      ).toBe(500);
-      expect(
-        encryptionService.decryptAmount(
-          monthlyBudget!.ending_balance_encrypted!,
-          newDek,
-        ),
-      ).toBe(250);
-    } finally {
-      await cleanupUserData(adminClient, { userId, budgetId, templateId });
-    }
-  });
-
-  it('rekeys mixed plaintext and encrypted data to a single new DEK', async () => {
-    if (!hasSupabase) return;
-
-    const { id: userId } = await createTestUser(adminClient);
-
-    const templateId = randomUUID();
-    const budgetId = randomUUID();
-    const budgetLineId = randomUUID();
-    const transactionId = randomUUID();
-    const templateLineId = randomUUID();
-    const savingsGoalId = randomUUID();
-
-    try {
-      await adminClient.from('template').insert({
-        id: templateId,
-        user_id: userId,
-        name: 'Mixed Dataset Template',
-        is_default: false,
-      });
-
-      await adminClient.from('monthly_budget').insert({
-        id: budgetId,
-        user_id: userId,
-        template_id: templateId,
-        month: 6,
-        year: 2026,
-        description: 'Mixed Dataset Budget',
-        ending_balance: 250,
-      });
-
-      const oldClientKey = Buffer.from(OLD_CLIENT_KEY_HEX, 'hex');
-      const newClientKey = Buffer.from(NEW_CLIENT_KEY_HEX, 'hex');
-      const oldDek = await encryptionService.ensureUserDEK(
-        userId,
-        oldClientKey,
-      );
-
-      const encryptedBudgetLine = encryptionService.encryptAmount(150, oldDek);
-      const encryptedSavingsGoal = encryptionService.encryptAmount(500, oldDek);
-
-      await adminClient.from('budget_line').insert({
-        id: budgetLineId,
-        budget_id: budgetId,
-        name: 'Mixed encrypted budget line',
-        amount: 0,
-        amount_encrypted: encryptedBudgetLine,
-        kind: 'expense',
-        recurrence: 'fixed',
-        is_manually_adjusted: false,
-      });
-
-      await adminClient.from('transaction').insert({
-        id: transactionId,
-        budget_id: budgetId,
-        name: 'Mixed plaintext transaction',
-        amount: 75,
-        kind: 'expense',
-        transaction_date: '2026-06-15',
-      });
-
-      await adminClient.from('template_line').insert({
-        id: templateLineId,
-        template_id: templateId,
-        name: 'Mixed plaintext template line',
-        amount: 45,
-        kind: 'expense',
-        recurrence: 'one_off',
-      });
-
-      await adminClient.from('savings_goal').insert({
-        id: savingsGoalId,
-        user_id: userId,
-        name: 'Mixed encrypted savings goal',
-        priority: 'HIGH',
-        status: 'ACTIVE',
-        target_amount: 0,
-        target_amount_encrypted: encryptedSavingsGoal,
-        target_date: '2026-12-31',
-      });
-
-      await rekeyService.rekeyUserData(
-        userId,
-        oldClientKey,
-        newClientKey,
-        adminClient,
-      );
-
-      const { data: budgetLine } = await adminClient
-        .from('budget_line')
-        .select('amount, amount_encrypted')
-        .eq('id', budgetLineId)
-        .single();
-      const { data: transaction } = await adminClient
-        .from('transaction')
-        .select('amount, amount_encrypted')
-        .eq('id', transactionId)
-        .single();
-      const { data: templateLine } = await adminClient
-        .from('template_line')
-        .select('amount, amount_encrypted')
-        .eq('id', templateLineId)
-        .single();
-      const { data: savingsGoal } = await adminClient
-        .from('savings_goal')
-        .select('target_amount, target_amount_encrypted')
-        .eq('id', savingsGoalId)
-        .single();
-      const { data: monthlyBudget } = await adminClient
-        .from('monthly_budget')
-        .select('ending_balance, ending_balance_encrypted')
-        .eq('id', budgetId)
-        .single();
-
-      expect(budgetLine?.amount).toBe(0);
-      expect(transaction?.amount).toBe(0);
-      expect(templateLine?.amount).toBe(0);
-      expect(savingsGoal?.target_amount).toBe(0);
-      expect(monthlyBudget?.ending_balance).toBe(0);
-
-      expect(budgetLine?.amount_encrypted).toBeTruthy();
-      expect(transaction?.amount_encrypted).toBeTruthy();
-      expect(templateLine?.amount_encrypted).toBeTruthy();
-      expect(savingsGoal?.target_amount_encrypted).toBeTruthy();
-      expect(monthlyBudget?.ending_balance_encrypted).toBeTruthy();
-
-      const newDek = await encryptionService.getUserDEK(userId, newClientKey);
-
-      expect(
-        encryptionService.decryptAmount(budgetLine!.amount_encrypted!, newDek),
-      ).toBe(150);
-      expect(
-        encryptionService.decryptAmount(transaction!.amount_encrypted!, newDek),
-      ).toBe(75);
-      expect(
-        encryptionService.decryptAmount(
-          templateLine!.amount_encrypted!,
-          newDek,
-        ),
-      ).toBe(45);
-      expect(
-        encryptionService.decryptAmount(
-          savingsGoal!.target_amount_encrypted!,
-          newDek,
-        ),
-      ).toBe(500);
-      expect(
-        encryptionService.decryptAmount(
-          monthlyBudget!.ending_balance_encrypted!,
-          newDek,
-        ),
-      ).toBe(250);
-
-      expect(budgetLine?.amount_encrypted).not.toBe(encryptedBudgetLine);
-      expect(savingsGoal?.target_amount_encrypted).not.toBe(
-        encryptedSavingsGoal,
-      );
     } finally {
       await cleanupUserData(adminClient, { userId, budgetId, templateId });
     }
@@ -983,41 +547,46 @@ describe('Encryption integration (local Supabase)', () => {
         wrongDek,
       );
 
-      await encryptionService.ensureUserDEK(userId, oldClientKey);
+      const oldDek = await encryptionService.ensureUserDEK(
+        userId,
+        oldClientKey,
+      );
+      const validEncryptedTx = encryptionService.encryptAmount(222, oldDek);
 
-      await adminClient.from('budget_line').insert({
+      const { error: blError2 } = await adminClient.from('budget_line').insert({
         id: budgetLineId,
         budget_id: budgetId,
         name: 'Corrupted encrypted line',
-        amount: 111,
-        amount_encrypted: ciphertextWithWrongKey,
+        amount: ciphertextWithWrongKey,
         kind: 'expense',
         recurrence: 'fixed',
         is_manually_adjusted: false,
       });
+      if (blError2) throw blError2;
 
-      await adminClient.from('transaction').insert({
+      const { error: txError2 } = await adminClient.from('transaction').insert({
         id: transactionId,
         budget_id: budgetId,
         name: 'Should remain untouched',
-        amount: 222,
+        amount: validEncryptedTx,
         kind: 'expense',
         transaction_date: '2026-07-20',
       });
+      if (txError2) throw txError2;
 
       const { data: lineBefore } = await adminClient
         .from('budget_line')
-        .select('amount, amount_encrypted')
+        .select('amount')
         .eq('id', budgetLineId)
         .single();
       const { data: txBefore } = await adminClient
         .from('transaction')
-        .select('amount, amount_encrypted')
+        .select('amount')
         .eq('id', transactionId)
         .single();
 
       await expect(
-        rekeyService.rekeyUserData(
+        encryptionService.rekeyUserData(
           userId,
           oldClientKey,
           newClientKey,
@@ -1027,12 +596,12 @@ describe('Encryption integration (local Supabase)', () => {
 
       const { data: lineAfter } = await adminClient
         .from('budget_line')
-        .select('amount, amount_encrypted')
+        .select('amount')
         .eq('id', budgetLineId)
         .single();
       const { data: txAfter } = await adminClient
         .from('transaction')
-        .select('amount, amount_encrypted')
+        .select('amount')
         .eq('id', transactionId)
         .single();
 
@@ -1042,9 +611,7 @@ describe('Encryption integration (local Supabase)', () => {
       expect(txAfter).toBeTruthy();
 
       expect(lineAfter!.amount).toBe(lineBefore!.amount);
-      expect(lineAfter!.amount_encrypted).toBe(lineBefore!.amount_encrypted);
       expect(txAfter!.amount).toBe(txBefore!.amount);
-      expect(txAfter!.amount_encrypted).toBe(txBefore!.amount_encrypted);
     } finally {
       await cleanupUserData(adminClient, { userId, budgetId, templateId });
     }
@@ -1087,16 +654,16 @@ describe('Encryption integration (local Supabase)', () => {
         oldDek,
       );
 
-      await adminClient.from('budget_line').insert({
+      const { error: blError3 } = await adminClient.from('budget_line').insert({
         id: budgetLineId,
         budget_id: budgetId,
         name: 'Recovered line',
-        amount: 0,
-        amount_encrypted: encryptedBeforeRecover,
+        amount: encryptedBeforeRecover,
         kind: 'expense',
         recurrence: 'fixed',
         is_manually_adjusted: false,
       });
+      if (blError3) throw blError3;
 
       const beforeRecoveryState = await getUserEncryptionKeyState(
         adminClient,
@@ -1117,7 +684,7 @@ describe('Encryption integration (local Supabase)', () => {
         recoveryKey,
         recoveredClientKey,
         async (oldRecoveredDek, newRecoveredDek) => {
-          await rekeyService.reEncryptAllUserData(
+          await encryptionService.reEncryptAllUserData(
             userId,
             oldRecoveredDek,
             newRecoveredDek,
@@ -1132,7 +699,7 @@ describe('Encryption integration (local Supabase)', () => {
       );
       const { data: lineAfterRecover } = await adminClient
         .from('budget_line')
-        .select('amount, amount_encrypted')
+        .select('amount')
         .eq('id', budgetLineId)
         .single();
 
@@ -1141,11 +708,8 @@ describe('Encryption integration (local Supabase)', () => {
       expect(afterRecoverState.wrapped_dek).not.toBe(
         afterSetupState.wrapped_dek,
       );
-      expect(lineAfterRecover?.amount).toBe(0);
-      expect(lineAfterRecover?.amount_encrypted).toBeTruthy();
-      expect(lineAfterRecover?.amount_encrypted).not.toBe(
-        encryptedBeforeRecover,
-      );
+      expect(lineAfterRecover?.amount).toBeTruthy();
+      expect(lineAfterRecover?.amount).not.toBe(encryptedBeforeRecover);
 
       const recoveredDek = await encryptionService.getUserDEK(
         userId,
@@ -1153,16 +717,13 @@ describe('Encryption integration (local Supabase)', () => {
       );
       expect(
         encryptionService.decryptAmount(
-          lineAfterRecover!.amount_encrypted!,
+          lineAfterRecover!.amount!,
           recoveredDek,
         ),
       ).toBe(321.45);
 
       expect(() =>
-        encryptionService.decryptAmount(
-          lineAfterRecover!.amount_encrypted!,
-          oldDek,
-        ),
+        encryptionService.decryptAmount(lineAfterRecover!.amount!, oldDek),
       ).toThrow();
     } finally {
       await cleanupUserData(adminClient, { userId, budgetId, templateId });
@@ -1203,16 +764,16 @@ describe('Encryption integration (local Supabase)', () => {
       );
       const encryptedAmount = encryptionService.encryptAmount(89.5, oldDek);
 
-      await adminClient.from('budget_line').insert({
+      const { error: blError4 } = await adminClient.from('budget_line').insert({
         id: budgetLineId,
         budget_id: budgetId,
         name: 'Protected line',
-        amount: 0,
-        amount_encrypted: encryptedAmount,
+        amount: encryptedAmount,
         kind: 'expense',
         recurrence: 'fixed',
         is_manually_adjusted: false,
       });
+      if (blError4) throw blError4;
 
       await encryptionService.setupRecoveryKey(userId, oldClientKey);
 
@@ -1224,7 +785,7 @@ describe('Encryption integration (local Supabase)', () => {
       );
       const { data: rowBefore } = await adminClient
         .from('budget_line')
-        .select('amount_encrypted')
+        .select('amount')
         .eq('id', budgetLineId)
         .single();
 
@@ -1236,7 +797,7 @@ describe('Encryption integration (local Supabase)', () => {
           newClientKey,
           async (oldRecoveredDek, newRecoveredDek) => {
             callbackCalled = true;
-            await rekeyService.reEncryptAllUserData(
+            await encryptionService.reEncryptAllUserData(
               userId,
               oldRecoveredDek,
               newRecoveredDek,
@@ -1255,7 +816,7 @@ describe('Encryption integration (local Supabase)', () => {
       );
       const { data: rowAfter } = await adminClient
         .from('budget_line')
-        .select('amount_encrypted')
+        .select('amount')
         .eq('id', budgetLineId)
         .single();
 
@@ -1263,10 +824,10 @@ describe('Encryption integration (local Supabase)', () => {
       expect(keyStateAfter.salt).toBe(keyStateBefore.salt);
       expect(keyStateAfter.wrapped_dek).toBe(keyStateBefore.wrapped_dek);
       expect(keyStateAfter.key_check).toBe(keyStateBefore.key_check);
-      expect(rowAfter?.amount_encrypted).toBe(rowBefore!.amount_encrypted);
-      expect(
-        encryptionService.decryptAmount(rowAfter!.amount_encrypted!, oldDek),
-      ).toBe(89.5);
+      expect(rowAfter?.amount).toBe(rowBefore!.amount);
+      expect(encryptionService.decryptAmount(rowAfter!.amount!, oldDek)).toBe(
+        89.5,
+      );
     } finally {
       await cleanupUserData(adminClient, { userId, budgetId, templateId });
     }
@@ -1323,16 +884,16 @@ describe('Encryption integration (local Supabase)', () => {
       expect(stateBefore.key_check).toBeNull();
 
       const encryptedBudgetLine = encryptionService.encryptAmount(42, oldDek);
-      await adminClient.from('budget_line').insert({
+      const { error: blError5 } = await adminClient.from('budget_line').insert({
         id: budgetLineId,
         budget_id: budgetId,
         name: 'Auth key check line',
-        amount: 0,
-        amount_encrypted: encryptedBudgetLine,
+        amount: encryptedBudgetLine,
         kind: 'expense',
         recurrence: 'fixed',
         is_manually_adjusted: false,
       });
+      if (blError5) throw blError5;
 
       // Sign in to get an authenticated client
       const authClient = createClient<Database>(
@@ -1348,7 +909,7 @@ describe('Encryption integration (local Supabase)', () => {
       }
 
       // Rekey via authenticated client (same path as production)
-      await rekeyService.rekeyUserData(
+      await encryptionService.rekeyUserData(
         userId,
         oldClientKey,
         newClientKey,
@@ -1371,12 +932,12 @@ describe('Encryption integration (local Supabase)', () => {
       // Verify data was re-encrypted with new DEK
       const { data: budgetLine } = await adminClient
         .from('budget_line')
-        .select('amount_encrypted')
+        .select('amount')
         .eq('id', budgetLineId)
         .single();
-      expect(
-        encryptionService.decryptAmount(budgetLine!.amount_encrypted!, newDek),
-      ).toBe(42);
+      expect(encryptionService.decryptAmount(budgetLine!.amount!, newDek)).toBe(
+        42,
+      );
     } finally {
       await cleanupUserData(adminClient, { userId, budgetId, templateId });
     }

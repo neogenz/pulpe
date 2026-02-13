@@ -5,6 +5,10 @@ import { addMonths, startOfMonth } from 'date-fns';
 
 import type { Tables } from '../../types/database.types';
 import { BudgetCalculator } from '../budget/budget.calculator';
+import {
+  EncryptionService,
+  DEMO_CLIENT_KEY_BUFFER,
+} from '@modules/encryption/encryption.service';
 
 type TemplateRow = Tables<'template'>;
 type TemplateLineRow = Tables<'template_line'>;
@@ -27,6 +31,7 @@ export class DemoDataGeneratorService {
     @InjectInfoLogger(DemoDataGeneratorService.name)
     private readonly logger: InfoLogger,
     private readonly budgetCalculator: BudgetCalculator,
+    private readonly encryptionService: EncryptionService,
   ) {}
 
   /**
@@ -39,12 +44,21 @@ export class DemoDataGeneratorService {
   ): Promise<void> {
     this.logger.info({ userId }, 'Starting demo data generation');
 
+    const dek = await this.encryptionService.ensureUserDEK(
+      userId,
+      DEMO_CLIENT_KEY_BUFFER,
+    );
+
     // 1. Create templates
     const templates = await this.createTemplates(userId, supabase);
     this.logger.info({ userId, count: templates.length }, 'Templates created');
 
     // 2. Create template lines
-    const templateLines = await this.createTemplateLines(templates, supabase);
+    const templateLines = await this.createTemplateLines(
+      templates,
+      supabase,
+      dek,
+    );
     this.logger.info(
       { userId, count: templateLines.length },
       'Template lines created',
@@ -59,6 +73,7 @@ export class DemoDataGeneratorService {
       budgets,
       templateLines,
       supabase,
+      dek,
     );
     this.logger.info(
       { userId, count: budgetLines.length },
@@ -66,7 +81,7 @@ export class DemoDataGeneratorService {
     );
 
     // 5. Create sample transactions (for past months only)
-    const transactions = await this.createTransactions(budgets, supabase);
+    const transactions = await this.createTransactions(budgets, supabase, dek);
     this.logger.info(
       { userId, count: transactions.length },
       'Transactions created',
@@ -127,6 +142,7 @@ export class DemoDataGeneratorService {
   private async createTemplateLines(
     templates: TemplateRow[],
     supabase: AuthenticatedSupabaseClient,
+    dek: Buffer,
   ): Promise<TemplateLineRow[]> {
     const [standard, vacations, savings, holidays] = templates;
 
@@ -135,13 +151,13 @@ export class DemoDataGeneratorService {
       'id' | 'created_at' | 'updated_at'
     >[] = [
       // Template 1: Standard Month
-      ...this.getStandardMonthLines(standard.id),
+      ...this.getStandardMonthLines(standard.id, dek),
       // Template 2: Vacation Month
-      ...this.getVacationMonthLines(vacations.id),
+      ...this.getVacationMonthLines(vacations.id, dek),
       // Template 3: Savings Focus Month
-      ...this.getSavingsMonthLines(savings.id),
+      ...this.getSavingsMonthLines(savings.id, dek),
       // Template 4: Holiday Month
-      ...this.getHolidayMonthLines(holidays.id),
+      ...this.getHolidayMonthLines(holidays.id, dek),
     ];
 
     const { data, error } = await supabase
@@ -155,43 +171,87 @@ export class DemoDataGeneratorService {
 
   private getStandardMonthLines(
     templateId: string,
+    dek: Buffer,
   ): Omit<TemplateLineRow, 'id' | 'created_at' | 'updated_at'>[] {
     return [
-      ...this.getStandardIncomeLines(templateId),
-      ...this.getStandardFixedExpenses(templateId),
-      ...this.getStandardVariableExpenses(templateId),
-      ...this.getStandardSavings(templateId),
+      ...this.getStandardIncomeLines(templateId, dek),
+      ...this.getStandardFixedExpenses(templateId, dek),
+      ...this.getStandardVariableExpenses(templateId, dek),
+      ...this.getStandardSavings(templateId, dek),
     ];
   }
 
-  private getStandardIncomeLines(templateId: string) {
+  private getStandardIncomeLines(templateId: string, dek: Buffer) {
     return [
-      this.createLine(templateId, 'Salaire net', 6500, 'income', 'fixed'),
-      this.createLine(templateId, 'Freelance design', 800, 'income', 'one_off'),
+      this.createLine(templateId, 'Salaire net', 6500, 'income', 'fixed', dek),
+      this.createLine(
+        templateId,
+        'Freelance design',
+        800,
+        'income',
+        'one_off',
+        dek,
+      ),
     ];
   }
 
-  private getStandardFixedExpenses(templateId: string) {
+  private getStandardFixedExpenses(templateId: string, dek: Buffer) {
     return [
-      this.createLine(templateId, 'Loyer', 1850, 'expense', 'fixed'),
-      this.createLine(templateId, 'Charges', 180, 'expense', 'fixed'),
-      this.createLine(templateId, 'Assurance maladie', 385, 'expense', 'fixed'),
-      this.createLine(templateId, 'Abonnement mobile', 69, 'expense', 'fixed'),
-      this.createLine(templateId, 'Internet & TV', 89, 'expense', 'fixed'),
-      this.createLine(templateId, 'Abonnement CFF', 185, 'expense', 'fixed'),
+      this.createLine(templateId, 'Loyer', 1850, 'expense', 'fixed', dek),
+      this.createLine(templateId, 'Charges', 180, 'expense', 'fixed', dek),
+      this.createLine(
+        templateId,
+        'Assurance maladie',
+        385,
+        'expense',
+        'fixed',
+        dek,
+      ),
+      this.createLine(
+        templateId,
+        'Abonnement mobile',
+        69,
+        'expense',
+        'fixed',
+        dek,
+      ),
+      this.createLine(templateId, 'Internet & TV', 89, 'expense', 'fixed', dek),
+      this.createLine(
+        templateId,
+        'Abonnement CFF',
+        185,
+        'expense',
+        'fixed',
+        dek,
+      ),
       this.createLine(
         templateId,
         'Assurance RC/Ménage',
         35,
         'expense',
         'fixed',
+        dek,
       ),
-      this.createLine(templateId, 'Netflix & Spotify', 38, 'expense', 'fixed'),
-      this.createLine(templateId, 'Salle de sport', 99, 'expense', 'fixed'),
+      this.createLine(
+        templateId,
+        'Netflix & Spotify',
+        38,
+        'expense',
+        'fixed',
+        dek,
+      ),
+      this.createLine(
+        templateId,
+        'Salle de sport',
+        99,
+        'expense',
+        'fixed',
+        dek,
+      ),
     ];
   }
 
-  private getStandardVariableExpenses(templateId: string) {
+  private getStandardVariableExpenses(templateId: string, dek: Buffer) {
     return [
       this.createLine(
         templateId,
@@ -199,6 +259,7 @@ export class DemoDataGeneratorService {
         600,
         'expense',
         'one_off',
+        dek,
       ),
       this.createLine(
         templateId,
@@ -206,6 +267,7 @@ export class DemoDataGeneratorService {
         400,
         'expense',
         'one_off',
+        dek,
       ),
       this.createLine(
         templateId,
@@ -213,19 +275,62 @@ export class DemoDataGeneratorService {
         200,
         'expense',
         'one_off',
+        dek,
       ),
-      this.createLine(templateId, 'Essence/Parking', 150, 'expense', 'one_off'),
-      this.createLine(templateId, 'Pharmacie/Santé', 80, 'expense', 'one_off'),
-      this.createLine(templateId, 'Coiffeur/Beauté', 120, 'expense', 'one_off'),
-      this.createLine(templateId, 'Divers/Imprévus', 150, 'expense', 'one_off'),
+      this.createLine(
+        templateId,
+        'Essence/Parking',
+        150,
+        'expense',
+        'one_off',
+        dek,
+      ),
+      this.createLine(
+        templateId,
+        'Pharmacie/Santé',
+        80,
+        'expense',
+        'one_off',
+        dek,
+      ),
+      this.createLine(
+        templateId,
+        'Coiffeur/Beauté',
+        120,
+        'expense',
+        'one_off',
+        dek,
+      ),
+      this.createLine(
+        templateId,
+        'Divers/Imprévus',
+        150,
+        'expense',
+        'one_off',
+        dek,
+      ),
     ];
   }
 
-  private getStandardSavings(templateId: string) {
+  private getStandardSavings(templateId: string, dek: Buffer) {
     return [
-      this.createLine(templateId, 'Épargne logement', 1000, 'saving', 'fixed'),
-      this.createLine(templateId, '3ème pilier', 580, 'saving', 'fixed'),
-      this.createLine(templateId, "Fonds d'urgence", 300, 'saving', 'fixed'),
+      this.createLine(
+        templateId,
+        'Épargne logement',
+        1000,
+        'saving',
+        'fixed',
+        dek,
+      ),
+      this.createLine(templateId, '3ème pilier', 580, 'saving', 'fixed', dek),
+      this.createLine(
+        templateId,
+        "Fonds d'urgence",
+        300,
+        'saving',
+        'fixed',
+        dek,
+      ),
     ];
   }
 
@@ -235,12 +340,12 @@ export class DemoDataGeneratorService {
     amount: number,
     kind: 'income' | 'expense' | 'saving',
     recurrence: 'fixed' | 'one_off',
+    dek: Buffer,
   ): Omit<TemplateLineRow, 'id' | 'created_at' | 'updated_at'> {
     return {
       template_id: templateId,
       name,
-      amount,
-      amount_encrypted: null,
+      amount: this.encryptionService.encryptAmount(amount, dek),
       kind,
       recurrence,
       description: '',
@@ -249,46 +354,70 @@ export class DemoDataGeneratorService {
 
   private getVacationMonthLines(
     templateId: string,
+    dek: Buffer,
   ): Omit<TemplateLineRow, 'id' | 'created_at' | 'updated_at'>[] {
     return [
-      ...this.getVacationIncomeLines(templateId),
-      ...this.getVacationFixedExpenses(templateId),
-      ...this.getVacationSpecificExpenses(templateId),
-      ...this.getVacationSavings(templateId),
+      ...this.getVacationIncomeLines(templateId, dek),
+      ...this.getVacationFixedExpenses(templateId, dek),
+      ...this.getVacationSpecificExpenses(templateId, dek),
+      ...this.getVacationSavings(templateId, dek),
     ];
   }
 
-  private getVacationIncomeLines(templateId: string) {
+  private getVacationIncomeLines(templateId: string, dek: Buffer) {
     return [
-      this.createLine(templateId, 'Salaire net', 6500, 'income', 'fixed'),
-      this.createLine(templateId, '13ème salaire', 2500, 'income', 'one_off'),
+      this.createLine(templateId, 'Salaire net', 6500, 'income', 'fixed', dek),
+      this.createLine(
+        templateId,
+        '13ème salaire',
+        2500,
+        'income',
+        'one_off',
+        dek,
+      ),
     ];
   }
 
-  private getVacationFixedExpenses(templateId: string) {
+  private getVacationFixedExpenses(templateId: string, dek: Buffer) {
     return [
-      this.createLine(templateId, 'Loyer', 1850, 'expense', 'fixed'),
-      this.createLine(templateId, 'Charges', 180, 'expense', 'fixed'),
-      this.createLine(templateId, 'Assurance maladie', 385, 'expense', 'fixed'),
+      this.createLine(templateId, 'Loyer', 1850, 'expense', 'fixed', dek),
+      this.createLine(templateId, 'Charges', 180, 'expense', 'fixed', dek),
+      this.createLine(
+        templateId,
+        'Assurance maladie',
+        385,
+        'expense',
+        'fixed',
+        dek,
+      ),
       this.createLine(
         templateId,
         'Abonnements divers',
         281,
         'expense',
         'fixed',
+        dek,
       ),
     ];
   }
 
-  private getVacationSpecificExpenses(templateId: string) {
+  private getVacationSpecificExpenses(templateId: string, dek: Buffer) {
     return [
-      this.createLine(templateId, "Billets d'avion", 800, 'expense', 'one_off'),
+      this.createLine(
+        templateId,
+        "Billets d'avion",
+        800,
+        'expense',
+        'one_off',
+        dek,
+      ),
       this.createLine(
         templateId,
         'Hôtel (7 nuits)',
         1200,
         'expense',
         'one_off',
+        dek,
       ),
       this.createLine(
         templateId,
@@ -296,43 +425,69 @@ export class DemoDataGeneratorService {
         1500,
         'expense',
         'one_off',
+        dek,
       ),
-      this.createLine(templateId, 'Assurance voyage', 85, 'expense', 'one_off'),
+      this.createLine(
+        templateId,
+        'Assurance voyage',
+        85,
+        'expense',
+        'one_off',
+        dek,
+      ),
     ];
   }
 
-  private getVacationSavings(templateId: string) {
-    return [this.createLine(templateId, '3ème pilier', 580, 'saving', 'fixed')];
+  private getVacationSavings(templateId: string, dek: Buffer) {
+    return [
+      this.createLine(templateId, '3ème pilier', 580, 'saving', 'fixed', dek),
+    ];
   }
 
   private getSavingsMonthLines(
     templateId: string,
+    dek: Buffer,
   ): Omit<TemplateLineRow, 'id' | 'created_at' | 'updated_at'>[] {
     return [
-      ...this.getSavingsIncomeLines(templateId),
-      ...this.getSavingsMinimalExpenses(templateId),
-      ...this.getSavingsMaximized(templateId),
+      ...this.getSavingsIncomeLines(templateId, dek),
+      ...this.getSavingsMinimalExpenses(templateId, dek),
+      ...this.getSavingsMaximized(templateId, dek),
     ];
   }
 
-  private getSavingsIncomeLines(templateId: string) {
+  private getSavingsIncomeLines(templateId: string, dek: Buffer) {
     return [
-      this.createLine(templateId, 'Salaire net', 6500, 'income', 'fixed'),
-      this.createLine(templateId, 'Vente Anibis', 200, 'income', 'one_off'),
+      this.createLine(templateId, 'Salaire net', 6500, 'income', 'fixed', dek),
+      this.createLine(
+        templateId,
+        'Vente Anibis',
+        200,
+        'income',
+        'one_off',
+        dek,
+      ),
     ];
   }
 
-  private getSavingsMinimalExpenses(templateId: string) {
+  private getSavingsMinimalExpenses(templateId: string, dek: Buffer) {
     return [
-      this.createLine(templateId, 'Loyer', 1850, 'expense', 'fixed'),
-      this.createLine(templateId, 'Charges', 180, 'expense', 'fixed'),
-      this.createLine(templateId, 'Assurance maladie', 385, 'expense', 'fixed'),
+      this.createLine(templateId, 'Loyer', 1850, 'expense', 'fixed', dek),
+      this.createLine(templateId, 'Charges', 180, 'expense', 'fixed', dek),
+      this.createLine(
+        templateId,
+        'Assurance maladie',
+        385,
+        'expense',
+        'fixed',
+        dek,
+      ),
       this.createLine(
         templateId,
         'Abonnements essentiels',
         154,
         'expense',
         'fixed',
+        dek,
       ),
       this.createLine(
         templateId,
@@ -340,81 +495,156 @@ export class DemoDataGeneratorService {
         400,
         'expense',
         'one_off',
+        dek,
       ),
-      this.createLine(templateId, 'Transport', 185, 'expense', 'fixed'),
-      this.createLine(templateId, 'Minimum vital', 200, 'expense', 'one_off'),
+      this.createLine(templateId, 'Transport', 185, 'expense', 'fixed', dek),
+      this.createLine(
+        templateId,
+        'Minimum vital',
+        200,
+        'expense',
+        'one_off',
+        dek,
+      ),
     ];
   }
 
-  private getSavingsMaximized(templateId: string) {
+  private getSavingsMaximized(templateId: string, dek: Buffer) {
     return [
-      this.createLine(templateId, 'Épargne logement', 1700, 'saving', 'fixed'),
-      this.createLine(templateId, '3ème pilier', 580, 'saving', 'fixed'),
-      this.createLine(templateId, 'Investissement ETF', 400, 'saving', 'fixed'),
-      this.createLine(templateId, "Fonds d'urgence", 400, 'saving', 'fixed'),
+      this.createLine(
+        templateId,
+        'Épargne logement',
+        1700,
+        'saving',
+        'fixed',
+        dek,
+      ),
+      this.createLine(templateId, '3ème pilier', 580, 'saving', 'fixed', dek),
+      this.createLine(
+        templateId,
+        'Investissement ETF',
+        400,
+        'saving',
+        'fixed',
+        dek,
+      ),
+      this.createLine(
+        templateId,
+        "Fonds d'urgence",
+        400,
+        'saving',
+        'fixed',
+        dek,
+      ),
     ];
   }
 
   private getHolidayMonthLines(
     templateId: string,
+    dek: Buffer,
   ): Omit<TemplateLineRow, 'id' | 'created_at' | 'updated_at'>[] {
     return [
-      ...this.getHolidayIncomeLines(templateId),
-      ...this.getHolidayFixedExpenses(templateId),
-      ...this.getHolidaySpecificExpenses(templateId),
-      ...this.getHolidaySavings(templateId),
+      ...this.getHolidayIncomeLines(templateId, dek),
+      ...this.getHolidayFixedExpenses(templateId, dek),
+      ...this.getHolidaySpecificExpenses(templateId, dek),
+      ...this.getHolidaySavings(templateId, dek),
     ];
   }
 
-  private getHolidayIncomeLines(templateId: string) {
+  private getHolidayIncomeLines(templateId: string, dek: Buffer) {
     return [
-      this.createLine(templateId, 'Salaire net', 6500, 'income', 'fixed'),
+      this.createLine(templateId, 'Salaire net', 6500, 'income', 'fixed', dek),
       this.createLine(
         templateId,
         "Prime de fin d'année",
         3000,
         'income',
         'one_off',
+        dek,
       ),
     ];
   }
 
-  private getHolidayFixedExpenses(templateId: string) {
+  private getHolidayFixedExpenses(templateId: string, dek: Buffer) {
     return [
-      this.createLine(templateId, 'Loyer', 1850, 'expense', 'fixed'),
-      this.createLine(templateId, 'Charges', 180, 'expense', 'fixed'),
+      this.createLine(templateId, 'Loyer', 1850, 'expense', 'fixed', dek),
+      this.createLine(templateId, 'Charges', 180, 'expense', 'fixed', dek),
       this.createLine(
         templateId,
         'Assurances diverses',
         420,
         'expense',
         'fixed',
+        dek,
       ),
-      this.createLine(templateId, 'Abonnements', 281, 'expense', 'fixed'),
+      this.createLine(templateId, 'Abonnements', 281, 'expense', 'fixed', dek),
     ];
   }
 
-  private getHolidaySpecificExpenses(templateId: string) {
+  private getHolidaySpecificExpenses(templateId: string, dek: Buffer) {
     return [
-      this.createLine(templateId, 'Cadeaux famille', 800, 'expense', 'one_off'),
-      this.createLine(templateId, 'Cadeaux amis', 400, 'expense', 'one_off'),
-      this.createLine(templateId, 'Repas de fêtes', 600, 'expense', 'one_off'),
-      this.createLine(templateId, 'Décorations', 150, 'expense', 'one_off'),
+      this.createLine(
+        templateId,
+        'Cadeaux famille',
+        800,
+        'expense',
+        'one_off',
+        dek,
+      ),
+      this.createLine(
+        templateId,
+        'Cadeaux amis',
+        400,
+        'expense',
+        'one_off',
+        dek,
+      ),
+      this.createLine(
+        templateId,
+        'Repas de fêtes',
+        600,
+        'expense',
+        'one_off',
+        dek,
+      ),
+      this.createLine(
+        templateId,
+        'Décorations',
+        150,
+        'expense',
+        'one_off',
+        dek,
+      ),
       this.createLine(
         templateId,
         'Sorties festives',
         500,
         'expense',
         'one_off',
+        dek,
       ),
-      this.createLine(templateId, 'Tenue de soirée', 350, 'expense', 'one_off'),
+      this.createLine(
+        templateId,
+        'Tenue de soirée',
+        350,
+        'expense',
+        'one_off',
+        dek,
+      ),
     ];
   }
 
-  private getHolidaySavings(templateId: string) {
+  private getHolidaySavings(templateId: string, dek: Buffer) {
     return [
-      this.createLine(templateId, 'Épargne logement', 1000, 'saving', 'fixed'),
-      this.createLine(templateId, '3ème pilier', 580, 'saving', 'fixed'),
+      this.createLine(
+        templateId,
+        'Épargne logement',
+        1000,
+        'saving',
+        'fixed',
+        dek,
+      ),
+      this.createLine(templateId, '3ème pilier', 580, 'saving', 'fixed', dek),
     ];
   }
 
@@ -465,7 +695,6 @@ export class DemoDataGeneratorService {
       description,
       template_id: template.id,
       ending_balance: null,
-      ending_balance_encrypted: null,
     };
   }
 
@@ -510,6 +739,7 @@ export class DemoDataGeneratorService {
     budgets: BudgetRow[],
     templateLines: TemplateLineRow[],
     supabase: AuthenticatedSupabaseClient,
+    dek: Buffer,
   ): Promise<BudgetLineRow[]> {
     const budgetLinesToCreate: Omit<
       BudgetLineRow,
@@ -522,13 +752,16 @@ export class DemoDataGeneratorService {
       );
 
       for (const templateLine of relevantTemplateLines) {
+        const actualAmount = templateLine.amount
+          ? this.encryptionService.decryptAmount(templateLine.amount, dek)
+          : 0;
+
         budgetLinesToCreate.push({
           budget_id: budget.id,
           template_line_id: templateLine.id,
           savings_goal_id: null,
           name: templateLine.name,
-          amount: templateLine.amount,
-          amount_encrypted: null,
+          amount: this.encryptionService.encryptAmount(actualAmount, dek),
           kind: templateLine.kind,
           recurrence: templateLine.recurrence,
           is_manually_adjusted: false,
@@ -549,12 +782,14 @@ export class DemoDataGeneratorService {
   private async createTransactions(
     budgets: BudgetRow[],
     supabase: AuthenticatedSupabaseClient,
+    dek: Buffer,
   ): Promise<TransactionRow[]> {
     const currentDate = new Date();
     const pastBudgets = this.filterPastBudgets(budgets, currentDate);
     const transactionsToCreate = this.generateTransactions(
       pastBudgets,
       currentDate,
+      dek,
     );
 
     if (transactionsToCreate.length === 0) {
@@ -580,6 +815,7 @@ export class DemoDataGeneratorService {
   private generateTransactions(
     pastBudgets: BudgetRow[],
     currentDate: Date,
+    dek: Buffer,
   ): Omit<TransactionRow, 'id' | 'created_at' | 'updated_at'>[] {
     const transactions: Omit<
       TransactionRow,
@@ -588,7 +824,11 @@ export class DemoDataGeneratorService {
 
     for (const budget of pastBudgets) {
       const maxDay = this.calculateMaxDay(budget, currentDate);
-      const budgetTransactions = this.createBudgetTransactions(budget, maxDay);
+      const budgetTransactions = this.createBudgetTransactions(
+        budget,
+        maxDay,
+        dek,
+      );
       transactions.push(...budgetTransactions);
     }
 
@@ -607,6 +847,7 @@ export class DemoDataGeneratorService {
   private createBudgetTransactions(
     budget: BudgetRow,
     maxDay: number,
+    dek: Buffer,
   ): Omit<TransactionRow, 'id' | 'created_at' | 'updated_at'>[] {
     const transactions: Omit<
       TransactionRow,
@@ -621,6 +862,7 @@ export class DemoDataGeneratorService {
           'Migros - Courses',
           127.85,
           'Alimentation',
+          dek,
         ),
       );
     }
@@ -633,6 +875,7 @@ export class DemoDataGeneratorService {
           'Restaurant Molino',
           78.5,
           'Restaurants',
+          dek,
         ),
       );
     }
@@ -645,6 +888,7 @@ export class DemoDataGeneratorService {
           'Coop - Courses',
           94.2,
           'Alimentation',
+          dek,
         ),
       );
     }
@@ -658,13 +902,13 @@ export class DemoDataGeneratorService {
     name: string,
     amount: number,
     category: string,
+    dek: Buffer,
   ): Omit<TransactionRow, 'id' | 'created_at' | 'updated_at'> {
     return {
       budget_id: budget.id,
       budget_line_id: null,
       name,
-      amount,
-      amount_encrypted: null,
+      amount: this.encryptionService.encryptAmount(amount, dek),
       kind: 'expense',
       category,
       transaction_date: new Date(
@@ -693,7 +937,7 @@ export class DemoDataGeneratorService {
       await this.budgetCalculator.recalculateAndPersist(
         budget.id,
         supabase,
-        null,
+        DEMO_CLIENT_KEY_BUFFER,
       );
     }
   }

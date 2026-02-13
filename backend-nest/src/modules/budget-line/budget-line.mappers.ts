@@ -12,8 +12,11 @@ import {
 
 /**
  * Transform database row (snake_case) to API entity (camelCase)
+ * Expects decrypted budgetLineDb where amount is already a number
  */
-export function toApi(budgetLineDb: BudgetLineRow): BudgetLine {
+export function toApi(
+  budgetLineDb: Omit<BudgetLineRow, 'amount'> & { amount: number },
+): BudgetLine {
   return {
     id: budgetLineDb.id,
     budgetId: budgetLineDb.budget_id,
@@ -32,8 +35,11 @@ export function toApi(budgetLineDb: BudgetLineRow): BudgetLine {
 
 /**
  * Transform multiple database rows to API entities
+ * Expects decrypted budgetLinesDb where amount is already a number
  */
-export function toApiList(budgetLinesDb: BudgetLineRow[]): BudgetLine[] {
+export function toApiList(
+  budgetLinesDb: (Omit<BudgetLineRow, 'amount'> & { amount: number })[],
+): BudgetLine[] {
   return budgetLinesDb.map((budgetLine) => toApi(budgetLine));
 }
 
@@ -71,8 +77,7 @@ export function toInsert(
     template_line_id: createDto.templateLineId ?? null,
     savings_goal_id: createDto.savingsGoalId ?? null,
     name: createDto.name,
-    amount: createDto.amount,
-    ...(amountEncrypted && { amount_encrypted: amountEncrypted }),
+    amount: amountEncrypted ?? null,
     kind: createDto.kind, // Pas de conversion - les enums sont maintenant unifiés
     recurrence: createDto.recurrence,
     is_manually_adjusted: createDto.isManuallyAdjusted ?? false,
@@ -97,11 +102,8 @@ export function toUpdate(
   if (updateDto.name !== undefined) {
     updateData.name = updateDto.name;
   }
-  if (updateDto.amount !== undefined) {
-    updateData.amount = updateDto.amount;
-  }
   if (amountEncrypted !== undefined) {
-    updateData.amount_encrypted = amountEncrypted;
+    updateData.amount = amountEncrypted;
   }
   if (updateDto.kind !== undefined) {
     updateData.kind = updateDto.kind; // Pas de conversion - les enums sont maintenant unifiés

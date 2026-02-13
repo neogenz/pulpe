@@ -5,7 +5,6 @@ import { MatDialog } from '@angular/material/dialog';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { of, throwError } from 'rxjs';
 
 import {
   AuthSessionService,
@@ -28,29 +27,13 @@ describe('ResetPassword', () => {
     isAuthenticated: ReturnType<typeof vi.fn>;
     authState: ReturnType<typeof vi.fn>;
   };
-  let mockClientKeyService: { setDirectKey: ReturnType<typeof vi.fn> };
-  let mockEncryptionApi: {
-    getSalt$: ReturnType<typeof vi.fn>;
-    recover$: ReturnType<typeof vi.fn>;
-    setupRecoveryKey$: ReturnType<typeof vi.fn>;
-  };
-  let mockDialog: { open: ReturnType<typeof vi.fn> };
   let mockLogger: {
     error: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
   };
-  let mockDialogRef: { afterClosed: ReturnType<typeof vi.fn> };
   let navigateSpy: ReturnType<typeof vi.fn>;
-  let deriveClientKeySpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(async () => {
-    deriveClientKeySpy = vi
-      .spyOn(cryptoUtils, 'deriveClientKey')
-      .mockResolvedValue('abcd'.repeat(16));
-    mockDialogRef = {
-      afterClosed: vi.fn().mockReturnValue(of(true)),
-    };
-
     mockAuthSessionService = {
       updatePassword: vi.fn(),
     };
@@ -66,28 +49,6 @@ describe('ResetPassword', () => {
       }),
     };
 
-    mockClientKeyService = {
-      setDirectKey: vi.fn(),
-    };
-
-    mockEncryptionApi = {
-      getSalt$: vi.fn().mockReturnValue(
-        of({
-          salt: 'salt-value',
-          kdfIterations: 100000,
-          hasRecoveryKey: true, // Default: user HAS recovery key configured
-        }),
-      ),
-      recover$: vi.fn().mockReturnValue(of({ success: true })),
-      setupRecoveryKey$: vi
-        .fn()
-        .mockReturnValue(of({ recoveryKey: 'ABCD-EFGH-IJKL-MNOP' })),
-    };
-
-    mockDialog = {
-      open: vi.fn().mockReturnValue(mockDialogRef),
-    };
-
     mockLogger = {
       error: vi.fn(),
       warn: vi.fn(),
@@ -101,9 +62,6 @@ describe('ResetPassword', () => {
         provideRouter([]),
         { provide: AuthSessionService, useValue: mockAuthSessionService },
         { provide: AuthStateService, useValue: mockAuthStateService },
-        { provide: ClientKeyService, useValue: mockClientKeyService },
-        { provide: EncryptionApi, useValue: mockEncryptionApi },
-        { provide: MatDialog, useValue: mockDialog },
         { provide: Logger, useValue: mockLogger },
       ],
     }).compileComponents();
@@ -113,6 +71,7 @@ describe('ResetPassword', () => {
 
     const router = TestBed.inject(Router);
     navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
 
     // Wait for session check AND salt fetch to complete
     await vi.waitFor(() => expect(component['isSessionValid']()).toBe(true));
@@ -245,10 +204,6 @@ describe('ResetPassword', () => {
 
       const newComponent =
         TestBed.createComponent(ResetPassword).componentInstance;
-      // When not authenticated, salt fetch doesn't start, so just wait for auth check
-      await vi.waitFor(() =>
-        expect(newComponent['isCheckingSession']()).toBe(false),
-      );
 
       expect(newComponent['isSessionValid']()).toBe(false);
     });
