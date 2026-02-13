@@ -1,5 +1,11 @@
 # pulpe-shared
 
+## 0.8.0
+
+### Minor Changes
+
+- Chiffrement des montants financiers en AES-256-GCM, modification des transactions allouees dans les enveloppes, cache en memoire avec invalidation par utilisateur.
+
 ## 0.7.2
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "pulpe-frontend",
-  "version": "0.19.1",
+  "version": "0.20.0",
   "packageManager": "pnpm@10.12.1",
   "scripts": {
     "ng": "ng",

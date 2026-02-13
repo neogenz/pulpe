@@ -1,5 +1,16 @@
 # backend-nest
 
+## 0.13.0
+
+### Minor Changes
+
+- Chiffrement des montants financiers en AES-256-GCM, modification des transactions allouees dans les enveloppes, cache en memoire avec invalidation par utilisateur.
+
+### Patch Changes
+
+- Updated dependencies
+  - pulpe-shared@0.8.0
+
 ## 0.12.1
 
 ### Patch Changes

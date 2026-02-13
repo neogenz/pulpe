@@ -1,5 +1,29 @@
 [
   {
+    "version": "0.20.0",
+    "date": "2026-02-13",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.20.0",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "Chiffrement des montants financiers",
+          "description": "Les montants sont desormais chiffres en AES-256-GCM cote serveur pour proteger les donnees personnelles des utilisateurs"
+        },
+        {
+          "title": "Modification des transactions allouees",
+          "description": "Il est maintenant possible de modifier directement les transactions deja allouees dans les enveloppes budgetaires"
+        },
+        {
+          "title": "Cache en memoire",
+          "description": "Les details de budget se chargent plus rapidement grace a un cache avec invalidation par utilisateur et TTL de 30 secondes"
+        }
+      ],
+      "fixes": [],
+      "technical": []
+    }
+  },
+  {
     "version": "0.19.1",
     "date": "2026-02-11",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.19.1",
