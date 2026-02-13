@@ -12,9 +12,13 @@ API backend moderne pour l'application Pulpe Budget, construite avec NestJS, Bun
 - **📡 DTOs Partagés** : Types cohérents entre frontend et backend
 - **🪵 Logging Structuré** : Logs Pino avec correlation IDs
 - **⚡ Bun Runtime** : Performance optimisée avec Bun
+- **🔑 Chiffrement** : AES-256-GCM pour les montants financiers
+- **🎭 Mode Démo** : Exploration complète sans inscription
+- **🛡️ Rate Limiting** : Throttling par utilisateur
+- **🚧 Mode Maintenance** : Activation sans redéploiement
 
-> 📖 **Pour comprendre l'architecture en détail** : Consultez [ARCHITECTURE.md](./ARCHITECTURE.md)  
-> 🗄️ **Pour maîtriser la base de données** : Consultez [DATABASE.md](./DATABASE.md)
+> 📖 **Pour comprendre l'architecture en détail** : Consultez [ARCHITECTURE.md](./docs/ARCHITECTURE.md)  
+> 🗄️ **Pour maîtriser la base de données** : Consultez [DATABASE.md](./docs/DATABASE.md)
 
 ## 🚀 **Quick Start**
 
@@ -34,13 +38,13 @@ cp .env.example .env
 # ✏️ Éditer .env avec vos clés Supabase
 ```
 
-> 🔧 **Configuration avancée** : Variables d'environnement et setup détaillés dans [DATABASE.md](./DATABASE.md)
+> 🔧 **Configuration avancée** : Variables d'environnement et setup détaillés dans [DATABASE.md](./docs/DATABASE.md)
 
 ### Développement
 
 ```bash
-# Démarrer en mode développement
-bun run start:dev
+# Démarrer en mode développement (avec Supabase local)
+bun run dev
 
 # L'API sera disponible sur http://localhost:3000
 # Documentation Swagger : http://localhost:3000/docs
@@ -61,7 +65,8 @@ bun run start:prod
 ### **Développement**
 
 ```bash
-bun run start:dev      # Mode développement avec hot reload
+bun run dev            # Mode développement avec Supabase local + hot reload
+bun run dev:local      # Mode développement avec .env.local + hot reload
 bun run start          # Démarrage simple
 bun run build          # Build production
 bun run start:prod     # Exécution production
@@ -70,11 +75,12 @@ bun run start:prod     # Exécution production
 ### **Base de données**
 
 ```bash
-bun run dump:db        # Export schema SQL
-bun run generate-types # Générer types TypeScript depuis Supabase
+bun run dump:db              # Export schema SQL
+bun run generate-types       # Générer types TypeScript depuis Supabase distant
+bun run generate-types:local # Générer types TypeScript depuis Supabase local
 ```
 
-> 🗄️ **Guide complet base de données** : Schema, RLS, types et sécurité dans [DATABASE.md](./DATABASE.md)
+> 🗄️ **Guide complet base de données** : Schema, RLS, types et sécurité dans [DATABASE.md](./docs/DATABASE.md)
 
 ### **Tests**
 
@@ -88,7 +94,7 @@ bun run test:watch     # Mode watch
 bun run test:coverage  # Couverture de code
 ```
 
-> 🧪 **Stratégie de tests détaillée** : Patterns, mocks et bonnes pratiques dans [ARCHITECTURE.md](./ARCHITECTURE.md)
+> 🧪 **Stratégie de tests détaillée** : Patterns, mocks et bonnes pratiques dans [ARCHITECTURE.md](./docs/ARCHITECTURE.md)
 
 ### **Qualité de Code**
 
@@ -103,85 +109,149 @@ bun run quality:fix    # Type-check + Lint:fix + Format
 
 ## 🌐 **Endpoints API**
 
-Tous les endpoints sont préfixés par `/api` :
+Tous les endpoints sont préfixés par `/api/v1` :
 
 ### **Authentification**
 
-- `GET /api/auth/validate` - Validation token JWT
+- `GET /api/v1/auth/validate` - Validation token JWT
 
 ### **Utilisateurs**
 
-- `GET /api/users/me` - Profil utilisateur
-- `PUT /api/users/profile` - Mise à jour profil
-- `GET /api/users/public-info` - Informations publiques
-- `PUT /api/users/onboarding-completed` - Marquer onboarding terminé
+- `GET /api/v1/users/me` - Profil utilisateur
+- `PUT /api/v1/users/profile` - Mise à jour profil
+- `PUT /api/v1/users/onboarding-completed` - Marquer onboarding terminé
+- `GET /api/v1/users/onboarding-status` - Statut onboarding
+- `GET /api/v1/users/settings` - Paramètres utilisateur
+- `PUT /api/v1/users/settings` - Modifier paramètres
+- `DELETE /api/v1/users/account` - Supprimer le compte
 
 ### **Budgets**
 
-- `GET /api/budgets` - Liste des budgets
-- `POST /api/budgets` - Créer budget
-- `GET /api/budgets/:id` - Budget par ID
-- `PUT /api/budgets/:id` - Modifier budget
-- `DELETE /api/budgets/:id` - Supprimer budget
-- `POST /api/budgets/from-onboarding` - Créer budget depuis onboarding
+- `GET /api/v1/budgets` - Liste des budgets
+- `POST /api/v1/budgets` - Créer budget
+- `GET /api/v1/budgets/export` - Export budgets
+- `GET /api/v1/budgets/exists` - Vérifier existence
+- `GET /api/v1/budgets/:id` - Budget par ID
+- `GET /api/v1/budgets/:id/details` - Détails complets
+- `PATCH /api/v1/budgets/:id` - Modifier budget
+- `DELETE /api/v1/budgets/:id` - Supprimer budget
+
+### **Budget Lines (Prévisions)**
+
+- `GET /api/v1/budget-lines/budget/:budgetId` - Lignes par budget
+- `POST /api/v1/budget-lines` - Créer ligne
+- `GET /api/v1/budget-lines/:id` - Ligne par ID
+- `PATCH /api/v1/budget-lines/:id` - Modifier ligne
+- `POST /api/v1/budget-lines/:id/reset-from-template` - Réinitialiser depuis template
+- `POST /api/v1/budget-lines/:id/toggle-check` - Basculer état vérifié
+- `POST /api/v1/budget-lines/:id/check-transactions` - Vérifier transactions
+- `DELETE /api/v1/budget-lines/:id` - Supprimer ligne
 
 ### **Transactions**
 
-- `GET /api/transactions/budget/:budgetId` - Transactions par budget
-- `POST /api/transactions` - Créer transaction
-- `GET /api/transactions/:id` - Transaction par ID
-- `PUT /api/transactions/:id` - Modifier transaction
-- `DELETE /api/transactions/:id` - Supprimer transaction
+- `GET /api/v1/transactions/budget/:budgetId` - Transactions par budget
+- `GET /api/v1/transactions/budget-line/:budgetLineId` - Transactions par ligne
+- `GET /api/v1/transactions/search` - Recherche de transactions
+- `POST /api/v1/transactions` - Créer transaction
+- `GET /api/v1/transactions/:id` - Transaction par ID
+- `PATCH /api/v1/transactions/:id` - Modifier transaction
+- `DELETE /api/v1/transactions/:id` - Supprimer transaction
+- `POST /api/v1/transactions/:id/toggle-check` - Basculer état vérifié
 
 ### **Templates de Budget**
 
-- `GET /api/budget-templates` - Liste des templates
-- `POST /api/budget-templates` - Créer template
-- `GET /api/budget-templates/:id` - Template par ID
-- `PUT /api/budget-templates/:id` - Modifier template
-- `DELETE /api/budget-templates/:id` - Supprimer template
-- `GET /api/budget-templates/:id/transactions` - Transactions du template
+- `GET /api/v1/budget-templates` - Liste des templates
+- `POST /api/v1/budget-templates` - Créer template
+- `POST /api/v1/budget-templates/from-onboarding` - Créer depuis onboarding
+- `GET /api/v1/budget-templates/:id` - Template par ID
+- `GET /api/v1/budget-templates/:id/usage` - Utilisation du template
+- `PATCH /api/v1/budget-templates/:id` - Modifier template
+- `DELETE /api/v1/budget-templates/:id` - Supprimer template
+- `GET /api/v1/budget-templates/:id/lines` - Lignes du template
+- `PATCH /api/v1/budget-templates/:id/lines` - Modifier lignes
+- `POST /api/v1/budget-templates/:id/lines` - Ajouter ligne
+- `POST /api/v1/budget-templates/:id/lines/bulk-operations` - Opérations en lot
+
+### **Chiffrement**
+
+- `GET /api/v1/encryption/salt` - Récupérer le sel
+- `POST /api/v1/encryption/validate-key` - Valider la clé client
+- `POST /api/v1/encryption/rekey` - Rechiffrer les données
+- `POST /api/v1/encryption/setup-recovery` - Configurer la récupération
+- `POST /api/v1/encryption/recover` - Récupérer la clé
+
+### **Démo**
+
+- `POST /api/v1/demo/session` - Créer session démo
+- `POST /api/v1/demo/cleanup` - Nettoyer sessions démo
 
 ### **Debug** (Développement uniquement)
 
-- `GET /api/debug/health` - Health check
+- `GET /api/v1/debug/test-error/:type` - Tester gestion d'erreurs
+- `POST /api/v1/debug/test-service-error` - Tester erreur service
+- `GET /api/v1/debug/test-log-levels` - Tester niveaux de log
 
 > 📚 **Documentation Swagger** : Interface interactive disponible à `/docs`  
-> 🏗️ **Architecture des controllers** : Patterns et bonnes pratiques dans [ARCHITECTURE.md](./ARCHITECTURE.md)
+> 🏗️ **Architecture des controllers** : Patterns et bonnes pratiques dans [ARCHITECTURE.md](./docs/ARCHITECTURE.md)
 
 ## 🏗️ **Architecture Overview**
 
 ```
 src/
-├── modules/           # Modules métier
-│   ├── auth/         # Authentification
-│   ├── budget/       # Gestion budgets
-│   ├── transaction/  # Gestion transactions
-│   ├── budget-template/ # Templates de budgets
-│   ├── user/         # Gestion utilisateurs
-│   └── supabase/     # Service Supabase
-├── common/           # Composants transversaux
-│   ├── guards/       # Guards d'authentification
-│   ├── decorators/   # Decorators personnalisés (@User)
-│   ├── interceptors/ # Intercepteurs de réponse
-│   ├── filters/      # Filtres d'exceptions globales
-│   └── dto/          # DTOs de réponse communs
-├── types/            # Types Supabase
-└── config/           # Configuration environnement
+├── modules/              # Modules métier
+│   ├── account-deletion/ # Suppression de compte
+│   ├── auth/             # Authentification
+│   ├── budget/           # Gestion budgets
+│   ├── budget-line/      # Lignes de budget (prévisions)
+│   ├── budget-template/  # Templates de budgets
+│   ├── debug/            # Debug (dev uniquement)
+│   ├── demo/             # Mode démo
+│   ├── encryption/       # Chiffrement AES-256-GCM
+│   ├── supabase/         # Service Supabase
+│   ├── transaction/      # Gestion transactions
+│   └── user/             # Gestion utilisateurs
+├── common/               # Composants transversaux
+│   ├── constants/        # Constantes applicatives
+│   ├── decorators/       # Decorators personnalisés (@User)
+│   ├── dto/              # DTOs de réponse communs
+│   ├── exceptions/       # Exceptions métier
+│   ├── filters/          # Filtres d'exceptions globales
+│   ├── guards/           # Guards d'authentification
+│   ├── interceptors/     # Intercepteurs de réponse
+│   ├── logger/           # Configuration logging
+│   ├── middleware/        # Middleware HTTP
+│   ├── services/         # Services transversaux
+│   ├── types/            # Types communs
+│   └── utils/            # Utilitaires
+├── config/               # Configuration environnement
+├── database/             # Scripts et helpers DB
+├── test/                 # Utilitaires de test
+└── types/                # Types Supabase générés
 ```
 
-> 🎯 **Architecture détaillée** : Patterns NestJS, modules, services et DTOs dans [ARCHITECTURE.md](./ARCHITECTURE.md)
+> 🎯 **Architecture détaillée** : Patterns NestJS, modules, services et DTOs dans [ARCHITECTURE.md](./docs/ARCHITECTURE.md)
 
 ## 🔧 **Configuration**
 
 ### Variables d'Environnement
 
 ```env
-NODE_ENV=development
-PORT=3000
+# Requis
 SUPABASE_URL=votre_url_supabase
 SUPABASE_ANON_KEY=votre_clé_anon_supabase
 SUPABASE_SERVICE_ROLE_KEY=votre_clé_service_supabase
+TURNSTILE_SECRET_KEY=votre_clé_turnstile
+ENCRYPTION_MASTER_KEY=votre_clé_hex_64_chars
+
+# Optionnel (avec valeurs par défaut)
+NODE_ENV=development
+PORT=3000
+
+# Optionnel (sans valeur par défaut)
+CORS_ORIGIN=http://localhost:4200
+MAINTENANCE_MODE=false
+IP_BLACKLIST=
+DEBUG_HTTP_FULL=false
 ```
 
 ### Endpoints Utiles
@@ -191,7 +261,7 @@ SUPABASE_SERVICE_ROLE_KEY=votre_clé_service_supabase
 - **OpenAPI JSON** : http://localhost:3000/api/openapi
 - **Health** : http://localhost:3000/health
 
-> 🔐 **Configuration sécurisée** : Setup Supabase et RLS dans [DATABASE.md](./DATABASE.md)
+> 🔐 **Configuration sécurisée** : Setup Supabase et RLS dans [DATABASE.md](./docs/DATABASE.md)
 
 ## 🛠️ **Stack Technique**
 
@@ -224,7 +294,7 @@ SUPABASE_SERVICE_ROLE_KEY=votre_clé_service_supabase
 - **Couverture** : Services 95%+, Controllers 90%+
 - **Tests de charge** : Métriques de performance automatiques
 
-> 🎯 **Bonnes pratiques détaillées** : Patterns de code et conventions dans [ARCHITECTURE.md](./ARCHITECTURE.md)
+> 🎯 **Bonnes pratiques détaillées** : Patterns de code et conventions dans [ARCHITECTURE.md](./docs/ARCHITECTURE.md)
 
 ## 🔐 **Sécurité**
 
@@ -241,22 +311,23 @@ SUPABASE_SERVICE_ROLE_KEY=votre_clé_service_supabase
 - **Backend** : Validation métier avec Zod
 - **Database** : Contraintes SQL et politiques RLS
 
-> 🛡️ **Sécurité approfondie** : RLS, policies et validation dans [DATABASE.md](./DATABASE.md)
+> 🛡️ **Sécurité approfondie** : RLS, policies et validation dans [DATABASE.md](./docs/DATABASE.md)
 
 ## 📚 **Documentation Détaillée**
 
 | Document                                 | Objectif                  | Contenu                                           |
 | ---------------------------------------- | ------------------------- | ------------------------------------------------- |
-| **[ARCHITECTURE.md](./ARCHITECTURE.md)** | Deep dive architecture    | Patterns NestJS, DTOs, auth, validation, tests    |
-| **[DATABASE.md](./DATABASE.md)**         | Deep dive base de données | Supabase, RLS, sécurité, contraintes, performance |
+| **[ARCHITECTURE.md](./docs/ARCHITECTURE.md)** | Deep dive architecture    | Patterns NestJS, DTOs, auth, validation, tests    |
+| **[DATABASE.md](./docs/DATABASE.md)**         | Deep dive base de données | Supabase, RLS, sécurité, contraintes, performance |
+| **[LOGGING.md](./docs/LOGGING.md)**           | Logging structuré         | Pino, correlation IDs, niveaux, sécurité          |
 
 ## 🤝 **Contribution**
 
 ### **Workflow de développement**
 
 1. **Avant commit** : `bun run quality:fix && bun run test:all`
-2. **Architecture** : Suivre les patterns décrits dans [ARCHITECTURE.md](./ARCHITECTURE.md)
-3. **Database** : Respecter les règles RLS de [DATABASE.md](./DATABASE.md)
+2. **Architecture** : Suivre les patterns décrits dans [ARCHITECTURE.md](./docs/ARCHITECTURE.md)
+3. **Database** : Respecter les règles RLS de [DATABASE.md](./docs/DATABASE.md)
 4. **Types** : Utiliser `pulpe-shared` pour les DTOs REST
 
 ### **Standards de code**
@@ -266,12 +337,12 @@ SUPABASE_SERVICE_ROLE_KEY=votre_clé_service_supabase
 - **DTOs** : Utiliser `createZodDto` avec schemas partagés
 - **Types** : Supabase types isolés dans backend
 
-> 🏗️ **Patterns détaillés** : Controllers, Services, DTOs et tests dans [ARCHITECTURE.md](./ARCHITECTURE.md)
+> 🏗️ **Patterns détaillés** : Controllers, Services, DTOs et tests dans [ARCHITECTURE.md](./docs/ARCHITECTURE.md)
 
 ---
 
 🎯 **Ready to code!**
 
 - **🚀 Démarrage rapide** : Suivez le Quick Start ci-dessus
-- **🏗️ Comprendre l'architecture** : Consultez [ARCHITECTURE.md](./ARCHITECTURE.md)
-- **🗄️ Maîtriser la base de données** : Consultez [DATABASE.md](./DATABASE.md)
+- **🏗️ Comprendre l'architecture** : Consultez [ARCHITECTURE.md](./docs/ARCHITECTURE.md)
+- **🗄️ Maîtriser la base de données** : Consultez [DATABASE.md](./docs/DATABASE.md)

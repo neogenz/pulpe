@@ -165,10 +165,8 @@ pnpm quality && pnpm test
 
 | Sujet | Fichier |
 |-------|---------|
-| Architecture backend | [`backend-nest/ARCHITECTURE.md`](./backend-nest/ARCHITECTURE.md) |
-| Base de données | [`backend-nest/DATABASE.md`](./backend-nest/DATABASE.md) |
-| Tests E2E | [`frontend/run-tests.md`](./frontend/run-tests.md) |
-| Monorepo & Turbo | [`MONOREPO.md`](./MONOREPO.md) |
+| Architecture backend | [`backend-nest/docs/ARCHITECTURE.md`](./backend-nest/docs/ARCHITECTURE.md) |
+| Base de données | [`backend-nest/docs/DATABASE.md`](./backend-nest/docs/DATABASE.md) |
 
 ## Licence
 

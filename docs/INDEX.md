@@ -18,6 +18,7 @@
 - **[QUICKSTART.md](./QUICKSTART.md)** - Commandes essentielles + setup rapide
 
 ### ⚙️ Configuration (Setup & maintenance)
+- **[CI.md](./CI.md)** - Architecture CI GitHub Actions (jobs, cache, parallélisation)
 - **[FRONTEND_CONFIG.md](./FRONTEND_CONFIG.md)** - Configuration Angular + variables E2E + tests
 - **[VERCEL_ROUTING.md](./VERCEL_ROUTING.md)** - Routing Vercel (landing React + Angular SPA)
 - **[MONITORING.md](./MONITORING.md)** - PostHog sourcemaps + error tracking complet

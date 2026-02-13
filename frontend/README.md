@@ -18,23 +18,33 @@ Application frontend moderne de gestion de budgets personnels construite avec An
 
 ```
 src/app/
-├── core/                    # Services core (auth, API, routing)
+├── core/                    # Services core et cross-cutting concerns
+│   ├── analytics/          # Intégration analytics
 │   ├── auth/               # Authentification et guards
 │   ├── budget/             # API budget
-│   └── transaction/        # API transactions
+│   ├── budget-template/    # API templates
+│   ├── config/             # Configuration applicative
+│   ├── demo/               # Mode démo
+│   ├── encryption/         # Chiffrement AES-256-GCM
+│   ├── routing/            # Routing et title strategy
+│   ├── transaction/        # API transactions
+│   ├── user-settings/      # Paramètres utilisateur
+│   └── ...                 # date, loading, logging, storage, validators, etc.
 ├── feature/                # Features lazy-loaded
 │   ├── auth/               # Connexion
-│   ├── onboarding/         # Processus d'inscription
+│   ├── welcome/            # Processus d'inscription (onboarding)
+│   ├── complete-profile/   # Complétion du profil
 │   ├── current-month/      # Budget du mois en cours
+│   ├── budget/             # Gestion et historique des budgets
 │   ├── budget-templates/   # Gestion des templates
-│   └── other-months/       # Historique des budgets
-├── ui/                     # Composants réutilisables
-│   ├── breadcrumb/         # Navigation fil d'Ariane
-│   └── financial-summary/  # Résumés financiers
-├── layout/                 # Layouts applicatifs
-│   ├── main-layout.ts      # Layout principal avec navigation
-│   └── navigation-menu.ts  # Menu de navigation
-└── shared/                 # Utilitaires partagés
+│   ├── settings/           # Paramètres utilisateur
+│   ├── legal/              # Pages légales
+│   └── maintenance/        # Page de maintenance
+├── ui/                     # Composants réutilisables stateless
+├── pattern/                # Composants réutilisables stateful
+├── layout/                 # Shell applicatif (navigation, about)
+├── styles/                 # Styles SCSS globaux et thèmes
+└── testing/                # Utilitaires de test
 ```
 
 ### Règles d'architecture
@@ -71,6 +81,11 @@ pnpm run build               # ng build
 ### Tests
 
 ```bash
+# Tests unitaires (Vitest)
+pnpm run test                # Tous les tests unitaires
+pnpm run test:watch          # Mode watch
+pnpm run typecheck           # Vérification des types
+
 # Tests E2E (Playwright)
 pnpm run test:e2e            # Tests E2E
 pnpm run test:e2e:ui         # Mode interactif
@@ -128,12 +143,15 @@ e2e/
 
 ### Couleurs financières
 
-```scss
-// Variables Sass custom
-$income-color: #4caf50; // Vert pour revenus
-$expense-color: #f44336; // Rouge pour dépenses
-$savings-color: #2196f3; // Bleu pour épargne
+Les couleurs financières utilisent des CSS custom properties mappées sur les tokens Material 3 :
+
+```css
+--pulpe-financial-income    /* Revenus  → mat-sys-tertiary */
+--pulpe-financial-expense   /* Dépenses → mat-sys-error */
+--pulpe-financial-savings   /* Épargne  → mat-sys-primary */
 ```
+
+Classes Tailwind : `text-financial-income`, `text-financial-expense`, `text-financial-savings`
 
 ## 📱 Features
 
@@ -143,7 +161,7 @@ $savings-color: #2196f3; // Bleu pour épargne
 - Guards pour protection des routes
 - Gestion des tokens JWT
 
-### 🏠 Onboarding
+### 🏠 Welcome (Onboarding)
 
 - Processus guidé pour nouveaux utilisateurs
 - Collecte d'informations financières de base
@@ -161,31 +179,51 @@ $savings-color: #2196f3; // Bleu pour épargne
 - Duplication pour nouveaux mois
 - Gestion des transactions récurrentes
 
-### 📊 Autres mois
+### 📊 Budgets
 
 - Historique des budgets précédents
-- Comparaison entre périodes
-- Analyse des tendances
+- Consultation par mois
+
+### ⚙️ Paramètres
+
+- Configuration du profil utilisateur
+- Préférences applicatives
+
+### 🔑 Chiffrement
+
+- Chiffrement client-side AES-256-GCM des montants
+- Gestion de la clé de chiffrement
+
+### 🎭 Mode démo
+
+- Exploration complète sans inscription
 
 ## 🔧 Configuration
 
 ### Environment
 
-```typescript
-// environment.ts
-export const environment = {
-  production: false,
-  supabaseUrl: "your-supabase-url",
-  supabaseAnonKey: "your-anon-key",
-};
+La configuration est générée automatiquement depuis les variables d'environnement via `generate-config.ts` :
+
+```bash
+cp .env.example .env
+# Éditer .env avec vos valeurs
+```
+
+Variables principales (voir `.env.example` pour la liste complète) :
+
+```env
+PUBLIC_ENVIRONMENT=local
+PUBLIC_SUPABASE_URL=http://localhost:54321
+PUBLIC_SUPABASE_ANON_KEY=sb_publishable_...
+PUBLIC_BACKEND_API_URL=http://localhost:3000/api/v1
+PUBLIC_TURNSTILE_SITE_KEY=0x...
+PUBLIC_POSTHOG_API_KEY=phc_...
 ```
 
 ### Angular Configuration
 
-- **Bundle budgets** : 760KB warning, 1MB error
 - **Tree-shaking** : Optimisations automatiques
 - **Lazy loading** : Features chargées à la demande
-- **PWA ready** : Configuration Service Worker
 
 ## 🌐 Intégrations
 
@@ -230,6 +268,4 @@ pnpm run build
 
 ## 📚 Documentation
 
-- **[Run Tests Guide](./run-tests.md)** : Guide complet des tests
-- **[TODOs](./TODO.md)** : Améliorations prévues
-- **[Turborepo Guide](../MONOREPO.md)** : Guide Turborepo + PNPM workspace
+- **[Sourcemaps Upload](./docs/sourcemaps-upload.md)** : Upload des sourcemaps vers PostHog

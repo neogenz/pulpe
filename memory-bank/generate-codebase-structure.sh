@@ -203,7 +203,7 @@ cat >> "$OUTPUT_FILE" << 'EOF'
 ### Documentation
 - `README.md` - Project overview and setup
 - `CLAUDE.md` - Development guidelines
-- `CI.md` - Continuous integration setup
+- `docs/CI.md` - Continuous integration setup
 - `supabase-github-ci.md` - Supabase CI/CD guide
 
 ---

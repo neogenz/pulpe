@@ -176,5 +176,5 @@ Reference [debug.controller.ts](mdc:backend-nest/src/modules/debug/debug.control
 
 ### Configuration References
 - Main config: [app.module.ts](mdc:backend-nest/src/app.module.ts)
-- Documentation: [LOGGING.md](mdc:backend-nest/LOGGING.md)
+- Documentation: [LOGGING.md](mdc:backend-nest/docs/LOGGING.md)
 - Test setup: [setup.ts](mdc:backend-nest/src/test/setup.ts)
