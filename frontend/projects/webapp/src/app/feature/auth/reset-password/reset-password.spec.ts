@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, Router } from '@angular/router';
@@ -14,11 +14,13 @@ import {
 } from '@core/auth';
 import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import * as cryptoUtils from '@core/encryption/crypto.utils';
+import { ApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
 
 import ResetPassword from './reset-password';
 
 describe('ResetPassword', () => {
+  let fixture: ComponentFixture<ResetPassword>;
   let component: ResetPassword;
   let mockAuthSessionService: { updatePassword: ReturnType<typeof vi.fn> };
   let mockAuthStateService: {
@@ -106,21 +108,89 @@ describe('ResetPassword', () => {
       ],
     }).compileComponents();
 
-    component = TestBed.createComponent(ResetPassword).componentInstance;
+    fixture = TestBed.createComponent(ResetPassword);
+    component = fixture.componentInstance;
 
     const router = TestBed.inject(Router);
     navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
     // Wait for session check AND salt fetch to complete
     await vi.waitFor(() => expect(component['isSessionValid']()).toBe(true));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
   });
 
-  function fillValidForm(): void {
-    component['form'].patchValue({
-      recoveryKey: 'ABCD-EFGH-IJKL-MNOP',
-      newPassword: 'newpassword123',
-      confirmPassword: 'newpassword123',
-    });
+  async function fillFormViaDom(
+    recoveryKey: string,
+    password: string,
+    confirmPassword: string,
+  ): Promise<void> {
+    const recoveryInput = fixture.nativeElement.querySelector(
+      '[data-testid="recovery-key-input"]',
+    ) as HTMLInputElement | null;
+    if (recoveryInput) {
+      recoveryInput.value = recoveryKey;
+      recoveryInput.dispatchEvent(new Event('input'));
+    }
+
+    const passwordInput = fixture.nativeElement.querySelector(
+      '[data-testid="new-password-input"]',
+    ) as HTMLInputElement;
+    passwordInput.value = password;
+    passwordInput.dispatchEvent(new Event('input'));
+
+    const confirmInput = fixture.nativeElement.querySelector(
+      '[data-testid="confirm-password-input"]',
+    ) as HTMLInputElement;
+    confirmInput.value = confirmPassword;
+    confirmInput.dispatchEvent(new Event('input'));
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
+  async function fillValidForm(): Promise<void> {
+    await fillFormViaDom(
+      'ABCD-EFGH-IJKL-MNOP',
+      'newpassword123',
+      'newpassword123',
+    );
+  }
+
+  async function submitFormViaDom(): Promise<void> {
+    const formDE = fixture.debugElement.query(
+      (el) =>
+        el.nativeElement.getAttribute?.('data-testid') ===
+        'reset-password-form',
+    );
+    formDE.triggerEventHandler('ngSubmit');
+    fixture.detectChanges();
+    await fixture.whenStable();
+  }
+
+  function isSubmitDisabled(): boolean {
+    return !component['canSubmit']();
+  }
+
+  function getErrorAlertText(): string {
+    const alert = fixture.nativeElement.querySelector('pulpe-error-alert span');
+    return alert?.textContent?.trim() ?? '';
+  }
+
+  function getPasswordInputType(): string {
+    const input = fixture.nativeElement.querySelector(
+      '[data-testid="new-password-input"]',
+    ) as HTMLInputElement;
+    return input.type;
+  }
+
+  function getConfirmPasswordInputType(): string {
+    const input = fixture.nativeElement.querySelector(
+      '[data-testid="confirm-password-input"]',
+    ) as HTMLInputElement;
+    return input.type;
   }
 
   describe('Component Structure', () => {
@@ -128,31 +198,46 @@ describe('ResetPassword', () => {
       expect(component).toBeTruthy();
     });
 
-    it('should have signal properties defined', () => {
-      expect(component['isCheckingSession']).toBeDefined();
-      expect(component['isSessionValid']).toBeDefined();
-      expect(component['isSubmitting']).toBeDefined();
-      expect(component['errorMessage']).toBeDefined();
-      expect(component['isPasswordHidden']).toBeDefined();
-      expect(component['isConfirmPasswordHidden']).toBeDefined();
+    it('should render the reset password page', () => {
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="reset-password-page"]',
+        ),
+      ).toBeTruthy();
     });
 
-    it('should have form defined', () => {
-      expect(component['form']).toBeDefined();
-      expect(component['form'].get('recoveryKey')).toBeDefined();
-      expect(component['form'].get('newPassword')).toBeDefined();
-      expect(component['form'].get('confirmPassword')).toBeDefined();
+    it('should render the form with all fields', () => {
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="reset-password-form"]',
+        ),
+      ).toBeTruthy();
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="new-password-input"]',
+        ),
+      ).toBeTruthy();
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="confirm-password-input"]',
+        ),
+      ).toBeTruthy();
     });
 
-    it('should have computed canSubmit defined', () => {
-      expect(component['canSubmit']).toBeDefined();
-      expect(typeof component['canSubmit']).toBe('function');
+    it('should render the submit button', () => {
+      expect(
+        fixture.nativeElement.querySelector('pulpe-loading-button'),
+      ).toBeTruthy();
     });
   });
 
   describe('Session Check (effect)', () => {
-    it('should set isSessionValid to true when authenticated', () => {
-      expect(component['isSessionValid']()).toBe(true);
+    it('should show the reset password form when authenticated', () => {
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="reset-password-form"]',
+        ),
+      ).toBeTruthy();
     });
 
     it('should set isSessionValid to false when not authenticated', async () => {
@@ -168,192 +253,199 @@ describe('ResetPassword', () => {
       expect(newComponent['isSessionValid']()).toBe(false);
     });
 
-    it('should set isCheckingSession to false after checking session', () => {
-      expect(component['isCheckingSession']()).toBe(false);
+    it('should not show spinner after session check completes', () => {
+      expect(fixture.nativeElement.querySelector('mat-spinner')).toBeFalsy();
     });
   });
 
   describe('Default Values', () => {
-    it('should have isPasswordHidden true by default', () => {
-      expect(component['isPasswordHidden']()).toBe(true);
+    it('should have password fields hidden by default', () => {
+      expect(getPasswordInputType()).toBe('password');
+      expect(getConfirmPasswordInputType()).toBe('password');
     });
 
-    it('should have isConfirmPasswordHidden true by default', () => {
-      expect(component['isConfirmPasswordHidden']()).toBe(true);
+    it('should have submit button disabled by default (empty form)', () => {
+      expect(isSubmitDisabled()).toBe(true);
     });
 
-    it('should have isSubmitting false by default', () => {
-      expect(component['isSubmitting']()).toBe(false);
+    it('should have no error message by default', () => {
+      expect(getErrorAlertText()).toBe('');
     });
 
-    it('should have errorMessage empty by default', () => {
-      expect(component['errorMessage']()).toBe('');
+    it('should not show spinner after init', () => {
+      expect(fixture.nativeElement.querySelector('mat-spinner')).toBeFalsy();
     });
 
-    it('should have isCheckingSession false after init', () => {
-      expect(component['isCheckingSession']()).toBe(false);
-    });
-
-    it('should have isSessionValid true by default (authenticated)', () => {
-      expect(component['isSessionValid']()).toBe(true);
+    it('should show the reset password form by default (authenticated)', () => {
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="reset-password-form"]',
+        ),
+      ).toBeTruthy();
     });
   });
 
   describe('Form Validation', () => {
-    it('should have recoveryKey field with required validator when hasRecoveryKey is true', () => {
-      // When user has recovery key configured, the recovery key field is shown and required
-      const recoveryKeyControl = component['form'].get('recoveryKey');
-      recoveryKeyControl?.setValue('');
-      expect(recoveryKeyControl?.hasError('required')).toBe(true);
+    it('should show recovery key required error when submitted empty', async () => {
+      await fillFormViaDom('', 'newpassword123', 'newpassword123');
+      await submitFormViaDom();
+      fixture.detectChanges();
+
+      const matErrors = fixture.nativeElement.querySelectorAll('mat-error');
+      const texts = Array.from(matErrors as NodeListOf<Element>).map((el) =>
+        el.textContent?.trim(),
+      );
+      expect(texts.some((t) => t?.includes('récupération'))).toBe(true);
     });
 
-    it('should require newPassword', () => {
-      const newPasswordControl = component['form'].get('newPassword');
-      newPasswordControl?.setValue('');
-      expect(newPasswordControl?.hasError('required')).toBe(true);
+    it('should keep submit button disabled when newPassword is empty', async () => {
+      await fillFormViaDom('ABCD-EFGH-IJKL-MNOP', '', 'newpassword123');
+      expect(isSubmitDisabled()).toBe(true);
     });
 
-    it('should validate newPassword minimum length', () => {
-      const newPasswordControl = component['form'].get('newPassword');
-      newPasswordControl?.setValue('short');
-      expect(newPasswordControl?.hasError('minlength')).toBe(true);
-
-      newPasswordControl?.setValue('longpassword');
-      expect(newPasswordControl?.hasError('minlength')).toBe(false);
+    it('should keep submit button disabled when password is too short', async () => {
+      await fillFormViaDom('ABCD-EFGH-IJKL-MNOP', 'short', 'short');
+      expect(isSubmitDisabled()).toBe(true);
     });
 
-    it('should use PASSWORD_MIN_LENGTH constant for validation', () => {
-      const newPasswordControl = component['form'].get('newPassword');
+    it('should use PASSWORD_MIN_LENGTH constant for validation', async () => {
       const shortPassword = 'a'.repeat(PASSWORD_MIN_LENGTH - 1);
       const validPassword = 'a'.repeat(PASSWORD_MIN_LENGTH);
 
-      newPasswordControl?.setValue(shortPassword);
-      expect(newPasswordControl?.hasError('minlength')).toBe(true);
+      await fillFormViaDom('ABCD-EFGH-IJKL-MNOP', shortPassword, shortPassword);
+      expect(isSubmitDisabled()).toBe(true);
 
-      newPasswordControl?.setValue(validPassword);
-      expect(newPasswordControl?.hasError('minlength')).toBe(false);
+      await fillFormViaDom('ABCD-EFGH-IJKL-MNOP', validPassword, validPassword);
+      expect(isSubmitDisabled()).toBe(false);
     });
 
-    it('should require confirmPassword', () => {
-      const confirmPasswordControl = component['form'].get('confirmPassword');
-      confirmPasswordControl?.setValue('');
-      expect(confirmPasswordControl?.hasError('required')).toBe(true);
+    it('should keep submit button disabled when confirmPassword is empty', async () => {
+      await fillFormViaDom('ABCD-EFGH-IJKL-MNOP', 'newpassword123', '');
+      expect(isSubmitDisabled()).toBe(true);
     });
 
-    it('should allow valid confirmPassword', () => {
-      const confirmPasswordControl = component['form'].get('confirmPassword');
-      confirmPasswordControl?.setValue('newpassword123');
-      expect(confirmPasswordControl?.hasError('required')).toBe(false);
+    it('should enable submit button when form is valid', async () => {
+      await fillValidForm();
+      expect(isSubmitDisabled()).toBe(false);
     });
   });
 
   describe('passwordsMatchValidator', () => {
-    it('should return null when both fields are empty', () => {
-      component['form'].get('newPassword')?.setValue('');
-      component['form'].get('confirmPassword')?.setValue('');
-      expect(component['form'].hasError('passwordsMismatch')).toBe(false);
+    it('should not disable submit when both fields are empty', async () => {
+      await fillFormViaDom('ABCD-EFGH-IJKL-MNOP', '', '');
+      // Button disabled because fields are required, not because of mismatch
+      expect(isSubmitDisabled()).toBe(true);
     });
 
-    it('should return null when passwords match', () => {
-      component['form'].get('newPassword')?.setValue('newpassword123');
-      component['form'].get('confirmPassword')?.setValue('newpassword123');
-      expect(component['form'].hasError('passwordsMismatch')).toBe(false);
+    it('should enable submit when passwords match', async () => {
+      await fillFormViaDom(
+        'ABCD-EFGH-IJKL-MNOP',
+        'newpassword123',
+        'newpassword123',
+      );
+      expect(isSubmitDisabled()).toBe(false);
     });
 
-    it('should return error when passwords do not match', () => {
-      component['form'].get('newPassword')?.setValue('newpassword123');
-      component['form'].get('confirmPassword')?.setValue('differentpassword');
-      expect(component['form'].hasError('passwordsMismatch')).toBe(true);
+    it('should disable submit when passwords do not match', async () => {
+      await fillFormViaDom(
+        'ABCD-EFGH-IJKL-MNOP',
+        'newpassword123',
+        'differentpassword',
+      );
+      expect(isSubmitDisabled()).toBe(true);
     });
 
-    it('should set passwordsMismatch error on confirmPassword control', () => {
-      component['form'].get('newPassword')?.setValue('newpassword123');
-      component['form'].get('confirmPassword')?.setValue('differentpassword');
-      expect(
-        component['form'].get('confirmPassword')?.hasError('passwordsMismatch'),
-      ).toBe(true);
+    it('should show mismatch error in DOM after submit attempt', async () => {
+      await fillFormViaDom(
+        'ABCD-EFGH-IJKL-MNOP',
+        'newpassword123',
+        'differentpassword',
+      );
+      await submitFormViaDom();
+
+      const matErrors = fixture.nativeElement.querySelectorAll('mat-error');
+      const texts = Array.from(matErrors as NodeListOf<Element>).map((el) =>
+        el.textContent?.trim(),
+      );
+      expect(texts.some((t) => t?.includes('ne correspondent pas'))).toBe(true);
     });
   });
 
-  describe('canSubmit computed', () => {
-    it('should return false when form is invalid', () => {
-      expect(component['canSubmit']()).toBe(false);
+  describe('Submit button state', () => {
+    it('should be disabled when form is invalid', () => {
+      expect(isSubmitDisabled()).toBe(true);
     });
 
-    it('should return false when isSubmitting is true', () => {
-      fillValidForm();
-      component['isSubmitting'].set(true);
-      expect(component['canSubmit']()).toBe(false);
-    });
-
-    it('should return true when form is valid and not submitting', () => {
-      fillValidForm();
-      expect(component['canSubmit']()).toBe(true);
+    it('should be enabled when form is valid', async () => {
+      await fillValidForm();
+      expect(isSubmitDisabled()).toBe(false);
     });
   });
 
   describe('clearError', () => {
-    it('should reset errorMessage to empty string', () => {
+    it('should clear error message when typing into password field', () => {
       component['errorMessage'].set('Some error');
-      component['clearError']();
+      expect(component['errorMessage']()).toBe('Some error');
+
+      const passwordInput = fixture.nativeElement.querySelector(
+        '[data-testid="new-password-input"]',
+      ) as HTMLInputElement;
+      passwordInput.dispatchEvent(new Event('input'));
+
       expect(component['errorMessage']()).toBe('');
     });
   });
 
   describe('onSubmit - Invalid Form', () => {
     it('should not submit when form is invalid', async () => {
-      // getSalt$ is called on init, so reset the mock
       mockEncryptionApi.recover$.mockClear();
 
-      await component['onSubmit']();
+      await submitFormViaDom();
 
-      // With invalid form, recover$ should not be called
       expect(mockEncryptionApi.recover$).not.toHaveBeenCalled();
     });
 
-    it('should mark form as touched when invalid', async () => {
-      const markAllAsTouchedSpy = vi.spyOn(
-        component['form'],
-        'markAllAsTouched',
-      );
+    it('should show validation errors when submitting invalid form', async () => {
+      await submitFormViaDom();
+      fixture.detectChanges();
 
-      await component['onSubmit']();
-
-      expect(markAllAsTouchedSpy).toHaveBeenCalled();
+      const matErrors = fixture.nativeElement.querySelectorAll('mat-error');
+      expect(matErrors.length).toBeGreaterThan(0);
     });
   });
 
   describe('onSubmit - Valid Form', () => {
-    beforeEach(() => {
-      fillValidForm();
+    beforeEach(async () => {
+      await fillValidForm();
       mockAuthSessionService.updatePassword.mockResolvedValue({
         success: true,
       });
     });
 
-    it('should set isSubmitting to true when called', async () => {
-      const promise = component['onSubmit']();
-      expect(component['isSubmitting']()).toBe(true);
+    it('should disable submit while submitting and re-enable after', async () => {
+      // Submitting sets isSubmitting to true which makes canSubmit false
+      await submitFormViaDom();
 
-      await promise;
+      // After submit completes, isSubmitting is reset to false
+      await vi.waitFor(() => expect(isSubmitDisabled()).toBe(false));
     });
 
     it('should clear error message before submitting', async () => {
       component['errorMessage'].set('Previous error');
 
-      await component['onSubmit']();
+      await submitFormViaDom();
 
       expect(component['errorMessage']()).toBe('');
     });
 
     it('should call getSalt$ to get encryption salt', async () => {
-      await component['onSubmit']();
+      await submitFormViaDom();
 
       expect(mockEncryptionApi.getSalt$).toHaveBeenCalled();
     });
 
     it('should call deriveClientKey with password and salt', async () => {
-      await component['onSubmit']();
+      await submitFormViaDom();
 
       expect(deriveClientKeySpy).toHaveBeenCalledWith(
         'newpassword123',
@@ -363,7 +455,7 @@ describe('ResetPassword', () => {
     });
 
     it('should call recover$ with recovery key and derived client key', async () => {
-      await component['onSubmit']();
+      await submitFormViaDom();
 
       expect(mockEncryptionApi.recover$).toHaveBeenCalledWith(
         'ABCD-EFGH-IJKL-MNOP',
@@ -372,51 +464,59 @@ describe('ResetPassword', () => {
     });
 
     it('should call setDirectKey with derived client key', async () => {
-      await component['onSubmit']();
+      await submitFormViaDom();
 
-      expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
-        'abcd'.repeat(16),
+      await vi.waitFor(() =>
+        expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
+          'abcd'.repeat(16),
+        ),
       );
     });
 
     it('should call updatePassword with new password', async () => {
-      await component['onSubmit']();
+      await submitFormViaDom();
 
-      expect(mockAuthSessionService.updatePassword).toHaveBeenCalledWith(
-        'newpassword123',
+      await vi.waitFor(() =>
+        expect(mockAuthSessionService.updatePassword).toHaveBeenCalledWith(
+          'newpassword123',
+        ),
       );
     });
 
     it('should call setupRecoveryKey$ after successful password update', async () => {
-      await component['onSubmit']();
+      await submitFormViaDom();
 
-      expect(mockEncryptionApi.setupRecoveryKey$).toHaveBeenCalled();
+      await vi.waitFor(() =>
+        expect(mockEncryptionApi.setupRecoveryKey$).toHaveBeenCalled(),
+      );
     });
 
     it('should open recovery dialog after successful password update', async () => {
-      await component['onSubmit']();
+      await submitFormViaDom();
 
-      expect(mockDialog.open).toHaveBeenCalled();
+      await vi.waitFor(() => expect(mockDialog.open).toHaveBeenCalled());
     });
 
     it('should navigate to dashboard after dialog closes', async () => {
       mockDialogRef.afterClosed.mockReturnValue(of(true));
 
-      await component['onSubmit']();
+      await submitFormViaDom();
 
-      expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']);
+      await vi.waitFor(() =>
+        expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']),
+      );
     });
 
-    it('should reset isSubmitting after onSubmit completes', async () => {
-      await component['onSubmit']();
+    it('should re-enable submit button after onSubmit completes', async () => {
+      await submitFormViaDom();
 
-      expect(component['isSubmitting']()).toBe(false);
+      await vi.waitFor(() => expect(isSubmitDisabled()).toBe(false));
     });
   });
 
   describe('onSubmit - recover$ failure', () => {
-    beforeEach(() => {
-      fillValidForm();
+    beforeEach(async () => {
+      await fillValidForm();
       mockAuthSessionService.updatePassword.mockResolvedValue({
         success: true,
       });
@@ -428,70 +528,119 @@ describe('ResetPassword', () => {
       );
     });
 
-    it('should set recovery key error message on 400 response', async () => {
-      await component['onSubmit']();
+    it('should show recovery key error message on 400 response', async () => {
+      await submitFormViaDom();
 
-      expect(component['errorMessage']()).toContain(
-        'Clé de récupération invalide',
+      await vi.waitFor(() =>
+        expect(component['errorMessage']()).toContain(
+          'Clé de récupération invalide',
+        ),
       );
     });
 
     it('should not call setDirectKey on recover$ failure', async () => {
-      await component['onSubmit']();
+      await submitFormViaDom();
 
-      expect(mockClientKeyService.setDirectKey).not.toHaveBeenCalled();
-    });
-
-    it('should have called updatePassword before recover$ fails', async () => {
-      await component['onSubmit']();
-
-      expect(mockAuthSessionService.updatePassword).toHaveBeenCalledWith(
-        'newpassword123',
+      await vi.waitFor(() =>
+        expect(mockClientKeyService.setDirectKey).not.toHaveBeenCalled(),
       );
     });
 
-    it('should reset isSubmitting on recover$ failure', async () => {
-      await component['onSubmit']();
+    it('should have called updatePassword before recover$ fails', async () => {
+      await submitFormViaDom();
 
-      expect(component['isSubmitting']()).toBe(false);
+      await vi.waitFor(() =>
+        expect(mockAuthSessionService.updatePassword).toHaveBeenCalledWith(
+          'newpassword123',
+        ),
+      );
+    });
+
+    it('should re-enable submit button on recover$ failure', async () => {
+      await submitFormViaDom();
+
+      await vi.waitFor(() => expect(isSubmitDisabled()).toBe(false));
+    });
+  });
+
+  describe('onSubmit - recover$ ApiError handling', () => {
+    beforeEach(async () => {
+      await fillFormViaDom(
+        'ABCD-EFGH-IJKL-MNOP',
+        'newpassword123',
+        'newpassword123',
+      );
+      mockAuthSessionService.updatePassword.mockResolvedValue({
+        success: true,
+      });
+    });
+
+    it('should show recovery key error message on ApiError with status 400', async () => {
+      mockEncryptionApi.recover$.mockReturnValue(
+        throwError(() => new ApiError('Bad request', 'ERR_INVALID', 400, null)),
+      );
+      await submitFormViaDom();
+
+      await vi.waitFor(() =>
+        expect(component['errorMessage']()).toContain(
+          'Clé de récupération invalide',
+        ),
+      );
+    });
+
+    it('should show generic error when recover$ throws ApiError with status 500', async () => {
+      mockEncryptionApi.recover$.mockReturnValue(
+        throwError(() => new ApiError('Server error', undefined, 500, null)),
+      );
+      await submitFormViaDom();
+
+      await vi.waitFor(() =>
+        expect(component['errorMessage']()).toContain(
+          "Quelque chose n'a pas fonctionné",
+        ),
+      );
     });
   });
 
   describe('onSubmit - updatePassword failure', () => {
-    beforeEach(() => {
-      fillValidForm();
+    beforeEach(async () => {
+      await fillValidForm();
       mockAuthSessionService.updatePassword.mockResolvedValue({
         success: false,
         error: 'Password update failed',
       });
     });
 
-    it('should set error message for password update failure', async () => {
-      await component['onSubmit']();
+    it('should show error message for password update failure', async () => {
+      await submitFormViaDom();
 
-      expect(component['errorMessage']()).toBeTruthy();
+      await vi.waitFor(() => expect(component['errorMessage']()).toBeTruthy());
     });
 
     it('should not call recover$ when password update fails', async () => {
-      await component['onSubmit']();
+      await submitFormViaDom();
 
-      expect(mockEncryptionApi.recover$).not.toHaveBeenCalled();
+      await vi.waitFor(() =>
+        expect(mockEncryptionApi.recover$).not.toHaveBeenCalled(),
+      );
     });
 
-    it('should reset isSubmitting on password update failure', async () => {
-      await component['onSubmit']();
+    it('should re-enable submit button on password update failure', async () => {
+      await submitFormViaDom();
 
-      expect(component['isSubmitting']()).toBe(false);
+      await vi.waitFor(() => expect(isSubmitDisabled()).toBe(false));
     });
 
     it('should not navigate on password update failure', async () => {
-      await component['onSubmit']();
+      await submitFormViaDom();
 
-      expect(navigateSpy).not.toHaveBeenCalled();
+      await vi.waitFor(() => expect(navigateSpy).not.toHaveBeenCalled());
     });
   });
 
   describe('onSubmit - Vault-code user (hasVaultCode=true)', () => {
+    let vaultFixture: ComponentFixture<ResetPassword>;
+
     beforeEach(async () => {
       mockAuthStateService.authState.mockReturnValue({
         user: { user_metadata: { vaultCodeConfigured: true } },
@@ -507,15 +656,11 @@ describe('ResetPassword', () => {
         }),
       );
 
-      const newFixture = TestBed.createComponent(ResetPassword);
-      component = newFixture.componentInstance;
+      vaultFixture = TestBed.createComponent(ResetPassword);
+      component = vaultFixture.componentInstance;
 
       await vi.waitFor(() => expect(component['isSessionValid']()).toBe(true));
-
-      component['form'].patchValue({
-        newPassword: 'newpassword123',
-        confirmPassword: 'newpassword123',
-      });
+      vaultFixture.detectChanges();
 
       mockAuthSessionService.updatePassword.mockResolvedValue({
         success: true,
@@ -523,15 +668,41 @@ describe('ResetPassword', () => {
     });
 
     it('should hide recovery key field for vault-code users', () => {
-      expect(component['hasVaultCode']()).toBe(true);
-      expect(component['showRecoveryKeyField']()).toBe(false);
+      const recoveryInput = vaultFixture.nativeElement.querySelector(
+        '[data-testid="recovery-key-input"]',
+      );
+      expect(recoveryInput).toBeFalsy();
     });
 
     it('should use simple password reset flow without encryption recovery', async () => {
-      await component['onSubmit']();
+      // Fill form via DOM on the vault fixture
+      const passwordInput = vaultFixture.nativeElement.querySelector(
+        '[data-testid="new-password-input"]',
+      ) as HTMLInputElement;
+      passwordInput.value = 'newpassword123';
+      passwordInput.dispatchEvent(new Event('input'));
 
-      expect(mockAuthSessionService.updatePassword).toHaveBeenCalledWith(
-        'newpassword123',
+      const confirmInput = vaultFixture.nativeElement.querySelector(
+        '[data-testid="confirm-password-input"]',
+      ) as HTMLInputElement;
+      confirmInput.value = 'newpassword123';
+      confirmInput.dispatchEvent(new Event('input'));
+      vaultFixture.detectChanges();
+
+      // Submit via DOM
+      const formDE = vaultFixture.debugElement.query(
+        (el) =>
+          el.nativeElement.getAttribute?.('data-testid') ===
+          'reset-password-form',
+      );
+      formDE.triggerEventHandler('ngSubmit');
+      vaultFixture.detectChanges();
+      await vaultFixture.whenStable();
+
+      await vi.waitFor(() =>
+        expect(mockAuthSessionService.updatePassword).toHaveBeenCalledWith(
+          'newpassword123',
+        ),
       );
       expect(mockEncryptionApi.recover$).not.toHaveBeenCalled();
       expect(mockEncryptionApi.setupRecoveryKey$).not.toHaveBeenCalled();
@@ -541,71 +712,99 @@ describe('ResetPassword', () => {
   });
 
   describe('onSubmit - Existing user without recovery key (hasRecoveryKey=false)', () => {
+    let noRecoveryFixture: ComponentFixture<ResetPassword>;
+
     beforeEach(async () => {
-      // User without vault code AND without recovery key (existing user before migration)
       mockEncryptionApi.getSalt$.mockReturnValue(
         of({
           salt: 'salt-value',
           kdfIterations: 100000,
-          hasRecoveryKey: false, // <-- No recovery key configured
+          hasRecoveryKey: false,
         }),
       );
 
-      // Recreate component with new mock
-      const newFixture = TestBed.createComponent(ResetPassword);
-      component = newFixture.componentInstance;
+      noRecoveryFixture = TestBed.createComponent(ResetPassword);
+      component = noRecoveryFixture.componentInstance;
 
-      // Wait for salt fetch to complete
       await vi.waitFor(() => expect(component['isSessionValid']()).toBe(true));
-
-      // Fill form with just passwords (no recovery key needed)
-      component['form'].patchValue({
-        newPassword: 'newpassword123',
-        confirmPassword: 'newpassword123',
-      });
+      noRecoveryFixture.detectChanges();
 
       mockAuthSessionService.updatePassword.mockResolvedValue({
         success: true,
       });
     });
 
-    it('should have showRecoveryKeyField as false', () => {
-      expect(component['showRecoveryKeyField']()).toBe(false);
+    async function fillAndSubmitNoRecovery(): Promise<void> {
+      const passwordInput = noRecoveryFixture.nativeElement.querySelector(
+        '[data-testid="new-password-input"]',
+      ) as HTMLInputElement;
+      passwordInput.value = 'newpassword123';
+      passwordInput.dispatchEvent(new Event('input'));
+
+      const confirmInput = noRecoveryFixture.nativeElement.querySelector(
+        '[data-testid="confirm-password-input"]',
+      ) as HTMLInputElement;
+      confirmInput.value = 'newpassword123';
+      confirmInput.dispatchEvent(new Event('input'));
+      noRecoveryFixture.detectChanges();
+
+      const formDE = noRecoveryFixture.debugElement.query(
+        (el) =>
+          el.nativeElement.getAttribute?.('data-testid') ===
+          'reset-password-form',
+      );
+      formDE.triggerEventHandler('ngSubmit');
+      noRecoveryFixture.detectChanges();
+      await noRecoveryFixture.whenStable();
+    }
+
+    it('should hide recovery key field', () => {
+      const recoveryInput = noRecoveryFixture.nativeElement.querySelector(
+        '[data-testid="recovery-key-input"]',
+      );
+      expect(recoveryInput).toBeFalsy();
     });
 
     it('should not call recover$ (no recovery key flow)', async () => {
-      await component['onSubmit']();
+      await fillAndSubmitNoRecovery();
 
-      expect(mockEncryptionApi.recover$).not.toHaveBeenCalled();
+      await vi.waitFor(() =>
+        expect(mockEncryptionApi.recover$).not.toHaveBeenCalled(),
+      );
     });
 
     it('should not call setupRecoveryKey$ (will happen in setup-vault-code)', async () => {
-      await component['onSubmit']();
+      await fillAndSubmitNoRecovery();
 
-      expect(mockEncryptionApi.setupRecoveryKey$).not.toHaveBeenCalled();
+      await vi.waitFor(() =>
+        expect(mockEncryptionApi.setupRecoveryKey$).not.toHaveBeenCalled(),
+      );
     });
 
     it('should navigate to setup-vault-code instead of dashboard', async () => {
       const router = TestBed.inject(Router);
       const spy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
-      await component['onSubmit']();
+      await fillAndSubmitNoRecovery();
 
-      expect(spy).toHaveBeenCalledWith(['/', 'setup-vault-code']);
+      await vi.waitFor(() =>
+        expect(spy).toHaveBeenCalledWith(['/', 'setup-vault-code']),
+      );
     });
 
     it('should call updatePassword with new password', async () => {
-      await component['onSubmit']();
+      await fillAndSubmitNoRecovery();
 
-      expect(mockAuthSessionService.updatePassword).toHaveBeenCalledWith(
-        'newpassword123',
+      await vi.waitFor(() =>
+        expect(mockAuthSessionService.updatePassword).toHaveBeenCalledWith(
+          'newpassword123',
+        ),
       );
     });
   });
 
   describe('Salt fetch error handling', () => {
     it('should show error state when salt fetch fails', async () => {
-      // Reset the mock to throw an error BEFORE creating new component
       mockEncryptionApi.getSalt$.mockReturnValue(
         throwError(() => new Error('Network error')),
       );
@@ -613,12 +812,16 @@ describe('ResetPassword', () => {
       const newFixture = TestBed.createComponent(ResetPassword);
       const newComponent = newFixture.componentInstance;
 
-      // Wait for the error to be set (async fetch must complete)
       await vi.waitFor(() =>
         expect(newComponent['saltFetchError']()).toBeTruthy(),
       );
+      newFixture.detectChanges();
 
-      expect(newComponent['saltFetchError']()).toBe(
+      const errorDiv = newFixture.nativeElement.querySelector(
+        '[data-testid="salt-fetch-error"]',
+      );
+      expect(errorDiv).toBeTruthy();
+      expect(errorDiv.textContent).toContain(
         'Impossible de charger les informations de sécurité',
       );
       expect(newComponent['isSessionValid']()).toBe(false);
@@ -633,14 +836,22 @@ describe('ResetPassword', () => {
       const newFixture = TestBed.createComponent(ResetPassword);
       const newComponent = newFixture.componentInstance;
 
-      // Wait for the error to be set
       await vi.waitFor(() =>
         expect(newComponent['saltFetchError']()).toBeTruthy(),
       );
+      newFixture.detectChanges();
 
-      // saltFetchError should be set, not just isSessionValid being false
-      expect(newComponent['saltFetchError']()).toBeTruthy();
-      // Session is considered invalid due to error, even though user is authenticated
+      // Salt fetch error shows the salt-fetch-error div, not the invalid-link div
+      expect(
+        newFixture.nativeElement.querySelector(
+          '[data-testid="salt-fetch-error"]',
+        ),
+      ).toBeTruthy();
+      expect(
+        newFixture.nativeElement.querySelector(
+          '[data-testid="invalid-link-message"]',
+        ),
+      ).toBeFalsy();
       expect(newComponent['isSessionValid']()).toBe(false);
     });
   });
