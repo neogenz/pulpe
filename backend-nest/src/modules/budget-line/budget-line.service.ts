@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { handleServiceError } from '@common/utils/error-handler';
+import { CacheService } from '@modules/cache/cache.service';
 import {
   type BudgetLineCreate,
   type BudgetLineListResponse,
@@ -23,6 +24,7 @@ export class BudgetLineService {
   constructor(
     private readonly budgetService: BudgetService,
     private readonly encryptionService: EncryptionService,
+    private readonly cacheService: CacheService,
   ) {}
 
   async #decryptBudgetLine(
@@ -219,6 +221,8 @@ export class BudgetLineService {
       );
 
       const apiData = budgetLineMappers.toApi(decryptedBudgetLine);
+
+      await this.cacheService.invalidateForUser(user.id);
 
       return {
         success: true,
@@ -431,6 +435,8 @@ export class BudgetLineService {
 
       const apiData = budgetLineMappers.toApi(decryptedBudgetLine);
 
+      await this.cacheService.invalidateForUser(user.id);
+
       return {
         success: true,
         data: apiData,
@@ -470,6 +476,8 @@ export class BudgetLineService {
           user.clientKey,
         );
       }
+
+      await this.cacheService.invalidateForUser(user.id);
 
       return {
         success: true,
@@ -568,6 +576,8 @@ export class BudgetLineService {
         supabase,
         user.clientKey,
       );
+
+      await this.cacheService.invalidateForUser(user.id);
 
       return {
         success: true,
@@ -680,6 +690,8 @@ export class BudgetLineService {
         user,
       );
 
+      await this.cacheService.invalidateForUser(user.id);
+
       return {
         success: true,
         data: budgetLineMappers.toApi(decryptedBudgetLine),
@@ -724,6 +736,8 @@ export class BudgetLineService {
           { cause: error },
         );
       }
+
+      await this.cacheService.invalidateForUser(user.id);
 
       return {
         success: true,
