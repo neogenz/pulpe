@@ -5,6 +5,7 @@ import {
   Injectable,
   resource,
   signal,
+  untracked,
 } from '@angular/core';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
@@ -60,7 +61,6 @@ export class BudgetDetailsStore {
 
   // ── 2. Internal state (private/writable) ──
   readonly #state = createInitialBudgetDetailsState();
-  readonly #staleData = signal<BudgetDetailsViewModel | null>(null);
 
   // Mutex: prevents concurrent toggle mutations on the same item
   readonly #mutatingIds = new Set<string>();
@@ -84,14 +84,11 @@ export class BudgetDetailsStore {
       );
     });
 
-    // Keep stale snapshot only from server-resolved states (not local optimistic updates).
+    // Prefetch adjacent budgets for instant navigation
     effect(() => {
-      if (this.#budgetDetailsResource.status() === 'resolved') {
-        const details = this.#budgetDetailsResource.value();
-        if (details) {
-          this.#staleData.set(details);
-        }
-      }
+      const prevId = this.previousBudgetId();
+      const nextId = this.nextBudgetId();
+      untracked(() => this.#prefetchAdjacentBudgets(prevId, nextId));
     });
   }
 
@@ -102,22 +99,39 @@ export class BudgetDetailsStore {
   >({
     params: () => this.#state.budgetId() ?? undefined,
     loader: async ({ params: budgetId }) => {
-      const response = await firstValueFrom(
-        this.#budgetApi.getBudgetWithDetails$(budgetId),
+      const cacheKey: string[] = ['budget', 'details', budgetId];
+      const cached =
+        this.#budgetApi.cache.get<BudgetDetailsViewModel>(cacheKey);
+
+      if (cached?.fresh) return cached.data;
+
+      const freshPromise = this.#budgetApi.cache.deduplicate(
+        cacheKey,
+        async () => {
+          const response = await firstValueFrom(
+            this.#budgetApi.getBudgetWithDetails$(budgetId),
+          );
+
+          if (!response.success || !response.data) {
+            this.#logger.error('Failed to fetch budget details', {
+              budgetId,
+            });
+            throw new Error('Failed to fetch budget details');
+          }
+
+          const viewModel: BudgetDetailsViewModel = {
+            ...response.data.budget,
+            budgetLines: response.data.budgetLines,
+            transactions: response.data.transactions,
+          };
+
+          this.#budgetApi.cache.set(cacheKey, viewModel);
+          return viewModel;
+        },
       );
 
-      if (!response.success || !response.data) {
-        this.#logger.error('Failed to fetch budget details', {
-          budgetId,
-        });
-        throw new Error('Failed to fetch budget details');
-      }
-
-      return {
-        ...response.data.budget,
-        budgetLines: response.data.budgetLines,
-        transactions: response.data.transactions,
-      };
+      if (cached) return cached.data;
+      return freshPromise;
     },
   });
 
@@ -127,17 +141,38 @@ export class BudgetDetailsStore {
   });
 
   // ── 4. Public selectors (readonly/computed) ──
-  readonly budgetDetails = computed(() =>
-    this.#budgetDetailsResource.error()
-      ? this.#staleData()
-      : (this.#budgetDetailsResource.value() ?? this.#staleData()),
-  );
+  readonly budgetDetails = computed(() => {
+    if (this.#budgetDetailsResource.error()) {
+      const budgetId = this.#state.budgetId();
+      if (!budgetId) return null;
+      return (
+        this.#budgetApi.cache.get<BudgetDetailsViewModel>([
+          'budget',
+          'details',
+          budgetId,
+        ])?.data ?? null
+      );
+    }
+    const resourceValue = this.#budgetDetailsResource.value();
+    if (resourceValue) return resourceValue;
+
+    const budgetId = this.#state.budgetId();
+    if (!budgetId) return null;
+    return (
+      this.#budgetApi.cache.get<BudgetDetailsViewModel>([
+        'budget',
+        'details',
+        budgetId,
+      ])?.data ?? null
+    );
+  });
   readonly isLoading = computed(
-    () => this.#budgetDetailsResource.isLoading() && !this.#staleData(),
+    () => this.#budgetDetailsResource.isLoading() && !this.budgetDetails(),
   );
   readonly isInitialLoading = computed(
     () =>
-      this.#budgetDetailsResource.status() === 'loading' && !this.#staleData(),
+      this.#budgetDetailsResource.status() === 'loading' &&
+      !this.budgetDetails(),
   );
   readonly hasValue = computed(() => this.budgetDetails() !== null);
   readonly error = computed(
@@ -313,11 +348,7 @@ export class BudgetDetailsStore {
   }
 
   setBudgetId(budgetId: string): void {
-    if (this.#state.budgetId() !== budgetId) {
-      this.#staleData.set(null);
-    }
     this.#state.budgetId.set(budgetId);
-    // Reset rollover checked state when changing budget (checked by default)
     this.#state.rolloverCheckedAt.set(new Date().toISOString());
   }
 
@@ -792,5 +823,28 @@ export class BudgetDetailsStore {
    */
   #clearError(): void {
     this.#state.errorMessage.set(null);
+  }
+
+  #prefetchAdjacentBudgets(prevId: string | null, nextId: string | null): void {
+    const ids = [prevId, nextId].filter((id): id is string => id !== null);
+    for (const id of ids) {
+      if (!this.#budgetApi.cache.has(['budget', 'details', id])) {
+        this.#budgetApi.cache.deduplicate(
+          ['budget', 'details', id],
+          async () => {
+            const response = await firstValueFrom(
+              this.#budgetApi.getBudgetWithDetails$(id),
+            );
+            const viewModel: BudgetDetailsViewModel = {
+              ...response.data.budget,
+              budgetLines: response.data.budgetLines,
+              transactions: response.data.transactions,
+            };
+            this.#budgetApi.cache.set(['budget', 'details', id], viewModel);
+            return viewModel;
+          },
+        );
+      }
+    }
   }
 }

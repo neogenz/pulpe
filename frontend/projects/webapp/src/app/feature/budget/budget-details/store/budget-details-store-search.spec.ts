@@ -131,6 +131,16 @@ describe('BudgetDetailsStore - Search Filtering', () => {
               .fn()
               .mockReturnValue(of(mockBudgetDetailsResponse)),
             getAllBudgets$: vi.fn().mockReturnValue(of([])),
+            cache: {
+              get: vi.fn().mockReturnValue(null),
+              set: vi.fn(),
+              has: vi.fn().mockReturnValue(false),
+              invalidate: vi.fn(),
+              deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) =>
+                fn(),
+              ),
+              clear: vi.fn(),
+            },
           },
         },
         {

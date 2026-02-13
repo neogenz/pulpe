@@ -15,6 +15,7 @@ import { type Observable } from 'rxjs';
 import { map, switchMap, tap } from 'rxjs/operators';
 import { ApiClient } from '../api/api-client';
 import { HasBudgetCache } from '../auth/has-budget-cache';
+import { DataCache } from '../cache/data-cache';
 import { BudgetInvalidationService } from './budget-invalidation.service';
 
 export interface CreateBudgetApiResponse {
@@ -29,6 +30,7 @@ export class BudgetApi {
   readonly #api = inject(ApiClient);
   readonly #hasBudgetCache = inject(HasBudgetCache);
   readonly #invalidationService = inject(BudgetInvalidationService);
+  readonly cache = new DataCache({ freshTime: 30_000, gcTime: 600_000 });
 
   createBudget$(
     templateData: BudgetCreate,
@@ -40,6 +42,7 @@ export class BudgetApi {
         tap(() => {
           this.#hasBudgetCache.setHasBudget(true);
           this.#invalidationService.invalidate();
+          this.cache.invalidate(['budget']);
         }),
         map((response) => ({
           budget: response.data,
@@ -52,6 +55,7 @@ export class BudgetApi {
     return this.#api.get$('/budgets', budgetListResponseSchema).pipe(
       tap((response) => {
         this.#hasBudgetCache.setHasBudget(response.data.length > 0);
+        this.cache.set(['budget', 'list'], response.data);
       }),
       map((response) => response.data),
     );
@@ -73,10 +77,13 @@ export class BudgetApi {
   }
 
   getBudgetWithDetails$(budgetId: string): Observable<BudgetDetailsResponse> {
-    return this.#api.get$(
-      `/budgets/${budgetId}/details`,
-      budgetDetailsResponseSchema,
-    );
+    return this.#api
+      .get$(`/budgets/${budgetId}/details`, budgetDetailsResponseSchema)
+      .pipe(
+        tap((response) =>
+          this.cache.set(['budget', 'details', budgetId], response),
+        ),
+      );
   }
 
   getBudgetForMonth$(month: string, year: string): Observable<Budget | null> {
@@ -102,6 +109,7 @@ export class BudgetApi {
       .pipe(
         tap(() => {
           this.#invalidationService.invalidate();
+          this.cache.invalidate(['budget']);
         }),
         map((response) => response.data),
       );
@@ -115,6 +123,7 @@ export class BudgetApi {
       tap((response) => {
         this.#hasBudgetCache.setHasBudget(response.hasBudget);
         this.#invalidationService.invalidate();
+        this.cache.invalidate(['budget']);
       }),
       map(() => void 0),
     );

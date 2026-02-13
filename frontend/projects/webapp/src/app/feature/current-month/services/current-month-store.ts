@@ -58,7 +58,21 @@ export class CurrentMonthStore {
   });
 
   // ── 4. Selectors ──
-  readonly dashboardData = computed(() => this.#dashboardResource.value());
+  readonly dashboardData = computed(() => {
+    const resourceValue = this.#dashboardResource.value();
+    if (resourceValue) return resourceValue;
+
+    const period = this.currentBudgetPeriod();
+    const month = period.month.toString().padStart(2, '0');
+    const year = period.year.toString();
+    const cached = this.#budgetApi.cache.get<DashboardData>([
+      'budget',
+      'dashboard',
+      month,
+      year,
+    ]);
+    return cached?.data ?? null;
+  });
 
   readonly transactions = computed<Transaction[]>(
     () => this.dashboardData()?.transactions || [],
@@ -102,11 +116,13 @@ export class CurrentMonthStore {
   readonly status = computed(() => this.#dashboardResource.status());
 
   /** SWR: true only on first load, false during background revalidation */
-  readonly isInitialLoading = computed(
-    () =>
+  readonly isInitialLoading = computed(() => {
+    if (this.dashboardData()) return false;
+    return (
       this.status() === 'loading' ||
-      (this.isSettingsLoading() && !this.hasValue()),
-  );
+      (this.isSettingsLoading() && !this.hasValue())
+    );
+  });
 
   readonly budgetDate = computed(() => this.#state().currentDate);
 
@@ -320,22 +336,44 @@ export class CurrentMonthStore {
     month: string;
     year: string;
   }): Promise<DashboardData> {
-    const budget = await firstValueFrom(
-      this.#budgetApi.getBudgetForMonth$(params.month, params.year),
-    );
+    const cacheKey: string[] = [
+      'budget',
+      'dashboard',
+      params.month,
+      params.year,
+    ];
+    const cached = this.#budgetApi.cache.get<DashboardData>(cacheKey);
 
-    if (!budget) {
-      return { budget: null, transactions: [], budgetLines: [] };
-    }
+    if (cached?.fresh) return cached.data;
 
-    const response = await firstValueFrom(
-      this.#budgetApi.getBudgetWithDetails$(budget.id),
-    );
+    const freshData = this.#budgetApi.cache.deduplicate(cacheKey, async () => {
+      const budget = await firstValueFrom(
+        this.#budgetApi.getBudgetForMonth$(params.month, params.year),
+      );
 
-    return {
-      budget: response.data.budget,
-      transactions: response.data.transactions,
-      budgetLines: response.data.budgetLines,
-    };
+      if (!budget) {
+        return {
+          budget: null,
+          transactions: [],
+          budgetLines: [],
+        } as DashboardData;
+      }
+
+      const response = await firstValueFrom(
+        this.#budgetApi.getBudgetWithDetails$(budget.id),
+      );
+
+      return {
+        budget: response.data.budget,
+        transactions: response.data.transactions,
+        budgetLines: response.data.budgetLines,
+      } as DashboardData;
+    });
+
+    if (cached) return cached.data;
+
+    const result = await freshData;
+    this.#budgetApi.cache.set(cacheKey, result);
+    return result;
   }
 }

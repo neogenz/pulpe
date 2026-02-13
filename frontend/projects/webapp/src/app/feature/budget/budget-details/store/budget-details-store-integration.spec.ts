@@ -74,6 +74,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
   let mockBudgetApi: {
     getBudgetWithDetails$: ReturnType<typeof vi.fn>;
     getAllBudgets$: ReturnType<typeof vi.fn>;
+    cache: Record<string, ReturnType<typeof vi.fn>>;
   };
   let mockBudgetLineApi: {
     createBudgetLine$: ReturnType<typeof vi.fn>;
@@ -119,6 +120,16 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         .fn()
         .mockReturnValue(of(mockBudgetDetailsResponse)),
       getAllBudgets$: vi.fn().mockReturnValue(of([])),
+      cache: {
+        get: vi.fn().mockReturnValue(null),
+        set: vi.fn(),
+        has: vi.fn().mockReturnValue(false),
+        invalidate: vi.fn(),
+        deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) =>
+          fn(),
+        ),
+        clear: vi.fn(),
+      },
     };
 
     mockBudgetLineApi = {

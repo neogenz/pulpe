@@ -1,5 +1,6 @@
 import { effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { type Budget } from 'pulpe-shared';
 import { AuthStateService } from '../auth/auth-state.service';
 import { BudgetApi } from '../budget/budget-api';
 import { ClientKeyService } from '../encryption/client-key.service';
@@ -63,5 +64,31 @@ export class PreloadService {
         );
       }
     });
+
+    // Prefetch current month's budget details (fire-and-forget)
+    this.#prefetchCurrentMonthDetails();
+  }
+
+  #prefetchCurrentMonthDetails(): void {
+    const cached = this.#budgetApi.cache.get<Budget[]>(['budget', 'list']);
+    if (!cached) return;
+
+    const budgets = cached.data;
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+
+    const currentBudget = budgets.find(
+      (b) => b.month === currentMonth && b.year === currentYear,
+    );
+
+    if (!currentBudget) return;
+
+    // Prefetch current month's details (fire-and-forget, deduped)
+    this.#budgetApi.cache.deduplicate(
+      ['budget', 'details', currentBudget.id],
+      () =>
+        firstValueFrom(this.#budgetApi.getBudgetWithDetails$(currentBudget.id)),
+    );
   }
 }

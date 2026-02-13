@@ -78,6 +78,15 @@ const mockTransactions: Transaction[] = [
   },
 ];
 
+const mockCache = {
+  get: vi.fn().mockReturnValue(null),
+  set: vi.fn(),
+  has: vi.fn().mockReturnValue(false),
+  invalidate: vi.fn(),
+  deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
+  clear: vi.fn(),
+};
+
 /**
  * Business Value Tests for CurrentMonthStore
  *
@@ -94,6 +103,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
     getBudgetWithDetails$: Mock;
     getBudgetById$: Mock;
     toggleBudgetLineCheck$: Mock;
+    cache: typeof mockCache;
   };
   let mockTransactionApi: {
     create$: Mock;
@@ -104,6 +114,8 @@ describe('CurrentMonthStore - Business Scenarios', () => {
 
   beforeEach(() => {
     // Realistic mocks that simulate actual business behaviors
+    mockCache.get.mockReturnValue(null);
+
     mockBudgetApi = {
       getBudgetForMonth$: vi.fn().mockReturnValue(of(mockBudget)),
       getBudgetWithDetails$: vi.fn().mockReturnValue(
@@ -117,6 +129,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
       ),
       getBudgetById$: vi.fn().mockReturnValue(of(mockBudget)),
       toggleBudgetLineCheck$: vi.fn().mockReturnValue(of(undefined)),
+      cache: mockCache,
     };
 
     mockTransactionApi = {
@@ -228,15 +241,12 @@ describe('CurrentMonthStore - Business Scenarios', () => {
   });
 
   describe('User can refresh their data', () => {
-    it('should allow user to refresh their financial data', () => {
-      // Business scenario: User pulls to refresh or clicks refresh button
-
-      const refreshSpy = vi.spyOn(store, 'refreshData');
+    it('should allow user to refresh their financial data', async () => {
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
 
       expect(() => store.refreshData()).not.toThrow();
-      store.refreshData();
-
-      expect(refreshSpy).toHaveBeenCalled();
     });
   });
 
@@ -531,6 +541,7 @@ describe('CurrentMonthStore - Pay Day Integration', () => {
     getBudgetWithDetails$: Mock;
     getBudgetById$: Mock;
     toggleBudgetLineCheck$: Mock;
+    cache: typeof mockCache;
   };
 
   const mockJanuaryBudget: Budget = {
@@ -549,6 +560,8 @@ describe('CurrentMonthStore - Pay Day Integration', () => {
   beforeEach(() => {
     payDaySignal = signal<number | null>(null);
 
+    mockCache.get.mockReturnValue(null);
+
     mockBudgetApi = {
       getBudgetForMonth$: vi.fn().mockReturnValue(of(mockJanuaryBudget)),
       getBudgetWithDetails$: vi.fn().mockReturnValue(
@@ -562,6 +575,7 @@ describe('CurrentMonthStore - Pay Day Integration', () => {
       ),
       getBudgetById$: vi.fn().mockReturnValue(of(mockJanuaryBudget)),
       toggleBudgetLineCheck$: vi.fn().mockReturnValue(of(undefined)),
+      cache: mockCache,
     };
 
     const mockTransactionApi = {
@@ -702,6 +716,7 @@ describe('CurrentMonthStore - Envelope Allocation Logic', () => {
     getBudgetWithDetails$: Mock;
     getBudgetById$: Mock;
     toggleBudgetLineCheck$: Mock;
+    cache: typeof mockCache;
   };
 
   // Helper to create budget lines
@@ -763,6 +778,8 @@ describe('CurrentMonthStore - Envelope Allocation Logic', () => {
       rollover: 0,
     };
 
+    mockCache.get.mockReturnValue(null);
+
     mockBudgetApi = {
       getBudgetForMonth$: vi.fn().mockReturnValue(of(budget)),
       getBudgetWithDetails$: vi.fn().mockReturnValue(
@@ -776,6 +793,7 @@ describe('CurrentMonthStore - Envelope Allocation Logic', () => {
       ),
       getBudgetById$: vi.fn().mockReturnValue(of(budget)),
       toggleBudgetLineCheck$: vi.fn().mockReturnValue(of(undefined)),
+      cache: mockCache,
     };
 
     const mockTransactionApi = {

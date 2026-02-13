@@ -29,6 +29,14 @@ function setup({
   const mockBudgetApi = {
     checkBudgetExists$: vi.fn().mockReturnValue(of(true)),
     getAllBudgets$: vi.fn().mockReturnValue(of([])),
+    cache: {
+      get: vi.fn().mockReturnValue(null),
+      set: vi.fn(),
+      has: vi.fn().mockReturnValue(false),
+      invalidate: vi.fn(),
+      deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
+      clear: vi.fn(),
+    },
   };
 
   const mockUserSettingsApi = {
