@@ -138,6 +138,10 @@ export function provideCore({ routes }: CoreOptions) {
       const injector = inject(Injector);
       const logger = inject(Logger);
 
+      // Force instantiation — effect() inside will preload data when authenticated
+      // Must be called before any await to stay in injection context
+      inject(PreloadService);
+
       // 0. Run storage migrations first (before any data is read)
       storageMigrationRunner.runMigrations();
 
@@ -177,9 +181,6 @@ export function provideCore({ routes }: CoreOptions) {
         logger.error("Erreur lors de l'initialisation", error);
         throw error;
       }
-
-      // Force instantiation — effect() inside will preload data when authenticated
-      inject(PreloadService);
     }),
 
     ...provideLocale(),
