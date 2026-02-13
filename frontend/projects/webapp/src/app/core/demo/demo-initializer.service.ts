@@ -1,12 +1,12 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { firstValueFrom, map } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import {
   type DemoSessionCreate,
   demoSessionResponseSchema,
 } from 'pulpe-shared';
-import { ApplicationConfiguration } from '@core/config/application-configuration';
+import { ApiClient } from '@core/api/api-client';
+import { isApiError } from '@core/api/api-error';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
 import { AuthSessionService } from '@core/auth/auth-session.service';
@@ -25,9 +25,8 @@ import { type E2EWindow } from '@core/auth';
   providedIn: 'root',
 })
 export class DemoInitializerService {
-  readonly #http = inject(HttpClient);
+  readonly #api = inject(ApiClient);
   readonly #router = inject(Router);
-  readonly #config = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);
   readonly #authSession = inject(AuthSessionService);
   readonly #clientKeyService = inject(ClientKeyService);
@@ -68,12 +67,9 @@ export class DemoInitializerService {
       this.#logger.info('Starting demo session...');
 
       // Call backend to create demo user and session with Turnstile token
-      const backendUrl = this.#config.backendApiUrl();
       const payload: DemoSessionCreate = { turnstileToken };
       const response = await firstValueFrom(
-        this.#http
-          .post<unknown>(`${backendUrl}/demo/session`, payload)
-          .pipe(map((data) => demoSessionResponseSchema.parse(data))),
+        this.#api.post$('/demo/session', payload, demoSessionResponseSchema),
       );
 
       const session = response.data.session;
@@ -107,7 +103,7 @@ export class DemoInitializerService {
       this.#logger.error('Failed to start demo session', { error });
 
       // Provide specific error messages based on error type
-      if (error instanceof HttpErrorResponse) {
+      if (isApiError(error)) {
         if (error.status === 0) {
           throw new Error(
             'Impossible de contacter le serveur. Vérifiez votre connexion internet.',

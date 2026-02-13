@@ -6,6 +6,7 @@
  */
 
 import { TEST_CONFIG } from '../config/test-config';
+import { TEST_UUIDS } from '../helpers/api-mocks';
 
 // Define typed interfaces for API responses
 export interface MockAuthResponse {
@@ -76,30 +77,43 @@ export interface MockBudgetDetailsResponse {
 }
 
 export interface MockTemplateResponse {
+  success: true;
   data: Array<{
     id: string;
     name: string;
+    description?: string;
+    userId?: string;
     isDefault: boolean;
+    createdAt: string;
+    updatedAt: string;
   }>;
 }
 
 export interface MockTemplateDetailResponse {
-  success: boolean;
+  success: true;
   data: {
     id: string;
     name: string;
-    description: string;
-    isDefault: boolean;
+    description?: string;
+    userId?: string;
+    isDefault?: boolean;
+    createdAt: string;
+    updatedAt: string;
   };
 }
 
 export interface MockTemplateLinesResponse {
-  success: boolean;
+  success: true;
   data: Array<{
     id: string;
+    templateId: string;
     name: string;
     amount: number;
     kind: 'income' | 'expense' | 'saving';
+    recurrence: 'fixed' | 'one_off';
+    description: string;
+    createdAt: string;
+    updatedAt: string;
   }>;
 }
 
@@ -138,27 +152,73 @@ export const createMockBudgetDetailsResponse = (): MockBudgetDetailsResponse => 
 });
 
 export const createMockTemplateResponse = (): MockTemplateResponse => ({
+  success: true,
   data: [TEST_CONFIG.TEMPLATES.DEFAULT],
 });
 
 export const createMockTemplateDetailResponse = (): MockTemplateDetailResponse => ({
   success: true,
-  data: {
-    id: TEST_CONFIG.TEMPLATES.DEFAULT.id,
-    name: TEST_CONFIG.TEMPLATES.DEFAULT.name,
-    description: 'Default test template for E2E testing',
-    isDefault: TEST_CONFIG.TEMPLATES.DEFAULT.isDefault,
-  },
+  data: TEST_CONFIG.TEMPLATES.DEFAULT,
 });
 
 export const createMockTemplateLinesResponse = (): MockTemplateLinesResponse => ({
   success: true,
   data: [
-    { id: '1', name: 'Salaire', amount: 5000, kind: 'income' },
-    { id: '2', name: 'Loyer', amount: 1800, kind: 'expense' },
-    { id: '3', name: 'Courses', amount: 600, kind: 'expense' },
-    { id: '4', name: 'Transport', amount: 200, kind: 'expense' },
-    { id: '5', name: 'Épargne', amount: 500, kind: 'saving' }
+    {
+      id: TEST_UUIDS.LINE_1,
+      templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
+      name: 'Salaire',
+      amount: 5000,
+      kind: 'income',
+      recurrence: 'fixed',
+      description: '',
+      createdAt: TEST_CONFIG.TEMPLATES.DEFAULT.createdAt,
+      updatedAt: TEST_CONFIG.TEMPLATES.DEFAULT.updatedAt,
+    },
+    {
+      id: TEST_UUIDS.LINE_2,
+      templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
+      name: 'Loyer',
+      amount: 1800,
+      kind: 'expense',
+      recurrence: 'fixed',
+      description: '',
+      createdAt: TEST_CONFIG.TEMPLATES.DEFAULT.createdAt,
+      updatedAt: TEST_CONFIG.TEMPLATES.DEFAULT.updatedAt,
+    },
+    {
+      id: TEST_UUIDS.LINE_3,
+      templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
+      name: 'Courses',
+      amount: 600,
+      kind: 'expense',
+      recurrence: 'fixed',
+      description: '',
+      createdAt: TEST_CONFIG.TEMPLATES.DEFAULT.createdAt,
+      updatedAt: TEST_CONFIG.TEMPLATES.DEFAULT.updatedAt,
+    },
+    {
+      id: TEST_UUIDS.LINE_4,
+      templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
+      name: 'Transport',
+      amount: 200,
+      kind: 'expense',
+      recurrence: 'fixed',
+      description: '',
+      createdAt: TEST_CONFIG.TEMPLATES.DEFAULT.createdAt,
+      updatedAt: TEST_CONFIG.TEMPLATES.DEFAULT.updatedAt,
+    },
+    {
+      id: TEST_UUIDS.LINE_5,
+      templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
+      name: 'Épargne',
+      amount: 500,
+      kind: 'saving',
+      recurrence: 'fixed',
+      description: '',
+      createdAt: TEST_CONFIG.TEMPLATES.DEFAULT.createdAt,
+      updatedAt: TEST_CONFIG.TEMPLATES.DEFAULT.updatedAt,
+    },
   ]
 });
 

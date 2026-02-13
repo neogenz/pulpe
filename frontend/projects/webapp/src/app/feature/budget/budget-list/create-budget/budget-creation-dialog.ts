@@ -29,7 +29,8 @@ import { type TemplateViewModel } from './ui/template-view-model';
 import { TemplateDetailsDialog } from './template-details-dialog';
 import { TemplateStore } from './services/template-store';
 import { TemplateTotalsCalculator } from './services/template-totals-calculator';
-import { BudgetApi, type BudgetApiError } from '@core/budget/budget-api';
+import { BudgetApi } from '@core/budget/budget-api';
+import { isApiError } from '@core/api/api-error';
 
 const BUDGET_CREATION_CONSTANTS = {
   // Form validation constraints
@@ -209,10 +210,10 @@ export class CreateBudgetDialogComponent {
   readonly #snackBar = inject(MatSnackBar);
   readonly #budgetApi = inject(BudgetApi);
   readonly templateStore = inject(TemplateStore);
-  readonly #data = inject<{ month?: number; year?: number } | null>(
-    MAT_DIALOG_DATA,
-    { optional: true },
-  );
+  readonly #data = inject(MAT_DIALOG_DATA, { optional: true }) as {
+    month?: number;
+    year?: number;
+  } | null;
 
   // Expose constants for template usage
   readonly constants = BUDGET_CREATION_CONSTANTS;
@@ -254,15 +255,14 @@ export class CreateBudgetDialogComponent {
   readonly isCreating = signal(false);
 
   readonly #descriptionFormValue = toSignal(
-    this.budgetForm.get('description')!.valueChanges,
+    this.budgetForm.controls.description.valueChanges,
     {
-      initialValue: this.budgetForm.get('description')!.value || '',
+      initialValue: this.budgetForm.controls.description.value ?? '',
     },
   );
-  readonly descriptionLength = computed(() => {
-    const value = this.#descriptionFormValue();
-    return value?.length || 0;
-  });
+  readonly descriptionLength = computed(
+    () => this.#descriptionFormValue()?.length ?? 0,
+  );
 
   #getInitialDate(): Date {
     // Si month et year sont fournis dans data, les utiliser
@@ -377,17 +377,7 @@ export class CreateBudgetDialogComponent {
     } catch (error: unknown) {
       this.isCreating.set(false);
 
-      // Extract message from BudgetApiError (already localized by the service)
-      const isBudgetApiError = (err: unknown): err is BudgetApiError => {
-        return (
-          typeof err === 'object' &&
-          err !== null &&
-          'message' in err &&
-          typeof (err as BudgetApiError).message === 'string'
-        );
-      };
-
-      const errorMessage = isBudgetApiError(error)
+      const errorMessage = isApiError(error)
         ? error.message
         : 'Une erreur est survenue lors de la création du budget. Veuillez réessayer.';
 

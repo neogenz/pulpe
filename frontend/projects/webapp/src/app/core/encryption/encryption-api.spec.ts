@@ -1,184 +1,120 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { provideHttpClient } from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting,
-} from '@angular/common/http/testing';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, of } from 'rxjs';
 import { EncryptionApi } from './encryption-api';
-import { ApplicationConfiguration } from '@core/config/application-configuration';
+import { ApiClient } from '@core/api/api-client';
+import {
+  encryptionSaltResponseSchema,
+  encryptionRekeyResponseSchema,
+  encryptionSetupRecoveryResponseSchema,
+  encryptionRecoverResponseSchema,
+} from 'pulpe-shared';
 
 describe('EncryptionApi', () => {
   let service: EncryptionApi;
-  let httpTesting: HttpTestingController;
 
-  const mockApplicationConfig = {
-    backendApiUrl: () => 'http://localhost:3000/api/v1',
+  const mockApi = {
+    get$: vi.fn(),
+    post$: vi.fn(),
+    postVoid$: vi.fn(),
   };
 
   beforeEach(() => {
+    vi.clearAllMocks();
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
-        provideHttpClient(),
-        provideHttpClientTesting(),
         EncryptionApi,
-        {
-          provide: ApplicationConfiguration,
-          useValue: mockApplicationConfig,
-        },
+        { provide: ApiClient, useValue: mockApi },
       ],
     });
 
-    httpTesting = TestBed.inject(HttpTestingController);
     service = TestBed.inject(EncryptionApi);
   });
 
-  afterEach(() => {
-    httpTesting.verify();
-  });
-
   describe('getSalt$()', () => {
-    it('should call GET /v1/encryption/salt', () => {
-      service.getSalt$().subscribe();
-
-      const req = httpTesting.expectOne(
-        'http://localhost:3000/api/v1/encryption/salt',
-      );
-      expect(req.request.method).toBe('GET');
-    });
-
-    it('should return salt and kdfIterations', async () => {
-      const expectedResponse = {
-        salt: 'base64-encoded-salt',
-        kdfIterations: 100000,
+    it('should call api.get$ with correct path and schema', async () => {
+      const response = {
+        salt: 'hex-encoded-salt',
+        kdfIterations: 600000,
+        hasRecoveryKey: false,
       };
+      mockApi.get$.mockReturnValue(of(response));
 
-      const promise = firstValueFrom(service.getSalt$());
+      const result = await firstValueFrom(service.getSalt$());
 
-      const req = httpTesting.expectOne(
-        'http://localhost:3000/api/v1/encryption/salt',
+      expect(mockApi.get$).toHaveBeenCalledWith(
+        '/encryption/salt',
+        encryptionSaltResponseSchema,
       );
-      req.flush(expectedResponse);
-
-      const response = await promise;
-      expect(response.salt).toBe('base64-encoded-salt');
-      expect(response.kdfIterations).toBe(100000);
-    });
-  });
-
-  describe('rekeyEncryption$()', () => {
-    it('should call POST /v1/encryption/rekey with newClientKey body', () => {
-      const newClientKeyHex = 'new-client-key-hex';
-
-      service.rekeyEncryption$(newClientKeyHex).subscribe();
-
-      const req = httpTesting.expectOne(
-        'http://localhost:3000/api/v1/encryption/rekey',
-      );
-      expect(req.request.method).toBe('POST');
-      expect(req.request.body).toEqual({ newClientKey: newClientKeyHex });
-    });
-
-    it('should return success response', async () => {
-      const newClientKeyHex = 'new-client-key-hex';
-      const expectedResponse = { success: true };
-
-      const promise = firstValueFrom(service.rekeyEncryption$(newClientKeyHex));
-
-      const req = httpTesting.expectOne(
-        'http://localhost:3000/api/v1/encryption/rekey',
-      );
-      req.flush(expectedResponse);
-
-      const response = await promise;
-      expect(response.success).toBe(true);
-    });
-  });
-
-  describe('setupRecoveryKey$()', () => {
-    it('should POST to /encryption/setup-recovery with empty body', () => {
-      service.setupRecoveryKey$().subscribe();
-
-      const req = httpTesting.expectOne(
-        'http://localhost:3000/api/v1/encryption/setup-recovery',
-      );
-      expect(req.request.method).toBe('POST');
-      expect(req.request.body).toEqual({});
-    });
-
-    it('should return recoveryKey on success', async () => {
-      const expectedResponse = { recoveryKey: 'ABCD-EFGH-IJKL-MNOP' };
-
-      const promise = firstValueFrom(service.setupRecoveryKey$());
-
-      const req = httpTesting.expectOne(
-        'http://localhost:3000/api/v1/encryption/setup-recovery',
-      );
-      req.flush(expectedResponse);
-
-      const response = await promise;
-      expect(response.recoveryKey).toBe('ABCD-EFGH-IJKL-MNOP');
+      expect(result).toEqual(response);
     });
   });
 
   describe('validateKey$()', () => {
-    it('should POST to /encryption/validate-key with clientKey body', () => {
-      service.validateKey$('client-key-hex').subscribe();
+    it('should call api.postVoid$ with correct path and body', async () => {
+      mockApi.postVoid$.mockReturnValue(of(undefined));
 
-      const req = httpTesting.expectOne(
-        'http://localhost:3000/api/v1/encryption/validate-key',
+      await firstValueFrom(service.validateKey$('client-key-hex'));
+
+      expect(mockApi.postVoid$).toHaveBeenCalledWith(
+        '/encryption/validate-key',
+        { clientKey: 'client-key-hex' },
       );
-      expect(req.request.method).toBe('POST');
-      expect(req.request.body).toEqual({ clientKey: 'client-key-hex' });
     });
+  });
 
-    it('should complete without error on 204', () => {
-      let completed = false;
+  describe('rekeyEncryption$()', () => {
+    it('should call api.post$ with correct path, body and schema', async () => {
+      const response = { success: true as const };
+      mockApi.post$.mockReturnValue(of(response));
 
-      service.validateKey$('client-key-hex').subscribe({
-        complete: () => (completed = true),
-      });
-
-      const req = httpTesting.expectOne(
-        'http://localhost:3000/api/v1/encryption/validate-key',
+      const result = await firstValueFrom(
+        service.rekeyEncryption$('new-key-hex'),
       );
-      req.flush(null, { status: 204, statusText: 'No Content' });
 
-      expect(completed).toBe(true);
+      expect(mockApi.post$).toHaveBeenCalledWith(
+        '/encryption/rekey',
+        { newClientKey: 'new-key-hex' },
+        encryptionRekeyResponseSchema,
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('setupRecoveryKey$()', () => {
+    it('should call api.post$ with correct path and schema', async () => {
+      const response = { recoveryKey: 'ABCD-EFGH-IJKL-MNOP' };
+      mockApi.post$.mockReturnValue(of(response));
+
+      const result = await firstValueFrom(service.setupRecoveryKey$());
+
+      expect(mockApi.post$).toHaveBeenCalledWith(
+        '/encryption/setup-recovery',
+        {},
+        encryptionSetupRecoveryResponseSchema,
+      );
+      expect(result.recoveryKey).toBe('ABCD-EFGH-IJKL-MNOP');
     });
   });
 
   describe('recover$()', () => {
-    it('should POST to /encryption/recover with recoveryKey and newClientKey', () => {
-      service.recover$('ABCD-EFGH-IJKL-MNOP', 'new-key-hex').subscribe();
+    it('should call api.post$ with correct path, body and schema', async () => {
+      const response = { success: true as const };
+      mockApi.post$.mockReturnValue(of(response));
 
-      const req = httpTesting.expectOne(
-        'http://localhost:3000/api/v1/encryption/recover',
-      );
-      expect(req.request.method).toBe('POST');
-      expect(req.request.body).toEqual({
-        recoveryKey: 'ABCD-EFGH-IJKL-MNOP',
-        newClientKey: 'new-key-hex',
-      });
-    });
-
-    it('should return success response', async () => {
-      const expectedResponse = { success: true };
-
-      const promise = firstValueFrom(
+      const result = await firstValueFrom(
         service.recover$('ABCD-EFGH-IJKL-MNOP', 'new-key-hex'),
       );
 
-      const req = httpTesting.expectOne(
-        'http://localhost:3000/api/v1/encryption/recover',
+      expect(mockApi.post$).toHaveBeenCalledWith(
+        '/encryption/recover',
+        { recoveryKey: 'ABCD-EFGH-IJKL-MNOP', newClientKey: 'new-key-hex' },
+        encryptionRecoverResponseSchema,
       );
-      req.flush(expectedResponse);
-
-      const response = await promise;
-      expect(response.success).toBe(true);
+      expect(result.success).toBe(true);
     });
   });
 });

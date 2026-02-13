@@ -26,8 +26,130 @@
 | DR-004 | Typed & Versioned Storage Service | 2024-11-10 | Pending |
 | DR-005 | Temp ID Replacement Before Toggle Cascade | 2026-01-30 | Accepted |
 | DR-006 | Split-Key Encryption for Financial Amounts | 2026-01-29 | Accepted |
+| DR-007 | Zoneless Testing — Child Input Signal Limitation | 2026-02-13 | Accepted |
+| DR-008 | Centralized ApiClient with Mandatory Zod Validation | 2026-02-13 | Accepted |
+| DR-009 | Signal Store Pattern with SWR | 2026-02-13 | Accepted |
 
 ---
+
+## DR-009: Signal Store Pattern with SWR
+
+**Date**: 2026-02-13
+**Status**: Accepted
+
+### Problem
+
+Les stores utilisaient des `Subject` + `concatMap` RxJS pour les mutations et affichaient un spinner plein écran à chaque refetch, même pour un refresh en arrière-plan.
+
+### Decision Drivers
+
+- Angular 21+ signals-first : RxJS mutation queues ajoutent de la complexité inutile
+- UX : l'utilisateur préfère voir des données stales plutôt qu'un spinner à chaque navigation
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A: RxJS mutation queue + spinner systématique | Conserver `Subject` + `concatMap` + `isLoading` global | Rejected — over-engineered |
+| B: async/await mutations + SWR pattern | Mutations directes, `isInitialLoading` pour spinner initial uniquement | Chosen |
+
+### Decision
+
+Standardiser un store pattern en 6 sections (Dependencies, State, Resource, Selectors, Mutations, Private utils) avec :
+- Mutations en async/await direct (plus de Subject queue)
+- `isInitialLoading = computed(() => resource.status() === 'loading')` pour spinner initial uniquement
+- Données stales visibles pendant le reloading
+
+### Consequences
+
+- **Positive** : Code plus simple, meilleure UX (pas de flash spinner)
+- **Trade-off** : Pas de queueing intégré (pas nécessaire au volume actuel)
+- **Impact** : `BudgetDetailsStore`, `CurrentMonthStore`, `BudgetTemplatesStore` refactorisés
+
+---
+
+## DR-008: Centralized ApiClient with Mandatory Zod Validation
+
+**Date**: 2026-02-13
+**Status**: Accepted
+
+### Problem
+
+Les services API injectaient `HttpClient` directement avec un error handling et une validation incohérents entre les features.
+
+### Decision Drivers
+
+- Pas de validation runtime des réponses API → bugs silencieux si le contrat backend change
+- Error handling dupliqué dans chaque service
+- Pas de normalisation des erreurs (format différent par service)
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A: HttpClient direct | Chaque service gère ses erreurs et parsing | Rejected — incohérent |
+| B: ApiClient centralisé avec Zod | Un service unique avec validation obligatoire | Chosen |
+
+### Decision
+
+Tous les appels HTTP passent par `ApiClient` (`core/api/api-client.ts`) avec un schéma Zod obligatoire. Les feature APIs (`BudgetApi`, `TemplateApi`, etc.) retournent des `Observable<T>` validés.
+
+### Consequences
+
+- **Positive** : Validation runtime, error handling uniforme, meilleur debugging
+- **Trade-off** : Chaque endpoint nécessite un schéma Zod
+- **Impact** : 10+ services migrés (BudgetApi, TransactionApi, TemplateApi, EncryptionApi, UserSettingsApi, BudgetLineApi, BudgetTemplatesApi, ProfileSetupService, DemoInitializerService)
+
+### Notes
+
+- `ApplicationConfiguration` est la seule exception : elle charge `config.json` (asset statique) via `HttpClient` direct car `ApiClient` dépend d'elle pour `backendApiUrl` (dépendance circulaire).
+
+---
+
+## DR-007: Zoneless Testing — Child Input Signal Limitation
+
+**Date**: 2026-02-13
+**Status**: Accepted
+
+### Problem
+
+Lors du durcissement des tests `reset-password.spec.ts` (remplacement des lectures de signaux privés par des assertions DOM), les assertions ciblant des composants enfants (`ErrorAlert`, `LoadingButton`) échouent systématiquement. En mode zoneless (`provideZonelessChangeDetection()`), les `input()` signal des composants enfants ne se mettent pas à jour via `fixture.detectChanges()`, même après plusieurs cycles.
+
+### Decision Drivers
+
+- `ErrorAlert` : `message = input<string | null>(null)` — le `@if (message())` reste faux après `detectChanges()`
+- `LoadingButton` : `disabled = input(false)` — le `<button>` interne garde `disabled` à sa valeur initiale
+- Comportement reproductible à 100% sur Vitest + Angular 21 + `provideZonelessChangeDetection()`
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A: Assertions DOM sur composants enfants | Lire `getErrorAlertText()` / `button.disabled` | Rejected — flake 100% |
+| B: Assertions directes sur signaux parent | Garder `component['errorMessage']()` / `component['canSubmit']()` | Chosen |
+| C: Material Harnesses | Utiliser les harnesses Angular Material | Deferred — overhead disproportionné pour ce lot |
+
+### Decision
+
+Conserver les lectures de signaux privés (`component['...']()`) pour les assertions qui traversent des composants enfants à `input()` signal. Limiter les assertions DOM aux éléments rendus directement dans le template du composant parent (`@if`/`@else` blocks, `data-testid` sur éléments natifs).
+
+### Rationale
+
+- Les assertions DOM parent fonctionnent (`[data-testid="reset-password-form"]`, `mat-spinner` présence/absence) car elles testent la visibilité conditionnelle dans le template parent
+- Les assertions DOM enfant échouent car le binding `[message]="errorMessage()"` vers un `input()` signal enfant n'est pas propagé par `detectChanges()` en mode zoneless
+- Le couplage signal privé est acceptable en test : il ne fuit pas dans le code de production et reste stable tant que l'API interne ne change pas
+
+### Consequences
+
+- **Positive** : Tests stables (57/57, 10/10 runs), pas de flakiness
+- **Trade-off** : ~13 accès `component['...']` restants dans `reset-password.spec.ts` au lieu de ~8
+- **Trade-off** : Dette de test documentée — révisable si Angular corrige le comportement zoneless en test
+
+### Notes
+
+- Limitation confirmée sur : `ErrorAlert` (`ui/error-alert`), `LoadingButton` (`ui/loading-button`)
+- Pattern valide pour assertions DOM parent : `@if`/`@else` conditionals, présence/absence d'éléments natifs
+- Pattern invalide pour assertions DOM enfant : `input()` signal bindings sur composants OnPush
 
 ## DR-005: Temp ID Replacement Before Toggle Cascade
 

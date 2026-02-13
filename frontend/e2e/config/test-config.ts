@@ -59,7 +59,11 @@ export const TEST_CONFIG = {
     DEFAULT: {
       id: TEST_TEMPLATE_ID,
       name: 'E2E Test Template',
+      description: 'Default test template for E2E testing',
+      userId: TEST_USER_ID,
       isDefault: true,
+      createdAt: now,
+      updatedAt: now,
     },
   },
 } as const;

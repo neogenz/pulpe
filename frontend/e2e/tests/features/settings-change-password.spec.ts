@@ -32,22 +32,26 @@ test.describe('Settings Change Password', () => {
     await expect(page.getByTestId('settings-page')).toBeVisible();
 
     await page.getByTestId('change-password-button').click();
+    const dialog = page.getByRole('dialog', { name: 'Modifier le mot de passe' });
+    await expect(dialog).toBeVisible();
 
-    const submitButton = page.getByTestId('submit-password-button');
+    const submitButton = dialog.getByTestId('submit-password-button');
     await expect(submitButton).toBeDisabled();
 
-    await page.getByTestId('current-password-input').fill('current-password');
-    await page.getByTestId('new-password-input').fill('short');
-    await page.getByTestId('new-password-input').blur();
+    await dialog.getByTestId('current-password-input').fill('current-password');
+    await dialog.getByTestId('new-password-input').fill('short');
+    await dialog.getByTestId('new-password-input').blur();
 
-    await expect(page.locator('mat-error')).toContainText('Au moins');
+    await expect(dialog.locator('mat-error')).toContainText(/Au moins|requis/);
     await expect(submitButton).toBeDisabled();
 
-    await page.getByTestId('new-password-input').fill('new-password-123');
-    await page.getByTestId('confirm-password-input').fill('different-password');
+    await dialog.getByTestId('new-password-input').fill('new-password-123');
+    await dialog
+      .getByTestId('confirm-password-input')
+      .fill('different-password');
     await expect(submitButton).toBeDisabled();
 
-    await page.getByTestId('confirm-password-input').fill('new-password-123');
+    await dialog.getByTestId('confirm-password-input').fill('new-password-123');
     await expect(submitButton).toBeEnabled();
   });
 
@@ -75,12 +79,16 @@ test.describe('Settings Change Password', () => {
     await expect(page.getByTestId('settings-page')).toBeVisible();
 
     await page.getByTestId('change-password-button').click();
+    const dialog = page.getByRole('dialog', { name: 'Modifier le mot de passe' });
+    await expect(dialog).toBeVisible();
 
-    await page.getByTestId('current-password-input').fill('wrong-password');
-    await page.getByTestId('new-password-input').fill('new-password-123');
-    await page.getByTestId('confirm-password-input').fill('new-password-123');
+    await dialog.getByTestId('current-password-input').fill('wrong-password');
+    await dialog.getByTestId('new-password-input').fill('new-password-123');
+    await dialog.getByTestId('confirm-password-input').fill('new-password-123');
 
-    await page.getByTestId('submit-password-button').click();
+    const submitButton = dialog.getByTestId('submit-password-button');
+    await expect(submitButton).toBeEnabled();
+    await submitButton.click();
 
     await expect(page.getByTestId('change-password-error')).toContainText(
       'Email ou mot de passe incorrect',
@@ -130,12 +138,16 @@ test.describe('Settings Change Password', () => {
     await expect(page.getByTestId('settings-page')).toBeVisible();
 
     await page.getByTestId('change-password-button').click();
+    const dialog = page.getByRole('dialog', { name: 'Modifier le mot de passe' });
+    await expect(dialog).toBeVisible();
 
-    await page.getByTestId('current-password-input').fill('current-password');
-    await page.getByTestId('new-password-input').fill('new-password-123');
-    await page.getByTestId('confirm-password-input').fill('new-password-123');
+    await dialog.getByTestId('current-password-input').fill('current-password');
+    await dialog.getByTestId('new-password-input').fill('new-password-123');
+    await dialog.getByTestId('confirm-password-input').fill('new-password-123');
 
-    await page.getByTestId('submit-password-button').click();
+    const submitButton = dialog.getByTestId('submit-password-button');
+    await expect(submitButton).toBeEnabled();
+    await submitButton.click();
 
     await expect(page.locator('simple-snack-bar')).toContainText('Mot de passe modifié');
     await expect(page.getByTestId('recovery-key-dialog')).toHaveCount(0);

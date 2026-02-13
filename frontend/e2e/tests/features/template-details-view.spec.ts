@@ -1,6 +1,7 @@
 import { test, test as base, expect } from '../../fixtures/test-fixtures';
 import { setupAuthBypass } from '../../utils/auth-bypass';
 import { MOCK_API_RESPONSES } from '../../mocks/api-responses';
+import { TEST_CONFIG } from '../../config/test-config';
 
 test.describe.configure({ mode: 'parallel' });
 
@@ -14,7 +15,7 @@ test.describe('Template Details View', () => {
     // Act - Navigate directly to template details page
     // Using the default template ID from global mocks
     await authenticatedPage.goto(
-      '/budget-templates/details/e2e-template-default',
+      `/budget-templates/details/${TEST_CONFIG.TEMPLATES.DEFAULT.id}`,
     );
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
@@ -69,7 +70,56 @@ test.describe('Template Details View', () => {
 
   // Use base test without global mocks for error handling
   base('should handle template loading errors gracefully', async ({ page }) => {
-    // Set up error routes FIRST
+    // Setup auth bypass FIRST to inject auth state
+    await setupAuthBypass(page, {
+      includeApiMocks: false,
+      setLocalStorage: true,
+      vaultCodeConfigured: true,
+    });
+
+    // Set up all API routes AFTER auth bypass
+    // Mock maintenance status endpoint (required for all navigation)
+    await page.route('**/maintenance/status', (route) => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ maintenanceMode: false, message: null }),
+      });
+    });
+
+    // Mock encryption/validate-key (required for vault code validation)
+    await page.route('**/api/v1/encryption/validate-key', (route) => {
+      return route.fulfill({ status: 204, body: '' });
+    });
+
+    // Mock budgets/exists endpoint (required for hasBudgetGuard)
+    await page.route('**/api/v1/budgets/exists', (route) => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ hasBudget: true }),
+      });
+    });
+
+    // Mock budgets endpoint to pass hasBudgetGuard (required for protected routes)
+    await page.route('**/api/v1/budgets', (route) => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(MOCK_API_RESPONSES.budgets),
+      });
+    });
+
+    // Mock users/settings endpoint (required to prevent 401 → login redirect)
+    await page.route('**/api/v1/users/settings', (route) => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { payDayOfMonth: null } }),
+      });
+    });
+
+    // Mock error template endpoints
     await page.route('**/api/v1/budget-templates/error-template', (route) => {
       return route.fulfill({
         status: 500,
@@ -97,79 +147,22 @@ test.describe('Template Details View', () => {
       },
     );
 
-    await page.route('**/api/v1/encryption/validate-key', (route) => {
-      return route.fulfill({ status: 204, body: '' });
-    });
-
-    // Mock maintenance status endpoint (required for all navigation)
-    await page.route('**/maintenance/status', (route) => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ maintenanceMode: false, message: null }),
-      });
-    });
-
-    // Mock budgets/exists endpoint (required for hasBudgetGuard)
-    await page.route('**/api/v1/budgets/exists', (route) => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ hasBudget: true }),
-      });
-    });
-
-    // Mock budgets endpoint to pass hasBudgetGuard (required for protected routes)
-    await page.route('**/api/v1/budgets', (route) => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(MOCK_API_RESPONSES.budgets),
-      });
-    });
-
-    // Setup auth bypass AFTER routes (with no API mocks to avoid conflicts)
-    await setupAuthBypass(page, {
-      includeApiMocks: false,
-      setLocalStorage: true,
-      vaultCodeConfigured: true,
-    });
-
     await page.addInitScript(() => {
       const entry = { version: 1, data: 'aa'.repeat(32), updatedAt: new Date().toISOString() };
       sessionStorage.setItem('pulpe-vault-client-key-session', JSON.stringify(entry));
     });
 
-    // Navigate and wait for the error response using Promise-based approach
-    const responsePromise = page.waitForResponse(
-      (r) =>
-        r.url().includes('/api/v1/budget-templates/error-template') &&
-        r.status() === 500,
-    );
-
+    // Navigate to the error template and wait for error state
     await page.goto(
       'http://localhost:4200/budget-templates/details/error-template',
     );
-    await responsePromise;
 
+    // Wait for error alert to appear (max 5s)
     const errorContainer = page.getByRole('alert').first();
-    const loadingIndicator = page.getByTestId('template-details-loading');
-
-    // Prefer the error UI, but accept persistent loading due to Angular resource limitation
-    const errorAppeared = await errorContainer
-      .waitFor({ state: 'visible', timeout: 5000 })
-      .then(() => true)
-      .catch(() => false);
-
-    if (!errorAppeared) {
-      // Fallback: ensure the app did not crash and shows a stable loading state
-      await expect(page.getByTestId('template-detail-page')).toBeVisible();
-      await expect(loadingIndicator).toBeVisible();
-      return;
-    }
-
-    // Error UI assertions
+    await expect(errorContainer).toBeVisible({ timeout: 5000 });
     await expect(errorContainer).toContainText('Une erreur est survenue');
+
+    // Verify retry button is present and clickable
     const retryButton = page.getByRole('button', {
       name: 'Réessayer le chargement',
     });
@@ -182,7 +175,7 @@ test.describe('Template Details View', () => {
   }) => {
     // Navigate directly to template details page using default template
     await authenticatedPage.goto(
-      '/budget-templates/details/e2e-template-default',
+      `/budget-templates/details/${TEST_CONFIG.TEMPLATES.DEFAULT.id}`,
     );
     await authenticatedPage.waitForLoadState('domcontentloaded');
     await expect(

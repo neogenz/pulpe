@@ -10,6 +10,35 @@ import type {
  * Focus sur la logique métier pure sans dépendances Angular
  */
 describe('BudgetDetailsStore - Logique Métier', () => {
+  describe('isInitialLoading', () => {
+    it('should return true only for loading status', () => {
+      const isInitialLoading = (status: string) => status === 'loading';
+
+      expect(isInitialLoading('idle')).toBe(false);
+      expect(isInitialLoading('loading')).toBe(true);
+      expect(isInitialLoading('reloading')).toBe(false);
+      expect(isInitialLoading('resolved')).toBe(false);
+      expect(isInitialLoading('error')).toBe(false);
+      expect(isInitialLoading('local')).toBe(false);
+    });
+
+    it('should return false after data loads (resolved status)', () => {
+      const isInitialLoading = (status: string) => status === 'loading';
+
+      // Simulates: budgetId is null → idle
+      expect(isInitialLoading('idle')).toBe(false);
+
+      // Simulates: budgetId set, first fetch → loading
+      expect(isInitialLoading('loading')).toBe(true);
+
+      // Simulates: data received → resolved
+      expect(isInitialLoading('resolved')).toBe(false);
+
+      // Simulates: reload triggered → reloading (not initial)
+      expect(isInitialLoading('reloading')).toBe(false);
+    });
+  });
+
   describe('Validation des prévisions', () => {
     it('should validate that budget line amounts must be positive', () => {
       // Arrange

@@ -314,6 +314,9 @@ export class AuthSessionService {
       const { error } = await this.getClient().auth.signOut();
       if (error) {
         this.#logger.error('Erreur lors de la déconnexion:', error);
+        // Global signOut failed (e.g. 403 with stale session) — force local cleanup
+        // to clear Supabase localStorage and break the redirect loop.
+        await this.getClient().auth.signOut({ scope: 'local' });
       }
     } catch (error) {
       this.#logger.error('Erreur inattendue lors de la déconnexion:', {
@@ -322,6 +325,12 @@ export class AuthSessionService {
           error instanceof Error ? error.constructor.name : typeof error,
         message: error instanceof Error ? error.message : String(error),
       });
+      // Ensure Supabase localStorage is cleared even on unexpected errors.
+      try {
+        await this.getClient().auth.signOut({ scope: 'local' });
+      } catch {
+        // Last resort — nothing more we can do.
+      }
     } finally {
       this.#updateAuthState(null);
       this.#cleanup.performCleanup();

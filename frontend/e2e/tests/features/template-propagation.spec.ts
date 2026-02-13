@@ -1,8 +1,10 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../../fixtures/test-fixtures';
+import { TEST_CONFIG } from '../../config/test-config';
+import { TEST_UUIDS } from '../../helpers/api-mocks';
 
 test.describe('Template propagation choices', () => {
-  const templateDetailUrl = '/budget-templates/details/e2e-template-default';
+  const templateDetailUrl = `/budget-templates/details/${TEST_CONFIG.TEMPLATES.DEFAULT.id}`;
   const bulkOperationsEndpoint =
     '**/api/v1/budget-templates/*/lines/bulk-operations';
 
@@ -46,13 +48,13 @@ test.describe('Template propagation choices', () => {
             created: [],
             updated: [
               {
-                id: '1',
-                templateId: 'e2e-template-default',
+                id: TEST_UUIDS.LINE_1,
+                templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
                 name: 'Salaire',
                 amount: 5100,
                 kind: 'income',
                 recurrence: 'fixed',
-                description: null,
+                description: '',
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
               },
@@ -113,13 +115,13 @@ test.describe('Template propagation choices', () => {
             created: [],
             updated: [
               {
-                id: '1',
-                templateId: 'e2e-template-default',
+                id: TEST_UUIDS.LINE_1,
+                templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
                 name: 'Salaire',
                 amount: 5200,
                 kind: 'income',
                 recurrence: 'fixed',
-                description: null,
+                description: '',
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
               },
@@ -127,7 +129,7 @@ test.describe('Template propagation choices', () => {
             deleted: [],
             propagation: {
               mode: 'propagate',
-              affectedBudgetIds: ['future-budget-1'],
+              affectedBudgetIds: [TEST_UUIDS.BUDGET_2],
               affectedBudgetsCount: 1,
             },
           },

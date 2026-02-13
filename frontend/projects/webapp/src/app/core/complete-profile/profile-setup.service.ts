@@ -1,12 +1,11 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import {
   type BudgetCreate,
   type BudgetTemplateCreateFromOnboarding,
-  type BudgetTemplateCreateResponse,
+  budgetTemplateCreateResponseSchema,
 } from 'pulpe-shared';
-import { ApplicationConfiguration } from '@core/config/application-configuration';
+import { ApiClient } from '@core/api/api-client';
 import { BudgetApi } from '@core/budget';
 import { PostHogService } from '@core/analytics/posthog';
 import { Logger } from '@core/logging/logger';
@@ -19,8 +18,7 @@ import {
   providedIn: 'root',
 })
 export class ProfileSetupService {
-  readonly #http = inject(HttpClient);
-  readonly #applicationConfig = inject(ApplicationConfiguration);
+  readonly #api = inject(ApiClient);
   readonly #budgetApi = inject(BudgetApi);
   readonly #postHogService = inject(PostHogService);
   readonly #logger = inject(Logger);
@@ -107,9 +105,10 @@ export class ProfileSetupService {
   #createTemplateFromOnboarding$(
     onboardingData: BudgetTemplateCreateFromOnboarding,
   ) {
-    return this.#http.post<BudgetTemplateCreateResponse>(
-      `${this.#applicationConfig.backendApiUrl()}/budget-templates/from-onboarding`,
+    return this.#api.post$(
+      '/budget-templates/from-onboarding',
       onboardingData,
+      budgetTemplateCreateResponseSchema,
     );
   }
 

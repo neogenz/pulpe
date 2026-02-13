@@ -3,9 +3,9 @@ import {
   Component,
   computed,
   inject,
+  resource,
   signal,
 } from '@angular/core';
-import { rxResource } from '@angular/core/rxjs-interop';
 import { CurrencyPipe } from '@angular/common';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -16,7 +16,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { debounce, Field, form } from '@angular/forms/signals';
-import { map, of, tap } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import type { TransactionSearchResult } from 'pulpe-shared';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { BudgetApi } from '@core/budget/budget-api';
@@ -88,7 +88,7 @@ import { Logger } from '@core/logging/logger';
             multiple
             data-testid="year-filter"
           >
-            @for (year of availableYearsResource.value(); track year) {
+            @for (year of availableYears(); track year) {
               <mat-option [value]="year">{{ year }}</mat-option>
             }
           </mat-select>
@@ -223,17 +223,17 @@ export default class SearchTransactionsDialogComponent {
     debounce(path.query, 300);
   });
 
-  protected readonly availableYearsResource = rxResource({
-    stream: () =>
-      this.#budgetApi.getAllBudgets$().pipe(
-        map((budgets) => {
-          const years = [...new Set(budgets.map((b) => b.year))];
-          return years.sort((a, b) => b - a);
-        }),
-        tap({
-          error: (err) => this.#logger.error('Failed to load years', err),
-        }),
-      ),
+  protected readonly availableYearsResource = resource({
+    loader: async () => {
+      try {
+        const budgets = await firstValueFrom(this.#budgetApi.getAllBudgets$());
+        const years = [...new Set(budgets.map((b) => b.year))];
+        return [...years].sort((a, b) => b - a);
+      } catch (err) {
+        this.#logger.error('Failed to load years', err);
+        throw err;
+      }
+    },
   });
 
   readonly #validQuery = computed(() => {
@@ -245,21 +245,34 @@ export default class SearchTransactionsDialogComponent {
     this.filterForm.years().value(),
   );
 
-  protected readonly searchResource = rxResource({
+  protected readonly searchResource = resource({
     params: () => ({ query: this.#validQuery(), years: this.selectedYears() }),
-    stream: ({ params }) => {
+    loader: async ({ params }) => {
       if (!params.query) {
-        return of({ success: true as const, data: [] });
+        return { success: true as const, data: [] };
       }
       const years = params.years.length > 0 ? params.years : undefined;
-      return this.#transactionApi
-        .search$(params.query, years)
-        .pipe(tap({ error: (err) => this.#logger.error('Search error', err) }));
+      try {
+        return await firstValueFrom(
+          this.#transactionApi.search$(params.query, years),
+        );
+      } catch (err) {
+        this.#logger.error('Search error', err);
+        throw err;
+      }
     },
   });
 
-  protected readonly searchResults = computed(
-    () => this.searchResource.value()?.data ?? [],
+  protected readonly availableYears = computed(() =>
+    this.availableYearsResource.error()
+      ? []
+      : (this.availableYearsResource.value() ?? []),
+  );
+
+  protected readonly searchResults = computed(() =>
+    this.searchResource.error()
+      ? []
+      : (this.searchResource.value()?.data ?? []),
   );
   protected readonly hasSearched = computed(() => this.#validQuery() !== null);
 

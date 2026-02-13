@@ -21,7 +21,6 @@ export {
   transactionCreateSchema,
   transactionUpdateSchema,
   transactionSearchResultSchema,
-  transactionSearchResultListSchema,
   transactionSearchResponseSchema,
 
   // Budget template schemas
@@ -43,6 +42,7 @@ export {
   deleteResponseSchema,
   budgetResponseSchema,
   budgetListResponseSchema,
+  budgetExistsResponseSchema,
   budgetDeleteResponseSchema,
   budgetSummarySchema,
   budgetDetailsResponseSchema,
@@ -111,7 +111,19 @@ export {
   demoSessionCreateSchema,
   demoSessionResponseSchema,
   demoCleanupResponseSchema,
+
+  // Encryption schemas
+  encryptionSaltResponseSchema,
+  encryptionRekeyResponseSchema,
+  encryptionSetupRecoveryResponseSchema,
+  encryptionRecoverResponseSchema,
 } from './schemas.js';
+
+// Export response schema factories
+export {
+  createSuccessResponse,
+  createListResponse,
+} from './src/api-response.js';
 
 // Export calculators
 export { BudgetFormulas } from './src/calculators/index.js';
@@ -147,7 +159,6 @@ export type {
   TransactionUpdate,
   SearchItemType,
   TransactionSearchResult,
-  TransactionSearchResultList,
   TransactionSearchResponse,
 
   // Budget template types
@@ -237,4 +248,10 @@ export type {
   // Demo mode types
   DemoSessionCreate,
   DemoSessionResponse,
+
+  // Encryption types
+  EncryptionSaltResponse,
+  EncryptionRekeyResponse,
+  EncryptionSetupRecoveryResponse,
+  EncryptionRecoverResponse,
 } from './schemas.js';

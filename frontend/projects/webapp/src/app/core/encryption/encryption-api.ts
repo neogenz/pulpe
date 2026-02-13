@@ -1,73 +1,59 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { type Observable } from 'rxjs';
-
-import { ApplicationConfiguration } from '@core/config/application-configuration';
-
-interface SaltResponse {
-  salt: string;
-  kdfIterations: number;
-  hasRecoveryKey: boolean;
-}
-
-interface RekeyResponse {
-  success: boolean;
-}
-
-interface SetupRecoveryResponse {
-  recoveryKey: string;
-}
-
-interface RecoverResponse {
-  success: boolean;
-}
+import {
+  type EncryptionSaltResponse,
+  type EncryptionRekeyResponse,
+  type EncryptionSetupRecoveryResponse,
+  type EncryptionRecoverResponse,
+  encryptionSaltResponseSchema,
+  encryptionRekeyResponseSchema,
+  encryptionSetupRecoveryResponseSchema,
+  encryptionRecoverResponseSchema,
+} from 'pulpe-shared';
+import { ApiClient } from '@core/api/api-client';
 
 @Injectable({
   providedIn: 'root',
 })
 export class EncryptionApi {
-  readonly #http = inject(HttpClient);
-  readonly #config = inject(ApplicationConfiguration);
+  readonly #api = inject(ApiClient);
 
-  get #baseUrl(): string {
-    return `${this.#config.backendApiUrl()}/encryption`;
-  }
-
-  getSalt$(): Observable<SaltResponse> {
-    return this.#http.get<SaltResponse>(`${this.#baseUrl}/salt`);
+  getSalt$(): Observable<EncryptionSaltResponse> {
+    return this.#api.get$('/encryption/salt', encryptionSaltResponseSchema);
   }
 
   validateKey$(clientKeyHex: string): Observable<void> {
-    return this.#http.post<void>(`${this.#baseUrl}/validate-key`, {
+    return this.#api.postVoid$('/encryption/validate-key', {
       clientKey: clientKeyHex,
     });
   }
 
-  /**
-   * Re-encrypt all user data with a new client key.
-   * Used during migration when existing users set up vault code for the first time.
-   * NOT used for password changes (password and vault code are independent).
-   */
-  rekeyEncryption$(newClientKeyHex: string): Observable<RekeyResponse> {
-    return this.#http.post<RekeyResponse>(`${this.#baseUrl}/rekey`, {
-      newClientKey: newClientKeyHex,
-    });
+  rekeyEncryption$(
+    newClientKeyHex: string,
+  ): Observable<EncryptionRekeyResponse> {
+    return this.#api.post$(
+      '/encryption/rekey',
+      { newClientKey: newClientKeyHex },
+      encryptionRekeyResponseSchema,
+    );
   }
 
-  setupRecoveryKey$(): Observable<SetupRecoveryResponse> {
-    return this.#http.post<SetupRecoveryResponse>(
-      `${this.#baseUrl}/setup-recovery`,
+  setupRecoveryKey$(): Observable<EncryptionSetupRecoveryResponse> {
+    return this.#api.post$(
+      '/encryption/setup-recovery',
       {},
+      encryptionSetupRecoveryResponseSchema,
     );
   }
 
   recover$(
     recoveryKey: string,
     newClientKeyHex: string,
-  ): Observable<RecoverResponse> {
-    return this.#http.post<RecoverResponse>(`${this.#baseUrl}/recover`, {
-      recoveryKey,
-      newClientKey: newClientKeyHex,
-    });
+  ): Observable<EncryptionRecoverResponse> {
+    return this.#api.post$(
+      '/encryption/recover',
+      { recoveryKey, newClientKey: newClientKeyHex },
+      encryptionRecoverResponseSchema,
+    );
   }
 }

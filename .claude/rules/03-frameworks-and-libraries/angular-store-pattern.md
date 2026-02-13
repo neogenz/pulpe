@@ -1,222 +1,292 @@
 ---
 description: "Angular signal-based store patterns for state management"
 paths:
-  - "frontend/**/*.store.ts"
-  - "frontend/**/*.service.ts"
+  - "frontend/**/*-store.ts"
+  - "frontend/**/*-api.ts"
   - "frontend/**/*state*.ts"
 ---
 
-# Store Pattern with Angular Signals
+# Store & API Pattern
 
-> **Signal API Reference**: See @.claude/rules/03-frameworks-and-libraries/angular-signals.md for `signal()`, `computed()`, `linkedSignal()`, `resource()` API details.
+> **Signal API Reference**: See `angular-signals.md` for `signal()`, `computed()`, `resource()` details.
 
-## Store Structure
+## Architecture: 3 Layers
+
+```
+Component → Store → Feature API → ApiClient
+             ↑           ↑            ↑
+         signals    Observables   Zod + HTTP
+```
+
+| Layer | Responsibility | Returns |
+|-------|---------------|---------|
+| `ApiClient` (core) | HTTP + Zod parse + error normalization | `Observable<T>` |
+| Feature API | Domain endpoints, cache sync | `Observable<T>` |
+| Store | State, resource, selectors, mutations | Signals |
+| Component | Read signals, call mutations | — |
+
+## ApiClient Usage
+
+All HTTP calls go through `ApiClient`. Never inject `HttpClient` directly.
 
 ```typescript
-interface State {
-  data: T[];
-  selectedId: string | null;
-  isLoading: boolean;
-  error: Error | null;
-}
+@Injectable({ providedIn: 'root' })
+export class FeatureApi {
+  readonly #api = inject(ApiClient);
 
-@Injectable()
-export class Store {
-  readonly #state = signal<State>(initialState);
+  getItems$(): Observable<ItemListResponse> {
+    return this.#api.get$('/items', itemListResponseSchema);
+  }
 
-  readonly data = computed(() => this.#state().data);
-  readonly isLoading = computed(() => this.#state().isLoading);
+  createItem$(data: ItemCreate): Observable<ItemResponse> {
+    return this.#api.post$('/items', data, itemResponseSchema);
+  }
 
-  readonly selected = computed(() =>
-    this.#state().data.find((item) => item.id === this.#state().selectedId)
-  );
-
-  updateData(data: T[]) {
-    this.#state.update((state) => ({ ...state, data }));
+  deleteItem$(id: string): Observable<void> {
+    return this.#api.deleteVoid$(`/items/${id}`);
   }
 }
 ```
 
-## Core Rules
+Zod validation is enforced by design — no schema, no call.
 
-### Immutable State
+## Store Anatomy (6 sections)
 
 ```typescript
-// Good - New reference
-this.#state.update((state) => ({
-  ...state,
-  items: [...state.items, newItem],
-}));
+@Injectable()
+export class FeatureStore {
+  // ── 1. Dependencies ──
+  readonly #api = inject(FeatureApi);
+  readonly #logger = inject(Logger);
 
-// Bad - Mutation
-this.#state.update((state) => {
-  state.items.push(newItem); // Mutation!
-  return state;
+  // ── 2. State ──
+  readonly #budgetId = signal<string | null>(null);
+  readonly #errorMessage = signal<string | null>(null);
+
+  // ── 3. Resource (data loading) ──
+  readonly #resource = resource({
+    params: () => this.#budgetId(),
+    loader: async ({ params }) => {
+      if (!params) throw new Error('ID required');
+      return firstValueFrom(this.#api.getById$(params));
+    },
+  });
+
+  // ── 4. Selectors (computed) ──
+  readonly data = computed(() => this.#resource.value() ?? null);
+  readonly isLoading = computed(() => this.#resource.isLoading());
+  readonly error = computed(() => this.#resource.error() || this.#errorMessage());
+
+  // ── 5. Mutations (public methods) ──
+  async createItem(data: ItemCreate): Promise<void> { /* ... */ }
+  async deleteItem(id: string): Promise<void> { /* ... */ }
+
+  // ── 6. Private utils ──
+  #setError(msg: string): void { this.#errorMessage.set(msg); }
+  #clearError(): void { this.#errorMessage.set(null); }
+}
+```
+
+## Store Variants
+
+### Variant A: Signals-Only Store
+For local UI state or synchronized state without async data loading.
+
+| Element | Usage |
+|---------|-------|
+| `signal()` | Writable state |
+| `computed()` | Derived selectors |
+| Methods | Synchronous set/update |
+
+Example: `CompleteProfileStore` — manages form steps and validation state.
+
+### Variant B: Resource-Backed Store
+For data fetched from API with async loading, mutations, and cache management.
+
+| Element | Usage |
+|---------|-------|
+| `resource()` / `rxResource()` | Async data loading |
+| `signal()` | Internal state (filters, IDs) |
+| `computed()` | Derived selectors, loading states |
+| `async` methods | Mutations with optimistic updates |
+
+Example: `BudgetDetailsStore` — loads budget details, manages optimistic CRUD.
+
+## Data Loading
+
+Use `resource()` for fetch-on-signal-change, `rxResource()` when Observable chains are needed.
+
+```typescript
+// resource() — simple async loader
+readonly #detailsResource = resource({
+  params: () => this.#itemId(),
+  loader: async ({ params }) =>
+    firstValueFrom(this.#api.getDetails$(params)),
+});
+
+// rxResource() — Observable streams, auto-cancellation
+readonly #dashboardResource = rxResource({
+  params: () => ({
+    month: this.period().month,
+    version: this.#invalidation.version(), // cache bust
+  }),
+  stream: ({ params }) => this.#loadDashboard$(params),
 });
 ```
 
-### Async Actions
+## Mutations: async/await
 
 ```typescript
-async loadData() {
-  this.#state.update(s => ({ ...s, isLoading: true, error: null }));
+async createItem(data: ItemCreate): Promise<void> {
+  const tempId = `temp-${uuidv4()}`;
+
+  // 1. Optimistic update
+  this.#resource.update((current) => {
+    if (!current) return current;
+    return { ...current, items: [...current.items, { ...data, id: tempId }] };
+  });
 
   try {
-    const data = await this.#api.getData();
-    this.#state.update(s => ({ ...s, data, isLoading: false }));
-  } catch (error) {
-    this.#state.update(s => ({ ...s, error, isLoading: false }));
-  }
-}
-```
+    // 2. Persist
+    const response = await firstValueFrom(this.#api.create$(data));
 
-## Store Patterns
-
-### Effects for Side-Effects
-
-```typescript
-@Injectable()
-export class CartStore {
-  readonly #state = signal<CartState>(initialState);
-  readonly #analytics = inject(AnalyticsService);
-
-  readonly #persistEffect = effect(() => {
-    const state = this.#state();
-    localStorage.setItem("cart", JSON.stringify(state));
-  });
-
-  readonly #analyticsEffect = effect(() => {
-    const items = this.#state().items;
-    untracked(() => {
-      if (items.length > 0) {
-        this.#analytics.trackCart(items);
-      }
-    });
-  });
-}
-```
-
-### Store Composition
-
-```typescript
-@Injectable()
-export class OrderStore {
-  readonly #cart = inject(CartStore);
-  readonly #user = inject(UserStore);
-
-  readonly canCheckout = computed(() =>
-    this.#cart.items().length > 0 && this.#user.isAuthenticated()
-  );
-
-  readonly orderSummary = computed(() => ({
-    items: this.#cart.items(),
-    user: this.#user.current(),
-    total: this.#cart.total(),
-  }));
-}
-```
-
-### Optimized Selection (O(1) Lookup)
-
-```typescript
-export class ProductStore {
-  readonly #state = signal<State>(initialState);
-
-  readonly #productById = computed(() => {
-    const map = new Map<string, Product>();
-    this.#state().products.forEach((p) => map.set(p.id, p));
-    return map;
-  });
-
-  getProduct(id: string) {
-    return computed(() => this.#productById().get(id));
-  }
-}
-```
-
-### Generic Entity Store
-
-```typescript
-export class EntityStore<T extends { id: string }> {
-  protected readonly state = signal<EntityState<T>>({
-    entities: new Map(),
-    ids: [],
-    selectedId: null,
-  });
-
-  readonly entities = computed(() =>
-    this.state().ids.map((id) => this.state().entities.get(id)!)
-  );
-
-  upsert(entity: T) {
-    this.state.update((state) => {
-      const entities = new Map(state.entities);
-      const exists = entities.has(entity.id);
-      entities.set(entity.id, entity);
-
+    // 3. Replace temp with real
+    this.#resource.update((current) => {
+      if (!current) return current;
       return {
-        ...state,
-        entities,
-        ids: exists ? state.ids : [...state.ids, entity.id],
+        ...current,
+        items: current.items.map((item) =>
+          item.id === tempId ? response.data : item,
+        ),
       };
     });
+  } catch {
+    // 4. Rollback
+    this.#resource.reload();
+    this.#setError("Erreur lors de l'ajout");
   }
 }
 ```
 
-## Scoping & Lifecycle
+## Temp ID Rule (DR-005)
 
+When creating an item with a temporary ID, **always replace the temp ID with the real server ID BEFORE** triggering cascade actions (invalidation, dependent API calls).
+
+### Correct order:
 ```typescript
-// Component-level store (destroyed with component)
-@Component({
-  providers: [FeatureStore]
-})
+// 1. Optimistic update with temp ID
+this.#resource.update(current => ({
+  ...current,
+  items: [...current.items, { ...data, id: tempId }],
+}));
 
-// Singleton store (survives navigations)
-@Injectable({ providedIn: 'root' })
+// 2. API call
+const response = await firstValueFrom(this.#api.create$(data));
+
+// 3. Replace temp → real (BEFORE cascade)
+this.#resource.update(current => ({
+  ...current,
+  items: current.items.map(i => i.id === tempId ? response.data : i),
+}));
+
+// 4. NOW safe to cascade
+this.#invalidation.invalidate();
 ```
 
-## Testing
+### Bug if wrong order:
+```typescript
+// WRONG — cascade uses temp ID
+const response = await firstValueFrom(this.#api.create$(data));
+this.#invalidation.invalidate(); // Other stores reload, see "temp-xxx"
+this.#resource.update(...); // Too late, temp ID already leaked
+
+// WRONG — using temp ID in follow-up call
+await this.#api.toggleCheck$(tempId); // 404 — server doesn't know "temp-xxx"
+```
+
+## Cache Invalidation
+
+Use a version signal to trigger cross-store reloads:
 
 ```typescript
-describe("ProductStore", () => {
-  let store: ProductStore;
+// Shared invalidation service
+@Injectable({ providedIn: 'root' })
+export class FeatureInvalidationService {
+  readonly #version = signal(0);
+  readonly version = this.#version.asReadonly();
+  invalidate(): void { this.#version.update((v) => v + 1); }
+}
 
-  beforeEach(() => {
-    TestBed.configureTestingModule({
-      providers: [ProductStore],
-    });
-    store = TestBed.inject(ProductStore);
-  });
-
-  it("should filter products", () => {
-    // Arrange
-    store.setProducts([...mockProducts]);
-    store.setSearchTerm("laptop");
-
-    // Act
-    const filtered = store.filtered();
-
-    // Assert
-    expect(filtered).toHaveLength(2);
-  });
+// In store — include version in resource params
+readonly #resource = rxResource({
+  params: () => ({
+    id: this.#itemId(),
+    version: this.#invalidation.version(),
+  }),
+  stream: ({ params }) => this.#api.getById$(params.id),
 });
+```
+
+## SWR (Stale-While-Revalidate)
+
+```typescript
+readonly isInitialLoading = computed(
+  () => this.#resource.status() === 'loading',
+);
+// Use isInitialLoading for spinner — on 'reloading', show stale data
+```
+
+## Scoping
+
+| Scope | Usage | Example |
+|-------|-------|---------|
+| `@Injectable()` | Feature stores (route-scoped) | `BudgetDetailsStore` |
+| `providedIn: 'root'` | Shared services, APIs, caches | `BudgetApi`, `HasBudgetCache` |
+
+Feature stores are registered in route providers:
+
+```typescript
+export default [
+  {
+    path: '',
+    providers: [FeatureApi, FeatureStore],
+    children: [{ path: ':id', loadComponent: () => import('./page') }],
+  },
+] satisfies Routes;
+```
+
+## Error Handling
+
+All errors from `ApiClient` are `ApiError` instances:
+
+```typescript
+import { isApiError } from '@core/api/api-error';
+
+catch (error) {
+  if (isApiError(error) && error.code === 'ERR_NOT_FOUND') {
+    this.#setError('Élément introuvable');
+  } else {
+    this.#setError('Erreur inattendue');
+  }
+  this.#logger.error('Operation failed', error);
+}
 ```
 
 ## Anti-Patterns
 
 | Don't | Do |
 |-------|-----|
-| Public mutable signal | Private signal + public computed |
-| Direct mutation in update | Spread operator for immutability |
-| Nested signals | Flat state structure |
-| Computed with side-effects | Pure computed, effects for side-effects |
+| `inject(HttpClient)` in API service | `inject(ApiClient)` |
+| `http.get<T>()` without validation | `api.get$(path, zodSchema)` |
+| Manual `catchError` in API service | Let `ApiClient` normalize errors |
+| `providedIn: 'root'` on feature store | `@Injectable()` + route providers |
+| `subscribe()` in mutations | `async/await` + `firstValueFrom()` |
+| `effect()` for derived state | `computed()` or `linkedSignal()` |
+| Mutate signal arrays in place | Spread: `[...items, newItem]` |
 
-## Key Points
+## Reference Implementations
 
-1. **One state signal per store**
-2. **Computed for all derivations**
-3. **Strict immutability**
-4. **Pure, predictable actions**
-5. **Effects for side-effects**
-6. **Untracked() to avoid unwanted dependencies**
+| Store | File | Pattern |
+|-------|------|---------|
+| `BudgetDetailsStore` | `feature/budget/budget-details/store/` | `resource()`, optimistic updates, temp IDs, mutation queue |
+| `CurrentMonthStore` | `feature/current-month/services/` | `resource()`, SWR, invalidation version |

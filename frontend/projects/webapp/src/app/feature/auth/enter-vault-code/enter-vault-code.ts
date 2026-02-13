@@ -22,6 +22,7 @@ import {
   EncryptionApi,
   deriveClientKey,
 } from '@core/encryption';
+import { isApiError } from '@core/api/api-error';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { VAULT_CODE_MIN_LENGTH } from '@core/auth';
 import { ROUTES } from '@core/routing/routes-constants';
@@ -229,7 +230,10 @@ export default class EnterVaultCode {
     } catch (error) {
       this.#logger.error('Enter vault code failed:', error);
 
-      if (error instanceof HttpErrorResponse && error.status === 400) {
+      if (
+        (error instanceof HttpErrorResponse && error.status === 400) ||
+        (isApiError(error) && error.status === 400)
+      ) {
         this.errorMessage.set(
           'Ce code ne semble pas correct — vérifie et réessaie',
         );

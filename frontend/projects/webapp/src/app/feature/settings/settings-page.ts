@@ -22,6 +22,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { isApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsApi } from '@core/user-settings';
 import { AuthSessionService } from '@core/auth/auth-session.service';
@@ -408,6 +409,16 @@ export default class SettingsPage {
   }
 
   #getDeleteAccountErrorMessage(error: unknown): string {
+    if (isApiError(error)) {
+      if (error.status === 0) {
+        return 'Erreur réseau — vérifie ta connexion';
+      }
+
+      if (error.code === 'ERR_USER_ACCOUNT_BLOCKED') {
+        return 'Ton compte est déjà programmé pour suppression';
+      }
+    }
+
     if (error instanceof HttpErrorResponse) {
       if (error.status === 0) {
         return 'Erreur réseau — vérifie ta connexion';

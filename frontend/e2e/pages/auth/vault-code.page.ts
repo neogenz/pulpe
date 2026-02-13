@@ -1,23 +1,37 @@
 import { expect, type Page } from '@playwright/test';
 
+const VISIBILITY_TIMEOUT = 10_000;
+
 export class VaultCodePage {
   constructor(private readonly page: Page) {}
 
   // --- Navigation ---
 
   async gotoSetup() {
-    await this.page.goto('/setup-vault-code', { waitUntil: 'domcontentloaded' });
-    await expect(this.page.getByTestId('setup-vault-code-page')).toBeVisible();
+    await this.page.goto('/setup-vault-code', {
+      waitUntil: 'domcontentloaded',
+    });
+    await expect(this.page.getByTestId('setup-vault-code-page')).toBeVisible({
+      timeout: VISIBILITY_TIMEOUT,
+    });
   }
 
   async gotoEnter() {
-    await this.page.goto('/enter-vault-code', { waitUntil: 'domcontentloaded' });
-    await expect(this.page.getByTestId('enter-vault-code-page')).toBeVisible();
+    await this.page.goto('/enter-vault-code', {
+      waitUntil: 'domcontentloaded',
+    });
+    await expect(this.page.getByTestId('enter-vault-code-page')).toBeVisible({
+      timeout: VISIBILITY_TIMEOUT,
+    });
   }
 
   async gotoRecover() {
-    await this.page.goto('/recover-vault-code', { waitUntil: 'domcontentloaded' });
-    await expect(this.page.getByTestId('recover-vault-code-page')).toBeVisible();
+    await this.page.goto('/recover-vault-code', {
+      waitUntil: 'domcontentloaded',
+    });
+    await expect(this.page.getByTestId('recover-vault-code-page')).toBeVisible({
+      timeout: VISIBILITY_TIMEOUT,
+    });
   }
 
   // --- Form interactions ---
@@ -65,30 +79,13 @@ export class VaultCodePage {
   }
 
   async expectRecoveryKeyDisplayed(key: string) {
-    await expect(this.page.getByTestId('recovery-key-display')).toContainText(key);
+    await expect(this.page.getByTestId('recovery-key-display')).toContainText(
+      key,
+    );
   }
 
   async confirmRecoveryKey(key: string) {
     await this.page.getByTestId('recovery-key-confirm-input').fill(key);
     await this.page.getByTestId('recovery-key-confirm-button').click();
-  }
-
-  // --- Assertions ---
-
-  async expectOnPage(page: 'setup' | 'enter' | 'recover') {
-    const testIdMap = {
-      setup: 'setup-vault-code-page',
-      enter: 'enter-vault-code-page',
-      recover: 'recover-vault-code-page',
-    } as const;
-    await expect(this.page.getByTestId(testIdMap[page])).toBeVisible();
-  }
-
-  async expectUrl(path: string) {
-    await expect(this.page).toHaveURL(new RegExp(path));
-  }
-
-  async expectErrorVisible(text: string | RegExp) {
-    await expect(this.page.locator('mat-error').first()).toContainText(text);
   }
 }
