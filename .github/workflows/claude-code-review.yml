@@ -248,6 +248,6 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: ${{ steps.prompt.outputs.review_prompt }}
           claude_args: |
-            --max-turns 15
+            --max-turns 25
             --model claude-sonnet-4-5-20250929
-            --allowedTools "mcp__github_inline_comment__create_inline_comment" "Bash(gh pr *)" "Bash(gh issue view *)" "Read" "Glob" "Grep"
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh issue view:*),Read,Glob,Grep"

@@ -39,5 +39,5 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: |
-            --max-turns 15
-            --allowedTools "Bash(gh pr *)" "Bash(gh issue *)" "Bash(gh api *)" "Read" "Glob" "Grep"
+            --max-turns 25
+            --allowedTools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh issue view:*),Bash(gh issue comment:*),Bash(gh api:*),Read,Glob,Grep"
