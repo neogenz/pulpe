@@ -100,6 +100,10 @@ Tous les appels HTTP passent par `ApiClient` (`core/api/api-client.ts`) avec un 
 - **Trade-off** : Chaque endpoint nécessite un schéma Zod
 - **Impact** : 10+ services migrés (BudgetApi, TransactionApi, TemplateApi, EncryptionApi, UserSettingsApi, BudgetLineApi, BudgetTemplatesApi, ProfileSetupService, DemoInitializerService)
 
+### Notes
+
+- `ApplicationConfiguration` est la seule exception : elle charge `config.json` (asset statique) via `HttpClient` direct car `ApiClient` dépend d'elle pour `backendApiUrl` (dépendance circulaire).
+
 ---
 
 ## DR-007: Zoneless Testing — Child Input Signal Limitation
