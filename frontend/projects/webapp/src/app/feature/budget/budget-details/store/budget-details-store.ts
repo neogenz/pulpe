@@ -62,6 +62,9 @@ export class BudgetDetailsStore {
   readonly #state = createInitialBudgetDetailsState();
   readonly #staleData = signal<BudgetDetailsViewModel | null>(null);
 
+  // Mutex: prevents concurrent toggle mutations on the same item
+  readonly #mutatingIds = new Set<string>();
+
   // Filter state - show only unchecked items by default
   readonly #isShowingOnlyUnchecked = signal<boolean>(
     this.#storage.get<boolean>(STORAGE_KEYS.BUDGET_SHOW_ONLY_UNCHECKED) ?? true,
@@ -612,6 +615,8 @@ export class BudgetDetailsStore {
       return true;
     }
 
+    if (this.#mutatingIds.has(id)) return false;
+
     const details = this.budgetDetails();
     if (!details) return false;
 
@@ -621,6 +626,8 @@ export class BudgetDetailsStore {
     });
 
     if (!result) return false;
+
+    this.#mutatingIds.add(id);
 
     this.#budgetDetailsResource.update((d) => {
       if (!d) return d;
@@ -655,10 +662,14 @@ export class BudgetDetailsStore {
       this.#setError('Erreur lors du basculement du statut de la prévision');
       this.#logger.error('Error toggling budget line check', error);
       return false;
+    } finally {
+      this.#mutatingIds.delete(id);
     }
   }
 
   async toggleTransactionCheck(id: string): Promise<void> {
+    if (this.#mutatingIds.has(id)) return;
+
     const details = this.budgetDetails();
     if (!details) return;
 
@@ -668,6 +679,8 @@ export class BudgetDetailsStore {
     });
 
     if (!result) return;
+
+    this.#mutatingIds.add(id);
 
     this.#budgetDetailsResource.update((d) => {
       if (!d) return d;
@@ -698,10 +711,14 @@ export class BudgetDetailsStore {
       this.reloadBudgetDetails();
       this.#setError('Erreur lors du basculement du statut de la transaction');
       this.#logger.error('Error toggling transaction check', error);
+    } finally {
+      this.#mutatingIds.delete(id);
     }
   }
 
   async checkAllAllocatedTransactions(budgetLineId: string): Promise<void> {
+    if (this.#mutatingIds.has(budgetLineId)) return;
+
     const details = this.budgetDetails();
     if (!details) return;
 
@@ -712,6 +729,8 @@ export class BudgetDetailsStore {
         !isTempId(tx.id),
     );
     if (uncheckedTransactions.length === 0) return;
+
+    this.#mutatingIds.add(budgetLineId);
 
     const now = new Date().toISOString();
     const uncheckedIds = new Set(uncheckedTransactions.map((tx) => tx.id));
@@ -746,6 +765,8 @@ export class BudgetDetailsStore {
       this.reloadBudgetDetails();
       this.#setError('Erreur lors de la comptabilisation des transactions');
       this.#logger.error('Error checking all allocated transactions', error);
+    } finally {
+      this.#mutatingIds.delete(budgetLineId);
     }
   }
 
