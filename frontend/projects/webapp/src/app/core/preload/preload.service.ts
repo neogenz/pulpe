@@ -1,4 +1,4 @@
-import { effect, inject, Injectable, untracked } from '@angular/core';
+import { effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { AuthStateService } from '../auth/auth-state.service';
 import { BudgetApi } from '../budget/budget-api';
@@ -23,13 +23,16 @@ export class PreloadService {
   readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #logger = inject(Logger);
 
+  readonly #hasPreloaded = signal(false);
+
   constructor() {
     effect(() => {
       const isReady =
         this.#authState.isAuthenticated() &&
         (this.#clientKeyService.hasClientKey() || this.#demoMode.isDemoMode());
 
-      if (isReady) {
+      if (isReady && !untracked(this.#hasPreloaded)) {
+        this.#hasPreloaded.set(true);
         untracked(() => this.#preloadCriticalData());
       }
     });
