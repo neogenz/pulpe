@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import {
+  createSuccessResponse,
+  createListResponse,
+} from './src/api-response.js';
 
 // Constants
 const CURRENT_YEAR = new Date().getFullYear();
@@ -505,16 +509,10 @@ export const deleteResponseSchema = z.object({
 export type DeleteResponse = z.infer<typeof deleteResponseSchema>;
 
 // Specific response schemas for strict validation
-export const budgetResponseSchema = z.object({
-  success: z.literal(true),
-  data: budgetSchema,
-});
+export const budgetResponseSchema = createSuccessResponse(budgetSchema);
 export type BudgetResponse = z.infer<typeof budgetResponseSchema>;
 
-export const budgetListResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(budgetSchema),
-});
+export const budgetListResponseSchema = createListResponse(budgetSchema);
 export type BudgetListResponse = z.infer<typeof budgetListResponseSchema>;
 
 export const budgetDeleteResponseSchema = deleteResponseSchema;
@@ -617,19 +615,15 @@ export const budgetSparseSchema = z.object({
 export type BudgetSparse = z.infer<typeof budgetSparseSchema>;
 
 // Response wrapper for sparse budget list
-export const budgetSparseListResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(budgetSparseSchema),
-});
+export const budgetSparseListResponseSchema =
+  createListResponse(budgetSparseSchema);
 export type BudgetSparseListResponse = z.infer<
   typeof budgetSparseListResponseSchema
 >;
 
 // Transaction response schemas for operation-specific types
-export const transactionResponseSchema = z.object({
-  success: z.literal(true),
-  data: transactionSchema,
-});
+export const transactionResponseSchema =
+  createSuccessResponse(transactionSchema);
 export type TransactionCreateResponse = z.infer<
   typeof transactionResponseSchema
 >;
@@ -640,10 +634,8 @@ export type TransactionFindOneResponse = z.infer<
   typeof transactionResponseSchema
 >;
 
-export const transactionListResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(transactionSchema),
-});
+export const transactionListResponseSchema =
+  createListResponse(transactionSchema);
 export type TransactionListResponse = z.infer<
   typeof transactionListResponseSchema
 >;
@@ -654,18 +646,14 @@ export type TransactionDeleteResponse = z.infer<
 >;
 
 // Budget template response schemas
-export const budgetTemplateResponseSchema = z.object({
-  success: z.literal(true),
-  data: budgetTemplateSchema,
-});
+export const budgetTemplateResponseSchema =
+  createSuccessResponse(budgetTemplateSchema);
 export type BudgetTemplateResponse = z.infer<
   typeof budgetTemplateResponseSchema
 >;
 
-export const budgetTemplateListResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(budgetTemplateSchema),
-});
+export const budgetTemplateListResponseSchema =
+  createListResponse(budgetTemplateSchema);
 export type BudgetTemplateListResponse = z.infer<
   typeof budgetTemplateListResponseSchema
 >;
@@ -716,16 +704,12 @@ export type BudgetTemplateCreateTransactionalResponse = z.infer<
 >;
 
 // Template line response schemas
-export const templateLineResponseSchema = z.object({
-  success: z.literal(true),
-  data: templateLineSchema,
-});
+export const templateLineResponseSchema =
+  createSuccessResponse(templateLineSchema);
 export type TemplateLineResponse = z.infer<typeof templateLineResponseSchema>;
 
-export const templateLineListResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(templateLineSchema),
-});
+export const templateLineListResponseSchema =
+  createListResponse(templateLineSchema);
 export type TemplateLineListResponse = z.infer<
   typeof templateLineListResponseSchema
 >;
@@ -806,10 +790,8 @@ export const userSettingsSchema = z.object({
 });
 export type UserSettings = z.infer<typeof userSettingsSchema>;
 
-export const userSettingsResponseSchema = z.object({
-  success: z.literal(true),
-  data: userSettingsSchema,
-});
+export const userSettingsResponseSchema =
+  createSuccessResponse(userSettingsSchema);
 export type UserSettingsResponse = z.infer<typeof userSettingsResponseSchema>;
 
 export const userProfileResponseSchema = z.object({
@@ -849,16 +831,12 @@ export const deleteAccountResponseSchema = z.object({
 export type DeleteAccountResponse = z.infer<typeof deleteAccountResponseSchema>;
 
 // Savings Goal response schemas
-export const savingsGoalResponseSchema = z.object({
-  success: z.literal(true),
-  data: savingsGoalSchema,
-});
+export const savingsGoalResponseSchema =
+  createSuccessResponse(savingsGoalSchema);
 export type SavingsGoalResponse = z.infer<typeof savingsGoalResponseSchema>;
 
-export const savingsGoalListResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(savingsGoalSchema),
-});
+export const savingsGoalListResponseSchema =
+  createListResponse(savingsGoalSchema);
 export type SavingsGoalListResponse = z.infer<
   typeof savingsGoalListResponseSchema
 >;
@@ -869,16 +847,11 @@ export type SavingsGoalDeleteResponse = z.infer<
 >;
 
 // Budget Line response schemas
-export const budgetLineResponseSchema = z.object({
-  success: z.literal(true),
-  data: budgetLineSchema,
-});
+export const budgetLineResponseSchema = createSuccessResponse(budgetLineSchema);
 export type BudgetLineResponse = z.infer<typeof budgetLineResponseSchema>;
 
-export const budgetLineListResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(budgetLineSchema),
-});
+export const budgetLineListResponseSchema =
+  createListResponse(budgetLineSchema);
 export type BudgetLineListResponse = z.infer<
   typeof budgetLineListResponseSchema
 >;
