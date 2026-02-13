@@ -22,6 +22,7 @@ import {
   EncryptionApi,
   deriveClientKey,
 } from '@core/encryption';
+import { isApiError } from '@core/api/api-error';
 import { VAULT_CODE_MIN_LENGTH } from '@core/auth';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
@@ -320,7 +321,10 @@ export default class RecoverVaultCode {
     } catch (error) {
       this.#logger.error('Recover vault code failed:', error);
 
-      if (error instanceof HttpErrorResponse && error.status === 400) {
+      if (
+        (error instanceof HttpErrorResponse && error.status === 400) ||
+        (isApiError(error) && error.status === 400)
+      ) {
         this.errorMessage.set(
           'Clé de récupération invalide — vérifie que tu as bien copié la clé',
         );

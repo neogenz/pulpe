@@ -5,14 +5,14 @@ import {
   budgetCreateSchema,
   type BudgetDetailsResponse,
   budgetDetailsResponseSchema,
+  budgetExistsResponseSchema,
   type BudgetExportResponse,
   budgetExportResponseSchema,
   budgetListResponseSchema,
   budgetResponseSchema,
 } from 'pulpe-shared';
 import { type Observable } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
-import { z } from 'zod';
+import { map, switchMap, tap } from 'rxjs/operators';
 import { ApiClient } from '../api/api-client';
 import { HasBudgetCache } from '../auth/has-budget-cache';
 import { BudgetInvalidationService } from './budget-invalidation.service';
@@ -37,33 +37,32 @@ export class BudgetApi {
     return this.#api
       .post$('/budgets', validatedRequest, budgetResponseSchema)
       .pipe(
-        map((response) => {
+        tap(() => {
           this.#hasBudgetCache.setHasBudget(true);
           this.#invalidationService.invalidate();
-          return {
-            budget: response.data,
-            message: 'Budget créé avec succès à partir du template',
-          };
         }),
+        map((response) => ({
+          budget: response.data,
+          message: 'Budget créé avec succès à partir du template',
+        })),
       );
   }
 
   getAllBudgets$(): Observable<Budget[]> {
     return this.#api.get$('/budgets', budgetListResponseSchema).pipe(
-      map((response) => {
+      tap((response) => {
         this.#hasBudgetCache.setHasBudget(response.data.length > 0);
-        return response.data;
       }),
+      map((response) => response.data),
     );
   }
 
   checkBudgetExists$(): Observable<boolean> {
-    const budgetExistsSchema = z.object({ hasBudget: z.boolean() });
-    return this.#api.get$('/budgets/exists', budgetExistsSchema).pipe(
-      map((response) => {
+    return this.#api.get$('/budgets/exists', budgetExistsResponseSchema).pipe(
+      tap((response) => {
         this.#hasBudgetCache.setHasBudget(response.hasBudget);
-        return response.hasBudget;
       }),
+      map((response) => response.hasBudget),
     );
   }
 
@@ -101,21 +100,23 @@ export class BudgetApi {
     return this.#api
       .patch$(`/budgets/${budgetId}`, updateData, budgetResponseSchema)
       .pipe(
-        map((response) => {
+        tap(() => {
           this.#invalidationService.invalidate();
-          return response.data;
         }),
+        map((response) => response.data),
       );
   }
 
   deleteBudget$(budgetId: string): Observable<void> {
-    const budgetExistsSchema = z.object({ hasBudget: z.boolean() });
     return this.#api.deleteVoid$(`/budgets/${budgetId}`).pipe(
-      switchMap(() => this.#api.get$('/budgets/exists', budgetExistsSchema)),
-      map((response) => {
+      switchMap(() =>
+        this.#api.get$('/budgets/exists', budgetExistsResponseSchema),
+      ),
+      tap((response) => {
         this.#hasBudgetCache.setHasBudget(response.hasBudget);
         this.#invalidationService.invalidate();
       }),
+      map(() => void 0),
     );
   }
 

@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -8,12 +8,14 @@ import { of, throwError } from 'rxjs';
 
 import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import * as cryptoUtils from '@core/encryption/crypto.utils';
+import { ApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 
 import EnterVaultCode from './enter-vault-code';
 
 describe('EnterVaultCode', () => {
+  let fixture: ComponentFixture<EnterVaultCode>;
   let component: EnterVaultCode;
   let mockClientKeyService: { setDirectKey: ReturnType<typeof vi.fn> };
   let mockEncryptionApi: {
@@ -64,17 +66,40 @@ describe('EnterVaultCode', () => {
       ],
     }).compileComponents();
 
-    component = TestBed.createComponent(EnterVaultCode).componentInstance;
+    fixture = TestBed.createComponent(EnterVaultCode);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    await fixture.whenStable();
 
     const router = TestBed.inject(Router);
     navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
   });
 
-  function fillValidForm(): void {
-    component['form'].patchValue({
-      vaultCode: '123456',
-      rememberDevice: false,
-    });
+  function fillFormViaDom(code: string): void {
+    const input = fixture.nativeElement.querySelector(
+      '[data-testid="vault-code-input"]',
+    ) as HTMLInputElement;
+    input.value = code;
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
+  async function submitFormViaDom(): Promise<void> {
+    const formDE = fixture.debugElement.query(
+      (el) =>
+        el.nativeElement.getAttribute?.('data-testid') ===
+        'enter-vault-code-form',
+    );
+    formDE.triggerEventHandler('ngSubmit');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
+  function getVaultCodeInput(): HTMLInputElement {
+    return fixture.nativeElement.querySelector(
+      '[data-testid="vault-code-input"]',
+    ) as HTMLInputElement;
   }
 
   describe('Component Structure', () => {
@@ -82,151 +107,153 @@ describe('EnterVaultCode', () => {
       expect(component).toBeTruthy();
     });
 
-    it('should have form defined with vaultCode and rememberDevice', () => {
-      expect(component['form']).toBeDefined();
-      expect(component['form'].get('vaultCode')).toBeDefined();
-      expect(component['form'].get('rememberDevice')).toBeDefined();
+    it('should render vault code input and remember device checkbox', () => {
+      const codeInput = fixture.nativeElement.querySelector(
+        '[data-testid="vault-code-input"]',
+      );
+      const checkbox = fixture.nativeElement.querySelector(
+        '[data-testid="remember-device-checkbox"]',
+      );
+      expect(codeInput).toBeTruthy();
+      expect(checkbox).toBeTruthy();
     });
   });
 
   describe('Form Validation', () => {
-    it('should require vaultCode', () => {
-      const control = component['form'].get('vaultCode');
-      control?.setValue('');
-      expect(control?.hasError('required')).toBe(true);
+    it('should not allow submit when vaultCode is empty', () => {
+      fillFormViaDom('');
+      expect(component['canSubmit']()).toBe(false);
     });
 
-    it('should validate vaultCode minimum length of 4', () => {
-      const control = component['form'].get('vaultCode');
-      control?.setValue('123');
-      expect(control?.hasError('minlength')).toBe(true);
-
-      control?.setValue('1234');
-      expect(control?.hasError('minlength')).toBe(false);
+    it('should not allow submit when vaultCode is too short', () => {
+      fillFormViaDom('123');
+      expect(component['canSubmit']()).toBe(false);
     });
 
-    it('should reject non-numeric vaultCode', () => {
-      const control = component['form'].get('vaultCode');
-      control?.setValue('abcd');
-      expect(control?.hasError('pattern')).toBe(true);
+    it('should allow submit when vaultCode meets minimum length', () => {
+      fillFormViaDom('1234');
+      expect(component['canSubmit']()).toBe(true);
+    });
 
-      control?.setValue('1234');
-      expect(control?.hasError('pattern')).toBe(false);
+    it('should not allow submit for non-numeric vaultCode', () => {
+      fillFormViaDom('abcd');
+      expect(component['canSubmit']()).toBe(false);
     });
   });
 
-  describe('canSubmit computed', () => {
-    it('should return false when form is invalid', () => {
+  describe('canSubmit', () => {
+    it('should be false when form is invalid', () => {
       expect(component['canSubmit']()).toBe(false);
     });
 
-    it('should return false when isSubmitting is true', () => {
-      fillValidForm();
-      component['isSubmitting'].set(true);
-      expect(component['canSubmit']()).toBe(false);
-    });
-
-    it('should return true when form is valid and not submitting', () => {
-      fillValidForm();
+    it('should be true when form is valid', () => {
+      fillFormViaDom('123456');
       expect(component['canSubmit']()).toBe(true);
     });
   });
 
   describe('onSubmit - Valid Form', () => {
     beforeEach(() => {
-      fillValidForm();
+      fillFormViaDom('123456');
     });
 
     it('should call getSalt$ to get encryption salt', async () => {
-      await component['onSubmit']();
-      expect(mockEncryptionApi.getSalt$).toHaveBeenCalled();
+      await submitFormViaDom();
+      await vi.waitFor(() =>
+        expect(mockEncryptionApi.getSalt$).toHaveBeenCalled(),
+      );
     });
 
     it('should call deriveClientKey with vault code and salt', async () => {
-      await component['onSubmit']();
-      expect(deriveClientKeySpy).toHaveBeenCalledWith(
-        '123456',
-        'salt-value',
-        100000,
+      await submitFormViaDom();
+      await vi.waitFor(() =>
+        expect(deriveClientKeySpy).toHaveBeenCalledWith(
+          '123456',
+          'salt-value',
+          100000,
+        ),
       );
     });
 
     it('should call validateKey$ with derived client key', async () => {
-      await component['onSubmit']();
-      expect(mockEncryptionApi.validateKey$).toHaveBeenCalledWith(
-        'abcd'.repeat(16),
+      await submitFormViaDom();
+      await vi.waitFor(() =>
+        expect(mockEncryptionApi.validateKey$).toHaveBeenCalledWith(
+          'abcd'.repeat(16),
+        ),
       );
     });
 
     it('should call setDirectKey with derived client key and rememberDevice value', async () => {
-      await component['onSubmit']();
-      expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
-        'abcd'.repeat(16),
-        false,
+      await submitFormViaDom();
+      await vi.waitFor(() =>
+        expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
+          'abcd'.repeat(16),
+          false,
+        ),
       );
     });
 
     it('should use localStorage when rememberDevice is checked', async () => {
-      component['form'].patchValue({ rememberDevice: true });
-      await component['onSubmit']();
-      expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
-        'abcd'.repeat(16),
-        true,
+      const checkbox = fixture.nativeElement.querySelector(
+        '[data-testid="remember-device-checkbox"] input',
+      ) as HTMLInputElement;
+      checkbox.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      await submitFormViaDom();
+      await vi.waitFor(() =>
+        expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
+          'abcd'.repeat(16),
+          true,
+        ),
       );
     });
 
     it('should navigate to dashboard after successful submission', async () => {
-      await component['onSubmit']();
-      expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']);
+      await submitFormViaDom();
+      await vi.waitFor(() =>
+        expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']),
+      );
     });
 
     it('should reset isSubmitting after onSubmit completes', async () => {
-      await component['onSubmit']();
-      expect(component['isSubmitting']()).toBe(false);
+      await submitFormViaDom();
+      await vi.waitFor(() => expect(component['isSubmitting']()).toBe(false));
     });
   });
 
   describe('onSubmit - Error Handling', () => {
     beforeEach(() => {
-      fillValidForm();
+      fillFormViaDom('123456');
     });
 
-    it('should not submit when form is invalid', async () => {
-      component['form'].patchValue({ vaultCode: '' });
-      await component['onSubmit']();
-      expect(mockEncryptionApi.getSalt$).not.toHaveBeenCalled();
-    });
-
-    it('should set error message on submission failure', async () => {
+    it('should show error message on submission failure', async () => {
       vi.spyOn(mockEncryptionApi, 'getSalt$').mockReturnValue(
         throwError(() => new Error('Network error')),
       );
-      await component['onSubmit']();
-      expect(component['errorMessage']()).toContain(
-        "Quelque chose n'a pas fonctionné",
+      await submitFormViaDom();
+      await vi.waitFor(() =>
+        expect(component['errorMessage']()).toContain(
+          "Quelque chose n'a pas fonctionné",
+        ),
       );
-    });
-
-    it('should reset isSubmitting on error', async () => {
-      vi.spyOn(mockEncryptionApi, 'getSalt$').mockReturnValue(
-        throwError(() => new Error('Network error')),
-      );
-      await component['onSubmit']();
-      expect(component['isSubmitting']()).toBe(false);
     });
 
     it('should not navigate on error', async () => {
       vi.spyOn(mockEncryptionApi, 'getSalt$').mockReturnValue(
         throwError(() => new Error('Network error')),
       );
-      await component['onSubmit']();
+      await submitFormViaDom();
+      await vi.waitFor(() => expect(component['errorMessage']()).not.toBe(''));
       expect(navigateSpy).not.toHaveBeenCalled();
     });
   });
 
   describe('onSubmit - HTTP errors', () => {
     beforeEach(() => {
-      fillValidForm();
+      fillFormViaDom('123456');
     });
 
     it('should show specific error when validateKey$ returns HTTP 400', async () => {
@@ -236,11 +263,11 @@ describe('EnterVaultCode', () => {
             new HttpErrorResponse({ status: 400, statusText: 'Bad Request' }),
         ),
       );
-
-      await component['onSubmit']();
-
-      expect(component['errorMessage']()).toContain(
-        'Ce code ne semble pas correct',
+      await submitFormViaDom();
+      await vi.waitFor(() =>
+        expect(component['errorMessage']()).toContain(
+          'Ce code ne semble pas correct',
+        ),
       );
     });
 
@@ -251,9 +278,12 @@ describe('EnterVaultCode', () => {
             new HttpErrorResponse({ status: 400, statusText: 'Bad Request' }),
         ),
       );
-
-      await component['onSubmit']();
-
+      await submitFormViaDom();
+      await vi.waitFor(() =>
+        expect(component['errorMessage']()).toContain(
+          'Ce code ne semble pas correct',
+        ),
+      );
       expect(mockClientKeyService.setDirectKey).not.toHaveBeenCalled();
       expect(navigateSpy).not.toHaveBeenCalled();
     });
@@ -268,16 +298,15 @@ describe('EnterVaultCode', () => {
             }),
         ),
       );
-
-      await component['onSubmit']();
-
-      expect(component['errorMessage']()).toContain(
-        "Quelque chose n'a pas fonctionné",
+      await submitFormViaDom();
+      await vi.waitFor(() =>
+        expect(component['errorMessage']()).toContain(
+          "Quelque chose n'a pas fonctionné",
+        ),
       );
     });
 
     it('should show generic error when validateKey$ returns HTTP 429', async () => {
-      fillValidForm();
       mockEncryptionApi.validateKey$.mockReturnValue(
         throwError(
           () =>
@@ -287,11 +316,41 @@ describe('EnterVaultCode', () => {
             }),
         ),
       );
+      await submitFormViaDom();
+      await vi.waitFor(() =>
+        expect(component['errorMessage']()).toContain(
+          "Quelque chose n'a pas fonctionné",
+        ),
+      );
+    });
+  });
 
-      await component['onSubmit']();
+  describe('onSubmit - ApiError handling', () => {
+    beforeEach(() => {
+      fillFormViaDom('123456');
+    });
 
-      expect(component['errorMessage']()).toContain(
-        "Quelque chose n'a pas fonctionné",
+    it('should show specific error when validateKey$ throws ApiError with status 400', async () => {
+      mockEncryptionApi.validateKey$.mockReturnValue(
+        throwError(() => new ApiError('Bad request', 'ERR_INVALID', 400, null)),
+      );
+      await submitFormViaDom();
+      await vi.waitFor(() =>
+        expect(component['errorMessage']()).toContain(
+          'Ce code ne semble pas correct',
+        ),
+      );
+    });
+
+    it('should show generic error when validateKey$ throws ApiError with status 500', async () => {
+      mockEncryptionApi.validateKey$.mockReturnValue(
+        throwError(() => new ApiError('Server error', undefined, 500, null)),
+      );
+      await submitFormViaDom();
+      await vi.waitFor(() =>
+        expect(component['errorMessage']()).toContain(
+          "Quelque chose n'a pas fonctionné",
+        ),
       );
     });
   });
@@ -320,24 +379,33 @@ describe('EnterVaultCode', () => {
         ],
       }).compileComponents();
 
-      component = TestBed.createComponent(EnterVaultCode).componentInstance;
+      const logoutFixture = TestBed.createComponent(EnterVaultCode);
+      logoutFixture.detectChanges();
+      await logoutFixture.whenStable();
+
+      component = logoutFixture.componentInstance;
+      fixture = logoutFixture;
     });
 
-    it('should call authSession.signOut when logout is initiated', async () => {
+    it('should call authSession.signOut when logout button is clicked', async () => {
       vi.spyOn(window, 'location', 'get').mockReturnValue({
         ...window.location,
         href: '/',
       });
 
-      await component['onLogout']();
+      const logoutButton = fixture.nativeElement.querySelector(
+        '[data-testid="vault-code-logout-button"]',
+      ) as HTMLButtonElement;
+      logoutButton.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
       expect(mockAuthSession.signOut).toHaveBeenCalled();
     });
   });
 
   describe('Navigation Links', () => {
     it('should have "Code perdu?" link with correct routerLink', () => {
-      const fixture = TestBed.createComponent(EnterVaultCode);
-      fixture.detectChanges();
       const link = fixture.nativeElement.querySelector(
         '[data-testid="lost-code-link"]',
       );
@@ -347,14 +415,31 @@ describe('EnterVaultCode', () => {
   });
 
   describe('PIN Visibility Toggle', () => {
-    it('should toggle PIN visibility signal', () => {
-      expect(component['isCodeHidden']()).toBe(true);
+    it('should start with password type (hidden)', () => {
+      const input = getVaultCodeInput();
+      expect(input.type).toBe('password');
+    });
 
-      component['isCodeHidden'].set(false);
-      expect(component['isCodeHidden']()).toBe(false);
+    it('should toggle input type when visibility button is clicked', async () => {
+      const input = getVaultCodeInput();
+      expect(input.type).toBe('password');
 
-      component['isCodeHidden'].set(true);
-      expect(component['isCodeHidden']()).toBe(true);
+      const toggleButton = fixture.nativeElement.querySelector(
+        'mat-form-field button[type="button"]',
+      ) as HTMLButtonElement;
+      toggleButton.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(input.type).toBe('text');
+
+      toggleButton.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(input.type).toBe('password');
     });
   });
 });

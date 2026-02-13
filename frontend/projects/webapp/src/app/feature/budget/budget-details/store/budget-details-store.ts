@@ -124,8 +124,10 @@ export class BudgetDetailsStore {
   });
 
   // ── 4. Public selectors (readonly/computed) ──
-  readonly budgetDetails = computed(
-    () => this.#budgetDetailsResource.value() ?? this.#staleData(),
+  readonly budgetDetails = computed(() =>
+    this.#budgetDetailsResource.error()
+      ? this.#staleData()
+      : (this.#budgetDetailsResource.value() ?? this.#staleData()),
   );
   readonly isLoading = computed(
     () => this.#budgetDetailsResource.isLoading() && !this.#staleData(),
@@ -140,7 +142,9 @@ export class BudgetDetailsStore {
   );
 
   readonly #sortedBudgets = computed(() => {
-    const budgets = this.#allBudgetsResource.value() ?? [];
+    const budgets = this.#allBudgetsResource.error()
+      ? []
+      : (this.#allBudgetsResource.value() ?? []);
     return [...budgets].sort((a, b) => {
       if (a.year !== b.year) return a.year - b.year;
       return a.month - b.month;

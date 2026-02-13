@@ -307,17 +307,9 @@ export type TransactionSearchResult = z.infer<
   typeof transactionSearchResultSchema
 >;
 
-export const transactionSearchResultListSchema = z.array(
+export const transactionSearchResponseSchema = createListResponse(
   transactionSearchResultSchema,
 );
-export type TransactionSearchResultList = z.infer<
-  typeof transactionSearchResultListSchema
->;
-
-export const transactionSearchResponseSchema = z.object({
-  success: z.literal(true),
-  data: transactionSearchResultListSchema,
-});
 export type TransactionSearchResponse = z.infer<
   typeof transactionSearchResponseSchema
 >;
@@ -515,6 +507,11 @@ export type BudgetResponse = z.infer<typeof budgetResponseSchema>;
 export const budgetListResponseSchema = createListResponse(budgetSchema);
 export type BudgetListResponse = z.infer<typeof budgetListResponseSchema>;
 
+export const budgetExistsResponseSchema = z.object({
+  hasBudget: z.boolean(),
+});
+export type BudgetExistsResponse = z.infer<typeof budgetExistsResponseSchema>;
+
 export const budgetDeleteResponseSchema = deleteResponseSchema;
 export type BudgetDeleteResponse = z.infer<typeof budgetDeleteResponseSchema>;
 
@@ -526,14 +523,13 @@ export const budgetSummarySchema = z.object({
 export type BudgetSummary = z.infer<typeof budgetSummarySchema>;
 
 // Budget details response schema - aggregates budget with its transactions and budget lines
-export const budgetDetailsResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.object({
+export const budgetDetailsResponseSchema = createSuccessResponse(
+  z.object({
     budget: budgetSchema,
     transactions: z.array(transactionSchema),
     budgetLines: z.array(budgetLineSchema),
   }),
-});
+);
 export type BudgetDetailsResponse = z.infer<typeof budgetDetailsResponseSchema>;
 
 // Budget with full details for export (includes rollover, remaining, transactions, budgetLines)
@@ -547,14 +543,13 @@ export const budgetWithDetailsSchema = budgetSchema.extend({
 export type BudgetWithDetails = z.infer<typeof budgetWithDetailsSchema>;
 
 // Export response schema for bulk budget export
-export const budgetExportResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.object({
+export const budgetExportResponseSchema = createSuccessResponse(
+  z.object({
     exportDate: z.string(),
     totalBudgets: z.number().int().nonnegative(),
     budgets: z.array(budgetWithDetailsSchema),
   }),
-});
+);
 export type BudgetExportResponse = z.infer<typeof budgetExportResponseSchema>;
 
 /**
@@ -664,21 +659,19 @@ export type BudgetTemplateDeleteResponse = z.infer<
 >;
 
 // Response schema for template creation that includes created lines
-export const budgetTemplateCreateResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.object({
+export const budgetTemplateCreateResponseSchema = createSuccessResponse(
+  z.object({
     template: budgetTemplateSchema,
     lines: z.array(templateLineSchema),
   }),
-});
+);
 export type BudgetTemplateCreateResponse = z.infer<
   typeof budgetTemplateCreateResponseSchema
 >;
 
 // Response schema for template usage check
-export const templateUsageResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.object({
+export const templateUsageResponseSchema = createSuccessResponse(
+  z.object({
     isUsed: z.boolean(),
     budgetCount: z.number(),
     budgets: z.array(
@@ -690,7 +683,7 @@ export const templateUsageResponseSchema = z.object({
       }),
     ),
   }),
-});
+);
 export type TemplateUsageResponse = z.infer<typeof templateUsageResponseSchema>;
 
 // Response schema for transactional RPC function

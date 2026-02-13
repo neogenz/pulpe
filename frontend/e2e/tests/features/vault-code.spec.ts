@@ -1,10 +1,20 @@
 import { test, expect } from '../../fixtures/test-fixtures';
 import { setupAuthBypass, setupMaintenanceMock } from '../../utils/auth-bypass';
-import type { Route } from '@playwright/test';
+import type { Page, Route } from '@playwright/test';
 
 const MOCK_RECOVERY_KEY = 'AAAA-BBBB-CCCC-DDDD';
 const MOCK_RECOVERY_KEY_LONG =
   'ABCD-EFGH-IJKL-MNOP-QRST-UVWX-YZ12-3456-7890-ABCD-1234-5678-9ABC';
+
+const NAVIGATION_TIMEOUT = 15_000;
+const VISIBILITY_TIMEOUT = 10_000;
+
+async function expectDashboardLoaded(page: Page): Promise<void> {
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: NAVIGATION_TIMEOUT });
+  await expect(page.getByTestId('dashboard-content')).toBeVisible({
+    timeout: VISIBILITY_TIMEOUT,
+  });
+}
 
 test.describe('Vault Code', () => {
   test.describe.configure({ mode: 'parallel' });
@@ -12,7 +22,9 @@ test.describe('Vault Code', () => {
   // --- Scenario A: Setup vault code (first-time user) ---
 
   test.describe('Setup vault code', () => {
-    test('redirects to setup-vault-code when vaultCodeConfigured is false', async ({ page }) => {
+    test('redirects to setup-vault-code when vaultCodeConfigured is false', async ({
+      page,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -26,7 +38,10 @@ test.describe('Vault Code', () => {
       await expect(page.getByTestId('setup-vault-code-page')).toBeVisible();
     });
 
-    test('shows required error when vault code field is touched empty', async ({ page, vaultCodePage }) => {
+    test('shows required error when vault code field is touched empty', async ({
+      page,
+      vaultCodePage,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -39,10 +54,15 @@ test.describe('Vault Code', () => {
       await page.getByTestId('vault-code-input').focus();
       await page.getByTestId('vault-code-input').blur();
 
-      await expect(page.locator('mat-error')).toContainText('Ton code PIN est nécessaire');
+      await expect(page.locator('mat-error')).toContainText(
+        'Ton code PIN est nécessaire',
+      );
     });
 
-    test('shows error when codes do not match', async ({ page, vaultCodePage }) => {
+    test('shows error when codes do not match', async ({
+      page,
+      vaultCodePage,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -56,10 +76,15 @@ test.describe('Vault Code', () => {
       // Blur to trigger cross-field validation
       await page.getByTestId('confirm-vault-code-input').blur();
 
-      await expect(page.locator('mat-error')).toContainText('Les deux codes ne sont pas identiques — on réessaie ?');
+      await expect(page.locator('mat-error')).toContainText(
+        'Les deux codes ne sont pas identiques — on réessaie ?',
+      );
     });
 
-    test('shows minlength error for short code', async ({ page, vaultCodePage }) => {
+    test('shows minlength error for short code', async ({
+      page,
+      vaultCodePage,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -72,10 +97,15 @@ test.describe('Vault Code', () => {
       // Blur to trigger validation
       await page.getByTestId('vault-code-input').blur();
 
-      await expect(page.locator('mat-error')).toContainText('4 chiffres minimum');
+      await expect(page.locator('mat-error')).toContainText(
+        '4 chiffres minimum',
+      );
     });
 
-    test('happy path: setup completes with recovery key dialog', async ({ page, vaultCodePage }) => {
+    test('happy path: setup completes with recovery key dialog', async ({
+      page,
+      vaultCodePage,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -112,8 +142,13 @@ test.describe('Vault Code', () => {
       await expect(page.getByTestId('recovery-key-dialog')).not.toBeVisible();
     });
 
-    test('recovery key dialog supports copy and confirmation (case-insensitive)', async ({ page, vaultCodePage }) => {
-      await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+    test('recovery key dialog supports copy and confirmation (case-insensitive)', async ({
+      page,
+      vaultCodePage,
+    }) => {
+      await page
+        .context()
+        .grantPermissions(['clipboard-read', 'clipboard-write']);
 
       await setupAuthBypass(page, {
         includeApiMocks: true,
@@ -132,13 +167,16 @@ test.describe('Vault Code', () => {
         });
       });
 
-      await page.route('**/api/v1/encryption/setup-recovery', (route: Route) => {
-        return route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ recoveryKey: MOCK_RECOVERY_KEY_LONG }),
-        });
-      });
+      await page.route(
+        '**/api/v1/encryption/setup-recovery',
+        (route: Route) => {
+          return route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ recoveryKey: MOCK_RECOVERY_KEY_LONG }),
+          });
+        },
+      );
 
       await vaultCodePage.gotoSetup();
       await vaultCodePage.fillVaultCode('123456');
@@ -152,14 +190,20 @@ test.describe('Vault Code', () => {
       await vaultCodePage.expectRecoveryKeyDialogVisible();
 
       await page.getByTestId('copy-recovery-key-button').click();
-      await expect(page.getByTestId('copy-recovery-key-button')).toContainText('Copié !');
+      await expect(page.getByTestId('copy-recovery-key-button')).toContainText(
+        'Copié !',
+      );
 
-      const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
+      const clipboardText = await page.evaluate(() =>
+        navigator.clipboard.readText(),
+      );
       expect(clipboardText).toBe(MOCK_RECOVERY_KEY_LONG);
 
       const normalized = MOCK_RECOVERY_KEY_LONG.replace(/-/g, '').toLowerCase();
       await page.getByTestId('recovery-key-confirm-input').fill(normalized);
-      await expect(page.getByTestId('recovery-key-confirm-button')).toBeEnabled();
+      await expect(
+        page.getByTestId('recovery-key-confirm-button'),
+      ).toBeEnabled();
       await page.getByTestId('recovery-key-confirm-button').click();
 
       await expect(page.getByTestId('recovery-key-dialog')).not.toBeVisible();
@@ -169,7 +213,9 @@ test.describe('Vault Code', () => {
   // --- Scenario B: Enter vault code (returning user) ---
 
   test.describe('Enter vault code', () => {
-    test('redirects to enter-vault-code when vaultCodeConfigured but no client key', async ({ page }) => {
+    test('redirects to enter-vault-code when vaultCodeConfigured but no client key', async ({
+      page,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -183,7 +229,10 @@ test.describe('Vault Code', () => {
       await expect(page.getByTestId('enter-vault-code-page')).toBeVisible();
     });
 
-    test('happy path: enter code redirects to dashboard', async ({ page, vaultCodePage }) => {
+    test('happy path: enter code redirects to dashboard', async ({
+      page,
+      vaultCodePage,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -195,10 +244,15 @@ test.describe('Vault Code', () => {
       await vaultCodePage.fillVaultCode('123456');
       await vaultCodePage.submitEnter();
 
-      await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
+      await expect(page).toHaveURL(/\/dashboard/, {
+        timeout: NAVIGATION_TIMEOUT,
+      });
     });
 
-    test('shows error on 400 response (incorrect code)', async ({ page, vaultCodePage }) => {
+    test('shows error on 400 response (incorrect code)', async ({
+      page,
+      vaultCodePage,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -220,10 +274,15 @@ test.describe('Vault Code', () => {
       await vaultCodePage.submitEnter();
 
       // Error alert should show
-      await expect(page.locator('[role="alert"]')).toContainText('Ce code ne semble pas correct');
+      await expect(page.locator('[role="alert"]')).toContainText(
+        'Ce code ne semble pas correct',
+      );
     });
 
-    test('lost code link navigates to recover page', async ({ page, vaultCodePage }) => {
+    test('lost code link navigates to recover page', async ({
+      page,
+      vaultCodePage,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -237,7 +296,10 @@ test.describe('Vault Code', () => {
       await expect(page).toHaveURL(/\/recover-vault-code/);
     });
 
-    test('logout from vault code screen redirects to login', async ({ page, vaultCodePage }) => {
+    test('logout from vault code screen redirects to login', async ({
+      page,
+      vaultCodePage,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -250,7 +312,10 @@ test.describe('Vault Code', () => {
       await expect(page).toHaveURL(/\/(login|welcome)/);
     });
 
-    test('rate limiting (429) shows error after multiple failed attempts', async ({ page, vaultCodePage }) => {
+    test('rate limiting (429) shows error after multiple failed attempts', async ({
+      page,
+      vaultCodePage,
+    }) => {
       let attemptCount = 0;
 
       await setupAuthBypass(page, {
@@ -290,11 +355,14 @@ test.describe('Vault Code', () => {
       }
 
       await expect(page.locator('[role="alert"]')).toContainText(
-        'Quelque chose n\'a pas fonctionné — réessaie plus tard',
+        "Quelque chose n'a pas fonctionné — réessaie plus tard",
       );
     });
 
-    test('remember device checkbox stores key in localStorage and persists after logout', async ({ page, vaultCodePage }) => {
+    test('remember device checkbox stores key in localStorage and persists after logout', async ({
+      page,
+      vaultCodePage,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -306,7 +374,9 @@ test.describe('Vault Code', () => {
       await vaultCodePage.fillVaultCode('123456');
       await vaultCodePage.submitEnter();
 
-      await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
+      await expect(page).toHaveURL(/\/dashboard/, {
+        timeout: NAVIGATION_TIMEOUT,
+      });
 
       const storageBeforeLogout = await page.evaluate(() =>
         localStorage.getItem('pulpe-vault-client-key-local'),
@@ -328,7 +398,10 @@ test.describe('Vault Code', () => {
   // --- Scenario C: Recover vault code ---
 
   test.describe('Recover vault code', () => {
-    test('happy path: recover and show new recovery key', async ({ page, vaultCodePage }) => {
+    test('happy path: recover and show new recovery key', async ({
+      page,
+      vaultCodePage,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -349,10 +422,15 @@ test.describe('Vault Code', () => {
 
       await vaultCodePage.confirmRecoveryKey(MOCK_RECOVERY_KEY);
 
-      await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
+      await expect(page).toHaveURL(/\/dashboard/, {
+        timeout: NAVIGATION_TIMEOUT,
+      });
     });
 
-    test('formats recovery key input to uppercase grouped format', async ({ page, vaultCodePage }) => {
+    test('formats recovery key input to uppercase grouped format', async ({
+      page,
+      vaultCodePage,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -367,7 +445,10 @@ test.describe('Vault Code', () => {
       await expect(recoveryInput).toHaveValue('ABCD-2345-EFGH');
     });
 
-    test('shows error on invalid recovery key (400)', async ({ page, vaultCodePage }) => {
+    test('shows error on invalid recovery key (400)', async ({
+      page,
+      vaultCodePage,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -391,10 +472,15 @@ test.describe('Vault Code', () => {
 
       await vaultCodePage.submitRecover();
 
-      await expect(page.locator('[role="alert"]')).toContainText('Clé de récupération invalide');
+      await expect(page.locator('[role="alert"]')).toContainText(
+        'Clé de récupération invalide',
+      );
     });
 
-    test('back link navigates to enter vault code', async ({ page, vaultCodePage }) => {
+    test('back link navigates to enter vault code', async ({
+      page,
+      vaultCodePage,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -413,7 +499,10 @@ test.describe('Vault Code', () => {
   // --- Scenario D: Remember device storage behavior ---
 
   test.describe('Remember device storage', () => {
-    test('stores client key in localStorage when remember device is checked', async ({ page, vaultCodePage }) => {
+    test('stores client key in localStorage when remember device is checked', async ({
+      page,
+      vaultCodePage,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -425,7 +514,7 @@ test.describe('Vault Code', () => {
       await vaultCodePage.fillVaultCode('123456');
       await vaultCodePage.submitEnter();
 
-      await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
+      await expectDashboardLoaded(page);
 
       const storage = await page.evaluate(() => ({
         local: localStorage.getItem('pulpe-vault-client-key-local'),
@@ -439,7 +528,10 @@ test.describe('Vault Code', () => {
       expect(parsed.data).toMatch(/^[0-9a-f]{64}$/i);
     });
 
-    test('stores client key in sessionStorage when remember device is unchecked', async ({ page, vaultCodePage }) => {
+    test('stores client key in sessionStorage when remember device is unchecked', async ({
+      page,
+      vaultCodePage,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -450,7 +542,7 @@ test.describe('Vault Code', () => {
       await vaultCodePage.fillVaultCode('123456');
       await vaultCodePage.submitEnter();
 
-      await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
+      await expectDashboardLoaded(page);
 
       const storage = await page.evaluate(() => ({
         local: localStorage.getItem('pulpe-vault-client-key-local'),
@@ -464,7 +556,11 @@ test.describe('Vault Code', () => {
       expect(parsed.data).toMatch(/^[0-9a-f]{64}$/i);
     });
 
-    test('localStorage client key persists across new context', async ({ page, browser, vaultCodePage }) => {
+    test('localStorage client key persists across new context', async ({
+      page,
+      browser,
+      vaultCodePage,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -476,7 +572,7 @@ test.describe('Vault Code', () => {
       await vaultCodePage.fillVaultCode('123456');
       await vaultCodePage.submitEnter();
 
-      await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
+      await expectDashboardLoaded(page);
 
       const storageState = await page.context().storageState();
       const newContext = await browser.newContext({ storageState });
@@ -495,7 +591,10 @@ test.describe('Vault Code', () => {
       await newContext.close();
     });
 
-    test('sessionStorage client key does not persist across new tab', async ({ page, vaultCodePage }) => {
+    test('sessionStorage client key does not persist across new tab', async ({
+      page,
+      vaultCodePage,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -506,7 +605,7 @@ test.describe('Vault Code', () => {
       await vaultCodePage.fillVaultCode('123456');
       await vaultCodePage.submitEnter();
 
-      await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
+      await expectDashboardLoaded(page);
 
       const secondPage = await page.context().newPage();
       await setupAuthBypass(secondPage, {
@@ -524,7 +623,9 @@ test.describe('Vault Code', () => {
   // --- Scenario E: Non-regression email/password ---
 
   test.describe('Non-regression', () => {
-    test('email user with vault code configured and client key accesses dashboard directly', async ({ page }) => {
+    test('email user with vault code configured and client key accesses dashboard directly', async ({
+      page,
+    }) => {
       await setupAuthBypass(page, {
         includeApiMocks: true,
         setLocalStorage: true,
@@ -539,7 +640,10 @@ test.describe('Vault Code', () => {
           data: validKeyHex,
           updatedAt: new Date().toISOString(),
         };
-        sessionStorage.setItem('pulpe-vault-client-key-session', JSON.stringify(entry));
+        sessionStorage.setItem(
+          'pulpe-vault-client-key-session',
+          JSON.stringify(entry),
+        );
       });
 
       await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });

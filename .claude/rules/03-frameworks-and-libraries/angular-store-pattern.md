@@ -289,4 +289,4 @@ catch (error) {
 | Store | File | Pattern |
 |-------|------|---------|
 | `BudgetDetailsStore` | `feature/budget/budget-details/store/` | `resource()`, optimistic updates, temp IDs, mutation queue |
-| `CurrentMonthStore` | `feature/current-month/services/` | `rxResource()`, SWR, invalidation version |
+| `CurrentMonthStore` | `feature/current-month/services/` | `resource()`, SWR, invalidation version |

@@ -177,7 +177,11 @@ export async function setupApiMocks(page: Page) {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ salt: '00000000000000000000000000000000', kdfIterations: 1 }),
+        body: JSON.stringify({
+          salt: '00000000000000000000000000000000',
+          kdfIterations: 1,
+          hasRecoveryKey: true,
+        }),
       });
     }
     if (url.includes('encryption/setup-recovery')) {

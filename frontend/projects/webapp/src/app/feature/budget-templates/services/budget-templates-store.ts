@@ -1,12 +1,11 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, resource, signal } from '@angular/core';
 import {
   type BudgetTemplate,
   type BudgetTemplateCreate,
   type BudgetTemplateCreateResponse,
 } from 'pulpe-shared';
-import { catchError, firstValueFrom, map } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { BudgetTemplatesApi } from './budget-templates-api';
-import { rxResource } from '@angular/core/rxjs-interop';
 import { Logger } from '@core/logging/logger';
 
 @Injectable()
@@ -17,23 +16,24 @@ export class BudgetTemplatesStore {
   // Business constants
   readonly MAX_TEMPLATES = 5;
 
-  // Using rxResource for better error handling with HTTP errors
-  readonly budgetTemplates = rxResource<BudgetTemplate[], void>({
-    stream: () =>
-      this.#budgetTemplatesApi.getAll$().pipe(
-        map((response) => (Array.isArray(response.data) ? response.data : [])),
-        catchError((error) => {
-          this.#logger.error('Erreur lors du chargement des templates:', error);
-          // Return an error observable to properly set the resource status to 'error'
-          throw error;
-        }),
-      ),
+  readonly budgetTemplates = resource<BudgetTemplate[], void>({
+    loader: async () => {
+      try {
+        const response = await firstValueFrom(
+          this.#budgetTemplatesApi.getAll$(),
+        );
+        return Array.isArray(response.data) ? response.data : [];
+      } catch (error) {
+        this.#logger.error('Erreur lors du chargement des templates:', error);
+        throw error;
+      }
+    },
   });
   readonly selectedTemplate = signal<BudgetTemplate | null>(null);
 
   // Filter out optimistic (temporary) templates for business logic computations
   // Temporary templates have IDs starting with "temp-"
-  #persistedTemplates = computed(
+  readonly #persistedTemplates = computed(
     () =>
       this.budgetTemplates.value()?.filter((t) => !t.id.startsWith('temp-')) ??
       [],

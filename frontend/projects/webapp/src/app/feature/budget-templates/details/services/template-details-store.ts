@@ -43,9 +43,12 @@ export class TemplateDetailsStore {
   });
 
   // SWR with computed(): fresh data takes priority, fallback to stale
-  // Conforms to Angular 21 guidelines: "Derived read-only state" → computed()
+  // Guard: resource.value() throws in error state, so check error() first
   readonly templateDetails = computed<BudgetTemplateDetailViewModel | null>(
-    () => this.#templateDetailsResource.value() ?? this.#staleData(),
+    () =>
+      this.#templateDetailsResource.error()
+        ? this.#staleData()
+        : (this.#templateDetailsResource.value() ?? this.#staleData()),
   );
 
   // Loading hidden if stale data available (smooth UX)

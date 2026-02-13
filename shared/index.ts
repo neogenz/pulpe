@@ -21,7 +21,6 @@ export {
   transactionCreateSchema,
   transactionUpdateSchema,
   transactionSearchResultSchema,
-  transactionSearchResultListSchema,
   transactionSearchResponseSchema,
 
   // Budget template schemas
@@ -43,6 +42,7 @@ export {
   deleteResponseSchema,
   budgetResponseSchema,
   budgetListResponseSchema,
+  budgetExistsResponseSchema,
   budgetDeleteResponseSchema,
   budgetSummarySchema,
   budgetDetailsResponseSchema,
@@ -159,7 +159,6 @@ export type {
   TransactionUpdate,
   SearchItemType,
   TransactionSearchResult,
-  TransactionSearchResultList,
   TransactionSearchResponse,
 
   // Budget template types

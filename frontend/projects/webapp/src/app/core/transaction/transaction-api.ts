@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { HttpParams } from '@angular/common/http';
 import {
   type TransactionCreate,
   type TransactionCreateResponse,
@@ -68,10 +69,15 @@ export class TransactionApi {
     query: string,
     years?: number[],
   ): Observable<TransactionSearchResponse> {
-    let path = `/transactions/search?q=${encodeURIComponent(query)}`;
+    let params = new HttpParams().set('q', query);
     if (years?.length) {
-      path += years.map((y) => `&years=${y}`).join('');
+      for (const y of years) {
+        params = params.append('years', y.toString());
+      }
     }
-    return this.#api.get$(path, transactionSearchResponseSchema);
+    return this.#api.get$(
+      `/transactions/search?${params.toString()}`,
+      transactionSearchResponseSchema,
+    );
   }
 }
