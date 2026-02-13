@@ -73,7 +73,7 @@ export const budgetSchema = z.object({
   templateId: z.uuid(),
   // ending_balance : STOCKÉ en base selon SPECS.md section 3
   // Calculé par le backend, pas par le frontend
-  endingBalance: z.number().nullable().optional(),
+  endingBalance: z.coerce.number().nullable().optional(),
   // rollover : CALCULÉ par le backend, pas persisté en base
   // Report du mois précédent selon formule SPECS rollover_M = ending_balance_M-1
   rollover: z.number().optional(),
@@ -186,7 +186,8 @@ export const budgetLineSchema = z.object({
   savingsGoalId: z.uuid().nullable(),
   name: z.string().min(1).max(100).trim(),
   // nonnegative: API may return 0 when encryption is active (real value in *_encrypted)
-  amount: z.number().nonnegative(),
+  // coerce: Supabase PostgREST returns numeric(12,2) columns as strings
+  amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   isManuallyAdjusted: z.boolean(),
@@ -245,7 +246,8 @@ export const transactionSchema = z.object({
   budgetLineId: z.uuid().nullable(),
   name: z.string().min(1).max(100).trim(),
   // nonnegative: API may return 0 when encryption is active (real value in *_encrypted)
-  amount: z.number().nonnegative(),
+  // coerce: Supabase PostgREST returns numeric(12,2) columns as strings
+  amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
   transactionDate: z.iso.datetime({ offset: true }),
   // NOTE: category pas définie dans SPECS V1 - "Pas de catégorisation avancée"
@@ -332,7 +334,8 @@ export const templateLineSchema = z.object({
   templateId: z.uuid(),
   name: z.string().min(1).max(100).trim(),
   // nonnegative: API may return 0 when encryption is active (real value in *_encrypted)
-  amount: z.number().nonnegative(),
+  // coerce: Supabase PostgREST returns numeric(12,2) columns as strings
+  amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   description: z.string().max(500).trim(),
