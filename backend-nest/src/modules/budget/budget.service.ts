@@ -579,6 +579,18 @@ export class BudgetService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDetailsResponse> {
+    const clientKeyHash = user.clientKey.toString('hex').slice(0, 16);
+    const cacheKey = `budgets:detail:${clientKeyHash}:${budgetId}`;
+    return this.cacheService.getOrSet(user.id, cacheKey, 30_000, () =>
+      this.#fetchBudgetWithDetails(budgetId, user, supabase),
+    );
+  }
+
+  async #fetchBudgetWithDetails(
+    budgetId: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetDetailsResponse> {
     try {
       const payDayOfMonth = await this.getPayDayOfMonth(supabase);
       const budgetData = await this.validateBudgetExists(budgetId, supabase);
