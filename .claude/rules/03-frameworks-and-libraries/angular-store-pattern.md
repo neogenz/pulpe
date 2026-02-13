@@ -87,6 +87,31 @@ export class FeatureStore {
 }
 ```
 
+## Store Variants
+
+### Variant A: Signals-Only Store
+For local UI state or synchronized state without async data loading.
+
+| Element | Usage |
+|---------|-------|
+| `signal()` | Writable state |
+| `computed()` | Derived selectors |
+| Methods | Synchronous set/update |
+
+Example: `CompleteProfileStore` — manages form steps and validation state.
+
+### Variant B: Resource-Backed Store
+For data fetched from API with async loading, mutations, and cache management.
+
+| Element | Usage |
+|---------|-------|
+| `resource()` / `rxResource()` | Async data loading |
+| `signal()` | Internal state (filters, IDs) |
+| `computed()` | Derived selectors, loading states |
+| `async` methods | Mutations with optimistic updates |
+
+Example: `BudgetDetailsStore` — loads budget details, manages optimistic CRUD.
+
 ## Data Loading
 
 Use `resource()` for fetch-on-signal-change, `rxResource()` when Observable chains are needed.
@@ -141,6 +166,42 @@ async createItem(data: ItemCreate): Promise<void> {
     this.#setError("Erreur lors de l'ajout");
   }
 }
+```
+
+## Temp ID Rule (DR-005)
+
+When creating an item with a temporary ID, **always replace the temp ID with the real server ID BEFORE** triggering cascade actions (invalidation, dependent API calls).
+
+### Correct order:
+```typescript
+// 1. Optimistic update with temp ID
+this.#resource.update(current => ({
+  ...current,
+  items: [...current.items, { ...data, id: tempId }],
+}));
+
+// 2. API call
+const response = await firstValueFrom(this.#api.create$(data));
+
+// 3. Replace temp → real (BEFORE cascade)
+this.#resource.update(current => ({
+  ...current,
+  items: current.items.map(i => i.id === tempId ? response.data : i),
+}));
+
+// 4. NOW safe to cascade
+this.#invalidation.invalidate();
+```
+
+### Bug if wrong order:
+```typescript
+// WRONG — cascade uses temp ID
+const response = await firstValueFrom(this.#api.create$(data));
+this.#invalidation.invalidate(); // Other stores reload, see "temp-xxx"
+this.#resource.update(...); // Too late, temp ID already leaked
+
+// WRONG — using temp ID in follow-up call
+await this.#api.toggleCheck$(tempId); // 404 — server doesn't know "temp-xxx"
 ```
 
 ## Cache Invalidation
