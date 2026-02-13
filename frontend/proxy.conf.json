@@ -1,0 +1,10 @@
+{
+  "/changelog": {
+    "target": "http://localhost:3001",
+    "secure": false
+  },
+  "/_next": {
+    "target": "http://localhost:3001",
+    "secure": false
+  }
+}
