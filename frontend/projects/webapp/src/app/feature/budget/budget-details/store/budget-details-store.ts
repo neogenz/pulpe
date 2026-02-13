@@ -6,7 +6,6 @@ import {
   resource,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BudgetApi } from '@core/budget/budget-api';
 import { Logger } from '@core/logging/logger';
 import { createRolloverLine } from '@core/budget/rollover/rollover-types';
@@ -23,15 +22,7 @@ import {
   BudgetFormulas,
 } from 'pulpe-shared';
 
-import {
-  catchError,
-  concatMap,
-  EMPTY,
-  firstValueFrom,
-  type Observable,
-  Subject,
-  tap,
-} from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 import { BudgetLineApi } from '../budget-line-api/budget-line-api';
 import { type BudgetDetailsViewModel } from '../models/budget-details-view-model';
@@ -56,11 +47,6 @@ export class BudgetDetailsStore {
   readonly #logger = inject(Logger);
   readonly #storage = inject(StorageService);
 
-  /**
-   * Mutation queue - serializes all async operations to prevent race conditions
-   */
-  readonly #mutations$ = new Subject<() => Observable<unknown>>();
-
   readonly #state = createInitialBudgetDetailsState();
 
   // Filter state - show only unchecked items by default
@@ -74,43 +60,11 @@ export class BudgetDetailsStore {
   readonly searchText = this.#searchText.asReadonly();
 
   constructor() {
-    // Mutation queue subscription
-    this.#mutations$
-      .pipe(
-        concatMap((operation) => operation()),
-        takeUntilDestroyed(),
-      )
-      .subscribe({
-        error: (err) =>
-          this.#logger.error(
-            '[BudgetDetailsStore] Unexpected mutation error:',
-            err,
-          ),
-      });
-
     // Persist filter preference to localStorage
     effect(() => {
       this.#storage.set(
         STORAGE_KEYS.BUDGET_SHOW_ONLY_UNCHECKED,
         this.#isShowingOnlyUnchecked(),
-      );
-    });
-  }
-
-  /**
-   * Enqueue a mutation for serialized execution
-   * Prevents race conditions by ensuring operations run sequentially
-   */
-  #enqueueMutation<T>(operation: () => Observable<T>): Promise<T> {
-    return new Promise((resolve, reject) => {
-      this.#mutations$.next(() =>
-        operation().pipe(
-          tap((result) => resolve(result)),
-          catchError((err) => {
-            reject(err);
-            return EMPTY;
-          }),
-        ),
       );
     });
   }
@@ -635,7 +589,7 @@ export class BudgetDetailsStore {
     });
 
     try {
-      const response = await this.#enqueueMutation(() =>
+      const response = await firstValueFrom(
         this.#budgetLineApi.toggleCheck$(id),
       );
 
@@ -680,7 +634,7 @@ export class BudgetDetailsStore {
     });
 
     try {
-      const response = await this.#enqueueMutation(() =>
+      const response = await firstValueFrom(
         this.#transactionApi.toggleCheck$(id),
       );
 
@@ -727,7 +681,7 @@ export class BudgetDetailsStore {
     });
 
     try {
-      const response = await this.#enqueueMutation(() =>
+      const response = await firstValueFrom(
         this.#budgetLineApi.checkTransactions$(budgetLineId),
       );
 
