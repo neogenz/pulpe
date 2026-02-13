@@ -12,6 +12,7 @@ import {
   MockSupabaseClient,
 } from '../../test/test-mocks';
 import { EncryptionService } from '@modules/encryption/encryption.service';
+import { CacheService } from '@modules/cache/cache.service';
 import type { BudgetCreate } from 'pulpe-shared';
 
 describe('BudgetService (Performance)', () => {
@@ -99,6 +100,18 @@ describe('BudgetService (Performance)', () => {
             encryptAmount: () => 'encrypted-mock',
             tryDecryptAmount: (_ct: string, _dek: Buffer, fallback: number) =>
               fallback,
+          },
+        },
+        {
+          provide: CacheService,
+          useValue: {
+            getOrSet: (
+              _userId: string,
+              _key: string,
+              _ttl: number,
+              fetcher: () => Promise<unknown>,
+            ) => fetcher(),
+            invalidateForUser: () => Promise.resolve(),
           },
         },
       ],

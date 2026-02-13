@@ -13,6 +13,7 @@ import {
 } from '../../../test/test-mocks';
 import { INFO_LOGGER_TOKEN } from '@common/logger';
 import { EncryptionService } from '@modules/encryption/encryption.service';
+import { CacheService } from '@modules/cache/cache.service';
 
 describe('Rollover with payDayOfMonth', () => {
   let service: BudgetService;
@@ -70,6 +71,18 @@ describe('Rollover with payDayOfMonth', () => {
             encryptAmount: () => 'encrypted-mock',
             tryDecryptAmount: (_ct: string, _dek: Buffer, fallback: number) =>
               fallback,
+          },
+        },
+        {
+          provide: CacheService,
+          useValue: {
+            getOrSet: (
+              _userId: string,
+              _key: string,
+              _ttl: number,
+              fetcher: () => Promise<unknown>,
+            ) => fetcher(),
+            invalidateForUser: () => Promise.resolve(),
           },
         },
       ],
