@@ -146,6 +146,9 @@ export class BudgetDetailsStore {
     () => this.#budgetDetailsResource.value() ?? null,
   );
   readonly isLoading = computed(() => this.#budgetDetailsResource.isLoading());
+  readonly isInitialLoading = computed(
+    () => this.#budgetDetailsResource.status() === 'loading',
+  );
   readonly hasValue = computed(() => this.#budgetDetailsResource.hasValue());
   readonly error = computed(
     () => this.#budgetDetailsResource.error() || this.#state.errorMessage(),
