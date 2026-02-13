@@ -11,6 +11,7 @@ import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
 
 import { BudgetDetailsStore } from './budget-details-store';
 import { BudgetApi } from '@core/budget/budget-api';
+import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { BudgetLineApi } from '../budget-line-api/budget-line-api';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { Logger } from '@core/logging/logger';
@@ -68,9 +69,11 @@ const mockBudgetDetailsResponse = createMockBudgetDetailsResponse({
 
 describe('BudgetDetailsStore - User Behavior Tests', () => {
   let service: BudgetDetailsStore;
+  let invalidationService: BudgetInvalidationService;
   let httpMock: HttpTestingController;
   let mockBudgetApi: {
     getBudgetWithDetails$: ReturnType<typeof vi.fn>;
+    getAllBudgets$: ReturnType<typeof vi.fn>;
   };
   let mockBudgetLineApi: {
     createBudgetLine$: ReturnType<typeof vi.fn>;
@@ -115,6 +118,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       getBudgetWithDetails$: vi
         .fn()
         .mockReturnValue(of(mockBudgetDetailsResponse)),
+      getAllBudgets$: vi.fn().mockReturnValue(of([])),
     };
 
     mockBudgetLineApi = {
@@ -167,6 +171,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     });
 
     service = TestBed.inject(BudgetDetailsStore);
+    invalidationService = TestBed.inject(BudgetInvalidationService);
     httpMock = TestBed.inject(HttpTestingController);
   });
 
@@ -692,6 +697,47 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
   });
 
   describe('User creates allocated transactions', () => {
+    it('replaces temp ID before invalidation (DR-005)', async () => {
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      const serverTransaction = createMockTransaction({
+        id: 'tx-server-dr005',
+        budgetId: mockBudgetId,
+        budgetLineId: 'line-2',
+        name: 'DR-005 Tx',
+        amount: 42,
+        kind: 'expense',
+        checkedAt: null,
+      });
+
+      mockTransactionApi.create$ = vi
+        .fn()
+        .mockReturnValue(of({ data: serverTransaction }));
+
+      const invalidateSpy = vi
+        .spyOn(invalidationService, 'invalidate')
+        .mockImplementation(() => {
+          const transactionIds =
+            service.budgetDetails()?.transactions.map((tx) => tx.id) ?? [];
+          expect(transactionIds).toContain('tx-server-dr005');
+          expect(transactionIds.some((id) => id.startsWith('temp-'))).toBe(
+            false,
+          );
+        });
+
+      await service.createAllocatedTransaction({
+        budgetId: mockBudgetId,
+        budgetLineId: 'line-2',
+        name: 'DR-005 Tx',
+        amount: 42,
+        kind: 'expense',
+      });
+
+      expect(invalidateSpy).toHaveBeenCalledTimes(1);
+    });
+
     it('should create transaction unchecked without affecting parent budget line state', async () => {
       const checkedTimestamp = '2024-01-15T10:00:00Z';
 
@@ -826,6 +872,34 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       expect(createdTx).toBeDefined();
       expect(createdTx?.checkedAt).toBeNull();
+    });
+  });
+
+  describe('Cache invalidation', () => {
+    it('invalidates shared caches after a successful mutation', async () => {
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      mockBudgetLineApi.updateBudgetLine$ = vi.fn().mockReturnValue(
+        of({
+          data: {
+            ...mockBudgetDetailsResponse.data.budgetLines[1],
+            name: 'Rent updated',
+            amount: 1600,
+          },
+        }),
+      );
+
+      const invalidateSpy = vi.spyOn(invalidationService, 'invalidate');
+
+      await service.updateBudgetLine({
+        id: 'line-2',
+        name: 'Rent updated',
+        amount: 1600,
+      });
+
+      expect(invalidateSpy).toHaveBeenCalledTimes(1);
     });
   });
 

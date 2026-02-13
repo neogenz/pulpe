@@ -7,6 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { BudgetApi } from '@core/budget/budget-api';
+import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { Logger } from '@core/logging/logger';
 import { createRolloverLine } from '@core/budget/rollover/rollover-types';
 import { StorageService } from '@core/storage/storage.service';
@@ -35,19 +36,31 @@ import { createInitialBudgetDetailsState } from './budget-details-state';
 
 const TEMP_ID_PREFIX = 'temp-';
 
+function isTempId(id: string): boolean {
+  return id.startsWith(TEMP_ID_PREFIX);
+}
+
+function generateTempId(): string {
+  return `${TEMP_ID_PREFIX}${uuidv4()}`;
+}
+
 /**
  * Signal-based store for budget details state management
  * Follows the reactive patterns with single state signal and resource separation
  */
 @Injectable()
 export class BudgetDetailsStore {
+  // ── 1. Dependencies ──
   readonly #budgetLineApi = inject(BudgetLineApi);
   readonly #budgetApi = inject(BudgetApi);
   readonly #transactionApi = inject(TransactionApi);
+  readonly #invalidationService = inject(BudgetInvalidationService);
   readonly #logger = inject(Logger);
   readonly #storage = inject(StorageService);
 
+  // ── 2. Internal state (private/writable) ──
   readonly #state = createInitialBudgetDetailsState();
+  readonly #staleData = signal<BudgetDetailsViewModel | null>(null);
 
   // Filter state - show only unchecked items by default
   readonly #isShowingOnlyUnchecked = signal<boolean>(
@@ -67,24 +80,33 @@ export class BudgetDetailsStore {
         this.#isShowingOnlyUnchecked(),
       );
     });
+
+    // Keep stale snapshot only from server-resolved states (not local optimistic updates).
+    effect(() => {
+      if (this.#budgetDetailsResource.status() === 'resolved') {
+        const details = this.#budgetDetailsResource.value();
+        if (details) {
+          this.#staleData.set(details);
+        }
+      }
+    });
   }
 
+  // ── 3. Data loading (resource) ──
   readonly #budgetDetailsResource = resource<
     BudgetDetailsViewModel,
-    string | null
+    string | undefined
   >({
-    params: () => this.#state.budgetId(),
+    params: () => this.#state.budgetId() ?? undefined,
     loader: async ({ params: budgetId }) => {
-      if (!budgetId) {
-        throw new Error('Budget ID is required');
-      }
-
       const response = await firstValueFrom(
         this.#budgetApi.getBudgetWithDetails$(budgetId),
       );
 
       if (!response.success || !response.data) {
-        this.#logger.error('Failed to fetch budget details', { budgetId });
+        this.#logger.error('Failed to fetch budget details', {
+          budgetId,
+        });
         throw new Error('Failed to fetch budget details');
       }
 
@@ -96,22 +118,26 @@ export class BudgetDetailsStore {
     },
   });
 
+  readonly #allBudgetsResource = resource({
+    params: () => ({ version: this.#invalidationService.version() }),
+    loader: async () => firstValueFrom(this.#budgetApi.getAllBudgets$()),
+  });
+
+  // ── 4. Public selectors (readonly/computed) ──
   readonly budgetDetails = computed(
-    () => this.#budgetDetailsResource.value() ?? null,
+    () => this.#budgetDetailsResource.value() ?? this.#staleData(),
   );
-  readonly isLoading = computed(() => this.#budgetDetailsResource.isLoading());
+  readonly isLoading = computed(
+    () => this.#budgetDetailsResource.isLoading() && !this.#staleData(),
+  );
   readonly isInitialLoading = computed(
-    () => this.#budgetDetailsResource.status() === 'loading',
+    () =>
+      this.#budgetDetailsResource.status() === 'loading' && !this.#staleData(),
   );
-  readonly hasValue = computed(() => this.#budgetDetailsResource.hasValue());
+  readonly hasValue = computed(() => this.budgetDetails() !== null);
   readonly error = computed(
     () => this.#budgetDetailsResource.error() || this.#state.errorMessage(),
   );
-
-  // Month navigation - load all budgets to find adjacent ones
-  readonly #allBudgetsResource = resource({
-    loader: async () => firstValueFrom(this.#budgetApi.getAllBudgets$()),
-  });
 
   readonly #sortedBudgets = computed(() => {
     const budgets = this.#allBudgetsResource.value() ?? [];
@@ -172,8 +198,8 @@ export class BudgetDetailsStore {
   });
 
   readonly realizedBalance = computed<number>(() => {
-    if (!this.#budgetDetailsResource.hasValue()) return 0;
-    const details = this.#budgetDetailsResource.value();
+    const details = this.budgetDetails();
+    if (!details) return 0;
     return BudgetFormulas.calculateRealizedBalance(
       this.displayBudgetLines(),
       details.transactions,
@@ -181,8 +207,8 @@ export class BudgetDetailsStore {
   });
 
   readonly realizedExpenses = computed<number>(() => {
-    if (!this.#budgetDetailsResource.hasValue()) return 0;
-    const details = this.#budgetDetailsResource.value();
+    const details = this.budgetDetails();
+    if (!details) return 0;
     return BudgetFormulas.calculateRealizedExpenses(
       this.displayBudgetLines(),
       details.transactions,
@@ -190,8 +216,8 @@ export class BudgetDetailsStore {
   });
 
   readonly checkedItemsCount = computed<number>(() => {
-    if (!this.#budgetDetailsResource.hasValue()) return 0;
-    const details = this.#budgetDetailsResource.value();
+    const details = this.budgetDetails();
+    if (!details) return 0;
     const lines = this.displayBudgetLines();
     const transactions = details.transactions ?? [];
     return [...lines, ...transactions].filter((item) => item.checkedAt != null)
@@ -199,8 +225,8 @@ export class BudgetDetailsStore {
   });
 
   readonly totalItemsCount = computed<number>(() => {
-    if (!this.#budgetDetailsResource.hasValue()) return 0;
-    const details = this.#budgetDetailsResource.value();
+    const details = this.budgetDetails();
+    if (!details) return 0;
     const lines = this.displayBudgetLines();
     const transactions = details.transactions ?? [];
     return lines.length + transactions.length;
@@ -280,16 +306,21 @@ export class BudgetDetailsStore {
   }
 
   setBudgetId(budgetId: string): void {
+    if (this.#state.budgetId() !== budgetId) {
+      this.#staleData.set(null);
+    }
     this.#state.budgetId.set(budgetId);
     // Reset rollover checked state when changing budget (checked by default)
     this.#state.rolloverCheckedAt.set(new Date().toISOString());
   }
 
+  // ── 5. Mutations (async/await) ──
+
   /**
    * Create a new budget line with optimistic updates
    */
   async createBudgetLine(budgetLine: BudgetLineCreate): Promise<void> {
-    const newId = `${TEMP_ID_PREFIX}${uuidv4()}`;
+    const newId = generateTempId();
 
     // Create temporary budget line for optimistic update
     const tempBudgetLine: BudgetLine = {
@@ -329,7 +360,9 @@ export class BudgetDetailsStore {
         };
       });
 
+      // DR-005 order: temp ID replacement happens before invalidation cascade.
       this.#clearError();
+      this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
 
@@ -367,6 +400,7 @@ export class BudgetDetailsStore {
 
       // Clear any previous errors
       this.#clearError();
+      this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
 
@@ -399,7 +433,7 @@ export class BudgetDetailsStore {
       await firstValueFrom(this.#transactionApi.update$(id, data));
 
       this.#clearError();
-      this.reloadBudgetDetails();
+      this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
 
@@ -427,6 +461,7 @@ export class BudgetDetailsStore {
       await firstValueFrom(this.#budgetLineApi.deleteBudgetLine$(id));
 
       this.#clearError();
+      this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
 
@@ -454,6 +489,7 @@ export class BudgetDetailsStore {
       await firstValueFrom(this.#transactionApi.remove$(id));
 
       this.#clearError();
+      this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
 
@@ -470,7 +506,7 @@ export class BudgetDetailsStore {
   async createAllocatedTransaction(
     transactionData: TransactionCreate,
   ): Promise<void> {
-    const newId = `${TEMP_ID_PREFIX}${uuidv4()}`;
+    const newId = generateTempId();
 
     // Create temporary transaction for optimistic update
     const tempTransaction: Transaction = {
@@ -516,7 +552,9 @@ export class BudgetDetailsStore {
         };
       });
 
+      // DR-005 order: temp ID replacement happens before invalidation cascade.
       this.#clearError();
+      this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
 
@@ -547,6 +585,7 @@ export class BudgetDetailsStore {
       });
 
       this.#clearError();
+      this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
 
@@ -605,6 +644,7 @@ export class BudgetDetailsStore {
       });
 
       this.#clearError();
+      this.#invalidationService.invalidate();
       return true;
     } catch (error) {
       this.reloadBudgetDetails();
@@ -649,6 +689,7 @@ export class BudgetDetailsStore {
       });
 
       this.#clearError();
+      this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
       this.#setError('Erreur lors du basculement du statut de la transaction');
@@ -664,7 +705,7 @@ export class BudgetDetailsStore {
       (tx) =>
         tx.budgetLineId === budgetLineId &&
         tx.checkedAt === null &&
-        !tx.id.startsWith(TEMP_ID_PREFIX),
+        !isTempId(tx.id),
     );
     if (uncheckedTransactions.length === 0) return;
 
@@ -696,6 +737,7 @@ export class BudgetDetailsStore {
         };
       });
       this.#clearError();
+      this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
       this.#setError('Erreur lors de la comptabilisation des transactions');
@@ -711,7 +753,7 @@ export class BudgetDetailsStore {
     this.#clearError();
   }
 
-  // Private state mutation methods
+  // ── 6. Private utility methods ──
 
   /**
    * Set an error message in the state
