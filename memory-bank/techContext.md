@@ -27,6 +27,78 @@
 | DR-005 | Temp ID Replacement Before Toggle Cascade | 2026-01-30 | Accepted |
 | DR-006 | Split-Key Encryption for Financial Amounts | 2026-01-29 | Accepted |
 | DR-007 | Zoneless Testing — Child Input Signal Limitation | 2026-02-13 | Accepted |
+| DR-008 | Centralized ApiClient with Mandatory Zod Validation | 2026-02-13 | Accepted |
+| DR-009 | Signal Store Pattern with SWR | 2026-02-13 | Accepted |
+
+---
+
+## DR-009: Signal Store Pattern with SWR
+
+**Date**: 2026-02-13
+**Status**: Accepted
+
+### Problem
+
+Les stores utilisaient des `Subject` + `concatMap` RxJS pour les mutations et affichaient un spinner plein écran à chaque refetch, même pour un refresh en arrière-plan.
+
+### Decision Drivers
+
+- Angular 21+ signals-first : RxJS mutation queues ajoutent de la complexité inutile
+- UX : l'utilisateur préfère voir des données stales plutôt qu'un spinner à chaque navigation
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A: RxJS mutation queue + spinner systématique | Conserver `Subject` + `concatMap` + `isLoading` global | Rejected — over-engineered |
+| B: async/await mutations + SWR pattern | Mutations directes, `isInitialLoading` pour spinner initial uniquement | Chosen |
+
+### Decision
+
+Standardiser un store pattern en 6 sections (Dependencies, State, Resource, Selectors, Mutations, Private utils) avec :
+- Mutations en async/await direct (plus de Subject queue)
+- `isInitialLoading = computed(() => resource.status() === 'loading')` pour spinner initial uniquement
+- Données stales visibles pendant le reloading
+
+### Consequences
+
+- **Positive** : Code plus simple, meilleure UX (pas de flash spinner)
+- **Trade-off** : Pas de queueing intégré (pas nécessaire au volume actuel)
+- **Impact** : `BudgetDetailsStore`, `CurrentMonthStore`, `BudgetTemplatesStore` refactorisés
+
+---
+
+## DR-008: Centralized ApiClient with Mandatory Zod Validation
+
+**Date**: 2026-02-13
+**Status**: Accepted
+
+### Problem
+
+Les services API injectaient `HttpClient` directement avec un error handling et une validation incohérents entre les features.
+
+### Decision Drivers
+
+- Pas de validation runtime des réponses API → bugs silencieux si le contrat backend change
+- Error handling dupliqué dans chaque service
+- Pas de normalisation des erreurs (format différent par service)
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A: HttpClient direct | Chaque service gère ses erreurs et parsing | Rejected — incohérent |
+| B: ApiClient centralisé avec Zod | Un service unique avec validation obligatoire | Chosen |
+
+### Decision
+
+Tous les appels HTTP passent par `ApiClient` (`core/api/api-client.ts`) avec un schéma Zod obligatoire. Les feature APIs (`BudgetApi`, `TemplateApi`, etc.) retournent des `Observable<T>` validés.
+
+### Consequences
+
+- **Positive** : Validation runtime, error handling uniforme, meilleur debugging
+- **Trade-off** : Chaque endpoint nécessite un schéma Zod
+- **Impact** : 10+ services migrés (BudgetApi, TransactionApi, TemplateApi, EncryptionApi, UserSettingsApi, BudgetLineApi, BudgetTemplatesApi, ProfileSetupService, DemoInitializerService)
 
 ---
 

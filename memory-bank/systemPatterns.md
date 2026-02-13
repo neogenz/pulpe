@@ -34,15 +34,33 @@ Located in `frontend/projects/webapp/src/app/`:
 | `styles/` | SCSS themes, partials, vendor styles | Global |
 | `testing/` | Mock factories, test utilities | Dev only |
 
+### API & State Management Pattern
+
+```
+Component → Store → Feature API → ApiClient → HttpClient
+             ↑          ↑             ↑
+         signals   Observables   Zod validation
+```
+
+- **ApiClient** (`core/api/`) — centralized HTTP with mandatory Zod schema validation
+- **Feature APIs** — domain endpoints returning `Observable<T>` (e.g., `BudgetApi`, `TemplateApi`)
+- **Stores** — signal-based state with `resource()` for loading, SWR (stale-while-revalidate) for refetch UX
+- **Components** — read signals, call store mutations
+
+Rule: **NEVER inject HttpClient directly** — all HTTP goes through ApiClient.
+
 ### Core Layer Domains
 
 The `core/` layer contains domain-specific services:
 
+- `api/` - Centralized ApiClient with Zod validation
 - `auth/` - Authentication, guards, session
 - `analytics/` - PostHog tracking
 - `budget/` - Budget calculations
 - `config/` - App configuration
 - `demo/` - Demo mode services
+- `encryption/` - Client-key management, vault code
+- `preload/` - Critical data preloading on auth (allSettled)
 - `routing/` - Route guards, navigation
 - `storage/` - LocalStorage, persistence
 - `user-settings/` - User preferences
@@ -75,6 +93,7 @@ Features isolated (no sibling imports)
 - **Standalone Components**: No NgModules
 - **OnPush + Signals**: For performance
 - **Features as Black Boxes**: Isolated, lazy-loaded
+- **Store Pattern**: 6-section anatomy (Dependencies, State, Resource, Selectors, Mutations, Private utils) — see `.claude/rules/angular-store-pattern.md`
 
 ### Demo Mode Pattern
 
@@ -204,6 +223,7 @@ shared/
 ├── schemas.ts            # Zod schemas (DTOs, enums)
 └── src/
     ├── types.ts          # Shared TypeScript types
+    ├── api-response.ts   # Response schema factories (createApiResponse, etc.)
     └── calculators/      # Business logic calculators
         ├── budget-formulas.ts
         └── budget-period.ts
