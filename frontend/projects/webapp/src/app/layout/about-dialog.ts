@@ -1,7 +1,13 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  signal,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { ROUTES } from '@core/routing/routes-constants';
@@ -17,15 +23,28 @@ interface DebugInfoItem {
   readonly value: string;
 }
 
+const LONG_PRESS_DURATION_MS = 10_000;
+
 @Component({
   selector: 'pulpe-about-dialog',
-  imports: [MatDialogModule, MatButtonModule, MatIconModule, RouterLink],
+  imports: [MatDialogModule, MatButtonModule, RouterLink],
   template: `
-    <h2 mat-dialog-title class="text-headline-small">À propos</h2>
+    <h2
+      mat-dialog-title
+      class="text-headline-small select-none"
+      (mousedown)="startLongPress()"
+      (mouseup)="cancelLongPress()"
+      (mouseleave)="cancelLongPress()"
+      (touchstart)="startLongPress()"
+      (touchend)="cancelLongPress()"
+      (touchcancel)="cancelLongPress()"
+    >
+      À propos
+    </h2>
 
     <mat-dialog-content>
       <div class="flex flex-col gap-6">
-        @for (section of sections; track section.label) {
+        @for (section of visibleSections(); track section.label) {
           <div>
             <h3 class="text-label-large text-on-surface-variant mb-2">
               {{ section.label }}
@@ -48,9 +67,17 @@ interface DebugInfoItem {
         }
         <div>
           <h3 class="text-label-large text-on-surface-variant mb-2">
-            Mentions légales
+            Liens utiles
           </h3>
           <div class="flex flex-col gap-1">
+            <a
+              class="text-body-medium text-primary py-1 hover:underline"
+              href="/changelog"
+              target="_blank"
+              rel="noopener"
+            >
+              Nouveautés
+            </a>
             <a
               class="text-body-medium text-primary py-1 hover:underline"
               [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
@@ -90,6 +117,10 @@ interface DebugInfoItem {
         min-width: 320px;
         max-width: 480px;
       }
+
+      h2 {
+        -webkit-touch-callout: none;
+      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -97,27 +128,62 @@ interface DebugInfoItem {
 export class AboutDialog {
   readonly #dialogRef = inject(MatDialogRef<AboutDialog>);
   readonly #applicationConfig = inject(ApplicationConfiguration);
+  readonly #destroyRef = inject(DestroyRef);
 
   protected readonly ROUTES = ROUTES;
+  readonly #isDebugVisible = signal(false);
+  #longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
-  readonly sections: readonly DebugInfoSection[] = this.#buildSections();
+  readonly sections: readonly DebugInfoSection[] = [
+    {
+      label: 'Build',
+      items: [
+        { label: 'Version', value: buildInfo.version },
+        { label: 'Commit', value: buildInfo.shortCommitHash },
+        { label: 'Date', value: this.#formatDate(buildInfo.buildDate) },
+      ],
+    },
+  ];
+
+  readonly #debugSections: readonly DebugInfoSection[] =
+    this.#buildDebugSections();
+
+  protected readonly visibleSections = computed(() =>
+    this.#isDebugVisible()
+      ? [...this.sections, ...this.#debugSections]
+      : this.sections,
+  );
+
+  constructor() {
+    this.#destroyRef.onDestroy(() => this.#clearLongPressTimer());
+  }
 
   close(): void {
     this.#dialogRef.close();
   }
 
-  #buildSections(): DebugInfoSection[] {
+  protected startLongPress(): void {
+    this.#clearLongPressTimer();
+    this.#longPressTimer = setTimeout(() => {
+      this.#isDebugVisible.set(true);
+    }, LONG_PRESS_DURATION_MS);
+  }
+
+  protected cancelLongPress(): void {
+    this.#clearLongPressTimer();
+  }
+
+  #clearLongPressTimer(): void {
+    if (this.#longPressTimer) {
+      clearTimeout(this.#longPressTimer);
+      this.#longPressTimer = null;
+    }
+  }
+
+  #buildDebugSections(): DebugInfoSection[] {
     const config = this.#applicationConfig;
 
     return [
-      {
-        label: 'Build',
-        items: [
-          { label: 'Version', value: buildInfo.version },
-          { label: 'Commit', value: buildInfo.shortCommitHash },
-          { label: 'Date', value: this.#formatDate(buildInfo.buildDate) },
-        ],
-      },
       {
         label: 'Environnement',
         items: [{ label: 'Mode', value: config.environment() }],
