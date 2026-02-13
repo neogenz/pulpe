@@ -3,6 +3,9 @@
 -- =====================================================
 -- This file populates the database with test data for development
 -- Test user credentials: maxime.desogus@gmail.com / 12345678
+--
+-- Use `pnpm supabase:reset` (chains reset + encryption automatically)
+-- Then login with PIN: 1234
 
 -- Ensure required extensions are available (already enabled on local Supabase,
 -- but needed when seeding a remote branch database)
@@ -51,7 +54,7 @@ INSERT INTO auth.users (
     current_timestamp,
     current_timestamp,
     '{"provider":"email","providers":["email"]}',
-    '{"full_name":"Maxime Desogus"}',
+    '{"full_name":"Maxime Desogus","vaultCodeConfigured":true}',
     current_timestamp,
     current_timestamp,
     '',
