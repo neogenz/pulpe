@@ -51,11 +51,11 @@ if [ "$confirm" != "y" ]; then
 fi
 
 # ── Reset and encrypt ───────────────────────────────────────────────
+# Always unlink on exit to prevent accidental remote operations
+trap 'supabase unlink' EXIT
+
 echo ""
 supabase db reset --linked
-
-# After reset, always unlink on exit to prevent accidental remote operations
-trap 'supabase unlink' EXIT
 
 export SUPABASE_URL="$derived_url"
 export SUPABASE_SERVICE_ROLE_KEY="$srk"
