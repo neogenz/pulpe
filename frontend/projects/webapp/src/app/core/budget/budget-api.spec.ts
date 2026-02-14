@@ -461,8 +461,9 @@ describe('BudgetApi', () => {
   });
 
   describe('toggleBudgetLineCheck$', () => {
-    it('should POST to /budget-lines/:id/toggle-check and invalidate', () => {
+    it('should POST to /budget-lines/:id/toggle-check without global invalidation but with cache invalidation', () => {
       const { service, httpTesting, mockInvalidation } = createTestBed();
+      const cacheInvalidateSpy = vi.spyOn(service.cache, 'invalidate');
       const id = '550e8400-e29b-41d4-a716-446655440010';
 
       let result: unknown;
@@ -475,13 +476,15 @@ describe('BudgetApi', () => {
       req.flush(BUDGET_LINE_RESPONSE);
 
       expect(result).toEqual(BUDGET_LINE_RESPONSE);
-      expect(mockInvalidation.invalidate).toHaveBeenCalled();
+      expect(mockInvalidation.invalidate).not.toHaveBeenCalled();
+      expect(cacheInvalidateSpy).toHaveBeenCalledWith(['budget']);
     });
   });
 
   describe('checkBudgetLineTransactions$', () => {
-    it('should POST to /budget-lines/:id/check-transactions and invalidate', () => {
+    it('should POST to /budget-lines/:id/check-transactions without global invalidation but with cache invalidation', () => {
       const { service, httpTesting, mockInvalidation } = createTestBed();
+      const cacheInvalidateSpy = vi.spyOn(service.cache, 'invalidate');
       const id = '550e8400-e29b-41d4-a716-446655440010';
       const listResponse = { success: true, data: [TRANSACTION_DATA] };
 
@@ -495,7 +498,8 @@ describe('BudgetApi', () => {
       req.flush(listResponse);
 
       expect(result).toEqual(listResponse);
-      expect(mockInvalidation.invalidate).toHaveBeenCalled();
+      expect(mockInvalidation.invalidate).not.toHaveBeenCalled();
+      expect(cacheInvalidateSpy).toHaveBeenCalledWith(['budget']);
     });
   });
 
@@ -557,8 +561,9 @@ describe('BudgetApi', () => {
   });
 
   describe('toggleTransactionCheck$', () => {
-    it('should delegate to TransactionApi.toggleCheck$ and invalidate', () => {
+    it('should delegate to TransactionApi.toggleCheck$ without global invalidation but with cache invalidation', () => {
       const { service, mockTransactionApi, mockInvalidation } = createTestBed();
+      const cacheInvalidateSpy = vi.spyOn(service.cache, 'invalidate');
       mockTransactionApi.toggleCheck$.mockReturnValue(of(TRANSACTION_RESPONSE));
       const id = '550e8400-e29b-41d4-a716-446655440020';
 
@@ -567,7 +572,8 @@ describe('BudgetApi', () => {
 
       expect(mockTransactionApi.toggleCheck$).toHaveBeenCalledWith(id);
       expect(result).toEqual(TRANSACTION_RESPONSE);
-      expect(mockInvalidation.invalidate).toHaveBeenCalled();
+      expect(mockInvalidation.invalidate).not.toHaveBeenCalled();
+      expect(cacheInvalidateSpy).toHaveBeenCalledWith(['budget']);
     });
   });
 });

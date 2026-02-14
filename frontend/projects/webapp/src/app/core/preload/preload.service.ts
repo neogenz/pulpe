@@ -98,10 +98,6 @@ export class PreloadService {
           budgetLines: response.data.budgetLines,
           transactions: response.data.transactions,
         };
-        this.#budgetApi.cache.set(
-          ['budget', 'details', currentBudget.id],
-          viewModel,
-        );
         return viewModel;
       })
       .catch((error) => {

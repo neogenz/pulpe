@@ -122,7 +122,6 @@ export class BudgetDetailsStore {
             transactions: response.data.transactions,
           };
 
-          this.#budgetApi.cache.set(cacheKey, viewModel);
           return viewModel;
         },
       );
@@ -832,7 +831,6 @@ export class BudgetDetailsStore {
               budgetLines: response.data.budgetLines,
               transactions: response.data.transactions,
             };
-            this.#budgetApi.cache.set(['budget', 'details', id], viewModel);
             return viewModel;
           })
           .catch((error) => {

@@ -84,6 +84,13 @@ describe('DataCache', () => {
     expect(result2).toBe('result');
   });
 
+  it('should auto-cache result after deduplicate resolves', async () => {
+    await cache.deduplicate(['key'], () => Promise.resolve('data'));
+
+    const cached = cache.get<string>(['key']);
+    expect(cached).toEqual({ data: 'data', fresh: true });
+  });
+
   it('should clean up inFlight after resolution', async () => {
     const fetchFn = vi.fn().mockResolvedValue('result');
 
@@ -113,6 +120,92 @@ describe('DataCache', () => {
     expect(result).toBe('fresh');
 
     resolveFetch('stale');
+  });
+
+  it('should not delete newer in-flight promise when old promise resolves after invalidation', async () => {
+    let resolveA!: (value: string) => void;
+    const fetchA = vi
+      .fn()
+      .mockImplementation(() => new Promise<string>((r) => (resolveA = r)));
+
+    let resolveB!: (value: string) => void;
+    const fetchB = vi
+      .fn()
+      .mockImplementation(() => new Promise<string>((r) => (resolveB = r)));
+
+    const fetchC = vi.fn().mockResolvedValue('C');
+
+    // T=0: Start fetch A
+    cache.deduplicate(['key'], fetchA);
+
+    // T=1: Invalidate → removes A from inFlight
+    cache.invalidate(['key']);
+
+    // T=2: Start fetch B (new promise stored in inFlight)
+    cache.deduplicate(['key'], fetchB);
+
+    // T=3: A resolves → its finally() must NOT delete B's promise
+    resolveA('stale-A');
+    await Promise.resolve();
+
+    // T=4: Another caller should reuse B, not start C
+    cache.deduplicate(['key'], fetchC);
+    expect(fetchC).not.toHaveBeenCalled();
+
+    resolveB('fresh-B');
+  });
+
+  it('should not cache stale response when invalidation happened during fetch', async () => {
+    let resolveA!: (value: string) => void;
+    const fetchA = vi
+      .fn()
+      .mockImplementation(() => new Promise<string>((r) => (resolveA = r)));
+
+    // T=0: Start fetch A
+    cache.deduplicate(['key'], fetchA);
+
+    // T=1: Invalidate → version bumped
+    cache.invalidate(['key']);
+
+    // T=2: Fetch A resolves with stale data → auto-cache must be rejected
+    resolveA('stale');
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const cached = cache.get<string>(['key']);
+    expect(cached?.fresh).not.toBe(true);
+  });
+
+  it('should cache post-invalidation fetch but not pre-invalidation fetch', async () => {
+    let resolveA!: (value: string) => void;
+    const fetchA = vi
+      .fn()
+      .mockImplementation(() => new Promise<string>((r) => (resolveA = r)));
+
+    // T=0: Start fetch A
+    cache.deduplicate(['key'], fetchA);
+
+    // T=1: Invalidate
+    cache.invalidate(['key']);
+
+    // T=2: Start fetch B (post-invalidation)
+    const resultB = await cache.deduplicate(['key'], () =>
+      Promise.resolve('fresh-B'),
+    );
+
+    expect(resultB).toBe('fresh-B');
+
+    // B's result should be cached as fresh
+    const cachedAfterB = cache.get<string>(['key']);
+    expect(cachedAfterB).toEqual({ data: 'fresh-B', fresh: true });
+
+    // T=3: Old fetch A finally resolves — must NOT overwrite fresh B
+    resolveA('stale-A');
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const cachedAfterA = cache.get<string>(['key']);
+    expect(cachedAfterA).toEqual({ data: 'fresh-B', fresh: true });
   });
 
   it('should NOT clear non-matching in-flight promises on invalidate', async () => {

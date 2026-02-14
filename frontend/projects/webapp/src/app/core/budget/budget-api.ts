@@ -79,7 +79,6 @@ export class BudgetApi {
           this.#api.get$('/budgets', budgetListResponseSchema),
         );
         this.#hasBudgetCache.setHasBudget(response.data.length > 0);
-        this.cache.set(cacheKey, response.data);
         return response.data;
       }),
     );
@@ -99,7 +98,6 @@ export class BudgetApi {
           this.#api.get$('/budgets/exists', budgetExistsResponseSchema),
         );
         this.#hasBudgetCache.setHasBudget(response.hasBudget);
-        this.cache.set(cacheKey, response.hasBudget);
         return response.hasBudget;
       }),
     );
@@ -223,12 +221,7 @@ export class BudgetApi {
         {},
         budgetLineResponseSchema,
       )
-      .pipe(
-        tap(() => {
-          this.#invalidationService.invalidate();
-          this.cache.invalidate(['budget']);
-        }),
-      );
+      .pipe(tap(() => this.cache.invalidate(['budget'])));
   }
 
   checkBudgetLineTransactions$(
@@ -240,12 +233,7 @@ export class BudgetApi {
         {},
         transactionListResponseSchema,
       )
-      .pipe(
-        tap(() => {
-          this.#invalidationService.invalidate();
-          this.cache.invalidate(['budget']);
-        }),
-      );
+      .pipe(tap(() => this.cache.invalidate(['budget'])));
   }
 
   createTransaction$(
@@ -281,11 +269,8 @@ export class BudgetApi {
   }
 
   toggleTransactionCheck$(id: string): Observable<TransactionUpdateResponse> {
-    return this.#transactionApi.toggleCheck$(id).pipe(
-      tap(() => {
-        this.#invalidationService.invalidate();
-        this.cache.invalidate(['budget']);
-      }),
-    );
+    return this.#transactionApi
+      .toggleCheck$(id)
+      .pipe(tap(() => this.cache.invalidate(['budget'])));
   }
 }

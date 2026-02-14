@@ -379,7 +379,6 @@ export class CurrentMonthStore {
           transactions: details.transactions,
           budgetLines: details.budgetLines,
         };
-        this.#budgetApi.cache.set(cacheKey, result);
         return result;
       }
 
@@ -392,7 +391,6 @@ export class CurrentMonthStore {
         transactions: response.data.transactions,
         budgetLines: response.data.budgetLines,
       };
-      this.#budgetApi.cache.set(cacheKey, result);
       return result;
     });
 
