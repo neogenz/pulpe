@@ -443,7 +443,7 @@ export class EncryptionService {
     const rekey = (ciphertext: string | null) =>
       ciphertext
         ? this.#reEncryptAmountStrict(ciphertext, oldDek, newDek)
-        : this.encryptAmount(0, newDek);
+        : null;
 
     return {
       budgetLines: rows.budgetLines.map((r) => ({

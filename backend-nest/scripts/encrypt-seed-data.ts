@@ -146,22 +146,40 @@ async function main(): Promise<void> {
     .eq('user_id', TEST_USER_ID);
   const templateIds = templates?.map((t) => t.id) ?? [];
 
-  // Encrypt each table
-  const results = await Promise.all([
-    encryptTable('budget_line', 'amount', 'budget_id', budgetIds),
-    encryptTable('transaction', 'amount', 'budget_id', budgetIds),
-    encryptTable('template_line', 'amount', 'template_id', templateIds),
-    encryptTable('savings_goal', 'target_amount', 'user_id', [TEST_USER_ID]),
-    encryptTable('monthly_budget', 'ending_balance', 'user_id', [TEST_USER_ID]),
-  ]);
+  // Encrypt each table sequentially so failure stops immediately
+  const budgetLines = await encryptTable(
+    'budget_line',
+    'amount',
+    'budget_id',
+    budgetIds,
+  );
+  const transactions = await encryptTable(
+    'transaction',
+    'amount',
+    'budget_id',
+    budgetIds,
+  );
+  const templateLines = await encryptTable(
+    'template_line',
+    'amount',
+    'template_id',
+    templateIds,
+  );
+  const savingsGoals = await encryptTable(
+    'savings_goal',
+    'target_amount',
+    'user_id',
+    [TEST_USER_ID],
+  );
+  const monthlyBudgets = await encryptTable(
+    'monthly_budget',
+    'ending_balance',
+    'user_id',
+    [TEST_USER_ID],
+  );
 
-  const [
-    budgetLines,
-    transactions,
-    templateLines,
-    savingsGoals,
-    monthlyBudgets,
-  ] = results;
+  const totalRows =
+    budgetLines + transactions + templateLines + savingsGoals + monthlyBudgets;
 
   console.log(`\n✓ Encryption complete:`);
   console.log(`  budget_line:     ${budgetLines} rows`);
@@ -169,7 +187,7 @@ async function main(): Promise<void> {
   console.log(`  template_line:   ${templateLines} rows`);
   console.log(`  savings_goal:    ${savingsGoals} rows`);
   console.log(`  monthly_budget:  ${monthlyBudgets} rows`);
-  console.log(`\nTotal: ${results.reduce((a, b) => a + b, 0)} rows encrypted`);
+  console.log(`\nTotal: ${totalRows} rows encrypted`);
   console.log(`\nLogin with PIN: ${TEST_PIN}`);
 }
 
