@@ -191,25 +191,18 @@ struct BudgetDetailsView: View {
         ) { line in
             Button("Non, juste l'enveloppe", role: .cancel) {
                 Task {
-                    guard let toastManager = viewModel.toastManagerForCheckAll else { return }
-                    let succeeded = await viewModel.performToggleBudgetLine(line)
+                    let succeeded = await viewModel.confirmToggle(for: line, checkAll: false)
                     if succeeded {
-                        viewModel.showEnvelopeToastIfNeeded(for: line, toastManager: toastManager)
+                        viewModel.showEnvelopeToastIfNeeded(for: line, toastManager: appState.toastManager)
                     }
-                    viewModel.budgetLineToCheckAll = nil
-                    viewModel.toastManagerForCheckAll = nil
                 }
             }
             Button("Oui, tout comptabiliser") {
                 Task {
-                    guard let toastManager = viewModel.toastManagerForCheckAll else { return }
-                    let succeeded = await viewModel.performToggleBudgetLine(line)
+                    let succeeded = await viewModel.confirmToggle(for: line, checkAll: true)
                     if succeeded {
-                        await viewModel.checkAllAllocatedTransactions(for: line.id)
-                        viewModel.showEnvelopeToastIfNeeded(for: line, toastManager: toastManager)
+                        viewModel.showEnvelopeToastIfNeeded(for: line, toastManager: appState.toastManager)
                     }
-                    viewModel.budgetLineToCheckAll = nil
-                    viewModel.toastManagerForCheckAll = nil
                 }
             }
         } message: { _ in
@@ -222,11 +215,7 @@ struct BudgetDetailsView: View {
         let filteredIncome = viewModel.filteredLines(viewModel.filteredIncomeLines, searchText: searchText)
         let filteredExpenses = viewModel.filteredLines(viewModel.filteredExpenseLines, searchText: searchText)
         let filteredSavings = viewModel.filteredLines(viewModel.filteredSavingLines, searchText: searchText)
-        let filteredFree = viewModel.filteredFreeTransactions(searchText: searchText)
-            .filter { tx in
-                // Also apply checked filter to free transactions
-                !viewModel.isShowingOnlyUnchecked || tx.checkedAt == nil
-            }
+        let filteredFree = viewModel.combinedFilteredFreeTransactions(searchText: searchText)
 
         let fullWidthInsets = EdgeInsets()
         let heroCardInsets = EdgeInsets()
@@ -273,37 +262,15 @@ struct BudgetDetailsView: View {
                     .listRowSeparator(.hidden)
             }
 
-            // Budget line sections (income, expenses, savings)
-            ForEach(
-                [("Revenus", filteredIncome), ("Dépenses", filteredExpenses), ("Épargne", filteredSavings)],
-                id: \.0
-            ) { title, items in
-                if !items.isEmpty {
-                    BudgetSection(
-                        title: title,
-                        items: items,
-                        transactions: viewModel.transactions,
-                        syncingIds: viewModel.syncingBudgetLineIds,
-                        onToggle: { line in
-                            Task { await viewModel.toggleBudgetLine(line, toastManager: appState.toastManager) }
-                        },
-                        onDelete: { line in
-                            Task { await viewModel.deleteBudgetLine(line) }
-                        },
-                        onAddTransaction: { line in
-                            selectedLineForTransaction = line
-                        },
-                        onLongPress: { line, transactions in
-                            linkedTransactionsContext = LinkedTransactionsContext(
-                                budgetLine: line,
-                                transactions: transactions
-                            )
-                        },
-                        onEdit: { line in
-                            selectedBudgetLineForEdit = line
-                        }
-                    )
-                }
+            // Budget line sections
+            if !filteredIncome.isEmpty {
+                budgetSection(title: "Revenus", items: filteredIncome)
+            }
+            if !filteredExpenses.isEmpty {
+                budgetSection(title: "Dépenses", items: filteredExpenses)
+            }
+            if !filteredSavings.isEmpty {
+                budgetSection(title: "Épargne", items: filteredSavings)
             }
 
             // Free transactions
@@ -333,6 +300,40 @@ struct BudgetDetailsView: View {
         }
         .searchable(text: $searchText, prompt: "Rechercher...")
     }
+
+    // MARK: - Section Builders
+
+    private func budgetSection(title: String, items: [BudgetLine]) -> some View {
+        BudgetSection(
+            title: title,
+            items: items,
+            transactions: viewModel.transactions,
+            syncingIds: viewModel.syncingBudgetLineIds,
+            onToggle: { line in
+                Task {
+                    let succeeded = await viewModel.toggleBudgetLine(line)
+                    if succeeded {
+                        viewModel.showEnvelopeToastIfNeeded(for: line, toastManager: appState.toastManager)
+                    }
+                }
+            },
+            onDelete: { line in
+                Task { await viewModel.deleteBudgetLine(line) }
+            },
+            onAddTransaction: { line in
+                selectedLineForTransaction = line
+            },
+            onLongPress: { line, transactions in
+                linkedTransactionsContext = LinkedTransactionsContext(
+                    budgetLine: line,
+                    transactions: transactions
+                )
+            },
+            onEdit: { line in
+                selectedBudgetLineForEdit = line
+            }
+        )
+    }
 }
 
 // MARK: - ViewModel
@@ -359,8 +360,7 @@ final class BudgetDetailsViewModel {
 
     // Alert state for checking all transactions when toggling an envelope
     var showCheckAllTransactionsAlert = false
-    var budgetLineToCheckAll: BudgetLine?
-    var toastManagerForCheckAll: ToastManager?
+    private(set) var budgetLineToCheckAll: BudgetLine?
 
     // Navigation between months
     private(set) var allBudgets: [BudgetSparse] = []
@@ -382,6 +382,7 @@ final class BudgetDetailsViewModel {
     private let budgetService = BudgetService.shared
     private let budgetLineService = BudgetLineService.shared
     private let transactionService = TransactionService.shared
+
     init(budgetId: String) {
         self.budgetId = budgetId
         // Load persisted filter preference (default: show only unchecked)
@@ -456,8 +457,19 @@ final class BudgetDetailsViewModel {
         applyCheckedFilter(savingLines)
     }
 
-    var filteredFreeTransactionsForDisplay: [Transaction] {
-        applyCheckedFilterToFreeTransactions(freeTransactions)
+    /// Combines checked filter + search filter for free transactions in a single pass
+    func combinedFilteredFreeTransactions(searchText: String) -> [Transaction] {
+        var result = freeTransactions
+
+        if isShowingOnlyUnchecked {
+            result = result.filter { $0.checkedAt == nil }
+        }
+
+        guard !searchText.isEmpty else { return result }
+        return result.filter {
+            $0.name.localizedStandardContains(searchText) ||
+                "\($0.amount)".contains(searchText)
+        }
     }
 
     var rolloverInfo: (amount: Decimal, previousBudgetId: String?)? {
@@ -558,29 +570,42 @@ final class BudgetDetailsViewModel {
         nextBudgetId = currentIndex < sorted.count - 1 ? sorted[currentIndex + 1].id : nil
     }
 
-    func toggleBudgetLine(_ line: BudgetLine, toastManager: ToastManager) async {
-        guard !(line.isRollover ?? false) else { return }
-        guard !syncingBudgetLineIds.contains(line.id) else { return }
+    func toggleBudgetLine(_ line: BudgetLine) async -> Bool {
+        guard !(line.isRollover ?? false) else { return false }
+        guard !syncingBudgetLineIds.contains(line.id) else { return false }
 
         let wasUnchecked = !line.isChecked
 
         // If checking and there are unchecked transactions, show alert
         if wasUnchecked {
-            let uncheckedTransactions = transactions.filter {
+            let hasUnchecked = transactions.contains {
                 $0.budgetLineId == line.id && !$0.isChecked
             }
-            if !uncheckedTransactions.isEmpty {
+            if hasUnchecked {
                 budgetLineToCheckAll = line
-                toastManagerForCheckAll = toastManager
                 showCheckAllTransactionsAlert = true
-                return
+                return false
             }
         }
 
+        return await performToggleBudgetLine(line)
+    }
+
+    /// Confirms toggle after user answers the alert. Returns true if toggle succeeded.
+    @discardableResult
+    func confirmToggle(for line: BudgetLine, checkAll: Bool) async -> Bool {
+        defer { resetCheckAllState() }
+
         let succeeded = await performToggleBudgetLine(line)
-        if succeeded {
-            showEnvelopeToastIfNeeded(for: line, toastManager: toastManager)
+        if succeeded, checkAll {
+            await checkAllAllocatedTransactions(for: line.id)
         }
+        return succeeded
+    }
+
+    func resetCheckAllState() {
+        budgetLineToCheckAll = nil
+        showCheckAllTransactionsAlert = false
     }
 
     @discardableResult
