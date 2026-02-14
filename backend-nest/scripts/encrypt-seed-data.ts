@@ -19,7 +19,8 @@ const KDF_ITERATIONS = 600_000;
 
 const TEST_USER_ID = '11111111-1111-1111-8111-111111111111';
 const TEST_PIN = '1234';
-// Fixed salt — deterministic so re-runs produce the same DEK
+// Dev-only fixed salt — deterministic so re-runs after `supabase db reset` produce the same DEK.
+// NOT used in production; real users get a random salt via EncryptionService.#ensureUserSalt().
 const SEED_SALT_HEX = 'deadbeefcafebabe1234567890abcdef';
 
 // ── Env ───────────────────────────────────────────────────────────────

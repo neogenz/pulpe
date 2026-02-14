@@ -284,9 +284,14 @@ export class EncryptionService {
     const wrappedDEK = this.wrapDEK(dek, raw);
     await this.#repository.updateWrappedDEK(userId, wrappedDEK);
 
-    // Zero recovery key from memory — caller receives only the formatted string
-    raw.fill(0);
+    // Ensure key_check exists so validate-key succeeds on next session
+    const existing = await this.#repository.findByUserId(userId);
+    if (!existing?.key_check) {
+      const keyCheck = this.generateKeyCheck(dek);
+      await this.#repository.updateKeyCheck(userId, keyCheck);
+    }
 
+    raw.fill(0);
     return { formatted };
   }
 

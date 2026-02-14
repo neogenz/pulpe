@@ -99,6 +99,7 @@ export class EncryptionController {
   }
 
   @Post('setup-recovery')
+  // 1 req/hour — rare one-time action; a single generation per session is expected
   @Throttle({ default: { limit: 1, ttl: 3600000 } })
   @ApiOperation({ summary: 'Generate a recovery key and wrap the current DEK' })
   @ApiResponse({
@@ -125,6 +126,7 @@ export class EncryptionController {
   @SkipClientKey()
   @Post('recover')
   @HttpCode(HttpStatus.OK)
+  // 5 req/hour — allows retries on recovery-key typos without locking the user out
   @Throttle({ default: { limit: 5, ttl: 3600000 } })
   @ApiOperation({
     summary: 'Recover account using recovery key after password reset',

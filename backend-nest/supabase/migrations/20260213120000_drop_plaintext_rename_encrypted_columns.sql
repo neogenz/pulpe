@@ -4,6 +4,29 @@
 
 BEGIN;
 
+-- Safety check: abort if any plaintext column still holds a non-zero value
+DO $$
+DECLARE
+  v_count bigint;
+BEGIN
+  SELECT count(*) INTO v_count
+    FROM (
+      SELECT 1 FROM budget_line    WHERE amount         IS NOT NULL AND amount         <> 0
+      UNION ALL
+      SELECT 1 FROM transaction    WHERE amount         IS NOT NULL AND amount         <> 0
+      UNION ALL
+      SELECT 1 FROM template_line  WHERE amount         IS NOT NULL AND amount         <> 0
+      UNION ALL
+      SELECT 1 FROM savings_goal   WHERE target_amount  IS NOT NULL AND target_amount  <> 0
+      UNION ALL
+      SELECT 1 FROM monthly_budget WHERE ending_balance  IS NOT NULL AND ending_balance  <> 0
+    ) t;
+
+  IF v_count > 0 THEN
+    RAISE EXCEPTION 'Backfill incomplete: % rows still have non-zero plaintext values', v_count;
+  END IF;
+END $$;
+
 -- 1. Drop plaintext numeric columns (always 0 since encryption backfill completed)
 ALTER TABLE budget_line DROP COLUMN amount;
 ALTER TABLE transaction DROP COLUMN amount;
