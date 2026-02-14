@@ -69,9 +69,9 @@ test.describe('Solde Realise (Realized Balance)', () => {
     await expect(progressBar).toBeVisible();
 
     // Realized expenses = max(2000, 1000) = 2000
-    await expect(progressBar).toContainText("2'000 CHF");
+    await expect(progressBar).toContainText("2\u2019000 CHF");
     // Realized balance = 5000 - 2000 = 3000
-    await expect(progressBar).toContainText("3'000 CHF");
+    await expect(progressBar).toContainText("3\u2019000 CHF");
   });
 
   test('(7.6) envelope checked with overage uses transaction sum', async ({
@@ -133,9 +133,9 @@ test.describe('Solde Realise (Realized Balance)', () => {
     await expect(progressBar).toBeVisible();
 
     // Realized expenses = max(2000, 3000) = 3000
-    await expect(progressBar).toContainText("3'000 CHF");
+    await expect(progressBar).toContainText("3\u2019000 CHF");
     // Realized balance = 5000 - 3000 = 2000
-    await expect(progressBar).toContainText("2'000 CHF");
+    await expect(progressBar).toContainText("2\u2019000 CHF");
   });
 
   test('(7.7) no double counting when envelope and transactions are checked', async ({
@@ -200,7 +200,7 @@ test.describe('Solde Realise (Realized Balance)', () => {
     // Realized expenses = max(500, 450) = 500 (NOT 950)
     await expect(progressBar).toContainText('500 CHF');
     // Realized balance = 5000 - 500 = 4500
-    await expect(progressBar).toContainText("4'500 CHF");
+    await expect(progressBar).toContainText("4\u2019500 CHF");
   });
 
   test('(7.8) envelope not checked — only checked transactions count', async ({
@@ -265,6 +265,6 @@ test.describe('Solde Realise (Realized Balance)', () => {
     // Realized expenses = 450 (only checked transactions, envelope not checked)
     await expect(progressBar).toContainText('450 CHF');
     // Realized balance = 5000 - 450 = 4550
-    await expect(progressBar).toContainText("4'550 CHF");
+    await expect(progressBar).toContainText("4\u2019550 CHF");
   });
 });

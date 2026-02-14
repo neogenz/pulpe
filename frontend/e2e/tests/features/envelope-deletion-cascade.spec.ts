@@ -88,7 +88,7 @@ test.describe('Envelope Deletion Cascade', () => {
 
     // Before deletion: hero shows Reste = 5500
     const heroSection = authenticatedPage.locator('pulpe-budget-financial-overview');
-    await expect(heroSection).toContainText("5'500");
+    await expect(heroSection).toContainText("5\u2019500");
     await expect(heroSection).toContainText('Ce qu\'il te reste ce mois');
 
     // Delete the envelope via table view
@@ -98,7 +98,7 @@ test.describe('Envelope Deletion Cascade', () => {
     await budgetDetailsPage.confirmDelete();
 
     // After deletion: hero shows Reste = 6700
-    await expect(heroSection).toContainText("6'700");
+    await expect(heroSection).toContainText("6\u2019700");
   });
 
   test('delete envelope without transactions increases Reste by full amount', async ({
@@ -154,7 +154,7 @@ test.describe('Envelope Deletion Cascade', () => {
 
     // Before deletion: hero shows Reste = 7300
     const heroSection = authenticatedPage.locator('pulpe-budget-financial-overview');
-    await expect(heroSection).toContainText("7'300");
+    await expect(heroSection).toContainText("7\u2019300");
 
     // Delete the envelope
     await budgetDetailsPage.switchToTableView();
@@ -163,7 +163,7 @@ test.describe('Envelope Deletion Cascade', () => {
     await budgetDetailsPage.confirmDelete();
 
     // After deletion: hero shows Reste = 7500
-    await expect(heroSection).toContainText("7'500");
+    await expect(heroSection).toContainText("7\u2019500");
   });
 
   test('delete envelope with overage keeps Reste unchanged', async ({
@@ -234,7 +234,7 @@ test.describe('Envelope Deletion Cascade', () => {
 
     // Before deletion: hero shows Reste = 6700 (max(500,800)=800, 7500-800=6700)
     const heroSection = authenticatedPage.locator('pulpe-budget-financial-overview');
-    await expect(heroSection).toContainText("6'700");
+    await expect(heroSection).toContainText("6\u2019700");
 
     // Delete the envelope
     await budgetDetailsPage.switchToTableView();
@@ -243,6 +243,6 @@ test.describe('Envelope Deletion Cascade', () => {
     await budgetDetailsPage.confirmDelete();
 
     // After deletion: Reste unchanged at 6700 (free tx 800, 7500-800=6700)
-    await expect(heroSection).toContainText("6'700");
+    await expect(heroSection).toContainText("6\u2019700");
   });
 });

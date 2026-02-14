@@ -229,6 +229,6 @@ test.describe('Rollover Propagation - Impact on next month', () => {
 
     // Remaining = income (5000 + 3800) - expenses (1200) = 7600
     // The hero section shows the remaining amount
-    await expect(financialOverview).toContainText("7'600");
+    await expect(financialOverview).toContainText("7\u2019600");
   });
 });

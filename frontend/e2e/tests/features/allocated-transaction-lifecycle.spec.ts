@@ -63,7 +63,7 @@ test.describe('Allocated Transaction Lifecycle', () => {
     );
     await expect(envelopeCard).toBeVisible();
     await expect(envelopeCard).toContainText('Courses');
-    await expect(envelopeCard).toContainText('CHF 500');
+    await expect(envelopeCard).toContainText('500 CHF');
 
     // Click the card to open the detail panel
     await envelopeCard.click();
@@ -74,7 +74,7 @@ test.describe('Allocated Transaction Lifecycle', () => {
     );
     await expect(detailTransaction).toBeVisible();
     await expect(detailTransaction).toContainText('Supermarche');
-    await expect(detailTransaction).toContainText('CHF 100');
+    await expect(detailTransaction).toContainText('100 CHF');
   });
 
   test('envelope with multiple transactions shows consumed total and progress', async ({
@@ -135,7 +135,7 @@ test.describe('Allocated Transaction Lifecycle', () => {
       `envelope-card-${TEST_UUIDS.LINE_2}`,
     );
     await expect(envelopeCard).toBeVisible();
-    await expect(envelopeCard).toContainText('CHF 330');
+    await expect(envelopeCard).toContainText('330 CHF');
 
     // Progress bar should be visible (segmented-budget-progress renders segments)
     const progressBar = envelopeCard.locator('pulpe-segmented-budget-progress');
