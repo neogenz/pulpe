@@ -47,6 +47,11 @@ export class DataCache {
         entry.createdAt = Date.now() - this.#config.freshTime - 1;
       }
     }
+    for (const key of this.#inFlight.keys()) {
+      if (key.startsWith(prefix)) {
+        this.#inFlight.delete(key);
+      }
+    }
   }
 
   clear(): void {

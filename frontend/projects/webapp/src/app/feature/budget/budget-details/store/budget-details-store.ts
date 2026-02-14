@@ -822,9 +822,8 @@ export class BudgetDetailsStore {
         id,
       ]);
       if (!cached?.fresh) {
-        this.#budgetApi.cache.deduplicate(
-          ['budget', 'details', id],
-          async () => {
+        this.#budgetApi.cache
+          .deduplicate(['budget', 'details', id], async () => {
             const response = await firstValueFrom(
               this.#budgetApi.getBudgetWithDetails$(id),
             );
@@ -835,8 +834,13 @@ export class BudgetDetailsStore {
             };
             this.#budgetApi.cache.set(['budget', 'details', id], viewModel);
             return viewModel;
-          },
-        );
+          })
+          .catch((error) => {
+            this.#logger.warn(
+              `[BudgetDetailsStore] Failed to prefetch budget ${id}`,
+              error,
+            );
+          });
       }
     }
   }

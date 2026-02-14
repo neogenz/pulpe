@@ -88,9 +88,8 @@ export class PreloadService {
     // Prefetch current month's details (fire-and-forget, deduped)
     // Transform to BudgetDetailsViewModel so the cache entry matches
     // what BudgetDetailsStore expects from this key
-    this.#budgetApi.cache.deduplicate(
-      ['budget', 'details', currentBudget.id],
-      async () => {
+    this.#budgetApi.cache
+      .deduplicate(['budget', 'details', currentBudget.id], async () => {
         const response = await firstValueFrom(
           this.#budgetApi.getBudgetWithDetails$(currentBudget.id),
         );
@@ -104,7 +103,12 @@ export class PreloadService {
           viewModel,
         );
         return viewModel;
-      },
-    );
+      })
+      .catch((error) => {
+        this.#logger.warn(
+          '[PreloadService] Failed to prefetch current month details',
+          error,
+        );
+      });
   }
 }

@@ -96,6 +96,39 @@ describe('DataCache', () => {
     expect(result).toBe('result2');
   });
 
+  it('should clear matching in-flight promises on invalidate', async () => {
+    let resolveFetch!: (value: string) => void;
+    const fetchFn = vi
+      .fn()
+      .mockImplementation(() => new Promise<string>((r) => (resolveFetch = r)));
+
+    cache.deduplicate(['budget', 'list'], fetchFn);
+
+    cache.invalidate(['budget']);
+
+    const fetchFn2 = vi.fn().mockResolvedValue('fresh');
+    const result = await cache.deduplicate(['budget', 'list'], fetchFn2);
+
+    expect(fetchFn2).toHaveBeenCalledTimes(1);
+    expect(result).toBe('fresh');
+
+    resolveFetch('stale');
+  });
+
+  it('should NOT clear non-matching in-flight promises on invalidate', async () => {
+    const fetchFn = vi
+      .fn()
+      .mockImplementation(() => new Promise<string>(() => void 0));
+
+    cache.deduplicate(['transaction', 'list'], fetchFn);
+
+    cache.invalidate(['budget']);
+
+    cache.deduplicate(['transaction', 'list'], fetchFn);
+
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
   it('should clear all entries and inFlight', () => {
     cache.set(['a'], 1);
     cache.set(['b'], 2);
