@@ -78,7 +78,7 @@ Read `docs/ENCRYPTION.md` before ANY work involving financial amounts.
 
 - Split-key: client PBKDF2 -> clientKey, backend HKDF -> DEK
 - AES-256-GCM for `amount` columns
-- Demo mode (no clientKey): real values in plaintext columns
+- Demo mode uses deterministic `DEMO_CLIENT_KEY_BUFFER` — same encryption pipeline as real users
 
 ## Shared Package
 

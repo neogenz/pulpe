@@ -98,8 +98,8 @@ Controller -> Service -> Repository -> Supabase Client -> RLS -> PostgreSQL
 ```
 common/
 ├── guards/          # AuthGuard
-├── decorators/      # @User(), @SupabaseClient(), @SkipBackfill()
-├── interceptors/    # Response formatting, encryption backfill, client-key cleanup
+├── decorators/      # @User(), @SupabaseClient()
+├── interceptors/    # Response formatting, client-key cleanup
 ├── filters/         # GlobalExceptionFilter
 ├── middleware/       # Request ID tracking
 ├── pipes/           # ZodValidationPipe

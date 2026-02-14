@@ -14,14 +14,9 @@ Pulpe is an open-source passion project, in production with 3 users, no marketin
 
 ---
 
-## MVP (93% — 2 issues restantes)
+## MVP (100%)
 
 > **Goal:** Core features, production-ready webapp + backend.
-
-| Issue | Description | Label |
-|-------|-------------|-------|
-| #274 | Chiffrer les montants utilisateurs en base de données (AES-256-GCM) | technical |
-| #293 | Supprimer le code temporaire de backfill encryption après migration | technical |
 
 ---
 
@@ -146,6 +141,8 @@ Pulpe is an open-source passion project, in production with 3 users, no marketin
 | #27 | Superseded by #271 |
 | #33 | Duplicate of #85 |
 | #119 | Already implemented (payday) |
+| #274 | Completed — AES-256-GCM encryption for financial amounts |
+| #293 | Completed — encryption migration cleanup (68f2157c) |
 | #98 | Replaced by #274 |
 
 ---

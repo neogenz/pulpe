@@ -91,9 +91,9 @@ When uncertain about any Material API, use the `angular-cli` MCP tool `search_do
 - **Pulpe tokens** (`--pulpe-*`) for domain-specific values (financial colors, layout rhythm, motion)
 - Typography: Manrope (headings), DM Sans (body) — self-hosted via `@fontsource`
 
-## Encryption Rule
+## Encryption
 
-Demo mode (no clientKey): real values in plaintext columns.
+All financial amounts are encrypted (AES-256-GCM). Demo mode uses a deterministic `DEMO_CLIENT_KEY` — same pipeline as real users. See `docs/ENCRYPTION.md`.
 
 ## Vocabulary
 

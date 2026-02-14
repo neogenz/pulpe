@@ -28,23 +28,21 @@ DEK is never stored — recalculated per request (with 5-min memory cache).
 
 ## Encrypted Columns
 
-| Table | Plaintext Column | Encrypted Column |
-|-------|-----------------|-----------------|
-| `budget_line` | `amount` | `amount_encrypted` |
-| `transaction` | `amount` | `amount_encrypted` |
-| `template_line` | `amount` | `amount_encrypted` |
-| `savings_goal` | `target_amount` | `target_amount_encrypted` |
-| `monthly_budget` | `ending_balance` | `ending_balance_encrypted` |
+| Table | Column (type `text`) |
+|-------|---------------------|
+| `budget_line` | `amount` |
+| `transaction` | `amount` |
+| `template_line` | `amount` |
+| `savings_goal` | `target_amount` |
+| `monthly_budget` | `ending_balance` |
+
+Each column stores AES-256-GCM ciphertext encoded in base64, or `null`.
 
 ## Write Rule
 
-When `clientKey` is present (header `X-Client-Key`):
-- Plaintext columns (`amount`, `target_amount`, `ending_balance`) = **`0`**
-- Encrypted columns (`*_encrypted`) = AES-256-GCM ciphertext (base64)
+All financial amounts MUST be encrypted via `EncryptionService` before writing to the database. Use `prepareAmountData(amount, dek)` which returns `{ amount: encryptedCiphertext }`.
 
-When no `clientKey` (demo mode):
-- Plaintext columns = **real values**
-- Encrypted columns = empty/null
+Demo mode uses `DEMO_CLIENT_KEY_BUFFER` — same encryption pipeline as real users.
 
 ## AES-256-GCM Format
 
@@ -56,13 +54,10 @@ base64(IV[12 bytes] || authTag[16 bytes] || ciphertext)
 
 | File | Role |
 |------|------|
-| `encryption.service.ts` | DEK derivation, AES-GCM encrypt/decrypt, wrap/unwrap, cache |
+| `encryption.service.ts` | DEK derivation, AES-GCM encrypt/decrypt, wrap/unwrap, rekey, cache |
 | `encryption-key.repository.ts` | CRUD `user_encryption_key` table |
-| `encryption-rekey.service.ts` | Re-encrypt all data on PIN migration |
-| `encryption.controller.ts` | `/salt`, `/validate-key`, `/rekey`, `/setup-recovery`, `/recover` |
+| `encryption.controller.ts` | `/salt`, `/validate-key`, `/setup-recovery`, `/recover` |
 | `client-key-cleanup.interceptor.ts` | Wipes clientKey from memory after request (`buffer.fill(0)`) |
-| `encryption-backfill.interceptor.ts` | Auto-encrypts plaintext data on first request |
-| `skip-backfill.decorator.ts` | `@SkipBackfill()` — prevents backfill on rekey endpoint |
 
 ## Patterns
 
@@ -73,7 +68,7 @@ base64(IV[12 bytes] || authTag[16 bytes] || ciphertext)
 const budgetLines = await this.repository.findByBudgetId(budgetId, supabase);
 return budgetLines.map(line => ({
   ...line,
-  amount: this.encryptionService.decrypt(line.amount_encrypted, dek),
+  amount: this.encryptionService.decrypt(line.amount, dek),
 }));
 ```
 
@@ -81,11 +76,10 @@ return budgetLines.map(line => ({
 
 ```typescript
 // Service encrypts before DB write
-const encryptedAmount = this.encryptionService.encrypt(dto.amount, dek);
+const amountData = this.encryptionService.prepareAmountData(dto.amount, dek);
 await this.repository.create({
   ...dto,
-  amount: 0,                          // Plaintext = 0
-  amount_encrypted: encryptedAmount,  // Real value encrypted
+  ...amountData,  // { amount: encryptedCiphertext }
 }, supabase);
 ```
 
@@ -96,4 +90,4 @@ await this.repository.create({
 - **Always** use `{ cause: error }` when catching encryption errors
 - **Always** wipe clientKey from memory after use (`buffer.fill(0)`)
 - `user_encryption_key` table: service_role only — RLS blocks authenticated/anon
-- Rate limiting: `/validate-key` (5/min), `/rekey` (3/hour), `/recover` (5/hour)
+- Rate limiting: `/validate-key` (5/min), `/recover` (5/hour)
