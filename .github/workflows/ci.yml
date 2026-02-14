@@ -600,6 +600,36 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             -quiet
 
+  # 🗄️ MIGRATION DRY-RUN (PRs only — détecte les problèmes avant merge)
+  migrate-dryrun:
+    name: 🗄️ Migration Dry-Run
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🗄️ Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: 🔗 Link Supabase Project
+        working-directory: backend-nest
+        run: supabase link --project-ref $SUPABASE_PROJECT_ID
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+          SUPABASE_PROJECT_ID: ${{ secrets.PRODUCTION_PROJECT_ID }}
+
+      - name: 🧪 Dry-Run Migrations
+        working-directory: backend-nest
+        run: supabase db push --dry-run
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+
   # ✅ SUCCESS JOB pour status checks
   ci-success:
     name: ✅ CI Success
@@ -635,3 +665,34 @@ jobs:
           echo "Performance: ${{ needs.test-performance.result }}"
           echo "iOS Tests: ${{ needs.test-ios.result }}"
           exit 1
+
+  # 🗄️ MIGRATION PRODUCTION (push main only — applique les migrations après CI verte)
+  migrate:
+    name: 🗄️ Apply Migrations (Production)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [ci-success]
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🗄️ Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: 🔗 Link Supabase Project
+        working-directory: backend-nest
+        run: supabase link --project-ref $SUPABASE_PROJECT_ID
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+          SUPABASE_PROJECT_ID: ${{ secrets.PRODUCTION_PROJECT_ID }}
+
+      - name: 🚀 Push Migrations
+        working-directory: backend-nest
+        run: supabase db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
