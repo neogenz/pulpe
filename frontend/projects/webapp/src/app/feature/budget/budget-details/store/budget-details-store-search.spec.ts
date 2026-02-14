@@ -10,8 +10,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { BudgetDetailsStore } from './budget-details-store';
 import { BudgetApi } from '@core/budget/budget-api';
-import { BudgetLineApi } from '../budget-line-api/budget-line-api';
-import { TransactionApi } from '@core/transaction/transaction-api';
 import { Logger } from '@core/logging/logger';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { PostHogService } from '@core/analytics/posthog';
@@ -141,22 +139,6 @@ describe('BudgetDetailsStore - Search Filtering', () => {
               ),
               clear: vi.fn(),
             },
-          },
-        },
-        {
-          provide: BudgetLineApi,
-          useValue: {
-            createBudgetLine$: vi.fn(),
-            updateBudgetLine$: vi.fn(),
-            deleteBudgetLine$: vi.fn(),
-            toggleCheck$: vi.fn(),
-          },
-        },
-        {
-          provide: TransactionApi,
-          useValue: {
-            create$: vi.fn(),
-            remove$: vi.fn(),
           },
         },
         { provide: Logger, useValue: { error: vi.fn() } },

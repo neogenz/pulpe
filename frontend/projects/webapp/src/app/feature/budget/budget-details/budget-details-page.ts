@@ -28,7 +28,6 @@ import { formatDate } from 'date-fns';
 import { frCH } from 'date-fns/locale';
 import { BaseLoading } from '@ui/loading';
 import { BudgetDetailsStore } from './store/budget-details-store';
-import { BudgetLineApi } from './budget-line-api/budget-line-api';
 import { BudgetItemsContainer } from './budget-items-container';
 import { BudgetFinancialOverview } from './budget-financial-overview';
 import { BudgetDetailsDialogService } from './budget-details-dialog.service';
@@ -59,7 +58,7 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
     BudgetFinancialOverview,
     BaseLoading,
   ],
-  providers: [BudgetDetailsStore, BudgetLineApi, BudgetDetailsDialogService],
+  providers: [BudgetDetailsStore, BudgetDetailsDialogService],
   templateUrl: './budget-details-page.html',
   styles: `
     :host {

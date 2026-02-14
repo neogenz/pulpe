@@ -13,7 +13,6 @@ import { Logger } from '@core/logging/logger';
 import { createRolloverLine } from '@core/budget/rollover/rollover-types';
 import { StorageService } from '@core/storage/storage.service';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
-import { TransactionApi } from '@core/transaction/transaction-api';
 import {
   type BudgetLine,
   type BudgetLineCreate,
@@ -26,7 +25,6 @@ import {
 
 import { firstValueFrom } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
-import { BudgetLineApi } from '../budget-line-api/budget-line-api';
 import { type BudgetDetailsViewModel } from '../models/budget-details-view-model';
 import {
   calculateBudgetLineToggle,
@@ -52,9 +50,7 @@ function generateTempId(): string {
 @Injectable()
 export class BudgetDetailsStore {
   // ── 1. Dependencies ──
-  readonly #budgetLineApi = inject(BudgetLineApi);
   readonly #budgetApi = inject(BudgetApi);
-  readonly #transactionApi = inject(TransactionApi);
   readonly #invalidationService = inject(BudgetInvalidationService);
   readonly #logger = inject(Logger);
   readonly #storage = inject(StorageService);
@@ -383,7 +379,7 @@ export class BudgetDetailsStore {
 
     try {
       const response = await firstValueFrom(
-        this.#budgetLineApi.createBudgetLine$(budgetLine),
+        this.#budgetApi.createBudgetLine$(budgetLine),
       );
 
       // Replace temporary line with server response
@@ -398,10 +394,7 @@ export class BudgetDetailsStore {
         };
       });
 
-      // DR-005 order: temp ID replacement happens before invalidation cascade.
       this.#clearError();
-      this.#budgetApi.cache.invalidate(['budget', 'details']);
-      this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
 
@@ -433,14 +426,10 @@ export class BudgetDetailsStore {
 
     try {
       // Just persist to server, don't update local state again
-      await firstValueFrom(
-        this.#budgetLineApi.updateBudgetLine$(data.id, data),
-      );
+      await firstValueFrom(this.#budgetApi.updateBudgetLine$(data.id, data));
 
       // Clear any previous errors
       this.#clearError();
-      this.#budgetApi.cache.invalidate(['budget', 'details']);
-      this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
 
@@ -470,11 +459,9 @@ export class BudgetDetailsStore {
     });
 
     try {
-      await firstValueFrom(this.#transactionApi.update$(id, data));
+      await firstValueFrom(this.#budgetApi.updateTransaction$(id, data));
 
       this.#clearError();
-      this.#budgetApi.cache.invalidate(['budget', 'details']);
-      this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
 
@@ -499,11 +486,9 @@ export class BudgetDetailsStore {
     });
 
     try {
-      await firstValueFrom(this.#budgetLineApi.deleteBudgetLine$(id));
+      await firstValueFrom(this.#budgetApi.deleteBudgetLine$(id));
 
       this.#clearError();
-      this.#budgetApi.cache.invalidate(['budget', 'details']);
-      this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
 
@@ -528,11 +513,9 @@ export class BudgetDetailsStore {
     });
 
     try {
-      await firstValueFrom(this.#transactionApi.remove$(id));
+      await firstValueFrom(this.#budgetApi.deleteTransaction$(id));
 
       this.#clearError();
-      this.#budgetApi.cache.invalidate(['budget', 'details']);
-      this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
 
@@ -578,7 +561,7 @@ export class BudgetDetailsStore {
 
     try {
       const response = await firstValueFrom(
-        this.#transactionApi.create$({
+        this.#budgetApi.createTransaction$({
           ...transactionData,
           checkedAt: null,
         }),
@@ -595,10 +578,7 @@ export class BudgetDetailsStore {
         };
       });
 
-      // DR-005 order: temp ID replacement happens before invalidation cascade.
       this.#clearError();
-      this.#budgetApi.cache.invalidate(['budget', 'details']);
-      this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
 
@@ -614,7 +594,7 @@ export class BudgetDetailsStore {
   async resetBudgetLineFromTemplate(id: string): Promise<void> {
     try {
       const response = await firstValueFrom(
-        this.#budgetLineApi.resetFromTemplate$(id),
+        this.#budgetApi.resetBudgetLineFromTemplate$(id),
       );
 
       this.#budgetDetailsResource.update((details) => {
@@ -629,8 +609,6 @@ export class BudgetDetailsStore {
       });
 
       this.#clearError();
-      this.#budgetApi.cache.invalidate(['budget', 'details']);
-      this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
 
@@ -678,7 +656,7 @@ export class BudgetDetailsStore {
 
     try {
       const response = await firstValueFrom(
-        this.#budgetLineApi.toggleCheck$(id),
+        this.#budgetApi.toggleBudgetLineCheck$(id),
       );
 
       const updatedLine = response.data;
@@ -693,8 +671,6 @@ export class BudgetDetailsStore {
       });
 
       this.#clearError();
-      this.#budgetApi.cache.invalidate(['budget', 'details']);
-      this.#invalidationService.invalidate();
       return true;
     } catch (error) {
       this.reloadBudgetDetails();
@@ -731,7 +707,7 @@ export class BudgetDetailsStore {
 
     try {
       const response = await firstValueFrom(
-        this.#transactionApi.toggleCheck$(id),
+        this.#budgetApi.toggleTransactionCheck$(id),
       );
 
       this.#budgetDetailsResource.update((d) => {
@@ -745,8 +721,6 @@ export class BudgetDetailsStore {
       });
 
       this.#clearError();
-      this.#budgetApi.cache.invalidate(['budget', 'details']);
-      this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
       this.#setError('Erreur lors du basculement du statut de la transaction');
@@ -791,7 +765,7 @@ export class BudgetDetailsStore {
 
     try {
       const response = await firstValueFrom(
-        this.#budgetLineApi.checkTransactions$(budgetLineId),
+        this.#budgetApi.checkBudgetLineTransactions$(budgetLineId),
       );
 
       const responseMap = new Map(response.data.map((tx) => [tx.id, tx]));
@@ -806,8 +780,6 @@ export class BudgetDetailsStore {
         };
       });
       this.#clearError();
-      this.#budgetApi.cache.invalidate(['budget', 'details']);
-      this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
       this.#setError('Erreur lors de la comptabilisation des transactions');

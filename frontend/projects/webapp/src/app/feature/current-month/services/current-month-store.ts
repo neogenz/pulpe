@@ -1,7 +1,6 @@
 import { computed, inject, Injectable, resource, signal } from '@angular/core';
 import { BudgetApi } from '@core/budget';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
-import { TransactionApi } from '@core/transaction';
 import { UserSettingsApi } from '@core/user-settings';
 import { createRolloverLine } from '@core/budget/rollover/rollover-types';
 import {
@@ -23,7 +22,6 @@ import {
 export class CurrentMonthStore {
   // ── 1. Dependencies ──
   readonly #budgetApi = inject(BudgetApi);
-  readonly #transactionApi = inject(TransactionApi);
   readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #invalidationService = inject(BudgetInvalidationService);
 
@@ -173,7 +171,7 @@ export class CurrentMonthStore {
 
   async addTransaction(transactionData: TransactionCreate): Promise<void> {
     return this.#performOptimisticMutation<Transaction>(
-      () => this.#transactionApi.create$(transactionData),
+      () => this.#budgetApi.createTransaction$(transactionData),
       (currentData, response) => ({
         ...currentData,
         transactions: [...currentData.transactions, response],
@@ -183,7 +181,7 @@ export class CurrentMonthStore {
 
   async deleteTransaction(transactionId: string): Promise<void> {
     return this.#performOptimisticMutation(
-      () => this.#transactionApi.remove$(transactionId),
+      () => this.#budgetApi.deleteTransaction$(transactionId),
       (currentData) => ({
         ...currentData,
         transactions: currentData.transactions.filter(
@@ -198,7 +196,7 @@ export class CurrentMonthStore {
     transactionData: TransactionUpdate,
   ): Promise<void> {
     return this.#performOptimisticMutation<Transaction>(
-      () => this.#transactionApi.update$(transactionId, transactionData),
+      () => this.#budgetApi.updateTransaction$(transactionId, transactionData),
       (currentData, response) => ({
         ...currentData,
         transactions: currentData.transactions.map((t: Transaction) =>
@@ -325,7 +323,9 @@ export class CurrentMonthStore {
     });
 
     try {
-      await firstValueFrom(this.#transactionApi.toggleCheck$(transactionId));
+      await firstValueFrom(
+        this.#budgetApi.toggleTransactionCheck$(transactionId),
+      );
     } catch (error) {
       this.#dashboardResource.set(originalData);
       throw error;
@@ -352,11 +352,12 @@ export class CurrentMonthStore {
       );
 
       if (!budget) {
-        return {
+        const empty: DashboardData = {
           budget: null,
           transactions: [],
           budgetLines: [],
-        } as DashboardData;
+        };
+        return empty;
       }
 
       // Reuse details already prefetched by PreloadService or BudgetDetailsStore
@@ -386,11 +387,11 @@ export class CurrentMonthStore {
         this.#budgetApi.getBudgetWithDetails$(budget.id),
       );
 
-      const result = {
+      const result: DashboardData = {
         budget: response.data.budget,
         transactions: response.data.transactions,
         budgetLines: response.data.budgetLines,
-      } as DashboardData;
+      };
       this.#budgetApi.cache.set(cacheKey, result);
       return result;
     });

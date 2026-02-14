@@ -11,9 +11,6 @@ import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
 
 import { BudgetDetailsStore } from './budget-details-store';
 import { BudgetApi } from '@core/budget/budget-api';
-import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
-import { BudgetLineApi } from '../budget-line-api/budget-line-api';
-import { TransactionApi } from '@core/transaction/transaction-api';
 import { Logger } from '@core/logging/logger';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { PostHogService } from '@core/analytics/posthog';
@@ -69,24 +66,21 @@ const mockBudgetDetailsResponse = createMockBudgetDetailsResponse({
 
 describe('BudgetDetailsStore - User Behavior Tests', () => {
   let service: BudgetDetailsStore;
-  let invalidationService: BudgetInvalidationService;
   let httpMock: HttpTestingController;
   let mockBudgetApi: {
     getBudgetWithDetails$: ReturnType<typeof vi.fn>;
     getAllBudgets$: ReturnType<typeof vi.fn>;
-    cache: Record<string, ReturnType<typeof vi.fn>>;
-  };
-  let mockBudgetLineApi: {
     createBudgetLine$: ReturnType<typeof vi.fn>;
     updateBudgetLine$: ReturnType<typeof vi.fn>;
     deleteBudgetLine$: ReturnType<typeof vi.fn>;
-    toggleCheck$: ReturnType<typeof vi.fn>;
-    checkTransactions$: ReturnType<typeof vi.fn>;
-  };
-  let mockTransactionApi: {
-    create$: ReturnType<typeof vi.fn>;
-    remove$: ReturnType<typeof vi.fn>;
-    toggleCheck$: ReturnType<typeof vi.fn>;
+    resetBudgetLineFromTemplate$: ReturnType<typeof vi.fn>;
+    toggleBudgetLineCheck$: ReturnType<typeof vi.fn>;
+    checkBudgetLineTransactions$: ReturnType<typeof vi.fn>;
+    createTransaction$: ReturnType<typeof vi.fn>;
+    updateTransaction$: ReturnType<typeof vi.fn>;
+    deleteTransaction$: ReturnType<typeof vi.fn>;
+    toggleTransactionCheck$: ReturnType<typeof vi.fn>;
+    cache: Record<string, ReturnType<typeof vi.fn>>;
   };
   let mockLogger: {
     debug: ReturnType<typeof vi.fn>;
@@ -120,6 +114,16 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         .fn()
         .mockReturnValue(of(mockBudgetDetailsResponse)),
       getAllBudgets$: vi.fn().mockReturnValue(of([])),
+      createBudgetLine$: vi.fn(),
+      updateBudgetLine$: vi.fn(),
+      deleteBudgetLine$: vi.fn(),
+      resetBudgetLineFromTemplate$: vi.fn(),
+      toggleBudgetLineCheck$: vi.fn(),
+      checkBudgetLineTransactions$: vi.fn(),
+      createTransaction$: vi.fn(),
+      updateTransaction$: vi.fn(),
+      deleteTransaction$: vi.fn(),
+      toggleTransactionCheck$: vi.fn(),
       cache: {
         get: vi.fn().mockReturnValue(null),
         set: vi.fn(),
@@ -130,20 +134,6 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         ),
         clear: vi.fn(),
       },
-    };
-
-    mockBudgetLineApi = {
-      createBudgetLine$: vi.fn(),
-      updateBudgetLine$: vi.fn(),
-      deleteBudgetLine$: vi.fn(),
-      toggleCheck$: vi.fn(),
-      checkTransactions$: vi.fn(),
-    };
-
-    mockTransactionApi = {
-      create$: vi.fn(),
-      remove$: vi.fn(),
-      toggleCheck$: vi.fn(),
     };
 
     mockLogger = {
@@ -170,8 +160,6 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         provideHttpClientTesting(),
         BudgetDetailsStore,
         { provide: BudgetApi, useValue: mockBudgetApi },
-        { provide: BudgetLineApi, useValue: mockBudgetLineApi },
-        { provide: TransactionApi, useValue: mockTransactionApi },
         { provide: Logger, useValue: mockLogger },
         {
           provide: ApplicationConfiguration,
@@ -182,7 +170,6 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     });
 
     service = TestBed.inject(BudgetDetailsStore);
-    invalidationService = TestBed.inject(BudgetInvalidationService);
     httpMock = TestBed.inject(HttpTestingController);
   });
 
@@ -241,7 +228,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         isManuallyAdjusted: false,
       };
 
-      mockBudgetLineApi.createBudgetLine$ = vi.fn().mockReturnValue(
+      mockBudgetApi.createBudgetLine$ = vi.fn().mockReturnValue(
         of({
           data: {
             id: 'line-new',
@@ -273,7 +260,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     });
 
     it('original budget is restored when server fails to save', async () => {
-      mockBudgetLineApi.createBudgetLine$ = vi
+      mockBudgetApi.createBudgetLine$ = vi
         .fn()
         .mockReturnValue(throwError(() => new Error('Network error')));
 
@@ -303,7 +290,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     });
 
     it('changes appear immediately when user updates an amount', async () => {
-      mockBudgetLineApi.updateBudgetLine$ = vi.fn().mockReturnValue(
+      mockBudgetApi.updateBudgetLine$ = vi.fn().mockReturnValue(
         of({
           data: {
             ...mockBudgetDetailsResponse.data.budgetLines[1],
@@ -330,7 +317,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     });
 
     it('original values are restored when update fails', async () => {
-      mockBudgetLineApi.updateBudgetLine$ = vi
+      mockBudgetApi.updateBudgetLine$ = vi
         .fn()
         .mockReturnValue(throwError(() => new Error('Server error')));
 
@@ -357,7 +344,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     });
 
     it('budget line disappears immediately from the list', async () => {
-      mockBudgetLineApi.deleteBudgetLine$ = vi.fn().mockReturnValue(of({}));
+      mockBudgetApi.deleteBudgetLine$ = vi.fn().mockReturnValue(of({}));
 
       const initialCount = service.budgetDetails()?.budgetLines.length || 0;
 
@@ -371,7 +358,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     });
 
     it('deleted line reappears when deletion fails on server', async () => {
-      mockBudgetLineApi.deleteBudgetLine$ = vi
+      mockBudgetApi.deleteBudgetLine$ = vi
         .fn()
         .mockReturnValue(throwError(() => new Error('Cannot delete')));
 
@@ -407,7 +394,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       expect(initialExpenses).toBe(1500);
 
       // User adds a new expense
-      mockBudgetLineApi.createBudgetLine$ = vi.fn().mockReturnValue(
+      mockBudgetApi.createBudgetLine$ = vi.fn().mockReturnValue(
         of({
           data: {
             id: 'line-3',
@@ -477,7 +464,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         },
       };
 
-      mockBudgetLineApi.createBudgetLine$ = vi
+      mockBudgetApi.createBudgetLine$ = vi
         .fn()
         .mockReturnValue(of(mockCreateResponse));
       await service.createBudgetLine(newBudgetLine);
@@ -506,7 +493,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         },
       };
 
-      mockBudgetLineApi.updateBudgetLine$ = vi
+      mockBudgetApi.updateBudgetLine$ = vi
         .fn()
         .mockReturnValue(of(mockUpdateResponse));
       await service.updateBudgetLine(updateData);
@@ -520,7 +507,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       expect(updatedLine?.amount).toBe(350);
 
       // Step 3: User decides to remove this expense
-      mockBudgetLineApi.deleteBudgetLine$ = vi.fn().mockReturnValue(of({}));
+      mockBudgetApi.deleteBudgetLine$ = vi.fn().mockReturnValue(of({}));
       await service.deleteBudgetLine('line-transport');
 
       // The transport line is gone from the budget
@@ -534,7 +521,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     it('user sees immediate feedback when adding budget line', async () => {
       // Control server response timing
       const createSubject = new Subject();
-      mockBudgetLineApi.createBudgetLine$ = vi
+      mockBudgetApi.createBudgetLine$ = vi
         .fn()
         .mockReturnValue(createSubject.asObservable());
 
@@ -560,7 +547,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     it('temporary budget line is replaced when server confirms', async () => {
       // Control server response timing
       const createSubject = new Subject();
-      mockBudgetLineApi.createBudgetLine$ = vi
+      mockBudgetApi.createBudgetLine$ = vi
         .fn()
         .mockReturnValue(createSubject.asObservable());
 
@@ -599,7 +586,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     it('no temporary entries remain after server confirmation', async () => {
       // Control server response timing
       const createSubject = new Subject();
-      mockBudgetLineApi.createBudgetLine$ = vi
+      mockBudgetApi.createBudgetLine$ = vi
         .fn()
         .mockReturnValue(createSubject.asObservable());
 
@@ -639,7 +626,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       expect(transactions.length).toBeGreaterThan(0);
 
       const transactionToDelete = transactions[0];
-      mockTransactionApi.remove$ = vi.fn().mockReturnValue(of({}));
+      mockBudgetApi.deleteTransaction$ = vi.fn().mockReturnValue(of({}));
 
       // User deletes the transaction
       await service.deleteTransaction(transactionToDelete.id);
@@ -660,7 +647,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     });
 
     it('user sees error message when network fails', async () => {
-      mockBudgetLineApi.createBudgetLine$ = vi
+      mockBudgetApi.createBudgetLine$ = vi
         .fn()
         .mockReturnValue(throwError(() => new Error('Network error')));
 
@@ -692,7 +679,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       // This should be validated before reaching the server
       // In a real app, validation would prevent this
       // For now, we test that errors are handled gracefully
-      mockBudgetLineApi.createBudgetLine$ = vi
+      mockBudgetApi.createBudgetLine$ = vi
         .fn()
         .mockReturnValue(
           throwError(
@@ -708,7 +695,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
   });
 
   describe('User creates allocated transactions', () => {
-    it('replaces temp ID before invalidation (DR-005)', async () => {
+    it('replaces temp ID with server ID after creation (DR-005)', async () => {
       service.setBudgetId(mockBudgetId);
       TestBed.tick();
       await waitForResourceStable();
@@ -723,20 +710,9 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         checkedAt: null,
       });
 
-      mockTransactionApi.create$ = vi
+      mockBudgetApi.createTransaction$ = vi
         .fn()
         .mockReturnValue(of({ data: serverTransaction }));
-
-      const invalidateSpy = vi
-        .spyOn(invalidationService, 'invalidate')
-        .mockImplementation(() => {
-          const transactionIds =
-            service.budgetDetails()?.transactions.map((tx) => tx.id) ?? [];
-          expect(transactionIds).toContain('tx-server-dr005');
-          expect(transactionIds.some((id) => id.startsWith('temp-'))).toBe(
-            false,
-          );
-        });
 
       await service.createAllocatedTransaction({
         budgetId: mockBudgetId,
@@ -746,7 +722,11 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         kind: 'expense',
       });
 
-      expect(invalidateSpy).toHaveBeenCalledTimes(1);
+      const transactionIds =
+        service.budgetDetails()?.transactions.map((tx) => tx.id) ?? [];
+      expect(transactionIds).toContain('tx-server-dr005');
+      expect(transactionIds.some((id) => id.startsWith('temp-'))).toBe(false);
+      expect(mockBudgetApi.createTransaction$).toHaveBeenCalledTimes(1);
     });
 
     it('should create transaction unchecked without affecting parent budget line state', async () => {
@@ -790,7 +770,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         checkedAt: null,
       });
 
-      mockTransactionApi.create$ = vi
+      mockBudgetApi.createTransaction$ = vi
         .fn()
         .mockReturnValue(of({ data: serverTransaction }));
 
@@ -813,14 +793,14 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       expect(createdTx?.checkedAt).toBeNull();
 
       // Verify API was called with checkedAt: null
-      expect(mockTransactionApi.create$).toHaveBeenCalledWith(
+      expect(mockBudgetApi.createTransaction$).toHaveBeenCalledWith(
         expect.objectContaining({
           checkedAt: null,
         }),
       );
 
       // Parent budget line should NOT have been unchecked (no child→parent sync)
-      expect(mockBudgetLineApi.toggleCheck$).not.toHaveBeenCalled();
+      expect(mockBudgetApi.toggleBudgetLineCheck$).not.toHaveBeenCalled();
 
       const budgetLines = service.budgetDetails()?.budgetLines ?? [];
       const parentLine = budgetLines.find((l) => l.id === 'line-checked');
@@ -864,7 +844,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         checkedAt: null,
       });
 
-      mockTransactionApi.create$ = vi
+      mockBudgetApi.createTransaction$ = vi
         .fn()
         .mockReturnValue(of({ data: serverTransaction }));
 
@@ -887,12 +867,12 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
   });
 
   describe('Cache invalidation', () => {
-    it('invalidates shared caches after a successful mutation', async () => {
+    it('delegates to BudgetApi which handles invalidation internally', async () => {
       service.setBudgetId(mockBudgetId);
       TestBed.tick();
       await waitForResourceStable();
 
-      mockBudgetLineApi.updateBudgetLine$ = vi.fn().mockReturnValue(
+      mockBudgetApi.updateBudgetLine$ = vi.fn().mockReturnValue(
         of({
           data: {
             ...mockBudgetDetailsResponse.data.budgetLines[1],
@@ -902,50 +882,39 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         }),
       );
 
-      const invalidateSpy = vi.spyOn(invalidationService, 'invalidate');
-
       await service.updateBudgetLine({
         id: 'line-2',
         name: 'Rent updated',
         amount: 1600,
       });
 
-      expect(invalidateSpy).toHaveBeenCalledTimes(1);
+      expect(mockBudgetApi.updateBudgetLine$).toHaveBeenCalledWith(
+        'line-2',
+        expect.objectContaining({ name: 'Rent updated', amount: 1600 }),
+      );
     });
 
-    it('invalidates DataCache with budget details prefix after mutation', async () => {
+    it('delegates deleteBudgetLine to BudgetApi which handles invalidation internally', async () => {
       service.setBudgetId(mockBudgetId);
       TestBed.tick();
       await waitForResourceStable();
 
-      mockBudgetLineApi.deleteBudgetLine$ = vi.fn().mockReturnValue(of({}));
+      mockBudgetApi.deleteBudgetLine$ = vi.fn().mockReturnValue(of({}));
 
       await service.deleteBudgetLine('line-2');
 
-      expect(mockBudgetApi.cache['invalidate']).toHaveBeenCalledWith([
-        'budget',
-        'details',
-      ]);
+      expect(mockBudgetApi.deleteBudgetLine$).toHaveBeenCalledWith('line-2');
     });
 
-    it('invalidates DataCache before version signal for all mutation types', async () => {
+    it('delegates deleteTransaction to BudgetApi which handles invalidation internally', async () => {
       service.setBudgetId(mockBudgetId);
       TestBed.tick();
       await waitForResourceStable();
 
-      const callOrder: string[] = [];
-      mockBudgetApi.cache['invalidate'] = vi.fn(() =>
-        callOrder.push('cache.invalidate'),
-      );
-      const invalidateSpy = vi
-        .spyOn(invalidationService, 'invalidate')
-        .mockImplementation(() => callOrder.push('version.invalidate'));
-
-      mockTransactionApi.remove$ = vi.fn().mockReturnValue(of({}));
+      mockBudgetApi.deleteTransaction$ = vi.fn().mockReturnValue(of({}));
       await service.deleteTransaction('tx-1');
 
-      expect(callOrder).toEqual(['cache.invalidate', 'version.invalidate']);
-      invalidateSpy.mockRestore();
+      expect(mockBudgetApi.deleteTransaction$).toHaveBeenCalledWith('tx-1');
     });
   });
 
@@ -986,7 +955,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       await waitForResourceStable();
 
       const checkedAtFromServer = '2024-01-20T12:00:00Z';
-      mockBudgetLineApi.toggleCheck$ = vi.fn().mockReturnValue(
+      mockBudgetApi.toggleBudgetLineCheck$ = vi.fn().mockReturnValue(
         of({
           data: {
             ...targetLine,
@@ -1035,7 +1004,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       TestBed.tick();
       await waitForResourceStable();
 
-      mockBudgetLineApi.toggleCheck$ = vi
+      mockBudgetApi.toggleBudgetLineCheck$ = vi
         .fn()
         .mockReturnValue(throwError(() => new Error('Toggle failed')));
 
@@ -1053,7 +1022,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       const succeeded = await service.toggleCheck('line-does-not-exist');
 
       expect(succeeded).toBe(false);
-      expect(mockBudgetLineApi.toggleCheck$).not.toHaveBeenCalled();
+      expect(mockBudgetApi.toggleBudgetLineCheck$).not.toHaveBeenCalled();
     });
 
     it('check-all preserves transaction amounts from optimistic state (BUG #1)', async () => {
@@ -1092,7 +1061,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       await waitForResourceStable();
 
       // API returns transaction with amount: 0 (encrypted column not decrypted)
-      mockBudgetLineApi.checkTransactions$ = vi.fn().mockReturnValue(
+      mockBudgetApi.checkBudgetLineTransactions$ = vi.fn().mockReturnValue(
         of({
           success: true,
           data: [
@@ -1185,7 +1154,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       TestBed.tick();
       await waitForResourceStable();
 
-      mockBudgetLineApi.checkTransactions$ = vi.fn().mockReturnValue(
+      mockBudgetApi.checkBudgetLineTransactions$ = vi.fn().mockReturnValue(
         of({
           success: true,
           data: [
@@ -1200,11 +1169,13 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       await service.checkAllAllocatedTransactions('line-parent');
 
-      expect(mockBudgetLineApi.checkTransactions$).toHaveBeenCalledTimes(1);
-      expect(mockBudgetLineApi.checkTransactions$).toHaveBeenCalledWith(
+      expect(mockBudgetApi.checkBudgetLineTransactions$).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(mockBudgetApi.checkBudgetLineTransactions$).toHaveBeenCalledWith(
         'line-parent',
       );
-      expect(mockTransactionApi.toggleCheck$).not.toHaveBeenCalled();
+      expect(mockBudgetApi.toggleTransactionCheck$).not.toHaveBeenCalled();
 
       const currentTransactions = service.budgetDetails()?.transactions ?? [];
       const realUncheckedAfter = currentTransactions.find(

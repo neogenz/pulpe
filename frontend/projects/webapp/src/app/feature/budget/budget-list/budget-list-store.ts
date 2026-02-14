@@ -186,20 +186,13 @@ export class BudgetListStore {
       return this.#sortBudgets(cached.data);
     }
 
-    const freshPromise = this.#budgetApi.cache.deduplicate(
-      cacheKey,
-      async () => {
-        try {
-          return await firstValueFrom(this.#budgetApi.getAllBudgets$());
-        } catch (error) {
-          this.#logger.error('Erreur lors du chargement des mois:', error);
-          throw error;
-        }
-      },
-    );
-
-    const budgets = await freshPromise;
-    return this.#sortBudgets(budgets);
+    try {
+      const budgets = await firstValueFrom(this.#budgetApi.getAllBudgets$());
+      return this.#sortBudgets(budgets);
+    } catch (error) {
+      this.#logger.error('Erreur lors du chargement des mois:', error);
+      throw error;
+    }
   }
 
   #sortBudgets(budgets: Budget[]): Budget[] {

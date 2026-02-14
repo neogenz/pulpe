@@ -62,7 +62,10 @@ export class AuthCleanupService {
         'demo mode',
       );
       this.#safeCleanup(() => this.#hasBudgetCache.clear(), 'budget cache');
-      this.#safeCleanup(() => this.#budgetApi.cache.clear(), 'budget data cache');
+      this.#safeCleanup(
+        () => this.#budgetApi.cache.clear(),
+        'budget data cache',
+      );
       this.#safeCleanup(() => this.#postHogService.reset(), 'PostHog');
       this.#safeCleanup(
         () => this.#storageService.clearAllUserData(),
