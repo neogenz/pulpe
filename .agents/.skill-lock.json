@@ -1,0 +1,33 @@
+{
+  "version": 3,
+  "skills": {
+    "swiftui-liquid-glass": {
+      "source": "steipete/agent-scripts",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/steipete/agent-scripts.git",
+      "skillPath": "skills/swiftui-liquid-glass/SKILL.md",
+      "skillFolderHash": "4b828575dc9c927398ce9e8b5aabe96387796aa7",
+      "installedAt": "2026-02-14T13:17:27.131Z",
+      "updatedAt": "2026-02-14T13:17:27.131Z"
+    },
+    "playwright-cli": {
+      "source": "microsoft/playwright-cli",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/microsoft/playwright-cli.git",
+      "skillPath": "skills/playwright-cli/SKILL.md",
+      "skillFolderHash": "9579028fab7b23ffd628ad44f9e51a10936a35df",
+      "installedAt": "2026-02-14T13:20:10.217Z",
+      "updatedAt": "2026-02-14T13:20:10.217Z"
+    },
+    "webapp-testing": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/anthropics/skills.git",
+      "skillPath": "skills/webapp-testing/SKILL.md",
+      "skillFolderHash": "74cb751576f9e9af2aedff47e67861ef26db2dc4",
+      "installedAt": "2026-02-14T13:20:10.411Z",
+      "updatedAt": "2026-02-14T13:20:10.411Z"
+    }
+  },
+  "dismissed": {}
+}
