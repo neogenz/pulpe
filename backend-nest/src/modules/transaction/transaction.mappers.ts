@@ -12,8 +12,11 @@ import {
 
 /**
  * Transform database row (snake_case) to API entity (camelCase)
+ * Expects decrypted transactionDb where amount is already a number
  */
-export function toApi(transactionDb: TransactionRow): Transaction {
+export function toApi(
+  transactionDb: Omit<TransactionRow, 'amount'> & { amount: number },
+): Transaction {
   return {
     id: transactionDb.id,
     createdAt: transactionDb.created_at,
@@ -31,13 +34,17 @@ export function toApi(transactionDb: TransactionRow): Transaction {
 
 /**
  * Transform multiple database rows to API entities
+ * Expects decrypted transactionsDb where amount is already a number
  */
-export function toApiList(transactionsDb: TransactionRow[]): Transaction[] {
+export function toApiList(
+  transactionsDb: (Omit<TransactionRow, 'amount'> & { amount: number })[],
+): Transaction[] {
   return transactionsDb.map((transaction) => toApi(transaction));
 }
 
 /**
- * Transform create DTO (camelCase) to database insert (snake_case)
+ * Transform create DTO (camelCase) to API preparation (pre-encryption)
+ * Note: Amount encryption is handled by the service layer
  */
 export function toInsert(
   createDto: TransactionCreate,
@@ -67,7 +74,7 @@ export function toInsert(
   return {
     budget_id: finalBudgetId,
     budget_line_id: createDto.budgetLineId ?? null,
-    amount: createDto.amount,
+    amount: createDto.amount as any, // Encryption handled by service
     name: createDto.name,
     kind: createDto.kind, // Pas de conversion - les enums sont maintenant unifiés
     transaction_date: createDto.transactionDate || new Date().toISOString(),
@@ -76,7 +83,8 @@ export function toInsert(
 }
 
 /**
- * Transform update DTO (camelCase) to database update (snake_case)
+ * Transform update DTO (camelCase) to API preparation (pre-encryption)
+ * Note: Amount encryption is handled by the service layer
  */
 export function toUpdate(
   updateDto: TransactionUpdate,
@@ -84,7 +92,7 @@ export function toUpdate(
   const updateData: Partial<TransactionInsert> = {};
 
   if (updateDto.amount !== undefined) {
-    updateData.amount = updateDto.amount;
+    updateData.amount = updateDto.amount as any; // Encryption handled by service
   }
   if (updateDto.name !== undefined) {
     updateData.name = updateDto.name;

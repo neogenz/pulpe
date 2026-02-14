@@ -30,9 +30,13 @@ export class BudgetLineService {
   async #decryptBudgetLine(
     budgetLine: Database['public']['Tables']['budget_line']['Row'],
     user: AuthenticatedUser,
-  ): Promise<Database['public']['Tables']['budget_line']['Row']> {
-    if (!('amount_encrypted' in budgetLine) || !budgetLine.amount_encrypted) {
-      return budgetLine;
+  ): Promise<
+    Omit<Database['public']['Tables']['budget_line']['Row'], 'amount'> & {
+      amount: number;
+    }
+  > {
+    if (!budgetLine.amount) {
+      return { ...budgetLine, amount: 0 };
     }
 
     const dek = await this.encryptionService.getUserDEK(
@@ -40,9 +44,9 @@ export class BudgetLineService {
       user.clientKey,
     );
     const decryptedAmount = this.encryptionService.tryDecryptAmount(
-      budgetLine.amount_encrypted as string,
-      dek,
       budgetLine.amount,
+      dek,
+      0,
     );
 
     return {
@@ -54,9 +58,56 @@ export class BudgetLineService {
   async #decryptBudgetLines(
     budgetLines: Database['public']['Tables']['budget_line']['Row'][],
     user: AuthenticatedUser,
-  ): Promise<Database['public']['Tables']['budget_line']['Row'][]> {
+  ): Promise<
+    (Omit<Database['public']['Tables']['budget_line']['Row'], 'amount'> & {
+      amount: number;
+    })[]
+  > {
     return Promise.all(
       budgetLines.map((line) => this.#decryptBudgetLine(line, user)),
+    );
+  }
+
+  async #decryptTransaction(
+    transaction: Database['public']['Tables']['transaction']['Row'],
+    user: AuthenticatedUser,
+  ): Promise<
+    Omit<Database['public']['Tables']['transaction']['Row'], 'amount'> & {
+      amount: number;
+    }
+  > {
+    if (!transaction.amount) {
+      return { ...transaction, amount: 0 };
+    }
+
+    const dek = await this.encryptionService.getUserDEK(
+      user.id,
+      user.clientKey,
+    );
+    const decryptedAmount = this.encryptionService.tryDecryptAmount(
+      transaction.amount,
+      dek,
+      0,
+    );
+
+    return {
+      ...transaction,
+      amount: decryptedAmount,
+    };
+  }
+
+  async #decryptTransactions(
+    transactions: Database['public']['Tables']['transaction']['Row'][],
+    user: AuthenticatedUser,
+  ): Promise<
+    (Omit<Database['public']['Tables']['transaction']['Row'], 'amount'> & {
+      amount: number;
+    })[]
+  > {
+    return Promise.all(
+      transactions.map((transaction) =>
+        this.#decryptTransaction(transaction, user),
+      ),
     );
   }
 
@@ -159,16 +210,14 @@ export class BudgetLineService {
     supabase: AuthenticatedSupabaseClient,
     user: AuthenticatedUser,
   ): Promise<Database['public']['Tables']['budget_line']['Row']> {
-    const { amount, amount_encrypted: amountEncrypted } =
-      await this.encryptionService.prepareAmountData(
-        budgetLineData.amount,
-        user.id,
-        user.clientKey,
-      );
+    const { amount } = await this.encryptionService.prepareAmountData(
+      budgetLineData.amount,
+      user.id,
+      user.clientKey,
+    );
     const dataWithEncryption = {
       ...budgetLineData,
       amount,
-      amount_encrypted: amountEncrypted,
     };
 
     const { data: budgetLineDb, error } = await supabase
@@ -402,16 +451,14 @@ export class BudgetLineService {
 
       let updateData = this.prepareBudgetLineUpdateData(updateBudgetLineDto);
       if (updateBudgetLineDto.amount !== undefined) {
-        const { amount, amount_encrypted: amountEncrypted } =
-          await this.encryptionService.prepareAmountData(
-            updateBudgetLineDto.amount,
-            user.id,
-            user.clientKey,
-          );
+        const { amount } = await this.encryptionService.prepareAmountData(
+          updateBudgetLineDto.amount,
+          user.id,
+          user.clientKey,
+        );
         updateData = {
           ...updateData,
           amount,
-          amount_encrypted: amountEncrypted,
         };
       }
 
@@ -547,16 +594,14 @@ export class BudgetLineService {
       );
 
       let updateData = this.prepareResetUpdateData(templateLine);
-      const { amount, amount_encrypted: amountEncrypted } =
-        await this.encryptionService.prepareAmountData(
-          templateLine.amount,
-          user.id,
-          user.clientKey,
-        );
+      const { amount } = await this.encryptionService.prepareAmountData(
+        templateLine.amount,
+        user.id,
+        user.clientKey,
+      );
       updateData = {
         ...updateData,
         amount,
-        amount_encrypted: amountEncrypted,
       };
 
       const updatedBudgetLine = await this.updateBudgetLineInDb(
@@ -612,10 +657,9 @@ export class BudgetLineService {
     amount: number;
     kind: Database['public']['Enums']['transaction_kind'];
     recurrence: Database['public']['Enums']['transaction_recurrence'];
-  }): Database['public']['Tables']['budget_line']['Update'] {
+  }): Partial<Database['public']['Tables']['budget_line']['Update']> {
     return {
       name: templateLine.name,
-      amount: templateLine.amount,
       kind: templateLine.kind,
       recurrence: templateLine.recurrence,
       is_manually_adjusted: false,
@@ -630,7 +674,7 @@ export class BudgetLineService {
   ) {
     const { data: templateLine, error } = await supabase
       .from('template_line')
-      .select('name, amount, amount_encrypted, kind, recurrence')
+      .select('name, amount, kind, recurrence')
       .eq('id', templateLineId)
       .single();
 
@@ -640,7 +684,7 @@ export class BudgetLineService {
       });
     }
 
-    if (templateLine.amount_encrypted) {
+    if (templateLine.amount) {
       const dek = await this.encryptionService.getUserDEK(
         user.id,
         user.clientKey,
@@ -648,14 +692,14 @@ export class BudgetLineService {
       return {
         ...templateLine,
         amount: this.encryptionService.tryDecryptAmount(
-          templateLine.amount_encrypted,
-          dek,
           templateLine.amount,
+          dek,
+          0,
         ),
       };
     }
 
-    return templateLine;
+    return { ...templateLine, amount: 0 };
   }
 
   async toggleCheck(
@@ -737,11 +781,16 @@ export class BudgetLineService {
         );
       }
 
+      const decryptedTransactions = await this.#decryptTransactions(
+        updatedTransactions ?? [],
+        user,
+      );
+
       await this.cacheService.invalidateForUser(user.id);
 
       return {
         success: true,
-        data: transactionMappers.toApiList(updatedTransactions ?? []),
+        data: transactionMappers.toApiList(decryptedTransactions),
       };
     } catch (error) {
       handleServiceError(

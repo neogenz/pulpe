@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ClsService } from 'nestjs-cls';
 import {
   createCipheriv,
   createDecipheriv,
@@ -8,9 +7,9 @@ import {
   hkdfSync,
   randomBytes,
 } from 'node:crypto';
-import type { AppClsStore } from '@common/types/cls-store.interface';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { EncryptionKeyRepository } from './encryption-key.repository';
 
 const ALGORITHM = 'aes-256-gcm';
@@ -25,8 +24,10 @@ const DEK_CACHE_TTL_MS = 5 * 60 * 1000;
 // Base32 alphabet (RFC 4648, no padding) — avoids 0/O and 1/l ambiguity
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
-// Deterministic salt for demo users - no DB persistence needed since demo data is plaintext
-const DEMO_SALT = Buffer.alloc(SALT_LENGTH, 0x00);
+export const DEMO_CLIENT_KEY_BUFFER = Buffer.from(
+  '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+  'hex',
+);
 
 interface CachedDEK {
   dek: Buffer;
@@ -39,12 +40,10 @@ export class EncryptionService {
   readonly #masterKey: Buffer;
   readonly #dekCache = new Map<string, CachedDEK>();
   readonly #repository: EncryptionKeyRepository;
-  readonly #cls: ClsService<AppClsStore>;
 
   constructor(
     configService: ConfigService,
     repository: EncryptionKeyRepository,
-    cls: ClsService<AppClsStore>,
   ) {
     const masterKeyHex = configService.get<string>('ENCRYPTION_MASTER_KEY');
     if (!masterKeyHex) {
@@ -57,11 +56,6 @@ export class EncryptionService {
       );
     }
     this.#repository = repository;
-    this.#cls = cls;
-  }
-
-  #isDemo(): boolean {
-    return this.#cls.get('isDemo') ?? false;
   }
 
   encryptAmount(amount: number, dek: Buffer): string {
@@ -136,42 +130,24 @@ export class EncryptionService {
     return ciphertexts.map((ct) => this.decryptAmount(ct, dek));
   }
 
-  /**
-   * Prepare amount data for database storage based on demo mode.
-   * In demo mode: keeps plaintext amount, no encryption
-   * In normal mode: zeros plaintext amount, encrypts to amount_encrypted
-   */
   async prepareAmountData(
     amount: number,
     userId: string,
     clientKey: Buffer,
-  ): Promise<{ amount: number; amount_encrypted: string | null }> {
-    if (this.#isDemo()) {
-      return { amount, amount_encrypted: null };
-    }
-
+  ): Promise<{ amount: string }> {
     const dek = await this.ensureUserDEK(userId, clientKey);
     const encrypted = this.encryptAmount(amount, dek);
-    return { amount: 0, amount_encrypted: encrypted };
+    return { amount: encrypted };
   }
 
-  /**
-   * Batch version of prepareAmountData for bulk operations.
-   * Returns array of { amount, amount_encrypted } matching input order.
-   */
   async prepareAmountsData(
     amounts: number[],
     userId: string,
     clientKey: Buffer,
-  ): Promise<Array<{ amount: number; amount_encrypted: string | null }>> {
-    if (this.#isDemo()) {
-      return amounts.map((amount) => ({ amount, amount_encrypted: null }));
-    }
-
+  ): Promise<Array<{ amount: string }>> {
     const dek = await this.ensureUserDEK(userId, clientKey);
     return amounts.map((amount) => ({
-      amount: 0,
-      amount_encrypted: this.encryptAmount(amount, dek),
+      amount: this.encryptAmount(amount, dek),
     }));
   }
 
@@ -206,16 +182,6 @@ export class EncryptionService {
       return cached.dek;
     }
 
-    // Demo users use deterministic salt without DB lookup
-    if (this.#isDemo()) {
-      const dek = this.#deriveDEK(clientKey, DEMO_SALT, userId);
-      this.#dekCache.set(cacheKey, {
-        dek,
-        expiry: Date.now() + DEK_CACHE_TTL_MS,
-      });
-      return dek;
-    }
-
     const row = await this.#repository.findSaltByUserId(userId);
     if (!row) {
       throw new Error(`No encryption key found for user ${userId}`);
@@ -236,10 +202,7 @@ export class EncryptionService {
     userId: string,
   ): Promise<{ salt: string; kdfIterations: number; hasRecoveryKey: boolean }> {
     const { salt, kdfIterations } = await this.#getOrGenerateClientSalt(userId);
-    // Demo users don't have recovery keys
-    const hasRecoveryKey = this.#isDemo()
-      ? false
-      : await this.#repository.hasRecoveryKey(userId);
+    const hasRecoveryKey = await this.#repository.hasRecoveryKey(userId);
     return { salt, kdfIterations, hasRecoveryKey };
   }
 
@@ -298,14 +261,13 @@ export class EncryptionService {
     const row = await this.#repository.findByUserId(userId);
     const dek = await this.ensureUserDEK(userId, clientKey);
 
-    if (row?.key_check) {
-      return this.validateKeyCheck(row.key_check, dek);
+    if (!row?.key_check) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+      );
     }
 
-    // No key_check stored yet (existing user before migration) — store it now
-    const keyCheck = this.generateKeyCheck(dek);
-    await this.#repository.updateKeyCheck(userId, keyCheck);
-    return true;
+    return this.validateKeyCheck(row.key_check, dek);
   }
 
   async storeKeyCheck(userId: string, keyCheck: string): Promise<void> {
@@ -322,9 +284,14 @@ export class EncryptionService {
     const wrappedDEK = this.wrapDEK(dek, raw);
     await this.#repository.updateWrappedDEK(userId, wrappedDEK);
 
-    // Zero recovery key from memory — caller receives only the formatted string
-    raw.fill(0);
+    // Ensure key_check exists so validate-key succeeds on next session
+    const existing = await this.#repository.findByUserId(userId);
+    if (!existing?.key_check) {
+      const keyCheck = this.generateKeyCheck(dek);
+      await this.#repository.updateKeyCheck(userId, keyCheck);
+    }
 
+    raw.fill(0);
     return { formatted };
   }
 
@@ -367,6 +334,252 @@ export class EncryptionService {
     }
   }
 
+  async rekeyUserData(
+    userId: string,
+    oldClientKey: Buffer,
+    newClientKey: Buffer,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const oldDek = await this.getUserDEK(userId, oldClientKey);
+    const newDek = await this.ensureUserDEK(userId, newClientKey);
+    await this.reEncryptAllUserData(userId, oldDek, newDek, supabase);
+  }
+
+  async reEncryptAllUserData(
+    userId: string,
+    oldDek: Buffer,
+    newDek: Buffer,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const [budgetIds, templateIds] = await Promise.all([
+      this.#fetchUserBudgetIds(userId, supabase),
+      this.#fetchUserTemplateIds(userId, supabase),
+    ]);
+
+    const [
+      budgetLines,
+      transactions,
+      templateLines,
+      savingsGoals,
+      monthlyBudgets,
+    ] = await Promise.all([
+      this.#fetchBudgetLines(budgetIds, supabase),
+      this.#fetchTransactions(budgetIds, supabase),
+      this.#fetchTemplateLines(templateIds, supabase),
+      this.#fetchSavingsGoals(userId, supabase),
+      this.#fetchMonthlyBudgets(userId, supabase),
+    ]);
+
+    const payloads = this.#buildRekeyPayloads(
+      {
+        budgetLines,
+        transactions,
+        templateLines,
+        savingsGoals,
+        monthlyBudgets,
+      },
+      oldDek,
+      newDek,
+    );
+
+    const keyCheck = this.generateKeyCheck(newDek);
+
+    const { error } = await supabase.rpc('rekey_user_encrypted_data', {
+      p_budget_lines: payloads.budgetLines,
+      p_transactions: payloads.transactions,
+      p_template_lines: payloads.templateLines,
+      p_savings_goals: payloads.savingsGoals,
+      p_monthly_budgets: payloads.monthlyBudgets,
+      p_key_check: keyCheck,
+    });
+
+    if (error) {
+      this.#logger.error(
+        { userId, operation: 'rekey.rpc_failure', error: error.message },
+        'Atomic rekey RPC failed',
+      );
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
+      );
+    }
+
+    this.#logger.log(
+      {
+        userId,
+        operation: 'rekey.complete',
+        counts: {
+          budget_line: payloads.budgetLines.length,
+          transaction: payloads.transactions.length,
+          template_line: payloads.templateLines.length,
+          savings_goal: payloads.savingsGoals.length,
+          monthly_budget: payloads.monthlyBudgets.length,
+        },
+      },
+      'All user data re-encrypted',
+    );
+  }
+
+  #buildRekeyPayloads(
+    rows: {
+      budgetLines: Array<{
+        id: string;
+        amount: string | null;
+      }>;
+      transactions: Array<{
+        id: string;
+        amount: string | null;
+      }>;
+      templateLines: Array<{
+        id: string;
+        amount: string | null;
+      }>;
+      savingsGoals: Array<{
+        id: string;
+        target_amount: string | null;
+      }>;
+      monthlyBudgets: Array<{
+        id: string;
+        ending_balance: string | null;
+      }>;
+    },
+    oldDek: Buffer,
+    newDek: Buffer,
+  ) {
+    const rekey = (ciphertext: string | null) =>
+      ciphertext
+        ? this.#reEncryptAmountStrict(ciphertext, oldDek, newDek)
+        : null;
+
+    return {
+      budgetLines: rows.budgetLines.map((r) => ({
+        id: r.id,
+        amount: rekey(r.amount),
+      })),
+      transactions: rows.transactions.map((r) => ({
+        id: r.id,
+        amount: rekey(r.amount),
+      })),
+      templateLines: rows.templateLines.map((r) => ({
+        id: r.id,
+        amount: rekey(r.amount),
+      })),
+      savingsGoals: rows.savingsGoals.map((r) => ({
+        id: r.id,
+        target_amount: rekey(r.target_amount),
+      })),
+      monthlyBudgets: rows.monthlyBudgets.map((r) => ({
+        id: r.id,
+        ending_balance: rekey(r.ending_balance),
+      })),
+    };
+  }
+
+  #reEncryptAmountStrict(
+    ciphertext: string,
+    oldDek: Buffer,
+    newDek: Buffer,
+  ): string {
+    const plaintext = this.decryptAmount(ciphertext, oldDek);
+    return this.encryptAmount(plaintext, newDek);
+  }
+
+  async #fetchUserBudgetIds(
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('monthly_budget')
+      .select('id')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return data?.map((b) => b.id) ?? [];
+  }
+
+  async #fetchUserTemplateIds(
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('template')
+      .select('id')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return data?.map((t) => t.id) ?? [];
+  }
+
+  async #fetchBudgetLines(
+    budgetIds: string[],
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    if (!budgetIds.length) return [];
+
+    const { data, error } = await supabase
+      .from('budget_line')
+      .select('id, amount')
+      .in('budget_id', budgetIds);
+
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async #fetchTransactions(
+    budgetIds: string[],
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    if (!budgetIds.length) return [];
+
+    const { data, error } = await supabase
+      .from('transaction')
+      .select('id, amount')
+      .in('budget_id', budgetIds);
+
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async #fetchTemplateLines(
+    templateIds: string[],
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    if (!templateIds.length) return [];
+
+    const { data, error } = await supabase
+      .from('template_line')
+      .select('id, amount')
+      .in('template_id', templateIds);
+
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async #fetchSavingsGoals(
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    const { data, error } = await supabase
+      .from('savings_goal')
+      .select('id, target_amount')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async #fetchMonthlyBudgets(
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    const { data, error } = await supabase
+      .from('monthly_budget')
+      .select('id, ending_balance')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return data ?? [];
+  }
+
   #invalidateUserDEKCache(userId: string): void {
     for (const key of this.#dekCache.keys()) {
       if (key.startsWith(`${userId}:`)) {
@@ -393,11 +606,6 @@ export class EncryptionService {
   async #ensureUserSalt(
     userId: string,
   ): Promise<{ salt: Buffer; keyCheck: string | null }> {
-    // Demo users use deterministic salt without DB persistence
-    if (this.#isDemo()) {
-      return { salt: DEMO_SALT, keyCheck: null };
-    }
-
     // Check existing first
     const existing = await this.#repository.findSaltByUserId(userId);
     if (existing) {

@@ -74,8 +74,7 @@ describe('BudgetLineService', () => {
     template_line_id: '123e4567-e89b-12d3-a456-426614174002',
     savings_goal_id: null,
     name: 'Salaire',
-    amount: 2500,
-    amount_encrypted: null,
+    amount: 'encrypted-2500',
     kind: 'income' as const,
     recurrence: 'fixed' as const,
     is_manually_adjusted: false,
@@ -131,17 +130,13 @@ describe('BudgetLineService', () => {
             encryptAmount: jest.fn().mockReturnValue('encrypted-mock'),
             prepareAmountData: jest
               .fn()
-              .mockImplementation((amount: number) =>
-                Promise.resolve({ amount, amount_encrypted: null }),
+              .mockImplementation((_amount: number) =>
+                Promise.resolve({ amount: 'encrypted-mock' }),
               ),
             decryptAmount: jest
               .fn()
               .mockImplementation((_ct: string, _dek: Buffer) => 100),
-            tryDecryptAmount: jest
-              .fn()
-              .mockImplementation(
-                (_ct: string, _dek: Buffer, fallback: number) => fallback,
-              ),
+            tryDecryptAmount: jest.fn().mockReturnValue(2500),
           },
         },
         {
@@ -337,7 +332,7 @@ describe('BudgetLineService', () => {
       const updatedBudgetLine: BudgetLineRow = {
         ...mockBudgetLineDb,
         name: 'Salaire Updated',
-        amount: 2600,
+        amount: 'encrypted-string',
       };
 
       mockSupabase.from.mockReturnValue(
@@ -362,7 +357,7 @@ describe('BudgetLineService', () => {
           templateLineId: updatedBudgetLine.template_line_id,
           savingsGoalId: updatedBudgetLine.savings_goal_id,
           name: updatedBudgetLine.name,
-          amount: updatedBudgetLine.amount,
+          amount: 2500,
           kind: 'income', // Enums maintenant unifiés - pas de conversion
           recurrence: updatedBudgetLine.recurrence,
           isManuallyAdjusted: updatedBudgetLine.is_manually_adjusted,
@@ -496,7 +491,7 @@ describe('BudgetLineService', () => {
           data: {
             ...mockBudgetLineWithTemplate,
             name: mockTemplateLine.name,
-            amount: mockTemplateLine.amount,
+            amount: 'encrypted-string',
             is_manually_adjusted: false,
           },
           error: null,
@@ -512,7 +507,7 @@ describe('BudgetLineService', () => {
       expect(result.success).toBe(true);
       expect(result.data).toMatchObject({
         name: mockTemplateLine.name,
-        amount: mockTemplateLine.amount,
+        amount: 2500,
         isManuallyAdjusted: false,
       });
     });
@@ -586,7 +581,7 @@ describe('BudgetLineService', () => {
       budget_id: '123e4567-e89b-12d3-a456-426614174001',
       budget_line_id: '123e4567-e89b-12d3-a456-426614174000',
       name: 'Test Transaction',
-      amount: 100,
+      amount: 'encrypted-2500',
       kind: 'expense' as const,
       transaction_date: '2024-01-15',
       category: null,
@@ -621,7 +616,7 @@ describe('BudgetLineService', () => {
             budgetId: '123e4567-e89b-12d3-a456-426614174001',
             budgetLineId: '123e4567-e89b-12d3-a456-426614174000',
             name: 'Test Transaction',
-            amount: 100,
+            amount: 2500,
             kind: 'expense',
             transactionDate: '2024-01-15',
             category: null,

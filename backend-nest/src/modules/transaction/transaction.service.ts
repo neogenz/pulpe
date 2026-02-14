@@ -223,30 +223,33 @@ export class TransactionService {
   private decryptTransactionWithDEK(
     transaction: Database['public']['Tables']['transaction']['Row'],
     dek: Buffer,
-  ): Database['public']['Tables']['transaction']['Row'] {
-    const amountEncrypted = (transaction as Record<string, unknown>)
-      .amount_encrypted as string | undefined;
-
-    if (amountEncrypted) {
-      const decryptedAmount = this.encryptionService.tryDecryptAmount(
-        amountEncrypted,
-        dek,
-        transaction.amount,
-      );
-      return {
-        ...transaction,
-        amount: decryptedAmount,
-      };
+  ): Omit<Database['public']['Tables']['transaction']['Row'], 'amount'> & {
+    amount: number;
+  } {
+    if (!transaction.amount) {
+      return { ...transaction, amount: 0 };
     }
 
-    return transaction;
+    const decryptedAmount = this.encryptionService.tryDecryptAmount(
+      transaction.amount,
+      dek,
+      0,
+    );
+    return {
+      ...transaction,
+      amount: decryptedAmount,
+    };
   }
 
   private async decryptTransaction(
     transaction: Database['public']['Tables']['transaction']['Row'],
     userId: string,
     clientKey: Buffer,
-  ): Promise<Database['public']['Tables']['transaction']['Row']> {
+  ): Promise<
+    Omit<Database['public']['Tables']['transaction']['Row'], 'amount'> & {
+      amount: number;
+    }
+  > {
     const dek = await this.encryptionService.getUserDEK(userId, clientKey);
     return this.decryptTransactionWithDEK(transaction, dek);
   }
@@ -255,7 +258,11 @@ export class TransactionService {
     transactions: Database['public']['Tables']['transaction']['Row'][],
     userId: string,
     clientKey: Buffer,
-  ): Promise<Database['public']['Tables']['transaction']['Row'][]> {
+  ): Promise<
+    (Omit<Database['public']['Tables']['transaction']['Row'], 'amount'> & {
+      amount: number;
+    })[]
+  > {
     const dek = await this.encryptionService.getUserDEK(userId, clientKey);
     return transactions.map((transaction) =>
       this.decryptTransactionWithDEK(transaction, dek),
@@ -282,16 +289,14 @@ export class TransactionService {
 
       const transactionData = this.prepareTransactionData(createTransactionDto);
 
-      const { amount, amount_encrypted: amountEncrypted } =
-        await this.encryptionService.prepareAmountData(
-          createTransactionDto.amount,
-          user.id,
-          user.clientKey,
-        );
+      const { amount } = await this.encryptionService.prepareAmountData(
+        createTransactionDto.amount,
+        user.id,
+        user.clientKey,
+      );
       const dataWithEncryption = {
         ...transactionData,
         amount,
-        amount_encrypted: amountEncrypted,
       };
 
       const transactionDb = await this.insertTransaction(
@@ -509,14 +514,12 @@ export class TransactionService {
 
       // If amount is being updated, prepare encrypted data
       if (updateTransactionDto.amount !== undefined) {
-        const { amount, amount_encrypted: amountEncrypted } =
-          await this.encryptionService.prepareAmountData(
-            updateTransactionDto.amount,
-            user.id,
-            user.clientKey,
-          );
+        const { amount } = await this.encryptionService.prepareAmountData(
+          updateTransactionDto.amount,
+          user.id,
+          user.clientKey,
+        );
         updateData.amount = amount;
-        updateData.amount_encrypted = amountEncrypted;
       }
 
       const transactionDb = await this.updateTransactionInDb(
@@ -898,26 +901,18 @@ export class TransactionService {
       );
 
       const decryptedTransactions = transactionsDb.map((t) => {
-        if (!t.amount_encrypted) return t;
+        if (!t.amount) return { ...t, amount: 0 };
         return {
           ...t,
-          amount: this.encryptionService.tryDecryptAmount(
-            t.amount_encrypted,
-            dek,
-            t.amount,
-          ),
+          amount: this.encryptionService.tryDecryptAmount(t.amount, dek, 0),
         };
       });
 
       const decryptedBudgetLines = budgetLinesDb.map((bl) => {
-        if (!bl.amount_encrypted) return bl;
+        if (!bl.amount) return { ...bl, amount: 0 };
         return {
           ...bl,
-          amount: this.encryptionService.tryDecryptAmount(
-            bl.amount_encrypted,
-            dek,
-            bl.amount,
-          ),
+          amount: this.encryptionService.tryDecryptAmount(bl.amount, dek, 0),
         };
       });
 
@@ -989,7 +984,6 @@ export class TransactionService {
         id,
         name,
         amount,
-        amount_encrypted,
         kind,
         transaction_date,
         category,
@@ -1039,7 +1033,6 @@ export class TransactionService {
         id,
         name,
         amount,
-        amount_encrypted,
         kind,
         recurrence,
         budget_id,

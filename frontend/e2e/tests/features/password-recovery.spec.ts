@@ -1,8 +1,8 @@
 import { test, expect } from '../../fixtures/test-fixtures';
 import { setupAuthBypass } from '../../utils/auth-bypass';
-import type { Route } from '@playwright/test';
+import type { Page, Route } from '@playwright/test';
 
-const mockSupabaseUpdateUser = async (page: import('@playwright/test').Page) => {
+const mockSupabaseUpdateUser = async (page: Page) => {
   await page.route('**/auth/v1/user**', (route: Route) => {
     return route.fulfill({
       status: 200,
@@ -17,7 +17,7 @@ const mockSupabaseUpdateUser = async (page: import('@playwright/test').Page) => 
   });
 };
 
-const mockSupabaseResetEmail = async (page: import('@playwright/test').Page) => {
+const mockSupabaseResetEmail = async (page: Page) => {
   await page.route('**/auth/v1/recover**', (route: Route) => {
     return route.fulfill({
       status: 200,
@@ -27,10 +27,7 @@ const mockSupabaseResetEmail = async (page: import('@playwright/test').Page) => 
   });
 };
 
-const mockSalt = async (
-  page: import('@playwright/test').Page,
-  hasRecoveryKey: boolean,
-) => {
+const mockSalt = async (page: Page, hasRecoveryKey: boolean) => {
   await page.route('**/api/v1/encryption/salt', (route: Route) => {
     return route.fulfill({
       status: 200,
@@ -47,7 +44,9 @@ const mockSalt = async (
 test.describe('Password Recovery', () => {
   test.describe.configure({ mode: 'parallel' });
 
-  test('forgot password shows validation error for invalid email', async ({ page }) => {
+  test('forgot password shows validation error for invalid email', async ({
+    page,
+  }) => {
     await page.goto('/forgot-password', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('forgot-password-page')).toBeVisible();
 
@@ -59,7 +58,9 @@ test.describe('Password Recovery', () => {
     );
   });
 
-  test('forgot password shows success message after submission', async ({ page }) => {
+  test('forgot password shows success message after submission', async ({
+    page,
+  }) => {
     await mockSupabaseResetEmail(page);
 
     await page.goto('/forgot-password', { waitUntil: 'domcontentloaded' });
@@ -71,13 +72,19 @@ test.describe('Password Recovery', () => {
     await expect(page.getByTestId('forgot-password-success')).toBeVisible();
   });
 
-  test('reset password shows invalid link message when session is missing', async ({ page }) => {
+  test('reset password shows invalid link message when session is missing', async ({
+    page,
+  }) => {
     await page.goto('/reset-password', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('invalid-link-message')).toBeVisible();
-    await expect(page.getByTestId('back-to-forgot-password-button')).toBeVisible();
+    await expect(
+      page.getByTestId('back-to-forgot-password-button'),
+    ).toBeVisible();
   });
 
-  test('reset password with recovery key shows format error for invalid key', async ({ page }) => {
+  test('reset password with recovery key shows required error when input contains only invalid chars', async ({
+    page,
+  }) => {
     await setupAuthBypass(page, {
       includeApiMocks: true,
       setLocalStorage: true,
@@ -89,6 +96,7 @@ test.describe('Password Recovery', () => {
 
     await page.goto('/reset-password', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('reset-password-page')).toBeVisible();
+    await expect(page.getByTestId('recovery-key-input')).toBeVisible();
 
     await page.getByTestId('recovery-key-input').fill('@@@');
     await page.getByTestId('recovery-key-input').blur();
@@ -98,7 +106,9 @@ test.describe('Password Recovery', () => {
     );
   });
 
-  test('reset password with recovery key shows error on invalid key response', async ({ page }) => {
+  test('reset password with recovery key shows error on invalid key response', async ({
+    page,
+  }) => {
     await setupAuthBypass(page, {
       includeApiMocks: true,
       setLocalStorage: true,
@@ -118,6 +128,7 @@ test.describe('Password Recovery', () => {
 
     await page.goto('/reset-password', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('reset-password-page')).toBeVisible();
+    await expect(page.getByTestId('recovery-key-input')).toBeVisible();
 
     await page.getByTestId('recovery-key-input').fill('AAAA-BBBB-CCCC-DDDD');
     await page.getByTestId('new-password-input').fill('new-password-123');
@@ -130,7 +141,9 @@ test.describe('Password Recovery', () => {
     );
   });
 
-  test('reset password with recovery key completes and shows new key dialog', async ({ page }) => {
+  test('reset password with recovery key completes, shows new key dialog, and redirects to setup vault code', async ({
+    page,
+  }) => {
     await setupAuthBypass(page, {
       includeApiMocks: true,
       setLocalStorage: true,
@@ -150,6 +163,7 @@ test.describe('Password Recovery', () => {
 
     await page.goto('/reset-password', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('reset-password-page')).toBeVisible();
+    await expect(page.getByTestId('recovery-key-input')).toBeVisible();
 
     await page.getByTestId('recovery-key-input').fill('aaaa-bbbb-cccc-dddd');
     await expect(page.getByTestId('recovery-key-input')).toHaveValue(
@@ -158,13 +172,13 @@ test.describe('Password Recovery', () => {
 
     await page.getByTestId('new-password-input').fill('new-password-123');
     await page.getByTestId('confirm-password-input').fill('new-password-123');
-
     await page.getByTestId('reset-password-submit-button').click();
 
     await expect(page.getByTestId('recovery-key-dialog')).toBeVisible();
-    await page.getByTestId('recovery-key-confirm-input').fill('aaaa-bbbb-cccc-dddd');
+    await page
+      .getByTestId('recovery-key-confirm-input')
+      .fill('AAAA-BBBB-CCCC-DDDD');
     await page.getByTestId('recovery-key-confirm-button').click();
-
     await expect(page).toHaveURL(/\/setup-vault-code/);
   });
 });

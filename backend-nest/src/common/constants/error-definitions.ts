@@ -87,6 +87,12 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Client key verification failed',
     httpStatus: HttpStatus.BAD_REQUEST,
   },
+  ENCRYPTION_REKEY_PARTIAL_FAILURE: {
+    code: 'ERR_ENCRYPTION_REKEY_PARTIAL_FAILURE',
+    message: () =>
+      'Re-encryption failed for some records. Key check was not updated.',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
 
   // Budget Errors
   BUDGET_NOT_FOUND: {

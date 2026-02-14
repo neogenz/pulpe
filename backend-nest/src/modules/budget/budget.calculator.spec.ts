@@ -13,14 +13,14 @@ describe('BudgetCalculator', () => {
         fetchBudgetData: () =>
           Promise.resolve({
             budgetLines: [
-              { id: 'line-1', kind: 'income', amount: 5000 },
-              { id: 'line-2', kind: 'expense', amount: 500 },
+              { id: 'line-1', kind: 'income', amount: '5000' },
+              { id: 'line-2', kind: 'expense', amount: '500' },
             ],
             transactions: [
               {
                 id: 'tx-1',
                 kind: 'expense',
-                amount: 100,
+                amount: '100',
                 budget_line_id: 'line-2',
               },
             ],
@@ -30,7 +30,28 @@ describe('BudgetCalculator', () => {
       const mockEncryptionService = {
         ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
         encryptAmount: () => 'encrypted-mock',
+        getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+        tryDecryptAmount: (ct: string) => Number(ct),
       };
+
+      const mockSupabase = {
+        from: (table: string) => {
+          if (table === 'monthly_budget') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  single: () =>
+                    Promise.resolve({
+                      data: { user_id: 'user-123' },
+                      error: null,
+                    }),
+                }),
+              }),
+            };
+          }
+          return {};
+        },
+      } as any;
 
       const module: TestingModule = await Test.createTestingModule({
         providers: [
@@ -55,8 +76,8 @@ describe('BudgetCalculator', () => {
       // ACT
       const result = await calculator.calculateEndingBalance(
         'budget-id',
-        {} as any,
-        null,
+        mockSupabase as any,
+        Buffer.from('aa'.repeat(32), 'hex'),
       );
 
       // ASSERT
@@ -72,14 +93,14 @@ describe('BudgetCalculator', () => {
         fetchBudgetData: () =>
           Promise.resolve({
             budgetLines: [
-              { id: 'line-1', kind: 'income', amount: 5000 },
-              { id: 'line-2', kind: 'expense', amount: 100 },
+              { id: 'line-1', kind: 'income', amount: '5000' },
+              { id: 'line-2', kind: 'expense', amount: '100' },
             ],
             transactions: [
               {
                 id: 'tx-1',
                 kind: 'expense',
-                amount: 150,
+                amount: '150',
                 budget_line_id: 'line-2',
               },
             ],
@@ -89,7 +110,28 @@ describe('BudgetCalculator', () => {
       const mockEncryptionService = {
         ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
         encryptAmount: () => 'encrypted-mock',
+        getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+        tryDecryptAmount: (ct: string) => Number(ct),
       };
+
+      const mockSupabase = {
+        from: (table: string) => {
+          if (table === 'monthly_budget') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  single: () =>
+                    Promise.resolve({
+                      data: { user_id: 'user-123' },
+                      error: null,
+                    }),
+                }),
+              }),
+            };
+          }
+          return {};
+        },
+      } as any;
 
       const module: TestingModule = await Test.createTestingModule({
         providers: [
@@ -114,8 +156,8 @@ describe('BudgetCalculator', () => {
       // ACT
       const result = await calculator.calculateEndingBalance(
         'budget-id',
-        {} as any,
-        null,
+        mockSupabase as any,
+        Buffer.from('aa'.repeat(32), 'hex'),
       );
 
       // ASSERT
@@ -147,7 +189,28 @@ describe('BudgetCalculator', () => {
       const mockEncryptionService = {
         ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
         encryptAmount: () => 'encrypted-mock',
+        getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+        tryDecryptAmount: (ct: string) => Number(ct),
       };
+
+      const mockSupabase = {
+        from: (table: string) => {
+          if (table === 'monthly_budget') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  single: () =>
+                    Promise.resolve({
+                      data: { user_id: 'user-123' },
+                      error: null,
+                    }),
+                }),
+              }),
+            };
+          }
+          return {};
+        },
+      } as any;
 
       const module: TestingModule = await Test.createTestingModule({
         providers: [
@@ -170,15 +233,17 @@ describe('BudgetCalculator', () => {
       const calculator = module.get<BudgetCalculator>(BudgetCalculator);
 
       // ACT
-      await calculator.calculateEndingBalance('budget-id', {} as any, null);
+      await calculator.calculateEndingBalance(
+        'budget-id',
+        mockSupabase as any,
+        Buffer.from('aa'.repeat(32), 'hex'),
+      );
 
       // ASSERT - Verify the calculator requests the right fields
       expect(capturedOptions).not.toBeNull();
-      expect(capturedOptions!.budgetLineFields).toBe(
-        'id, kind, amount, amount_encrypted',
-      );
+      expect(capturedOptions!.budgetLineFields).toBe('id, kind, amount');
       expect(capturedOptions!.transactionFields).toBe(
-        'id, kind, amount, amount_encrypted, budget_line_id',
+        'id, kind, amount, budget_line_id',
       );
     });
 
@@ -188,17 +253,22 @@ describe('BudgetCalculator', () => {
         fetchBudgetData: () =>
           Promise.resolve({
             budgetLines: [
-              { id: 'line-1', kind: 'income', amount: 5000 },
-              { id: 'line-2', kind: 'expense', amount: 500 },
+              { id: 'line-1', kind: 'income', amount: '5000' },
+              { id: 'line-2', kind: 'expense', amount: '500' },
             ],
             transactions: [
               {
                 id: 'tx-1',
                 kind: 'expense',
-                amount: 100,
+                amount: '100',
                 budget_line_id: 'line-2',
               },
-              { id: 'tx-2', kind: 'expense', amount: 75, budget_line_id: null },
+              {
+                id: 'tx-2',
+                kind: 'expense',
+                amount: '75',
+                budget_line_id: null,
+              },
             ],
           }),
       };
@@ -206,7 +276,28 @@ describe('BudgetCalculator', () => {
       const mockEncryptionService = {
         ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
         encryptAmount: () => 'encrypted-mock',
+        getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+        tryDecryptAmount: (ct: string) => Number(ct),
       };
+
+      const mockSupabase = {
+        from: (table: string) => {
+          if (table === 'monthly_budget') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  single: () =>
+                    Promise.resolve({
+                      data: { user_id: 'user-123' },
+                      error: null,
+                    }),
+                }),
+              }),
+            };
+          }
+          return {};
+        },
+      } as any;
 
       const module: TestingModule = await Test.createTestingModule({
         providers: [
@@ -231,8 +322,8 @@ describe('BudgetCalculator', () => {
       // ACT
       const result = await calculator.calculateEndingBalance(
         'budget-id',
-        {} as any,
-        null,
+        mockSupabase as any,
+        Buffer.from('aa'.repeat(32), 'hex'),
       );
 
       // ASSERT
@@ -248,20 +339,20 @@ describe('BudgetCalculator', () => {
         fetchBudgetData: () =>
           Promise.resolve({
             budgetLines: [
-              { id: 'line-1', kind: 'income', amount: 5000 },
-              { id: 'line-2', kind: 'expense', amount: 500 },
+              { id: 'line-1', kind: 'income', amount: '5000' },
+              { id: 'line-2', kind: 'expense', amount: '500' },
             ],
             transactions: [
               {
                 id: 'tx-1',
                 kind: 'expense',
-                amount: 200,
+                amount: '200',
                 budget_line_id: 'line-2',
               },
               {
                 id: 'tx-2',
                 kind: 'expense',
-                amount: 150,
+                amount: '150',
                 budget_line_id: 'line-2',
               },
             ],
@@ -271,7 +362,28 @@ describe('BudgetCalculator', () => {
       const mockEncryptionService = {
         ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
         encryptAmount: () => 'encrypted-mock',
+        getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+        tryDecryptAmount: (ct: string) => Number(ct),
       };
+
+      const mockSupabase = {
+        from: (table: string) => {
+          if (table === 'monthly_budget') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  single: () =>
+                    Promise.resolve({
+                      data: { user_id: 'user-123' },
+                      error: null,
+                    }),
+                }),
+              }),
+            };
+          }
+          return {};
+        },
+      } as any;
 
       const module: TestingModule = await Test.createTestingModule({
         providers: [
@@ -296,8 +408,8 @@ describe('BudgetCalculator', () => {
       // ACT
       const result = await calculator.calculateEndingBalance(
         'budget-id',
-        {} as any,
-        null,
+        mockSupabase as any,
+        Buffer.from('aa'.repeat(32), 'hex'),
       );
 
       // ASSERT
@@ -313,9 +425,9 @@ describe('BudgetCalculator', () => {
         fetchBudgetData: () =>
           Promise.resolve({
             budgetLines: [
-              { id: 'line-1', kind: 'income', amount: 5000 },
-              { id: 'line-2', kind: 'expense', amount: 1000 },
-              { id: 'line-3', kind: 'saving', amount: 500 },
+              { id: 'line-1', kind: 'income', amount: '5000' },
+              { id: 'line-2', kind: 'expense', amount: '1000' },
+              { id: 'line-3', kind: 'saving', amount: '500' },
             ],
             transactions: [],
           }),
@@ -324,7 +436,28 @@ describe('BudgetCalculator', () => {
       const mockEncryptionService = {
         ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
         encryptAmount: () => 'encrypted-mock',
+        getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+        tryDecryptAmount: (ct: string) => Number(ct),
       };
+
+      const mockSupabase = {
+        from: (table: string) => {
+          if (table === 'monthly_budget') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  single: () =>
+                    Promise.resolve({
+                      data: { user_id: 'user-123' },
+                      error: null,
+                    }),
+                }),
+              }),
+            };
+          }
+          return {};
+        },
+      } as any;
 
       const module: TestingModule = await Test.createTestingModule({
         providers: [
@@ -349,8 +482,8 @@ describe('BudgetCalculator', () => {
       // ACT
       const result = await calculator.calculateEndingBalance(
         'budget-id',
-        {} as any,
-        null,
+        mockSupabase as any,
+        Buffer.from('aa'.repeat(32), 'hex'),
       );
 
       // ASSERT
@@ -373,7 +506,28 @@ describe('BudgetCalculator', () => {
       const mockEncryptionService = {
         ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
         encryptAmount: () => 'encrypted-mock',
+        getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+        tryDecryptAmount: (ct: string) => Number(ct),
       };
+
+      const mockSupabase = {
+        from: (table: string) => {
+          if (table === 'monthly_budget') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  single: () =>
+                    Promise.resolve({
+                      data: { user_id: 'user-123' },
+                      error: null,
+                    }),
+                }),
+              }),
+            };
+          }
+          return {};
+        },
+      } as any;
 
       const module: TestingModule = await Test.createTestingModule({
         providers: [
@@ -398,8 +552,8 @@ describe('BudgetCalculator', () => {
       // ACT
       const result = await calculator.calculateEndingBalance(
         'budget-id',
-        {} as any,
-        null,
+        mockSupabase as any,
+        Buffer.from('aa'.repeat(32), 'hex'),
       );
 
       // ASSERT
@@ -411,9 +565,14 @@ describe('BudgetCalculator', () => {
       const mockRepository = {
         fetchBudgetData: () =>
           Promise.resolve({
-            budgetLines: [{ id: 'line-1', kind: 'income', amount: 5000 }],
+            budgetLines: [{ id: 'line-1', kind: 'income', amount: '5000' }],
             transactions: [
-              { id: 'tx-1', kind: 'income', amount: 300, budget_line_id: null },
+              {
+                id: 'tx-1',
+                kind: 'income',
+                amount: '300',
+                budget_line_id: null,
+              },
             ],
           }),
       };
@@ -421,7 +580,28 @@ describe('BudgetCalculator', () => {
       const mockEncryptionService = {
         ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
         encryptAmount: () => 'encrypted-mock',
+        getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+        tryDecryptAmount: (ct: string) => Number(ct),
       };
+
+      const mockSupabase = {
+        from: (table: string) => {
+          if (table === 'monthly_budget') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  single: () =>
+                    Promise.resolve({
+                      data: { user_id: 'user-123' },
+                      error: null,
+                    }),
+                }),
+              }),
+            };
+          }
+          return {};
+        },
+      } as any;
 
       const module: TestingModule = await Test.createTestingModule({
         providers: [
@@ -446,8 +626,8 @@ describe('BudgetCalculator', () => {
       // ACT
       const result = await calculator.calculateEndingBalance(
         'budget-id',
-        {} as any,
-        null,
+        mockSupabase as any,
+        Buffer.from('aa'.repeat(32), 'hex'),
       );
 
       // ASSERT

@@ -29,8 +29,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
     id: 'line-123',
     template_id: 'template-123',
     name: 'Test Line',
-    amount: 1000,
-    amount_encrypted: null,
+    amount: null,
     kind: 'expense',
     recurrence: 'fixed',
     description: 'Test description',
@@ -61,12 +60,10 @@ describe('BudgetTemplateService - Simplified Tests', () => {
     const mockEncryptionService = {
       ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
       encryptAmount: () => 'encrypted-mock',
-      prepareAmountData: (amount: number) =>
-        Promise.resolve({ amount, amount_encrypted: null }),
+      prepareAmountData: (_amount: number) =>
+        Promise.resolve({ amount: 'encrypted-mock' }),
       prepareAmountsData: (amounts: number[]) =>
-        Promise.resolve(
-          amounts.map((amount) => ({ amount, amount_encrypted: null })),
-        ),
+        Promise.resolve(amounts.map(() => ({ amount: 'encrypted-mock' }))),
       decryptAmount: () => 100,
       getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
     };
@@ -383,8 +380,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
             id: 'line-1',
             template_id: templateId,
             name: 'Salary',
-            amount: 1234.56,
-            amount_encrypted: null,
+            amount: null,
             kind: 'income',
             recurrence: 'fixed',
             description: null,
@@ -397,8 +393,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
             id: 'line-2',
             template_id: templateId,
             name: 'Bonus',
-            amount: 200,
-            amount_encrypted: null,
+            amount: null,
             kind: 'income',
             recurrence: 'one_off',
             description: null,
@@ -452,8 +447,8 @@ describe('BudgetTemplateService - Simplified Tests', () => {
         throw new Error('RPC call not recorded');
       }
       const [, rpcPayload] = rpcCall as unknown as [string, any];
-      expect(rpcPayload.updated_lines[0].amount).toBe('1234.56');
-      expect(rpcPayload.created_lines[0].amount).toBe('200');
+      expect(rpcPayload.updated_lines[0].amount).toBeNull();
+      expect(rpcPayload.created_lines[0].amount).toBeNull();
     });
   });
 

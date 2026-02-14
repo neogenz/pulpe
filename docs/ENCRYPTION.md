@@ -12,7 +12,7 @@ DEK = HKDF-SHA256(clientKey + masterKey, salt, "pulpe-dek-{userId}")
 
 | Facteur | Origine | Stockage |
 |---------|---------|----------|
-| `clientKey` | Dérivé du **code PIN** (4 chiffres minimum) côté frontend (PBKDF2). Pour les comptes legacy pré‑migration, il peut encore être dérivé du mot de passe lors des flows de reset/recovery. | Conservé en `sessionStorage` par défaut (ou `localStorage` via « Se souvenir de cet appareil »). Effacé au logout. Envoyé dans le header `X-Client-Key` à chaque requête. Voir section « Stockage du clientKey » ci-dessous. |
+| `clientKey` | Dérivé du **code PIN** (4 chiffres minimum) côté frontend (PBKDF2). | Conservé en `sessionStorage` par défaut (ou `localStorage` via « Se souvenir de cet appareil »). Effacé au logout. Envoyé dans le header `X-Client-Key` à chaque requête. Voir section « Stockage du clientKey » ci-dessous. |
 | `masterKey` | Variable d'environnement `ENCRYPTION_MASTER_KEY` | Serveur uniquement. GitHub Secrets en prod, `.env` en local. |
 | `salt` | Généré aléatoirement par utilisateur | Table `user_encryption_key` (accessible uniquement au `service_role`). |
 
@@ -37,25 +37,23 @@ La DEK n'est jamais stockée. Elle est recalculée à chaque requête (avec un c
 
 ## Tables concernées
 
-Chaque table a une colonne `amount_encrypted` (ou équivalent) à côté de la colonne `amount` existante. Les deux coexistent pendant la phase de migration.
+Chaque table stocke les montants chiffrés dans une colonne texte (type `text`). La valeur est un ciphertext AES-256-GCM encodé en base64, ou `null` si aucun montant n'a été saisi.
 
-| Table | Colonne claire | Colonne chiffrée |
-|-------|---------------|-----------------|
-| `budget_line` | `amount` | `amount_encrypted` |
-| `transaction` | `amount` | `amount_encrypted` |
-| `template_line` | `amount` | `amount_encrypted` |
-| `savings_goal` | `target_amount` | `target_amount_encrypted` |
-| `monthly_budget` | `ending_balance` | `ending_balance_encrypted` |
-
-Quand le chiffrement est actif (clientKey présent), les colonnes en clair contiennent `0` et seules les colonnes `*_encrypted` contiennent les montants réels.
+| Table | Colonne chiffrée |
+|-------|-----------------|
+| `budget_line` | `amount` |
+| `transaction` | `amount` |
+| `template_line` | `amount` |
+| `savings_goal` | `target_amount` |
+| `monthly_budget` | `ending_balance` |
 
 ## Mode démo
 
-Le mode démo utilise un `clientKey` déterministe (`DEMO_CLIENT_KEY`) pour emprunter le même chemin de code que les vrais utilisateurs. Ce n'est pas un secret — les données démo sont publiques.
+Le mode démo utilise un `clientKey` déterministe (`DEMO_CLIENT_KEY_BUFFER`) pour emprunter le même chemin de code que les vrais utilisateurs. Ce n'est pas un secret — les données démo sont publiques.
 
 - **Frontend** : `DEMO_CLIENT_KEY` est défini dans `crypto.utils.ts` et injecté via `ClientKeyService.setDirectKey()` à l'activation du mode démo.
-- **Backend** : reçoit le clientKey via le header `X-Client-Key` comme n'importe quel utilisateur. La DEK est dérivée normalement.
-- **Backfill** : les données de seed (insérées sans encryption) sont chiffrées automatiquement lors de la première requête grâce au `EncryptionBackfillInterceptor`.
+- **Backend seed** : `DemoDataGeneratorService` bootstrap une DEK avec `DEMO_CLIENT_KEY_BUFFER` et chiffre tous les montants à l'insertion (même pipeline que les utilisateurs réels).
+- **Backend requêtes** : reçoit le clientKey via le header `X-Client-Key` comme n'importe quel utilisateur. La DEK est dérivée normalement.
 
 ## Flux requête typique
 
@@ -71,37 +69,13 @@ Le mode démo utilise un `clientKey` déterministe (`DEMO_CLIENT_KEY`) pour empr
 7. ClientKeyCleanupInterceptor efface le clientKey de la mémoire (buffer.fill(0))
 ```
 
-## Migration vers code PIN (rekey)
-
-Quand un utilisateur existant migre vers le système de **code PIN**, on doit re-chiffrer ses données avec une nouvelle `clientKey` (issue du code PIN) — y compris si certaines données étaient en clair ou chiffrées avec une ancienne clé.
-
-1. Le frontend appelle `POST /v1/encryption/rekey` avec le nouveau `clientKey`
-2. Le backend dérive l'ancienne DEK (ancien clientKey + masterKey + salt) et la nouvelle DEK (nouveau clientKey + masterKey + salt)
-3. **Toutes** les données utilisateur sont traitées dans `rekey` :
-   - lignes déjà chiffrées : déchiffrement strict avec l'ancienne DEK puis re-chiffrement avec la nouvelle
-   - lignes plaintext : chiffrement direct avec la nouvelle DEK
-4. L'opération SQL finale reste atomique via la RPC `rekey_user_encrypted_data`
-5. Si une ligne chiffrée ne peut pas être déchiffrée avec l'ancienne DEK, `rekey` échoue explicitement (pas de fallback silencieux)
-
-> **Note :** l'endpoint `rekey` est annoté `@SkipBackfill()` pour empêcher le backfill interceptor
-> de se déclencher avec l'ancienne `clientKey` (celle du header) pendant que `rekey` re-chiffre
-> avec la nouvelle. Sans ce décorateur, le backfill écraserait les données avec une mauvaise DEK.
-> Rate limiting : 3 tentatives par heure.
-
-`setup-recovery` n'est pas le mécanisme qui finalise la migration des montants : il sert uniquement à générer/mettre à jour la recovery key (`wrapped_dek`).
-
 ## Changement / reset de mot de passe (auth uniquement)
 
-Le mot de passe Supabase et le code PIN sont **indépendants**.
-
-- **Code PIN configuré** : changer ou réinitialiser le mot de passe ne touche pas au chiffrement. Aucun endpoint encryption n'est appelé et le `clientKey` reste valable.
-- **Comptes legacy sans code PIN** :
-  - Avec recovery key : `/v1/encryption/recover` re-chiffre avec un nouveau `clientKey` dérivé du nouveau mot de passe.
-  - Sans recovery key : reset mot de passe puis redirection vers `setup-vault-code` (le rekey complet se fera lors de la création du code PIN).
+Le mot de passe Supabase et le code PIN sont **indépendants**. Changer ou réinitialiser le mot de passe ne touche pas au chiffrement. Aucun endpoint encryption n'est appelé et le `clientKey` reste valable.
 
 ## Recovery key
 
-La recovery key permet de récupérer l'accès aux données chiffrées quand le **code PIN** est perdu (ou pour les comptes legacy sans code PIN lors d'un reset du mot de passe).
+La recovery key permet de récupérer l'accès aux données chiffrées quand le **code PIN** est perdu.
 
 ### Architecture
 
@@ -111,10 +85,10 @@ Setup (depuis les paramètres) :
   2. wrappedDEK = AES-256-GCM(DEK, recoveryKey)        // DEK chiffrée
   3. Stocker wrappedDEK dans user_encryption_key.wrapped_dek
 
-Recovery (code PIN oublié / reset password legacy) :
-  1. User fournit recoveryKey + nouveau code PIN (ou nouveau mot de passe legacy)
+Recovery (code PIN oublié) :
+  1. User fournit recoveryKey + nouveau code PIN
   2. DEK = AES-GCM-decrypt(wrappedDEK, recoveryKey)
-  3. Nouveau clientKey dérivé du code PIN / mot de passe avec le **salt existant**
+  3. Nouveau clientKey dérivé du code PIN avec le **salt existant**
   4. Re-chiffrer toutes les données avec la nouvelle DEK
   5. `wrapped_dek` est mis à jour avec la même recovery key
   6. Le frontend génère ensuite une **nouvelle** recovery key (setup-recovery) et l’affiche
@@ -163,8 +137,7 @@ La colonne `key_check` de `user_encryption_key` stocke un ciphertext canary : `A
 
 | Événement | Action |
 |-----------|--------|
-| Première validation (key_check absent) | Généré et stocké (migration backward compat) |
-| Rekey (setup code PIN) | Régénéré avec la nouvelle DEK |
+| Première validation (key_check absent) | Généré et stocké |
 | Recovery (`/recover`) | Régénéré avec la nouvelle DEK |
 | Setup recovery key | Régénéré (assure la cohérence) |
 
@@ -231,15 +204,11 @@ Si la validation échoue, le serveur refuse de démarrer.
 
 | Fichier | Rôle |
 |---------|------|
-| `encryption.service.ts` | Dérivation DEK, chiffrement/déchiffrement AES-GCM, wrap/unwrap DEK, cache |
+| `encryption.service.ts` | Dérivation DEK, chiffrement/déchiffrement AES-GCM, wrap/unwrap DEK, cache, re-chiffrement |
 | `encryption-key.repository.ts` | CRUD de la table `user_encryption_key` (salt, wrapped_dek) |
-| `encryption-rekey.service.ts` | Re-chiffrement de toutes les données lors de la migration vers code PIN |
-| `encryption.controller.ts` | Endpoints `/salt`, `/validate-key`, `/rekey`, `/setup-recovery`, `/recover` |
+| `encryption.controller.ts` | Endpoints `/salt`, `/validate-key`, `/setup-recovery`, `/recover` |
 | `client-key-cleanup.interceptor.ts` | Efface le clientKey de la mémoire après chaque requête |
-| `encryption-backfill.interceptor.ts` | Chiffre les données plaintext existantes à la première requête |
 | `auth.guard.ts` | Extrait et valide le `X-Client-Key` du header |
 | `crypto.utils.ts` (frontend) | Dérivation PBKDF2, `DEMO_CLIENT_KEY` |
 | `client-key.service.ts` (frontend) | Gestion du clientKey en sessionStorage |
-| `skip-backfill.decorator.ts` | Empêche le backfill interceptor sur les endpoints annotés (`@SkipBackfill()`) |
-| `encryption-backfill.service.ts` | Chiffre les données plaintext existantes (appelé par l'interceptor) |
 | `recovery-key-dialog.ts` (frontend) | Modal d'affichage et confirmation de la recovery key |

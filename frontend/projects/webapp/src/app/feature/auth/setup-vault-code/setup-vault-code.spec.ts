@@ -23,12 +23,10 @@ describe('SetupVaultCode', () => {
   };
   let mockClientKeyService: {
     setDirectKey: ReturnType<typeof vi.fn>;
-    hasClientKey: ReturnType<typeof vi.fn>;
   };
   let mockEncryptionApi: {
     getSalt$: ReturnType<typeof vi.fn>;
     setupRecoveryKey$: ReturnType<typeof vi.fn>;
-    rekeyEncryption$: ReturnType<typeof vi.fn>;
   };
   let mockDialog: { open: ReturnType<typeof vi.fn> };
   let mockLogger: { error: ReturnType<typeof vi.fn> };
@@ -55,7 +53,6 @@ describe('SetupVaultCode', () => {
 
     mockClientKeyService = {
       setDirectKey: vi.fn(),
-      hasClientKey: vi.fn().mockReturnValue(false),
     };
 
     mockEncryptionApi = {
@@ -65,7 +62,6 @@ describe('SetupVaultCode', () => {
       setupRecoveryKey$: vi
         .fn()
         .mockReturnValue(of({ recoveryKey: 'ABCD-EFGH-IJKL-MNOP' })),
-      rekeyEncryption$: vi.fn().mockReturnValue(of({ success: true })),
     };
 
     mockDialog = {
@@ -241,59 +237,6 @@ describe('SetupVaultCode', () => {
         true,
       );
     });
-
-    it('should not call rekeyEncryption$ in standard mode', async () => {
-      await component['onSubmit']();
-      expect(mockEncryptionApi.rekeyEncryption$).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('onSubmit - Migration Mode', () => {
-    beforeEach(() => {
-      fillValidForm();
-      mockClientKeyService.hasClientKey.mockReturnValue(true);
-    });
-
-    it('should detect migration mode when client key exists', () => {
-      expect(component['isMigrationMode']()).toBe(true);
-    });
-
-    it('should call rekeyEncryption$ to rekey data', async () => {
-      await component['onSubmit']();
-      expect(mockEncryptionApi.rekeyEncryption$).toHaveBeenCalledWith(
-        'abcd'.repeat(16),
-      );
-    });
-
-    it('should store new key after rekey', async () => {
-      await component['onSubmit']();
-      expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
-        'abcd'.repeat(16),
-        false,
-      );
-    });
-
-    it('should setup recovery key after migration', async () => {
-      await component['onSubmit']();
-      expect(mockEncryptionApi.setupRecoveryKey$).toHaveBeenCalled();
-    });
-
-    it('should mark vaultCodeConfigured after migration', async () => {
-      await component['onSubmit']();
-      expect(mockUpdateUser).toHaveBeenCalledWith({
-        data: { vaultCodeConfigured: true },
-      });
-    });
-
-    it('should set error on migration failure', async () => {
-      mockEncryptionApi.rekeyEncryption$.mockReturnValue(
-        throwError(() => new Error('Rekey failed')),
-      );
-      await component['onSubmit']();
-      expect(component['errorMessage']()).toContain(
-        "Quelque chose n'a pas fonctionné",
-      );
-    });
   });
 
   describe('onSubmit - Error Handling', () => {
@@ -329,17 +272,6 @@ describe('SetupVaultCode', () => {
   describe('onSubmit - Partial failure chains', () => {
     beforeEach(() => {
       fillValidForm();
-    });
-
-    it('should not store key when rekeyEncryption$ fails in migration mode', async () => {
-      mockClientKeyService.hasClientKey.mockReturnValue(true);
-      mockEncryptionApi.rekeyEncryption$.mockReturnValue(
-        throwError(() => new Error('Rekey failed')),
-      );
-
-      await component['onSubmit']();
-
-      expect(mockClientKeyService.setDirectKey).not.toHaveBeenCalled();
     });
 
     it('should not mark vaultCodeConfigured when setupRecoveryKey$ fails', async () => {

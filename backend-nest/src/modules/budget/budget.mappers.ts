@@ -9,11 +9,19 @@ import { Tables, TablesInsert } from '@/types/database.types';
 
 /**
  * Transform database row (snake_case) to API entity (camelCase)
+ * Accepts raw DB row (ending_balance as string/null) or decrypted form (ending_balance as number/null)
  */
 export function toApi(
   budgetDb:
     | Tables<'monthly_budget'>
-    | (Tables<'monthly_budget'> & { remaining: number }),
+    | (Tables<'monthly_budget'> & { remaining: number })
+    | (Omit<Tables<'monthly_budget'>, 'ending_balance'> & {
+        ending_balance: number | null;
+      })
+    | (Omit<Tables<'monthly_budget'>, 'ending_balance'> & {
+        ending_balance: number | null;
+        remaining: number;
+      }),
 ): Budget {
   const baseEntity: Budget = {
     id: budgetDb.id,
@@ -24,7 +32,10 @@ export function toApi(
     month: budgetDb.month,
     year: budgetDb.year,
     description: budgetDb.description,
-    endingBalance: budgetDb.ending_balance ?? undefined,
+    endingBalance:
+      typeof budgetDb.ending_balance === 'number'
+        ? (budgetDb.ending_balance ?? undefined)
+        : undefined,
   };
 
   // Add remaining if present in enriched budget
@@ -38,11 +49,17 @@ export function toApi(
 /**
  * Transforme plusieurs entités DB vers modèles API
  * Fonctionne avec des budgets enrichis ou normaux
+ * Expects decrypted budgets where ending_balance is already a number or null
  */
 export function toApiList(
   budgetsDb: (
-    | Tables<'monthly_budget'>
-    | (Tables<'monthly_budget'> & { remaining: number })
+    | (Omit<Tables<'monthly_budget'>, 'ending_balance'> & {
+        ending_balance: number | null;
+      })
+    | (Omit<Tables<'monthly_budget'>, 'ending_balance'> & {
+        ending_balance: number | null;
+        remaining: number;
+      })
   )[],
 ): Budget[] {
   return budgetsDb.map((budgetDb) => toApi(budgetDb));

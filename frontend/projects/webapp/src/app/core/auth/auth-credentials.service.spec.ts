@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import type { Session, User } from '@supabase/supabase-js';
-import { of } from 'rxjs';
-import { ClientKeyService, EncryptionApi } from '@core/encryption';
+import { ClientKeyService } from '@core/encryption';
 import { AuthCredentialsService } from './auth-credentials.service';
 import { AuthSessionService } from './auth-session.service';
 import { AuthStateService } from './auth-state.service';
@@ -23,7 +22,6 @@ describe('AuthCredentialsService', () => {
   let mockErrorLocalizer: Partial<AuthErrorLocalizer>;
   let mockLogger: Partial<Logger>;
   let mockClientKeyService: Partial<ClientKeyService>;
-  let mockEncryptionApi: Partial<EncryptionApi>;
   let mockSupabaseClient: MockSupabaseClient;
 
   beforeEach(() => {
@@ -49,14 +47,7 @@ describe('AuthCredentialsService', () => {
     };
 
     mockClientKeyService = {
-      deriveAndStore: vi.fn().mockResolvedValue(undefined),
       clear: vi.fn(),
-    };
-
-    mockEncryptionApi = {
-      getSalt$: vi
-        .fn()
-        .mockReturnValue(of({ salt: 'abcd1234', kdfIterations: 600000 })),
     };
 
     TestBed.configureTestingModule({
@@ -67,7 +58,6 @@ describe('AuthCredentialsService', () => {
         { provide: AuthErrorLocalizer, useValue: mockErrorLocalizer },
         { provide: Logger, useValue: mockLogger },
         { provide: ClientKeyService, useValue: mockClientKeyService },
-        { provide: EncryptionApi, useValue: mockEncryptionApi },
       ],
     });
 
@@ -142,57 +132,6 @@ describe('AuthCredentialsService', () => {
         '🎭 Mode test E2E: Simulation du signin',
       );
       expect(mockSupabaseClient.auth.signInWithPassword).not.toHaveBeenCalled();
-    });
-
-    it('should derive and store legacy client key in session storage for users without vault code', async () => {
-      vi.mocked(mockSupabaseClient.auth.signInWithPassword).mockResolvedValue({
-        data: {
-          user: {} as User,
-          session: {
-            user: {
-              user_metadata: { vaultCodeConfigured: false },
-            } as unknown as User,
-          } as Session,
-        },
-        error: null,
-      } satisfies AuthSessionResult);
-
-      const result = await service.signInWithEmail(
-        'legacy@example.com',
-        'legacy-password',
-      );
-
-      expect(result).toEqual({ success: true });
-      expect(mockEncryptionApi.getSalt$).toHaveBeenCalled();
-      expect(mockClientKeyService.deriveAndStore).toHaveBeenCalledWith(
-        'legacy-password',
-        'abcd1234',
-        600000,
-        false,
-      );
-    });
-
-    it('should not derive legacy client key for users with vault code configured', async () => {
-      vi.mocked(mockSupabaseClient.auth.signInWithPassword).mockResolvedValue({
-        data: {
-          user: {} as User,
-          session: {
-            user: {
-              user_metadata: { vaultCodeConfigured: true },
-            } as unknown as User,
-          } as Session,
-        },
-        error: null,
-      } satisfies AuthSessionResult);
-
-      const result = await service.signInWithEmail(
-        'vault@example.com',
-        'vault-password',
-      );
-
-      expect(result).toEqual({ success: true });
-      expect(mockEncryptionApi.getSalt$).not.toHaveBeenCalled();
-      expect(mockClientKeyService.deriveAndStore).not.toHaveBeenCalled();
     });
   });
 
