@@ -6,7 +6,14 @@
 -- ═══════════════════════════════════════════════════════
 -- 1. Move pg_trgm to extensions schema
 -- ═══════════════════════════════════════════════════════
-ALTER EXTENSION pg_trgm SET SCHEMA extensions;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm' AND extnamespace = 'public'::regnamespace
+  ) THEN
+    ALTER EXTENSION pg_trgm SET SCHEMA extensions;
+  END IF;
+END $$;
 
 -- ═══════════════════════════════════════════════════════
 -- 2. Drop all existing policies on user_encryption_key

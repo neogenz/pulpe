@@ -635,7 +635,7 @@ jobs:
     name: ✅ CI Success
     runs-on: ubuntu-latest
     timeout-minutes: 1
-    needs: [build, test-unit, test-e2e, quality, test-performance, test-ios]
+    needs: [build, test-unit, test-e2e, quality, test-performance, test-ios, migrate-dryrun]
     if: always()
     steps:
       - name: ✅ Check all jobs
@@ -645,7 +645,8 @@ jobs:
           needs.test-e2e.result == 'success' &&
           needs.quality.result == 'success' &&
           needs.test-performance.result == 'success' &&
-          needs.test-ios.result == 'success'
+          needs.test-ios.result == 'success' &&
+          contains(fromJSON('["success", "skipped"]'), needs.migrate-dryrun.result)
         run: echo "🎉 All CI checks passed!"
 
       - name: ❌ Check failures
@@ -655,7 +656,8 @@ jobs:
           needs.test-e2e.result != 'success' ||
           needs.quality.result != 'success' ||
           needs.test-performance.result != 'success' ||
-          needs.test-ios.result != 'success'
+          needs.test-ios.result != 'success' ||
+          !contains(fromJSON('["success", "skipped"]'), needs.migrate-dryrun.result)
         run: |
           echo "❌ Some CI checks failed"
           echo "Build: ${{ needs.build.result }}"
@@ -664,6 +666,7 @@ jobs:
           echo "Quality: ${{ needs.quality.result }}"
           echo "Performance: ${{ needs.test-performance.result }}"
           echo "iOS Tests: ${{ needs.test-ios.result }}"
+          echo "Migration Dry-Run: ${{ needs.migrate-dryrun.result }}"
           exit 1
 
   # 🗄️ MIGRATION PRODUCTION (push main only — applique les migrations après CI verte)
