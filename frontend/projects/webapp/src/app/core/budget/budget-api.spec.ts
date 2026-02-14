@@ -6,6 +6,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
+import { firstValueFrom } from 'rxjs';
 import { BudgetApi } from './budget-api';
 import { BudgetInvalidationService } from './budget-invalidation.service';
 import { ApplicationConfiguration } from '../config/application-configuration';
@@ -223,10 +224,10 @@ describe('BudgetApi', () => {
   });
 
   describe('checkBudgetExists$', () => {
-    it('should call /budgets/exists and sync HasBudgetCache', () => {
+    it('should call /budgets/exists and sync HasBudgetCache', async () => {
       const { service, httpTesting, mockHasBudgetCache } = createTestBed();
 
-      service.checkBudgetExists$().subscribe();
+      const resultPromise = firstValueFrom(service.checkBudgetExists$());
 
       const req = httpTesting.expectOne(
         'http://localhost:3000/api/v1/budgets/exists',
@@ -234,28 +235,60 @@ describe('BudgetApi', () => {
       expect(req.request.method).toBe('GET');
       req.flush({ hasBudget: false });
 
+      await resultPromise;
       expect(mockHasBudgetCache.setHasBudget).toHaveBeenCalledWith(false);
     });
 
-    it('should return the hasBudget boolean', () => {
+    it('should return the hasBudget boolean', async () => {
       const { service, httpTesting } = createTestBed();
-      let result: boolean | undefined;
 
-      service.checkBudgetExists$().subscribe((value) => {
-        result = value;
-      });
+      const resultPromise = firstValueFrom(service.checkBudgetExists$());
 
       const req = httpTesting.expectOne(
         'http://localhost:3000/api/v1/budgets/exists',
       );
       req.flush({ hasBudget: true });
 
-      expect(result).toBe(true);
+      expect(await resultPromise).toBe(true);
+    });
+
+    it('should return cached result on second call (fresh cache)', async () => {
+      const { service, httpTesting } = createTestBed();
+
+      const firstPromise = firstValueFrom(service.checkBudgetExists$());
+
+      const req = httpTesting.expectOne(
+        'http://localhost:3000/api/v1/budgets/exists',
+      );
+      req.flush({ hasBudget: true });
+
+      expect(await firstPromise).toBe(true);
+
+      const secondResult = await firstValueFrom(service.checkBudgetExists$());
+      httpTesting.expectNone('http://localhost:3000/api/v1/budgets/exists');
+
+      expect(secondResult).toBe(true);
+    });
+
+    it('should deduplicate concurrent calls', async () => {
+      const { service, httpTesting } = createTestBed();
+
+      const promise1 = firstValueFrom(service.checkBudgetExists$());
+      const promise2 = firstValueFrom(service.checkBudgetExists$());
+
+      const req = httpTesting.expectOne(
+        'http://localhost:3000/api/v1/budgets/exists',
+      );
+      req.flush({ hasBudget: true });
+
+      const [result1, result2] = await Promise.all([promise1, promise2]);
+      expect(result1).toBe(true);
+      expect(result2).toBe(true);
     });
   });
 
   describe('getAllBudgets$', () => {
-    it('should sync HasBudgetCache to true when budgets exist', () => {
+    it('should sync HasBudgetCache to true when budgets exist', async () => {
       const { service, httpTesting, mockHasBudgetCache } = createTestBed();
 
       service.getAllBudgets$().subscribe();
@@ -276,10 +309,11 @@ describe('BudgetApi', () => {
         ],
       });
 
+      await Promise.resolve();
       expect(mockHasBudgetCache.setHasBudget).toHaveBeenCalledWith(true);
     });
 
-    it('should sync HasBudgetCache to false when no budgets exist', () => {
+    it('should sync HasBudgetCache to false when no budgets exist', async () => {
       const { service, httpTesting, mockHasBudgetCache } = createTestBed();
 
       service.getAllBudgets$().subscribe();
@@ -287,6 +321,7 @@ describe('BudgetApi', () => {
       const req = httpTesting.expectOne('http://localhost:3000/api/v1/budgets');
       req.flush({ success: true, data: [] });
 
+      await Promise.resolve();
       expect(mockHasBudgetCache.setHasBudget).toHaveBeenCalledWith(false);
     });
   });

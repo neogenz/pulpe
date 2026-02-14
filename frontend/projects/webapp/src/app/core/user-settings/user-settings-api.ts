@@ -59,10 +59,6 @@ export class UserSettingsApi {
 
   readonly error = computed(() => this.#settingsResource.error());
 
-  initialize(): void {
-    this.#reloadTrigger.update((v) => v + 1);
-  }
-
   async updateSettings(settings: UpdateUserSettings): Promise<UserSettings> {
     const response = await firstValueFrom(
       this.#api.put$('/users/settings', settings, userSettingsResponseSchema),

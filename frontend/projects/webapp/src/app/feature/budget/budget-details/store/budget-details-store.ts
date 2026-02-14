@@ -85,6 +85,7 @@ export class BudgetDetailsStore {
     });
 
     // Prefetch adjacent budgets for instant navigation
+    // Only re-fires when the user navigates (prev/next IDs change)
     effect(() => {
       const prevId = this.previousBudgetId();
       const nextId = this.nextBudgetId();
@@ -130,7 +131,6 @@ export class BudgetDetailsStore {
         },
       );
 
-      if (cached) return cached.data;
       return freshPromise;
     },
   });
@@ -400,6 +400,7 @@ export class BudgetDetailsStore {
 
       // DR-005 order: temp ID replacement happens before invalidation cascade.
       this.#clearError();
+      this.#budgetApi.cache.invalidate(['budget', 'details']);
       this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
@@ -438,6 +439,7 @@ export class BudgetDetailsStore {
 
       // Clear any previous errors
       this.#clearError();
+      this.#budgetApi.cache.invalidate(['budget', 'details']);
       this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
@@ -471,6 +473,7 @@ export class BudgetDetailsStore {
       await firstValueFrom(this.#transactionApi.update$(id, data));
 
       this.#clearError();
+      this.#budgetApi.cache.invalidate(['budget', 'details']);
       this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
@@ -499,6 +502,7 @@ export class BudgetDetailsStore {
       await firstValueFrom(this.#budgetLineApi.deleteBudgetLine$(id));
 
       this.#clearError();
+      this.#budgetApi.cache.invalidate(['budget', 'details']);
       this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
@@ -527,6 +531,7 @@ export class BudgetDetailsStore {
       await firstValueFrom(this.#transactionApi.remove$(id));
 
       this.#clearError();
+      this.#budgetApi.cache.invalidate(['budget', 'details']);
       this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
@@ -592,6 +597,7 @@ export class BudgetDetailsStore {
 
       // DR-005 order: temp ID replacement happens before invalidation cascade.
       this.#clearError();
+      this.#budgetApi.cache.invalidate(['budget', 'details']);
       this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
@@ -623,6 +629,7 @@ export class BudgetDetailsStore {
       });
 
       this.#clearError();
+      this.#budgetApi.cache.invalidate(['budget', 'details']);
       this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
@@ -686,6 +693,7 @@ export class BudgetDetailsStore {
       });
 
       this.#clearError();
+      this.#budgetApi.cache.invalidate(['budget', 'details']);
       this.#invalidationService.invalidate();
       return true;
     } catch (error) {
@@ -737,6 +745,7 @@ export class BudgetDetailsStore {
       });
 
       this.#clearError();
+      this.#budgetApi.cache.invalidate(['budget', 'details']);
       this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
@@ -769,6 +778,11 @@ export class BudgetDetailsStore {
       if (!d) return d;
       return {
         ...d,
+        budgetLines: d.budgetLines.map((line) =>
+          line.id === budgetLineId
+            ? { ...line, checkedAt: line.checkedAt ?? now, updatedAt: now }
+            : line,
+        ),
         transactions: (d.transactions ?? []).map((tx) =>
           uncheckedIds.has(tx.id) ? { ...tx, checkedAt: now } : tx,
         ),
@@ -785,12 +799,14 @@ export class BudgetDetailsStore {
         if (!d) return d;
         return {
           ...d,
-          transactions: (d.transactions ?? []).map(
-            (tx) => responseMap.get(tx.id) ?? tx,
-          ),
+          transactions: (d.transactions ?? []).map((tx) => {
+            const serverTx = responseMap.get(tx.id);
+            return serverTx ? { ...tx, checkedAt: serverTx.checkedAt } : tx;
+          }),
         };
       });
       this.#clearError();
+      this.#budgetApi.cache.invalidate(['budget', 'details']);
       this.#invalidationService.invalidate();
     } catch (error) {
       this.reloadBudgetDetails();
@@ -828,7 +844,12 @@ export class BudgetDetailsStore {
   #prefetchAdjacentBudgets(prevId: string | null, nextId: string | null): void {
     const ids = [prevId, nextId].filter((id): id is string => id !== null);
     for (const id of ids) {
-      if (!this.#budgetApi.cache.has(['budget', 'details', id])) {
+      const cached = this.#budgetApi.cache.get<BudgetDetailsViewModel>([
+        'budget',
+        'details',
+        id,
+      ]);
+      if (!cached?.fresh) {
         this.#budgetApi.cache.deduplicate(
           ['budget', 'details', id],
           async () => {

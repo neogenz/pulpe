@@ -359,21 +359,42 @@ export class CurrentMonthStore {
         } as DashboardData;
       }
 
+      // Reuse details already prefetched by PreloadService or BudgetDetailsStore
+      const detailsCached = this.#budgetApi.cache.get<{
+        budgetLines: BudgetLine[];
+        transactions: Transaction[];
+        rollover: number;
+        previousBudgetId: string | null;
+      }>(['budget', 'details', budget.id]);
+
+      if (detailsCached?.fresh) {
+        const details = detailsCached.data;
+        const result: DashboardData = {
+          budget: {
+            ...budget,
+            rollover: details.rollover,
+            previousBudgetId: details.previousBudgetId,
+          },
+          transactions: details.transactions,
+          budgetLines: details.budgetLines,
+        };
+        this.#budgetApi.cache.set(cacheKey, result);
+        return result;
+      }
+
       const response = await firstValueFrom(
         this.#budgetApi.getBudgetWithDetails$(budget.id),
       );
 
-      return {
+      const result = {
         budget: response.data.budget,
         transactions: response.data.transactions,
         budgetLines: response.data.budgetLines,
       } as DashboardData;
+      this.#budgetApi.cache.set(cacheKey, result);
+      return result;
     });
 
-    if (cached) return cached.data;
-
-    const result = await freshData;
-    this.#budgetApi.cache.set(cacheKey, result);
-    return result;
+    return freshData;
   }
 }

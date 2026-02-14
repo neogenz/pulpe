@@ -5,7 +5,6 @@ import { AuthStateService } from '../auth/auth-state.service';
 import { BudgetApi } from '../budget/budget-api';
 import { ClientKeyService } from '../encryption/client-key.service';
 import { DemoModeService } from '../demo/demo-mode.service';
-import { UserSettingsApi } from '../user-settings/user-settings-api';
 import { Logger } from '../logging/logger';
 
 /**
@@ -14,6 +13,10 @@ import { Logger } from '../logging/logger';
  * both conditions are met (after vault code entry or demo mode).
  *
  * Must be instantiated at app startup via provideAppInitializer.
+ *
+ * Note: UserSettingsApi is NOT preloaded here — its internal resource()
+ * auto-loads when isReady becomes true (same condition as this effect),
+ * so calling initialize() would cause a duplicate request.
  */
 @Injectable({ providedIn: 'root' })
 export class PreloadService {
@@ -21,7 +24,6 @@ export class PreloadService {
   readonly #budgetApi = inject(BudgetApi);
   readonly #clientKeyService = inject(ClientKeyService);
   readonly #demoMode = inject(DemoModeService);
-  readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #logger = inject(Logger);
 
   readonly #hasPreloaded = signal(false);
@@ -51,7 +53,6 @@ export class PreloadService {
         name: 'getAllBudgets',
         task: firstValueFrom(this.#budgetApi.getAllBudgets$()),
       },
-      { name: 'userSettings', task: this.#userSettingsApi.initialize() },
     ];
 
     const results = await Promise.allSettled(operations.map((op) => op.task));
@@ -85,10 +86,25 @@ export class PreloadService {
     if (!currentBudget) return;
 
     // Prefetch current month's details (fire-and-forget, deduped)
+    // Transform to BudgetDetailsViewModel so the cache entry matches
+    // what BudgetDetailsStore expects from this key
     this.#budgetApi.cache.deduplicate(
       ['budget', 'details', currentBudget.id],
-      () =>
-        firstValueFrom(this.#budgetApi.getBudgetWithDetails$(currentBudget.id)),
+      async () => {
+        const response = await firstValueFrom(
+          this.#budgetApi.getBudgetWithDetails$(currentBudget.id),
+        );
+        const viewModel = {
+          ...response.data.budget,
+          budgetLines: response.data.budgetLines,
+          transactions: response.data.transactions,
+        };
+        this.#budgetApi.cache.set(
+          ['budget', 'details', currentBudget.id],
+          viewModel,
+        );
+        return viewModel;
+      },
     );
   }
 }

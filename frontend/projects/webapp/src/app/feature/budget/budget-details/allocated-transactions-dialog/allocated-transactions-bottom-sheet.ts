@@ -1,4 +1,10 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  computed,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import {
   MAT_BOTTOM_SHEET_DATA,
@@ -61,9 +67,7 @@ import type {
             [class.text-financial-expense]="data.budgetLine.kind === 'expense'"
             [class.text-financial-savings]="data.budgetLine.kind === 'saving'"
           >
-            {{
-              data.consumption.consumed | currency: 'CHF' : 'symbol' : '1.0-0'
-            }}
+            {{ consumption().consumed | currency: 'CHF' : 'symbol' : '1.0-0' }}
           </div>
         </div>
         <!-- Prévu -->
@@ -78,12 +82,10 @@ import type {
           <div class="text-label-small text-on-surface-variant">Reste</div>
           <div
             class="text-title-small font-semibold"
-            [class.text-error]="data.consumption.remaining < 0"
-            [class.text-financial-income]="data.consumption.remaining >= 0"
+            [class.text-error]="consumption().remaining < 0"
+            [class.text-financial-income]="consumption().remaining >= 0"
           >
-            {{
-              data.consumption.remaining | currency: 'CHF' : 'symbol' : '1.0-0'
-            }}
+            {{ consumption().remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
           </div>
         </div>
       </div>
@@ -92,19 +94,19 @@ import type {
       <div>
         <mat-progress-bar
           mode="determinate"
-          [value]="consumptionPercentage"
-          [class.warn-bar]="consumptionPercentage > 100"
+          [value]="consumptionPercentage()"
+          [class.warn-bar]="consumptionPercentage() > 100"
         />
         <div class="text-label-small text-on-surface-variant text-center mt-1">
-          {{ consumptionPercentage | number: '1.0-0' }}% utilisé
+          {{ consumptionPercentage() | number: '1.0-0' }}% utilisé
         </div>
       </div>
 
       <!-- Transactions list -->
       <div class="max-h-[40vh] overflow-y-auto">
-        @if (data.consumption.allocatedTransactions.length > 0) {
+        @if (transactions().length > 0) {
           <div class="flex flex-col gap-2">
-            @for (tx of data.consumption.allocatedTransactions; track tx.id) {
+            @for (tx of transactions(); track tx.id) {
               <div
                 class="flex items-center gap-3 py-3 px-1 bg-surface-container-low rounded-lg"
               >
@@ -187,12 +189,29 @@ export class AllocatedTransactionsBottomSheet {
       AllocatedTransactionsDialogResult
     >,
   );
-  readonly consumptionPercentage =
+
+  protected readonly transactions = signal(
+    this.data.consumption.allocatedTransactions,
+  );
+
+  protected readonly consumption = computed(() => {
+    const consumed = this.transactions().reduce(
+      (sum, tx) => sum + tx.amount,
+      0,
+    );
+    return {
+      consumed,
+      remaining: this.data.budgetLine.amount - consumed,
+    };
+  });
+
+  protected readonly consumptionPercentage = computed(() =>
     this.data.budgetLine.amount > 0
       ? Math.round(
-          (this.data.consumption.consumed / this.data.budgetLine.amount) * 100,
+          (this.consumption().consumed / this.data.budgetLine.amount) * 100,
         )
-      : 0;
+      : 0,
+  );
 
   close(): void {
     this.#bottomSheetRef.dismiss();
@@ -211,6 +230,13 @@ export class AllocatedTransactionsBottomSheet {
   }
 
   protected onToggleCheck(id: string): void {
+    this.transactions.update((txs) =>
+      txs.map((tx) =>
+        tx.id === id
+          ? { ...tx, checkedAt: tx.checkedAt ? null : new Date().toISOString() }
+          : tx,
+      ),
+    );
     this.data.onToggleTransactionCheck?.(id);
   }
 }

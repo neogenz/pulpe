@@ -198,16 +198,12 @@ export class BudgetListStore {
       },
     );
 
-    if (cached) {
-      return this.#sortBudgets(cached.data);
-    }
-
     const budgets = await freshPromise;
     return this.#sortBudgets(budgets);
   }
 
   #sortBudgets(budgets: Budget[]): Budget[] {
-    return budgets.sort((a: Budget, b: Budget) => {
+    return [...budgets].sort((a, b) => {
       if (a.year !== b.year) return a.year - b.year;
       return a.month - b.month;
     });

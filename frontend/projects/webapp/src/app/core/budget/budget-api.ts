@@ -11,7 +11,7 @@ import {
   budgetListResponseSchema,
   budgetResponseSchema,
 } from 'pulpe-shared';
-import { type Observable } from 'rxjs';
+import { type Observable, firstValueFrom, from, of } from 'rxjs';
 import { map, switchMap, tap } from 'rxjs/operators';
 import { ApiClient } from '../api/api-client';
 import { HasBudgetCache } from '../auth/has-budget-cache';
@@ -52,21 +52,42 @@ export class BudgetApi {
   }
 
   getAllBudgets$(): Observable<Budget[]> {
-    return this.#api.get$('/budgets', budgetListResponseSchema).pipe(
-      tap((response) => {
+    const cacheKey: string[] = ['budget', 'list'];
+    const cached = this.cache.get<Budget[]>(cacheKey);
+
+    if (cached?.fresh) {
+      return of(cached.data);
+    }
+
+    return from(
+      this.cache.deduplicate(cacheKey, async () => {
+        const response = await firstValueFrom(
+          this.#api.get$('/budgets', budgetListResponseSchema),
+        );
         this.#hasBudgetCache.setHasBudget(response.data.length > 0);
-        this.cache.set(['budget', 'list'], response.data);
+        this.cache.set(cacheKey, response.data);
+        return response.data;
       }),
-      map((response) => response.data),
     );
   }
 
   checkBudgetExists$(): Observable<boolean> {
-    return this.#api.get$('/budgets/exists', budgetExistsResponseSchema).pipe(
-      tap((response) => {
+    const cacheKey: string[] = ['budget', 'exists'];
+    const cached = this.cache.get<boolean>(cacheKey);
+
+    if (cached?.fresh) {
+      return of(cached.data);
+    }
+
+    return from(
+      this.cache.deduplicate(cacheKey, async () => {
+        const response = await firstValueFrom(
+          this.#api.get$('/budgets/exists', budgetExistsResponseSchema),
+        );
         this.#hasBudgetCache.setHasBudget(response.hasBudget);
+        this.cache.set(cacheKey, response.hasBudget);
+        return response.hasBudget;
       }),
-      map((response) => response.hasBudget),
     );
   }
 
@@ -77,13 +98,10 @@ export class BudgetApi {
   }
 
   getBudgetWithDetails$(budgetId: string): Observable<BudgetDetailsResponse> {
-    return this.#api
-      .get$(`/budgets/${budgetId}/details`, budgetDetailsResponseSchema)
-      .pipe(
-        tap((response) =>
-          this.cache.set(['budget', 'details', budgetId], response),
-        ),
-      );
+    return this.#api.get$(
+      `/budgets/${budgetId}/details`,
+      budgetDetailsResponseSchema,
+    );
   }
 
   getBudgetForMonth$(month: string, year: string): Observable<Budget | null> {

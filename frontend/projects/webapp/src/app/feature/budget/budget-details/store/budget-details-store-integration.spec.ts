@@ -912,6 +912,41 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       expect(invalidateSpy).toHaveBeenCalledTimes(1);
     });
+
+    it('invalidates DataCache with budget details prefix after mutation', async () => {
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      mockBudgetLineApi.deleteBudgetLine$ = vi.fn().mockReturnValue(of({}));
+
+      await service.deleteBudgetLine('line-2');
+
+      expect(mockBudgetApi.cache['invalidate']).toHaveBeenCalledWith([
+        'budget',
+        'details',
+      ]);
+    });
+
+    it('invalidates DataCache before version signal for all mutation types', async () => {
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      const callOrder: string[] = [];
+      mockBudgetApi.cache['invalidate'] = vi.fn(() =>
+        callOrder.push('cache.invalidate'),
+      );
+      const invalidateSpy = vi
+        .spyOn(invalidationService, 'invalidate')
+        .mockImplementation(() => callOrder.push('version.invalidate'));
+
+      mockTransactionApi.remove$ = vi.fn().mockReturnValue(of({}));
+      await service.deleteTransaction('tx-1');
+
+      expect(callOrder).toEqual(['cache.invalidate', 'version.invalidate']);
+      invalidateSpy.mockRestore();
+    });
   });
 
   describe('User checks envelopes and allocated transactions', () => {
@@ -1021,6 +1056,68 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       expect(mockBudgetLineApi.toggleCheck$).not.toHaveBeenCalled();
     });
 
+    it('check-all preserves transaction amounts from optimistic state (BUG #1)', async () => {
+      const parentLine = createMockBudgetLine({
+        id: 'line-envelope',
+        budgetId: mockBudgetId,
+        name: 'Envelope',
+        amount: 500,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: null,
+      });
+
+      const txWithAmount = createMockTransaction({
+        id: 'tx-with-amount',
+        budgetId: mockBudgetId,
+        budgetLineId: 'line-envelope',
+        name: 'Groceries',
+        amount: 42.5,
+        kind: 'expense',
+        checkedAt: null,
+      });
+
+      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
+        of(
+          createMockBudgetDetailsResponse({
+            budget: { id: mockBudgetId },
+            budgetLines: [parentLine],
+            transactions: [txWithAmount],
+          }),
+        ),
+      );
+
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      // API returns transaction with amount: 0 (encrypted column not decrypted)
+      mockBudgetLineApi.checkTransactions$ = vi.fn().mockReturnValue(
+        of({
+          success: true,
+          data: [
+            {
+              ...txWithAmount,
+              amount: 0,
+              checkedAt: '2024-01-20T12:00:00Z',
+              updatedAt: '2024-01-20T12:00:00Z',
+            },
+          ],
+        }),
+      );
+
+      await service.checkAllAllocatedTransactions('line-envelope');
+
+      const tx = service
+        .budgetDetails()
+        ?.transactions?.find((t) => t.id === 'tx-with-amount');
+
+      // Amount must be preserved from local state, not overwritten by API response
+      expect(tx?.amount).toBe(42.5);
+      // checkedAt must be updated from API response
+      expect(tx?.checkedAt).toBe('2024-01-20T12:00:00Z');
+    });
+
     it('check-all toggles only unchecked real allocated transactions (ignores temp and unrelated)', async () => {
       const parentLine = createMockBudgetLine({
         id: 'line-parent',
@@ -1123,6 +1220,95 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       expect(realUncheckedAfter?.checkedAt).toBe('2024-01-20T11:00:00Z');
       expect(tempAfter?.checkedAt).toBeNull();
       expect(otherLineAfter?.checkedAt).toBeNull();
+    });
+  });
+
+  describe('Cache fallback paths (regression: empty page on navigation)', () => {
+    it('returns cached BudgetDetailsViewModel when cache is fresh without calling API', async () => {
+      const cachedViewModel = {
+        ...mockBudgetDetailsResponse.data.budget,
+        budgetLines: mockBudgetDetailsResponse.data.budgetLines,
+        transactions: mockBudgetDetailsResponse.data.transactions,
+      };
+
+      mockBudgetApi.cache['get'] = vi
+        .fn()
+        .mockReturnValue({ data: cachedViewModel, fresh: true });
+
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      const details = service.budgetDetails();
+      expect(details).toBeDefined();
+      expect(details?.budgetLines).toHaveLength(2);
+      expect(details?.transactions).toHaveLength(1);
+      expect(details?.budgetLines[0].name).toBe('Salary');
+      expect(mockBudgetApi.getBudgetWithDetails$).not.toHaveBeenCalled();
+    });
+
+    it('displayBudgetLines does not crash when cache returns correct ViewModel shape', async () => {
+      const cachedViewModel = {
+        ...mockBudgetDetailsResponse.data.budget,
+        budgetLines: mockBudgetDetailsResponse.data.budgetLines,
+        transactions: mockBudgetDetailsResponse.data.transactions,
+      };
+
+      mockBudgetApi.cache['get'] = vi
+        .fn()
+        .mockReturnValue({ data: cachedViewModel, fresh: true });
+
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      const displayLines = service.displayBudgetLines();
+      expect(displayLines.length).toBeGreaterThan(0);
+      expect(() => [...displayLines]).not.toThrow();
+    });
+
+    it('falls back to stale cache while fresh data loads', async () => {
+      const cachedViewModel = {
+        ...mockBudgetDetailsResponse.data.budget,
+        budgetLines: mockBudgetDetailsResponse.data.budgetLines,
+        transactions: mockBudgetDetailsResponse.data.transactions,
+      };
+
+      mockBudgetApi.cache['get'] = vi
+        .fn()
+        .mockReturnValue({ data: cachedViewModel, fresh: false });
+
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      const details = service.budgetDetails();
+      expect(details).toBeDefined();
+      expect(details?.budgetLines).toHaveLength(2);
+      expect(mockBudgetApi.getBudgetWithDetails$).toHaveBeenCalled();
+    });
+
+    it('falls back to cache on API error', async () => {
+      const cachedViewModel = {
+        ...mockBudgetDetailsResponse.data.budget,
+        budgetLines: mockBudgetDetailsResponse.data.budgetLines,
+        transactions: mockBudgetDetailsResponse.data.transactions,
+      };
+
+      mockBudgetApi.getBudgetWithDetails$ = vi
+        .fn()
+        .mockReturnValue(throwError(() => new Error('Network error')));
+      mockBudgetApi.cache['get'] = vi
+        .fn()
+        .mockReturnValue({ data: cachedViewModel, fresh: false });
+
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      const details = service.budgetDetails();
+      expect(details).toBeDefined();
+      expect(details?.budgetLines).toHaveLength(2);
     });
   });
 
