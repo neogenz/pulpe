@@ -1,5 +1,39 @@
 [
   {
+    "version": "0.21.0",
+    "date": "2026-02-14",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.21.0",
+    "platforms": ["web"],
+    "changes": {
+      "features": [
+        {
+          "title": "Rotation des cles de chiffrement",
+          "description": "Mecanisme atomique de re-chiffrement via RPC SQL pour la rotation securisee des cles de chiffrement des donnees financieres"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Fiabilite du chiffrement",
+          "description": "Correction de la verification de cle, gestion des valeurs nulles et traitement sequentiel des erreurs lors du re-chiffrement"
+        },
+        {
+          "title": "Parsing des montants",
+          "description": "Correction de la coercition des types numeriques depuis Supabase pour eviter des erreurs de validation"
+        }
+      ],
+      "technical": [
+        {
+          "title": "Nettoyage du code de migration",
+          "description": "Suppression du code de migration de chiffrement temporaire"
+        },
+        {
+          "title": "Outils de developpement",
+          "description": "Ajout d'outils de chiffrement des donnees de seed et de reinitialisation de base liee"
+        }
+      ]
+    }
+  },
+  {
     "version": "0.20.0",
     "date": "2026-02-13",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.20.0",

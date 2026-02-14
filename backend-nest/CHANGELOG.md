@@ -1,5 +1,16 @@
 # backend-nest
 
+## 0.14.0
+
+### Minor Changes
+
+- Rotation des cles de chiffrement et corrections de fiabilite.
+
+### Patch Changes
+
+- Updated dependencies
+  - pulpe-shared@0.8.1
+
 ## 0.13.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # pulpe-shared
 
+## 0.8.1
+
+### Patch Changes
+
+- Rotation des cles de chiffrement et corrections de fiabilite.
+
 ## 0.8.0
 
 ### Minor Changes

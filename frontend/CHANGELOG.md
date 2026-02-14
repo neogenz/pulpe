@@ -1,5 +1,12 @@
 # pulpe-frontend
 
+## 0.20.1
+
+### Patch Changes
+
+- Updated dependencies
+  - pulpe-shared@0.8.1
+
 ## 0.20.0
 
 ### Minor Changes
