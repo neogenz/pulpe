@@ -348,13 +348,31 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
 **Critères** :
 - Un fichier `.xlsx` est téléchargé contenant tous les budgets de l'utilisateur
 
-### 5.14 Rechercher des transactions
+### 5.14 Filtrer dans les détails d'un budget (recherche locale)
 
-**Workflow** : Page des budgets (calendrier) > Ouvrir la recherche > Saisir un terme > Voir les résultats
+**Workflow** : Détails d'un budget > Saisir un terme dans la barre de recherche (ex: "courses")
 
 **Critères** :
-- Les résultats affichent les transactions correspondantes à travers tous les budgets
-- Cliquer sur un résultat navigue vers le budget concerné
+- Le filtrage est instantané (pas de chargement)
+- Les lignes de prévisions dont le nom ou le montant correspond sont affichées
+- Les transactions allouées sont visibles si leur enveloppe parent OU la transaction elle-même correspond
+- Les transactions libres sont filtrées par leur propre nom et montant
+- La recherche est insensible aux accents ("epargne" trouve "Épargne") et à la casse
+- Vider le champ restaure l'affichage complet
+- Le filtre de recherche se combine avec le filtre "Non comptabilisées" / "Toutes"
+
+### 5.15 Rechercher des transactions à travers tous les budgets (recherche globale)
+
+**Workflow** : Page des budgets (calendrier) > Cliquer sur l'icône de recherche > Saisir un terme (minimum 2 caractères) dans le dialog > Voir les résultats
+
+**Critères** :
+- Un message invite à saisir au moins 2 caractères avant de lancer la recherche
+- Les résultats affichent la période (année/mois), le nom et le montant de chaque transaction trouvée, tous budgets confondus
+- Les montants sont colorés par type (revenu, dépense, épargne)
+- Un filtre par année permet de restreindre la recherche
+- Cliquer sur un résultat ferme le dialog et navigue vers le budget concerné
+- Si aucun résultat : un message "Pas de résultat" est affiché
+- Si erreur réseau : un message d'erreur est affiché
 
 ---
 
@@ -803,7 +821,8 @@ Si l'enveloppe à 2000 CHF n'avait aucune transaction :
 | 5.11 Badge et dépensé enveloppe | Non | — |
 | 5.12 Export JSON | Non | — |
 | 5.13 Export Excel | Non | — |
-| 5.14 Recherche transactions | Non | — |
+| 5.14 Filtre local budget détails | Non | — |
+| 5.15 Recherche globale transactions | Non | — |
 | 6.2 Transaction rapide FAB | Non | — |
 | 6.3–6.4 Modifier/Supprimer transaction | Non | — |
 | 7.1–7.3 Calculs, solde final & rollover | Non | — |
