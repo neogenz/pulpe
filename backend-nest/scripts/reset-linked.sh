@@ -54,10 +54,10 @@ fi
 echo ""
 supabase db reset --linked
 
+# After reset, always unlink on exit to prevent accidental remote operations
+trap 'supabase unlink' EXIT
+
 export SUPABASE_URL="$derived_url"
 export SUPABASE_SERVICE_ROLE_KEY="$srk"
 export ENCRYPTION_MASTER_KEY="$master_key"
 bun scripts/encrypt-seed-data.ts
-
-# ── Unlink to prevent accidental operations on remote DB ─────────
-supabase unlink
