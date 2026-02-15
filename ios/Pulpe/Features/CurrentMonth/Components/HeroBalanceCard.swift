@@ -9,6 +9,24 @@ struct HeroBalanceCard: View {
     // MARK: - Constants
 
     private static let twentyPercent: Decimal = 2 / 10
+    
+    // MARK: - Static Formatters (avoid recreation on every render)
+    
+    private static let balanceFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 2
+        formatter.locale = Locale(identifier: "de_CH")
+        return formatter
+    }()
+    
+    private static let pillFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.locale = Locale(identifier: "de_CH")
+        return formatter
+    }()
 
     @ScaledMetric(relativeTo: .largeTitle) private var heroFontSize: CGFloat = 40
 
@@ -67,10 +85,7 @@ struct HeroBalanceCard: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
 
-                Text(abs(metrics.remaining).formatted(
-                    .number.precision(.fractionLength(0 ... 2))
-                        .locale(Locale(identifier: "de_CH"))
-                ))
+                Text(Self.balanceFormatter.string(from: abs(metrics.remaining) as NSDecimalNumber) ?? "0")
                 .font(.system(size: heroFontSize, weight: .bold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(.white)
@@ -163,7 +178,7 @@ struct HeroBalanceCard: View {
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.primary)
 
-                Text(value.formatted(.number.locale(Locale(identifier: "de_CH"))))
+                Text(Self.pillFormatter.string(from: value as NSDecimalNumber) ?? "0")
                     .font(.system(.callout, design: .rounded, weight: .semibold))
                     .foregroundStyle(color)
                     .contentTransition(.numericText())
