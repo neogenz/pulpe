@@ -111,7 +111,13 @@ export class CurrentMonthStore {
   );
   readonly hasValue = computed(() => this.#dashboardResource.hasValue());
   readonly error = computed(() => this.#dashboardResource.error());
-  readonly status = computed(() => this.#dashboardResource.status());
+  readonly status = computed(() => {
+    const resourceStatus = this.#dashboardResource.status();
+    if (resourceStatus === 'loading' && this.dashboardData()) {
+      return 'reloading';
+    }
+    return resourceStatus;
+  });
 
   /** SWR: true only on first load, false during background revalidation */
   readonly isInitialLoading = computed(() => {
