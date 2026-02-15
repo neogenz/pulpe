@@ -109,9 +109,12 @@ final class AppState {
         }
 
         do {
-            if let user = try await authService.validateBiometricSession() {
-                currentUser = user
-                await resolvePostAuth(user: user)
+            if let result = try await authService.validateBiometricSession() {
+                currentUser = result.user
+                if let clientKeyHex = result.clientKeyHex {
+                    await clientKeyManager.store(clientKeyHex, enableBiometric: false)
+                }
+                await resolvePostAuth(user: result.user)
             } else {
                 // No tokens found
                 authState = .unauthenticated
@@ -119,8 +122,13 @@ final class AppState {
         } catch is KeychainError {
             // Face ID cancelled or failed — keep tokens for retry
             authState = .unauthenticated
+        } catch let error as URLError {
+            // Network error — keep tokens and biometric enabled for retry
+            Logger.auth.warning("checkAuthState: network error during biometric login - \(error)")
+            biometricError = "Connexion impossible, reessaie"
+            authState = .unauthenticated
         } catch {
-            // Token refresh failed (expired session, network, etc.)
+            // Token refresh failed (expired/invalid session)
             Logger.auth.error("checkAuthState: biometric session refresh failed - \(error)")
             await authService.clearBiometricTokens()
             biometricEnabled = false
@@ -148,26 +156,30 @@ final class AppState {
     func login(email: String, password: String) async throws {
         let user = try await authService.login(email: email, password: password)
         currentUser = user
-        hasCompletedOnboarding = true
+        // Don't set hasCompletedOnboarding here - login is separate from onboarding flow
+        // Only completeOnboarding() should set this flag
         await resolvePostAuth(user: user)
     }
 
     func logout() async {
-        // Preserve biometric tokens with current session before signing out
-        // (Supabase token rotation may have invalidated the stored refresh token)
         if biometricEnabled {
+            // Refresh biometric tokens with the latest session before clearing
             do {
                 try await authService.saveBiometricTokens()
             } catch {
-                Logger.auth.warning("logout: SDK session unavailable, falling back to keychain tokens - \(error)")
+                Logger.auth.warning("logout: SDK session unavailable, falling back to keychain - \(error)")
                 let saved = await authService.saveBiometricTokensFromKeychain()
                 if !saved {
                     Logger.auth.error("logout: could not preserve biometric tokens for re-login")
                 }
             }
+
+            // Clear local SDK state WITHOUT calling /logout (would revoke the refresh token)
+            await authService.logoutKeepingBiometricSession()
+        } else {
+            await authService.logout()
         }
 
-        await authService.logout()
         await clientKeyManager.clearSession()
         currentUser = nil
         authState = .unauthenticated

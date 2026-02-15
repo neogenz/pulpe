@@ -18,6 +18,13 @@ struct PinRecoveryView: View {
                 }
             }
         }
+        .alert("Cle de recuperation", isPresented: $viewModel.showRecoveryKeyWarning) {
+            Button("OK") {
+                onComplete()
+            }
+        } message: {
+            Text("Ta recuperation est reussie mais la nouvelle cle de recuperation n'a pas pu etre generee. Tu peux en creer une depuis les parametres.")
+        }
     }
 
     // MARK: - Content
@@ -229,6 +236,7 @@ final class PinRecoveryViewModel {
     private(set) var isProcessing = false
     private(set) var newRecoveryKey: String?
     var showRecoverySheet = false
+    var showRecoveryKeyWarning = false
     var recoveryKeyInput = ""
 
     let maxDigits = 6
@@ -364,6 +372,7 @@ final class PinRecoveryViewModel {
                 Logger.encryption.warning("Recovery key setup failed after recovery: \(error.localizedDescription)")
                 newRecoveryKey = nil
                 showRecoverySheet = false
+                showRecoveryKeyWarning = true
             }
 
             isProcessing = false

@@ -125,10 +125,9 @@ final class PinEntryViewModel {
     func appendDigit(_ digit: Int) {
         guard digits.count < maxDigits, !isValidating else { return }
         digits.append(digit)
-
-        if digits.count == maxDigits {
-            Task { await validatePin() }
-        }
+        
+        // Let user review their full PIN before validation
+        // Consistent with PIN setup flow which requires explicit confirmation
     }
 
     func deleteLastDigit() {

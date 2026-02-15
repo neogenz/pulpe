@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import OSLog
 import Supabase
 
@@ -7,12 +8,19 @@ import Supabase
 actor AuthService {
     static let shared = AuthService()
 
-    private let supabase: SupabaseClient
+    private var supabase: SupabaseClient
     private let keychain: KeychainManager
 
     private init(keychain: KeychainManager = .shared) {
         self.keychain = keychain
         self.supabase = SupabaseClient(
+            supabaseURL: AppConfiguration.supabaseURL,
+            supabaseKey: AppConfiguration.supabaseAnonKey
+        )
+    }
+
+    private func resetClient() {
+        supabase = SupabaseClient(
             supabaseURL: AppConfiguration.supabaseURL,
             supabaseKey: AppConfiguration.supabaseAnonKey
         )
@@ -85,7 +93,14 @@ actor AuthService {
             Logger.auth.error("logout: signOut failed - \(error)")
         }
 
-        // Clear local session tokens (keep biometric tokens for re-login)
+        await keychain.clearTokens()
+    }
+
+    /// Logout without revoking the server-side refresh token.
+    /// Replaces the SupabaseClient to stop its auto-refresh timer,
+    /// then clears the regular keychain. Biometric tokens stay intact.
+    func logoutKeepingBiometricSession() async {
+        resetClient()
         await keychain.clearTokens()
     }
 
@@ -131,29 +146,52 @@ actor AuthService {
         }
     }
 
-    /// Fallback: copy current keychain tokens to biometric keychain
-    /// without touching the Supabase SDK (avoids auto-refresh side effects).
+    /// Fallback: refresh and save tokens to biometric keychain.
+    /// Validates tokens before saving to prevent storing stale/expired tokens.
     func saveBiometricTokensFromKeychain() async -> Bool {
-        guard let accessToken = await keychain.getAccessToken(),
-              let refreshToken = await keychain.getRefreshToken() else {
+        guard let refreshToken = await keychain.getRefreshToken() else {
             return false
         }
-        return await keychain.saveBiometricTokens(
-            accessToken: accessToken,
-            refreshToken: refreshToken
-        )
+        
+        // Validate token is still valid before saving
+        do {
+            let session = try await supabase.auth.refreshSession(refreshToken: refreshToken)
+            return await keychain.saveBiometricTokens(
+                accessToken: session.accessToken,
+                refreshToken: session.refreshToken
+            )
+        } catch {
+            Logger.auth.error("saveBiometricTokensFromKeychain: token refresh failed - \(error)")
+            return false
+        }
     }
 
-    func validateBiometricSession() async throws -> UserInfo? {
+    func validateBiometricSession() async throws -> BiometricSessionResult? {
         guard await keychain.hasBiometricTokens() else {
             return nil
         }
 
-        let refreshToken = try await keychain.getBiometricRefreshToken()
+        // Single Face ID prompt via pre-authenticated LAContext
+        let context = LAContext()
+        do {
+            try await context.evaluatePolicy(
+                .deviceOwnerAuthenticationWithBiometrics,
+                localizedReason: "Se connecter avec Face ID"
+            )
+        } catch let error as LAError where error.code == .userCancel {
+            throw KeychainError.userCanceled
+        } catch let error as LAError where error.code == .authenticationFailed {
+            throw KeychainError.authFailed
+        }
+
+        // Read both biometric keychain items with the pre-authenticated context (no extra prompts)
+        let refreshToken = try await keychain.getBiometricRefreshToken(context: context)
 
         guard let refreshToken else {
             return nil
         }
+
+        let clientKeyHex = try? await keychain.getBiometricClientKey(context: context)
 
         let session = try await supabase.auth.refreshSession(refreshToken: refreshToken)
 
@@ -170,7 +208,8 @@ actor AuthService {
             Logger.auth.warning("validateBiometricSession: failed to persist biometric tokens")
         }
 
-        return Self.userInfo(from: session.user, fallbackEmail: "")
+        let user = Self.userInfo(from: session.user, fallbackEmail: "")
+        return BiometricSessionResult(user: user, clientKeyHex: clientKeyHex)
     }
 
     // MARK: - User Metadata
@@ -231,6 +270,11 @@ enum AuthServiceError: LocalizedError {
 }
 
 // MARK: - Response Types
+
+struct BiometricSessionResult: Sendable {
+    let user: UserInfo
+    let clientKeyHex: String?
+}
 
 struct UserInfo: Codable, Equatable, Sendable {
     let id: String
