@@ -55,6 +55,7 @@ struct WelcomeStep: View {
 
                 // Bottom buttons
                 VStack(spacing: DesignTokens.Spacing.md) {
+                    // Primary CTA - vibrant and eye-catching
                     Button {
                         state.nextStep()
                     } label: {
@@ -66,28 +67,30 @@ struct WelcomeStep: View {
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: DesignTokens.FrameHeight.button)
-                        .background(Color.white)
-                        .foregroundStyle(Color.pulpePrimary)
+                        .background(Color.pulpePrimary)
+                        .foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                        .shadow(color: .black.opacity(0.15), radius: 16, y: 8)
+                        .shadow(color: Color.pulpePrimary.opacity(0.4), radius: 20, y: 10)
                     }
 
+                    // Secondary action - more visible with proper contrast
                     Button {
                         showLogin = true
                     } label: {
                         Text("Se connecter")
-                            .fontWeight(.medium)
+                            .fontWeight(.semibold)
                             .frame(maxWidth: .infinity)
                             .frame(height: DesignTokens.FrameHeight.button)
                             .foregroundStyle(Color.textPrimaryOnboarding)
                             .background {
                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(Color.white.opacity(0.2))
+                                    .fill(Color.white.opacity(0.4))
                                     .overlay {
                                         RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                            .strokeBorder(Color.white.opacity(0.3), lineWidth: 1)
+                                            .strokeBorder(Color.white.opacity(0.5), lineWidth: 1.5)
                                     }
                             }
+                            .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
                     }
                 }
                 .padding(.horizontal, DesignTokens.Spacing.xxl)
