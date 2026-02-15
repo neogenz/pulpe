@@ -24,6 +24,11 @@ struct RegistrationStep: View {
             onNext: { Task { await submitRegistration() } }
         ) {
             VStack(spacing: DesignTokens.Spacing.xl) {
+                Text("Crée ton compte pour sauvegarder ton budget")
+                    .font(PulpeTypography.bodyLarge)
+                    .foregroundStyle(Color.textSecondaryOnboarding)
+                    .multilineTextAlignment(.center)
+
                 // Email
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Email")

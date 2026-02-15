@@ -31,7 +31,6 @@ struct OnboardingFlow: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
-            .animation(PulpeAnimations.stepTransition, value: state.currentStep)
         }
     }
 
@@ -44,18 +43,10 @@ struct OnboardingFlow: View {
             WelcomeStep(state: state)
         case .personalInfo:
             PersonalInfoStep(state: state)
-        case .income:
-            IncomeStep(state: state)
-        case .housing:
-            HousingStep(state: state)
-        case .healthInsurance:
-            HealthInsuranceStep(state: state)
-        case .phonePlan:
-            PhonePlanStep(state: state)
-        case .transport:
-            TransportStep(state: state)
-        case .leasingCredit:
-            LeasingCreditStep(state: state)
+        case .expenses:
+            ExpensesStep(state: state)
+        case .budgetPreview:
+            BudgetPreviewStep(state: state)
         case .registration:
             RegistrationStep(state: state) { user in
                 appState.completeOnboarding(user: user)

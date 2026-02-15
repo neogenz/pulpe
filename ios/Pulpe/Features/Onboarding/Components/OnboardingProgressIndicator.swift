@@ -25,9 +25,9 @@ struct OnboardingProgressIndicator: View {
 
 #Preview {
     VStack(spacing: 40) {
-        OnboardingProgressIndicator(currentStep: .personalInfo, totalSteps: 9)
-        OnboardingProgressIndicator(currentStep: .income, totalSteps: 9)
-        OnboardingProgressIndicator(currentStep: .registration, totalSteps: 9)
+        OnboardingProgressIndicator(currentStep: .personalInfo, totalSteps: 5)
+        OnboardingProgressIndicator(currentStep: .expenses, totalSteps: 5)
+        OnboardingProgressIndicator(currentStep: .registration, totalSteps: 5)
     }
     .padding()
 }

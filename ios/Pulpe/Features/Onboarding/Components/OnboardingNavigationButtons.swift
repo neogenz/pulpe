@@ -80,7 +80,7 @@ struct OnboardingNavigationButtons: View {
     VStack {
         Spacer()
         OnboardingNavigationButtons(
-            step: .income,
+            step: .expenses,
             canProceed: true,
             isLoading: false,
             onNext: {},
