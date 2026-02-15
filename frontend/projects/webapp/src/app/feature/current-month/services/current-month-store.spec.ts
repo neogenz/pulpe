@@ -13,7 +13,7 @@ import type {
 
 import { CurrentMonthStore } from './current-month-store';
 import { BudgetApi } from '@core/budget';
-import { TransactionApi } from '@core/transaction/transaction-api';
+import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { UserSettingsApi } from '@core/user-settings';
 
 // Mock data aligned with business scenarios
@@ -78,6 +78,15 @@ const mockTransactions: Transaction[] = [
   },
 ];
 
+const mockCache = {
+  get: vi.fn().mockReturnValue(null),
+  set: vi.fn(),
+  has: vi.fn().mockReturnValue(false),
+  invalidate: vi.fn(),
+  deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
+  clear: vi.fn(),
+};
+
 /**
  * Business Value Tests for CurrentMonthStore
  *
@@ -94,16 +103,21 @@ describe('CurrentMonthStore - Business Scenarios', () => {
     getBudgetWithDetails$: Mock;
     getBudgetById$: Mock;
     toggleBudgetLineCheck$: Mock;
+    createTransaction$: Mock;
+    updateTransaction$: Mock;
+    deleteTransaction$: Mock;
+    toggleTransactionCheck$: Mock;
+    cache: typeof mockCache;
   };
-  let mockTransactionApi: {
-    create$: Mock;
-    update$: Mock;
-    remove$: Mock;
-    toggleCheck$: Mock;
+  let mockInvalidationService: {
+    version: ReturnType<typeof signal<number>>;
+    invalidate: Mock;
   };
 
   beforeEach(() => {
     // Realistic mocks that simulate actual business behaviors
+    mockCache.get.mockReturnValue(null);
+
     mockBudgetApi = {
       getBudgetForMonth$: vi.fn().mockReturnValue(of(mockBudget)),
       getBudgetWithDetails$: vi.fn().mockReturnValue(
@@ -117,19 +131,19 @@ describe('CurrentMonthStore - Business Scenarios', () => {
       ),
       getBudgetById$: vi.fn().mockReturnValue(of(mockBudget)),
       toggleBudgetLineCheck$: vi.fn().mockReturnValue(of(undefined)),
-    };
-
-    mockTransactionApi = {
-      create$: vi.fn(),
-      update$: vi.fn(),
-      remove$: vi.fn(),
-      toggleCheck$: vi.fn(),
+      createTransaction$: vi.fn(),
+      updateTransaction$: vi.fn(),
+      deleteTransaction$: vi.fn(),
+      toggleTransactionCheck$: vi.fn(),
+      cache: mockCache,
     };
 
     const mockUserSettingsApi = {
       payDayOfMonth: signal<number | null>(null),
       isLoading: signal(false),
     };
+
+    mockInvalidationService = { version: signal(0), invalidate: vi.fn() };
 
     TestBed.configureTestingModule({
       providers: [
@@ -138,8 +152,11 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         provideHttpClientTesting(),
         CurrentMonthStore,
         { provide: BudgetApi, useValue: mockBudgetApi },
-        { provide: TransactionApi, useValue: mockTransactionApi },
         { provide: UserSettingsApi, useValue: mockUserSettingsApi },
+        {
+          provide: BudgetInvalidationService,
+          useValue: mockInvalidationService,
+        },
       ],
     });
 
@@ -228,15 +245,12 @@ describe('CurrentMonthStore - Business Scenarios', () => {
   });
 
   describe('User can refresh their data', () => {
-    it('should allow user to refresh their financial data', () => {
-      // Business scenario: User pulls to refresh or clicks refresh button
-
-      const refreshSpy = vi.spyOn(store, 'refreshData');
+    it('should allow user to refresh their financial data', async () => {
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
 
       expect(() => store.refreshData()).not.toThrow();
-      store.refreshData();
-
-      expect(refreshSpy).toHaveBeenCalled();
     });
   });
 
@@ -252,7 +266,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         category: null,
       };
 
-      mockTransactionApi.create$.mockReturnValue(
+      mockBudgetApi.createTransaction$.mockReturnValue(
         of({
           data: {
             id: 'new-1',
@@ -271,7 +285,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
 
     it('should allow updating a transaction without errors', async () => {
       // Business scenario: User modifies an existing transaction
-      mockTransactionApi.update$.mockReturnValue(
+      mockBudgetApi.updateTransaction$.mockReturnValue(
         of({ data: { id: 'trans-1', amount: 200, name: 'Updated' } }),
       );
 
@@ -283,7 +297,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
 
     it('should allow deleting a transaction without errors', async () => {
       // Business scenario: User removes an unwanted transaction
-      mockTransactionApi.remove$.mockReturnValue(of(undefined));
+      mockBudgetApi.deleteTransaction$.mockReturnValue(of(undefined));
 
       // Should complete without throwing
       await expect(store.deleteTransaction('trans-1')).resolves.toBeUndefined();
@@ -293,7 +307,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
   describe('App handles errors gracefully', () => {
     it('should maintain stability when add transaction fails', async () => {
       // Business scenario: App doesn't crash when server is down during transaction creation
-      mockTransactionApi.create$.mockReturnValue(
+      mockBudgetApi.createTransaction$.mockReturnValue(
         throwError(() => new Error('Server unavailable')),
       );
 
@@ -322,7 +336,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
 
     it('should maintain stability when update transaction fails', async () => {
       // Business scenario: Failed updates don't corrupt user's data
-      mockTransactionApi.update$.mockReturnValue(
+      mockBudgetApi.updateTransaction$.mockReturnValue(
         throwError(() => new Error('Update failed')),
       );
 
@@ -342,7 +356,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
 
     it('should maintain stability when delete transaction fails', async () => {
       // Business scenario: Failed deletions don't corrupt user's data
-      mockTransactionApi.remove$.mockReturnValue(
+      mockBudgetApi.deleteTransaction$.mockReturnValue(
         throwError(() => new Error('Delete failed')),
       );
 
@@ -453,6 +467,83 @@ describe('CurrentMonthStore - Business Scenarios', () => {
     });
   });
 
+  describe('Mutations delegate to BudgetApi', () => {
+    beforeEach(async () => {
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+    });
+
+    it('should delegate to BudgetApi.createTransaction$ when adding a transaction', async () => {
+      mockBudgetApi.createTransaction$.mockReturnValue(
+        of({
+          data: {
+            id: 'new-tx',
+            budgetId: 'budget-1',
+            name: 'Test',
+            amount: 10,
+            kind: 'expense',
+            transactionDate: '2024-01-25T00:00:00Z',
+            category: null,
+            createdAt: '2024-01-25T00:00:00Z',
+            updatedAt: '2024-01-25T00:00:00Z',
+            checkedAt: null,
+            budgetLineId: null,
+          },
+        }),
+      );
+
+      await store.addTransaction({
+        budgetId: 'budget-1',
+        name: 'Test',
+        amount: 10,
+        kind: 'expense',
+        transactionDate: '2024-01-25T00:00:00Z',
+        category: null,
+      });
+
+      expect(mockBudgetApi.createTransaction$).toHaveBeenCalled();
+    });
+
+    it('should delegate to BudgetApi.deleteTransaction$ when deleting a transaction', async () => {
+      mockBudgetApi.deleteTransaction$.mockReturnValue(of(undefined));
+
+      await store.deleteTransaction('txn-1');
+
+      expect(mockBudgetApi.deleteTransaction$).toHaveBeenCalledWith('txn-1');
+    });
+
+    it('should delegate to BudgetApi.updateTransaction$ when updating a transaction', async () => {
+      mockBudgetApi.updateTransaction$.mockReturnValue(
+        of({ data: { id: 'txn-1', amount: 200, name: 'Updated' } }),
+      );
+
+      await store.updateTransaction('txn-1', { amount: 200 });
+
+      expect(mockBudgetApi.updateTransaction$).toHaveBeenCalledWith('txn-1', {
+        amount: 200,
+      });
+    });
+
+    it('should delegate to BudgetApi.toggleBudgetLineCheck$ when toggling budget line check', async () => {
+      await store.toggleBudgetLineCheck('line-income');
+
+      expect(mockBudgetApi.toggleBudgetLineCheck$).toHaveBeenCalledWith(
+        'line-income',
+      );
+    });
+
+    it('should delegate to BudgetApi.toggleTransactionCheck$ when toggling transaction check', async () => {
+      mockBudgetApi.toggleTransactionCheck$.mockReturnValue(of(undefined));
+
+      await store.toggleTransactionCheck('txn-1');
+
+      expect(mockBudgetApi.toggleTransactionCheck$).toHaveBeenCalledWith(
+        'txn-1',
+      );
+    });
+  });
+
   describe('App handles empty states gracefully', () => {
     beforeEach(() => {
       // Setup scenario with no data
@@ -474,8 +565,11 @@ describe('CurrentMonthStore - Business Scenarios', () => {
           provideHttpClientTesting(),
           CurrentMonthStore,
           { provide: BudgetApi, useValue: mockBudgetApi },
-          { provide: TransactionApi, useValue: mockTransactionApi },
           { provide: UserSettingsApi, useValue: mockUserSettingsApi },
+          {
+            provide: BudgetInvalidationService,
+            useValue: { version: signal(0), invalidate: vi.fn() },
+          },
         ],
       });
       store = TestBed.inject(CurrentMonthStore);
@@ -531,6 +625,7 @@ describe('CurrentMonthStore - Pay Day Integration', () => {
     getBudgetWithDetails$: Mock;
     getBudgetById$: Mock;
     toggleBudgetLineCheck$: Mock;
+    cache: typeof mockCache;
   };
 
   const mockJanuaryBudget: Budget = {
@@ -549,6 +644,8 @@ describe('CurrentMonthStore - Pay Day Integration', () => {
   beforeEach(() => {
     payDaySignal = signal<number | null>(null);
 
+    mockCache.get.mockReturnValue(null);
+
     mockBudgetApi = {
       getBudgetForMonth$: vi.fn().mockReturnValue(of(mockJanuaryBudget)),
       getBudgetWithDetails$: vi.fn().mockReturnValue(
@@ -562,13 +659,7 @@ describe('CurrentMonthStore - Pay Day Integration', () => {
       ),
       getBudgetById$: vi.fn().mockReturnValue(of(mockJanuaryBudget)),
       toggleBudgetLineCheck$: vi.fn().mockReturnValue(of(undefined)),
-    };
-
-    const mockTransactionApi = {
-      create$: vi.fn(),
-      update$: vi.fn(),
-      remove$: vi.fn(),
-      toggleCheck$: vi.fn(),
+      cache: mockCache,
     };
 
     const mockUserSettingsApi = {
@@ -583,8 +674,11 @@ describe('CurrentMonthStore - Pay Day Integration', () => {
         provideHttpClientTesting(),
         CurrentMonthStore,
         { provide: BudgetApi, useValue: mockBudgetApi },
-        { provide: TransactionApi, useValue: mockTransactionApi },
         { provide: UserSettingsApi, useValue: mockUserSettingsApi },
+        {
+          provide: BudgetInvalidationService,
+          useValue: { version: signal(0), invalidate: vi.fn() },
+        },
       ],
     });
 
@@ -702,6 +796,7 @@ describe('CurrentMonthStore - Envelope Allocation Logic', () => {
     getBudgetWithDetails$: Mock;
     getBudgetById$: Mock;
     toggleBudgetLineCheck$: Mock;
+    cache: typeof mockCache;
   };
 
   // Helper to create budget lines
@@ -763,6 +858,8 @@ describe('CurrentMonthStore - Envelope Allocation Logic', () => {
       rollover: 0,
     };
 
+    mockCache.get.mockReturnValue(null);
+
     mockBudgetApi = {
       getBudgetForMonth$: vi.fn().mockReturnValue(of(budget)),
       getBudgetWithDetails$: vi.fn().mockReturnValue(
@@ -776,13 +873,7 @@ describe('CurrentMonthStore - Envelope Allocation Logic', () => {
       ),
       getBudgetById$: vi.fn().mockReturnValue(of(budget)),
       toggleBudgetLineCheck$: vi.fn().mockReturnValue(of(undefined)),
-    };
-
-    const mockTransactionApi = {
-      create$: vi.fn(),
-      update$: vi.fn(),
-      remove$: vi.fn(),
-      toggleCheck$: vi.fn(),
+      cache: mockCache,
     };
 
     const mockUserSettingsApi = {
@@ -798,8 +889,11 @@ describe('CurrentMonthStore - Envelope Allocation Logic', () => {
         provideHttpClientTesting(),
         CurrentMonthStore,
         { provide: BudgetApi, useValue: mockBudgetApi },
-        { provide: TransactionApi, useValue: mockTransactionApi },
         { provide: UserSettingsApi, useValue: mockUserSettingsApi },
+        {
+          provide: BudgetInvalidationService,
+          useValue: { version: signal(0), invalidate: vi.fn() },
+        },
       ],
     });
 

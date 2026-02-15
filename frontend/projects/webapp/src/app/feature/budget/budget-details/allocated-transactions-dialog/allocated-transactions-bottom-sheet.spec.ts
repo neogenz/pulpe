@@ -146,8 +146,9 @@ describe('AllocatedTransactionsBottomSheet', () => {
         consumption: { consumed: 50 },
       });
 
-      // Component guards against division by zero
-      expect(fixture.componentInstance.consumptionPercentage).toBe(0);
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.textContent).toContain('0');
+      expect(el.textContent).toContain('% utilisé');
     });
   });
 

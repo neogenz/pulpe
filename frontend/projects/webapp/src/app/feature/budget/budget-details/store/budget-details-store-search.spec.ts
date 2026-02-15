@@ -10,8 +10,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { BudgetDetailsStore } from './budget-details-store';
 import { BudgetApi } from '@core/budget/budget-api';
-import { BudgetLineApi } from '../budget-line-api/budget-line-api';
-import { TransactionApi } from '@core/transaction/transaction-api';
 import { Logger } from '@core/logging/logger';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { PostHogService } from '@core/analytics/posthog';
@@ -131,22 +129,16 @@ describe('BudgetDetailsStore - Search Filtering', () => {
               .fn()
               .mockReturnValue(of(mockBudgetDetailsResponse)),
             getAllBudgets$: vi.fn().mockReturnValue(of([])),
-          },
-        },
-        {
-          provide: BudgetLineApi,
-          useValue: {
-            createBudgetLine$: vi.fn(),
-            updateBudgetLine$: vi.fn(),
-            deleteBudgetLine$: vi.fn(),
-            toggleCheck$: vi.fn(),
-          },
-        },
-        {
-          provide: TransactionApi,
-          useValue: {
-            create$: vi.fn(),
-            remove$: vi.fn(),
+            cache: {
+              get: vi.fn().mockReturnValue(null),
+              set: vi.fn(),
+              has: vi.fn().mockReturnValue(false),
+              invalidate: vi.fn(),
+              deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) =>
+                fn(),
+              ),
+              clear: vi.fn(),
+            },
           },
         },
         { provide: Logger, useValue: { error: vi.fn() } },

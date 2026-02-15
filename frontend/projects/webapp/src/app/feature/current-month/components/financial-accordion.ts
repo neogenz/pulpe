@@ -17,6 +17,7 @@ import {
   FinancialEntry,
   type FinancialEntryViewModel,
 } from './financial-entry';
+import { formatRolloverDisplayName } from '@core/budget/rollover/rollover-types';
 import { type FinancialEntryModel } from '../models/financial-entry.model';
 
 export interface FinancialAccordionConfig {
@@ -187,14 +188,17 @@ export class FinancialAccordion {
     const financialEntries = this.financialEntries();
     const selectedIds = new Set(this.selectedFinancialEntries());
 
-    return financialEntries.map(
-      (financialEntry) =>
-        ({
-          ...financialEntry,
-          isSelected: selectedIds.has(financialEntry.id),
-          isRollover: financialEntry.rollover.sourceBudgetId != null,
-        }) as FinancialEntryViewModel,
-    );
+    return financialEntries.map((financialEntry) => {
+      const isRollover = financialEntry.rollover.sourceBudgetId != null;
+      return {
+        ...financialEntry,
+        isSelected: selectedIds.has(financialEntry.id),
+        isRollover,
+        displayName: isRollover
+          ? formatRolloverDisplayName(financialEntry.name)
+          : financialEntry.name,
+      } as FinancialEntryViewModel;
+    });
   });
 
   protected readonly displayedFinancialEntries = computed(() => {

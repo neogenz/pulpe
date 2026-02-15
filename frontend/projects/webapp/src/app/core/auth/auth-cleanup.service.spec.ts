@@ -4,6 +4,7 @@ import { signal } from '@angular/core';
 import type { User } from '@supabase/supabase-js';
 import { AuthCleanupService } from './auth-cleanup.service';
 import { AuthStateService } from './auth-state.service';
+import { BudgetApi } from '@core/budget';
 import { ClientKeyService } from '@core/encryption';
 import { DemoModeService } from '../demo/demo-mode.service';
 import { HasBudgetCache } from './has-budget-cache';
@@ -15,6 +16,7 @@ import { type E2EWindow } from './e2e-window';
 describe('AuthCleanupService', () => {
   let service: AuthCleanupService;
   let mockState: Partial<AuthStateService>;
+  let mockBudgetApi: { cache: { clear: ReturnType<typeof vi.fn> } };
   let mockClientKey: Partial<ClientKeyService>;
   let mockDemoMode: Partial<DemoModeService>;
   let mockHasBudgetCache: Partial<HasBudgetCache>;
@@ -29,6 +31,10 @@ describe('AuthCleanupService', () => {
       user: userSignal.asReadonly(),
       setSession: vi.fn(),
       setLoading: vi.fn(),
+    };
+
+    mockBudgetApi = {
+      cache: { clear: vi.fn() },
     };
 
     mockClientKey = {
@@ -62,6 +68,7 @@ describe('AuthCleanupService', () => {
       providers: [
         AuthCleanupService,
         { provide: AuthStateService, useValue: mockState },
+        { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: ClientKeyService, useValue: mockClientKey },
         { provide: DemoModeService, useValue: mockDemoMode },
         { provide: HasBudgetCache, useValue: mockHasBudgetCache },
@@ -92,6 +99,7 @@ describe('AuthCleanupService', () => {
     expect(mockClientKey.clearPreservingDeviceTrust).toHaveBeenCalled();
     expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
     expect(mockHasBudgetCache.clear).toHaveBeenCalled();
+    expect(mockBudgetApi.cache.clear).toHaveBeenCalled();
     expect(mockPostHog.reset).toHaveBeenCalled();
     expect(mockStorage.clearAllUserData).toHaveBeenCalled();
   });
@@ -158,6 +166,20 @@ describe('AuthCleanupService', () => {
 
       service.performCleanup();
 
+      expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
+      expect(mockHasBudgetCache.clear).toHaveBeenCalled();
+      expect(mockPostHog.reset).toHaveBeenCalled();
+      expect(mockStorage.clearAllUserData).toHaveBeenCalled();
+    });
+
+    it('should continue cleanup when budgetApi.cache.clear() throws', () => {
+      mockBudgetApi.cache.clear.mockImplementation(() => {
+        throw new Error('Cache clear failed');
+      });
+
+      service.performCleanup();
+
+      expect(mockClientKey.clearPreservingDeviceTrust).toHaveBeenCalled();
       expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
       expect(mockHasBudgetCache.clear).toHaveBeenCalled();
       expect(mockPostHog.reset).toHaveBeenCalled();

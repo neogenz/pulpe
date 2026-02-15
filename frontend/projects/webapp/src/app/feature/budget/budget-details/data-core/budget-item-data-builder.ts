@@ -1,6 +1,9 @@
 import type { Transaction, BudgetLine, TransactionKind } from 'pulpe-shared';
 import { calculateAllConsumptions } from '@core/budget/budget-line-consumption';
-import { isRolloverLine } from '@core/budget/rollover/rollover-types';
+import {
+  isRolloverLine,
+  formatRolloverDisplayName,
+} from '@core/budget/rollover/rollover-types';
 import type {
   BudgetLineTableItem,
   GroupHeaderTableItem,
@@ -207,6 +210,9 @@ function createBudgetLineViewModel(
       kindIcon: getKindIcon(budgetLine.kind),
       allocationLabel: getAllocationLabel(budgetLine.kind),
       rolloverSourceBudgetId: getRolloverSourceBudgetId(budgetLine),
+      displayName: isRollover
+        ? formatRolloverDisplayName(budgetLine.name)
+        : budgetLine.name,
     },
     consumption: {
       consumed,
@@ -239,6 +245,9 @@ function createTransactionViewModel(
       kindIcon: getKindIcon(transaction.kind),
       allocationLabel: getAllocationLabel(transaction.kind),
       rolloverSourceBudgetId: undefined,
+      displayName: isRollover
+        ? formatRolloverDisplayName(transaction.name)
+        : transaction.name,
     },
   };
 }

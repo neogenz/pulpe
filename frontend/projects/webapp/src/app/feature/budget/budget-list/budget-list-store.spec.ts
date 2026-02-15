@@ -6,14 +6,26 @@ import { BudgetListStore } from './budget-list-store';
 import { BudgetApi } from '@core/budget/budget-api';
 import { Logger } from '@core/logging/logger';
 
+const mockCache = {
+  get: vi.fn().mockReturnValue(null),
+  set: vi.fn(),
+  has: vi.fn().mockReturnValue(false),
+  invalidate: vi.fn(),
+  deduplicate: vi.fn((key: string[], fn: () => Promise<unknown>) => fn()),
+  clear: vi.fn(),
+};
+
 describe('BudgetListStore', () => {
   let store: BudgetListStore;
   let budgetApiMock: Partial<BudgetApi>;
   let loggerMock: Partial<Logger>;
 
   beforeEach(() => {
+    mockCache.get.mockReturnValue(null);
+
     budgetApiMock = {
       getAllBudgets$: vi.fn().mockReturnValue(of([])),
+      cache: mockCache as unknown as BudgetApi['cache'],
     };
 
     loggerMock = {

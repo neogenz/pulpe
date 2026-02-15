@@ -15,6 +15,7 @@ describe('MaintenanceApi', () => {
   beforeEach(() => {
     mockFetch = vi.fn();
     vi.stubGlobal('fetch', mockFetch);
+    vi.useFakeTimers();
 
     TestBed.configureTestingModule({
       providers: [
@@ -28,21 +29,19 @@ describe('MaintenanceApi', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   describe('checkStatus', () => {
     it('should return MaintenanceStatus when response is ok', async () => {
-      // Arrange
       const mockStatus = { maintenanceMode: false };
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockStatus),
       });
 
-      // Act
       const result = await service.checkStatus();
 
-      // Assert
       expect(result).toEqual(mockStatus);
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:3000/api/v1/maintenance/status',
@@ -51,7 +50,6 @@ describe('MaintenanceApi', () => {
     });
 
     it('should include ngrok header only when URL contains ngrok', async () => {
-      // Arrange
       const ngrokConfig = {
         backendApiUrl: () => 'https://abc123.ngrok-free.app/api/v1',
       };
@@ -68,10 +66,8 @@ describe('MaintenanceApi', () => {
         json: () => Promise.resolve({ maintenanceMode: false }),
       });
 
-      // Act
       await ngrokService.checkStatus();
 
-      // Assert
       expect(mockFetch).toHaveBeenCalledWith(
         'https://abc123.ngrok-free.app/api/v1/maintenance/status',
         { headers: NGROK_SKIP_HEADER },
@@ -79,39 +75,96 @@ describe('MaintenanceApi', () => {
     });
 
     it('should return maintenanceMode true when server indicates maintenance', async () => {
-      // Arrange
       const mockStatus = { maintenanceMode: true };
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockStatus),
       });
 
-      // Act
       const result = await service.checkStatus();
 
-      // Assert
       expect(result).toEqual({ maintenanceMode: true });
     });
 
     it('should throw error when response is not ok', async () => {
-      // Arrange
       mockFetch.mockResolvedValue({
         ok: false,
         status: 500,
       });
 
-      // Act & Assert
       await expect(service.checkStatus()).rejects.toThrow(
         'Maintenance check failed: 500',
       );
     });
 
     it('should throw error when fetch fails', async () => {
-      // Arrange
       mockFetch.mockRejectedValue(new Error('Network error'));
 
-      // Act & Assert
       await expect(service.checkStatus()).rejects.toThrow('Network error');
+    });
+
+    it('should return cached result within TTL without fetching again', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ maintenanceMode: false }),
+      });
+
+      await service.checkStatus();
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      const result = await service.checkStatus();
+      expect(result).toEqual({ maintenanceMode: false });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('should fetch again after TTL expires', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ maintenanceMode: false }),
+      });
+
+      await service.checkStatus();
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      vi.advanceTimersByTime(10_001);
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ maintenanceMode: true }),
+      });
+
+      const result = await service.checkStatus();
+      expect(result).toEqual({ maintenanceMode: true });
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('should deduplicate concurrent calls', async () => {
+      let resolvePromise: (value: unknown) => void;
+      mockFetch.mockReturnValue(
+        new Promise((resolve) => {
+          resolvePromise = resolve;
+        }),
+      );
+
+      const promise1 = service.checkStatus();
+      const promise2 = service.checkStatus();
+      const promise3 = service.checkStatus();
+
+      resolvePromise!({
+        ok: true,
+        json: () => Promise.resolve({ maintenanceMode: false }),
+      });
+
+      const [result1, result2, result3] = await Promise.all([
+        promise1,
+        promise2,
+        promise3,
+      ]);
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(result1).toEqual({ maintenanceMode: false });
+      expect(result2).toEqual({ maintenanceMode: false });
+      expect(result3).toEqual({ maintenanceMode: false });
     });
   });
 });

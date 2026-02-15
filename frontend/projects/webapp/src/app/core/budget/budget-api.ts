@@ -10,11 +10,25 @@ import {
   budgetExportResponseSchema,
   budgetListResponseSchema,
   budgetResponseSchema,
+  type BudgetLineCreate,
+  type BudgetLineUpdate,
+  type BudgetLineResponse,
+  budgetLineResponseSchema,
+  type BudgetLineDeleteResponse,
+  budgetLineDeleteResponseSchema,
+  type TransactionCreate,
+  type TransactionCreateResponse,
+  type TransactionUpdate,
+  type TransactionUpdateResponse,
+  type TransactionListResponse,
+  transactionListResponseSchema,
 } from 'pulpe-shared';
-import { type Observable } from 'rxjs';
+import { type Observable, firstValueFrom, from, of } from 'rxjs';
 import { map, switchMap, tap } from 'rxjs/operators';
 import { ApiClient } from '../api/api-client';
 import { HasBudgetCache } from '../auth/has-budget-cache';
+import { DataCache } from '../cache/data-cache';
+import { TransactionApi } from '../transaction/transaction-api';
 import { BudgetInvalidationService } from './budget-invalidation.service';
 
 export interface CreateBudgetApiResponse {
@@ -29,6 +43,8 @@ export class BudgetApi {
   readonly #api = inject(ApiClient);
   readonly #hasBudgetCache = inject(HasBudgetCache);
   readonly #invalidationService = inject(BudgetInvalidationService);
+  readonly #transactionApi = inject(TransactionApi);
+  readonly cache = new DataCache({ freshTime: 30_000, gcTime: 600_000 });
 
   createBudget$(
     templateData: BudgetCreate,
@@ -40,6 +56,7 @@ export class BudgetApi {
         tap(() => {
           this.#hasBudgetCache.setHasBudget(true);
           this.#invalidationService.invalidate();
+          this.cache.invalidate(['budget']);
         }),
         map((response) => ({
           budget: response.data,
@@ -49,20 +66,40 @@ export class BudgetApi {
   }
 
   getAllBudgets$(): Observable<Budget[]> {
-    return this.#api.get$('/budgets', budgetListResponseSchema).pipe(
-      tap((response) => {
+    const cacheKey: string[] = ['budget', 'list'];
+    const cached = this.cache.get<Budget[]>(cacheKey);
+
+    if (cached?.fresh) {
+      return of(cached.data);
+    }
+
+    return from(
+      this.cache.deduplicate(cacheKey, async () => {
+        const response = await firstValueFrom(
+          this.#api.get$('/budgets', budgetListResponseSchema),
+        );
         this.#hasBudgetCache.setHasBudget(response.data.length > 0);
+        return response.data;
       }),
-      map((response) => response.data),
     );
   }
 
   checkBudgetExists$(): Observable<boolean> {
-    return this.#api.get$('/budgets/exists', budgetExistsResponseSchema).pipe(
-      tap((response) => {
+    const cacheKey: string[] = ['budget', 'exists'];
+    const cached = this.cache.get<boolean>(cacheKey);
+
+    if (cached?.fresh) {
+      return of(cached.data);
+    }
+
+    return from(
+      this.cache.deduplicate(cacheKey, async () => {
+        const response = await firstValueFrom(
+          this.#api.get$('/budgets/exists', budgetExistsResponseSchema),
+        );
         this.#hasBudgetCache.setHasBudget(response.hasBudget);
+        return response.hasBudget;
       }),
-      map((response) => response.hasBudget),
     );
   }
 
@@ -102,6 +139,7 @@ export class BudgetApi {
       .pipe(
         tap(() => {
           this.#invalidationService.invalidate();
+          this.cache.invalidate(['budget']);
         }),
         map((response) => response.data),
       );
@@ -115,6 +153,7 @@ export class BudgetApi {
       tap((response) => {
         this.#hasBudgetCache.setHasBudget(response.hasBudget);
         this.#invalidationService.invalidate();
+        this.cache.invalidate(['budget']);
       }),
       map(() => void 0),
     );
@@ -124,10 +163,114 @@ export class BudgetApi {
     return this.#api.get$('/budgets/export', budgetExportResponseSchema);
   }
 
-  toggleBudgetLineCheck$(budgetLineId: string): Observable<void> {
-    return this.#api.postVoid$(
-      `/budget-lines/${budgetLineId}/toggle-check`,
-      {},
+  createBudgetLine$(data: BudgetLineCreate): Observable<BudgetLineResponse> {
+    return this.#api
+      .post$('/budget-lines', data, budgetLineResponseSchema)
+      .pipe(
+        tap(() => {
+          this.#invalidationService.invalidate();
+          this.cache.invalidate(['budget']);
+        }),
+      );
+  }
+
+  updateBudgetLine$(
+    id: string,
+    data: BudgetLineUpdate,
+  ): Observable<BudgetLineResponse> {
+    return this.#api
+      .patch$(`/budget-lines/${id}`, data, budgetLineResponseSchema)
+      .pipe(
+        tap(() => {
+          this.#invalidationService.invalidate();
+          this.cache.invalidate(['budget']);
+        }),
+      );
+  }
+
+  deleteBudgetLine$(id: string): Observable<BudgetLineDeleteResponse> {
+    return this.#api
+      .delete$(`/budget-lines/${id}`, budgetLineDeleteResponseSchema)
+      .pipe(
+        tap(() => {
+          this.#invalidationService.invalidate();
+          this.cache.invalidate(['budget']);
+        }),
+      );
+  }
+
+  resetBudgetLineFromTemplate$(id: string): Observable<BudgetLineResponse> {
+    return this.#api
+      .post$(
+        `/budget-lines/${id}/reset-from-template`,
+        {},
+        budgetLineResponseSchema,
+      )
+      .pipe(
+        tap(() => {
+          this.#invalidationService.invalidate();
+          this.cache.invalidate(['budget']);
+        }),
+      );
+  }
+
+  toggleBudgetLineCheck$(budgetLineId: string): Observable<BudgetLineResponse> {
+    return this.#api
+      .post$(
+        `/budget-lines/${budgetLineId}/toggle-check`,
+        {},
+        budgetLineResponseSchema,
+      )
+      .pipe(tap(() => this.cache.invalidate(['budget'])));
+  }
+
+  checkBudgetLineTransactions$(
+    budgetLineId: string,
+  ): Observable<TransactionListResponse> {
+    return this.#api
+      .post$(
+        `/budget-lines/${budgetLineId}/check-transactions`,
+        {},
+        transactionListResponseSchema,
+      )
+      .pipe(tap(() => this.cache.invalidate(['budget'])));
+  }
+
+  createTransaction$(
+    data: TransactionCreate,
+  ): Observable<TransactionCreateResponse> {
+    return this.#transactionApi.create$(data).pipe(
+      tap(() => {
+        this.#invalidationService.invalidate();
+        this.cache.invalidate(['budget']);
+      }),
     );
+  }
+
+  updateTransaction$(
+    id: string,
+    data: TransactionUpdate,
+  ): Observable<TransactionUpdateResponse> {
+    return this.#transactionApi.update$(id, data).pipe(
+      tap(() => {
+        this.#invalidationService.invalidate();
+        this.cache.invalidate(['budget']);
+      }),
+    );
+  }
+
+  deleteTransaction$(id: string): Observable<void> {
+    return this.#transactionApi.remove$(id).pipe(
+      tap(() => {
+        this.#invalidationService.invalidate();
+        this.cache.invalidate(['budget']);
+      }),
+    );
+  }
+
+  toggleTransactionCheck$(id: string): Observable<TransactionUpdateResponse> {
+    return this.#transactionApi
+      .toggleCheck$(id)
+      .pipe(tap(() => this.cache.invalidate(['budget'])));
   }
 }

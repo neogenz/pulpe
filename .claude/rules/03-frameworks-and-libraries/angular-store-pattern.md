@@ -236,6 +236,81 @@ readonly isInitialLoading = computed(
 // Use isInitialLoading for spinner — on 'reloading', show stale data
 ```
 
+## DataCache (Shared SWR Cache)
+
+Cache lives in the **Feature API layer** (singleton), not in stores (route-scoped).
+
+```typescript
+// core/cache/data-cache.ts
+const cache = new DataCache({ freshTime: 30_000, gcTime: 600_000 });
+```
+
+### Freshness Semantics
+
+| State | Condition | Behavior |
+|-------|-----------|----------|
+| FRESH | `age <= freshTime` | Return immediately, no refetch |
+| STALE | `freshTime < age <= gcTime` | Return immediately + background refetch |
+| EXPIRED | `age > gcTime` | Evict, treat as cache miss |
+
+### Cache Keys (Hierarchical)
+
+```typescript
+['budget', 'list']                           // budget list
+['budget', 'details', budgetId]              // specific budget
+['budget', 'dashboard', month, year]         // dashboard data
+```
+
+Prefix-based invalidation: `cache.invalidate(['budget'])` marks ALL budget entries stale.
+
+### Cache-First Resource Loader Pattern
+
+```typescript
+readonly #resource = resource({
+  params: () => this.#itemId(),
+  loader: async ({ params: id }) => {
+    const cacheKey: string[] = ['domain', 'details', id];
+    const cached = this.#api.cache.get<T>(cacheKey);
+
+    if (cached?.fresh) return cached.data;
+
+    const freshPromise = this.#api.cache.deduplicate(cacheKey, async () => {
+      const data = await firstValueFrom(this.#api.getById$(id));
+      this.#api.cache.set(cacheKey, data);
+      return data;
+    });
+
+    if (cached) return cached.data;  // stale — return while refetch runs
+    return freshPromise;             // miss — await fresh data
+  },
+});
+```
+
+### Cache Fallback in Selectors
+
+```typescript
+readonly data = computed(() => {
+  const resourceValue = this.#resource.value();
+  if (resourceValue) return resourceValue;
+
+  const id = this.#itemId();
+  if (!id) return null;
+  return this.#api.cache.get<T>(['domain', 'details', id])?.data ?? null;
+});
+
+readonly isInitialLoading = computed(
+  () => this.#resource.status() === 'loading' && !this.data(),
+);
+```
+
+### Adding Cache to a New Domain (Checklist)
+
+1. Add `readonly cache = new DataCache({ freshTime, gcTime })` to Feature API
+2. Add `cache.set()` in API read methods (via `tap()`)
+3. Add `cache.invalidate()` in API mutation methods
+4. Update store loaders with cache-first pattern
+5. Add cache fallback in store selectors
+
 ## Scoping
 
 | Scope | Usage | Example |
@@ -283,10 +358,12 @@ catch (error) {
 | `subscribe()` in mutations | `async/await` + `firstValueFrom()` |
 | `effect()` for derived state | `computed()` or `linkedSignal()` |
 | Mutate signal arrays in place | Spread: `[...items, newItem]` |
+| `#staleData` signal in store | Cache fallback via `api.cache.get()` in selector |
 
 ## Reference Implementations
 
 | Store | File | Pattern |
 |-------|------|---------|
-| `BudgetDetailsStore` | `feature/budget/budget-details/store/` | `resource()`, optimistic updates, temp IDs, mutation queue |
-| `CurrentMonthStore` | `feature/current-month/services/` | `resource()`, SWR, invalidation version |
+| `BudgetDetailsStore` | `feature/budget/budget-details/store/` | `resource()`, optimistic updates, temp IDs, cache-first loader, prefetch |
+| `CurrentMonthStore` | `feature/current-month/services/` | `resource()`, SWR, cache-first loader, invalidation version |
+| `BudgetListStore` | `feature/budget/budget-list/` | `resource()`, cache-first loader, linkedSignal |

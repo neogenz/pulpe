@@ -22,7 +22,6 @@ export class BudgetListStore {
   readonly #logger = inject(Logger);
   readonly #invalidationService = inject(BudgetInvalidationService);
 
-  // Maximum de mois à rechercher dans le futur (3 ans)
   private static readonly MAX_FUTURE_MONTHS_TO_SEARCH = 36;
 
   /**
@@ -38,8 +37,16 @@ export class BudgetListStore {
   readonly hasValue = computed(() => this.budgets.hasValue());
   readonly error = computed(() => this.budgets.error());
 
+  readonly budgetsList = computed(() => {
+    const resourceValue = this.budgets.value();
+    if (resourceValue) return resourceValue;
+
+    const cached = this.#budgetApi.cache.get<Budget[]>(['budget', 'list']);
+    return cached ? this.#sortBudgets(cached.data) : [];
+  });
+
   readonly plannedYears = computed(() => {
-    const months = this.budgets.value() ?? [];
+    const months = this.budgetsList();
     const years = [...new Set(months.map((month) => month.year))];
     return years.sort((a, b) => a - b); // Tri croissant
   });
@@ -48,7 +55,7 @@ export class BudgetListStore {
    * Mensual budget planned, grouped by year
    */
   readonly plannedBudgetsGroupedByYears = computed(() => {
-    const months = this.budgets.value() ?? [];
+    const months = this.budgetsList();
     const groupedByYear = new Map<number, Budget[]>();
 
     months.forEach((month) => {
@@ -127,7 +134,7 @@ export class BudgetListStore {
    * Recherche à partir du mois actuel jusqu'à 3 ans dans le futur
    */
   readonly nextAvailableMonth = computed(() => {
-    const budgetsValue = this.budgets.value();
+    const budgetsValue = this.budgetsList();
     const now = new Date();
     const currentMonth = now.getMonth() + 1; // getMonth() retourne 0-11
     const currentYear = now.getFullYear();
@@ -172,18 +179,26 @@ export class BudgetListStore {
   }
 
   async #loadBudgets(): Promise<Budget[]> {
+    const cacheKey: string[] = ['budget', 'list'];
+    const cached = this.#budgetApi.cache.get<Budget[]>(cacheKey);
+
+    if (cached?.fresh) {
+      return this.#sortBudgets(cached.data);
+    }
+
     try {
       const budgets = await firstValueFrom(this.#budgetApi.getAllBudgets$());
-      return budgets.sort((a: Budget, b: Budget) => {
-        // Trier par année décroissante puis par mois décroissant
-        if (a.year !== b.year) {
-          return a.year - b.year;
-        }
-        return a.month - b.month;
-      });
+      return this.#sortBudgets(budgets);
     } catch (error) {
       this.#logger.error('Erreur lors du chargement des mois:', error);
       throw error;
     }
+  }
+
+  #sortBudgets(budgets: Budget[]): Budget[] {
+    return [...budgets].sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return a.month - b.month;
+    });
   }
 }

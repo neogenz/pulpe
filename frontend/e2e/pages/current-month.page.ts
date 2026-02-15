@@ -12,7 +12,12 @@ export class CurrentMonthPage {
     await this.page.getByTestId('add-transaction-fab').click();
     await expect(this.page.getByTestId('transaction-form')).toBeVisible();
 
-    await this.page.getByTestId('transaction-amount-input').fill(amount);
+    // Wait for the component's auto-focus setTimeout(200ms) to settle
+    // before filling, to prevent focus steal during typing
+    const amountInput = this.page.getByTestId('transaction-amount-input');
+    await expect(amountInput).toBeFocused();
+
+    await amountInput.fill(amount);
     await this.page
       .getByTestId('transaction-description-input')
       .fill(description);
@@ -39,20 +44,18 @@ export class CurrentMonthPage {
 
   async expectRemainingAmount(expectedAmount: string) {
     const element = this.page.getByTestId('remaining-amount');
-    await expect(element).toBeVisible();
-    const text = await element.textContent();
-    const normalizedText = this.normalizeSwissNumber(text ?? '');
     const normalizedExpected = this.normalizeSwissNumber(expectedAmount);
-    expect(normalizedText).toContain(normalizedExpected);
+    await expect
+      .poll(async () => this.normalizeSwissNumber((await element.textContent()) ?? ''))
+      .toContain(normalizedExpected);
   }
 
   async expectExpensesAmount(expectedAmount: string) {
     const element = this.page.getByTestId('expenses-amount');
-    await expect(element).toBeVisible();
-    const text = await element.textContent();
-    const normalizedText = this.normalizeSwissNumber(text ?? '');
     const normalizedExpected = this.normalizeSwissNumber(expectedAmount);
-    expect(normalizedText).toContain(normalizedExpected);
+    await expect
+      .poll(async () => this.normalizeSwissNumber((await element.textContent()) ?? ''))
+      .toContain(normalizedExpected);
   }
 
   private normalizeSwissNumber(text: string): string {
