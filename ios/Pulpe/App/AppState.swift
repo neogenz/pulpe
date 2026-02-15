@@ -8,6 +8,21 @@ private enum UserDefaultsKey {
     static let amountsHidden = "pulpe-amounts-hidden"
 }
 
+/// Thread-safe UserDefaults actor to avoid blocking main thread
+actor UserDefaultsStore {
+    static let shared = UserDefaultsStore()
+    
+    private let defaults = UserDefaults.standard
+    
+    func getBool(forKey key: String) -> Bool {
+        defaults.bool(forKey: key)
+    }
+    
+    func setBool(_ value: Bool, forKey key: String) {
+        defaults.set(value, forKey: key)
+    }
+}
+
 @Observable @MainActor
 final class AppState {
     // MARK: - Auth State
@@ -37,20 +52,34 @@ final class AppState {
 
     // MARK: - Onboarding & Tutorial
 
-    var hasCompletedOnboarding: Bool = UserDefaults.standard.bool(forKey: UserDefaultsKey.onboardingCompleted) {
-        didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: UserDefaultsKey.onboardingCompleted) }
+    var hasCompletedOnboarding: Bool = false {
+        didSet {
+            Task {
+                await UserDefaultsStore.shared.setBool(hasCompletedOnboarding, forKey: UserDefaultsKey.onboardingCompleted)
+            }
+        }
     }
+
+    var pendingOnboardingData: BudgetTemplateCreateFromOnboarding?
 
     // MARK: - Biometric
 
-    var biometricEnabled: Bool = UserDefaults.standard.bool(forKey: UserDefaultsKey.biometricEnabled) {
-        didSet { UserDefaults.standard.set(biometricEnabled, forKey: UserDefaultsKey.biometricEnabled) }
+    var biometricEnabled: Bool = false {
+        didSet {
+            Task {
+                await UserDefaultsStore.shared.setBool(biometricEnabled, forKey: UserDefaultsKey.biometricEnabled)
+            }
+        }
     }
 
     // MARK: - Amount Visibility
 
-    var amountsHidden: Bool = UserDefaults.standard.bool(forKey: UserDefaultsKey.amountsHidden) {
-        didSet { UserDefaults.standard.set(amountsHidden, forKey: UserDefaultsKey.amountsHidden) }
+    var amountsHidden: Bool = false {
+        didSet {
+            Task {
+                await UserDefaultsStore.shared.setBool(amountsHidden, forKey: UserDefaultsKey.amountsHidden)
+            }
+        }
     }
 
     func toggleAmountsVisibility() {
@@ -83,6 +112,13 @@ final class AppState {
         self.authService = authService
         self.biometricService = biometricService
         self.clientKeyManager = clientKeyManager
+        
+        // Load UserDefaults values asynchronously
+        Task { @MainActor in
+            hasCompletedOnboarding = await UserDefaultsStore.shared.getBool(forKey: UserDefaultsKey.onboardingCompleted)
+            biometricEnabled = await UserDefaultsStore.shared.getBool(forKey: UserDefaultsKey.biometricEnabled)
+            amountsHidden = await UserDefaultsStore.shared.getBool(forKey: UserDefaultsKey.amountsHidden)
+        }
     }
 
     // MARK: - Actions
@@ -210,14 +246,40 @@ final class AppState {
         await logout()
     }
 
-    func completeOnboarding(user: UserInfo) {
+    func completeOnboarding(user: UserInfo, onboardingData: BudgetTemplateCreateFromOnboarding) {
         currentUser = user
         hasCompletedOnboarding = true
+        pendingOnboardingData = onboardingData
         // After onboarding, user needs to set up PIN
         authState = .needsPinSetup
     }
 
-    func completePinSetup() {
+    func completePinSetup() async {
+        // If we have pending onboarding data, create template and budget
+        if let onboardingData = pendingOnboardingData {
+            do {
+                // Create template from onboarding data
+                let template = try await TemplateService.shared.createTemplateFromOnboarding(onboardingData)
+                
+                // Create initial budget for current month
+                let now = Date()
+                let budgetData = BudgetCreate(
+                    month: now.month,
+                    year: now.year,
+                    description: now.monthYearFormatted,
+                    templateId: template.id
+                )
+                _ = try await BudgetService.shared.createBudget(budgetData)
+                
+                // Clear pending data
+                pendingOnboardingData = nil
+            } catch {
+                Logger.auth.error("completePinSetup: failed to create template/budget - \(error)")
+                toastManager.show("Erreur lors de la création du budget", type: .error)
+                return
+            }
+        }
+
         authState = .authenticated
 
         // Prompt biometric enrollment after PIN setup

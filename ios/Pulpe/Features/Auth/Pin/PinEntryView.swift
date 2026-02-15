@@ -5,6 +5,7 @@ struct PinEntryView: View {
     let firstName: String
     let onSuccess: () -> Void
     let onForgotPin: () -> Void
+    let onLogout: () async -> Void
 
     @State private var viewModel = PinEntryViewModel()
 
@@ -30,6 +31,7 @@ struct PinEntryView: View {
 
     private var content: some View {
         VStack(spacing: 0) {
+            logoutButton
             Spacer()
             headerSection
             Spacer().frame(height: 40)
@@ -53,6 +55,24 @@ struct PinEntryView: View {
             Spacer().frame(height: 16)
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
+    }
+
+    // MARK: - Logout Button
+
+    private var logoutButton: some View {
+        HStack {
+            Spacer()
+            Button {
+                Task {
+                    await onLogout()
+                }
+            } label: {
+                Text("Se déconnecter")
+                    .font(.footnote)
+                    .foregroundStyle(Color.textSecondaryOnboarding)
+            }
+        }
+        .padding(.top, DesignTokens.Spacing.md)
     }
 
     // MARK: - Header
@@ -211,6 +231,7 @@ final class PinEntryViewModel {
     PinEntryView(
         firstName: "Maxime",
         onSuccess: {},
-        onForgotPin: {}
+        onForgotPin: {},
+        onLogout: {}
     )
 }

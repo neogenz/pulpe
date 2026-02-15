@@ -27,8 +27,6 @@ final class OnboardingState {
     var isLoading: Bool = false
     var error: Error?
     var isMovingForward: Bool = true
-    var signupProgress: SignupProgress = .notStarted
-    var createdTemplateId: String?
 
     // MARK: - Persistence Keys
 
@@ -58,7 +56,6 @@ final class OnboardingState {
 
     var isPasswordValid: Bool {
         password.count >= 8 &&
-        password.contains { $0.isUppercase } &&
         password.contains { $0.isNumber }
     }
 
@@ -257,14 +254,6 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
         case .registration: .pulpePrimary
         }
     }
-}
-
-// MARK: - Signup Progress
-
-enum SignupProgress {
-    case notStarted
-    case userCreated
-    case templateCreated(templateId: String)
 }
 
 // MARK: - Storage Data
