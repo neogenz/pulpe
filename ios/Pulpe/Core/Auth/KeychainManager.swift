@@ -108,9 +108,14 @@ actor KeychainManager {
         try getBiometric(key: biometricRefreshTokenKey)
     }
 
+    func getBiometricRefreshToken(context: LAContext) throws -> String? {
+        try getBiometric(key: biometricRefreshTokenKey, context: context)
+    }
+
     func clearBiometricTokens() {
         delete(key: biometricAccessTokenKey)
         delete(key: biometricRefreshTokenKey)
+        delete(key: biometricClientKeyKey)
     }
 
     func hasBiometricTokens() -> Bool {
@@ -155,6 +160,10 @@ actor KeychainManager {
 
     func getBiometricClientKey() throws -> String? {
         try getBiometric(key: biometricClientKeyKey)
+    }
+
+    func getBiometricClientKey(context: LAContext) throws -> String? {
+        try getBiometric(key: biometricClientKeyKey, context: context)
     }
 
     func clearBiometricClientKey() {
@@ -293,7 +302,10 @@ actor KeychainManager {
     private func getBiometric(key: String) throws -> String? {
         let context = LAContext()
         context.interactionNotAllowed = false
+        return try getBiometric(key: key, context: context)
+    }
 
+    private func getBiometric(key: String, context: LAContext) throws -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
