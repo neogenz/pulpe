@@ -138,6 +138,11 @@ test.describe('Rollover Propagation - Impact on next month', () => {
     authenticatedPage,
     budgetDetailsPage,
   }) => {
+    // Rollover line starts as "checked"; disable the unchecked-only filter to see it
+    await authenticatedPage.addInitScript(() => {
+      const entry = { version: 1, data: false, updatedAt: new Date().toISOString() };
+      localStorage.setItem('pulpe-budget-show-only-unchecked', JSON.stringify(entry));
+    });
     await setupRoutes(authenticatedPage);
     await budgetDetailsPage.goto(BUDGET_IDS.MARCH);
 
@@ -158,6 +163,11 @@ test.describe('Rollover Propagation - Impact on next month', () => {
     authenticatedPage,
     budgetDetailsPage,
   }) => {
+    // Rollover line starts as "checked"; disable the unchecked-only filter to see it
+    await authenticatedPage.addInitScript(() => {
+      const entry = { version: 1, data: false, updatedAt: new Date().toISOString() };
+      localStorage.setItem('pulpe-budget-show-only-unchecked', JSON.stringify(entry));
+    });
     await setupRoutes(authenticatedPage);
 
     // Start on February

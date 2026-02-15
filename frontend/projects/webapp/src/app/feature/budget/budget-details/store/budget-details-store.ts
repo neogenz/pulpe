@@ -474,13 +474,16 @@ export class BudgetDetailsStore {
    * Delete a budget line with optimistic updates
    */
   async deleteBudgetLine(id: string): Promise<void> {
-    // Optimistic update - remove the item
+    // Optimistic update - remove the line and free its allocated transactions
     this.#budgetDetailsResource.update((details) => {
       if (!details) return details;
 
       return {
         ...details,
         budgetLines: details.budgetLines.filter((line) => line.id !== id),
+        transactions: (details.transactions ?? []).map((tx) =>
+          tx.budgetLineId === id ? { ...tx, budgetLineId: null } : tx,
+        ),
       };
     });
 

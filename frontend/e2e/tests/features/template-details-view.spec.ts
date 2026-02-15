@@ -1,6 +1,5 @@
 import { test, test as base, expect } from '../../fixtures/test-fixtures';
 import { setupAuthBypass } from '../../utils/auth-bypass';
-import { MOCK_API_RESPONSES } from '../../mocks/api-responses';
 import { TEST_CONFIG } from '../../config/test-config';
 
 test.describe.configure({ mode: 'parallel' });
@@ -68,58 +67,16 @@ test.describe('Template Details View', () => {
     await expect(backButton).toBeVisible();
   });
 
-  // Use base test without global mocks for error handling
+  // Use base test with full API mocks + error overrides for template endpoints
   base('should handle template loading errors gracefully', async ({ page }) => {
-    // Setup auth bypass FIRST to inject auth state
+    // Setup auth bypass with full API mocks for bootstrap
     await setupAuthBypass(page, {
-      includeApiMocks: false,
+      includeApiMocks: true,
       setLocalStorage: true,
       vaultCodeConfigured: true,
     });
 
-    // Set up all API routes AFTER auth bypass
-    // Mock maintenance status endpoint (required for all navigation)
-    await page.route('**/maintenance/status', (route) => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ maintenanceMode: false, message: null }),
-      });
-    });
-
-    // Mock encryption/validate-key (required for vault code validation)
-    await page.route('**/api/v1/encryption/validate-key', (route) => {
-      return route.fulfill({ status: 204, body: '' });
-    });
-
-    // Mock budgets/exists endpoint (required for hasBudgetGuard)
-    await page.route('**/api/v1/budgets/exists', (route) => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ hasBudget: true }),
-      });
-    });
-
-    // Mock budgets endpoint to pass hasBudgetGuard (required for protected routes)
-    await page.route('**/api/v1/budgets', (route) => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(MOCK_API_RESPONSES.budgets),
-      });
-    });
-
-    // Mock users/settings endpoint (required to prevent 401 → login redirect)
-    await page.route('**/api/v1/users/settings', (route) => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { payDayOfMonth: null } }),
-      });
-    });
-
-    // Mock error template endpoints
+    // Override template endpoints with error responses (LIFO: registered last → matched first)
     await page.route('**/api/v1/budget-templates/error-template', (route) => {
       return route.fulfill({
         status: 500,

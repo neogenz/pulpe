@@ -18,12 +18,12 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { map, shareReplay } from 'rxjs/operators';
-import { RolloverFormatPipe } from '@app/ui/rollover-format';
 import { type FinancialEntryModel } from '../models/financial-entry.model';
 
 export type FinancialEntryViewModel = FinancialEntryModel & {
   isSelected: boolean;
   isRollover: boolean;
+  displayName: string;
 };
 
 @Component({
@@ -40,7 +40,6 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
     MatMenuModule,
     MatTooltipModule,
     RouterLink,
-    RolloverFormatPipe,
   ],
   template: `
     <mat-list-item
@@ -73,12 +72,10 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
             matTooltip="Voir le mois d'origine"
           >
             <mat-icon class="text-base!">open_in_new</mat-icon>
-            {{ data().name | rolloverFormat }}
+            {{ data().displayName }}
           </a>
         } @else {
-          <span class="ph-no-capture">{{
-            isRollover() ? (data().name | rolloverFormat) : data().name
-          }}</span>
+          <span class="ph-no-capture">{{ data().displayName }}</span>
         }
       </div>
       <div matListItemLine class="flex items-center gap-2">

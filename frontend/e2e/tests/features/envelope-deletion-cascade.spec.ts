@@ -78,7 +78,7 @@ test.describe('Envelope Deletion Cascade', () => {
     await authenticatedPage.route(`**/api/v1/budget-lines/${TEST_UUIDS.LINE_2}`, (route) => {
       if (route.request().method() === 'DELETE') {
         hasDeleted = true;
-        void route.fulfill({ status: 200, body: JSON.stringify({ success: true }) });
+        void route.fulfill({ status: 200, body: JSON.stringify({ success: true, message: 'Deleted' }) });
       } else {
         void route.fallback();
       }
@@ -144,7 +144,7 @@ test.describe('Envelope Deletion Cascade', () => {
     await authenticatedPage.route(`**/api/v1/budget-lines/${TEST_UUIDS.LINE_2}`, (route) => {
       if (route.request().method() === 'DELETE') {
         hasDeleted = true;
-        void route.fulfill({ status: 200, body: JSON.stringify({ success: true }) });
+        void route.fulfill({ status: 200, body: JSON.stringify({ success: true, message: 'Deleted' }) });
       } else {
         void route.fallback();
       }
@@ -224,7 +224,7 @@ test.describe('Envelope Deletion Cascade', () => {
     await authenticatedPage.route(`**/api/v1/budget-lines/${TEST_UUIDS.LINE_2}`, (route) => {
       if (route.request().method() === 'DELETE') {
         hasDeleted = true;
-        void route.fulfill({ status: 200, body: JSON.stringify({ success: true }) });
+        void route.fulfill({ status: 200, body: JSON.stringify({ success: true, message: 'Deleted' }) });
       } else {
         void route.fallback();
       }

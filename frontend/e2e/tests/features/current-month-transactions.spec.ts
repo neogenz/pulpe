@@ -18,6 +18,12 @@ import {
 test.describe('Current Month Transactions', () => {
   const budgetId = TEST_UUIDS.BUDGET_1;
 
+  // Use current month for dates so edit form's date validator accepts them
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1; // 1-based
+  const currentYear = now.getFullYear();
+  const currentMonthDate = new Date(currentYear, now.getMonth(), 15).toISOString();
+
   const salaireLine = createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, {
     name: 'Salaire',
     amount: 5000,
@@ -41,12 +47,13 @@ test.describe('Current Month Transactions', () => {
       amount: 15,
       kind: 'expense',
       budgetLineId: null,
+      transactionDate: currentMonthDate,
     });
 
     // Mock budget details — initial state with no transactions
     await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
       const response = createBudgetDetailsMock(budgetId, {
-        budget: { rollover: 0 },
+        budget: { rollover: 0, month: currentMonth, year: currentYear },
         budgetLines: [salaireLine, coursesLine],
         transactions: hasCreated ? [newTransaction] : [],
       });
@@ -83,7 +90,7 @@ test.describe('Current Month Transactions', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          data: { id: budgetId, month: 1, year: 2025, userId: TEST_UUIDS.USER_1, rollover: 0 },
+          data: { id: budgetId, month: currentMonth, year: currentYear, userId: TEST_UUIDS.USER_1, rollover: 0 },
         }),
       });
     });
@@ -121,6 +128,7 @@ test.describe('Current Month Transactions', () => {
       amount: 100,
       kind: 'expense',
       budgetLineId: null,
+      transactionDate: currentMonthDate,
     });
 
     const updatedTransaction = {
@@ -133,7 +141,7 @@ test.describe('Current Month Transactions', () => {
 
     await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
       const response = createBudgetDetailsMock(budgetId, {
-        budget: { rollover: 0 },
+        budget: { rollover: 0, month: currentMonth, year: currentYear },
         budgetLines: [salaireLine, coursesLine],
         transactions: [hasUpdated ? updatedTransaction : existingTransaction],
       });
@@ -173,7 +181,7 @@ test.describe('Current Month Transactions', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          data: { id: budgetId, month: 1, year: 2025, userId: TEST_UUIDS.USER_1, rollover: 0 },
+          data: { id: budgetId, month: currentMonth, year: currentYear, userId: TEST_UUIDS.USER_1, rollover: 0 },
         }),
       });
     });
@@ -219,7 +227,10 @@ test.describe('Current Month Transactions', () => {
       amount: 50,
       kind: 'expense',
       budgetLineId: null,
+      transactionDate: currentMonthDate,
     });
+
+    let hasDeleted = false;
 
     await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
       void route.fulfill({
@@ -227,9 +238,9 @@ test.describe('Current Month Transactions', () => {
         contentType: 'application/json',
         body: JSON.stringify(
           createBudgetDetailsMock(budgetId, {
-            budget: { rollover: 0 },
+            budget: { rollover: 0, month: currentMonth, year: currentYear },
             budgetLines: [salaireLine, coursesLine],
-            transactions: [existingTransaction],
+            transactions: hasDeleted ? [] : [existingTransaction],
           }),
         ),
       });
@@ -240,6 +251,7 @@ test.describe('Current Month Transactions', () => {
       `**/api/v1/transactions/${TEST_UUIDS.TRANSACTION_1}`,
       (route) => {
         if (route.request().method() === 'DELETE') {
+          hasDeleted = true;
           void route.fulfill({ status: 204, body: '' });
         } else {
           void route.fallback();
@@ -258,7 +270,7 @@ test.describe('Current Month Transactions', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          data: { id: budgetId, month: 1, year: 2025, userId: TEST_UUIDS.USER_1, rollover: 0 },
+          data: { id: budgetId, month: currentMonth, year: currentYear, userId: TEST_UUIDS.USER_1, rollover: 0 },
         }),
       });
     });
@@ -298,6 +310,7 @@ test.describe('Current Month Transactions', () => {
       amount: 100,
       kind: 'expense',
       budgetLineId: null,
+      transactionDate: currentMonthDate,
     });
 
     const newTransaction = createTransactionMock(TEST_UUIDS.TRANSACTION_2, budgetId, {
@@ -305,13 +318,14 @@ test.describe('Current Month Transactions', () => {
       amount: 200,
       kind: 'expense',
       budgetLineId: null,
+      transactionDate: currentMonthDate,
     });
 
     let hasCreated = false;
 
     await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
       const response = createBudgetDetailsMock(budgetId, {
-        budget: { rollover: 0 },
+        budget: { rollover: 0, month: currentMonth, year: currentYear },
         budgetLines: [salaireLine, coursesLine],
         transactions: hasCreated
           ? [existingTransaction, newTransaction]
@@ -349,7 +363,7 @@ test.describe('Current Month Transactions', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          data: { id: budgetId, month: 1, year: 2025, userId: TEST_UUIDS.USER_1, rollover: 0 },
+          data: { id: budgetId, month: currentMonth, year: currentYear, userId: TEST_UUIDS.USER_1, rollover: 0 },
         }),
       });
     });

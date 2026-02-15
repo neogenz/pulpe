@@ -75,7 +75,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
             [class.line-through]="item().data.checkedAt"
             [class.text-on-surface-variant]="item().data.checkedAt"
           >
-            {{ item().data.name }}
+            {{ item().metadata.displayName }}
           </span>
         </div>
 

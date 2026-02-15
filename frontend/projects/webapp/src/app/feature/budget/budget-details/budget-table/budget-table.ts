@@ -14,7 +14,6 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { RolloverFormatPipe } from '@app/ui/rollover-format';
 import { Logger } from '@core/logging/logger';
 import {
   ConfirmationDialog,
@@ -48,7 +47,6 @@ import type {
     CurrencyPipe,
     FinancialKindDirective,
     RecurrenceLabelPipe,
-    RolloverFormatPipe,
     NameCell,
     ActionsCell,
     RemainingCell,
@@ -197,9 +195,7 @@ import type {
           [class.bg-surface-container-lowest]="
             row.metadata?.isNestedUnderEnvelope
           "
-          [attr.data-testid]="
-            'budget-line-' + (row.data?.name | rolloverFormat)
-          "
+          [attr.data-testid]="'budget-line-' + row.metadata?.displayName"
         ></tr>
 
         <!-- No data row -->

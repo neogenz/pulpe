@@ -21,18 +21,10 @@ import {
   FinancialEntry,
   type FinancialEntryViewModel,
 } from './financial-entry';
-import { RolloverFormatPipe } from '@app/ui/rollover-format';
 
 // Register locales for currency and date formatting
 registerLocaleData(localeDeCH);
 registerLocaleData(localeFrCH);
-
-// Mock RolloverFormatPipe
-class MockRolloverFormatPipe {
-  transform(value: string): string {
-    return value;
-  }
-}
 
 describe('FinancialEntry', () => {
   let component: FinancialEntry;
@@ -50,6 +42,7 @@ describe('FinancialEntry', () => {
     updatedAt: '2023-01-01T00:00:00.000Z',
     isSelected: false,
     isRollover: false,
+    displayName: 'Test Entry',
     rollover: {
       sourceBudgetId: undefined,
     },
@@ -78,7 +71,6 @@ describe('FinancialEntry', () => {
       providers: [
         provideZonelessChangeDetection(),
         { provide: BreakpointObserver, useValue: mockBreakpointObserver },
-        { provide: RolloverFormatPipe, useClass: MockRolloverFormatPipe },
       ],
     }).compileComponents();
 

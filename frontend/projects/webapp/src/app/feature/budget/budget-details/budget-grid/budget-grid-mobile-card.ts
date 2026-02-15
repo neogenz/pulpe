@@ -14,7 +14,6 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
-import { RolloverFormatPipe } from '@app/ui/rollover-format';
 import { type BudgetLine } from 'pulpe-shared';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { RecurrenceLabelPipe } from '@ui/transaction-display';
@@ -41,7 +40,6 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
     CurrencyPipe,
     FinancialKindDirective,
     RecurrenceLabelPipe,
-    RolloverFormatPipe,
     SegmentedBudgetProgress,
     BudgetKindIndicator,
     BudgetActionMenu,
@@ -76,10 +74,10 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                   ]"
                   class="text-primary underline-offset-2 hover:underline"
                 >
-                  {{ item().data.name | rolloverFormat }}
+                  {{ item().metadata.displayName }}
                 </a>
               } @else {
-                {{ item().data.name | rolloverFormat }}
+                {{ item().metadata.displayName }}
               }
             </span>
             @if (item().metadata.isPropagationLocked) {

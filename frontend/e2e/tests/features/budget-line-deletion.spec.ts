@@ -29,7 +29,7 @@ test.describe('Budget Line Deletion', () => {
     // Mock successful deletion
     await authenticatedPage.route('**/api/v1/budget-lines/*', route => {
       if (route.request().method() === 'DELETE') {
-        route.fulfill({ status: 200, body: JSON.stringify({ success: true }) });
+        route.fulfill({ status: 200, body: JSON.stringify({ success: true, message: 'Deleted' }) });
       }
     });
 

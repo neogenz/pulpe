@@ -9,7 +9,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
-import { RolloverFormatPipe } from '@app/ui/rollover-format';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import {
@@ -28,7 +27,6 @@ import {
     DatePipe,
     FinancialKindDirective,
     TransactionLabelPipe,
-    RolloverFormatPipe,
   ],
   template: `
     <div class="flex items-center gap-2">
@@ -62,7 +60,7 @@ import {
             class="ph-no-capture text-body-medium font-semibold"
           >
             <mat-icon class="text-base!">open_in_new</mat-icon>
-            {{ line().data.name | rolloverFormat }}
+            {{ line().metadata.displayName }}
           </a>
         } @else {
           <div class="flex flex-col">
@@ -70,7 +68,7 @@ import {
               class="ph-no-capture text-body-medium font-semibold flex items-center gap-1"
               [pulpeFinancialKind]="line().data.kind"
             >
-              {{ line().data.name | rolloverFormat }}
+              {{ line().metadata.displayName }}
               @if (line().metadata.isPropagationLocked) {
                 <mat-icon
                   class="text-base! text-outline"

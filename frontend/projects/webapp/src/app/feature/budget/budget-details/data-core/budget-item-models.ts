@@ -14,6 +14,8 @@ export interface TableItemDisplayMetadata {
   allocationLabel: string;
   /** ID du budget source pour les lignes rollover */
   rolloverSourceBudgetId?: string;
+  /** Nom formaté pour l'affichage (rollover → "Report mois année") */
+  displayName: string;
 }
 
 /**
