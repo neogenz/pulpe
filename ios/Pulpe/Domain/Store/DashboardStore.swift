@@ -2,13 +2,13 @@ import Foundation
 
 /// Store for dashboard historical data and trends
 /// Uses sparse fieldsets API for optimized data fetching (~500 bytes vs ~50KB)
-@Observable @MainActor
+@Observable
 final class DashboardStore: StoreProtocol {
-    // MARK: - State
+    // MARK: - State (accessed from main thread)
 
-    private(set) var sparseBudgets: [BudgetSparse] = []
-    private(set) var isLoading = false
-    private(set) var error: Error?
+    @MainActor private(set) var sparseBudgets: [BudgetSparse] = []
+    @MainActor private(set) var isLoading = false
+    @MainActor private(set) var error: Error?
 
     // MARK: - Cache Metadata
 
@@ -44,24 +44,32 @@ final class DashboardStore: StoreProtocol {
     }
 
     func forceRefresh() async {
-        isLoading = true
-        defer { isLoading = false }
-        error = nil
+        await MainActor.run {
+            isLoading = true
+            error = nil
+        }
+        defer { Task { @MainActor in isLoading = false } }
 
         do {
             // Fetch only aggregated data - no transactions or budget lines
-            sparseBudgets = try await budgetService.getBudgetsSparse(
+            let budgets = try await budgetService.getBudgetsSparse(
                 limit: Self.maxBudgetsToFetch
             )
+            await MainActor.run {
+                sparseBudgets = budgets
+            }
             lastLoadTime = Date()
         } catch {
-            self.error = error
+            await MainActor.run {
+                self.error = error
+            }
         }
     }
 
     // MARK: - Computed Properties
 
     /// Expenses for the last 3 months (including current), sorted oldest to newest
+    @MainActor
     var historicalExpenses: [MonthlyExpense] {
         let calendar = Calendar.current
         let now = Date()
@@ -95,6 +103,7 @@ final class DashboardStore: StoreProtocol {
     }
 
     /// Variation compared to previous month
+    @MainActor
     var expenseVariation: ExpenseVariation? {
         let expenses = historicalExpenses
         guard expenses.count >= 2,
@@ -118,6 +127,7 @@ final class DashboardStore: StoreProtocol {
     }
 
     /// Total savings for current year (Year-To-Date)
+    @MainActor
     var savingsYTD: Decimal {
         let calendar = Calendar.current
         let currentYear = calendar.component(.year, from: Date())
@@ -131,6 +141,7 @@ final class DashboardStore: StoreProtocol {
     }
 
     /// Current rollover (from current month budget)
+    @MainActor
     var currentRollover: Decimal {
         let calendar = Calendar.current
         let now = Date()
@@ -143,6 +154,7 @@ final class DashboardStore: StoreProtocol {
     }
 
     /// Check if we have enough historical data for trends
+    @MainActor
     var hasEnoughHistoryForTrends: Bool {
         historicalExpenses.count >= 2
     }
