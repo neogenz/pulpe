@@ -405,6 +405,6 @@ test.describe('Budget Line Creation', () => {
     // Remaining should show 3000
     await expect(
       financialOverview.locator('.text-display-medium, .text-display-large'),
-    ).toContainText('3 000');
+    ).toContainText("3\u2019000");
   });
 });
