@@ -48,7 +48,7 @@ struct OnboardingFlow: View {
             BudgetPreviewStep(state: state)
         case .registration:
             RegistrationStep(state: state) { user in
-                appState.completeOnboarding(user: user)
+                appState.completeOnboarding(user: user, onboardingData: state.createTemplateData())
             }
         }
     }

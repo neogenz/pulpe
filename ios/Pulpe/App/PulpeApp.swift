@@ -99,15 +99,17 @@ struct RootView: View {
                     }
 
                 case .needsPinSetup:
-                    PinSetupView {
-                        appState.completePinSetup()
-                    }
+                    PinSetupView(
+                        onComplete: { await appState.completePinSetup() },
+                        onLogout: { await appState.logout() }
+                    )
 
                 case .needsPinEntry:
                     PinEntryView(
                         firstName: appState.currentUser?.firstName ?? "",
                         onSuccess: { appState.completePinEntry() },
-                        onForgotPin: { appState.startRecovery() }
+                        onForgotPin: { appState.startRecovery() },
+                        onLogout: { await appState.logout() }
                     )
 
                 case .needsPinRecovery:

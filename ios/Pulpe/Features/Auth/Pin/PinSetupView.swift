@@ -2,7 +2,8 @@ import OSLog
 import SwiftUI
 
 struct PinSetupView: View {
-    let onComplete: () -> Void
+    let onComplete: () async -> Void
+    let onLogout: (() async -> Void)?
 
     @State private var viewModel = PinSetupViewModel()
 
@@ -13,7 +14,9 @@ struct PinSetupView: View {
             .sheet(isPresented: $viewModel.showRecoverySheet) {
             if let key = viewModel.recoveryKey {
                 RecoveryKeySheet(recoveryKey: key) {
-                    onComplete()
+                    Task {
+                        await onComplete()
+                    }
                 }
             }
         }
@@ -23,6 +26,9 @@ struct PinSetupView: View {
 
     private var content: some View {
         VStack(spacing: 0) {
+            if onLogout != nil {
+                logoutButton
+            }
             Spacer()
             headerSection
             Spacer().frame(height: 40)
@@ -45,20 +51,35 @@ struct PinSetupView: View {
         .padding(.horizontal, DesignTokens.Spacing.xl)
     }
 
+    // MARK: - Logout Button
+
+    private var logoutButton: some View {
+        HStack {
+            Spacer()
+            Button {
+                Task {
+                    await onLogout?()
+                }
+            } label: {
+                Text("Se déconnecter")
+                    .font(.footnote)
+                    .foregroundStyle(Color.textSecondaryOnboarding)
+            }
+        }
+        .padding(.top, DesignTokens.Spacing.md)
+    }
+
     // MARK: - Header
 
     private var headerSection: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
-            Text(viewModel.step == .create ? "Choisis ton code PIN" : "Confirme ton code PIN")
+            Text("Choisis ton code PIN")
                 .font(PulpeTypography.onboardingTitle)
                 .foregroundStyle(Color.textPrimaryOnboarding)
-                .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: viewModel.step)
 
-            if viewModel.step == .create {
-                Text("4 chiffres minimum")
-                    .font(PulpeTypography.stepSubtitle)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
-            }
+            Text("4 chiffres minimum")
+                .font(PulpeTypography.stepSubtitle)
+                .foregroundStyle(Color.textSecondaryOnboarding)
         }
     }
 
@@ -86,32 +107,14 @@ struct PinSetupView: View {
 
     @ViewBuilder
     private var backButton: some View {
-        if viewModel.step == .confirm {
-            Button {
-                viewModel.goBack()
-            } label: {
-                Text("Revenir")
-                    .font(PulpeTypography.stepSubtitle)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
-            }
-        } else {
-            Color.clear.frame(height: 20)
-        }
+        Color.clear.frame(height: 20)
     }
-}
-
-// MARK: - Step
-
-enum PinSetupStep {
-    case create
-    case confirm
 }
 
 // MARK: - ViewModel
 
 @Observable @MainActor
 final class PinSetupViewModel {
-    private(set) var step: PinSetupStep = .create
     private(set) var digits: [Int] = []
     private(set) var isValidating = false
     private(set) var isError = false
@@ -122,7 +125,6 @@ final class PinSetupViewModel {
     let maxDigits = 6
     let minDigits = 4
 
-    private var firstPin: String?
     private let cryptoService = CryptoService.shared
     private let encryptionAPI = EncryptionAPI.shared
     private let clientKeyManager = ClientKeyManager.shared
@@ -137,26 +139,18 @@ final class PinSetupViewModel {
         digits.append(digit)
 
         if digits.count == maxDigits {
-            Task { await handleStepComplete() }
+            Task { await completeSetup() }
         }
     }
 
     func confirm() async {
         guard canConfirm else { return }
-        await handleStepComplete()
+        await completeSetup()
     }
 
     func deleteLastDigit() {
         guard !digits.isEmpty, !isValidating else { return }
         digits.removeLast()
-        isError = false
-        errorMessage = nil
-    }
-
-    func goBack() {
-        step = .create
-        digits = []
-        firstPin = nil
         isError = false
         errorMessage = nil
     }
@@ -167,26 +161,11 @@ final class PinSetupViewModel {
         digits.map(String.init).joined()
     }
 
-    private func handleStepComplete() async {
-        switch step {
-        case .create:
-            firstPin = pinString
-            step = .confirm
-            digits = []
-        case .confirm:
-            if pinString == firstPin {
-                await completeSetup()
-            } else {
-                showError("Les codes ne correspondent pas")
-            }
-        }
-    }
-
     private func completeSetup() async {
         isValidating = true
         defer { isValidating = false }
 
-        guard let pin = firstPin else { return }
+        let pin = pinString
 
         do {
             let saltResponse = try await encryptionAPI.getSalt()
@@ -223,5 +202,5 @@ final class PinSetupViewModel {
 }
 
 #Preview {
-    PinSetupView(onComplete: {})
+    PinSetupView(onComplete: {}, onLogout: nil)
 }

@@ -131,7 +131,7 @@ struct RegistrationStep: View {
                         Image(systemName: "info.circle.fill")
                             .font(.caption)
                             .foregroundStyle(Color.pulpePrimary.opacity(0.7))
-                        Text("8 caractères minimum, dont une majuscule et un chiffre")
+                        Text("8 caractères minimum avec au moins un chiffre")
                             .font(.caption)
                             .foregroundStyle(Color.textSecondaryOnboarding)
                     }
@@ -210,8 +210,14 @@ struct RegistrationStep: View {
                     HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .strokeBorder(state.acceptTerms ? Color.pulpePrimary : Color.authInputBorder, lineWidth: 2)
+                                .strokeBorder(state.acceptTerms ? Color.pulpePrimary : Color.textPrimaryOnboarding.opacity(0.4), lineWidth: 2)
                                 .frame(width: 24, height: 24)
+                                .background {
+                                    if !state.acceptTerms {
+                                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                            .fill(Color.authInputBackground)
+                                    }
+                                }
                             
                             if state.acceptTerms {
                                 Image(systemName: "checkmark")
@@ -239,47 +245,13 @@ struct RegistrationStep: View {
         state.error = nil
 
         do {
-            // Step 1: Create user account (if not already created)
+            // Create user account
             let authService = AuthService.shared
-            var user: UserInfo
+            let user = try await authService.signup(email: state.email, password: state.password)
 
-            switch state.signupProgress {
-            case .notStarted:
-                user = try await authService.signup(email: state.email, password: state.password)
-                state.signupProgress = .userCreated
-            case .userCreated, .templateCreated:
-                guard let existingUser = try await authService.validateSession() else {
-                    throw APIError.unauthorized
-                }
-                user = existingUser
-            }
-
-            // Step 2: Create template (if not already created)
-            let templateId: String
-            if case .templateCreated(let existingId) = state.signupProgress {
-                templateId = existingId
-            } else {
-                let templateService = TemplateService.shared
-                let template = try await templateService.createTemplateFromOnboarding(state.createTemplateData())
-                templateId = template.id
-                state.signupProgress = .templateCreated(templateId: templateId)
-            }
-
-            // Step 3: Create initial budget for current month
-            let budgetService = BudgetService.shared
-            let now = Date()
-            let budgetData = BudgetCreate(
-                month: now.month,
-                year: now.year,
-                description: now.monthYearFormatted,
-                templateId: templateId
-            )
-            _ = try await budgetService.createBudget(budgetData)
-
-            // Clear sensitive data and storage
+            // Clear sensitive data (keep onboarding data for later template creation)
             state.password = ""
             state.passwordConfirmation = ""
-            state.clearStorage()
             state.isLoading = false
 
             onComplete(user)
