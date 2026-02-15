@@ -19,6 +19,9 @@ export const metadata: Metadata = {
   description:
     "Planifie ton année, anticipe les grosses dépenses, note tes achats en 2 clics. Pulpe t'aide à voir clair dans tes finances sans prise de tête.",
   applicationName: 'Pulpe',
+  verification: {
+    google: '20-QgsBLcccy2f1lY275s0mayKmxWZZWo9Rg8aGxTQ0',
+  },
   robots: {
     index: true,
     follow: true,
