@@ -17,8 +17,13 @@ struct AccountView: View {
                 }
                 .listRowBackground(Color.surfaceCard)
 
-                if BiometricService.shared.canUseBiometrics() {
-                    Section {
+                Section {
+                    LabeledContent("Code PIN") {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    }
+
+                    if BiometricService.shared.canUseBiometrics() {
                         Toggle(
                             BiometricService.shared.biometryDisplayName,
                             isOn: $biometricToggle
@@ -33,12 +38,12 @@ struct AccountView: View {
                                 biometricToggle = appState.biometricEnabled
                             }
                         }
-                    } header: {
-                        Text("SÉCURITÉ")
-                            .font(PulpeTypography.labelLarge)
                     }
-                    .listRowBackground(Color.surfaceCard)
+                } header: {
+                    Text("SÉCURITÉ")
+                        .font(PulpeTypography.labelLarge)
                 }
+                .listRowBackground(Color.surfaceCard)
 
                 Section {
                     LabeledContent("Version", value: AppConfiguration.appVersion)

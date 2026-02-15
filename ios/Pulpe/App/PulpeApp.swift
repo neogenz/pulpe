@@ -98,6 +98,24 @@ struct RootView: View {
                         OnboardingFlow()
                     }
 
+                case .needsPinSetup:
+                    PinSetupView {
+                        appState.completePinSetup()
+                    }
+
+                case .needsPinEntry:
+                    PinEntryView(
+                        firstName: appState.currentUser?.firstName ?? "",
+                        onSuccess: { appState.completePinEntry() },
+                        onForgotPin: { appState.startRecovery() }
+                    )
+
+                case .needsPinRecovery:
+                    PinRecoveryView(
+                        onComplete: { appState.completeRecovery() },
+                        onCancel: { appState.cancelRecovery() }
+                    )
+
                 case .authenticated:
                     MainTabView()
                 }
@@ -126,19 +144,25 @@ struct RootView: View {
             }
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
-            if newPhase == .background, appState.authState == .authenticated {
-                Task { await widgetSyncViewModel.syncWidgetData() }
-                BackgroundTaskService.shared.scheduleWidgetRefresh()
+            if newPhase == .background {
+                appState.handleEnterBackground()
+                if appState.authState == .authenticated {
+                    Task { await widgetSyncViewModel.syncWidgetData() }
+                    BackgroundTaskService.shared.scheduleWidgetRefresh()
+                }
             }
 
             // CRITICAL: Always refresh when app comes to foreground
             // This guarantees fresh data if user edited from web
-            if newPhase == .active, oldPhase == .background, appState.authState == .authenticated {
+            if newPhase == .active, oldPhase == .background {
                 Task {
-                    async let refreshCurrent: Void = currentMonthStore.forceRefresh()
-                    async let refreshBudgets: Void = budgetListStore.forceRefresh()
-                    async let refreshDashboard: Void = dashboardStore.loadIfNeeded()
-                    _ = await (refreshCurrent, refreshBudgets, refreshDashboard)
+                    await appState.handleEnterForeground()
+                    if appState.authState == .authenticated {
+                        async let refreshCurrent: Void = currentMonthStore.forceRefresh()
+                        async let refreshBudgets: Void = budgetListStore.forceRefresh()
+                        async let refreshDashboard: Void = dashboardStore.loadIfNeeded()
+                        _ = await (refreshCurrent, refreshBudgets, refreshDashboard)
+                    }
                 }
             }
         }

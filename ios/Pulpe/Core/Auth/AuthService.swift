@@ -29,10 +29,7 @@ actor AuthService {
             refreshToken: session.refreshToken
         )
 
-        return UserInfo(
-            id: session.user.id.uuidString,
-            email: session.user.email ?? email
-        )
+        return Self.userInfo(from: session.user, fallbackEmail: email)
     }
 
     // MARK: - Signup
@@ -50,10 +47,7 @@ actor AuthService {
             refreshToken: session.refreshToken
         )
 
-        return UserInfo(
-            id: session.user.id.uuidString,
-            email: session.user.email ?? email
-        )
+        return Self.userInfo(from: session.user, fallbackEmail: email)
     }
 
     // MARK: - Session Validation
@@ -74,10 +68,7 @@ actor AuthService {
                 refreshToken: session.refreshToken
             )
 
-            return UserInfo(
-                id: session.user.id.uuidString,
-                email: session.user.email ?? ""
-            )
+            return Self.userInfo(from: session.user, fallbackEmail: "")
         } catch {
             // Session invalid, clear tokens
             await keychain.clearTokens()
@@ -167,10 +158,13 @@ actor AuthService {
             Logger.auth.warning("validateBiometricSession: failed to persist biometric tokens")
         }
 
-        return UserInfo(
-            id: session.user.id.uuidString,
-            email: session.user.email ?? ""
-        )
+        return Self.userInfo(from: session.user, fallbackEmail: "")
+    }
+
+    // MARK: - User Metadata
+
+    func markVaultCodeConfigured() async throws {
+        try await supabase.auth.update(user: UserAttributes(data: ["vaultCodeConfigured": .bool(true)]))
     }
 
     func clearBiometricTokens() async {
@@ -179,6 +173,29 @@ actor AuthService {
 
     func hasBiometricTokens() async -> Bool {
         await keychain.hasBiometricTokens()
+    }
+
+    // MARK: - User Info Extraction
+
+    private static func userInfo(from user: User, fallbackEmail: String) -> UserInfo {
+        let metadata = user.userMetadata
+
+        var firstName: String?
+        if case .string(let name) = metadata["firstName"] {
+            firstName = name
+        }
+
+        var vaultConfigured = false
+        if case .bool(let configured) = metadata["vaultCodeConfigured"] {
+            vaultConfigured = configured
+        }
+
+        return UserInfo(
+            id: user.id.uuidString,
+            email: user.email ?? fallbackEmail,
+            firstName: firstName,
+            vaultCodeConfigured: vaultConfigured
+        )
     }
 }
 
@@ -206,6 +223,8 @@ enum AuthServiceError: LocalizedError {
 struct UserInfo: Codable, Equatable, Sendable {
     let id: String
     let email: String
+    var firstName: String?
+    var vaultCodeConfigured: Bool
 }
 
 struct DeleteAccountResponse: Codable, Sendable {

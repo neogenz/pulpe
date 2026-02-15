@@ -15,6 +15,9 @@ final class AppState {
     enum AuthStatus: Equatable {
         case loading
         case unauthenticated
+        case needsPinSetup
+        case needsPinEntry
+        case needsPinRecovery
         case authenticated
     }
 
@@ -57,18 +60,29 @@ final class AppState {
     var showBiometricEnrollment = false
     var biometricError: String?
 
+    // MARK: - Background Grace Period
+
+    private var backgroundDate: Date?
+    private static let gracePeriod: TimeInterval = 300 // 5 minutes
+
     // MARK: - Services
 
     private let authService: AuthService
     private let biometricService: BiometricService
+    private let clientKeyManager: ClientKeyManager
 
     // MARK: - Toast
 
     let toastManager = ToastManager()
 
-    init(authService: AuthService = .shared, biometricService: BiometricService = .shared) {
+    init(
+        authService: AuthService = .shared,
+        biometricService: BiometricService = .shared,
+        clientKeyManager: ClientKeyManager = .shared
+    ) {
         self.authService = authService
         self.biometricService = biometricService
+        self.clientKeyManager = clientKeyManager
     }
 
     // MARK: - Actions
@@ -82,7 +96,7 @@ final class AppState {
         // This keeps developers logged in across app restarts from Xcode
         if let user = try? await authService.validateSession() {
             currentUser = user
-            authState = .authenticated
+            await resolvePostAuth(user: user)
             return
         }
         #endif
@@ -97,7 +111,7 @@ final class AppState {
         do {
             if let user = try await authService.validateBiometricSession() {
                 currentUser = user
-                authState = .authenticated
+                await resolvePostAuth(user: user)
             } else {
                 // No tokens found
                 authState = .unauthenticated
@@ -110,25 +124,37 @@ final class AppState {
             Logger.auth.error("checkAuthState: biometric session refresh failed - \(error)")
             await authService.clearBiometricTokens()
             biometricEnabled = false
-            biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
+            biometricError = "Ta session a expire, connecte-toi avec ton mot de passe"
             authState = .unauthenticated
         }
+    }
+
+    /// After Supabase session is valid, route to PIN setup/entry or straight to authenticated
+    private func resolvePostAuth(user: UserInfo) async {
+        guard user.vaultCodeConfigured else {
+            authState = .needsPinSetup
+            return
+        }
+
+        // Check if we already have a clientKey in memory/keychain
+        if await clientKeyManager.resolveClientKey() != nil {
+            authState = .authenticated
+            return
+        }
+
+        authState = .needsPinEntry
     }
 
     func login(email: String, password: String) async throws {
         let user = try await authService.login(email: email, password: password)
         currentUser = user
         hasCompletedOnboarding = true
-        authState = .authenticated
-
-        // Prompt biometric enrollment after successful login
-        if shouldPromptBiometricEnrollment() {
-            showBiometricEnrollment = true
-        }
+        await resolvePostAuth(user: user)
     }
 
     func logout() async {
         await authService.logout()
+        await clientKeyManager.clearAll()
         currentUser = nil
         authState = .unauthenticated
         biometricEnabled = false
@@ -157,7 +183,57 @@ final class AppState {
     func completeOnboarding(user: UserInfo) {
         currentUser = user
         hasCompletedOnboarding = true
+        // After onboarding, user needs to set up PIN
+        authState = .needsPinSetup
+    }
+
+    func completePinSetup() {
         authState = .authenticated
+
+        // Prompt biometric enrollment after PIN setup
+        if shouldPromptBiometricEnrollment() {
+            showBiometricEnrollment = true
+        }
+    }
+
+    func completePinEntry() {
+        authState = .authenticated
+    }
+
+    func startRecovery() {
+        authState = .needsPinRecovery
+    }
+
+    func completeRecovery() {
+        authState = .authenticated
+
+        // Prompt biometric enrollment after recovery
+        if shouldPromptBiometricEnrollment() {
+            showBiometricEnrollment = true
+        }
+    }
+
+    func cancelRecovery() {
+        authState = .needsPinEntry
+    }
+
+    // MARK: - Background Lock
+
+    func handleEnterBackground() {
+        backgroundDate = Date()
+    }
+
+    func handleEnterForeground() async {
+        guard let bgDate = backgroundDate else { return }
+        backgroundDate = nil
+
+        let elapsed = Date().timeIntervalSince(bgDate)
+        guard elapsed > Self.gracePeriod else { return }
+        guard authState == .authenticated else { return }
+
+        // Grace period exceeded — clear in-memory clientKey and require re-entry
+        await clientKeyManager.clearCache()
+        authState = .needsPinEntry
     }
 
     func resetTips() {
@@ -185,14 +261,19 @@ final class AppState {
 
         do {
             try await authService.saveBiometricTokens()
-            biometricEnabled = true
         } catch {
             Logger.auth.error("enableBiometric: failed to save biometric tokens - \(error)")
+        }
+
+        let clientKeyStored = await clientKeyManager.enableBiometric()
+        if clientKeyStored {
+            biometricEnabled = true
         }
     }
 
     func disableBiometric() async {
         await authService.clearBiometricTokens()
+        await clientKeyManager.disableBiometric()
         biometricEnabled = false
     }
 
