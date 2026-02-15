@@ -28,65 +28,68 @@ struct EditBudgetLineSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField("Description", text: $name)
-                        .font(PulpeTypography.bodyLarge)
-                        .listRowBackground(Color.surfaceCard)
-                } header: {
-                    Text("Description")
-                        .font(PulpeTypography.labelLarge)
-                }
-
-                Section {
-                    CurrencyField(value: $amount)
-                        .listRowBackground(Color.surfaceCard)
-                } header: {
-                    Text("Montant")
-                        .font(PulpeTypography.labelLarge)
-                }
-
-                Section {
-                    Picker("Type", selection: $kind) {
-                        ForEach(TransactionKind.allCases, id: \.self) { type in
-                            Label(type.label, systemImage: type.icon)
-                                .tag(type)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+        Form {
+            Section {
+                TextField("Description", text: $name)
+                    .font(PulpeTypography.bodyLarge)
                     .listRowBackground(Color.surfaceCard)
-                } header: {
-                    Text("Type")
-                        .font(PulpeTypography.labelLarge)
-                }
+            } header: {
+                Text("Description")
+                    .font(PulpeTypography.labelLarge)
+            }
 
-                if let error {
-                    Section {
-                        ErrorBanner(message: error.localizedDescription) {
-                            self.error = nil
-                        }
+            Section {
+                CurrencyField(value: $amount)
+                    .listRowBackground(Color.surfaceCard)
+            } header: {
+                Text("Montant")
+                    .font(PulpeTypography.labelLarge)
+            }
+
+            Section {
+                Picker("Type", selection: $kind) {
+                    ForEach(TransactionKind.allCases, id: \.self) { type in
+                        Label(type.label, systemImage: type.icon)
+                            .tag(type)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .listRowBackground(Color.surfaceCard)
+            } header: {
+                Text("Type")
+                    .font(PulpeTypography.labelLarge)
+            }
+
+            if let error {
+                Section {
+                    ErrorBanner(message: error.localizedDescription) {
+                        self.error = nil
                     }
                 }
             }
-            .navigationTitle("Modifier la prévision")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") {
-                        dismiss()
-                    }
+            
+            Section {
+                Button {
+                    Task { await updateBudgetLine() }
+                } label: {
+                    Text("Enregistrer")
+                        .font(PulpeTypography.buttonPrimary)
+                        .foregroundStyle(canSubmit ? Color.textOnPrimary : .secondary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: DesignTokens.FrameHeight.button)
+                        .background(canSubmit ? Color.pulpePrimary : Color.surfaceSecondary)
+                        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
                 }
-
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Enregistrer") {
-                        Task { await updateBudgetLine() }
-                    }
-                    .disabled(!canSubmit)
-                }
+                .disabled(!canSubmit)
+                .buttonStyle(.plain)
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
             }
-            .loadingOverlay(isLoading)
         }
+        .scrollContentBackground(.hidden)
+        .background(Color.surfacePrimary)
+        .modernSheet(title: "Modifier la prévision")
+        .loadingOverlay(isLoading)
     }
 
     private func updateBudgetLine() async {
