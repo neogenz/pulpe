@@ -130,7 +130,7 @@
 **Critères** :
 - Le modèle apparaît dans la liste
 - Le nom doit être unique
-- Le bouton de création est désactivé si le maximum (3) est atteint
+- Le bouton de création est désactivé si le maximum (5) est atteint
 
 ### 4.3 Consulter les détails d'un modèle
 

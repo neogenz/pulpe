@@ -7,9 +7,9 @@
 
 import { DOCUMENT } from '@angular/common';
 import { inject, Injectable } from '@angular/core';
-import { driver, type DriveStep, type Config, type Driver } from 'driver.js';
-import { StorageService, type StorageKey } from '@core/storage';
 import { AuthStateService } from '@core/auth/auth-state.service';
+import { StorageService, type StorageKey } from '@core/storage';
+import { driver, type Config, type Driver, type DriveStep } from 'driver.js';
 
 /**
  * Selectors for layout containers that need scroll reset after tour.
@@ -255,8 +255,8 @@ export class ProductTourService {
       popover: {
         title: 'Bienvenue dans Pulpe',
         description: `
-          <p>Pulpe t'aide à anticiper tes dépenses, pas juste à les suivre.</p>
-          <p>Voyons comment ça marche.</p>
+          <p>Avec Pulpe, fini le stress de la fin de mois. Tu anticipes tes dépenses, et tu vis sereinement.</p>
+          <p>On y va ? C'est parti pour 2 minutes de découverte.</p>
         `,
       },
     },
@@ -266,9 +266,9 @@ export class ProductTourService {
         title: 'Trois espaces, un objectif',
         description: `
           <ul>
-            <li><strong>Ce mois-ci</strong> : Suis tes dépenses au jour le jour</li>
-            <li><strong>Budgets</strong> : Planifie tes mois à venir</li>
-            <li><strong>Modèles</strong> : Crée ta base mensuelle type</li>
+            <li><strong>Ce mois-ci</strong> : ici, tu suis tes dépenses en temps réel, sans surprise.</li>
+            <li><strong>Budgets</strong> : prépare tes prochains mois en 2 clics, et vois loin.</li>
+            <li><strong>Modèles</strong> : ta recette mensuelle, à réutiliser sans effort.</li>
           </ul>
         `,
         side: 'right',
@@ -281,10 +281,10 @@ export class ProductTourService {
     {
       element: '[data-tour="progress-bar"]',
       popover: {
-        title: 'Où tu en es',
+        title: 'Ton reste à dépenser',
         description: `
-          <p>D'un coup d'œil, tu sais combien il te reste ce mois-ci.</p>
-          <p>Pas de surprise à la fin du mois.</p>
+          <p>Ici, tu vois en un clin d'œil ce qu'il te reste à dépenser ce mois-ci.</p>
+          <p>Plus de mauvaises surprises, juste de la clarté.</p>
         `,
         side: 'bottom',
         align: 'center',
@@ -293,10 +293,10 @@ export class ProductTourService {
     {
       element: '[data-tour="expense-lists"]',
       popover: {
-        title: 'Tes dépenses organisées',
+        title: 'Tes dépenses triées',
         description: `
-          <p>Les récurrentes (loyer, abos) et les ponctuelles (courses, sorties) sont séparées.</p>
-          <p>Tu vois tout de suite ce qui est prévu et ce qui reste flexible.</p>
+          <p>Tes frais fixes sont déjà pris en compte. Le reste, c'est toi qui décides.</p>
+          <p>Un coup d'œil, et tu sais où tu en es.</p>
         `,
         side: 'top',
         align: 'start',
@@ -305,10 +305,10 @@ export class ProductTourService {
     {
       element: '[data-tour="add-transaction-fab"]',
       popover: {
-        title: 'Note tes dépenses',
+        title: 'Note une dépense',
         description: `
-          <p>Chaque achat noté, c'est plus de contrôle sur ton budget.</p>
-          <p>Ça prend 5 secondes.</p>
+          <p>Note tes dépenses en 5 secondes. C'est rapide, et ça te libère l'esprit.</p>
+          <p>Une petite habitude pour un grand soulagement.</p>
         `,
         side: 'top',
         align: 'end',
@@ -322,8 +322,8 @@ export class ProductTourService {
       popover: {
         title: 'Vois loin',
         description: `
-          <p>Passe d'une année à l'autre pour planifier à l'avance.</p>
-          <p>Anticipe les gros mois : vacances, impôts, fêtes.</p>
+          <p>Passe d'une année à l'autre pour anticiper tes gros mois (vacances, impôts, fêtes…).</p>
+          <p>Préparé à l'avance = plus de sérénité après.</p>
         `,
         side: 'bottom',
         align: 'start',
@@ -334,8 +334,8 @@ export class ProductTourService {
       popover: {
         title: "Ton année en un coup d'œil",
         description: `
-          <p>Chaque mois a son budget. Les vides attendent d'être créés.</p>
-          <p>Clique sur un mois pour commencer.</p>
+          <p>Chaque mois a son propre budget. Ceux en gris sont prêts à être créés.</p>
+          <p>Clique sur un mois pour le personnaliser en 30 secondes.</p>
         `,
         side: 'top',
         align: 'center',
@@ -344,10 +344,10 @@ export class ProductTourService {
     {
       element: '[data-tour="create-budget"]',
       popover: {
-        title: 'Crée en un clic',
+        title: 'Crée ton budget',
         description: `
-          <p>Choisis un modèle et ton budget est prêt.</p>
-          <p>Plus besoin de tout ressaisir chaque mois.</p>
+          <p>Sélectionne un modèle, et ton budget est prêt en un instant.</p>
+          <p>Plus de saisie fastidieuse : tout est déjà là.</p>
         `,
         side: 'left',
         align: 'start',
@@ -359,10 +359,10 @@ export class ProductTourService {
     {
       element: '[data-tour="financial-overview"]',
       popover: {
-        title: "L'essentiel de ton mois",
+        title: 'Ton solde réel',
         description: `
-          <p>Revenus, dépenses, épargne : tout est résumé ici.</p>
-          <p>Le « reste à vivre » te dit ce qu'il te reste au quotidien.</p>
+          <p>Ton solde se met à jour automatiquement quand tu coches tes dépenses.</p>
+          <p>Tu sais toujours où tu en es, sans avoir à faire de calculs.</p>
         `,
         side: 'bottom',
         align: 'center',
@@ -371,10 +371,10 @@ export class ProductTourService {
     {
       element: '[data-tour="budget-table"]',
       popover: {
-        title: 'Le détail ligne par ligne',
+        title: 'Tes prévisions',
         description: `
-          <p>Chaque poste de dépense ou revenu apparaît ici.</p>
-          <p>Clique sur une ligne pour voir tes transactions.</p>
+          <p>Coche tes dépenses au fur et à mesure pour suivre ton budget en temps réel.</p>
+          <p>Un clic sur une ligne pour tout modifier si besoin.</p>
         `,
         side: 'top',
         align: 'center',
@@ -383,10 +383,10 @@ export class ProductTourService {
     {
       element: '[data-tour="add-budget-line"]',
       popover: {
-        title: "Ajoute ce qu'il te manque",
+        title: 'Ajuste ton mois',
         description: `
-          <p>Revenu, dépense ou épargne : à toi de compléter.</p>
-          <p>Choisis si c'est tous les mois ou une seule fois.</p>
+          <p>Besoin d'ajouter un revenu, une dépense ou une épargne ? C'est ici.</p>
+          <p>Choisis si c'est tous les mois ("récurrent") ou juste pour ce mois-ci.</p>
         `,
         side: 'left',
         align: 'start',
@@ -400,8 +400,8 @@ export class ProductTourService {
       popover: {
         title: 'Ta base mensuelle',
         description: `
-          <p>Définis tes revenus et charges fixes ici.</p>
-          <p>Chaque nouveau budget partira de cette base.</p>
+          <p>Ici, tu notes tes revenus et tes frais fixes (loyer, abonnements…).</p>
+          <p>C'est ta base pour créer tous tes budgets en un clic.</p>
         `,
         side: 'top',
         align: 'start',
@@ -410,10 +410,10 @@ export class ProductTourService {
     {
       element: '[data-tour="template-counter"]',
       popover: {
-        title: 'Reste simple',
+        title: "Garde l'esprit léger",
         description: `
-          <p>5 modèles max, c'est largement suffisant.</p>
-          <p>Un pour les mois normaux, un pour les vacances... et c'est parti.</p>
+          <p>5 modèles max, c'est largement assez pour couvrir tous tes besoins.</p>
+          <p>Un pour les mois classiques, un pour les vacances… et hop, c'est prêt !</p>
         `,
         side: 'bottom',
         align: 'start',
@@ -424,8 +424,8 @@ export class ProductTourService {
       popover: {
         title: 'Lance-toi',
         description: `
-          <p>Ajoute tes revenus et dépenses récurrents.</p>
-          <p>Tu pourras créer des budgets en un clic après.</p>
+          <p>Crée ton premier modèle, et tes budgets futurs seront prêts en 1 clic.</p>
+          <p>C'est parti pour 2 minutes de configuration !</p>
         `,
         side: 'left',
         align: 'start',

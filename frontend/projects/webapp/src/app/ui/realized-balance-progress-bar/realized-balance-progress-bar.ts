@@ -60,7 +60,7 @@ import {
 
       <!-- Label with friendly tone -->
       <p class="text-label-medium text-on-surface-variant text-center">
-        {{ checkedCount() }}/{{ totalCount() }} éléments pointés
+        {{ checkedCount() }}/{{ totalCount() }} éléments comptabilisés
         @if (totalCount() > 0) {
           <span class="text-on-surface-variant/70">
             —

@@ -130,6 +130,7 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
             matButton
             (click)="add.emit()"
             data-testid="add-budget-line"
+            data-tour="add-budget-line"
             class="gap-2 !h-11 !rounded-full !px-6"
           >
             <mat-icon>add</mat-icon>
