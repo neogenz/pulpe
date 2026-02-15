@@ -125,14 +125,19 @@ final class AppState {
         } catch let error as URLError {
             // Network error — keep tokens and biometric enabled for retry
             Logger.auth.warning("checkAuthState: network error during biometric login - \(error)")
-            biometricError = "Connexion impossible, reessaie"
+            biometricError = "Connexion impossible, réessaie"
             authState = .unauthenticated
-        } catch {
-            // Token refresh failed (expired/invalid session)
+        } catch let error as AuthServiceError {
+            // Auth-specific error (expired tokens, etc.)
             Logger.auth.error("checkAuthState: biometric session refresh failed - \(error)")
             await authService.clearBiometricTokens()
             biometricEnabled = false
-            biometricError = "Ta session a expire, connecte-toi avec ton mot de passe"
+            biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
+            authState = .unauthenticated
+        } catch {
+            // Unknown error - preserve tokens for transient issues
+            Logger.auth.error("checkAuthState: unknown error during biometric login - \(error)")
+            biometricError = "Une erreur s'est produite, réessaie"
             authState = .unauthenticated
         }
     }

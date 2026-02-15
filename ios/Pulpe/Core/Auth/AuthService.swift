@@ -15,14 +15,24 @@ actor AuthService {
         self.keychain = keychain
         self.supabase = SupabaseClient(
             supabaseURL: AppConfiguration.supabaseURL,
-            supabaseKey: AppConfiguration.supabaseAnonKey
+            supabaseKey: AppConfiguration.supabaseAnonKey,
+            options: SupabaseClientOptions(
+                auth: .init(
+                    emitLocalSessionAsInitialSession: true
+                )
+            )
         )
     }
 
     private func resetClient() {
         supabase = SupabaseClient(
             supabaseURL: AppConfiguration.supabaseURL,
-            supabaseKey: AppConfiguration.supabaseAnonKey
+            supabaseKey: AppConfiguration.supabaseAnonKey,
+            options: SupabaseClientOptions(
+                auth: .init(
+                    emitLocalSessionAsInitialSession: true
+                )
+            )
         )
     }
 

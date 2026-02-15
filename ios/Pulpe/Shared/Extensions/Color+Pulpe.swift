@@ -297,6 +297,18 @@ extension Color {
     
     /// Glass-morphic card background for auth forms
     static let authCardGlass = Color(light: .white.opacity(0.85), dark: Color(hex: 0x1C1C1E).opacity(0.75))
+    
+    /// Input field background for auth screens (high contrast)
+    static let authInputBackground = Color(light: .white.opacity(0.9), dark: Color(hex: 0x2C2C2E))
+    
+    /// Input field text color for auth screens
+    static let authInputText = Color(light: Color(hex: 0x1A1A1A), dark: .white)
+    
+    /// Input field placeholder color for auth screens
+    static let authInputPlaceholder = Color(light: Color(hex: 0x8A8A8A), dark: Color(hex: 0x8A8A8A))
+    
+    /// Input field border color for auth screens
+    static let authInputBorder = Color(light: Color(hex: 0xD0D0D0).opacity(0.5), dark: Color(hex: 0x3C3C3E))
 
     /// Mint green background matching landing page suggestion
     static let mintBackground = Color(light: Color(hex: 0xBDF5B7), dark: Color(hex: 0x1A3A1A))

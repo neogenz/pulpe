@@ -59,29 +59,8 @@ final class BudgetListStore: StoreProtocol {
     // MARK: - Widget Sync
 
     private func syncWidgetData() async {
-        do {
-            let exportData = try await budgetService.exportAllBudgets()
-
-            // Also get current budget details if it exists
-            if let currentBudget = try? await budgetService.getCurrentMonthBudget() {
-                let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
-                await widgetSyncService.sync(
-                    budgetsWithDetails: exportData.budgets,
-                    currentBudgetDetails: details
-                )
-            } else {
-                await widgetSyncService.sync(
-                    budgetsWithDetails: exportData.budgets,
-                    currentBudgetDetails: nil
-                )
-            }
-        } catch {
-            Logger.sync.error("BudgetListStore: syncWidgetData failed - \(error)")
-            await widgetSyncService.sync(
-                budgetsWithDetails: [],
-                currentBudgetDetails: nil
-            )
-        }
+        // Use centralized sync for consistency
+        await widgetSyncService.syncAll()
     }
 
     // MARK: - Computed Properties

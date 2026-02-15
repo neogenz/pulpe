@@ -138,19 +138,8 @@ final class CurrentMonthStore: StoreProtocol {
     // MARK: - Widget Sync
 
     private func syncWidgetData(details: BudgetDetails?) async {
-        do {
-            let exportData = try await budgetService.exportAllBudgets()
-            await widgetSyncService.sync(
-                budgetsWithDetails: exportData.budgets,
-                currentBudgetDetails: details
-            )
-        } catch {
-            Logger.sync.error("syncWidgetData: exportAllBudgets failed - \(error)")
-            await widgetSyncService.sync(
-                budgetsWithDetails: [],
-                currentBudgetDetails: details
-            )
-        }
+        // Use centralized sync for consistency
+        await widgetSyncService.syncAll()
     }
 
     private func syncWidgetAfterChange() async {
@@ -297,10 +286,13 @@ final class CurrentMonthStore: StoreProtocol {
 
         do {
             _ = try await budgetLineService.toggleCheck(id: line.id)
-            await forceRefresh() // Force fresh data after mutation
+            // Trust optimistic update - only mark cache as fresh
+            lastLoadTime = Date()
         } catch {
+            // Only refresh on error to rollback
             budgetLines = originalLines
             self.error = error
+            await forceRefresh()
         }
 
         syncingBudgetLineIds.remove(line.id)
@@ -321,10 +313,13 @@ final class CurrentMonthStore: StoreProtocol {
 
         do {
             _ = try await transactionService.toggleCheck(id: transaction.id)
-            await forceRefresh() // Force fresh data after mutation
+            // Trust optimistic update - only mark cache as fresh
+            lastLoadTime = Date()
         } catch {
+            // Only refresh on error to rollback
             transactions = originalTransactions
             self.error = error
+            await forceRefresh()
         }
 
         syncingTransactionIds.remove(transaction.id)
@@ -369,18 +364,22 @@ final class CurrentMonthStore: StoreProtocol {
     func updateBudgetLine(_ line: BudgetLine) async {
         guard !(line.isRollover ?? false) else { return }
 
+        // Optimistic update
         if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
             budgetLines[index] = line
         }
 
+        // Refresh to get server state (needed for recalculations)
         await forceRefresh()
     }
 
     func updateTransaction(_ transaction: Transaction) async {
+        // Optimistic update
         if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
             transactions[index] = transaction
         }
 
+        // Refresh to get server state (needed for recalculations)
         await forceRefresh()
     }
 }
