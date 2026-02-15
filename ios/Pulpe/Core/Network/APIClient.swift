@@ -14,6 +14,13 @@ actor APIClient {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = AppConfiguration.requestTimeout
         config.timeoutIntervalForResource = AppConfiguration.resourceTimeout
+        
+        // Enable HTTP cache for better performance
+        config.requestCachePolicy = .returnCacheDataElseLoad
+        config.urlCache = URLCache(
+            memoryCapacity: 50_000_000,  // 50 MB in-memory cache
+            diskCapacity: 100_000_000    // 100 MB disk cache
+        )
 
         self.session = URLSession(configuration: config)
         self.baseURL = AppConfiguration.apiBaseURL

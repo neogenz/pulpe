@@ -1,13 +1,13 @@
 import Foundation
 import OSLog
 
-@Observable @MainActor
+@Observable
 final class BudgetListStore: StoreProtocol {
-    // MARK: - State
+    // MARK: - State (accessed from main thread)
 
-    private(set) var budgets: [BudgetSparse] = []
-    private(set) var isLoading = false
-    private(set) var error: Error?
+    @MainActor private(set) var budgets: [BudgetSparse] = []
+    @MainActor private(set) var isLoading = false
+    @MainActor private(set) var error: Error?
 
     // MARK: - Cache Metadata
 
@@ -41,18 +41,25 @@ final class BudgetListStore: StoreProtocol {
     }
 
     func forceRefresh() async {
-        isLoading = true
-        defer { isLoading = false }
-        error = nil
+        await MainActor.run {
+            isLoading = true
+            error = nil
+        }
+        defer { Task { @MainActor in isLoading = false } }
 
         do {
-            budgets = try await budgetService.getBudgetsSparse(fields: "month,year,remaining")
+            let fetchedBudgets = try await budgetService.getBudgetsSparse(fields: "month,year,remaining")
+            await MainActor.run {
+                budgets = fetchedBudgets
+            }
             lastLoadTime = Date()
 
             // Sync widget data after refresh
             await syncWidgetData()
         } catch {
-            self.error = error
+            await MainActor.run {
+                self.error = error
+            }
         }
     }
 
@@ -70,6 +77,7 @@ final class BudgetListStore: StoreProtocol {
         let budgets: [BudgetSparse]
     }
 
+    @MainActor
     var groupedByYear: [YearGroup] {
         let grouped = Dictionary(grouping: budgets) { $0.year ?? 0 }
         return grouped
@@ -79,6 +87,7 @@ final class BudgetListStore: StoreProtocol {
             }
     }
 
+    @MainActor
     var nextAvailableMonth: (month: Int, year: Int)? {
         let calendar = Calendar.current
         let now = Date()
@@ -101,6 +110,7 @@ final class BudgetListStore: StoreProtocol {
 
     // MARK: - Mutations
 
+    @MainActor
     func addBudget(_ budget: Budget) {
         budgets.append(BudgetSparse(from: budget))
         lastLoadTime = nil
