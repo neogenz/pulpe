@@ -80,14 +80,13 @@ actor AuthService {
 
     func logout() async {
         do {
-            try await supabase.auth.signOut()
+            try await supabase.auth.signOut(scope: .local)
         } catch {
             Logger.auth.error("logout: signOut failed - \(error)")
         }
 
-        // Clear local tokens
+        // Clear local session tokens (keep biometric tokens for re-login)
         await keychain.clearTokens()
-        await keychain.clearBiometricTokens()
     }
 
     // MARK: - Account Deletion
@@ -130,6 +129,19 @@ actor AuthService {
         if !saved {
             throw AuthServiceError.biometricSaveFailed
         }
+    }
+
+    /// Fallback: copy current keychain tokens to biometric keychain
+    /// without touching the Supabase SDK (avoids auto-refresh side effects).
+    func saveBiometricTokensFromKeychain() async -> Bool {
+        guard let accessToken = await keychain.getAccessToken(),
+              let refreshToken = await keychain.getRefreshToken() else {
+            return false
+        }
+        return await keychain.saveBiometricTokens(
+            accessToken: accessToken,
+            refreshToken: refreshToken
+        )
     }
 
     func validateBiometricSession() async throws -> UserInfo? {

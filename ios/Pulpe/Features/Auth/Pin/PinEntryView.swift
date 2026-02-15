@@ -9,29 +9,21 @@ struct PinEntryView: View {
     @State private var viewModel = PinEntryViewModel()
 
     var body: some View {
-        ZStack {
-            background
-            content
-        }
-        .task {
-            await viewModel.checkBiometricAvailability()
-            if viewModel.biometricAvailable {
-                await viewModel.attemptBiometric()
-                if viewModel.authenticated {
-                    onSuccess()
+        content
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .pulpeBackground()
+            .task {
+                await viewModel.checkBiometricAvailability()
+                if viewModel.biometricAvailable {
+                    await viewModel.attemptBiometric()
+                    if viewModel.authenticated {
+                        onSuccess()
+                    }
                 }
             }
-        }
-        .onChange(of: viewModel.authenticated) { _, authenticated in
-            if authenticated { onSuccess() }
-        }
-    }
-
-    // MARK: - Background
-
-    private var background: some View {
-        Color.pinBackground
-            .ignoresSafeArea()
+            .onChange(of: viewModel.authenticated) { _, authenticated in
+                if authenticated { onSuccess() }
+            }
     }
 
     // MARK: - Content
@@ -48,10 +40,10 @@ struct PinEntryView: View {
                     viewModel.appendDigit(digit)
                 },
                 onDelete: { viewModel.deleteLastDigit() },
-                onBiometric: viewModel.biometricAvailable && !viewModel.canConfirm ? {
+                onBiometric: viewModel.biometricAvailable && viewModel.digits.count < viewModel.minDigits ? {
                     Task { await viewModel.attemptBiometric() }
                 } : nil,
-                onConfirm: viewModel.canConfirm ? {
+                onConfirm: viewModel.digits.count >= viewModel.minDigits ? {
                     Task { await viewModel.confirm() }
                 } : nil,
                 isDisabled: viewModel.isValidating
@@ -67,13 +59,11 @@ struct PinEntryView: View {
 
     private var headerSection: some View {
         VStack(spacing: DesignTokens.Spacing.md) {
-            Image(systemName: "person.crop.circle.fill")
-                .font(.system(size: 56))
-                .foregroundStyle(Color.pinTextSecondary)
+            PulpeIcon(size: 56)
 
             Text("Bonjour, \(firstName)")
                 .font(PulpeTypography.onboardingTitle)
-                .foregroundStyle(Color.pinText)
+                .foregroundStyle(Color.textPrimaryOnboarding)
         }
     }
 
@@ -105,7 +95,7 @@ struct PinEntryView: View {
         } label: {
             Text("Code d'acces oublie ?")
                 .font(PulpeTypography.stepSubtitle)
-                .foregroundStyle(Color.pinTextSecondary)
+                .foregroundStyle(Color.textSecondaryOnboarding)
         }
     }
 }

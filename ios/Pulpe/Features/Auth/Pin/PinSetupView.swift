@@ -7,24 +7,16 @@ struct PinSetupView: View {
     @State private var viewModel = PinSetupViewModel()
 
     var body: some View {
-        ZStack {
-            background
-            content
-        }
-        .sheet(isPresented: $viewModel.showRecoverySheet) {
+        content
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .pulpeBackground()
+            .sheet(isPresented: $viewModel.showRecoverySheet) {
             if let key = viewModel.recoveryKey {
                 RecoveryKeySheet(recoveryKey: key) {
                     onComplete()
                 }
             }
         }
-    }
-
-    // MARK: - Background
-
-    private var background: some View {
-        Color.pinBackground
-            .ignoresSafeArea()
     }
 
     // MARK: - Content
@@ -59,13 +51,13 @@ struct PinSetupView: View {
         VStack(spacing: DesignTokens.Spacing.sm) {
             Text(viewModel.step == .create ? "Choisis ton code PIN" : "Confirme ton code PIN")
                 .font(PulpeTypography.onboardingTitle)
-                .foregroundStyle(Color.pinText)
+                .foregroundStyle(Color.textPrimaryOnboarding)
                 .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: viewModel.step)
 
             if viewModel.step == .create {
                 Text("4 chiffres minimum")
                     .font(PulpeTypography.stepSubtitle)
-                    .foregroundStyle(Color.pinTextSecondary)
+                    .foregroundStyle(Color.textSecondaryOnboarding)
             }
         }
     }
@@ -100,7 +92,7 @@ struct PinSetupView: View {
             } label: {
                 Text("Revenir")
                     .font(PulpeTypography.stepSubtitle)
-                    .foregroundStyle(Color.pinTextSecondary)
+                    .foregroundStyle(Color.textSecondaryOnboarding)
             }
         } else {
             Color.clear.frame(height: 20)

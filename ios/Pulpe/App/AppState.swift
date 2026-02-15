@@ -153,11 +153,24 @@ final class AppState {
     }
 
     func logout() async {
+        // Preserve biometric tokens with current session before signing out
+        // (Supabase token rotation may have invalidated the stored refresh token)
+        if biometricEnabled {
+            do {
+                try await authService.saveBiometricTokens()
+            } catch {
+                Logger.auth.warning("logout: SDK session unavailable, falling back to keychain tokens - \(error)")
+                let saved = await authService.saveBiometricTokensFromKeychain()
+                if !saved {
+                    Logger.auth.error("logout: could not preserve biometric tokens for re-login")
+                }
+            }
+        }
+
         await authService.logout()
-        await clientKeyManager.clearAll()
+        await clientKeyManager.clearSession()
         currentUser = nil
         authState = .unauthenticated
-        biometricEnabled = false
 
         // Clear sensitive widget data
         WidgetDataCoordinator().clear()
@@ -198,6 +211,10 @@ final class AppState {
 
     func completePinEntry() {
         authState = .authenticated
+
+        if shouldPromptBiometricEnrollment() {
+            showBiometricEnrollment = true
+        }
     }
 
     func startRecovery() {
@@ -256,19 +273,29 @@ final class AppState {
         await checkAuthState()
     }
 
-    func enableBiometric() async {
-        guard biometricService.canUseBiometrics() else { return }
+    @discardableResult
+    func enableBiometric() async -> Bool {
+        guard biometricService.canUseBiometrics() else { return false }
+
+        do {
+            try await biometricService.authenticate()
+        } catch {
+            Logger.auth.info("enableBiometric: user denied biometric prompt")
+            return false
+        }
 
         do {
             try await authService.saveBiometricTokens()
         } catch {
             Logger.auth.error("enableBiometric: failed to save biometric tokens - \(error)")
+            return false
         }
 
         let clientKeyStored = await clientKeyManager.enableBiometric()
-        if clientKeyStored {
-            biometricEnabled = true
-        }
+        guard clientKeyStored else { return false }
+
+        biometricEnabled = true
+        return true
     }
 
     func disableBiometric() async {
