@@ -87,9 +87,9 @@ test.describe('Local Search in Budget Details', () => {
     await setupBudgetDetailsMock(authenticatedPage);
     await budgetDetailsPage.goto(budgetId);
 
-    const searchInput = authenticatedPage.getByPlaceholder(
-      'Rechercher une prévision...',
-    );
+    const searchInput = authenticatedPage.getByRole('textbox', {
+      name: 'Rechercher une prévision...',
+    });
     await searchInput.fill('Courses');
 
     // "Courses" envelope should be visible
@@ -113,9 +113,9 @@ test.describe('Local Search in Budget Details', () => {
     await setupBudgetDetailsMock(authenticatedPage);
     await budgetDetailsPage.goto(budgetId);
 
-    const searchInput = authenticatedPage.getByPlaceholder(
-      'Rechercher une prévision...',
-    );
+    const searchInput = authenticatedPage.getByRole('textbox', {
+      name: 'Rechercher une prévision...',
+    });
     await searchInput.fill('500');
 
     // "Courses" (amount 500) should be visible
@@ -136,9 +136,9 @@ test.describe('Local Search in Budget Details', () => {
     await setupBudgetDetailsMock(authenticatedPage);
     await budgetDetailsPage.goto(budgetId);
 
-    const searchInput = authenticatedPage.getByPlaceholder(
-      'Rechercher une prévision...',
-    );
+    const searchInput = authenticatedPage.getByRole('textbox', {
+      name: 'Rechercher une prévision...',
+    });
     await searchInput.fill('epargne');
 
     // "Épargne" should be visible despite searching without accent
@@ -159,9 +159,9 @@ test.describe('Local Search in Budget Details', () => {
     await setupBudgetDetailsMock(authenticatedPage);
     await budgetDetailsPage.goto(budgetId);
 
-    const searchInput = authenticatedPage.getByPlaceholder(
-      'Rechercher une prévision...',
-    );
+    const searchInput = authenticatedPage.getByRole('textbox', {
+      name: 'Rechercher une prévision...',
+    });
     await searchInput.fill('Courses');
 
     // Only "Courses" visible
@@ -202,9 +202,9 @@ test.describe('Local Search in Budget Details', () => {
     ).toBeVisible();
 
     // Search for "Salaire"
-    const searchInput = authenticatedPage.getByPlaceholder(
-      'Rechercher une prévision...',
-    );
+    const searchInput = authenticatedPage.getByRole('textbox', {
+      name: 'Rechercher une prévision...',
+    });
     await searchInput.fill('Salaire');
 
     // Only Salaire should be visible
@@ -230,9 +230,9 @@ test.describe('Local Search in Budget Details', () => {
     await setupBudgetDetailsMock(authenticatedPage);
     await budgetDetailsPage.goto(budgetId);
 
-    const searchInput = authenticatedPage.getByPlaceholder(
-      'Rechercher une prévision...',
-    );
+    const searchInput = authenticatedPage.getByRole('textbox', {
+      name: 'Rechercher une prévision...',
+    });
     // Search for the allocated transaction name
     await searchInput.fill('Supermarché');
 
@@ -328,7 +328,7 @@ test.describe('Global Search Across Budgets', () => {
     // Verify first result has period, name, and amount
     await expect(resultsTable.getByText('2025 / Janvier')).toBeVisible();
     await expect(resultsTable.getByText('Loyer janvier')).toBeVisible();
-    await expect(resultsTable.getByText('CHF')).toBeVisible();
+    await expect(resultsTable.getByText('CHF').first()).toBeVisible();
   });
 
   test('should navigate to budget when clicking a result', async ({
