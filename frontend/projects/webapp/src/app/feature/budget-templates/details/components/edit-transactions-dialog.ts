@@ -176,6 +176,7 @@ interface EditTransactionsDialogResult {
                     step="0.01"
                     min="0"
                     max="999999"
+                    inputmode="decimal"
                     [value]="transaction.formData.amount"
                     (input)="updateAmount(transaction.id, $event)"
                     placeholder="0.00"

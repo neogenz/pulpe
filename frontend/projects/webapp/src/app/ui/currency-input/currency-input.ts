@@ -27,6 +27,7 @@ import { MatIconModule } from '@angular/material/icon';
       <input
         matInput
         type="number"
+        inputmode="decimal"
         class="ph-no-capture"
         [(ngModel)]="value"
         [placeholder]="placeholder()"

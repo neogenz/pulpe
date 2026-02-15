@@ -1,25 +1,21 @@
 {
   "permissions": {
     "allow": [
-      "Bash(pnpm:*)",
-      "Bash(bun:*)",
+      "Bash(pnpm *)",
+      "Bash(bun *)",
       "Edit",
-      "Bash(ls:*)",
-      "Bash(git:*)",
+      "Bash(ls *)",
+      "Bash(git *)",
       "WebFetch(domain:*)",
       "mcp__supabase",
       "mcp__vercel",
       "mcp__angular-cli",
-      "Bash(railway:*)"
+      "Bash(railway *)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
   },
   "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": [
-    "supabase",
-    "vercel"
-  ],
   "enabledPlugins": {
     "typescript-lsp@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": false,

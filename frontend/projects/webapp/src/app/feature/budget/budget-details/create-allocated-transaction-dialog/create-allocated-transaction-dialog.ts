@@ -70,6 +70,7 @@ export interface CreateAllocatedTransactionDialogData {
             formControlName="amount"
             step="0.01"
             min="0.01"
+            inputmode="decimal"
             data-testid="transaction-amount"
           />
           <span matTextSuffix>CHF</span>

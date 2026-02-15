@@ -75,6 +75,7 @@ export interface EditBudgetLineDialogData {
               placeholder="0"
               step="1"
               min="0"
+              inputmode="decimal"
               data-testid="edit-line-amount"
             />
             <span matTextSuffix>CHF</span>

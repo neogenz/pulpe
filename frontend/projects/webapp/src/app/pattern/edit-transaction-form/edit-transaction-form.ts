@@ -107,6 +107,7 @@ export type EditTransactionFormData = Pick<
         <input
           matInput
           type="number"
+          inputmode="decimal"
           formControlName="amount"
           placeholder="0.00"
           step="0.01"
