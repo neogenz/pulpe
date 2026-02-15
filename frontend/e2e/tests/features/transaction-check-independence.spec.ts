@@ -105,6 +105,9 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
+    // Wait for the progress bar component to render before asserting text
+    await expect(authenticatedPage.getByTestId('realized-balance-progress')).toBeVisible();
+
     // Verify initial pointés count: 0/5 (2 lines + 3 transactions, all unchecked)
     await expect(
       authenticatedPage.getByText('0/5 éléments pointés'),

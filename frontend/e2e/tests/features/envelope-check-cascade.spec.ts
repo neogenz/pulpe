@@ -239,6 +239,9 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
+    // Wait for the progress bar component to render before asserting text
+    await expect(authenticatedPage.getByTestId('realized-balance-progress')).toBeVisible();
+
     // Verify initial pointés count: 2/5 (Salaire + Supermarché checked)
     await expect(
       authenticatedPage.getByText('2/5 éléments pointés'),

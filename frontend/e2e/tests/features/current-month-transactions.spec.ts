@@ -376,15 +376,7 @@ test.describe('Current Month Transactions', () => {
     await currentMonthPage.expectRemainingAmount("4'400.00");
 
     // Add a new free transaction of 200
-    await authenticatedPage.getByTestId('add-transaction-fab').click();
-    await expect(authenticatedPage.getByTestId('transaction-form')).toBeVisible();
-
-    await authenticatedPage.getByTestId('transaction-amount-input').fill('200');
-    await authenticatedPage.getByTestId('transaction-description-input').clear();
-    await authenticatedPage.getByTestId('transaction-description-input').fill('New expense');
-    await authenticatedPage.getByTestId('transaction-submit-button').click();
-
-    await expect(authenticatedPage.getByTestId('transaction-form')).toBeHidden();
+    await currentMonthPage.addTransaction('200', 'New expense');
 
     // After adding: expenses = 500 (envelope) + 100 + 200 (free) = 800
     await currentMonthPage.expectExpensesAmount('800.00');
