@@ -282,6 +282,44 @@ extension Color {
         endPoint: .trailing
     )
 
+    // MARK: - PIN Screen Colors (adaptive light/dark)
+
+    /// PIN background gradient stops
+    static let pinGradientTop = Color(light: Color(hex: 0xF0F2F5), dark: Color(hex: 0x0F1923))
+    static let pinGradientMid = Color(light: Color(hex: 0xE8EBF0), dark: Color(hex: 0x1A2733))
+    static let pinGradientBottom = Color(light: Color(hex: 0xE0E4EA), dark: Color(hex: 0x0D1520))
+
+    /// PIN screen gradient
+    static let pinBackground = LinearGradient(
+        colors: [pinGradientTop, pinGradientMid, pinGradientBottom],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+
+    /// Primary text on PIN screens
+    static let pinText = Color(light: Color(hex: 0x1A1F2B), dark: .white)
+
+    /// Secondary text on PIN screens (subtitles, links)
+    static let pinTextSecondary = Color(light: Color(hex: 0x5A6070), dark: .white.opacity(0.5))
+
+    /// Numpad button fill
+    static let pinButtonFill = Color(light: Color(hex: 0x1A1F2B).opacity(0.06), dark: .white.opacity(0.08))
+
+    /// Numpad button stroke
+    static let pinButtonStroke = Color(light: Color(hex: 0x1A1F2B).opacity(0.10), dark: .white.opacity(0.15))
+
+    /// PIN dot color (filled state)
+    static let pinDotFilled = Color(light: Color(hex: 0x1A1F2B), dark: .white)
+
+    /// PIN dot color (empty state)
+    static let pinDotEmpty = Color(light: Color(hex: 0x1A1F2B).opacity(0.2), dark: .white.opacity(0.3))
+
+    /// Recovery key input field background
+    static let pinInputBackground = Color(light: Color(hex: 0x1A1F2B).opacity(0.05), dark: .white.opacity(0.08))
+
+    /// Recovery key input field border
+    static let pinInputBorder = Color(light: Color(hex: 0x1A1F2B).opacity(0.12), dark: .white.opacity(0.15))
+
     // MARK: - Initializers
 
     init(hex: UInt) {

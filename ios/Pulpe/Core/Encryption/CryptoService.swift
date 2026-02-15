@@ -1,0 +1,101 @@
+import CommonCrypto
+import Foundation
+import OSLog
+
+actor CryptoService {
+    static let shared = CryptoService()
+
+    static let keyLengthBytes = 32
+    static let keyLengthHex = 64
+    static let demoClientKey = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+    private init() {}
+
+    // MARK: - Key Derivation
+
+    func deriveClientKey(pin: String, saltHex: String, iterations: Int) throws -> String {
+        guard let pinData = pin.data(using: .utf8) else {
+            throw CryptoServiceError.invalidPin
+        }
+
+        guard let saltData = hexToData(saltHex) else {
+            throw CryptoServiceError.invalidSalt
+        }
+
+        var derivedKey = [UInt8](repeating: 0, count: Self.keyLengthBytes)
+
+        let status = pinData.withUnsafeBytes { pinBytes in
+            saltData.withUnsafeBytes { saltBytes in
+                CCKeyDerivationPBKDF(
+                    CCPBKDFAlgorithm(kCCPBKDF2),
+                    pinBytes.baseAddress?.assumingMemoryBound(to: Int8.self),
+                    pinData.count,
+                    saltBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
+                    saltData.count,
+                    CCPseudoRandomAlgorithm(kCCPRFHmacAlgSHA256),
+                    UInt32(iterations),
+                    &derivedKey,
+                    Self.keyLengthBytes
+                )
+            }
+        }
+
+        guard status == kCCSuccess else {
+            Logger.encryption.error("PBKDF2 derivation failed with status: \(status)")
+            throw CryptoServiceError.derivationFailed
+        }
+
+        return dataToHex(Data(derivedKey))
+    }
+
+    // MARK: - Validation
+
+    func isValidClientKeyHex(_ hex: String) -> Bool {
+        guard hex.count == Self.keyLengthHex else { return false }
+        guard hex.range(of: "^[0-9a-fA-F]{64}$", options: .regularExpression) != nil else { return false }
+
+        // Must not be all zeros
+        return hex.contains(where: { $0 != "0" })
+    }
+
+    // MARK: - Hex Helpers
+
+    private func hexToData(_ hex: String) -> Data? {
+        guard hex.count.isMultiple(of: 2) else { return nil }
+
+        var data = Data(capacity: hex.count / 2)
+        var index = hex.startIndex
+
+        while index < hex.endIndex {
+            let nextIndex = hex.index(index, offsetBy: 2)
+            guard let byte = UInt8(hex[index..<nextIndex], radix: 16) else { return nil }
+            data.append(byte)
+            index = nextIndex
+        }
+
+        return data
+    }
+
+    private func dataToHex(_ data: Data) -> String {
+        data.map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+// MARK: - Errors
+
+enum CryptoServiceError: LocalizedError {
+    case invalidPin
+    case invalidSalt
+    case derivationFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidPin:
+            return "Le code PIN est invalide"
+        case .invalidSalt:
+            return "Le sel de chiffrement est invalide"
+        case .derivationFailed:
+            return "La dérivation de la clé a échoué"
+        }
+    }
+}

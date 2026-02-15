@@ -12,6 +12,8 @@ actor KeychainManager {
     private let refreshTokenKey = "refresh_token"
     private let biometricAccessTokenKey = "biometric_access_token"
     private let biometricRefreshTokenKey = "biometric_refresh_token"
+    private let clientKeyKey = "client_key"
+    private let biometricClientKeyKey = "biometric_client_key"
 
     private var isAvailableCache: Bool?
 
@@ -119,6 +121,54 @@ actor KeychainManager {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: biometricAccessTokenKey,
+            kSecUseAuthenticationContext as String: context
+        ]
+
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        return status == errSecSuccess || status == errSecInteractionNotAllowed
+    }
+
+    // MARK: - Client Key Management
+
+    func saveClientKey(_ hex: String) throws {
+        try ensureAvailable()
+
+        let status = saveReturningStatus(key: clientKeyKey, value: hex)
+        guard status == errSecSuccess else {
+            throw KeychainError.unknown(status)
+        }
+    }
+
+    func getClientKey() -> String? {
+        get(key: clientKeyKey)
+    }
+
+    func clearClientKey() {
+        delete(key: clientKeyKey)
+    }
+
+    @discardableResult
+    func saveBiometricClientKey(_ hex: String) -> Bool {
+        saveBiometric(key: biometricClientKeyKey, value: hex)
+    }
+
+    func getBiometricClientKey() throws -> String? {
+        try getBiometric(key: biometricClientKeyKey)
+    }
+
+    func clearBiometricClientKey() {
+        delete(key: biometricClientKeyKey)
+    }
+
+    func hasBiometricClientKey() -> Bool {
+        let context = LAContext()
+        context.interactionNotAllowed = true
+
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: biometricClientKeyKey,
             kSecUseAuthenticationContext as String: context
         ]
 

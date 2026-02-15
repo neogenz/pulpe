@@ -65,6 +65,11 @@ actor APIClient {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
+        // Add client encryption key
+        if let clientKey = await ClientKeyManager.shared.resolveClientKey() {
+            request.setValue(clientKey, forHTTPHeaderField: "X-Client-Key")
+        }
+
         // Add body
         if let body {
             request.httpBody = try encoder.encode(body)
@@ -91,6 +96,11 @@ actor APIClient {
 
         if let token = await KeychainManager.shared.getAccessToken(), !token.isEmpty {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        // Add client encryption key
+        if let clientKey = await ClientKeyManager.shared.resolveClientKey() {
+            request.setValue(clientKey, forHTTPHeaderField: "X-Client-Key")
         }
 
         if let body {
