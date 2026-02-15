@@ -15,7 +15,7 @@ struct HousingStep: View {
                     get: { state.housingCosts },
                     set: { state.housingCosts = $0 }
                 ),
-                placeholder: "1500",
+                hint: "1500",
                 label: "Loyer mensuel"
             )
         }

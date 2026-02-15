@@ -15,7 +15,7 @@ struct IncomeStep: View {
                     get: { state.monthlyIncome },
                     set: { state.monthlyIncome = $0 }
                 ),
-                placeholder: "5000",
+                hint: "5000",
                 label: "Revenu mensuel net"
             )
         }

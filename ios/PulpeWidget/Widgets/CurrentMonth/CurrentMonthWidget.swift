@@ -17,11 +17,11 @@ struct CurrentMonthWidget: Widget {
 #Preview("Small", as: .systemSmall) {
     CurrentMonthWidget()
 } timeline: {
-    CurrentMonthEntry.placeholder
+    CurrentMonthEntry.preview
 }
 
 #Preview("Medium", as: .systemMedium) {
     CurrentMonthWidget()
 } timeline: {
-    CurrentMonthEntry.placeholder
+    CurrentMonthEntry.preview
 }

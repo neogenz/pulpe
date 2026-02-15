@@ -15,7 +15,7 @@ struct HealthInsuranceStep: View {
                     get: { state.healthInsurance },
                     set: { state.healthInsurance = $0 }
                 ),
-                placeholder: "400",
+                hint: "400",
                 label: "Assurance maladie"
             )
         }

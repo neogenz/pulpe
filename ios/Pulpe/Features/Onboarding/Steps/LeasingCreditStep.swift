@@ -15,7 +15,7 @@ struct LeasingCreditStep: View {
                     get: { state.leasingCredit },
                     set: { state.leasingCredit = $0 }
                 ),
-                placeholder: "300",
+                hint: "300",
                 label: "Leasing ou mensualité de crédit"
             )
         }

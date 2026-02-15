@@ -15,7 +15,7 @@ struct TransportStep: View {
                     get: { state.transportCosts },
                     set: { state.transportCosts = $0 }
                 ),
-                placeholder: "100",
+                hint: "100",
                 label: "Transport (abonnement, essence...)"
             )
         }

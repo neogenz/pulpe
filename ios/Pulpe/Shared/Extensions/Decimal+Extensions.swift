@@ -68,8 +68,8 @@ extension Optional where Wrapped == Decimal {
         self ?? .zero
     }
 
-    /// Format as CHF, or return placeholder if nil
-    func asCHF(placeholder: String = "-") -> String {
-        self?.asCHF ?? placeholder
+    /// Format as CHF, or return fallback if nil
+    func asCHF(fallback: String = "-") -> String {
+        self?.asCHF ?? fallback
     }
 }

@@ -8,7 +8,7 @@ struct CurrentMonthEntry: TimelineEntry, Sendable {
     let budgetId: String?
     let hasData: Bool
 
-    static var placeholder: CurrentMonthEntry {
+    static var preview: CurrentMonthEntry {
         CurrentMonthEntry(
             date: Date(),
             available: 1500,

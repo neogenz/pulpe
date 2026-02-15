@@ -166,14 +166,14 @@ struct YearSection: View {
             return MonthSlot(month: month, budget: budget)
         }
 
-        // For current/future years, add the next empty month as a placeholder
+        // For current/future years, add the next empty month as a stub
         if year >= currentYear {
             let startMonth = (year == currentYear) ? currentMonth : 1
             for m in startMonth ... 12 {
                 let hasBudget = budgets.contains { $0.month == m }
                 if !hasBudget {
                     slots.append(MonthSlot(month: m, budget: nil))
-                    break // Only one placeholder
+                    break // Only one empty slot
                 }
             }
         }

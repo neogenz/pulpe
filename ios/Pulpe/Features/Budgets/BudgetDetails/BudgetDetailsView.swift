@@ -394,7 +394,7 @@ final class BudgetDetailsViewModel {
     var hasNextBudget: Bool { nextBudgetId != nil }
 
     /// Prepare navigation by changing the budgetId (synchronous)
-    /// Old data stays as placeholder until new data arrives via reloadCurrentBudget()
+    /// Old data stays visible until new data arrives via reloadCurrentBudget()
     func prepareNavigation(to id: String) {
         budgetId = id
     }

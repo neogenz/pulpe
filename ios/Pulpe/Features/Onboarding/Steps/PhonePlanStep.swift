@@ -15,7 +15,7 @@ struct PhonePlanStep: View {
                     get: { state.phonePlan },
                     set: { state.phonePlan = $0 }
                 ),
-                placeholder: "50",
+                hint: "50",
                 label: "Forfait téléphone"
             )
         }

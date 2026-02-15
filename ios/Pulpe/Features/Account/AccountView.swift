@@ -4,6 +4,7 @@ struct AccountView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppState.self) private var appState
     @State private var biometricToggle = false
+    @State private var showDeleteConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -49,6 +50,13 @@ struct AccountView: View {
                 .listRowBackground(Color.surfaceCard)
 
                 Section {
+                    Button("Supprimer mon compte", role: .destructive) {
+                        showDeleteConfirmation = true
+                    }
+                }
+                .listRowBackground(Color.surfaceCard)
+
+                Section {
                     Button("Déconnexion", role: .destructive) {
                         Task { await appState.logout() }
                         dismiss()
@@ -58,6 +66,17 @@ struct AccountView: View {
             }
             .onAppear {
                 biometricToggle = appState.biometricEnabled
+            }
+            .alert("Supprimer mon compte", isPresented: $showDeleteConfirmation) {
+                Button("Annuler", role: .cancel) { }
+                Button("Supprimer", role: .destructive) {
+                    Task {
+                        await appState.deleteAccount()
+                        dismiss()
+                    }
+                }
+            } message: {
+                Text("Votre compte sera définitivement supprimé après un délai de 3 jours. Cette action est irréversible.")
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)

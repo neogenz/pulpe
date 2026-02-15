@@ -17,5 +17,5 @@ struct YearOverviewWidget: Widget {
 #Preview("Large", as: .systemLarge) {
     YearOverviewWidget()
 } timeline: {
-    YearOverviewEntry.placeholder
+    YearOverviewEntry.preview
 }

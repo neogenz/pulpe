@@ -6,16 +6,12 @@ struct CurrentMonthProvider: TimelineProvider {
 
     private let coordinator = WidgetDataCoordinator()
 
-    func placeholder(in context: Context) -> CurrentMonthEntry {
-        .placeholder
-    }
-
     func getSnapshot(in context: Context, completion: @escaping (CurrentMonthEntry) -> Void) {
         if context.isPreview {
-            completion(.placeholder)
+            completion(.preview)
             return
         }
-        completion(loadEntry() ?? .placeholder)
+        completion(loadEntry() ?? .preview)
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<CurrentMonthEntry>) -> Void) {

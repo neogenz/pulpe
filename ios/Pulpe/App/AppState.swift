@@ -143,6 +143,17 @@ final class AppState {
         selectedTab = .currentMonth
     }
 
+    func deleteAccount() async {
+        do {
+            _ = try await authService.deleteAccount()
+        } catch {
+            toastManager.show("La suppression du compte a échoué", type: .error)
+            return
+        }
+
+        await logout()
+    }
+
     func completeOnboarding(user: UserInfo) {
         currentUser = user
         hasCompletedOnboarding = true
