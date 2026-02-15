@@ -34,46 +34,38 @@ struct AddTransactionSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: DesignTokens.Spacing.xxl) {
-                    heroAmountSection
-                    quickAmountChips
-                    descriptionField
-                    kindSelector
-                    dateSelector
+        ScrollView {
+            VStack(spacing: DesignTokens.Spacing.xxl) {
+                heroAmountSection
+                quickAmountChips
+                descriptionField
+                kindSelector
+                dateSelector
 
-                    if let error {
-                        ErrorBanner(message: error.localizedDescription) {
-                            self.error = nil
-                        }
+                if let error {
+                    ErrorBanner(message: error.localizedDescription) {
+                        self.error = nil
                     }
+                }
 
-                    addButton
-                }
-                .padding(.horizontal, DesignTokens.Spacing.xl)
-                .padding(.top, DesignTokens.Spacing.xxxl)
-                .padding(.bottom, DesignTokens.Spacing.xl)
+                addButton
             }
-            .background(Color.surfacePrimary)
-            .navigationTitle("Nouvelle dépense")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
-                }
-            }
-            .loadingOverlay(isLoading)
-            .task {
-                try? await Task.sleep(for: .milliseconds(200))
-                isAmountFocused = true
-            }
-            .onChange(of: isAmountFocused) { _, isFocused in
-                if !isFocused, let quickAmount = pendingQuickAmount {
-                    amount = Decimal(quickAmount)
-                    amountText = "\(quickAmount)"
-                    pendingQuickAmount = nil
-                }
+            .padding(.horizontal, DesignTokens.Spacing.xl)
+            .padding(.top, DesignTokens.Spacing.lg)
+            .padding(.bottom, DesignTokens.Spacing.xl)
+        }
+        .background(Color.surfacePrimary)
+        .modernSheet(title: "Nouvelle dépense")
+        .loadingOverlay(isLoading)
+        .task {
+            try? await Task.sleep(for: .milliseconds(200))
+            isAmountFocused = true
+        }
+        .onChange(of: isAmountFocused) { _, isFocused in
+            if !isFocused, let quickAmount = pendingQuickAmount {
+                amount = Decimal(quickAmount)
+                amountText = "\(quickAmount)"
+                pendingQuickAmount = nil
             }
         }
     }

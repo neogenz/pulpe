@@ -104,6 +104,7 @@
 		96C846AEAA6A38B7A6B59F97 /* BudgetServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8250F651720C623BD61FB30 /* BudgetServiceTests.swift */; };
 		97092F838305C402C7CAE3A9 /* AnimationConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ECBDA78A766C8FC3E6BBDA9 /* AnimationConstants.swift */; };
 		9C6DBDE02F4240C80044C0CA /* LoginViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C6DBDDF2F4240C80044C0CA /* LoginViewModel.swift */; };
+		9C6DBDE22F42544B0044C0CA /* ModernSheetModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C6DBDE12F42544B0044C0CA /* ModernSheetModifier.swift */; };
 		9DF3E7C14A96A5E7AC8EC4C3 /* LinkedTransactionsContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = D45C40FA08472FA75B62A6AC /* LinkedTransactionsContext.swift */; };
 		9E4C5D319DB85E349A7923AF /* DesignTokensTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A73DE8701BDE0D8D5D4C66 /* DesignTokensTests.swift */; };
 		A22726A5F8810386134F4846 /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7722947386A7CD78FE3B05 /* OnboardingFlow.swift */; };
@@ -292,6 +293,7 @@
 		9BB8AFF47FF273694E987E2A /* Pulpe.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Pulpe.entitlements; sourceTree = "<group>"; };
 		9C02340FB2A3D93553E9CA15 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		9C6DBDDF2F4240C80044C0CA /* LoginViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginViewModel.swift; sourceTree = "<group>"; };
+		9C6DBDE12F42544B0044C0CA /* ModernSheetModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModernSheetModifier.swift; sourceTree = "<group>"; };
 		9E56340C03DD8EE1F7DF7638 /* BudgetService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetService.swift; sourceTree = "<group>"; };
 		A0EB7D0152B9975CEB86BDD3 /* NumpadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NumpadView.swift; sourceTree = "<group>"; };
 		A1A0EA391775C63723A83BF3 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
@@ -468,6 +470,7 @@
 				A77FEC48FC6CEA8465118A09 /* ToastManager.swift */,
 				77C8421EEBFDB74A00EE05B5 /* ToastView.swift */,
 				F15A109E95BBEA3CE6EA04C7 /* WelcomeLottieView.swift */,
+				9C6DBDE12F42544B0044C0CA /* ModernSheetModifier.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -1361,6 +1364,7 @@
 				7E36837E1844ECEFA60958A5 /* WelcomeLottieView.swift in Sources */,
 				80BAC93003BA8CCBE291A779 /* WelcomeStep.swift in Sources */,
 				21DAB020999B845E0879BAE3 /* WidgetDataCoordinator.swift in Sources */,
+				9C6DBDE22F42544B0044C0CA /* ModernSheetModifier.swift in Sources */,
 				1C7AFF9A8352CF009B93B03B /* WidgetDataSyncService.swift in Sources */,
 				55D79FD3DF0AFD08A0E9F743 /* YearOverviewCard.swift in Sources */,
 			);

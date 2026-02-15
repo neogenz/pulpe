@@ -40,40 +40,32 @@ struct EditTemplateLineSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: DesignTokens.Spacing.xxl) {
-                    heroAmountSection
-                    descriptionField
-                    kindSelector
-                    recurrenceSelector
+        ScrollView {
+            VStack(spacing: DesignTokens.Spacing.xxl) {
+                heroAmountSection
+                descriptionField
+                kindSelector
+                recurrenceSelector
 
-                    if let error {
-                        ErrorBanner(message: error.localizedDescription) {
-                            self.error = nil
-                        }
+                if let error {
+                    ErrorBanner(message: error.localizedDescription) {
+                        self.error = nil
                     }
+                }
 
-                    saveButton
-                }
-                .padding(.horizontal, DesignTokens.Spacing.xl)
-                .padding(.top, DesignTokens.Spacing.xxxl)
-                .padding(.bottom, DesignTokens.Spacing.xl)
+                saveButton
             }
-            .background(Color.surfacePrimary)
-            .navigationTitle("Modifier la ligne")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
-                }
-            }
-            .loadingOverlay(isLoading)
-            .dismissKeyboardOnTap()
-            .task {
-                try? await Task.sleep(for: .milliseconds(200))
-                isAmountFocused = true
-            }
+            .padding(.horizontal, DesignTokens.Spacing.xl)
+            .padding(.top, DesignTokens.Spacing.lg)
+            .padding(.bottom, DesignTokens.Spacing.xl)
+        }
+        .background(Color.surfacePrimary)
+        .modernSheet(title: "Modifier la ligne")
+        .loadingOverlay(isLoading)
+        .dismissKeyboardOnTap()
+        .task {
+            try? await Task.sleep(for: .milliseconds(200))
+            isAmountFocused = true
         }
     }
 
