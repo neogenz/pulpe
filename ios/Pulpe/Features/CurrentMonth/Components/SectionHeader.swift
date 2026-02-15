@@ -31,6 +31,7 @@ struct SectionHeader: View {
                 Text(total.asCHF)
                     .font(.system(.subheadline, design: .rounded, weight: .semibold))
                     .foregroundStyle(totalColor)
+                    .sensitiveAmount()
             }
         }
     }

@@ -12,7 +12,7 @@ struct CurrencyField: View {
     }()
 
     @Binding var value: Decimal?
-    let placeholder: String
+    let hint: String
     let label: String?
 
     @FocusState private var internalFocus: Bool
@@ -26,12 +26,12 @@ struct CurrencyField: View {
 
     init(
         value: Binding<Decimal?>,
-        placeholder: String = "0.00",
+        hint: String = "0.00",
         label: String? = nil,
         externalFocus: FocusState<Bool>.Binding? = nil
     ) {
         self._value = value
-        self.placeholder = placeholder
+        self.hint = hint
         self.label = label
         self.externalFocus = externalFocus
     }
@@ -49,7 +49,7 @@ struct CurrencyField: View {
                     .foregroundStyle(.secondary)
                     .font(.body)
 
-                TextField(placeholder, text: $textValue)
+                TextField(hint, text: $textValue)
                     .keyboardType(.decimalPad)
                     .focused(externalFocus ?? $internalFocus)
                     .onChange(of: textValue) { _, newValue in
@@ -126,6 +126,7 @@ struct CurrencyText: View {
     var body: some View {
         Text(formattedAmount)
             .font(font)
+            .sensitiveAmount()
     }
 
     private var font: Font {
@@ -152,7 +153,7 @@ struct CurrencyText: View {
 
         CurrencyField(
             value: .constant(nil),
-            placeholder: "0.00",
+            hint: "0.00",
             label: "Montant optionnel"
         )
 

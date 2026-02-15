@@ -49,7 +49,7 @@ private struct UncheckedTransactionRow: View {
                     .fill(Color.financialOverBudget.opacity(DesignTokens.Opacity.badgeBackground))
                     .frame(width: 36, height: 36)
 
-                Image(systemName: transaction.kind.listIcon)
+                Image(systemName: transaction.kind.icon)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Color.financialOverBudget)
             }
@@ -73,6 +73,7 @@ private struct UncheckedTransactionRow: View {
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(transaction.kind.color)
+                .sensitiveAmount()
         }
         .padding(.vertical, 4)
     }

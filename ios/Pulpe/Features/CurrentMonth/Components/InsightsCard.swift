@@ -86,6 +86,7 @@ struct InsightsCard: View {
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundStyle(.primary)
+                    .sensitiveAmount()
                 Text("\(percentage)% de tes dépenses")
                     .font(.caption)
                     .foregroundStyle(.secondary)

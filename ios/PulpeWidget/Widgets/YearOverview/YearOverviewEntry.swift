@@ -8,9 +8,9 @@ struct MonthData: Identifiable, Sendable {
     let available: Decimal?
     let isCurrentMonth: Bool
 
-    /// Returns true if this month has a real budget (not a placeholder)
+    /// Returns true if this month has a real budget
     var hasBudget: Bool {
-        !id.hasPrefix("placeholder-") && !id.hasPrefix("empty-")
+        !id.hasPrefix("no-budget-") && !id.hasPrefix("empty-")
     }
 }
 
@@ -20,13 +20,13 @@ struct YearOverviewEntry: TimelineEntry, Sendable {
     let months: [MonthData]
     let hasData: Bool
 
-    static var placeholder: YearOverviewEntry {
+    static var preview: YearOverviewEntry {
         let currentYear = Calendar.current.component(.year, from: Date())
         let currentMonth = Calendar.current.component(.month, from: Date())
 
         let months = (1...12).map { month in
             MonthData(
-                id: "placeholder-\(month)",
+                id: "no-budget-\(month)",
                 month: month,
                 shortName: shortMonthName(for: month),
                 available: Decimal(Int.random(in: 500...3000)),

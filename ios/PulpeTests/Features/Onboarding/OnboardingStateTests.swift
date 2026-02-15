@@ -31,31 +31,32 @@ final class OnboardingStateTests: XCTestCase {
 
     func testCanProceed_personalInfo_trueWhenValid() {
         state.firstName = "Max"
+        state.monthlyIncome = 3000
         XCTAssertTrue(state.canProceed(from: .personalInfo))
     }
 
-    func testCanProceed_income_falseWhenNil() {
+    func testCanProceed_personalInfo_falseWhenIncomeNil() {
+        state.firstName = "Max"
         state.monthlyIncome = nil
-        XCTAssertFalse(state.canProceed(from: .income))
+        XCTAssertFalse(state.canProceed(from: .personalInfo))
     }
 
-    func testCanProceed_income_falseWhenZero() {
+    func testCanProceed_personalInfo_falseWhenIncomeZero() {
+        state.firstName = "Max"
         state.monthlyIncome = 0
-        XCTAssertFalse(state.canProceed(from: .income))
+        XCTAssertFalse(state.canProceed(from: .personalInfo))
     }
 
-    func testCanProceed_income_trueWhenPositive() {
+    func testCanProceed_personalInfo_trueWhenIncomePositive() {
+        state.firstName = "Max"
         state.monthlyIncome = 3000
-        XCTAssertTrue(state.canProceed(from: .income))
+        XCTAssertTrue(state.canProceed(from: .personalInfo))
     }
 
     // MARK: - canProceed: Optional Steps
 
     func testCanProceed_optionalSteps_alwaysTrue() {
-        let optionalSteps: [OnboardingStep] = [.housing, .healthInsurance, .phonePlan, .transport, .leasingCredit]
-        for step in optionalSteps {
-            XCTAssertTrue(state.canProceed(from: step), "Expected canProceed to be true for optional step \(step)")
-        }
+        XCTAssertTrue(state.canProceed(from: .expenses), "Expected canProceed to be true for optional step expenses")
     }
 
     // MARK: - Navigation: Forward Blocked When Invalid

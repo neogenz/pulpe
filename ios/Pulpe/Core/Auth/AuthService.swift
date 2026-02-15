@@ -99,6 +99,12 @@ actor AuthService {
         await keychain.clearBiometricTokens()
     }
 
+    // MARK: - Account Deletion
+
+    func deleteAccount() async throws -> DeleteAccountResponse {
+        try await APIClient.shared.request(.deleteAccount, method: .delete)
+    }
+
     // MARK: - Token Access (for API Client)
 
     func getAccessToken() async -> String? {
@@ -200,4 +206,10 @@ enum AuthServiceError: LocalizedError {
 struct UserInfo: Codable, Equatable, Sendable {
     let id: String
     let email: String
+}
+
+struct DeleteAccountResponse: Codable, Sendable {
+    let success: Bool
+    let message: String
+    let scheduledDeletionAt: String
 }

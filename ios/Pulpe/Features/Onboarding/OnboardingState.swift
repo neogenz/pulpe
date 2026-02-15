@@ -77,6 +77,19 @@ final class OnboardingState {
         return Double(currentIndex) / Double(totalSteps) * 100
     }
 
+    var totalExpenses: Decimal {
+        let housing: Decimal = housingCosts ?? 0
+        let health: Decimal = healthInsurance ?? 0
+        let phone: Decimal = phonePlan ?? 0
+        let transport: Decimal = transportCosts ?? 0
+        let leasing: Decimal = leasingCredit ?? 0
+        return housing + health + phone + transport + leasing
+    }
+
+    var availableToSpend: Decimal {
+        (monthlyIncome ?? 0) - totalExpenses
+    }
+
     // MARK: - Navigation
 
     func canProceed(from step: OnboardingStep) -> Bool {
@@ -84,11 +97,11 @@ final class OnboardingState {
         case .welcome:
             return true
         case .personalInfo:
-            return isFirstNameValid
-        case .income:
-            return isIncomeValid
-        case .housing, .healthInsurance, .phonePlan, .transport, .leasingCredit:
-            return true // Optional steps
+            return isFirstNameValid && isIncomeValid
+        case .expenses:
+            return true
+        case .budgetPreview:
+            return true
         case .registration:
             return canSubmitRegistration
         }
@@ -100,7 +113,9 @@ final class OnboardingState {
             return
         }
         isMovingForward = true
-        currentStep = OnboardingStep.allCases[currentIndex + 1]
+        withAnimation(PulpeAnimations.stepTransition) {
+            currentStep = OnboardingStep.allCases[currentIndex + 1]
+        }
         saveToStorage()
     }
 
@@ -110,7 +125,9 @@ final class OnboardingState {
             return
         }
         isMovingForward = false
-        currentStep = OnboardingStep.allCases[currentIndex - 1]
+        withAnimation(PulpeAnimations.stepTransition) {
+            currentStep = OnboardingStep.allCases[currentIndex - 1]
+        }
         saveToStorage()
     }
 
@@ -182,12 +199,8 @@ final class OnboardingState {
 enum OnboardingStep: String, CaseIterable, Identifiable {
     case welcome
     case personalInfo
-    case income
-    case housing
-    case healthInsurance
-    case phonePlan
-    case transport
-    case leasingCredit
+    case expenses
+    case budgetPreview
     case registration
 
     var id: String { rawValue }
@@ -196,12 +209,8 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
         switch self {
         case .welcome: "Bienvenue"
         case .personalInfo: "Qui es-tu ?"
-        case .income: "Tes revenus"
-        case .housing: "Logement"
-        case .healthInsurance: "Assurance maladie"
-        case .phonePlan: "Téléphone"
-        case .transport: "Transport"
-        case .leasingCredit: "Leasing / Crédit"
+        case .expenses: "Tes charges fixes"
+        case .budgetPreview: "Ton budget"
         case .registration: "Dernière étape"
         }
     }
@@ -210,19 +219,15 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
         switch self {
         case .welcome: "Reprends le contrôle de tes finances"
         case .personalInfo: "On fait connaissance"
-        case .income: "Combien gagnes-tu par mois ?"
-        case .housing: "Quel est ton loyer mensuel ?"
-        case .healthInsurance: "Combien paies-tu par mois ?"
-        case .phonePlan: "Quel est le coût de ton forfait ?"
-        case .transport: "Abonnement, essence, etc."
-        case .leasingCredit: "Mensualités de leasing ou crédit"
+        case .expenses: "Renseigne ce que tu connais — le reste peut attendre"
+        case .budgetPreview: "Voici ce que ça donne"
         case .registration: "On y est presque !"
         }
     }
 
     var isOptional: Bool {
         switch self {
-        case .housing, .healthInsurance, .phonePlan, .transport, .leasingCredit:
+        case .expenses:
             return true
         default:
             return false
@@ -237,12 +242,8 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
         switch self {
         case .welcome: "sparkles"
         case .personalInfo: "person.circle.fill"
-        case .income: "banknote.fill"
-        case .housing: "house.fill"
-        case .healthInsurance: "cross.circle.fill"
-        case .phonePlan: "iphone"
-        case .transport: "car.fill"
-        case .leasingCredit: "creditcard.fill"
+        case .expenses: "house.fill"
+        case .budgetPreview: "chart.pie.fill"
         case .registration: "checkmark.seal.fill"
         }
     }
@@ -251,12 +252,8 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
         switch self {
         case .welcome: .pulpePrimary
         case .personalInfo: .pulpePrimary
-        case .income: .stepIncome
-        case .housing: .stepHousing
-        case .healthInsurance: .stepHealth
-        case .phonePlan: .stepPhone
-        case .transport: .stepTransport
-        case .leasingCredit: .stepCredit
+        case .expenses: .stepHousing
+        case .budgetPreview: .pulpePrimary
         case .registration: .pulpePrimary
         }
     }

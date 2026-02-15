@@ -127,6 +127,11 @@ Button("Action") { }
 Text("Badge")
     .glassEffect(in: RoundedRectangle(cornerRadius: 8))
 
+// Glass variants
+.glassEffect(.regular)   // Standard translucent
+.glassEffect(.clear)     // Minimal, subtle
+.glassEffect(.identity)  // No glass (for conditional)
+
 // Group nearby glass
 @Namespace private var glassNS
 
@@ -143,6 +148,30 @@ GlassEffectContainer {
 ```
 
 **Key rule:** Glass can't sample other glass—use `GlassEffectContainer` for nearby elements.
+
+### Button Styles (iOS 26)
+
+```swift
+// Glass button styles
+Button("Action") { }
+    .buttonStyle(.glass)              // Liquid Glass styling
+    .buttonStyle(.glassProminent)     // Prominent glass variant
+
+// Close button role (X mark with glass in toolbars)
+Button(role: .close) { dismiss() }
+```
+
+### Liquid Glass Sheets
+
+Partial detents are **required** for Liquid Glass sheet appearance:
+
+```swift
+.sheet(isPresented: $show) {
+    InfoView()
+        .presentationDetents([.medium, .large])  // Required for glass
+        // Remove custom backgrounds — let system material work
+}
+```
 
 ---
 
@@ -413,6 +442,35 @@ Match only the container shape and crossfade the content -- applying `matchedGeo
 
 Animate a modal expanding from (and collapsing to) a specific trigger location. Requires separating visibility state from animation state to handle `onAppear` and exit animations. See [gotchas.md](gotchas.md) for the full implementation pattern.
 
+### @Animatable Macro (iOS 26)
+
+Simplifies custom animatable properties — no more manual `animatableData`:
+
+```swift
+@Animatable
+struct PulseModifier: ViewModifier {
+    var scale: CGFloat = 1.0
+
+    func body(content: Content) -> some View {
+        content.scaleEffect(scale)
+    }
+}
+```
+
+### SF Symbols 7 Animations
+
+```swift
+// Draw-on animation (symbol draws itself)
+Image(systemName: "checkmark.circle")
+    .symbolEffect(.drawOn)
+
+// Draw-off (reverse)
+Image(systemName: "xmark.circle")
+    .symbolEffect(.drawOff)
+```
+
+Three playback styles: whole symbol, offset layers, reveal-by-layer. Automatic gradients from single colors.
+
 ### Text Renderer (Advanced)
 
 Line-by-line or glyph-by-glyph animation via `TextRenderer`. Use only for marketing-quality onboarding or key value proposition emphasis.
@@ -486,9 +544,12 @@ Extract: row rendering, headers, cards, toolbars. Keep each focused and previewa
 
 1. Reproduce hitch/hang
 2. Record with SwiftUI template
-3. Check: "Long View Body Updates", representable updates
-4. Identify triggering state changes
-5. Reduce dependency scope or move work off main thread
+3. Check: **Long View Body Updates**, **Update Groups**, representable updates
+4. Use **Cause & Effect Graph** to visualize state → view update chains
+5. Identify triggering state changes
+6. Reduce dependency scope or move work off main thread
+
+Color coding: orange/red = higher likelihood of hitches/hangs.
 
 ### Body Must Be Cheap
 
@@ -510,32 +571,224 @@ Extract: row rendering, headers, cards, toolbars. Keep each focused and previewa
 - Use `Equatable` conformance where it helps
 - Ensure stable `id` in lists
 
+### Equatable Conformance
+
+SwiftUI diffs views using reflection by default. Equatable conformance enables faster, direct comparison.
+
+```swift
+struct TransactionRow: View, Equatable {
+    let transaction: Transaction
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.transaction.id == rhs.transaction.id
+            && lhs.transaction.amount == rhs.transaction.amount
+    }
+
+    var body: some View { /* ... */ }
+}
+```
+
+Use on frequently-rendered rows in scrollable lists.
+
+### List Performance (iOS 26)
+
+- 6x faster loading for 100,000+ items
+- 16x faster updates
+- Prefer `List` over `LazyVStack` for very large datasets — `List` recycles views like `UITableView`
+
+### Canvas for Complex Drawing
+
+Use `Canvas` instead of composing many views for data visualizations or particle effects:
+
+```swift
+Canvas { context, size in
+    for point in dataPoints {
+        context.fill(
+            Circle().path(in: CGRect(origin: point, size: CGSize(width: 6, height: 6))),
+            with: .color(.blue)
+        )
+    }
+}
+```
+
+Metal-backed, GPU-accelerated. Use `drawingGroup()` for complex layered compositions that don't need Canvas.
+
+### AsyncImage Caching Caveat
+
+`AsyncImage` does **not** cache images between re-renders. For image-heavy apps:
+- Use `NSCache` wrapper or third-party (Nuke, Kingfisher)
+- Never rely on `AsyncImage` alone for production scrollable lists
+
 ---
 
 ## 10) Accessibility
 
 ### Dynamic Type
 
-- System text styles only
-- Don't clip large text
+- System text styles only (`.title`, `.body`, `.caption`, etc.)
+- Don't clip large text — use `.fixedSize(horizontal: false, vertical: true)`
 - Layout adapts: stacks turn vertical, rows multi-line
 - Toolbars use menus when crowded
+- Use `@ScaledMetric` for custom spacing near text
+- Test at XXL+ accessibility sizes
+
+```swift
+// Adaptive layout based on text size
+@Environment(\.sizeCategory) var sizeCategory
+
+var body: some View {
+    if sizeCategory.isAccessibilityCategory {
+        VStack { content }
+    } else {
+        HStack { content }
+    }
+}
+```
 
 ### VoiceOver
 
 - Use `Label` and `LabeledContent` (better semantics)
 - Add `.accessibilityLabel`, `.accessibilityValue`, `.accessibilityHint`
 - Focus order matches reading order
+- Hide decorative elements: `.accessibility(hidden: true)`
+- Group related content: `.accessibilityElement(children: .combine)`
+
+### Accessibility Element Grouping
+
+```swift
+// Combine children into one VoiceOver element
+HStack {
+    Image(systemName: "star.fill")
+    Text("4.8")
+    Text("(230 reviews)")
+}
+.accessibilityElement(children: .combine)
+
+// Ignore children, provide custom label
+HStack { /* complex layout */ }
+.accessibilityElement(children: .ignore)
+.accessibilityLabel("Rating: 4.8 out of 5, 230 reviews")
+```
+
+Options: `.combine` (join labels), `.ignore` (custom label), `.contain` (container)
+
+### Accessibility Traits
+
+```swift
+Text("Budget Overview")
+    .accessibility(addTraits: .isHeader)  // VoiceOver can skip to headers
+
+Button { } label: { customView }
+    .accessibility(removeTraits: .isButton)  // Remove if misleading
+```
+
+Key traits: `.isHeader`, `.isButton`, `.isLink`, `.isSummaryElement`, `.updatesFrequently`, `.isSearchField`
+
+### Focus Management
+
+```swift
+@AccessibilityFocusState private var focusedField: Field?
+
+enum Field { case name, amount }
+
+TextField("Name", text: $name)
+    .accessibilityFocused($focusedField, equals: .name)
+
+// Move focus programmatically after action
+Button("Save") {
+    if validate() { save() }
+    else { focusedField = .name }
+}
+```
+
+### Custom Actions
+
+```swift
+// Add VoiceOver swipe-up/down actions
+TransactionRow(transaction: tx)
+    .accessibilityAction(named: "Supprimer") { delete(tx) }
+    .accessibilityAction(named: "Modifier") { edit(tx) }
+
+// Adjustable elements (slider-like)
+.accessibilityAdjustableAction { direction in
+    switch direction {
+    case .increment: value += 1
+    case .decrement: value -= 1
+    @unknown default: break
+    }
+}
+```
+
+### Accessibility Rotor
+
+```swift
+// Quick navigation by category
+ScrollView {
+    content
+}
+.accessibilityRotor("Catégories") {
+    ForEach(categories) { cat in
+        AccessibilityRotorEntry(cat.name, id: cat.id) {
+            scrollProxy.scrollTo(cat.id)
+        }
+    }
+}
+```
+
+### Custom Content (AXCustomContent)
+
+```swift
+// Additional info read on demand by VoiceOver
+BudgetCard(budget: budget)
+    .accessibilityCustomContent("Restant", budget.formattedRemaining)
+    .accessibilityCustomContent("Dépensé", budget.formattedSpent, importance: .high)
+```
+
+Importance `.high` = read immediately. `.default` = user must swipe for more info.
+
+### Large Content Viewer
+
+```swift
+// Long-press shows enlarged content (toolbar items, small controls)
+ToolbarItem {
+    Button { } label: { Image(systemName: "gear") }
+        .accessibilityShowsLargeContentViewer {
+            Label("Paramètres", systemImage: "gear")
+        }
+}
+```
+
+### Accessibility Notifications
+
+```swift
+// Announce dynamic changes to VoiceOver
+AccessibilityNotification.Announcement("Élément ajouté").post()
+
+// After layout changes
+AccessibilityNotification.LayoutChanged(nil).post()
+```
 
 ### Motion and Transparency
 
-If Reduce Motion enabled:
-- Remove large parallax
-- Use opacity instead of scale/rotation
+```swift
+@Environment(\.accessibilityReduceMotion) private var reduceMotion
+@Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
-If Reduce Transparency enabled:
-- Don't rely on translucency for boundaries
-- Increase separation via layout and solid surfaces
+// Reduce Motion: replace animation with crossfade
+.animation(reduceMotion ? nil : .spring(), value: isExpanded)
+
+// Reduce Transparency: solid background instead of glass/blur
+.background(reduceTransparency ? Color(.systemBackground) : .clear)
+```
+
+### Color Contrast (WCAG)
+
+| Standard | Normal text | Large text (14pt bold / 18pt+) | UI components |
+|----------|-------------|-------------------------------|---------------|
+| **AA (minimum)** | 4.5:1 | 3:1 | 3:1 |
+| **AAA (enhanced)** | 7:1 | 4.5:1 | — |
+
+Critical with Liquid Glass: test contrast on translucent surfaces. Use Accessibility Inspector in Xcode.
 
 ### Touch Targets
 
@@ -551,9 +804,48 @@ Button {
 .contentShape(Rectangle())
 ```
 
+### Accessibility Nutrition Labels (iOS 26)
+
+Declare supported accessibility features in App Store Connect:
+- VoiceOver, Voice Control, Larger Text, Sufficient Contrast, Reduced Motion, Captions
+
+Currently voluntary, becoming **mandatory** for app submissions. Evaluate with WWDC25 session "Evaluate your app for Accessibility Nutrition Labels".
+
 ---
 
-## 11) Implementation Recipes
+## 11) Haptic Feedback
+
+### .sensoryFeedback() (iOS 17+, preferred)
+
+```swift
+// Declarative — preferred in SwiftUI
+Button("Valider") { submit() }
+    .sensoryFeedback(.success, trigger: isSubmitted)
+
+// Impact on value change
+Toggle("Activer", isOn: $isEnabled)
+    .sensoryFeedback(.impact(weight: .light), trigger: isEnabled)
+```
+
+| Feedback | Use Case |
+|----------|----------|
+| `.success` | Completed action, saved |
+| `.warning` | Caution, destructive action about to happen |
+| `.error` | Failed validation, error |
+| `.impact(weight:)` | Button taps, toggles, selection |
+| `.selection` | Picker value change, tab switch |
+| `.increase` / `.decrease` | Volume, slider adjustment |
+
+### Rules
+
+- Use sparingly — haptics lose meaning when overused
+- Match intensity to action importance
+- Always pair with visual feedback
+- Test on device (simulator has no haptics)
+
+---
+
+## 12) Implementation Recipes
 
 ### Screen Scaffold
 
@@ -617,7 +909,7 @@ struct EmptyState: View {
 
 ---
 
-## 12) ADA-Level Review Checklist
+## 13) ADA-Level Review Checklist
 
 ### Visual Hierarchy
 - [ ] One clear hero element
@@ -629,6 +921,7 @@ struct EmptyState: View {
 - [ ] Motion communicates causality
 - [ ] Effects rare and purposeful
 - [ ] Reduce Motion fallback exists
+- [ ] Haptic feedback on key interactions (.sensoryFeedback)
 
 ### Liquid Glass (iOS 26+)
 - [ ] Glass for navigation/control layer only
@@ -636,21 +929,28 @@ struct EmptyState: View {
 - [ ] Tint only for meaning/primary actions
 - [ ] Scroll edge effects only where appropriate
 - [ ] Nearby glass grouped in `GlassEffectContainer`
+- [ ] Partial detent set for Liquid Glass sheets
 
 ### Accessibility
 - [ ] Dynamic Type works at XXL+
 - [ ] VoiceOver labels/hints on non-obvious controls
-- [ ] Contrast sufficient with Increased Contrast
+- [ ] Contrast meets WCAG AA (4.5:1 text, 3:1 UI)
 - [ ] 44×44pt touch targets
+- [ ] accessibilityElement grouping on composite views
+- [ ] Header traits on section titles
+- [ ] Focus management after modal dismiss (@AccessibilityFocusState)
+- [ ] Reduce Transparency fallback for glass effects
+- [ ] AccessibilityNotification for dynamic content changes
 
 ### Performance
 - [ ] No heavy work in body
 - [ ] Stable identity in lists
+- [ ] Equatable conformance on frequently-rendered rows
 - [ ] Instrumented if any hitch
 
 ---
 
-## 13) LLM Output Structure
+## 14) LLM Output Structure
 
 When generating SwiftUI UI, structure output as:
 
@@ -667,13 +967,27 @@ When generating SwiftUI UI, structure output as:
 
 ## Source References
 
-- [WWDC25: Instruments for SwiftUI](https://developer.apple.com/videos/play/wwdc2025/306/)
-- [WWDC25: Get to know the new design system](https://developer.apple.com/videos/play/wwdc2025/356/)
-- [WWDC25: Adopting SwiftUI](https://developer.apple.com/videos/play/wwdc2025/323/)
-- [WWDC25: Meet Liquid Glass](https://developer.apple.com/videos/play/wwdc2025/219/)
+### WWDC25 Sessions
+- [Instruments for SwiftUI (306)](https://developer.apple.com/videos/play/wwdc2025/306/)
+- [Get to know the new design system (356)](https://developer.apple.com/videos/play/wwdc2025/356/)
+- [Build a SwiftUI app with the new design (323)](https://developer.apple.com/videos/play/wwdc2025/323/)
+- [Meet Liquid Glass (219)](https://developer.apple.com/videos/play/wwdc2025/219/)
+- [What's new in SwiftUI (256)](https://developer.apple.com/videos/play/wwdc2025/256/)
+- [What's new in SF Symbols 7 (337)](https://developer.apple.com/videos/play/wwdc2025/337/)
+- [Evaluate your app for Accessibility Nutrition Labels (224)](https://developer.apple.com/videos/play/wwdc2025/224/)
+- [Customize your app for Assistive Access (238)](https://developer.apple.com/videos/play/wwdc2025/238/)
+
+### WWDC23-24 Sessions
 - [WWDC24: Create custom visual effects](https://developer.apple.com/videos/play/wwdc2024/10151/)
+- [WWDC24: Catch up on accessibility in SwiftUI](https://developer.apple.com/videos/play/wwdc2024/10073/)
 - [WWDC23: Discover Observation](https://developer.apple.com/videos/play/wwdc2023/10149/)
 - [WWDC21: Demystify SwiftUI](https://developer.apple.com/videos/play/wwdc2021/10022/)
-- [ConcentricRectangle Documentation](https://developer.apple.com/documentation/swiftui/concentricrectangle)
-- [ToolbarSpacer Documentation](https://developer.apple.com/documentation/swiftui/toolbarspacer)
+
+### Apple Documentation
+- [Applying Liquid Glass to custom views](https://developer.apple.com/documentation/SwiftUI/Applying-Liquid-Glass-to-custom-views)
+- [ConcentricRectangle](https://developer.apple.com/documentation/swiftui/concentricrectangle)
+- [ToolbarSpacer](https://developer.apple.com/documentation/swiftui/toolbarspacer)
+- [Accessibility Modifiers Reference](https://developer.apple.com/documentation/swiftui/view-accessibility)
+- [Accessibility Nutrition Labels](https://developer.apple.com/help/app-store-connect/manage-app-accessibility/overview-of-accessibility-nutrition-labels/)
+- [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/)
 - [Apple Design Awards 2025](https://www.apple.com/newsroom/2025/06/apple-unveils-winners-and-finalists-of-the-2025-apple-design-awards/)

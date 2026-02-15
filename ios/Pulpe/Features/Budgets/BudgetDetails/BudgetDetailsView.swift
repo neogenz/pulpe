@@ -1,51 +1,76 @@
 import SwiftUI
 
-// MARK: - Month Navigation Bar
+// MARK: - Month Dropdown Menu
 
-struct MonthNavigationBar: View {
-    let monthYear: String
-    let hasPrevious: Bool
-    let hasNext: Bool
-    let onPrevious: () -> Void
-    let onNext: () -> Void
-    let onTapMonth: () -> Void
+struct MonthDropdownMenu: View {
+    let budgets: [BudgetSparse]
+    let currentBudgetId: String
+    let currentMonthYear: String
+    let onSelect: (String) -> Void
 
-    @State private var navigateTrigger = false
+    @State private var selectionTrigger = false
 
     var body: some View {
-        HStack(spacing: DesignTokens.Spacing.lg) {
-            Button {
-                onPrevious()
-                navigateTrigger.toggle()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(hasPrevious ? .primary : .tertiary)
-            }
-            .disabled(!hasPrevious)
-
-            Button(action: onTapMonth) {
-                Text(monthYear)
-                    .font(.headline)
-                    .lineLimit(1)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Sélectionner un mois")
-
-            Button {
-                onNext()
-                navigateTrigger.toggle()
-            } label: {
-                Image(systemName: "chevron.right")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(hasNext ? .primary : .tertiary)
-            }
-            .disabled(!hasNext)
+        Menu {
+            pickerContent
+        } label: {
+            labelContent
         }
-        .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.5), trigger: navigateTrigger)
+        .sensoryFeedback(.selection, trigger: selectionTrigger)
+        .accessibilityLabel("Sélectionner un mois")
+        .onChange(of: currentBudgetId) { selectionTrigger.toggle() }
+    }
+
+    private var pickerContent: some View {
+        Picker("", selection: Binding(
+            get: { currentBudgetId },
+            set: { id in
+                guard id != currentBudgetId else { return }
+                onSelect(id)
+            }
+        )) {
+            ForEach(currentYearBudgets) { budget in
+                Text(monthLabel(for: budget))
+                    .tag(budget.id)
+            }
+        }
+    }
+
+    private var labelContent: some View {
+        HStack(spacing: DesignTokens.Spacing.xs) {
+            Text(currentMonthYear)
+                .font(.headline)
+                .lineLimit(1)
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, 10)
         .modifier(GlassBackgroundModifier())
+    }
+
+    private var currentYear: Int? {
+        budgets.first(where: { $0.id == currentBudgetId })?.year
+    }
+
+    private var currentYearBudgets: [BudgetSparse] {
+        guard let year = currentYear else { return [] }
+        return budgets
+            .filter { $0.year == year && $0.month != nil }
+            .sorted { ($0.month ?? 0) < ($1.month ?? 0) }
+    }
+
+    private func monthLabel(for budget: BudgetSparse) -> String {
+        guard let month = budget.month, let year = budget.year else { return "—" }
+        var components = DateComponents()
+        components.month = month
+        components.year = year
+        components.day = 1
+        guard let date = Calendar.current.date(from: components) else {
+            return "\(month)"
+        }
+        return Formatters.month.string(from: date).capitalized
     }
 }
 
@@ -74,10 +99,8 @@ struct BudgetDetailsView: View {
     @State private var linkedTransactionsContext: LinkedTransactionsContext?
     @State private var selectedBudgetLineForEdit: BudgetLine?
     @State private var selectedTransactionForEdit: Transaction?
-    @State private var showMonthPicker = false
+
     @State private var searchText = ""
-    @State private var contentOffset: CGFloat = 0
-    @State private var contentOpacity: Double = 1
 
     init(budgetId: String) {
         self.budgetId = budgetId
@@ -94,20 +117,16 @@ struct BudgetDetailsView: View {
                 }
             } else if viewModel.budget != nil {
                 content
-                    .offset(x: contentOffset)
-                    .opacity(contentOpacity)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                MonthNavigationBar(
-                    monthYear: viewModel.budget?.monthYear ?? "Budget",
-                    hasPrevious: viewModel.hasPreviousBudget,
-                    hasNext: viewModel.hasNextBudget,
-                    onPrevious: navigateToPreviousMonth,
-                    onNext: navigateToNextMonth,
-                    onTapMonth: { showMonthPicker = true }
+                MonthDropdownMenu(
+                    budgets: viewModel.allBudgets,
+                    currentBudgetId: viewModel.budgetId,
+                    currentMonthYear: viewModel.budget?.monthYear ?? "Budget",
+                    onSelect: { viewModel.prepareNavigation(to: $0) }
                 )
             }
             ToolbarItem(placement: .primaryAction) {
@@ -165,15 +184,6 @@ struct BudgetDetailsView: View {
                 Task { await viewModel.updateTransaction(updatedTransaction) }
             }
         }
-        .sheet(isPresented: $showMonthPicker) {
-            MonthPickerSheet(
-                budgets: viewModel.allBudgets,
-                currentBudgetId: viewModel.budgetId,
-                onSelect: { id in
-                    navigateToMonth(id, forward: isForward(id))
-                }
-            )
-        }
         .alert(
             "Comptabiliser les transactions ?",
             isPresented: $viewModel.showCheckAllTransactionsAlert,
@@ -181,79 +191,22 @@ struct BudgetDetailsView: View {
         ) { line in
             Button("Non, juste l'enveloppe", role: .cancel) {
                 Task {
-                    guard let toastManager = viewModel.toastManagerForCheckAll else { return }
-                    let succeeded = await viewModel.performToggleBudgetLine(line)
+                    let succeeded = await viewModel.confirmToggle(for: line, checkAll: false)
                     if succeeded {
-                        viewModel.showEnvelopeToastIfNeeded(for: line, toastManager: toastManager)
+                        viewModel.showEnvelopeToastIfNeeded(for: line, toastManager: appState.toastManager)
                     }
-                    viewModel.budgetLineToCheckAll = nil
-                    viewModel.toastManagerForCheckAll = nil
                 }
             }
             Button("Oui, tout comptabiliser") {
                 Task {
-                    guard let toastManager = viewModel.toastManagerForCheckAll else { return }
-                    let succeeded = await viewModel.performToggleBudgetLine(line)
+                    let succeeded = await viewModel.confirmToggle(for: line, checkAll: true)
                     if succeeded {
-                        await viewModel.checkAllAllocatedTransactions(for: line.id)
-                        viewModel.showEnvelopeToastIfNeeded(for: line, toastManager: toastManager)
+                        viewModel.showEnvelopeToastIfNeeded(for: line, toastManager: appState.toastManager)
                     }
-                    viewModel.budgetLineToCheckAll = nil
-                    viewModel.toastManagerForCheckAll = nil
                 }
             }
         } message: { _ in
             Text("Des transactions non comptabilisées sont liées à cette enveloppe.")
-        }
-    }
-
-    // MARK: - Navigation
-
-    private func navigateToPreviousMonth() {
-        guard let previousId = viewModel.previousBudgetId else { return }
-        navigateToMonth(previousId, forward: false)
-    }
-
-    private func navigateToNextMonth() {
-        guard let nextId = viewModel.nextBudgetId else { return }
-        navigateToMonth(nextId, forward: true)
-    }
-
-    private func isForward(_ targetId: String) -> Bool {
-        let sorted = viewModel.allBudgets.sorted { lhs, rhs in
-            let lhsYear = lhs.year ?? 0
-            let rhsYear = rhs.year ?? 0
-            if lhsYear != rhsYear { return lhsYear < rhsYear }
-            return (lhs.month ?? 0) < (rhs.month ?? 0)
-        }
-        guard let currentIndex = sorted.firstIndex(where: { $0.id == viewModel.budgetId }),
-              let targetIndex = sorted.firstIndex(where: { $0.id == targetId }) else {
-            return true
-        }
-        return targetIndex > currentIndex
-    }
-
-    private func navigateToMonth(_ id: String, forward: Bool) {
-        let slideOutX: CGFloat = forward ? -40 : 40
-        let slideInX: CGFloat = forward ? 40 : -40
-
-        Task { @MainActor in
-            // Phase 1: Slide out current content
-            withAnimation(.easeIn(duration: 0.12)) {
-                contentOffset = slideOutX
-                contentOpacity = 0
-            }
-            try? await Task.sleep(for: .milliseconds(120))
-
-            // Phase 2: Swap data while hidden
-            viewModel.prepareNavigation(to: id)
-            contentOffset = slideInX
-
-            // Phase 3: Slide in new content
-            withAnimation(.easeOut(duration: 0.2)) {
-                contentOffset = 0
-                contentOpacity = 1
-            }
         }
     }
 
@@ -262,11 +215,10 @@ struct BudgetDetailsView: View {
         let filteredIncome = viewModel.filteredLines(viewModel.filteredIncomeLines, searchText: searchText)
         let filteredExpenses = viewModel.filteredLines(viewModel.filteredExpenseLines, searchText: searchText)
         let filteredSavings = viewModel.filteredLines(viewModel.filteredSavingLines, searchText: searchText)
-        let filteredFree = viewModel.filteredFreeTransactions(searchText: searchText)
-            .filter { tx in
-                // Also apply checked filter to free transactions
-                !viewModel.isShowingOnlyUnchecked || tx.checkedAt == nil
-            }
+        let filteredFree = viewModel.combinedFilteredFreeTransactions(searchText: searchText)
+
+        let fullWidthInsets = EdgeInsets()
+        let heroCardInsets = EdgeInsets()
 
         return List {
             // Filter picker
@@ -276,15 +228,19 @@ struct BudgetDetailsView: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
             .listSectionSeparator(.hidden)
+            .listRowInsets(fullWidthInsets)
 
-            // Hero balance card - applyGlass: false car le List fournit son propre styling
+            // Hero balance card (with horizontal padding to prevent edge clipping)
             Section {
                 HeroBalanceCard(
                     metrics: viewModel.metrics,
-                    applyGlass: false,
                     onTapProgress: {}
                 )
             }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            .listSectionSeparator(.hidden)
+            .listRowInsets(heroCardInsets)
 
             // Rollover section (toujours en premier)
             if let rolloverInfo = viewModel.rolloverInfo {
@@ -296,6 +252,7 @@ struct BudgetDetailsView: View {
                 )
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
+                .listRowInsets(fullWidthInsets)
             }
 
             // Empty search state
@@ -305,37 +262,15 @@ struct BudgetDetailsView: View {
                     .listRowSeparator(.hidden)
             }
 
-            // Budget line sections (income, expenses, savings)
-            ForEach(
-                [("Revenus", filteredIncome), ("Dépenses", filteredExpenses), ("Épargne", filteredSavings)],
-                id: \.0
-            ) { title, items in
-                if !items.isEmpty {
-                    BudgetSection(
-                        title: title,
-                        items: items,
-                        transactions: viewModel.transactions,
-                        syncingIds: viewModel.syncingBudgetLineIds,
-                        onToggle: { line in
-                            Task { await viewModel.toggleBudgetLine(line, toastManager: appState.toastManager) }
-                        },
-                        onDelete: { line in
-                            Task { await viewModel.deleteBudgetLine(line) }
-                        },
-                        onAddTransaction: { line in
-                            selectedLineForTransaction = line
-                        },
-                        onLongPress: { line, transactions in
-                            linkedTransactionsContext = LinkedTransactionsContext(
-                                budgetLine: line,
-                                transactions: transactions
-                            )
-                        },
-                        onEdit: { line in
-                            selectedBudgetLineForEdit = line
-                        }
-                    )
-                }
+            // Budget line sections
+            if !filteredIncome.isEmpty {
+                budgetSection(title: "Revenus", items: filteredIncome)
+            }
+            if !filteredExpenses.isEmpty {
+                budgetSection(title: "Dépenses", items: filteredExpenses)
+            }
+            if !filteredSavings.isEmpty {
+                budgetSection(title: "Épargne", items: filteredSavings)
             }
 
             // Free transactions
@@ -359,11 +294,45 @@ struct BudgetDetailsView: View {
         .listStyle(.insetGrouped)
         .listSectionSpacing(DesignTokens.Spacing.lg)
         .scrollContentBackground(.hidden)
-        .pulpeBackground()
+        .pulpeStatusBackground(isDeficit: viewModel.metrics.isDeficit)
         .refreshable {
             await viewModel.loadDetails()
         }
         .searchable(text: $searchText, prompt: "Rechercher...")
+    }
+
+    // MARK: - Section Builders
+
+    private func budgetSection(title: String, items: [BudgetLine]) -> some View {
+        BudgetSection(
+            title: title,
+            items: items,
+            transactions: viewModel.transactions,
+            syncingIds: viewModel.syncingBudgetLineIds,
+            onToggle: { line in
+                Task {
+                    let succeeded = await viewModel.toggleBudgetLine(line)
+                    if succeeded {
+                        viewModel.showEnvelopeToastIfNeeded(for: line, toastManager: appState.toastManager)
+                    }
+                }
+            },
+            onDelete: { line in
+                Task { await viewModel.deleteBudgetLine(line) }
+            },
+            onAddTransaction: { line in
+                selectedLineForTransaction = line
+            },
+            onLongPress: { line, transactions in
+                linkedTransactionsContext = LinkedTransactionsContext(
+                    budgetLine: line,
+                    transactions: transactions
+                )
+            },
+            onEdit: { line in
+                selectedBudgetLineForEdit = line
+            }
+        )
     }
 }
 
@@ -391,8 +360,7 @@ final class BudgetDetailsViewModel {
 
     // Alert state for checking all transactions when toggling an envelope
     var showCheckAllTransactionsAlert = false
-    var budgetLineToCheckAll: BudgetLine?
-    var toastManagerForCheckAll: ToastManager?
+    private(set) var budgetLineToCheckAll: BudgetLine?
 
     // Navigation between months
     private(set) var allBudgets: [BudgetSparse] = []
@@ -414,6 +382,7 @@ final class BudgetDetailsViewModel {
     private let budgetService = BudgetService.shared
     private let budgetLineService = BudgetLineService.shared
     private let transactionService = TransactionService.shared
+
     init(budgetId: String) {
         self.budgetId = budgetId
         // Load persisted filter preference (default: show only unchecked)
@@ -425,7 +394,7 @@ final class BudgetDetailsViewModel {
     var hasNextBudget: Bool { nextBudgetId != nil }
 
     /// Prepare navigation by changing the budgetId (synchronous)
-    /// Old data stays as placeholder until new data arrives via reloadCurrentBudget()
+    /// Old data stays visible until new data arrives via reloadCurrentBudget()
     func prepareNavigation(to id: String) {
         budgetId = id
     }
@@ -488,8 +457,19 @@ final class BudgetDetailsViewModel {
         applyCheckedFilter(savingLines)
     }
 
-    var filteredFreeTransactionsForDisplay: [Transaction] {
-        applyCheckedFilterToFreeTransactions(freeTransactions)
+    /// Combines checked filter + search filter for free transactions in a single pass
+    func combinedFilteredFreeTransactions(searchText: String) -> [Transaction] {
+        var result = freeTransactions
+
+        if isShowingOnlyUnchecked {
+            result = result.filter { $0.checkedAt == nil }
+        }
+
+        guard !searchText.isEmpty else { return result }
+        return result.filter {
+            $0.name.localizedStandardContains(searchText) ||
+                "\($0.amount)".contains(searchText)
+        }
     }
 
     var rolloverInfo: (amount: Decimal, previousBudgetId: String?)? {
@@ -590,29 +570,42 @@ final class BudgetDetailsViewModel {
         nextBudgetId = currentIndex < sorted.count - 1 ? sorted[currentIndex + 1].id : nil
     }
 
-    func toggleBudgetLine(_ line: BudgetLine, toastManager: ToastManager) async {
-        guard !(line.isRollover ?? false) else { return }
-        guard !syncingBudgetLineIds.contains(line.id) else { return }
+    func toggleBudgetLine(_ line: BudgetLine) async -> Bool {
+        guard !(line.isRollover ?? false) else { return false }
+        guard !syncingBudgetLineIds.contains(line.id) else { return false }
 
         let wasUnchecked = !line.isChecked
 
         // If checking and there are unchecked transactions, show alert
         if wasUnchecked {
-            let uncheckedTransactions = transactions.filter {
+            let hasUnchecked = transactions.contains {
                 $0.budgetLineId == line.id && !$0.isChecked
             }
-            if !uncheckedTransactions.isEmpty {
+            if hasUnchecked {
                 budgetLineToCheckAll = line
-                toastManagerForCheckAll = toastManager
                 showCheckAllTransactionsAlert = true
-                return
+                return false
             }
         }
 
+        return await performToggleBudgetLine(line)
+    }
+
+    /// Confirms toggle after user answers the alert. Returns true if toggle succeeded.
+    @discardableResult
+    func confirmToggle(for line: BudgetLine, checkAll: Bool) async -> Bool {
+        defer { resetCheckAllState() }
+
         let succeeded = await performToggleBudgetLine(line)
-        if succeeded {
-            showEnvelopeToastIfNeeded(for: line, toastManager: toastManager)
+        if succeeded, checkAll {
+            await checkAllAllocatedTransactions(for: line.id)
         }
+        return succeeded
+    }
+
+    func resetCheckAllState() {
+        budgetLineToCheckAll = nil
+        showCheckAllTransactionsAlert = false
     }
 
     @discardableResult
@@ -686,6 +679,7 @@ final class BudgetDetailsViewModel {
 
         do {
             try await transactionService.deleteTransaction(id: transaction.id)
+            await reloadCurrentBudget()
         } catch {
             transactions = originalTransactions
             self.error = error
@@ -709,6 +703,7 @@ final class BudgetDetailsViewModel {
 
         do {
             try await budgetLineService.deleteBudgetLine(id: line.id)
+            await reloadCurrentBudget()
         } catch {
             budgetLines = originalLines
             self.error = error
@@ -778,6 +773,7 @@ private struct RolloverInfoRow: View {
                 .font(.headline)
                 .fontWeight(.semibold)
                 .foregroundStyle(isPositive ? Color.financialSavings : Color.financialOverBudget)
+                .sensitiveAmount()
         }
         .padding()
         .background(
@@ -790,96 +786,6 @@ private struct RolloverInfoRow: View {
         .ifLet(onTap) { view, _ in
             view.accessibilityHint("Appuie deux fois pour voir le budget précédent")
         }
-    }
-}
-
-// MARK: - Month Picker Sheet
-
-private struct MonthPickerSheet: View {
-    let budgets: [BudgetSparse]
-    let currentBudgetId: String
-    let onSelect: (String) -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var selectionTrigger = false
-
-    private var budgetsByYear: [(year: Int, budgets: [BudgetSparse])] {
-        let sorted = budgets
-            .filter { $0.month != nil && $0.year != nil }
-            .sorted { lhs, rhs in
-                let lhsYear = lhs.year ?? 0
-                let rhsYear = rhs.year ?? 0
-                if lhsYear != rhsYear { return lhsYear < rhsYear }
-                return (lhs.month ?? 0) < (rhs.month ?? 0)
-            }
-        let grouped = Dictionary(grouping: sorted) { $0.year ?? 0 }
-        return grouped.keys.sorted().map { year in
-            (year: year, budgets: grouped[year] ?? [])
-        }
-    }
-
-    var body: some View {
-        NavigationStack {
-            ScrollViewReader { proxy in
-                List {
-                    ForEach(budgetsByYear, id: \.year) { year, yearBudgets in
-                        Section(String(year)) {
-                            ForEach(yearBudgets) { budget in
-                                monthRow(for: budget)
-                            }
-                        }
-                    }
-                }
-                .onAppear {
-                    proxy.scrollTo(currentBudgetId, anchor: .center)
-                }
-            }
-            .navigationTitle("Choisir un mois")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Fermer") { dismiss() }
-                }
-            }
-        }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
-        .sensoryFeedback(.selection, trigger: selectionTrigger)
-    }
-
-    private func monthRow(for budget: BudgetSparse) -> some View {
-        let isCurrent = budget.id == currentBudgetId
-        return Button {
-            selectionTrigger.toggle()
-            dismiss()
-            onSelect(budget.id)
-        } label: {
-            HStack {
-                Text(monthYearLabel(for: budget))
-                    .foregroundStyle(.primary)
-                Spacer()
-                if isCurrent {
-                    Image(systemName: "checkmark")
-                        .foregroundStyle(Color.pulpePrimary)
-                        .fontWeight(.semibold)
-                }
-            }
-        }
-        .listRowBackground(isCurrent ? Color.pulpePrimary.opacity(0.1) : nil)
-        .accessibilityAddTraits(isCurrent ? .isSelected : [])
-        .id(budget.id)
-    }
-
-    private func monthYearLabel(for budget: BudgetSparse) -> String {
-        guard let month = budget.month, let year = budget.year else { return "—" }
-        var components = DateComponents()
-        components.month = month
-        components.year = year
-        components.day = 1
-        guard let date = Calendar.current.date(from: components) else {
-            return "\(month)/\(year)"
-        }
-        return Formatters.monthYear.string(from: date).capitalized
     }
 }
 

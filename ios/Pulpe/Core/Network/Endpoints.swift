@@ -11,6 +11,7 @@ enum Endpoint {
 
     case userProfile
     case updateProfile
+    case deleteAccount
 
     // MARK: - Budgets
 
@@ -58,6 +59,7 @@ enum Endpoint {
         // User
         case .userProfile: return "/users/me"
         case .updateProfile: return "/users/me"
+        case .deleteAccount: return "/users/account"
 
         // Budgets
         case .budgets: return "/budgets"
@@ -107,6 +109,9 @@ enum Endpoint {
 
         case .updateProfile:
             return .patch
+
+        case .deleteAccount:
+            return .delete
 
         case .budgetLineToggle, .budgetLineResetFromTemplate, .transactionToggle:
             return .post

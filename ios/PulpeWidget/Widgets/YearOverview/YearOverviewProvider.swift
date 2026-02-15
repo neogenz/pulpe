@@ -6,16 +6,12 @@ struct YearOverviewProvider: TimelineProvider {
 
     private let coordinator = WidgetDataCoordinator()
 
-    func placeholder(in context: Context) -> YearOverviewEntry {
-        .placeholder
-    }
-
     func getSnapshot(in context: Context, completion: @escaping (YearOverviewEntry) -> Void) {
         if context.isPreview {
-            completion(.placeholder)
+            completion(.preview)
             return
         }
-        completion(loadEntry() ?? .placeholder)
+        completion(loadEntry() ?? .preview)
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<YearOverviewEntry>) -> Void) {

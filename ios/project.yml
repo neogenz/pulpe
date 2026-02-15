@@ -106,6 +106,10 @@ targets:
       - path: PulpeWidget
         excludes:
           - "**/.DS_Store"
+      - path: ../ios-codegen
+        group: PulpeWidget/Generated
+        excludes:
+          - "**/.DS_Store"
       - path: Pulpe/Domain/Models
         excludes:
           - "**/.DS_Store"

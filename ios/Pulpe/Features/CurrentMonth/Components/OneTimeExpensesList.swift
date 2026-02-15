@@ -161,6 +161,7 @@ struct TransactionRow: View {
                 Text(transaction.amount.asCHF)
                     .font(.system(.callout, design: .rounded, weight: .semibold))
                     .foregroundStyle(transaction.isChecked ? .secondary : transaction.kind.color)
+                    .sensitiveAmount()
             }
             .padding(.vertical, 8)
             .contentShape(Rectangle())
@@ -184,7 +185,7 @@ struct TransactionRow: View {
                     .foregroundStyle(.secondary)
             } else {
                 // Show kind icon
-                Image(systemName: transaction.kind.listIcon)
+                Image(systemName: transaction.kind.icon)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(transaction.kind.color)
             }

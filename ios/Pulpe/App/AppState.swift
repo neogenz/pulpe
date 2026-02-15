@@ -5,6 +5,7 @@ import WidgetKit
 private enum UserDefaultsKey {
     static let onboardingCompleted = "pulpe-onboarding-completed"
     static let biometricEnabled = "pulpe-biometric-enabled"
+    static let amountsHidden = "pulpe-amounts-hidden"
 }
 
 @Observable @MainActor
@@ -41,6 +42,16 @@ final class AppState {
 
     var biometricEnabled: Bool = UserDefaults.standard.bool(forKey: UserDefaultsKey.biometricEnabled) {
         didSet { UserDefaults.standard.set(biometricEnabled, forKey: UserDefaultsKey.biometricEnabled) }
+    }
+
+    // MARK: - Amount Visibility
+
+    var amountsHidden: Bool = UserDefaults.standard.bool(forKey: UserDefaultsKey.amountsHidden) {
+        didSet { UserDefaults.standard.set(amountsHidden, forKey: UserDefaultsKey.amountsHidden) }
+    }
+
+    func toggleAmountsVisibility() {
+        amountsHidden.toggle()
     }
 
     var showBiometricEnrollment = false
@@ -130,6 +141,17 @@ final class AppState {
         budgetPath = NavigationPath()
         templatePath = NavigationPath()
         selectedTab = .currentMonth
+    }
+
+    func deleteAccount() async {
+        do {
+            _ = try await authService.deleteAccount()
+        } catch {
+            toastManager.show("La suppression du compte a échoué", type: .error)
+            return
+        }
+
+        await logout()
     }
 
     func completeOnboarding(user: UserInfo) {

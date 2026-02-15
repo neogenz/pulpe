@@ -89,7 +89,7 @@ actor WidgetDataSyncService {
             let shortMonthName = date.map { Formatters.shortMonth.string(from: $0).capitalized } ?? "\(month)"
 
             return BudgetWidgetData(
-                id: budget?.id ?? "placeholder-\(month)-\(year)",
+                id: budget?.id ?? "no-budget-\(month)-\(year)",
                 month: month,
                 year: year,
                 available: budget?.remaining,

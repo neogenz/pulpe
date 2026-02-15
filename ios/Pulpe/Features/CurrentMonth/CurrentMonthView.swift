@@ -69,10 +69,14 @@ struct CurrentMonthView: View {
         }
         .onChange(of: navigateToBudget) { _, shouldNavigate in
             if shouldNavigate, let budgetId = store.budget?.id {
-                // Navigate to budget details: switch tab + push destination
-                appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
-                appState.selectedTab = .budgets
                 navigateToBudget = false
+                // Clear path while Budgets tab is offscreen (user sees nothing)
+                appState.budgetPath = NavigationPath()
+                // Next run loop: old view is destroyed, push fresh + switch tab
+                Task { @MainActor in
+                    appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
+                    appState.selectedTab = .budgets
+                }
             }
         }
         .onChange(of: activeSheet) { _, sheet in
@@ -88,8 +92,6 @@ struct CurrentMonthView: View {
                 // Hero card with available balance and circular progress
                 HeroBalanceCard(
                     metrics: store.metrics,
-                    daysRemaining: store.daysRemaining,
-                    dailyBudget: store.dailyBudget,
                     onTapProgress: { activeSheet = .realizedBalance }
                 )
 
