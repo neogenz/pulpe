@@ -1,11 +1,9 @@
-"use client";
-
 import {
+  Button,
   FadeIn,
   FloatingCard,
-  GridBackground,
+  GrainOverlay,
   HeroScreenshot,
-  ShineBorder,
   TypeWriter,
 } from "@/components/ui";
 import { ANGULAR_APP_URL } from "@/lib/config";
@@ -79,7 +77,7 @@ const FLOATING_CARDS: FloatingCardConfig[] = [
       <div className="flex items-center gap-3">
         <Wallet className="w-5 h-5" />
         <div>
-          <div className="text-xs opacity-80">Disponible ce mois</div>
+          <div className="text-xs">Disponible ce mois</div>
           <div className="text-xl font-bold">847 CHF</div>
         </div>
       </div>
@@ -164,10 +162,11 @@ const FLOATING_CARDS: FloatingCardConfig[] = [
 
 export function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center pt-32 pb-16 md:pt-32 md:pb-24 bg-background overflow-hidden">
-      <GridBackground />
+    <section className="relative min-h-screen flex items-center pt-32 pb-16 md:pt-32 md:pb-24 bg-gradient-to-b from-background via-background to-surface-alt overflow-hidden">
+      <GrainOverlay opacity={0.03} />
 
       <div className="relative z-10 w-full max-w-6xl mx-auto px-4 md:px-6 lg:px-8">
+        {/* Floating cards — desktop only */}
         {FLOATING_CARDS.map((card) => (
           <div
             key={card.id}
@@ -183,22 +182,16 @@ export function Hero() {
         ))}
 
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          <FadeIn
-            animateOnMount
-            noYMovement
-            className="text-center lg:text-left"
-          >
+          {/* Left: text content */}
+          <div className="text-center lg:text-left">
             <p className="text-sm font-medium text-primary mb-3 tracking-wide uppercase">
               Budget annuel en 3 minutes
             </p>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-text mb-6">
-              Tu sais ce qu'il te reste ?
+              Tu sais ce qu&apos;il te reste ?
               <br />
               {/* Static text on mobile, TypeWriter on desktop */}
-              <span className="text-primary md:hidden">
-                Pulpe, oui.
-              </span>
-              {/* Reserve height for TypeWriter to prevent layout shift */}
+              <span className="text-primary md:hidden">Pulpe, oui.</span>
               <span className="text-primary hidden md:block min-h-[7.5rem] lg:min-h-[9.375rem]">
                 <TypeWriter strings={TYPEWRITER_STRINGS} />
               </span>
@@ -207,38 +200,29 @@ export function Hero() {
               Pulpe planifie ton année pour que tu saches toujours ce que tu
               peux dépenser. Sans prise de tête.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start justify-center lg:justify-start">
-              <div className="flex flex-col items-center gap-3">
-                <a href={`${ANGULAR_APP_URL}/signup`}>
-                  <ShineBorder
-                    color={["#006E25", "#2B883B", "#0061A6"]}
-                    borderWidth={2}
-                    duration={6}
-                    className="bg-transparent"
-                  >
-                    <span className="inline-flex items-center justify-center font-semibold transition-all duration-200 ease-out rounded-[var(--radius-button)] min-h-[56px] px-8 text-lg bg-primary text-white shadow-[0_4px_14px_rgba(0,110,37,0.4)] active:shadow-[0_2px_8px_rgba(0,110,37,0.3)] active:scale-[0.98] md:shadow-none md:active:shadow-none md:hover:bg-primary-hover md:hover:scale-[1.02]">
-                      Commencer
-                    </span>
-                  </ShineBorder>
-                </a>
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-start items-center justify-center lg:justify-start">
+              <div className="flex flex-col items-center gap-2">
+                <Button href={`${ANGULAR_APP_URL}/signup`} glow>
+                  Commencer
+                </Button>
                 <span className="text-xs italic text-text-secondary">
-                  C'est gratuit
+                  C&apos;est gratuit
                 </span>
               </div>
-              <a
-                href="#features"
-                className="inline-flex items-center justify-center min-h-[48px] px-6 text-primary font-semibold hover:underline underline-offset-4"
-              >
+              <Button href="#features" variant="ghost">
                 Voir comment ça marche
-              </a>
+              </Button>
             </div>
-          </FadeIn>
+          </div>
 
-          <HeroScreenshot
-            screenshotSrc="/screenshots/responsive/dashboard.webp"
-            screenshotDesktopSrc="/screenshots/webapp/dashboard.webp"
-            screenshotLabel="Dashboard Pulpe - Vue du mois en cours"
-          />
+          {/* Right: screenshot with floating cards around it */}
+          <FadeIn animateOnMount delay={0.3}>
+            <HeroScreenshot
+              screenshotSrc="/screenshots/responsive/dashboard.webp"
+              screenshotDesktopSrc="/screenshots/webapp/dashboard.webp"
+              screenshotLabel="Dashboard Pulpe - Vue du mois en cours"
+            />
+          </FadeIn>
         </div>
       </div>
     </section>

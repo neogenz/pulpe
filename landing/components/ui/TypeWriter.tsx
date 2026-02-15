@@ -19,52 +19,60 @@ export const TypeWriter = memo(function TypeWriter({
   loop = true,
   className,
 }: TypeWriterProps) {
-  // Start with first string to avoid hydration mismatch
-  const [text, setText] = useState(strings[0])
-  const [phase, setPhase] = useState<'idle' | 'deleting' | 'typing'>('idle')
+  const firstString = strings[0] ?? ''
+  const [text, setText] = useState(firstString)
+  const [phase, setPhase] = useState<'idle' | 'waiting' | 'deleting' | 'typing'>('idle')
   const stringIndex = useRef(0)
-  const charIndex = useRef(strings[0].length)
+  const charIndex = useRef(firstString.length)
 
-  // Start animation after hydration with a delay
   useEffect(() => {
+    if (strings.length < 2) return
     const timer = setTimeout(() => setPhase('deleting'), backDelay)
     return () => clearTimeout(timer)
-  }, [backDelay])
+  }, [backDelay, strings.length])
 
   useEffect(() => {
     if (phase === 'idle') return
 
-    const currentString = strings[stringIndex.current]
-
-    const tick = () => {
-      if (phase === 'deleting') {
-        charIndex.current--
-        setText(currentString.substring(0, charIndex.current))
-
-        if (charIndex.current === 0) {
-          stringIndex.current = (stringIndex.current + 1) % strings.length
-          setPhase('typing')
-        }
-      } else if (phase === 'typing') {
-        const nextString = strings[stringIndex.current]
-        charIndex.current++
-        setText(nextString.substring(0, charIndex.current))
-
-        if (charIndex.current === nextString.length) {
-          if (!loop && stringIndex.current === strings.length - 1) {
-            setPhase('idle')
-            return
-          }
-          setTimeout(() => setPhase('deleting'), backDelay)
-          setPhase('idle')
-        }
-      }
+    if (phase === 'waiting') {
+      const timer = setTimeout(() => setPhase('deleting'), backDelay)
+      return () => clearTimeout(timer)
     }
 
-    const speed = phase === 'deleting' ? backSpeed : typeSpeed
-    const timeout = setTimeout(tick, speed)
-    return () => clearTimeout(timeout)
-  }, [text, phase, strings, typeSpeed, backSpeed, backDelay, loop])
+    const currentString = strings[stringIndex.current]
+
+    if (phase === 'deleting') {
+      charIndex.current--
+      setText(currentString.substring(0, charIndex.current))
+
+      if (charIndex.current === 0) {
+        stringIndex.current = (stringIndex.current + 1) % strings.length
+        setPhase('typing')
+        return
+      }
+
+      const timeout = setTimeout(() => setPhase('deleting'), backSpeed)
+      return () => clearTimeout(timeout)
+    }
+
+    if (phase === 'typing') {
+      const nextString = strings[stringIndex.current]
+      charIndex.current++
+      setText(nextString.substring(0, charIndex.current))
+
+      if (charIndex.current === nextString.length) {
+        if (!loop && stringIndex.current === strings.length - 1) {
+          setPhase('idle')
+          return
+        }
+        setPhase('waiting')
+        return
+      }
+
+      const timeout = setTimeout(() => setPhase('typing'), typeSpeed)
+      return () => clearTimeout(timeout)
+    }
+  }, [phase, strings, typeSpeed, backSpeed, backDelay, loop])
 
   return (
     <span className={className}>

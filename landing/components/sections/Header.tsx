@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type CSSProperties } from 'react'
 import { Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { ANGULAR_APP_URL } from '@/lib/config'
@@ -14,6 +14,20 @@ const navLinks = [
 
 const SCROLL_THRESHOLD = 20
 const THROTTLE_MS = 100
+
+const GLASS_DISTORTION_STYLE: CSSProperties = {
+  backdropFilter: 'blur(2px)',
+  WebkitBackdropFilter: 'blur(2px)',
+  filter: 'url(#liquid-glass)',
+}
+
+const GLASS_SHINE_STYLE: CSSProperties = {
+  boxShadow: `
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3),
+    0 4px 24px rgba(0, 0, 0, 0.08)
+  `,
+}
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -97,11 +111,7 @@ export function Header() {
           {/* Layer 1: Distortion effect — desktop only (causes clipping artifacts on mobile) */}
           <div
             className="liquidGlass-effect absolute inset-0 rounded-full overflow-hidden hidden md:block"
-            style={{
-              backdropFilter: 'blur(2px)',
-              WebkitBackdropFilter: 'blur(2px)',
-              filter: 'url(#liquid-glass)',
-            }}
+            style={GLASS_DISTORTION_STYLE}
           />
 
           {/* Layer 2: Tint */}
@@ -115,13 +125,7 @@ export function Header() {
           {/* Layer 3: Shine/Reflections */}
           <div
             className="liquidGlass-shine absolute inset-0 rounded-full overflow-hidden pointer-events-none"
-            style={{
-              boxShadow: `
-                inset 0 1px 1px 0 rgba(255, 255, 255, 0.6),
-                inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3),
-                0 4px 24px rgba(0, 0, 0, 0.08)
-              `,
-            }}
+            style={GLASS_SHINE_STYLE}
           />
 
           {/* Top highlight gradient */}
@@ -133,7 +137,7 @@ export function Header() {
           />
 
           {/* Content */}
-          <a href="#" className="relative z-10 flex items-center gap-2 font-bold text-lg text-text">
+          <a href="#" className="relative z-10 flex items-center gap-2 font-bold text-lg text-text min-h-[44px]">
             <img src="/icon-64.webp" alt="" aria-hidden="true" width={28} height={28} className="h-7 w-auto" />
             <span>Pulpe</span>
           </a>
@@ -158,7 +162,7 @@ export function Header() {
             <button
               ref={menuButtonRef}
               type="button"
-              className="md:hidden p-2 text-text-secondary hover:text-text hover:bg-white/30 rounded-full transition-all duration-200 active:scale-95"
+              className="md:hidden p-2.5 text-text-secondary hover:text-text hover:bg-white/30 rounded-full transition-all duration-200 active:scale-95"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
               aria-expanded={mobileMenuOpen}
@@ -180,11 +184,7 @@ export function Header() {
           {/* Mobile: Distortion */}
           <div
             className="absolute inset-0 rounded-2xl overflow-hidden"
-            style={{
-              backdropFilter: 'blur(2px)',
-              WebkitBackdropFilter: 'blur(2px)',
-              filter: 'url(#liquid-glass)',
-            }}
+            style={GLASS_DISTORTION_STYLE}
           />
 
           {/* Mobile: Tint */}
@@ -198,13 +198,7 @@ export function Header() {
           {/* Mobile: Shine */}
           <div
             className="absolute inset-0 rounded-2xl pointer-events-none"
-            style={{
-              boxShadow: `
-                inset 0 1px 1px 0 rgba(255, 255, 255, 0.6),
-                inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3),
-                0 4px 24px rgba(0, 0, 0, 0.08)
-              `,
-            }}
+            style={GLASS_SHINE_STYLE}
           />
 
           {/* Mobile: Top highlight */}

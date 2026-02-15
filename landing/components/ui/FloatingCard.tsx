@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo } from 'react'
 import type { ReactNode, CSSProperties } from 'react'
 import { cn } from '@/lib/cn'
 
@@ -65,10 +65,7 @@ export const FloatingCard = memo(function FloatingCard({
   animationDelay = 0,
   className = '',
 }: FloatingCardProps) {
-  const style: CSSProperties = useMemo(
-    () => (animationDelay ? { animationDelay: `${animationDelay}s` } : {}),
-    [animationDelay]
-  )
+  const style: CSSProperties = animationDelay ? { animationDelay: `${animationDelay}s` } : {}
 
   const { base, colors, radius } = VARIANT_STYLES[variant]
 
