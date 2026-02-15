@@ -5,6 +5,7 @@ import {
   type HttpEvent,
   type HttpErrorResponse,
 } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { type Observable, throwError, from, switchMap, catchError } from 'rxjs';
 import { AuthSessionService } from './auth-session.service';
 import { AuthStateService } from './auth-state.service';
@@ -18,6 +19,7 @@ export const authInterceptor: HttpInterceptorFn = (
   const authSession = inject(AuthSessionService);
   const authState = inject(AuthStateService);
   const applicationConfig = inject(ApplicationConfiguration);
+  const router = inject(Router);
 
   // Vérifier si la requête va vers notre backend
   if (!shouldInterceptRequest(req.url, applicationConfig.backendApiUrl())) {
@@ -28,7 +30,7 @@ export const authInterceptor: HttpInterceptorFn = (
   return from(addAuthToken(req, authSession)).pipe(
     switchMap((authReq) => next(authReq)),
     catchError((error) =>
-      handleAuthError(error, req, next, authSession, authState),
+      handleAuthError(error, req, next, authSession, authState, router),
     ),
   );
 };
@@ -66,14 +68,13 @@ function handleAuthError(
   next: (req: HttpRequest<unknown>) => Observable<HttpEvent<unknown>>,
   authSession: AuthSessionService,
   authState: AuthStateService,
+  router: Router,
 ): Observable<HttpEvent<unknown>> {
   // Only attempt refresh if it's a 401 and user is authenticated
   if (error.status === 401 && authState.isAuthenticated()) {
-    // Convert the refresh promise to an observable and handle the flow
     return from(authSession.refreshSession()).pipe(
       switchMap((refreshSuccess) => {
         if (!refreshSuccess) {
-          // Refresh failed, sign out and force full page reload
           authSession.signOut();
           window.location.href = '/' + ROUTES.LOGIN;
           return throwError(
@@ -87,12 +88,22 @@ function handleAuthError(
         );
       }),
       catchError((refreshError) => {
-        // Error during refresh attempt, sign out and force full page reload
         authSession.signOut();
         window.location.href = '/' + ROUTES.LOGIN;
         return throwError(() => refreshError);
       }),
     );
+  }
+
+  // Handle missing client encryption key — redirect to vault code entry,
+  // NOT signOut. The Supabase session is still valid; only the client key
+  // was lost (e.g. sessionStorage cleared after background inactivity).
+  if (
+    error.status === 403 &&
+    error.error?.code === 'ERR_AUTH_CLIENT_KEY_MISSING'
+  ) {
+    router.navigate(['/', ROUTES.ENTER_VAULT_CODE]);
+    return throwError(() => new Error('Client encryption key missing'));
   }
 
   // Handle account blocked (scheduled for deletion)

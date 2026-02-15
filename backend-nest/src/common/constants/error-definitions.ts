@@ -65,7 +65,7 @@ export const ERROR_DEFINITIONS = {
   AUTH_CLIENT_KEY_MISSING: {
     code: 'ERR_AUTH_CLIENT_KEY_MISSING',
     message: () => 'Client encryption key missing',
-    httpStatus: HttpStatus.UNAUTHORIZED,
+    httpStatus: HttpStatus.FORBIDDEN,
   },
   AUTH_CLIENT_KEY_INVALID: {
     code: 'ERR_AUTH_CLIENT_KEY_INVALID',

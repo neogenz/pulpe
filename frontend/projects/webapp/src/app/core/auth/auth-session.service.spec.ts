@@ -40,6 +40,7 @@ describe('AuthSessionService', () => {
   let mockConfig: Partial<ApplicationConfiguration>;
   let mockLogger: {
     info: Mock;
+    warn: Mock;
     error: Mock;
     debug: Mock;
   };
@@ -97,6 +98,7 @@ describe('AuthSessionService', () => {
 
     mockLogger = {
       info: vi.fn(),
+      warn: vi.fn(),
       error: vi.fn(),
       debug: vi.fn(),
     };
@@ -302,6 +304,35 @@ describe('AuthSessionService', () => {
     expect(mockLogger.debug).toHaveBeenCalledWith('Auth event:', {
       event: 'USER_UPDATED',
       session: mockSession.user.id,
+    });
+  });
+
+  describe('refresh deduplication', () => {
+    it('should deduplicate concurrent refreshSession calls', async () => {
+      mockSupabaseClient.auth.getSession.mockResolvedValue({
+        data: { session: mockSession },
+        error: null,
+      });
+      mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      });
+      mockSupabaseClient.auth.refreshSession.mockResolvedValue({
+        data: { session: mockSession, user: mockSession.user },
+        error: null,
+      });
+
+      await service.initializeAuthState();
+
+      const [result1, result2, result3] = await Promise.all([
+        service.refreshSession(),
+        service.refreshSession(),
+        service.refreshSession(),
+      ]);
+
+      expect(result1).toBe(true);
+      expect(result2).toBe(true);
+      expect(result3).toBe(true);
+      expect(mockSupabaseClient.auth.refreshSession).toHaveBeenCalledTimes(1);
     });
   });
 

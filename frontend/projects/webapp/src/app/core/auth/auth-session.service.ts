@@ -25,6 +25,7 @@ export class AuthSessionService {
 
   #supabaseClient: SupabaseClient | null = null;
   #authSubscription: (() => void) | null = null;
+  #refreshPromise: Promise<boolean> | null = null;
 
   getClient(): SupabaseClient {
     if (!this.#supabaseClient) {
@@ -166,6 +167,21 @@ export class AuthSessionService {
   }
 
   async refreshSession(): Promise<boolean> {
+    // Deduplicate concurrent refresh attempts to prevent refresh-token
+    // rotation races between auto-refresh and interceptor retries.
+    if (this.#refreshPromise) {
+      return this.#refreshPromise;
+    }
+
+    this.#refreshPromise = this.#doRefreshSession();
+    try {
+      return await this.#refreshPromise;
+    } finally {
+      this.#refreshPromise = null;
+    }
+  }
+
+  async #doRefreshSession(): Promise<boolean> {
     try {
       const { data, error } = await this.getClient().auth.refreshSession();
 
