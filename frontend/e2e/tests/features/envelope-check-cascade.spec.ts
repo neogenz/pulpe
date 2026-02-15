@@ -244,7 +244,7 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
 
     // Verify initial pointés count: 2/5 (Salaire + Supermarché checked)
     await expect(
-      authenticatedPage.getByText('2/5 éléments pointés'),
+      authenticatedPage.getByText('2/5 éléments comptabilisés'),
     ).toBeVisible();
 
     // Check the "Courses" envelope
@@ -255,7 +255,7 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
 
     // Verify updated count: 3/5
     await expect(
-      authenticatedPage.getByText('3/5 éléments pointés'),
+      authenticatedPage.getByText('3/5 éléments comptabilisés'),
     ).toBeVisible();
   });
 
