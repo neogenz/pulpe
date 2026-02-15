@@ -1,6 +1,5 @@
 import { Section, Badge, Screenshot, FadeIn } from '@/components/ui'
 import { Target, Zap, ShieldCheck, Sprout } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
 
 const FEATURES = [
   {
@@ -48,15 +47,15 @@ const FEATURES = [
 export function Features() {
   return (
     <Section background="alt" id="features">
-      <FadeIn>
+      <FadeIn variant="blur">
         <h2 className="text-2xl md:text-4xl font-bold text-center mb-12">
-          Comment Pulpe t'aide à voir clair
+          Comment Pulpe t&apos;aide à voir clair
         </h2>
       </FadeIn>
 
-      <div className="space-y-24">
+      <div className="space-y-20 md:space-y-24">
         {FEATURES.map((feature, index) => (
-          <FadeIn key={feature.title} delay={0.1}>
+          <FadeIn key={feature.title} variant="blur" delay={0.1}>
             <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
               <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
                 <Badge className="mb-4">
@@ -66,7 +65,7 @@ export function Features() {
                 <h3 className="text-xl md:text-2xl font-semibold mb-3">
                   {feature.title}
                 </h3>
-                <p className="text-text-secondary text-lg">
+                <p className="text-text-secondary text-lg leading-relaxed">
                   {feature.description}
                 </p>
               </div>
