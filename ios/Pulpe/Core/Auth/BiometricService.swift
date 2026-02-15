@@ -37,4 +37,9 @@ final class BiometricService: Sendable {
         var error: NSError?
         return context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
     }
+
+    func authenticate(reason: String = "Activer l'authentification biométrique") async throws {
+        let context = LAContext()
+        try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason)
+    }
 }

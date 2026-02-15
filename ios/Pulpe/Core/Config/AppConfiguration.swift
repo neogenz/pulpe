@@ -10,7 +10,7 @@ enum AppConfiguration {
         URL(string: ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "http://localhost:3000/api/v1")!
         #else
         // Production (includes /api/v1 prefix)
-        URL(string: "https://backend-production-e7df.up.railway.app/api/v1")!
+        URL(string: "https://api.pulpe.app/api/v1")!
         #endif
     }
 

@@ -8,24 +8,16 @@ struct PinRecoveryView: View {
     @State private var viewModel = PinRecoveryViewModel()
 
     var body: some View {
-        ZStack {
-            background
-            content
-        }
-        .sheet(isPresented: $viewModel.showRecoverySheet) {
+        content
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .pulpeBackground()
+            .sheet(isPresented: $viewModel.showRecoverySheet) {
             if let key = viewModel.newRecoveryKey {
                 RecoveryKeySheet(recoveryKey: key) {
                     onComplete()
                 }
             }
         }
-    }
-
-    // MARK: - Background
-
-    private var background: some View {
-        Color.pinBackground
-            .ignoresSafeArea()
     }
 
     // MARK: - Content
@@ -56,16 +48,16 @@ struct PinRecoveryView: View {
         VStack(spacing: DesignTokens.Spacing.xxl) {
             Image(systemName: "key.fill")
                 .font(.system(size: 48))
-                .foregroundStyle(Color.pinTextSecondary)
+                .foregroundStyle(Color.textSecondaryOnboarding)
 
             VStack(spacing: DesignTokens.Spacing.sm) {
                 Text("Cle de recuperation")
                     .font(PulpeTypography.onboardingTitle)
-                    .foregroundStyle(Color.pinText)
+                    .foregroundStyle(Color.textPrimaryOnboarding)
 
                 Text("Entre la cle de recuperation que tu as notee lors de la configuration de ton code PIN")
                     .font(PulpeTypography.stepSubtitle)
-                    .foregroundStyle(Color.pinTextSecondary)
+                    .foregroundStyle(Color.textSecondaryOnboarding)
                     .multilineTextAlignment(.center)
             }
 
@@ -104,7 +96,7 @@ struct PinRecoveryView: View {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
                 .stroke(Color.pinInputBorder, lineWidth: 1)
         )
-        .foregroundStyle(Color.pinText)
+        .foregroundStyle(Color.textPrimaryOnboarding)
     }
 
     private var recoverButton: some View {
@@ -135,12 +127,12 @@ struct PinRecoveryView: View {
             VStack(spacing: DesignTokens.Spacing.sm) {
                 Text(title)
                     .font(PulpeTypography.onboardingTitle)
-                    .foregroundStyle(Color.pinText)
+                    .foregroundStyle(Color.textPrimaryOnboarding)
 
                 if let subtitle {
                     Text(subtitle)
                         .font(PulpeTypography.stepSubtitle)
-                        .foregroundStyle(Color.pinTextSecondary)
+                        .foregroundStyle(Color.textSecondaryOnboarding)
                 }
             }
 
@@ -180,7 +172,7 @@ struct PinRecoveryView: View {
             } label: {
                 Text("Revenir")
                     .font(PulpeTypography.stepSubtitle)
-                    .foregroundStyle(Color.pinTextSecondary)
+                    .foregroundStyle(Color.textSecondaryOnboarding)
             }
         }
     }
@@ -190,16 +182,16 @@ struct PinRecoveryView: View {
     private var processingStep: some View {
         VStack(spacing: DesignTokens.Spacing.xl) {
             ProgressView()
-                .tint(Color.pinText)
+                .tint(Color.textPrimaryOnboarding)
                 .scaleEffect(1.5)
 
             Text("Recuperation en cours...")
                 .font(PulpeTypography.onboardingTitle)
-                .foregroundStyle(Color.pinText)
+                .foregroundStyle(Color.textPrimaryOnboarding)
 
             Text("Tes donnees sont en cours de re-chiffrement")
                 .font(PulpeTypography.stepSubtitle)
-                .foregroundStyle(Color.pinTextSecondary)
+                .foregroundStyle(Color.textSecondaryOnboarding)
                 .multilineTextAlignment(.center)
         }
     }
@@ -212,7 +204,7 @@ struct PinRecoveryView: View {
         } label: {
             Text("Annuler")
                 .font(PulpeTypography.stepSubtitle)
-                .foregroundStyle(Color.pinTextSecondary)
+                .foregroundStyle(Color.textSecondaryOnboarding)
         }
     }
 }

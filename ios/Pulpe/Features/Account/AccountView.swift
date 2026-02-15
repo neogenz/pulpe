@@ -29,11 +29,19 @@ struct AccountView: View {
                             isOn: $biometricToggle
                         )
                         .onChange(of: biometricToggle) { _, newValue in
+                            guard newValue != appState.biometricEnabled else { return }
                             Task {
+                                let displayName = BiometricService.shared.biometryDisplayName
                                 if newValue {
-                                    await appState.enableBiometric()
+                                    let success = await appState.enableBiometric()
+                                    if success {
+                                        appState.toastManager.show("\(displayName) activé", type: .success)
+                                    } else {
+                                        appState.toastManager.show("Impossible d'activer \(displayName)", type: .error)
+                                    }
                                 } else {
                                     await appState.disableBiometric()
+                                    appState.toastManager.show("\(displayName) désactivé", type: .success)
                                 }
                                 biometricToggle = appState.biometricEnabled
                             }
@@ -63,8 +71,10 @@ struct AccountView: View {
 
                 Section {
                     Button("Déconnexion", role: .destructive) {
-                        Task { await appState.logout() }
-                        dismiss()
+                        Task {
+                            await appState.logout()
+                            dismiss()
+                        }
                     }
                 }
                 .listRowBackground(Color.surfaceCard)
