@@ -5,7 +5,7 @@ import { Header, Footer } from '@/components/sections'
 import releases from '@/data/releases.json'
 
 export const metadata: Metadata = {
-  title: 'Nouveautés — Pulpe',
+  title: 'Nouveautés',
   description:
     'Toutes les nouveautés et corrections de Pulpe. Suivez les mises à jour de l\'app web, iOS et Android.',
   alternates: {

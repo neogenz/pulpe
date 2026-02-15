@@ -12,9 +12,13 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://pulpe.app'),
-  title: "Pulpe — L'app budget simple pour planifier ton année",
+  title: {
+    template: '%s – Pulpe',
+    default: "Pulpe – L'app budget simple pour planifier ton année",
+  },
   description:
     "Planifie ton année, anticipe les grosses dépenses, note tes achats en 2 clics. Pulpe t'aide à voir clair dans tes finances sans prise de tête.",
+  applicationName: 'Pulpe',
   robots: {
     index: true,
     follow: true,
@@ -23,8 +27,9 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   openGraph: {
-    title: 'Pulpe — Planifie ton année. Profite de ton mois.',
+    title: 'Pulpe – Planifie ton année. Profite de ton mois.',
     description: "L'app budget hyper simple qui remplace Excel. Essaie gratuitement.",
+    siteName: 'Pulpe',
     type: 'website',
     url: '/',
     locale: 'fr_FR',
@@ -39,7 +44,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: "Pulpe — L'app budget simple pour planifier ton année",
+    title: "Pulpe – L'app budget simple pour planifier ton année",
     description: 'Planifie ton année, anticipe les grosses dépenses, note tes achats en 2 clics.',
     images: ['/og-image.png'],
   },
@@ -56,6 +61,7 @@ const jsonLd = {
       '@id': 'https://pulpe.app/#website',
       url: 'https://pulpe.app',
       name: 'Pulpe',
+      alternateName: ['pulpe', 'Pulpe app', 'pulpe.app'],
       description:
         "L'app budget simple pour planifier ton année. Anticipe les grosses dépenses et note tes achats en 2 clics.",
       inLanguage: 'fr-FR',

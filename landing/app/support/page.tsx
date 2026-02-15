@@ -4,7 +4,7 @@ import { Container, AccordionItem } from '@/components/ui'
 import { Header, Footer } from '@/components/sections'
 
 export const metadata: Metadata = {
-  title: 'Support — Pulpe',
+  title: 'Support',
   description: 'Questions fréquentes et contact pour Pulpe, ton app budget simple.',
   alternates: {
     canonical: '/support',
