@@ -1,6 +1,8 @@
 import Foundation
 import OSLog
 
+/// Manages the client encryption key lifecycle with caching and biometric storage.
+/// Thread-safe actor that handles key derivation, storage, and retrieval for end-to-end encryption.
 actor ClientKeyManager {
     static let shared = ClientKeyManager()
 

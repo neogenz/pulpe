@@ -9,6 +9,37 @@ actor WidgetDataSyncService {
     private static let yearOverviewWidgetKind = "YearOverviewWidget"
 
     private let coordinator = WidgetDataCoordinator()
+    private let budgetService: BudgetService
+
+    private init(budgetService: BudgetService = .shared) {
+        self.budgetService = budgetService
+    }
+
+    /// Centralized widget sync - fetches all data and syncs widgets
+    func syncAll() async {
+        do {
+            let exportData = try await budgetService.exportAllBudgets()
+
+            // Also get current budget details if it exists
+            let currentDetails: BudgetDetails?
+            if let currentBudget = try? await budgetService.getCurrentMonthBudget() {
+                currentDetails = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
+            } else {
+                currentDetails = nil
+            }
+
+            await sync(
+                budgetsWithDetails: exportData.budgets,
+                currentBudgetDetails: currentDetails
+            )
+        } catch {
+            Logger.sync.error("syncAll failed - \(error)")
+            await sync(
+                budgetsWithDetails: [],
+                currentBudgetDetails: nil
+            )
+        }
+    }
 
     func sync(
         budgetsWithDetails: [BudgetWithDetails],

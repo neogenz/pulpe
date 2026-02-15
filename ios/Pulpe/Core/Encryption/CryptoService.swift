@@ -2,6 +2,8 @@ import CommonCrypto
 import Foundation
 import OSLog
 
+/// Cryptographic service for PIN-based key derivation using PBKDF2.
+/// Thread-safe actor that provides secure key derivation for client-side encryption.
 actor CryptoService {
     static let shared = CryptoService()
 
@@ -13,6 +15,13 @@ actor CryptoService {
 
     // MARK: - Key Derivation
 
+    /// Derives a 256-bit client encryption key from a PIN using PBKDF2-HMAC-SHA256.
+    /// - Parameters:
+    ///   - pin: User's PIN code (4-8 digits)
+    ///   - saltHex: Hexadecimal salt from server (64 characters)
+    ///   - iterations: PBKDF2 iteration count (typically 600,000)
+    /// - Returns: Derived key as hexadecimal string (64 characters)
+    /// - Throws: CryptoServiceError if derivation fails
     func deriveClientKey(pin: String, saltHex: String, iterations: Int) throws -> String {
         guard let pinData = pin.data(using: .utf8) else {
             throw CryptoServiceError.invalidPin

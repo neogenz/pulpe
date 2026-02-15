@@ -189,7 +189,7 @@ struct LoginView: View {
                 "",
                 text: $viewModel.email,
                 prompt: Text("exemple@email.com")
-                    .foregroundStyle(Color.textTertiaryOnboarding)
+                    .foregroundStyle(Color.authInputPlaceholder)
             )
             .textContentType(.emailAddress)
             .keyboardType(.emailAddress)
@@ -197,22 +197,23 @@ struct LoginView: View {
             .autocorrectionDisabled()
             .focused($focusedField, equals: .email)
             .font(.body)
+            .foregroundStyle(Color.authInputText)
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .frame(height: DesignTokens.FrameHeight.button)
             .background {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.white.opacity(0.5))
+                    .fill(Color.authInputBackground)
                     .overlay {
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
                             .strokeBorder(
-                                focusedField == .email ? Color.pulpePrimary.opacity(0.5) : Color.white.opacity(0.2),
+                                focusedField == .email ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder,
                                 lineWidth: focusedField == .email ? 2 : 1
                             )
                     }
             }
             .shadow(
-                color: focusedField == .email ? Color.pulpePrimary.opacity(0.15) : .clear,
-                radius: 12,
+                color: focusedField == .email ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05),
+                radius: focusedField == .email ? 12 : 4,
                 y: 4
             )
             .scaleEffect(focusedField == .email ? 1.01 : 1)
@@ -236,20 +237,21 @@ struct LoginView: View {
                             "",
                             text: $viewModel.password,
                             prompt: Text("Votre mot de passe")
-                                .foregroundStyle(Color.textTertiaryOnboarding)
+                                .foregroundStyle(Color.authInputPlaceholder)
                         )
                     } else {
                         SecureField(
                             "",
                             text: $viewModel.password,
                             prompt: Text("Votre mot de passe")
-                                .foregroundStyle(Color.textTertiaryOnboarding)
+                                .foregroundStyle(Color.authInputPlaceholder)
                         )
                     }
                 }
                 .textContentType(.password)
                 .focused($focusedField, equals: .password)
                 .font(.body)
+                .foregroundStyle(Color.authInputText)
                 .accessibilityIdentifier("password")
 
                 Button {
@@ -259,7 +261,7 @@ struct LoginView: View {
                 } label: {
                     Image(systemName: viewModel.showPassword ? "eye.slash.fill" : "eye.fill")
                         .font(.body)
-                        .foregroundStyle(Color.textSecondaryOnboarding)
+                        .foregroundStyle(Color.authInputText.opacity(0.6))
                         .contentTransition(.symbolEffect(.replace))
                 }
                 .accessibilityLabel(viewModel.showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe")
@@ -268,18 +270,18 @@ struct LoginView: View {
             .frame(height: DesignTokens.FrameHeight.button)
             .background {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.white.opacity(0.5))
+                    .fill(Color.authInputBackground)
                     .overlay {
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
                             .strokeBorder(
-                                focusedField == .password ? Color.pulpePrimary.opacity(0.5) : Color.white.opacity(0.2),
+                                focusedField == .password ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder,
                                 lineWidth: focusedField == .password ? 2 : 1
                             )
                     }
             }
             .shadow(
-                color: focusedField == .password ? Color.pulpePrimary.opacity(0.15) : .clear,
-                radius: 12,
+                color: focusedField == .password ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05),
+                radius: focusedField == .password ? 12 : 4,
                 y: 4
             )
             .scaleEffect(focusedField == .password ? 1.01 : 1)
@@ -309,13 +311,13 @@ struct LoginView: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: DesignTokens.FrameHeight.button)
-            .background(viewModel.canSubmit ? Color.white : Color.white.opacity(0.4))
-            .foregroundStyle(viewModel.canSubmit ? Color.pulpePrimary : Color.textSecondaryOnboarding)
+            .background(viewModel.canSubmit ? Color.white : Color.authInputBackground)
+            .foregroundStyle(viewModel.canSubmit ? Color.pulpePrimary : Color.authInputPlaceholder)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .shadow(
-                color: viewModel.canSubmit ? .black.opacity(0.15) : .clear,
-                radius: 16,
-                y: 8
+                color: viewModel.canSubmit ? .black.opacity(0.15) : .black.opacity(0.05),
+                radius: viewModel.canSubmit ? 16 : 8,
+                y: viewModel.canSubmit ? 8 : 4
             )
         }
         .disabled(!viewModel.canSubmit)
@@ -386,28 +388,6 @@ struct LoginView: View {
             viewModel.errorMessage = AuthErrorLocalizer.localize(error)
             viewModel.isLoading = false
         }
-    }
-}
-
-@Observable @MainActor
-final class LoginViewModel {
-    var email = ""
-    var password = ""
-    var showPassword = false
-    var isLoading = false
-    var errorMessage: String?
-
-    var isEmailValid: Bool {
-        let pattern = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/
-        return email.wholeMatch(of: pattern) != nil
-    }
-
-    var isPasswordValid: Bool {
-        password.count >= 8
-    }
-
-    var canSubmit: Bool {
-        isEmailValid && isPasswordValid && !isLoading
     }
 }
 
