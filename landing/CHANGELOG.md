@@ -1,5 +1,11 @@
 # pulpe-landing
 
+## 0.4.0
+
+### Minor Changes
+
+- Navigation instantanee avec cache SWR, clavier numerique mobile, amelioration du referencement et corrections de securite base de donnees.
+
 ## 0.3.0
 
 ### Minor Changes

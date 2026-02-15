@@ -1,5 +1,11 @@
 # backend-nest
 
+## 0.14.1
+
+### Patch Changes
+
+- Navigation instantanee avec cache SWR, clavier numerique mobile, amelioration du referencement et corrections de securite base de donnees.
+
 ## 0.14.0
 
 ### Minor Changes

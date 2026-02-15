@@ -1,5 +1,67 @@
 [
   {
+    "version": "0.22.0",
+    "date": "2026-02-15",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.22.0",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "Navigation instantanee",
+          "description": "Un cache intelligent (SWR) charge les budgets et donnees instantanement avec revalidation en arriere-plan"
+        },
+        {
+          "title": "Clavier numerique mobile",
+          "description": "Les champs de montant affichent le pave numerique sur telephone"
+        },
+        {
+          "title": "Effet verre vibrant (iOS)",
+          "description": "La carte de solde adopte un nouvel effet visuel translucide"
+        },
+        {
+          "title": "Refonte visuelle des budgets (iOS)",
+          "description": "Nouvelle hierarchie avec cartes, pilules colorees et design ameliore"
+        },
+        {
+          "title": "Referencement ameliore",
+          "description": "Scores Lighthouse 98+ et nom du site affiche dans les resultats Google"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Stabilite du cache",
+          "description": "Plus d'ecrans vides ni de doublons pendant la revalidation des donnees"
+        },
+        {
+          "title": "Flash de navigation iOS",
+          "description": "Le changement d'onglet ne provoque plus de flash visuel"
+        },
+        {
+          "title": "Onboarding iOS",
+          "description": "Direction de transition et indications dans les champs monetaires corrigees"
+        },
+        {
+          "title": "Accessibilite budgets iOS",
+          "description": "Dynamic Type, mode sombre et VoiceOver ameliores sur la liste des budgets"
+        },
+        {
+          "title": "Format suisse",
+          "description": "Affichage correct des montants au format de_CH"
+        }
+      ],
+      "technical": [
+        {
+          "title": "Securite base de donnees",
+          "description": "Corrections de securite et performance sur la base de donnees Supabase"
+        },
+        {
+          "title": "Pipeline CI",
+          "description": "Deploiement automatique des migrations Supabase via GitHub Actions"
+        }
+      ]
+    }
+  },
+  {
     "version": "0.21.0",
     "date": "2026-02-14",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.21.0",

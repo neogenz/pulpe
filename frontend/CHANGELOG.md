@@ -1,5 +1,11 @@
 # pulpe-frontend
 
+## 0.21.0
+
+### Minor Changes
+
+- Navigation instantanee avec cache SWR, clavier numerique mobile, amelioration du referencement et corrections de securite base de donnees.
+
 ## 0.20.1
 
 ### Patch Changes
