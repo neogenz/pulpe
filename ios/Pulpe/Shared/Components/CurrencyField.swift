@@ -37,20 +37,21 @@ struct CurrencyField: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             if let label {
                 Text(label)
-                    .font(PulpeTypography.inputLabel)
-                    .foregroundStyle(.secondary)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.textPrimaryOnboarding)
             }
 
             HStack {
                 Text("CHF")
-                    .foregroundStyle(.secondary)
-                    .font(.body)
+                    .foregroundStyle(Color.textSecondaryOnboarding)
+                    .font(.body.weight(.medium))
 
                 TextField(hint, text: $textValue)
                     .keyboardType(.decimalPad)
+                    .foregroundStyle(Color.authInputText)
                     .focused(externalFocus ?? $internalFocus)
                     .onChange(of: textValue) { _, newValue in
                         updateValue(from: newValue)
@@ -60,8 +61,23 @@ struct CurrencyField: View {
                     }
             }
             .padding(DesignTokens.Spacing.lg)
-            .background(Color.inputBackgroundSoft)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+            .background {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.authInputBackground)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(
+                                effectiveFocus ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder,
+                                lineWidth: effectiveFocus ? 2 : 1
+                            )
+                    }
+            }
+            .shadow(
+                color: effectiveFocus ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05),
+                radius: effectiveFocus ? 12 : 4,
+                y: 4
+            )
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: effectiveFocus)
         }
         .onAppear {
             updateText(from: value)

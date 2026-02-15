@@ -30,7 +30,7 @@ enum AppConfiguration {
            let url = URL(string: urlString) {
             return url
         }
-        return URL(string: "http://localhost:54321")!
+        return URL(string: "http://127.0.0.1:54321")!
         #else
         // Production - read from Info.plist
         guard let urlString = Bundle.main.infoDictionary?["SUPABASE_URL"] as? String,
@@ -44,7 +44,7 @@ enum AppConfiguration {
     static var supabaseAnonKey: String {
         #if DEBUG
         return ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"]
-            ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
+            ?? "sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH"
         #else
         // Production - read from Info.plist
         guard let key = Bundle.main.infoDictionary?["SUPABASE_ANON_KEY"] as? String else {

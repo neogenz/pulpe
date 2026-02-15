@@ -9,9 +9,8 @@ struct OnboardingFlow: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Premium gradient background for Liquid Glass
-                Color.appPremiumBackground
-                    .ignoresSafeArea()
+                // Beautiful auth gradient background (same as welcome/login)
+                Color.authGradientBackground
 
                 VStack(spacing: 0) {
                     // Segmented progress indicator (except welcome)

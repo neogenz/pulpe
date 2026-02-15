@@ -23,17 +23,18 @@ struct RegistrationStep: View {
             canProceed: state.canSubmitRegistration,
             onNext: { Task { await submitRegistration() } }
         ) {
-            VStack(spacing: DesignTokens.Spacing.xl) {
+            VStack(spacing: DesignTokens.Spacing.xxl) {
                 Text("Crée ton compte pour sauvegarder ton budget")
-                    .font(PulpeTypography.bodyLarge)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(Color.textPrimaryOnboarding)
                     .multilineTextAlignment(.center)
+                    .padding(.bottom, DesignTokens.Spacing.sm)
 
                 // Email
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Email")
-                        .font(PulpeTypography.inputLabel)
-                        .foregroundStyle(Color.textSecondaryOnboarding)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.textPrimaryOnboarding)
 
                     TextField("ton@email.com", text: Binding(
                         get: { state.email },
@@ -44,15 +45,25 @@ struct RegistrationStep: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .focused($focusedField, equals: .email)
-                    .font(PulpeTypography.bodyLarge)
+                    .font(.body)
+                    .foregroundStyle(Color.authInputText)
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .frame(height: DesignTokens.FrameHeight.button)
-                    .background(Color.inputBackgroundSoft)
-                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+                    .background {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.authInputBackground)
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .strokeBorder(
+                                        focusedField == .email ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder,
+                                        lineWidth: focusedField == .email ? 2 : 1
+                                    )
+                            }
+                    }
                     .shadow(
-                        color: focusedField == .email ? Color.inputFocusGlow : Color.black.opacity(0.04),
-                        radius: focusedField == .email ? 8 : 4,
-                        y: focusedField == .email ? 2 : 1
+                        color: focusedField == .email ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05),
+                        radius: focusedField == .email ? 12 : 4,
+                        y: 4
                     )
                     .scaleEffect(focusedField == .email ? 1.01 : 1)
                     .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
@@ -61,8 +72,8 @@ struct RegistrationStep: View {
                 // Password
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Mot de passe")
-                        .font(PulpeTypography.inputLabel)
-                        .foregroundStyle(Color.textSecondaryOnboarding)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.textPrimaryOnboarding)
 
                     HStack(spacing: DesignTokens.Spacing.md) {
                         Group {
@@ -80,7 +91,8 @@ struct RegistrationStep: View {
                         }
                         .textContentType(.newPassword)
                         .focused($focusedField, equals: .password)
-                        .font(PulpeTypography.bodyLarge)
+                        .font(.body)
+                        .foregroundStyle(Color.authInputText)
 
                         Button {
                             withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
@@ -88,34 +100,48 @@ struct RegistrationStep: View {
                             }
                         } label: {
                             Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
-                                .font(PulpeTypography.bodyLarge)
-                                .foregroundStyle(Color.textTertiaryOnboarding)
+                                .font(.body)
+                                .foregroundStyle(Color.authInputText.opacity(0.6))
                                 .contentTransition(.symbolEffect(.replace))
                         }
                         .accessibilityLabel(showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe")
                     }
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .frame(height: DesignTokens.FrameHeight.button)
-                    .background(Color.inputBackgroundSoft)
-                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+                    .background {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.authInputBackground)
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .strokeBorder(
+                                        focusedField == .password ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder,
+                                        lineWidth: focusedField == .password ? 2 : 1
+                                    )
+                            }
+                    }
                     .shadow(
-                        color: focusedField == .password ? Color.inputFocusGlow : Color.black.opacity(0.04),
-                        radius: focusedField == .password ? 8 : 4,
-                        y: focusedField == .password ? 2 : 1
+                        color: focusedField == .password ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05),
+                        radius: focusedField == .password ? 12 : 4,
+                        y: 4
                     )
                     .scaleEffect(focusedField == .password ? 1.01 : 1)
                     .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
 
-                    Text("8 caractères minimum, dont une majuscule et un chiffre")
-                        .font(.caption)
-                        .foregroundStyle(Color.textTertiaryOnboarding)
+                    HStack(spacing: 6) {
+                        Image(systemName: "info.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(Color.pulpePrimary.opacity(0.7))
+                        Text("8 caractères minimum, dont une majuscule et un chiffre")
+                            .font(.caption)
+                            .foregroundStyle(Color.textSecondaryOnboarding)
+                    }
                 }
 
                 // Password confirmation
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Confirmer le mot de passe")
-                        .font(PulpeTypography.inputLabel)
-                        .foregroundStyle(Color.textSecondaryOnboarding)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.textPrimaryOnboarding)
 
                     HStack(spacing: DesignTokens.Spacing.md) {
                         Group {
@@ -133,7 +159,8 @@ struct RegistrationStep: View {
                         }
                         .textContentType(.newPassword)
                         .focused($focusedField, equals: .passwordConfirmation)
-                        .font(PulpeTypography.bodyLarge)
+                        .font(.body)
+                        .foregroundStyle(Color.authInputText)
 
                         Button {
                             withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
@@ -141,20 +168,30 @@ struct RegistrationStep: View {
                             }
                         } label: {
                             Image(systemName: showPasswordConfirmation ? "eye.slash.fill" : "eye.fill")
-                                .font(PulpeTypography.bodyLarge)
-                                .foregroundStyle(Color.textTertiaryOnboarding)
+                                .font(.body)
+                                .foregroundStyle(Color.authInputText.opacity(0.6))
                                 .contentTransition(.symbolEffect(.replace))
                         }
                         .accessibilityLabel(showPasswordConfirmation ? "Masquer le mot de passe" : "Afficher le mot de passe")
                     }
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .frame(height: DesignTokens.FrameHeight.button)
-                    .background(passwordMismatch ? Color.errorBackground : Color.inputBackgroundSoft)
-                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+                    .background {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(passwordMismatch ? Color.errorBackground : Color.authInputBackground)
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .strokeBorder(
+                                        passwordMismatch ? Color.errorPrimary.opacity(0.5) :
+                                        focusedField == .passwordConfirmation ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder,
+                                        lineWidth: focusedField == .passwordConfirmation || passwordMismatch ? 2 : 1
+                                    )
+                            }
+                    }
                     .shadow(
-                        color: focusedField == .passwordConfirmation ? Color.inputFocusGlow : Color.black.opacity(0.04),
-                        radius: focusedField == .passwordConfirmation ? 8 : 4,
-                        y: focusedField == .passwordConfirmation ? 2 : 1
+                        color: focusedField == .passwordConfirmation ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05),
+                        radius: focusedField == .passwordConfirmation ? 12 : 4,
+                        y: 4
                     )
                     .scaleEffect(focusedField == .passwordConfirmation ? 1.01 : 1)
                     .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
@@ -166,18 +203,34 @@ struct RegistrationStep: View {
                     }
                 }
 
-                // Terms acceptance
-                Toggle(isOn: Binding(
-                    get: { state.acceptTerms },
-                    set: { state.acceptTerms = $0 }
-                )) {
-                    Text("J'accepte les [conditions d'utilisation](https://pulpe.app/terms) et la [politique de confidentialité](https://pulpe.app/privacy)")
-                        .font(.caption)
+                // Terms acceptance - modern checkbox
+                Button {
+                    state.acceptTerms.toggle()
+                } label: {
+                    HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .strokeBorder(state.acceptTerms ? Color.pulpePrimary : Color.authInputBorder, lineWidth: 2)
+                                .frame(width: 24, height: 24)
+                            
+                            if state.acceptTerms {
+                                Image(systemName: "checkmark")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(Color.pulpePrimary)
+                                    .transition(.scale.combined(with: .opacity))
+                            }
+                        }
+                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: state.acceptTerms)
+                        
+                        Text("J'accepte les [conditions d'utilisation](https://pulpe.app/terms) et la [politique de confidentialité](https://pulpe.app/privacy)")
+                            .font(.footnote)
+                            .foregroundStyle(Color.textPrimaryOnboarding)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
-                .toggleStyle(.pulpeCheckbox)
+                .buttonStyle(.plain)
             }
-            .padding(DesignTokens.Spacing.xxl)
-            .pulpeCardBackground(cornerRadius: 24)
         }
     }
 
@@ -240,27 +293,6 @@ struct RegistrationStep: View {
             state.isLoading = false
         }
     }
-}
-
-// MARK: - Checkbox Toggle Style
-
-struct CheckboxToggleStyle: ToggleStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-            Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
-                .font(.title3)
-                .foregroundStyle(configuration.isOn ? Color.accentColor : Color.secondary)
-                .onTapGesture {
-                    configuration.isOn.toggle()
-                }
-
-            configuration.label
-        }
-    }
-}
-
-extension ToggleStyle where Self == CheckboxToggleStyle {
-    static var pulpeCheckbox: CheckboxToggleStyle { CheckboxToggleStyle() }
 }
 
 #Preview {
