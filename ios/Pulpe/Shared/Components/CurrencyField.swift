@@ -16,7 +16,8 @@ struct CurrencyField: View {
     let label: String?
 
     @FocusState private var internalFocus: Bool
-    @State private var textValue: String = ""
+    @State private var textValue: String
+    @State private var hasInitialized = false
 
     private let externalFocus: FocusState<Bool>.Binding?
 
@@ -34,6 +35,13 @@ struct CurrencyField: View {
         self.hint = hint
         self.label = label
         self.externalFocus = externalFocus
+        
+        // Initialize text value from binding immediately (not in onAppear)
+        if let decimal = value.wrappedValue {
+            self._textValue = State(initialValue: Self.displayFormatter.string(from: decimal as NSDecimalNumber) ?? "")
+        } else {
+            self._textValue = State(initialValue: "")
+        }
     }
 
     var body: some View {
@@ -57,7 +65,10 @@ struct CurrencyField: View {
                         updateValue(from: newValue)
                     }
                     .onChange(of: value) { _, newValue in
-                        updateText(from: newValue)
+                        // Only update text if value changed externally (not from user input)
+                        if hasInitialized {
+                            updateText(from: newValue)
+                        }
                     }
             }
             .padding(DesignTokens.Spacing.lg)
@@ -79,8 +90,9 @@ struct CurrencyField: View {
             )
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: effectiveFocus)
         }
-        .onAppear {
-            updateText(from: value)
+        .task {
+            // Mark as initialized after first render
+            hasInitialized = true
         }
     }
 
