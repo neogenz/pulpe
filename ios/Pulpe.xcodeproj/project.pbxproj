@@ -105,6 +105,8 @@
 		97092F838305C402C7CAE3A9 /* AnimationConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ECBDA78A766C8FC3E6BBDA9 /* AnimationConstants.swift */; };
 		9C6DBDE02F4240C80044C0CA /* LoginViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C6DBDDF2F4240C80044C0CA /* LoginViewModel.swift */; };
 		9C6DBDE22F42544B0044C0CA /* ModernSheetModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C6DBDE12F42544B0044C0CA /* ModernSheetModifier.swift */; };
+		9C6DBDE42F42FAD20044C0CA /* RecoveryKeyFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C6DBDE32F42FAD20044C0CA /* RecoveryKeyFormatter.swift */; };
+		9C6DBDE62F42FB1F0044C0CA /* ConfirmPasswordSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C6DBDE52F42FB1F0044C0CA /* ConfirmPasswordSheet.swift */; };
 		9DF3E7C14A96A5E7AC8EC4C3 /* LinkedTransactionsContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = D45C40FA08472FA75B62A6AC /* LinkedTransactionsContext.swift */; };
 		9E4C5D319DB85E349A7923AF /* DesignTokensTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A73DE8701BDE0D8D5D4C66 /* DesignTokensTests.swift */; };
 		A22726A5F8810386134F4846 /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7722947386A7CD78FE3B05 /* OnboardingFlow.swift */; };
@@ -294,6 +296,8 @@
 		9C02340FB2A3D93553E9CA15 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		9C6DBDDF2F4240C80044C0CA /* LoginViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginViewModel.swift; sourceTree = "<group>"; };
 		9C6DBDE12F42544B0044C0CA /* ModernSheetModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModernSheetModifier.swift; sourceTree = "<group>"; };
+		9C6DBDE32F42FAD20044C0CA /* RecoveryKeyFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryKeyFormatter.swift; sourceTree = "<group>"; };
+		9C6DBDE52F42FB1F0044C0CA /* ConfirmPasswordSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfirmPasswordSheet.swift; sourceTree = "<group>"; };
 		9E56340C03DD8EE1F7DF7638 /* BudgetService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetService.swift; sourceTree = "<group>"; };
 		A0EB7D0152B9975CEB86BDD3 /* NumpadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NumpadView.swift; sourceTree = "<group>"; };
 		A1A0EA391775C63723A83BF3 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
@@ -390,6 +394,7 @@
 				2A07B6BF8918F8932CF9E957 /* ClientKeyManager.swift */,
 				2F871D32BBADD1A548C23840 /* CryptoService.swift */,
 				24FD22C9D0E70B8B0BBD73ED /* EncryptionAPI.swift */,
+				9C6DBDE32F42FAD20044C0CA /* RecoveryKeyFormatter.swift */,
 			);
 			path = Encryption;
 			sourceTree = "<group>";
@@ -663,6 +668,7 @@
 			isa = PBXGroup;
 			children = (
 				7EB719150BD8F123D596C901 /* AccountView.swift */,
+				9C6DBDE52F42FB1F0044C0CA /* ConfirmPasswordSheet.swift */,
 			);
 			path = Account;
 			sourceTree = "<group>";
@@ -1308,6 +1314,7 @@
 				40867D66318D1675AC21C5EE /* Endpoints.swift in Sources */,
 				355EAC39C5277062B617B41A /* ErrorView.swift in Sources */,
 				2AD9C80C755A3839DC833750 /* ExpensesStep.swift in Sources */,
+				9C6DBDE62F42FB1F0044C0CA /* ConfirmPasswordSheet.swift in Sources */,
 				EC88348DD8DBF4F6B166D265 /* Formatters.swift in Sources */,
 				2449B859079E22FB3637CAA0 /* HeroBalanceCard.swift in Sources */,
 				28C02954EA533A650FADCD88 /* InsightsCard.swift in Sources */,
@@ -1317,6 +1324,7 @@
 				6CDB77CCB53255B0897278CC /* LinkedTransactionsSheet.swift in Sources */,
 				A9D815E799971DE27B7770E9 /* LoadingView.swift in Sources */,
 				4FDD5DEEA9834DF486F307C5 /* Logger+Pulpe.swift in Sources */,
+				9C6DBDE42F42FAD20044C0CA /* RecoveryKeyFormatter.swift in Sources */,
 				846573A9906007B79BC2B2C2 /* LoginView.swift in Sources */,
 				7D8DD48CD5C6688A74753599 /* MainTabView.swift in Sources */,
 				78B5F01E78BB121C95940D30 /* MaintenanceService.swift in Sources */,
