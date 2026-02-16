@@ -5,6 +5,10 @@ struct AccountView: View {
     @Environment(AppState.self) private var appState
     @State private var biometricToggle = false
     @State private var showDeleteConfirmation = false
+    @State private var showConfirmPassword = false
+    @State private var showNewRecoveryKey = false
+    @State private var newRecoveryKey = ""
+    @State private var isRegenerating = false
 
     var body: some View {
         NavigationStack {
@@ -46,6 +50,14 @@ struct AccountView: View {
                                 biometricToggle = appState.biometricEnabled
                             }
                         }
+                    }
+                    
+                    LabeledContent("Clé de secours") {
+                        Button("Régénérer") {
+                            showConfirmPassword = true
+                        }
+                        .foregroundStyle(Color.primary)
+                        .disabled(isRegenerating)
                     }
                 } header: {
                     Text("SÉCURITÉ")
@@ -101,6 +113,45 @@ struct AccountView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Fermer") { dismiss() }
                 }
+            }
+            .sheet(isPresented: $showConfirmPassword) {
+                ConfirmPasswordSheet {
+                    regenerateRecoveryKey()
+                }
+            }
+            .sheet(isPresented: $showNewRecoveryKey) {
+                RecoveryKeySheet(recoveryKey: newRecoveryKey) {
+                    showNewRecoveryKey = false
+                }
+            }
+            .overlay {
+                if isRegenerating {
+                    Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+                    VStack(spacing: DesignTokens.Spacing.md) {
+                        ProgressView()
+                            .tint(.white)
+                        Text("Génération de la nouvelle clé...")
+                            .foregroundStyle(.white)
+                            .font(PulpeTypography.labelLarge)
+                    }
+                }
+            }
+        }
+    }
+
+    private func regenerateRecoveryKey() {
+        isRegenerating = true
+        Task {
+            do {
+                let key = try await EncryptionAPI.shared.setupRecoveryKey()
+                newRecoveryKey = key
+                isRegenerating = false
+                showNewRecoveryKey = true
+                appState.toastManager.show("Clé de secours régénérée", type: .success)
+            } catch {
+                isRegenerating = false
+                appState.toastManager.show("Erreur lors de la génération", type: .error)
             }
         }
     }
