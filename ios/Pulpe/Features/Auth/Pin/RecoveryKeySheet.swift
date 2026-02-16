@@ -53,7 +53,7 @@ struct RecoveryKeySheet: View {
     // MARK: - Key Display
 
     private var keyDisplay: some View {
-        Text(recoveryKey)
+        Text(RecoveryKeyFormatter.format(recoveryKey))
             .font(.system(.body, design: .monospaced))
             .kerning(1)
             .multilineTextAlignment(.center)

@@ -113,7 +113,7 @@ struct PinEntryView: View {
         Button {
             onForgotPin()
         } label: {
-            Text("Code d'acces oublie ?")
+            Text("Code d'accès oublié ?")
                 .font(PulpeTypography.stepSubtitle)
                 .foregroundStyle(Color.textSecondaryOnboarding)
         }
