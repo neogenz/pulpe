@@ -26,6 +26,7 @@ describe('SetupVaultCode', () => {
   };
   let mockEncryptionApi: {
     getSalt$: ReturnType<typeof vi.fn>;
+    validateKey$: ReturnType<typeof vi.fn>;
     setupRecoveryKey$: ReturnType<typeof vi.fn>;
   };
   let mockDialog: { open: ReturnType<typeof vi.fn> };
@@ -59,6 +60,7 @@ describe('SetupVaultCode', () => {
       getSalt$: vi
         .fn()
         .mockReturnValue(of({ salt: 'salt-value', kdfIterations: 100000 })),
+      validateKey$: vi.fn().mockReturnValue(of(undefined)),
       setupRecoveryKey$: vi
         .fn()
         .mockReturnValue(of({ recoveryKey: 'ABCD-EFGH-IJKL-MNOP' })),

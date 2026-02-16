@@ -1011,7 +1011,7 @@ describe('EncryptionService', () => {
       expect(result).toBe(false);
     });
 
-    it('should throw when key_check is missing', async () => {
+    it('should generate and store key_check when missing', async () => {
       const existingSalt = randomBytes(16).toString('hex');
 
       const findByUserId = mock(() =>
@@ -1029,19 +1029,26 @@ describe('EncryptionService', () => {
           key_check: null,
         }),
       );
+      const updateKeyCheck = mock((_userId: string, _keyCheck: string) =>
+        Promise.resolve(),
+      );
 
-      const repo = createMockRepository({ findByUserId, findSaltByUserId });
+      const repo = createMockRepository({
+        findByUserId,
+        findSaltByUserId,
+        updateKeyCheck: updateKeyCheck as ReturnType<typeof mock>,
+      });
       service = new EncryptionService(mockConfigService as any, repo as any);
 
-      try {
-        await service.verifyAndEnsureKeyCheck(TEST_USER_ID, TEST_CLIENT_KEY);
-        expect.unreachable('Should have thrown');
-      } catch (error: unknown) {
-        expect(error).toBeInstanceOf(BusinessException);
-        expect((error as BusinessException).code).toBe(
-          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
-        );
-      }
+      const result = await service.verifyAndEnsureKeyCheck(
+        TEST_USER_ID,
+        TEST_CLIENT_KEY,
+      );
+
+      expect(result).toBe(true);
+      expect(updateKeyCheck).toHaveBeenCalledTimes(1);
+      expect(updateKeyCheck.mock.calls[0][0]).toBe(TEST_USER_ID);
+      expect(typeof updateKeyCheck.mock.calls[0][1]).toBe('string');
     });
 
     it('should propagate repository errors on findByUserId failure', async () => {

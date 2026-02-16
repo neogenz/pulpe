@@ -198,6 +198,13 @@ export class EncryptionService {
     return dek;
   }
 
+  async getVaultStatus(
+    userId: string,
+  ): Promise<{ vaultCodeConfigured: boolean }> {
+    const vaultCodeConfigured = await this.#repository.hasVaultCode(userId);
+    return { vaultCodeConfigured };
+  }
+
   async getUserSalt(
     userId: string,
   ): Promise<{ salt: string; kdfIterations: number; hasRecoveryKey: boolean }> {
@@ -261,13 +268,13 @@ export class EncryptionService {
     const row = await this.#repository.findByUserId(userId);
     const dek = await this.ensureUserDEK(userId, clientKey);
 
-    if (!row?.key_check) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
-      );
+    if (row?.key_check) {
+      return this.validateKeyCheck(row.key_check, dek);
     }
 
-    return this.validateKeyCheck(row.key_check, dek);
+    const keyCheck = this.generateKeyCheck(dek);
+    await this.#repository.updateKeyCheck(userId, keyCheck);
+    return true;
   }
 
   async storeKeyCheck(userId: string, keyCheck: string): Promise<void> {

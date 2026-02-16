@@ -51,6 +51,7 @@ enum Endpoint {
 
     // MARK: - Encryption
 
+    case encryptionVaultStatus
     case encryptionSalt
     case encryptionValidateKey
     case encryptionSetupRecovery
@@ -100,6 +101,7 @@ enum Endpoint {
         case .templateLinesBulk(let templateId): return "/budget-templates/\(templateId)/lines/bulk"
 
         // Encryption
+        case .encryptionVaultStatus: return "/encryption/vault-status"
         case .encryptionSalt: return "/encryption/salt"
         case .encryptionValidateKey: return "/encryption/validate-key"
         case .encryptionSetupRecovery: return "/encryption/setup-recovery"
@@ -118,7 +120,7 @@ enum Endpoint {
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetsExport,
              .budgetLine, .transaction, .template, .templateUsage, .templateLine,
              .transactionsByBudget, .budgetsSparse,
-             .encryptionSalt:
+             .encryptionVaultStatus, .encryptionSalt:
             return .get
 
         case .updateProfile:

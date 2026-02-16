@@ -3,6 +3,10 @@ import OSLog
 
 // MARK: - Response Models
 
+struct VaultStatusResponse: Codable, Sendable {
+    let vaultCodeConfigured: Bool
+}
+
 struct EncryptionSaltResponse: Codable, Sendable {
     let salt: String
     let kdfIterations: Int
@@ -37,6 +41,10 @@ actor EncryptionAPI {
 
     init(apiClient: APIClient = .shared) {
         self.apiClient = apiClient
+    }
+
+    func getVaultStatus() async throws -> VaultStatusResponse {
+        try await apiClient.request(.encryptionVaultStatus)
     }
 
     /// Fetch encryption salt and KDF parameters for current user
