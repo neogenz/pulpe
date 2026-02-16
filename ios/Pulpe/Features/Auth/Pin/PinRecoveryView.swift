@@ -23,7 +23,7 @@ struct PinRecoveryView: View {
                 onComplete()
             }
         } message: {
-            Text("Ta récupération est réussie mais la nouvelle clé de récupération n'a pas pu être générée. Tu peux en créer une depuis les paramètres.")
+            Text("Ta récupération est réussie mais la nouvelle clé de récupération n'a pas pu être générée. Tu peux en créer une depuis les réglages.")
         }
     }
 
@@ -118,7 +118,7 @@ struct PinRecoveryView: View {
                     if viewModel.isRecoveryKeyValid {
                         Color.onboardingGradient
                     } else {
-                        LinearGradient(colors: [.gray.opacity(0.3)], startPoint: .leading, endPoint: .trailing)
+                        Color(uiColor: .systemGray4)
                     }
                 }
                 .foregroundStyle(Color.textOnPrimary)
@@ -249,10 +249,9 @@ final class PinRecoveryViewModel {
     private let clientKeyManager = ClientKeyManager.shared
 
     var isRecoveryKeyValid: Bool {
-        // Base32 recovery key: at least 8 chars after stripping dashes/spaces
-        let stripped = recoveryKey.replacingOccurrences(of: "-", with: "")
-            .replacingOccurrences(of: " ", with: "")
-        return stripped.count >= 8
+        // Base32 recovery key (256-bit): 52 characters
+        let stripped = RecoveryKeyFormatter.strip(recoveryKey)
+        return stripped.count == 52
     }
 
     var canConfirm: Bool {
@@ -262,9 +261,9 @@ final class PinRecoveryViewModel {
     // MARK: - Recovery Key
 
     func updateRecoveryKey(_ input: String) {
-        recoveryKeyInput = input
-        recoveryKey = input.uppercased()
-            .replacingOccurrences(of: " ", with: "")
+        let formatted = RecoveryKeyFormatter.format(input)
+        recoveryKeyInput = formatted
+        recoveryKey = RecoveryKeyFormatter.strip(formatted)
         errorMessage = nil
     }
 
