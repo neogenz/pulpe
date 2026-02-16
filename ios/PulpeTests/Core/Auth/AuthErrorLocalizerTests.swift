@@ -1,18 +1,19 @@
-import XCTest
+import Foundation
+import Testing
 @testable import Pulpe
 
-final class AuthErrorLocalizerTests: XCTestCase {
+struct AuthErrorLocalizerTests {
 
-    func testClassify_withAPIErrorInvalidCredentials_returnsInvalidCredentials() {
+    @Test func classifyWithAPIErrorInvalidCredentialsReturnsInvalidCredentials() {
         // When
         let kind = AuthErrorLocalizer.classify(APIError.invalidCredentials)
 
         // Then
-        XCTAssertEqual(kind, .invalidCredentials)
-        XCTAssertTrue(AuthErrorLocalizer.isInvalidCredentials(APIError.invalidCredentials))
+        #expect(kind == .invalidCredentials)
+        #expect(AuthErrorLocalizer.isInvalidCredentials(APIError.invalidCredentials))
     }
 
-    func testClassify_withSupabaseInvalidCredentialsMessage_returnsInvalidCredentials() {
+    @Test func classifyWithSupabaseInvalidCredentialsMessageReturnsInvalidCredentials() {
         // Given
         let error = NSError(
             domain: "Supabase",
@@ -24,20 +25,20 @@ final class AuthErrorLocalizerTests: XCTestCase {
         let kind = AuthErrorLocalizer.classify(error)
 
         // Then
-        XCTAssertEqual(kind, .invalidCredentials)
+        #expect(kind == .invalidCredentials)
     }
 
-    func testClassify_withNetworkError_returnsNetwork() {
+    @Test func classifyWithNetworkErrorReturnsNetwork() {
         // When
         let kind = AuthErrorLocalizer.classify(
             APIError.networkError(URLError(.cannotConnectToHost))
         )
 
         // Then
-        XCTAssertEqual(kind, .network)
+        #expect(kind == .network)
     }
 
-    func testClassify_withRateLimitedMessage_returnsRateLimited() {
+    @Test func classifyWithRateLimitedMessageReturnsRateLimited() {
         // Given
         let error = NSError(
             domain: "Supabase",
@@ -49,16 +50,16 @@ final class AuthErrorLocalizerTests: XCTestCase {
         let kind = AuthErrorLocalizer.classify(error)
 
         // Then
-        XCTAssertEqual(kind, .rateLimited)
+        #expect(kind == .rateLimited)
     }
 
-    func testLocalize_withNetworkError_returnsLocalizedNetworkMessage() {
+    @Test func localizeWithNetworkErrorReturnsLocalizedNetworkMessage() {
         // When
         let message = AuthErrorLocalizer.localize(
             APIError.networkError(URLError(.notConnectedToInternet))
         )
 
         // Then
-        XCTAssertEqual(message, "Connexion impossible — vérifie ta connexion internet")
+        #expect(message == "Connexion impossible — vérifie ta connexion internet")
     }
 }

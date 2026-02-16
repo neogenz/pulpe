@@ -1,63 +1,56 @@
-import XCTest
+import Foundation
+import Testing
 @testable import Pulpe
 
-/// Tests for CurrentMonthStore business logic rules
-/// Tests the logic behind computed properties without requiring API calls
-final class CurrentMonthStoreLogicTests: XCTestCase {
+struct CurrentMonthStoreLogicTests {
 
     // MARK: - Days Remaining Logic
 
-    func testDaysRemainingLogic_calculatesCorrectly() {
+    @Test func daysRemainingLogic_calculatesCorrectly() throws {
         // Arrange
         let calendar = Calendar.current
         let today = Date()
 
-        guard let range = calendar.range(of: .day, in: .month, for: today),
-              let lastDay = calendar.date(from: DateComponents(
-                year: calendar.component(.year, from: today),
-                month: calendar.component(.month, from: today),
-                day: range.count
-              )) else {
-            XCTFail("Could not calculate month range")
-            return
-        }
+        let range = try #require(calendar.range(of: .day, in: .month, for: today))
+        let lastDay = try #require(calendar.date(from: DateComponents(
+            year: calendar.component(.year, from: today),
+            month: calendar.component(.month, from: today),
+            day: range.count
+        )))
 
         // Act
         let remaining = calendar.dateComponents([.day], from: today, to: lastDay).day ?? 0
         let daysRemaining = max(remaining + 1, 1) // Include today
 
         // Assert
-        XCTAssertGreaterThanOrEqual(daysRemaining, 1, "Should always have at least 1 day remaining (today)")
-        XCTAssertLessThanOrEqual(daysRemaining, 31, "Cannot have more than 31 days in a month")
+        #expect(daysRemaining >= 1)
+        #expect(daysRemaining <= 31)
     }
 
-    func testDaysRemainingLogic_onLastDayOfMonth_returns1() {
+    @Test func daysRemainingLogic_onLastDayOfMonth_returns1() throws {
         // Arrange
         let calendar = Calendar.current
         let today = Date()
 
         // Find the last day of current month
-        guard let range = calendar.range(of: .day, in: .month, for: today),
-              let lastDayOfMonth = calendar.date(from: DateComponents(
-                year: calendar.component(.year, from: today),
-                month: calendar.component(.month, from: today),
-                day: range.count
-              )) else {
-            XCTFail("Could not find last day of month")
-            return
-        }
+        let range = try #require(calendar.range(of: .day, in: .month, for: today))
+        let lastDayOfMonth = try #require(calendar.date(from: DateComponents(
+            year: calendar.component(.year, from: today),
+            month: calendar.component(.month, from: today),
+            day: range.count
+        )))
 
         // Act - simulate calculation for last day
         let remaining = calendar.dateComponents([.day], from: lastDayOfMonth, to: lastDayOfMonth).day ?? 0
         let daysRemaining = max(remaining + 1, 1) // Include today
 
         // Assert
-        XCTAssertEqual(daysRemaining, 1, "On last day of month, should return 1 (today)")
+        #expect(daysRemaining == 1)
     }
 
     // MARK: - Daily Budget Logic
 
-    func testDailyBudgetLogic_dividesRemainingByDays() {
+    @Test func dailyBudgetLogic_dividesRemainingByDays() {
         // Arrange
         let remaining: Decimal = 1000
         let daysRemaining = 10
@@ -66,18 +59,16 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
         let dailyBudget = remaining / Decimal(daysRemaining)
 
         // Assert
-        XCTAssertEqual(dailyBudget, 100, "Should divide remaining by days left")
+        #expect(dailyBudget == 100)
     }
 
-    func testDailyBudgetLogic_withZeroDays_returns0() {
-        XCTAssertEqual(
-            Self.calculateDailyBudget(remaining: 1000, daysRemaining: 0),
-            0,
-            "Should return 0 when no days remaining"
+    @Test func dailyBudgetLogic_withZeroDays_returns0() {
+        #expect(
+            Self.calculateDailyBudget(remaining: 1000, daysRemaining: 0) == 0
         )
     }
 
-    func testDailyBudgetLogic_withNegativeRemaining_returns0() {
+    @Test func dailyBudgetLogic_withNegativeRemaining_returns0() {
         // Arrange
         let remaining: Decimal = -500
         let daysRemaining = 10
@@ -86,10 +77,10 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
         let dailyBudget = remaining > 0 ? remaining / Decimal(daysRemaining) : 0
 
         // Assert
-        XCTAssertEqual(dailyBudget, 0, "Should return 0 when remaining is negative (deficit)")
+        #expect(dailyBudget == 0)
     }
 
-    func testDailyBudgetLogic_withSingleDayLeft_returnsFullRemaining() {
+    @Test func dailyBudgetLogic_withSingleDayLeft_returnsFullRemaining() {
         // Arrange
         let remaining: Decimal = 250
         let daysRemaining = 1
@@ -98,12 +89,12 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
         let dailyBudget = remaining / Decimal(daysRemaining)
 
         // Assert
-        XCTAssertEqual(dailyBudget, 250, "With 1 day left, daily budget equals full remaining")
+        #expect(dailyBudget == 250)
     }
 
     // MARK: - Alert Budget Lines Logic (80% Threshold)
 
-    func testAlertBudgetLinesLogic_filtersAbove80Percent() {
+    @Test func alertBudgetLinesLogic_filtersAbove80Percent() {
         // Arrange
         let line75 = TestDataFactory.createBudgetLine(id: "line-75", amount: 1000, kind: .expense)
         let line85 = TestDataFactory.createBudgetLine(id: "line-85", amount: 1000, kind: .expense)
@@ -127,15 +118,15 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
             }
 
         // Assert
-        XCTAssertEqual(alerts.count, 2, "Should include only lines >= 80%")
+        #expect(alerts.count == 2)
 
         let alertIds = alerts.map { $0.0.id }
-        XCTAssertTrue(alertIds.contains("line-85"), "Should include 85% line")
-        XCTAssertTrue(alertIds.contains("line-100"), "Should include 100% line")
-        XCTAssertFalse(alertIds.contains("line-75"), "Should exclude 75% line")
+        #expect(alertIds.contains("line-85"))
+        #expect(alertIds.contains("line-100"))
+        #expect(!alertIds.contains("line-75"))
     }
 
-    func testAlertBudgetLinesLogic_sortsByPercentageDescending() {
+    @Test func alertBudgetLinesLogic_sortsByPercentageDescending() {
         // Arrange
         let line90 = TestDataFactory.createBudgetLine(id: "line-90", amount: 1000, kind: .expense)
         let line95 = TestDataFactory.createBudgetLine(id: "line-95", amount: 1000, kind: .expense)
@@ -160,13 +151,13 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
             .sorted { $0.1.percentage > $1.1.percentage }
 
         // Assert
-        XCTAssertEqual(alerts.count, 3)
-        XCTAssertEqual(alerts[0].0.id, "line-95", "Highest percentage should be first")
-        XCTAssertEqual(alerts[1].0.id, "line-90", "Second highest should be second")
-        XCTAssertEqual(alerts[2].0.id, "line-85", "Lowest should be last")
+        #expect(alerts.count == 3)
+        #expect(alerts[0].0.id == "line-95")
+        #expect(alerts[1].0.id == "line-90")
+        #expect(alerts[2].0.id == "line-85")
     }
 
-    func testAlertBudgetLinesLogic_excludesRolloverLines() {
+    @Test func alertBudgetLinesLogic_excludesRolloverLines() {
         // Arrange
         let normalLine = TestDataFactory.createBudgetLine(id: "normal", amount: 1000, kind: .expense, isRollover: false)
         let rolloverLine = TestDataFactory.createBudgetLine(id: "rollover", amount: 1000, kind: .expense, isRollover: true)
@@ -188,11 +179,11 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
             }
 
         // Assert
-        XCTAssertEqual(alerts.count, 1, "Should exclude rollover lines from alerts")
-        XCTAssertEqual(alerts[0].0.id, "normal", "Should only include normal line")
+        #expect(alerts.count == 1)
+        #expect(alerts[0].0.id == "normal")
     }
 
-    func testAlertBudgetLinesLogic_excludesIncomeLines() {
+    @Test func alertBudgetLinesLogic_excludesIncomeLines() {
         // Arrange
         let expenseLine = TestDataFactory.createBudgetLine(id: "expense", amount: 1000, kind: .expense)
         let incomeLine = TestDataFactory.createBudgetLine(id: "income", amount: 1000, kind: .income)
@@ -214,13 +205,13 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
             }
 
         // Assert
-        XCTAssertEqual(alerts.count, 1, "Should exclude income lines from alerts")
-        XCTAssertEqual(alerts[0].0.id, "expense", "Should only include expense line")
+        #expect(alerts.count == 1)
+        #expect(alerts[0].0.id == "expense")
     }
 
     // MARK: - Display Budget Lines Logic (Rollover)
 
-    func testDisplayBudgetLinesLogic_withNoRollover_returnsOriginalLines() {
+    @Test func displayBudgetLinesLogic_withNoRollover_returnsOriginalLines() {
         // Arrange
         let lines = [
             TestDataFactory.createBudgetLine(id: "line-1"),
@@ -232,11 +223,11 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
         let displayLines = budget.rollover == 0 ? lines : lines // Simplified logic
 
         // Assert
-        XCTAssertEqual(displayLines.count, 2, "Should return original lines when no rollover")
-        XCTAssertEqual(displayLines.map { $0.id }, ["line-1", "line-2"])
+        #expect(displayLines.count == 2)
+        #expect(displayLines.map { $0.id } == ["line-1", "line-2"])
     }
 
-    func testDisplayBudgetLinesLogic_withPositiveRollover_prependsRolloverLine() {
+    @Test func displayBudgetLinesLogic_withPositiveRollover_prependsRolloverLine() {
         // Arrange
         let lines = [
             TestDataFactory.createBudgetLine(id: "line-1"),
@@ -253,13 +244,13 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
         let displayLines = [rolloverLine] + lines
 
         // Assert
-        XCTAssertEqual(displayLines.count, 3, "Should add rollover line to beginning")
-        XCTAssertTrue(displayLines[0].isVirtualRollover, "First line should be rollover")
-        XCTAssertEqual(displayLines[0].amount, 500)
-        XCTAssertEqual(displayLines[0].kind, .income, "Positive rollover should be income")
+        #expect(displayLines.count == 3)
+        #expect(displayLines[0].isVirtualRollover)
+        #expect(displayLines[0].amount == 500)
+        #expect(displayLines[0].kind == .income)
     }
 
-    func testDisplayBudgetLinesLogic_withNegativeRollover_prependsNegativeRolloverLine() {
+    @Test func displayBudgetLinesLogic_withNegativeRollover_prependsNegativeRolloverLine() {
         // Arrange
         let lines = [
             TestDataFactory.createBudgetLine(id: "line-1")
@@ -275,15 +266,15 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
         let displayLines = [rolloverLine] + lines
 
         // Assert
-        XCTAssertEqual(displayLines.count, 2)
-        XCTAssertTrue(displayLines[0].isVirtualRollover)
-        XCTAssertEqual(displayLines[0].amount, -300)
-        XCTAssertEqual(displayLines[0].kind, .expense, "Negative rollover should be expense")
+        #expect(displayLines.count == 2)
+        #expect(displayLines[0].isVirtualRollover)
+        #expect(displayLines[0].amount == -300)
+        #expect(displayLines[0].kind == .expense)
     }
 
     // MARK: - Transaction Filtering Logic
 
-    func testRecentTransactionsLogic_sortsAndLimitsTo5() {
+    @Test func recentTransactionsLogic_sortsAndLimitsTo5() {
         // Arrange
         let calendar = Calendar.current
         let now = Date()
@@ -316,12 +307,12 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
         )
 
         // Assert
-        XCTAssertEqual(recent.count, 5, "Should limit to 5 most recent")
-        XCTAssertEqual(recent[0].id, "tx-0", "Most recent should be first")
-        XCTAssertEqual(recent[4].id, "tx-4", "5th most recent should be last")
+        #expect(recent.count == 5)
+        #expect(recent[0].id == "tx-0")
+        #expect(recent[4].id == "tx-4")
     }
 
-    func testUncheckedTransactionsLogic_filtersAndLimits() {
+    @Test func uncheckedTransactionsLogic_filtersAndLimits() {
         // Arrange
         let transactions = [
             TestDataFactory.createTransaction(id: "tx-1", isChecked: false),
@@ -338,12 +329,12 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
         )
 
         // Assert
-        XCTAssertEqual(unchecked.count, 3, "Should only include unchecked transactions")
+        #expect(unchecked.count == 3)
         let allUnchecked = unchecked.allSatisfy { !$0.isChecked }
-        XCTAssertTrue(allUnchecked, "All results should be unchecked")
+        #expect(allUnchecked)
     }
 
-    func testFreeTransactionsLogic_filtersUnallocated() {
+    @Test func freeTransactionsLogic_filtersUnallocated() {
         // Arrange
         let transactions = [
             TestDataFactory.createTransaction(id: "tx-free-1", budgetLineId: nil),
@@ -355,14 +346,14 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
         let freeTransactions = transactions.filter { $0.budgetLineId == nil }
 
         // Assert
-        XCTAssertEqual(freeTransactions.count, 2, "Should only include transactions without budgetLineId")
-        XCTAssertTrue(freeTransactions[0].isFree, "Should be free transactions")
-        XCTAssertTrue(freeTransactions[1].isFree, "Should be free transactions")
+        #expect(freeTransactions.count == 2)
+        #expect(freeTransactions[0].isFree)
+        #expect(freeTransactions[1].isFree)
     }
 
     // MARK: - Recurrence Filtering Logic
 
-    func testRecurringBudgetLinesLogic_filtersFixed() {
+    @Test func recurringBudgetLinesLogic_filtersFixed() {
         // Arrange
         let fixed1 = TestDataFactory.createBudgetLine(id: "fixed-1", recurrence: .fixed)
         let oneOff = TestDataFactory.createBudgetLine(id: "oneoff-1", recurrence: .oneOff)
@@ -374,11 +365,11 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
         let recurring = lines.filter { $0.recurrence == .fixed }
 
         // Assert
-        XCTAssertEqual(recurring.count, 2, "Should only include fixed recurrence lines")
-        XCTAssertTrue(recurring.allSatisfy { $0.recurrence == .fixed })
+        #expect(recurring.count == 2)
+        #expect(recurring.allSatisfy { $0.recurrence == .fixed })
     }
 
-    func testOneOffBudgetLinesLogic_filtersOneOffExcludingRollover() {
+    @Test func oneOffBudgetLinesLogic_filtersOneOffExcludingRollover() {
         // Arrange
         let oneOff1 = TestDataFactory.createBudgetLine(id: "oneoff-1", recurrence: .oneOff, isRollover: false)
         let fixed = TestDataFactory.createBudgetLine(id: "fixed-1", recurrence: .fixed, isRollover: false)
@@ -391,13 +382,13 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
         let oneOffs = lines.filter { $0.recurrence == .oneOff && !($0.isRollover ?? false) }
 
         // Assert
-        XCTAssertEqual(oneOffs.count, 2, "Should include only oneOff, excluding rollover")
-        XCTAssertFalse(oneOffs.contains { $0.id == "rollover-1" }, "Should exclude rollover")
+        #expect(oneOffs.count == 2)
+        #expect(!oneOffs.contains { $0.id == "rollover-1" })
     }
 
     // MARK: - BudgetListStore Grouped By Year Logic
 
-    func testGroupedByYearLogic_groupsBudgetsByYear() {
+    @Test func groupedByYearLogic_groupsBudgetsByYear() {
         // Arrange
         let budgets = [
             TestDataFactory.createBudget(id: "b1", month: 1, year: 2024),
@@ -413,13 +404,13 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
             .map { year, budgets in (year: year, budgets: budgets.sorted { $0.month < $1.month }) }
 
         // Assert
-        XCTAssertEqual(yearGroups.count, 3, "Should have 3 distinct years")
-        XCTAssertEqual(yearGroups[0].year, 2023, "First group should be oldest year")
-        XCTAssertEqual(yearGroups[1].year, 2024, "Second group should be 2024")
-        XCTAssertEqual(yearGroups[2].year, 2025, "Third group should be newest year")
+        #expect(yearGroups.count == 3)
+        #expect(yearGroups[0].year == 2023)
+        #expect(yearGroups[1].year == 2024)
+        #expect(yearGroups[2].year == 2025)
     }
 
-    func testGroupedByYearLogic_sortsBudgetsByMonthWithinYear() {
+    @Test func groupedByYearLogic_sortsBudgetsByMonthWithinYear() {
         // Arrange
         let budgets = [
             TestDataFactory.createBudget(id: "b1", month: 12, year: 2024),
@@ -436,10 +427,10 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
 
         // Assert
         let months = yearGroups[0].budgets.map { $0.month }
-        XCTAssertEqual(months, [1, 3, 7, 12], "Budgets within year should be sorted by month ascending")
+        #expect(months == [1, 3, 7, 12])
     }
 
-    func testGroupedByYearLogic_emptyBudgets_returnsEmptyArray() {
+    @Test func groupedByYearLogic_emptyBudgets_returnsEmptyArray() {
         // Arrange
         let budgets: [Budget] = []
 
@@ -450,7 +441,7 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
             .map { year, budgets in (year: year, budgets: budgets.sorted { $0.month < $1.month }) }
 
         // Assert
-        XCTAssertTrue(yearGroups.isEmpty, "Should return empty array for no budgets")
+        #expect(yearGroups.isEmpty)
     }
 
     // MARK: - Helpers
@@ -461,7 +452,7 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
         return remaining / Decimal(daysRemaining)
     }
 
-    func testGroupedByYearLogic_singleBudget_createsSingleGroup() {
+    @Test func groupedByYearLogic_singleBudget_createsSingleGroup() {
         // Arrange
         let budgets = [
             TestDataFactory.createBudget(id: "b1", month: 5, year: 2024)
@@ -474,7 +465,7 @@ final class CurrentMonthStoreLogicTests: XCTestCase {
             .map { year, budgets in (year: year, budgets: budgets.sorted { $0.month < $1.month }) }
 
         // Assert
-        XCTAssertEqual(yearGroups.count, 1, "Should have one year group")
-        XCTAssertEqual(yearGroups[0].budgets.count, 1, "Should have one budget in group")
+        #expect(yearGroups.count == 1)
+        #expect(yearGroups[0].budgets.count == 1)
     }
 }

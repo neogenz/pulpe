@@ -1,125 +1,118 @@
-import XCTest
+import Foundation
+import Testing
 @testable import Pulpe
 
-/// Tests for CheckedFilterPicker behavior
-/// Focuses on filter options and accessibility labels
-final class CheckedFilterPickerTests: XCTestCase {
+struct CheckedFilterPickerTests {
 
     // MARK: - Filter Option Properties
 
-    func testUncheckedOption_hasCorrectLabel() {
+    @Test func uncheckedOptionHasCorrectLabel() {
         // Arrange
         let option = CheckedFilterOption.unchecked
 
         // Assert
-        XCTAssertEqual(option.label, "Non comptabilisées")
+        #expect(option.label == "Non comptabilisées")
     }
 
-    func testAllOption_hasCorrectLabel() {
+    @Test func allOptionHasCorrectLabel() {
         // Arrange
         let option = CheckedFilterOption.all
 
         // Assert
-        XCTAssertEqual(option.label, "Toutes")
+        #expect(option.label == "Toutes")
     }
 
-    func testUncheckedOption_hasCorrectIcon() {
+    @Test func uncheckedOptionHasCorrectIcon() {
         // Arrange
         let option = CheckedFilterOption.unchecked
 
         // Assert
-        XCTAssertEqual(option.icon, "square")
+        #expect(option.icon == "square")
     }
 
-    func testAllOption_hasCorrectIcon() {
+    @Test func allOptionHasCorrectIcon() {
         // Arrange
         let option = CheckedFilterOption.all
 
         // Assert
-        XCTAssertEqual(option.icon, "list.bullet")
+        #expect(option.icon == "list.bullet")
     }
 
     // MARK: - Accessibility Labels
 
-    func testUncheckedOption_hasAccessibilityLabel() {
+    @Test func uncheckedOptionHasAccessibilityLabel() {
         // Arrange
         let option = CheckedFilterOption.unchecked
 
         // Assert
-        XCTAssertEqual(
-            option.accessibilityLabel,
-            "Afficher uniquement les éléments non comptabilisés"
-        )
+        #expect(option.accessibilityLabel == "Afficher uniquement les éléments non comptabilisés")
     }
 
-    func testAllOption_hasAccessibilityLabel() {
+    @Test func allOptionHasAccessibilityLabel() {
         // Arrange
         let option = CheckedFilterOption.all
 
         // Assert
-        XCTAssertEqual(
-            option.accessibilityLabel,
-            "Afficher tous les éléments"
-        )
+        #expect(option.accessibilityLabel == "Afficher tous les éléments")
     }
 
     // MARK: - CaseIterable
 
-    func testAllCases_containsBothOptions() {
+    @Test func allCasesContainsBothOptions() {
         // Arrange & Act
         let allCases = CheckedFilterOption.allCases
 
         // Assert
-        XCTAssertEqual(allCases.count, 2)
-        XCTAssertTrue(allCases.contains(.unchecked))
-        XCTAssertTrue(allCases.contains(.all))
+        #expect(allCases.count == 2)
+        #expect(allCases.contains(.unchecked))
+        #expect(allCases.contains(.all))
     }
 
     // MARK: - Identifiable
 
-    func testId_matchesRawValue() {
+    @Test func idMatchesRawValue() {
         // Arrange
         let unchecked = CheckedFilterOption.unchecked
         let all = CheckedFilterOption.all
 
         // Assert
-        XCTAssertEqual(unchecked.id, "unchecked")
-        XCTAssertEqual(all.id, "all")
+        #expect(unchecked.id == "unchecked")
+        #expect(all.id == "all")
     }
 
     // MARK: - Raw Value
 
-    func testRawValue_unchecked() {
+    @Test func rawValueUnchecked() {
         // Arrange
         let option = CheckedFilterOption.unchecked
 
         // Assert
-        XCTAssertEqual(option.rawValue, "unchecked")
+        #expect(option.rawValue == "unchecked")
     }
 
-    func testRawValue_all() {
+    @Test func rawValueAll() {
         // Arrange
         let option = CheckedFilterOption.all
 
         // Assert
-        XCTAssertEqual(option.rawValue, "all")
+        #expect(option.rawValue == "all")
     }
 
-    func testInitFromRawValue_valid() {
+    @Test func initFromRawValueValid() {
         // Arrange & Act
         let unchecked = CheckedFilterOption(rawValue: "unchecked")
         let all = CheckedFilterOption(rawValue: "all")
 
         // Assert
-        XCTAssertEqual(unchecked, .unchecked)
-        XCTAssertEqual(all, .all)
+        #expect(unchecked == .unchecked)
+        #expect(all == .all)
     }
 
-    func testInitFromRawValue_invalid_returnsNil() {
+    @Test func initFromRawValueInvalidReturnsNil() {
         // Arrange & Act
         let invalid = CheckedFilterOption(rawValue: "invalid")
 
         // Assert
-        XCTAssertNil(invalid)
+        #expect(invalid == nil)
     }
 }

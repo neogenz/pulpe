@@ -1,12 +1,12 @@
-import XCTest
+import Foundation
+import Testing
 @testable import Pulpe
 
-/// Tests for budget list view model logic and accessibility concerns
-final class BudgetListAccessibilityTests: XCTestCase {
+struct BudgetListAccessibilityTests {
 
     // MARK: - BudgetSparse.isCurrentMonth
 
-    func testIsCurrentMonth_withCurrentMonthAndYear_returnsTrue() {
+    @Test func isCurrentMonthWithCurrentMonthAndYearReturnsTrue() {
         let now = Date()
         let calendar = Calendar.current
         let budget = TestDataFactory.createBudgetSparse(
@@ -14,10 +14,10 @@ final class BudgetListAccessibilityTests: XCTestCase {
             year: calendar.component(.year, from: now)
         )
 
-        XCTAssertTrue(budget.isCurrentMonth)
+        #expect(budget.isCurrentMonth)
     }
 
-    func testIsCurrentMonth_withDifferentMonth_returnsFalse() {
+    @Test func isCurrentMonthWithDifferentMonthReturnsFalse() {
         let now = Date()
         let calendar = Calendar.current
         let currentMonth = calendar.component(.month, from: now)
@@ -28,10 +28,10 @@ final class BudgetListAccessibilityTests: XCTestCase {
             year: calendar.component(.year, from: now)
         )
 
-        XCTAssertFalse(budget.isCurrentMonth)
+        #expect(!budget.isCurrentMonth)
     }
 
-    func testIsCurrentMonth_withDifferentYear_returnsFalse() {
+    @Test func isCurrentMonthWithDifferentYearReturnsFalse() {
         let now = Date()
         let calendar = Calendar.current
 
@@ -40,46 +40,46 @@ final class BudgetListAccessibilityTests: XCTestCase {
             year: calendar.component(.year, from: now) - 1
         )
 
-        XCTAssertFalse(budget.isCurrentMonth)
+        #expect(!budget.isCurrentMonth)
     }
 
-    func testIsCurrentMonth_withNilMonth_returnsFalse() {
+    @Test func isCurrentMonthWithNilMonthReturnsFalse() {
         let budget = TestDataFactory.createBudgetSparse(month: nil, year: 2025)
-        XCTAssertFalse(budget.isCurrentMonth)
+        #expect(!budget.isCurrentMonth)
     }
 
-    func testIsCurrentMonth_withNilYear_returnsFalse() {
+    @Test func isCurrentMonthWithNilYearReturnsFalse() {
         let budget = TestDataFactory.createBudgetSparse(month: 1, year: nil)
-        XCTAssertFalse(budget.isCurrentMonth)
+        #expect(!budget.isCurrentMonth)
     }
 
     // MARK: - Remaining Amount Formatting (used in accessibility labels)
 
-    func testCompactCHF_positiveAmount_includesNoSign() {
+    @Test func compactCHFPositiveAmountIncludesNoSign() {
         let amount: Decimal = 5158.70
         let formatted = amount.asCompactCHF
 
-        XCTAssertFalse(formatted.hasPrefix("-"), "Positive amount should not have minus sign")
-        XCTAssertTrue(formatted.contains("5"), "Should contain the amount digits")
+        #expect(!formatted.hasPrefix("-"))
+        #expect(formatted.contains("5"))
     }
 
-    func testCompactCHF_negativeAmount_includesMinusSign() {
+    @Test func compactCHFNegativeAmountIncludesMinusSign() {
         let amount: Decimal = -1970.90
         let formatted = amount.asCompactCHF
 
-        XCTAssertTrue(formatted.contains("-"), "Negative amount should contain minus sign")
+        #expect(formatted.contains("-"))
     }
 
-    func testCompactCHF_zeroAmount_formatsCorrectly() {
+    @Test func compactCHFZeroAmountFormatsCorrectly() {
         let amount: Decimal = 0
         let formatted = amount.asCompactCHF
 
-        XCTAssertFalse(formatted.isEmpty, "Zero amount should produce non-empty string")
+        #expect(!formatted.isEmpty)
     }
 
     // MARK: - Date.isPast (used for month row styling)
 
-    func testIsPast_withPastMonth_returnsTrue() {
+    @Test func isPastWithPastMonthReturnsTrue() {
         let now = Date()
         let calendar = Calendar.current
         let currentMonth = calendar.component(.month, from: now)
@@ -87,31 +87,31 @@ final class BudgetListAccessibilityTests: XCTestCase {
 
         // A month in the past
         if currentMonth > 1 {
-            XCTAssertTrue(Date.isPast(month: currentMonth - 1, year: currentYear))
+            #expect(Date.isPast(month: currentMonth - 1, year: currentYear))
         } else {
-            XCTAssertTrue(Date.isPast(month: 12, year: currentYear - 1))
+            #expect(Date.isPast(month: 12, year: currentYear - 1))
         }
     }
 
-    func testIsPast_withCurrentMonth_returnsFalse() {
+    @Test func isPastWithCurrentMonthReturnsFalse() {
         let now = Date()
         let calendar = Calendar.current
         let currentMonth = calendar.component(.month, from: now)
         let currentYear = calendar.component(.year, from: now)
 
-        XCTAssertFalse(Date.isPast(month: currentMonth, year: currentYear))
+        #expect(!Date.isPast(month: currentMonth, year: currentYear))
     }
 
-    func testIsPast_withFutureMonth_returnsFalse() {
+    @Test func isPastWithFutureMonthReturnsFalse() {
         let now = Date()
         let calendar = Calendar.current
         let currentMonth = calendar.component(.month, from: now)
         let currentYear = calendar.component(.year, from: now)
 
         if currentMonth < 12 {
-            XCTAssertFalse(Date.isPast(month: currentMonth + 1, year: currentYear))
+            #expect(!Date.isPast(month: currentMonth + 1, year: currentYear))
         } else {
-            XCTAssertFalse(Date.isPast(month: 1, year: currentYear + 1))
+            #expect(!Date.isPast(month: 1, year: currentYear + 1))
         }
     }
 }

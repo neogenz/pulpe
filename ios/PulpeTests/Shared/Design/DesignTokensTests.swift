@@ -1,12 +1,12 @@
-import XCTest
+import Foundation
+import Testing
 @testable import Pulpe
 
-/// Tests for design token consistency and semantic aliases
-final class DesignTokensTests: XCTestCase {
+struct DesignTokensTests {
 
     // MARK: - Opacity Tokens
 
-    func testOpacityTokens_areInValidRange() {
+    @Test func opacityTokensAreInValidRange() {
         let opacities: [Double] = [
             DesignTokens.Opacity.faint,
             DesignTokens.Opacity.highlightBackground,
@@ -21,12 +21,12 @@ final class DesignTokensTests: XCTestCase {
         ]
 
         for opacity in opacities {
-            XCTAssertGreaterThan(opacity, 0, "Opacity should be > 0")
-            XCTAssertLessThanOrEqual(opacity, 1.0, "Opacity should be <= 1.0")
+            #expect(opacity > 0)
+            #expect(opacity <= 1.0)
         }
     }
 
-    func testOpacityTokens_areMonotonicallyIncreasing() {
+    @Test func opacityTokensAreMonotonicallyIncreasing() {
         // Given: Opacity tokens ordered from faintest to most opaque
         let ordered: [Double] = [
             DesignTokens.Opacity.faint,
@@ -43,31 +43,28 @@ final class DesignTokensTests: XCTestCase {
 
         // Then: Each should be >= the previous
         for i in 1..<ordered.count {
-            XCTAssertGreaterThanOrEqual(
-                ordered[i], ordered[i - 1],
-                "Opacity at index \(i) should be >= opacity at index \(i - 1)"
-            )
+            #expect(ordered[i] >= ordered[i - 1])
         }
     }
 
     // MARK: - Animation Duration Tokens
 
-    func testAnimationDurations_arePositive() {
-        XCTAssertGreaterThan(DesignTokens.Animation.fast, 0)
-        XCTAssertGreaterThan(DesignTokens.Animation.normal, 0)
-        XCTAssertGreaterThan(DesignTokens.Animation.slow, 0)
+    @Test func animationDurationsArePositive() {
+        #expect(DesignTokens.Animation.fast > 0)
+        #expect(DesignTokens.Animation.normal > 0)
+        #expect(DesignTokens.Animation.slow > 0)
     }
 
-    func testAnimationDurations_areOrdered() {
+    @Test func animationDurationsAreOrdered() {
         // Given: Animation durations
         // Then: fast < normal < slow
-        XCTAssertLessThan(DesignTokens.Animation.fast, DesignTokens.Animation.normal)
-        XCTAssertLessThan(DesignTokens.Animation.normal, DesignTokens.Animation.slow)
+        #expect(DesignTokens.Animation.fast < DesignTokens.Animation.normal)
+        #expect(DesignTokens.Animation.normal < DesignTokens.Animation.slow)
     }
 
     // MARK: - Spacing Tokens
 
-    func testSpacingTokens_areOrdered() {
+    @Test func spacingTokensAreOrdered() {
         let spacings: [CGFloat] = [
             DesignTokens.Spacing.xs,
             DesignTokens.Spacing.sm,
@@ -79,16 +76,13 @@ final class DesignTokensTests: XCTestCase {
         ]
 
         for i in 1..<spacings.count {
-            XCTAssertGreaterThan(
-                spacings[i], spacings[i - 1],
-                "Spacing at index \(i) should be > spacing at index \(i - 1)"
-            )
+            #expect(spacings[i] > spacings[i - 1])
         }
     }
 
     // MARK: - Corner Radius Tokens
 
-    func testCornerRadiusTokens_areOrdered() {
+    @Test func cornerRadiusTokensAreOrdered() {
         let radii: [CGFloat] = [
             DesignTokens.CornerRadius.xs,
             DesignTokens.CornerRadius.sm,
@@ -98,10 +92,7 @@ final class DesignTokensTests: XCTestCase {
         ]
 
         for i in 1..<radii.count {
-            XCTAssertGreaterThan(
-                radii[i], radii[i - 1],
-                "CornerRadius at index \(i) should be > radius at index \(i - 1)"
-            )
+            #expect(radii[i] > radii[i - 1])
         }
     }
 }

@@ -1,76 +1,74 @@
-import XCTest
+import Foundation
+import Testing
 @testable import Pulpe
 
-final class StringParsedAsAmountTests: XCTestCase {
+struct StringParsedAsAmountTests {
 
     // MARK: - Valid Amounts
 
-    func testValidInteger() {
-        XCTAssertEqual("42".parsedAsAmount, Decimal(42))
+    @Test func validInteger() {
+        #expect("42".parsedAsAmount == Decimal(42))
     }
 
-    func testValidDecimalWithDot() {
-        XCTAssertEqual("12.50".parsedAsAmount, Decimal(string: "12.50"))
+    @Test func validDecimalWithDot() {
+        #expect("12.50".parsedAsAmount == Decimal(string: "12.50"))
     }
 
-    func testValidDecimalWithComma() {
-        XCTAssertEqual("12,50".parsedAsAmount, Decimal(string: "12.50"))
+    @Test func validDecimalWithComma() {
+        #expect("12,50".parsedAsAmount == Decimal(string: "12.50"))
     }
 
-    func testSingleDigit() {
-        XCTAssertEqual("5".parsedAsAmount, Decimal(5))
+    @Test func singleDigit() {
+        #expect("5".parsedAsAmount == Decimal(5))
     }
 
-    func testLargeAmount() {
-        XCTAssertEqual("9999".parsedAsAmount, Decimal(9999))
+    @Test func largeAmount() {
+        #expect("9999".parsedAsAmount == Decimal(9999))
     }
 
     // MARK: - Fractional Digit Limiting
 
-    func testLimitsToTwoFractionalDigits() {
-        XCTAssertEqual("10.999".parsedAsAmount, Decimal(string: "10.99"))
+    @Test func limitsToTwoFractionalDigits() {
+        #expect("10.999".parsedAsAmount == Decimal(string: "10.99"))
     }
 
-    func testOneFractionalDigit() {
-        XCTAssertEqual("10.5".parsedAsAmount, Decimal(string: "10.5"))
+    @Test func oneFractionalDigit() {
+        #expect("10.5".parsedAsAmount == Decimal(string: "10.5"))
     }
 
-    func testExactlyTwoFractionalDigits() {
-        XCTAssertEqual("10.55".parsedAsAmount, Decimal(string: "10.55"))
+    @Test func exactlyTwoFractionalDigits() {
+        #expect("10.55".parsedAsAmount == Decimal(string: "10.55"))
     }
 
     // MARK: - Empty and Invalid Input
 
-    func testEmptyString() {
-        XCTAssertNil("".parsedAsAmount)
+    @Test func emptyString() {
+        #expect("".parsedAsAmount == nil)
     }
 
-    func testOnlyLetters() {
-        XCTAssertNil("abc".parsedAsAmount)
+    @Test func onlyLetters() {
+        #expect("abc".parsedAsAmount == nil)
     }
 
-    func testMixedLettersAndNumbers() {
-        XCTAssertEqual("1a2b3".parsedAsAmount, Decimal(123))
+    @Test func mixedLettersAndNumbers() {
+        #expect("1a2b3".parsedAsAmount == Decimal(123))
     }
 
     // MARK: - Edge Cases
 
-    func testLeadingZero() {
-        XCTAssertEqual("0.50".parsedAsAmount, Decimal(string: "0.50"))
+    @Test func leadingZero() {
+        #expect("0.50".parsedAsAmount == Decimal(string: "0.50"))
     }
 
-    func testZero() {
-        XCTAssertEqual("0".parsedAsAmount, Decimal(0))
+    @Test func zero() {
+        #expect("0".parsedAsAmount == Decimal(0))
     }
 
-    func testDotOnly() {
-        // Swift's Decimal(string: ".") returns Decimal(0)
-        XCTAssertEqual(".".parsedAsAmount, Decimal(0))
+    @Test func dotOnly() {
+        #expect(".".parsedAsAmount == Decimal(0))
     }
 
-    func testMultipleDots() {
-        // "12.3.4" → cleaned = "12.3.4", components = ["12", "3", "4"]
-        // fractional = "34".prefix(2) = "34" → "12.34"
-        XCTAssertEqual("12.3.4".parsedAsAmount, Decimal(string: "12.34"))
+    @Test func multipleDots() {
+        #expect("12.3.4".parsedAsAmount == Decimal(string: "12.34"))
     }
 }
