@@ -1,13 +1,13 @@
 import Foundation
 import OSLog
 
-@Observable
+@Observable @MainActor
 final class BudgetListStore: StoreProtocol {
-    // MARK: - State (accessed from main thread)
+    // MARK: - State
 
-    @MainActor private(set) var budgets: [BudgetSparse] = []
-    @MainActor private(set) var isLoading = false
-    @MainActor private(set) var error: Error?
+    private(set) var budgets: [BudgetSparse] = []
+    private(set) var isLoading = false
+    private(set) var error: Error?
 
     // MARK: - Cache Metadata
 
@@ -41,25 +41,19 @@ final class BudgetListStore: StoreProtocol {
     }
 
     func forceRefresh() async {
-        await MainActor.run {
-            isLoading = true
-            error = nil
-        }
-        defer { Task { @MainActor in isLoading = false } }
+        isLoading = true
+        error = nil
+        defer { isLoading = false }
 
         do {
             let fetchedBudgets = try await budgetService.getBudgetsSparse(fields: "month,year,remaining")
-            await MainActor.run {
-                budgets = fetchedBudgets
-            }
+            budgets = fetchedBudgets
             lastLoadTime = Date()
 
             // Sync widget data after refresh
             await syncWidgetData()
         } catch {
-            await MainActor.run {
-                self.error = error
-            }
+            self.error = error
         }
     }
 
@@ -77,7 +71,6 @@ final class BudgetListStore: StoreProtocol {
         let budgets: [BudgetSparse]
     }
 
-    @MainActor
     var groupedByYear: [YearGroup] {
         let grouped = Dictionary(grouping: budgets) { $0.year ?? 0 }
         return grouped
@@ -87,7 +80,6 @@ final class BudgetListStore: StoreProtocol {
             }
     }
 
-    @MainActor
     var nextAvailableMonth: (month: Int, year: Int)? {
         let calendar = Calendar.current
         let now = Date()
@@ -110,7 +102,6 @@ final class BudgetListStore: StoreProtocol {
 
     // MARK: - Mutations
 
-    @MainActor
     func addBudget(_ budget: Budget) {
         budgets.append(BudgetSparse(from: budget))
         lastLoadTime = nil
