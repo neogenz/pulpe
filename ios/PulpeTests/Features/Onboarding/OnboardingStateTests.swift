@@ -1,87 +1,137 @@
-import XCTest
+import Foundation
+import Testing
 @testable import Pulpe
 
+@Suite(.serialized)
 @MainActor
-final class OnboardingStateTests: XCTestCase {
+struct OnboardingStateTests {
 
-    private var state: OnboardingState!
-
-    override func setUp() {
-        super.setUp()
-        state = OnboardingState()
+    /// Creates a clean OnboardingState for testing.
+    /// Clears persisted data to ensure test isolation, then sets initial step to .welcome.
+    private func makeSUT() -> OnboardingState {
         OnboardingState.clearPersistedData()
+        let state = OnboardingState()
         state.currentStep = .welcome
+        return state
     }
 
     // MARK: - canProceed: Required Steps
 
-    func testCanProceed_welcomeStep_alwaysTrue() {
-        XCTAssertTrue(state.canProceed(from: .welcome))
+    @Test
+    func canProceed_welcomeStep_alwaysTrue() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        #expect(state.canProceed(from: .welcome))
     }
 
-    func testCanProceed_personalInfo_falseWhenEmpty() {
+    @Test
+    func canProceed_personalInfo_falseWhenEmpty() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.firstName = ""
-        XCTAssertFalse(state.canProceed(from: .personalInfo))
+        #expect(!state.canProceed(from: .personalInfo))
     }
 
-    func testCanProceed_personalInfo_falseWhenWhitespaceOnly() {
+    @Test
+    func canProceed_personalInfo_falseWhenWhitespaceOnly() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.firstName = "   "
-        XCTAssertFalse(state.canProceed(from: .personalInfo))
+        #expect(!state.canProceed(from: .personalInfo))
     }
 
-    func testCanProceed_personalInfo_trueWhenValid() {
+    @Test
+    func canProceed_personalInfo_trueWhenValid() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.firstName = "Max"
         state.monthlyIncome = 3000
-        XCTAssertTrue(state.canProceed(from: .personalInfo))
+        #expect(state.canProceed(from: .personalInfo))
     }
 
-    func testCanProceed_personalInfo_falseWhenIncomeNil() {
+    @Test
+    func canProceed_personalInfo_falseWhenIncomeNil() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.firstName = "Max"
         state.monthlyIncome = nil
-        XCTAssertFalse(state.canProceed(from: .personalInfo))
+        #expect(!state.canProceed(from: .personalInfo))
     }
 
-    func testCanProceed_personalInfo_falseWhenIncomeZero() {
+    @Test
+    func canProceed_personalInfo_falseWhenIncomeZero() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.firstName = "Max"
         state.monthlyIncome = 0
-        XCTAssertFalse(state.canProceed(from: .personalInfo))
+        #expect(!state.canProceed(from: .personalInfo))
     }
 
-    func testCanProceed_personalInfo_trueWhenIncomePositive() {
+    @Test
+    func canProceed_personalInfo_trueWhenIncomePositive() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.firstName = "Max"
         state.monthlyIncome = 3000
-        XCTAssertTrue(state.canProceed(from: .personalInfo))
+        #expect(state.canProceed(from: .personalInfo))
     }
 
     // MARK: - canProceed: Optional Steps
 
-    func testCanProceed_optionalSteps_alwaysTrue() {
-        XCTAssertTrue(state.canProceed(from: .expenses), "Expected canProceed to be true for optional step expenses")
+    @Test
+    func canProceed_optionalSteps_alwaysTrue() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        #expect(state.canProceed(from: .expenses))
     }
 
     // MARK: - Navigation: Forward Blocked When Invalid
 
-    func testNextStep_advancesWhenValid() {
+    @Test
+    func nextStep_advancesWhenValid() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.currentStep = .welcome
         state.nextStep()
-        XCTAssertEqual(state.currentStep, .personalInfo)
+        #expect(state.currentStep == .personalInfo)
     }
 
-    func testPreviousStep_goesBackFromSecondStep() {
+    @Test
+    func previousStep_goesBackFromSecondStep() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.currentStep = .personalInfo
         state.previousStep()
-        XCTAssertEqual(state.currentStep, .welcome)
+        #expect(state.currentStep == .welcome)
     }
 
-    func testPreviousStep_doesNothingAtWelcome() {
+    @Test
+    func previousStep_doesNothingAtWelcome() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.currentStep = .welcome
         state.previousStep()
-        XCTAssertEqual(state.currentStep, .welcome)
+        #expect(state.currentStep == .welcome)
     }
 
-    func testNextStep_doesNothingAtLastStep() {
+    @Test
+    func nextStep_doesNothingAtLastStep() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.currentStep = .registration
         state.nextStep()
-        XCTAssertEqual(state.currentStep, .registration)
+        #expect(state.currentStep == .registration)
     }
 }

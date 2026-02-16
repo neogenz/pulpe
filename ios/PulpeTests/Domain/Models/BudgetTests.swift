@@ -1,13 +1,12 @@
-import XCTest
+import Foundation
+import Testing
 @testable import Pulpe
 
-/// Tests for Budget model behavior
-/// Focuses on computed properties and business logic, not data storage
-final class BudgetTests: XCTestCase {
+struct BudgetTests {
 
     // MARK: - Month/Year Display
 
-    func testMonthYear_formatsCorrectly() {
+    @Test func monthYearFormatsCorrectly() {
         // Arrange
         let budget = TestDataFactory.createBudget(month: 1, year: 2025)
 
@@ -15,11 +14,11 @@ final class BudgetTests: XCTestCase {
         let result = budget.monthYear
 
         // Assert
-        XCTAssertTrue(result.contains("Janvier") || result.contains("janvier"), "Should contain month name")
-        XCTAssertTrue(result.contains("2025"), "Should contain year")
+        #expect(result.contains("Janvier") || result.contains("janvier"))
+        #expect(result.contains("2025"))
     }
 
-    func testShortMonthYear_formatsCorrectly() {
+    @Test func shortMonthYearFormatsCorrectly() {
         // Arrange
         let budget = TestDataFactory.createBudget(month: 12, year: 2024)
 
@@ -27,11 +26,11 @@ final class BudgetTests: XCTestCase {
         let result = budget.shortMonthYear
 
         // Assert
-        XCTAssertTrue(result.contains("Déc") || result.contains("déc"), "Should contain abbreviated month")
-        XCTAssertTrue(result.contains("2024"), "Should contain year")
+        #expect(result.contains("Déc") || result.contains("déc"))
+        #expect(result.contains("2024"))
     }
 
-    func testMonthYear_withEdgeCaseMonth_autoCorrects() {
+    @Test func monthYearWithEdgeCaseMonthAutoCorrects() {
         // Arrange
         // Note: Calendar auto-corrects invalid months (month 0 becomes previous year's December)
         let budget = TestDataFactory.createBudget(month: 13, year: 2025)
@@ -41,12 +40,12 @@ final class BudgetTests: XCTestCase {
 
         // Assert
         // Month 13 gets auto-corrected to January 2026 by Calendar
-        XCTAssertTrue(result.contains("2026"), "Calendar should auto-correct month 13 to next year")
+        #expect(result.contains("2026"))
     }
 
     // MARK: - Current Month Detection
 
-    func testIsCurrentMonth_whenMatchesCurrentDate_returnsTrue() {
+    @Test func isCurrentMonthWhenMatchesCurrentDateReturnsTrue() {
         // Arrange
         let now = Date()
         let calendar = Calendar.current
@@ -59,10 +58,10 @@ final class BudgetTests: XCTestCase {
         let result = budget.isCurrentMonth
 
         // Assert
-        XCTAssertTrue(result, "Should return true for current month and year")
+        #expect(result)
     }
 
-    func testIsCurrentMonth_whenDifferentMonth_returnsFalse() {
+    @Test func isCurrentMonthWhenDifferentMonthReturnsFalse() {
         // Arrange
         let now = Date()
         let calendar = Calendar.current
@@ -76,10 +75,10 @@ final class BudgetTests: XCTestCase {
         let result = budget.isCurrentMonth
 
         // Assert
-        XCTAssertFalse(result, "Should return false when month differs")
+        #expect(!result)
     }
 
-    func testIsCurrentMonth_whenDifferentYear_returnsFalse() {
+    @Test func isCurrentMonthWhenDifferentYearReturnsFalse() {
         // Arrange
         let now = Date()
         let calendar = Calendar.current
@@ -92,10 +91,10 @@ final class BudgetTests: XCTestCase {
         let result = budget.isCurrentMonth
 
         // Assert
-        XCTAssertFalse(result, "Should return false when year differs")
+        #expect(!result)
     }
 
-    func testIsCurrentMonth_whenBothDiffer_returnsFalse() {
+    @Test func isCurrentMonthWhenBothDifferReturnsFalse() {
         // Arrange
         let budget = TestDataFactory.createBudget(month: 1, year: 2020)
 
@@ -103,30 +102,30 @@ final class BudgetTests: XCTestCase {
         let result = budget.isCurrentMonth
 
         // Assert
-        XCTAssertFalse(result, "Should return false when both month and year differ")
+        #expect(!result)
     }
 
     // MARK: - Equality and Hashing
 
-    func testEquality_sameBudgets_areEqual() {
+    @Test func equalitySameBudgetsAreEqual() {
         // Arrange
         let budget1 = TestDataFactory.createBudget(id: "test-1", month: 1, year: 2025)
         let budget2 = TestDataFactory.createBudget(id: "test-1", month: 1, year: 2025)
 
         // Act & Assert
-        XCTAssertEqual(budget1, budget2, "Budgets with same ID should be equal")
+        #expect(budget1 == budget2)
     }
 
-    func testEquality_differentIDs_areNotEqual() {
+    @Test func equalityDifferentIDsAreNotEqual() {
         // Arrange
         let budget1 = TestDataFactory.createBudget(id: "test-1")
         let budget2 = TestDataFactory.createBudget(id: "test-2")
 
         // Act & Assert
-        XCTAssertNotEqual(budget1, budget2, "Budgets with different IDs should not be equal")
+        #expect(budget1 != budget2)
     }
 
-    func testHashable_canBeUsedInSet() {
+    @Test func hashableCanBeUsedInSet() {
         // Arrange
         let budget1 = TestDataFactory.createBudget(id: "test-1")
         let budget2 = TestDataFactory.createBudget(id: "test-2")
@@ -136,33 +135,33 @@ final class BudgetTests: XCTestCase {
         let budgetSet: Set<Budget> = [budget1, budget2, budget3]
 
         // Assert
-        XCTAssertEqual(budgetSet.count, 2, "Set should contain only unique budgets")
+        #expect(budgetSet.count == 2)
     }
 
     // MARK: - Rollover Handling
 
-    func testRollover_whenPositive_indicatesSurplus() {
+    @Test func rolloverWhenPositiveIndicatesSurplus() {
         // Arrange
         let budget = TestDataFactory.createBudget(rollover: 500)
 
         // Act & Assert
-        XCTAssertEqual(budget.rollover, 500, "Should store positive rollover")
+        #expect(budget.rollover == 500)
     }
 
-    func testRollover_whenNegative_indicatesDeficit() {
+    @Test func rolloverWhenNegativeIndicatesDeficit() {
         // Arrange
         let budget = TestDataFactory.createBudget(rollover: -300)
 
         // Act & Assert
-        XCTAssertEqual(budget.rollover, -300, "Should store negative rollover")
+        #expect(budget.rollover == -300)
     }
 
-    func testRollover_whenZero_indicatesBalanced() {
+    @Test func rolloverWhenZeroIndicatesBalanced() {
         // Arrange
         let budget = TestDataFactory.createBudget(rollover: 0)
 
         // Act & Assert
-        XCTAssertEqual(budget.rollover, 0, "Should store zero rollover")
+        #expect(budget.rollover == 0)
     }
 
 }

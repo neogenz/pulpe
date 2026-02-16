@@ -1,211 +1,176 @@
-import XCTest
+import Foundation
+import Testing
 @testable import Pulpe
 
-/// Tests for BudgetDetailsViewModel filter behavior
-/// These are behavioral tests focusing on WHAT the filter does, not HOW it's implemented
+@Suite(.serialized)
 @MainActor
-final class BudgetDetailsViewModelFilterTests: XCTestCase {
-
-    private var viewModel: BudgetDetailsViewModel!
-
-    override func setUp() {
-        // Clear UserDefaults to ensure consistent test state
-        UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked")
-        viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
-    }
-
-    override func tearDown() {
-        UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked")
-        viewModel = nil
-    }
+struct BudgetDetailsViewModelFilterTests {
 
     // MARK: - Default Filter Behavior
 
-    func testDefaultFilter_showsOnlyUncheckedItems() {
-        // Given: A new ViewModel with default state
+    @Test
+    func defaultFilter_showsOnlyUncheckedItems() {
+        UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked")
+        let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
+        defer { UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked") }
 
-        // When: We check the default filter
-
-        // Then: It should default to showing only unchecked items
-        XCTAssertTrue(viewModel.isShowingOnlyUnchecked)
-        XCTAssertEqual(viewModel.checkedFilter, .unchecked)
+        #expect(viewModel.isShowingOnlyUnchecked)
+        #expect(viewModel.checkedFilter == .unchecked)
     }
 
     // MARK: - Filter Persistence
 
-    func testFilterPreference_persistsToUserDefaults() {
-        // Given: A ViewModel with default filter
+    @Test
+    func filterPreference_persistsToUserDefaults() {
+        UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked")
+        let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
+        defer { UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked") }
 
-        // When: User changes filter to "all"
         viewModel.checkedFilter = .all
 
-        // Then: The preference should be persisted
         let persistedValue = UserDefaults.standard.bool(forKey: "pulpe-budget-show-only-unchecked")
-        XCTAssertFalse(persistedValue, "Filter preference should be saved as false when showing all")
+        #expect(!persistedValue)
     }
 
-    func testFilterPreference_restoredOnInit() {
-        // Given: A persisted preference to show all items
+    @Test
+    func filterPreference_restoredOnInit() {
+        defer { UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked") }
         UserDefaults.standard.set(false, forKey: "pulpe-budget-show-only-unchecked")
-
-        // When: A new ViewModel is created
         let newViewModel = BudgetDetailsViewModel(budgetId: "test-budget")
 
-        // Then: It should restore the "all" filter
-        XCTAssertEqual(newViewModel.checkedFilter, .all)
-        XCTAssertFalse(newViewModel.isShowingOnlyUnchecked)
+        #expect(newViewModel.checkedFilter == .all)
+        #expect(!newViewModel.isShowingOnlyUnchecked)
     }
 
     // MARK: - Filter Toggle Behavior
 
-    func testToggleFilter_switchesBetweenModes() {
-        // Given: Default filter (unchecked only)
-        XCTAssertEqual(viewModel.checkedFilter, .unchecked)
+    @Test
+    func toggleFilter_switchesBetweenModes() {
+        UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked")
+        let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
+        defer { UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked") }
 
-        // When: User switches to all
+        #expect(viewModel.checkedFilter == .unchecked)
+
         viewModel.checkedFilter = .all
 
-        // Then: Filter should show all items
-        XCTAssertEqual(viewModel.checkedFilter, .all)
-        XCTAssertFalse(viewModel.isShowingOnlyUnchecked)
+        #expect(viewModel.checkedFilter == .all)
+        #expect(!viewModel.isShowingOnlyUnchecked)
 
-        // When: User switches back to unchecked
         viewModel.checkedFilter = .unchecked
 
-        // Then: Filter should show only unchecked items
-        XCTAssertEqual(viewModel.checkedFilter, .unchecked)
-        XCTAssertTrue(viewModel.isShowingOnlyUnchecked)
+        #expect(viewModel.checkedFilter == .unchecked)
+        #expect(viewModel.isShowingOnlyUnchecked)
     }
 }
 
 // MARK: - Filter Logic Tests
 
-/// Tests for the filtering logic using test data
-/// These tests verify the business rules for filtering budget items
-final class BudgetDetailsFilterLogicTests: XCTestCase {
+struct BudgetDetailsFilterLogicTests {
 
     // MARK: - Budget Line Filter Rules
 
-    func testFilteredIncomeLines_whenUncheckedFilter_excludesCheckedItems() {
-        // Given: Budget lines with mixed checked states
+    @Test
+    func filteredIncomeLines_whenUncheckedFilter_excludesCheckedItems() {
         let uncheckedLine = TestDataFactory.createBudgetLine(id: "1", kind: .income)
         let checkedLine = TestDataFactory.createBudgetLine(id: "2", kind: .income, isChecked: true)
 
-        // When: Applying unchecked filter
         let filtered = applyCheckedFilter([uncheckedLine, checkedLine], showOnlyUnchecked: true)
 
-        // Then: Only unchecked items should be returned
-        XCTAssertEqual(filtered.count, 1)
-        XCTAssertEqual(filtered.first?.id, "1")
+        #expect(filtered.count == 1)
+        #expect(filtered.first?.id == "1")
     }
 
-    func testFilteredIncomeLines_whenAllFilter_includesAllItems() {
-        // Given: Budget lines with mixed checked states
+    @Test
+    func filteredIncomeLines_whenAllFilter_includesAllItems() {
         let uncheckedLine = TestDataFactory.createBudgetLine(id: "1", kind: .income)
         let checkedLine = TestDataFactory.createBudgetLine(id: "2", kind: .income, isChecked: true)
 
-        // When: Applying "all" filter
         let filtered = applyCheckedFilter([uncheckedLine, checkedLine], showOnlyUnchecked: false)
 
-        // Then: All items should be returned
-        XCTAssertEqual(filtered.count, 2)
+        #expect(filtered.count == 2)
     }
 
-    func testFilteredExpenseLines_whenUncheckedFilter_excludesCheckedItems() {
-        // Given: Expense lines with mixed checked states
+    @Test
+    func filteredExpenseLines_whenUncheckedFilter_excludesCheckedItems() {
         let unchecked1 = TestDataFactory.createBudgetLine(id: "1", kind: .expense)
         let unchecked2 = TestDataFactory.createBudgetLine(id: "2", kind: .expense)
         let checked = TestDataFactory.createBudgetLine(id: "3", kind: .expense, isChecked: true)
 
-        // When: Applying unchecked filter
         let filtered = applyCheckedFilter([unchecked1, unchecked2, checked], showOnlyUnchecked: true)
 
-        // Then: Only unchecked items should be returned
-        XCTAssertEqual(filtered.count, 2)
-        XCTAssertTrue(filtered.allSatisfy { $0.checkedAt == nil })
+        #expect(filtered.count == 2)
+        #expect(filtered.allSatisfy { $0.checkedAt == nil })
     }
 
-    func testFilteredSavingLines_whenUncheckedFilter_excludesCheckedItems() {
-        // Given: Saving lines with mixed checked states
+    @Test
+    func filteredSavingLines_whenUncheckedFilter_excludesCheckedItems() {
         let unchecked = TestDataFactory.createBudgetLine(id: "1", kind: .saving)
         let checked = TestDataFactory.createBudgetLine(id: "2", kind: .saving, isChecked: true)
 
-        // When: Applying unchecked filter
         let filtered = applyCheckedFilter([unchecked, checked], showOnlyUnchecked: true)
 
-        // Then: Only unchecked items should be returned
-        XCTAssertEqual(filtered.count, 1)
-        XCTAssertNil(filtered.first?.checkedAt)
+        #expect(filtered.count == 1)
+        #expect(filtered.first?.checkedAt == nil)
     }
 
     // MARK: - Free Transaction Filter Rules
 
-    func testFilteredFreeTransactions_whenUncheckedFilter_excludesCheckedTransactions() {
-        // Given: Free transactions with mixed checked states
+    @Test
+    func filteredFreeTransactions_whenUncheckedFilter_excludesCheckedTransactions() {
         let uncheckedTx = TestDataFactory.createTransaction(id: "1")
         let checkedTx = TestDataFactory.createTransaction(id: "2", isChecked: true)
 
-        // When: Applying unchecked filter
         let filtered = applyCheckedFilterToTransactions([uncheckedTx, checkedTx], showOnlyUnchecked: true)
 
-        // Then: Only unchecked transactions should be returned
-        XCTAssertEqual(filtered.count, 1)
-        XCTAssertNil(filtered.first?.checkedAt)
+        #expect(filtered.count == 1)
+        #expect(filtered.first?.checkedAt == nil)
     }
 
-    func testFilteredFreeTransactions_whenAllFilter_includesAllTransactions() {
-        // Given: Free transactions with mixed checked states
+    @Test
+    func filteredFreeTransactions_whenAllFilter_includesAllTransactions() {
         let uncheckedTx = TestDataFactory.createTransaction(id: "1")
         let checkedTx = TestDataFactory.createTransaction(id: "2", isChecked: true)
 
-        // When: Applying "all" filter
         let filtered = applyCheckedFilterToTransactions([uncheckedTx, checkedTx], showOnlyUnchecked: false)
 
-        // Then: All transactions should be returned
-        XCTAssertEqual(filtered.count, 2)
+        #expect(filtered.count == 2)
     }
 
     // MARK: - Edge Cases
 
-    func testFilter_withEmptyList_returnsEmptyList() {
-        // Given: Empty budget lines
+    @Test
+    func filter_withEmptyList_returnsEmptyList() {
         let emptyLines: [BudgetLine] = []
 
-        // When: Applying filter
         let filtered = applyCheckedFilter(emptyLines, showOnlyUnchecked: true)
 
-        // Then: Should return empty array
-        XCTAssertTrue(filtered.isEmpty)
+        #expect(filtered.isEmpty)
     }
 
-    func testFilter_withAllUnchecked_returnsAllItems() {
-        // Given: All lines are unchecked
+    @Test
+    func filter_withAllUnchecked_returnsAllItems() {
         let line1 = TestDataFactory.createBudgetLine(id: "1", kind: .expense)
         let line2 = TestDataFactory.createBudgetLine(id: "2", kind: .expense)
         let line3 = TestDataFactory.createBudgetLine(id: "3", kind: .expense)
 
-        // When: Applying unchecked filter
         let filtered = applyCheckedFilter([line1, line2, line3], showOnlyUnchecked: true)
 
-        // Then: All items should be returned
-        XCTAssertEqual(filtered.count, 3)
+        #expect(filtered.count == 3)
     }
 
-    func testFilter_withAllChecked_returnsEmptyList() {
-        // Given: All lines are checked
+    @Test
+    func filter_withAllChecked_returnsEmptyList() {
         let line1 = TestDataFactory.createBudgetLine(id: "1", kind: .expense, isChecked: true)
         let line2 = TestDataFactory.createBudgetLine(id: "2", kind: .expense, isChecked: true)
 
-        // When: Applying unchecked filter
         let filtered = applyCheckedFilter([line1, line2], showOnlyUnchecked: true)
 
-        // Then: No items should be returned
-        XCTAssertTrue(filtered.isEmpty)
+        #expect(filtered.isEmpty)
     }
 
     // MARK: - Test Helpers
 
-    /// Simulates the filter logic from BudgetDetailsViewModel
     private func applyCheckedFilter(_ lines: [BudgetLine], showOnlyUnchecked: Bool) -> [BudgetLine] {
         guard showOnlyUnchecked else { return lines }
         return lines.filter { $0.checkedAt == nil }
@@ -220,9 +185,7 @@ final class BudgetDetailsFilterLogicTests: XCTestCase {
 
 // MARK: - Search Filter Tests
 
-/// Tests for search filtering on budget lines and free transactions
-/// Verifies that search matches by name (partial, case-insensitive) and by amount
-final class BudgetDetailsSearchFilterTests: XCTestCase {
+struct BudgetDetailsSearchFilterTests {
 
     // MARK: - Test Data
 
@@ -239,7 +202,9 @@ final class BudgetDetailsSearchFilterTests: XCTestCase {
         id: "line-4", name: "Épargne retraite", amount: 200, kind: .saving
     )
 
-    private lazy var allLines: [BudgetLine] = [loyer, courses, salaire, epargne]
+    private var allLines: [BudgetLine] {
+        [loyer, courses, salaire, epargne]
+    }
 
     private let txCoop = TestDataFactory.createTransaction(
         id: "tx-1", name: "Coop Pronto", amount: 45
@@ -251,180 +216,143 @@ final class BudgetDetailsSearchFilterTests: XCTestCase {
         id: "tx-3", name: "CFF abonnement", amount: 340
     )
 
-    private lazy var allFreeTransactions: [Transaction] = [txCoop, txMigros, txSbb]
+    private var allFreeTransactions: [Transaction] {
+        [txCoop, txMigros, txSbb]
+    }
 
     // MARK: - CA7: Empty search returns all items
 
-    func testSearchBudgetLines_emptyText_returnsAll() {
-        // Given: Budget lines and empty search text
-
-        // When: Filtering with empty search
+    @Test
+    func searchBudgetLines_emptyText_returnsAll() {
         let result = filterLines(allLines, searchText: "", transactions: [])
 
-        // Then: All lines are returned
-        XCTAssertEqual(result.count, allLines.count)
+        #expect(result.count == allLines.count)
     }
 
-    func testSearchFreeTransactions_emptyText_returnsAll() {
-        // Given: Free transactions and empty search text
-
-        // When: Filtering with empty search
+    @Test
+    func searchFreeTransactions_emptyText_returnsAll() {
         let result = filterFreeTransactions(allFreeTransactions, searchText: "")
 
-        // Then: All transactions are returned
-        XCTAssertEqual(result.count, allFreeTransactions.count)
+        #expect(result.count == allFreeTransactions.count)
     }
 
     // MARK: - CA3: Name matching (partial, case-insensitive)
 
-    func testSearchBudgetLines_partialName_matchesSubstring() {
-        // Given: Lines including "Loyer appartement"
-
-        // When: Searching for partial name "loy"
+    @Test
+    func searchBudgetLines_partialName_matchesSubstring() {
         let result = filterLines(allLines, searchText: "loy", transactions: [])
 
-        // Then: Only loyer is matched
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result.first?.id, "line-1")
+        #expect(result.count == 1)
+        #expect(result.first?.id == "line-1")
     }
 
-    func testSearchBudgetLines_caseInsensitive_matchesRegardlessOfCase() {
-        // Given: Lines including "Salaire mensuel"
-
-        // When: Searching with different case "SALAIRE"
+    @Test
+    func searchBudgetLines_caseInsensitive_matchesRegardlessOfCase() {
         let result = filterLines(allLines, searchText: "SALAIRE", transactions: [])
 
-        // Then: Salaire line is matched
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result.first?.id, "line-3")
+        #expect(result.count == 1)
+        #expect(result.first?.id == "line-3")
     }
 
-    func testSearchBudgetLines_accentInsensitive_matchesWithoutAccent() {
-        // Given: Lines including "Épargne retraite"
-
-        // When: Searching without accent "epargne"
+    /// Verifies accent-insensitive search: "epargne" matches "Épargne".
+    /// Relies on `localizedStandardContains` which performs locale-aware, diacritic-insensitive comparison.
+    @Test
+    func searchBudgetLines_accentInsensitive_matchesWithoutAccent() {
         let result = filterLines(allLines, searchText: "epargne", transactions: [])
 
-        // Then: Epargne line is matched
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result.first?.id, "line-4")
+        #expect(result.count == 1)
+        #expect(result.first?.id == "line-4")
     }
 
-    func testSearchFreeTransactions_partialName_matchesSubstring() {
-        // Given: Transactions including "Migros Zürich"
-
-        // When: Searching for "migros"
+    @Test
+    func searchFreeTransactions_partialName_matchesSubstring() {
         let result = filterFreeTransactions(allFreeTransactions, searchText: "migros")
 
-        // Then: Migros transaction is matched
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result.first?.id, "tx-2")
+        #expect(result.count == 1)
+        #expect(result.first?.id == "tx-2")
     }
 
     // MARK: - CA4: Amount matching
 
-    func testSearchBudgetLines_amount_matchesExactAmount() {
-        // Given: Lines with various amounts (1500, 350, 5000, 200)
-
-        // When: Searching for "1500"
+    @Test
+    func searchBudgetLines_amount_matchesExactAmount() {
         let result = filterLines(allLines, searchText: "1500", transactions: [])
 
-        // Then: Loyer (amount 1500) is matched
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result.first?.id, "line-1")
+        #expect(result.count == 1)
+        #expect(result.first?.id == "line-1")
     }
 
-    func testSearchBudgetLines_partialAmount_matchesContainedDigits() {
-        // Given: Lines with amounts 1500, 350, 5000, 200
-
-        // When: Searching for "50" (contained in 1500, 350, 5000)
+    @Test
+    func searchBudgetLines_partialAmount_matchesContainedDigits() {
         let result = filterLines(allLines, searchText: "50", transactions: [])
 
-        // Then: Lines with "50" in their amount string are matched
-        XCTAssertTrue(result.contains { $0.id == "line-1" }, "1500 contains '50'")
-        XCTAssertTrue(result.contains { $0.id == "line-2" }, "350 contains '50'")
-        XCTAssertTrue(result.contains { $0.id == "line-3" }, "5000 contains '50'")
+        #expect(result.contains { $0.id == "line-1" })
+        #expect(result.contains { $0.id == "line-2" })
+        #expect(result.contains { $0.id == "line-3" })
     }
 
-    func testSearchFreeTransactions_amount_matchesExactAmount() {
-        // Given: Transactions with amounts 45, 150, 340
-
-        // When: Searching for "150"
+    @Test
+    func searchFreeTransactions_amount_matchesExactAmount() {
         let result = filterFreeTransactions(allFreeTransactions, searchText: "150")
 
-        // Then: Migros transaction (amount 150) is matched
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result.first?.id, "tx-2")
+        #expect(result.count == 1)
+        #expect(result.first?.id == "tx-2")
     }
 
-    func testSearchFreeTransactions_partialAmount_matchesContainedDigits() {
-        // Given: Transactions with amounts 45, 150, 340
-
-        // When: Searching for "4" (contained in 45 and 340)
+    @Test
+    func searchFreeTransactions_partialAmount_matchesContainedDigits() {
         let result = filterFreeTransactions(allFreeTransactions, searchText: "4")
 
-        // Then: Transactions with "4" in amount are matched
-        XCTAssertTrue(result.contains { $0.id == "tx-1" }, "45 contains '4'")
-        XCTAssertTrue(result.contains { $0.id == "tx-3" }, "340 contains '4'")
+        #expect(result.contains { $0.id == "tx-1" })
+        #expect(result.contains { $0.id == "tx-3" })
     }
 
     // MARK: - CA4: Linked transaction name matching
 
-    func testSearchBudgetLines_matchesLinkedTransactionName() {
-        // Given: A budget line with a linked transaction
+    @Test
+    func searchBudgetLines_matchesLinkedTransactionName() {
         let line = TestDataFactory.createBudgetLine(id: "line-x", name: "Courses", amount: 300)
         let linkedTx = TestDataFactory.createTransaction(
             id: "tx-linked", budgetLineId: "line-x", name: "Migros Lausanne", amount: 55
         )
 
-        // When: Searching for the transaction name "Migros"
         let result = filterLines([line], searchText: "Migros", transactions: [linkedTx])
 
-        // Then: The parent line is matched via its linked transaction
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result.first?.id, "line-x")
+        #expect(result.count == 1)
+        #expect(result.first?.id == "line-x")
     }
 
-    func testSearchBudgetLines_matchesLinkedTransactionAmount() {
-        // Given: A budget line with a linked transaction whose amount doesn't match the line
+    @Test
+    func searchBudgetLines_matchesLinkedTransactionAmount() {
         let line = TestDataFactory.createBudgetLine(id: "line-x", name: "Courses", amount: 300)
         let linkedTx = TestDataFactory.createTransaction(
             id: "tx-linked", budgetLineId: "line-x", name: "Migros Lausanne", amount: 55
         )
 
-        // When: Searching for the transaction amount "55"
         let result = filterLines([line], searchText: "55", transactions: [linkedTx])
 
-        // Then: The parent line is matched via its linked transaction amount
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result.first?.id, "line-x")
+        #expect(result.count == 1)
+        #expect(result.first?.id == "line-x")
     }
 
     // MARK: - CA6: No match returns empty
 
-    func testSearchBudgetLines_noMatch_returnsEmpty() {
-        // Given: Lines with names and amounts that don't contain "xyz"
-
-        // When: Searching for "xyz"
+    @Test
+    func searchBudgetLines_noMatch_returnsEmpty() {
         let result = filterLines(allLines, searchText: "xyz", transactions: [])
 
-        // Then: No results
-        XCTAssertTrue(result.isEmpty)
+        #expect(result.isEmpty)
     }
 
-    func testSearchFreeTransactions_noMatch_returnsEmpty() {
-        // Given: Transactions that don't match "zzz999"
-
-        // When: Searching for "zzz999"
+    @Test
+    func searchFreeTransactions_noMatch_returnsEmpty() {
         let result = filterFreeTransactions(allFreeTransactions, searchText: "zzz999")
 
-        // Then: No results
-        XCTAssertTrue(result.isEmpty)
+        #expect(result.isEmpty)
     }
 
     // MARK: - Test Helpers
 
-    /// Replicates BudgetDetailsViewModel.filteredLines(_:searchText:)
     private func filterLines(
         _ lines: [BudgetLine],
         searchText: String,
@@ -442,7 +370,6 @@ final class BudgetDetailsSearchFilterTests: XCTestCase {
         }
     }
 
-    /// Replicates BudgetDetailsViewModel.filteredFreeTransactions(searchText:)
     private func filterFreeTransactions(
         _ transactions: [Transaction],
         searchText: String

@@ -1,15 +1,16 @@
-import XCTest
+import Foundation
+import Testing
 @testable import Pulpe
 
 @MainActor
-final class ForgotPasswordViewModelTests: XCTestCase {
+struct ForgotPasswordViewModelTests {
 
-    func testSubmit_withInvalidEmail_setsValidationError() async {
+    @Test func submit_withInvalidEmail_setsValidationError() async {
         // Given
         let viewModel = ForgotPasswordViewModel(
             dependencies: ForgotPasswordDependencies(
                 requestPasswordReset: { _ in
-                    XCTFail("requestPasswordReset should not be called for invalid email")
+                    Issue.record("requestPasswordReset should not be called for invalid email")
                 }
             )
         )
@@ -19,11 +20,11 @@ final class ForgotPasswordViewModelTests: XCTestCase {
         await viewModel.submit()
 
         // Then
-        XCTAssertEqual(viewModel.errorMessage, "Cette adresse email ne semble pas valide")
-        XCTAssertFalse(viewModel.isSuccess)
+        #expect(viewModel.errorMessage == "Cette adresse email ne semble pas valide")
+        #expect(!viewModel.isSuccess)
     }
 
-    func testSubmit_whenAPIThrows_setsErrorAndKeepsFailureState() async {
+    @Test func submit_whenAPIThrows_setsErrorAndKeepsFailureState() async {
         // Given
         let expectedError = NSError(domain: "Test", code: 1)
         let viewModel = ForgotPasswordViewModel(
@@ -39,12 +40,12 @@ final class ForgotPasswordViewModelTests: XCTestCase {
         await viewModel.submit()
 
         // Then
-        XCTAssertFalse(viewModel.isSuccess)
-        XCTAssertNotNil(viewModel.errorMessage)
-        XCTAssertFalse(viewModel.isSubmitting)
+        #expect(!viewModel.isSuccess)
+        #expect(viewModel.errorMessage != nil)
+        #expect(!viewModel.isSubmitting)
     }
 
-    func testSubmit_whenSuccess_setsSuccessState() async {
+    @Test func submit_whenSuccess_setsSuccessState() async {
         // Given
         var requestedEmail: String?
         let viewModel = ForgotPasswordViewModel(
@@ -60,9 +61,9 @@ final class ForgotPasswordViewModelTests: XCTestCase {
         await viewModel.submit()
 
         // Then
-        XCTAssertEqual(requestedEmail, "john@doe.com")
-        XCTAssertTrue(viewModel.isSuccess)
-        XCTAssertNil(viewModel.errorMessage)
-        XCTAssertFalse(viewModel.isSubmitting)
+        #expect(requestedEmail == "john@doe.com")
+        #expect(viewModel.isSuccess)
+        #expect(viewModel.errorMessage == nil)
+        #expect(!viewModel.isSubmitting)
     }
 }
