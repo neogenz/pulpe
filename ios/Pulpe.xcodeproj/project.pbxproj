@@ -28,6 +28,7 @@
 		21DAB020999B845E0879BAE3 /* WidgetDataCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34ECAA4ED629633771F020F4 /* WidgetDataCoordinator.swift */; };
 		22145E1D27F9CDDAC582B2D7 /* TransactionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02194E13D6C9DAFCE03148E6 /* TransactionTests.swift */; };
 		231B6D88D71EC4FF2B8002AB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 16123C2E5675C1AE3092113B /* Assets.xcassets */; };
+		24349A2844280D0F5E968271 /* CryptoServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81EE95B71B11BCBEC8358162 /* CryptoServiceTests.swift */; };
 		2449B859079E22FB3637CAA0 /* HeroBalanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5BB996AAB135A9A73AF8762 /* HeroBalanceCard.swift */; };
 		2853D6EE9F8A3C9AE950ED92 /* CurrentMonthProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 582814846F9F2F4CA61E10CC /* CurrentMonthProvider.swift */; };
 		28C02954EA533A650FADCD88 /* InsightsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0D72F529D604F502CBFB45 /* InsightsCard.swift */; };
@@ -110,6 +111,7 @@
 		96B2D8240E7022D68C4712D3 /* CurrentMonthWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCDF82135ABE1A6AA7A29167 /* CurrentMonthWidget.swift */; };
 		96C846AEAA6A38B7A6B59F97 /* BudgetServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8250F651720C623BD61FB30 /* BudgetServiceTests.swift */; };
 		97092F838305C402C7CAE3A9 /* AnimationConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ECBDA78A766C8FC3E6BBDA9 /* AnimationConstants.swift */; };
+		9A227CE91C4D2154B5702F57 /* PinRecoveryViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 557912E2037490FC5A490F92 /* PinRecoveryViewModelTests.swift */; };
 		9DF3E7C14A96A5E7AC8EC4C3 /* LinkedTransactionsContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = D45C40FA08472FA75B62A6AC /* LinkedTransactionsContext.swift */; };
 		9E4C5D319DB85E349A7923AF /* DesignTokensTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A73DE8701BDE0D8D5D4C66 /* DesignTokensTests.swift */; };
 		A22726A5F8810386134F4846 /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7722947386A7CD78FE3B05 /* OnboardingFlow.swift */; };
@@ -123,11 +125,13 @@
 		AB76B8EB227DD6513A4238FC /* YearOverviewProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E179041C080777B5E0C6F270 /* YearOverviewProvider.swift */; };
 		AC71D40DDED4B2C73E8F6D1B /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 723AB344C1BB78CCBA3446C8 /* PrivacyInfo.xcprivacy */; };
 		ACD378D31C9EB04E21410D53 /* BudgetFormulas.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAAA7ED54F25794213D540FE /* BudgetFormulas.swift */; };
+		AF2285D1CA5166C82EFBAE11 /* PinSetupViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98AA38D0A6E491116B3F2069 /* PinSetupViewModelTests.swift */; };
 		B2BDF3BA8887F1843D2AA3DE /* CurrentMonthEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6E2CC5A06C19D21F0D9D63 /* CurrentMonthEntry.swift */; };
 		B430D670EFE75193B7F237D6 /* SectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA4C37DF55207E4B0DEF28A0 /* SectionHeader.swift */; };
 		B664F75C123D9F9E98CA3570 /* NumpadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0EB7D0152B9975CEB86BDD3 /* NumpadView.swift */; };
 		B95A20A90814E960DE2ED35B /* LoginViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88BD720D089B922722516BB1 /* LoginViewModel.swift */; };
 		B9985F8FE62FBBBFE47185BF /* ChangePasswordSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 383F214BBF6B47D7FE3E5CDB /* ChangePasswordSheet.swift */; };
+		BB19823D403106E9892E2CB0 /* PinEntryViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 551DB6314492475F68EA8DE1 /* PinEntryViewModelTests.swift */; };
 		BB4950D1CAE5CD80802EEA21 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316F2D062F9E6DD584B93A84 /* Transaction.swift */; };
 		BBC393EE6EF33467D093FA7A /* CustomTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B0F764064AA9E6C454875A9 /* CustomTabBar.swift */; };
 		BD72CB4CA67419D148ADC59A /* RecoveryKeyFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761744C460DAF90964F18BAB /* RecoveryKeyFormatterTests.swift */; };
@@ -275,6 +279,8 @@
 		4EA095E32B5C5AC4B0FCE485 /* OneTimeExpensesList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneTimeExpensesList.swift; sourceTree = "<group>"; };
 		5050C4D6D027E02312D44A6F /* BudgetListAccessibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetListAccessibilityTests.swift; sourceTree = "<group>"; };
 		54EDA5BADA4D4026B4A784B6 /* MaintenanceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaintenanceService.swift; sourceTree = "<group>"; };
+		551DB6314492475F68EA8DE1 /* PinEntryViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinEntryViewModelTests.swift; sourceTree = "<group>"; };
+		557912E2037490FC5A490F92 /* PinRecoveryViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinRecoveryViewModelTests.swift; sourceTree = "<group>"; };
 		560EDBC9A29B4FA0528D9F98 /* BudgetLineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetLineTests.swift; sourceTree = "<group>"; };
 		57A624A40CC91AC97C743441 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
 		582814846F9F2F4CA61E10CC /* CurrentMonthProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentMonthProvider.swift; sourceTree = "<group>"; };
@@ -299,6 +305,7 @@
 		7E4E8AD4F9F049348AB1563B /* QuickActionsBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionsBar.swift; sourceTree = "<group>"; };
 		7EB719150BD8F123D596C901 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		7F7722947386A7CD78FE3B05 /* OnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
+		81EE95B71B11BCBEC8358162 /* CryptoServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoServiceTests.swift; sourceTree = "<group>"; };
 		8217BB2D2B30DEBF5E4F4798 /* BiometricService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricService.swift; sourceTree = "<group>"; };
 		88250064A726B3B6AAAE9ADF /* welcome-animation.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "welcome-animation.json"; sourceTree = "<group>"; };
 		88BD720D089B922722516BB1 /* LoginViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginViewModel.swift; sourceTree = "<group>"; };
@@ -307,6 +314,7 @@
 		94570CEB6CD57FB35C06DE92 /* Pulpe.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Pulpe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		94DA9F16798B6DC1691A2DB8 /* CreateTemplateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTemplateView.swift; sourceTree = "<group>"; };
 		955B1199FD862E3761B3435A /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
+		98AA38D0A6E491116B3F2069 /* PinSetupViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinSetupViewModelTests.swift; sourceTree = "<group>"; };
 		9A05FA792057CD53B266EE9F /* TransactionEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionEnums.swift; sourceTree = "<group>"; };
 		9BB8AFF47FF273694E987E2A /* Pulpe.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Pulpe.entitlements; sourceTree = "<group>"; };
 		9C02340FB2A3D93553E9CA15 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -424,6 +432,7 @@
 			isa = PBXGroup;
 			children = (
 				47F71F91AB7649A490ECD8B0 /* Auth */,
+				DC61E324C8DD9F2EB5FC551D /* Encryption */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -780,6 +789,9 @@
 			isa = PBXGroup;
 			children = (
 				408305CBDA94248F66D41EFF /* ForgotPasswordViewModelTests.swift */,
+				551DB6314492475F68EA8DE1 /* PinEntryViewModelTests.swift */,
+				557912E2037490FC5A490F92 /* PinRecoveryViewModelTests.swift */,
+				98AA38D0A6E491116B3F2069 /* PinSetupViewModelTests.swift */,
 				CB96FB3C9756EF264F27D325 /* ResetPasswordFlowViewModelTests.swift */,
 			);
 			path = Auth;
@@ -1017,6 +1029,14 @@
 				DEC39A79685AA0486C401DAF /* ios-codegen */,
 			);
 			name = Generated;
+			sourceTree = "<group>";
+		};
+		DC61E324C8DD9F2EB5FC551D /* Encryption */ = {
+			isa = PBXGroup;
+			children = (
+				81EE95B71B11BCBEC8358162 /* CryptoServiceTests.swift */,
+			);
+			path = Encryption;
 			sourceTree = "<group>";
 		};
 		DEC39A79685AA0486C401DAF /* ios-codegen */ = {
@@ -1339,12 +1359,16 @@
 				3D196510AE15B14B8450345A /* BudgetTests.swift in Sources */,
 				520F11961FEEB1621052F82D /* ChangePasswordViewModelTests.swift in Sources */,
 				042DFA41D28663DCE581A429 /* CheckedFilterPickerTests.swift in Sources */,
+				24349A2844280D0F5E968271 /* CryptoServiceTests.swift in Sources */,
 				5E87EA080C0DF80B550BE52F /* CurrentMonthStoreLogicTests.swift in Sources */,
 				F9C4007C68F810D34D6C5E3B /* DashboardStoreLogicTests.swift in Sources */,
 				9E4C5D319DB85E349A7923AF /* DesignTokensTests.swift in Sources */,
 				57C4F2847EA8892D7EB94AD5 /* ForgotPasswordViewModelTests.swift in Sources */,
 				E6E71E80DF877A5B12551898 /* MonthYearTests.swift in Sources */,
 				E8DEE99514F84114E6915A37 /* OnboardingStateTests.swift in Sources */,
+				BB19823D403106E9892E2CB0 /* PinEntryViewModelTests.swift in Sources */,
+				9A227CE91C4D2154B5702F57 /* PinRecoveryViewModelTests.swift in Sources */,
+				AF2285D1CA5166C82EFBAE11 /* PinSetupViewModelTests.swift in Sources */,
 				BD72CB4CA67419D148ADC59A /* RecoveryKeyFormatterTests.swift in Sources */,
 				EA42D6FF2DFC2FBFF2AAE28C /* ResetPasswordFlowViewModelTests.swift in Sources */,
 				11FAC305478C80D495BDE0E0 /* StringParsedAsAmountTests.swift in Sources */,
