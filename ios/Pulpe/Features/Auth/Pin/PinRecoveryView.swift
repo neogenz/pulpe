@@ -18,12 +18,12 @@ struct PinRecoveryView: View {
                 }
             }
         }
-        .alert("Cle de recuperation", isPresented: $viewModel.showRecoveryKeyWarning) {
+        .alert("Clé de récupération", isPresented: $viewModel.showRecoveryKeyWarning) {
             Button("OK") {
                 onComplete()
             }
         } message: {
-            Text("Ta recuperation est reussie mais la nouvelle cle de recuperation n'a pas pu etre generee. Tu peux en creer une depuis les parametres.")
+            Text("Ta récupération est réussie mais la nouvelle clé de récupération n'a pas pu être générée. Tu peux en créer une depuis les paramètres.")
         }
     }
 
@@ -58,11 +58,11 @@ struct PinRecoveryView: View {
                 .foregroundStyle(Color.textSecondaryOnboarding)
 
             VStack(spacing: DesignTokens.Spacing.sm) {
-                Text("Cle de recuperation")
+                Text("Clé de récupération")
                     .font(PulpeTypography.onboardingTitle)
                     .foregroundStyle(Color.textPrimaryOnboarding)
 
-                Text("Entre la cle de recuperation que tu as notee lors de la configuration de ton code PIN")
+                Text("Entre la clé de récupération que tu as notée lors de la configuration de ton code PIN")
                     .font(PulpeTypography.stepSubtitle)
                     .foregroundStyle(Color.textSecondaryOnboarding)
                     .multilineTextAlignment(.center)
@@ -192,11 +192,11 @@ struct PinRecoveryView: View {
                 .tint(Color.textPrimaryOnboarding)
                 .scaleEffect(1.5)
 
-            Text("Recuperation en cours...")
+            Text("Récupération en cours...")
                 .font(PulpeTypography.onboardingTitle)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
-            Text("Tes donnees sont en cours de re-chiffrement")
+            Text("Tes données sont en cours de re-chiffrement")
                 .font(PulpeTypography.stepSubtitle)
                 .foregroundStyle(Color.textSecondaryOnboarding)
                 .multilineTextAlignment(.center)
@@ -385,7 +385,7 @@ final class PinRecoveryViewModel {
             step = .enterRecoveryKey
             digits = []
             firstPin = nil
-            showError("Une erreur est survenue, reessaie")
+            showError("Une erreur est survenue, réessaie")
         }
     }
 
@@ -396,13 +396,13 @@ final class PinRecoveryViewModel {
 
         switch error {
         case .validationError:
-            showError("Cle de recuperation invalide — verifie que tu as bien copie la cle")
+            showError("Clé de récupération invalide — vérifie que tu as bien copié la clé")
         case .rateLimited:
             showError("Trop de tentatives, patiente un moment")
         case .networkError:
-            showError("Erreur de connexion, reessaie")
+            showError("Erreur de connexion, réessaie")
         default:
-            showError("Une erreur est survenue, reessaie")
+            showError("Une erreur est survenue, réessaie")
         }
     }
 

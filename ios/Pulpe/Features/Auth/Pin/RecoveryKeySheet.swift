@@ -8,36 +8,42 @@ struct RecoveryKeySheet: View {
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.xxl) {
-            warningIcon
-            titleSection
-            keyDisplay
-            copyButton
-            warningText
+            VStack(spacing: DesignTokens.Spacing.xxl) {
+                warningIcon
+                titleSection
+                keyDisplay
+                copyButton
+                warningText
+            }
+            .pulpeCard()
+
             Spacer()
+
             acknowledgeButton
         }
         .padding(DesignTokens.Spacing.xxl)
+        .pulpeBackground()
         .interactiveDismissDisabled()
     }
 
     // MARK: - Warning Icon
 
     private var warningIcon: some View {
-        Image(systemName: "exclamationmark.triangle.fill")
+        Image(systemName: "exclamationmark.triangle")
             .font(.system(size: 44))
-            .foregroundStyle(.yellow)
-            .padding(.top, DesignTokens.Spacing.lg)
+            .foregroundStyle(Color.warningPrimary)
+            .padding(.top, DesignTokens.Spacing.sm)
     }
 
     // MARK: - Title
 
     private var titleSection: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
-            Text("Cle de recuperation")
+            Text("Clé de récupération")
                 .font(PulpeTypography.onboardingTitle)
                 .multilineTextAlignment(.center)
 
-            Text("Note cette cle dans un endroit sur. Elle te permettra de retrouver l'acces a tes donnees si tu oublies ton code PIN.")
+            Text("Note cette clé dans un endroit sûr. Elle te permettra de retrouver l'accès à tes données si tu oublies ton code PIN.")
                 .font(PulpeTypography.stepSubtitle)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -55,7 +61,11 @@ struct RecoveryKeySheet: View {
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                    .fill(Color.surfaceSecondary)
+                    .fill(Color.surfaceCard)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+                            .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
+                    )
             )
             .textSelection(.enabled)
     }
@@ -89,16 +99,16 @@ struct RecoveryKeySheet: View {
 
     private var warningText: some View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: "exclamationmark.circle.fill")
-                .foregroundStyle(Color.errorPrimary)
-            Text("Sans cette cle et sans ton code PIN, tes donnees financieres seront definitivement inaccessibles.")
+            Image(systemName: "exclamationmark.circle")
+                .foregroundStyle(Color.warningPrimary)
+            Text("Sans cette clé et sans ton code PIN, tes données financières seront définitivement inaccessibles.")
                 .font(.footnote)
-                .foregroundStyle(Color.errorPrimary)
+                .foregroundStyle(Color.warningPrimary)
         }
         .padding(DesignTokens.Spacing.lg)
         .background(
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                .fill(Color.errorBackground)
+                .fill(Color.warningBackground)
         )
     }
 
@@ -108,7 +118,7 @@ struct RecoveryKeySheet: View {
         Button {
             onAcknowledge()
         } label: {
-            Text("J'ai note ma cle")
+            Text("J'ai noté ma clé")
                 .font(PulpeTypography.buttonPrimary)
                 .frame(maxWidth: .infinity)
                 .frame(height: DesignTokens.FrameHeight.button)
