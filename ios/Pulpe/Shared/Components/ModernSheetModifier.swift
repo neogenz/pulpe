@@ -74,7 +74,7 @@ extension View {
 // MARK: - Preview
 
 #Preview("Modern Sheet Style") {
-    Text("Preview placeholder")
+    Text("Aperçu du design de sheet")
         .sheet(isPresented: .constant(true)) {
             ScrollView {
                 VStack(spacing: DesignTokens.Spacing.xl) {
