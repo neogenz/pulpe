@@ -52,6 +52,19 @@ export class EncryptionController {
   constructor(private readonly encryptionService: EncryptionService) {}
 
   @SkipClientKey()
+  @Get('vault-status')
+  @ApiOperation({ summary: 'Check if user has a configured vault code' })
+  @ApiResponse({
+    status: 200,
+    description: 'Vault code configuration status',
+  })
+  async getVaultStatus(
+    @User() user: AuthenticatedUser,
+  ): Promise<{ vaultCodeConfigured: boolean }> {
+    return this.encryptionService.getVaultStatus(user.id);
+  }
+
+  @SkipClientKey()
   @Get('salt')
   @ApiOperation({ summary: 'Get user encryption salt and KDF parameters' })
   @ApiResponse({

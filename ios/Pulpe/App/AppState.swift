@@ -99,6 +99,7 @@ final class AppState {
     private let authService: AuthService
     private let biometricService: BiometricService
     private let clientKeyManager: ClientKeyManager
+    private let encryptionAPI: EncryptionAPI
 
     // MARK: - Toast
 
@@ -107,11 +108,13 @@ final class AppState {
     init(
         authService: AuthService = .shared,
         biometricService: BiometricService = .shared,
-        clientKeyManager: ClientKeyManager = .shared
+        clientKeyManager: ClientKeyManager = .shared,
+        encryptionAPI: EncryptionAPI = .shared
     ) {
         self.authService = authService
         self.biometricService = biometricService
         self.clientKeyManager = clientKeyManager
+        self.encryptionAPI = encryptionAPI
         
         // Load UserDefaults values asynchronously
         Task { @MainActor in
@@ -180,7 +183,17 @@ final class AppState {
 
     /// After Supabase session is valid, route to PIN setup/entry or straight to authenticated
     private func resolvePostAuth(user: UserInfo) async {
-        guard user.vaultCodeConfigured else {
+        let isVaultConfigured: Bool
+        do {
+            let status = try await encryptionAPI.getVaultStatus()
+            isVaultConfigured = status.vaultCodeConfigured
+        } catch {
+            Logger.auth.error("resolvePostAuth: vault status check failed - \(error)")
+            // Fallback to PIN entry (safe for returning users; new users go through completeOnboarding)
+            isVaultConfigured = true
+        }
+
+        guard isVaultConfigured else {
             authState = .needsPinSetup
             return
         }

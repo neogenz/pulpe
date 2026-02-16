@@ -222,12 +222,6 @@ actor AuthService {
         return BiometricSessionResult(user: user, clientKeyHex: clientKeyHex)
     }
 
-    // MARK: - User Metadata
-
-    func markVaultCodeConfigured() async throws {
-        try await supabase.auth.update(user: UserAttributes(data: ["vaultCodeConfigured": .bool(true)]))
-    }
-
     func clearBiometricTokens() async {
         await keychain.clearBiometricTokens()
     }
@@ -246,16 +240,10 @@ actor AuthService {
             firstName = name
         }
 
-        var vaultConfigured = false
-        if case .bool(let configured) = metadata["vaultCodeConfigured"] {
-            vaultConfigured = configured
-        }
-
         return UserInfo(
             id: user.id.uuidString,
             email: user.email ?? fallbackEmail,
-            firstName: firstName,
-            vaultCodeConfigured: vaultConfigured
+            firstName: firstName
         )
     }
 }
@@ -290,7 +278,6 @@ struct UserInfo: Codable, Equatable, Sendable {
     let id: String
     let email: String
     var firstName: String?
-    var vaultCodeConfigured: Bool
 }
 
 struct DeleteAccountResponse: Codable, Sendable {

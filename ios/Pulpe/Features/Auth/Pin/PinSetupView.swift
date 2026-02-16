@@ -128,7 +128,6 @@ final class PinSetupViewModel {
     private let cryptoService = CryptoService.shared
     private let encryptionAPI = EncryptionAPI.shared
     private let clientKeyManager = ClientKeyManager.shared
-    private let authService = AuthService.shared
 
     var canConfirm: Bool {
         digits.count >= minDigits && !isValidating
@@ -179,8 +178,6 @@ final class PinSetupViewModel {
 
             let key = try await encryptionAPI.setupRecoveryKey()
             recoveryKey = key
-
-            try await authService.markVaultCodeConfigured()
 
             showRecoverySheet = true
         } catch {
