@@ -1,16 +1,20 @@
-import XCTest
+import Testing
 @testable import Pulpe
 
 @MainActor
-final class AccountRecoveryKeyTests: XCTestCase {
+struct AccountRecoveryKeyTests {
 
-    func testVerifyAndRegenerate_whenVerificationFails_returnsIncorrectPasswordErrorFromClassification() async {
+    @Test func verifyAndRegenerate_whenVerificationFails_returnsIncorrectPasswordErrorFromClassification() async {
         // Given
+        var capturedEmail: String?
         let viewModel = AccountSecurityViewModel(
             dependencies: AccountSecurityDependencies(
-                verifyPassword: { _, _ in throw APIError.invalidCredentials },
+                verifyPassword: { _, email in
+                    capturedEmail = email
+                    throw APIError.invalidCredentials
+                },
                 setupRecoveryKey: {
-                    XCTFail("setupRecoveryKey should not be called when verification fails")
+                    Issue.record("setupRecoveryKey should not be called when verification fails")
                     return "unused"
                 }
             )
@@ -23,17 +27,19 @@ final class AccountRecoveryKeyTests: XCTestCase {
         )
 
         // Then
-        XCTAssertEqual(error, "Mot de passe incorrect")
-        XCTAssertFalse(viewModel.isRegenerating)
-        XCTAssertFalse(viewModel.showRecoveryKeySheet)
-        XCTAssertNil(viewModel.generatedRecoveryKey)
+        #expect(capturedEmail == "john@doe.com")
+        #expect(error == "Mot de passe incorrect")
+        #expect(!viewModel.isRegenerating)
+        #expect(!viewModel.showRecoveryKeySheet)
+        #expect(viewModel.generatedRecoveryKey == nil)
     }
 
-    func testVerifyAndRegenerate_whenRegenerationFails_returnsGenerationError() async {
+    @Test func verifyAndRegenerate_whenRegenerationFails_returnsGenerationError() async {
         // Given
+        var capturedEmail: String?
         let viewModel = AccountSecurityViewModel(
             dependencies: AccountSecurityDependencies(
-                verifyPassword: { _, _ in },
+                verifyPassword: { _, email in capturedEmail = email },
                 setupRecoveryKey: {
                     throw APIError.networkError(URLError(.cannotConnectToHost))
                 }
@@ -47,21 +53,26 @@ final class AccountRecoveryKeyTests: XCTestCase {
         )
 
         // Then
-        XCTAssertEqual(error, "Erreur lors de la génération")
-        XCTAssertFalse(viewModel.isRegenerating)
-        XCTAssertFalse(viewModel.showRecoveryKeySheet)
-        XCTAssertNil(viewModel.generatedRecoveryKey)
+        #expect(capturedEmail == "john@doe.com")
+        #expect(error == "Erreur lors de la génération")
+        #expect(!viewModel.isRegenerating)
+        #expect(!viewModel.showRecoveryKeySheet)
+        #expect(viewModel.generatedRecoveryKey == nil)
     }
 
-    func testVerifyAndRegenerate_whenSuccessful_setsRecoveryKeyState() async {
+    @Test func verifyAndRegenerate_whenSuccessful_setsRecoveryKeyState() async {
         // Given
         var verifyCallCount = 0
         var setupCallCount = 0
+        var capturedEmail: String?
         let expectedRecoveryKey = "ABCD-EFGH-IJKL-MNOP"
 
         let viewModel = AccountSecurityViewModel(
             dependencies: AccountSecurityDependencies(
-                verifyPassword: { _, _ in verifyCallCount += 1 },
+                verifyPassword: { _, email in
+                    verifyCallCount += 1
+                    capturedEmail = email
+                },
                 setupRecoveryKey: {
                     setupCallCount += 1
                     return expectedRecoveryKey
@@ -76,21 +87,22 @@ final class AccountRecoveryKeyTests: XCTestCase {
         )
 
         // Then
-        XCTAssertNil(error)
-        XCTAssertEqual(verifyCallCount, 1)
-        XCTAssertEqual(setupCallCount, 1)
-        XCTAssertEqual(viewModel.generatedRecoveryKey, expectedRecoveryKey)
-        XCTAssertTrue(viewModel.showRecoveryKeySheet)
-        XCTAssertFalse(viewModel.isRegenerating)
+        #expect(error == nil)
+        #expect(capturedEmail == "john@doe.com")
+        #expect(verifyCallCount == 1)
+        #expect(setupCallCount == 1)
+        #expect(viewModel.generatedRecoveryKey == expectedRecoveryKey)
+        #expect(viewModel.showRecoveryKeySheet)
+        #expect(!viewModel.isRegenerating)
     }
 
-    func testVerifyAndRegenerate_whenEmailMissing_returnsNotConnectedError() async {
+    @Test func verifyAndRegenerate_whenEmailMissing_returnsNotConnectedError() async {
         // Given
         let viewModel = AccountSecurityViewModel(
             dependencies: AccountSecurityDependencies(
-                verifyPassword: { _, _ in XCTFail("verifyPassword should not be called") },
+                verifyPassword: { _, _ in Issue.record("verifyPassword should not be called") },
                 setupRecoveryKey: {
-                    XCTFail("setupRecoveryKey should not be called")
+                    Issue.record("setupRecoveryKey should not be called")
                     return "unused"
                 }
             )
@@ -103,9 +115,9 @@ final class AccountRecoveryKeyTests: XCTestCase {
         )
 
         // Then
-        XCTAssertEqual(error, "Utilisateur non connecté")
-        XCTAssertFalse(viewModel.isRegenerating)
-        XCTAssertFalse(viewModel.showRecoveryKeySheet)
-        XCTAssertNil(viewModel.generatedRecoveryKey)
+        #expect(error == "Utilisateur non connecté")
+        #expect(!viewModel.isRegenerating)
+        #expect(!viewModel.showRecoveryKeySheet)
+        #expect(viewModel.generatedRecoveryKey == nil)
     }
 }

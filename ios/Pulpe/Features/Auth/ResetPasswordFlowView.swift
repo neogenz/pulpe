@@ -53,7 +53,9 @@ struct ResetPasswordFlowView: View {
             await viewModel.prepare(with: callbackURL)
         }
         .onDisappear {
-            guard !hasPerformedCancelCleanup, viewModel.shouldCleanupOnDismiss else { return }
+            guard !hasPerformedCancelCleanup,
+                  !viewModel.isCompleted,
+                  viewModel.shouldCleanupOnDismiss else { return }
             hasPerformedCancelCleanup = true
             Task {
                 await onCancel()
@@ -90,12 +92,7 @@ struct ResetPasswordFlowView: View {
             Button("Retour à la connexion") {
                 handleCloseAction()
             }
-            .font(PulpeTypography.buttonLabel)
-            .frame(maxWidth: .infinity)
-            .frame(height: DesignTokens.FrameHeight.button)
-            .background(Color.onboardingGradient)
-            .foregroundStyle(Color.textOnPrimary)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+            .primaryButtonStyle()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -120,22 +117,12 @@ struct ResetPasswordFlowView: View {
                     await viewModel.retrySecurityContextLoad()
                 }
             }
-            .font(PulpeTypography.buttonLabel)
-            .frame(maxWidth: .infinity)
-            .frame(height: DesignTokens.FrameHeight.button)
-            .background(Color.onboardingGradient)
-            .foregroundStyle(Color.textOnPrimary)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+            .primaryButtonStyle()
 
             Button("Retour à la connexion") {
                 handleCloseAction()
             }
-            .font(PulpeTypography.buttonLabel)
-            .frame(maxWidth: .infinity)
-            .frame(height: DesignTokens.FrameHeight.button)
-            .background(Color.surfaceCard)
-            .foregroundStyle(Color.textPrimaryOnboarding)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+            .secondaryButtonStyle()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -241,6 +228,8 @@ struct ResetPasswordFlowView: View {
             .font(.system(.body, design: .monospaced))
             .textInputAutocapitalization(.characters)
             .autocorrectionDisabled()
+            .textContentType(.oneTimeCode)
+            .privacySensitive()
             .focused($focusedField, equals: .recoveryKey)
             .padding()
             .background(Color.pinInputBackground)
@@ -487,7 +476,7 @@ final class ResetPasswordFlowViewModel {
 
                 try await dependencies.updatePassword(newPassword)
                 try await dependencies.recoverEncryption(
-                    recoveryKeyInput.trimmingCharacters(in: .whitespacesAndNewlines),
+                    strippedRecoveryKey,
                     newClientKey
                 )
                 await dependencies.storeClientKey(newClientKey)

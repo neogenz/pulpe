@@ -9,7 +9,6 @@ actor CryptoService {
 
     static let keyLengthBytes = 32
     static let keyLengthHex = 64
-    static let demoClientKey = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
     private init() {}
 

@@ -199,6 +199,8 @@ final class PinEntryViewModel {
             authenticated = true
         } catch let error as APIError {
             handleError(error)
+        } catch let error as CryptoServiceError {
+            handleCryptoError(error)
         } catch {
             showError("Erreur inattendue, reessaie")
         }
@@ -212,6 +214,17 @@ final class PinEntryViewModel {
             showError("Erreur de connexion, reessaie")
         default:
             showError("Ce code ne semble pas correct")
+        }
+    }
+
+    private func handleCryptoError(_ error: CryptoServiceError) {
+        switch error {
+        case .invalidSalt:
+            showError("Erreur de sécurité, contacte le support")
+        case .derivationFailed:
+            showError("Erreur de chiffrement, reessaie")
+        case .invalidPin:
+            showError("Code invalide")
         }
     }
 

@@ -5,6 +5,9 @@ struct CryptoServiceTests {
     private let sut = CryptoService.shared
     private let validSalt = "aa" * 32 // 64-char hex
 
+    /// Test-only demo client key for validation tests
+    private static let demoClientKey = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
     // MARK: - deriveClientKey
 
     @Test func deriveClientKey_validInputs_returns64CharHex() async throws {
@@ -99,7 +102,7 @@ struct CryptoServiceTests {
     }
 
     @Test func isValidClientKeyHex_demoClientKey_returnsTrue() async {
-        let result = await sut.isValidClientKeyHex(CryptoService.demoClientKey)
+        let result = await sut.isValidClientKeyHex(Self.demoClientKey)
         #expect(result == true)
     }
 }

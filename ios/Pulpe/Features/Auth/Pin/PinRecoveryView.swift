@@ -94,6 +94,8 @@ struct PinRecoveryView: View {
         .multilineTextAlignment(.center)
         .autocorrectionDisabled()
         .textInputAutocapitalization(.characters)
+        .textContentType(.oneTimeCode)
+        .privacySensitive()
         .padding(DesignTokens.Spacing.lg)
         .background(
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)

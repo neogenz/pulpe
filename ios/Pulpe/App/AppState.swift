@@ -187,8 +187,23 @@ final class AppState {
         do {
             let status = try await encryptionAPI.getVaultStatus()
             isVaultConfigured = status.vaultCodeConfigured
+        } catch let error as APIError {
+            switch error {
+            case .networkError:
+                // Network error - assume vault is configured to allow PIN entry attempt
+                // User will get a clear error when PIN validation fails if truly offline
+                Logger.auth.warning("resolvePostAuth: network error checking vault status, assuming configured")
+                isVaultConfigured = true
+            case .notFound, .unauthorized:
+                // User has no vault - needs setup
+                Logger.auth.info("resolvePostAuth: vault not found or unauthorized, routing to setup")
+                isVaultConfigured = false
+            default:
+                Logger.auth.error("resolvePostAuth: API error checking vault status - \(error)")
+                isVaultConfigured = true
+            }
         } catch {
-            Logger.auth.error("resolvePostAuth: vault status check failed - \(error)")
+            Logger.auth.error("resolvePostAuth: unexpected error checking vault status - \(error)")
             // Fallback to PIN entry (safe for returning users; new users go through completeOnboarding)
             isVaultConfigured = true
         }
