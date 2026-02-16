@@ -54,6 +54,12 @@ enum AppConfiguration {
         #endif
     }
 
+    // MARK: - Auth Redirects
+
+    static var passwordResetRedirectURL: URL {
+        URL(string: "pulpe://reset-password")!
+    }
+
     // MARK: - Feature Flags
 
     static var isDemoModeEnabled: Bool {

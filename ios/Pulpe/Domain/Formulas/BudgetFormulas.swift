@@ -123,19 +123,27 @@ enum BudgetFormulas {
     /// - Checked parent: max(envelope, consumed by checked transactions)
     /// - Unchecked parent: sum of checked allocated transactions
     /// - Free transactions: counted directly when checked
+    /// - Performance: O(n+m) instead of O(n×m) using Dictionary-based indexing
     static func calculateRealizedExpenses(
         budgetLines: [BudgetLine],
         transactions: [Transaction] = []
     ) -> Decimal {
+        // Pre-index transactions by budgetLineId for O(1) lookups - O(m)
+        // Only keep checked outflow transactions for this calculation
+        let transactionsByLineId = Dictionary(
+            grouping: transactions.filter { $0.isChecked && $0.kind.isOutflow },
+            by: { $0.budgetLineId ?? "" }
+        )
+        
         var total: Decimal = 0
 
+        // Calculate envelope totals - O(n) with O(1) lookups
         for line in budgetLines {
             guard line.kind.isOutflow else { continue }
             guard line.isRollover != true else { continue }
 
-            let consumed = transactions
-                .filter { $0.budgetLineId == line.id && $0.isChecked && $0.kind.isOutflow }
-                .reduce(Decimal.zero) { $0 + $1.amount }
+            let consumed = transactionsByLineId[line.id]?
+                .reduce(Decimal.zero) { $0 + $1.amount } ?? 0
 
             if line.isChecked {
                 total += max(line.amount, consumed)
@@ -144,10 +152,9 @@ enum BudgetFormulas {
             }
         }
 
-        // Free transactions (no parent envelope)
-        let freeTransactions = transactions
-            .filter { $0.budgetLineId == nil && $0.isChecked && $0.kind.isOutflow }
-            .reduce(Decimal.zero) { $0 + $1.amount }
+        // Free transactions (no parent envelope) - already filtered in index
+        let freeTransactions = transactionsByLineId[""]?
+            .reduce(Decimal.zero) { $0 + $1.amount } ?? 0
 
         return total + freeTransactions
     }

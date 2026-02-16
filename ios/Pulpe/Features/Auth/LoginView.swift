@@ -6,6 +6,7 @@ struct LoginView: View {
     @State private var viewModel = LoginViewModel()
     @State private var canRetryBiometric = false
     @State private var isAppeared = false
+    @State private var forgotPasswordPresentation: ForgotPasswordPresentation?
     @FocusState private var focusedField: Field?
 
     var isPresented: Binding<Bool>?
@@ -42,6 +43,11 @@ struct LoginView: View {
                 }
             }
             .dismissKeyboardOnTap()
+            .sheet(item: $forgotPasswordPresentation) { _ in
+                ForgotPasswordSheet {
+                    forgotPasswordPresentation = nil
+                }
+            }
             .task {
                 canRetryBiometric = await appState.canRetryBiometric()
                 if !reduceMotion {
@@ -96,6 +102,7 @@ struct LoginView: View {
             biometricSection
             emailField
             passwordField
+            forgotPasswordButton
             loginButton
         }
         .padding(DesignTokens.Spacing.xxl)
@@ -291,6 +298,18 @@ struct LoginView: View {
 
     // MARK: - Login Button
 
+    private var forgotPasswordButton: some View {
+        HStack {
+            Spacer()
+            Button("Mot de passe oublié ?") {
+                forgotPasswordPresentation = ForgotPasswordPresentation()
+            }
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(Color.textPrimaryOnboarding.opacity(0.9))
+            .accessibilityIdentifier("forgotPasswordButton")
+        }
+    }
+
     private var loginButton: some View {
         Button {
             Task {
@@ -389,6 +408,10 @@ struct LoginView: View {
             viewModel.isLoading = false
         }
     }
+}
+
+struct ForgotPasswordPresentation: Identifiable {
+    let id = UUID()
 }
 
 #Preview {

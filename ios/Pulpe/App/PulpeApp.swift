@@ -6,6 +6,7 @@ import WidgetKit
 enum DeepLinkDestination: Hashable {
     case addExpense(budgetId: String?)
     case viewBudget(budgetId: String)
+    case resetPassword(url: URL)
 }
 
 @main
@@ -42,6 +43,8 @@ struct PulpeApp: App {
         let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
 
         switch url.host {
+        case "reset-password":
+            deepLinkDestination = .resetPassword(url: url)
         case "add-expense":
             let budgetId = components?.queryItems?.first { $0.name == "budgetId" }?.value
             if let budgetId, UUID(uuidString: budgetId) == nil {
@@ -70,6 +73,7 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Binding var deepLinkDestination: DeepLinkDestination?
     @State private var showAddExpenseSheet = false
+    @State private var resetPasswordDeepLink: ResetPasswordDeepLink?
     @State private var showAmountsToggleAlert = false
     @State private var widgetSyncViewModel = WidgetSyncViewModel()
 
@@ -189,6 +193,17 @@ struct RootView: View {
             DeepLinkAddExpenseSheet()
                 .environment(appState.toastManager)
         }
+        .sheet(item: $resetPasswordDeepLink) { deepLink in
+            ResetPasswordFlowView(
+                callbackURL: deepLink.url,
+                onComplete: {
+                    await appState.completePasswordResetFlow()
+                },
+                onCancel: {
+                    await appState.cancelPasswordResetFlow()
+                }
+            )
+        }
         .onShake {
             guard appState.authState == .authenticated else { return }
             showAmountsToggleAlert = true
@@ -206,15 +221,18 @@ struct RootView: View {
     }
 
     private func handlePendingDeepLink() {
-        guard appState.authState == .authenticated,
-              let destination = deepLinkDestination else { return }
+        guard let destination = deepLinkDestination else { return }
 
         deepLinkDestination = nil
 
         switch destination {
+        case .resetPassword(let url):
+            resetPasswordDeepLink = ResetPasswordDeepLink(url: url)
         case .addExpense:
+            guard appState.authState == .authenticated else { return }
             showAddExpenseSheet = true
         case .viewBudget(let budgetId):
+            guard appState.authState == .authenticated else { return }
             appState.budgetPath = NavigationPath()
             Task { @MainActor in
                 appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
@@ -222,6 +240,11 @@ struct RootView: View {
             }
         }
     }
+}
+
+private struct ResetPasswordDeepLink: Identifiable {
+    let id = UUID()
+    let url: URL
 }
 
 @Observable @MainActor

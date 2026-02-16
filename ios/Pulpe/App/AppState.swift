@@ -248,6 +248,25 @@ final class AppState {
         selectedTab = .currentMonth
     }
 
+    /// Complete password recovery flow by clearing temporary auth/encryption state
+    /// and returning the app to the regular login screen.
+    func completePasswordResetFlow() async {
+        await authService.logout()
+        await authService.clearBiometricTokens()
+        await clientKeyManager.clearAll()
+        resetAfterPasswordResetCleanup()
+        toastManager.show("Mot de passe réinitialisé, reconnecte-toi", type: .success)
+    }
+
+    /// Cancel password recovery flow by clearing temporary auth/encryption state
+    /// and returning the app to the regular login screen without success feedback.
+    func cancelPasswordResetFlow() async {
+        await authService.logout()
+        await authService.clearBiometricTokens()
+        await clientKeyManager.clearAll()
+        resetAfterPasswordResetCleanup()
+    }
+
     func deleteAccount() async {
         do {
             _ = try await authService.deleteAccount()
@@ -257,6 +276,22 @@ final class AppState {
         }
 
         await logout()
+    }
+
+    private func resetAfterPasswordResetCleanup() {
+        currentUser = nil
+        authState = .unauthenticated
+        biometricError = nil
+        showBiometricEnrollment = false
+
+        // Clear sensitive widget data
+        WidgetDataCoordinator().clear()
+        WidgetCenter.shared.reloadAllTimelines()
+
+        // Reset navigation
+        budgetPath = NavigationPath()
+        templatePath = NavigationPath()
+        selectedTab = .currentMonth
     }
 
     func completeOnboarding(user: UserInfo, onboardingData: BudgetTemplateCreateFromOnboarding) {

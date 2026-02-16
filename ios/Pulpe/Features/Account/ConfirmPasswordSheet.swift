@@ -2,13 +2,12 @@ import SwiftUI
 
 struct ConfirmPasswordSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(AppState.self) private var appState
-    
+
     @State private var password = ""
     @State private var isVerifying = false
     @State private var errorMessage: String?
-    
-    var onVerified: () -> Void
+
+    var onVerify: (String) async -> String?
     
     var body: some View {
         NavigationStack {
@@ -72,29 +71,25 @@ struct ConfirmPasswordSheet: View {
             .background(Color.surfacePrimary)
         }
     }
-    
+
     private func verifyPassword() {
-        guard let email = appState.currentUser?.email else { return }
-        
         isVerifying = true
         errorMessage = nil
-        
+
         Task {
-            do {
-                // We use the login method to verify the password since it validates the credentials with Supabase
-                _ = try await AuthService.shared.login(email: email, password: password)
+            let error = await onVerify(password)
+            if let error {
                 isVerifying = false
-                dismiss()
-                onVerified()
-            } catch {
-                isVerifying = false
-                errorMessage = "Mot de passe incorrect"
+                errorMessage = error
+                return
             }
+
+            isVerifying = false
+            dismiss()
         }
     }
 }
 
 #Preview {
-    ConfirmPasswordSheet(onVerified: {})
-        .environment(AppState())
+    ConfirmPasswordSheet(onVerify: { _ in nil })
 }

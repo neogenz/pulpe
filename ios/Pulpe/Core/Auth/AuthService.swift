@@ -68,6 +68,70 @@ actor AuthService {
         return Self.userInfo(from: session.user, fallbackEmail: email)
     }
 
+    // MARK: - Password Reset & Recovery
+
+    /// Send a password reset email with a mobile deep-link callback.
+    func requestPasswordReset(
+        email: String,
+        redirectTo: URL = AppConfiguration.passwordResetRedirectURL
+    ) async throws {
+        try await supabase.auth.resetPasswordForEmail(email, redirectTo: redirectTo)
+    }
+
+    /// Consume reset callback URL and create a recovery session.
+    /// Returns context required by the reset-password flow.
+    func beginPasswordRecovery(from url: URL) async throws -> PasswordRecoveryContext {
+        let session = try await supabase.auth.session(from: url)
+
+        try await keychain.saveTokens(
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken
+        )
+
+        let user = session.user
+        let metadata = user.userMetadata
+
+        var firstName: String?
+        if case .string(let name) = metadata["firstName"] {
+            firstName = name
+        }
+
+        let hasVaultCodeConfigured: Bool
+        if case .bool(let configured) = metadata["vaultCodeConfigured"] {
+            hasVaultCodeConfigured = configured
+        } else {
+            hasVaultCodeConfigured = false
+        }
+
+        return PasswordRecoveryContext(
+            userId: user.id.uuidString,
+            email: user.email ?? "",
+            firstName: firstName,
+            hasVaultCodeConfigured: hasVaultCodeConfigured
+        )
+    }
+
+    /// Re-authenticate with current credentials to verify password knowledge.
+    func verifyPassword(email: String, password: String) async throws {
+        let session = try await supabase.auth.signIn(email: email, password: password)
+
+        try await keychain.saveTokens(
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken
+        )
+    }
+
+    /// Update the current user's password in Supabase auth.
+    func updatePassword(_ newPassword: String) async throws {
+        _ = try await supabase.auth.update(user: UserAttributes(password: newPassword))
+
+        let session = try await supabase.auth.session
+        try await keychain.saveTokens(
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken
+        )
+    }
+
     // MARK: - Session Validation
 
     func validateSession() async throws -> UserInfo? {
@@ -284,4 +348,11 @@ struct DeleteAccountResponse: Codable, Sendable {
     let success: Bool
     let message: String
     let scheduledDeletionAt: String
+}
+
+struct PasswordRecoveryContext: Equatable, Sendable {
+    let userId: String
+    let email: String
+    let firstName: String?
+    let hasVaultCodeConfigured: Bool
 }
