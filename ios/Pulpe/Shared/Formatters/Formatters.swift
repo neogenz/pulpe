@@ -74,6 +74,13 @@ enum Formatters {
         f.dateFormat = "MMMM"
         return f
     }()
+    
+    static let weekday: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "fr_FR")
+        f.dateFormat = "EEEE"
+        return f
+    }()
 
     // MARK: - ISO8601
 

@@ -32,6 +32,7 @@ enum PulpeTypography {
     // MARK: - Labels
 
     static let labelLarge = Font.system(.subheadline, design: .default).weight(.semibold)
+    static let labelMedium = Font.system(.footnote, design: .default).weight(.medium)
 
     // MARK: - Input Labels
 
@@ -48,6 +49,7 @@ enum PulpeTypography {
     // MARK: - Buttons
 
     static let buttonPrimary = Font.system(.body, design: .rounded).weight(.semibold)
+    static let buttonLabel = buttonPrimary
     static let buttonSecondary = Font.system(.subheadline, design: .default).weight(.medium)
 
     // MARK: - Semantic Aliases (for replacing bare .font() calls)

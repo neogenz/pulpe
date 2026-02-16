@@ -74,6 +74,12 @@ Pulpe/
 
 - `API_BASE_URL` : URL de l'API backend (défaut: `http://localhost:3000`)
 
+### Password Reset Deep Link
+
+- Redirect URI iOS utilisée pour le reset: `pulpe://reset-password`
+- Local Supabase: ajouter cette URI dans `backend-nest/supabase/config.toml` (`auth.additional_redirect_urls`)
+- Production Supabase Dashboard: ajouter aussi `pulpe://reset-password` dans **Authentication > URL Configuration > Redirect URLs**
+
 ### Build Settings
 
 - Deployment Target: iOS 17.0

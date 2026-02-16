@@ -480,16 +480,24 @@ final class BudgetDetailsViewModel {
     }
 
     /// Filters budget lines by name or by linked transaction names (accent and case insensitive)
+    /// Performance: O(n+m) with Dictionary indexing instead of O(n×m) nested loops
     func filteredLines(_ lines: [BudgetLine], searchText: String) -> [BudgetLine] {
         guard !searchText.isEmpty else { return lines }
+        
+        // Pre-index transactions by budgetLineId for O(1) lookups - O(m)
+        let transactionsByLineId = Dictionary(
+            grouping: transactions,
+            by: { $0.budgetLineId ?? "" }
+        )
+        
+        // Filter lines with O(1) transaction lookups - O(n)
         return lines.filter { line in
             line.name.localizedStandardContains(searchText) ||
                 "\(line.amount)".contains(searchText) ||
-                transactions.contains {
-                    $0.budgetLineId == line.id &&
-                        ($0.name.localizedStandardContains(searchText) ||
-                         "\($0.amount)".contains(searchText))
-                }
+                (transactionsByLineId[line.id]?.contains {
+                    $0.name.localizedStandardContains(searchText) ||
+                        "\($0.amount)".contains(searchText)
+                } ?? false)
         }
     }
 

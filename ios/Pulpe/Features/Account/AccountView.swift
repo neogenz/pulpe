@@ -5,10 +5,8 @@ struct AccountView: View {
     @Environment(AppState.self) private var appState
     @State private var biometricToggle = false
     @State private var showDeleteConfirmation = false
-    @State private var showConfirmPassword = false
-    @State private var showNewRecoveryKey = false
-    @State private var newRecoveryKey = ""
-    @State private var isRegenerating = false
+    @State private var showChangePassword = false
+    @State private var securityViewModel = AccountSecurityViewModel()
 
     var body: some View {
         NavigationStack {
@@ -51,13 +49,20 @@ struct AccountView: View {
                             }
                         }
                     }
-                    
-                    LabeledContent("Clé de secours") {
-                        Button("Régénérer") {
-                            showConfirmPassword = true
+
+                    LabeledContent("Mot de passe") {
+                        Button("Changer") {
+                            showChangePassword = true
                         }
                         .foregroundStyle(Color.primary)
-                        .disabled(isRegenerating)
+                    }
+
+                    LabeledContent("Clé de secours") {
+                        Button("Régénérer") {
+                            securityViewModel.showConfirmPassword = true
+                        }
+                        .foregroundStyle(Color.primary)
+                        .disabled(securityViewModel.isRegenerating)
                     }
                 } header: {
                     Text("SÉCURITÉ")
@@ -114,18 +119,32 @@ struct AccountView: View {
                     Button("Fermer") { dismiss() }
                 }
             }
-            .sheet(isPresented: $showConfirmPassword) {
-                ConfirmPasswordSheet {
-                    regenerateRecoveryKey()
+            .sheet(isPresented: $showChangePassword) {
+                ChangePasswordSheet {
+                    appState.toastManager.show("Mot de passe modifié", type: .success)
                 }
             }
-            .sheet(isPresented: $showNewRecoveryKey) {
-                RecoveryKeySheet(recoveryKey: newRecoveryKey) {
-                    showNewRecoveryKey = false
+            .sheet(isPresented: $securityViewModel.showConfirmPassword) {
+                ConfirmPasswordSheet { password in
+                    let error = await securityViewModel.verifyAndRegenerateRecoveryKey(
+                        password: password,
+                        email: appState.currentUser?.email
+                    )
+                    if error == nil {
+                        appState.toastManager.show("Clé de secours régénérée", type: .success)
+                    }
+                    return error
+                }
+            }
+            .sheet(isPresented: $securityViewModel.showRecoveryKeySheet) {
+                if let recoveryKey = securityViewModel.generatedRecoveryKey {
+                    RecoveryKeySheet(recoveryKey: recoveryKey) {
+                        securityViewModel.showRecoveryKeySheet = false
+                    }
                 }
             }
             .overlay {
-                if isRegenerating {
+                if securityViewModel.isRegenerating {
                     Color.black.opacity(0.4)
                         .ignoresSafeArea()
                     VStack(spacing: DesignTokens.Spacing.md) {
@@ -139,22 +158,62 @@ struct AccountView: View {
             }
         }
     }
+}
 
-    private func regenerateRecoveryKey() {
+@Observable @MainActor
+final class AccountSecurityViewModel {
+    var showConfirmPassword = false
+    var showRecoveryKeySheet = false
+    var isRegenerating = false
+    var generatedRecoveryKey: String?
+
+    private let dependencies: AccountSecurityDependencies
+
+    init(dependencies: AccountSecurityDependencies = .live) {
+        self.dependencies = dependencies
+    }
+
+    func verifyAndRegenerateRecoveryKey(
+        password: String,
+        email: String?
+    ) async -> String? {
+        guard let email, !email.isEmpty else {
+            return "Utilisateur non connecté"
+        }
+
         isRegenerating = true
-        Task {
-            do {
-                let key = try await EncryptionAPI.shared.setupRecoveryKey()
-                newRecoveryKey = key
-                isRegenerating = false
-                showNewRecoveryKey = true
-                appState.toastManager.show("Clé de secours régénérée", type: .success)
-            } catch {
-                isRegenerating = false
-                appState.toastManager.show("Erreur lors de la génération", type: .error)
+        defer { isRegenerating = false }
+
+        do {
+            try await dependencies.verifyPassword(email, password)
+            let key = try await dependencies.setupRecoveryKey()
+            generatedRecoveryKey = key
+            showRecoveryKeySheet = true
+            return nil
+        } catch {
+            if AuthErrorLocalizer.isInvalidCredentials(error) {
+                return "Mot de passe incorrect"
             }
+            if error is APIError {
+                return "Erreur lors de la génération"
+            }
+            return AuthErrorLocalizer.localize(error)
         }
     }
+}
+
+struct AccountSecurityDependencies {
+    var verifyPassword: (String, String) async throws -> Void
+    var setupRecoveryKey: () async throws -> String
+
+    static let live = AccountSecurityDependencies(
+        verifyPassword: { email, password in
+            try await AuthService.shared.verifyPassword(email: email, password: password)
+        },
+        setupRecoveryKey: {
+            try await EncryptionAPI.shared.setupRecoveryKey()
+        }
+    )
 }
 
 #Preview {

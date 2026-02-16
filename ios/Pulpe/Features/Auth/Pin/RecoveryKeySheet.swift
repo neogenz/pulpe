@@ -87,7 +87,7 @@ struct RecoveryKeySheet: View {
         } label: {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                Text(copied ? "Copie !" : "Copier")
+                Text(copied ? "Copié !" : "Copier")
             }
             .font(PulpeTypography.labelLarge)
             .foregroundStyle(Color.pulpePrimary)
