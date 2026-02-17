@@ -18,7 +18,7 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    MARKETING_VERSION: "0.22.0"
+    MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_STYLE: Automatic
@@ -63,6 +63,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios
+        PRODUCT_NAME: Pulpe
         INFOPLIST_FILE: Pulpe/Resources/Info.plist
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: true
@@ -134,6 +135,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios.widget
+        PRODUCT_NAME: "Pulpe Widget"
         INFOPLIST_FILE: PulpeWidget/Info.plist
         SKIP_INSTALL: true
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"

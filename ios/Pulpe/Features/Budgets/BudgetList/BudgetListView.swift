@@ -288,7 +288,7 @@ struct YearSection: View {
         Button(action: onToggle) {
             HStack(alignment: .center, spacing: 10) {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.tertiary)
                     .rotationEffect(.degrees(isExpanded ? 90 : 0))
 
@@ -297,38 +297,52 @@ struct YearSection: View {
                     .foregroundStyle(isPastYear ? .secondary : .primary)
 
                 if isCurrentYear {
-                    Text("En cours")
-                        .font(.caption2)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Color.pulpePrimary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Color.pulpePrimary.opacity(0.12), in: Capsule())
+                    #if compiler(>=6.2)
+                    if #available(iOS 26.0, *) {
+                        Text("En cours")
+                            .font(.caption2)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Color.pulpePrimary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .glassEffect(.regular.tint(Color.pulpePrimary), in: .capsule)
+                    } else {
+                        enCoursBadgeFallback
+                    }
+                    #else
+                    enCoursBadgeFallback
+                    #endif
                 }
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(budgets.count) budget\(budgets.count > 1 ? "s" : "")")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    if let endBalance = yearEndRemaining {
-                        Text(endBalance.asCompactCHF)
-                            .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                            .monospacedDigit()
-                            .foregroundStyle(endBalance >= 0 ? Color.financialSavings : .financialOverBudget)
-                            .sensitiveAmount()
-                    }
+                if let endBalance = yearEndRemaining {
+                    Text(endBalance.asCompactCHF)
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(endBalance >= 0 ? Color.financialSavings : .financialOverBudget)
+                        .sensitiveAmount()
                 }
             }
             .padding(.vertical, 8)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Année \(year), \(budgets.count) budget\(budgets.count > 1 ? "s" : "")")
+        .accessibilityLabel("Année \(year)")
         .accessibilityHint(isExpanded ? "Appuie pour réduire" : "Appuie pour développer")
         .accessibilityAddTraits(.isHeader)
+    }
+
+    // MARK: - En Cours Badge Fallback
+
+    private var enCoursBadgeFallback: some View {
+        Text("En cours")
+            .font(.caption2)
+            .fontWeight(.semibold)
+            .foregroundStyle(Color.pulpePrimary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(Color.pulpePrimary.opacity(0.12), in: Capsule())
     }
 
     // MARK: - Timeline Connector
@@ -336,7 +350,7 @@ struct YearSection: View {
     private var timelineConnector: some View {
         Capsule()
             .fill(Color.pulpePrimary.opacity(0.15))
-            .frame(width: 2.5, height: 20)
+            .frame(width: 2.5, height: 24)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.leading, 18)
             .padding(.vertical, 4)
@@ -395,7 +409,9 @@ struct CurrentMonthHeroCard: View {
     let onTap: () -> Void
 
     @State private var isPressed = false
+    @State private var isPulsing = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var monthName: String {
         guard let month = budget.month, month >= 1, month <= 12 else { return "—" }
@@ -420,9 +436,7 @@ struct CurrentMonthHeroCard: View {
                             .foregroundStyle(.secondary)
 
                         // Pulse dot
-                        Circle()
-                            .fill(Color.pulpePrimary)
-                            .frame(width: 6, height: 6)
+                        pulseDot
                     }
 
                     Text(monthName)
@@ -435,7 +449,7 @@ struct CurrentMonthHeroCard: View {
                 }
 
                 if let remaining = budget.remaining {
-                    VStack(alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .trailing, spacing: 2) {
+                    VStack(alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .trailing, spacing: 4) {
                         Text(remaining.asCompactCHF)
                             .font(.system(.title2, design: .rounded, weight: .bold))
                             .monospacedDigit()
@@ -443,14 +457,14 @@ struct CurrentMonthHeroCard: View {
                             .sensitiveAmount()
 
                         Text("Disponible")
-                            .font(.system(.caption2, design: .rounded))
+                            .font(.system(.caption, design: .rounded, weight: .medium))
                             .foregroundStyle(.secondary)
                     }
                 }
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 18)
-            .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
+            .heroCardBackground()
             .scaleEffect(isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
         }
@@ -462,6 +476,53 @@ struct CurrentMonthHeroCard: View {
         .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)
     }
+
+    // MARK: - Pulse Dot
+
+    private var pulseDot: some View {
+        ZStack {
+            if reduceMotion {
+                Circle()
+                    .fill(Color.pulpePrimary.opacity(0.3))
+                    .frame(width: 13, height: 13)
+            } else {
+                Circle()
+                    .fill(Color.pulpePrimary.opacity(isPulsing ? 0 : 0.4))
+                    .frame(width: 7, height: 7)
+                    .scaleEffect(isPulsing ? 1.8 : 1)
+                    .animation(.easeOut(duration: 1.5).repeatForever(autoreverses: false), value: isPulsing)
+            }
+
+            Circle()
+                .fill(Color.pulpePrimary)
+                .frame(width: 7, height: 7)
+        }
+        .onAppear {
+            if !reduceMotion {
+                isPulsing = true
+            }
+        }
+    }
+}
+
+// MARK: - Hero Card Background
+
+private extension View {
+    @ViewBuilder
+    func heroCardBackground() -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            self.glassEffect(
+                .regular.tint(Color.pulpePrimary).interactive(),
+                in: .rect(cornerRadius: DesignTokens.CornerRadius.xl)
+            )
+        } else {
+            self.pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
+        }
+        #else
+        self.pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
+        #endif
+    }
 }
 
 // MARK: - Budget Month Row
@@ -470,6 +531,7 @@ struct BudgetMonthRow: View {
     let budget: BudgetSparse
     let onTap: () -> Void
 
+    @State private var tapTrigger = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var monthName: String {
@@ -495,7 +557,10 @@ struct BudgetMonthRow: View {
     }
 
     var body: some View {
-        Button(action: onTap) {
+        Button {
+            tapTrigger.toggle()
+            onTap()
+        } label: {
             HStack(spacing: 12) {
                 Circle()
                     .fill(dotColor)
@@ -542,6 +607,7 @@ struct BudgetMonthRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: tapTrigger)
         .accessibilityLabel("\(monthName), solde \(budget.remaining?.asCompactCHF ?? "non défini")")
         .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)
