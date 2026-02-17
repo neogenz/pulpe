@@ -11,6 +11,7 @@ final class BudgetListStore: StoreProtocol {
 
     // MARK: - Cache Metadata
 
+    private(set) var hasLoadedOnce = false
     private var lastLoadTime: Date?
     private static let cacheValidityDuration: TimeInterval = 30 // 30 seconds (short for multi-device sync)
 
@@ -49,6 +50,7 @@ final class BudgetListStore: StoreProtocol {
             let fetchedBudgets = try await budgetService.getBudgetsSparse(fields: "month,year,remaining")
             budgets = fetchedBudgets
             lastLoadTime = Date()
+            hasLoadedOnce = true
 
             // Sync widget data in background (non-blocking)
             Task.detached(priority: .utility) { [widgetSyncService] in

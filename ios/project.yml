@@ -1,6 +1,7 @@
 name: Pulpe
 options:
   bundleIdPrefix: app.pulpe
+  developmentLanguage: fr
   deploymentTarget:
     iOS: "18.0"
   xcodeVersion: "15.0"

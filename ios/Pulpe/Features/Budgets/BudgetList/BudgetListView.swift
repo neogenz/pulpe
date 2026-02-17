@@ -11,7 +11,7 @@ struct BudgetListView: View {
 
     var body: some View {
         Group {
-            if store.isLoading && store.budgets.isEmpty {
+            if !store.hasLoadedOnce && store.budgets.isEmpty {
                 LoadingView(message: "Récupération de tes budgets...")
             } else if let error = store.error, store.budgets.isEmpty {
                 ErrorView(error: error) {
@@ -100,9 +100,8 @@ struct BudgetListView: View {
                             year: group.year,
                             budgets: group.budgets,
                             isExpanded: expandedYears.contains(group.year),
-                            appearDelay: Double(index) * 0.08,
                             onToggle: {
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                withAnimation(.easeInOut(duration: 0.25)) {
                                     if expandedYears.contains(group.year) {
                                         expandedYears.remove(group.year)
                                     } else {
@@ -118,11 +117,7 @@ struct BudgetListView: View {
                             }
                         )
                         .opacity(hasAppeared ? 1 : 0)
-                        .offset(y: hasAppeared ? 0 : 20)
-                        .animation(
-                            .spring(response: 0.5, dampingFraction: 0.8).delay(Double(index) * 0.08),
-                            value: hasAppeared
-                        )
+                        .animation(.easeOut(duration: 0.2), value: hasAppeared)
                     }
                 }
                 .padding(.horizontal, DesignTokens.Spacing.xl)
@@ -156,12 +151,10 @@ struct YearSection: View {
     let year: Int
     let budgets: [BudgetSparse]
     let isExpanded: Bool
-    var appearDelay: Double = 0
     let onToggle: () -> Void
     let onSelect: (BudgetSparse) -> Void
     let onCreateBudget: (Int, Int) -> Void
 
-    @State private var cardsAppeared = false
     @State private var expandTrigger = false
 
     private var isCurrentYear: Bool {
@@ -245,7 +238,7 @@ struct YearSection: View {
                     if currentMonthBudget != nil {
                         // Past months card (if any)
                         if !monthsBefore.isEmpty {
-                            monthListCard(months: monthsBefore, baseIndex: 0)
+                            monthListCard(months: monthsBefore)
                         }
 
                         // Current month hero card
@@ -254,49 +247,23 @@ struct YearSection: View {
                                 onSelect(current)
                             }
                             .id("currentMonthHero")
-                            .opacity(cardsAppeared ? 1 : 0)
-                            .scaleEffect(cardsAppeared ? 1 : 0.95)
-                            .animation(
-                                .spring(response: 0.45, dampingFraction: 0.8)
-                                    .delay(Double(monthsBefore.count) * 0.04),
-                                value: cardsAppeared
-                            )
                         }
 
                         // Future months card (if any)
                         if !monthsAfter.isEmpty {
-                            monthListCard(
-                                months: monthsAfter,
-                                baseIndex: monthsBefore.count + 1
-                            )
+                            monthListCard(months: monthsAfter)
                         }
                     } else if !allMonths.isEmpty {
                         // No current month in this year — show all months as a single list
-                        monthListCard(months: allMonths, baseIndex: 0)
+                        monthListCard(months: allMonths)
                     }
                 }
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                .transition(.opacity)
             }
         }
         .sensoryFeedback(.impact(flexibility: .soft), trigger: expandTrigger)
-        .onAppear {
-            if isExpanded {
-                withAnimation(.easeOut(duration: 0.3).delay(appearDelay + 0.15)) {
-                    cardsAppeared = true
-                }
-            }
-        }
-        .onChange(of: isExpanded) { _, newValue in
+        .onChange(of: isExpanded) { _, _ in
             expandTrigger.toggle()
-            if newValue {
-                withAnimation(.easeOut(duration: 0.3)) {
-                    cardsAppeared = true
-                }
-            } else {
-                withAnimation(.easeIn(duration: 0.15)) {
-                    cardsAppeared = false
-                }
-            }
         }
     }
 
@@ -359,31 +326,17 @@ struct YearSection: View {
 
     // MARK: - Month List Card
 
-    private func monthListCard(months: [MonthSlot], baseIndex: Int) -> some View {
+    private func monthListCard(months: [MonthSlot]) -> some View {
         VStack(spacing: 0) {
             ForEach(Array(months.enumerated()), id: \.element.month) { index, slot in
                 if let budget = slot.budget {
                     BudgetMonthRow(budget: budget) {
                         onSelect(budget)
                     }
-                    .opacity(cardsAppeared ? 1 : 0)
-                    .offset(y: cardsAppeared ? 0 : 8)
-                    .animation(
-                        .spring(response: 0.4, dampingFraction: 0.8)
-                            .delay(Double(baseIndex + index) * 0.04),
-                        value: cardsAppeared
-                    )
                 } else {
                     NextMonthPlaceholder(month: slot.month, year: year) {
                         onCreateBudget(slot.month, year)
                     }
-                    .opacity(cardsAppeared ? 1 : 0)
-                    .offset(y: cardsAppeared ? 0 : 8)
-                    .animation(
-                        .spring(response: 0.4, dampingFraction: 0.8)
-                            .delay(Double(baseIndex + index) * 0.04),
-                        value: cardsAppeared
-                    )
                 }
 
                 if index < months.count - 1 {
