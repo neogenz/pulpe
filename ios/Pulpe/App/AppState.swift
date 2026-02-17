@@ -92,7 +92,7 @@ final class AppState {
     // MARK: - Background Grace Period
 
     private var backgroundDate: Date?
-    private static let gracePeriod: TimeInterval = 300 // 5 minutes
+    private static let gracePeriod: Duration = .seconds(300) // Product rule: lock at 5 minutes exactly
 
     // MARK: - Services
 
@@ -100,6 +100,7 @@ final class AppState {
     private let biometricService: BiometricService
     private let clientKeyManager: ClientKeyManager
     private let encryptionAPI: EncryptionAPI
+    private let nowProvider: () -> Date
 
     // MARK: - Toast
 
@@ -109,12 +110,14 @@ final class AppState {
         authService: AuthService = .shared,
         biometricService: BiometricService = .shared,
         clientKeyManager: ClientKeyManager = .shared,
-        encryptionAPI: EncryptionAPI = .shared
+        encryptionAPI: EncryptionAPI = .shared,
+        nowProvider: @escaping () -> Date = Date.init
     ) {
         self.authService = authService
         self.biometricService = biometricService
         self.clientKeyManager = clientKeyManager
         self.encryptionAPI = encryptionAPI
+        self.nowProvider = nowProvider
         
         // Load UserDefaults values asynchronously
         Task { @MainActor in
@@ -269,6 +272,7 @@ final class AppState {
         await authService.logout()
         await authService.clearBiometricTokens()
         await clientKeyManager.clearAll()
+        biometricEnabled = false
         resetAfterPasswordResetCleanup()
         toastManager.show("Mot de passe réinitialisé, reconnecte-toi", type: .success)
     }
@@ -279,6 +283,7 @@ final class AppState {
         await authService.logout()
         await authService.clearBiometricTokens()
         await clientKeyManager.clearAll()
+        biometricEnabled = false
         resetAfterPasswordResetCleanup()
     }
 
@@ -354,6 +359,10 @@ final class AppState {
     func completePinEntry() {
         authState = .authenticated
 
+        if biometricEnabled {
+            Task { _ = await clientKeyManager.enableBiometric() }
+        }
+
         if shouldPromptBiometricEnrollment() {
             showBiometricEnrollment = true
         }
@@ -365,6 +374,10 @@ final class AppState {
 
     func completeRecovery() {
         authState = .authenticated
+
+        if biometricEnabled {
+            Task { _ = await clientKeyManager.enableBiometric() }
+        }
 
         // Prompt biometric enrollment after recovery
         if shouldPromptBiometricEnrollment() {
@@ -379,15 +392,15 @@ final class AppState {
     // MARK: - Background Lock
 
     func handleEnterBackground() {
-        backgroundDate = Date()
+        backgroundDate = nowProvider()
     }
 
     func handleEnterForeground() async {
         guard let bgDate = backgroundDate else { return }
         backgroundDate = nil
 
-        let elapsed = Date().timeIntervalSince(bgDate)
-        guard elapsed > Self.gracePeriod else { return }
+        let elapsed = Duration.seconds(nowProvider().timeIntervalSince(bgDate))
+        guard elapsed >= Self.gracePeriod else { return }
         guard authState == .authenticated else { return }
 
         // Grace period exceeded — clear in-memory clientKey and require re-entry

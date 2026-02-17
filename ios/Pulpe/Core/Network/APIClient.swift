@@ -9,12 +9,43 @@ actor APIClient {
     private let baseURL: URL
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
+    private let authTokenProvider: @Sendable () async -> String?
+    private let clientKeyProvider: @Sendable () async -> String?
 
     private init() {
+        self.session = Self.makeDefaultSession()
+        self.baseURL = AppConfiguration.apiBaseURL
+        self.decoder = JSONDecoder()
+        self.encoder = JSONEncoder()
+        self.authTokenProvider = {
+            await KeychainManager.shared.getAccessToken()
+        }
+        self.clientKeyProvider = {
+            await ClientKeyManager.shared.resolveClientKey()
+        }
+        configureCodecs()
+    }
+
+    init(
+        session: URLSession,
+        baseURL: URL,
+        authTokenProvider: @escaping @Sendable () async -> String?,
+        clientKeyProvider: @escaping @Sendable () async -> String?
+    ) {
+        self.session = session
+        self.baseURL = baseURL
+        self.decoder = JSONDecoder()
+        self.encoder = JSONEncoder()
+        self.authTokenProvider = authTokenProvider
+        self.clientKeyProvider = clientKeyProvider
+        configureCodecs()
+    }
+
+    private static func makeDefaultSession() -> URLSession {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = AppConfiguration.requestTimeout
         config.timeoutIntervalForResource = AppConfiguration.resourceTimeout
-        
+
         // Enable HTTP cache for better performance
         config.requestCachePolicy = .returnCacheDataElseLoad
         config.urlCache = URLCache(
@@ -22,23 +53,26 @@ actor APIClient {
             diskCapacity: 100_000_000    // 100 MB disk cache
         )
 
-        self.session = URLSession(configuration: config)
-        self.baseURL = AppConfiguration.apiBaseURL
-        self.decoder = JSONDecoder()
-        self.encoder = JSONEncoder()
+        return URLSession(configuration: config)
+    }
+
+    private func configureCodecs() {
+        let iso8601WithFractional = ISO8601DateFormatter()
+        iso8601WithFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        let iso8601 = ISO8601DateFormatter()
+        iso8601.formatOptions = [.withInternetDateTime]
 
         // Configure date decoding for ISO8601 with timezone
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let dateString = try container.decode(String.self)
 
-            // Try ISO8601 with fractional seconds (using cached formatter)
-            if let date = Formatters.iso8601WithFractional.date(from: dateString) {
+            if let date = iso8601WithFractional.date(from: dateString) {
                 return date
             }
 
-            // Fallback to without fractional seconds
-            if let date = Formatters.iso8601.date(from: dateString) {
+            if let date = iso8601.date(from: dateString) {
                 return date
             }
 
@@ -60,31 +94,7 @@ actor APIClient {
         method: HTTPMethod? = nil,
         isRetry: Bool = false
     ) async throws -> T {
-        var request = endpoint.urlRequest(baseURL: baseURL)
-
-        // Override method if specified
-        if let method {
-            request.httpMethod = method.rawValue
-        }
-
-        // Add auth token
-        if let token = await KeychainManager.shared.getAccessToken(), !token.isEmpty {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-
-        // Add client encryption key
-        if let clientKey = await ClientKeyManager.shared.resolveClientKey() {
-            request.setValue(clientKey, forHTTPHeaderField: "X-Client-Key")
-        }
-
-        // Add body
-        if let body {
-            request.httpBody = try encoder.encode(body)
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        }
-
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-
+        let request = try await buildRequest(endpoint, body: body, method: method)
         return try await performRequest(request, endpoint: endpoint, body: body, isRetry: isRetry)
     }
 
@@ -95,27 +105,7 @@ actor APIClient {
         method: HTTPMethod? = nil,
         isRetry: Bool = false
     ) async throws {
-        var request = endpoint.urlRequest(baseURL: baseURL)
-
-        if let method {
-            request.httpMethod = method.rawValue
-        }
-
-        if let token = await KeychainManager.shared.getAccessToken(), !token.isEmpty {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-
-        // Add client encryption key
-        if let clientKey = await ClientKeyManager.shared.resolveClientKey() {
-            request.setValue(clientKey, forHTTPHeaderField: "X-Client-Key")
-        }
-
-        if let body {
-            request.httpBody = try encoder.encode(body)
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        }
-
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        let request = try await buildRequest(endpoint, body: body, method: method)
 
         let data: Data
         let response: URLResponse
@@ -151,6 +141,34 @@ actor APIClient {
     }
 
     // MARK: - Private
+
+    private func buildRequest(
+        _ endpoint: Endpoint,
+        body: Encodable?,
+        method: HTTPMethod?
+    ) async throws -> URLRequest {
+        var request = endpoint.urlRequest(baseURL: baseURL)
+
+        if let method {
+            request.httpMethod = method.rawValue
+        }
+
+        if let token = await authTokenProvider(), !token.isEmpty {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        if let clientKey = await clientKeyProvider(), !clientKey.isEmpty {
+            request.setValue(clientKey, forHTTPHeaderField: "X-Client-Key")
+        }
+
+        if let body {
+            request.httpBody = try encoder.encode(body)
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
+
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        return request
+    }
 
     private func performRequest<T: Decodable>(
         _ request: URLRequest,

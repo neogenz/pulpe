@@ -149,8 +149,8 @@ final class ChangePasswordViewModel {
 
     private let dependencies: ChangePasswordDependencies
 
-    init(dependencies: ChangePasswordDependencies = .live) {
-        self.dependencies = dependencies
+    init(dependencies: ChangePasswordDependencies? = nil) {
+        self.dependencies = dependencies ?? .live
     }
 
     var isCurrentPasswordValid: Bool { !currentPassword.isEmpty }
@@ -198,18 +198,20 @@ final class ChangePasswordViewModel {
     }
 }
 
-struct ChangePasswordDependencies {
-    var verifyPassword: (String, String) async throws -> Void
-    var updatePassword: (String) async throws -> Void
+struct ChangePasswordDependencies: Sendable {
+    var verifyPassword: @Sendable (String, String) async throws -> Void
+    var updatePassword: @Sendable (String) async throws -> Void
 
-    static let live = ChangePasswordDependencies(
+    static var live: ChangePasswordDependencies {
+        ChangePasswordDependencies(
         verifyPassword: { email, password in
             try await AuthService.shared.verifyPassword(email: email, password: password)
         },
         updatePassword: { newPassword in
             try await AuthService.shared.updatePassword(newPassword)
         }
-    )
+        )
+    }
 }
 
 #Preview {

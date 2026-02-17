@@ -329,8 +329,8 @@ final class ResetPasswordFlowViewModel {
     private var hasRecoveredEncryption = false
     private let dependencies: ResetPasswordDependencies
 
-    init(dependencies: ResetPasswordDependencies = .live) {
-        self.dependencies = dependencies
+    init(dependencies: ResetPasswordDependencies? = nil) {
+        self.dependencies = dependencies ?? .live
     }
 
     var invalidLinkMessage: String? {
@@ -548,16 +548,17 @@ final class ResetPasswordFlowViewModel {
     }
 }
 
-struct ResetPasswordDependencies {
-    var beginPasswordRecovery: (URL) async throws -> PasswordRecoveryContext
-    var getSalt: () async throws -> EncryptionSaltResponse
-    var updatePassword: (String) async throws -> Void
-    var recoverEncryption: (String, String) async throws -> Void
-    var setupRecoveryKey: () async throws -> String
-    var deriveClientKey: (String, String, Int) async throws -> String
-    var storeClientKey: (String) async -> Void
+struct ResetPasswordDependencies: Sendable {
+    var beginPasswordRecovery: @Sendable (URL) async throws -> PasswordRecoveryContext
+    var getSalt: @Sendable () async throws -> EncryptionSaltResponse
+    var updatePassword: @Sendable (String) async throws -> Void
+    var recoverEncryption: @Sendable (String, String) async throws -> Void
+    var setupRecoveryKey: @Sendable () async throws -> String
+    var deriveClientKey: @Sendable (String, String, Int) async throws -> String
+    var storeClientKey: @Sendable (String) async -> Void
 
-    static let live = ResetPasswordDependencies(
+    static var live: ResetPasswordDependencies {
+        ResetPasswordDependencies(
         beginPasswordRecovery: { callbackURL in
             try await AuthService.shared.beginPasswordRecovery(from: callbackURL)
         },
@@ -588,7 +589,8 @@ struct ResetPasswordDependencies {
         storeClientKey: { clientKeyHex in
             await ClientKeyManager.shared.store(clientKeyHex, enableBiometric: false)
         }
-    )
+        )
+    }
 }
 
 #Preview {

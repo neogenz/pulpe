@@ -169,8 +169,8 @@ final class AccountSecurityViewModel {
 
     private let dependencies: AccountSecurityDependencies
 
-    init(dependencies: AccountSecurityDependencies = .live) {
-        self.dependencies = dependencies
+    init(dependencies: AccountSecurityDependencies? = nil) {
+        self.dependencies = dependencies ?? .live
     }
 
     func verifyAndRegenerateRecoveryKey(
@@ -202,18 +202,20 @@ final class AccountSecurityViewModel {
     }
 }
 
-struct AccountSecurityDependencies {
-    var verifyPassword: (String, String) async throws -> Void
-    var setupRecoveryKey: () async throws -> String
+struct AccountSecurityDependencies: Sendable {
+    var verifyPassword: @Sendable (String, String) async throws -> Void
+    var setupRecoveryKey: @Sendable () async throws -> String
 
-    static let live = AccountSecurityDependencies(
+    static var live: AccountSecurityDependencies {
+        AccountSecurityDependencies(
         verifyPassword: { email, password in
             try await AuthService.shared.verifyPassword(email: email, password: password)
         },
         setupRecoveryKey: {
             try await EncryptionAPI.shared.setupRecoveryKey()
         }
-    )
+        )
+    }
 }
 
 #Preview {

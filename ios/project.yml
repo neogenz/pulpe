@@ -163,6 +163,15 @@ targets:
           - "**/.DS_Store"
     dependencies:
       - target: Pulpe
+    info:
+      path: PulpeTests/Info.plist
+      properties:
+        CFBundleName: $(PRODUCT_NAME)
+        CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundlePackageType: BNDL
+        CFBundleExecutable: $(EXECUTABLE_NAME)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios.tests
