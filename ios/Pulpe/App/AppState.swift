@@ -197,9 +197,14 @@ final class AppState {
                 // User will get a clear error when PIN validation fails if truly offline
                 Logger.auth.warning("resolvePostAuth: network error checking vault status, assuming configured")
                 isVaultConfigured = true
-            case .notFound, .unauthorized:
-                // User has no vault - needs setup
-                Logger.auth.info("resolvePostAuth: vault not found or unauthorized, routing to setup")
+            case .unauthorized:
+                // Token invalid during vault check - session corrupted, force re-auth
+                Logger.auth.error("resolvePostAuth: token invalid during vault check, forcing re-auth")
+                authState = .unauthenticated
+                return
+            case .notFound:
+                // This should not happen (API always returns a status), but handle gracefully
+                Logger.auth.warning("resolvePostAuth: unexpected 404 on vault-status, assuming no vault")
                 isVaultConfigured = false
             default:
                 Logger.auth.error("resolvePostAuth: API error checking vault status - \(error)")

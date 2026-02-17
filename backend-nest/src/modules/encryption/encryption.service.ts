@@ -266,9 +266,23 @@ export class EncryptionService {
     clientKey: Buffer,
   ): Promise<boolean> {
     const row = await this.#repository.findByUserId(userId);
-    const dek = await this.ensureUserDEK(userId, clientKey);
 
-    if (row?.key_check) {
+    if (!row) {
+      const dek = await this.ensureUserDEK(userId, clientKey);
+      const keyCheck = this.generateKeyCheck(dek);
+      await this.#repository.updateKeyCheck(userId, keyCheck);
+      return true;
+    }
+
+    const salt = Buffer.from(row.salt, 'hex');
+    const dek = this.#deriveDEK(clientKey, salt, userId);
+
+    this.#dekCache.set(this.#buildCacheKey(userId, clientKey), {
+      dek,
+      expiry: Date.now() + DEK_CACHE_TTL_MS,
+    });
+
+    if (row.key_check) {
       return this.validateKeyCheck(row.key_check, dek);
     }
 
