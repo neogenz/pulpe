@@ -22,6 +22,10 @@ export class EncryptionApi {
     return this.#api.get$('/encryption/salt', encryptionSaltResponseSchema);
   }
 
+  /**
+   * Validates the client key against the stored key_check.
+   * For new users (no key_check yet), generates and stores one as a side effect.
+   */
   validateKey$(clientKeyHex: string): Observable<void> {
     return this.#api.postVoid$('/encryption/validate-key', {
       clientKey: clientKeyHex,

@@ -141,7 +141,9 @@ struct TransactionTests {
     @Test func amount_handlesCHFFormatting() {
         let transaction = TestDataFactory.createTransaction(amount: Decimal(string: "1234.56")!)
         let formatted = transaction.amount.asCHF
-        #expect(formatted.contains("1\u{2019}234"))
+        // Swiss locale uses apostrophe as thousands separator (either ' or ')
+        let hasThousandsSeparator = formatted.contains("1'234") || formatted.contains("1\u{2019}234")
+        #expect(hasThousandsSeparator)
         #expect(formatted.contains("56"))
     }
 
