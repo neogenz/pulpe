@@ -62,4 +62,51 @@ struct AuthErrorLocalizerTests {
         // Then
         #expect(message == "Connexion impossible — vérifie ta connexion internet")
     }
+
+    @Test func releaseConfig_requiredKeysArePresentInInfoPlist() throws {
+        let info = try #require(loadAppInfoPlist())
+
+        let supabaseURL = info["SUPABASE_URL"] as? String
+        #expect(supabaseURL != nil)
+        #expect(!(supabaseURL ?? "").isEmpty)
+
+        let supabaseAnonKey = info["SUPABASE_ANON_KEY"] as? String
+        #expect(supabaseAnonKey != nil)
+        #expect(!(supabaseAnonKey ?? "").isEmpty)
+
+        let apiBaseURL = info["API_BASE_URL"] as? String
+        #expect(apiBaseURL != nil)
+        #expect(!(apiBaseURL ?? "").isEmpty)
+    }
+
+    @Test func releaseConfig_urlsAndValuesAreResolvedAndValid() throws {
+        let info = try #require(loadAppInfoPlist())
+
+        try assertResolvedURL(key: "SUPABASE_URL", info: info)
+        try assertResolvedURL(key: "API_BASE_URL", info: info)
+
+        let supabaseAnonKey = try #require(info["SUPABASE_ANON_KEY"] as? String)
+        #expect(!supabaseAnonKey.contains("$("))
+    }
+
+    private func assertResolvedURL(key: String, info: [String: Any]) throws {
+        let value = try #require(info[key] as? String)
+        #expect(!value.contains("$("))
+
+        let url = try #require(URL(string: value))
+        #expect(url.scheme != nil)
+        #expect(url.host != nil)
+    }
+
+    private func loadAppInfoPlist() -> [String: Any]? {
+        let testFileURL = URL(fileURLWithPath: #filePath)
+        let iosRoot = testFileURL
+            .deletingLastPathComponent() // Auth
+            .deletingLastPathComponent() // Core
+            .deletingLastPathComponent() // PulpeTests
+            .deletingLastPathComponent() // ios
+
+        let infoPlistURL = iosRoot.appendingPathComponent("Pulpe/Resources/Info.plist")
+        return NSDictionary(contentsOf: infoPlistURL) as? [String: Any]
+    }
 }
