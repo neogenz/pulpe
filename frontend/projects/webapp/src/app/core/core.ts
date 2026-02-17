@@ -38,6 +38,7 @@ import { StorageMigrationRunnerService } from './storage/storage-migration-runne
 import { provideSplashRemoval } from './splash-removal';
 import { ClientKeyService } from './encryption/client-key.service';
 import { PreloadService } from './preload/preload.service';
+import { PageLifecycleRecoveryService } from './lifecycle/page-lifecycle-recovery.service';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -135,12 +136,14 @@ export function provideCore({ routes }: CoreOptions) {
       const analyticsService = inject(AnalyticsService);
       const storageMigrationRunner = inject(StorageMigrationRunnerService);
       const clientKeyService = inject(ClientKeyService);
+      const pageLifecycleRecovery = inject(PageLifecycleRecoveryService);
       const injector = inject(Injector);
       const logger = inject(Logger);
 
       // Force instantiation — effect() inside will preload data when authenticated
       // Must be called before any await to stay in injection context
       inject(PreloadService);
+      pageLifecycleRecovery.initialize();
 
       // 0. Run storage migrations first (before any data is read)
       storageMigrationRunner.runMigrations();
