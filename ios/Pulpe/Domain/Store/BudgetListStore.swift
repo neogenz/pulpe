@@ -50,18 +50,13 @@ final class BudgetListStore: StoreProtocol {
             budgets = fetchedBudgets
             lastLoadTime = Date()
 
-            // Sync widget data after refresh
-            await syncWidgetData()
+            // Sync widget data in background (non-blocking)
+            Task.detached(priority: .utility) { [widgetSyncService] in
+                await widgetSyncService.syncAll()
+            }
         } catch {
             self.error = error
         }
-    }
-
-    // MARK: - Widget Sync
-
-    private func syncWidgetData() async {
-        // Use centralized sync for consistency
-        await widgetSyncService.syncAll()
     }
 
     // MARK: - Computed Properties

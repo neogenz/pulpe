@@ -197,6 +197,8 @@ struct LoginView: View {
             }
             .animation(.easeInOut(duration: 0.2), value: focusedField)
             .accessibilityIdentifier("email")
+            .accessibilityLabel("Adresse e-mail")
+            .accessibilityHint("Saisis ton adresse e-mail")
         }
     }
 
@@ -214,14 +216,14 @@ struct LoginView: View {
                         TextField(
                             "",
                             text: $viewModel.password,
-                            prompt: Text("Votre mot de passe")
+                            prompt: Text("Ton mot de passe")
                                 .foregroundStyle(Color.authInputPlaceholder)
                         )
                     } else {
                         SecureField(
                             "",
                             text: $viewModel.password,
-                            prompt: Text("Votre mot de passe")
+                            prompt: Text("Ton mot de passe")
                                 .foregroundStyle(Color.authInputPlaceholder)
                         )
                     }
@@ -258,6 +260,8 @@ struct LoginView: View {
                     }
             }
             .animation(.easeInOut(duration: 0.2), value: focusedField)
+            .accessibilityLabel("Mot de passe")
+            .accessibilityHint("Saisis ton mot de passe")
         }
     }
 
