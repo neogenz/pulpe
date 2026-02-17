@@ -15,15 +15,14 @@ actor APIClient {
     private init() {
         self.session = Self.makeDefaultSession()
         self.baseURL = AppConfiguration.apiBaseURL
-        self.decoder = JSONDecoder()
-        self.encoder = JSONEncoder()
+        self.decoder = Self.makeDecoder()
+        self.encoder = Self.makeEncoder()
         self.authTokenProvider = {
             await KeychainManager.shared.getAccessToken()
         }
         self.clientKeyProvider = {
             await ClientKeyManager.shared.resolveClientKey()
         }
-        configureCodecs()
     }
 
     init(
@@ -34,11 +33,10 @@ actor APIClient {
     ) {
         self.session = session
         self.baseURL = baseURL
-        self.decoder = JSONDecoder()
-        self.encoder = JSONEncoder()
+        self.decoder = Self.makeDecoder()
+        self.encoder = Self.makeEncoder()
         self.authTokenProvider = authTokenProvider
         self.clientKeyProvider = clientKeyProvider
-        configureCodecs()
     }
 
     private static func makeDefaultSession() -> URLSession {
@@ -46,31 +44,30 @@ actor APIClient {
         config.timeoutIntervalForRequest = AppConfiguration.requestTimeout
         config.timeoutIntervalForResource = AppConfiguration.resourceTimeout
 
-        // Enable HTTP cache for better performance
-        config.requestCachePolicy = .returnCacheDataElseLoad
-        config.urlCache = URLCache(
-            memoryCapacity: 50_000_000,  // 50 MB in-memory cache
-            diskCapacity: 100_000_000    // 100 MB disk cache
-        )
+        // Always fetch from network - caching is handled by Stores (SWR pattern)
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
 
         return URLSession(configuration: config)
     }
 
-    private func configureCodecs() {
-        let iso8601WithFractional = ISO8601DateFormatter()
-        iso8601WithFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-
-        let iso8601 = ISO8601DateFormatter()
-        iso8601.formatOptions = [.withInternetDateTime]
+    private static func makeDecoder() -> JSONDecoder {
+        let decoder = JSONDecoder()
 
         // Configure date decoding for ISO8601 with timezone
-        decoder.dateDecodingStrategy = .custom { decoder in
-            let container = try decoder.singleValueContainer()
+        decoder.dateDecodingStrategy = .custom { dateDecoder in
+            let container = try dateDecoder.singleValueContainer()
             let dateString = try container.decode(String.self)
+
+            // Create formatters inside closure to avoid capturing non-Sendable types
+            let iso8601WithFractional = ISO8601DateFormatter()
+            iso8601WithFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
             if let date = iso8601WithFractional.date(from: dateString) {
                 return date
             }
+
+            let iso8601 = ISO8601DateFormatter()
+            iso8601.formatOptions = [.withInternetDateTime]
 
             if let date = iso8601.date(from: dateString) {
                 return date
@@ -82,7 +79,13 @@ actor APIClient {
             )
         }
 
+        return decoder
+    }
+
+    private static func makeEncoder() -> JSONEncoder {
+        let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
+        return encoder
     }
 
     // MARK: - Public API
