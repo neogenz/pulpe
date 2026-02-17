@@ -180,8 +180,8 @@ final class ForgotPasswordViewModel {
     }
 }
 
-struct ForgotPasswordDependencies {
-    var requestPasswordReset: (String) async throws -> Void
+struct ForgotPasswordDependencies: Sendable {
+    var requestPasswordReset: @Sendable (String) async throws -> Void
 
     static let live = ForgotPasswordDependencies(
         requestPasswordReset: { email in

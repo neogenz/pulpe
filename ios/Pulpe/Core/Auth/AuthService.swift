@@ -246,7 +246,8 @@ actor AuthService {
         }
 
         // Single Face ID prompt via pre-authenticated LAContext
-        let context = LAContext()
+        // LAContext is not Sendable but is safe here: evaluation completes before reuse
+        nonisolated(unsafe) let context = LAContext()
         do {
             try await context.evaluatePolicy(
                 .deviceOwnerAuthenticationWithBiometrics,

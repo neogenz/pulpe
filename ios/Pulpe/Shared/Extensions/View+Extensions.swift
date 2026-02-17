@@ -77,7 +77,9 @@ private class ShakeDetectorViewController: UIViewController {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.claimFirstResponderIfNeeded()
+            MainActor.assumeIsolated {
+                self?.claimFirstResponderIfNeeded()
+            }
         }
     }
 

@@ -49,6 +49,7 @@ struct CustomTabBar: UIViewRepresentable {
         return size
     }
 
+    @MainActor
     class Coordinator: NSObject {
         var parent: CustomTabBar
         init(parent: CustomTabBar) {
