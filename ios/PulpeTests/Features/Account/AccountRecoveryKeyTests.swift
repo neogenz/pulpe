@@ -10,7 +10,7 @@ struct AccountRecoveryKeyTests {
         var capturedEmail: String?
         let viewModel = AccountSecurityViewModel(
             dependencies: AccountSecurityDependencies(
-                verifyPassword: { _, email in
+                verifyPassword: { email, _ in
                     capturedEmail = email
                     throw APIError.invalidCredentials
                 },
@@ -40,7 +40,7 @@ struct AccountRecoveryKeyTests {
         var capturedEmail: String?
         let viewModel = AccountSecurityViewModel(
             dependencies: AccountSecurityDependencies(
-                verifyPassword: { _, email in capturedEmail = email },
+                verifyPassword: { email, _ in capturedEmail = email },
                 setupRecoveryKey: {
                     throw APIError.networkError(URLError(.cannotConnectToHost))
                 }
@@ -70,7 +70,7 @@ struct AccountRecoveryKeyTests {
 
         let viewModel = AccountSecurityViewModel(
             dependencies: AccountSecurityDependencies(
-                verifyPassword: { _, email in
+                verifyPassword: { email, _ in
                     verifyCallCount += 1
                     capturedEmail = email
                 },

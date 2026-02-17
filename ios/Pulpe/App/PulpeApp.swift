@@ -127,6 +127,11 @@ struct RootView: View {
                 }
             }
         }
+        .overlay {
+            if shouldShowPrivacyShield {
+                PrivacyShieldOverlay()
+            }
+        }
         .toastOverlay(appState.toastManager)
         .environment(appState.toastManager)
         .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: appState.authState)
@@ -220,6 +225,10 @@ struct RootView: View {
         .environment(\.amountsHidden, appState.amountsHidden)
     }
 
+    private var shouldShowPrivacyShield: Bool {
+        scenePhase != .active && appState.authState == .authenticated
+    }
+
     private func handlePendingDeepLink() {
         guard let destination = deepLinkDestination else { return }
 
@@ -239,6 +248,20 @@ struct RootView: View {
                 appState.selectedTab = .budgets
             }
         }
+    }
+}
+
+private struct PrivacyShieldOverlay: View {
+    var body: some View {
+        ZStack {
+            Color(.systemBackground)
+                .ignoresSafeArea()
+
+            PulpeIcon(size: 44)
+                .opacity(0.55)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 

@@ -97,6 +97,27 @@ struct PinEntryViewModelTests {
         #expect(sut.canConfirm == true)
     }
 
+    @Test func confirm_withLessThanMinDigits_doesNothing() async {
+        let sut = makeSUT()
+        sut.appendDigit(1)
+        sut.appendDigit(2)
+
+        await sut.confirm()
+
+        #expect(sut.isValidating == false)
+        #expect(sut.authenticated == false)
+        #expect(sut.errorMessage == nil)
+    }
+
+    @Test func appendDigit_atMaxDigits_doesNotAutoAuthenticate() {
+        let sut = makeSUT()
+        for i in 0..<sut.maxDigits {
+            sut.appendDigit(i)
+        }
+
+        #expect(sut.authenticated == false)
+    }
+
     // MARK: - biometricAvailable
 
     @Test func biometricAvailable_initiallyFalse() {

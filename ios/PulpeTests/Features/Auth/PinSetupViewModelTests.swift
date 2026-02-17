@@ -96,6 +96,18 @@ struct PinSetupViewModelTests {
         #expect(sut.canConfirm == true)
     }
 
+    @Test func confirm_withLessThanMinDigits_doesNothing() async {
+        let sut = makeSUT()
+        sut.appendDigit(1)
+        sut.appendDigit(2)
+
+        await sut.confirm()
+
+        #expect(sut.isValidating == false)
+        #expect(sut.showRecoverySheet == false)
+        #expect(sut.errorMessage == nil)
+    }
+
     // MARK: - Constants
 
     @Test func constants() {
