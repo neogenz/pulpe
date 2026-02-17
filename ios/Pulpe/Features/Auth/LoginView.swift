@@ -18,16 +18,16 @@ struct LoginView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Full-screen gradient background
                 Color.authGradientBackground
-                
+
                 ScrollView {
-                    VStack(spacing: 0) {
+                    VStack(spacing: DesignTokens.Spacing.xxl) {
                         headerSection
-                        formCard
+                        formSection
                         createAccountSection
-                        Spacer(minLength: 40)
                     }
+                    .padding(.horizontal, DesignTokens.Spacing.xxl)
+                    .padding(.bottom, DesignTokens.Spacing.xxxl)
                 }
                 .scrollBounceBehavior(.basedOnSize)
             }
@@ -63,40 +63,31 @@ struct LoginView: View {
     // MARK: - Header
 
     private var headerSection: some View {
-        VStack(spacing: DesignTokens.Spacing.xl) {
-            // Icon with subtle glow
-            ZStack {
-                Circle()
-                    .fill(Color.white.opacity(0.15))
-                    .frame(width: 100, height: 100)
-                    .blur(radius: 20)
-                
-                PulpeIcon(size: 88)
-            }
-            .scaleEffect(isAppeared ? 1 : 0.8)
-            .opacity(isAppeared ? 1 : 0)
+        VStack(spacing: DesignTokens.Spacing.lg) {
+            PulpeIcon(size: 64)
+                .scaleEffect(isAppeared ? 1 : 0.8)
+                .opacity(isAppeared ? 1 : 0)
 
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                Text("Pulpe")
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
-                    .tracking(1)
+            VStack(spacing: DesignTokens.Spacing.xs) {
+                Text("Content de te revoir")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundStyle(Color.textPrimaryOnboarding)
 
-                Text("Content de te revoir")
-                    .font(PulpeTypography.onboardingSubtitle)
+                Text("Connecte-toi pour accéder à ton budget")
+                    .font(.subheadline)
                     .foregroundStyle(Color.textSecondaryOnboarding)
             }
+            .multilineTextAlignment(.center)
             .opacity(isAppeared ? 1 : 0)
             .offset(y: isAppeared ? 0 : 10)
         }
-        .padding(.top, 64)
-        .padding(.bottom, 48)
+        .padding(.top, DesignTokens.Spacing.xxxl)
         .animation(reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 0.8), value: isAppeared)
     }
 
-    // MARK: - Form Card
+    // MARK: - Form
 
-    private var formCard: some View {
+    private var formSection: some View {
         VStack(spacing: DesignTokens.Spacing.xl) {
             errorBanner
             biometricSection
@@ -105,20 +96,6 @@ struct LoginView: View {
             forgotPasswordButton
             loginButton
         }
-        .padding(DesignTokens.Spacing.xxl)
-        .background {
-            ZStack {
-                // Glass-morphic background
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(Color.authCardGlass)
-                
-                // Subtle border
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.2), lineWidth: 1)
-            }
-            .shadow(color: .black.opacity(0.08), radius: 30, y: 15)
-        }
-        .padding(.horizontal, DesignTokens.Spacing.xl)
         .opacity(isAppeared ? 1 : 0)
         .offset(y: isAppeared ? 0 : 20)
         .animation(reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: isAppeared)
@@ -188,7 +165,7 @@ struct LoginView: View {
 
     private var emailField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Adresse e-mail")
+            Text("E-mail")
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
@@ -218,13 +195,7 @@ struct LoginView: View {
                             )
                     }
             }
-            .shadow(
-                color: focusedField == .email ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05),
-                radius: focusedField == .email ? 12 : 4,
-                y: 4
-            )
-            .scaleEffect(focusedField == .email ? 1.01 : 1)
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
+            .animation(.easeInOut(duration: 0.2), value: focusedField)
             .accessibilityIdentifier("email")
         }
     }
@@ -286,13 +257,7 @@ struct LoginView: View {
                             )
                     }
             }
-            .shadow(
-                color: focusedField == .password ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05),
-                radius: focusedField == .password ? 12 : 4,
-                y: 4
-            )
-            .scaleEffect(focusedField == .password ? 1.01 : 1)
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
+            .animation(.easeInOut(duration: 0.2), value: focusedField)
         }
     }
 
@@ -316,28 +281,21 @@ struct LoginView: View {
                 await login()
             }
         } label: {
-            HStack(spacing: DesignTokens.Spacing.sm) {
+            Group {
                 if viewModel.isLoading {
                     ProgressView()
-                        .tint(Color.pulpePrimary)
+                        .tint(.white)
                         .accessibilityLabel("Connexion en cours")
                 } else {
                     Text("Se connecter")
                         .fontWeight(.semibold)
-                    Image(systemName: "arrow.right")
-                        .font(.subheadline.weight(.semibold))
                 }
             }
             .frame(maxWidth: .infinity)
             .frame(height: DesignTokens.FrameHeight.button)
-            .background(viewModel.canSubmit ? Color.white : Color.authInputBackground)
-            .foregroundStyle(viewModel.canSubmit ? Color.pulpePrimary : Color.authInputPlaceholder)
+            .background(viewModel.canSubmit ? Color.pulpePrimary : Color.pulpePrimary.opacity(0.4))
+            .foregroundStyle(.white)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .shadow(
-                color: viewModel.canSubmit ? .black.opacity(0.15) : .black.opacity(0.05),
-                radius: viewModel.canSubmit ? 16 : 8,
-                y: viewModel.canSubmit ? 8 : 4
-            )
         }
         .disabled(!viewModel.canSubmit)
         .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: viewModel.canSubmit)
@@ -348,9 +306,9 @@ struct LoginView: View {
     // MARK: - Create Account
 
     private var createAccountSection: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
+        HStack(spacing: DesignTokens.Spacing.xs) {
             Text("Nouveau sur Pulpe ?")
-                .font(.callout)
+                .font(.subheadline)
                 .foregroundStyle(Color.textSecondaryOnboarding)
 
             Button {
@@ -362,21 +320,11 @@ struct LoginView: View {
                 }
             } label: {
                 Text("Créer un compte")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(Color.textPrimaryOnboarding)
-                    .padding(.horizontal, DesignTokens.Spacing.xxl)
-                    .padding(.vertical, DesignTokens.Spacing.md)
-                    .background {
-                        Capsule()
-                            .fill(Color.white.opacity(0.3))
-                            .overlay {
-                                Capsule()
-                                    .strokeBorder(Color.white.opacity(0.4), lineWidth: 1)
-                            }
-                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.pulpePrimary)
             }
         }
-        .padding(.top, DesignTokens.Spacing.xxxl)
+        .padding(.top, DesignTokens.Spacing.md)
         .opacity(isAppeared ? 1 : 0)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.4).delay(0.2), value: isAppeared)
     }
