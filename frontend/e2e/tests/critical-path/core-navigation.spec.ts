@@ -1,41 +1,58 @@
 import { test, expect } from '../../fixtures/test-fixtures';
 
 test.describe('Core Application Navigation (Unauthenticated)', () => {
-  test('should show login form when accessing login page', async ({ page, loginPage }) => {
+  test('should show login form when accessing login page', async ({
+    page,
+    loginPage,
+  }) => {
     await loginPage.goto();
     await expect(page).toHaveURL(/.*login.*/);
   });
 
-  test('should show welcome page for unauthenticated users', async ({ page }) => {
+  test('should show welcome page for unauthenticated users', async ({
+    page,
+  }) => {
     await page.goto('/welcome');
     await expect(page).toHaveURL(/.*welcome.*/);
     await expect(page.getByTestId('welcome-page')).toBeVisible();
   });
 
-  test('should redirect unauthenticated users to welcome page', async ({ page }) => {
+  test('should redirect unauthenticated users to login page', async ({
+    page,
+  }) => {
     await page.goto('/dashboard');
-    await expect(page).toHaveURL(/.*welcome.*/);
+    await expect(page).toHaveURL(/.*login.*/);
   });
 });
 
 test.describe('Core Application Navigation (Authenticated)', () => {
-  test('should allow access to current month page', async ({ authenticatedPage, currentMonthPage }) => {
+  test('should allow access to current month page', async ({
+    authenticatedPage,
+    currentMonthPage,
+  }) => {
     await currentMonthPage.goto();
     await expect(authenticatedPage).toHaveURL(/\/dashboard/);
   });
 
-  test('should allow access to budget templates', async ({ authenticatedPage, budgetTemplatesPage }) => {
+  test('should allow access to budget templates', async ({
+    authenticatedPage,
+    budgetTemplatesPage,
+  }) => {
     await budgetTemplatesPage.goto();
     await expect(authenticatedPage).toHaveURL(/\/budget-templates/);
   });
 
-  test('should show user menu and allow logout', async ({ authenticatedPage }) => {
+  test('should show user menu and allow logout', async ({
+    authenticatedPage,
+  }) => {
     await authenticatedPage.goto('/dashboard');
-    await expect(authenticatedPage.getByTestId('user-menu-trigger')).toBeVisible();
-    
+    await expect(
+      authenticatedPage.getByTestId('user-menu-trigger'),
+    ).toBeVisible();
+
     await authenticatedPage.getByTestId('user-menu-trigger').click();
     await expect(authenticatedPage.getByTestId('logout-button')).toBeVisible();
-    
+
     await authenticatedPage.getByTestId('logout-button').click();
     await expect(authenticatedPage).toHaveURL(/.*login.*|.*welcome.*/);
   });
