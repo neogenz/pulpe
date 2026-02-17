@@ -19,13 +19,11 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "5.9"
+    SWIFT_STRICT_CONCURRENCY: complete
     MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
-    DEVELOPMENT_TEAM: ""
+    DEVELOPMENT_TEAM: AJ37X7C82G
     CODE_SIGN_STYLE: Automatic
-    INFOPLIST_FILE: Pulpe/Resources/Info.plist
-    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-    ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
   configs:
     Debug:
       SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
@@ -65,10 +63,10 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios
         PRODUCT_NAME: Pulpe
-        INFOPLIST_FILE: Pulpe/Resources/Info.plist
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: true
-        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+        INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.finance"
+        INFOPLIST_KEY_CFBundleDisplayName: Pulpe
     info:
       path: Pulpe/Resources/Info.plist
       properties:
@@ -140,12 +138,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios.widget
         PRODUCT_NAME: "Pulpe Widget"
-        INFOPLIST_FILE: PulpeWidget/Info.plist
         SKIP_INSTALL: true
-        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
         TARGETED_DEVICE_FAMILY: "1,2"
-        ASSETCATALOG_COMPILER_APPICON_NAME: ""
-        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: ""
+        INFOPLIST_KEY_CFBundleDisplayName: "Pulpe Widget"
     info:
       path: PulpeWidget/Info.plist
       properties:
