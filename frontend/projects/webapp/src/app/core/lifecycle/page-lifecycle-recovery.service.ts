@@ -8,8 +8,8 @@ import { Logger } from '@core/logging/logger';
 import { ROUTES } from '@core/routing/routes-constants';
 import { UserSettingsApi } from '@core/user-settings';
 
-export const PAGE_RESUME_THRESHOLD_MS = 10_000; //15 * 60 * 1000;
-export const PAGE_RELOAD_COOLDOWN_MS = 5_000; //60 * 1000;
+export const PAGE_RESUME_THRESHOLD_MS = 15 * 60 * 1000;
+export const PAGE_RELOAD_COOLDOWN_MS = 60 * 1000;
 const RELOAD_COOLDOWN_STORAGE_KEY = 'pulpe-page-reload-cooldown-at';
 
 export const PAGE_RELOAD = new InjectionToken<() => void>('PAGE_RELOAD', {
