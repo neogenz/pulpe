@@ -575,7 +575,7 @@ struct ResetPasswordDependencies: Sendable {
             )
         },
         setupRecoveryKey: {
-            try await EncryptionAPI.shared.setupRecoveryKey()
+            try await EncryptionAPI.shared.regenerateRecoveryKey()
         },
         deriveClientKey: { password, saltHex, iterations in
             try await Task.detached {

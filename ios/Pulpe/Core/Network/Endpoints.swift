@@ -55,6 +55,7 @@ enum Endpoint {
     case encryptionSalt
     case encryptionValidateKey
     case encryptionSetupRecovery
+    case encryptionRegenerateRecovery
     case encryptionRecover
 
     // MARK: - Path
@@ -105,6 +106,7 @@ enum Endpoint {
         case .encryptionSalt: return "/encryption/salt"
         case .encryptionValidateKey: return "/encryption/validate-key"
         case .encryptionSetupRecovery: return "/encryption/setup-recovery"
+        case .encryptionRegenerateRecovery: return "/encryption/regenerate-recovery"
         case .encryptionRecover: return "/encryption/recover"
         }
     }
@@ -130,7 +132,7 @@ enum Endpoint {
             return .delete
 
         case .budgetLineToggle, .budgetLineResetFromTemplate, .transactionToggle,
-             .encryptionValidateKey, .encryptionSetupRecovery, .encryptionRecover:
+             .encryptionValidateKey, .encryptionSetupRecovery, .encryptionRegenerateRecovery, .encryptionRecover:
             return .post
         }
     }

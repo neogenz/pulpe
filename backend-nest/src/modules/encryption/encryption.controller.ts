@@ -112,25 +112,56 @@ export class EncryptionController {
   }
 
   @Post('setup-recovery')
+  @HttpCode(HttpStatus.CREATED)
   // 1 req/hour — rare one-time action; a single generation per session is expected
   @Throttle({ default: { limit: 1, ttl: 3600000 } })
-  @ApiOperation({ summary: 'Generate a recovery key and wrap the current DEK' })
+  @ApiOperation({
+    summary: 'Generate a recovery key and wrap the current DEK (create-only)',
+  })
   @ApiResponse({
-    status: 200,
+    status: 201,
     description:
       'Recovery key generated (shown once, never stored server-side)',
   })
   async setupRecovery(
     @User() user: AuthenticatedUser,
   ): Promise<{ recoveryKey: string }> {
-    const { formatted } = await this.encryptionService.setupRecoveryKey(
+    const { formatted } = await this.encryptionService.createRecoveryKey(
       user.id,
       user.clientKey,
     );
 
     this.#logger.log(
-      { userId: user.id, operation: 'recovery_key.setup' },
-      'Recovery key generated and DEK wrapped',
+      { userId: user.id, operation: 'recovery_key.create' },
+      'Recovery key created',
+    );
+
+    return { recoveryKey: formatted };
+  }
+
+  @Post('regenerate-recovery')
+  @HttpCode(HttpStatus.CREATED)
+  // 5 req/hour — allows legitimate regeneration (device change, accidental dismiss)
+  @Throttle({ default: { limit: 5, ttl: 3600000 } })
+  @ApiOperation({
+    summary: 'Regenerate recovery key, replacing any existing one',
+  })
+  @ApiResponse({
+    status: 201,
+    description:
+      'Recovery key regenerated (shown once, never stored server-side)',
+  })
+  async regenerateRecovery(
+    @User() user: AuthenticatedUser,
+  ): Promise<{ recoveryKey: string }> {
+    const { formatted } = await this.encryptionService.regenerateRecoveryKey(
+      user.id,
+      user.clientKey,
+    );
+
+    this.#logger.log(
+      { userId: user.id, operation: 'recovery_key.regenerate' },
+      'Recovery key regenerated',
     );
 
     return { recoveryKey: formatted };

@@ -10,7 +10,10 @@ import {
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { EncryptionKeyRepository } from './encryption-key.repository';
+import {
+  EncryptionKeyRepository,
+  type UserEncryptionKeyFullRow,
+} from './encryption-key.repository';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
@@ -295,9 +298,31 @@ export class EncryptionService {
     await this.#repository.updateKeyCheck(userId, keyCheck);
   }
 
-  async setupRecoveryKey(
+  async createRecoveryKey(
     userId: string,
     clientKey: Buffer,
+  ): Promise<{ formatted: string }> {
+    const existing = await this.#repository.findByUserId(userId);
+    if (existing?.wrapped_dek) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.RECOVERY_KEY_ALREADY_EXISTS,
+      );
+    }
+    return this.#generateAndStoreRecoveryKey(userId, clientKey, existing);
+  }
+
+  async regenerateRecoveryKey(
+    userId: string,
+    clientKey: Buffer,
+  ): Promise<{ formatted: string }> {
+    const existing = await this.#repository.findByUserId(userId);
+    return this.#generateAndStoreRecoveryKey(userId, clientKey, existing);
+  }
+
+  async #generateAndStoreRecoveryKey(
+    userId: string,
+    clientKey: Buffer,
+    existing: UserEncryptionKeyFullRow | null,
   ): Promise<{ formatted: string }> {
     const dek = await this.getUserDEK(userId, clientKey);
     const { raw, formatted } = this.generateRecoveryKey();
@@ -305,8 +330,6 @@ export class EncryptionService {
     const wrappedDEK = this.wrapDEK(dek, raw);
     await this.#repository.updateWrappedDEK(userId, wrappedDEK);
 
-    // Ensure key_check exists so validate-key succeeds on next session
-    const existing = await this.#repository.findByUserId(userId);
     if (!existing?.key_check) {
       const keyCheck = this.generateKeyCheck(dek);
       await this.#repository.updateKeyCheck(userId, keyCheck);

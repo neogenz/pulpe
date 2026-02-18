@@ -82,6 +82,11 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Invalid recovery key',
     httpStatus: HttpStatus.BAD_REQUEST,
   },
+  RECOVERY_KEY_ALREADY_EXISTS: {
+    code: 'ERR_RECOVERY_KEY_ALREADY_EXISTS',
+    message: () => 'A recovery key already exists for this account',
+    httpStatus: HttpStatus.CONFLICT,
+  },
   ENCRYPTION_KEY_CHECK_FAILED: {
     code: 'ERR_ENCRYPTION_KEY_CHECK_FAILED',
     message: () => 'Client key verification failed',
