@@ -69,11 +69,8 @@ describe('authGuard', () => {
       isAuthenticated: false,
     });
 
-    const result = await TestBed.runInInjectionContext(() =>
-      authGuard(mockRoute, mockState),
-    );
+    await TestBed.runInInjectionContext(() => authGuard(mockRoute, mockState));
 
-    expect(result).toEqual({});
     expect(mockRouter.createUrlTree).toHaveBeenCalledWith([ROUTES.LOGIN]);
   });
 

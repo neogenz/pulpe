@@ -90,11 +90,13 @@ export class PageLifecycleRecoveryService {
       true;
 
     if (event.persisted) {
+      this.#lastHiddenAt = null;
       this.#triggerResumeRecovery('pageshow_persisted');
       return;
     }
 
     if (wasDiscarded) {
+      this.#lastHiddenAt = null;
       this.#triggerResumeRecovery('pageshow_discarded');
     }
   };
