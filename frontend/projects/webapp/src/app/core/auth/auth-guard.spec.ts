@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
   type ActivatedRouteSnapshot,
@@ -39,6 +39,7 @@ describe('authGuard', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        provideZonelessChangeDetection(),
         { provide: AuthStateService, useValue: mockAuthState },
         { provide: Router, useValue: mockRouter },
       ],
