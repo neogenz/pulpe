@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { of, throwError } from 'rxjs';
+import { NEVER, of, throwError } from 'rxjs';
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import type {
   Budget,
@@ -251,6 +251,61 @@ describe('CurrentMonthStore - Business Scenarios', () => {
       });
 
       expect(() => store.refreshData()).not.toThrow();
+    });
+  });
+
+  describe('SWR loading behavior', () => {
+    it('should expose reloading status when stale cache exists during fetch', async () => {
+      const staleDashboardData = {
+        budget: mockBudget,
+        transactions: mockTransactions,
+        budgetLines: mockBudgetLines,
+      };
+
+      const staleCache = {
+        ...mockCache,
+        get: vi.fn((key: string[]) => {
+          if (key[0] === 'budget' && key[1] === 'dashboard') {
+            return { data: staleDashboardData, fresh: false };
+          }
+          return null;
+        }),
+      };
+
+      const slowBudgetApi = {
+        ...mockBudgetApi,
+        getBudgetForMonth$: vi.fn().mockReturnValue(NEVER),
+        cache: staleCache,
+      };
+
+      const mockUserSettingsApi = {
+        payDayOfMonth: signal<number | null>(null),
+        isLoading: signal(false),
+      };
+
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          CurrentMonthStore,
+          { provide: BudgetApi, useValue: slowBudgetApi },
+          { provide: UserSettingsApi, useValue: mockUserSettingsApi },
+          {
+            provide: BudgetInvalidationService,
+            useValue: { version: signal(0), invalidate: vi.fn() },
+          },
+        ],
+      });
+
+      const swrStore = TestBed.inject(CurrentMonthStore);
+
+      await vi.waitFor(() => {
+        expect(swrStore.status()).toBe('reloading');
+      });
+      expect(swrStore.isInitialLoading()).toBe(false);
+      expect(swrStore.dashboardData()).toEqual(staleDashboardData);
     });
   });
 

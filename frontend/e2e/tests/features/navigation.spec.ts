@@ -28,9 +28,7 @@ test.describe('Core Application Navigation (Unauthenticated)', () => {
     });
   });
 
-  test('should allow new users to access welcome page', async ({
-    page,
-  }) => {
+  test('should allow new users to access welcome page', async ({ page }) => {
     await test.step('Navigate to welcome page', async () => {
       await page.goto('/welcome');
       await page.waitForLoadState('domcontentloaded');
@@ -53,8 +51,8 @@ test.describe('Core Application Navigation (Unauthenticated)', () => {
       await page.waitForLoadState('domcontentloaded');
     });
 
-    await test.step('Verify redirect to welcome page', async () => {
-      await expect(page).toHaveURL(/.*welcome.*/);
+    await test.step('Verify redirect to login page', async () => {
+      await expect(page).toHaveURL(/.*login.*/);
     });
   });
 });
