@@ -11,7 +11,6 @@ struct ResetPasswordFlowView: View {
     let onCancel: () async -> Void
 
     private enum Field: Hashable {
-        case recoveryKey
         case newPassword
         case confirmPassword
     }
@@ -23,8 +22,6 @@ struct ResetPasswordFlowView: View {
                     loadingState
                 } else if let invalidMessage = viewModel.invalidLinkMessage {
                     invalidState(message: invalidMessage)
-                } else if let securityMessage = viewModel.securityContextLoadFailureMessage {
-                    securityContextLoadFailureState(message: securityMessage)
                 } else {
                     formState
                 }
@@ -38,14 +35,6 @@ struct ResetPasswordFlowView: View {
                     Button("Fermer") {
                         handleCloseAction()
                     }
-                }
-            }
-        }
-        .sheet(isPresented: $viewModel.showRecoveryKeySheet) {
-            if let recoveryKey = viewModel.generatedRecoveryKey {
-                RecoveryKeySheet(recoveryKey: recoveryKey) {
-                    viewModel.acknowledgeRecoveryKeySaved()
-                    Task { await finishFlow() }
                 }
             }
         }
@@ -97,54 +86,11 @@ struct ResetPasswordFlowView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func securityContextLoadFailureState(message: String) -> some View {
-        VStack(spacing: DesignTokens.Spacing.xl) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 48))
-                .foregroundStyle(Color.errorPrimary)
-
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                Text("Erreur de chargement sécurité")
-                    .font(PulpeTypography.onboardingTitle)
-                Text(message)
-                    .font(PulpeTypography.bodyLarge)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
-                    .multilineTextAlignment(.center)
-            }
-
-            Button("Réessayer") {
-                Task {
-                    await viewModel.retrySecurityContextLoad()
-                }
-            }
-            .primaryButtonStyle()
-
-            Button("Retour à la connexion") {
-                handleCloseAction()
-            }
-            .secondaryButtonStyle()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
     private var formState: some View {
         VStack(spacing: DesignTokens.Spacing.xl) {
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                Text("Définis ton nouveau mot de passe.")
-                    .font(PulpeTypography.bodyLarge)
-                    .multilineTextAlignment(.center)
-
-                if viewModel.requiresRecoveryKey {
-                    Text("Entre aussi ta clé de secours pour restaurer l'accès au coffre.")
-                        .font(PulpeTypography.labelMedium)
-                        .foregroundStyle(Color.textSecondaryOnboarding)
-                        .multilineTextAlignment(.center)
-                }
-            }
-
-            if viewModel.requiresRecoveryKey {
-                recoveryKeyField
-            }
+            Text("Définis ton nouveau mot de passe.")
+                .font(PulpeTypography.bodyLarge)
+                .multilineTextAlignment(.center)
 
             newPasswordField
             confirmPasswordField
@@ -158,86 +104,35 @@ struct ResetPasswordFlowView: View {
 
             Spacer()
 
-            if viewModel.needsRecoveryKeyGenerationRetry {
-                Button {
-                    Task {
-                        await viewModel.retryRecoveryKeyGeneration()
+            Button {
+                Task {
+                    await viewModel.submit()
+                    if viewModel.isCompleted {
+                        await finishFlow()
                     }
-                } label: {
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        if viewModel.isSubmitting {
-                            ProgressView()
-                                .tint(.white)
-                        }
-                        Text(viewModel.isSubmitting ? "Nouvelle tentative..." : "Réessayer la génération de clé")
-                            .font(PulpeTypography.buttonLabel)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: DesignTokens.FrameHeight.button)
-                    .background(Color.onboardingGradient)
-                    .foregroundStyle(Color.textOnPrimary)
-                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
                 }
-                .disabled(viewModel.isSubmitting)
-            } else {
-                Button {
-                    Task {
-                        await viewModel.submit()
-                        if viewModel.isCompleted {
-                            await finishFlow()
-                        }
+            } label: {
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    if viewModel.isSubmitting {
+                        ProgressView()
+                            .tint(.white)
                     }
-                } label: {
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        if viewModel.isSubmitting {
-                            ProgressView()
-                                .tint(.white)
-                        }
-                        Text(viewModel.isSubmitting ? "Réinitialisation..." : "Valider")
-                            .font(PulpeTypography.buttonLabel)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: DesignTokens.FrameHeight.button)
-                    .background {
-                        if viewModel.canSubmit {
-                            Color.onboardingGradient
-                        } else {
-                            Color.surfaceCard
-                        }
-                    }
-                    .foregroundStyle(viewModel.canSubmit ? Color.textOnPrimary : Color.textSecondaryOnboarding)
-                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+                    Text(viewModel.isSubmitting ? "Réinitialisation..." : "Valider")
+                        .font(PulpeTypography.buttonLabel)
                 }
-                .disabled(!viewModel.canSubmit)
+                .frame(maxWidth: .infinity)
+                .frame(height: DesignTokens.FrameHeight.button)
+                .background {
+                    if viewModel.canSubmit {
+                        Color.onboardingGradient
+                    } else {
+                        Color.surfaceCard
+                    }
+                }
+                .foregroundStyle(viewModel.canSubmit ? Color.textOnPrimary : Color.textSecondaryOnboarding)
+                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
             }
-        }
-    }
-
-    private var recoveryKeyField: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text("Clé de secours")
-                .font(PulpeTypography.labelLarge)
-
-            TextField(
-                "XXXX-XXXX-XXXX-XXXX-...",
-                text: Binding(
-                    get: { viewModel.recoveryKeyInput },
-                    set: { viewModel.updateRecoveryKey($0) }
-                )
-            )
-            .font(.system(.body, design: .monospaced))
-            .textInputAutocapitalization(.characters)
-            .autocorrectionDisabled()
-            .textContentType(.oneTimeCode)
-            .privacySensitive()
-            .focused($focusedField, equals: .recoveryKey)
-            .padding()
-            .background(Color.pinInputBackground)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-            .overlay {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                    .strokeBorder(Color.pinInputBorder, lineWidth: 1)
-            }
+            .disabled(!viewModel.canSubmit)
         }
     }
 
@@ -303,56 +198,21 @@ struct ResetPasswordFlowView: View {
     }
 }
 
-enum ResetPreparationError: Equatable {
-    case invalidLink(String)
-    case securityContextLoadFailure(String)
-}
-
 @Observable @MainActor
 final class ResetPasswordFlowViewModel {
     var isPreparing = true
     var isSubmitting = false
-    var preparationError: ResetPreparationError?
+    var invalidLinkMessage: String?
     var errorMessage: String?
     var newPassword = ""
     var confirmPassword = ""
-    var recoveryKeyInput = ""
-    var showRecoveryKeySheet = false
-    var generatedRecoveryKey: String?
-    var needsRecoveryKeyGenerationRetry = false
     var shouldCleanupOnDismiss = false
     var isCompleted = false
 
-    private var context: PasswordRecoveryContext?
-    private var saltInfo: EncryptionSaltResponse?
-    private var strippedRecoveryKey = ""
-    private var hasRecoveredEncryption = false
     private let dependencies: ResetPasswordDependencies
 
     init(dependencies: ResetPasswordDependencies? = nil) {
         self.dependencies = dependencies ?? .live
-    }
-
-    var invalidLinkMessage: String? {
-        guard case .invalidLink(let message) = preparationError else { return nil }
-        return message
-    }
-
-    var securityContextLoadFailureMessage: String? {
-        guard case .securityContextLoadFailure(let message) = preparationError else { return nil }
-        return message
-    }
-
-    var hasVaultCodeConfigured: Bool {
-        context?.hasVaultCodeConfigured ?? false
-    }
-
-    var hasRecoveryKey: Bool {
-        saltInfo?.hasRecoveryKey ?? false
-    }
-
-    var requiresRecoveryKey: Bool {
-        !hasVaultCodeConfigured && hasRecoveryKey
     }
 
     var isNewPasswordValid: Bool {
@@ -363,96 +223,30 @@ final class ResetPasswordFlowViewModel {
         !confirmPassword.isEmpty && newPassword == confirmPassword
     }
 
-    var isRecoveryKeyValid: Bool {
-        strippedRecoveryKey.count == 52
-    }
-
     var canSubmit: Bool {
-        let baseValid = !isPreparing
-            && !isSubmitting
-            && isNewPasswordValid
-            && isPasswordConfirmed
-            && !needsRecoveryKeyGenerationRetry
-        if requiresRecoveryKey {
-            return baseValid && isRecoveryKeyValid
-        }
-        return baseValid
+        !isPreparing && !isSubmitting && isNewPasswordValid && isPasswordConfirmed
     }
 
     func prepare(with callbackURL: URL) async {
         isPreparing = true
-        preparationError = nil
-        errorMessage = nil
-        needsRecoveryKeyGenerationRetry = false
-
+        invalidLinkMessage = nil
         defer { isPreparing = false }
 
         do {
-            let recoveredContext = try await dependencies.beginPasswordRecovery(callbackURL)
-            context = recoveredContext
+            _ = try await dependencies.beginPasswordRecovery(callbackURL)
             shouldCleanupOnDismiss = true
         } catch {
-            preparationError = .invalidLink(
-                "Ce lien n'est plus valide. Demande un nouveau lien depuis l'écran de connexion."
-            )
-            shouldCleanupOnDismiss = false
-            return
+            invalidLinkMessage = "Ce lien n'est plus valide. Demande un nouveau lien depuis l'écran de connexion."
         }
-
-        do {
-            let salt = try await dependencies.getSalt()
-            saltInfo = salt
-        } catch {
-            preparationError = .securityContextLoadFailure(
-                "Impossible de charger les informations de sécurité. Vérifie ta connexion et réessaie."
-            )
-        }
-    }
-
-    func retrySecurityContextLoad() async {
-        guard context != nil else { return }
-
-        isPreparing = true
-        errorMessage = nil
-        preparationError = nil
-
-        defer { isPreparing = false }
-
-        do {
-            let salt = try await dependencies.getSalt()
-            saltInfo = salt
-        } catch {
-            preparationError = .securityContextLoadFailure(
-                "Impossible de charger les informations de sécurité. Vérifie ta connexion et réessaie."
-            )
-        }
-    }
-
-    func updateRecoveryKey(_ input: String) {
-        recoveryKeyInput = RecoveryKeyFormatter.format(input)
-        strippedRecoveryKey = RecoveryKeyFormatter.strip(recoveryKeyInput)
-        errorMessage = nil
     }
 
     func submit() async {
-        if needsRecoveryKeyGenerationRetry {
-            await retryRecoveryKeyGeneration()
-            return
-        }
-
         guard canSubmit else {
             if !isNewPasswordValid {
                 errorMessage = "8 caractères minimum"
             } else if !isPasswordConfirmed {
                 errorMessage = "Les mots de passe ne correspondent pas"
-            } else if requiresRecoveryKey && !isRecoveryKeyValid {
-                errorMessage = "Clé de secours invalide"
             }
-            return
-        }
-
-        guard let saltInfo else {
-            errorMessage = "Impossible de charger les informations de sécurité"
             return
         }
 
@@ -461,36 +255,6 @@ final class ResetPasswordFlowViewModel {
         defer { isSubmitting = false }
 
         do {
-            if hasVaultCodeConfigured {
-                try await dependencies.updatePassword(newPassword)
-                markCompleted()
-                return
-            }
-
-            if hasRecoveryKey {
-                let newClientKey = try await dependencies.deriveClientKey(
-                    newPassword,
-                    saltInfo.salt,
-                    saltInfo.kdfIterations
-                )
-
-                try await dependencies.updatePassword(newPassword)
-                try await dependencies.recoverEncryption(
-                    strippedRecoveryKey,
-                    newClientKey
-                )
-                await dependencies.storeClientKey(newClientKey)
-                hasRecoveredEncryption = true
-
-                do {
-                    try await generateRecoveryKey()
-                } catch {
-                    needsRecoveryKeyGenerationRetry = true
-                    errorMessage = "La récupération est terminée, mais la nouvelle clé de secours n'a pas pu être générée. Réessaie."
-                }
-                return
-            }
-
             try await dependencies.updatePassword(newPassword)
             markCompleted()
         } catch let apiError as APIError {
@@ -500,31 +264,8 @@ final class ResetPasswordFlowViewModel {
         }
     }
 
-    func retryRecoveryKeyGeneration() async {
-        guard hasRecoveredEncryption else { return }
-
-        isSubmitting = true
-        errorMessage = nil
-        defer { isSubmitting = false }
-
-        do {
-            try await generateRecoveryKey()
-            needsRecoveryKeyGenerationRetry = false
-        } catch {
-            needsRecoveryKeyGenerationRetry = true
-            errorMessage = "Impossible de générer la nouvelle clé de secours. Réessaie."
-        }
-    }
-
-    func acknowledgeRecoveryKeySaved() {
-        showRecoveryKeySheet = false
-        markCompleted()
-    }
-
     private func handleAPIError(_ error: APIError) {
         switch error {
-        case .validationError:
-            errorMessage = "Clé de secours invalide — vérifie que tu as bien copié la clé"
         case .rateLimited:
             errorMessage = "Trop de tentatives — patiente un moment"
         case .networkError:
@@ -534,61 +275,24 @@ final class ResetPasswordFlowViewModel {
         }
     }
 
-    private func generateRecoveryKey() async throws {
-        let recoveryKey = try await dependencies.setupRecoveryKey()
-        generatedRecoveryKey = recoveryKey
-        showRecoveryKeySheet = true
-    }
-
     private func markCompleted() {
         isCompleted = true
         shouldCleanupOnDismiss = false
-        needsRecoveryKeyGenerationRetry = false
-        hasRecoveredEncryption = false
     }
 }
 
 struct ResetPasswordDependencies: Sendable {
     var beginPasswordRecovery: @Sendable (URL) async throws -> PasswordRecoveryContext
-    var getSalt: @Sendable () async throws -> EncryptionSaltResponse
     var updatePassword: @Sendable (String) async throws -> Void
-    var recoverEncryption: @Sendable (String, String) async throws -> Void
-    var setupRecoveryKey: @Sendable () async throws -> String
-    var deriveClientKey: @Sendable (String, String, Int) async throws -> String
-    var storeClientKey: @Sendable (String) async -> Void
 
     static var live: ResetPasswordDependencies {
         ResetPasswordDependencies(
-        beginPasswordRecovery: { callbackURL in
-            try await AuthService.shared.beginPasswordRecovery(from: callbackURL)
-        },
-        getSalt: {
-            try await EncryptionAPI.shared.getSalt()
-        },
-        updatePassword: { password in
-            try await AuthService.shared.updatePassword(password)
-        },
-        recoverEncryption: { recoveryKey, newClientKeyHex in
-            try await EncryptionAPI.shared.recover(
-                recoveryKey: recoveryKey,
-                newClientKeyHex: newClientKeyHex
-            )
-        },
-        setupRecoveryKey: {
-            try await EncryptionAPI.shared.regenerateRecoveryKey()
-        },
-        deriveClientKey: { password, saltHex, iterations in
-            try await Task.detached {
-                try await CryptoService.shared.deriveClientKey(
-                    pin: password,
-                    saltHex: saltHex,
-                    iterations: iterations
-                )
-            }.value
-        },
-        storeClientKey: { clientKeyHex in
-            await ClientKeyManager.shared.store(clientKeyHex, enableBiometric: false)
-        }
+            beginPasswordRecovery: { callbackURL in
+                try await AuthService.shared.beginPasswordRecovery(from: callbackURL)
+            },
+            updatePassword: { password in
+                try await AuthService.shared.updatePassword(password)
+            }
         )
     }
 }

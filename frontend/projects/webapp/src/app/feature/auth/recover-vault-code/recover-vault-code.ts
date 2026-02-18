@@ -340,7 +340,7 @@ export default class RecoverVaultCode {
   async #showNewRecoveryKey(): Promise<void> {
     try {
       const { recoveryKey } = await firstValueFrom(
-        this.#encryptionApi.setupRecoveryKey$(),
+        this.#encryptionApi.regenerateRecoveryKey$(),
       );
 
       const dialogData: RecoveryKeyDialogData = { recoveryKey };

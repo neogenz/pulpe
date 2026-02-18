@@ -374,7 +374,7 @@ export default class SettingsPage {
       this.isGeneratingRecoveryKey.set(true);
 
       const { recoveryKey } = await firstValueFrom(
-        this.#encryptionApi.setupRecoveryKey$(),
+        this.#encryptionApi.regenerateRecoveryKey$(),
       );
 
       const dialogData: RecoveryKeyDialogData = { recoveryKey };

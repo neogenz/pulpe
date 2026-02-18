@@ -75,7 +75,10 @@ describe('SettingsPage', () => {
           useValue: { navigate: vi.fn().mockResolvedValue(true) },
         },
         { provide: AuthSessionService, useValue: mockAuthSession },
-        { provide: EncryptionApi, useValue: { setupRecoveryKey$: vi.fn() } },
+        {
+          provide: EncryptionApi,
+          useValue: { regenerateRecoveryKey$: vi.fn() },
+        },
         { provide: DemoModeService, useValue: { isDemoMode: signal(false) } },
       ],
     })
