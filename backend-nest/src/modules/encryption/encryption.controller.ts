@@ -95,19 +95,23 @@ export class EncryptionController {
     @Body() body: { clientKey: string },
   ): Promise<void> {
     const keyBuffer = this.#validateClientKeyHex(body.clientKey);
-    const isValid = await this.encryptionService.verifyAndEnsureKeyCheck(
-      user.id,
-      keyBuffer,
-    );
+    try {
+      const isValid = await this.encryptionService.verifyAndEnsureKeyCheck(
+        user.id,
+        keyBuffer,
+      );
 
-    if (!isValid) {
-      this.#logger.warn(
-        { userId: user.id, operation: 'validate_key.failed' },
-        'Client key verification failed',
-      );
-      throw new BusinessException(
-        ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
-      );
+      if (!isValid) {
+        this.#logger.warn(
+          { userId: user.id, operation: 'validate_key.failed' },
+          'Client key verification failed',
+        );
+        throw new BusinessException(
+          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+        );
+      }
+    } finally {
+      keyBuffer.fill(0);
     }
   }
 
@@ -210,6 +214,8 @@ export class EncryptionController {
       );
     } catch (error) {
       this.#handleRecoveryError(user.id, error);
+    } finally {
+      newKeyBuffer.fill(0);
     }
 
     this.#logger.log(

@@ -379,7 +379,7 @@ export class CreateBudgetDialogComponent {
 
       const errorMessage = isApiError(error)
         ? error.message
-        : 'Une erreur est survenue lors de la création du budget. Veuillez réessayer.';
+        : 'La création du budget a échoué — réessaie';
 
       // Show error snackbar with the localized message
       this.#snackBar.open(errorMessage, 'Fermer', {

@@ -838,3 +838,145 @@ Si l'enveloppe à 2000 CHF n'avait aucune transaction :
 | 9.1–9.4 À propos & légal | Non | — |
 | 10.4 Navigation rapide | Non | — |
 | 11.1–11.3 Cas limites | Non | — |
+
+---
+
+## 12. iOS — Authentification & Sécurité
+
+> Scénarios spécifiques à l'app iOS (SwiftUI). L'authentification iOS diffère du web : biométrie native, keychain, grace period, widget.
+
+### 12.1 Connexion avec Face ID (lancement à froid)
+
+**Workflow** : Fermer l'app > Rouvrir l'app (biométrie activée) > Face ID se déclenche automatiquement > Arriver sur le mois courant
+
+**Critères** :
+- Face ID est proposé automatiquement au lancement
+- Si Face ID réussit, l'utilisateur arrive sur le dashboard sans saisir de code PIN
+- Si Face ID échoue/annulé, l'écran de login classique est affiché
+
+### 12.2 Verrouillage après 5 minutes en arrière-plan (RG-006)
+
+**Workflow** : Être authentifié > Mettre l'app en arrière-plan > Attendre >= 5 minutes > Revenir dans l'app
+
+**Critères** :
+- L'écran de saisie du code PIN est affiché (pas le login)
+- Si la biométrie est activée, Face ID se déclenche automatiquement
+- Si Face ID réussit, retour au dashboard instantanément
+- Si Face ID échoue/annulé, l'utilisateur peut saisir son PIN manuellement
+- Le bouton Face ID est visible sur le numpad tant que < 4 chiffres saisis
+- Le bouton Face ID est remplacé par "Confirmer" une fois >= 4 chiffres saisis
+
+### 12.3 Retour avant 5 minutes — pas de verrouillage
+
+**Workflow** : Être authentifié > Mettre l'app en arrière-plan > Revenir avant 5 minutes
+
+**Critères** :
+- L'utilisateur reste authentifié
+- Pas de demande de code PIN ni de Face ID
+- Les données sont rafraîchies (pull from API)
+
+### 12.4 Activer la biométrie après le setup du PIN
+
+**Workflow** : Créer un compte > Setup du code PIN > Confirmer > Sauvegarder la recovery key > Une alerte "Activer Face ID ?" apparaît
+
+**Critères** :
+- L'alerte est présentée automatiquement après le setup PIN (si Face ID disponible et pas encore activé)
+- "Activer" : Face ID est configuré, le client key est sauvé dans le keychain biométrique
+- "Plus tard" : la biométrie n'est pas activée, l'utilisateur devra saisir son PIN à chaque retour
+
+### 12.5 Activer la biométrie après la saisie du PIN
+
+**Workflow** : Se reconnecter > Saisir le code PIN > L'alerte "Activer Face ID ?" apparaît
+
+**Critères** :
+- L'alerte n'apparaît que si la biométrie n'est pas encore activée
+- Si la biométrie est déjà activée, pas d'alerte
+
+### 12.6 Désactiver la biométrie
+
+**Workflow** : Réglages > Compte > Désactiver Face ID
+
+**Critères** :
+- Les tokens biométriques et le client key biométrique sont effacés du keychain
+- Au prochain lancement, le PIN est demandé (pas de Face ID)
+- L'alerte d'activation peut réapparaître après la prochaine saisie de PIN
+
+### 12.7 Écran de confidentialité (app switcher)
+
+**Workflow** : Être authentifié > Ouvrir le sélecteur d'apps (app switcher)
+
+**Critères** :
+- Un écran opaque avec le logo Pulpe recouvre le contenu sensible
+- Aucun montant financier n'est visible dans l'aperçu de l'app switcher
+- L'écran disparaît quand l'app revient au premier plan
+
+### 12.8 Setup du PIN et creation du budget depuis l'onboarding
+
+**Workflow** : Onboarding complet > Setup code PIN > Confirmer
+
+**Critères** :
+- Le template "Mois standard" est créé avec les données saisies pendant l'onboarding
+- Le budget du mois courant est créé à partir du template
+- Si la création échoue, un toast d'erreur est affiché et le setup ne se termine pas
+- L'alerte biométrique est proposée après le setup réussi
+
+### 12.9 Recovery depuis l'écran PIN (RG-007)
+
+**Workflow** : Écran de saisie du PIN > "Code d'accès oublié ?" > Saisir la recovery key > Créer un nouveau PIN > Confirmer
+
+**Critères** :
+- La recovery key est validée côté serveur
+- Un nouveau PIN est configuré (nouveau clientKey dérivé, re-chiffrement des données)
+- Une nouvelle recovery key est générée et affichée
+- L'ancienne recovery key ne fonctionne plus
+- L'alerte biométrique est proposée après la recovery
+- Si la biométrie était activée, le client key biométrique est re-sauvegardé
+
+### 12.10 Client key périmé (stale key)
+
+**Workflow** : Être authentifié > Le serveur retourne une erreur de déchiffrement (key check failed)
+
+**Critères** :
+- Tous les caches de client key sont effacés (mémoire + keychain standard + biométrique)
+- L'utilisateur est renvoyé à l'écran de saisie du PIN
+- Un nouveau PIN entry permet de rétablir un client key valide
+
+### 12.11 Widget — données visibles même app verrouillée (RG-008)
+
+**Workflow** : Être authentifié > Vérifier le widget sur l'écran d'accueil > Verrouiller l'app (5 min background) > Vérifier le widget
+
+**Critères** :
+- Le widget affiche le montant "Disponible" du mois courant
+- Le widget continue d'afficher les données même quand l'app est verrouillée
+- Les données du widget sont mises à jour quand l'app passe en arrière-plan
+- Au logout, les données du widget sont effacées et le widget se rafraîchit
+
+### 12.12 Déconnexion avec biométrie activée
+
+**Workflow** : Être connecté avec Face ID activé > Se déconnecter > Se reconnecter
+
+**Critères** :
+- Avant logout, les tokens biométriques sont rafraîchis avec la session courante
+- Le client key en mémoire et dans le keychain standard est effacé
+- Le client key biométrique est **préservé** pour le prochain login Face ID
+- Au prochain lancement, Face ID est proposé automatiquement
+
+### 12.13 Déconnexion sans biométrie
+
+**Workflow** : Être connecté sans biométrie > Se déconnecter
+
+**Critères** :
+- Tous les tokens et client keys sont effacés (y compris biométrique)
+- L'écran de login classique est affiché
+- Les données du widget sont effacées
+
+### 12.14 Reset mot de passe depuis l'app
+
+**Workflow** : Cliquer un deep link de reset > Saisir le nouveau mot de passe > Valider
+
+**Critères** :
+- Tous les tokens, client keys et biométrie sont effacés
+- La biométrie est désactivée (`biometricEnabled = false`)
+- Les données du widget sont effacées
+- L'utilisateur est redirigé vers l'écran de login avec un toast "Mot de passe réinitialisé"
+- L'utilisateur doit se reconnecter et saisir son PIN (la biométrie est à reconfigurer)

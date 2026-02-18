@@ -197,7 +197,7 @@ describe('WelcomePage', () => {
           _onToken: unknown,
           onError: (message: string) => void,
         ) => {
-          onError('Échec de la vérification de sécurité. Veuillez réessayer.');
+          onError('La vérification de sécurité a échoué — réessaie');
         },
       );
 

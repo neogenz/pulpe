@@ -139,7 +139,7 @@ La colonne `key_check` de `user_encryption_key` stocke un ciphertext canary : `A
 |-----------|--------|
 | Première validation (key_check absent) | Généré et stocké |
 | Recovery (`/recover`) | Régénéré avec la nouvelle DEK |
-| Setup recovery key | Régénéré (assure la cohérence) |
+| Setup recovery key | Généré si absent |
 
 ### Rate limiting
 
@@ -159,6 +159,8 @@ L'endpoint `validate-key` est limité à 5 tentatives par minute par utilisateur
 
 ## Stockage du clientKey
 
+### Web (Angular)
+
 Le `clientKey` est stocké côté client via `StorageService` :
 - `sessionStorage` : `pulpe-vault-client-key-session` (par défaut)
 - `localStorage` : `pulpe-vault-client-key-local` (option « Se souvenir de cet appareil »)
@@ -166,7 +168,7 @@ Le `clientKey` est stocké côté client via `StorageService` :
 **Propriétés :**
 - `sessionStorage` est limité à l'onglet (non partagé entre onglets)
 - `localStorage` persiste entre sessions (si l'utilisateur choisit « Se souvenir »)
-- Les deux sont effacés explicitement au logout (`ClientKeyService.clear()` + `AuthCleanupService`)
+- Au logout, `clearPreservingDeviceTrust()` efface la clé en mémoire et en `sessionStorage`, mais **préserve** le `localStorage` si l'utilisateur a choisi « Se souvenir de cet appareil »
 
 **Risque accepté :** une vulnérabilité XSS dans l'application permettrait de lire le `clientKey` depuis `sessionStorage`. Ce risque est atténué par :
 1. La politique CSP (Content Security Policy) qui limite l'exécution de scripts tiers
@@ -174,6 +176,45 @@ Le `clientKey` est stocké côté client via `StorageService` :
 3. Le `clientKey` seul est insuffisant pour déchiffrer (il faut aussi la `masterKey` serveur)
 
 **Alternative rejetée :** stocker le `clientKey` uniquement en mémoire (signal Angular) imposerait une re-saisie du code PIN à chaque rechargement de page, dégradant fortement l'expérience utilisateur.
+
+### iOS (SwiftUI)
+
+Le `clientKey` est géré par `ClientKeyManager` (actor) avec trois niveaux de stockage :
+
+| Niveau | Stockage | Survit au grace period lock | Survit au logout |
+|--------|----------|-----------------------------|------------------|
+| Cache mémoire | `cachedClientKeyHex` (propriété actor) | Non | Non |
+| Keychain standard | `KeychainManager.saveClientKey()` | Oui | Non |
+| Keychain biométrique | `KeychainManager.saveBiometricClientKey()` (protégé Face ID/Touch ID) | Oui | Non (`clearAll`) |
+
+#### Grace period (verrouillage après 5 min en arrière-plan)
+
+```
+1. App passe en background → sauvegarde timestamp
+2. App revient au foreground après >= 300s
+3. clientKeyManager.clearCache() → efface UNIQUEMENT le cache mémoire
+4. authState = .needsPinEntry → affiche l'écran PIN
+5. PinEntryView détecte biometric disponible (keychain biométrique intacte)
+6. Face ID se déclenche automatiquement via .task {}
+7. Si Face ID réussit → clientKey récupéré du keychain biométrique → authentifié
+8. Si Face ID échoue/annulé → l'utilisateur saisit son PIN manuellement
+```
+
+**Choix de design :** `clearCache()` (et non `clearAll()`) préserve intentionnellement la clé biométrique dans le keychain, permettant Face ID comme chemin de ré-entrée rapide après le verrouillage.
+
+#### Nettoyage par événement
+
+| Événement | Méthode | Effet |
+|-----------|---------|-------|
+| Grace period (5 min) | `clearCache()` | Cache mémoire effacé, keychain intacts |
+| Client key périmé | `clearAll()` | Tout effacé (cache + keychain standard + biométrique) |
+| Logout | `clearSession()` | Cache + keychain standard effacés, biométrique **préservé** pour prochain login |
+| Logout (sans biométrie) | via `clearSession()` puis `clearAll()` dans logout flow | Tout effacé |
+| Reset mot de passe | `clearAll()` + `biometricEnabled = false` | Tout effacé, biométrie désactivée |
+
+#### Widget (risque accepté)
+
+Le widget iOS stocke les métriques budgétaires (montant `available`) en **clair** dans `UserDefaults(suiteName: "group.app.pulpe.ios")`. WidgetKit s'exécute dans un processus séparé sans accès au keychain ni à Face ID. Le verrouillage de l'app (grace period) ne s'étend pas au widget. Les données widget sont effacées au logout et au reset de mot de passe.
 
 ## Configuration
 
@@ -202,6 +243,8 @@ Si la validation échoue, le serveur refuse de démarrer.
 
 ## Fichiers concernés
 
+### Backend
+
 | Fichier | Rôle |
 |---------|------|
 | `encryption.service.ts` | Dérivation DEK, chiffrement/déchiffrement AES-GCM, wrap/unwrap DEK, cache, re-chiffrement |
@@ -209,6 +252,26 @@ Si la validation échoue, le serveur refuse de démarrer.
 | `encryption.controller.ts` | Endpoints `/salt`, `/validate-key`, `/setup-recovery`, `/recover` |
 | `client-key-cleanup.interceptor.ts` | Efface le clientKey de la mémoire après chaque requête |
 | `auth.guard.ts` | Extrait et valide le `X-Client-Key` du header |
-| `crypto.utils.ts` (frontend) | Dérivation PBKDF2, `DEMO_CLIENT_KEY` |
-| `client-key.service.ts` (frontend) | Gestion du clientKey en sessionStorage |
-| `recovery-key-dialog.ts` (frontend) | Modal d'affichage et confirmation de la recovery key |
+
+### Frontend (Angular)
+
+| Fichier | Rôle |
+|---------|------|
+| `crypto.utils.ts` | Dérivation PBKDF2, `DEMO_CLIENT_KEY` |
+| `client-key.service.ts` | Gestion du clientKey en sessionStorage |
+| `recovery-key-dialog.ts` | Modal d'affichage et confirmation de la recovery key |
+
+### iOS (SwiftUI)
+
+| Fichier | Rôle |
+|---------|------|
+| `Core/Encryption/ClientKeyManager.swift` | Actor gérant le cycle de vie du clientKey (cache mémoire + keychain + biométrique) |
+| `Core/Encryption/CryptoService.swift` | Dérivation PBKDF2 du clientKey depuis le PIN |
+| `Core/Encryption/EncryptionAPI.swift` | Appels API encryption (`/salt`, `/validate-key`, `/setup-recovery`, `/recover`) |
+| `Core/Auth/BiometricService.swift` | Face ID / Touch ID (LAContext) |
+| `Core/Auth/KeychainManager.swift` | Stockage keychain standard et biométrique |
+| `App/AppState.swift` | Machine d'état auth, grace period (300s), transitions `needsPinEntry` ↔ `authenticated` |
+| `Features/Auth/Pin/PinEntryView.swift` | Saisie PIN + auto-trigger Face ID |
+| `Features/Auth/Pin/PinSetupView.swift` | Configuration initiale du PIN |
+| `Features/Auth/Pin/PinRecoveryView.swift` | Récupération via recovery key |
+| `Features/Auth/Pin/RecoveryKeySheet.swift` | Affichage unique de la recovery key |

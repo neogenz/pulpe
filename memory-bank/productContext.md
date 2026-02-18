@@ -93,6 +93,38 @@ Mar: income=5100, expenses=5200, rollover=900  → ending=800
 - Free transaction editing follows the same pattern
 - Impact remaining immediately
 
+### RG-006: App Lock & Biometric Unlock (iOS)
+
+| Rule | Value |
+|------|-------|
+| Grace period | 300 seconds (5 minutes) in background |
+| Lock behavior | In-memory client key cleared, biometric keychain preserved |
+| Biometric auto-trigger | Face ID/Touch ID prompts automatically on PIN screen |
+| Fallback | PIN entry via numpad (Face ID button visible while < 4 digits entered) |
+
+**Flow:** Background >= 5 min → `needsPinEntry` → PinEntryView auto-triggers Face ID → if success, instant unlock; if fail/cancel, user types PIN.
+
+**Design decision:** `clearCache()` (in-memory only) is used, not `clearAll()` (which would wipe biometric keychain). This preserves the biometric key across grace period locks, enabling Face ID as a fast re-entry path.
+
+### RG-007: Recovery Key
+
+- Recovery key shown **once** after PIN setup, PIN recovery, or manual regeneration from settings
+- Format: 32 bytes, base32 grouped (`XXXX-XXXX-...`)
+- **Never stored server-side** (only `wrappedDEK` is stored)
+- Clipboard copy available; no email/cloud backup
+- Can be regenerated anytime from Account settings (requires password verification)
+- If both PIN and recovery key are lost: encrypted financial data is **permanently inaccessible** (zero-knowledge model)
+- Account itself can be recovered via email password reset, but encrypted amounts become undecipherable
+- iOS: "J'ai noté ma clé" button dismisses without paste-back confirmation (spec says `Confirmation obligatoire` but iOS does not enforce it — known deviation)
+
+### RG-008: Widget Data Privacy
+
+- Widget caches `available` (remaining budget) as plaintext `Decimal` in App Group UserDefaults
+- **Not encrypted at rest** — WidgetKit runs in a separate process without access to keychain/Face ID
+- App lock (5-min grace period) does **not** extend to widget preview
+- Widget data is cleared on logout and password reset
+- **Accepted risk:** widget shows financial amounts even when app is locked
+
 ---
 
 ## Workflows

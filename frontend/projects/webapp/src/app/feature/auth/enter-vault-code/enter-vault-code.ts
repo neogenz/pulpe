@@ -231,6 +231,11 @@ export default class EnterVaultCode {
       this.#logger.error('Enter vault code failed:', error);
 
       if (
+        (error instanceof HttpErrorResponse && error.status === 429) ||
+        (isApiError(error) && error.status === 429)
+      ) {
+        this.errorMessage.set('Trop de tentatives, patiente quelques minutes');
+      } else if (
         (error instanceof HttpErrorResponse && error.status === 400) ||
         (isApiError(error) && error.status === 400)
       ) {

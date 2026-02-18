@@ -92,7 +92,7 @@ final class AppState {
     // MARK: - Background Grace Period
 
     private var backgroundDate: Date?
-    private static let gracePeriod: Duration = .seconds(300) // Product rule: lock at 5 minutes exactly
+    private static let gracePeriod: Duration = .seconds(300) // Product rule RG-006: lock at 5 minutes exactly
 
     // MARK: - Services
 
@@ -476,7 +476,7 @@ final class AppState {
 
     func handleStaleClientKey() async {
         guard authState == .authenticated else { return }
-        await clientKeyManager.clearSession()
+        await clientKeyManager.clearAll()
         authState = .needsPinEntry
     }
 
