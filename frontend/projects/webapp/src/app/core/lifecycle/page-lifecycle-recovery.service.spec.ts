@@ -203,4 +203,20 @@ describe('PageLifecycleRecoveryService', () => {
     expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
     expect(reloadSpy).not.toHaveBeenCalled();
   });
+
+  it('should fall back to location.pathname when router.url is "/" before navigation settles', async () => {
+    mockRouter.url = '/';
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...window.location, pathname: '/dashboard' },
+    });
+
+    dispatchPageShow(true);
+    await vi.waitFor(() => {
+      expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
+    });
+    expect(mockBudgetInvalidation.invalidate).toHaveBeenCalledOnce();
+    expect(mockUserSettingsApi.reload).toHaveBeenCalledOnce();
+    expect(reloadSpy).not.toHaveBeenCalled();
+  });
 });

@@ -26,6 +26,9 @@ const PROTECTED_ROUTE_PREFIXES = [
   `/${ROUTES.BUDGET_TEMPLATES}`,
   `/${ROUTES.SETTINGS}`,
   `/${ROUTES.COMPLETE_PROFILE}`,
+  `/${ROUTES.SETUP_VAULT_CODE}`,
+  `/${ROUTES.ENTER_VAULT_CODE}`,
+  `/${ROUTES.RECOVER_VAULT_CODE}`,
 ] as const;
 
 type ResumeTriggerReason =
@@ -126,8 +129,11 @@ export class PageLifecycleRecoveryService {
   }
 
   #isOnProtectedRoute(): boolean {
+    const routerUrl = this.#router.url;
     const currentUrl =
-      this.#router.url || this.#document.defaultView?.location.pathname || '';
+      routerUrl && routerUrl !== '/'
+        ? routerUrl
+        : (this.#document.defaultView?.location.pathname ?? '/');
     const path = currentUrl.split('?')[0];
 
     return PROTECTED_ROUTE_PREFIXES.some(
