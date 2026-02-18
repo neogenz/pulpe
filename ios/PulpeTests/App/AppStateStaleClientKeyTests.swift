@@ -28,7 +28,7 @@ struct AppStateStaleClientKeyTests {
         #expect(sut.authState == initialState)
     }
 
-    @Test func handleStaleClientKey_clearsClientKeySession() async {
+    @Test func handleStaleClientKey_clearsClientKeyFully() async {
         let sut = AppState()
         let clientKeyManager = ClientKeyManager.shared
 
@@ -40,6 +40,8 @@ struct AppStateStaleClientKeyTests {
         sut.completePinEntry()
         await sut.handleStaleClientKey()
 
+        // clearAll() clears cache + regular keychain + biometric keychain
+        // (biometric keychain not testable in simulator — requires hardware)
         #expect(!(await clientKeyManager.hasClientKey))
 
         await clientKeyManager.clearAll()

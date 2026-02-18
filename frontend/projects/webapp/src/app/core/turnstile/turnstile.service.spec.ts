@@ -136,7 +136,7 @@ describe('TurnstileService', () => {
       service.handleResolved(null);
 
       expect(onError).toHaveBeenCalledWith(
-        'Échec de la vérification de sécurité. Veuillez réessayer.',
+        'La vérification de sécurité a échoué — réessaie',
       );
       expect(onToken).not.toHaveBeenCalled();
     });
@@ -163,7 +163,7 @@ describe('TurnstileService', () => {
       service.handleError();
 
       expect(onError).toHaveBeenCalledWith(
-        'Échec de la vérification de sécurité. Veuillez réessayer.',
+        'La vérification de sécurité a échoué — réessaie',
       );
       expect(service.isProcessing()).toBe(false);
       expect(service.shouldRender()).toBe(false);

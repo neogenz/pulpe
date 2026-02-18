@@ -625,8 +625,11 @@ export class EncryptionService {
   }
 
   #invalidateUserDEKCache(userId: string): void {
-    for (const key of this.#dekCache.keys()) {
+    for (const [key, entry] of this.#dekCache) {
       if (key.startsWith(`${userId}:`)) {
+        if (Buffer.isBuffer(entry.dek)) {
+          entry.dek.fill(0);
+        }
         this.#dekCache.delete(key);
       }
     }

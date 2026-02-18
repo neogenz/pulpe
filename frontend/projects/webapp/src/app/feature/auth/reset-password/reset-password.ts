@@ -282,7 +282,7 @@ export default class ResetPassword {
       this.#router.navigate(['/', ROUTES.DASHBOARD]);
     } catch (error) {
       this.#logger.error('Reset password failed:', error);
-      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessayons");
+      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessaie");
     } finally {
       this.isSubmitting.set(false);
     }

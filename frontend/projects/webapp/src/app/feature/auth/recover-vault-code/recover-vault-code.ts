@@ -322,6 +322,11 @@ export default class RecoverVaultCode {
       this.#logger.error('Recover vault code failed:', error);
 
       if (
+        (error instanceof HttpErrorResponse && error.status === 429) ||
+        (isApiError(error) && error.status === 429)
+      ) {
+        this.errorMessage.set('Trop de tentatives, patiente quelques minutes');
+      } else if (
         (error instanceof HttpErrorResponse && error.status === 400) ||
         (isApiError(error) && error.status === 400)
       ) {
@@ -329,7 +334,7 @@ export default class RecoverVaultCode {
           'Clé de récupération invalide — vérifie que tu as bien copié la clé',
         );
       } else {
-        this.errorMessage.set("Quelque chose n'a pas fonctionné — réessayons");
+        this.errorMessage.set("Quelque chose n'a pas fonctionné — réessaie");
       }
     } finally {
       this.form.enable();

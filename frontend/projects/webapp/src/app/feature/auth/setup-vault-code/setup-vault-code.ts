@@ -148,7 +148,7 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
                 } @else if (
                   form.get('confirmCode')?.hasError('fieldsMismatch')
                 ) {
-                  Les deux codes ne sont pas identiques — on réessaie ?
+                  Les deux codes ne sont pas identiques — réessaie
                 }
               </mat-error>
             }
@@ -285,7 +285,7 @@ export default class SetupVaultCode {
       this.#router.navigate(['/', ROUTES.DASHBOARD]);
     } catch (error) {
       this.#logger.error('Setup vault code failed:', error);
-      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessayons");
+      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessaie");
     } finally {
       this.form.enable();
       this.isSubmitting.set(false);

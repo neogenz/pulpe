@@ -77,7 +77,7 @@ test.describe('Vault Code', () => {
       await page.getByTestId('confirm-vault-code-input').blur();
 
       await expect(page.locator('mat-error')).toContainText(
-        'Les deux codes ne sont pas identiques — on réessaie ?',
+        'Les deux codes ne sont pas identiques — réessaie',
       );
     });
 

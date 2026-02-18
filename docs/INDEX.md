@@ -28,7 +28,8 @@
 
 
 ### 🔒 Sécurité
-- **[ENCRYPTION.md](./ENCRYPTION.md)** - Chiffrement AES-256-GCM des montants financiers (split-key)
+- **[ENCRYPTION.md](./ENCRYPTION.md)** - Chiffrement AES-256-GCM des montants financiers (split-key, stockage clientKey web + iOS)
+- **[SCENARIOS.md](./SCENARIOS.md)** - Scénarios métier Web App + iOS (auth, biométrie, grace period, widget)
 
 ## 🎯 Par Problème Spécifique
 

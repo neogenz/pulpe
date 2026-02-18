@@ -110,12 +110,10 @@ export class DemoInitializerService {
           );
         } else if (error.status >= 500) {
           throw new Error(
-            'Le serveur rencontre un problème. Veuillez réessayer dans quelques instants.',
+            'Le serveur rencontre un problème — réessaie dans quelques instants',
           );
         } else if (error.status === 429) {
-          throw new Error(
-            'Trop de tentatives. Veuillez patienter avant de réessayer.',
-          );
+          throw new Error('Trop de tentatives — patiente avant de réessayer');
         }
       }
 

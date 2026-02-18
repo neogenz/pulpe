@@ -165,7 +165,7 @@ import { Logger } from '@core/logging/logger';
             >error_outline</mat-icon
           >
           <p class="text-body-medium">Erreur lors de la recherche</p>
-          <p class="text-body-small">Veuillez réessayer ultérieurement</p>
+          <p class="text-body-small">Réessaie plus tard</p>
         </div>
       } @else if (searchResource.isLoading()) {
         <div class="flex flex-col items-center justify-center py-8 gap-2">

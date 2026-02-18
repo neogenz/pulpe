@@ -151,7 +151,7 @@ describe('DemoInitializerService', () => {
       await expect(
         service.startDemoSession(TEST_TURNSTILE_TOKEN),
       ).rejects.toThrow(
-        'Le serveur rencontre un problème. Veuillez réessayer dans quelques instants.',
+        'Le serveur rencontre un problème — réessaie dans quelques instants',
       );
 
       expect(mockAuthSessionService.setSession).not.toHaveBeenCalled();
@@ -166,9 +166,7 @@ describe('DemoInitializerService', () => {
 
       await expect(
         service.startDemoSession(TEST_TURNSTILE_TOKEN),
-      ).rejects.toThrow(
-        'Trop de tentatives. Veuillez patienter avant de réessayer.',
-      );
+      ).rejects.toThrow('Trop de tentatives — patiente avant de réessayer');
     });
 
     it('should re-throw non-ApiError errors', async () => {
