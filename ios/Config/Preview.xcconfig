@@ -1,0 +1,8 @@
+#include "Base.xcconfig"
+
+API_BASE_URL = https:$(SLASH)$(SLASH)api.pulpe.app/api/v1
+SUPABASE_URL = https:$(SLASH)$(SLASH)lrphlfjkzkwyllejanrd.supabase.co
+SUPABASE_ANON_KEY = sb_publishable_6bhOTXKoB7NtR0EeRKg8kA_EdBZeyJb
+APP_ENV = preview
+
+#include? "Preview.secrets.xcconfig"

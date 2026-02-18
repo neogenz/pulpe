@@ -36,11 +36,13 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>API_BASE_URL</key>
-	<string>https://api.pulpe.app/api/v1</string>
+	<string>$(API_BASE_URL)</string>
+	<key>APP_ENV</key>
+	<string>$(APP_ENV)</string>
 	<key>SUPABASE_ANON_KEY</key>
-	<string>sb_publishable_sOPmrqc7yz2nnZRxAOUhwQ_Yr8lfRY2</string>
+	<string>$(SUPABASE_ANON_KEY)</string>
 	<key>SUPABASE_URL</key>
-	<string>https://qhhlloqisgzwcsrbdppn.supabase.co</string>
+	<string>$(SUPABASE_URL)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>

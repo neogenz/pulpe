@@ -1,57 +1,40 @@
 import Foundation
 
-/// Application configuration loaded from environment or Info.plist
+/// Application runtime configuration loaded from Info.plist.
 enum AppConfiguration {
+    enum Environment: String {
+        case local
+        case preview
+        case prod
+    }
+
     // MARK: - API Configuration
 
     static var apiBaseURL: URL {
-        #if DEBUG
-        // Development - use local or staging (includes /api/v1 prefix)
-        if let urlString = ProcessInfo.processInfo.environment["API_BASE_URL"],
-           let url = URL(string: urlString) {
-            return url
-        }
-        return URL(string: "http://localhost:3000/api/v1")!
-        #else
-        // Production - read from Info.plist
-        guard let urlString = Bundle.main.infoDictionary?["API_BASE_URL"] as? String,
-              let url = URL(string: urlString) else {
-            fatalError("API_BASE_URL not configured in Info.plist")
+        guard let url = URL(string: requiredValue(for: "API_BASE_URL")) else {
+            fatalError("API_BASE_URL is invalid")
         }
         return url
-        #endif
     }
 
     // MARK: - Supabase Configuration
 
     static var supabaseURL: URL {
-        #if DEBUG
-        if let urlString = ProcessInfo.processInfo.environment["SUPABASE_URL"],
-           let url = URL(string: urlString) {
-            return url
-        }
-        return URL(string: "http://127.0.0.1:54321")!
-        #else
-        // Production - read from Info.plist
-        guard let urlString = Bundle.main.infoDictionary?["SUPABASE_URL"] as? String,
-              let url = URL(string: urlString) else {
-            fatalError("SUPABASE_URL not configured in Info.plist")
+        guard let url = URL(string: requiredValue(for: "SUPABASE_URL")) else {
+            fatalError("SUPABASE_URL is invalid")
         }
         return url
-        #endif
     }
 
     static var supabaseAnonKey: String {
-        #if DEBUG
-        return ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"]
-            ?? "sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH"
-        #else
-        // Production - read from Info.plist
-        guard let key = Bundle.main.infoDictionary?["SUPABASE_ANON_KEY"] as? String else {
-            fatalError("SUPABASE_ANON_KEY not configured in Info.plist")
+        requiredValue(for: "SUPABASE_ANON_KEY")
+    }
+
+    static var environment: Environment {
+        guard let environment = Environment(rawValue: requiredValue(for: "APP_ENV")) else {
+            fatalError("APP_ENV is invalid. Expected one of: local, preview, prod")
         }
-        return key
-        #endif
+        return environment
     }
 
     // MARK: - Auth Redirects
@@ -63,11 +46,7 @@ enum AppConfiguration {
     // MARK: - Feature Flags
 
     static var isDemoModeEnabled: Bool {
-        #if DEBUG
-        true
-        #else
-        false
-        #endif
+        environment != .prod
     }
 
     // MARK: - App Info
@@ -93,4 +72,46 @@ enum AppConfiguration {
 
     static let maxTemplates = 5
     static let maxBudgetYearsAhead = 3
+
+    // MARK: - Private
+
+    private static func requiredValue(for key: String) -> String {
+        if let value = ProcessInfo.processInfo.environment[key], !value.isEmpty {
+            return value
+        }
+
+        if let value = Bundle.main.object(forInfoDictionaryKey: key) as? String,
+           !value.isEmpty {
+            guard !value.contains("$(") else {
+                fatalError("\(key) is unresolved. Check your build configuration and xcconfig mapping.")
+            }
+
+            return value
+        }
+
+        if isRunningTests, let fallback = testFallbackValue(for: key) {
+            return fallback
+        }
+
+        fatalError("\(key) not configured in Info.plist")
+    }
+
+    private static var isRunningTests: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    }
+
+    private static func testFallbackValue(for key: String) -> String? {
+        switch key {
+        case "API_BASE_URL":
+            return "http://localhost:3000/api/v1"
+        case "SUPABASE_URL":
+            return "http://127.0.0.1:54321"
+        case "SUPABASE_ANON_KEY":
+            return "sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH"
+        case "APP_ENV":
+            return "local"
+        default:
+            return nil
+        }
+    }
 }

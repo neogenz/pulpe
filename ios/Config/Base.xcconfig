@@ -1,0 +1,2 @@
+// Helper for URL escaping in xcconfig (// is interpreted as comment)
+SLASH = /
