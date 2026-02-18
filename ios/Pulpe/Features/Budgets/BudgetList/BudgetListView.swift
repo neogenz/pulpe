@@ -157,76 +157,14 @@ struct YearSection: View {
 
     @State private var expandTrigger = false
 
-    private var isCurrentYear: Bool {
-        year == Date().year
-    }
-
-    private var isPastYear: Bool {
-        year < Date().year
-    }
-
-    /// Budgets that exist + next empty month to invite creation
-    private var visibleMonths: [MonthSlot] {
-        let now = Date()
-        let currentMonth = Calendar.current.component(.month, from: now)
-        let currentYear = now.year
-
-        var slots: [MonthSlot] = budgets.compactMap { budget in
-            guard let month = budget.month else { return nil }
-            return MonthSlot(month: month, budget: budget)
-        }
-
-        // For current/future years, add the next empty month as a stub
-        if year >= currentYear {
-            let startMonth = (year == currentYear) ? currentMonth : 1
-            for m in startMonth ... 12 {
-                let hasBudget = budgets.contains { $0.month == m }
-                if !hasBudget {
-                    slots.append(MonthSlot(month: m, budget: nil))
-                    break // Only one empty slot
-                }
-            }
-        }
-
-        return slots.sorted { $0.month < $1.month }
-    }
-
-    /// Current month budget if it exists in this year section
-    private var currentMonthBudget: BudgetSparse? {
-        budgets.first { $0.isCurrentMonth }
-    }
-
-    /// Current month number (for splitting the timeline)
-    private var currentMonthNumber: Int {
-        Calendar.current.component(.month, from: Date())
-    }
-
-    /// Months before the current month
-    private var monthsBefore: [MonthSlot] {
-        visibleMonths.filter { slot in
-            if slot.budget?.isCurrentMonth == true { return false }
-            return slot.month < currentMonthNumber
-        }
-    }
-
-    /// Months after the current month
-    private var monthsAfter: [MonthSlot] {
-        visibleMonths.filter { slot in
-            if slot.budget?.isCurrentMonth == true { return false }
-            return slot.month > currentMonthNumber
-        }
-    }
-
-    /// All non-current months (used when no current month exists in this year)
-    private var allMonths: [MonthSlot] {
-        visibleMonths.filter { !($0.budget?.isCurrentMonth == true) }
+    /// Pre-computed layout data - calculated once when budgets change
+    private var layoutData: YearSectionLayoutData {
+        YearSectionLayoutData(year: year, budgets: budgets)
     }
 
     /// Last month's remaining (year-end position)
     private var yearEndRemaining: Decimal? {
-        budgets
-            .sorted { ($0.month ?? 0) < ($1.month ?? 0) }
-            .last?.remaining
+        budgets.max { ($0.month ?? 0) < ($1.month ?? 0) }?.remaining
     }
 
     var body: some View {
@@ -234,31 +172,8 @@ struct YearSection: View {
             yearHeader
 
             if isExpanded {
-                VStack(spacing: DesignTokens.Spacing.md) {
-                    if currentMonthBudget != nil {
-                        // Past months card (if any)
-                        if !monthsBefore.isEmpty {
-                            monthListCard(months: monthsBefore)
-                        }
-
-                        // Current month hero card
-                        if let current = currentMonthBudget {
-                            CurrentMonthHeroCard(budget: current) {
-                                onSelect(current)
-                            }
-                            .id("currentMonthHero")
-                        }
-
-                        // Future months card (if any)
-                        if !monthsAfter.isEmpty {
-                            monthListCard(months: monthsAfter)
-                        }
-                    } else if !allMonths.isEmpty {
-                        // No current month in this year — show all months as a single list
-                        monthListCard(months: allMonths)
-                    }
-                }
-                .transition(.opacity)
+                expandedContent
+                    .transition(.opacity)
             }
         }
         .sensoryFeedback(.impact(flexibility: .soft), trigger: expandTrigger)
@@ -267,24 +182,54 @@ struct YearSection: View {
         }
     }
 
+    @ViewBuilder
+    private var expandedContent: some View {
+        let data = layoutData
+        VStack(spacing: DesignTokens.Spacing.md) {
+            if data.currentMonthBudget != nil {
+                // Past months card (if any)
+                if !data.monthsBefore.isEmpty {
+                    monthListCard(months: data.monthsBefore)
+                }
+
+                // Current month hero card
+                if let current = data.currentMonthBudget {
+                    CurrentMonthHeroCard(budget: current) {
+                        onSelect(current)
+                    }
+                    .id("currentMonthHero")
+                }
+
+                // Future months card (if any)
+                if !data.monthsAfter.isEmpty {
+                    monthListCard(months: data.monthsAfter)
+                }
+            } else if !data.allMonths.isEmpty {
+                // No current month in this year — show all months as a single list
+                monthListCard(months: data.allMonths)
+            }
+        }
+    }
+
     // MARK: - Year Header
 
     private var yearHeader: some View {
-        Button(action: onToggle) {
+        let data = layoutData
+        return Button(action: onToggle) {
             HStack(alignment: .center, spacing: 12) {
                 // Chevron indicator
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(isPastYear ? .quaternary : .tertiary)
+                    .foregroundStyle(data.isPastYear ? .quaternary : .tertiary)
                     .rotationEffect(.degrees(isExpanded ? 90 : 0))
 
                 // Year label
                 Text(String(year))
                     .font(.system(.title2, design: .rounded, weight: .bold))
-                    .foregroundStyle(isPastYear ? .secondary : .primary)
+                    .foregroundStyle(data.isPastYear ? .secondary : .primary)
 
                 // Current year badge (neutral style)
-                if isCurrentYear {
+                if data.isCurrentYear {
                     enCoursBadge
                 }
 
@@ -354,6 +299,73 @@ struct YearSection: View {
 private struct MonthSlot {
     let month: Int
     let budget: BudgetSparse?
+}
+
+// MARK: - Year Section Layout Data (Pre-computed)
+
+/// Pre-computes all layout data for a year section to avoid redundant calculations during animation frames.
+/// This struct is computed once per render cycle instead of multiple times per computed property access.
+private struct YearSectionLayoutData {
+    let isCurrentYear: Bool
+    let isPastYear: Bool
+    let currentMonthBudget: BudgetSparse?
+    let monthsBefore: [MonthSlot]
+    let monthsAfter: [MonthSlot]
+    let allMonths: [MonthSlot]
+
+    init(year: Int, budgets: [BudgetSparse]) {
+        let now = Date()
+        let calendar = Calendar.current
+        let currentMonth = calendar.component(.month, from: now)
+        let currentYear = now.year
+
+        self.isCurrentYear = year == currentYear
+        self.isPastYear = year < currentYear
+
+        // Build visible months once
+        var slots: [MonthSlot] = budgets.compactMap { budget in
+            guard let month = budget.month else { return nil }
+            return MonthSlot(month: month, budget: budget)
+        }
+
+        // For current/future years, add the next empty month as a stub
+        if year >= currentYear {
+            let startMonth = (year == currentYear) ? currentMonth : 1
+            for m in startMonth ... 12 {
+                let hasBudget = budgets.contains { $0.month == m }
+                if !hasBudget {
+                    slots.append(MonthSlot(month: m, budget: nil))
+                    break
+                }
+            }
+        }
+
+        let visibleMonths = slots.sorted { $0.month < $1.month }
+
+        // Find current month budget
+        self.currentMonthBudget = budgets.first { $0.isCurrentMonth }
+
+        // Split into before/after/all in a single pass
+        var before: [MonthSlot] = []
+        var after: [MonthSlot] = []
+        var all: [MonthSlot] = []
+
+        for slot in visibleMonths {
+            let isCurrent = slot.budget?.isCurrentMonth == true
+            if !isCurrent {
+                all.append(slot)
+                if slot.month < currentMonth {
+                    before.append(slot)
+                } else if slot.month > currentMonth {
+                    after.append(slot)
+                }
+            }
+        }
+
+        self.monthsBefore = before
+        self.monthsAfter = after
+        self.allMonths = all
+    }
 }
 
 // MARK: - Current Month Hero Card
