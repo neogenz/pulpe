@@ -357,7 +357,6 @@ final class AppState {
             } catch {
                 Logger.auth.error("completePinSetup: failed to create template/budget - \(error)")
                 toastManager.show("Erreur lors de la création du budget", type: .error)
-                return
             }
         }
 

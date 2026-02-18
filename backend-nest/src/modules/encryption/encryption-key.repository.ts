@@ -119,7 +119,7 @@ export class EncryptionKeyRepository {
     const supabase = this.#supabaseService.getServiceRoleClient();
     const { data, error } = await supabase
       .from('user_encryption_key')
-      .select('key_check')
+      .select('key_check, wrapped_dek')
       .eq('user_id', userId)
       .single();
 
@@ -129,7 +129,7 @@ export class EncryptionKeyRepository {
         `Failed to check vault code for user ${userId}: ${error.message}`,
       );
     }
-    return data?.key_check != null;
+    return data?.key_check != null && data?.wrapped_dek != null;
   }
 
   async updateKeyCheck(userId: string, keyCheck: string): Promise<void> {

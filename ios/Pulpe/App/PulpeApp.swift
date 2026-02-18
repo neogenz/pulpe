@@ -235,16 +235,17 @@ struct RootView: View {
     private func handlePendingDeepLink() {
         guard let destination = deepLinkDestination else { return }
 
-        deepLinkDestination = nil
-
         switch destination {
         case .resetPassword(let url):
+            deepLinkDestination = nil
             resetPasswordDeepLink = ResetPasswordDeepLink(url: url)
         case .addExpense:
             guard appState.authState == .authenticated else { return }
+            deepLinkDestination = nil
             showAddExpenseSheet = true
         case .viewBudget(let budgetId):
             guard appState.authState == .authenticated else { return }
+            deepLinkDestination = nil
             appState.budgetPath = NavigationPath()
             Task { @MainActor in
                 appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))

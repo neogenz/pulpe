@@ -22,6 +22,7 @@ const createMockRepository = (overrides?: {
   updateWrappedDEK?: ReturnType<typeof mock>;
   hasRecoveryKey?: ReturnType<typeof mock>;
   updateKeyCheck?: ReturnType<typeof mock>;
+  hasVaultCode?: ReturnType<typeof mock>;
 }) => ({
   findSaltByUserId:
     overrides?.findSaltByUserId ?? mock(() => Promise.resolve(null)),
@@ -32,6 +33,7 @@ const createMockRepository = (overrides?: {
   hasRecoveryKey:
     overrides?.hasRecoveryKey ?? mock(() => Promise.resolve(false)),
   updateKeyCheck: overrides?.updateKeyCheck ?? mock(() => Promise.resolve()),
+  hasVaultCode: overrides?.hasVaultCode ?? mock(() => Promise.resolve(false)),
 });
 
 describe('EncryptionService', () => {
@@ -734,6 +736,65 @@ describe('EncryptionService', () => {
       } catch (error: any) {
         expect(error.message).toContain('connection error');
       }
+    });
+  });
+
+  describe('getVaultStatus', () => {
+    it('should return vaultCodeConfigured=false when no row exists', async () => {
+      const hasVaultCode = mock(() => Promise.resolve(false));
+      const repo = createMockRepository({ hasVaultCode });
+
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      const result = await service.getVaultStatus(TEST_USER_ID);
+
+      expect(result).toEqual({ vaultCodeConfigured: false });
+      expect(hasVaultCode).toHaveBeenCalledWith(TEST_USER_ID);
+    });
+
+    it('should return vaultCodeConfigured=false when key_check and wrapped_dek are both null', async () => {
+      const hasVaultCode = mock(() => Promise.resolve(false));
+      const repo = createMockRepository({ hasVaultCode });
+
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      const result = await service.getVaultStatus(TEST_USER_ID);
+
+      expect(result).toEqual({ vaultCodeConfigured: false });
+    });
+
+    it('should return vaultCodeConfigured=false when only key_check is set but wrapped_dek is null', async () => {
+      const hasVaultCode = mock(() => Promise.resolve(false));
+      const repo = createMockRepository({ hasVaultCode });
+
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      const result = await service.getVaultStatus(TEST_USER_ID);
+
+      expect(result).toEqual({ vaultCodeConfigured: false });
+    });
+
+    it('should return vaultCodeConfigured=false when only wrapped_dek is set but key_check is null', async () => {
+      const hasVaultCode = mock(() => Promise.resolve(false));
+      const repo = createMockRepository({ hasVaultCode });
+
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      const result = await service.getVaultStatus(TEST_USER_ID);
+
+      expect(result).toEqual({ vaultCodeConfigured: false });
+    });
+
+    it('should return vaultCodeConfigured=true when both key_check and wrapped_dek are set', async () => {
+      const hasVaultCode = mock(() => Promise.resolve(true));
+      const repo = createMockRepository({ hasVaultCode });
+
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      const result = await service.getVaultStatus(TEST_USER_ID);
+
+      expect(result).toEqual({ vaultCodeConfigured: true });
+      expect(hasVaultCode).toHaveBeenCalledWith(TEST_USER_ID);
     });
   });
 
