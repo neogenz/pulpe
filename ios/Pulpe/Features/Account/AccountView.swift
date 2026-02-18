@@ -7,6 +7,7 @@ struct AccountView: View {
     @State private var showDeleteConfirmation = false
     @State private var showChangePassword = false
     @State private var securityViewModel = AccountSecurityViewModel()
+    @State private var isDebugVisible = false
 
     var body: some View {
         NavigationStack {
@@ -73,9 +74,34 @@ struct AccountView: View {
                 Section {
                     LabeledContent("Version", value: AppConfiguration.appVersion)
                     LabeledContent("Build", value: AppConfiguration.buildNumber)
+
+                    if isDebugVisible {
+                        Group {
+                            LabeledContent("Environnement", value: AppConfiguration.environment.rawValue)
+                            LabeledContent("API") {
+                                Text(AppConfiguration.apiBaseURL.host() ?? AppConfiguration.apiBaseURL.absoluteString)
+                                    .font(.footnote.monospaced())
+                            }
+                            LabeledContent("Supabase") {
+                                Text(AppConfiguration.supabaseURL.host() ?? AppConfiguration.supabaseURL.absoluteString)
+                                    .font(.footnote.monospaced())
+                            }
+                            LabeledContent("Anon Key") {
+                                Text(AppConfiguration.supabaseAnonKey)
+                                    .font(.caption2.monospaced())
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            }
+                        }
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
                 } header: {
                     Text("APPLICATION")
                         .font(PulpeTypography.labelLarge)
+                        .onLongPressGesture(minimumDuration: 5) {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            withAnimation(.easeInOut(duration: 0.3)) { isDebugVisible.toggle() }
+                        }
                 }
                 .listRowBackground(Color.surfaceCard)
 
