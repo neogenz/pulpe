@@ -8,6 +8,11 @@ options:
   generateEmptyDirectories: true
   groupSortPosition: top
 
+configs:
+  Local: debug
+  Preview: debug
+  Prod: release
+
 packages:
   supabase-swift:
     url: https://github.com/supabase/supabase-swift
@@ -25,10 +30,13 @@ settings:
     DEVELOPMENT_TEAM: AJ37X7C82G
     CODE_SIGN_STYLE: Automatic
   configs:
-    Debug:
+    Local:
       SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
       SWIFT_OPTIMIZATION_LEVEL: "-Onone"
-    Release:
+    Preview:
+      SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+      SWIFT_OPTIMIZATION_LEVEL: "-Onone"
+    Prod:
       SWIFT_OPTIMIZATION_LEVEL: "-O"
 
 targets:
@@ -59,6 +67,10 @@ targets:
       properties:
         com.apple.security.application-groups:
           - group.app.pulpe.ios
+    configFiles:
+      Local: Config/Local.xcconfig
+      Preview: Config/Preview.xcconfig
+      Prod: Config/Prod.xcconfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios
@@ -98,9 +110,10 @@ targets:
           - fetch
         BGTaskSchedulerPermittedIdentifiers:
           - app.pulpe.ios.widget-refresh
-        API_BASE_URL: https://api.pulpe.app/api/v1
-        SUPABASE_URL: https://qhhlloqisgzwcsrbdppn.supabase.co
-        SUPABASE_ANON_KEY: sb_publishable_sOPmrqc7yz2nnZRxAOUhwQ_Yr8lfRY2
+        API_BASE_URL: $(API_BASE_URL)
+        SUPABASE_URL: $(SUPABASE_URL)
+        SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
+        APP_ENV: $(APP_ENV)
 
   PulpeWidget:
     type: app-extension
@@ -194,40 +207,68 @@ targets:
         TARGETED_DEVICE_FAMILY: "1,2"
 
 schemes:
-  Pulpe:
+  PulpeLocal:
     build:
       targets:
         Pulpe: all
         PulpeWidget: all
     run:
-      config: Debug
+      config: Local
     profile:
-      config: Release
+      config: Prod
     analyze:
-      config: Debug
+      config: Local
     archive:
-      config: Release
+      config: Prod
+
+  PulpePreview:
+    build:
+      targets:
+        Pulpe: all
+        PulpeWidget: all
+    run:
+      config: Preview
+    profile:
+      config: Preview
+    analyze:
+      config: Preview
+    archive:
+      config: Preview
+
+  PulpeProd:
+    build:
+      targets:
+        Pulpe: all
+        PulpeWidget: all
+    run:
+      config: Prod
+    profile:
+      config: Prod
+    analyze:
+      config: Prod
+    archive:
+      config: Prod
 
   PulpeWidget:
     build:
       targets:
         PulpeWidget: all
     run:
-      config: Debug
+      config: Local
       askForAppToLaunch: true
     profile:
-      config: Release
+      config: Prod
     analyze:
-      config: Debug
+      config: Local
     archive:
-      config: Release
+      config: Prod
 
   PulpeTests:
     build:
       targets:
         PulpeTests: all
     test:
-      config: Debug
+      config: Local
       targets:
         - name: PulpeTests
 
@@ -236,6 +277,6 @@ schemes:
       targets:
         PulpeUITests: all
     test:
-      config: Debug
+      config: Local
       targets:
         - name: PulpeUITests

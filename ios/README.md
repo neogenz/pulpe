@@ -5,7 +5,7 @@ Application iOS native pour la gestion de budget personnel, construite avec Swif
 ## Prérequis
 
 - Xcode 15.0+
-- iOS 17.0+
+- iOS 18.0+
 - macOS Sonoma+
 
 ## Installation
@@ -16,11 +16,17 @@ Application iOS native pour la gestion de budget personnel, construite avec Swif
    open Pulpe.xcodeproj
    ```
 
-2. Configurer l'API :
-   - En développement, l'app pointe vers `http://localhost:3000`
-   - Pour changer l'URL, modifier `API_BASE_URL` dans le scheme ou `AppConfiguration.swift`
+2. Régénérer le projet Xcode :
+   ```bash
+   xcodegen generate
+   ```
 
-3. Build et Run sur simulateur ou device
+3. Choisir un scheme d'environnement :
+   - `PulpeLocal` (développement local)
+   - `PulpePreview` (environnement preview)
+   - `PulpeProd` (production)
+
+4. Build et Run sur simulateur ou device
 
 ## Structure
 
@@ -70,9 +76,31 @@ Pulpe/
 
 ## Configuration
 
-### Variables d'environnement
+### Environnements iOS
 
-- `API_BASE_URL` : URL de l'API backend (défaut: `http://localhost:3000`)
+L'app utilise 3 configurations Xcode mappées à des fichiers `xcconfig`:
+
+- `Local` → `Config/Local.xcconfig`
+- `Preview` → `Config/Preview.xcconfig`
+- `Prod` → `Config/Prod.xcconfig`
+
+Clés runtime exposées à l'app (via `Info.plist`):
+
+- `APP_ENV`
+- `API_BASE_URL`
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+
+Surcharges locales non versionnées:
+
+- `Config/Local.secrets.xcconfig`
+- `Config/Preview.secrets.xcconfig`
+- `Config/Prod.secrets.xcconfig`
+
+### Secrets backend (jamais dans iOS)
+
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `ENCRYPTION_MASTER_KEY`
 
 ### Password Reset Deep Link
 
@@ -82,7 +110,7 @@ Pulpe/
 
 ### Build Settings
 
-- Deployment Target: iOS 17.0
+- Deployment Target: iOS 18.0
 - Swift Language Version: 5.9+
 
 ## Développement
@@ -100,11 +128,14 @@ pnpm dev:backend
 # Nettoyer le build
 xcodebuild clean
 
-# Build pour simulateur
-xcodebuild -scheme Pulpe -sdk iphonesimulator
+# Build Local pour simulateur
+xcodebuild -scheme PulpeLocal -sdk iphonesimulator
+
+# Build Preview pour simulateur
+xcodebuild -scheme PulpePreview -sdk iphonesimulator
 
 # Tests
-xcodebuild test -scheme Pulpe -destination 'platform=iOS Simulator,name=iPhone 15'
+xcodebuild test -scheme PulpeLocal -destination 'platform=iOS Simulator,name=iPhone 15'
 ```
 
 ## Notes

@@ -27,6 +27,7 @@ open Pulpe.xcodeproj                     # Open in Xcode
 | Swift version | `settings.base.SWIFT_VERSION` |
 | Bundle ID | `targets.Pulpe.settings.base.PRODUCT_BUNDLE_IDENTIFIER` |
 | Info.plist values | `targets.Pulpe.info.properties` |
+| Environment values | `targets.Pulpe.configFiles` + `Config/*.xcconfig` |
 | Add SPM dependency | `packages` + `targets.Pulpe.dependencies` |
 | Build settings | `settings.base` or `targets.X.settings.base` |
 
@@ -40,7 +41,9 @@ open Pulpe.xcodeproj                     # Open in Xcode
 
 ```bash
 xcodegen generate                        # Regenerate Xcode project (required after git pull)
-xcodebuild build -scheme Pulpe -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' CODE_SIGNING_ALLOWED=NO
+xcodebuild build -scheme PulpeLocal -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' CODE_SIGNING_ALLOWED=NO
+xcodebuild build -scheme PulpePreview -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' CODE_SIGNING_ALLOWED=NO
+xcodebuild build -scheme PulpeProd -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' CODE_SIGNING_ALLOWED=NO
 cd .. && pnpm dev:backend                # Run backend
 ```
 

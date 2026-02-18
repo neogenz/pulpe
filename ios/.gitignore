@@ -60,4 +60,5 @@ playground.xcworkspace
 
 # Secrets (if any)
 *.xcconfig.local
+Config/*.secrets.xcconfig
 Secrets.swift
