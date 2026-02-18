@@ -212,7 +212,7 @@ struct AccountSecurityDependencies: Sendable {
             try await AuthService.shared.verifyPassword(email: email, password: password)
         },
         setupRecoveryKey: {
-            try await EncryptionAPI.shared.setupRecoveryKey()
+            try await EncryptionAPI.shared.regenerateRecoveryKey()
         }
         )
     }

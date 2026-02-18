@@ -365,7 +365,7 @@ final class PinRecoveryViewModel {
 
             // 5. Generate new recovery key
             do {
-                let key = try await encryptionAPI.setupRecoveryKey()
+                let key = try await encryptionAPI.regenerateRecoveryKey()
                 newRecoveryKey = key
                 showRecoverySheet = true
             } catch {

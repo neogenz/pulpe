@@ -58,9 +58,15 @@ actor EncryptionAPI {
         try await apiClient.requestVoid(.encryptionValidateKey, body: body)
     }
 
-    /// Setup recovery key (requires X-Client-Key header)
+    /// Setup recovery key — create-only, returns 409 if one already exists (requires X-Client-Key header)
     func setupRecoveryKey() async throws -> String {
         let response: RecoveryKeyResponse = try await apiClient.request(.encryptionSetupRecovery)
+        return response.recoveryKey
+    }
+
+    /// Regenerate recovery key — always replaces the existing one (requires X-Client-Key header)
+    func regenerateRecoveryKey() async throws -> String {
+        let response: RecoveryKeyResponse = try await apiClient.request(.encryptionRegenerateRecovery)
         return response.recoveryKey
     }
 

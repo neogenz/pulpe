@@ -203,9 +203,17 @@ final class AppState {
                 authState = .unauthenticated
                 return
             case .notFound:
-                // This should not happen (API always returns a status), but handle gracefully
-                Logger.auth.warning("resolvePostAuth: unexpected 404 on vault-status, assuming no vault")
-                isVaultConfigured = false
+                // vault-status may not exist on older backend versions.
+                // Fall back to salt endpoint: if user has a recovery key, their vault is configured.
+                Logger.auth.warning("resolvePostAuth: 404 on vault-status, falling back to salt check")
+                do {
+                    let saltResponse = try await encryptionAPI.getSalt()
+                    isVaultConfigured = saltResponse.hasRecoveryKey
+                } catch {
+                    // If salt check also fails, assume configured (safe for existing users)
+                    Logger.auth.error("resolvePostAuth: salt fallback also failed - \(error)")
+                    isVaultConfigured = true
+                }
             default:
                 Logger.auth.error("resolvePostAuth: API error checking vault status - \(error)")
                 isVaultConfigured = true

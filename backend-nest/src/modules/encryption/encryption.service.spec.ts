@@ -1315,6 +1315,123 @@ describe('EncryptionService', () => {
     });
   });
 
+  describe('createRecoveryKey', () => {
+    it('should create recovery key when none exists', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
+      );
+      const findByUserId = mock(() => Promise.resolve(null));
+      const updateWrappedDEK = mock(() => Promise.resolve());
+
+      const repo = createMockRepository({
+        findSaltByUserId,
+        findByUserId,
+        updateWrappedDEK,
+      });
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      const result = await service.createRecoveryKey(
+        TEST_USER_ID,
+        TEST_CLIENT_KEY,
+      );
+      expect(result.formatted).toMatch(/^[A-Z2-7]{4}(-[A-Z2-7]{4})+$/);
+      expect(updateWrappedDEK).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw RECOVERY_KEY_ALREADY_EXISTS when wrapped_dek exists', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: 'existing-wrapped-dek',
+          key_check: null,
+        }),
+      );
+
+      const repo = createMockRepository({ findByUserId });
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      try {
+        await service.createRecoveryKey(TEST_USER_ID, TEST_CLIENT_KEY);
+        expect.unreachable('Should have thrown');
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          ERROR_DEFINITIONS.RECOVERY_KEY_ALREADY_EXISTS.code,
+        );
+      }
+    });
+  });
+
+  describe('regenerateRecoveryKey', () => {
+    it('should regenerate recovery key even when one already exists', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
+      );
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: 'existing-wrapped-dek',
+          key_check: 'existing-key-check',
+        }),
+      );
+      const updateWrappedDEK = mock(() => Promise.resolve());
+
+      const repo = createMockRepository({
+        findSaltByUserId,
+        findByUserId,
+        updateWrappedDEK,
+      });
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      const result = await service.regenerateRecoveryKey(
+        TEST_USER_ID,
+        TEST_CLIENT_KEY,
+      );
+      expect(result.formatted).toMatch(/^[A-Z2-7]{4}(-[A-Z2-7]{4})+$/);
+      expect(updateWrappedDEK).toHaveBeenCalledTimes(1);
+    });
+
+    it('should regenerate recovery key when none exists', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
+      );
+      const findByUserId = mock(() => Promise.resolve(null));
+      const updateWrappedDEK = mock(() => Promise.resolve());
+
+      const repo = createMockRepository({
+        findSaltByUserId,
+        findByUserId,
+        updateWrappedDEK,
+      });
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      const result = await service.regenerateRecoveryKey(
+        TEST_USER_ID,
+        TEST_CLIENT_KEY,
+      );
+      expect(result.formatted).toMatch(/^[A-Z2-7]{4}(-[A-Z2-7]{4})+$/);
+      expect(updateWrappedDEK).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('recoverWithKey', () => {
     beforeEach(() => {
       service = new EncryptionService(
@@ -1422,11 +1539,11 @@ describe('EncryptionService', () => {
       service = new EncryptionService(mockConfigService as any, repo as any);
 
       const clientKey = randomBytes(32);
-      const first = await service.setupRecoveryKey(TEST_USER_ID, clientKey);
+      const first = await service.createRecoveryKey(TEST_USER_ID, clientKey);
       const firstWrapped = wrappedDek;
       expect(firstWrapped).not.toBeNull();
 
-      await service.setupRecoveryKey(TEST_USER_ID, clientKey);
+      await service.regenerateRecoveryKey(TEST_USER_ID, clientKey);
       expect(wrappedDek).not.toBe(firstWrapped);
 
       const reEncryptUserData = mock(() => Promise.resolve());

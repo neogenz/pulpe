@@ -668,7 +668,7 @@ describe('Encryption integration (local Supabase)', () => {
         userId,
       );
       const { formatted: recoveryKey } =
-        await encryptionService.setupRecoveryKey(userId, oldClientKey);
+        await encryptionService.createRecoveryKey(userId, oldClientKey);
       const afterSetupState = await getUserEncryptionKeyState(
         adminClient,
         userId,
@@ -773,7 +773,7 @@ describe('Encryption integration (local Supabase)', () => {
       });
       if (blError4) throw blError4;
 
-      await encryptionService.setupRecoveryKey(userId, oldClientKey);
+      await encryptionService.createRecoveryKey(userId, oldClientKey);
 
       const invalidRecoveryKey =
         encryptionService.generateRecoveryKey().formatted;

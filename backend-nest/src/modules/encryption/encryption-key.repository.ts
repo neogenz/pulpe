@@ -7,7 +7,7 @@ interface UserEncryptionKeyRow {
   key_check: string | null;
 }
 
-interface UserEncryptionKeyFullRow extends UserEncryptionKeyRow {
+export interface UserEncryptionKeyFullRow extends UserEncryptionKeyRow {
   wrapped_dek: string | null;
   key_check: string | null;
 }

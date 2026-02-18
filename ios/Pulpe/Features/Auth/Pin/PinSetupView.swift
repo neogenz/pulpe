@@ -20,6 +20,11 @@ struct PinSetupView: View {
                 }
             }
         }
+            .onChange(of: viewModel.completedWithoutRecovery) { _, completed in
+                if completed {
+                    Task { await onComplete() }
+                }
+            }
     }
 
     // MARK: - Content
@@ -120,6 +125,7 @@ final class PinSetupViewModel {
     private(set) var isError = false
     private(set) var errorMessage: String?
     private(set) var recoveryKey: String?
+    private(set) var completedWithoutRecovery = false
     var showRecoverySheet = false
 
     let maxDigits = 6
@@ -175,6 +181,14 @@ final class PinSetupViewModel {
             )
             try await encryptionAPI.validateKey(clientKeyHex)
             await clientKeyManager.store(clientKeyHex, enableBiometric: false)
+
+            // Guard: if user already has a recovery key, skip setup to avoid overwriting it.
+            // This can happen when vault-status returns 404 and the app routes here by mistake.
+            guard !saltResponse.hasRecoveryKey else {
+                Logger.encryption.info("Skipping recovery key setup — user already has one")
+                completedWithoutRecovery = true
+                return
+            }
 
             let key = try await encryptionAPI.setupRecoveryKey()
             recoveryKey = key
