@@ -140,6 +140,9 @@ struct RootView: View {
         .onReceive(NotificationCenter.default.publisher(for: .maintenanceModeDetected)) { _ in
             appState.setMaintenanceMode(true)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .clientKeyCheckFailed)) { _ in
+            Task { await appState.handleStaleClientKey() }
+        }
         .task {
             await appState.checkMaintenanceStatus()
             guard !appState.isInMaintenance, !appState.isNetworkUnavailable else { return }

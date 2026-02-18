@@ -246,6 +246,13 @@ actor APIClient {
                 }
             }
 
+            // Broadcast stale client key to trigger PIN re-entry
+            if case .clientKeyInvalid = error {
+                Task { @MainActor in
+                    NotificationCenter.default.post(name: .clientKeyCheckFailed, object: nil)
+                }
+            }
+
             return error
         }
 
