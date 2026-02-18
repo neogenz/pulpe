@@ -472,6 +472,14 @@ final class AppState {
         biometricEnabled = false
     }
 
+    // MARK: - Stale Client Key
+
+    func handleStaleClientKey() async {
+        guard authState == .authenticated else { return }
+        await clientKeyManager.clearSession()
+        authState = .needsPinEntry
+    }
+
     // MARK: - Maintenance Actions
 
     func setMaintenanceMode(_ active: Bool) {
