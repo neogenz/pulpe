@@ -82,7 +82,10 @@ describe('SettingsPage', () => {
         },
         { provide: AuthSessionService, useValue: mockAuthSession },
         { provide: AuthStateService, useValue: mockAuthState },
-        { provide: EncryptionApi, useValue: { setupRecoveryKey$: vi.fn() } },
+        {
+          provide: EncryptionApi,
+          useValue: { regenerateRecoveryKey$: vi.fn() },
+        },
         { provide: DemoModeService, useValue: { isDemoMode: signal(false) } },
       ],
     })
