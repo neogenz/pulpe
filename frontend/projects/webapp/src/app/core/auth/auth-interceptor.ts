@@ -117,7 +117,7 @@ function handleAuthError(
     return throwError(() => new Error('Client encryption key missing'));
   }
 
-  // Handle stale client encryption key — clear and redirect to vault code entry
+  // The original request is not retried after re-entering the vault code.
   if (
     error.status === 400 &&
     error.error?.code === 'ERR_ENCRYPTION_KEY_CHECK_FAILED'
