@@ -293,6 +293,18 @@ final class CurrentMonthStore: StoreProtocol {
         )
     }
 
+    /// Forward-looking projection based on current spending rate
+    var projection: BudgetFormulas.Projection? {
+        guard let budget else { return nil }
+        return BudgetFormulas.calculateProjection(
+            realizedExpenses: realizedMetrics.realizedExpenses,
+            totalBudgetedExpenses: metrics.totalExpenses,
+            available: metrics.available,
+            month: budget.month,
+            year: budget.year
+        )
+    }
+
     // MARK: - Legacy Computed (kept for compatibility during transition)
 
     var displayBudgetLines: [BudgetLine] {

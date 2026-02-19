@@ -48,7 +48,7 @@ struct EditTemplateLineSheet: View {
                 recurrenceSelector
 
                 if let error {
-                    ErrorBanner(message: error.localizedDescription) {
+                    ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
                         self.error = nil
                     }
                 }

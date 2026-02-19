@@ -77,7 +77,7 @@ struct EditTransactionSheet: View {
 
             if let error {
                 Section {
-                    ErrorBanner(message: error.localizedDescription) {
+                    ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
                         self.error = nil
                     }
                 }

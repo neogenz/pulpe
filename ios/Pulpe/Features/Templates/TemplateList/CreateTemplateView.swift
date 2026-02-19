@@ -65,7 +65,7 @@ struct CreateTemplateView: View {
                 // Error
                 if let error {
                     Section {
-                        ErrorBanner(message: error.localizedDescription) {
+                        ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
                             self.error = nil
                         }
                     }
@@ -163,10 +163,11 @@ struct TemplateLineInputRow: View {
             CurrencyText(line.amount)
                 .foregroundStyle(line.kind.color)
 
-            Button(role: .destructive, action: onDelete) {
+            Button(action: onDelete) {
                 Image(systemName: "trash")
                     .foregroundStyle(Color.errorPrimary)
             }
+            .buttonStyle(.plain)
         }
     }
 }

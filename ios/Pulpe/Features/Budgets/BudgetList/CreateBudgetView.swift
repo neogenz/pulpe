@@ -32,7 +32,7 @@ struct CreateBudgetView: View {
 
                     // Error display
                     if let error = viewModel.error {
-                        ErrorBanner(message: error.localizedDescription) {
+                        ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
                             viewModel.error = nil
                         }
                         .transition(.asymmetric(

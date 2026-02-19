@@ -348,7 +348,7 @@ struct DeepLinkAddExpenseSheet: View {
                     ContentUnavailableView {
                         Label("Erreur de connexion", systemImage: "wifi.exclamationmark")
                     } description: {
-                        Text(error.localizedDescription)
+                        Text(DomainErrorLocalizer.localize(error))
                     } actions: {
                         Button("Réessayer") {
                             Task { await viewModel.loadCurrentBudget() }
