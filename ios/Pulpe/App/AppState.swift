@@ -160,9 +160,10 @@ final class AppState {
         await clientKeyManager.clearSession()
 
         #if DEBUG
-        // In DEBUG mode, try regular token-based session first (no biometric prompt)
+        // In DEBUG mode WITHOUT biometric enabled, try regular token-based session first
         // This keeps developers logged in across app restarts from Xcode
-        if let user = try? await authService.validateSession() {
+        // But if biometric is enabled, we must go through the biometric flow
+        if !biometricEnabled, let user = try? await authService.validateSession() {
             currentUser = user
             await resolvePostAuth(user: user)
             return
@@ -188,8 +189,19 @@ final class AppState {
                 authState = .unauthenticated
             }
         } catch is KeychainError {
-            // Face ID cancelled or failed — keep tokens for retry
-            authState = .unauthenticated
+            // Face ID cancelled or failed — fallback to PIN entry instead of login screen
+            // User has biometric enabled, so they have a valid vault code configured
+            do {
+                if let user = try await authService.validateSession() {
+                    currentUser = user
+                    authState = .needsPinEntry
+                } else {
+                    authState = .unauthenticated
+                }
+            } catch {
+                Logger.auth.warning("checkAuthState: session validation failed after biometric cancel - \(error)")
+                authState = .unauthenticated
+            }
         } catch let error as URLError {
             // Network error — keep tokens and biometric enabled for retry
             Logger.auth.warning("checkAuthState: network error during biometric login - \(error)")

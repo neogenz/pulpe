@@ -92,26 +92,13 @@ final class BudgetListStore: StoreProtocol {
         let budgets: [BudgetSparse]
     }
 
-    /// Cached grouped budgets - invalidated when budgets array changes
-    private var _cachedGroupedByYear: [YearGroup]?
-    private var _cachedBudgetsHash: Int?
-
     var groupedByYear: [YearGroup] {
-        let currentHash = budgets.hashValue
-        if let cached = _cachedGroupedByYear, _cachedBudgetsHash == currentHash {
-            return cached
-        }
-
         let grouped = Dictionary(grouping: budgets) { $0.year ?? 0 }
-        let result = grouped
+        return grouped
             .sorted { $0.key < $1.key } // Oldest first, newest last
             .map { year, budgets in
                 YearGroup(year: year, budgets: budgets.sorted { ($0.month ?? 0) < ($1.month ?? 0) })
             }
-
-        _cachedGroupedByYear = result
-        _cachedBudgetsHash = currentHash
-        return result
     }
 
     var nextAvailableMonth: (month: Int, year: Int)? {
