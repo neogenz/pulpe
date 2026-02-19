@@ -29,8 +29,7 @@ struct StoreRaceConditionTests {
         // by checking that concurrent calls don't create data races
         
         // Given: A store instance
-        // Note: We can't easily mock the APIClient in the current architecture,
-        // so we test the observable behavior - no crashes, consistent state
+        let store = CurrentMonthStore()
         
         // When: Making multiple concurrent state accesses
         let iterations = 100
@@ -43,7 +42,6 @@ struct StoreRaceConditionTests {
                 group.addTask { @MainActor in
                     // Access state properties concurrently
                     // If there's a race condition, this would crash or produce inconsistent results
-                    let store = CurrentMonthStore.shared
                     loadingStates.append(store.isLoading)
                     errorStates.append(store.error)
                 }
@@ -58,7 +56,7 @@ struct StoreRaceConditionTests {
     @Test("Store state remains consistent under concurrent access")
     func store_concurrentAccess_maintainsConsistentState() async throws {
         // Given: A store that may be loading
-        let store = CurrentMonthStore.shared
+        let store = CurrentMonthStore()
         
         // When: Accessing multiple properties concurrently
         async let isLoading1 = store.isLoading
@@ -78,7 +76,7 @@ struct StoreRaceConditionTests {
     @Test("BudgetListStore handles concurrent loadIfNeeded safely")
     func budgetListStore_concurrentLoadIfNeeded_noRace() async throws {
         // Given: Multiple tasks trying to load simultaneously
-        let store = BudgetListStore.shared
+        let store = BudgetListStore()
         
         // When: Triggering multiple concurrent loadIfNeeded calls
         await withTaskGroup(of: Void.self) { group in
@@ -99,7 +97,7 @@ struct StoreRaceConditionTests {
     @Test("DashboardStore handles concurrent forceRefresh safely")
     func dashboardStore_concurrentForceRefresh_noRace() async throws {
         // Given: Multiple tasks trying to refresh simultaneously
-        let store = DashboardStore.shared
+        let store = DashboardStore()
         
         // When: Triggering multiple concurrent forceRefresh calls
         await withTaskGroup(of: Void.self) { group in
@@ -119,7 +117,7 @@ struct StoreRaceConditionTests {
     @Test("Store handles task cancellation gracefully")
     func store_taskCancellation_handledGracefully() async throws {
         // Given: A store that will be loaded
-        let store = CurrentMonthStore.shared
+        let store = CurrentMonthStore()
         
         // When: Starting a load and then cancelling
         let task = Task { @MainActor in
@@ -140,7 +138,7 @@ struct StoreRaceConditionTests {
     @Test("Rapid load/cancel cycles don't corrupt state")
     func store_rapidLoadCancelCycles_stateNotCorrupted() async throws {
         // Given: A store
-        let store = CurrentMonthStore.shared
+        let store = CurrentMonthStore()
         
         // When: Rapidly starting and cancelling loads
         for _ in 0..<20 {
@@ -170,9 +168,9 @@ struct StoreRaceConditionTests {
     @Test("Multiple stores can load concurrently without interference")
     func multipleStores_concurrentLoading_noInterference() async throws {
         // Given: Multiple store instances
-        let currentMonthStore = CurrentMonthStore.shared
-        let budgetListStore = BudgetListStore.shared
-        let dashboardStore = DashboardStore.shared
+        let currentMonthStore = CurrentMonthStore()
+        let budgetListStore = BudgetListStore()
+        let dashboardStore = DashboardStore()
         
         // When: All stores load concurrently
         await withTaskGroup(of: Void.self) { group in

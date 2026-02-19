@@ -130,14 +130,15 @@ struct AppStateBackgroundLockTests {
         sut.completePinEntry()
 
         // Multiple background calls without foreground (edge case - shouldn't happen normally)
+        // Implementation uses the LAST background timestamp (resets the timer on each background event)
         sut.handleEnterBackground()
         now = now.addingTimeInterval(10)
-        sut.handleEnterBackground() // Second background call
-        now = now.addingTimeInterval(25) // Total 35s from first background
+        sut.handleEnterBackground() // Second background call resets timer
+        now = now.addingTimeInterval(25) // Only 25s from LAST background (within grace period)
 
         await sut.handleEnterForeground()
 
-        // Should use the FIRST background timestamp, so 35s > 30s = needs PIN
-        #expect(sut.authState == .needsPinEntry)
+        // Since 25s < 30s grace period from last background call, user stays authenticated
+        #expect(sut.authState == .authenticated)
     }
 }

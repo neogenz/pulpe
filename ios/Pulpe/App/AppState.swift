@@ -3,7 +3,6 @@ import SwiftUI
 import WidgetKit
 
 private enum UserDefaultsKey {
-    static let onboardingCompleted = "pulpe-onboarding-completed"
     static let biometricEnabled = "pulpe-biometric-enabled"
 }
 
@@ -54,7 +53,7 @@ final class AppState {
     var hasCompletedOnboarding: Bool = false {
         didSet {
             Task {
-                await UserDefaultsStore.shared.setBool(hasCompletedOnboarding, forKey: UserDefaultsKey.onboardingCompleted)
+                await keychainManager.setOnboardingCompleted(hasCompletedOnboarding)
             }
         }
     }
@@ -83,6 +82,7 @@ final class AppState {
     private let authService: AuthService
     private let biometricService: BiometricService
     private let clientKeyManager: ClientKeyManager
+    private let keychainManager: KeychainManager
     private let encryptionAPI: EncryptionAPI
     private let nowProvider: () -> Date
 
@@ -94,18 +94,20 @@ final class AppState {
         authService: AuthService = .shared,
         biometricService: BiometricService = .shared,
         clientKeyManager: ClientKeyManager = .shared,
+        keychainManager: KeychainManager = .shared,
         encryptionAPI: EncryptionAPI = .shared,
         nowProvider: @escaping () -> Date = Date.init
     ) {
         self.authService = authService
         self.biometricService = biometricService
         self.clientKeyManager = clientKeyManager
+        self.keychainManager = keychainManager
         self.encryptionAPI = encryptionAPI
         self.nowProvider = nowProvider
         
-        // Load UserDefaults values asynchronously
+        // Load persisted values asynchronously
         Task { @MainActor in
-            hasCompletedOnboarding = await UserDefaultsStore.shared.getBool(forKey: UserDefaultsKey.onboardingCompleted)
+            hasCompletedOnboarding = await keychainManager.isOnboardingCompleted()
             biometricEnabled = await UserDefaultsStore.shared.getBool(forKey: UserDefaultsKey.biometricEnabled)
         }
     }
@@ -187,6 +189,7 @@ final class AppState {
             case .unauthorized:
                 // Token invalid during vault check - session corrupted, force re-auth
                 Logger.auth.error("resolvePostAuth: token invalid during vault check, forcing re-auth")
+                biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
                 authState = .unauthenticated
                 return
             case .notFound:
