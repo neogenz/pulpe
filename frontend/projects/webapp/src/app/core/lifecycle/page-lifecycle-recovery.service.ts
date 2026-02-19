@@ -62,6 +62,11 @@ export class PageLifecycleRecoveryService {
       return;
     }
 
+    const activeElement = this.#document.activeElement as HTMLElement | null;
+    if (activeElement?.closest('.mat-bottom-sheet-container')) {
+      activeElement.blur();
+    }
+
     if (!this.#isOnProtectedRoute()) {
       this.#lastHiddenAt = null;
       return;
