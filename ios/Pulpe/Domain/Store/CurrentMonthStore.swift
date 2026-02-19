@@ -204,34 +204,31 @@ final class CurrentMonthStore: StoreProtocol {
     // MARK: - Computed Properties (cached to avoid recalculation)
 
     var metrics: BudgetFormulas.Metrics {
-        if let cached = cachedMetrics {
-            return cached
-        }
-        let calculated = BudgetFormulas.calculateAllMetrics(
+        cachedMetrics ?? BudgetFormulas.calculateAllMetrics(
             budgetLines: budgetLines,
             transactions: transactions,
             rollover: budget?.rollover.orZero ?? 0
         )
-        cachedMetrics = calculated
-        return calculated
     }
 
     var realizedMetrics: BudgetFormulas.RealizedMetrics {
-        if let cached = cachedRealizedMetrics {
-            return cached
-        }
-        let calculated = BudgetFormulas.calculateRealizedMetrics(
+        cachedRealizedMetrics ?? BudgetFormulas.calculateRealizedMetrics(
             budgetLines: budgetLines,
             transactions: transactions
         )
-        cachedRealizedMetrics = calculated
-        return calculated
     }
     
-    /// Invalidate cached metrics when data changes
+    /// Recompute and cache metrics - call after data changes
     private func invalidateMetricsCache() {
-        cachedMetrics = nil
-        cachedRealizedMetrics = nil
+        cachedMetrics = BudgetFormulas.calculateAllMetrics(
+            budgetLines: budgetLines,
+            transactions: transactions,
+            rollover: budget?.rollover.orZero ?? 0
+        )
+        cachedRealizedMetrics = BudgetFormulas.calculateRealizedMetrics(
+            budgetLines: budgetLines,
+            transactions: transactions
+        )
     }
 
     // MARK: - Dashboard Computed Properties
