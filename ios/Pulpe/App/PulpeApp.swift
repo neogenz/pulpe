@@ -79,6 +79,7 @@ struct RootView: View {
     @State private var resetPasswordDeepLink: ResetPasswordDeepLink?
     @State private var showAmountsToggleAlert = false
     @State private var widgetSyncViewModel = WidgetSyncViewModel()
+    @State private var privacyShieldActive = false
 
     var body: some View {
         @Bindable var appState = appState
@@ -114,7 +115,6 @@ struct RootView: View {
                 case .needsPinEntry:
                     PinEntryView(
                         firstName: appState.currentUser?.firstName ?? "",
-                        allowBiometricAutoUnlock: appState.pinEntryAllowsBiometricUnlock,
                         onSuccess: { appState.completePinEntry() },
                         onForgotPin: { appState.startRecovery() },
                         onLogout: { await appState.logout() }
@@ -162,6 +162,17 @@ struct RootView: View {
             }
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
+            // Activate shield only when leaving .active while in a secured state
+            if newPhase != .active, oldPhase == .active {
+                let isSecured = appState.authState == .authenticated || appState.authState == .needsPinEntry
+                if isSecured {
+                    privacyShieldActive = true
+                }
+            }
+            if newPhase == .active {
+                privacyShieldActive = false
+            }
+
             if newPhase == .background {
                 appState.handleEnterBackground()
                 if appState.authState == .authenticated {
@@ -170,9 +181,8 @@ struct RootView: View {
                 }
             }
 
-            // CRITICAL: Always refresh when app comes to foreground
-            // This guarantees fresh data if user edited from web
-            if newPhase == .active, oldPhase == .background {
+            if newPhase == .active, oldPhase != .active {
+                appState.prepareForForeground()
                 Task {
                     await appState.handleEnterForeground()
                     if appState.authState == .authenticated {
@@ -253,7 +263,7 @@ struct RootView: View {
     }
 
     private var shouldShowPrivacyShield: Bool {
-        scenePhase != .active && (appState.authState == .authenticated || appState.authState == .needsPinEntry)
+        privacyShieldActive || appState.isRestoringSession
     }
 
     private func handlePendingDeepLink() {

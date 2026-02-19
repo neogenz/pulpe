@@ -52,7 +52,6 @@ struct PostAuthResolutionTests {
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .needsPinEntry)
-        #expect(sut.pinEntryAllowsBiometricUnlock == false)
         #expect(sut.showRecoveryKeyRepairConsent == false)
     }
 
@@ -94,7 +93,6 @@ struct PostAuthResolutionTests {
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .needsPinEntry)
-        #expect(sut.pinEntryAllowsBiometricUnlock == false)
         #expect(sut.needsRecoveryKeyRepairConsent == true)
     }
 
@@ -206,7 +204,6 @@ struct PostAuthResolutionTests {
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .needsPinEntry)
-        #expect(sut.pinEntryAllowsBiometricUnlock == false)
     }
 
     @Test("existing user without Face ID preference shows enrollment prompt")

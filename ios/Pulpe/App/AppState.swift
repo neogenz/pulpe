@@ -57,12 +57,12 @@ final class AppState {
     var biometricError: String?
     var showRecoveryKeyRepairConsent = false
     var showPostAuthRecoveryKeySheet = false
-    private(set) var pinEntryAllowsBiometricUnlock = false
     private(set) var needsRecoveryKeyRepairConsent = false
     private(set) var postAuthRecoveryKey: String?
 
     // MARK: - Background Grace Period
 
+    private(set) var isRestoringSession = false
     private var backgroundDate: Date?
     private var biometricSaveTask: Task<Void, Never>?
     private var biometricPreferenceLoaded = false
@@ -79,6 +79,7 @@ final class AppState {
     private let biometricCapability: @Sendable () -> Bool
     private let biometricAuthenticate: @Sendable () async throws -> Void
     private let syncBiometricCredentials: @Sendable () async -> Bool
+    private let resolveBiometricKey: @Sendable () async -> String?
     private let nowProvider: () -> Date
 
     // MARK: - Toast
@@ -96,6 +97,7 @@ final class AppState {
         biometricCapability: (@Sendable () -> Bool)? = nil,
         biometricAuthenticate: (@Sendable () async throws -> Void)? = nil,
         syncBiometricCredentials: (@Sendable () async -> Bool)? = nil,
+        resolveBiometricKey: (@Sendable () async -> String?)? = nil,
         nowProvider: @escaping () -> Date = Date.init
     ) {
         self.authService = authService
@@ -128,6 +130,15 @@ final class AppState {
                     return saved
                 }
             }
+        self.resolveBiometricKey =
+            resolveBiometricKey ?? { [clientKeyManager] in
+                do {
+                    return try await clientKeyManager.resolveViaBiometric()
+                } catch {
+                    Logger.auth.debug("Biometric foreground unlock failed: \(error.localizedDescription)")
+                    return nil
+                }
+            }
 
         // Load persisted values asynchronously
         Task { @MainActor in
@@ -141,7 +152,6 @@ final class AppState {
     func checkAuthState() async {
         authState = .loading
         biometricError = nil
-        pinEntryAllowsBiometricUnlock = false
 
         await ensureBiometricPreferenceLoaded()
 
@@ -208,15 +218,12 @@ final class AppState {
 
         switch destination {
         case .needsPinSetup:
-            pinEntryAllowsBiometricUnlock = false
             needsRecoveryKeyRepairConsent = false
             authState = .needsPinSetup
         case .needsPinEntry(let needsRecoveryConsent):
-            pinEntryAllowsBiometricUnlock = false
             needsRecoveryKeyRepairConsent = needsRecoveryConsent
             authState = .needsPinEntry
         case .authenticated(let needsRecoveryConsent):
-            pinEntryAllowsBiometricUnlock = false
             needsRecoveryKeyRepairConsent = needsRecoveryConsent
             if needsRecoveryConsent {
                 transitionToAuthenticated(allowBiometricPrompt: false)
@@ -226,7 +233,6 @@ final class AppState {
                 transitionToAuthenticated()
             }
         case .unauthenticatedSessionExpired:
-            pinEntryAllowsBiometricUnlock = false
             needsRecoveryKeyRepairConsent = false
             biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
             authState = .unauthenticated
@@ -234,18 +240,15 @@ final class AppState {
     }
 
     func login(email: String, password: String) async throws {
-        authState = .loading
-        pinEntryAllowsBiometricUnlock = false
+        // NOTE: Do NOT set authState = .loading here.
+        // LoginView handles its own loading state. Setting authState = .loading
+        // would cause SwiftUI to unmount LoginView (showing LoadingView), then
+        // remount it on error — causing a jarring close/reopen animation.
 
-        do {
-            let user = try await authService.login(email: email, password: password)
-            // Don't set hasCompletedOnboarding here - login is separate from onboarding flow.
-            // Only completeOnboarding() should set this flag.
-            await resolvePostAuth(user: user)
-        } catch {
-            authState = .unauthenticated
-            throw error
-        }
+        let user = try await authService.login(email: email, password: password)
+        // Don't set hasCompletedOnboarding here - login is separate from onboarding flow.
+        // Only completeOnboarding() should set this flag.
+        await resolvePostAuth(user: user)
     }
 
     func logout() async {
@@ -273,7 +276,6 @@ final class AppState {
         showBiometricEnrollment = false
         showRecoveryKeyRepairConsent = false
         showPostAuthRecoveryKeySheet = false
-        pinEntryAllowsBiometricUnlock = false
         needsRecoveryKeyRepairConsent = false
         postAuthRecoveryKey = nil
 
@@ -326,7 +328,6 @@ final class AppState {
         showBiometricEnrollment = false
         showRecoveryKeyRepairConsent = false
         showPostAuthRecoveryKeySheet = false
-        pinEntryAllowsBiometricUnlock = false
         needsRecoveryKeyRepairConsent = false
         postAuthRecoveryKey = nil
 
@@ -365,7 +366,6 @@ final class AppState {
         hasCompletedOnboarding = true
         pendingOnboardingData = onboardingData
         // After onboarding, user needs to set up PIN
-        pinEntryAllowsBiometricUnlock = false
         authState = .needsPinSetup
     }
 
@@ -408,7 +408,6 @@ final class AppState {
     }
 
     func startRecovery() {
-        pinEntryAllowsBiometricUnlock = false
         authState = .needsPinRecovery
     }
 
@@ -417,7 +416,6 @@ final class AppState {
     }
 
     func cancelRecovery() {
-        pinEntryAllowsBiometricUnlock = false
         authState = .needsPinEntry
     }
 
@@ -463,21 +461,36 @@ final class AppState {
 
     // MARK: - Background Lock
 
+    private var isBackgroundLockRequired: Bool {
+        guard let bgDate = backgroundDate else { return false }
+        let elapsed = Duration.seconds(nowProvider().timeIntervalSince(bgDate))
+        return elapsed >= AppConfiguration.backgroundGracePeriod
+            && authState == .authenticated
+    }
+
     func handleEnterBackground() {
         backgroundDate = nowProvider()
     }
 
+    func prepareForForeground() {
+        guard isBackgroundLockRequired else { return }
+        isRestoringSession = true
+    }
+
     func handleEnterForeground() async {
-        guard let bgDate = backgroundDate else { return }
+        defer { isRestoringSession = false }
+
+        guard isBackgroundLockRequired else { return }
         backgroundDate = nil
 
-        let elapsed = Duration.seconds(nowProvider().timeIntervalSince(bgDate))
-        guard elapsed >= AppConfiguration.backgroundGracePeriod else { return }
-        guard authState == .authenticated else { return }
-
-        // Grace period exceeded — clear in-memory clientKey and require re-entry
         await clientKeyManager.clearCache()
-        pinEntryAllowsBiometricUnlock = biometricEnabled
+
+        // Try biometric before routing to PIN entry — avoids PinEntryView flash
+        if biometricEnabled, await resolveBiometricKey() != nil {
+            return
+        }
+
+        // Biometric unavailable/failed/cancelled — require PIN
         authState = .needsPinEntry
     }
 
@@ -547,7 +560,6 @@ final class AppState {
     func handleStaleClientKey() async {
         guard authState == .authenticated else { return }
         await clientKeyManager.clearAll()
-        pinEntryAllowsBiometricUnlock = false
         authState = .needsPinEntry
     }
 
