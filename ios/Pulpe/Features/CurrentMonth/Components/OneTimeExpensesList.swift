@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// Section of free (unallocated) transactions - designed to be used inside a parent List
+/// Note: Deletion now uses undo toast instead of confirmation dialog
 struct TransactionSection: View {
     let title: String
     let transactions: [Transaction]
@@ -9,8 +10,6 @@ struct TransactionSection: View {
     let onDelete: (Transaction) -> Void
     let onEdit: (Transaction) -> Void
 
-    @State private var transactionToDelete: Transaction?
-    @State private var showDeleteAlert = false
     @State private var isExpanded = false
 
     private let collapsedItemCount = 3
@@ -48,8 +47,7 @@ struct TransactionSection: View {
     @ViewBuilder
     private func swipeActions(for transaction: Transaction) -> some View {
         Button {
-            transactionToDelete = transaction
-            showDeleteAlert = true
+            onDelete(transaction)
         } label: {
             Label("Supprimer", systemImage: "trash")
         }
@@ -96,7 +94,7 @@ struct TransactionSection: View {
                     onEdit: { onEdit(transaction) }
                 )
                     .listRowSeparator(.hidden)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         swipeActions(for: transaction)
                     }
             }
@@ -110,18 +108,6 @@ struct TransactionSection: View {
                 totalColor: totalColor
             )
             .textCase(nil)
-        }
-        .alert(
-            "Supprimer cette transaction ?",
-            isPresented: $showDeleteAlert,
-            presenting: transactionToDelete
-        ) { transaction in
-            Button("Annuler", role: .cancel) {}
-            Button("Supprimer", role: .destructive) {
-                onDelete(transaction)
-            }
-        } message: { _ in
-            Text("Cette action est irréversible.")
         }
     }
 }
