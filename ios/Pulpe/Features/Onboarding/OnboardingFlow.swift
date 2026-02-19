@@ -99,7 +99,7 @@ struct OnboardingStepView<Content: View>: View {
 
             // Error display
             if let error = state.error {
-                ErrorBanner(message: error.localizedDescription) {
+                ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
                     state.error = nil
                 }
                 .padding(.horizontal, 24)

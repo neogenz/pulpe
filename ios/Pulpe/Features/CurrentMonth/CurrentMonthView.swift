@@ -15,6 +15,10 @@ struct CurrentMonthView: View {
     @Environment(DashboardStore.self) private var dashboardStore
     @State private var activeSheet: SheetDestination?
     @State private var navigateToBudget = false
+    
+    // Progressive disclosure state (collapsed by default for cleaner dashboard)
+    @AppStorage("dashboard.trendsExpanded") private var trendsExpanded = false
+    @AppStorage("dashboard.yearOverviewExpanded") private var yearOverviewExpanded = false
 
     var body: some View {
         ZStack {
@@ -95,6 +99,16 @@ struct CurrentMonthView: View {
                     onTapProgress: { activeSheet = .realizedBalance }
                 )
 
+                // Forward-looking projection
+                if let projection = store.projection {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        Text("Projection")
+                            .pulpeSectionHeader()
+
+                        ProjectionCard(projection: projection)
+                    }
+                }
+
                 // Insights: top spending + budget alerts
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     Text("Aperçu")
@@ -120,11 +134,8 @@ struct CurrentMonthView: View {
                     }
                 }
 
-                // Trends (expenses over last 3 months) with external section header
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Text("Dépenses")
-                        .pulpeSectionHeader()
-
+                // Trends (expenses over last 3 months) - collapsible for progressive disclosure
+                CollapsibleSection(title: "Dépenses", isExpanded: $trendsExpanded) {
                     if dashboardStore.hasEnoughHistoryForTrends {
                         TrendsCard(
                             expenses: dashboardStore.historicalExpenses,
@@ -136,11 +147,8 @@ struct CurrentMonthView: View {
                     }
                 }
 
-                // Year overview (savings YTD + rollover)
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Text("Cette année")
-                        .pulpeSectionHeader()
-
+                // Year overview (savings YTD + rollover) - collapsible for progressive disclosure
+                CollapsibleSection(title: "Cette année", isExpanded: $yearOverviewExpanded) {
                     YearOverviewCard(
                         savingsYTD: dashboardStore.savingsYTD,
                         rollover: store.budget?.rollover ?? 0

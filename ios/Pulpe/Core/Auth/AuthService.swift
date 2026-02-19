@@ -255,7 +255,7 @@ actor AuthService {
             )
         } catch let error as LAError where error.code == .userCancel {
             throw KeychainError.userCanceled
-        } catch let error as LAError where error.code == .authenticationFailed {
+        } catch is LAError {
             throw KeychainError.authFailed
         }
 

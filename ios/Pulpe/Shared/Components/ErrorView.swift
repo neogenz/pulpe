@@ -15,7 +15,7 @@ struct ErrorView: View {
         ContentUnavailableView {
             Label("Oups", systemImage: "exclamationmark.triangle")
         } description: {
-            Text(error.localizedDescription)
+            Text(DomainErrorLocalizer.localize(error))
         } actions: {
             if let retryAction {
                 Button {

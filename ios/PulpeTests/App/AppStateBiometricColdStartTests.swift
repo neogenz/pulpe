@@ -222,6 +222,31 @@ struct AppStateBiometricColdStartTests {
         #expect(sut.authState == .needsPinEntry, "Should fall back to PIN entry when Face ID fails")
     }
     
+    @Test("Biometry lockout falls back to PIN entry without error banner")
+    func foregroundAfterGrace_biometryLockout_fallsToPIN() async {
+        // Biometry lockout (LAError.biometryLockout) causes resolveBiometricKey to return nil,
+        // same as cancel/failure. Cold start path fix is in AuthService.validateBiometricSession()
+        // where all LAError codes are now mapped to KeychainError.authFailed (caught by AppState).
+        var now = Date(timeIntervalSince1970: 0)
+
+        let sut = AppState(
+            resolveBiometricKey: { nil }, // Lockout: LAContext fails, wrapper returns nil
+            nowProvider: { now }
+        )
+
+        sut.biometricEnabled = true
+        sut.completePinEntry() // Start authenticated
+
+        sut.handleEnterBackground()
+        now = Date(timeIntervalSince1970: 31) // Exceed grace period
+        sut.prepareForForeground()
+
+        await sut.handleEnterForeground()
+
+        #expect(sut.authState == .needsPinEntry, "Biometry lockout should fall back to PIN entry")
+        #expect(sut.biometricError == nil, "Biometry lockout should NOT show error banner")
+    }
+
     @Test("Foreground after grace period with biometric disabled goes to PIN")
     func foregroundAfterGrace_biometricDisabled_goesToPIN() async {
         let faceIDAttempted = AtomicFlag()

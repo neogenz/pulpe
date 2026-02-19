@@ -303,6 +303,90 @@ enum BudgetFormulas {
         )
     }
 
+    // MARK: - Forward Projection
+
+    struct Projection: Equatable, Sendable {
+        let projectedEndOfMonthBalance: Decimal
+        let dailySpendingRate: Decimal
+        let daysElapsed: Int
+        let daysRemaining: Int
+        let isOnTrack: Bool
+        
+        /// Trend direction relative to budget
+        var trend: Trend {
+            if isOnTrack { return .onTrack }
+            return projectedEndOfMonthBalance < 0 ? .deficit : .surplus
+        }
+        
+        enum Trend {
+            case onTrack, deficit, surplus
+        }
+    }
+
+    /// Calculate forward-looking projection based on current spending rate
+    /// "À ce rythme, tu termineras le mois avec X CHF de disponible"
+    static func calculateProjection(
+        realizedExpenses: Decimal,
+        totalBudgetedExpenses: Decimal,
+        available: Decimal,
+        month: Int,
+        year: Int,
+        referenceDate: Date = Date()
+    ) -> Projection? {
+        let calendar = Calendar.current
+        
+        // Create date for the budget month
+        var components = DateComponents()
+        components.month = month
+        components.year = year
+        components.day = 1
+        guard let monthStart = calendar.date(from: components),
+              let monthEnd = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: monthStart)
+        else { return nil }
+        
+        let totalDaysInMonth = calendar.component(.day, from: monthEnd)
+        let currentDay = calendar.component(.day, from: referenceDate)
+        let currentMonth = calendar.component(.month, from: referenceDate)
+        let currentYear = calendar.component(.year, from: referenceDate)
+        
+        // Only calculate projection for current or future months
+        guard year > currentYear || (year == currentYear && month >= currentMonth) else {
+            return nil
+        }
+        
+        // For the current month, use actual days elapsed
+        let daysElapsed: Int
+        if month == currentMonth && year == currentYear {
+            daysElapsed = max(1, currentDay) // At least 1 day to avoid division by zero
+        } else {
+            // For future months, no projection needed (no spending yet)
+            return nil
+        }
+        
+        let daysRemaining = totalDaysInMonth - daysElapsed
+        
+        // Calculate daily spending rate based on realized expenses
+        let dailySpendingRate = realizedExpenses / Decimal(daysElapsed)
+        
+        // Project total expenses to end of month
+        let projectedTotalExpenses = dailySpendingRate * Decimal(totalDaysInMonth)
+        
+        // Calculate projected end-of-month balance
+        let projectedEndOfMonthBalance = available - projectedTotalExpenses
+        
+        // Determine if on track (projected balance >= planned remaining)
+        let plannedRemaining = available - totalBudgetedExpenses
+        let isOnTrack = projectedEndOfMonthBalance >= plannedRemaining
+        
+        return Projection(
+            projectedEndOfMonthBalance: projectedEndOfMonthBalance,
+            dailySpendingRate: dailySpendingRate,
+            daysElapsed: daysElapsed,
+            daysRemaining: daysRemaining,
+            isOnTrack: isOnTrack
+        )
+    }
+
     // MARK: - Template Totals
 
     struct TemplateTotals: Equatable, Sendable {

@@ -21,16 +21,16 @@ extension Color {
     /// Primary brand color - Dark green (#006820 light, #4AA070 dark)
     static let pulpePrimary = Color("PulpePrimary")
 
-    // MARK: - Surface Colors (system semantic for proper light/dark/high-contrast)
+    // MARK: - Surface Colors (green-tinted for brand identity, dark mode uses system for comfort)
 
-    /// Primary background — system grouped background (off-white in light, elevated dark in dark mode)
-    static let surfacePrimary = Color(uiColor: .systemGroupedBackground)
+    /// Primary background — green-tinted white in light mode (#F6FFF0), system dark in dark mode
+    static let surfacePrimary = Color(light: Color(hex: 0xF6FFF0), dark: Color(uiColor: .systemGroupedBackground))
 
-    /// Card/modal surfaces — elevated in dark mode for visible card definition
-    static let surfaceCard = Color(uiColor: .secondarySystemGroupedBackground)
+    /// Card/modal surfaces — light green tint in light mode (#EBFFE6), elevated dark in dark mode
+    static let surfaceCard = Color(light: Color(hex: 0xEBFFE6), dark: Color(uiColor: .secondarySystemGroupedBackground))
 
-    /// Secondary surface for form backgrounds, inactive pills
-    static let surfaceSecondary = Color(uiColor: .secondarySystemGroupedBackground)
+    /// Secondary surface for form backgrounds, inactive pills — subtle green tint
+    static let surfaceSecondary = Color(light: Color(hex: 0xEBFFE6), dark: Color(uiColor: .secondarySystemGroupedBackground))
 
     // MARK: - Semantic Text Colors
 
@@ -73,8 +73,14 @@ extension Color {
     /// Generic badge background
     static let badgeBackground = Color("BadgeBackground")
 
-    /// Input field background — system tertiary fill for native feel
-    static let inputBackgroundSoft = Color(uiColor: .tertiarySystemFill)
+    /// Input field background — green-tinted soft fill for brand consistency
+    static let inputBackgroundSoft = Color(light: Color(hex: 0xE8F5E9).opacity(0.6), dark: Color(uiColor: .tertiarySystemFill))
+
+    /// Separator color — warm green-grey instead of neutral grey
+    static let separatorGreenGrey = Color(light: Color(hex: 0xC5D6C8), dark: Color(hex: 0x3A3D3A))
+
+    /// Disabled state color — warm green-grey
+    static let disabledGreenGrey = Color(light: Color(hex: 0xA8B5AA), dark: Color(hex: 0x4A4D4A))
 
     /// Input focus glow color
     static let inputFocusGlow = Color(light: Color(hex: 0x006820).opacity(0.12), dark: Color(hex: 0x4AA070).opacity(0.15))
