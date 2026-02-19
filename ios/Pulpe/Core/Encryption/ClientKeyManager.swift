@@ -9,6 +9,9 @@ actor ClientKeyManager {
     private var cachedClientKeyHex: String?
     private let keychainManager: KeychainManager
     private let biometricService: BiometricService
+    
+    /// Coalescing task to prevent concurrent keychain reads
+    private var resolveTask: Task<String?, Never>?
 
     init(keychainManager: KeychainManager = .shared, biometricService: BiometricService = .shared) {
         self.keychainManager = keychainManager
@@ -18,15 +21,33 @@ actor ClientKeyManager {
     // MARK: - Query
 
     /// Returns cached key or tries regular keychain (no FaceID)
+    /// Uses task coalescing to prevent concurrent keychain reads
     func resolveClientKey() async -> String? {
+        // Fast path: return cached value immediately
         if let cached = cachedClientKeyHex { return cached }
 
-        if let stored = await keychainManager.getClientKey() {
-            cachedClientKeyHex = stored
-            return stored
+        // If a resolve is already in progress, await it
+        if let existingTask = resolveTask {
+            return await existingTask.value
         }
 
-        return nil
+        // Start a new resolve task
+        let task = Task<String?, Never> {
+            // Double-check cache after acquiring the task slot
+            if let cached = cachedClientKeyHex { return cached }
+            
+            if let stored = await keychainManager.getClientKey() {
+                cachedClientKeyHex = stored
+                return stored
+            }
+            return nil
+        }
+        
+        resolveTask = task
+        let result = await task.value
+        resolveTask = nil
+        
+        return result
     }
 
     /// Returns true if clientKey is available (cache or keychain)

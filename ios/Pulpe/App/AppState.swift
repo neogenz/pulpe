@@ -5,7 +5,6 @@ import WidgetKit
 private enum UserDefaultsKey {
     static let onboardingCompleted = "pulpe-onboarding-completed"
     static let biometricEnabled = "pulpe-biometric-enabled"
-    static let amountsHidden = "pulpe-amounts-hidden"
 }
 
 /// Thread-safe UserDefaults actor to avoid blocking main thread
@@ -72,27 +71,12 @@ final class AppState {
         }
     }
 
-    // MARK: - Amount Visibility
-
-    var amountsHidden: Bool = false {
-        didSet {
-            Task {
-                await UserDefaultsStore.shared.setBool(amountsHidden, forKey: UserDefaultsKey.amountsHidden)
-            }
-        }
-    }
-
-    func toggleAmountsVisibility() {
-        amountsHidden.toggle()
-    }
-
     var showBiometricEnrollment = false
     var biometricError: String?
 
     // MARK: - Background Grace Period
 
     private var backgroundDate: Date?
-    private static let gracePeriod: Duration = .seconds(30) // Product rule RG-006: lock after 30 seconds in background
 
     // MARK: - Services
 
@@ -123,7 +107,6 @@ final class AppState {
         Task { @MainActor in
             hasCompletedOnboarding = await UserDefaultsStore.shared.getBool(forKey: UserDefaultsKey.onboardingCompleted)
             biometricEnabled = await UserDefaultsStore.shared.getBool(forKey: UserDefaultsKey.biometricEnabled)
-            amountsHidden = await UserDefaultsStore.shared.getBool(forKey: UserDefaultsKey.amountsHidden)
         }
     }
 
@@ -416,7 +399,7 @@ final class AppState {
         backgroundDate = nil
 
         let elapsed = Duration.seconds(nowProvider().timeIntervalSince(bgDate))
-        guard elapsed >= Self.gracePeriod else { return }
+        guard elapsed >= AppConfiguration.backgroundGracePeriod else { return }
         guard authState == .authenticated else { return }
 
         // Grace period exceeded — clear in-memory clientKey and require re-entry

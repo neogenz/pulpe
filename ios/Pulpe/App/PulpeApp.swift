@@ -12,6 +12,7 @@ enum DeepLinkDestination: Hashable {
 @main
 struct PulpeApp: App {
     @State private var appState = AppState()
+    @State private var uiPreferences = UIPreferencesState()
     @State private var currentMonthStore = CurrentMonthStore()
     @State private var budgetListStore = BudgetListStore()
     @State private var dashboardStore = DashboardStore()
@@ -28,6 +29,7 @@ struct PulpeApp: App {
         WindowGroup {
             RootView(deepLinkDestination: $deepLinkDestination)
                 .environment(appState)
+                .environment(uiPreferences)
                 .environment(currentMonthStore)
                 .environment(budgetListStore)
                 .environment(dashboardStore)
@@ -67,6 +69,7 @@ struct PulpeApp: App {
 
 struct RootView: View {
     @Environment(AppState.self) private var appState
+    @Environment(UIPreferencesState.self) private var uiPreferences
     @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(BudgetListStore.self) private var budgetListStore
     @Environment(DashboardStore.self) private var dashboardStore
@@ -217,15 +220,15 @@ struct RootView: View {
             showAmountsToggleAlert = true
         }
         .alert(
-            appState.amountsHidden ? "Afficher les montants ?" : "Masquer les montants ?",
+            uiPreferences.amountsHidden ? "Afficher les montants ?" : "Masquer les montants ?",
             isPresented: $showAmountsToggleAlert
         ) {
             Button("Confirmer") {
-                appState.toggleAmountsVisibility()
+                uiPreferences.toggleAmountsVisibility()
             }
             Button("Annuler", role: .cancel) {}
         }
-        .environment(\.amountsHidden, appState.amountsHidden)
+        .environment(\.amountsHidden, uiPreferences.amountsHidden)
     }
 
     private var shouldShowPrivacyShield: Bool {

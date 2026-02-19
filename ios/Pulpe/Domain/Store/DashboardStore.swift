@@ -8,17 +8,24 @@ final class DashboardStore: StoreProtocol {
 
     @MainActor private(set) var sparseBudgets: [BudgetSparse] = []
     @MainActor private(set) var isLoading = false
-    @MainActor private(set) var error: Error?
+    @MainActor private(set) var error: APIError?
+    
+    /// Returns true if the store has an error and no data to display
+    @MainActor var hasError: Bool {
+        error != nil && sparseBudgets.isEmpty
+    }
 
     // MARK: - Cache Metadata
 
     private var lastLoadTime: Date?
-    private static let cacheValidityDuration: TimeInterval = 300 // 5 minutes for historical data
 
     private var isCacheValid: Bool {
         guard let lastLoad = lastLoadTime else { return false }
-        return Date().timeIntervalSince(lastLoad) < Self.cacheValidityDuration
+        return Date().timeIntervalSince(lastLoad) < AppConfiguration.longCacheValidity
     }
+
+    /// Coalescing task to prevent concurrent API loads
+    private var loadTask: Task<Void, Never>?
 
     // MARK: - Services
 
@@ -44,26 +51,45 @@ final class DashboardStore: StoreProtocol {
     }
 
     func forceRefresh() async {
-        await MainActor.run {
-            isLoading = true
-            error = nil
-        }
-        defer { Task { @MainActor in isLoading = false } }
+        // Cancel any existing load task to avoid duplicate requests
+        loadTask?.cancel()
+        
+        let task = Task {
+            await MainActor.run {
+                isLoading = true
+                error = nil
+            }
+            defer { Task { @MainActor in isLoading = false } }
 
-        do {
-            // Fetch only aggregated data - no transactions or budget lines
-            let budgets = try await budgetService.getBudgetsSparse(
-                limit: Self.maxBudgetsToFetch
-            )
-            await MainActor.run {
-                sparseBudgets = budgets
-            }
-            lastLoadTime = Date()
-        } catch {
-            await MainActor.run {
-                self.error = error
+            do {
+                // Fetch only aggregated data - no transactions or budget lines
+                let budgets = try await budgetService.getBudgetsSparse(
+                    limit: Self.maxBudgetsToFetch
+                )
+                
+                // Check for cancellation before updating state
+                try Task.checkCancellation()
+                
+                await MainActor.run {
+                    sparseBudgets = budgets
+                }
+                lastLoadTime = Date()
+            } catch is CancellationError {
+                // Task was cancelled, don't update error state
+            } catch let apiError as APIError {
+                await MainActor.run {
+                    self.error = apiError
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = .networkError(error)
+                }
             }
         }
+        
+        loadTask = task
+        await task.value
+        loadTask = nil
     }
 
     // MARK: - Computed Properties

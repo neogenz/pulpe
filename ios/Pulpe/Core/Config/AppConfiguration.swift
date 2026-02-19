@@ -72,6 +72,27 @@ enum AppConfiguration {
 
     static let maxTemplates = 5
     static let maxBudgetYearsAhead = 3
+    
+    // MARK: - Cache Durations
+    
+    /// Cache validity for frequently changing data (budgets, transactions)
+    /// Short duration to ensure multi-device sync stays fresh
+    static let shortCacheValidity: TimeInterval = 30
+    
+    /// Cache validity for historical/aggregated data (dashboard trends)
+    /// Longer duration since this data changes less frequently
+    static let longCacheValidity: TimeInterval = 300
+    
+    /// Debounce delay for widget sync to avoid excessive reloads
+    static let widgetSyncDebounceDelay: TimeInterval = 1.0
+    
+    // MARK: - Security
+    
+    /// Grace period before requiring PIN re-entry after backgrounding (RG-006)
+    static let backgroundGracePeriod: Duration = .seconds(30)
+    
+    /// Minimum PIN length
+    static let minPinLength = 4
 
     // MARK: - Private
 
