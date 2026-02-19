@@ -14,6 +14,7 @@ actor KeychainManager {
     private let biometricRefreshTokenKey = "biometric_refresh_token"
     private let clientKeyKey = "client_key"
     private let biometricClientKeyKey = "biometric_client_key"
+    private let biometricEnabledPreferenceKey = "biometric_enabled"
     private let onboardingCompletedKey = "onboarding_completed"
 
     private var isAvailableCache: Bool?
@@ -185,6 +186,25 @@ actor KeychainManager {
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         return status == errSecSuccess || status == errSecInteractionNotAllowed
+    }
+
+    // MARK: - Biometric Preference
+
+    func saveBiometricEnabledPreference(_ enabled: Bool) {
+        save(key: biometricEnabledPreferenceKey, value: enabled ? "true" : "false")
+    }
+
+    func getBiometricEnabledPreference() -> Bool? {
+        guard let raw = get(key: biometricEnabledPreferenceKey) else { return nil }
+        switch raw {
+        case "true": return true
+        case "false": return false
+        default: return nil
+        }
+    }
+
+    func clearBiometricEnabledPreference() {
+        delete(key: biometricEnabledPreferenceKey)
     }
 
     // MARK: - Onboarding Status

@@ -19,7 +19,7 @@ enum AuthErrorLocalizer {
     // MARK: - Supabase error code translations (from error.code)
     private static let codeTranslations: [String: (AuthErrorKind, String)] = [
         "same_password": (.samePassword, "Le nouveau mot de passe doit être différent de l'ancien"),
-        "weak_password": (.weakPassword, "Choisis un mot de passe plus sécurisé — 8 caractères avec lettres et chiffres"),
+        "weak_password": (.weakPassword, "Ce mot de passe est trop prévisible — essaie une combinaison moins courante"),
         "invalid_credentials": (.invalidCredentials, "Email ou mot de passe incorrect — réessaie"),
         "user_already_exists": (.userAlreadyRegistered, "Cet email est déjà utilisé — tu as peut-être déjà un compte ?"),
         "email_exists": (.userAlreadyRegistered, "Cet email est déjà utilisé — tu as peut-être déjà un compte ?"),
@@ -162,7 +162,7 @@ enum AuthErrorLocalizer {
         case .userAlreadyRegistered:
             return "Cet email est déjà utilisé — tu as peut-être déjà un compte ?"
         case .weakPassword:
-            return "Choisis un mot de passe plus sécurisé — 8 caractères avec lettres et chiffres"
+            return "Ce mot de passe est trop prévisible — essaie une combinaison moins courante"
         case .samePassword:
             return "Le nouveau mot de passe doit être différent de l'ancien"
         case .sessionExpired:

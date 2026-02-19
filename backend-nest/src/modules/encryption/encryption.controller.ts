@@ -58,9 +58,11 @@ export class EncryptionController {
     status: 200,
     description: 'Vault code configuration status',
   })
-  async getVaultStatus(
-    @User() user: AuthenticatedUser,
-  ): Promise<{ vaultCodeConfigured: boolean }> {
+  async getVaultStatus(@User() user: AuthenticatedUser): Promise<{
+    pinCodeConfigured: boolean;
+    recoveryKeyConfigured: boolean;
+    vaultCodeConfigured: boolean;
+  }> {
     return this.encryptionService.getVaultStatus(user.id);
   }
 

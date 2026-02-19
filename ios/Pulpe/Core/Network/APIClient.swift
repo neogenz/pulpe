@@ -4,22 +4,6 @@ import OSLog
 /// Thread-safe API client with token management
 actor APIClient {
     static let shared = APIClient()
-    
-    // MARK: - Static Date Formatters (reused across all decodes)
-    
-    /// ISO8601 formatter with fractional seconds (most common API format)
-    private static let iso8601WithFractional: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter
-    }()
-    
-    /// ISO8601 formatter without fractional seconds (fallback)
-    private static let iso8601Standard: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter
-    }()
 
     private let session: URLSession
     private let baseURL: URL
@@ -68,20 +52,22 @@ actor APIClient {
 
     private static func makeDecoder() -> JSONDecoder {
         let decoder = JSONDecoder()
+        let iso8601WithFractional = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
+        let iso8601Standard = Date.ISO8601FormatStyle()
 
         // Configure date decoding for ISO8601 with timezone
-        // Uses static formatters to avoid allocation on every decode
+        // Reuse parsing strategies captured by the decoder strategy to avoid per-date allocations.
         decoder.dateDecodingStrategy = .custom { dateDecoder in
             let container = try dateDecoder.singleValueContainer()
             let dateString = try container.decode(String.self)
 
             // Try fractional seconds first (most common)
-            if let date = iso8601WithFractional.date(from: dateString) {
+            if let date = try? iso8601WithFractional.parse(dateString) {
                 return date
             }
 
             // Fallback to standard ISO8601
-            if let date = iso8601Standard.date(from: dateString) {
+            if let date = try? iso8601Standard.parse(dateString) {
                 return date
             }
 

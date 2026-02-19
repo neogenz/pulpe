@@ -12,6 +12,12 @@ export interface UserEncryptionKeyFullRow extends UserEncryptionKeyRow {
   key_check: string | null;
 }
 
+export interface VaultStatusRow {
+  pinCodeConfigured: boolean;
+  recoveryKeyConfigured: boolean;
+  vaultCodeConfigured: boolean;
+}
+
 @Injectable()
 export class EncryptionKeyRepository {
   readonly #logger = new Logger(EncryptionKeyRepository.name);
@@ -130,6 +136,37 @@ export class EncryptionKeyRepository {
       );
     }
     return data?.key_check != null && data?.wrapped_dek != null;
+  }
+
+  async getVaultStatus(userId: string): Promise<VaultStatusRow> {
+    const supabase = this.#supabaseService.getServiceRoleClient();
+    const { data, error } = await supabase
+      .from('user_encryption_key')
+      .select('key_check, wrapped_dek')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return {
+          pinCodeConfigured: false,
+          recoveryKeyConfigured: false,
+          vaultCodeConfigured: false,
+        };
+      }
+      throw new Error(
+        `Failed to fetch vault status for user ${userId}: ${error.message}`,
+      );
+    }
+
+    const pinCodeConfigured = data?.key_check != null;
+    const recoveryKeyConfigured = data?.wrapped_dek != null;
+
+    return {
+      pinCodeConfigured,
+      recoveryKeyConfigured,
+      vaultCodeConfigured: pinCodeConfigured && recoveryKeyConfigured,
+    };
   }
 
   async updateKeyCheck(userId: string, keyCheck: string): Promise<void> {

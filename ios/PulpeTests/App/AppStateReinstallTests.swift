@@ -8,6 +8,9 @@ import Testing
 @MainActor
 @Suite(.serialized)
 struct AppStateReinstallTests {
+    private func requiresKeychainAvailability() -> Bool {
+        KeychainManager.checkAvailability()
+    }
     
     // Clean keychain state before each test to ensure isolation
     init() async throws {
@@ -18,6 +21,7 @@ struct AppStateReinstallTests {
     
     @Test("Onboarding completed flag persists in Keychain")
     func onboardingCompleted_persistsInKeychain() async {
+        guard requiresKeychainAvailability() else { return }
         let keychain = KeychainManager.shared
         
         // Clean state
@@ -34,6 +38,7 @@ struct AppStateReinstallTests {
     
     @Test("Onboarding completed flag survives AppState recreation")
     func onboardingCompleted_survivesAppStateRecreation() async {
+        guard requiresKeychainAvailability() else { return }
         let keychain = KeychainManager.shared
         
         // Simulate: user completed onboarding in previous session
@@ -74,6 +79,7 @@ struct AppStateReinstallTests {
     
     @Test("User with completed onboarding routes to login not welcome")
     func completedOnboarding_routesToLogin() async {
+        guard requiresKeychainAvailability() else { return }
         let keychain = KeychainManager.shared
         
         // Simulate: returning user who completed onboarding before
@@ -98,6 +104,7 @@ struct AppStateReinstallTests {
     
     @Test("New user without onboarding flag routes to welcome")
     func newUser_routesToWelcome() async {
+        guard requiresKeychainAvailability() else { return }
         let keychain = KeychainManager.shared
         
         // Simulate: fresh install, no onboarding completed
@@ -119,6 +126,7 @@ struct AppStateReinstallTests {
     
     @Test("Keychain persists across app reinstall simulation")
     func keychain_persistsAcrossReinstall() async {
+        guard requiresKeychainAvailability() else { return }
         let keychain = KeychainManager.shared
         
         // Step 1: User completes onboarding (stored in Keychain)

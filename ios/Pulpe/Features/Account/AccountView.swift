@@ -55,14 +55,18 @@ struct AccountView: View {
                         Button("Changer") {
                             showChangePassword = true
                         }
-                        .foregroundStyle(Color.primary)
+                        .buttonStyle(.bordered)
+                        .buttonBorderShape(.capsule)
+                        .tint(.pulpePrimary)
                     }
 
                     LabeledContent("Clé de secours") {
                         Button("Régénérer") {
                             securityViewModel.showConfirmPassword = true
                         }
-                        .foregroundStyle(Color.primary)
+                        .buttonStyle(.bordered)
+                        .buttonBorderShape(.capsule)
+                        .tint(.pulpePrimary)
                         .disabled(securityViewModel.isRegenerating)
                     }
                 } header: {

@@ -1,11 +1,41 @@
 import OSLog
 import SwiftUI
 
+enum PinSetupMode: Equatable, Sendable {
+    case chooseAndSetupRecovery
+    case enterExistingPin
+
+    var title: String {
+        switch self {
+        case .chooseAndSetupRecovery:
+            return "Choisis ton code PIN"
+        case .enterExistingPin:
+            return "Saisis ton code PIN"
+        }
+    }
+
+    var subtitle: String {
+        "4 chiffres minimum"
+    }
+}
+
 struct PinSetupView: View {
+    let mode: PinSetupMode
     let onComplete: () async -> Void
     let onLogout: (() async -> Void)?
 
-    @State private var viewModel = PinSetupViewModel()
+    @State private var viewModel: PinSetupViewModel
+
+    init(
+        mode: PinSetupMode = .chooseAndSetupRecovery,
+        onComplete: @escaping () async -> Void,
+        onLogout: (() async -> Void)?
+    ) {
+        self.mode = mode
+        self.onComplete = onComplete
+        self.onLogout = onLogout
+        _viewModel = State(initialValue: PinSetupViewModel(mode: mode))
+    }
 
     var body: some View {
         content
@@ -78,11 +108,11 @@ struct PinSetupView: View {
 
     private var headerSection: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
-            Text("Choisis ton code PIN")
+            Text(viewModel.mode.title)
                 .font(PulpeTypography.onboardingTitle)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
-            Text("4 chiffres minimum")
+            Text(viewModel.mode.subtitle)
                 .font(PulpeTypography.stepSubtitle)
                 .foregroundStyle(Color.textSecondaryOnboarding)
         }
@@ -118,8 +148,28 @@ struct PinSetupView: View {
 
 // MARK: - ViewModel
 
+protocol PinSetupCryptoKeyDerivation: Sendable {
+    func deriveClientKey(pin: String, saltHex: String, iterations: Int) async throws -> String
+}
+
+protocol PinSetupEncryptionKeyValidation: Sendable {
+    func getSalt() async throws -> EncryptionSaltResponse
+    func validateKey(_ clientKeyHex: String) async throws
+    func setupRecoveryKey() async throws -> String
+}
+
+protocol PinSetupClientKeyStorage: Sendable {
+    func store(_ clientKeyHex: String, enableBiometric: Bool) async
+}
+
+extension CryptoService: PinSetupCryptoKeyDerivation {}
+extension EncryptionAPI: PinSetupEncryptionKeyValidation {}
+extension ClientKeyManager: PinSetupClientKeyStorage {}
+
 @Observable @MainActor
 final class PinSetupViewModel {
+    let mode: PinSetupMode
+
     private(set) var digits: [Int] = []
     private(set) var isValidating = false
     private(set) var isError = false
@@ -131,9 +181,21 @@ final class PinSetupViewModel {
     let maxDigits = 6
     let minDigits = 4
 
-    private let cryptoService = CryptoService.shared
-    private let encryptionAPI = EncryptionAPI.shared
-    private let clientKeyManager = ClientKeyManager.shared
+    private let cryptoService: any PinSetupCryptoKeyDerivation
+    private let encryptionAPI: any PinSetupEncryptionKeyValidation
+    private let clientKeyManager: any PinSetupClientKeyStorage
+
+    init(
+        mode: PinSetupMode = .chooseAndSetupRecovery,
+        cryptoService: any PinSetupCryptoKeyDerivation = CryptoService.shared,
+        encryptionAPI: any PinSetupEncryptionKeyValidation = EncryptionAPI.shared,
+        clientKeyManager: any PinSetupClientKeyStorage = ClientKeyManager.shared
+    ) {
+        self.mode = mode
+        self.cryptoService = cryptoService
+        self.encryptionAPI = encryptionAPI
+        self.clientKeyManager = clientKeyManager
+    }
 
     var canConfirm: Bool {
         digits.count >= minDigits && !isValidating
@@ -181,6 +243,12 @@ final class PinSetupViewModel {
             )
             try await encryptionAPI.validateKey(clientKeyHex)
             await clientKeyManager.store(clientKeyHex, enableBiometric: false)
+
+            if mode == .enterExistingPin {
+                digits = []
+                completedWithoutRecovery = true
+                return
+            }
 
             // Guard: if user already has a recovery key, skip setup to avoid overwriting it.
             // This can happen when vault-status returns 404 and the app routes here by mistake.
