@@ -71,11 +71,13 @@ struct AppStateBiometricColdStartTests {
         )
         
         // Wait for biometric preference to load
-        try? await Task.sleep(for: .milliseconds(100))
-        
+        await waitForCondition(timeout: .milliseconds(500), "Biometric preference should load from keychain") {
+            sut.biometricEnabled == true
+        }
+
         // Manually set biometricEnabled since we can't easily mock the full auth flow
         sut.biometricEnabled = true
-        
+
         // Note: Full checkAuthState() test requires mocking AuthService
         // This test verifies the biometric preference is correctly loaded and used
         #expect(sut.biometricEnabled == true, "Biometric should be enabled from preference store")
@@ -96,9 +98,9 @@ struct AppStateBiometricColdStartTests {
             resolveBiometricKey: { nil }
         )
         
-        // Wait for biometric preference to load
+        // Wait for biometric preference to load (stays false, just need to wait for hydration)
         try? await Task.sleep(for: .milliseconds(100))
-        
+
         #expect(sut.biometricEnabled == false, "Biometric should be disabled from preference store")
     }
     
@@ -117,14 +119,13 @@ struct AppStateBiometricColdStartTests {
         )
         
         // Wait for async preference loading
-        for _ in 0..<20 {
-            try? await Task.sleep(for: .milliseconds(50))
-            if sut.biometricEnabled { break }
+        await waitForCondition(timeout: .milliseconds(1000), "Biometric preference should load as true") {
+            sut.biometricEnabled == true
         }
-        
+
         #expect(sut.biometricEnabled == true)
     }
-    
+
     @Test("Biometric disabled preference is loaded from keychain on init")
     func biometricDisabledPreference_loadedFromKeychain() async {
         let biometricStore = BiometricPreferenceStore(
@@ -162,11 +163,10 @@ struct AppStateBiometricColdStartTests {
         )
         
         // Wait for preference to load
-        for _ in 0..<20 {
-            try? await Task.sleep(for: .milliseconds(50))
-            if sut.biometricEnabled { break }
+        await waitForCondition(timeout: .milliseconds(1000), "Biometric preference should load as true for DEBUG test") {
+            sut.biometricEnabled == true
         }
-        
+
         // The key assertion: biometricEnabled should be true
         // This ensures the DEBUG block in checkAuthState() will NOT bypass biometric auth
         #expect(sut.biometricEnabled == true, 

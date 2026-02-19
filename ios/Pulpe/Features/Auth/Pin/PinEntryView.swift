@@ -150,6 +150,7 @@ final class PinEntryViewModel {
     let maxDigits = 6
     let minDigits = 4
 
+    private var errorResetTask: Task<Void, Never>?
     private let cryptoService: any CryptoKeyDerivation
     private let encryptionAPI: any EncryptionKeyValidation
     private let clientKeyManager: any ClientKeyStorage
@@ -243,8 +244,10 @@ final class PinEntryViewModel {
         isError = true
         digits = []
 
-        Task {
+        errorResetTask?.cancel()
+        errorResetTask = Task {
             try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled else { return }
             isError = false
         }
     }
