@@ -35,16 +35,16 @@ struct YearOverviewCard: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(color)
 
                 Text(title)
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)
             }
 
             Text(value.asCHF)
-                .font(.system(.title3, design: .rounded, weight: .bold))
+                .font(.custom("Manrope-Bold", size: 20, relativeTo: .title3))
                 .foregroundStyle(color)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)

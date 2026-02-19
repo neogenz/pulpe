@@ -25,7 +25,7 @@ struct RegistrationStep: View {
         ) {
             VStack(spacing: DesignTokens.Spacing.xxl) {
                 Text("Crée ton compte pour sauvegarder ton budget")
-                    .font(.body.weight(.medium))
+                    .font(PulpeTypography.body.weight(.medium))
                     .foregroundStyle(Color.textPrimaryOnboarding)
                     .multilineTextAlignment(.center)
                     .padding(.bottom, DesignTokens.Spacing.sm)
@@ -45,7 +45,7 @@ struct RegistrationStep: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .focused($focusedField, equals: .email)
-                    .font(.body)
+                    .font(PulpeTypography.body)
                     .foregroundStyle(Color.authInputText)
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .frame(height: DesignTokens.FrameHeight.button)
@@ -91,7 +91,7 @@ struct RegistrationStep: View {
                         }
                         .textContentType(.newPassword)
                         .focused($focusedField, equals: .password)
-                        .font(.body)
+                        .font(PulpeTypography.body)
                         .foregroundStyle(Color.authInputText)
 
                         Button {
@@ -100,7 +100,7 @@ struct RegistrationStep: View {
                             }
                         } label: {
                             Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
-                                .font(.body)
+                                .font(PulpeTypography.body)
                                 .foregroundStyle(Color.authInputText.opacity(0.6))
                                 .contentTransition(.symbolEffect(.replace))
                         }
@@ -129,10 +129,10 @@ struct RegistrationStep: View {
 
                     HStack(spacing: 6) {
                         Image(systemName: "info.circle.fill")
-                            .font(.caption)
+                            .font(PulpeTypography.caption)
                             .foregroundStyle(Color.pulpePrimary.opacity(0.7))
                         Text("8 caractères minimum avec au moins un chiffre")
-                            .font(.caption)
+                            .font(PulpeTypography.caption)
                             .foregroundStyle(Color.textSecondaryOnboarding)
                     }
                 }
@@ -159,7 +159,7 @@ struct RegistrationStep: View {
                         }
                         .textContentType(.newPassword)
                         .focused($focusedField, equals: .passwordConfirmation)
-                        .font(.body)
+                        .font(PulpeTypography.body)
                         .foregroundStyle(Color.authInputText)
 
                         Button {
@@ -168,7 +168,7 @@ struct RegistrationStep: View {
                             }
                         } label: {
                             Image(systemName: showPasswordConfirmation ? "eye.slash.fill" : "eye.fill")
-                                .font(.body)
+                                .font(PulpeTypography.body)
                                 .foregroundStyle(Color.authInputText.opacity(0.6))
                                 .contentTransition(.symbolEffect(.replace))
                         }
@@ -198,7 +198,7 @@ struct RegistrationStep: View {
 
                     if passwordMismatch {
                         Text("Les mots de passe ne correspondent pas")
-                            .font(.caption)
+                            .font(PulpeTypography.caption)
                             .foregroundStyle(Color.errorPrimary)
                     }
                 }
@@ -229,7 +229,7 @@ struct RegistrationStep: View {
                         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: state.acceptTerms)
                         
                         Text("J'accepte les [conditions d'utilisation](https://pulpe.app/terms) et la [politique de confidentialité](https://pulpe.app/privacy)")
-                            .font(.footnote)
+                            .font(PulpeTypography.footnote)
                             .foregroundStyle(Color.textPrimaryOnboarding)
                             .multilineTextAlignment(.leading)
                             .frame(maxWidth: .infinity, alignment: .leading)

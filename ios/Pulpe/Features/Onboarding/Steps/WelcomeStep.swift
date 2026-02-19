@@ -38,12 +38,12 @@ struct WelcomeStep: View {
                 // Value proposition
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Text("Vois clair dans tes finances")
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                        .font(.custom("Manrope-Bold", size: 34, relativeTo: .largeTitle))
                         .foregroundStyle(Color.textPrimaryOnboarding)
                         .multilineTextAlignment(.center)
 
                     Text("Planifie ton budget en 2 minutes, sans prise de tête")
-                        .font(.title3)
+                        .font(PulpeTypography.title3)
                         .foregroundStyle(Color.textSecondaryOnboarding)
                         .multilineTextAlignment(.center)
                 }

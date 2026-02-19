@@ -86,7 +86,7 @@ struct HeroBalanceCard: View {
                     .foregroundStyle(.white)
 
                 Text(Self.balanceFormatter.string(from: abs(metrics.remaining) as NSDecimalNumber) ?? "0")
-                .font(.system(size: heroFontSize, weight: .bold, design: .rounded))
+                .font(.custom("Manrope-Bold", size: heroFontSize, relativeTo: .largeTitle))
                 .monospacedDigit()
                 .foregroundStyle(.white)
                 .contentTransition(.numericText())
@@ -94,7 +94,7 @@ struct HeroBalanceCard: View {
                 .accessibilityLabel(metrics.remaining.asCHF)
 
                 Text(motivationalMessage)
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.white.opacity(0.75))
             }
 
@@ -123,7 +123,7 @@ struct HeroBalanceCard: View {
 
                 VStack(spacing: 0) {
                     Text("\(displayPercentage)")
-                        .font(.system(.title2, design: .rounded, weight: .bold))
+                        .font(.custom("Manrope-Bold", size: 22, relativeTo: .title2))
                         .monospacedDigit()
                         .foregroundStyle(.white)
                         .contentTransition(.numericText())
@@ -179,7 +179,7 @@ struct HeroBalanceCard: View {
                     .foregroundStyle(.primary)
 
                 Text(Self.pillFormatter.string(from: value as NSDecimalNumber) ?? "0")
-                    .font(.system(.callout, design: .rounded, weight: .semibold))
+                    .font(.custom("Manrope-SemiBold", size: 16, relativeTo: .callout))
                     .foregroundStyle(color)
                     .contentTransition(.numericText())
                     .sensitiveAmount()

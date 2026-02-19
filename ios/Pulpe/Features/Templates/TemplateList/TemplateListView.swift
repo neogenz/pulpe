@@ -104,11 +104,11 @@ struct TemplateRow: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text(template.name)
-                            .font(.headline)
+                            .font(PulpeTypography.headline)
 
                         if template.isDefaultTemplate {
                             Text("Par défaut")
-                                .font(.caption2)
+                                .font(PulpeTypography.caption2)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
                                 .background(Color.accentColor.opacity(0.15), in: Capsule())
@@ -118,7 +118,7 @@ struct TemplateRow: View {
 
                     if let description = template.description, !description.isEmpty {
                         Text(description)
-                            .font(.caption)
+                            .font(PulpeTypography.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
@@ -127,7 +127,7 @@ struct TemplateRow: View {
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)
             }
         }

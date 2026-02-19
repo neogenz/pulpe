@@ -47,12 +47,12 @@ struct ProjectionCard: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(message)
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
                     .fontWeight(.medium)
                     .foregroundStyle(.primary)
 
                 Text(subMessage)
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)
             }
 

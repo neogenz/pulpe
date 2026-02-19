@@ -39,11 +39,11 @@ struct RecoveryKeySheet: View {
 
             VStack(spacing: DesignTokens.Spacing.sm) {
                 Text("Clé de récupération")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(.custom("Manrope-Bold", size: 28, relativeTo: .title))
                     .multilineTextAlignment(.center)
 
                 Text("Note cette clé dans un endroit sûr. Elle te permettra de retrouver l'accès à tes données si tu oublies ton code PIN.")
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
@@ -108,10 +108,10 @@ struct RecoveryKeySheet: View {
     private var warningText: some View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.subheadline)
+                .font(PulpeTypography.subheadline)
                 .foregroundStyle(Color.warningPrimary)
             Text("Sans cette clé et sans ton code PIN, tes données financières seront définitivement inaccessibles.")
-                .font(.footnote)
+                .font(PulpeTypography.footnote)
                 .foregroundStyle(.secondary)
         }
         .padding(DesignTokens.Spacing.lg)

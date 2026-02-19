@@ -70,11 +70,11 @@ struct LoginView: View {
 
             VStack(spacing: DesignTokens.Spacing.xs) {
                 Text("Content de te revoir")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(.custom("Manrope-Bold", size: 28, relativeTo: .title))
                     .foregroundStyle(Color.textPrimaryOnboarding)
 
                 Text("Connecte-toi pour accéder à ton budget")
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
                     .foregroundStyle(Color.textSecondaryOnboarding)
             }
             .multilineTextAlignment(.center)
@@ -108,10 +108,10 @@ struct LoginView: View {
         if let errorMessage = viewModel.errorMessage ?? appState.biometricError {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.body)
+                    .font(PulpeTypography.body)
                     .foregroundStyle(Color.errorPrimary)
                 Text(errorMessage)
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
                     .multilineTextAlignment(.leading)
                     .foregroundStyle(Color.textPrimary)
             }
@@ -134,7 +134,7 @@ struct LoginView: View {
             } label: {
                 HStack(spacing: DesignTokens.Spacing.md) {
                     Image(systemName: biometricIcon)
-                        .font(.title3)
+                        .font(PulpeTypography.title3)
                     Text("Continuer avec \(BiometricService.shared.biometryDisplayName)")
                         .fontWeight(.semibold)
                 }
@@ -180,7 +180,7 @@ struct LoginView: View {
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
             .focused($focusedField, equals: .email)
-            .font(.body)
+            .font(PulpeTypography.body)
             .foregroundStyle(Color.authInputText)
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .frame(height: DesignTokens.FrameHeight.button)
@@ -230,7 +230,7 @@ struct LoginView: View {
                 }
                 .textContentType(.password)
                 .focused($focusedField, equals: .password)
-                .font(.body)
+                .font(PulpeTypography.body)
                 .foregroundStyle(Color.authInputText)
                 .accessibilityIdentifier("password")
 
@@ -240,7 +240,7 @@ struct LoginView: View {
                     }
                 } label: {
                     Image(systemName: viewModel.showPassword ? "eye.slash.fill" : "eye.fill")
-                        .font(.body)
+                        .font(PulpeTypography.body)
                         .foregroundStyle(Color.authInputText.opacity(0.6))
                         .contentTransition(.symbolEffect(.replace))
                 }
@@ -312,7 +312,7 @@ struct LoginView: View {
     private var createAccountSection: some View {
         HStack(spacing: DesignTokens.Spacing.xs) {
             Text("Nouveau sur Pulpe ?")
-                .font(.subheadline)
+                .font(PulpeTypography.subheadline)
                 .foregroundStyle(Color.textSecondaryOnboarding)
 
             Button {
@@ -324,7 +324,7 @@ struct LoginView: View {
                 }
             } label: {
                 Text("Créer un compte")
-                    .font(.subheadline.weight(.semibold))
+                    .font(PulpeTypography.subheadline.weight(.semibold))
                     .foregroundStyle(Color.pulpePrimary)
             }
         }

@@ -224,7 +224,7 @@ struct YearSection: View {
 
                 // Year label
                 Text(String(year))
-                    .font(.system(.title2, design: .rounded, weight: .bold))
+                    .font(.custom("Manrope-Bold", size: 22, relativeTo: .title2))
                     .foregroundStyle(data.isPastYear ? .secondary : .primary)
 
                 // Current year badge (neutral style)
@@ -240,7 +240,7 @@ struct YearSection: View {
                         Image(systemName: endBalance >= 0 ? "arrow.up.right" : "arrow.down.right")
                             .font(.system(size: 11, weight: .bold))
                         Text(endBalance.asCompactCHF)
-                            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                            .font(.custom("Manrope-SemiBold", size: 15, relativeTo: .subheadline))
                             .monospacedDigit()
                     }
                     .foregroundStyle(endBalance >= 0 ? Color.financialSavings : .financialOverBudget)
@@ -260,7 +260,7 @@ struct YearSection: View {
 
     private var enCoursBadge: some View {
         Text("En cours")
-            .font(.caption2)
+            .font(PulpeTypography.caption2)
             .fontWeight(.semibold)
             .foregroundStyle(Color.pulpePrimary)
             .padding(.horizontal, 8)
@@ -401,7 +401,7 @@ struct CurrentMonthHeroCard: View {
                         Image(systemName: "calendar")
                             .font(.system(size: 13, weight: .semibold))
                         Text("Ce mois-ci")
-                            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                            .font(.custom("Manrope-SemiBold", size: 15, relativeTo: .subheadline))
                     }
                     .foregroundStyle(.secondary)
 
@@ -412,7 +412,7 @@ struct CurrentMonthHeroCard: View {
 
                 // Month name - LARGE
                 Text(monthName)
-                    .font(.system(dynamicTypeSize.isAccessibilitySize ? .title2 : .largeTitle, design: .rounded, weight: .bold))
+                    .font(.custom("Manrope-Bold", size: dynamicTypeSize.isAccessibilitySize ? 22 : 34, relativeTo: dynamicTypeSize.isAccessibilitySize ? .title2 : .largeTitle))
                     .foregroundStyle(.primary)
 
                 Spacer().frame(height: DesignTokens.Spacing.sm)
@@ -421,14 +421,14 @@ struct CurrentMonthHeroCard: View {
                 HStack(alignment: .bottom) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Disponible")
-                            .font(.system(.caption, design: .rounded, weight: .medium))
+                            .font(.custom("Manrope-Medium", size: 12, relativeTo: .caption))
                             .foregroundStyle(.tertiary)
                             .textCase(.uppercase)
                             .tracking(0.5)
 
                         if let remaining = budget.remaining {
                             Text(remaining.asCHF)
-                                .font(.system(dynamicTypeSize.isAccessibilitySize ? .title3 : .title, design: .rounded, weight: .bold))
+                                .font(.custom("Manrope-Bold", size: dynamicTypeSize.isAccessibilitySize ? 20 : 28, relativeTo: dynamicTypeSize.isAccessibilitySize ? .title3 : .title))
                                 .monospacedDigit()
                                 .foregroundStyle(amountColor)
                                 .contentTransition(.numericText())
@@ -441,7 +441,7 @@ struct CurrentMonthHeroCard: View {
                     // Voir details button
                     HStack(spacing: 4) {
                         Text("Détails")
-                            .font(.system(.subheadline, design: .rounded, weight: .medium))
+                            .font(.custom("Manrope-Medium", size: 15, relativeTo: .subheadline))
                         Image(systemName: "chevron.right")
                             .font(.system(size: 12, weight: .semibold))
                     }
@@ -572,12 +572,12 @@ struct BudgetMonthRow: View {
                 if dynamicTypeSize.isAccessibilitySize {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(monthName)
-                            .font(.system(.body, design: .rounded, weight: isPastMonth ? .regular : .medium))
+                            .font(isPastMonth ? .custom("DMSans-Regular", size: 17, relativeTo: .body) : .custom("Manrope-Medium", size: 17, relativeTo: .body))
                             .foregroundStyle(isPastMonth ? .secondary : .primary)
 
                         if let remaining = budget.remaining {
                             Text(remaining.asCompactCHF)
-                                .font(.system(.callout, design: .rounded, weight: .semibold))
+                                .font(.custom("Manrope-SemiBold", size: 16, relativeTo: .callout))
                                 .monospacedDigit()
                                 .foregroundStyle(amountColor)
                                 .sensitiveAmount()
@@ -587,13 +587,13 @@ struct BudgetMonthRow: View {
                     Spacer()
                 } else {
                     Text(monthName)
-                        .font(.system(.body, design: .rounded, weight: isPastMonth ? .regular : .medium))
+                        .font(isPastMonth ? .custom("DMSans-Regular", size: 17, relativeTo: .body) : .custom("Manrope-Medium", size: 17, relativeTo: .body))
                         .foregroundStyle(isPastMonth ? .secondary : .primary)
 
                     // Future month indicator
                     if isFutureMonth {
                         Text("À venir")
-                            .font(.system(.caption2, design: .rounded, weight: .medium))
+                            .font(.custom("Manrope-Medium", size: 11, relativeTo: .caption2))
                             .foregroundStyle(.tertiary)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
@@ -604,7 +604,7 @@ struct BudgetMonthRow: View {
 
                     if let remaining = budget.remaining {
                         Text(remaining.asCompactCHF)
-                            .font(.system(.callout, design: .rounded, weight: .semibold))
+                            .font(.custom("Manrope-SemiBold", size: 16, relativeTo: .callout))
                             .monospacedDigit()
                             .foregroundStyle(amountColor)
                             .sensitiveAmount()
@@ -655,11 +655,11 @@ struct NextMonthPlaceholder: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(monthName)
-                        .font(.system(.body, design: .rounded, weight: .medium))
+                        .font(.custom("Manrope-Medium", size: 17, relativeTo: .body))
                         .foregroundStyle(.tertiary)
 
                     Text("Pas encore de budget")
-                        .font(.system(.caption, design: .rounded))
+                        .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
                         .foregroundStyle(.quaternary)
                 }
 
@@ -670,7 +670,7 @@ struct NextMonthPlaceholder: View {
                     Image(systemName: "plus")
                         .font(.system(size: 12, weight: .bold))
                     Text("Créer")
-                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                        .font(.custom("Manrope-SemiBold", size: 15, relativeTo: .subheadline))
                 }
                 .foregroundStyle(.white)
                 .padding(.horizontal, 12)

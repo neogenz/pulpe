@@ -150,7 +150,7 @@ struct TemplateLineInputRow: View {
         HStack {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(line.name)
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
 
                 HStack {
                     KindBadge(line.kind, style: .compact)

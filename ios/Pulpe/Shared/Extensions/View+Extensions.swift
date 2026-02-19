@@ -173,7 +173,7 @@ extension View {
     /// DA-compliant section header styling
     func pulpeSectionHeader() -> some View {
         self
-            .font(.headline)
+            .font(PulpeTypography.headline)
             .foregroundStyle(Color.textPrimary)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -237,29 +237,6 @@ private struct PulpeStatusBackgroundModifier: ViewModifier {
         } else {
             Color.appPositiveBackground
         }
-    }
-}
-
-// MARK: - Alert Extensions
-
-extension View {
-    /// Show error alert
-    func errorAlert(_ error: Binding<Error?>) -> some View {
-        alert(
-            "Erreur",
-            isPresented: .init(
-                get: { error.wrappedValue != nil },
-                set: { if !$0 { error.wrappedValue = nil } }
-            ),
-            actions: {
-                Button("OK", role: .cancel) {}
-            },
-            message: {
-                if let err = error.wrappedValue {
-                    Text(err.localizedDescription)
-                }
-            }
-        )
     }
 }
 
