@@ -7,6 +7,7 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 
 const createMockEncryptionService = (overrides?: {
+  getVaultStatus?: ReturnType<typeof mock>;
   getUserSalt?: ReturnType<typeof mock>;
   getUserDEK?: ReturnType<typeof mock>;
   generateKeyCheck?: ReturnType<typeof mock>;
@@ -17,6 +18,15 @@ const createMockEncryptionService = (overrides?: {
   recoverWithKey?: ReturnType<typeof mock>;
   reEncryptAllUserData?: ReturnType<typeof mock>;
 }) => ({
+  getVaultStatus:
+    overrides?.getVaultStatus ??
+    mock(() =>
+      Promise.resolve({
+        pinCodeConfigured: false,
+        recoveryKeyConfigured: false,
+        vaultCodeConfigured: false,
+      }),
+    ),
   getUserSalt:
     overrides?.getUserSalt ??
     mock(() => Promise.resolve({ salt: 'test-salt', kdfIterations: 600000 })),
@@ -54,6 +64,29 @@ function setupController(
 }
 
 describe('EncryptionController', () => {
+  describe('getVaultStatus', () => {
+    it('should return pin/recovery/vault flags from encryption service', async () => {
+      const user = createMockUser();
+      const expected = {
+        pinCodeConfigured: true,
+        recoveryKeyConfigured: true,
+        vaultCodeConfigured: true,
+      };
+
+      const { controller, mockEncryptionService } = setupController({
+        getVaultStatus: mock(() => Promise.resolve(expected)),
+      });
+
+      const result = await controller.getVaultStatus(user);
+
+      expect(result).toEqual(expected);
+      expect(mockEncryptionService.getVaultStatus.mock.calls.length).toBe(1);
+      expect(mockEncryptionService.getVaultStatus.mock.calls[0][0]).toBe(
+        user.id,
+      );
+    });
+  });
+
   describe('getSalt', () => {
     it('should return salt and kdfIterations from encryption service', async () => {
       const user = createMockUser();
@@ -119,7 +152,7 @@ describe('EncryptionController', () => {
       const callArguments: any[] = [];
       const { controller } = setupController({
         verifyAndEnsureKeyCheck: mock(async (...args) => {
-          callArguments.push(...args);
+          callArguments.push(args[0], Buffer.from(args[1]));
           return true;
         }),
       });

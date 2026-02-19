@@ -212,6 +212,10 @@ schemes:
       targets:
         Pulpe: all
         PulpeWidget: all
+    test:
+      config: Local
+      targets:
+        - name: PulpeTests
     run:
       config: Local
     profile:

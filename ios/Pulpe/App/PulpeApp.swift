@@ -114,6 +114,7 @@ struct RootView: View {
                 case .needsPinEntry:
                     PinEntryView(
                         firstName: appState.currentUser?.firstName ?? "",
+                        allowBiometricAutoUnlock: appState.pinEntryAllowsBiometricUnlock,
                         onSuccess: { appState.completePinEntry() },
                         onForgotPin: { appState.startRecovery() },
                         onLogout: { await appState.logout() }
@@ -194,6 +195,19 @@ struct RootView: View {
         } message: {
             Text("Utilise la reconnaissance biométrique pour te connecter plus rapidement")
         }
+        .alert(
+            "Générer une clé de récupération ?",
+            isPresented: $appState.showRecoveryKeyRepairConsent
+        ) {
+            Button("Générer maintenant") {
+                Task { await appState.acceptRecoveryKeyRepairConsent() }
+            }
+            Button("Plus tard", role: .cancel) {
+                appState.declineRecoveryKeyRepairConsent()
+            }
+        } message: {
+            Text("Ton coffre est configuré sans clé de récupération. Génère-la maintenant pour éviter de perdre l'accès à tes données chiffrées.")
+        }
         .onChange(of: deepLinkDestination) { _, _ in
             handlePendingDeepLink()
         }
@@ -214,6 +228,13 @@ struct RootView: View {
                     await appState.cancelPasswordResetFlow()
                 }
             )
+        }
+        .sheet(isPresented: $appState.showPostAuthRecoveryKeySheet) {
+            if let recoveryKey = appState.postAuthRecoveryKey {
+                RecoveryKeySheet(recoveryKey: recoveryKey) {
+                    appState.completePostAuthRecoveryKeyPresentation()
+                }
+            }
         }
         .onShake {
             guard appState.authState == .authenticated else { return }

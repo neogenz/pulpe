@@ -201,11 +201,12 @@ export class EncryptionService {
     return dek;
   }
 
-  async getVaultStatus(
-    userId: string,
-  ): Promise<{ vaultCodeConfigured: boolean }> {
-    const vaultCodeConfigured = await this.#repository.hasVaultCode(userId);
-    return { vaultCodeConfigured };
+  async getVaultStatus(userId: string): Promise<{
+    pinCodeConfigured: boolean;
+    recoveryKeyConfigured: boolean;
+    vaultCodeConfigured: boolean;
+  }> {
+    return this.#repository.getVaultStatus(userId);
   }
 
   async getUserSalt(

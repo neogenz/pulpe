@@ -2,7 +2,11 @@ import OSLog
 import SwiftUI
 
 struct PinEntryView: View {
+    static let pinEntryTitle = "Saisis ton code PIN"
+    static let forgotPinLabel = "Code PIN oublié ?"
+
     let firstName: String
+    let allowBiometricAutoUnlock: Bool
     let onSuccess: () -> Void
     let onForgotPin: () -> Void
     let onLogout: () async -> Void
@@ -14,8 +18,8 @@ struct PinEntryView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .pulpeBackground()
             .task {
-                await viewModel.checkBiometricAvailability()
-                if viewModel.biometricAvailable {
+                await viewModel.checkBiometricAvailability(preferenceEnabled: allowBiometricAutoUnlock)
+                if allowBiometricAutoUnlock && viewModel.biometricAvailable {
                     await viewModel.attemptBiometric()
                     if viewModel.authenticated {
                         onSuccess()
@@ -42,7 +46,7 @@ struct PinEntryView: View {
                     viewModel.appendDigit(digit)
                 },
                 onDelete: { viewModel.deleteLastDigit() },
-                onBiometric: viewModel.biometricAvailable && viewModel.digits.count < viewModel.minDigits ? {
+                onBiometric: allowBiometricAutoUnlock && viewModel.biometricAvailable && viewModel.digits.count < viewModel.minDigits ? {
                     Task { await viewModel.attemptBiometric() }
                 } : nil,
                 onConfirm: viewModel.digits.count >= viewModel.minDigits ? {
@@ -81,9 +85,15 @@ struct PinEntryView: View {
         VStack(spacing: DesignTokens.Spacing.md) {
             PulpeIcon(size: 56)
 
-            Text("Bonjour, \(firstName)")
+            Text(Self.pinEntryTitle)
                 .font(PulpeTypography.onboardingTitle)
                 .foregroundStyle(Color.textPrimaryOnboarding)
+
+            if !firstName.isEmpty {
+                Text("Bonjour, \(firstName)")
+                    .font(PulpeTypography.stepSubtitle)
+                    .foregroundStyle(Color.textSecondaryOnboarding)
+            }
         }
     }
 
@@ -113,7 +123,7 @@ struct PinEntryView: View {
         Button {
             onForgotPin()
         } label: {
-            Text("Code d'accès oublié ?")
+            Text(Self.forgotPinLabel)
                 .font(PulpeTypography.stepSubtitle)
                 .foregroundStyle(Color.textSecondaryOnboarding)
         }
@@ -158,15 +168,20 @@ final class PinEntryViewModel {
     private let cryptoService: any CryptoKeyDerivation
     private let encryptionAPI: any EncryptionKeyValidation
     private let clientKeyManager: any ClientKeyStorage
+    private let biometricCapability: @Sendable () -> Bool
 
     init(
         cryptoService: any CryptoKeyDerivation = CryptoService.shared,
         encryptionAPI: any EncryptionKeyValidation = EncryptionAPI.shared,
-        clientKeyManager: any ClientKeyStorage = ClientKeyManager.shared
+        clientKeyManager: any ClientKeyStorage = ClientKeyManager.shared,
+        biometricCapability: @escaping @Sendable () -> Bool = {
+            BiometricService.shared.canUseBiometrics()
+        }
     ) {
         self.cryptoService = cryptoService
         self.encryptionAPI = encryptionAPI
         self.clientKeyManager = clientKeyManager
+        self.biometricCapability = biometricCapability
     }
 
     var canConfirm: Bool {
@@ -204,8 +219,13 @@ final class PinEntryViewModel {
         }
     }
 
-    func checkBiometricAvailability() async {
-        let canUse = BiometricService.shared.canUseBiometrics()
+    func checkBiometricAvailability(preferenceEnabled: Bool) async {
+        guard preferenceEnabled else {
+            biometricAvailable = false
+            return
+        }
+
+        let canUse = biometricCapability()
         let hasKey = await clientKeyManager.hasBiometricKey()
         biometricAvailable = canUse && hasKey
     }
@@ -275,6 +295,7 @@ final class PinEntryViewModel {
 #Preview {
     PinEntryView(
         firstName: "Maxime",
+        allowBiometricAutoUnlock: true,
         onSuccess: {},
         onForgotPin: {},
         onLogout: {}

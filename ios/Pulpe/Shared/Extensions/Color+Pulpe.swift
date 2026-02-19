@@ -252,8 +252,10 @@ extension Color {
 
     /// High-contrast text colors for onboarding
     static let textPrimaryOnboarding = Color(light: Color(hex: 0x1A1A1A), dark: Color(hex: 0xF5F5F5))
-    static let textSecondaryOnboarding = Color(light: Color(hex: 0x4A4A4A), dark: Color(hex: 0xB0B0B0))
-    static let textTertiaryOnboarding = Color(light: Color(hex: 0x6B6B6B), dark: Color(hex: 0x8A8A8A))
+    /// Secondary text - improved dark mode contrast (#D0D0D0 ≈ 81% luminance for better readability)
+    static let textSecondaryOnboarding = Color(light: Color(hex: 0x4A4A4A), dark: Color(hex: 0xD0D0D0))
+    /// Tertiary text - improved dark mode contrast (#ABABAB ≈ 67% luminance)
+    static let textTertiaryOnboarding = Color(light: Color(hex: 0x6B6B6B), dark: Color(hex: 0xABABAB))
 
     /// Onboarding backgrounds
     static let onboardingBackground = Color(light: Color(hex: 0xF8FAF9), dark: Color(hex: 0x1C1C1E))
@@ -350,8 +352,8 @@ extension Color {
     /// Primary text on PIN screens
     static let pinText = Color(light: Color(hex: 0x1A1F2B), dark: .white)
 
-    /// Secondary text on PIN screens (subtitles, links)
-    static let pinTextSecondary = Color(light: Color(hex: 0x5A6070), dark: .white.opacity(0.5))
+    /// Secondary text on PIN screens (subtitles, links) - improved dark mode contrast (70% opacity)
+    static let pinTextSecondary = Color(light: Color(hex: 0x5A6070), dark: .white.opacity(0.7))
 
     /// Numpad button fill
     static let pinButtonFill = Color(light: Color(hex: 0x1A1F2B).opacity(0.06), dark: .white.opacity(0.08))

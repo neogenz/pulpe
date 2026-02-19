@@ -4,7 +4,36 @@ import OSLog
 // MARK: - Response Models
 
 struct VaultStatusResponse: Codable, Sendable {
+    let pinCodeConfigured: Bool
+    let recoveryKeyConfigured: Bool
     let vaultCodeConfigured: Bool
+
+    init(
+        pinCodeConfigured: Bool,
+        recoveryKeyConfigured: Bool,
+        vaultCodeConfigured: Bool
+    ) {
+        self.pinCodeConfigured = pinCodeConfigured
+        self.recoveryKeyConfigured = recoveryKeyConfigured
+        self.vaultCodeConfigured = vaultCodeConfigured
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case pinCodeConfigured
+        case recoveryKeyConfigured
+        case vaultCodeConfigured
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let vaultCodeConfigured = try container.decodeIfPresent(Bool.self, forKey: .vaultCodeConfigured) ?? false
+        let pinCodeConfigured = try container.decodeIfPresent(Bool.self, forKey: .pinCodeConfigured) ?? vaultCodeConfigured
+        let recoveryKeyConfigured = try container.decodeIfPresent(Bool.self, forKey: .recoveryKeyConfigured) ?? vaultCodeConfigured
+
+        self.pinCodeConfigured = pinCodeConfigured
+        self.recoveryKeyConfigured = recoveryKeyConfigured
+        self.vaultCodeConfigured = vaultCodeConfigured || (pinCodeConfigured && recoveryKeyConfigured)
+    }
 }
 
 struct EncryptionSaltResponse: Codable, Sendable {
