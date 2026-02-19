@@ -141,4 +141,113 @@ struct AppStateBackgroundLockTests {
         // Since 25s < 30s grace period from last background call, user stays authenticated
         #expect(sut.authState == .authenticated)
     }
+
+    // MARK: - Session Restoration Flag
+
+    @Test func prepareForForeground_gracePeriodExpired_setsRestoringSession() {
+        var now = Date(timeIntervalSince1970: 0)
+        let sut = AppState(nowProvider: { now })
+        sut.biometricEnabled = false
+        sut.completePinEntry()
+
+        sut.handleEnterBackground()
+        now = Date(timeIntervalSince1970: 31)
+        sut.prepareForForeground()
+
+        #expect(sut.isRestoringSession == true)
+    }
+
+    @Test func prepareForForeground_withinGracePeriod_doesNotSetRestoringSession() {
+        var now = Date(timeIntervalSince1970: 0)
+        let sut = AppState(nowProvider: { now })
+        sut.biometricEnabled = false
+        sut.completePinEntry()
+
+        sut.handleEnterBackground()
+        now = Date(timeIntervalSince1970: 10)
+        sut.prepareForForeground()
+
+        #expect(sut.isRestoringSession == false)
+    }
+
+    @Test func handleEnterForeground_clearsRestoringSession_whenLockNoLongerRequired() async {
+        var now = Date(timeIntervalSince1970: 0)
+        let sut = AppState(nowProvider: { now })
+        sut.biometricEnabled = false
+        sut.completePinEntry()
+
+        // Grace period expired → isRestoringSession = true
+        sut.handleEnterBackground()
+        now = Date(timeIntervalSince1970: 31)
+        sut.prepareForForeground()
+        #expect(sut.isRestoringSession == true)
+
+        // Reset timer — lock no longer required
+        sut.handleEnterBackground()
+
+        // Early return path, but defer still clears the flag
+        await sut.handleEnterForeground()
+
+        #expect(sut.isRestoringSession == false)
+        #expect(sut.authState == .authenticated)
+    }
+
+    // MARK: - Biometric Foreground Unlock
+
+    @Test func foregroundAfterGracePeriod_biometricSucceeds_staysAuthenticated() async {
+        var now = Date(timeIntervalSince1970: 0)
+        let sut = AppState(
+            resolveBiometricKey: { "restored-key" },
+            nowProvider: { now }
+        )
+        sut.biometricEnabled = true
+        sut.completePinEntry()
+
+        sut.handleEnterBackground()
+        now = Date(timeIntervalSince1970: 31)
+        sut.prepareForForeground()
+        #expect(sut.isRestoringSession == true)
+
+        await sut.handleEnterForeground()
+
+        #expect(sut.authState == .authenticated)
+        #expect(sut.isRestoringSession == false)
+    }
+
+    @Test func foregroundAfterGracePeriod_biometricFails_requiresPinEntry() async {
+        var now = Date(timeIntervalSince1970: 0)
+        let sut = AppState(
+            resolveBiometricKey: { nil },
+            nowProvider: { now }
+        )
+        sut.biometricEnabled = true
+        sut.completePinEntry()
+
+        sut.handleEnterBackground()
+        now = Date(timeIntervalSince1970: 31)
+        sut.prepareForForeground()
+        #expect(sut.isRestoringSession == true)
+
+        await sut.handleEnterForeground()
+
+        #expect(sut.authState == .needsPinEntry)
+        #expect(sut.isRestoringSession == false)
+    }
+
+    @Test func foregroundAfterGracePeriod_biometricDisabled_requiresPinEntry() async {
+        var now = Date(timeIntervalSince1970: 0)
+        let sut = AppState(nowProvider: { now })
+        sut.biometricEnabled = false
+        sut.completePinEntry()
+
+        sut.handleEnterBackground()
+        now = Date(timeIntervalSince1970: 31)
+        sut.prepareForForeground()
+        #expect(sut.isRestoringSession == true)
+
+        await sut.handleEnterForeground()
+
+        #expect(sut.authState == .needsPinEntry)
+        #expect(sut.isRestoringSession == false)
+    }
 }

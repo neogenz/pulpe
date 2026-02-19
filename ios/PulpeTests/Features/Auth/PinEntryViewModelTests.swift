@@ -118,53 +118,6 @@ struct PinEntryViewModelTests {
         #expect(sut.authenticated == false)
     }
 
-    // MARK: - biometricAvailable
-
-    @Test func biometricAvailable_initiallyFalse() {
-        let sut = makeSUT()
-        #expect(sut.biometricAvailable == false)
-    }
-
-    @Test func checkBiometricAvailability_prefDisabled_keepsBiometricUnavailable() async {
-        let storage = StubClientKeyStorage(hasBiometricKeyValue: true)
-        let sut = PinEntryViewModel(
-            cryptoService: StubCryptoKeyDerivation(derivedKey: PinEntryValidationFlowTests.validKey),
-            encryptionAPI: StubEncryptionKeyValidation(
-                saltResponse: EncryptionSaltResponse(
-                    salt: PinEntryValidationFlowTests.validSalt,
-                    kdfIterations: 1,
-                    hasRecoveryKey: false
-                )
-            ),
-            clientKeyManager: storage,
-            biometricCapability: { true }
-        )
-
-        await sut.checkBiometricAvailability(preferenceEnabled: false)
-
-        #expect(sut.biometricAvailable == false)
-    }
-
-    @Test func checkBiometricAvailability_prefEnabledAndKeyAvailable_setsBiometricAvailable() async {
-        let storage = StubClientKeyStorage(hasBiometricKeyValue: true)
-        let sut = PinEntryViewModel(
-            cryptoService: StubCryptoKeyDerivation(derivedKey: PinEntryValidationFlowTests.validKey),
-            encryptionAPI: StubEncryptionKeyValidation(
-                saltResponse: EncryptionSaltResponse(
-                    salt: PinEntryValidationFlowTests.validSalt,
-                    kdfIterations: 1,
-                    hasRecoveryKey: false
-                )
-            ),
-            clientKeyManager: storage,
-            biometricCapability: { true }
-        )
-
-        await sut.checkBiometricAvailability(preferenceEnabled: true)
-
-        #expect(sut.biometricAvailable == true)
-    }
-
     // MARK: - Constants
 
     @Test func constants() {
@@ -360,14 +313,7 @@ private final class StubEncryptionKeyValidation: EncryptionKeyValidation, @unche
 
 private final class StubClientKeyStorage: ClientKeyStorage, @unchecked Sendable {
     private(set) var storeCallCount = 0
-    private let hasBiometricKeyValue: Bool
 
-    init(hasBiometricKeyValue: Bool = false) {
-        self.hasBiometricKeyValue = hasBiometricKeyValue
-    }
-
-    func resolveViaBiometric() async throws -> String? { nil }
-    func hasBiometricKey() async -> Bool { hasBiometricKeyValue }
     func store(_ clientKeyHex: String, enableBiometric: Bool) async {
         storeCallCount += 1
     }

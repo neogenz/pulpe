@@ -6,7 +6,6 @@ struct PinEntryView: View {
     static let forgotPinLabel = "Code PIN oublié ?"
 
     let firstName: String
-    let allowBiometricAutoUnlock: Bool
     let onSuccess: () -> Void
     let onForgotPin: () -> Void
     let onLogout: () async -> Void
@@ -17,15 +16,6 @@ struct PinEntryView: View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .pulpeBackground()
-            .task {
-                await viewModel.checkBiometricAvailability(preferenceEnabled: allowBiometricAutoUnlock)
-                if allowBiometricAutoUnlock && viewModel.biometricAvailable {
-                    await viewModel.attemptBiometric()
-                    if viewModel.authenticated {
-                        onSuccess()
-                    }
-                }
-            }
             .onChange(of: viewModel.authenticated) { _, authenticated in
                 if authenticated { onSuccess() }
             }
@@ -46,9 +36,7 @@ struct PinEntryView: View {
                     viewModel.appendDigit(digit)
                 },
                 onDelete: { viewModel.deleteLastDigit() },
-                onBiometric: allowBiometricAutoUnlock && viewModel.biometricAvailable && viewModel.digits.count < viewModel.minDigits ? {
-                    Task { await viewModel.attemptBiometric() }
-                } : nil,
+                onBiometric: nil,
                 onConfirm: viewModel.digits.count >= viewModel.minDigits ? {
                     Task { await viewModel.confirm() }
                 } : nil,
@@ -142,8 +130,6 @@ protocol EncryptionKeyValidation: Sendable {
 }
 
 protocol ClientKeyStorage: Sendable {
-    func resolveViaBiometric() async throws -> String?
-    func hasBiometricKey() async -> Bool
     func store(_ clientKeyHex: String, enableBiometric: Bool) async
 }
 
@@ -159,7 +145,6 @@ final class PinEntryViewModel {
     private(set) var isValidating = false
     private(set) var isError = false
     private(set) var errorMessage: String?
-    private(set) var biometricAvailable = false
     private(set) var authenticated = false
 
     let maxDigits = 6
@@ -168,20 +153,15 @@ final class PinEntryViewModel {
     private let cryptoService: any CryptoKeyDerivation
     private let encryptionAPI: any EncryptionKeyValidation
     private let clientKeyManager: any ClientKeyStorage
-    private let biometricCapability: @Sendable () -> Bool
 
     init(
         cryptoService: any CryptoKeyDerivation = CryptoService.shared,
         encryptionAPI: any EncryptionKeyValidation = EncryptionAPI.shared,
-        clientKeyManager: any ClientKeyStorage = ClientKeyManager.shared,
-        biometricCapability: @escaping @Sendable () -> Bool = {
-            BiometricService.shared.canUseBiometrics()
-        }
+        clientKeyManager: any ClientKeyStorage = ClientKeyManager.shared
     ) {
         self.cryptoService = cryptoService
         self.encryptionAPI = encryptionAPI
         self.clientKeyManager = clientKeyManager
-        self.biometricCapability = biometricCapability
     }
 
     var canConfirm: Bool {
@@ -206,28 +186,6 @@ final class PinEntryViewModel {
     func confirm() async {
         guard canConfirm else { return }
         await validatePin()
-    }
-
-    func attemptBiometric() async {
-        do {
-            let key = try await clientKeyManager.resolveViaBiometric()
-            if key != nil {
-                authenticated = true
-            }
-        } catch {
-            Logger.encryption.debug("Biometric unlock failed: \(error.localizedDescription)")
-        }
-    }
-
-    func checkBiometricAvailability(preferenceEnabled: Bool) async {
-        guard preferenceEnabled else {
-            biometricAvailable = false
-            return
-        }
-
-        let canUse = biometricCapability()
-        let hasKey = await clientKeyManager.hasBiometricKey()
-        biometricAvailable = canUse && hasKey
     }
 
     // MARK: - Private
@@ -295,7 +253,6 @@ final class PinEntryViewModel {
 #Preview {
     PinEntryView(
         firstName: "Maxime",
-        allowBiometricAutoUnlock: true,
         onSuccess: {},
         onForgotPin: {},
         onLogout: {}
