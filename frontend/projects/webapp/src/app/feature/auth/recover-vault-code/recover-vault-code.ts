@@ -15,6 +15,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialog } from '@angular/material/dialog';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { firstValueFrom } from 'rxjs';
 
 import {
@@ -47,179 +48,204 @@ import {
     MatButtonModule,
     MatIconModule,
     MatCheckboxModule,
+    MatProgressSpinnerModule,
     RouterLink,
     ErrorAlert,
     LoadingButton,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="pulpe-entry-shell pulpe-gradient">
-      <div
-        class="pulpe-entry-card w-full max-w-md"
-        data-testid="recover-vault-code-page"
-      >
-        <button
-          matButton
-          [routerLink]="['/', ROUTES.ENTER_VAULT_CODE]"
-          class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
+    @if (isRedirecting()) {
+      <div class="pulpe-entry-shell pulpe-gradient">
+        <div
+          class="pulpe-entry-card w-full max-w-md"
+          data-testid="recover-vault-code-redirecting"
         >
-          <mat-icon class="text-lg">arrow_back</mat-icon>
-          <span>Retour</span>
-        </button>
-
-        <div class="text-center mb-8">
-          <mat-icon class="text-6xl! w-auto! h-auto! text-primary"
-            >key</mat-icon
+          <div
+            class="flex flex-col items-center justify-center py-12 gap-6"
+            role="status"
+            aria-live="polite"
           >
-          <h1
-            class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
-          >
-            Récupère ton code PIN
-          </h1>
-          <p class="text-body-large text-on-surface-variant">
-            Entre ta clé de récupération et ton nouveau code
-          </p>
+            <mat-progress-spinner
+              mode="indeterminate"
+              [diameter]="40"
+              aria-label="Redirection en cours"
+            />
+            <p class="text-body-large text-on-surface-variant animate-pulse">
+              Redirection vers ton tableau de bord...
+            </p>
+          </div>
         </div>
-
-        <form
-          [formGroup]="form"
-          (ngSubmit)="onSubmit()"
-          class="space-y-4"
-          data-testid="recover-vault-code-form"
+      </div>
+    } @else {
+      <div class="pulpe-entry-shell pulpe-gradient">
+        <div
+          class="pulpe-entry-card w-full max-w-md"
+          data-testid="recover-vault-code-page"
         >
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Clé de récupération</mat-label>
-            <input
-              matInput
-              formControlName="recoveryKey"
-              data-testid="recovery-key-input"
-              (input)="onRecoveryKeyInput()"
-              placeholder="XXXX-XXXX-XXXX-XXXX-..."
-              class="font-mono text-sm uppercase tracking-wide"
-              autocomplete="off"
-              spellcheck="false"
-            />
-            <mat-icon matPrefix>key</mat-icon>
-            @if (
-              form.get('recoveryKey')?.invalid &&
-              form.get('recoveryKey')?.touched
-            ) {
-              <mat-error>
-                @if (form.get('recoveryKey')?.hasError('required')) {
-                  Ta clé de récupération est nécessaire
-                } @else if (form.get('recoveryKey')?.hasError('pattern')) {
-                  Format invalide — vérifie que tu as bien copié la clé
-                }
-              </mat-error>
-            }
-          </mat-form-field>
+          <button
+            matButton
+            [routerLink]="['/', ROUTES.ENTER_VAULT_CODE]"
+            class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
+          >
+            <mat-icon class="text-lg">arrow_back</mat-icon>
+            <span>Retour</span>
+          </button>
 
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Nouveau code PIN</mat-label>
-            <input
-              matInput
-              [type]="isVaultCodeHidden() ? 'password' : 'text'"
-              inputmode="numeric"
-              formControlName="newVaultCode"
-              data-testid="new-vault-code-input"
-              (input)="clearError()"
-              placeholder="Nouveau code PIN"
-            />
-            <mat-icon matPrefix>lock</mat-icon>
-            <button
-              type="button"
-              matIconButton
-              matSuffix
-              (click)="isVaultCodeHidden.set(!isVaultCodeHidden())"
-              [attr.aria-label]="'Afficher le code'"
-              [attr.aria-pressed]="!isVaultCodeHidden()"
+          <div class="text-center mb-8">
+            <mat-icon class="text-6xl! w-auto! h-auto! text-primary"
+              >key</mat-icon
             >
-              <mat-icon>{{
-                isVaultCodeHidden() ? 'visibility_off' : 'visibility'
-              }}</mat-icon>
-            </button>
-            <mat-hint>4 chiffres minimum (6+ recommandé)</mat-hint>
-            @if (
-              form.get('newVaultCode')?.invalid &&
-              form.get('newVaultCode')?.touched
-            ) {
-              <mat-error>
-                @if (form.get('newVaultCode')?.hasError('required')) {
-                  Ton nouveau code est nécessaire
-                } @else if (form.get('newVaultCode')?.hasError('minlength')) {
-                  4 chiffres minimum
-                } @else if (form.get('newVaultCode')?.hasError('pattern')) {
-                  Le code PIN ne doit contenir que des chiffres
-                }
-              </mat-error>
-            }
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Confirmer le code PIN</mat-label>
-            <input
-              matInput
-              [type]="isConfirmCodeHidden() ? 'password' : 'text'"
-              inputmode="numeric"
-              formControlName="confirmCode"
-              data-testid="confirm-vault-code-input"
-              (input)="clearError()"
-              placeholder="Confirmer le code PIN"
-            />
-            <mat-icon matPrefix>lock</mat-icon>
-            <button
-              type="button"
-              matIconButton
-              matSuffix
-              (click)="isConfirmCodeHidden.set(!isConfirmCodeHidden())"
-              [attr.aria-label]="'Afficher le code'"
-              [attr.aria-pressed]="!isConfirmCodeHidden()"
+            <h1
+              class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
             >
-              <mat-icon>{{
-                isConfirmCodeHidden() ? 'visibility_off' : 'visibility'
-              }}</mat-icon>
-            </button>
-            @if (
-              form.get('confirmCode')?.invalid &&
-              form.get('confirmCode')?.touched
-            ) {
-              <mat-error>
-                @if (form.get('confirmCode')?.hasError('required')) {
-                  Confirme ton code
-                } @else if (
-                  form.get('confirmCode')?.hasError('fieldsMismatch')
-                ) {
-                  Les codes ne correspondent pas
-                }
-              </mat-error>
-            }
-          </mat-form-field>
-
-          <div class="flex items-center">
-            <mat-checkbox
-              formControlName="rememberDevice"
-              data-testid="remember-device-checkbox"
-            >
-              <span class="text-body-medium text-on-surface">
-                Ne plus me demander sur cet appareil
-              </span>
-            </mat-checkbox>
+              Récupère ton code PIN
+            </h1>
+            <p class="text-body-large text-on-surface-variant">
+              Entre ta clé de récupération et ton nouveau code
+            </p>
           </div>
 
-          <pulpe-error-alert [message]="errorMessage()" />
-
-          <pulpe-loading-button
-            [loading]="isSubmitting()"
-            [disabled]="!canSubmit()"
-            loadingText="Récupération..."
-            icon="lock_reset"
-            testId="recover-vault-code-submit-button"
+          <form
+            [formGroup]="form"
+            (ngSubmit)="onSubmit()"
+            class="space-y-4"
+            data-testid="recover-vault-code-form"
           >
-            <span class="ml-2">Récupérer</span>
-          </pulpe-loading-button>
-        </form>
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Clé de récupération</mat-label>
+              <input
+                matInput
+                formControlName="recoveryKey"
+                data-testid="recovery-key-input"
+                (input)="onRecoveryKeyInput()"
+                placeholder="XXXX-XXXX-XXXX-XXXX-..."
+                class="font-mono text-sm uppercase tracking-wide"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <mat-icon matPrefix>key</mat-icon>
+              @if (
+                form.get('recoveryKey')?.invalid &&
+                form.get('recoveryKey')?.touched
+              ) {
+                <mat-error>
+                  @if (form.get('recoveryKey')?.hasError('required')) {
+                    Ta clé de récupération est nécessaire
+                  } @else if (form.get('recoveryKey')?.hasError('pattern')) {
+                    Format invalide — vérifie que tu as bien copié la clé
+                  }
+                </mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Nouveau code PIN</mat-label>
+              <input
+                matInput
+                [type]="isVaultCodeHidden() ? 'password' : 'text'"
+                inputmode="numeric"
+                formControlName="newVaultCode"
+                data-testid="new-vault-code-input"
+                (input)="clearError()"
+                placeholder="Nouveau code PIN"
+              />
+              <mat-icon matPrefix>lock</mat-icon>
+              <button
+                type="button"
+                matIconButton
+                matSuffix
+                (click)="isVaultCodeHidden.set(!isVaultCodeHidden())"
+                [attr.aria-label]="'Afficher le code'"
+                [attr.aria-pressed]="!isVaultCodeHidden()"
+              >
+                <mat-icon>{{
+                  isVaultCodeHidden() ? 'visibility_off' : 'visibility'
+                }}</mat-icon>
+              </button>
+              <mat-hint>4 chiffres minimum (6+ recommandé)</mat-hint>
+              @if (
+                form.get('newVaultCode')?.invalid &&
+                form.get('newVaultCode')?.touched
+              ) {
+                <mat-error>
+                  @if (form.get('newVaultCode')?.hasError('required')) {
+                    Ton nouveau code est nécessaire
+                  } @else if (form.get('newVaultCode')?.hasError('minlength')) {
+                    4 chiffres minimum
+                  } @else if (form.get('newVaultCode')?.hasError('pattern')) {
+                    Le code PIN ne doit contenir que des chiffres
+                  }
+                </mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Confirmer le code PIN</mat-label>
+              <input
+                matInput
+                [type]="isConfirmCodeHidden() ? 'password' : 'text'"
+                inputmode="numeric"
+                formControlName="confirmCode"
+                data-testid="confirm-vault-code-input"
+                (input)="clearError()"
+                placeholder="Confirmer le code PIN"
+              />
+              <mat-icon matPrefix>lock</mat-icon>
+              <button
+                type="button"
+                matIconButton
+                matSuffix
+                (click)="isConfirmCodeHidden.set(!isConfirmCodeHidden())"
+                [attr.aria-label]="'Afficher le code'"
+                [attr.aria-pressed]="!isConfirmCodeHidden()"
+              >
+                <mat-icon>{{
+                  isConfirmCodeHidden() ? 'visibility_off' : 'visibility'
+                }}</mat-icon>
+              </button>
+              @if (
+                form.get('confirmCode')?.invalid &&
+                form.get('confirmCode')?.touched
+              ) {
+                <mat-error>
+                  @if (form.get('confirmCode')?.hasError('required')) {
+                    Confirme ton code
+                  } @else if (
+                    form.get('confirmCode')?.hasError('fieldsMismatch')
+                  ) {
+                    Les codes ne correspondent pas
+                  }
+                </mat-error>
+              }
+            </mat-form-field>
+
+            <div class="flex items-center">
+              <mat-checkbox
+                formControlName="rememberDevice"
+                data-testid="remember-device-checkbox"
+              >
+                <span class="text-body-medium text-on-surface">
+                  Ne plus me demander sur cet appareil
+                </span>
+              </mat-checkbox>
+            </div>
+
+            <pulpe-error-alert [message]="errorMessage()" />
+
+            <pulpe-loading-button
+              [loading]="isSubmitting()"
+              [disabled]="!canSubmit()"
+              loadingText="Récupération..."
+              icon="lock_reset"
+              testId="recover-vault-code-submit-button"
+            >
+              <span class="ml-2">Récupérer</span>
+            </pulpe-loading-button>
+          </form>
+        </div>
       </div>
-    </div>
+    }
   `,
 })
 export default class RecoverVaultCode {
@@ -232,6 +258,7 @@ export default class RecoverVaultCode {
 
   protected readonly ROUTES = ROUTES;
   protected readonly isSubmitting = signal(false);
+  protected readonly isRedirecting = signal(false);
   protected readonly errorMessage = signal('');
   protected readonly isVaultCodeHidden = signal(true);
   protected readonly isConfirmCodeHidden = signal(true);
@@ -317,7 +344,15 @@ export default class RecoverVaultCode {
       await this.#showNewRecoveryKey();
 
       // 5. Redirect to dashboard
-      this.#router.navigate(['/', ROUTES.DASHBOARD]);
+      this.isRedirecting.set(true);
+      const navigated = await this.#router.navigate(['/', ROUTES.DASHBOARD]);
+
+      if (!navigated) {
+        this.isRedirecting.set(false);
+        this.errorMessage.set(
+          'La redirection a échoué — réessaie de te connecter',
+        );
+      }
     } catch (error) {
       this.#logger.error('Recover vault code failed:', error);
 
@@ -332,6 +367,7 @@ export default class RecoverVaultCode {
         this.errorMessage.set("Quelque chose n'a pas fonctionné — réessayons");
       }
     } finally {
+      this.isRedirecting.set(false);
       this.form.enable();
       this.isSubmitting.set(false);
     }
