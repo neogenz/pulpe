@@ -87,7 +87,7 @@ function handleAuthError(
       switchMap((refreshSuccess) => {
         if (!refreshSuccess) {
           authSession.signOut();
-          window.location.href = '/' + ROUTES.LOGIN;
+          router.navigate(['/', ROUTES.LOGIN]);
           return throwError(
             () => new Error('Session expirée, veuillez vous reconnecter'),
           );
@@ -100,7 +100,7 @@ function handleAuthError(
       }),
       catchError((refreshError) => {
         authSession.signOut();
-        window.location.href = '/' + ROUTES.LOGIN;
+        router.navigate(['/', ROUTES.LOGIN]);
         return throwError(() => refreshError);
       }),
     );
@@ -136,7 +136,7 @@ function handleAuthError(
       error.error?.error === 'ERR_USER_ACCOUNT_BLOCKED')
   ) {
     authSession.signOut();
-    window.location.href = '/' + ROUTES.LOGIN;
+    router.navigate(['/', ROUTES.LOGIN]);
     return throwError(
       () => new Error('Ton compte est en cours de suppression.'),
     );

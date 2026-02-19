@@ -7,6 +7,20 @@ struct AppStateColdStartLockTests {
     private let testClientKey =
         "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
+    @Test func coldStart_authStateIsNotAuthenticated() async {
+        // Given: a new AppState (simulating cold start)
+        let sut = AppState()
+
+        // When: cold start auth check runs
+        await sut.checkAuthState()
+
+        // Then: user must re-authenticate via PIN or biometric — never skipped to .authenticated
+        #expect(
+            sut.authState != .authenticated,
+            "Cold start must block access: authState was \(sut.authState) but must not be .authenticated"
+        )
+    }
+
     @Test func coldStart_clearsSessionClientKey() async {
         let clientKeyManager = ClientKeyManager.shared
         await clientKeyManager.clearAll()

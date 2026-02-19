@@ -192,7 +192,7 @@ export class EncryptionController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
     @Body() body: { recoveryKey: string; newClientKey: string },
   ): Promise<{ success: boolean }> {
-    if (!body.recoveryKey) {
+    if (!body.recoveryKey?.trim()) {
       throw new BusinessException(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID);
     }
 

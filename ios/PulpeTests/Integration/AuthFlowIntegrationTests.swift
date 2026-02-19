@@ -10,35 +10,51 @@ struct AuthFlowIntegrationTests {
     // MARK: - Test Doubles
     
     /// Mock keychain for testing auth flows without real keychain access
-    final class MockKeychainManager: @unchecked Sendable {
-        var storedAccessToken: String?
-        var storedRefreshToken: String?
-        var storedClientKey: String?
-        var storedSalt: String?
-        var storedIterations: Int?
-        var storedPinHash: String?
-        
-        func getAccessToken() async -> String? { storedAccessToken }
-        func getRefreshToken() async -> String? { storedRefreshToken }
-        func getClientKey() async -> String? { storedClientKey }
-        func getSalt() async -> String? { storedSalt }
-        func getIterations() async -> Int? { storedIterations }
-        func getPinHash() async -> String? { storedPinHash }
-        
-        func setAccessToken(_ token: String) async throws { storedAccessToken = token }
-        func setRefreshToken(_ token: String) async throws { storedRefreshToken = token }
-        func setClientKey(_ key: String) async throws { storedClientKey = key }
-        func setSalt(_ salt: String) async throws { storedSalt = salt }
-        func setIterations(_ iterations: Int) async throws { storedIterations = iterations }
-        func setPinHash(_ hash: String) async throws { storedPinHash = hash }
-        
-        func deleteAccessToken() async throws { storedAccessToken = nil }
-        func deleteRefreshToken() async throws { storedRefreshToken = nil }
-        func deleteClientKey() async throws { storedClientKey = nil }
-        func deleteSalt() async throws { storedSalt = nil }
-        func deleteIterations() async throws { storedIterations = nil }
-        func deletePinHash() async throws { storedPinHash = nil }
-        func deleteAll() async throws {
+    actor MockKeychainManager {
+        private(set) var storedAccessToken: String?
+        private(set) var storedRefreshToken: String?
+        private(set) var storedClientKey: String?
+        private(set) var storedSalt: String?
+        private(set) var storedIterations: Int?
+        private(set) var storedPinHash: String?
+
+        init(
+            accessToken: String? = nil,
+            refreshToken: String? = nil,
+            clientKey: String? = nil,
+            salt: String? = nil,
+            iterations: Int? = nil,
+            pinHash: String? = nil
+        ) {
+            storedAccessToken = accessToken
+            storedRefreshToken = refreshToken
+            storedClientKey = clientKey
+            storedSalt = salt
+            storedIterations = iterations
+            storedPinHash = pinHash
+        }
+
+        func getAccessToken() -> String? { storedAccessToken }
+        func getRefreshToken() -> String? { storedRefreshToken }
+        func getClientKey() -> String? { storedClientKey }
+        func getSalt() -> String? { storedSalt }
+        func getIterations() -> Int? { storedIterations }
+        func getPinHash() -> String? { storedPinHash }
+
+        func setAccessToken(_ token: String) throws { storedAccessToken = token }
+        func setRefreshToken(_ token: String) throws { storedRefreshToken = token }
+        func setClientKey(_ key: String) throws { storedClientKey = key }
+        func setSalt(_ salt: String) throws { storedSalt = salt }
+        func setIterations(_ iterations: Int) throws { storedIterations = iterations }
+        func setPinHash(_ hash: String) throws { storedPinHash = hash }
+
+        func deleteAccessToken() throws { storedAccessToken = nil }
+        func deleteRefreshToken() throws { storedRefreshToken = nil }
+        func deleteClientKey() throws { storedClientKey = nil }
+        func deleteSalt() throws { storedSalt = nil }
+        func deleteIterations() throws { storedIterations = nil }
+        func deletePinHash() throws { storedPinHash = nil }
+        func deleteAll() throws {
             storedAccessToken = nil
             storedRefreshToken = nil
             storedClientKey = nil
@@ -53,56 +69,59 @@ struct AuthFlowIntegrationTests {
     @Test("New user login requires PIN setup")
     func loginFlow_newUser_requiresPinSetup() async throws {
         // Given: User has tokens but no PIN configured
-        let keychain = MockKeychainManager()
-        keychain.storedAccessToken = "valid-token"
-        keychain.storedRefreshToken = "valid-refresh"
+        let keychain = MockKeychainManager(
+            accessToken: "valid-token",
+            refreshToken: "valid-refresh"
+        )
         // No PIN hash, salt, or iterations set
-        
+
         // When: Checking auth state
         let hasPin = await keychain.getPinHash() != nil
         let hasSalt = await keychain.getSalt() != nil
         let hasIterations = await keychain.getIterations() != nil
-        
+
         // Then: PIN setup is required
         #expect(!hasPin)
         #expect(!hasSalt)
         #expect(!hasIterations)
     }
-    
+
     @Test("Existing user with valid PIN can authenticate")
     func loginFlow_existingUser_canAuthenticate() async throws {
         // Given: User has tokens and PIN configured
-        let keychain = MockKeychainManager()
-        keychain.storedAccessToken = "valid-token"
-        keychain.storedRefreshToken = "valid-refresh"
-        keychain.storedPinHash = "stored-pin-hash"
-        keychain.storedSalt = "0123456789abcdef0123456789abcdef"
-        keychain.storedIterations = 600_000
-        keychain.storedClientKey = "stored-client-key-hex"
-        
+        let keychain = MockKeychainManager(
+            accessToken: "valid-token",
+            refreshToken: "valid-refresh",
+            clientKey: "stored-client-key-hex",
+            salt: "0123456789abcdef0123456789abcdef",
+            iterations: 600_000,
+            pinHash: "stored-pin-hash"
+        )
+
         // When: Checking auth state
         let hasPin = await keychain.getPinHash() != nil
         let hasSalt = await keychain.getSalt() != nil
         let hasIterations = await keychain.getIterations() != nil
         let hasClientKey = await keychain.getClientKey() != nil
-        
+
         // Then: User has all required credentials
         #expect(hasPin)
         #expect(hasSalt)
         #expect(hasIterations)
         #expect(hasClientKey)
     }
-    
+
     @Test("Logout clears all credentials")
     func logout_clearsAllCredentials() async throws {
         // Given: User is fully authenticated
-        let keychain = MockKeychainManager()
-        keychain.storedAccessToken = "valid-token"
-        keychain.storedRefreshToken = "valid-refresh"
-        keychain.storedPinHash = "stored-pin-hash"
-        keychain.storedSalt = "0123456789abcdef0123456789abcdef"
-        keychain.storedIterations = 600_000
-        keychain.storedClientKey = "stored-client-key-hex"
+        let keychain = MockKeychainManager(
+            accessToken: "valid-token",
+            refreshToken: "valid-refresh",
+            clientKey: "stored-client-key-hex",
+            salt: "0123456789abcdef0123456789abcdef",
+            iterations: 600_000,
+            pinHash: "stored-pin-hash"
+        )
         
         // When: Logging out
         try await keychain.deleteAll()
@@ -197,27 +216,26 @@ struct AuthFlowIntegrationTests {
     @Test("Missing refresh token requires full re-login")
     func tokenRefresh_noRefreshToken_requiresLogin() async {
         // Given: User has access token but no refresh token
-        let keychain = MockKeychainManager()
-        keychain.storedAccessToken = "expired-access-token"
-        // No refresh token
-        
+        let keychain = MockKeychainManager(accessToken: "expired-access-token")
+
         // When: Checking refresh capability
         let canRefresh = await keychain.getRefreshToken() != nil
-        
+
         // Then: Cannot refresh, must re-login
         #expect(!canRefresh)
     }
-    
+
     @Test("Valid refresh token allows token refresh")
     func tokenRefresh_withRefreshToken_canRefresh() async {
         // Given: User has both tokens
-        let keychain = MockKeychainManager()
-        keychain.storedAccessToken = "expired-access-token"
-        keychain.storedRefreshToken = "valid-refresh-token"
-        
+        let keychain = MockKeychainManager(
+            accessToken: "expired-access-token",
+            refreshToken: "valid-refresh-token"
+        )
+
         // When: Checking refresh capability
         let canRefresh = await keychain.getRefreshToken() != nil
-        
+
         // Then: Can refresh
         #expect(canRefresh)
     }

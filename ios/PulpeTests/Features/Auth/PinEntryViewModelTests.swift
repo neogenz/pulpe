@@ -160,6 +160,36 @@ struct PinEntryValidationFlowTests {
         )
     }
 
+    private typealias SUTComponents = (
+        sut: PinEntryViewModel,
+        crypto: StubCryptoKeyDerivation,
+        encryptionAPI: StubEncryptionKeyValidation,
+        storage: StubClientKeyStorage
+    )
+
+    private func makeSUTWithStubs(
+        derivedKey: String = validKey,
+        saltResponse: EncryptionSaltResponse = EncryptionSaltResponse(
+            salt: validSalt,
+            kdfIterations: 1,
+            hasRecoveryKey: false
+        ),
+        validateKeyError: APIError? = nil
+    ) -> SUTComponents {
+        let crypto = StubCryptoKeyDerivation(derivedKey: derivedKey)
+        let encryptionAPI = StubEncryptionKeyValidation(
+            saltResponse: saltResponse,
+            validateKeyError: validateKeyError
+        )
+        let storage = StubClientKeyStorage()
+        let sut = PinEntryViewModel(
+            cryptoService: crypto,
+            encryptionAPI: encryptionAPI,
+            clientKeyManager: storage
+        )
+        return (sut, crypto, encryptionAPI, storage)
+    }
+
     private func enterPin(_ sut: PinEntryViewModel, digits: [Int] = [1, 2, 3, 4]) {
         for digit in digits {
             sut.appendDigit(digit)
@@ -177,6 +207,18 @@ struct PinEntryValidationFlowTests {
         #expect(sut.authenticated == true)
         #expect(sut.isValidating == false)
         #expect(sut.errorMessage == nil)
+    }
+
+    @Test func confirm_validPin_callsEachServiceExactlyOnce() async {
+        let (sut, crypto, encryptionAPI, storage) = makeSUTWithStubs()
+        enterPin(sut)
+
+        await sut.confirm()
+
+        #expect(encryptionAPI.getSaltCallCount == 1)
+        #expect(crypto.deriveCallCount == 1)
+        #expect(encryptionAPI.validateKeyCallCount == 1)
+        #expect(storage.storeCallCount == 1)
     }
 
     // MARK: - Validation Error
@@ -230,32 +272,48 @@ struct PinEntryValidationFlowTests {
 
 // MARK: - Test Stubs
 
-private struct StubCryptoKeyDerivation: CryptoKeyDerivation {
+private final class StubCryptoKeyDerivation: CryptoKeyDerivation, @unchecked Sendable {
     let derivedKey: String
+    private(set) var deriveCallCount = 0
+
+    init(derivedKey: String) {
+        self.derivedKey = derivedKey
+    }
 
     func deriveClientKey(pin: String, saltHex: String, iterations: Int) async throws -> String {
-        derivedKey
+        deriveCallCount += 1
+        return derivedKey
     }
 }
 
-private struct StubEncryptionKeyValidation: EncryptionKeyValidation {
+private final class StubEncryptionKeyValidation: EncryptionKeyValidation, @unchecked Sendable {
     let saltResponse: EncryptionSaltResponse
     let validateKeyError: APIError?
+    private(set) var getSaltCallCount = 0
+    private(set) var validateKeyCallCount = 0
 
     init(saltResponse: EncryptionSaltResponse, validateKeyError: APIError? = nil) {
         self.saltResponse = saltResponse
         self.validateKeyError = validateKeyError
     }
 
-    func getSalt() async throws -> EncryptionSaltResponse { saltResponse }
+    func getSalt() async throws -> EncryptionSaltResponse {
+        getSaltCallCount += 1
+        return saltResponse
+    }
 
     func validateKey(_ clientKeyHex: String) async throws {
+        validateKeyCallCount += 1
         if let error = validateKeyError { throw error }
     }
 }
 
-private struct StubClientKeyStorage: ClientKeyStorage {
+private final class StubClientKeyStorage: ClientKeyStorage, @unchecked Sendable {
+    private(set) var storeCallCount = 0
+
     func resolveViaBiometric() async throws -> String? { nil }
     func hasBiometricKey() async -> Bool { false }
-    func store(_ clientKeyHex: String, enableBiometric: Bool) async {}
+    func store(_ clientKeyHex: String, enableBiometric: Bool) async {
+        storeCallCount += 1
+    }
 }

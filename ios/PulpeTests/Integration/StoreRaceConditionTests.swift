@@ -22,35 +22,27 @@ struct StoreRaceConditionTests {
     }
     
     // MARK: - CurrentMonthStore Tests
-    
-    @Test("Concurrent forceRefresh calls are coalesced into single load")
-    func currentMonthStore_concurrentForceRefresh_coalesced() async throws {
-        // This test verifies the loadTask pattern works correctly
-        // by checking that concurrent calls don't create data races
-        
+
+    @Test("Concurrent forceRefresh calls cancel previous task and settle to non-loading state")
+    func currentMonthStore_concurrentForceRefresh_settlesWithoutLoadingHanging() async throws {
+        // The loadTask pattern in CurrentMonthStore cancels the previous task when a new
+        // forceRefresh() is called. This test verifies the store always settles to
+        // isLoading == false after concurrent calls complete — never stuck mid-load.
+
         // Given: A store instance
         let store = CurrentMonthStore()
-        
-        // When: Making multiple concurrent state accesses
-        let iterations = 100
-        var loadingStates: [Bool] = []
-        var errorStates: [APIError?] = []
-        
-        // Simulate rapid concurrent access pattern
+
+        // When: Multiple concurrent forceRefresh calls are fired
         await withTaskGroup(of: Void.self) { group in
-            for _ in 0..<iterations {
+            for _ in 0..<5 {
                 group.addTask { @MainActor in
-                    // Access state properties concurrently
-                    // If there's a race condition, this would crash or produce inconsistent results
-                    loadingStates.append(store.isLoading)
-                    errorStates.append(store.error)
+                    await store.forceRefresh()
                 }
             }
         }
-        
-        // Then: No crashes occurred, all accesses completed
-        #expect(loadingStates.count == iterations)
-        #expect(errorStates.count == iterations)
+
+        // Then: Store is not stuck in loading state — all tasks have settled
+        #expect(store.isLoading == false, "Store must not be stuck in loading after concurrent forceRefresh calls")
     }
     
     @Test("Store state remains consistent under concurrent access")

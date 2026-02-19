@@ -83,7 +83,7 @@ struct CryptoServiceTests {
         }
     }
     
-    @Test func deriveClientKey_iterationsAtMaximum_succeeds() async throws {
+    @Test(.timeLimit(.minutes(1))) func deriveClientKey_iterationsAtMaximum_succeeds() async throws {
         // Note: This test is slower due to high iteration count
         let key = try await sut.deriveClientKey(pin: "1234", saltHex: validSalt, iterations: CryptoService.maxIterations)
         #expect(key.count == 64)

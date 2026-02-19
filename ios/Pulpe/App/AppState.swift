@@ -64,7 +64,8 @@ final class AppState {
 
     var biometricEnabled: Bool = false {
         didSet {
-            Task {
+            biometricSaveTask?.cancel()
+            biometricSaveTask = Task {
                 await UserDefaultsStore.shared.setBool(biometricEnabled, forKey: UserDefaultsKey.biometricEnabled)
             }
         }
@@ -76,6 +77,7 @@ final class AppState {
     // MARK: - Background Grace Period
 
     private var backgroundDate: Date?
+    private var biometricSaveTask: Task<Void, Never>?
 
     // MARK: - Services
 

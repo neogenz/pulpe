@@ -145,4 +145,40 @@ export class EncryptionKeyRepository {
       );
     }
   }
+
+  async updateKeyCheckIfNull(userId: string, keyCheck: string): Promise<void> {
+    const supabase = this.#supabaseService.getServiceRoleClient();
+    const { error } = await supabase
+      .from('user_encryption_key')
+      .update({ key_check: keyCheck, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .is('key_check', null);
+
+    if (error) {
+      throw new Error(
+        `Failed to update key_check for user ${userId}: ${error.message}`,
+      );
+    }
+  }
+
+  async updateWrappedDEKIfNull(
+    userId: string,
+    wrappedDEK: string,
+  ): Promise<boolean> {
+    const supabase = this.#supabaseService.getServiceRoleClient();
+    const { data, error } = await supabase
+      .from('user_encryption_key')
+      .update({ wrapped_dek: wrappedDEK, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .is('wrapped_dek', null)
+      .select('user_id')
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(
+        `Failed to update wrapped DEK for user ${userId}: ${error.message}`,
+      );
+    }
+    return data !== null;
+  }
 }

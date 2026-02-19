@@ -273,7 +273,7 @@ export class EncryptionService {
     if (!row) {
       const dek = await this.ensureUserDEK(userId, clientKey);
       const keyCheck = this.generateKeyCheck(dek);
-      await this.#repository.updateKeyCheck(userId, keyCheck);
+      await this.#repository.updateKeyCheckIfNull(userId, keyCheck);
       return true;
     }
 
@@ -290,7 +290,7 @@ export class EncryptionService {
     }
 
     const keyCheck = this.generateKeyCheck(dek);
-    await this.#repository.updateKeyCheck(userId, keyCheck);
+    await this.#repository.updateKeyCheckIfNull(userId, keyCheck);
     return true;
   }
 
@@ -302,13 +302,29 @@ export class EncryptionService {
     userId: string,
     clientKey: Buffer,
   ): Promise<{ formatted: string }> {
-    const existing = await this.#repository.findByUserId(userId);
-    if (existing?.wrapped_dek) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.RECOVERY_KEY_ALREADY_EXISTS,
+    const dek = await this.getUserDEK(userId, clientKey);
+    const { raw, formatted } = this.generateRecoveryKey();
+
+    try {
+      const wrappedDEK = this.wrapDEK(dek, raw);
+      const wasUpdated = await this.#repository.updateWrappedDEKIfNull(
+        userId,
+        wrappedDEK,
       );
+
+      if (!wasUpdated) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.RECOVERY_KEY_ALREADY_EXISTS,
+        );
+      }
+
+      const keyCheck = this.generateKeyCheck(dek);
+      await this.#repository.updateKeyCheckIfNull(userId, keyCheck);
+    } finally {
+      raw.fill(0);
     }
-    return this.#generateAndStoreRecoveryKey(userId, clientKey, existing);
+
+    return { formatted };
   }
 
   async regenerateRecoveryKey(
@@ -327,15 +343,18 @@ export class EncryptionService {
     const dek = await this.getUserDEK(userId, clientKey);
     const { raw, formatted } = this.generateRecoveryKey();
 
-    const wrappedDEK = this.wrapDEK(dek, raw);
-    await this.#repository.updateWrappedDEK(userId, wrappedDEK);
+    try {
+      const wrappedDEK = this.wrapDEK(dek, raw);
+      await this.#repository.updateWrappedDEK(userId, wrappedDEK);
 
-    if (!existing?.key_check) {
-      const keyCheck = this.generateKeyCheck(dek);
-      await this.#repository.updateKeyCheck(userId, keyCheck);
+      if (!existing?.key_check) {
+        const keyCheck = this.generateKeyCheck(dek);
+        await this.#repository.updateKeyCheckIfNull(userId, keyCheck);
+      }
+    } finally {
+      raw.fill(0);
     }
 
-    raw.fill(0);
     return { formatted };
   }
 

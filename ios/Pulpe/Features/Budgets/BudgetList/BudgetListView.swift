@@ -168,11 +168,12 @@ struct YearSection: View {
     }
 
     var body: some View {
+        let data = layoutData
         VStack(alignment: .leading, spacing: 14) {
-            yearHeader
+            yearHeaderView(data: data)
 
             if isExpanded {
-                expandedContent
+                expandedContent(data: data)
                     .transition(.opacity)
             }
         }
@@ -183,8 +184,7 @@ struct YearSection: View {
     }
 
     @ViewBuilder
-    private var expandedContent: some View {
-        let data = layoutData
+    private func expandedContent(data: YearSectionLayoutData) -> some View {
         VStack(spacing: DesignTokens.Spacing.md) {
             if data.currentMonthBudget != nil {
                 // Past months card (if any)
@@ -213,9 +213,8 @@ struct YearSection: View {
 
     // MARK: - Year Header
 
-    private var yearHeader: some View {
-        let data = layoutData
-        return Button(action: onToggle) {
+    private func yearHeaderView(data: YearSectionLayoutData) -> some View {
+        Button(action: onToggle) {
             HStack(alignment: .center, spacing: 12) {
                 // Chevron indicator
                 Image(systemName: "chevron.right")

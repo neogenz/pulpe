@@ -186,13 +186,14 @@ final class PinSetupViewModel {
             // This can happen when vault-status returns 404 and the app routes here by mistake.
             guard !saltResponse.hasRecoveryKey else {
                 Logger.encryption.info("Skipping recovery key setup — user already has one")
+                digits = []
                 completedWithoutRecovery = true
                 return
             }
 
             let key = try await encryptionAPI.setupRecoveryKey()
             recoveryKey = key
-
+            digits = []
             showRecoverySheet = true
         } catch {
             Logger.encryption.error("PIN setup failed: \(error.localizedDescription)")

@@ -107,7 +107,9 @@ actor ClientKeyManager {
 
     // MARK: - Clearing
 
-    /// Clear in-memory cache (for background timeout)
+    /// Clear in-memory cache (for background timeout).
+    /// Note: Swift Strings are value types on the heap; nil-ing removes the reference
+    /// but does not guarantee zeroing of the underlying bytes before deallocation.
     func clearCache() {
         cachedClientKeyHex = nil
     }

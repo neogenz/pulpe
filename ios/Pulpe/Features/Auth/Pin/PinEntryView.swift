@@ -227,6 +227,7 @@ final class PinEntryViewModel {
             )
             try await encryptionAPI.validateKey(clientKeyHex)
             await clientKeyManager.store(clientKeyHex, enableBiometric: false)
+            digits = []
             authenticated = true
         } catch let error as APIError {
             handleError(error)
