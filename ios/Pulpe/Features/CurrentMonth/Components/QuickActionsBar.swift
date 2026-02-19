@@ -50,7 +50,7 @@ private struct QuickActionButton: View {
                     .clipShape(Circle())
 
                 Text(title)
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .fontWeight(.medium)
                     .foregroundStyle(.primary)
             }

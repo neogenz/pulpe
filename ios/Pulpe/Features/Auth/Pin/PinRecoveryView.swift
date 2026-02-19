@@ -72,7 +72,7 @@ struct PinRecoveryView: View {
 
             if let error = viewModel.errorMessage {
                 Text(error)
-                    .font(.footnote)
+                    .font(PulpeTypography.footnote)
                     .foregroundStyle(.red)
                     .transition(.opacity)
             }
@@ -156,7 +156,7 @@ struct PinRecoveryView: View {
 
                 if let error = viewModel.errorMessage {
                     Text(error)
-                        .font(.footnote)
+                        .font(PulpeTypography.footnote)
                         .foregroundStyle(.red)
                         .transition(.opacity)
                 }

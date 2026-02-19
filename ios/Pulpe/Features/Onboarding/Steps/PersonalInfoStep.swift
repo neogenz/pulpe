@@ -24,7 +24,7 @@ struct PersonalInfoStep: View {
                     .textContentType(.givenName)
                     .autocapitalization(.words)
                     .focused($isFocused)
-                    .font(.body)
+                    .font(PulpeTypography.body)
                     .foregroundStyle(Color.authInputText)
                     .padding(DesignTokens.Spacing.lg)
                     .background {

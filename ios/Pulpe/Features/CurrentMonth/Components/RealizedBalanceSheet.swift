@@ -46,7 +46,7 @@ struct RealizedBalanceSheet: View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             // Label
             Text("Solde à date")
-                .font(.subheadline)
+                .font(PulpeTypography.subheadline)
                 .foregroundStyle(.secondary)
 
             // Amount
@@ -58,9 +58,9 @@ struct RealizedBalanceSheet: View {
             // Status badge
             HStack(spacing: 6) {
                 Image(systemName: isPositiveBalance ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                 Text(isPositiveBalance ? "Tout va bien" : "Solde négatif — on y remédie ?")
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .fontWeight(.medium)
             }
             .foregroundStyle(isPositiveBalance ? Color.financialSavings : Color.financialOverBudget)
@@ -71,7 +71,7 @@ struct RealizedBalanceSheet: View {
 
             // Completion info
             Text("Basé sur \(realizedMetrics.checkedItemsCount) éléments comptabilisés sur \(realizedMetrics.totalItemsCount)")
-                .font(.caption)
+                .font(PulpeTypography.caption)
                 .foregroundStyle(Color.textTertiary)
         }
         .frame(maxWidth: .infinity)
@@ -85,7 +85,7 @@ struct RealizedBalanceSheet: View {
     private var progressSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
             Text("Prévu vs Réalisé")
-                .font(.headline)
+                .font(PulpeTypography.headline)
 
             // Income row
             ProgressRow(
@@ -134,16 +134,16 @@ struct RealizedBalanceSheet: View {
     private var tipSection: some View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
             Image(systemName: "lightbulb.fill")
-                .font(.body)
+                .font(PulpeTypography.body)
                 .foregroundStyle(Color.warningPrimary)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Astuce")
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
                     .fontWeight(.semibold)
 
                 Text("Compare ce solde avec ton compte bancaire. S'il y a un écart, vérifie que toutes tes dépenses sont bien cochées.")
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)
             }
         }
@@ -182,13 +182,13 @@ private struct ProgressRow: View {
                     .foregroundStyle(iconColor)
 
                 Text(label)
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
                     .fontWeight(.medium)
 
                 Spacer()
 
                 Text("\(realized.asCompactCHF) / \(planned.asCompactCHF)")
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
                     .foregroundStyle(.secondary)
                     .sensitiveAmount()
             }
@@ -208,7 +208,7 @@ private struct ProgressRow: View {
 
             // Percentage label
             Text("\(percentageText) réalisé")
-                .font(.caption)
+                .font(PulpeTypography.caption)
                 .foregroundStyle(Color.textTertiary)
         }
     }

@@ -60,7 +60,7 @@ struct PinEntryView: View {
                 }
             } label: {
                 Text("Se déconnecter")
-                    .font(.footnote)
+                    .font(PulpeTypography.footnote)
                     .foregroundStyle(Color.textSecondaryOnboarding)
             }
         }
@@ -97,7 +97,7 @@ struct PinEntryView: View {
 
             if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
-                    .font(.footnote)
+                    .font(PulpeTypography.footnote)
                     .foregroundStyle(.red)
                     .transition(.opacity)
             }

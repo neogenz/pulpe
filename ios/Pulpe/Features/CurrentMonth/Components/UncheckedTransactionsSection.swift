@@ -15,11 +15,11 @@ struct UncheckedTransactionsSection: View {
                 Button(action: onTapViewBudget) {
                     HStack {
                         Text("Comptabiliser dans le budget")
-                            .font(.subheadline)
+                            .font(PulpeTypography.subheadline)
                             .fontWeight(.medium)
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.caption)
+                            .font(PulpeTypography.caption)
                             .foregroundStyle(Color.textTertiary)
                     }
                 }
@@ -28,7 +28,7 @@ struct UncheckedTransactionsSection: View {
                     Image(systemName: "clock.arrow.circlepath")
                         .foregroundStyle(Color.financialOverBudget)
                     Text("À comptabiliser")
-                        .font(.subheadline)
+                        .font(PulpeTypography.subheadline)
                         .fontWeight(.semibold)
                 }
                 .textCase(nil)
@@ -57,12 +57,12 @@ private struct UncheckedTransactionRow: View {
             // Name and date
             VStack(alignment: .leading, spacing: 2) {
                 Text(transaction.name)
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
                     .fontWeight(.medium)
                     .lineLimit(1)
 
                 Text(transaction.transactionDate.relativeFormatted)
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textTertiary)
             }
 
@@ -70,7 +70,7 @@ private struct UncheckedTransactionRow: View {
 
             // Amount
             Text(transaction.signedAmount.asCHF)
-                .font(.subheadline)
+                .font(PulpeTypography.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(transaction.kind.color)
                 .sensitiveAmount()

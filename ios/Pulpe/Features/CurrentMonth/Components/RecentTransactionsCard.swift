@@ -18,11 +18,11 @@ struct RecentTransactionsCard: View {
             Button(action: onViewAll) {
                 HStack {
                     Text("Voir tout")
-                        .font(.subheadline)
+                        .font(PulpeTypography.subheadline)
                         .fontWeight(.medium)
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.caption)
+                        .font(PulpeTypography.caption)
                         .foregroundStyle(.tertiary)
                 }
             }
@@ -53,11 +53,11 @@ private struct RecentTransactionCardRow: View {
             // Name and date
             VStack(alignment: .leading, spacing: 4) {
                 Text(transaction.name)
-                    .font(.system(.body, design: .rounded, weight: .medium))
+                    .font(.custom("Manrope-Medium", size: 17, relativeTo: .body))
                     .lineLimit(1)
 
                 Text(transaction.transactionDate.relativeFormatted)
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textTertiary)
             }
 
@@ -65,7 +65,7 @@ private struct RecentTransactionCardRow: View {
 
             // Amount
             Text(transaction.signedAmount.asCHF)
-                .font(.system(.callout, design: .rounded, weight: .semibold))
+                .font(.custom("Manrope-SemiBold", size: 16, relativeTo: .callout))
                 .foregroundStyle(transaction.kind.color)
                 .sensitiveAmount()
         }

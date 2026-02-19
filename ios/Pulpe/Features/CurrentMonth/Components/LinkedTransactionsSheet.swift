@@ -102,13 +102,13 @@ struct LinkedTransactionsSheet: View {
         VStack(spacing: DesignTokens.Spacing.sm) {
             HStack {
                 Text("Utilisation du budget")
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
                     .foregroundStyle(.secondary)
 
                 Spacer()
 
                 Text("\(Int(consumption.percentage))%")
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
                     .fontWeight(.semibold)
                     .foregroundStyle(progressColor)
             }
@@ -141,11 +141,11 @@ struct LinkedTransactionsSheet: View {
 
             VStack(spacing: 4) {
                 Text("Pas encore de transaction")
-                    .font(.headline)
+                    .font(PulpeTypography.headline)
                     .foregroundStyle(.secondary)
 
                 Text("Ajoute une transaction pour suivre tes dépenses")
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
                     .foregroundStyle(Color.textTertiary)
                     .multilineTextAlignment(.center)
             }
@@ -160,7 +160,7 @@ struct LinkedTransactionsSheet: View {
     private var transactionsSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             Text("Transactions")
-                .font(.subheadline)
+                .font(PulpeTypography.subheadline)
                 .fontWeight(.medium)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal)
@@ -189,7 +189,7 @@ struct LinkedTransactionsSheet: View {
             onAddTransaction()
         } label: {
             Label("Nouvelle transaction", systemImage: "plus")
-                .font(.headline)
+                .font(PulpeTypography.headline)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, DesignTokens.Spacing.lg)
         }
@@ -217,11 +217,11 @@ private struct MetricCard: View {
 
             VStack(spacing: 2) {
                 Text(label)
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)
 
                 Text(value.asCompactCHF)
-                    .font(.system(.callout, design: .rounded, weight: .bold))
+                    .font(.custom("Manrope-Bold", size: 16, relativeTo: .callout))
                     .foregroundStyle(color == .secondary ? .primary : color)
                     .sensitiveAmount()
             }
@@ -246,19 +246,19 @@ private struct LinkedTransactionRow: View {
         HStack(spacing: DesignTokens.Spacing.md) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(transaction.name)
-                    .font(.body)
+                    .font(PulpeTypography.body)
                     .fontWeight(.medium)
                     .lineLimit(1)
 
                 Text(transaction.transactionDate.formatted(date: .abbreviated, time: .omitted))
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)
             }
 
             Spacer(minLength: 8)
 
             Text(transaction.amount.asCHF)
-                .font(.system(.body, design: .rounded, weight: .semibold))
+                .font(.custom("Manrope-SemiBold", size: 17, relativeTo: .body))
                 .foregroundStyle(transaction.kind.color)
                 .sensitiveAmount()
 

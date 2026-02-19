@@ -15,7 +15,7 @@ struct LoadingView: View {
 
             if let message {
                 Text(message)
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
                     .foregroundStyle(.secondary)
             }
         }
@@ -55,7 +55,7 @@ struct LoadingOverlay: View {
 
                     if let message {
                         Text(message)
-                            .font(.subheadline)
+                            .font(PulpeTypography.subheadline)
                             .foregroundStyle(.primary)
                     }
                 }

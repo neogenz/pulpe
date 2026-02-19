@@ -11,7 +11,7 @@ struct PrimaryButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(.body, design: .rounded).weight(.semibold))
+            .font(.custom("Manrope-SemiBold", size: 17, relativeTo: .body))
             .frame(maxWidth: .infinity)
             .frame(height: DesignTokens.FrameHeight.button)
             .background {
@@ -32,7 +32,7 @@ struct PrimaryButtonStyle: ButtonStyle {
 struct SecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(.body, design: .rounded).weight(.semibold))
+            .font(.custom("Manrope-SemiBold", size: 17, relativeTo: .body))
             .frame(maxWidth: .infinity)
             .frame(height: DesignTokens.FrameHeight.button)
             .background(Color.surfaceCard)

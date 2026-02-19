@@ -52,9 +52,9 @@ struct OptionalBadge: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "arrow.right.circle")
-                .font(.caption2)
+                .font(PulpeTypography.caption2)
             Text("Optionnel — tu peux passer")
-                .font(.caption)
+                .font(PulpeTypography.caption)
                 .fontWeight(.medium)
         }
         .foregroundStyle(Color.textTertiaryOnboarding)

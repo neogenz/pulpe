@@ -20,12 +20,12 @@ struct KindBadge: View {
         HStack(spacing: 4) {
             if style != .text {
                 Image(systemName: kind.icon)
-                    .font(.caption2)
+                    .font(PulpeTypography.caption2)
             }
 
             if style != .compact {
                 Text(kind.shortLabel)
-                    .font(.caption2)
+                    .font(PulpeTypography.caption2)
                     .fontWeight(.medium)
             }
         }
@@ -56,12 +56,12 @@ struct RecurrenceBadge: View {
         HStack(spacing: 4) {
             if style != .text {
                 Image(systemName: recurrence.icon)
-                    .font(.caption2)
+                    .font(PulpeTypography.caption2)
             }
 
             if style != .compact {
                 Text(recurrence.label)
-                    .font(.caption2)
+                    .font(PulpeTypography.caption2)
                     .fontWeight(.medium)
             }
         }

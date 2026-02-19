@@ -74,10 +74,10 @@ struct TransactionSection: View {
             } label: {
                 HStack {
                     Text(isExpanded ? "Voir moins" : "Voir plus (+\(hiddenItemsCount))")
-                        .font(.subheadline)
+                        .font(PulpeTypography.subheadline)
                     Spacer()
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption)
+                        .font(PulpeTypography.caption)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -127,14 +127,14 @@ struct TransactionRow: View {
                 // Main content
                 VStack(alignment: .leading, spacing: 4) {
                     Text(transaction.name)
-                        .font(.system(.body, design: .rounded, weight: .medium))
+                        .font(.custom("Manrope-Medium", size: 17, relativeTo: .body))
                         .foregroundStyle(transaction.isChecked ? .secondary : .primary)
                         .strikethrough(transaction.isChecked, color: .secondary)
                         .lineLimit(1)
 
                     // Date (relative formatting)
                     Text(transaction.transactionDate.relativeFormatted)
-                        .font(.caption)
+                        .font(PulpeTypography.caption)
                         .foregroundStyle(Color.textTertiary)
                 }
 
@@ -145,7 +145,7 @@ struct TransactionRow: View {
 
                 // Amount
                 Text(transaction.amount.asCHF)
-                    .font(.system(.callout, design: .rounded, weight: .semibold))
+                    .font(PulpeTypography.callout.weight(.semibold))
                     .foregroundStyle(transaction.isChecked ? .secondary : transaction.kind.color)
                     .sensitiveAmount()
             }

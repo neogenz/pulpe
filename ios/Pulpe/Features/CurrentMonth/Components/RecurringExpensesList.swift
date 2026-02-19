@@ -109,10 +109,10 @@ struct BudgetSection: View {
                 } label: {
                     HStack {
                         Text(isExpanded ? "Voir moins" : "Voir plus (+\(hiddenItemsCount))")
-                            .font(.subheadline)
+                            .font(PulpeTypography.subheadline)
                         Spacer()
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .font(.caption)
+                            .font(PulpeTypography.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -192,7 +192,7 @@ struct BudgetLineRow: View {
                 // Main content
                 VStack(alignment: .leading, spacing: 4) {
                     Text(line.name)
-                        .font(.system(.body, design: .rounded, weight: .medium))
+                        .font(.custom("Manrope-Medium", size: 17, relativeTo: .body))
                         .foregroundStyle(line.isChecked ? .secondary : .primary)
                         .strikethrough(line.isChecked, color: .secondary)
                         .lineLimit(1)
@@ -200,13 +200,13 @@ struct BudgetLineRow: View {
                     // Consumption info or recurrence label
                     if hasConsumption {
                         Text("\(consumptionPercentage)% · \(consumption.allocated.asCompactCHF) dépensé")
-                            .font(.caption)
+                            .font(PulpeTypography.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                             .sensitiveAmount()
                     } else {
                         Text(line.recurrence.label)
-                            .font(.caption)
+                            .font(PulpeTypography.caption)
                             .foregroundStyle(Color.textTertiary)
                     }
                 }
@@ -219,13 +219,13 @@ struct BudgetLineRow: View {
                 // Amount (remaining when transactions exist, otherwise budgeted)
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(hasConsumption ? consumption.available.asCHF : line.amount.asCHF)
-                        .font(.system(.callout, design: .rounded, weight: .semibold))
+                        .font(.custom("Manrope-SemiBold", size: 16, relativeTo: .callout))
                         .foregroundStyle(amountTextColor)
                         .sensitiveAmount()
 
                     if hasConsumption {
                         Text("reste")
-                            .font(.caption2)
+                            .font(PulpeTypography.caption2)
                             .foregroundStyle(.secondary)
                     }
                 }

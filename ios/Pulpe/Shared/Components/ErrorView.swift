@@ -54,7 +54,7 @@ struct ErrorBanner: View {
                 .foregroundStyle(Color.errorPrimary)
 
             Text(message)
-                .font(.subheadline)
+                .font(PulpeTypography.subheadline)
                 .foregroundStyle(.primary)
                 .multilineTextAlignment(.leading)
 

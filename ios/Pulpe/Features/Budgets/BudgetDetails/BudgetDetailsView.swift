@@ -39,7 +39,7 @@ struct MonthDropdownMenu: View {
     private var labelContent: some View {
         HStack(spacing: DesignTokens.Spacing.xs) {
             Text(currentMonthYear)
-                .font(.headline)
+                .font(PulpeTypography.headline)
                 .lineLimit(1)
             Image(systemName: "chevron.up.chevron.down")
                 .font(.caption2.weight(.semibold))
@@ -913,23 +913,23 @@ private struct RolloverInfoRow: View {
     private var content: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "arrow.uturn.backward.circle.fill")
-                .font(.title2)
+                .font(PulpeTypography.title2)
                 .foregroundStyle(isPositive ? Color.financialSavings : Color.financialOverBudget)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Report du mois précédent")
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
                     .fontWeight(.medium)
                     .foregroundStyle(.primary)
                 Text(isPositive ? "Excédent reporté" : "Déficit reporté")
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)
             }
 
             Spacer()
 
             Text(amount.asCHF)
-                .font(.headline)
+                .font(PulpeTypography.headline)
                 .fontWeight(.semibold)
                 .foregroundStyle(isPositive ? Color.financialSavings : Color.financialOverBudget)
                 .sensitiveAmount()

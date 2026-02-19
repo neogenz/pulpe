@@ -106,6 +106,13 @@ targets:
           - CFBundleURLSchemes:
               - pulpe
             CFBundleURLName: app.pulpe.ios
+        UIAppFonts:
+          - Manrope-Bold.ttf
+          - Manrope-SemiBold.ttf
+          - Manrope-Medium.ttf
+          - DMSans-Regular.ttf
+          - DMSans-Medium.ttf
+          - DMSans-SemiBold.ttf
         UIBackgroundModes:
           - fetch
         BGTaskSchedulerPermittedIdentifiers:

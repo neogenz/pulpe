@@ -11,13 +11,13 @@ struct SectionHeader: View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             // Title
             Text(title)
-                .font(.headline)
+                .font(PulpeTypography.headline)
                 .foregroundStyle(Color.textPrimary)
                 .lineLimit(1)
 
             // Count badge
             Text("\(count)")
-                .font(.system(.caption, design: .rounded, weight: .semibold))
+                .font(.custom("Manrope-SemiBold", size: 12, relativeTo: .caption))
                 .foregroundStyle(Color.textOnPrimary)
                 .padding(.horizontal, DesignTokens.Spacing.sm)
                 .padding(.vertical, 3)
@@ -29,7 +29,7 @@ struct SectionHeader: View {
             // Total amount (optional)
             if let total = totalAmount {
                 Text(total.asCHF)
-                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                    .font(.custom("Manrope-SemiBold", size: 15, relativeTo: .subheadline))
                     .foregroundStyle(totalColor)
                     .sensitiveAmount()
             }
