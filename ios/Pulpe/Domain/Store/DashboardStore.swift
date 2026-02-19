@@ -2,16 +2,16 @@ import Foundation
 
 /// Store for dashboard historical data and trends
 /// Uses sparse fieldsets API for optimized data fetching (~500 bytes vs ~50KB)
-@Observable
+@Observable @MainActor
 final class DashboardStore: StoreProtocol {
-    // MARK: - State (accessed from main thread)
+    // MARK: - State
 
-    @MainActor private(set) var sparseBudgets: [BudgetSparse] = []
-    @MainActor private(set) var isLoading = false
-    @MainActor private(set) var error: APIError?
-    
+    private(set) var sparseBudgets: [BudgetSparse] = []
+    private(set) var isLoading = false
+    private(set) var error: APIError?
+
     /// Returns true if the store has an error and no data to display
-    @MainActor var hasError: Bool {
+    var hasError: Bool {
         error != nil && sparseBudgets.isEmpty
     }
 
@@ -54,36 +54,28 @@ final class DashboardStore: StoreProtocol {
         // Cancel any existing load task to avoid duplicate requests
         loadTask?.cancel()
         
-        let task = Task {
-            await MainActor.run {
-                isLoading = true
-                error = nil
-            }
-            defer { Task { @MainActor in isLoading = false } }
+        let task = Task { @MainActor in
+            isLoading = true
+            error = nil
+            defer { isLoading = false }
 
             do {
                 // Fetch only aggregated data - no transactions or budget lines
                 let budgets = try await budgetService.getBudgetsSparse(
                     limit: Self.maxBudgetsToFetch
                 )
-                
+
                 // Check for cancellation before updating state
                 try Task.checkCancellation()
-                
-                await MainActor.run {
-                    sparseBudgets = budgets
-                }
+
+                sparseBudgets = budgets
                 lastLoadTime = Date()
             } catch is CancellationError {
                 // Task was cancelled, don't update error state
             } catch let apiError as APIError {
-                await MainActor.run {
-                    self.error = apiError
-                }
+                self.error = apiError
             } catch {
-                await MainActor.run {
-                    self.error = .networkError(error)
-                }
+                self.error = .networkError(error)
             }
         }
         
@@ -95,7 +87,6 @@ final class DashboardStore: StoreProtocol {
     // MARK: - Computed Properties
 
     /// Expenses for the last 3 months (including current), sorted oldest to newest
-    @MainActor
     var historicalExpenses: [MonthlyExpense] {
         let calendar = Calendar.current
         let now = Date()
@@ -129,7 +120,6 @@ final class DashboardStore: StoreProtocol {
     }
 
     /// Variation compared to previous month
-    @MainActor
     var expenseVariation: ExpenseVariation? {
         let expenses = historicalExpenses
         guard expenses.count >= 2,
@@ -153,7 +143,6 @@ final class DashboardStore: StoreProtocol {
     }
 
     /// Total savings for current year (Year-To-Date)
-    @MainActor
     var savingsYTD: Decimal {
         let calendar = Calendar.current
         let currentYear = calendar.component(.year, from: Date())
@@ -167,7 +156,6 @@ final class DashboardStore: StoreProtocol {
     }
 
     /// Current rollover (from current month budget)
-    @MainActor
     var currentRollover: Decimal {
         let calendar = Calendar.current
         let now = Date()
@@ -180,7 +168,6 @@ final class DashboardStore: StoreProtocol {
     }
 
     /// Check if we have enough historical data for trends
-    @MainActor
     var hasEnoughHistoryForTrends: Bool {
         historicalExpenses.count >= 2
     }

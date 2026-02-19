@@ -27,4 +27,8 @@ export class BudgetInvalidationService {
   invalidate(): void {
     this.#version.update((v) => v + 1);
   }
+
+  reset(): void {
+    this.#version.set(0);
+  }
 }

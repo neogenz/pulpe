@@ -5,11 +5,14 @@ import type { User } from '@supabase/supabase-js';
 import { AuthCleanupService } from './auth-cleanup.service';
 import { AuthStateService } from './auth-state.service';
 import { BudgetApi } from '@core/budget';
+import { BudgetInvalidationService } from '../budget/budget-invalidation.service';
 import { ClientKeyService } from '@core/encryption';
 import { DemoModeService } from '../demo/demo-mode.service';
 import { HasBudgetCache } from './has-budget-cache';
+import { PreloadService } from '../preload/preload.service';
 import { PostHogService } from '../analytics/posthog';
 import { StorageService } from '../storage';
+import { UserSettingsApi } from '../user-settings/user-settings-api';
 import { Logger } from '../logging/logger';
 import { type E2EWindow } from './e2e-window';
 
@@ -17,11 +20,14 @@ describe('AuthCleanupService', () => {
   let service: AuthCleanupService;
   let mockState: Partial<AuthStateService>;
   let mockBudgetApi: { cache: { clear: ReturnType<typeof vi.fn> } };
+  let mockBudgetInvalidation: Partial<BudgetInvalidationService>;
   let mockClientKey: Partial<ClientKeyService>;
   let mockDemoMode: Partial<DemoModeService>;
   let mockHasBudgetCache: Partial<HasBudgetCache>;
+  let mockPreload: Partial<PreloadService>;
   let mockPostHog: Partial<PostHogService>;
   let mockStorage: Partial<StorageService>;
+  let mockUserSettings: Partial<UserSettingsApi>;
   let mockLogger: Partial<Logger>;
 
   const userSignal = signal<User | null>(null);
@@ -37,6 +43,10 @@ describe('AuthCleanupService', () => {
       cache: { clear: vi.fn() },
     };
 
+    mockBudgetInvalidation = {
+      reset: vi.fn(),
+    };
+
     mockClientKey = {
       clear: vi.fn(),
       clearPreservingDeviceTrust: vi.fn(),
@@ -50,12 +60,20 @@ describe('AuthCleanupService', () => {
       clear: vi.fn(),
     };
 
+    mockPreload = {
+      reset: vi.fn(),
+    };
+
     mockPostHog = {
       reset: vi.fn(),
     };
 
     mockStorage = {
       clearAllUserData: vi.fn(),
+    };
+
+    mockUserSettings = {
+      reset: vi.fn(),
     };
 
     mockLogger = {
@@ -69,11 +87,17 @@ describe('AuthCleanupService', () => {
         AuthCleanupService,
         { provide: AuthStateService, useValue: mockState },
         { provide: BudgetApi, useValue: mockBudgetApi },
+        {
+          provide: BudgetInvalidationService,
+          useValue: mockBudgetInvalidation,
+        },
         { provide: ClientKeyService, useValue: mockClientKey },
         { provide: DemoModeService, useValue: mockDemoMode },
         { provide: HasBudgetCache, useValue: mockHasBudgetCache },
+        { provide: PreloadService, useValue: mockPreload },
         { provide: PostHogService, useValue: mockPostHog },
         { provide: StorageService, useValue: mockStorage },
+        { provide: UserSettingsApi, useValue: mockUserSettings },
         { provide: Logger, useValue: mockLogger },
       ],
     });
@@ -100,6 +124,9 @@ describe('AuthCleanupService', () => {
     expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
     expect(mockHasBudgetCache.clear).toHaveBeenCalled();
     expect(mockBudgetApi.cache.clear).toHaveBeenCalled();
+    expect(mockPreload.reset).toHaveBeenCalled();
+    expect(mockBudgetInvalidation.reset).toHaveBeenCalled();
+    expect(mockUserSettings.reset).toHaveBeenCalled();
     expect(mockPostHog.reset).toHaveBeenCalled();
     expect(mockStorage.clearAllUserData).toHaveBeenCalled();
   });
@@ -118,6 +145,9 @@ describe('AuthCleanupService', () => {
 
     expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalledTimes(1);
     expect(mockHasBudgetCache.clear).toHaveBeenCalledTimes(1);
+    expect(mockPreload.reset).toHaveBeenCalledTimes(1);
+    expect(mockBudgetInvalidation.reset).toHaveBeenCalledTimes(1);
+    expect(mockUserSettings.reset).toHaveBeenCalledTimes(1);
     expect(mockPostHog.reset).toHaveBeenCalledTimes(1);
     expect(mockStorage.clearAllUserData).toHaveBeenCalledTimes(1);
     expect(mockLogger.debug).toHaveBeenCalledWith(
@@ -168,6 +198,9 @@ describe('AuthCleanupService', () => {
 
       expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
       expect(mockHasBudgetCache.clear).toHaveBeenCalled();
+      expect(mockPreload.reset).toHaveBeenCalled();
+      expect(mockBudgetInvalidation.reset).toHaveBeenCalled();
+      expect(mockUserSettings.reset).toHaveBeenCalled();
       expect(mockPostHog.reset).toHaveBeenCalled();
       expect(mockStorage.clearAllUserData).toHaveBeenCalled();
     });
@@ -182,6 +215,9 @@ describe('AuthCleanupService', () => {
       expect(mockClientKey.clearPreservingDeviceTrust).toHaveBeenCalled();
       expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
       expect(mockHasBudgetCache.clear).toHaveBeenCalled();
+      expect(mockPreload.reset).toHaveBeenCalled();
+      expect(mockBudgetInvalidation.reset).toHaveBeenCalled();
+      expect(mockUserSettings.reset).toHaveBeenCalled();
       expect(mockPostHog.reset).toHaveBeenCalled();
       expect(mockStorage.clearAllUserData).toHaveBeenCalled();
     });
@@ -198,6 +234,9 @@ describe('AuthCleanupService', () => {
       expect(mockClientKey.clearPreservingDeviceTrust).toHaveBeenCalled();
       expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
       expect(mockHasBudgetCache.clear).toHaveBeenCalled();
+      expect(mockPreload.reset).toHaveBeenCalled();
+      expect(mockBudgetInvalidation.reset).toHaveBeenCalled();
+      expect(mockUserSettings.reset).toHaveBeenCalled();
       expect(mockPostHog.reset).toHaveBeenCalled();
     });
   });
@@ -214,11 +253,16 @@ describe('AuthCleanupService', () => {
 
       service.performCleanup();
       expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalledTimes(1);
+      expect(mockPreload.reset).toHaveBeenCalledTimes(1);
+      expect(mockBudgetInvalidation.reset).toHaveBeenCalledTimes(1);
 
       vi.advanceTimersByTime(100);
 
       service.performCleanup();
       expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalledTimes(2);
+      expect(mockPreload.reset).toHaveBeenCalledTimes(2);
+      expect(mockBudgetInvalidation.reset).toHaveBeenCalledTimes(2);
+      expect(mockUserSettings.reset).toHaveBeenCalledTimes(2);
 
       vi.useRealTimers();
     });

@@ -71,6 +71,11 @@ export class UserSettingsApi {
     this.#reloadTrigger.update((v) => v + 1);
   }
 
+  reset(): void {
+    this.#settingsResource.set(null);
+    this.#reloadTrigger.set(0);
+  }
+
   async deleteAccount(): Promise<DeleteAccountResponse> {
     return firstValueFrom(
       this.#api.delete$('/users/account', deleteAccountResponseSchema),

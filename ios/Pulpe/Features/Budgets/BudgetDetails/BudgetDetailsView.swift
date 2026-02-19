@@ -705,6 +705,7 @@ final class BudgetDetailsViewModel {
             
             // Collect results
             var anyFailed = false
+            try? Task.checkCancellation()
             for await (_, success) in group {
                 if !success {
                     anyFailed = true
