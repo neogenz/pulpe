@@ -47,12 +47,11 @@ struct AppStateReinstallTests {
         // Simulate: app killed and restarted (new AppState instance)
         let appState = AppState()
         
-        // Wait for async initialization with polling (max 1s)
-        for _ in 0..<20 {
-            try? await Task.sleep(for: .milliseconds(50))
-            if appState.hasCompletedOnboarding { break }
+        // Wait for async initialization
+        await waitForCondition(timeout: .milliseconds(1000), "Onboarding flag should load from Keychain") {
+            appState.hasCompletedOnboarding == true
         }
-        
+
         // Verify: onboarding flag is loaded from Keychain
         #expect(appState.hasCompletedOnboarding == true)
         
@@ -87,15 +86,14 @@ struct AppStateReinstallTests {
         
         let appState = AppState()
         
-        // Wait for async initialization with polling (max 1s)
-        for _ in 0..<20 {
-            try? await Task.sleep(for: .milliseconds(50))
-            if appState.hasCompletedOnboarding { break }
+        // Wait for async initialization
+        await waitForCondition(timeout: .milliseconds(1000), "Onboarding flag should load for routing") {
+            appState.hasCompletedOnboarding == true
         }
-        
+
         // Simulate: unauthenticated state (expired tokens, logout, etc.)
         // In this state, PulpeApp checks hasCompletedOnboarding to decide Login vs Welcome
-        #expect(appState.hasCompletedOnboarding == true, 
+        #expect(appState.hasCompletedOnboarding == true,
                 "User with completed onboarding should see LoginView, not OnboardingFlow")
         
         // Cleanup
@@ -138,12 +136,11 @@ struct AppStateReinstallTests {
         // Step 3: Create new AppState (simulating fresh app launch after reinstall)
         let appState = AppState()
         
-        // Wait for async initialization with polling (max 1s)
-        for _ in 0..<20 {
-            try? await Task.sleep(for: .milliseconds(50))
-            if appState.hasCompletedOnboarding { break }
+        // Wait for async initialization
+        await waitForCondition(timeout: .milliseconds(1000), "Keychain onboarding flag should persist after reinstall") {
+            appState.hasCompletedOnboarding == true
         }
-        
+
         // Step 4: Verify Keychain value is still available
         #expect(appState.hasCompletedOnboarding == true,
                 "Keychain-stored onboarding flag should persist after reinstall")

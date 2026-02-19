@@ -5,6 +5,7 @@ struct RecoveryKeySheet: View {
     let onAcknowledge: () -> Void
 
     @State private var copied = false
+    @State private var copyResetTask: Task<Void, Never>?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -64,8 +65,10 @@ struct RecoveryKeySheet: View {
                 withAnimation {
                     copied = true
                 }
-                Task {
+                copyResetTask?.cancel()
+                copyResetTask = Task {
                     try? await Task.sleep(for: .seconds(2))
+                    guard !Task.isCancelled else { return }
                     withAnimation {
                         copied = false
                     }

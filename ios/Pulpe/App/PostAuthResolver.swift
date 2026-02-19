@@ -116,11 +116,7 @@ struct PostAuthResolver: PostAuthResolving {
         }
     }
 
-    private func fallbackVaultStatus() -> VaultStatusResponse {
-        VaultStatusResponse(
-            pinCodeConfigured: true,
-            recoveryKeyConfigured: true,
-            vaultCodeConfigured: true
-        )
+    private func fallbackVaultStatus() -> VaultStatusResponse? {
+        nil
     }
 }

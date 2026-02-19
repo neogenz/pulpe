@@ -227,6 +227,26 @@ enum RecoveryStep {
     case processing
 }
 
+// MARK: - Dependency Protocols
+
+protocol PinRecoveryCryptoKeyDerivation: Sendable {
+    func deriveClientKey(pin: String, saltHex: String, iterations: Int) async throws -> String
+}
+
+protocol PinRecoveryEncryptionAPI: Sendable {
+    func getSalt() async throws -> EncryptionSaltResponse
+    func recover(recoveryKey: String, newClientKeyHex: String) async throws
+    func regenerateRecoveryKey() async throws -> String
+}
+
+protocol PinRecoveryClientKeyStorage: Sendable {
+    func store(_ clientKeyHex: String, enableBiometric: Bool) async
+}
+
+extension CryptoService: PinRecoveryCryptoKeyDerivation {}
+extension EncryptionAPI: PinRecoveryEncryptionAPI {}
+extension ClientKeyManager: PinRecoveryClientKeyStorage {}
+
 // MARK: - ViewModel
 
 @Observable @MainActor
@@ -246,9 +266,20 @@ final class PinRecoveryViewModel {
 
     private var recoveryKey = ""
     private var firstPin: String?
-    private let cryptoService = CryptoService.shared
-    private let encryptionAPI = EncryptionAPI.shared
-    private let clientKeyManager = ClientKeyManager.shared
+    private var errorResetTask: Task<Void, Never>?
+    private let cryptoService: any PinRecoveryCryptoKeyDerivation
+    private let encryptionAPI: any PinRecoveryEncryptionAPI
+    private let clientKeyManager: any PinRecoveryClientKeyStorage
+
+    init(
+        cryptoService: any PinRecoveryCryptoKeyDerivation = CryptoService.shared,
+        encryptionAPI: any PinRecoveryEncryptionAPI = EncryptionAPI.shared,
+        clientKeyManager: any PinRecoveryClientKeyStorage = ClientKeyManager.shared
+    ) {
+        self.cryptoService = cryptoService
+        self.encryptionAPI = encryptionAPI
+        self.clientKeyManager = clientKeyManager
+    }
 
     var isRecoveryKeyValid: Bool {
         // Base32 recovery key (256-bit): 52 characters
@@ -411,8 +442,10 @@ final class PinRecoveryViewModel {
         errorMessage = message
         isError = true
 
-        Task {
+        errorResetTask?.cancel()
+        errorResetTask = Task {
             try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
             isError = false
         }
     }

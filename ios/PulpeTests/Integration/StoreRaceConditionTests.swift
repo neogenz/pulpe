@@ -79,9 +79,8 @@ struct StoreRaceConditionTests {
             }
         }
         
-        // Then: Store is in a valid state (not crashed, not in inconsistent state)
-        // The loadTask coalescing should have handled the concurrent calls
-        #expect(true, "Concurrent loadIfNeeded completed without crash")
+        // Then: Store settled to non-loading state
+        #expect(store.isLoading == false, "Store must not be stuck in loading after concurrent loadIfNeeded calls")
     }
     
     // MARK: - DashboardStore Tests
@@ -100,8 +99,8 @@ struct StoreRaceConditionTests {
             }
         }
         
-        // Then: Store is in a valid state
-        #expect(true, "Concurrent forceRefresh completed without crash")
+        // Then: Store settled to non-loading state
+        #expect(store.isLoading == false, "Store must not be stuck in loading after concurrent forceRefresh calls")
     }
     
     // MARK: - Task Cancellation Tests
@@ -122,9 +121,8 @@ struct StoreRaceConditionTests {
         // Wait for cancellation to propagate
         await task.value
         
-        // Then: Store is in a valid state (not stuck in loading)
-        // Note: Due to the coalescing pattern, the store should handle this gracefully
-        #expect(true, "Task cancellation handled without crash")
+        // Then: Store is not stuck in loading
+        #expect(store.isLoading == false, "Store must not be stuck in loading after task cancellation")
     }
     
     @Test("Rapid load/cancel cycles don't corrupt state")
@@ -146,13 +144,8 @@ struct StoreRaceConditionTests {
         // Small delay to let any pending operations settle
         try await Task.sleep(for: .milliseconds(50))
         
-        // Then: Store properties are accessible and consistent
-        let isLoading = store.isLoading
-        let hasError = store.hasError
-        
-        // State should be consistent (both should be valid booleans)
-        #expect(isLoading || !isLoading) // Always true, but verifies no crash
-        #expect(hasError || !hasError)
+        // Then: Store settled to non-loading state
+        #expect(store.isLoading == false, "Store must not be stuck in loading after rapid load/cancel cycles")
     }
     
     // MARK: - Cross-Store Coordination Tests
@@ -177,7 +170,9 @@ struct StoreRaceConditionTests {
             }
         }
         
-        // Then: All stores are in valid states
-        #expect(true, "Concurrent store loading completed without crash")
+        // Then: All stores settled to non-loading state
+        #expect(currentMonthStore.isLoading == false, "CurrentMonthStore must not be stuck in loading")
+        #expect(budgetListStore.isLoading == false, "BudgetListStore must not be stuck in loading")
+        #expect(dashboardStore.isLoading == false, "DashboardStore must not be stuck in loading")
     }
 }

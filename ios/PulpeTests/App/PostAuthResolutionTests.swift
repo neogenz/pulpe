@@ -157,6 +157,52 @@ struct PostAuthResolutionTests {
         #expect(destination == .unauthenticatedSessionExpired)
     }
 
+    @Test("network error on vault-status returns session expired")
+    func vaultNetworkError_returnsSessionExpired() async {
+        let resolver = PostAuthResolver(
+            vaultStatusProvider: StubVaultStatusProvider(results: [
+                .failure(.networkError(URLError(.notConnectedToInternet)))
+            ]),
+            sessionRefresher: StubSessionRefresher(result: false),
+            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
+        )
+
+        let destination = await resolver.resolve()
+
+        #expect(destination == .unauthenticatedSessionExpired)
+    }
+
+    @Test("unexpected server error on vault-status returns session expired")
+    func vaultUnexpectedError_returnsSessionExpired() async {
+        let resolver = PostAuthResolver(
+            vaultStatusProvider: StubVaultStatusProvider(results: [
+                .failure(.serverError(message: "Internal Server Error"))
+            ]),
+            sessionRefresher: StubSessionRefresher(result: false),
+            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
+        )
+
+        let destination = await resolver.resolve()
+
+        #expect(destination == .unauthenticatedSessionExpired)
+    }
+
+    @Test("401 retry with server error returns session expired")
+    func vaultRetryNonAuthError_returnsSessionExpired() async {
+        let resolver = PostAuthResolver(
+            vaultStatusProvider: StubVaultStatusProvider(results: [
+                .failure(.unauthorized),
+                .failure(.serverError(message: "Internal Server Error"))
+            ]),
+            sessionRefresher: StubSessionRefresher(result: true),
+            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
+        )
+
+        let destination = await resolver.resolve()
+
+        #expect(destination == .unauthenticatedSessionExpired)
+    }
+
     @Test("anti-flash: auth state stays loading while post-auth resolution is pending")
     func staysLoadingDuringPendingResolution() async {
         let resolver = DeferredPostAuthResolver()
