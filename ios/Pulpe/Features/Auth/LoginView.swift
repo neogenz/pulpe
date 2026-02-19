@@ -151,7 +151,7 @@ struct LoginView: View {
                     .fill(Color.textSecondaryOnboarding.opacity(0.3))
                     .frame(height: DesignTokens.FrameHeight.separator)
                 Text("ou")
-                    .font(.footnote.weight(.medium))
+                    .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
                     .foregroundStyle(Color.textSecondaryOnboarding)
                 Rectangle()
                     .fill(Color.textSecondaryOnboarding.opacity(0.3))
@@ -166,7 +166,7 @@ struct LoginView: View {
     private var emailField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text("E-mail")
-                .font(.subheadline.weight(.medium))
+                .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             TextField(
@@ -207,7 +207,7 @@ struct LoginView: View {
     private var passwordField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text("Mot de passe")
-                .font(.subheadline.weight(.medium))
+                .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             HStack(spacing: DesignTokens.Spacing.md) {
@@ -273,7 +273,7 @@ struct LoginView: View {
             Button("Mot de passe oublié ?") {
                 forgotPasswordPresentation = ForgotPasswordPresentation()
             }
-            .font(.footnote.weight(.medium))
+            .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
             .foregroundStyle(Color.textPrimaryOnboarding.opacity(0.9))
             .accessibilityIdentifier("forgotPasswordButton")
         }

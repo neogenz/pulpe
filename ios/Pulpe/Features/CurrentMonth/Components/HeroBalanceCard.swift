@@ -82,7 +82,7 @@ struct HeroBalanceCard: View {
         HStack(alignment: .center, spacing: DesignTokens.Spacing.xl) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(contextLabel)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.custom("DMSans-SemiBold", size: 15, relativeTo: .subheadline))
                     .foregroundStyle(.white)
 
                 Text(Self.balanceFormatter.string(from: abs(metrics.remaining) as NSDecimalNumber) ?? "0")
@@ -128,7 +128,7 @@ struct HeroBalanceCard: View {
                         .foregroundStyle(.white)
                         .contentTransition(.numericText())
                     Text("%")
-                        .font(.caption2.weight(.medium))
+                        .font(.custom("DMSans-Medium", size: 11, relativeTo: .caption2))
                         .foregroundStyle(.white.opacity(0.7))
                 }
                 .sensitiveAmount()
@@ -175,7 +175,7 @@ struct HeroBalanceCard: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(label)
-                    .font(.caption.weight(.medium))
+                    .font(.custom("DMSans-Medium", size: 12, relativeTo: .caption))
                     .foregroundStyle(.primary)
 
                 Text(Self.pillFormatter.string(from: value as NSDecimalNumber) ?? "0")

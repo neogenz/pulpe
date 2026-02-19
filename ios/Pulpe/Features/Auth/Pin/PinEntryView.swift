@@ -98,7 +98,7 @@ struct PinEntryView: View {
             if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
                     .font(PulpeTypography.footnote)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Color.errorPrimary)
                     .transition(.opacity)
             }
         }

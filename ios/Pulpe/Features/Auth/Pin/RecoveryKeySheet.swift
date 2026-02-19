@@ -79,7 +79,7 @@ struct RecoveryKeySheet: View {
                         .contentTransition(.symbolEffect(.replace))
                     Text(copied ? "Copié !" : "Copier la clé")
                 }
-                .font(.subheadline.weight(.medium))
+                .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
                 .foregroundStyle(Color.pulpePrimary)
                 .padding(.horizontal, DesignTokens.Spacing.xl)
                 .padding(.vertical, DesignTokens.Spacing.md)

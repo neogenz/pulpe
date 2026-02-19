@@ -14,7 +14,7 @@ struct PersonalInfoStep: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     Text("Prénom")
-                        .font(.subheadline.weight(.medium))
+                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
                         .foregroundStyle(Color.textPrimaryOnboarding)
 
                     TextField("Ton prénom", text: Binding(
