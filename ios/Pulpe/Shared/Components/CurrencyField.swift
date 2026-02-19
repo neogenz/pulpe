@@ -48,14 +48,14 @@ struct CurrencyField: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             if let label {
                 Text(label)
-                    .font(.subheadline.weight(.medium))
+                    .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
                     .foregroundStyle(Color.textPrimaryOnboarding)
             }
 
             HStack {
                 Text("CHF")
                     .foregroundStyle(Color.textSecondaryOnboarding)
-                    .font(.body.weight(.medium))
+                    .font(.custom("DMSans-Medium", size: 17, relativeTo: .body))
 
                 TextField(hint, text: $textValue)
                     .keyboardType(.decimalPad)

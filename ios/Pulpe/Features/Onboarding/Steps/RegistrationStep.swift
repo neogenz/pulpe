@@ -33,7 +33,7 @@ struct RegistrationStep: View {
                 // Email
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Email")
-                        .font(.subheadline.weight(.medium))
+                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
                         .foregroundStyle(Color.textPrimaryOnboarding)
 
                     TextField("ton@email.com", text: Binding(
@@ -72,7 +72,7 @@ struct RegistrationStep: View {
                 // Password
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Mot de passe")
-                        .font(.subheadline.weight(.medium))
+                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
                         .foregroundStyle(Color.textPrimaryOnboarding)
 
                     HStack(spacing: DesignTokens.Spacing.md) {
@@ -140,7 +140,7 @@ struct RegistrationStep: View {
                 // Password confirmation
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Confirmer le mot de passe")
-                        .font(.subheadline.weight(.medium))
+                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
                         .foregroundStyle(Color.textPrimaryOnboarding)
 
                     HStack(spacing: DesignTokens.Spacing.md) {

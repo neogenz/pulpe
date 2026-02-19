@@ -63,7 +63,7 @@ struct WelcomeStep: View {
                             Text("Commencer")
                                 .fontWeight(.semibold)
                             Image(systemName: "arrow.right")
-                                .font(.subheadline.weight(.semibold))
+                                .font(.custom("DMSans-SemiBold", size: 15, relativeTo: .subheadline))
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: DesignTokens.FrameHeight.button)
