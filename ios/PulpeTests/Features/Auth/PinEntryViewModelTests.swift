@@ -133,3 +133,129 @@ struct PinEntryViewModelTests {
         #expect(sut.minDigits == 4)
     }
 }
+
+// MARK: - PIN Validation Integration Tests
+
+@MainActor
+struct PinEntryValidationFlowTests {
+    private static let validSalt = String(repeating: "aa", count: 32)
+    private static let validKey = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+    private func makeSUT(
+        derivedKey: String = validKey,
+        saltResponse: EncryptionSaltResponse = EncryptionSaltResponse(
+            salt: validSalt,
+            kdfIterations: 1,
+            hasRecoveryKey: false
+        ),
+        validateKeyError: APIError? = nil
+    ) -> PinEntryViewModel {
+        PinEntryViewModel(
+            cryptoService: StubCryptoKeyDerivation(derivedKey: derivedKey),
+            encryptionAPI: StubEncryptionKeyValidation(
+                saltResponse: saltResponse,
+                validateKeyError: validateKeyError
+            ),
+            clientKeyManager: StubClientKeyStorage()
+        )
+    }
+
+    private func enterPin(_ sut: PinEntryViewModel, digits: [Int] = [1, 2, 3, 4]) {
+        for digit in digits {
+            sut.appendDigit(digit)
+        }
+    }
+
+    // MARK: - Success Flow
+
+    @Test func confirm_validPin_authenticates() async {
+        let sut = makeSUT()
+        enterPin(sut)
+
+        await sut.confirm()
+
+        #expect(sut.authenticated == true)
+        #expect(sut.isValidating == false)
+        #expect(sut.errorMessage == nil)
+    }
+
+    // MARK: - Validation Error
+
+    @Test func confirm_invalidPin_showsIncorrectCodeError() async {
+        let sut = makeSUT(validateKeyError: .unauthorized)
+        enterPin(sut)
+
+        await sut.confirm()
+
+        #expect(sut.authenticated == false)
+        #expect(sut.errorMessage == "Ce code ne semble pas correct")
+        #expect(sut.digits.isEmpty)
+    }
+
+    // MARK: - Rate Limiting
+
+    @Test func confirm_rateLimited_showsRateLimitError() async {
+        let sut = makeSUT(validateKeyError: .rateLimited)
+        enterPin(sut)
+
+        await sut.confirm()
+
+        #expect(sut.authenticated == false)
+        #expect(sut.errorMessage == "Trop de tentatives, patiente un moment")
+    }
+
+    // MARK: - Network Error
+
+    @Test func confirm_networkError_showsConnectionError() async {
+        let sut = makeSUT(validateKeyError: .networkError(URLError(.notConnectedToInternet)))
+        enterPin(sut)
+
+        await sut.confirm()
+
+        #expect(sut.authenticated == false)
+        #expect(sut.errorMessage == "Erreur de connexion, reessaie")
+    }
+
+    // MARK: - State Reset After Error
+
+    @Test func confirm_afterError_isValidatingIsFalse() async {
+        let sut = makeSUT(validateKeyError: .unauthorized)
+        enterPin(sut)
+
+        await sut.confirm()
+
+        #expect(sut.isValidating == false)
+    }
+}
+
+// MARK: - Test Stubs
+
+private struct StubCryptoKeyDerivation: CryptoKeyDerivation {
+    let derivedKey: String
+
+    func deriveClientKey(pin: String, saltHex: String, iterations: Int) async throws -> String {
+        derivedKey
+    }
+}
+
+private struct StubEncryptionKeyValidation: EncryptionKeyValidation {
+    let saltResponse: EncryptionSaltResponse
+    let validateKeyError: APIError?
+
+    init(saltResponse: EncryptionSaltResponse, validateKeyError: APIError? = nil) {
+        self.saltResponse = saltResponse
+        self.validateKeyError = validateKeyError
+    }
+
+    func getSalt() async throws -> EncryptionSaltResponse { saltResponse }
+
+    func validateKey(_ clientKeyHex: String) async throws {
+        if let error = validateKeyError { throw error }
+    }
+}
+
+private struct StubClientKeyStorage: ClientKeyStorage {
+    func resolveViaBiometric() async throws -> String? { nil }
+    func hasBiometricKey() async -> Bool { false }
+    func store(_ clientKeyHex: String, enableBiometric: Bool) async {}
+}

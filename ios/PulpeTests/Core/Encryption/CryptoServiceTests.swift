@@ -106,6 +106,28 @@ struct CryptoServiceTests {
         let result = await sut.isValidClientKeyHex(Self.demoClientKey)
         #expect(result == true)
     }
+
+    // MARK: - Performance (Manual Validation)
+
+    /// Validates real-world PBKDF2 performance with production iteration count.
+    /// Disabled by default - run manually to verify crypto performance on target devices.
+    /// Expected: ~200-500ms on modern iOS devices with 600k iterations.
+    @Test(.disabled("Manual performance validation - run locally when needed"))
+    func deriveClientKey_productionIterations_completesInReasonableTime() async throws {
+        let productionIterations = 600_000
+        let start = ContinuousClock().now
+        
+        let key = try await sut.deriveClientKey(
+            pin: "1234",
+            saltHex: validSalt,
+            iterations: productionIterations
+        )
+        
+        let elapsed = ContinuousClock().now - start
+        
+        #expect(key.count == 64)
+        #expect(elapsed < .seconds(2), "PBKDF2 with \(productionIterations) iterations took \(elapsed), expected < 2s")
+    }
 }
 
 // MARK: - String repeat helper

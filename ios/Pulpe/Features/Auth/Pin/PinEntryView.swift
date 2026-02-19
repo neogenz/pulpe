@@ -120,6 +120,27 @@ struct PinEntryView: View {
     }
 }
 
+// MARK: - Dependency Protocols
+
+protocol CryptoKeyDerivation: Sendable {
+    func deriveClientKey(pin: String, saltHex: String, iterations: Int) async throws -> String
+}
+
+protocol EncryptionKeyValidation: Sendable {
+    func getSalt() async throws -> EncryptionSaltResponse
+    func validateKey(_ clientKeyHex: String) async throws
+}
+
+protocol ClientKeyStorage: Sendable {
+    func resolveViaBiometric() async throws -> String?
+    func hasBiometricKey() async -> Bool
+    func store(_ clientKeyHex: String, enableBiometric: Bool) async
+}
+
+extension CryptoService: CryptoKeyDerivation {}
+extension EncryptionAPI: EncryptionKeyValidation {}
+extension ClientKeyManager: ClientKeyStorage {}
+
 // MARK: - ViewModel
 
 @Observable @MainActor
@@ -134,9 +155,19 @@ final class PinEntryViewModel {
     let maxDigits = 6
     let minDigits = 4
 
-    private let cryptoService = CryptoService.shared
-    private let encryptionAPI = EncryptionAPI.shared
-    private let clientKeyManager = ClientKeyManager.shared
+    private let cryptoService: any CryptoKeyDerivation
+    private let encryptionAPI: any EncryptionKeyValidation
+    private let clientKeyManager: any ClientKeyStorage
+
+    init(
+        cryptoService: any CryptoKeyDerivation = CryptoService.shared,
+        encryptionAPI: any EncryptionKeyValidation = EncryptionAPI.shared,
+        clientKeyManager: any ClientKeyStorage = ClientKeyManager.shared
+    ) {
+        self.cryptoService = cryptoService
+        self.encryptionAPI = encryptionAPI
+        self.clientKeyManager = clientKeyManager
+    }
 
     var canConfirm: Bool {
         digits.count >= minDigits && !isValidating

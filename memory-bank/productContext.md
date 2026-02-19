@@ -97,12 +97,13 @@ Mar: income=5100, expenses=5200, rollover=900  → ending=800
 
 | Rule | Value |
 |------|-------|
-| Grace period | 300 seconds (5 minutes) in background |
+| Grace period | 30 seconds in background |
+| Cold start | Always requires Face ID/PIN (no grace period) |
 | Lock behavior | In-memory client key cleared, biometric keychain preserved |
 | Biometric auto-trigger | Face ID/Touch ID prompts automatically on PIN screen |
 | Fallback | PIN entry via numpad (Face ID button visible while < 4 digits entered) |
 
-**Flow:** Background >= 5 min → `needsPinEntry` → PinEntryView auto-triggers Face ID → if success, instant unlock; if fail/cancel, user types PIN.
+**Flow:** Background >= 30s OR app killed → `needsPinEntry` → PinEntryView auto-triggers Face ID → if success, instant unlock; if fail/cancel, user types PIN.
 
 **Design decision:** `clearCache()` (in-memory only) is used, not `clearAll()` (which would wipe biometric keychain). This preserves the biometric key across grace period locks, enabling Face ID as a fast re-entry path.
 
@@ -121,7 +122,7 @@ Mar: income=5100, expenses=5200, rollover=900  → ending=800
 
 - Widget caches `available` (remaining budget) as plaintext `Decimal` in App Group UserDefaults
 - **Not encrypted at rest** — WidgetKit runs in a separate process without access to keychain/Face ID
-- App lock (5-min grace period) does **not** extend to widget preview
+- App lock (30s grace period) does **not** extend to widget preview
 - Widget data is cleared on logout and password reset
 - **Accepted risk:** widget shows financial amounts even when app is locked
 

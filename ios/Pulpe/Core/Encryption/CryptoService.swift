@@ -53,7 +53,9 @@ actor CryptoService {
             throw CryptoServiceError.derivationFailed
         }
 
-        return dataToHex(Data(derivedKey))
+        let hex = dataToHex(Data(derivedKey))
+        derivedKey.resetBytes(in: 0..<derivedKey.count)
+        return hex
     }
 
     // MARK: - Validation

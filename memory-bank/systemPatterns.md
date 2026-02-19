@@ -184,14 +184,14 @@ Each domain in `src/modules/[domain]/`:
         ┌─────────────┼───────────────┐
         ▼             ▼               ▼
 ┌───────────────┐ ┌──────────┐ ┌─────────────┐
-│unauthenticated│ │needsPin  │ │needsPinEntry│ ← grace period lock (5 min)
-│               │ │  Setup   │ │             │   or first login
+│unauthenticated│ │needsPin  │ │needsPinEntry│ ← grace period lock (30s)
+│               │ │  Setup   │ │             │   or cold start/first login
 └───────┬───────┘ └────┬─────┘ └──────┬──────┘
         │ login()      │ complete     │ PIN or Face ID
         │              │ PinSetup()   │ completePinEntry()
         ▼              ▼              ▼
                 ┌──────────────┐
-                │authenticated │ → background >= 5 min → needsPinEntry
+                │authenticated │ → background >= 30s → needsPinEntry
                 └──────────────┘
                        │
            startRecovery() ↓
@@ -204,7 +204,7 @@ Each domain in `src/modules/[domain]/`:
 
 | Event | From | To | ClientKey impact |
 |-------|------|----|-----------------|
-| Grace period (>= 300s) | `authenticated` | `needsPinEntry` | `clearCache()` — in-memory only, biometric keychain preserved |
+| Grace period (>= 30s) | `authenticated` | `needsPinEntry` | `clearCache()` — in-memory only, biometric keychain preserved |
 | Stale client key | `authenticated` | `needsPinEntry` | `clearAll()` — everything wiped |
 | Logout (biometric on) | `authenticated` | `unauthenticated` | `clearSession()` — biometric keychain preserved for next Face ID login |
 | Logout (biometric off) | `authenticated` | `unauthenticated` | Full clear via logout flow |
