@@ -9,6 +9,11 @@ actor CryptoService {
 
     static let keyLengthBytes = 32
     static let keyLengthHex = 64
+    
+    /// Minimum allowed PBKDF2 iterations (security floor)
+    static let minIterations = 500_000
+    /// Maximum allowed PBKDF2 iterations (DoS protection)
+    static let maxIterations = 2_000_000
 
     private init() {}
 
@@ -20,8 +25,14 @@ actor CryptoService {
     ///   - saltHex: Hexadecimal salt from server (64 characters)
     ///   - iterations: PBKDF2 iteration count (typically 600,000)
     /// - Returns: Derived key as hexadecimal string (64 characters)
-    /// - Throws: CryptoServiceError if derivation fails
+    /// - Throws: CryptoServiceError if derivation fails or parameters are invalid
     func deriveClientKey(pin: String, saltHex: String, iterations: Int) throws -> String {
+        // Validate iteration bounds to prevent weak keys (too few) or DoS (too many)
+        guard iterations >= Self.minIterations && iterations <= Self.maxIterations else {
+            Logger.encryption.error("PBKDF2 iterations out of bounds: \(iterations) (expected \(Self.minIterations)-\(Self.maxIterations))")
+            throw CryptoServiceError.invalidIterations
+        }
+        
         guard let pinData = pin.data(using: .utf8) else {
             throw CryptoServiceError.invalidPin
         }
@@ -96,6 +107,7 @@ actor CryptoService {
 enum CryptoServiceError: LocalizedError {
     case invalidPin
     case invalidSalt
+    case invalidIterations
     case derivationFailed
 
     var errorDescription: String? {
@@ -104,6 +116,8 @@ enum CryptoServiceError: LocalizedError {
             return "Le code PIN est invalide"
         case .invalidSalt:
             return "Le sel de chiffrement est invalide"
+        case .invalidIterations:
+            return "Les paramètres de sécurité sont invalides"
         case .derivationFailed:
             return "La dérivation de la clé a échoué"
         }

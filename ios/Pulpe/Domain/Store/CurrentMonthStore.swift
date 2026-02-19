@@ -9,7 +9,12 @@ final class CurrentMonthStore: StoreProtocol {
     private(set) var budgetLines: [BudgetLine] = []
     private(set) var transactions: [Transaction] = []
     private(set) var isLoading = false
-    private(set) var error: Error?
+    private(set) var error: APIError?
+    
+    /// Returns true if the store has an error and no budget data to display
+    var hasError: Bool {
+        error != nil && budget == nil
+    }
 
     // Track IDs of items currently syncing for visual feedback
     private(set) var syncingTransactionIds: Set<String> = []
@@ -18,7 +23,6 @@ final class CurrentMonthStore: StoreProtocol {
     // MARK: - Cache Metadata
 
     private var lastLoadTime: Date?
-    private static let cacheValidityDuration: TimeInterval = 30 // 30 seconds (short for multi-device sync)
     
     // Cache for expensive computed properties
     private var cachedMetrics: BudgetFormulas.Metrics?
@@ -26,11 +30,13 @@ final class CurrentMonthStore: StoreProtocol {
     
     // Widget sync debouncing
     private var widgetSyncTask: Task<Void, Never>?
-    private static let widgetSyncDebounceDelay: TimeInterval = 1.0 // 1 second
+    
+    /// Coalescing task to prevent concurrent API loads
+    private var loadTask: Task<Void, Never>?
 
     private var isCacheValid: Bool {
         guard let lastLoad = lastLoadTime else { return false }
-        return Date().timeIntervalSince(lastLoad) < Self.cacheValidityDuration
+        return Date().timeIntervalSince(lastLoad) < AppConfiguration.shortCacheValidity
     }
 
     // MARK: - Services
@@ -81,8 +87,10 @@ final class CurrentMonthStore: StoreProtocol {
             let fetchedBudget = try await budgetService.getBudget(id: match.id)
             budget = fetchedBudget
             invalidateMetricsCache()
+        } catch let apiError as APIError {
+            self.error = apiError
         } catch {
-            self.error = error
+            self.error = .networkError(error)
         }
     }
 
@@ -111,8 +119,10 @@ final class CurrentMonthStore: StoreProtocol {
             transactions = details.transactions
             invalidateMetricsCache()
             lastLoadTime = Date()
+        } catch let apiError as APIError {
+            self.error = apiError
         } catch {
-            self.error = error
+            self.error = .networkError(error)
         }
     }
 
@@ -122,29 +132,45 @@ final class CurrentMonthStore: StoreProtocol {
     }
 
     func forceRefresh() async {
-        isLoading = true
-        error = nil
-        defer { isLoading = false }
+        // Cancel any existing load task to avoid duplicate requests
+        loadTask?.cancel()
+        
+        let task = Task {
+            isLoading = true
+            error = nil
+            defer { isLoading = false }
 
-        do {
-            guard let currentBudget = try await budgetService.getCurrentMonthBudget() else {
-                budget = nil
-                budgetLines = []
-                transactions = []
+            do {
+                guard let currentBudget = try await budgetService.getCurrentMonthBudget() else {
+                    budget = nil
+                    budgetLines = []
+                    transactions = []
+                    invalidateMetricsCache()
+                    lastLoadTime = Date()
+                    return
+                }
+
+                // Check for cancellation before expensive network call
+                try Task.checkCancellation()
+                
+                let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
+                budget = details.budget
+                budgetLines = details.budgetLines
+                transactions = details.transactions
                 invalidateMetricsCache()
                 lastLoadTime = Date()
-                return
+            } catch is CancellationError {
+                // Task was cancelled, don't update error state
+            } catch let apiError as APIError {
+                self.error = apiError
+            } catch {
+                self.error = .networkError(error)
             }
-
-            let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
-            budget = details.budget
-            budgetLines = details.budgetLines
-            transactions = details.transactions
-            invalidateMetricsCache()
-            lastLoadTime = Date()
-        } catch {
-            self.error = error
         }
+        
+        loadTask = task
+        await task.value
+        loadTask = nil
     }
 
     // MARK: - Widget Sync
@@ -160,7 +186,7 @@ final class CurrentMonthStore: StoreProtocol {
         
         // Debounce widget sync to avoid excessive reloads
         widgetSyncTask = Task {
-            try? await Task.sleep(nanoseconds: UInt64(Self.widgetSyncDebounceDelay * 1_000_000_000))
+            try? await Task.sleep(nanoseconds: UInt64(AppConfiguration.widgetSyncDebounceDelay * 1_000_000_000))
             
             guard !Task.isCancelled else { return }
             guard let currentBudget = budget else { return }
@@ -326,10 +352,15 @@ final class CurrentMonthStore: StoreProtocol {
             _ = try await budgetLineService.toggleCheck(id: line.id)
             // Trust optimistic update - only mark cache as fresh
             lastLoadTime = Date()
-        } catch {
+        } catch let apiError as APIError {
             // Only refresh on error to rollback
             budgetLines = originalLines
-            self.error = error
+            self.error = apiError
+            invalidateMetricsCache()
+            await forceRefresh()
+        } catch {
+            budgetLines = originalLines
+            self.error = .networkError(error)
             invalidateMetricsCache()
             await forceRefresh()
         }
@@ -355,10 +386,15 @@ final class CurrentMonthStore: StoreProtocol {
             _ = try await transactionService.toggleCheck(id: transaction.id)
             // Trust optimistic update - only mark cache as fresh
             lastLoadTime = Date()
-        } catch {
+        } catch let apiError as APIError {
             // Only refresh on error to rollback
             transactions = originalTransactions
-            self.error = error
+            self.error = apiError
+            invalidateMetricsCache()
+            await forceRefresh()
+        } catch {
+            transactions = originalTransactions
+            self.error = .networkError(error)
             invalidateMetricsCache()
             await forceRefresh()
         }
@@ -382,9 +418,13 @@ final class CurrentMonthStore: StoreProtocol {
 
         do {
             try await transactionService.deleteTransaction(id: transaction.id)
+        } catch let apiError as APIError {
+            transactions = originalTransactions
+            self.error = apiError
+            invalidateMetricsCache()
         } catch {
             transactions = originalTransactions
-            self.error = error
+            self.error = .networkError(error)
             invalidateMetricsCache()
         }
     }
@@ -400,9 +440,13 @@ final class CurrentMonthStore: StoreProtocol {
 
         do {
             try await budgetLineService.deleteBudgetLine(id: line.id)
+        } catch let apiError as APIError {
+            budgetLines = originalLines
+            self.error = apiError
+            invalidateMetricsCache()
         } catch {
             budgetLines = originalLines
-            self.error = error
+            self.error = .networkError(error)
             invalidateMetricsCache()
         }
     }

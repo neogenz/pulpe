@@ -191,17 +191,53 @@ enum BudgetFormulas {
 
     // MARK: - All Metrics
 
-    /// Calculate all metrics at once (optimized)
+    /// Calculate all metrics at once (single-pass optimization)
+    /// Performance: O(n+m) with 2 iterations instead of 10
     static func calculateAllMetrics(
         budgetLines: [BudgetLine],
         transactions: [Transaction] = [],
         rollover: Decimal = 0
     ) -> Metrics {
-        let totalIncome = calculateTotalIncome(budgetLines: budgetLines, transactions: transactions)
-        let totalExpenses = calculateTotalExpenses(budgetLines: budgetLines, transactions: transactions)
-        let totalSavings = calculateTotalSavings(budgetLines: budgetLines, transactions: transactions)
-        let available = calculateAvailable(totalIncome: totalIncome, rollover: rollover)
-        let endingBalance = calculateEndingBalance(available: available, totalExpenses: totalExpenses)
+        // Single pass over budget lines
+        var budgetIncome: Decimal = 0
+        var budgetExpenses: Decimal = 0
+        var budgetSavings: Decimal = 0
+        
+        for line in budgetLines {
+            guard !(line.isRollover ?? false) else { continue }
+            switch line.kind {
+            case .income:
+                budgetIncome += line.amount
+            case .expense:
+                budgetExpenses += line.amount
+            case .saving:
+                budgetSavings += line.amount
+                budgetExpenses += line.amount // Savings count as expenses per SPECS
+            }
+        }
+        
+        // Single pass over transactions
+        var transactionIncome: Decimal = 0
+        var transactionExpenses: Decimal = 0
+        var transactionSavings: Decimal = 0
+        
+        for tx in transactions {
+            switch tx.kind {
+            case .income:
+                transactionIncome += tx.amount
+            case .expense:
+                transactionExpenses += tx.amount
+            case .saving:
+                transactionSavings += tx.amount
+                transactionExpenses += tx.amount // Savings count as expenses per SPECS
+            }
+        }
+        
+        let totalIncome = budgetIncome + transactionIncome
+        let totalExpenses = budgetExpenses + transactionExpenses
+        let totalSavings = budgetSavings + transactionSavings
+        let available = totalIncome + rollover
+        let endingBalance = available - totalExpenses
 
         return Metrics(
             totalIncome: totalIncome,

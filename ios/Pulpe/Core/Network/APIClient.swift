@@ -4,6 +4,22 @@ import OSLog
 /// Thread-safe API client with token management
 actor APIClient {
     static let shared = APIClient()
+    
+    // MARK: - Static Date Formatters (reused across all decodes)
+    
+    /// ISO8601 formatter with fractional seconds (most common API format)
+    private static let iso8601WithFractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+    
+    /// ISO8601 formatter without fractional seconds (fallback)
+    private static let iso8601Standard: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
 
     private let session: URLSession
     private let baseURL: URL
@@ -54,22 +70,18 @@ actor APIClient {
         let decoder = JSONDecoder()
 
         // Configure date decoding for ISO8601 with timezone
+        // Uses static formatters to avoid allocation on every decode
         decoder.dateDecodingStrategy = .custom { dateDecoder in
             let container = try dateDecoder.singleValueContainer()
             let dateString = try container.decode(String.self)
 
-            // Create formatters inside closure to avoid capturing non-Sendable types
-            let iso8601WithFractional = ISO8601DateFormatter()
-            iso8601WithFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-
+            // Try fractional seconds first (most common)
             if let date = iso8601WithFractional.date(from: dateString) {
                 return date
             }
 
-            let iso8601 = ISO8601DateFormatter()
-            iso8601.formatOptions = [.withInternetDateTime]
-
-            if let date = iso8601.date(from: dateString) {
+            // Fallback to standard ISO8601
+            if let date = iso8601Standard.date(from: dateString) {
                 return date
             }
 

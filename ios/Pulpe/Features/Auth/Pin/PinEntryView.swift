@@ -250,7 +250,7 @@ final class PinEntryViewModel {
 
     private func handleCryptoError(_ error: CryptoServiceError) {
         switch error {
-        case .invalidSalt:
+        case .invalidSalt, .invalidIterations:
             showError("Erreur de sécurité, contacte le support")
         case .derivationFailed:
             showError("Erreur de chiffrement, reessaie")
