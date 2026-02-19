@@ -92,7 +92,7 @@ final class AppState {
     // MARK: - Background Grace Period
 
     private var backgroundDate: Date?
-    private static let gracePeriod: Duration = .seconds(300) // Product rule RG-006: lock at 5 minutes exactly
+    private static let gracePeriod: Duration = .seconds(30) // Product rule RG-006: lock after 30 seconds in background
 
     // MARK: - Services
 
@@ -132,6 +132,10 @@ final class AppState {
     func checkAuthState() async {
         authState = .loading
         biometricError = nil
+
+        // Cold start: clear session clientKey so a stale key in keychain
+        // can't bypass FaceID/PIN. Biometric keychain is preserved.
+        await clientKeyManager.clearSession()
 
         #if DEBUG
         // In DEBUG mode, try regular token-based session first (no biometric prompt)

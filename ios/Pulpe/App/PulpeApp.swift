@@ -229,7 +229,7 @@ struct RootView: View {
     }
 
     private var shouldShowPrivacyShield: Bool {
-        scenePhase != .active && appState.authState == .authenticated
+        scenePhase != .active && (appState.authState == .authenticated || appState.authState == .needsPinEntry)
     }
 
     private func handlePendingDeepLink() {

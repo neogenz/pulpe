@@ -47,7 +47,11 @@ actor ClientKeyManager {
 
         if let hex {
             cachedClientKeyHex = hex
-            try? await keychainManager.saveClientKey(hex)
+            do {
+                try await keychainManager.saveClientKey(hex)
+            } catch {
+                Logger.encryption.warning("Failed to cache client key in keychain: \(error.localizedDescription)")
+            }
         }
 
         return hex
@@ -58,7 +62,11 @@ actor ClientKeyManager {
     /// Store clientKey after successful PIN validation
     func store(_ clientKeyHex: String, enableBiometric: Bool) async {
         cachedClientKeyHex = clientKeyHex
-        try? await keychainManager.saveClientKey(clientKeyHex)
+        do {
+            try await keychainManager.saveClientKey(clientKeyHex)
+        } catch {
+            Logger.encryption.warning("Failed to save client key to keychain: \(error.localizedDescription)")
+        }
 
         if enableBiometric {
             await keychainManager.saveBiometricClientKey(clientKeyHex)
