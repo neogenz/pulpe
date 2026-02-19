@@ -14,6 +14,7 @@ actor KeychainManager {
     private let biometricRefreshTokenKey = "biometric_refresh_token"
     private let clientKeyKey = "client_key"
     private let biometricClientKeyKey = "biometric_client_key"
+    private let onboardingCompletedKey = "onboarding_completed"
 
     private var isAvailableCache: Bool?
 
@@ -184,6 +185,23 @@ actor KeychainManager {
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         return status == errSecSuccess || status == errSecInteractionNotAllowed
+    }
+
+    // MARK: - Onboarding Status
+    // TODO: Migrate to backend storage (user.onboardingCompleted) as the single source of truth.
+    // Keychain is a workaround for UserDefaults being cleared on reinstall while Keychain persists.
+    // Backend storage would be more robust and sync across devices.
+
+    func setOnboardingCompleted(_ completed: Bool) {
+        if completed {
+            save(key: onboardingCompletedKey, value: "true")
+        } else {
+            delete(key: onboardingCompletedKey)
+        }
+    }
+
+    func isOnboardingCompleted() -> Bool {
+        get(key: onboardingCompletedKey) == "true"
     }
 
     // MARK: - Generic Value Storage (for Supabase SDK)

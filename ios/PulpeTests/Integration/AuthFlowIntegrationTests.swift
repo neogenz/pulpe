@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Pulpe
 
@@ -127,7 +128,7 @@ struct AuthFlowIntegrationTests {
     @Test("PIN validation with correct PIN derives matching key")
     func pinValidation_correctPin_derivesMatchingKey() async throws {
         // Given: A configured PIN
-        let cryptoService = CryptoService()
+        let cryptoService = CryptoService.shared
         let pin = "1234"
         let salt = "0123456789abcdef0123456789abcdef"
         let iterations = CryptoService.minIterations
@@ -143,7 +144,7 @@ struct AuthFlowIntegrationTests {
     @Test("PIN validation with wrong PIN derives different key")
     func pinValidation_wrongPin_derivesDifferentKey() async throws {
         // Given: A configured PIN
-        let cryptoService = CryptoService()
+        let cryptoService = CryptoService.shared
         let correctPin = "1234"
         let wrongPin = "5678"
         let salt = "0123456789abcdef0123456789abcdef"
@@ -163,7 +164,7 @@ struct AuthFlowIntegrationTests {
     func backgroundLock_withinGracePeriod_noReauthRequired() async {
         // Given: App went to background recently
         let gracePeriod = AppConfiguration.backgroundGracePeriod
-        let backgroundedAt = Date()
+        let backgroundedAt = Foundation.Date()
         let returnedAt = backgroundedAt.addingTimeInterval(1) // 1 second later
         
         // When: Checking if reauth is needed
@@ -180,7 +181,7 @@ struct AuthFlowIntegrationTests {
         // Given: App went to background long ago
         let gracePeriod = AppConfiguration.backgroundGracePeriod
         let gracePeriodSeconds = Double(gracePeriod.components.seconds)
-        let backgroundedAt = Date()
+        let backgroundedAt = Foundation.Date()
         let returnedAt = backgroundedAt.addingTimeInterval(gracePeriodSeconds + 1)
         
         // When: Checking if reauth is needed
