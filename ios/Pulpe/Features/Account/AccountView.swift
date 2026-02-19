@@ -110,18 +110,24 @@ struct AccountView: View {
                 .listRowBackground(Color.surfaceCard)
 
                 Section {
-                    Button("Supprimer mon compte", role: .destructive) {
+                    Button {
                         showDeleteConfirmation = true
+                    } label: {
+                        Text("Supprimer mon compte")
+                            .foregroundStyle(Color.errorPrimary)
                     }
                 }
                 .listRowBackground(Color.surfaceCard)
 
                 Section {
-                    Button("Déconnexion", role: .destructive) {
+                    Button {
                         Task {
                             await appState.logout()
                             dismiss()
                         }
+                    } label: {
+                        Text("Déconnexion")
+                            .foregroundStyle(Color.errorPrimary)
                     }
                 }
                 .listRowBackground(Color.surfaceCard)

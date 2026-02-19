@@ -1,13 +1,20 @@
 import SwiftUI
 
-/// Toast notification view with slide-in animation
+/// Toast notification view with slide-in animation and optional undo button
 struct ToastView: View {
     let toast: ToastManager.Toast
     let onDismiss: () -> Void
+    let onUndo: (() -> Void)?
 
     @State private var offset: CGFloat = -100
     @State private var opacity: Double = 0
     @State private var animationTask: Task<Void, Never>?
+
+    init(toast: ToastManager.Toast, onDismiss: @escaping () -> Void, onUndo: (() -> Void)? = nil) {
+        self.toast = toast
+        self.onDismiss = onDismiss
+        self.onUndo = onUndo
+    }
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
@@ -20,6 +27,19 @@ struct ToastView: View {
                 .foregroundStyle(.primary)
 
             Spacer(minLength: 0)
+
+            if toast.hasUndo, let onUndo {
+                Button {
+                    onUndo()
+                } label: {
+                    Text("Annuler")
+                        .font(PulpeTypography.buttonSecondary)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Color.pulpePrimary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Annuler l'action")
+            }
 
             Button {
                 dismissWithAnimation()
@@ -55,6 +75,9 @@ struct ToastView: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(toast.message)
         .accessibilityAddTraits(.isStaticText)
+        .ifLet(toast.hasUndo ? "Annuler disponible" : nil) { view, hint in
+            view.accessibilityHint(hint)
+        }
     }
 
     private func dismissWithAnimation() {
@@ -81,7 +104,7 @@ struct ToastView: View {
     VStack {
         Spacer()
         ToastView(
-            toast: ToastManager.Toast(message: "Transaction ajoutée", type: .success),
+            toast: ToastManager.Toast(message: "Transaction ajoutée", type: .success, undoAction: nil),
             onDismiss: {}
         )
         Spacer()

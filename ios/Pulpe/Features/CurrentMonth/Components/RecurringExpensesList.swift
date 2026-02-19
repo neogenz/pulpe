@@ -2,6 +2,7 @@ import SwiftUI
 import TipKit
 
 /// Section of recurring budget lines - designed to be used inside a parent List
+/// Note: Deletion now uses undo toast instead of confirmation dialog
 struct BudgetSection: View {
     let title: String
     let items: [BudgetLine]
@@ -13,8 +14,6 @@ struct BudgetSection: View {
     let onLongPress: (BudgetLine, [Transaction]) -> Void
     let onEdit: (BudgetLine) -> Void
 
-    @State private var itemToDelete: BudgetLine?
-    @State private var showDeleteAlert = false
     @State private var isExpanded = false
 
     private let collapsedItemCount = 3
@@ -59,7 +58,7 @@ struct BudgetSection: View {
             ForEach(displayedItems) { item in
                 budgetLineRow(for: item)
                     .listRowSeparator(.hidden)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         swipeActions(for: item)
                     }
             }
@@ -74,26 +73,13 @@ struct BudgetSection: View {
             )
             .textCase(nil)
         }
-        .alert(
-            "Supprimer cette prévision ?",
-            isPresented: $showDeleteAlert,
-            presenting: itemToDelete
-        ) { item in
-            Button("Annuler", role: .cancel) {}
-            Button("Supprimer", role: .destructive) {
-                onDelete(item)
-            }
-        } message: { _ in
-            Text("Cette action est irréversible.")
-        }
     }
 
     @ViewBuilder
     private func swipeActions(for item: BudgetLine) -> some View {
         if !item.isVirtualRollover {
             Button {
-                itemToDelete = item
-                showDeleteAlert = true
+                onDelete(item)
                 ProductTips.gestures.invalidate(reason: .actionPerformed)
             } label: {
                 Label("Supprimer", systemImage: "trash")

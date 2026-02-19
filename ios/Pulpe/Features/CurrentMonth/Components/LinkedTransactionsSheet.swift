@@ -242,8 +242,6 @@ private struct LinkedTransactionRow: View {
     let onEdit: () -> Void
     let onDelete: () -> Void
 
-    @State private var showDeleteConfirmation = false
-
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             VStack(alignment: .leading, spacing: 3) {
@@ -275,7 +273,7 @@ private struct LinkedTransactionRow: View {
             .buttonStyle(.plain)
 
             Button {
-                showDeleteConfirmation = true
+                onDelete()
             } label: {
                 Image(systemName: "trash")
                     .font(.system(size: 15))
@@ -292,17 +290,6 @@ private struct LinkedTransactionRow: View {
                 Divider()
                     .padding(.leading, DesignTokens.Spacing.lg)
             }
-        }
-        .alert(
-            "Supprimer cette transaction ?",
-            isPresented: $showDeleteConfirmation
-        ) {
-            Button("Annuler", role: .cancel) {}
-            Button("Supprimer", role: .destructive) {
-                onDelete()
-            }
-        } message: {
-            Text("Cette action est irréversible.")
         }
     }
 }

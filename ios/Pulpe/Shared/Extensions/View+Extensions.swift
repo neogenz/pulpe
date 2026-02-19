@@ -146,13 +146,15 @@ extension View {
         }
     }
 
-    /// Apply toast overlay
+    /// Apply toast overlay with optional undo support
     func toastOverlay(_ manager: ToastManager) -> some View {
         overlay(alignment: .top) {
             if let toast = manager.currentToast {
-                ToastView(toast: toast) {
-                    manager.dismiss()
-                }
+                ToastView(
+                    toast: toast,
+                    onDismiss: { manager.dismiss() },
+                    onUndo: toast.hasUndo ? { manager.executeUndo() } : nil
+                )
                 .safeAreaPadding(.top)
                 .padding(.top, 8)
                 .transition(.move(edge: .top).combined(with: .opacity))
