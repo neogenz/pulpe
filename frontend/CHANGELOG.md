@@ -1,5 +1,11 @@
 # pulpe-frontend
 
+## 0.22.0
+
+### Minor Changes
+
+- Reprise de session intelligente, corrections Samsung Browser, feedback recuperation PIN, deconnexion intempestive et navigation apres reprise.
+
 ## 0.21.0
 
 ### Minor Changes

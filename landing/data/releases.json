@@ -1,5 +1,38 @@
 [
   {
+    "version": "0.23.0",
+    "date": "2026-02-20",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.23.0",
+    "platforms": ["web"],
+    "changes": {
+      "features": [
+        {
+          "title": "Reprise de session intelligente",
+          "description": "L'application reprend la session en douceur apres une mise en arriere-plan de moins de 15 minutes, sans recharger la page"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Bottom sheet illisible sur Samsung Browser",
+          "description": "Le clavier est desormais masque lors du retour d'arriere-plan pour eviter l'affichage incorrect des feuilles de bas de page"
+        },
+        {
+          "title": "Feedback apres recuperation du code PIN",
+          "description": "Un retour visuel est maintenant affiche pendant la redirection apres la recuperation du code PIN via la cle de secours"
+        },
+        {
+          "title": "Deconnexion intempestive",
+          "description": "Correction d'un bug qui forcait la reconnexion lorsque la cle de chiffrement client etait perdue"
+        },
+        {
+          "title": "Navigation apres reprise",
+          "description": "Les routes protegees du coffre-fort sont desormais correctement gerees par le garde d'authentification"
+        }
+      ],
+      "technical": []
+    }
+  },
+  {
     "version": "0.22.0",
     "date": "2026-02-15",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.22.0",

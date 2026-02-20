@@ -1,5 +1,11 @@
 # backend-nest
 
+## 0.14.2
+
+### Patch Changes
+
+- Reprise de session intelligente, corrections Samsung Browser, feedback recuperation PIN, deconnexion intempestive et navigation apres reprise.
+
 ## 0.14.1
 
 ### Patch Changes
