@@ -268,7 +268,13 @@ actor AuthService {
 
         let clientKeyHex = try? await keychain.getBiometricClientKey(context: context)
 
-        let session = try await supabase.auth.refreshSession(refreshToken: refreshToken)
+        let session: Session
+        do {
+            session = try await supabase.auth.refreshSession(refreshToken: refreshToken)
+        } catch {
+            Logger.auth.error("validateBiometricSession: session refresh failed - \(error)")
+            throw AuthServiceError.biometricSessionExpired
+        }
 
         try await keychain.saveTokens(
             accessToken: session.accessToken,
@@ -319,6 +325,7 @@ enum AuthServiceError: LocalizedError {
     case signupFailed(String)
     case loginFailed(String)
     case biometricSaveFailed
+    case biometricSessionExpired
 
     var errorDescription: String? {
         switch self {
@@ -328,6 +335,8 @@ enum AuthServiceError: LocalizedError {
             return "La connexion n'a pas abouti — \(message)"
         case .biometricSaveFailed:
             return "Les identifiants biométriques n'ont pas pu être enregistrés"
+        case .biometricSessionExpired:
+            return "La session biométrique a expiré, veuillez vous reconnecter"
         }
     }
 }

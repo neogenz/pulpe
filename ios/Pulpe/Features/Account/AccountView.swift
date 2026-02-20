@@ -108,17 +108,7 @@ struct AccountView: View {
                         }
                 }
                 .listRowBackground(Color.surfaceCard)
-
-                Section {
-                    Button {
-                        showDeleteConfirmation = true
-                    } label: {
-                        Text("Supprimer mon compte")
-                            .foregroundStyle(Color.errorPrimary)
-                    }
-                }
-                .listRowBackground(Color.surfaceCard)
-
+                
                 Section {
                     Button {
                         Task {
@@ -131,6 +121,37 @@ struct AccountView: View {
                     }
                 }
                 .listRowBackground(Color.surfaceCard)
+
+                Section {
+                    HStack(spacing: DesignTokens.Spacing.md) {
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                            Text("Supprimer mon compte")
+                                .font(PulpeTypography.labelLarge)
+                                .foregroundStyle(Color.destructivePrimary)
+                            Text("Tes données seront supprimées définitivement après 3 jours.")
+                                .font(PulpeTypography.labelMedium)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer(minLength: 0)
+
+                        Button {
+                            showDeleteConfirmation = true
+                        } label: {
+                            Text("Supprimer")
+                                .font(PulpeTypography.buttonLabel)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, DesignTokens.Spacing.lg)
+                                .padding(.vertical, DesignTokens.Spacing.sm)
+                                .background(Color.destructivePrimary, in: Capsule())
+                        }
+                    }
+                } header: {
+                    Text("ZONE DE DANGER")
+                        .font(PulpeTypography.labelLarge)
+                        .foregroundStyle(Color.destructivePrimary)
+                }
+                .listRowBackground(Color.destructiveBackground)
             }
             .onAppear {
                 biometricToggle = appState.biometricEnabled

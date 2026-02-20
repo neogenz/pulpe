@@ -306,7 +306,7 @@ struct PostAuthResolutionTests {
         await sut.resolvePostAuth(user: user)
         #expect(sut.authState == .needsPinEntry)
 
-        sut.completePinEntry()
+        await sut.completePinEntry()
         #expect(sut.authState == .authenticated)
 
         await waitForSilentBiometricSync(syncSpy, expectedCalls: 1)

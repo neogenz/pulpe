@@ -103,7 +103,7 @@ struct ChangePasswordSheet: View {
                 .foregroundStyle(Color.textSecondaryOnboarding)
 
             passwordField(
-                placeholder: "",
+                prompt: "Ton mot de passe actuel",
                 text: $viewModel.currentPassword,
                 isVisible: $showCurrentPassword,
                 focused: .currentPassword,
@@ -120,7 +120,7 @@ struct ChangePasswordSheet: View {
                 .foregroundStyle(Color.textSecondaryOnboarding)
 
             passwordField(
-                placeholder: "",
+                prompt: "Ton nouveau mot de passe",
                 text: $viewModel.newPassword,
                 isVisible: $showNewPassword,
                 focused: .newPassword,
@@ -168,7 +168,7 @@ struct ChangePasswordSheet: View {
                 .foregroundStyle(Color.textSecondaryOnboarding)
 
             passwordField(
-                placeholder: "",
+                prompt: "Confirme ton nouveau mot de passe",
                 text: $viewModel.confirmPassword,
                 isVisible: $showConfirmPassword,
                 focused: .confirmPassword,
@@ -201,7 +201,7 @@ struct ChangePasswordSheet: View {
     }
     
     private func passwordField(
-        placeholder: String,
+        prompt: String,
         text: Binding<String>,
         isVisible: Binding<Bool>,
         focused: Field,
@@ -211,9 +211,9 @@ struct ChangePasswordSheet: View {
         HStack(spacing: 0) {
             Group {
                 if isVisible.wrappedValue {
-                    TextField(placeholder, text: text)
+                    TextField(prompt, text: text)
                 } else {
-                    SecureField(placeholder, text: text)
+                    SecureField(prompt, text: text)
                 }
             }
             .focused($focusedField, equals: focused)

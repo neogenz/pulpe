@@ -115,14 +115,14 @@ struct RootView: View {
                 case .needsPinEntry:
                     PinEntryView(
                         firstName: appState.currentUser?.firstName ?? "",
-                        onSuccess: { appState.completePinEntry() },
+                        onSuccess: { Task { await appState.completePinEntry() } },
                         onForgotPin: { appState.startRecovery() },
                         onLogout: { await appState.logout() }
                     )
 
                 case .needsPinRecovery:
                     PinRecoveryView(
-                        onComplete: { appState.completeRecovery() },
+                        onComplete: { Task { await appState.completeRecovery() } },
                         onCancel: { appState.cancelRecovery() }
                     )
 
@@ -213,7 +213,7 @@ struct RootView: View {
                 Task { await appState.acceptRecoveryKeyRepairConsent() }
             }
             Button("Plus tard", role: .cancel) {
-                appState.declineRecoveryKeyRepairConsent()
+                Task { await appState.declineRecoveryKeyRepairConsent() }
             }
         } message: {
             Text("Ton coffre est configuré sans clé de récupération. Génère-la maintenant pour éviter de perdre l'accès à tes données chiffrées.")
@@ -242,7 +242,7 @@ struct RootView: View {
         .sheet(isPresented: $appState.showPostAuthRecoveryKeySheet) {
             if let recoveryKey = appState.postAuthRecoveryKey {
                 RecoveryKeySheet(recoveryKey: recoveryKey) {
-                    appState.completePostAuthRecoveryKeyPresentation()
+                    Task { await appState.completePostAuthRecoveryKeyPresentation() }
                 }
             }
         }
