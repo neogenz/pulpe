@@ -175,16 +175,9 @@ struct AddAllocatedTransactionSheet: View {
             Task { await addTransaction() }
         } label: {
             Text("Ajouter")
-                .font(PulpeTypography.buttonPrimary)
-                .foregroundStyle(Color.textOnPrimary)
-                .frame(maxWidth: .infinity)
-                .frame(height: DesignTokens.FrameHeight.button)
-                .background(Color.pulpePrimary)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
-                .opacity(canSubmit ? 1 : 0.4)
         }
         .disabled(!canSubmit)
-        .buttonStyle(.plain)
+        .primaryButtonStyle(isEnabled: canSubmit)
     }
 
     // MARK: - Logic
