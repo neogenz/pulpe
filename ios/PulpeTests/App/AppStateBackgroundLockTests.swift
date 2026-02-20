@@ -7,11 +7,29 @@ struct AppStateBackgroundLockTests {
     private let testClientKey =
         "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
+    // MARK: - Test Doubles
+
+    private actor MockBiometricPreferenceStore: BiometricPreferenceKeychainStoring, BiometricPreferenceDefaultsStoring {
+        private var enabled: Bool
+        init(enabled: Bool) { self.enabled = enabled }
+        func getBiometricEnabledPreference() async -> Bool? { enabled }
+        func saveBiometricEnabledPreference(_ enabled: Bool) async { self.enabled = enabled }
+        func getLegacyBiometricEnabled() async -> Bool { false }
+        func removeLegacyBiometricEnabled() async {}
+    }
+
+    private static func biometricEnabledStore() -> BiometricPreferenceStore {
+        BiometricPreferenceStore(
+            keychain: MockBiometricPreferenceStore(enabled: true),
+            defaults: MockBiometricPreferenceStore(enabled: false)
+        )
+    }
+
     @Test func foregroundBeforeGracePeriod_keepsAuthenticated() async {
         var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(nowProvider: { now })
         sut.biometricEnabled = false
-        sut.completePinEntry()
+        await sut.completePinEntry()
 
         sut.handleEnterBackground()
         now = Date(timeIntervalSince1970: 29) // Just under 30s grace period
@@ -24,7 +42,7 @@ struct AppStateBackgroundLockTests {
         var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(nowProvider: { now })
         sut.biometricEnabled = false
-        sut.completePinEntry()
+        await sut.completePinEntry()
 
         sut.handleEnterBackground()
         now = Date(timeIntervalSince1970: 30) // Exactly 30s grace period
@@ -37,7 +55,7 @@ struct AppStateBackgroundLockTests {
         var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(nowProvider: { now })
         sut.biometricEnabled = false
-        sut.completePinEntry()
+        await sut.completePinEntry()
 
         sut.handleEnterBackground()
         now = Date(timeIntervalSince1970: 31) // Just over 30s grace period
@@ -68,7 +86,7 @@ struct AppStateBackgroundLockTests {
         #expect(await clientKeyManager.hasClientKey)
 
         sut.biometricEnabled = false
-        sut.completePinEntry()
+        await sut.completePinEntry()
         sut.handleEnterBackground()
         now = Date(timeIntervalSince1970: 31) // Just over 30s grace period
         await sut.handleEnterForeground()
@@ -85,7 +103,7 @@ struct AppStateBackgroundLockTests {
         var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(nowProvider: { now })
         sut.biometricEnabled = false
-        sut.completePinEntry()
+        await sut.completePinEntry()
 
         // Simulate rapid app switching (user multitasking quickly)
         // Each cycle: background -> foreground within grace period
@@ -105,7 +123,7 @@ struct AppStateBackgroundLockTests {
         var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(nowProvider: { now })
         sut.biometricEnabled = false
-        sut.completePinEntry()
+        await sut.completePinEntry()
 
         // Several quick transitions within grace period
         for _ in 1...3 {
@@ -127,7 +145,7 @@ struct AppStateBackgroundLockTests {
         var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(nowProvider: { now })
         sut.biometricEnabled = false
-        sut.completePinEntry()
+        await sut.completePinEntry()
 
         // Multiple background calls without foreground (edge case - shouldn't happen normally)
         // Implementation uses the LAST background timestamp (resets the timer on each background event)
@@ -144,11 +162,11 @@ struct AppStateBackgroundLockTests {
 
     // MARK: - Session Restoration Flag
 
-    @Test func prepareForForeground_gracePeriodExpired_setsRestoringSession() {
+    @Test func prepareForForeground_gracePeriodExpired_setsRestoringSession() async {
         var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(nowProvider: { now })
         sut.biometricEnabled = false
-        sut.completePinEntry()
+        await sut.completePinEntry()
 
         sut.handleEnterBackground()
         now = Date(timeIntervalSince1970: 31)
@@ -157,11 +175,11 @@ struct AppStateBackgroundLockTests {
         #expect(sut.isRestoringSession == true)
     }
 
-    @Test func prepareForForeground_withinGracePeriod_doesNotSetRestoringSession() {
+    @Test func prepareForForeground_withinGracePeriod_doesNotSetRestoringSession() async {
         var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(nowProvider: { now })
         sut.biometricEnabled = false
-        sut.completePinEntry()
+        await sut.completePinEntry()
 
         sut.handleEnterBackground()
         now = Date(timeIntervalSince1970: 10)
@@ -174,7 +192,7 @@ struct AppStateBackgroundLockTests {
         var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(nowProvider: { now })
         sut.biometricEnabled = false
-        sut.completePinEntry()
+        await sut.completePinEntry()
 
         // Grace period expired → isRestoringSession = true
         sut.handleEnterBackground()
@@ -197,11 +215,13 @@ struct AppStateBackgroundLockTests {
     @Test func foregroundAfterGracePeriod_biometricSucceeds_staysAuthenticated() async {
         var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(
+            biometricPreferenceStore: Self.biometricEnabledStore(),
+            syncBiometricCredentials: { true },
             resolveBiometricKey: { "restored-key" },
             nowProvider: { now }
         )
         sut.biometricEnabled = true
-        sut.completePinEntry()
+        await sut.completePinEntry()
 
         sut.handleEnterBackground()
         now = Date(timeIntervalSince1970: 31)
@@ -217,11 +237,13 @@ struct AppStateBackgroundLockTests {
     @Test func foregroundAfterGracePeriod_biometricFails_requiresPinEntry() async {
         var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(
+            biometricPreferenceStore: Self.biometricEnabledStore(),
+            syncBiometricCredentials: { true },
             resolveBiometricKey: { nil },
             nowProvider: { now }
         )
         sut.biometricEnabled = true
-        sut.completePinEntry()
+        await sut.completePinEntry()
 
         sut.handleEnterBackground()
         now = Date(timeIntervalSince1970: 31)
@@ -238,7 +260,7 @@ struct AppStateBackgroundLockTests {
         var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(nowProvider: { now })
         sut.biometricEnabled = false
-        sut.completePinEntry()
+        await sut.completePinEntry()
 
         sut.handleEnterBackground()
         now = Date(timeIntervalSince1970: 31)

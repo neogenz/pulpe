@@ -6,6 +6,7 @@ struct ToastView: View {
     let onDismiss: () -> Void
     let onUndo: (() -> Void)?
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var offset: CGFloat = -100
     @State private var opacity: Double = 0
     @State private var animationTask: Task<Void, Never>?
@@ -67,9 +68,14 @@ struct ToastView: View {
                 }
         )
         .onAppear {
-            withAnimation(DesignTokens.Animation.toastEntrance) {
+            if reduceMotion {
                 offset = 0
                 opacity = 1
+            } else {
+                withAnimation(DesignTokens.Animation.toastEntrance) {
+                    offset = 0
+                    opacity = 1
+                }
             }
         }
         .accessibilityElement(children: .combine)
@@ -84,17 +90,23 @@ struct ToastView: View {
         // Cancel any pending dismiss
         animationTask?.cancel()
 
-        withAnimation(DesignTokens.Animation.toastDismiss) {
+        if reduceMotion {
             offset = -100
             opacity = 0
-        }
+            onDismiss()
+        } else {
+            withAnimation(DesignTokens.Animation.toastDismiss) {
+                offset = -100
+                opacity = 0
+            }
 
-        animationTask = Task { @MainActor in
-            do {
-                try await Task.sleep(for: .milliseconds(200))
-                onDismiss()
-            } catch {
-                // Task was cancelled, do nothing
+            animationTask = Task { @MainActor in
+                do {
+                    try await Task.sleep(for: .milliseconds(200))
+                    onDismiss()
+                } catch {
+                    // Task was cancelled, do nothing
+                }
             }
         }
     }

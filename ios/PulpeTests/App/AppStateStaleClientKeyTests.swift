@@ -10,7 +10,7 @@ struct AppStateStaleClientKeyTests {
     @Test func handleStaleClientKey_whenAuthenticated_transitionsToPinEntry() async {
         let sut = AppState()
         sut.biometricEnabled = false
-        sut.completePinEntry()
+        await sut.completePinEntry()
         #expect(sut.authState == .authenticated)
 
         await sut.handleStaleClientKey()
@@ -37,7 +37,7 @@ struct AppStateStaleClientKeyTests {
         #expect(await clientKeyManager.hasClientKey)
 
         sut.biometricEnabled = false
-        sut.completePinEntry()
+        await sut.completePinEntry()
         await sut.handleStaleClientKey()
 
         // clearAll() clears cache + regular keychain + biometric keychain

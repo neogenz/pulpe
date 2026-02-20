@@ -51,6 +51,14 @@ extension Color {
     /// Error background — soft warm tint (#FFF3E0 light, #2A1F10 dark)
     static let errorBackground = Color(light: Color(hex: 0xFFF3E0), dark: Color(hex: 0x2A1F10))
 
+    // MARK: - Destructive Colors (true red for irreversible actions)
+
+    /// Destructive primary — true red for account deletion, danger zones (#C62828 light, #EF5350 dark)
+    static let destructivePrimary = Color(light: Color(hex: 0xC62828), dark: Color(hex: 0xEF5350))
+
+    /// Destructive background — soft red tint for danger zone cards (#FDECEA light, #2A1414 dark)
+    static let destructiveBackground = Color(light: Color(hex: 0xFDECEA), dark: Color(hex: 0x2A1414))
+
     // MARK: - Warning Colors
 
     /// Warning primary — amber/yellow for tips and caution (#B8860B light, #FFD54F dark)

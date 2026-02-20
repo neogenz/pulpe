@@ -61,6 +61,7 @@ struct CurrencyField: View {
                     .keyboardType(.decimalPad)
                     .foregroundStyle(Color.authInputText)
                     .focused(externalFocus ?? $internalFocus)
+                    .accessibilityLabel(label ?? "Montant en CHF")
                     .onChange(of: textValue) { _, newValue in
                         updateValue(from: newValue)
                     }

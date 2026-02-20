@@ -67,6 +67,7 @@ final class AppState {
     private var biometricSaveTask: Task<Void, Never>?
     private var biometricPreferenceLoaded = false
     private var isHydratingBiometricPreference = false
+    private var onboardingFlagLoaded = false
 
     // MARK: - Services
 
@@ -143,6 +144,7 @@ final class AppState {
         // Load persisted values asynchronously
         Task { @MainActor in
             hasCompletedOnboarding = await keychainManager.isOnboardingCompleted()
+            onboardingFlagLoaded = true
             await ensureBiometricPreferenceLoaded()
         }
     }
@@ -154,6 +156,7 @@ final class AppState {
         biometricError = nil
 
         await ensureBiometricPreferenceLoaded()
+        await ensureOnboardingFlagLoaded()
 
         // Cold start: clear session clientKey so a stale key in keychain
         // can't bypass FaceID/PIN. Biometric keychain is preserved.
@@ -214,9 +217,9 @@ final class AppState {
             biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
             authState = .unauthenticated
         } catch {
-            // Unknown error - preserve tokens for transient issues
             Logger.auth.error("checkAuthState: unknown error during biometric login - \(error)")
-            biometricError = "Une erreur s'est produite, réessaie"
+            await authService.clearBiometricTokens()
+            biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
             authState = .unauthenticated
         }
     }
@@ -238,11 +241,11 @@ final class AppState {
         case .authenticated(let needsRecoveryConsent):
             needsRecoveryKeyRepairConsent = needsRecoveryConsent
             if needsRecoveryConsent {
-                transitionToAuthenticated(allowBiometricPrompt: false)
+                await transitionToAuthenticated(allowBiometricPrompt: false)
                 showBiometricEnrollment = false
                 showRecoveryKeyRepairConsent = true
             } else {
-                transitionToAuthenticated()
+                await transitionToAuthenticated()
             }
         case .unauthenticatedSessionExpired:
             needsRecoveryKeyRepairConsent = false
@@ -353,18 +356,16 @@ final class AppState {
         selectedTab = .currentMonth
     }
 
-    private func transitionToAuthenticated(allowBiometricPrompt: Bool = true) {
+    private func transitionToAuthenticated(allowBiometricPrompt: Bool = true) async {
         authState = .authenticated
 
         if biometricEnabled {
-            Task {
-                let tokensReady = await syncBiometricCredentials()
-                let keyReady = await clientKeyManager.enableBiometric()
-                if !tokensReady || !keyReady {
-                    Logger.auth.warning(
-                        "transitionToAuthenticated: biometric silent reactivation incomplete (tokens=\(tokensReady), key=\(keyReady))"
-                    )
-                }
+            let tokensReady = await syncBiometricCredentials()
+            let keyReady = await clientKeyManager.enableBiometric()
+            if !tokensReady || !keyReady {
+                Logger.auth.warning(
+                    "transitionToAuthenticated: biometric silent reactivation incomplete (tokens=\(tokensReady), key=\(keyReady))"
+                )
             }
         }
 
@@ -406,25 +407,25 @@ final class AppState {
             }
         }
 
-        transitionToAuthenticated()
+        await transitionToAuthenticated()
     }
 
-    func completePinEntry() {
+    func completePinEntry() async {
         if needsRecoveryKeyRepairConsent {
             showBiometricEnrollment = false
             showRecoveryKeyRepairConsent = true
             return
         }
 
-        transitionToAuthenticated()
+        await transitionToAuthenticated()
     }
 
     func startRecovery() {
         authState = .needsPinRecovery
     }
 
-    func completeRecovery() {
-        transitionToAuthenticated()
+    func completeRecovery() async {
+        await transitionToAuthenticated()
     }
 
     func cancelRecovery() {
@@ -442,33 +443,33 @@ final class AppState {
             if case .conflict = error {
                 Logger.auth.info("acceptRecoveryKeyRepairConsent: recovery key already exists, continue")
                 needsRecoveryKeyRepairConsent = false
-                transitionToAuthenticated()
+                await transitionToAuthenticated()
                 return
             }
 
             Logger.auth.error("acceptRecoveryKeyRepairConsent: setup-recovery failed - \(error)")
             toastManager.show("Impossible de générer la clé de récupération", type: .error)
             needsRecoveryKeyRepairConsent = false
-            transitionToAuthenticated()
+            await transitionToAuthenticated()
         } catch {
             Logger.auth.error("acceptRecoveryKeyRepairConsent: unexpected setup-recovery error - \(error)")
             toastManager.show("Impossible de générer la clé de récupération", type: .error)
             needsRecoveryKeyRepairConsent = false
-            transitionToAuthenticated()
+            await transitionToAuthenticated()
         }
     }
 
-    func declineRecoveryKeyRepairConsent() {
+    func declineRecoveryKeyRepairConsent() async {
         showRecoveryKeyRepairConsent = false
         needsRecoveryKeyRepairConsent = false
-        transitionToAuthenticated()
+        await transitionToAuthenticated()
     }
 
-    func completePostAuthRecoveryKeyPresentation() {
+    func completePostAuthRecoveryKeyPresentation() async {
         showPostAuthRecoveryKeySheet = false
         postAuthRecoveryKey = nil
         needsRecoveryKeyRepairConsent = false
-        transitionToAuthenticated()
+        await transitionToAuthenticated()
     }
 
     // MARK: - Background Lock
@@ -534,6 +535,12 @@ final class AppState {
         biometricEnabled = storedPreference
         isHydratingBiometricPreference = false
         biometricPreferenceLoaded = true
+    }
+
+    private func ensureOnboardingFlagLoaded() async {
+        guard !onboardingFlagLoaded else { return }
+        hasCompletedOnboarding = await keychainManager.isOnboardingCompleted()
+        onboardingFlagLoaded = true
     }
 
     @discardableResult

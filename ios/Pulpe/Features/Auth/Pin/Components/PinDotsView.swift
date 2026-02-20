@@ -30,7 +30,7 @@ struct PinDotsView: View {
 
     private func dotColor(at index: Int) -> Color {
         if isError && index < enteredCount {
-            return .red
+            return .errorPrimary
         }
         return index < enteredCount ? Color.pinDotFilled : Color.pinDotEmpty
     }

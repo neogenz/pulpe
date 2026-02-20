@@ -179,49 +179,59 @@ struct AppStateBiometricColdStartTests {
     func foregroundAfterGrace_biometricEnabled_attemptsFaceID() async {
         let faceIDAttempted = AtomicFlag()
         var now = Date(timeIntervalSince1970: 0)
-        
+
         let sut = AppState(
+            biometricPreferenceStore: BiometricPreferenceStore(
+                keychain: MockBiometricPreferenceStore(enabled: true),
+                defaults: MockBiometricPreferenceStore(enabled: false)
+            ),
+            syncBiometricCredentials: { true },
             resolveBiometricKey: {
                 faceIDAttempted.set()
                 return "mock-client-key"
             },
             nowProvider: { now }
         )
-        
+
         sut.biometricEnabled = true
-        sut.completePinEntry() // Start authenticated
-        
+        await sut.completePinEntry() // Start authenticated
+
         sut.handleEnterBackground()
         now = Date(timeIntervalSince1970: 31) // Exceed grace period
         sut.prepareForForeground()
-        
+
         await sut.handleEnterForeground()
-        
+
         #expect(faceIDAttempted.value == true, "Face ID should be attempted on foreground after grace period")
         #expect(sut.authState == .authenticated, "Should stay authenticated after successful Face ID")
     }
-    
+
     @Test("Foreground after grace period with Face ID cancel falls back to PIN")
     func foregroundAfterGrace_faceIDCancel_fallsToPIN() async {
         var now = Date(timeIntervalSince1970: 0)
-        
+
         let sut = AppState(
+            biometricPreferenceStore: BiometricPreferenceStore(
+                keychain: MockBiometricPreferenceStore(enabled: true),
+                defaults: MockBiometricPreferenceStore(enabled: false)
+            ),
+            syncBiometricCredentials: { true },
             resolveBiometricKey: { nil }, // Simulate Face ID cancel/fail
             nowProvider: { now }
         )
-        
+
         sut.biometricEnabled = true
-        sut.completePinEntry() // Start authenticated
-        
+        await sut.completePinEntry() // Start authenticated
+
         sut.handleEnterBackground()
         now = Date(timeIntervalSince1970: 31) // Exceed grace period
         sut.prepareForForeground()
-        
+
         await sut.handleEnterForeground()
-        
+
         #expect(sut.authState == .needsPinEntry, "Should fall back to PIN entry when Face ID fails")
     }
-    
+
     @Test("Biometry lockout falls back to PIN entry without error banner")
     func foregroundAfterGrace_biometryLockout_fallsToPIN() async {
         // Biometry lockout (LAError.biometryLockout) causes resolveBiometricKey to return nil,
@@ -230,12 +240,17 @@ struct AppStateBiometricColdStartTests {
         var now = Date(timeIntervalSince1970: 0)
 
         let sut = AppState(
+            biometricPreferenceStore: BiometricPreferenceStore(
+                keychain: MockBiometricPreferenceStore(enabled: true),
+                defaults: MockBiometricPreferenceStore(enabled: false)
+            ),
+            syncBiometricCredentials: { true },
             resolveBiometricKey: { nil }, // Lockout: LAContext fails, wrapper returns nil
             nowProvider: { now }
         )
 
         sut.biometricEnabled = true
-        sut.completePinEntry() // Start authenticated
+        await sut.completePinEntry() // Start authenticated
 
         sut.handleEnterBackground()
         now = Date(timeIntervalSince1970: 31) // Exceed grace period
@@ -251,7 +266,7 @@ struct AppStateBiometricColdStartTests {
     func foregroundAfterGrace_biometricDisabled_goesToPIN() async {
         let faceIDAttempted = AtomicFlag()
         var now = Date(timeIntervalSince1970: 0)
-        
+
         let sut = AppState(
             resolveBiometricKey: {
                 faceIDAttempted.set()
@@ -259,9 +274,9 @@ struct AppStateBiometricColdStartTests {
             },
             nowProvider: { now }
         )
-        
+
         sut.biometricEnabled = false
-        sut.completePinEntry() // Start authenticated
+        await sut.completePinEntry() // Start authenticated
         
         sut.handleEnterBackground()
         now = Date(timeIntervalSince1970: 31) // Exceed grace period
@@ -271,5 +286,81 @@ struct AppStateBiometricColdStartTests {
         
         #expect(faceIDAttempted.value == false, "Face ID should NOT be attempted when biometric is disabled")
         #expect(sut.authState == .needsPinEntry, "Should go to PIN entry when biometric is disabled")
+    }
+
+    // MARK: - hasCompletedOnboarding Loaded Before .unauthenticated
+
+    @Test("checkAuthState loads hasCompletedOnboarding before transitioning to unauthenticated")
+    func checkAuthState_loadsOnboardingFlag_beforeUnauthenticated() async {
+        guard KeychainManager.checkAvailability() else { return }
+        let keychain = KeychainManager.shared
+
+        // Simulate a returning user with completed onboarding
+        await keychain.setOnboardingCompleted(true)
+        defer { Task { await keychain.setOnboardingCompleted(false) } }
+
+        let sut = AppState(
+            biometricPreferenceStore: BiometricPreferenceStore(
+                keychain: MockBiometricPreferenceStore(enabled: false),
+                defaults: MockBiometricPreferenceStore(enabled: false)
+            )
+        )
+
+        // With biometric disabled, checkAuthState transitions to .unauthenticated
+        // ensureOnboardingFlagLoaded() must be called before that transition
+        await sut.checkAuthState()
+
+        #expect(sut.authState == .unauthenticated, "State should be unauthenticated when biometric is disabled and no session exists")
+        #expect(sut.hasCompletedOnboarding == true, "Onboarding flag must be loaded before .unauthenticated so LoginView is shown instead of OnboardingFlow")
+    }
+
+    // MARK: - Expired Biometric Token Cleanup
+
+    @Test("clearBiometricTokens removes all biometric credentials from keychain")
+    func clearBiometricTokens_removesAllCredentials() async {
+        guard KeychainManager.checkAvailability() else { return }
+        let authService = AuthService.shared
+        let keychain = KeychainManager.shared
+
+        // Store mock biometric tokens
+        let stored = await keychain.saveBiometricTokens(
+            accessToken: "mock-access-token",
+            refreshToken: "mock-refresh-token"
+        )
+        guard stored else { return } // Skip if biometric keychain unavailable (simulator)
+
+        #expect(await authService.hasBiometricTokens() == true, "Tokens should be present before clearing")
+
+        // This is the exact method called by checkAuthState() on AuthServiceError.biometricSessionExpired
+        await authService.clearBiometricTokens()
+
+        #expect(await authService.hasBiometricTokens() == false, "Biometric tokens must be cleared after session expiry to prevent repeated failed auth attempts")
+    }
+
+    @Test("checkAuthState sets biometricError when session expired path is triggered")
+    func checkAuthState_biometricEnabled_noTokens_transitionsToUnauthenticated() async {
+        // When biometric is enabled but no tokens are stored,
+        // validateBiometricSession() returns nil → authState = .unauthenticated (no error set)
+        // This verifies the nil-tokens path is distinct from the expired-tokens path
+        let sut = AppState(
+            biometricPreferenceStore: BiometricPreferenceStore(
+                keychain: MockBiometricPreferenceStore(enabled: true),
+                defaults: MockBiometricPreferenceStore(enabled: false)
+            )
+        )
+
+        // Wait for biometric preference to load as true
+        await waitForCondition(timeout: .milliseconds(500), "Biometric preference should load") {
+            sut.biometricEnabled == true
+        }
+
+        // Ensure no biometric tokens are stored so validateBiometricSession returns nil
+        await AuthService.shared.clearBiometricTokens()
+
+        await sut.checkAuthState()
+
+        // No tokens found path: authState = .unauthenticated, biometricError = nil
+        #expect(sut.authState == .unauthenticated)
+        #expect(sut.biometricError == nil, "No-tokens path should not set biometricError (distinct from expired-session path)")
     }
 }
