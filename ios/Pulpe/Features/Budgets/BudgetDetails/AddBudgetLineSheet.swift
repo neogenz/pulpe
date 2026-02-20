@@ -34,10 +34,10 @@ struct AddBudgetLineSheet: View {
     var body: some View {
         ScrollView {
             VStack(spacing: DesignTokens.Spacing.xxl) {
+                KindToggle(selection: $kind)
                 heroAmountSection
                 quickAmountChips
                 descriptionField
-                kindSelector
 
                 if let error {
                     ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -52,7 +52,7 @@ struct AddBudgetLineSheet: View {
             .padding(.bottom, DesignTokens.Spacing.xl)
         }
         .background(Color.surfacePrimary)
-        .modernSheet(title: "Nouvelle prévision")
+        .modernSheet(title: kind.newBudgetLineTitle)
         .loadingOverlay(isLoading)
         .dismissKeyboardOnTap()
         .task {
@@ -143,36 +143,6 @@ struct AddBudgetLineSheet: View {
             .padding(DesignTokens.Spacing.lg)
             .background(Color.inputBackgroundSoft)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-    }
-
-    // MARK: - Kind Selector
-
-    private var kindSelector: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            ForEach(TransactionKind.allCases, id: \.self) { type in
-                Button {
-                    withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
-                        kind = type
-                    }
-                } label: {
-                    Label(type.label, systemImage: type.icon)
-                        .font(PulpeTypography.buttonSecondary)
-                        .fontWeight(kind == type ? .semibold : .medium)
-                        .padding(.horizontal, DesignTokens.Spacing.md)
-                        .padding(.vertical, DesignTokens.Spacing.sm + 2)
-                        .frame(maxWidth: .infinity)
-                        .background(kind == type ? Color.pulpePrimary : Color.surfaceSecondary)
-                        .foregroundStyle(kind == type ? Color.textOnPrimary : .primary)
-                        .clipShape(Capsule())
-                        .overlay(
-                            kind == type ? nil :
-                            Capsule().strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
-                        )
-                }
-                .buttonStyle(.plain)
-                .sensoryFeedback(.selection, trigger: kind)
-            }
-        }
     }
 
     // MARK: - Add Button
