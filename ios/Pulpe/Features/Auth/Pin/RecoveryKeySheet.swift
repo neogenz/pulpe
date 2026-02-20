@@ -34,12 +34,12 @@ struct RecoveryKeySheet: View {
     private var headerSection: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             Image(systemName: "key.horizontal.fill")
-                .font(.system(size: 36))
+                .font(PulpeTypography.brandTitle)
                 .foregroundStyle(Color.pulpePrimary)
 
             VStack(spacing: DesignTokens.Spacing.sm) {
                 Text("Clé de récupération")
-                    .font(.custom("Manrope-Bold", size: 28, relativeTo: .title))
+                    .font(PulpeTypography.onboardingTitle)
                     .multilineTextAlignment(.center)
 
                 Text("Note cette clé dans un endroit sûr. Elle te permettra de retrouver l'accès à tes données si tu oublies ton code PIN.")
@@ -79,7 +79,7 @@ struct RecoveryKeySheet: View {
                         .contentTransition(.symbolEffect(.replace))
                     Text(copied ? "Copié !" : "Copier la clé")
                 }
-                .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
+                .font(PulpeTypography.buttonSecondary)
                 .foregroundStyle(Color.pulpePrimary)
                 .padding(.horizontal, DesignTokens.Spacing.xl)
                 .padding(.vertical, DesignTokens.Spacing.md)
@@ -129,7 +129,7 @@ struct RecoveryKeySheet: View {
             onAcknowledge()
         } label: {
             Text("J'ai noté ma clé")
-                .fontWeight(.semibold)
+                .font(PulpeTypography.buttonPrimary)
                 .frame(maxWidth: .infinity)
                 .frame(height: DesignTokens.FrameHeight.button)
                 .background(Color.pulpePrimary)

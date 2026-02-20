@@ -25,7 +25,7 @@ struct WelcomeStep: View {
                         .frame(width: 140, height: 140)
 
                     Image(systemName: "leaf.fill")
-                        .font(.system(size: 64, weight: .medium))
+                        .font(PulpeTypography.welcomeEmoji)
                         .foregroundStyle(Color.pulpePrimary)
                         .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
                 }
@@ -38,7 +38,7 @@ struct WelcomeStep: View {
                 // Value proposition
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Text("Vois clair dans tes finances")
-                        .font(.custom("Manrope-Bold", size: 34, relativeTo: .largeTitle))
+                        .font(PulpeTypography.brandTitle)
                         .foregroundStyle(Color.textPrimaryOnboarding)
                         .multilineTextAlignment(.center)
 
@@ -59,17 +59,17 @@ struct WelcomeStep: View {
                     Button {
                         state.nextStep()
                     } label: {
-                        HStack(spacing: 8) {
+                        HStack(spacing: DesignTokens.Spacing.sm) {
                             Text("Commencer")
-                                .fontWeight(.semibold)
+                                .font(PulpeTypography.buttonPrimary)
                             Image(systemName: "arrow.right")
-                                .font(.custom("DMSans-SemiBold", size: 15, relativeTo: .subheadline))
+                                .font(PulpeTypography.labelLarge)
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: DesignTokens.FrameHeight.button)
                         .background(Color.pulpePrimary)
                         .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous))
                         .shadow(color: Color.pulpePrimary.opacity(0.4), radius: 20, y: 10)
                     }
 
@@ -78,15 +78,15 @@ struct WelcomeStep: View {
                         showLogin = true
                     } label: {
                         Text("Se connecter")
-                            .fontWeight(.semibold)
+                            .font(PulpeTypography.buttonPrimary)
                             .frame(maxWidth: .infinity)
                             .frame(height: DesignTokens.FrameHeight.button)
                             .foregroundStyle(Color.textPrimaryOnboarding)
                             .background {
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous)
                                     .fill(Color.white.opacity(0.4))
                                     .overlay {
-                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous)
                                             .strokeBorder(Color.white.opacity(0.5), lineWidth: 1.5)
                                     }
                             }

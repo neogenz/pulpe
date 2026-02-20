@@ -23,14 +23,14 @@ extension Color {
 
     // MARK: - Surface Colors (green-tinted for brand identity, dark mode uses system for comfort)
 
-    /// Primary background — green-tinted white in light mode (#F6FFF0), system dark in dark mode
-    static let surfacePrimary = Color(light: Color(hex: 0xF6FFF0), dark: Color(uiColor: .systemGroupedBackground))
+    /// Primary background — sage green matching mesh gradient center (#EEF5EF), system dark in dark mode
+    static let surfacePrimary = Color(light: Color(hex: 0xEEF5EF), dark: Color(uiColor: .systemGroupedBackground))
 
-    /// Card/modal surfaces — light green tint in light mode (#EBFFE6), elevated dark in dark mode
-    static let surfaceCard = Color(light: Color(hex: 0xEBFFE6), dark: Color(uiColor: .secondarySystemGroupedBackground))
+    /// Card/modal surfaces — white in light mode for maximum contrast, elevated dark in dark mode
+    static let surfaceCard = Color(light: .white, dark: Color(uiColor: .secondarySystemGroupedBackground))
 
-    /// Secondary surface for form backgrounds, inactive pills — subtle green tint
-    static let surfaceSecondary = Color(light: Color(hex: 0xEBFFE6), dark: Color(uiColor: .secondarySystemGroupedBackground))
+    /// Secondary surface for form backgrounds, inactive pills — system grey in light mode
+    static let surfaceSecondary = Color(light: Color(uiColor: .secondarySystemGroupedBackground), dark: Color(uiColor: .secondarySystemGroupedBackground))
 
     // MARK: - Semantic Text Colors
 
@@ -83,12 +83,6 @@ extension Color {
 
     /// Input field background — green-tinted soft fill for brand consistency
     static let inputBackgroundSoft = Color(light: Color(hex: 0xE8F5E9).opacity(0.6), dark: Color(uiColor: .tertiarySystemFill))
-
-    /// Separator color — warm green-grey instead of neutral grey
-    static let separatorGreenGrey = Color(light: Color(hex: 0xC5D6C8), dark: Color(hex: 0x3A3D3A))
-
-    /// Disabled state color — warm green-grey
-    static let disabledGreenGrey = Color(light: Color(hex: 0xA8B5AA), dark: Color(hex: 0x4A4D4A))
 
     /// Input focus glow color
     static let inputFocusGlow = Color(light: Color(hex: 0x006820).opacity(0.12), dark: Color(hex: 0x4AA070).opacity(0.15))

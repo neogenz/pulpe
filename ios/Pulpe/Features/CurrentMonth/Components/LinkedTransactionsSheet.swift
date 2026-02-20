@@ -108,8 +108,7 @@ struct LinkedTransactionsSheet: View {
                 Spacer()
 
                 Text("\(Int(consumption.percentage))%")
-                    .font(PulpeTypography.subheadline)
-                    .fontWeight(.semibold)
+                    .font(PulpeTypography.labelLarge)
                     .foregroundStyle(progressColor)
             }
 
@@ -139,7 +138,7 @@ struct LinkedTransactionsSheet: View {
                 .font(.system(size: 44, weight: .light))
                 .foregroundStyle(.quaternary)
 
-            VStack(spacing: 4) {
+            VStack(spacing: DesignTokens.Spacing.xs) {
                 Text("Pas encore de transaction")
                     .font(PulpeTypography.headline)
                     .foregroundStyle(.secondary)
@@ -160,8 +159,7 @@ struct LinkedTransactionsSheet: View {
     private var transactionsSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             Text("Transactions")
-                .font(PulpeTypography.subheadline)
-                .fontWeight(.medium)
+                .font(PulpeTypography.buttonSecondary)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal)
 
@@ -221,7 +219,7 @@ private struct MetricCard: View {
                     .foregroundStyle(.secondary)
 
                 Text(value.asCompactCHF)
-                    .font(.custom("Manrope-Bold", size: 16, relativeTo: .callout))
+                    .font(PulpeTypography.progressValue)
                     .foregroundStyle(color == .secondary ? .primary : color)
                     .sensitiveAmount()
             }
@@ -258,7 +256,7 @@ private struct LinkedTransactionRow: View {
             Spacer(minLength: 8)
 
             Text(transaction.amount.asCHF)
-                .font(.custom("Manrope-SemiBold", size: 17, relativeTo: .body))
+                .font(PulpeTypography.buttonPrimary)
                 .foregroundStyle(transaction.kind.color)
                 .sensitiveAmount()
 

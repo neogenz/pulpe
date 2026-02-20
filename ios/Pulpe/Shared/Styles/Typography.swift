@@ -49,8 +49,17 @@ enum PulpeTypography {
     // MARK: - Buttons
 
     static let buttonPrimary = Font.custom("Manrope-SemiBold", size: 17, relativeTo: .body)
-    static let buttonLabel = buttonPrimary
     static let buttonSecondary = Font.custom("DMSans-Medium", size: 15, relativeTo: .subheadline)
+
+    // MARK: - Numpad
+
+    static let numpadKey = Font.custom("DMSans-Medium", size: 28, relativeTo: .title)
+    static let numpadSubtext = Font.custom("DMSans-Regular", size: 10, relativeTo: .caption2)
+
+    // MARK: - Hero Icons & Emoji
+
+    static let heroIcon = Font.custom("Manrope-Bold", size: 48, relativeTo: .largeTitle)
+    static let welcomeEmoji = Font.custom("Manrope-Bold", size: 64, relativeTo: .largeTitle)
 
     // MARK: - Semantic Aliases (for replacing bare .font() calls)
 

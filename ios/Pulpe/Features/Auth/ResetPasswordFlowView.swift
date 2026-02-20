@@ -66,7 +66,7 @@ struct ResetPasswordFlowView: View {
     private func invalidState(message: String) -> some View {
         VStack(spacing: DesignTokens.Spacing.xl) {
             Image(systemName: "link.badge.plus")
-                .font(.system(size: 48))
+                .font(PulpeTypography.heroIcon)
                 .foregroundStyle(Color.errorPrimary)
 
             VStack(spacing: DesignTokens.Spacing.sm) {
@@ -118,7 +118,7 @@ struct ResetPasswordFlowView: View {
                             .tint(.white)
                     }
                     Text(viewModel.isSubmitting ? "Réinitialisation..." : "Valider")
-                        .font(PulpeTypography.buttonLabel)
+                        .font(PulpeTypography.buttonPrimary)
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: DesignTokens.FrameHeight.button)

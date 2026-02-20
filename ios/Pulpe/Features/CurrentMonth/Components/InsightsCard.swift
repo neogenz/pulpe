@@ -73,8 +73,7 @@ struct InsightsCard: View {
                     .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)
                 Text(spending.name)
-                    .font(PulpeTypography.subheadline)
-                    .fontWeight(.semibold)
+                    .font(PulpeTypography.labelLarge)
                     .foregroundStyle(.primary)
                     .lineLimit(1)
             }
@@ -83,8 +82,7 @@ struct InsightsCard: View {
 
             VStack(alignment: .trailing, spacing: 2) {
                 Text(spending.amount.asCHF)
-                    .font(PulpeTypography.subheadline)
-                    .fontWeight(.semibold)
+                    .font(PulpeTypography.labelLarge)
                     .foregroundStyle(.primary)
                     .sensitiveAmount()
                 Text("\(percentage)% de tes dépenses")

@@ -96,7 +96,7 @@ struct AddBudgetLineSheet: View {
             .accessibilityLabel("Montant")
             .onTapGesture { isAmountFocused = true }
 
-            RoundedRectangle(cornerRadius: 1)
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
                 .fill(isAmountFocused ? Color.pulpePrimary : Color.textTertiary.opacity(DesignTokens.Opacity.strong))
                 .frame(width: 120, height: 2)
                 .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isAmountFocused)
@@ -120,8 +120,7 @@ struct AddBudgetLineSheet: View {
                     }
                 } label: {
                     Text("\(quickAmount) \(DesignTokens.AmountInput.currencyCode)")
-                        .font(PulpeTypography.buttonSecondary)
-                        .fontWeight(.semibold)
+                        .font(PulpeTypography.labelLarge)
                         .fixedSize()
                         .padding(.horizontal, DesignTokens.Spacing.md)
                         .padding(.vertical, DesignTokens.Spacing.sm)
@@ -183,15 +182,9 @@ struct AddBudgetLineSheet: View {
             Task { await addBudgetLine() }
         } label: {
             Text("Ajouter")
-                .font(PulpeTypography.buttonPrimary)
-                .foregroundStyle(canSubmit ? Color.textOnPrimary : .secondary)
-                .frame(maxWidth: .infinity)
-                .frame(height: DesignTokens.FrameHeight.button)
-                .background(canSubmit ? Color.pulpePrimary : Color.surfaceSecondary)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
         }
         .disabled(!canSubmit)
-        .buttonStyle(.plain)
+        .primaryButtonStyle(isEnabled: canSubmit)
     }
 
     // MARK: - Logic

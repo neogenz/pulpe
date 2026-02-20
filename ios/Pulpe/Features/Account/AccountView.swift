@@ -8,6 +8,7 @@ struct AccountView: View {
     @State private var showChangePassword = false
     @State private var securityViewModel = AccountSecurityViewModel()
     @State private var isDebugVisible = false
+    @State private var debugToggleTrigger = false
 
     var body: some View {
         NavigationStack {
@@ -103,7 +104,7 @@ struct AccountView: View {
                     Text("APPLICATION")
                         .font(PulpeTypography.labelLarge)
                         .onLongPressGesture(minimumDuration: 5) {
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            debugToggleTrigger.toggle()
                             withAnimation(.easeInOut(duration: 0.3)) { isDebugVisible.toggle() }
                         }
                 }
@@ -135,16 +136,10 @@ struct AccountView: View {
 
                         Spacer(minLength: 0)
 
-                        Button {
+                        Button("Supprimer") {
                             showDeleteConfirmation = true
-                        } label: {
-                            Text("Supprimer")
-                                .font(PulpeTypography.buttonLabel)
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, DesignTokens.Spacing.lg)
-                                .padding(.vertical, DesignTokens.Spacing.sm)
-                                .background(Color.destructivePrimary, in: Capsule())
                         }
+                        .destructiveButtonStyle()
                     }
                 } header: {
                     Text("ZONE DE DANGER")
@@ -167,6 +162,7 @@ struct AccountView: View {
             } message: {
                 Text("Votre compte sera définitivement supprimé après un délai de 3 jours. Cette action est irréversible.")
             }
+            .sensoryFeedback(.impact, trigger: debugToggleTrigger)
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .background(Color.surfacePrimary)

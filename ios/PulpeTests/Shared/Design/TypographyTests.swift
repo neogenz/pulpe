@@ -51,8 +51,15 @@ struct TypographyTests {
 
         // Buttons
         _ = PulpeTypography.buttonPrimary
-        _ = PulpeTypography.buttonLabel
         _ = PulpeTypography.buttonSecondary
+
+        // Numpad
+        _ = PulpeTypography.numpadKey
+        _ = PulpeTypography.numpadSubtext
+
+        // Hero icons & emoji
+        _ = PulpeTypography.heroIcon
+        _ = PulpeTypography.welcomeEmoji
 
         // Semantic aliases (used to replace bare .font(.textStyle) calls)
         _ = PulpeTypography.title
@@ -72,13 +79,10 @@ struct TypographyTests {
     /// Verify that no bare .font(.textStyle) calls remain in the codebase by checking
     /// that all PulpeTypography tokens return Font values (not nil or empty).
     /// This is a compile-time guarantee — if a token is removed, this test won't compile.
-    @Test func buttonLabel_aliasesButtonPrimary() {
-        // buttonLabel is defined as an alias for buttonPrimary
-        // Both should be the same Font value
-        let label = PulpeTypography.buttonLabel
-        let primary = PulpeTypography.buttonPrimary
-        // They reference the same static property
-        _ = label
-        _ = primary
+    @Test func newTypographyTokens_exist() {
+        _ = PulpeTypography.numpadKey
+        _ = PulpeTypography.numpadSubtext
+        _ = PulpeTypography.heroIcon
+        _ = PulpeTypography.welcomeEmoji
     }
 }

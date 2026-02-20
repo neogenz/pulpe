@@ -517,6 +517,12 @@ final class AppState {
         biometricCapability() && !biometricEnabled && authState == .authenticated
     }
 
+    /// Attempt Face ID unlock from PinEntryView. Returns true if client key was restored.
+    func attemptBiometricUnlock() async -> Bool {
+        guard biometricEnabled else { return false }
+        return await resolveBiometricKey() != nil
+    }
+
     func canRetryBiometric() async -> Bool {
         guard biometricCapability() else { return false }
         return await authService.hasBiometricTokens()

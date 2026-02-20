@@ -18,6 +18,8 @@ enum DesignTokens {
         static let lg: CGFloat = 16
         /// Extra large: hero cards (20pt)
         static let xl: CGFloat = 20
+        /// Hairline: thin separators in Form (1pt)
+        static let hairline: CGFloat = 1
     }
 
     // MARK: - Spacing
@@ -151,6 +153,10 @@ enum DesignTokens {
 
         static var toastDismiss: SwiftUI.Animation {
             .easeOut(duration: fast)
+        }
+
+        static var pulse: SwiftUI.Animation {
+            .easeInOut(duration: 0.6).repeatForever(autoreverses: true)
         }
     }
 

@@ -82,7 +82,7 @@ struct HeroBalanceCard: View {
         HStack(alignment: .center, spacing: DesignTokens.Spacing.xl) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(contextLabel)
-                    .font(.custom("DMSans-SemiBold", size: 15, relativeTo: .subheadline))
+                    .font(PulpeTypography.labelLarge)
                     .foregroundStyle(.white)
 
                 Text(Self.balanceFormatter.string(from: abs(metrics.remaining) as NSDecimalNumber) ?? "0")
@@ -123,12 +123,12 @@ struct HeroBalanceCard: View {
 
                 VStack(spacing: 0) {
                     Text("\(displayPercentage)")
-                        .font(.custom("Manrope-Bold", size: 22, relativeTo: .title2))
+                        .font(PulpeTypography.stepTitle)
                         .monospacedDigit()
                         .foregroundStyle(.white)
                         .contentTransition(.numericText())
                     Text("%")
-                        .font(.custom("DMSans-Medium", size: 11, relativeTo: .caption2))
+                        .font(PulpeTypography.progressUnit)
                         .foregroundStyle(.white.opacity(0.7))
                 }
                 .sensitiveAmount()
@@ -168,14 +168,14 @@ struct HeroBalanceCard: View {
     }
 
     private func pillChip(icon: String, label: String, value: Decimal, color: Color) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: icon)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(color)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(label)
-                    .font(.custom("DMSans-Medium", size: 12, relativeTo: .caption))
+                    .font(PulpeTypography.inputHelper)
                     .foregroundStyle(.primary)
 
                 Text(Self.pillFormatter.string(from: value as NSDecimalNumber) ?? "0")

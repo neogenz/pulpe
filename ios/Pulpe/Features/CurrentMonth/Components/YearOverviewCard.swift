@@ -44,7 +44,7 @@ struct YearOverviewCard: View {
             }
 
             Text(value.asCHF)
-                .font(.custom("Manrope-Bold", size: 20, relativeTo: .title3))
+                .font(PulpeTypography.tutorialTitle)
                 .foregroundStyle(color)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)

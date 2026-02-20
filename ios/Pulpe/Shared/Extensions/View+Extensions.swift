@@ -273,7 +273,7 @@ extension View {
 
 // MARK: - Card Modifiers
 
-/// Card surface with subtle border for definition (no shadows — Liquid Glass era)
+/// Card surface with subtle shadow for definition against the background
 private struct CardBackgroundModifier: ViewModifier {
     let cornerRadius: CGFloat
 
@@ -282,10 +282,7 @@ private struct CardBackgroundModifier: ViewModifier {
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .fill(Color.surfaceCard)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: cornerRadius)
-                            .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
-                    )
+                    .shadow(DesignTokens.Shadow.subtle)
             )
     }
 }

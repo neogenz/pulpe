@@ -65,7 +65,7 @@ struct ChangePasswordSheet: View {
                                     .tint(.white)
                             }
                             Text(viewModel.isSubmitting ? "Mise à jour..." : "Confirmer")
-                                .font(PulpeTypography.buttonLabel)
+                                .font(PulpeTypography.buttonPrimary)
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: DesignTokens.FrameHeight.button)
@@ -153,7 +153,7 @@ struct ChangePasswordSheet: View {
     private func requirementRow(met: Bool, text: String) -> some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: met ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 14))
+                .font(PulpeTypography.footnote)
                 .foregroundStyle(met ? Color.financialSavings : Color.textTertiary)
             Text(text)
                 .font(PulpeTypography.caption)
@@ -179,7 +179,7 @@ struct ChangePasswordSheet: View {
             if !viewModel.confirmPassword.isEmpty && !viewModel.isPasswordConfirmed {
                 HStack(spacing: DesignTokens.Spacing.sm) {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 14))
+                        .font(PulpeTypography.footnote)
                         .foregroundStyle(Color.errorPrimary)
                     Text("Les mots de passe ne correspondent pas")
                         .font(PulpeTypography.caption)
@@ -189,7 +189,7 @@ struct ChangePasswordSheet: View {
             } else if viewModel.isPasswordConfirmed {
                 HStack(spacing: DesignTokens.Spacing.sm) {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 14))
+                        .font(PulpeTypography.footnote)
                         .foregroundStyle(Color.financialSavings)
                     Text("Les mots de passe correspondent")
                         .font(PulpeTypography.caption)

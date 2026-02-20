@@ -918,8 +918,7 @@ private struct RolloverInfoRow: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Report du mois précédent")
-                    .font(PulpeTypography.subheadline)
-                    .fontWeight(.medium)
+                    .font(PulpeTypography.buttonSecondary)
                     .foregroundStyle(.primary)
                 Text(isPositive ? "Excédent reporté" : "Déficit reporté")
                     .font(PulpeTypography.caption)
@@ -930,7 +929,6 @@ private struct RolloverInfoRow: View {
 
             Text(amount.asCHF)
                 .font(PulpeTypography.headline)
-                .fontWeight(.semibold)
                 .foregroundStyle(isPositive ? Color.financialSavings : Color.financialOverBudget)
                 .sensitiveAmount()
         }

@@ -16,6 +16,7 @@ struct AddTransactionSheet: View {
     @FocusState private var isAmountFocused: Bool
     @State private var pendingQuickAmount: Int?
     @State private var amountText = ""
+    @State private var submitSuccessTrigger = false
 
     private let transactionService = TransactionService.shared
     private let quickAmounts = DesignTokens.AmountInput.quickAmounts
@@ -57,6 +58,7 @@ struct AddTransactionSheet: View {
         .background(Color.surfacePrimary)
         .modernSheet(title: "Nouvelle dépense")
         .loadingOverlay(isLoading)
+        .sensoryFeedback(.success, trigger: submitSuccessTrigger)
         .task {
             try? await Task.sleep(for: .milliseconds(200))
             isAmountFocused = true
@@ -101,7 +103,7 @@ struct AddTransactionSheet: View {
             .onTapGesture { isAmountFocused = true }
 
             // Subtle underline
-            RoundedRectangle(cornerRadius: 1)
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
                 .fill(isAmountFocused ? Color.pulpePrimary : Color.textTertiary.opacity(DesignTokens.Opacity.strong))
                 .frame(width: 120, height: 2)
                 .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isAmountFocused)
@@ -125,8 +127,7 @@ struct AddTransactionSheet: View {
                     }
                 } label: {
                     Text("\(quickAmount) \(DesignTokens.AmountInput.currencyCode)")
-                        .font(PulpeTypography.buttonSecondary)
-                        .fontWeight(.semibold)
+                        .font(PulpeTypography.labelLarge)
                         .fixedSize()
                         .padding(.horizontal, DesignTokens.Spacing.md)
                         .padding(.vertical, DesignTokens.Spacing.sm)
@@ -211,15 +212,9 @@ struct AddTransactionSheet: View {
             Task { await addTransaction() }
         } label: {
             Text("Ajouter")
-                .font(PulpeTypography.buttonPrimary)
-                .foregroundStyle(canSubmit ? Color.textOnPrimary : .secondary)
-                .frame(maxWidth: .infinity)
-                .frame(height: DesignTokens.FrameHeight.button)
-                .background(canSubmit ? Color.pulpePrimary : Color.surfaceSecondary)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
         }
         .disabled(!canSubmit)
-        .buttonStyle(.plain)
+        .primaryButtonStyle(isEnabled: canSubmit)
     }
 
     // MARK: - Logic
@@ -249,6 +244,7 @@ struct AddTransactionSheet: View {
 
         do {
             let transaction = try await transactionService.createTransaction(data)
+            submitSuccessTrigger.toggle()
             onAdd(transaction)
             toastManager.show("Transaction ajoutée")
             dismiss()

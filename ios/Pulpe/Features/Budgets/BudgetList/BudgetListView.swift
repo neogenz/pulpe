@@ -18,14 +18,23 @@ struct BudgetListView: View {
                     await store.forceRefresh()
                 }
             } else if store.budgets.isEmpty {
-                EmptyStateView(
-                    title: "Pas encore de budget",
-                    description: "Crée ton premier budget et reprends le contrôle",
-                    systemImage: "calendar.badge.plus",
-                    actionTitle: "Créer un budget"
-                ) {
-                    showCreateBudget = true
+                VStack(spacing: DesignTokens.Spacing.lg) {
+                    Image(systemName: "chart.bar.doc.horizontal")
+                        .font(.system(size: 48))
+                        .foregroundStyle(Color.textTertiary)
+                    Text("Aucun budget")
+                        .font(PulpeTypography.stepTitle)
+                        .foregroundStyle(Color.textPrimary)
+                    Text("Créez votre premier budget pour commencer à suivre vos dépenses")
+                        .font(PulpeTypography.bodyLarge)
+                        .foregroundStyle(Color.textTertiary)
+                        .multilineTextAlignment(.center)
+                    Button("Créer un budget") {
+                        showCreateBudget = true
+                    }
+                    .primaryButtonStyle()
                 }
+                .padding(DesignTokens.Spacing.xxxl)
             } else {
                 budgetList
             }
@@ -215,7 +224,7 @@ struct YearSection: View {
 
     private func yearHeaderView(data: YearSectionLayoutData) -> some View {
         Button(action: onToggle) {
-            HStack(alignment: .center, spacing: 12) {
+            HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
                 // Chevron indicator
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .bold))
@@ -224,7 +233,7 @@ struct YearSection: View {
 
                 // Year label
                 Text(String(year))
-                    .font(.custom("Manrope-Bold", size: 22, relativeTo: .title2))
+                    .font(PulpeTypography.stepTitle)
                     .foregroundStyle(data.isPastYear ? .secondary : .primary)
 
                 // Current year badge (neutral style)
@@ -236,7 +245,7 @@ struct YearSection: View {
 
                 // Year-end balance
                 if let endBalance = yearEndRemaining {
-                    HStack(spacing: 4) {
+                    HStack(spacing: DesignTokens.Spacing.xs) {
                         Image(systemName: endBalance >= 0 ? "arrow.up.right" : "arrow.down.right")
                             .font(.system(size: 11, weight: .bold))
                         Text(endBalance.asCompactCHF)
@@ -263,8 +272,8 @@ struct YearSection: View {
             .font(PulpeTypography.caption2)
             .fontWeight(.semibold)
             .foregroundStyle(Color.pulpePrimary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .padding(.horizontal, DesignTokens.Spacing.sm)
+            .padding(.vertical, DesignTokens.Spacing.xs)
             .background(Color.pulpePrimary.opacity(0.12), in: Capsule())
     }
 
@@ -439,7 +448,7 @@ struct CurrentMonthHeroCard: View {
                     Spacer()
 
                     // Voir details button
-                    HStack(spacing: 4) {
+                    HStack(spacing: DesignTokens.Spacing.xs) {
                         Text("Détails")
                             .font(.custom("Manrope-Medium", size: 15, relativeTo: .subheadline))
                         Image(systemName: "chevron.right")
@@ -570,9 +579,9 @@ struct BudgetMonthRow: View {
                     .frame(width: 24)
 
                 if dynamicTypeSize.isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                         Text(monthName)
-                            .font(isPastMonth ? .custom("DMSans-Regular", size: 17, relativeTo: .body) : .custom("Manrope-Medium", size: 17, relativeTo: .body))
+                            .font(isPastMonth ? PulpeTypography.body : .custom("Manrope-Medium", size: 17, relativeTo: .body))
                             .foregroundStyle(isPastMonth ? .secondary : .primary)
 
                         if let remaining = budget.remaining {
@@ -587,7 +596,7 @@ struct BudgetMonthRow: View {
                     Spacer()
                 } else {
                     Text(monthName)
-                        .font(isPastMonth ? .custom("DMSans-Regular", size: 17, relativeTo: .body) : .custom("Manrope-Medium", size: 17, relativeTo: .body))
+                        .font(isPastMonth ? PulpeTypography.body : .custom("Manrope-Medium", size: 17, relativeTo: .body))
                         .foregroundStyle(isPastMonth ? .secondary : .primary)
 
                     // Future month indicator
@@ -615,8 +624,8 @@ struct BudgetMonthRow: View {
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.quaternary)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 16)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.lg)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -653,31 +662,31 @@ struct NextMonthPlaceholder: View {
                     .foregroundStyle(.quaternary)
                     .frame(width: 24)
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(monthName)
                         .font(.custom("Manrope-Medium", size: 17, relativeTo: .body))
                         .foregroundStyle(.tertiary)
 
                     Text("Pas encore de budget")
-                        .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
+                        .font(PulpeTypography.caption)
                         .foregroundStyle(.quaternary)
                 }
 
                 Spacer()
 
                 // CTA button style
-                HStack(spacing: 4) {
+                HStack(spacing: DesignTokens.Spacing.xs) {
                     Image(systemName: "plus")
                         .font(.system(size: 12, weight: .bold))
                     Text("Créer")
                         .font(.custom("Manrope-SemiBold", size: 15, relativeTo: .subheadline))
                 }
                 .foregroundStyle(.white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.horizontal, DesignTokens.Spacing.md)
+                .padding(.vertical, DesignTokens.Spacing.sm)
                 .background(Color.pulpePrimary, in: Capsule())
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, 14)
             .background(
                 Color(.tertiarySystemFill).opacity(colorScheme == .dark ? 0.5 : 0.4)

@@ -15,8 +15,7 @@ struct RecentTransactionsSection: View {
                 Button(action: onTapViewAll) {
                     HStack {
                         Text("Voir tout")
-                            .font(PulpeTypography.subheadline)
-                            .fontWeight(.medium)
+                            .font(PulpeTypography.buttonSecondary)
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(PulpeTypography.caption)
@@ -25,8 +24,7 @@ struct RecentTransactionsSection: View {
                 }
             } header: {
                 Text("Dernières dépenses")
-                    .font(PulpeTypography.subheadline)
-                    .fontWeight(.semibold)
+                    .font(PulpeTypography.labelLarge)
                     .textCase(nil)
             }
         }
@@ -38,7 +36,7 @@ private struct RecentTransactionRow: View {
     let transaction: Transaction
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DesignTokens.Spacing.md) {
             // Kind icon circle
             ZStack {
                 Circle()
@@ -53,8 +51,7 @@ private struct RecentTransactionRow: View {
             // Name and date
             VStack(alignment: .leading, spacing: 2) {
                 Text(transaction.name)
-                    .font(PulpeTypography.subheadline)
-                    .fontWeight(.medium)
+                    .font(PulpeTypography.buttonSecondary)
                     .lineLimit(1)
 
                 Text(transaction.transactionDate.relativeFormatted)
@@ -66,12 +63,11 @@ private struct RecentTransactionRow: View {
 
             // Amount
             Text(transaction.signedAmount.asCHF)
-                .font(PulpeTypography.subheadline)
-                .fontWeight(.semibold)
+                .font(PulpeTypography.labelLarge)
                 .foregroundStyle(transaction.kind.color)
                 .sensitiveAmount()
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, DesignTokens.Spacing.xs)
     }
 }
 

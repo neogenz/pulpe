@@ -6,6 +6,7 @@ struct TemplateListView: View {
     @State private var showCreateTemplate = false
     @State private var templateToDelete: BudgetTemplate?
     @State private var showDeleteAlert = false
+    @State private var deleteWarningTrigger = false
 
     var body: some View {
         Group {
@@ -16,14 +17,23 @@ struct TemplateListView: View {
                     await viewModel.loadTemplates()
                 }
             } else if viewModel.templates.isEmpty {
-                EmptyStateView(
-                    title: "Tu n'as pas encore de modèle",
-                    description: "Crée ton premier modèle pour gagner du temps chaque mois",
-                    systemImage: "doc.badge.plus",
-                    actionTitle: "Créer un modèle"
-                ) {
-                    showCreateTemplate = true
+                VStack(spacing: DesignTokens.Spacing.lg) {
+                    Image(systemName: "doc.on.doc")
+                        .font(.system(size: 48))
+                        .foregroundStyle(Color.textTertiary)
+                    Text("Aucun modèle")
+                        .font(PulpeTypography.stepTitle)
+                        .foregroundStyle(Color.textPrimary)
+                    Text("Les modèles vous permettent de créer des budgets rapidement")
+                        .font(PulpeTypography.bodyLarge)
+                        .foregroundStyle(Color.textTertiary)
+                        .multilineTextAlignment(.center)
+                    Button("Créer un modèle") {
+                        showCreateTemplate = true
+                    }
+                    .primaryButtonStyle()
                 }
+                .padding(DesignTokens.Spacing.xxxl)
             } else {
                 templateList
             }
@@ -62,6 +72,7 @@ struct TemplateListView: View {
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button {
+                            deleteWarningTrigger.toggle()
                             templateToDelete = template
                             showDeleteAlert = true
                         } label: {
@@ -77,6 +88,7 @@ struct TemplateListView: View {
         }
         .scrollContentBackground(.hidden)
         .pulpeBackground()
+        .sensoryFeedback(.warning, trigger: deleteWarningTrigger)
         .alert(
             "Supprimer ce modèle ?",
             isPresented: $showDeleteAlert,
@@ -101,7 +113,7 @@ struct TemplateRow: View {
     var body: some View {
         Button(action: onTap) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     HStack {
                         Text(template.name)
                             .font(PulpeTypography.headline)

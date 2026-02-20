@@ -60,8 +60,7 @@ struct RealizedBalanceSheet: View {
                 Image(systemName: isPositiveBalance ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                     .font(PulpeTypography.caption)
                 Text(isPositiveBalance ? "Tout va bien" : "Solde négatif — on y remédie ?")
-                    .font(PulpeTypography.caption)
-                    .fontWeight(.medium)
+                    .font(PulpeTypography.inputHelper)
             }
             .foregroundStyle(isPositiveBalance ? Color.financialSavings : Color.financialOverBudget)
             .padding(.horizontal, DesignTokens.Spacing.md)
@@ -139,8 +138,7 @@ struct RealizedBalanceSheet: View {
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Astuce")
-                    .font(PulpeTypography.subheadline)
-                    .fontWeight(.semibold)
+                    .font(PulpeTypography.labelLarge)
 
                 Text("Compare ce solde avec ton compte bancaire. S'il y a un écart, vérifie que toutes tes dépenses sont bien cochées.")
                     .font(PulpeTypography.caption)
@@ -182,8 +180,7 @@ private struct ProgressRow: View {
                     .foregroundStyle(iconColor)
 
                 Text(label)
-                    .font(PulpeTypography.subheadline)
-                    .fontWeight(.medium)
+                    .font(PulpeTypography.buttonSecondary)
 
                 Spacer()
 
@@ -204,7 +201,7 @@ private struct ProgressRow: View {
                         .frame(width: geometry.size.width * CGFloat(percentage))
                 }
             }
-            .frame(height: 8)
+            .frame(height: DesignTokens.Spacing.sm)
 
             // Percentage label
             Text("\(percentageText) réalisé")

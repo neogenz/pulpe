@@ -15,7 +15,9 @@ struct CurrentMonthView: View {
     @Environment(DashboardStore.self) private var dashboardStore
     @State private var activeSheet: SheetDestination?
     @State private var navigateToBudget = false
-    
+    @State private var hasAppeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     // Progressive disclosure state (collapsed by default for cleaner dashboard)
     @AppStorage("dashboard.trendsExpanded") private var trendsExpanded = false
     @AppStorage("dashboard.yearOverviewExpanded") private var yearOverviewExpanded = false
@@ -29,11 +31,19 @@ struct CurrentMonthView: View {
                     await store.forceRefresh()
                 }
             } else if store.budget == nil {
-                EmptyStateView(
-                    title: "Crée ton premier budget pour voir ton dashboard",
-                    description: "Ajoute un budget dans l'onglet Budgets",
-                    systemImage: "chart.pie"
-                )
+                VStack(spacing: DesignTokens.Spacing.lg) {
+                    Image(systemName: "calendar.badge.plus")
+                        .font(.system(size: 48))
+                        .foregroundStyle(Color.textTertiary)
+                    Text("Pas de budget actif")
+                        .font(PulpeTypography.stepTitle)
+                        .foregroundStyle(Color.textPrimary)
+                    Text("Créez un budget pour ce mois pour voir votre tableau de bord")
+                        .font(PulpeTypography.bodyLarge)
+                        .foregroundStyle(Color.textTertiary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(DesignTokens.Spacing.xxxl)
             } else {
                 dashboardContent
             }
@@ -70,6 +80,13 @@ struct CurrentMonthView: View {
             async let loadDetails: Void = store.loadDetailsIfNeeded()
             async let loadDashboard: Void = dashboardStore.loadIfNeeded()
             _ = await (loadDetails, loadDashboard)
+            if reduceMotion {
+                hasAppeared = true
+            } else {
+                withAnimation(.easeOut(duration: DesignTokens.Animation.normal)) {
+                    hasAppeared = true
+                }
+            }
         }
         .onChange(of: navigateToBudget) { _, shouldNavigate in
             if shouldNavigate, let budgetId = store.budget?.id {
@@ -98,6 +115,8 @@ struct CurrentMonthView: View {
                     metrics: store.metrics,
                     onTapProgress: { activeSheet = .realizedBalance }
                 )
+                .opacity(hasAppeared ? 1 : 0)
+                .animation(.easeOut(duration: DesignTokens.Animation.normal).delay(0.0), value: hasAppeared)
 
                 // Forward-looking projection
                 if let projection = store.projection {
@@ -107,6 +126,8 @@ struct CurrentMonthView: View {
 
                         ProjectionCard(projection: projection)
                     }
+                    .opacity(hasAppeared ? 1 : 0)
+                    .animation(.easeOut(duration: DesignTokens.Animation.normal).delay(0.05), value: hasAppeared)
                 }
 
                 // Insights: top spending + budget alerts
@@ -120,6 +141,8 @@ struct CurrentMonthView: View {
                         onTap: { navigateToBudget = true }
                     )
                 }
+                .opacity(hasAppeared ? 1 : 0)
+                .animation(.easeOut(duration: DesignTokens.Animation.normal).delay(0.1), value: hasAppeared)
 
                 // Recent transactions with external section header
                 if !store.recentTransactions.isEmpty {
@@ -132,6 +155,8 @@ struct CurrentMonthView: View {
                             onViewAll: { navigateToBudget = true }
                         )
                     }
+                    .opacity(hasAppeared ? 1 : 0)
+                    .animation(.easeOut(duration: DesignTokens.Animation.normal).delay(0.15), value: hasAppeared)
                 }
 
                 // Trends (expenses over last 3 months) - collapsible for progressive disclosure
@@ -146,6 +171,8 @@ struct CurrentMonthView: View {
                         TrendsEmptyState()
                     }
                 }
+                .opacity(hasAppeared ? 1 : 0)
+                .animation(.easeOut(duration: DesignTokens.Animation.normal).delay(0.2), value: hasAppeared)
 
                 // Year overview (savings YTD + rollover) - collapsible for progressive disclosure
                 CollapsibleSection(title: "Cette année", isExpanded: $yearOverviewExpanded) {
@@ -154,6 +181,8 @@ struct CurrentMonthView: View {
                         rollover: store.budget?.rollover ?? 0
                     )
                 }
+                .opacity(hasAppeared ? 1 : 0)
+                .animation(.easeOut(duration: DesignTokens.Animation.normal).delay(0.25), value: hasAppeared)
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.lg)

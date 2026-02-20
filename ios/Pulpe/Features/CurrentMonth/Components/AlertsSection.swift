@@ -25,8 +25,7 @@ struct AlertsSection: View {
 
                     Button(action: onTapViewBudget) {
                         Text("Voir le budget")
-                            .font(PulpeTypography.subheadline)
-                            .fontWeight(.medium)
+                            .font(PulpeTypography.buttonSecondary)
                     }
                     .padding(.top, DesignTokens.Spacing.xs)
                 }
@@ -36,8 +35,7 @@ struct AlertsSection: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(Color.financialOverBudget)
                     Text("Dépenses à surveiller")
-                        .font(PulpeTypography.subheadline)
-                        .fontWeight(.semibold)
+                        .font(PulpeTypography.labelLarge)
                 }
                 .textCase(nil)
             }
@@ -68,8 +66,7 @@ private struct AlertRow: View {
             Spacer()
 
             Text("\(percentage)%")
-                .font(PulpeTypography.subheadline)
-                .fontWeight(.semibold)
+                .font(PulpeTypography.labelLarge)
                 .foregroundStyle(color)
         }
     }
