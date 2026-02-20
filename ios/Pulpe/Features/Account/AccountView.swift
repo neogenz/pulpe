@@ -139,7 +139,9 @@ struct AccountView: View {
                         Button("Supprimer") {
                             showDeleteConfirmation = true
                         }
-                        .destructiveButtonStyle()
+                        .buttonStyle(.borderedProminent)
+                        .buttonBorderShape(.capsule)
+                        .tint(.destructivePrimary)
                     }
                 } header: {
                     Text("ZONE DE DANGER")
