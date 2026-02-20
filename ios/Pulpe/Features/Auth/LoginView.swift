@@ -70,7 +70,7 @@ struct LoginView: View {
 
             VStack(spacing: DesignTokens.Spacing.xs) {
                 Text("Content de te revoir")
-                    .font(.custom("Manrope-Bold", size: 28, relativeTo: .title))
+                    .font(PulpeTypography.onboardingTitle)
                     .foregroundStyle(Color.textPrimaryOnboarding)
 
                 Text("Connecte-toi pour accéder à ton budget")
@@ -136,13 +136,13 @@ struct LoginView: View {
                     Image(systemName: biometricIcon)
                         .font(PulpeTypography.title3)
                     Text("Continuer avec \(BiometricService.shared.biometryDisplayName)")
-                        .fontWeight(.semibold)
+                        .font(PulpeTypography.headline)
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: DesignTokens.FrameHeight.button)
                 .background(Color.textPrimaryOnboarding)
                 .foregroundStyle(Color.onboardingBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous))
                 .shadow(color: .black.opacity(0.12), radius: 12, y: 6)
             }
 
@@ -151,7 +151,7 @@ struct LoginView: View {
                     .fill(Color.textSecondaryOnboarding.opacity(0.3))
                     .frame(height: DesignTokens.FrameHeight.separator)
                 Text("ou")
-                    .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
+                    .font(PulpeTypography.labelMedium)
                     .foregroundStyle(Color.textSecondaryOnboarding)
                 Rectangle()
                     .fill(Color.textSecondaryOnboarding.opacity(0.3))
@@ -166,7 +166,7 @@ struct LoginView: View {
     private var emailField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text("E-mail")
-                .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
+                .font(PulpeTypography.buttonSecondary)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             TextField(
@@ -185,10 +185,10 @@ struct LoginView: View {
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .frame(height: DesignTokens.FrameHeight.button)
             .background {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
                     .fill(Color.authInputBackground)
                     .overlay {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
                             .strokeBorder(
                                 focusedField == .email ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder,
                                 lineWidth: focusedField == .email ? 2 : 1
@@ -207,7 +207,7 @@ struct LoginView: View {
     private var passwordField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text("Mot de passe")
-                .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
+                .font(PulpeTypography.buttonSecondary)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             HStack(spacing: DesignTokens.Spacing.md) {
@@ -249,10 +249,10 @@ struct LoginView: View {
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .frame(height: DesignTokens.FrameHeight.button)
             .background {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
                     .fill(Color.authInputBackground)
                     .overlay {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
                             .strokeBorder(
                                 focusedField == .password ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder,
                                 lineWidth: focusedField == .password ? 2 : 1
@@ -273,7 +273,7 @@ struct LoginView: View {
             Button("Mot de passe oublié ?") {
                 forgotPasswordPresentation = ForgotPasswordPresentation()
             }
-            .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
+            .font(PulpeTypography.labelMedium)
             .foregroundStyle(Color.textPrimaryOnboarding.opacity(0.9))
             .accessibilityIdentifier("forgotPasswordButton")
         }
@@ -292,14 +292,14 @@ struct LoginView: View {
                         .accessibilityLabel("Connexion en cours")
                 } else {
                     Text("Se connecter")
-                        .fontWeight(.semibold)
+                        .font(PulpeTypography.buttonPrimary)
                 }
             }
             .frame(maxWidth: .infinity)
             .frame(height: DesignTokens.FrameHeight.button)
             .background(viewModel.canSubmit ? Color.pulpePrimary : Color.pulpePrimary.opacity(0.4))
             .foregroundStyle(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous))
         }
         .disabled(!viewModel.canSubmit)
         .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: viewModel.canSubmit)

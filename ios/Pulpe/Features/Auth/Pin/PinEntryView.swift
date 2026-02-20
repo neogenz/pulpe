@@ -7,6 +7,7 @@ struct PinEntryView: View {
 
     let firstName: String
     let onSuccess: () -> Void
+    var onBiometric: (() -> Void)? = nil
     let onForgotPin: () -> Void
     let onLogout: () async -> Void
 
@@ -36,7 +37,7 @@ struct PinEntryView: View {
                     viewModel.appendDigit(digit)
                 },
                 onDelete: { viewModel.deleteLastDigit() },
-                onBiometric: nil,
+                onBiometric: onBiometric,
                 onConfirm: viewModel.digits.count >= viewModel.minDigits ? {
                     Task { await viewModel.confirm() }
                 } : nil,

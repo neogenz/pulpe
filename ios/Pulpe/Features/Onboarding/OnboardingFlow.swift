@@ -81,14 +81,14 @@ struct OnboardingStepView<Content: View>: View {
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: DesignTokens.Spacing.xxl) {
                     // New animated header with icon
                     OnboardingStepHeader(step: step)
-                        .padding(.top, 24)
+                        .padding(.top, DesignTokens.Spacing.xxl)
 
                     // Content with entrance animation
                     content()
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, DesignTokens.Spacing.xxl)
                         .opacity(contentOpacity)
                         .offset(y: contentOffset)
                 }
@@ -102,8 +102,8 @@ struct OnboardingStepView<Content: View>: View {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
                     state.error = nil
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 16)
+                .padding(.horizontal, DesignTokens.Spacing.xxl)
+                .padding(.bottom, DesignTokens.Spacing.lg)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 

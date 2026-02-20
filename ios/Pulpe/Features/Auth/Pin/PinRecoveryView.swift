@@ -44,7 +44,7 @@ struct PinRecoveryView: View {
                 processingStep
             }
 
-            Spacer().frame(height: 16)
+            Spacer().frame(height: DesignTokens.Spacing.lg)
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
     }
@@ -54,7 +54,7 @@ struct PinRecoveryView: View {
     private var recoveryKeyStep: some View {
         VStack(spacing: DesignTokens.Spacing.xxl) {
             Image(systemName: "key.fill")
-                .font(.system(size: 48))
+                .font(PulpeTypography.heroIcon)
                 .foregroundStyle(Color.textSecondaryOnboarding)
 
             VStack(spacing: DesignTokens.Spacing.sm) {
@@ -174,7 +174,7 @@ struct PinRecoveryView: View {
                 isDisabled: viewModel.isProcessing
             )
 
-            Spacer().frame(height: 24)
+            Spacer().frame(height: DesignTokens.Spacing.xxl)
 
             Button {
                 viewModel.goBack()

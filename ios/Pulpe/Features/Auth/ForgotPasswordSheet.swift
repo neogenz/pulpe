@@ -83,7 +83,7 @@ struct ForgotPasswordSheet: View {
                             .tint(.white)
                     }
                     Text(viewModel.isSubmitting ? "Envoi en cours..." : "Envoyer le lien")
-                        .font(PulpeTypography.buttonLabel)
+                        .font(PulpeTypography.buttonPrimary)
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: DesignTokens.FrameHeight.button)
@@ -105,7 +105,7 @@ struct ForgotPasswordSheet: View {
     private var successState: some View {
         VStack(spacing: DesignTokens.Spacing.xl) {
             Image(systemName: "envelope.badge")
-                .font(.system(size: 48))
+                .font(PulpeTypography.heroIcon)
                 .foregroundStyle(Color.pulpePrimary)
 
             VStack(spacing: DesignTokens.Spacing.sm) {
@@ -127,7 +127,7 @@ struct ForgotPasswordSheet: View {
                 dismiss()
                 onClose()
             }
-            .font(PulpeTypography.buttonLabel)
+            .font(PulpeTypography.buttonPrimary)
             .frame(maxWidth: .infinity)
             .frame(height: DesignTokens.FrameHeight.button)
             .background(Color.onboardingGradient)

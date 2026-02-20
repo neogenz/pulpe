@@ -15,7 +15,6 @@ struct TrendsCard: View {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(currentMonthTotal.asCHF)
                         .font(PulpeTypography.title2)
-                        .fontWeight(.bold)
                         .foregroundStyle(.primary)
                         .sensitiveAmount()
 
@@ -85,7 +84,7 @@ struct TrendsCard: View {
     }
 
     private var emptySparkline: some View {
-        RoundedRectangle(cornerRadius: 4)
+        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xs)
             .fill(Color.progressTrack)
             .overlay {
                 Text("—")

@@ -47,7 +47,7 @@ struct NumpadView: View {
                 onDigit(n)
             } label: {
                 Text("\(n)")
-                    .font(.system(size: 28, weight: .medium))
+                    .font(PulpeTypography.numpadKey)
                     .foregroundStyle(Color.pinText)
             }
             .accessibilityLabel("\(n)")
@@ -57,7 +57,7 @@ struct NumpadView: View {
                 onBiometric?()
             } label: {
                 Image(systemName: biometricIconName)
-                    .font(.system(size: 24))
+                    .font(PulpeTypography.title2)
                     .foregroundStyle(Color.pinText)
             }
             .accessibilityLabel(BiometricService.shared.biometryDisplayName)
@@ -67,7 +67,7 @@ struct NumpadView: View {
                 onConfirm?()
             } label: {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 24, weight: .semibold))
+                    .font(PulpeTypography.title2)
                     .foregroundStyle(Color.pinText)
             }
             .accessibilityLabel("Confirmer")
@@ -77,7 +77,7 @@ struct NumpadView: View {
                 onDelete()
             } label: {
                 Image(systemName: "delete.backward")
-                    .font(.system(size: 22))
+                    .font(PulpeTypography.stepTitle)
                     .foregroundStyle(Color.pinText)
             }
             .accessibilityLabel("Supprimer")

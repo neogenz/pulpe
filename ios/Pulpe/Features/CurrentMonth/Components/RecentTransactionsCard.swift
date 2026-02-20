@@ -18,8 +18,7 @@ struct RecentTransactionsCard: View {
             Button(action: onViewAll) {
                 HStack {
                     Text("Voir tout")
-                        .font(PulpeTypography.subheadline)
-                        .fontWeight(.medium)
+                        .font(PulpeTypography.buttonSecondary)
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(PulpeTypography.caption)
@@ -51,7 +50,7 @@ private struct RecentTransactionCardRow: View {
                 }
 
             // Name and date
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(transaction.name)
                     .font(.custom("Manrope-Medium", size: 17, relativeTo: .body))
                     .lineLimit(1)
@@ -69,7 +68,7 @@ private struct RecentTransactionCardRow: View {
                 .foregroundStyle(transaction.kind.color)
                 .sensitiveAmount()
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, DesignTokens.Spacing.sm)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(transaction.name), \(transaction.kind.label), \(transaction.transactionDate.relativeFormatted), \(transaction.signedAmount.asCHF)")
     }

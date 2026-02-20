@@ -10,15 +10,15 @@ struct OnboardingProgressIndicator: View {
     }
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: DesignTokens.Spacing.xs) {
             ForEach(1..<totalSteps, id: \.self) { index in
                 Capsule()
                     .fill(index <= stepIndex ? Color.pulpePrimary : Color.secondary.opacity(0.2))
-                    .frame(height: 4)
+                    .frame(height: DesignTokens.Spacing.xs)
             }
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 12)
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
+        .padding(.top, DesignTokens.Spacing.md)
         .animation(PulpeAnimations.defaultSpring, value: stepIndex)
     }
 }

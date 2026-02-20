@@ -126,7 +126,7 @@ struct TemplateLineRow: View {
     var body: some View {
         Button(action: onEdit) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(line.name)
                         .font(PulpeTypography.subheadline)
 

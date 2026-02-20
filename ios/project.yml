@@ -149,6 +149,9 @@ targets:
       - path: Pulpe/Shared/Design
         excludes:
           - "**/.DS_Store"
+      - path: Pulpe/Shared/Styles
+        excludes:
+          - "**/.DS_Store"
     entitlements:
       path: PulpeWidget/PulpeWidget.entitlements
       properties:

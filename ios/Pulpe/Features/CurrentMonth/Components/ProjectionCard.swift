@@ -45,10 +45,9 @@ struct ProjectionCard: View {
                         .foregroundStyle(iconColor)
                 }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(message)
-                    .font(PulpeTypography.subheadline)
-                    .fontWeight(.medium)
+                    .font(PulpeTypography.buttonSecondary)
                     .foregroundStyle(.primary)
 
                 Text(subMessage)

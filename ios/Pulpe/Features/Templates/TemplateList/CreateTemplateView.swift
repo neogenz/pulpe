@@ -254,7 +254,7 @@ struct AddTemplateLineSheet: View {
             .accessibilityLabel("Montant")
             .onTapGesture { isAmountFocused = true }
 
-            RoundedRectangle(cornerRadius: 1)
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
                 .fill(isAmountFocused ? Color.pulpePrimary : Color.textTertiary.opacity(0.3))
                 .frame(width: 120, height: 2)
                 .animation(.easeInOut(duration: 0.2), value: isAmountFocused)
@@ -349,16 +349,9 @@ struct AddTemplateLineSheet: View {
             }
         } label: {
             Text("Ajouter")
-                .font(PulpeTypography.buttonPrimary)
-                .foregroundStyle(Color.textOnPrimary)
-                .frame(maxWidth: .infinity)
-                .frame(height: DesignTokens.FrameHeight.button)
-                .background(Color.pulpePrimary)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
-                .opacity(canAdd ? 1 : 0.4)
         }
         .disabled(!canAdd)
-        .buttonStyle(.plain)
+        .primaryButtonStyle(isEnabled: canAdd)
     }
 
     // MARK: - Logic

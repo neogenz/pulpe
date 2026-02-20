@@ -55,12 +55,14 @@ struct BudgetSection: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .listRowSeparator(.hidden)
 
-            ForEach(displayedItems) { item in
+            ForEach(Array(displayedItems.enumerated()), id: \.element.id) { index, item in
                 budgetLineRow(for: item)
                     .listRowSeparator(.hidden)
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         swipeActions(for: item)
                     }
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    .animation(.easeOut(duration: DesignTokens.Animation.normal).delay(Double(index) * 0.05), value: items.count)
             }
 
             expandCollapseButton
@@ -185,12 +187,12 @@ struct BudgetLineRow: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 12) {
+            HStack(spacing: DesignTokens.Spacing.md) {
                 // Kind icon circle (Revolut-style)
                 kindIconCircle
 
                 // Main content
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(line.name)
                         .font(.custom("Manrope-Medium", size: 17, relativeTo: .body))
                         .foregroundStyle(line.isChecked ? .secondary : .primary)
@@ -243,7 +245,7 @@ struct BudgetLineRow: View {
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, DesignTokens.Spacing.sm)
 
             // Consumption progress bar
             if hasConsumption {

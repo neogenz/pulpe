@@ -73,15 +73,9 @@ struct EditBudgetLineSheet: View {
                     Task { await updateBudgetLine() }
                 } label: {
                     Text("Enregistrer")
-                        .font(PulpeTypography.buttonPrimary)
-                        .foregroundStyle(canSubmit ? Color.textOnPrimary : .secondary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: DesignTokens.FrameHeight.button)
-                        .background(canSubmit ? Color.pulpePrimary : Color.surfaceSecondary)
-                        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
                 }
                 .disabled(!canSubmit)
-                .buttonStyle(.plain)
+                .primaryButtonStyle(isEnabled: canSubmit)
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
             }

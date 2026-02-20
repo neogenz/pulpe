@@ -11,7 +11,7 @@ struct PrimaryButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.custom("Manrope-SemiBold", size: 17, relativeTo: .body))
+            .font(PulpeTypography.buttonPrimary)
             .frame(maxWidth: .infinity)
             .frame(height: DesignTokens.FrameHeight.button)
             .background {
@@ -24,7 +24,7 @@ struct PrimaryButtonStyle: ButtonStyle {
             .foregroundStyle(isEnabled ? Color.textOnPrimary : Color.textSecondaryOnboarding)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
             .opacity(configuration.isPressed ? 0.8 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
     }
 }
 
@@ -32,14 +32,29 @@ struct PrimaryButtonStyle: ButtonStyle {
 struct SecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.custom("Manrope-SemiBold", size: 17, relativeTo: .body))
+            .font(PulpeTypography.buttonPrimary)
             .frame(maxWidth: .infinity)
             .frame(height: DesignTokens.FrameHeight.button)
             .background(Color.surfaceCard)
             .foregroundStyle(Color.textPrimaryOnboarding)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
             .opacity(configuration.isPressed ? 0.8 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
+    }
+}
+
+/// Destructive button style for irreversible actions (delete account, danger zones)
+struct DestructiveButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(PulpeTypography.buttonPrimary)
+            .frame(maxWidth: .infinity)
+            .frame(height: DesignTokens.FrameHeight.button)
+            .background(Color.destructivePrimary)
+            .foregroundStyle(Color.textOnPrimary)
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+            .opacity(configuration.isPressed ? 0.8 : 1.0)
+            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
     }
 }
 
@@ -54,5 +69,10 @@ extension View {
     /// Applies secondary button styling
     func secondaryButtonStyle() -> some View {
         self.buttonStyle(SecondaryButtonStyle())
+    }
+
+    /// Applies destructive button styling
+    func destructiveButtonStyle() -> some View {
+        self.buttonStyle(DestructiveButtonStyle())
     }
 }

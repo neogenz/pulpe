@@ -10,7 +10,7 @@ struct CollapsibleSection<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Button {
-                withAnimation(.spring(duration: 0.3)) {
+                withAnimation(DesignTokens.Animation.smoothEaseInOut) {
                     isExpanded.wrappedValue.toggle()
                 }
             } label: {

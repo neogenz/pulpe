@@ -43,7 +43,7 @@ struct CreateBudgetView: View {
                 }
                 .padding(.horizontal, DesignTokens.Spacing.xl)
                 .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, 32)
+                .padding(.bottom, DesignTokens.Spacing.xxxl)
             }
             .scrollIndicators(.hidden)
             .background(Color(.systemGroupedBackground))
@@ -122,7 +122,7 @@ struct CreateBudgetView: View {
 
             // Month indicator badge (Swiss format: MM.YYYY)
             Text(String(format: "%02d.%d", month, year))
-                .font(.custom("DMSans-Medium", size: 12, relativeTo: .caption)).monospacedDigit()
+                .font(PulpeTypography.inputHelper).monospacedDigit()
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
@@ -141,7 +141,7 @@ struct CreateBudgetView: View {
             // Section header
             HStack {
                 Text("Choisir un modèle")
-                    .font(.custom("Manrope-SemiBold", size: 17, relativeTo: .headline))
+                    .font(PulpeTypography.buttonPrimary)
 
                 Spacer()
 
@@ -201,7 +201,7 @@ struct CreateBudgetView: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 32)
+        .padding(.vertical, DesignTokens.Spacing.xxxl)
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
@@ -258,7 +258,7 @@ struct TemplateSelectionCard: View {
 
                 // Template info
                 VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: DesignTokens.Spacing.sm) {
                         Text(template.name)
                             .font(.custom("Manrope-SemiBold", size: 15, relativeTo: .subheadline))
                             .foregroundStyle(.primary)
@@ -316,7 +316,7 @@ struct TemplateSelectionCard: View {
         Text("Par défaut")
             .font(.custom("Manrope-SemiBold", size: 10, relativeTo: .caption2))
             .foregroundStyle(Color.pulpePrimary)
-            .padding(.horizontal, 8)
+            .padding(.horizontal, DesignTokens.Spacing.sm)
             .padding(.vertical, 3)
             .background(Color.pulpePrimary.opacity(0.12), in: Capsule())
     }
@@ -325,7 +325,7 @@ struct TemplateSelectionCard: View {
 
     private func totalsRow(_ totals: BudgetFormulas.TemplateTotals) -> some View {
         HStack(spacing: DesignTokens.Spacing.lg) {
-            HStack(spacing: 4) {
+            HStack(spacing: DesignTokens.Spacing.xs) {
                 Image(systemName: "arrow.down.circle.fill")
                     .font(.system(size: 12))
                     .foregroundStyle(Color.financialIncome)
@@ -336,7 +336,7 @@ struct TemplateSelectionCard: View {
                     .sensitiveAmount()
             }
 
-            HStack(spacing: 4) {
+            HStack(spacing: DesignTokens.Spacing.xs) {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 12))
                     .foregroundStyle(Color.financialExpense)
@@ -348,7 +348,7 @@ struct TemplateSelectionCard: View {
             }
 
             // Balance indicator
-            HStack(spacing: 4) {
+            HStack(spacing: DesignTokens.Spacing.xs) {
                 Image(systemName: totals.balance >= 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                     .font(.system(size: 12))
                     .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)

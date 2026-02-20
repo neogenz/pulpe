@@ -116,6 +116,12 @@ struct RootView: View {
                     PinEntryView(
                         firstName: appState.currentUser?.firstName ?? "",
                         onSuccess: { Task { await appState.completePinEntry() } },
+                        onBiometric: appState.biometricEnabled ? {
+                            Task {
+                                guard await appState.attemptBiometricUnlock() else { return }
+                                await appState.completePinEntry()
+                            }
+                        } : nil,
                         onForgotPin: { appState.startRecovery() },
                         onLogout: { await appState.logout() }
                     )

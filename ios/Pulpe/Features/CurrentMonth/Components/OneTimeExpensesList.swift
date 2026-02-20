@@ -120,12 +120,12 @@ struct TransactionRow: View {
 
     var body: some View {
         Button(action: onEdit) {
-            HStack(spacing: 12) {
+            HStack(spacing: DesignTokens.Spacing.md) {
                 // Kind icon circle (Revolut-style)
                 kindIconCircle
 
                 // Main content
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(transaction.name)
                         .font(.custom("Manrope-Medium", size: 17, relativeTo: .body))
                         .foregroundStyle(transaction.isChecked ? .secondary : .primary)
@@ -149,7 +149,7 @@ struct TransactionRow: View {
                     .foregroundStyle(transaction.isChecked ? .secondary : transaction.kind.color)
                     .sensitiveAmount()
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, DesignTokens.Spacing.sm)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

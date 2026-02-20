@@ -33,7 +33,7 @@ struct RegistrationStep: View {
                 // Email
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Email")
-                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
+                        .font(PulpeTypography.buttonSecondary)
                         .foregroundStyle(Color.textPrimaryOnboarding)
 
                     TextField("ton@email.com", text: Binding(
@@ -50,10 +50,10 @@ struct RegistrationStep: View {
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .frame(height: DesignTokens.FrameHeight.button)
                     .background {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
                             .fill(Color.authInputBackground)
                             .overlay {
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
                                     .strokeBorder(
                                         focusedField == .email ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder,
                                         lineWidth: focusedField == .email ? 2 : 1
@@ -72,7 +72,7 @@ struct RegistrationStep: View {
                 // Password
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Mot de passe")
-                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
+                        .font(PulpeTypography.buttonSecondary)
                         .foregroundStyle(Color.textPrimaryOnboarding)
 
                     HStack(spacing: DesignTokens.Spacing.md) {
@@ -109,10 +109,10 @@ struct RegistrationStep: View {
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .frame(height: DesignTokens.FrameHeight.button)
                     .background {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
                             .fill(Color.authInputBackground)
                             .overlay {
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
                                     .strokeBorder(
                                         focusedField == .password ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder,
                                         lineWidth: focusedField == .password ? 2 : 1
@@ -127,7 +127,7 @@ struct RegistrationStep: View {
                     .scaleEffect(focusedField == .password ? 1.01 : 1)
                     .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
 
-                    HStack(spacing: 6) {
+                    HStack(spacing: DesignTokens.Spacing.sm) {
                         Image(systemName: "info.circle.fill")
                             .font(PulpeTypography.caption)
                             .foregroundStyle(Color.pulpePrimary.opacity(0.7))
@@ -140,7 +140,7 @@ struct RegistrationStep: View {
                 // Password confirmation
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Confirmer le mot de passe")
-                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
+                        .font(PulpeTypography.buttonSecondary)
                         .foregroundStyle(Color.textPrimaryOnboarding)
 
                     HStack(spacing: DesignTokens.Spacing.md) {
@@ -177,10 +177,10 @@ struct RegistrationStep: View {
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .frame(height: DesignTokens.FrameHeight.button)
                     .background {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
                             .fill(passwordMismatch ? Color.errorBackground : Color.authInputBackground)
                             .overlay {
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
                                     .strokeBorder(
                                         passwordMismatch ? Color.errorPrimary.opacity(0.5) :
                                         focusedField == .passwordConfirmation ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder,
@@ -209,12 +209,12 @@ struct RegistrationStep: View {
                 } label: {
                     HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                         ZStack {
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm, style: .continuous)
                                 .strokeBorder(state.acceptTerms ? Color.pulpePrimary : Color.textPrimaryOnboarding.opacity(0.4), lineWidth: 2)
                                 .frame(width: 24, height: 24)
                                 .background {
                                     if !state.acceptTerms {
-                                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm, style: .continuous)
                                             .fill(Color.authInputBackground)
                                     }
                                 }
