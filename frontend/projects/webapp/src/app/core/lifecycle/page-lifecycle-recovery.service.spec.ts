@@ -204,6 +204,43 @@ describe('PageLifecycleRecoveryService', () => {
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
+  it('should blur active element inside bottom sheet on visibility change to visible', () => {
+    const container = document.createElement('div');
+    container.classList.add('mat-bottom-sheet-container');
+    const input = document.createElement('input');
+    container.appendChild(input);
+    document.body.appendChild(container);
+
+    input.focus();
+    expect(document.activeElement).toBe(input);
+
+    setVisibilityState('hidden');
+    document.dispatchEvent(new Event('visibilitychange'));
+    setVisibilityState('visible');
+    document.dispatchEvent(new Event('visibilitychange'));
+
+    expect(document.activeElement).not.toBe(input);
+
+    container.remove();
+  });
+
+  it('should NOT blur active element outside bottom sheet on visibility change', () => {
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+
+    input.focus();
+    expect(document.activeElement).toBe(input);
+
+    setVisibilityState('hidden');
+    document.dispatchEvent(new Event('visibilitychange'));
+    setVisibilityState('visible');
+    document.dispatchEvent(new Event('visibilitychange'));
+
+    expect(document.activeElement).toBe(input);
+
+    input.remove();
+  });
+
   it('should fall back to location.pathname when router.url is "/" before navigation settles', async () => {
     mockRouter.url = '/';
     Object.defineProperty(window, 'location', {
