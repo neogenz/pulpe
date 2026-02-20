@@ -127,7 +127,7 @@ struct TransactionRow: View {
                 // Main content
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(transaction.name)
-                        .font(.custom("Manrope-Medium", size: 17, relativeTo: .body))
+                        .font(PulpeTypography.onboardingSubtitle)
                         .foregroundStyle(transaction.isChecked ? .secondary : .primary)
                         .strikethrough(transaction.isChecked, color: .secondary)
                         .lineLimit(1)

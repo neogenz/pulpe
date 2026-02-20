@@ -46,6 +46,14 @@ enum PulpeTypography {
     static let tutorialBody = Font.custom("DMSans-Regular", size: 15, relativeTo: .subheadline)
     static let tutorialStep = Font.custom("Manrope-SemiBold", size: 13, relativeTo: .footnote)
 
+    // MARK: - Tab Bar
+
+    static let tabLabel = Font.custom("DMSans-Medium", size: 10, relativeTo: .caption2)
+
+    // MARK: - Amount Display
+
+    static let amountMedium = Font.custom("Manrope-SemiBold", size: 16, relativeTo: .callout)
+
     // MARK: - Buttons
 
     static let buttonPrimary = Font.custom("Manrope-SemiBold", size: 17, relativeTo: .body)

@@ -179,7 +179,7 @@ struct HeroBalanceCard: View {
                     .foregroundStyle(.primary)
 
                 Text(Self.pillFormatter.string(from: value as NSDecimalNumber) ?? "0")
-                    .font(.custom("Manrope-SemiBold", size: 16, relativeTo: .callout))
+                    .font(PulpeTypography.amountMedium)
                     .foregroundStyle(color)
                     .contentTransition(.numericText())
                     .sensitiveAmount()

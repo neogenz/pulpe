@@ -66,8 +66,7 @@ struct MainTabView: View {
                                             .font(.title3)
 
                                         Text(tab.title)
-                                            .font(.system(size: 10))
-                                            .fontWeight(.medium)
+                                            .font(PulpeTypography.tabLabel)
                                     }
                                     .symbolVariant(.fill)
                                     .foregroundStyle(selectedTab.wrappedValue == tab ? Color.pulpePrimary : Color(.label))
@@ -116,8 +115,7 @@ struct MainTabView: View {
                             Image(systemName: tab.icon)
                                 .font(.title3)
                             Text(tab.title)
-                                .font(.system(size: 10))
-                                .fontWeight(.medium)
+                                .font(PulpeTypography.tabLabel)
                         }
                         .symbolVariant(.fill)
                         .foregroundStyle(selectedTab.wrappedValue == tab ? Color.pulpePrimary : .primary)

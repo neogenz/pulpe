@@ -52,7 +52,7 @@ private struct RecentTransactionCardRow: View {
             // Name and date
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(transaction.name)
-                    .font(.custom("Manrope-Medium", size: 17, relativeTo: .body))
+                    .font(PulpeTypography.onboardingSubtitle)
                     .lineLimit(1)
 
                 Text(transaction.transactionDate.relativeFormatted)
@@ -64,7 +64,7 @@ private struct RecentTransactionCardRow: View {
 
             // Amount
             Text(transaction.signedAmount.asCHF)
-                .font(.custom("Manrope-SemiBold", size: 16, relativeTo: .callout))
+                .font(PulpeTypography.amountMedium)
                 .foregroundStyle(transaction.kind.color)
                 .sensitiveAmount()
         }

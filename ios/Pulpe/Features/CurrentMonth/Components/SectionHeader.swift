@@ -17,7 +17,7 @@ struct SectionHeader: View {
 
             // Count badge
             Text("\(count)")
-                .font(.custom("Manrope-SemiBold", size: 12, relativeTo: .caption))
+                .font(PulpeTypography.inputHelper)
                 .foregroundStyle(Color.textOnPrimary)
                 .padding(.horizontal, DesignTokens.Spacing.sm)
                 .padding(.vertical, 3)
@@ -29,7 +29,7 @@ struct SectionHeader: View {
             // Total amount (optional)
             if let total = totalAmount {
                 Text(total.asCHF)
-                    .font(.custom("Manrope-SemiBold", size: 15, relativeTo: .subheadline))
+                    .font(PulpeTypography.labelLarge)
                     .foregroundStyle(totalColor)
                     .sensitiveAmount()
             }

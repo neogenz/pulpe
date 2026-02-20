@@ -194,7 +194,7 @@ struct BudgetLineRow: View {
                 // Main content
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(line.name)
-                        .font(.custom("Manrope-Medium", size: 17, relativeTo: .body))
+                        .font(PulpeTypography.onboardingSubtitle)
                         .foregroundStyle(line.isChecked ? .secondary : .primary)
                         .strikethrough(line.isChecked, color: .secondary)
                         .lineLimit(1)
@@ -221,7 +221,7 @@ struct BudgetLineRow: View {
                 // Amount (remaining when transactions exist, otherwise budgeted)
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(hasConsumption ? consumption.available.asCHF : line.amount.asCHF)
-                        .font(.custom("Manrope-SemiBold", size: 16, relativeTo: .callout))
+                        .font(PulpeTypography.amountMedium)
                         .foregroundStyle(amountTextColor)
                         .sensitiveAmount()
 

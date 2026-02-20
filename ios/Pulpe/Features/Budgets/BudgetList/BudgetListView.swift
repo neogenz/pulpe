@@ -249,7 +249,7 @@ struct YearSection: View {
                         Image(systemName: endBalance >= 0 ? "arrow.up.right" : "arrow.down.right")
                             .font(.system(size: 11, weight: .bold))
                         Text(endBalance.asCompactCHF)
-                            .font(.custom("Manrope-SemiBold", size: 15, relativeTo: .subheadline))
+                            .font(PulpeTypography.labelLarge)
                             .monospacedDigit()
                     }
                     .foregroundStyle(endBalance >= 0 ? Color.financialSavings : .financialOverBudget)
@@ -410,7 +410,7 @@ struct CurrentMonthHeroCard: View {
                         Image(systemName: "calendar")
                             .font(.system(size: 13, weight: .semibold))
                         Text("Ce mois-ci")
-                            .font(.custom("Manrope-SemiBold", size: 15, relativeTo: .subheadline))
+                            .font(PulpeTypography.labelLarge)
                     }
                     .foregroundStyle(.secondary)
 
@@ -450,7 +450,7 @@ struct CurrentMonthHeroCard: View {
                     // Voir details button
                     HStack(spacing: DesignTokens.Spacing.xs) {
                         Text("Détails")
-                            .font(.custom("Manrope-Medium", size: 15, relativeTo: .subheadline))
+                            .font(PulpeTypography.buttonSecondary)
                         Image(systemName: "chevron.right")
                             .font(.system(size: 12, weight: .semibold))
                     }
@@ -581,12 +581,12 @@ struct BudgetMonthRow: View {
                 if dynamicTypeSize.isAccessibilitySize {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                         Text(monthName)
-                            .font(isPastMonth ? PulpeTypography.body : .custom("Manrope-Medium", size: 17, relativeTo: .body))
+                            .font(isPastMonth ? PulpeTypography.body : PulpeTypography.onboardingSubtitle)
                             .foregroundStyle(isPastMonth ? .secondary : .primary)
 
                         if let remaining = budget.remaining {
                             Text(remaining.asCompactCHF)
-                                .font(.custom("Manrope-SemiBold", size: 16, relativeTo: .callout))
+                                .font(PulpeTypography.amountMedium)
                                 .monospacedDigit()
                                 .foregroundStyle(amountColor)
                                 .sensitiveAmount()
@@ -596,13 +596,13 @@ struct BudgetMonthRow: View {
                     Spacer()
                 } else {
                     Text(monthName)
-                        .font(isPastMonth ? PulpeTypography.body : .custom("Manrope-Medium", size: 17, relativeTo: .body))
+                        .font(isPastMonth ? PulpeTypography.body : PulpeTypography.onboardingSubtitle)
                         .foregroundStyle(isPastMonth ? .secondary : .primary)
 
                     // Future month indicator
                     if isFutureMonth {
                         Text("À venir")
-                            .font(.custom("Manrope-Medium", size: 11, relativeTo: .caption2))
+                            .font(PulpeTypography.progressUnit)
                             .foregroundStyle(.tertiary)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
@@ -613,7 +613,7 @@ struct BudgetMonthRow: View {
 
                     if let remaining = budget.remaining {
                         Text(remaining.asCompactCHF)
-                            .font(.custom("Manrope-SemiBold", size: 16, relativeTo: .callout))
+                            .font(PulpeTypography.amountMedium)
                             .monospacedDigit()
                             .foregroundStyle(amountColor)
                             .sensitiveAmount()
@@ -664,7 +664,7 @@ struct NextMonthPlaceholder: View {
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(monthName)
-                        .font(.custom("Manrope-Medium", size: 17, relativeTo: .body))
+                        .font(PulpeTypography.onboardingSubtitle)
                         .foregroundStyle(.tertiary)
 
                     Text("Pas encore de budget")
@@ -679,7 +679,7 @@ struct NextMonthPlaceholder: View {
                     Image(systemName: "plus")
                         .font(.system(size: 12, weight: .bold))
                     Text("Créer")
-                        .font(.custom("Manrope-SemiBold", size: 15, relativeTo: .subheadline))
+                        .font(PulpeTypography.labelLarge)
                 }
                 .foregroundStyle(.white)
                 .padding(.horizontal, DesignTokens.Spacing.md)

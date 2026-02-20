@@ -114,7 +114,7 @@ struct CreateBudgetView: View {
                     .foregroundStyle(.secondary)
 
                 Text(viewModel.monthYearFormatted)
-                    .font(.custom("Manrope-SemiBold", size: 20, relativeTo: .title3))
+                    .font(PulpeTypography.tutorialTitle)
                     .foregroundStyle(.primary)
             }
 
@@ -260,7 +260,7 @@ struct TemplateSelectionCard: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: DesignTokens.Spacing.sm) {
                         Text(template.name)
-                            .font(.custom("Manrope-SemiBold", size: 15, relativeTo: .subheadline))
+                            .font(PulpeTypography.labelLarge)
                             .foregroundStyle(.primary)
 
                         if template.isDefaultTemplate {
@@ -331,7 +331,7 @@ struct TemplateSelectionCard: View {
                     .foregroundStyle(Color.financialIncome)
 
                 Text(totals.totalIncome.asCompactCHF)
-                    .font(.custom("Manrope-Medium", size: 12, relativeTo: .caption))
+                    .font(PulpeTypography.inputHelper)
                     .foregroundStyle(Color.financialIncome)
                     .sensitiveAmount()
             }
@@ -342,7 +342,7 @@ struct TemplateSelectionCard: View {
                     .foregroundStyle(Color.financialExpense)
 
                 Text(totals.totalExpenses.asCompactCHF)
-                    .font(.custom("Manrope-Medium", size: 12, relativeTo: .caption))
+                    .font(PulpeTypography.inputHelper)
                     .foregroundStyle(Color.financialExpense)
                     .sensitiveAmount()
             }
@@ -354,7 +354,7 @@ struct TemplateSelectionCard: View {
                     .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
 
                 Text(totals.balance.asCompactCHF)
-                    .font(.custom("Manrope-Medium", size: 12, relativeTo: .caption))
+                    .font(PulpeTypography.inputHelper)
                     .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
                     .sensitiveAmount()
             }
