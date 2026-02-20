@@ -15,7 +15,7 @@ struct LoadingView: View {
 
             if let message {
                 Text(message)
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
                     .foregroundStyle(.secondary)
             }
         }
@@ -45,7 +45,7 @@ struct LoadingOverlay: View {
     var body: some View {
         if isLoading {
             ZStack {
-                Color.black.opacity(0.12)
+                Color.black.opacity(DesignTokens.Opacity.badgeBackground)
                     .ignoresSafeArea()
 
                 VStack(spacing: DesignTokens.Spacing.lg) {
@@ -55,7 +55,7 @@ struct LoadingOverlay: View {
 
                     if let message {
                         Text(message)
-                            .font(.subheadline)
+                            .font(PulpeTypography.subheadline)
                             .foregroundStyle(.primary)
                     }
                 }

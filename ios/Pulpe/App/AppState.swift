@@ -2,12 +2,6 @@ import OSLog
 import SwiftUI
 import WidgetKit
 
-private enum UserDefaultsKey {
-    static let onboardingCompleted = "pulpe-onboarding-completed"
-    static let biometricEnabled = "pulpe-biometric-enabled"
-    static let amountsHidden = "pulpe-amounts-hidden"
-}
-
 @Observable @MainActor
 final class AppState {
     // MARK: - Auth State
@@ -15,6 +9,9 @@ final class AppState {
     enum AuthStatus: Equatable {
         case loading
         case unauthenticated
+        case needsPinSetup
+        case needsPinEntry
+        case needsPinRecovery
         case authenticated
     }
 
@@ -34,41 +31,122 @@ final class AppState {
 
     // MARK: - Onboarding & Tutorial
 
-    var hasCompletedOnboarding: Bool = UserDefaults.standard.bool(forKey: UserDefaultsKey.onboardingCompleted) {
-        didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: UserDefaultsKey.onboardingCompleted) }
+    var hasCompletedOnboarding: Bool = false {
+        didSet {
+            Task {
+                await keychainManager.setOnboardingCompleted(hasCompletedOnboarding)
+            }
+        }
     }
+
+    var pendingOnboardingData: BudgetTemplateCreateFromOnboarding?
 
     // MARK: - Biometric
 
-    var biometricEnabled: Bool = UserDefaults.standard.bool(forKey: UserDefaultsKey.biometricEnabled) {
-        didSet { UserDefaults.standard.set(biometricEnabled, forKey: UserDefaultsKey.biometricEnabled) }
-    }
-
-    // MARK: - Amount Visibility
-
-    var amountsHidden: Bool = UserDefaults.standard.bool(forKey: UserDefaultsKey.amountsHidden) {
-        didSet { UserDefaults.standard.set(amountsHidden, forKey: UserDefaultsKey.amountsHidden) }
-    }
-
-    func toggleAmountsVisibility() {
-        amountsHidden.toggle()
+    var biometricEnabled: Bool = false {
+        didSet {
+            guard !isHydratingBiometricPreference else { return }
+            biometricSaveTask?.cancel()
+            biometricSaveTask = Task {
+                await biometricPreferenceStore.save(biometricEnabled)
+            }
+        }
     }
 
     var showBiometricEnrollment = false
     var biometricError: String?
+    var showRecoveryKeyRepairConsent = false
+    var showPostAuthRecoveryKeySheet = false
+    private(set) var needsRecoveryKeyRepairConsent = false
+    private(set) var postAuthRecoveryKey: String?
+
+    // MARK: - Background Grace Period
+
+    private(set) var isRestoringSession = false
+    private var backgroundDate: Date?
+    private var biometricSaveTask: Task<Void, Never>?
+    private var biometricPreferenceLoaded = false
+    private var isHydratingBiometricPreference = false
+    private var onboardingFlagLoaded = false
 
     // MARK: - Services
 
     private let authService: AuthService
-    private let biometricService: BiometricService
+    private let clientKeyManager: ClientKeyManager
+    private let keychainManager: KeychainManager
+    private let encryptionAPI: EncryptionAPI
+    private let postAuthResolver: any PostAuthResolving
+    private let biometricPreferenceStore: BiometricPreferenceStore
+    private let biometricCapability: @Sendable () -> Bool
+    private let biometricAuthenticate: @Sendable () async throws -> Void
+    private let syncBiometricCredentials: @Sendable () async -> Bool
+    private let resolveBiometricKey: @Sendable () async -> String?
+    private let nowProvider: () -> Date
 
     // MARK: - Toast
 
     let toastManager = ToastManager()
 
-    init(authService: AuthService = .shared, biometricService: BiometricService = .shared) {
+    init(
+        authService: AuthService = .shared,
+        biometricService: BiometricService = .shared,
+        clientKeyManager: ClientKeyManager = .shared,
+        keychainManager: KeychainManager = .shared,
+        encryptionAPI: EncryptionAPI = .shared,
+        postAuthResolver: (any PostAuthResolving)? = nil,
+        biometricPreferenceStore: BiometricPreferenceStore = BiometricPreferenceStore(),
+        biometricCapability: (@Sendable () -> Bool)? = nil,
+        biometricAuthenticate: (@Sendable () async throws -> Void)? = nil,
+        syncBiometricCredentials: (@Sendable () async -> Bool)? = nil,
+        resolveBiometricKey: (@Sendable () async -> String?)? = nil,
+        nowProvider: @escaping () -> Date = Date.init
+    ) {
         self.authService = authService
-        self.biometricService = biometricService
+        self.clientKeyManager = clientKeyManager
+        self.keychainManager = keychainManager
+        self.encryptionAPI = encryptionAPI
+        self.biometricPreferenceStore = biometricPreferenceStore
+        self.postAuthResolver =
+            postAuthResolver ??
+            PostAuthResolver(
+                vaultStatusProvider: encryptionAPI,
+                sessionRefresher: authService,
+                clientKeyResolver: clientKeyManager
+            )
+        self.nowProvider = nowProvider
+        self.biometricCapability = biometricCapability ?? { biometricService.canUseBiometrics() }
+        self.biometricAuthenticate = biometricAuthenticate ?? { try await biometricService.authenticate() }
+        self.syncBiometricCredentials =
+            syncBiometricCredentials ??
+            {
+                do {
+                    try await authService.saveBiometricTokens()
+                    return true
+                } catch {
+                    Logger.auth.warning("transitionToAuthenticated: saveBiometricTokens failed, trying fallback - \(error)")
+                    let saved = await authService.saveBiometricTokensFromKeychain()
+                    if !saved {
+                        Logger.auth.error("transitionToAuthenticated: biometric token persistence failed")
+                    }
+                    return saved
+                }
+            }
+        self.resolveBiometricKey =
+            resolveBiometricKey ?? { [clientKeyManager] in
+                do {
+                    return try await clientKeyManager.resolveViaBiometric()
+                } catch {
+                    Logger.auth.debug("Biometric foreground unlock failed: \(error.localizedDescription)")
+                    return nil
+                }
+            }
+
+        // Load persisted values asynchronously
+        Task { @MainActor in
+            hasCompletedOnboarding = await keychainManager.isOnboardingCompleted()
+            onboardingFlagLoaded = true
+            await ensureBiometricPreferenceLoaded()
+        }
     }
 
     // MARK: - Actions
@@ -77,12 +155,20 @@ final class AppState {
         authState = .loading
         biometricError = nil
 
+        await ensureBiometricPreferenceLoaded()
+        await ensureOnboardingFlagLoaded()
+
+        // Cold start: clear session clientKey so a stale key in keychain
+        // can't bypass FaceID/PIN. Biometric keychain is preserved.
+        await clientKeyManager.clearSession()
+
         #if DEBUG
-        // In DEBUG mode, try regular token-based session first (no biometric prompt)
+        // In DEBUG mode WITHOUT biometric enabled, try regular token-based session first
         // This keeps developers logged in across app restarts from Xcode
-        if let user = try? await authService.validateSession() {
+        // But if biometric is enabled, we must go through the biometric flow
+        if !biometricEnabled, let user = try? await authService.validateSession() {
             currentUser = user
-            authState = .authenticated
+            await resolvePostAuth(user: user)
             return
         }
         #endif
@@ -95,43 +181,118 @@ final class AppState {
         }
 
         do {
-            if let user = try await authService.validateBiometricSession() {
-                currentUser = user
-                authState = .authenticated
+            if let result = try await authService.validateBiometricSession() {
+                currentUser = result.user
+                if let clientKeyHex = result.clientKeyHex {
+                    await clientKeyManager.store(clientKeyHex, enableBiometric: false)
+                }
+                await resolvePostAuth(user: result.user)
             } else {
                 // No tokens found
                 authState = .unauthenticated
             }
         } catch is KeychainError {
-            // Face ID cancelled or failed — keep tokens for retry
+            // Face ID cancelled or failed — fallback to PIN entry instead of login screen
+            // User has biometric enabled, so they have a valid vault code configured
+            do {
+                if let user = try await authService.validateSession() {
+                    currentUser = user
+                    authState = .needsPinEntry
+                } else {
+                    authState = .unauthenticated
+                }
+            } catch {
+                Logger.auth.warning("checkAuthState: session validation failed after biometric cancel - \(error)")
+                authState = .unauthenticated
+            }
+        } catch let error as URLError {
+            // Network error — keep tokens and biometric enabled for retry
+            Logger.auth.warning("checkAuthState: network error during biometric login - \(error)")
+            biometricError = "Connexion impossible, réessaie"
             authState = .unauthenticated
-        } catch {
-            // Token refresh failed (expired session, network, etc.)
+        } catch let error as AuthServiceError {
+            // Auth-specific error (expired tokens, etc.)
             Logger.auth.error("checkAuthState: biometric session refresh failed - \(error)")
             await authService.clearBiometricTokens()
-            biometricEnabled = false
+            biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
+            authState = .unauthenticated
+        } catch {
+            Logger.auth.error("checkAuthState: unknown error during biometric login - \(error)")
+            await authService.clearBiometricTokens()
+            biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
+            authState = .unauthenticated
+        }
+    }
+
+    /// After Supabase session is valid, route deterministically to setup/entry/app.
+    func resolvePostAuth(user: UserInfo) async {
+        currentUser = user
+        authState = .loading
+
+        let destination = await postAuthResolver.resolve()
+
+        switch destination {
+        case .needsPinSetup:
+            needsRecoveryKeyRepairConsent = false
+            authState = .needsPinSetup
+        case .needsPinEntry(let needsRecoveryConsent):
+            needsRecoveryKeyRepairConsent = needsRecoveryConsent
+            authState = .needsPinEntry
+        case .authenticated(let needsRecoveryConsent):
+            needsRecoveryKeyRepairConsent = needsRecoveryConsent
+            if needsRecoveryConsent {
+                await transitionToAuthenticated(allowBiometricPrompt: false)
+                showBiometricEnrollment = false
+                showRecoveryKeyRepairConsent = true
+            } else {
+                await transitionToAuthenticated()
+            }
+        case .unauthenticatedSessionExpired:
+            needsRecoveryKeyRepairConsent = false
             biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
             authState = .unauthenticated
         }
     }
 
     func login(email: String, password: String) async throws {
-        let user = try await authService.login(email: email, password: password)
-        currentUser = user
-        hasCompletedOnboarding = true
-        authState = .authenticated
+        // NOTE: Do NOT set authState = .loading here.
+        // LoginView handles its own loading state. Setting authState = .loading
+        // would cause SwiftUI to unmount LoginView (showing LoadingView), then
+        // remount it on error — causing a jarring close/reopen animation.
 
-        // Prompt biometric enrollment after successful login
-        if shouldPromptBiometricEnrollment() {
-            showBiometricEnrollment = true
-        }
+        let user = try await authService.login(email: email, password: password)
+        // Don't set hasCompletedOnboarding here - login is separate from onboarding flow.
+        // Only completeOnboarding() should set this flag.
+        await resolvePostAuth(user: user)
     }
 
     func logout() async {
-        await authService.logout()
+        if biometricEnabled {
+            // Refresh biometric tokens with the latest session before clearing
+            do {
+                try await authService.saveBiometricTokens()
+            } catch {
+                Logger.auth.warning("logout: SDK session unavailable, falling back to keychain - \(error)")
+                let saved = await authService.saveBiometricTokensFromKeychain()
+                if !saved {
+                    Logger.auth.error("logout: could not preserve biometric tokens for re-login")
+                }
+            }
+
+            // Clear local SDK state WITHOUT calling /logout (would revoke the refresh token)
+            await authService.logoutKeepingBiometricSession()
+        } else {
+            await authService.logout()
+        }
+
+        await clientKeyManager.clearSession()
         currentUser = nil
         authState = .unauthenticated
-        biometricEnabled = false
+        showBiometricEnrollment = false
+        showRecoveryKeyRepairConsent = false
+        showPostAuthRecoveryKeySheet = false
+        needsRecoveryKeyRepairConsent = false
+        postAuthRecoveryKey = nil
 
         // Clear sensitive widget data
         WidgetDataCoordinator().clear()
@@ -141,6 +302,27 @@ final class AppState {
         budgetPath = NavigationPath()
         templatePath = NavigationPath()
         selectedTab = .currentMonth
+    }
+
+    /// Complete password recovery flow by clearing temporary auth/encryption state
+    /// and returning the app to the regular login screen.
+    func completePasswordResetFlow() async {
+        await authService.logout()
+        await authService.clearBiometricTokens()
+        await clientKeyManager.clearAll()
+        biometricEnabled = false
+        resetAfterPasswordResetCleanup()
+        toastManager.show("Mot de passe réinitialisé, reconnecte-toi", type: .success)
+    }
+
+    /// Cancel password recovery flow by clearing temporary auth/encryption state
+    /// and returning the app to the regular login screen without success feedback.
+    func cancelPasswordResetFlow() async {
+        await authService.logout()
+        await authService.clearBiometricTokens()
+        await clientKeyManager.clearAll()
+        biometricEnabled = false
+        resetAfterPasswordResetCleanup()
     }
 
     func deleteAccount() async {
@@ -154,10 +336,175 @@ final class AppState {
         await logout()
     }
 
-    func completeOnboarding(user: UserInfo) {
+    private func resetAfterPasswordResetCleanup() {
+        currentUser = nil
+        authState = .unauthenticated
+        biometricError = nil
+        showBiometricEnrollment = false
+        showRecoveryKeyRepairConsent = false
+        showPostAuthRecoveryKeySheet = false
+        needsRecoveryKeyRepairConsent = false
+        postAuthRecoveryKey = nil
+
+        // Clear sensitive widget data
+        WidgetDataCoordinator().clear()
+        WidgetCenter.shared.reloadAllTimelines()
+
+        // Reset navigation
+        budgetPath = NavigationPath()
+        templatePath = NavigationPath()
+        selectedTab = .currentMonth
+    }
+
+    private func transitionToAuthenticated(allowBiometricPrompt: Bool = true) async {
+        authState = .authenticated
+
+        if biometricEnabled {
+            let tokensReady = await syncBiometricCredentials()
+            let keyReady = await clientKeyManager.enableBiometric()
+            if !tokensReady || !keyReady {
+                Logger.auth.warning(
+                    "transitionToAuthenticated: biometric silent reactivation incomplete (tokens=\(tokensReady), key=\(keyReady))"
+                )
+            }
+        }
+
+        if allowBiometricPrompt, shouldPromptBiometricEnrollment() {
+            showBiometricEnrollment = true
+        }
+    }
+
+    func completeOnboarding(user: UserInfo, onboardingData: BudgetTemplateCreateFromOnboarding) {
         currentUser = user
         hasCompletedOnboarding = true
-        authState = .authenticated
+        pendingOnboardingData = onboardingData
+        // After onboarding, user needs to set up PIN
+        authState = .needsPinSetup
+    }
+
+    func completePinSetup() async {
+        // If we have pending onboarding data, create template and budget
+        if let onboardingData = pendingOnboardingData {
+            do {
+                // Create template from onboarding data
+                let template = try await TemplateService.shared.createTemplateFromOnboarding(onboardingData)
+                
+                // Create initial budget for current month
+                let now = Date()
+                let budgetData = BudgetCreate(
+                    month: now.month,
+                    year: now.year,
+                    description: now.monthYearFormatted,
+                    templateId: template.id
+                )
+                _ = try await BudgetService.shared.createBudget(budgetData)
+                
+                // Clear pending data
+                pendingOnboardingData = nil
+            } catch {
+                Logger.auth.error("completePinSetup: failed to create template/budget - \(error)")
+                toastManager.show("Erreur lors de la création du budget", type: .error)
+            }
+        }
+
+        await transitionToAuthenticated()
+    }
+
+    func completePinEntry() async {
+        if needsRecoveryKeyRepairConsent {
+            showBiometricEnrollment = false
+            showRecoveryKeyRepairConsent = true
+            return
+        }
+
+        await transitionToAuthenticated()
+    }
+
+    func startRecovery() {
+        authState = .needsPinRecovery
+    }
+
+    func completeRecovery() async {
+        await transitionToAuthenticated()
+    }
+
+    func cancelRecovery() {
+        authState = .needsPinEntry
+    }
+
+    func acceptRecoveryKeyRepairConsent() async {
+        showRecoveryKeyRepairConsent = false
+
+        do {
+            let recoveryKey = try await encryptionAPI.setupRecoveryKey()
+            postAuthRecoveryKey = recoveryKey
+            showPostAuthRecoveryKeySheet = true
+        } catch let error as APIError {
+            if case .conflict = error {
+                Logger.auth.info("acceptRecoveryKeyRepairConsent: recovery key already exists, continue")
+                needsRecoveryKeyRepairConsent = false
+                await transitionToAuthenticated()
+                return
+            }
+
+            Logger.auth.error("acceptRecoveryKeyRepairConsent: setup-recovery failed - \(error)")
+            toastManager.show("Impossible de générer la clé de récupération", type: .error)
+            needsRecoveryKeyRepairConsent = false
+            await transitionToAuthenticated()
+        } catch {
+            Logger.auth.error("acceptRecoveryKeyRepairConsent: unexpected setup-recovery error - \(error)")
+            toastManager.show("Impossible de générer la clé de récupération", type: .error)
+            needsRecoveryKeyRepairConsent = false
+            await transitionToAuthenticated()
+        }
+    }
+
+    func declineRecoveryKeyRepairConsent() async {
+        showRecoveryKeyRepairConsent = false
+        needsRecoveryKeyRepairConsent = false
+        await transitionToAuthenticated()
+    }
+
+    func completePostAuthRecoveryKeyPresentation() async {
+        showPostAuthRecoveryKeySheet = false
+        postAuthRecoveryKey = nil
+        needsRecoveryKeyRepairConsent = false
+        await transitionToAuthenticated()
+    }
+
+    // MARK: - Background Lock
+
+    private var isBackgroundLockRequired: Bool {
+        guard let bgDate = backgroundDate else { return false }
+        let elapsed = Duration.seconds(nowProvider().timeIntervalSince(bgDate))
+        return elapsed >= AppConfiguration.backgroundGracePeriod
+            && authState == .authenticated
+    }
+
+    func handleEnterBackground() {
+        backgroundDate = nowProvider()
+    }
+
+    func prepareForForeground() {
+        guard isBackgroundLockRequired else { return }
+        isRestoringSession = true
+    }
+
+    func handleEnterForeground() async {
+        defer { isRestoringSession = false }
+
+        guard isBackgroundLockRequired else { return }
+        backgroundDate = nil
+
+        await clientKeyManager.clearCache()
+
+        // Try biometric before routing to PIN entry — avoids PinEntryView flash
+        if biometricEnabled, await resolveBiometricKey() != nil {
+            return
+        }
+
+        // Biometric unavailable/failed/cancelled — require PIN
+        authState = .needsPinEntry
     }
 
     func resetTips() {
@@ -167,11 +514,17 @@ final class AppState {
     // MARK: - Biometric Actions
 
     func shouldPromptBiometricEnrollment() -> Bool {
-        biometricService.canUseBiometrics() && !biometricEnabled && authState == .authenticated
+        biometricCapability() && !biometricEnabled && authState == .authenticated
+    }
+
+    /// Attempt Face ID unlock from PinEntryView. Returns true if client key was restored.
+    func attemptBiometricUnlock() async -> Bool {
+        guard biometricEnabled else { return false }
+        return await resolveBiometricKey() != nil
     }
 
     func canRetryBiometric() async -> Bool {
-        guard biometricService.canUseBiometrics() else { return false }
+        guard biometricCapability() else { return false }
         return await authService.hasBiometricTokens()
     }
 
@@ -180,20 +533,59 @@ final class AppState {
         await checkAuthState()
     }
 
-    func enableBiometric() async {
-        guard biometricService.canUseBiometrics() else { return }
+    private func ensureBiometricPreferenceLoaded() async {
+        guard !biometricPreferenceLoaded else { return }
+
+        let storedPreference = await biometricPreferenceStore.load()
+        isHydratingBiometricPreference = true
+        biometricEnabled = storedPreference
+        isHydratingBiometricPreference = false
+        biometricPreferenceLoaded = true
+    }
+
+    private func ensureOnboardingFlagLoaded() async {
+        guard !onboardingFlagLoaded else { return }
+        hasCompletedOnboarding = await keychainManager.isOnboardingCompleted()
+        onboardingFlagLoaded = true
+    }
+
+    @discardableResult
+    func enableBiometric() async -> Bool {
+        guard biometricCapability() else { return false }
+
+        do {
+            try await biometricAuthenticate()
+        } catch {
+            Logger.auth.info("enableBiometric: user denied biometric prompt")
+            return false
+        }
 
         do {
             try await authService.saveBiometricTokens()
-            biometricEnabled = true
         } catch {
             Logger.auth.error("enableBiometric: failed to save biometric tokens - \(error)")
+            return false
         }
+
+        let clientKeyStored = await clientKeyManager.enableBiometric()
+        guard clientKeyStored else { return false }
+
+        biometricEnabled = true
+        return true
     }
 
     func disableBiometric() async {
         await authService.clearBiometricTokens()
+        await clientKeyManager.disableBiometric()
         biometricEnabled = false
+    }
+
+    // MARK: - Stale Client Key
+
+    func handleStaleClientKey() async {
+        guard authState == .authenticated else { return }
+        await clientKeyManager.clearAll()
+        authState = .needsPinEntry
     }
 
     // MARK: - Maintenance Actions

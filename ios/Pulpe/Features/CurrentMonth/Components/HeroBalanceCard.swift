@@ -9,6 +9,24 @@ struct HeroBalanceCard: View {
     // MARK: - Constants
 
     private static let twentyPercent: Decimal = 2 / 10
+    
+    // MARK: - Static Formatters (avoid recreation on every render)
+    
+    private static let balanceFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 2
+        formatter.locale = Locale(identifier: "de_CH")
+        return formatter
+    }()
+    
+    private static let pillFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.locale = Locale(identifier: "de_CH")
+        return formatter
+    }()
 
     @ScaledMetric(relativeTo: .largeTitle) private var heroFontSize: CGFloat = 40
 
@@ -64,14 +82,11 @@ struct HeroBalanceCard: View {
         HStack(alignment: .center, spacing: DesignTokens.Spacing.xl) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(contextLabel)
-                    .font(.subheadline.weight(.semibold))
+                    .font(PulpeTypography.labelLarge)
                     .foregroundStyle(.white)
 
-                Text(abs(metrics.remaining).formatted(
-                    .number.precision(.fractionLength(0 ... 2))
-                        .locale(Locale(identifier: "de_CH"))
-                ))
-                .font(.system(size: heroFontSize, weight: .bold, design: .rounded))
+                Text(Self.balanceFormatter.string(from: abs(metrics.remaining) as NSDecimalNumber) ?? "0")
+                .font(.custom("Manrope-Bold", size: heroFontSize, relativeTo: .largeTitle))
                 .monospacedDigit()
                 .foregroundStyle(.white)
                 .contentTransition(.numericText())
@@ -79,7 +94,7 @@ struct HeroBalanceCard: View {
                 .accessibilityLabel(metrics.remaining.asCHF)
 
                 Text(motivationalMessage)
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.white.opacity(0.75))
             }
 
@@ -108,12 +123,12 @@ struct HeroBalanceCard: View {
 
                 VStack(spacing: 0) {
                     Text("\(displayPercentage)")
-                        .font(.system(.title2, design: .rounded, weight: .bold))
+                        .font(PulpeTypography.stepTitle)
                         .monospacedDigit()
                         .foregroundStyle(.white)
                         .contentTransition(.numericText())
                     Text("%")
-                        .font(.caption2.weight(.medium))
+                        .font(PulpeTypography.progressUnit)
                         .foregroundStyle(.white.opacity(0.7))
                 }
                 .sensitiveAmount()
@@ -153,18 +168,18 @@ struct HeroBalanceCard: View {
     }
 
     private func pillChip(icon: String, label: String, value: Decimal, color: Color) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: icon)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(color)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(label)
-                    .font(.caption.weight(.medium))
+                    .font(PulpeTypography.inputHelper)
                     .foregroundStyle(.primary)
 
-                Text(value.formatted(.number.locale(Locale(identifier: "de_CH"))))
-                    .font(.system(.callout, design: .rounded, weight: .semibold))
+                Text(Self.pillFormatter.string(from: value as NSDecimalNumber) ?? "0")
+                    .font(.custom("Manrope-SemiBold", size: 16, relativeTo: .callout))
                     .foregroundStyle(color)
                     .contentTransition(.numericText())
                     .sensitiveAmount()

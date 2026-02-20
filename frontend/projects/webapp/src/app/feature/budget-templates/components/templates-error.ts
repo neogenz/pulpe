@@ -92,7 +92,7 @@ export class TemplatesError {
 
   readonly errorMessage = computed(() => {
     if (this.isRateLimited()) {
-      return 'Le serveur est temporairement surchargé. On réessaie dans un instant.';
+      return 'Le serveur est temporairement surchargé — réessaie dans un instant';
     }
     return 'Le chargement des modèles a échoué. Réessaie pour continuer.';
   });

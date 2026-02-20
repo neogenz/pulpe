@@ -43,7 +43,7 @@ struct BudgetPreviewStep: View {
     private var heroSection: some View {
         VStack(spacing: DesignTokens.Spacing.xs) {
             Text(state.availableToSpend.asCHF)
-                .font(.system(size: heroFontSize, weight: .bold, design: .rounded))
+                .font(.custom("Manrope-Bold", size: heroFontSize, relativeTo: .largeTitle))
                 .monospacedDigit()
                 .foregroundStyle(Color.pulpePrimary)
                 .contentTransition(.numericText())
@@ -84,7 +84,7 @@ struct BudgetPreviewStep: View {
                     .font(PulpeTypography.labelLarge)
                 Spacer()
                 Text(state.availableToSpend.asCHF)
-                    .font(.system(.body, design: .rounded).weight(.bold))
+                    .font(.custom("Manrope-Bold", size: 17, relativeTo: .body))
                     .monospacedDigit()
                     .foregroundStyle(Color.pulpePrimary)
             }
@@ -118,7 +118,7 @@ struct BudgetPreviewStep: View {
                 .font(PulpeTypography.bodyLarge)
             Spacer()
             Text(value)
-                .font(.system(.body, design: .rounded).weight(.medium))
+                .font(.custom("Manrope-Medium", size: 17, relativeTo: .body))
                 .monospacedDigit()
                 .foregroundStyle(color)
         }

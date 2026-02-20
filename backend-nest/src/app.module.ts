@@ -202,7 +202,11 @@ function createPinoLoggerConfig(configService: ConfigService) {
             paths: [
               'req.headers.authorization',
               'req.headers.cookie',
+              'req.headers["x-client-key"]',
               'req.body.password',
+              'req.body.clientKey',
+              'req.body.newClientKey',
+              'req.body.recoveryKey',
               'req.body.token',
               'res.headers["set-cookie"]',
             ],

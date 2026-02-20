@@ -6,80 +6,99 @@ struct WelcomeStep: View {
     let state: OnboardingState
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer()
+        ZStack {
+            // Full-screen gradient background
+            Color.authGradientBackground
+            
+            VStack(spacing: 0) {
+                Spacer()
 
-            // Hero illustration
-            ZStack {
-                Circle()
-                    .fill(Color.pulpePrimary.opacity(DesignTokens.Opacity.badgeBackground))
-                    .frame(width: 140, height: 140)
+                // Hero illustration with glow
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.15))
+                        .frame(width: 160, height: 160)
+                        .blur(radius: 30)
+                    
+                    Circle()
+                        .fill(Color.white.opacity(0.25))
+                        .frame(width: 140, height: 140)
 
-                Image(systemName: "leaf")
-                    .font(.system(size: 64, weight: .medium))
-                    .foregroundStyle(Color.pulpePrimary)
-            }
-            .scaleEffect(isAppeared ? 1 : 0.6)
-            .opacity(isAppeared ? 1 : 0)
-
-            Spacer()
-                .frame(height: DesignTokens.Spacing.xxl)
-
-            // Value proposition
-            VStack(spacing: DesignTokens.Spacing.md) {
-                Text("Vois clair dans tes finances")
-                    .font(PulpeTypography.onboardingTitle)
-                    .foregroundStyle(Color.textPrimaryOnboarding)
-                    .multilineTextAlignment(.center)
-
-                Text("Planifie ton budget en 2 minutes, sans prise de tête")
-                    .font(PulpeTypography.onboardingSubtitle)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.horizontal, DesignTokens.Spacing.xxxl)
-            .opacity(isAppeared ? 1 : 0)
-            .offset(y: isAppeared ? 0 : 20)
-
-            Spacer()
-
-            // Bottom buttons
-            VStack(spacing: DesignTokens.Spacing.md) {
-                Button {
-                    state.nextStep()
-                } label: {
-                    HStack(spacing: 8) {
-                        Text("Commencer")
-                            .font(PulpeTypography.buttonPrimary)
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 14, weight: .semibold))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: DesignTokens.FrameHeight.button)
-                    .background(Color.onboardingGradient)
-                    .foregroundStyle(Color.textOnPrimary)
-                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
-                    .shadow(color: Color.pulpePrimary.opacity(0.3), radius: 8, y: 4)
+                    Image(systemName: "leaf.fill")
+                        .font(PulpeTypography.welcomeEmoji)
+                        .foregroundStyle(Color.pulpePrimary)
+                        .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
                 }
+                .scaleEffect(isAppeared ? 1 : 0.6)
+                .opacity(isAppeared ? 1 : 0)
 
-                Button {
-                    showLogin = true
-                } label: {
-                    Text("Se connecter")
-                        .font(PulpeTypography.buttonPrimary)
+                Spacer()
+                    .frame(height: DesignTokens.Spacing.xxxl)
+
+                // Value proposition
+                VStack(spacing: DesignTokens.Spacing.lg) {
+                    Text("Vois clair dans tes finances")
+                        .font(PulpeTypography.brandTitle)
+                        .foregroundStyle(Color.textPrimaryOnboarding)
+                        .multilineTextAlignment(.center)
+
+                    Text("Planifie ton budget en 2 minutes, sans prise de tête")
+                        .font(PulpeTypography.title3)
+                        .foregroundStyle(Color.textSecondaryOnboarding)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.horizontal, DesignTokens.Spacing.xxxl)
+                .opacity(isAppeared ? 1 : 0)
+                .offset(y: isAppeared ? 0 : 20)
+
+                Spacer()
+
+                // Bottom buttons
+                VStack(spacing: DesignTokens.Spacing.md) {
+                    // Primary CTA - vibrant and eye-catching
+                    Button {
+                        state.nextStep()
+                    } label: {
+                        HStack(spacing: DesignTokens.Spacing.sm) {
+                            Text("Commencer")
+                                .font(PulpeTypography.buttonPrimary)
+                            Image(systemName: "arrow.right")
+                                .font(PulpeTypography.labelLarge)
+                        }
                         .frame(maxWidth: .infinity)
                         .frame(height: DesignTokens.FrameHeight.button)
-                        .foregroundStyle(Color.textPrimary)
-                        .background(Color.surfaceSecondary.opacity(0.6))
-                        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+                        .background(Color.pulpePrimary)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous))
+                        .shadow(color: Color.pulpePrimary.opacity(0.4), radius: 20, y: 10)
+                    }
+
+                    // Secondary action - more visible with proper contrast
+                    Button {
+                        showLogin = true
+                    } label: {
+                        Text("Se connecter")
+                            .font(PulpeTypography.buttonPrimary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: DesignTokens.FrameHeight.button)
+                            .foregroundStyle(Color.textPrimaryOnboarding)
+                            .background {
+                                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous)
+                                    .fill(Color.white.opacity(0.4))
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous)
+                                            .strokeBorder(Color.white.opacity(0.5), lineWidth: 1.5)
+                                    }
+                            }
+                            .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
+                    }
                 }
+                .padding(.horizontal, DesignTokens.Spacing.xxl)
+                .padding(.bottom, DesignTokens.Spacing.xxxl)
+                .opacity(isAppeared ? 1 : 0)
+                .offset(y: isAppeared ? 0 : 10)
             }
-            .padding(.horizontal, DesignTokens.Spacing.xxl)
-            .padding(.bottom, DesignTokens.Spacing.xxxl)
-            .opacity(isAppeared ? 1 : 0)
-            .offset(y: isAppeared ? 0 : 10)
         }
-        .pulpeBackground()
         .sheet(isPresented: $showLogin) {
             LoginView(isPresented: $showLogin)
         }

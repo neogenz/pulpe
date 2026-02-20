@@ -49,6 +49,15 @@ enum Endpoint {
     case templateLine(id: String)
     case templateLinesBulk(templateId: String)
 
+    // MARK: - Encryption
+
+    case encryptionVaultStatus
+    case encryptionSalt
+    case encryptionValidateKey
+    case encryptionSetupRecovery
+    case encryptionRegenerateRecovery
+    case encryptionRecover
+
     // MARK: - Path
 
     var path: String {
@@ -91,6 +100,14 @@ enum Endpoint {
         case .templateLines(let templateId): return "/budget-templates/\(templateId)/lines"
         case .templateLine(let id): return "/template-lines/\(id)"
         case .templateLinesBulk(let templateId): return "/budget-templates/\(templateId)/lines/bulk"
+
+        // Encryption
+        case .encryptionVaultStatus: return "/encryption/vault-status"
+        case .encryptionSalt: return "/encryption/salt"
+        case .encryptionValidateKey: return "/encryption/validate-key"
+        case .encryptionSetupRecovery: return "/encryption/setup-recovery"
+        case .encryptionRegenerateRecovery: return "/encryption/regenerate-recovery"
+        case .encryptionRecover: return "/encryption/recover"
         }
     }
 
@@ -104,7 +121,8 @@ enum Endpoint {
 
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetsExport,
              .budgetLine, .transaction, .template, .templateUsage, .templateLine,
-             .transactionsByBudget, .budgetsSparse:
+             .transactionsByBudget, .budgetsSparse,
+             .encryptionVaultStatus, .encryptionSalt:
             return .get
 
         case .updateProfile:
@@ -113,7 +131,8 @@ enum Endpoint {
         case .deleteAccount:
             return .delete
 
-        case .budgetLineToggle, .budgetLineResetFromTemplate, .transactionToggle:
+        case .budgetLineToggle, .budgetLineResetFromTemplate, .transactionToggle,
+             .encryptionValidateKey, .encryptionSetupRecovery, .encryptionRegenerateRecovery, .encryptionRecover:
             return .post
         }
     }

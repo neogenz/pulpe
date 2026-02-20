@@ -2,6 +2,7 @@ import SwiftUI
 import TipKit
 
 /// Section of recurring budget lines - designed to be used inside a parent List
+/// Note: Deletion now uses undo toast instead of confirmation dialog
 struct BudgetSection: View {
     let title: String
     let items: [BudgetLine]
@@ -13,8 +14,6 @@ struct BudgetSection: View {
     let onLongPress: (BudgetLine, [Transaction]) -> Void
     let onEdit: (BudgetLine) -> Void
 
-    @State private var itemToDelete: BudgetLine?
-    @State private var showDeleteAlert = false
     @State private var isExpanded = false
 
     private let collapsedItemCount = 3
@@ -56,12 +55,14 @@ struct BudgetSection: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .listRowSeparator(.hidden)
 
-            ForEach(displayedItems) { item in
+            ForEach(Array(displayedItems.enumerated()), id: \.element.id) { index, item in
                 budgetLineRow(for: item)
                     .listRowSeparator(.hidden)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         swipeActions(for: item)
                     }
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    .animation(.easeOut(duration: DesignTokens.Animation.normal).delay(Double(index) * 0.05), value: items.count)
             }
 
             expandCollapseButton
@@ -74,26 +75,13 @@ struct BudgetSection: View {
             )
             .textCase(nil)
         }
-        .alert(
-            "Supprimer cette prévision ?",
-            isPresented: $showDeleteAlert,
-            presenting: itemToDelete
-        ) { item in
-            Button("Annuler", role: .cancel) {}
-            Button("Supprimer", role: .destructive) {
-                onDelete(item)
-            }
-        } message: { _ in
-            Text("Cette action est irréversible.")
-        }
     }
 
     @ViewBuilder
     private func swipeActions(for item: BudgetLine) -> some View {
         if !item.isVirtualRollover {
             Button {
-                itemToDelete = item
-                showDeleteAlert = true
+                onDelete(item)
                 ProductTips.gestures.invalidate(reason: .actionPerformed)
             } label: {
                 Label("Supprimer", systemImage: "trash")
@@ -123,10 +111,10 @@ struct BudgetSection: View {
                 } label: {
                     HStack {
                         Text(isExpanded ? "Voir moins" : "Voir plus (+\(hiddenItemsCount))")
-                            .font(.subheadline)
+                            .font(PulpeTypography.subheadline)
                         Spacer()
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .font(.caption)
+                            .font(PulpeTypography.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -199,14 +187,14 @@ struct BudgetLineRow: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 12) {
+            HStack(spacing: DesignTokens.Spacing.md) {
                 // Kind icon circle (Revolut-style)
                 kindIconCircle
 
                 // Main content
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(line.name)
-                        .font(.system(.body, design: .rounded, weight: .medium))
+                        .font(.custom("Manrope-Medium", size: 17, relativeTo: .body))
                         .foregroundStyle(line.isChecked ? .secondary : .primary)
                         .strikethrough(line.isChecked, color: .secondary)
                         .lineLimit(1)
@@ -214,13 +202,13 @@ struct BudgetLineRow: View {
                     // Consumption info or recurrence label
                     if hasConsumption {
                         Text("\(consumptionPercentage)% · \(consumption.allocated.asCompactCHF) dépensé")
-                            .font(.caption)
+                            .font(PulpeTypography.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                             .sensitiveAmount()
                     } else {
                         Text(line.recurrence.label)
-                            .font(.caption)
+                            .font(PulpeTypography.caption)
                             .foregroundStyle(Color.textTertiary)
                     }
                 }
@@ -233,13 +221,13 @@ struct BudgetLineRow: View {
                 // Amount (remaining when transactions exist, otherwise budgeted)
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(hasConsumption ? consumption.available.asCHF : line.amount.asCHF)
-                        .font(.system(.callout, design: .rounded, weight: .semibold))
+                        .font(.custom("Manrope-SemiBold", size: 16, relativeTo: .callout))
                         .foregroundStyle(amountTextColor)
                         .sensitiveAmount()
 
                     if hasConsumption {
                         Text("reste")
-                            .font(.caption2)
+                            .font(PulpeTypography.caption2)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -257,7 +245,7 @@ struct BudgetLineRow: View {
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, DesignTokens.Spacing.sm)
 
             // Consumption progress bar
             if hasConsumption {

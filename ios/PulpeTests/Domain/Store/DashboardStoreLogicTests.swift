@@ -1,10 +1,9 @@
-import XCTest
+import Foundation
+import Testing
 @testable import Pulpe
 
-/// Tests for DashboardStore computed property logic
-/// Creates a real DashboardStore with injected test data to verify actual computed properties
 @MainActor
-final class DashboardStoreLogicTests: XCTestCase {
+struct DashboardStoreLogicTests {
 
     // MARK: - Helpers
 
@@ -47,7 +46,7 @@ final class DashboardStoreLogicTests: XCTestCase {
 
     // MARK: - Historical Expenses
 
-    func testHistoricalExpenses_withAllMonthsPresent_returnsLast3MonthsSortedOldestFirst() {
+    @Test func historicalExpenses_withAllMonthsPresent_returnsLast3MonthsSortedOldestFirst() {
         // Arrange
         let store = makeStore(budgets: [
             sparseBudget(monthOffset: 0, totalExpenses: 300),
@@ -59,15 +58,15 @@ final class DashboardStoreLogicTests: XCTestCase {
         let result = store.historicalExpenses
 
         // Assert
-        XCTAssertEqual(result.count, 3)
-        XCTAssertEqual(result[0].total, 100, "Oldest month should be first")
-        XCTAssertEqual(result[1].total, 200)
-        XCTAssertEqual(result[2].total, 300, "Current month should be last")
-        XCTAssertTrue(result[2].isCurrentMonth)
-        XCTAssertFalse(result[0].isCurrentMonth)
+        #expect(result.count == 3)
+        #expect(result[0].total == 100)
+        #expect(result[1].total == 200)
+        #expect(result[2].total == 300)
+        #expect(result[2].isCurrentMonth)
+        #expect(!result[0].isCurrentMonth)
     }
 
-    func testHistoricalExpenses_withMissingBudget_skipsMonth() {
+    @Test func historicalExpenses_withMissingBudget_skipsMonth() {
         // Arrange — only current and 2 months ago, missing last month
         let store = makeStore(budgets: [
             sparseBudget(monthOffset: 0, totalExpenses: 300),
@@ -78,12 +77,12 @@ final class DashboardStoreLogicTests: XCTestCase {
         let result = store.historicalExpenses
 
         // Assert
-        XCTAssertEqual(result.count, 2, "Should skip the missing month")
-        XCTAssertEqual(result[0].total, 100)
-        XCTAssertEqual(result[1].total, 300)
+        #expect(result.count == 2)
+        #expect(result[0].total == 100)
+        #expect(result[1].total == 300)
     }
 
-    func testHistoricalExpenses_withNilTotalExpenses_defaultsToZero() {
+    @Test func historicalExpenses_withNilTotalExpenses_defaultsToZero() {
         // Arrange — budget exists but totalExpenses is nil
         let store = makeStore(budgets: [
             sparseBudget(monthOffset: 0, totalExpenses: nil),
@@ -93,18 +92,18 @@ final class DashboardStoreLogicTests: XCTestCase {
         let result = store.historicalExpenses
 
         // Assert
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result[0].total, 0, "Nil totalExpenses should default to 0")
+        #expect(result.count == 1)
+        #expect(result[0].total == 0)
     }
 
-    func testHistoricalExpenses_withEmptyBudgets_returnsEmpty() {
+    @Test func historicalExpenses_withEmptyBudgets_returnsEmpty() {
         let store = makeStore(budgets: [])
-        XCTAssertTrue(store.historicalExpenses.isEmpty)
+        #expect(store.historicalExpenses.isEmpty)
     }
 
     // MARK: - Expense Variation
 
-    func testExpenseVariation_calculatesCorrectPercentage() {
+    @Test func expenseVariation_calculatesCorrectPercentage() {
         // Arrange — 200 last month, 300 this month = +50%
         let store = makeStore(budgets: [
             sparseBudget(monthOffset: -2, totalExpenses: 100),
@@ -116,13 +115,13 @@ final class DashboardStoreLogicTests: XCTestCase {
         let variation = store.expenseVariation
 
         // Assert
-        XCTAssertNotNil(variation)
-        XCTAssertEqual(variation?.amount, 100, "Difference should be 300 - 200 = 100")
-        XCTAssertEqual(variation?.percentage ?? 0, 50.0, accuracy: 0.01, "Should be +50%")
-        XCTAssertTrue(variation?.isIncrease ?? false)
+        #expect(variation != nil)
+        #expect(variation?.amount == 100)
+        #expect(abs((variation?.percentage ?? 0) - 50.0) < 0.01)
+        #expect(variation?.isIncrease ?? false)
     }
 
-    func testExpenseVariation_whenPreviousTotalIsZero_returnsNil() {
+    @Test func expenseVariation_whenPreviousTotalIsZero_returnsNil() {
         // Arrange
         let store = makeStore(budgets: [
             sparseBudget(monthOffset: -2, totalExpenses: 0),
@@ -131,20 +130,20 @@ final class DashboardStoreLogicTests: XCTestCase {
         ])
 
         // Act & Assert
-        XCTAssertNil(store.expenseVariation, "Should return nil when previous total is 0 to avoid division by zero")
+        #expect(store.expenseVariation == nil)
     }
 
-    func testExpenseVariation_withLessThan2Months_returnsNil() {
+    @Test func expenseVariation_withLessThan2Months_returnsNil() {
         // Arrange — only current month
         let store = makeStore(budgets: [
             sparseBudget(monthOffset: 0, totalExpenses: 300),
         ])
 
         // Act & Assert
-        XCTAssertNil(store.expenseVariation, "Cannot compute variation with less than 2 months")
+        #expect(store.expenseVariation == nil)
     }
 
-    func testExpenseVariation_withDecrease_showsNegative() {
+    @Test func expenseVariation_withDecrease_showsNegative() {
         // Arrange — 500 last month, 300 this month = -40%
         let store = makeStore(budgets: [
             sparseBudget(monthOffset: -2, totalExpenses: 100),
@@ -156,15 +155,15 @@ final class DashboardStoreLogicTests: XCTestCase {
         let variation = store.expenseVariation
 
         // Assert
-        XCTAssertNotNil(variation)
-        XCTAssertEqual(variation?.amount, -200)
-        XCTAssertEqual(variation?.percentage ?? 0, -40.0, accuracy: 0.01)
-        XCTAssertFalse(variation?.isIncrease ?? true)
+        #expect(variation != nil)
+        #expect(variation?.amount == -200)
+        #expect(abs((variation?.percentage ?? 0) - (-40.0)) < 0.01)
+        #expect(!(variation?.isIncrease ?? true))
     }
 
     // MARK: - Savings YTD
 
-    func testSavingsYTD_sumsCurrentYearOnly() {
+    @Test func savingsYTD_sumsCurrentYearOnly() {
         // Arrange
         let store = makeStore(budgets: [
             TestDataFactory.createBudgetSparse(id: "1", month: 1, year: currentYear, totalSavings: 100),
@@ -173,10 +172,10 @@ final class DashboardStoreLogicTests: XCTestCase {
         ])
 
         // Act & Assert
-        XCTAssertEqual(store.savingsYTD, 300, "Should only sum current year savings (100 + 200)")
+        #expect(store.savingsYTD == 300)
     }
 
-    func testSavingsYTD_withNilSavings_treatsAsZero() {
+    @Test func savingsYTD_withNilSavings_treatsAsZero() {
         // Arrange
         let store = makeStore(budgets: [
             TestDataFactory.createBudgetSparse(id: "1", month: 1, year: currentYear, totalSavings: 100),
@@ -184,16 +183,16 @@ final class DashboardStoreLogicTests: XCTestCase {
         ])
 
         // Act & Assert
-        XCTAssertEqual(store.savingsYTD, 100)
+        #expect(store.savingsYTD == 100)
     }
 
-    func testSavingsYTD_withNoBudgets_returnsZero() {
-        XCTAssertEqual(makeStore(budgets: []).savingsYTD, 0)
+    @Test func savingsYTD_withNoBudgets_returnsZero() {
+        #expect(makeStore(budgets: []).savingsYTD == 0)
     }
 
     // MARK: - Current Rollover
 
-    func testCurrentRollover_returnsCurrentMonthValue() {
+    @Test func currentRollover_returnsCurrentMonthValue() {
         // Arrange
         let store = makeStore(budgets: [
             sparseBudget(monthOffset: -1, rollover: 999),
@@ -201,10 +200,10 @@ final class DashboardStoreLogicTests: XCTestCase {
         ])
 
         // Act & Assert
-        XCTAssertEqual(store.currentRollover, 150)
+        #expect(store.currentRollover == 150)
     }
 
-    func testCurrentRollover_whenNoCurrentMonth_returnsZero() {
+    @Test func currentRollover_whenNoCurrentMonth_returnsZero() {
         // Arrange — only past months
         let store = makeStore(budgets: [
             sparseBudget(monthOffset: -1, rollover: 150),
@@ -212,59 +211,59 @@ final class DashboardStoreLogicTests: XCTestCase {
         ])
 
         // Act & Assert
-        XCTAssertEqual(store.currentRollover, 0)
+        #expect(store.currentRollover == 0)
     }
 
-    func testCurrentRollover_withNilRollover_returnsZero() {
+    @Test func currentRollover_withNilRollover_returnsZero() {
         let store = makeStore(budgets: [
             sparseBudget(monthOffset: 0, rollover: nil),
         ])
-        XCTAssertEqual(store.currentRollover, 0)
+        #expect(store.currentRollover == 0)
     }
 
     // MARK: - Has Enough History for Trends
 
-    func testHasEnoughHistory_with2OrMoreMonths_returnsTrue() {
+    @Test func hasEnoughHistory_with2OrMoreMonths_returnsTrue() {
         let store = makeStore(budgets: [
             sparseBudget(monthOffset: -1, totalExpenses: 100),
             sparseBudget(monthOffset: 0, totalExpenses: 200),
         ])
-        XCTAssertTrue(store.hasEnoughHistoryForTrends)
+        #expect(store.hasEnoughHistoryForTrends)
     }
 
-    func testHasEnoughHistory_withLessThan2Months_returnsFalse() {
+    @Test func hasEnoughHistory_withLessThan2Months_returnsFalse() {
         let store = makeStore(budgets: [
             sparseBudget(monthOffset: 0, totalExpenses: 200),
         ])
-        XCTAssertFalse(store.hasEnoughHistoryForTrends)
+        #expect(!store.hasEnoughHistoryForTrends)
     }
 
-    func testHasEnoughHistory_withEmptyBudgets_returnsFalse() {
-        XCTAssertFalse(makeStore(budgets: []).hasEnoughHistoryForTrends)
+    @Test func hasEnoughHistory_withEmptyBudgets_returnsFalse() {
+        #expect(!makeStore(budgets: []).hasEnoughHistoryForTrends)
     }
 
     // MARK: - Cache Invalidation Logic
 
-    func testCacheValidation_expiredAfter5Minutes() {
+    @Test func cacheValidation_expiredAfter5Minutes() {
         let lastLoadTime = Date().addingTimeInterval(-301) // 5min + 1s ago
         let cacheValidityDuration: TimeInterval = 300
         let isValid = Date().timeIntervalSince(lastLoadTime) < cacheValidityDuration
-        XCTAssertFalse(isValid, "Cache should be invalid after 5 minutes")
+        #expect(!isValid)
     }
 
-    func testCacheValidation_validWithin5Minutes() {
+    @Test func cacheValidation_validWithin5Minutes() {
         let lastLoadTime = Date().addingTimeInterval(-60) // 1 minute ago
         let cacheValidityDuration: TimeInterval = 300
         let isValid = Date().timeIntervalSince(lastLoadTime) < cacheValidityDuration
-        XCTAssertTrue(isValid, "Cache should be valid within 5 minutes")
+        #expect(isValid)
     }
 
-    func testCacheValidation_nilLastLoadTime_isInvalid() {
+    @Test func cacheValidation_nilLastLoadTime_isInvalid() {
         let lastLoadTime: Date? = nil
         let isValid: Bool = {
             guard let lastLoad = lastLoadTime else { return false }
             return Date().timeIntervalSince(lastLoad) < 300
         }()
-        XCTAssertFalse(isValid, "Cache should be invalid when never loaded")
+        #expect(!isValid)
     }
 }

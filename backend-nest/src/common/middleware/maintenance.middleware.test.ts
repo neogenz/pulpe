@@ -116,7 +116,7 @@ describe('MaintenanceMiddleware', () => {
       expect(jsonCalls[0]).toEqual({
         statusCode: 503,
         code: 'MAINTENANCE',
-        message: 'Application en maintenance. Veuillez réessayer plus tard.',
+        message: 'Application en maintenance — réessaie plus tard',
       });
     });
 

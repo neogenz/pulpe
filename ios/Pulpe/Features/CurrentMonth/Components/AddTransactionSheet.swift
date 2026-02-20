@@ -16,6 +16,7 @@ struct AddTransactionSheet: View {
     @FocusState private var isAmountFocused: Bool
     @State private var pendingQuickAmount: Int?
     @State private var amountText = ""
+    @State private var submitSuccessTrigger = false
 
     private let transactionService = TransactionService.shared
     private let quickAmounts = DesignTokens.AmountInput.quickAmounts
@@ -34,46 +35,39 @@ struct AddTransactionSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: DesignTokens.Spacing.xxl) {
-                    heroAmountSection
-                    quickAmountChips
-                    descriptionField
-                    kindSelector
-                    dateSelector
+        ScrollView {
+            VStack(spacing: DesignTokens.Spacing.xxl) {
+                KindToggle(selection: $kind)
+                heroAmountSection
+                quickAmountChips
+                descriptionField
+                dateSelector
 
-                    if let error {
-                        ErrorBanner(message: error.localizedDescription) {
-                            self.error = nil
-                        }
+                if let error {
+                    ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                        self.error = nil
                     }
+                }
 
-                    addButton
-                }
-                .padding(.horizontal, DesignTokens.Spacing.xl)
-                .padding(.top, DesignTokens.Spacing.xxxl)
-                .padding(.bottom, DesignTokens.Spacing.xl)
+                addButton
             }
-            .background(Color.surfacePrimary)
-            .navigationTitle("Nouvelle dépense")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
-                }
-            }
-            .loadingOverlay(isLoading)
-            .task {
-                try? await Task.sleep(for: .milliseconds(200))
-                isAmountFocused = true
-            }
-            .onChange(of: isAmountFocused) { _, isFocused in
-                if !isFocused, let quickAmount = pendingQuickAmount {
-                    amount = Decimal(quickAmount)
-                    amountText = "\(quickAmount)"
-                    pendingQuickAmount = nil
-                }
+            .padding(.horizontal, DesignTokens.Spacing.xl)
+            .padding(.top, DesignTokens.Spacing.lg)
+            .padding(.bottom, DesignTokens.Spacing.xl)
+        }
+        .background(Color.surfacePrimary)
+        .modernSheet(title: kind.newTransactionTitle)
+        .loadingOverlay(isLoading)
+        .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+        .task {
+            try? await Task.sleep(for: .milliseconds(200))
+            isAmountFocused = true
+        }
+        .onChange(of: isAmountFocused) { _, isFocused in
+            if !isFocused, let quickAmount = pendingQuickAmount {
+                amount = Decimal(quickAmount)
+                amountText = "\(quickAmount)"
+                pendingQuickAmount = nil
             }
         }
     }
@@ -109,7 +103,7 @@ struct AddTransactionSheet: View {
             .onTapGesture { isAmountFocused = true }
 
             // Subtle underline
-            RoundedRectangle(cornerRadius: 1)
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
                 .fill(isAmountFocused ? Color.pulpePrimary : Color.textTertiary.opacity(DesignTokens.Opacity.strong))
                 .frame(width: 120, height: 2)
                 .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isAmountFocused)
@@ -133,8 +127,7 @@ struct AddTransactionSheet: View {
                     }
                 } label: {
                     Text("\(quickAmount) \(DesignTokens.AmountInput.currencyCode)")
-                        .font(PulpeTypography.buttonSecondary)
-                        .fontWeight(.semibold)
+                        .font(PulpeTypography.labelLarge)
                         .fixedSize()
                         .padding(.horizontal, DesignTokens.Spacing.md)
                         .padding(.vertical, DesignTokens.Spacing.sm)
@@ -157,36 +150,6 @@ struct AddTransactionSheet: View {
             .padding(DesignTokens.Spacing.lg)
             .background(Color.inputBackgroundSoft)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-    }
-
-    // MARK: - Kind Selector (Custom Pills)
-
-    private var kindSelector: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            ForEach(TransactionKind.allCases, id: \.self) { type in
-                Button {
-                    withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
-                        kind = type
-                    }
-                } label: {
-                    Label(type.label, systemImage: type.icon)
-                        .font(PulpeTypography.buttonSecondary)
-                        .fontWeight(kind == type ? .semibold : .medium)
-                        .padding(.horizontal, DesignTokens.Spacing.md)
-                        .padding(.vertical, DesignTokens.Spacing.sm + 2)
-                        .frame(maxWidth: .infinity)
-                        .background(kind == type ? Color.pulpePrimary : Color.surfaceSecondary)
-                        .foregroundStyle(kind == type ? Color.textOnPrimary : .primary)
-                        .clipShape(Capsule())
-                        .overlay(
-                            kind == type ? nil :
-                            Capsule().strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
-                        )
-                }
-                .buttonStyle(.plain)
-                .sensoryFeedback(.selection, trigger: kind)
-            }
-        }
     }
 
     // MARK: - Date Selector
@@ -219,15 +182,9 @@ struct AddTransactionSheet: View {
             Task { await addTransaction() }
         } label: {
             Text("Ajouter")
-                .font(PulpeTypography.buttonPrimary)
-                .foregroundStyle(canSubmit ? Color.textOnPrimary : .secondary)
-                .frame(maxWidth: .infinity)
-                .frame(height: DesignTokens.FrameHeight.button)
-                .background(canSubmit ? Color.pulpePrimary : Color.surfaceSecondary)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
         }
         .disabled(!canSubmit)
-        .buttonStyle(.plain)
+        .primaryButtonStyle(isEnabled: canSubmit)
     }
 
     // MARK: - Logic
@@ -257,6 +214,7 @@ struct AddTransactionSheet: View {
 
         do {
             let transaction = try await transactionService.createTransaction(data)
+            submitSuccessTrigger.toggle()
             onAdd(transaction)
             toastManager.show("Transaction ajoutée")
             dismiss()

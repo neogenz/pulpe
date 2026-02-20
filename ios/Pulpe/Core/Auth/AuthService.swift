@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import OSLog
 import Supabase
 
@@ -7,14 +8,31 @@ import Supabase
 actor AuthService {
     static let shared = AuthService()
 
-    private let supabase: SupabaseClient
+    private var supabase: SupabaseClient
     private let keychain: KeychainManager
 
     private init(keychain: KeychainManager = .shared) {
         self.keychain = keychain
         self.supabase = SupabaseClient(
             supabaseURL: AppConfiguration.supabaseURL,
-            supabaseKey: AppConfiguration.supabaseAnonKey
+            supabaseKey: AppConfiguration.supabaseAnonKey,
+            options: SupabaseClientOptions(
+                auth: .init(
+                    emitLocalSessionAsInitialSession: true
+                )
+            )
+        )
+    }
+
+    private func resetClient() {
+        supabase = SupabaseClient(
+            supabaseURL: AppConfiguration.supabaseURL,
+            supabaseKey: AppConfiguration.supabaseAnonKey,
+            options: SupabaseClientOptions(
+                auth: .init(
+                    emitLocalSessionAsInitialSession: true
+                )
+            )
         )
     }
 
@@ -29,10 +47,7 @@ actor AuthService {
             refreshToken: session.refreshToken
         )
 
-        return UserInfo(
-            id: session.user.id.uuidString,
-            email: session.user.email ?? email
-        )
+        return Self.userInfo(from: session.user, fallbackEmail: email)
     }
 
     // MARK: - Signup
@@ -50,9 +65,70 @@ actor AuthService {
             refreshToken: session.refreshToken
         )
 
-        return UserInfo(
-            id: session.user.id.uuidString,
-            email: session.user.email ?? email
+        return Self.userInfo(from: session.user, fallbackEmail: email)
+    }
+
+    // MARK: - Password Reset & Recovery
+
+    /// Send a password reset email with a mobile deep-link callback.
+    func requestPasswordReset(
+        email: String,
+        redirectTo: URL = AppConfiguration.passwordResetRedirectURL
+    ) async throws {
+        try await supabase.auth.resetPasswordForEmail(email, redirectTo: redirectTo)
+    }
+
+    /// Consume reset callback URL and create a recovery session.
+    /// Returns context required by the reset-password flow.
+    func beginPasswordRecovery(from url: URL) async throws -> PasswordRecoveryContext {
+        let session = try await supabase.auth.session(from: url)
+
+        try await keychain.saveTokens(
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken
+        )
+
+        let user = session.user
+        let metadata = user.userMetadata
+
+        var firstName: String?
+        if case .string(let name) = metadata["firstName"] {
+            firstName = name
+        }
+
+        let hasVaultCodeConfigured: Bool
+        if case .bool(let configured) = metadata["vaultCodeConfigured"] {
+            hasVaultCodeConfigured = configured
+        } else {
+            hasVaultCodeConfigured = false
+        }
+
+        return PasswordRecoveryContext(
+            userId: user.id.uuidString,
+            email: user.email ?? "",
+            firstName: firstName,
+            hasVaultCodeConfigured: hasVaultCodeConfigured
+        )
+    }
+
+    /// Re-authenticate with current credentials to verify password knowledge.
+    func verifyPassword(email: String, password: String) async throws {
+        let session = try await supabase.auth.signIn(email: email, password: password)
+
+        try await keychain.saveTokens(
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken
+        )
+    }
+
+    /// Update the current user's password in Supabase auth.
+    func updatePassword(_ newPassword: String) async throws {
+        _ = try await supabase.auth.update(user: UserAttributes(password: newPassword))
+
+        let session = try await supabase.auth.session
+        try await keychain.saveTokens(
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken
         )
     }
 
@@ -74,10 +150,7 @@ actor AuthService {
                 refreshToken: session.refreshToken
             )
 
-            return UserInfo(
-                id: session.user.id.uuidString,
-                email: session.user.email ?? ""
-            )
+            return Self.userInfo(from: session.user, fallbackEmail: "")
         } catch {
             // Session invalid, clear tokens
             await keychain.clearTokens()
@@ -89,14 +162,20 @@ actor AuthService {
 
     func logout() async {
         do {
-            try await supabase.auth.signOut()
+            try await supabase.auth.signOut(scope: .local)
         } catch {
             Logger.auth.error("logout: signOut failed - \(error)")
         }
 
-        // Clear local tokens
         await keychain.clearTokens()
-        await keychain.clearBiometricTokens()
+    }
+
+    /// Logout without revoking the server-side refresh token.
+    /// Replaces the SupabaseClient to stop its auto-refresh timer,
+    /// then clears the regular keychain. Biometric tokens stay intact.
+    func logoutKeepingBiometricSession() async {
+        resetClient()
+        await keychain.clearTokens()
     }
 
     // MARK: - Account Deletion
@@ -141,18 +220,61 @@ actor AuthService {
         }
     }
 
-    func validateBiometricSession() async throws -> UserInfo? {
+    /// Fallback: refresh and save tokens to biometric keychain.
+    /// Validates tokens before saving to prevent storing stale/expired tokens.
+    func saveBiometricTokensFromKeychain() async -> Bool {
+        guard let refreshToken = await keychain.getRefreshToken() else {
+            return false
+        }
+        
+        // Validate token is still valid before saving
+        do {
+            let session = try await supabase.auth.refreshSession(refreshToken: refreshToken)
+            return await keychain.saveBiometricTokens(
+                accessToken: session.accessToken,
+                refreshToken: session.refreshToken
+            )
+        } catch {
+            Logger.auth.error("saveBiometricTokensFromKeychain: token refresh failed - \(error)")
+            return false
+        }
+    }
+
+    func validateBiometricSession() async throws -> BiometricSessionResult? {
         guard await keychain.hasBiometricTokens() else {
             return nil
         }
 
-        let refreshToken = try await keychain.getBiometricRefreshToken()
+        // Single Face ID prompt via pre-authenticated LAContext
+        // LAContext is not Sendable but is safe here: evaluation completes before reuse
+        nonisolated(unsafe) let context = LAContext()
+        do {
+            try await context.evaluatePolicy(
+                .deviceOwnerAuthenticationWithBiometrics,
+                localizedReason: "Se connecter avec Face ID"
+            )
+        } catch let error as LAError where error.code == .userCancel {
+            throw KeychainError.userCanceled
+        } catch is LAError {
+            throw KeychainError.authFailed
+        }
+
+        // Read both biometric keychain items with the pre-authenticated context (no extra prompts)
+        let refreshToken = try await keychain.getBiometricRefreshToken(context: context)
 
         guard let refreshToken else {
             return nil
         }
 
-        let session = try await supabase.auth.refreshSession(refreshToken: refreshToken)
+        let clientKeyHex = try? await keychain.getBiometricClientKey(context: context)
+
+        let session: Session
+        do {
+            session = try await supabase.auth.refreshSession(refreshToken: refreshToken)
+        } catch {
+            Logger.auth.error("validateBiometricSession: session refresh failed - \(error)")
+            throw AuthServiceError.biometricSessionExpired
+        }
 
         try await keychain.saveTokens(
             accessToken: session.accessToken,
@@ -167,10 +289,8 @@ actor AuthService {
             Logger.auth.warning("validateBiometricSession: failed to persist biometric tokens")
         }
 
-        return UserInfo(
-            id: session.user.id.uuidString,
-            email: session.user.email ?? ""
-        )
+        let user = Self.userInfo(from: session.user, fallbackEmail: "")
+        return BiometricSessionResult(user: user, clientKeyHex: clientKeyHex)
     }
 
     func clearBiometricTokens() async {
@@ -180,6 +300,23 @@ actor AuthService {
     func hasBiometricTokens() async -> Bool {
         await keychain.hasBiometricTokens()
     }
+
+    // MARK: - User Info Extraction
+
+    private static func userInfo(from user: User, fallbackEmail: String) -> UserInfo {
+        let metadata = user.userMetadata
+
+        var firstName: String?
+        if case .string(let name) = metadata["firstName"] {
+            firstName = name
+        }
+
+        return UserInfo(
+            id: user.id.uuidString,
+            email: user.email ?? fallbackEmail,
+            firstName: firstName
+        )
+    }
 }
 
 // MARK: - Auth Errors
@@ -188,6 +325,7 @@ enum AuthServiceError: LocalizedError {
     case signupFailed(String)
     case loginFailed(String)
     case biometricSaveFailed
+    case biometricSessionExpired
 
     var errorDescription: String? {
         switch self {
@@ -197,19 +335,34 @@ enum AuthServiceError: LocalizedError {
             return "La connexion n'a pas abouti — \(message)"
         case .biometricSaveFailed:
             return "Les identifiants biométriques n'ont pas pu être enregistrés"
+        case .biometricSessionExpired:
+            return "La session biométrique a expiré, veuillez vous reconnecter"
         }
     }
 }
 
 // MARK: - Response Types
 
+struct BiometricSessionResult: Sendable {
+    let user: UserInfo
+    let clientKeyHex: String?
+}
+
 struct UserInfo: Codable, Equatable, Sendable {
     let id: String
     let email: String
+    var firstName: String?
 }
 
 struct DeleteAccountResponse: Codable, Sendable {
     let success: Bool
     let message: String
     let scheduledDeletionAt: String
+}
+
+struct PasswordRecoveryContext: Equatable, Sendable {
+    let userId: String
+    let email: String
+    let firstName: String?
+    let hasVaultCodeConfigured: Bool
 }

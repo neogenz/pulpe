@@ -65,7 +65,7 @@ struct CreateTemplateView: View {
                 // Error
                 if let error {
                     Section {
-                        ErrorBanner(message: error.localizedDescription) {
+                        ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
                             self.error = nil
                         }
                     }
@@ -150,7 +150,7 @@ struct TemplateLineInputRow: View {
         HStack {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(line.name)
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
 
                 HStack {
                     KindBadge(line.kind, style: .compact)
@@ -163,10 +163,11 @@ struct TemplateLineInputRow: View {
             CurrencyText(line.amount)
                 .foregroundStyle(line.kind.color)
 
-            Button(role: .destructive, action: onDelete) {
+            Button(action: onDelete) {
                 Image(systemName: "trash")
                     .foregroundStyle(Color.errorPrimary)
             }
+            .buttonStyle(.plain)
         }
     }
 }
@@ -253,7 +254,7 @@ struct AddTemplateLineSheet: View {
             .accessibilityLabel("Montant")
             .onTapGesture { isAmountFocused = true }
 
-            RoundedRectangle(cornerRadius: 1)
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
                 .fill(isAmountFocused ? Color.pulpePrimary : Color.textTertiary.opacity(0.3))
                 .frame(width: 120, height: 2)
                 .animation(.easeInOut(duration: 0.2), value: isAmountFocused)
@@ -348,16 +349,9 @@ struct AddTemplateLineSheet: View {
             }
         } label: {
             Text("Ajouter")
-                .font(PulpeTypography.buttonPrimary)
-                .foregroundStyle(Color.textOnPrimary)
-                .frame(maxWidth: .infinity)
-                .frame(height: DesignTokens.FrameHeight.button)
-                .background(Color.pulpePrimary)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
-                .opacity(canAdd ? 1 : 0.4)
         }
         .disabled(!canAdd)
-        .buttonStyle(.plain)
+        .primaryButtonStyle(isEnabled: canAdd)
     }
 
     // MARK: - Logic

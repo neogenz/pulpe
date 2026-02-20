@@ -7,15 +7,26 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 
 const createMockEncryptionService = (overrides?: {
+  getVaultStatus?: ReturnType<typeof mock>;
   getUserSalt?: ReturnType<typeof mock>;
   getUserDEK?: ReturnType<typeof mock>;
   generateKeyCheck?: ReturnType<typeof mock>;
   storeKeyCheck?: ReturnType<typeof mock>;
   verifyAndEnsureKeyCheck?: ReturnType<typeof mock>;
-  setupRecoveryKey?: ReturnType<typeof mock>;
+  createRecoveryKey?: ReturnType<typeof mock>;
+  regenerateRecoveryKey?: ReturnType<typeof mock>;
   recoverWithKey?: ReturnType<typeof mock>;
   reEncryptAllUserData?: ReturnType<typeof mock>;
 }) => ({
+  getVaultStatus:
+    overrides?.getVaultStatus ??
+    mock(() =>
+      Promise.resolve({
+        pinCodeConfigured: false,
+        recoveryKeyConfigured: false,
+        vaultCodeConfigured: false,
+      }),
+    ),
   getUserSalt:
     overrides?.getUserSalt ??
     mock(() => Promise.resolve({ salt: 'test-salt', kdfIterations: 600000 })),
@@ -25,9 +36,12 @@ const createMockEncryptionService = (overrides?: {
   storeKeyCheck: overrides?.storeKeyCheck ?? mock(() => Promise.resolve()),
   verifyAndEnsureKeyCheck:
     overrides?.verifyAndEnsureKeyCheck ?? mock(() => Promise.resolve(true)),
-  setupRecoveryKey:
-    overrides?.setupRecoveryKey ??
+  createRecoveryKey:
+    overrides?.createRecoveryKey ??
     mock(() => Promise.resolve({ formatted: 'XXXX-YYYY-ZZZZ-1234' })),
+  regenerateRecoveryKey:
+    overrides?.regenerateRecoveryKey ??
+    mock(() => Promise.resolve({ formatted: 'XXXX-YYYY-ZZZZ-5678' })),
   recoverWithKey: overrides?.recoverWithKey ?? mock(() => Promise.resolve()),
   reEncryptAllUserData:
     overrides?.reEncryptAllUserData ?? mock(() => Promise.resolve()),
@@ -50,6 +64,29 @@ function setupController(
 }
 
 describe('EncryptionController', () => {
+  describe('getVaultStatus', () => {
+    it('should return pin/recovery/vault flags from encryption service', async () => {
+      const user = createMockUser();
+      const expected = {
+        pinCodeConfigured: true,
+        recoveryKeyConfigured: true,
+        vaultCodeConfigured: true,
+      };
+
+      const { controller, mockEncryptionService } = setupController({
+        getVaultStatus: mock(() => Promise.resolve(expected)),
+      });
+
+      const result = await controller.getVaultStatus(user);
+
+      expect(result).toEqual(expected);
+      expect(mockEncryptionService.getVaultStatus.mock.calls.length).toBe(1);
+      expect(mockEncryptionService.getVaultStatus.mock.calls[0][0]).toBe(
+        user.id,
+      );
+    });
+  });
+
   describe('getSalt', () => {
     it('should return salt and kdfIterations from encryption service', async () => {
       const user = createMockUser();
@@ -115,7 +152,7 @@ describe('EncryptionController', () => {
       const callArguments: any[] = [];
       const { controller } = setupController({
         verifyAndEnsureKeyCheck: mock(async (...args) => {
-          callArguments.push(...args);
+          callArguments.push(args[0], Buffer.from(args[1]));
           return true;
         }),
       });
@@ -186,7 +223,7 @@ describe('EncryptionController', () => {
       const expectedRecoveryKey = 'XXXX-YYYY-ZZZZ-1234';
 
       const { controller } = setupController({
-        setupRecoveryKey: mock(() =>
+        createRecoveryKey: mock(() =>
           Promise.resolve({ formatted: expectedRecoveryKey }),
         ),
       });
@@ -196,26 +233,24 @@ describe('EncryptionController', () => {
       expect(result).toEqual({ recoveryKey: expectedRecoveryKey });
     });
 
-    it('should call setupRecoveryKey with userId and clientKey', async () => {
+    it('should call createRecoveryKey with userId and clientKey', async () => {
       const user = createMockUser();
 
-      const setupRecoveryKey = mock(() =>
+      const createRecoveryKey = mock(() =>
         Promise.resolve({ formatted: 'XXXX-YYYY-ZZZZ-1234' }),
       );
 
-      const { controller } = setupController({
-        setupRecoveryKey,
-      });
+      const { controller } = setupController({ createRecoveryKey });
 
       await controller.setupRecovery(user);
 
-      const calls = setupRecoveryKey.mock.calls as unknown[][];
+      const calls = createRecoveryKey.mock.calls as unknown[][];
       expect(calls.length).toBe(1);
       expect(calls[0][0]).toBe(user.id);
       expect(calls[0][1]).toEqual(user.clientKey);
     });
 
-    it('should log audit event with recovery_key.setup operation', async () => {
+    it('should log audit event with recovery_key.create operation', async () => {
       const user = createMockUser();
       const logSpy = spyOn(Logger.prototype, 'log');
 
@@ -224,8 +259,8 @@ describe('EncryptionController', () => {
       await controller.setupRecovery(user);
 
       expect(logSpy).toHaveBeenCalledWith(
-        { userId: user.id, operation: 'recovery_key.setup' },
-        'Recovery key generated and DEK wrapped',
+        { userId: user.id, operation: 'recovery_key.create' },
+        'Recovery key created',
       );
 
       logSpy.mockRestore();
@@ -236,7 +271,7 @@ describe('EncryptionController', () => {
       const callArguments: any[] = [];
 
       const { controller } = setupController({
-        setupRecoveryKey: mock(async (...args) => {
+        createRecoveryKey: mock(async (...args) => {
           callArguments.push(...args);
           return { formatted: 'XXXX-YYYY-ZZZZ-1234' };
         }),
@@ -246,6 +281,56 @@ describe('EncryptionController', () => {
 
       expect(callArguments[0]).toBe(user.id);
       expect(callArguments[1]).toEqual(user.clientKey);
+    });
+  });
+
+  describe('regenerateRecovery', () => {
+    it('should return recoveryKey from encryptionService', async () => {
+      const user = createMockUser();
+      const expectedRecoveryKey = 'AAAA-BBBB-CCCC-5678';
+
+      const { controller } = setupController({
+        regenerateRecoveryKey: mock(() =>
+          Promise.resolve({ formatted: expectedRecoveryKey }),
+        ),
+      });
+
+      const result = await controller.regenerateRecovery(user);
+
+      expect(result).toEqual({ recoveryKey: expectedRecoveryKey });
+    });
+
+    it('should call regenerateRecoveryKey with userId and clientKey', async () => {
+      const user = createMockUser();
+
+      const regenerateRecoveryKey = mock(() =>
+        Promise.resolve({ formatted: 'AAAA-BBBB-CCCC-5678' }),
+      );
+
+      const { controller } = setupController({ regenerateRecoveryKey });
+
+      await controller.regenerateRecovery(user);
+
+      const calls = regenerateRecoveryKey.mock.calls as unknown[][];
+      expect(calls.length).toBe(1);
+      expect(calls[0][0]).toBe(user.id);
+      expect(calls[0][1]).toEqual(user.clientKey);
+    });
+
+    it('should log audit event with recovery_key.regenerate operation', async () => {
+      const user = createMockUser();
+      const logSpy = spyOn(Logger.prototype, 'log');
+
+      const { controller } = setupController();
+
+      await controller.regenerateRecovery(user);
+
+      expect(logSpy).toHaveBeenCalledWith(
+        { userId: user.id, operation: 'recovery_key.regenerate' },
+        'Recovery key regenerated',
+      );
+
+      logSpy.mockRestore();
     });
   });
 

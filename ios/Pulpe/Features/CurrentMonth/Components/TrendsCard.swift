@@ -14,8 +14,7 @@ struct TrendsCard: View {
                 // Current month amount
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(currentMonthTotal.asCHF)
-                        .font(.title2)
-                        .fontWeight(.bold)
+                        .font(PulpeTypography.title2)
                         .foregroundStyle(.primary)
                         .sensitiveAmount()
 
@@ -32,7 +31,7 @@ struct TrendsCard: View {
                     HStack(spacing: DesignTokens.Spacing.md) {
                         ForEach(expenses) { expense in
                             Text(expense.shortMonthName)
-                                .font(.caption)
+                                .font(PulpeTypography.caption)
                                 .foregroundStyle(expense.isCurrentMonth ? .primary : .secondary)
                                 .fontWeight(expense.isCurrentMonth ? .semibold : .regular)
                         }
@@ -85,11 +84,11 @@ struct TrendsCard: View {
     }
 
     private var emptySparkline: some View {
-        RoundedRectangle(cornerRadius: 4)
+        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xs)
             .fill(Color.progressTrack)
             .overlay {
                 Text("—")
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.tertiary)
             }
     }
@@ -100,11 +99,11 @@ struct TrendsCard: View {
     private func variationLabel(_ variation: ExpenseVariation) -> some View {
         HStack(spacing: 2) {
             Image(systemName: variation.isIncrease ? "arrow.up.right" : "arrow.down.right")
-                .font(.caption2)
+                .font(PulpeTypography.caption2)
                 .accessibilityHidden(true)
 
             Text("\(variation.formattedPercentage) vs \(variation.previousMonthName)")
-                .font(.caption)
+                .font(PulpeTypography.caption)
         }
         .foregroundStyle(variation.isIncrease ? Color.financialOverBudget : Color.financialSavings)
         .accessibilityLabel(variation.isIncrease ? "Dépenses en hausse" : "Dépenses en baisse")
@@ -123,7 +122,7 @@ struct TrendsCard: View {
 struct TrendsEmptyState: View {
     var body: some View {
         Text("Crée plus de budgets pour voir les tendances")
-            .font(.subheadline)
+            .font(PulpeTypography.subheadline)
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .pulpeCard()

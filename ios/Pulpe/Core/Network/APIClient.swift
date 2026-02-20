@@ -9,29 +9,65 @@ actor APIClient {
     private let baseURL: URL
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
+    private let authTokenProvider: @Sendable () async -> String?
+    private let clientKeyProvider: @Sendable () async -> String?
 
     private init() {
+        self.session = Self.makeDefaultSession()
+        self.baseURL = AppConfiguration.apiBaseURL
+        self.decoder = Self.makeDecoder()
+        self.encoder = Self.makeEncoder()
+        self.authTokenProvider = {
+            await KeychainManager.shared.getAccessToken()
+        }
+        self.clientKeyProvider = {
+            await ClientKeyManager.shared.resolveClientKey()
+        }
+    }
+
+    init(
+        session: URLSession,
+        baseURL: URL,
+        authTokenProvider: @escaping @Sendable () async -> String?,
+        clientKeyProvider: @escaping @Sendable () async -> String?
+    ) {
+        self.session = session
+        self.baseURL = baseURL
+        self.decoder = Self.makeDecoder()
+        self.encoder = Self.makeEncoder()
+        self.authTokenProvider = authTokenProvider
+        self.clientKeyProvider = clientKeyProvider
+    }
+
+    private static func makeDefaultSession() -> URLSession {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = AppConfiguration.requestTimeout
         config.timeoutIntervalForResource = AppConfiguration.resourceTimeout
 
-        self.session = URLSession(configuration: config)
-        self.baseURL = AppConfiguration.apiBaseURL
-        self.decoder = JSONDecoder()
-        self.encoder = JSONEncoder()
+        // Always fetch from network - caching is handled by Stores (SWR pattern)
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+
+        return URLSession(configuration: config)
+    }
+
+    private static func makeDecoder() -> JSONDecoder {
+        let decoder = JSONDecoder()
+        let iso8601WithFractional = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
+        let iso8601Standard = Date.ISO8601FormatStyle()
 
         // Configure date decoding for ISO8601 with timezone
-        decoder.dateDecodingStrategy = .custom { decoder in
-            let container = try decoder.singleValueContainer()
+        // Reuse parsing strategies captured by the decoder strategy to avoid per-date allocations.
+        decoder.dateDecodingStrategy = .custom { dateDecoder in
+            let container = try dateDecoder.singleValueContainer()
             let dateString = try container.decode(String.self)
 
-            // Try ISO8601 with fractional seconds (using cached formatter)
-            if let date = Formatters.iso8601WithFractional.date(from: dateString) {
+            // Try fractional seconds first (most common)
+            if let date = try? iso8601WithFractional.parse(dateString) {
                 return date
             }
 
-            // Fallback to without fractional seconds
-            if let date = Formatters.iso8601.date(from: dateString) {
+            // Fallback to standard ISO8601
+            if let date = try? iso8601Standard.parse(dateString) {
                 return date
             }
 
@@ -41,7 +77,13 @@ actor APIClient {
             )
         }
 
+        return decoder
+    }
+
+    private static func makeEncoder() -> JSONEncoder {
+        let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
+        return encoder
     }
 
     // MARK: - Public API
@@ -53,26 +95,7 @@ actor APIClient {
         method: HTTPMethod? = nil,
         isRetry: Bool = false
     ) async throws -> T {
-        var request = endpoint.urlRequest(baseURL: baseURL)
-
-        // Override method if specified
-        if let method {
-            request.httpMethod = method.rawValue
-        }
-
-        // Add auth token
-        if let token = await KeychainManager.shared.getAccessToken(), !token.isEmpty {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-
-        // Add body
-        if let body {
-            request.httpBody = try encoder.encode(body)
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        }
-
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-
+        let request = try await buildRequest(endpoint, body: body, method: method)
         return try await performRequest(request, endpoint: endpoint, body: body, isRetry: isRetry)
     }
 
@@ -83,22 +106,7 @@ actor APIClient {
         method: HTTPMethod? = nil,
         isRetry: Bool = false
     ) async throws {
-        var request = endpoint.urlRequest(baseURL: baseURL)
-
-        if let method {
-            request.httpMethod = method.rawValue
-        }
-
-        if let token = await KeychainManager.shared.getAccessToken(), !token.isEmpty {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-
-        if let body {
-            request.httpBody = try encoder.encode(body)
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        }
-
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        let request = try await buildRequest(endpoint, body: body, method: method)
 
         let data: Data
         let response: URLResponse
@@ -134,6 +142,34 @@ actor APIClient {
     }
 
     // MARK: - Private
+
+    private func buildRequest(
+        _ endpoint: Endpoint,
+        body: Encodable?,
+        method: HTTPMethod?
+    ) async throws -> URLRequest {
+        var request = endpoint.urlRequest(baseURL: baseURL)
+
+        if let method {
+            request.httpMethod = method.rawValue
+        }
+
+        if let token = await authTokenProvider(), !token.isEmpty {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        if let clientKey = await clientKeyProvider(), !clientKey.isEmpty {
+            request.setValue(clientKey, forHTTPHeaderField: "X-Client-Key")
+        }
+
+        if let body {
+            request.httpBody = try encoder.encode(body)
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
+
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        return request
+    }
 
     private func performRequest<T: Decodable>(
         _ request: URLRequest,
@@ -205,6 +241,13 @@ actor APIClient {
             if case .maintenance = error {
                 Task { @MainActor in
                     NotificationCenter.default.post(name: .maintenanceModeDetected, object: nil)
+                }
+            }
+
+            // Broadcast stale client key to trigger PIN re-entry
+            if case .clientKeyInvalid = error {
+                Task { @MainActor in
+                    NotificationCenter.default.post(name: .clientKeyCheckFailed, object: nil)
                 }
             }
 

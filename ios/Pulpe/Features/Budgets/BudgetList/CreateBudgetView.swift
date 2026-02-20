@@ -32,7 +32,7 @@ struct CreateBudgetView: View {
 
                     // Error display
                     if let error = viewModel.error {
-                        ErrorBanner(message: error.localizedDescription) {
+                        ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
                             viewModel.error = nil
                         }
                         .transition(.asymmetric(
@@ -43,7 +43,7 @@ struct CreateBudgetView: View {
                 }
                 .padding(.horizontal, DesignTokens.Spacing.xl)
                 .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, 32)
+                .padding(.bottom, DesignTokens.Spacing.xxxl)
             }
             .scrollIndicators(.hidden)
             .background(Color(.systemGroupedBackground))
@@ -110,11 +110,11 @@ struct CreateBudgetView: View {
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Période du budget")
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)
 
                 Text(viewModel.monthYearFormatted)
-                    .font(.system(.title3, design: .rounded, weight: .semibold))
+                    .font(.custom("Manrope-SemiBold", size: 20, relativeTo: .title3))
                     .foregroundStyle(.primary)
             }
 
@@ -122,7 +122,7 @@ struct CreateBudgetView: View {
 
             // Month indicator badge (Swiss format: MM.YYYY)
             Text(String(format: "%02d.%d", month, year))
-                .font(.system(.caption, design: .monospaced, weight: .medium))
+                .font(PulpeTypography.inputHelper).monospacedDigit()
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
@@ -141,7 +141,7 @@ struct CreateBudgetView: View {
             // Section header
             HStack {
                 Text("Choisir un modèle")
-                    .font(.system(.headline, design: .rounded, weight: .semibold))
+                    .font(PulpeTypography.buttonPrimary)
 
                 Spacer()
 
@@ -163,7 +163,7 @@ struct CreateBudgetView: View {
 
             // Footer hint
             Text("Le budget sera créé avec les prévisions du modèle sélectionné")
-                .font(.caption)
+                .font(PulpeTypography.caption)
                 .foregroundStyle(.tertiary)
                 .padding(.horizontal, DesignTokens.Spacing.xs)
                 .padding(.top, DesignTokens.Spacing.xs)
@@ -192,16 +192,16 @@ struct CreateBudgetView: View {
                 .foregroundStyle(.tertiary)
 
             Text("Pas encore de modèle")
-                .font(.subheadline)
+                .font(PulpeTypography.subheadline)
                 .foregroundStyle(.secondary)
 
             Text("Crée d'abord un modèle dans l'onglet Modèles")
-                .font(.caption)
+                .font(PulpeTypography.caption)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 32)
+        .padding(.vertical, DesignTokens.Spacing.xxxl)
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
@@ -258,9 +258,9 @@ struct TemplateSelectionCard: View {
 
                 // Template info
                 VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: DesignTokens.Spacing.sm) {
                         Text(template.name)
-                            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                            .font(.custom("Manrope-SemiBold", size: 15, relativeTo: .subheadline))
                             .foregroundStyle(.primary)
 
                         if template.isDefaultTemplate {
@@ -314,9 +314,9 @@ struct TemplateSelectionCard: View {
 
     private var defaultBadge: some View {
         Text("Par défaut")
-            .font(.system(size: 10, weight: .semibold))
+            .font(.custom("Manrope-SemiBold", size: 10, relativeTo: .caption2))
             .foregroundStyle(Color.pulpePrimary)
-            .padding(.horizontal, 8)
+            .padding(.horizontal, DesignTokens.Spacing.sm)
             .padding(.vertical, 3)
             .background(Color.pulpePrimary.opacity(0.12), in: Capsule())
     }
@@ -325,36 +325,36 @@ struct TemplateSelectionCard: View {
 
     private func totalsRow(_ totals: BudgetFormulas.TemplateTotals) -> some View {
         HStack(spacing: DesignTokens.Spacing.lg) {
-            HStack(spacing: 4) {
+            HStack(spacing: DesignTokens.Spacing.xs) {
                 Image(systemName: "arrow.down.circle.fill")
                     .font(.system(size: 12))
                     .foregroundStyle(Color.financialIncome)
 
                 Text(totals.totalIncome.asCompactCHF)
-                    .font(.system(.caption, design: .rounded, weight: .medium))
+                    .font(.custom("Manrope-Medium", size: 12, relativeTo: .caption))
                     .foregroundStyle(Color.financialIncome)
                     .sensitiveAmount()
             }
 
-            HStack(spacing: 4) {
+            HStack(spacing: DesignTokens.Spacing.xs) {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 12))
                     .foregroundStyle(Color.financialExpense)
 
                 Text(totals.totalExpenses.asCompactCHF)
-                    .font(.system(.caption, design: .rounded, weight: .medium))
+                    .font(.custom("Manrope-Medium", size: 12, relativeTo: .caption))
                     .foregroundStyle(Color.financialExpense)
                     .sensitiveAmount()
             }
 
             // Balance indicator
-            HStack(spacing: 4) {
+            HStack(spacing: DesignTokens.Spacing.xs) {
                 Image(systemName: totals.balance >= 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                     .font(.system(size: 12))
                     .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
 
                 Text(totals.balance.asCompactCHF)
-                    .font(.system(.caption, design: .rounded, weight: .medium))
+                    .font(.custom("Manrope-Medium", size: 12, relativeTo: .caption))
                     .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
                     .sensitiveAmount()
             }

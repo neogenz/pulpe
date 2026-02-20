@@ -41,6 +41,30 @@ enum TransactionKind: String, Codable, CaseIterable, Sendable {
         }
     }
 
+    var newTransactionTitle: String {
+        switch self {
+        case .expense: "Nouvelle dépense"
+        case .income: "Nouveau revenu"
+        case .saving: "Nouvelle épargne"
+        }
+    }
+
+    var newBudgetLineTitle: String {
+        switch self {
+        case .expense: "Nouvelle prévision"
+        case .income: "Nouvelle prévision"
+        case .saving: "Nouvelle prévision"
+        }
+    }
+
+    var editBudgetLineTitle: String {
+        switch self {
+        case .expense: "Modifier la dépense"
+        case .income: "Modifier le revenu"
+        case .saving: "Modifier l'épargne"
+        }
+    }
+
     /// For calculations, savings are treated as expenses
     var isOutflow: Bool {
         self == .expense || self == .saving

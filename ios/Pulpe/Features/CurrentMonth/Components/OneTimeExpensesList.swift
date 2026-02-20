@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// Section of free (unallocated) transactions - designed to be used inside a parent List
+/// Note: Deletion now uses undo toast instead of confirmation dialog
 struct TransactionSection: View {
     let title: String
     let transactions: [Transaction]
@@ -9,8 +10,6 @@ struct TransactionSection: View {
     let onDelete: (Transaction) -> Void
     let onEdit: (Transaction) -> Void
 
-    @State private var transactionToDelete: Transaction?
-    @State private var showDeleteAlert = false
     @State private var isExpanded = false
 
     private let collapsedItemCount = 3
@@ -48,8 +47,7 @@ struct TransactionSection: View {
     @ViewBuilder
     private func swipeActions(for transaction: Transaction) -> some View {
         Button {
-            transactionToDelete = transaction
-            showDeleteAlert = true
+            onDelete(transaction)
         } label: {
             Label("Supprimer", systemImage: "trash")
         }
@@ -76,10 +74,10 @@ struct TransactionSection: View {
             } label: {
                 HStack {
                     Text(isExpanded ? "Voir moins" : "Voir plus (+\(hiddenItemsCount))")
-                        .font(.subheadline)
+                        .font(PulpeTypography.subheadline)
                     Spacer()
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption)
+                        .font(PulpeTypography.caption)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -96,7 +94,7 @@ struct TransactionSection: View {
                     onEdit: { onEdit(transaction) }
                 )
                     .listRowSeparator(.hidden)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         swipeActions(for: transaction)
                     }
             }
@@ -111,18 +109,6 @@ struct TransactionSection: View {
             )
             .textCase(nil)
         }
-        .alert(
-            "Supprimer cette transaction ?",
-            isPresented: $showDeleteAlert,
-            presenting: transactionToDelete
-        ) { transaction in
-            Button("Annuler", role: .cancel) {}
-            Button("Supprimer", role: .destructive) {
-                onDelete(transaction)
-            }
-        } message: { _ in
-            Text("Cette action est irréversible.")
-        }
     }
 }
 
@@ -134,21 +120,21 @@ struct TransactionRow: View {
 
     var body: some View {
         Button(action: onEdit) {
-            HStack(spacing: 12) {
+            HStack(spacing: DesignTokens.Spacing.md) {
                 // Kind icon circle (Revolut-style)
                 kindIconCircle
 
                 // Main content
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(transaction.name)
-                        .font(.system(.body, design: .rounded, weight: .medium))
+                        .font(.custom("Manrope-Medium", size: 17, relativeTo: .body))
                         .foregroundStyle(transaction.isChecked ? .secondary : .primary)
                         .strikethrough(transaction.isChecked, color: .secondary)
                         .lineLimit(1)
 
                     // Date (relative formatting)
                     Text(transaction.transactionDate.relativeFormatted)
-                        .font(.caption)
+                        .font(PulpeTypography.caption)
                         .foregroundStyle(Color.textTertiary)
                 }
 
@@ -159,11 +145,11 @@ struct TransactionRow: View {
 
                 // Amount
                 Text(transaction.amount.asCHF)
-                    .font(.system(.callout, design: .rounded, weight: .semibold))
+                    .font(PulpeTypography.callout.weight(.semibold))
                     .foregroundStyle(transaction.isChecked ? .secondary : transaction.kind.color)
                     .sensitiveAmount()
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, DesignTokens.Spacing.sm)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

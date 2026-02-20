@@ -21,7 +21,7 @@ describe('RecoverVaultCode', () => {
   let mockEncryptionApi: {
     getSalt$: ReturnType<typeof vi.fn>;
     recover$: ReturnType<typeof vi.fn>;
-    setupRecoveryKey$: ReturnType<typeof vi.fn>;
+    regenerateRecoveryKey$: ReturnType<typeof vi.fn>;
   };
   let mockDialog: { open: ReturnType<typeof vi.fn> };
   let mockLogger: {
@@ -49,7 +49,7 @@ describe('RecoverVaultCode', () => {
         .fn()
         .mockReturnValue(of({ salt: 'salt-value', kdfIterations: 100000 })),
       recover$: vi.fn().mockReturnValue(of({ success: true })),
-      setupRecoveryKey$: vi
+      regenerateRecoveryKey$: vi
         .fn()
         .mockReturnValue(of({ recoveryKey: 'ABCD-EFGH-IJKL-MNOP' })),
     };
@@ -235,10 +235,10 @@ describe('RecoverVaultCode', () => {
       );
     });
 
-    it('should call setupRecoveryKey$ after successful recovery', async () => {
+    it('should call regenerateRecoveryKey$ after successful recovery', async () => {
       await submitFormViaDom();
       await vi.waitFor(() =>
-        expect(mockEncryptionApi.setupRecoveryKey$).toHaveBeenCalled(),
+        expect(mockEncryptionApi.regenerateRecoveryKey$).toHaveBeenCalled(),
       );
     });
 
@@ -365,15 +365,15 @@ describe('RecoverVaultCode', () => {
 
       await vi.waitFor(() => {
         expect(mockEncryptionApi.recover$).toHaveBeenCalled();
-        expect(mockEncryptionApi.setupRecoveryKey$).not.toHaveBeenCalled();
+        expect(mockEncryptionApi.regenerateRecoveryKey$).not.toHaveBeenCalled();
         expect(component['errorMessage']()).toContain(
           "Quelque chose n'a pas fonctionné",
         );
       });
     });
 
-    it('should handle setupRecoveryKey$ failure gracefully after successful recovery', async () => {
-      mockEncryptionApi.setupRecoveryKey$.mockReturnValue(
+    it('should handle regenerateRecoveryKey$ failure gracefully after successful recovery', async () => {
+      mockEncryptionApi.regenerateRecoveryKey$.mockReturnValue(
         throwError(() => new Error('Recovery key setup failed')),
       );
 

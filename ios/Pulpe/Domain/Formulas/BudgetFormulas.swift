@@ -123,19 +123,27 @@ enum BudgetFormulas {
     /// - Checked parent: max(envelope, consumed by checked transactions)
     /// - Unchecked parent: sum of checked allocated transactions
     /// - Free transactions: counted directly when checked
+    /// - Performance: O(n+m) instead of O(n×m) using Dictionary-based indexing
     static func calculateRealizedExpenses(
         budgetLines: [BudgetLine],
         transactions: [Transaction] = []
     ) -> Decimal {
+        // Pre-index transactions by budgetLineId for O(1) lookups - O(m)
+        // Only keep checked outflow transactions for this calculation
+        let transactionsByLineId = Dictionary(
+            grouping: transactions.filter { $0.isChecked && $0.kind.isOutflow },
+            by: { $0.budgetLineId ?? "" }
+        )
+        
         var total: Decimal = 0
 
+        // Calculate envelope totals - O(n) with O(1) lookups
         for line in budgetLines {
             guard line.kind.isOutflow else { continue }
             guard line.isRollover != true else { continue }
 
-            let consumed = transactions
-                .filter { $0.budgetLineId == line.id && $0.isChecked && $0.kind.isOutflow }
-                .reduce(Decimal.zero) { $0 + $1.amount }
+            let consumed = transactionsByLineId[line.id]?
+                .reduce(Decimal.zero) { $0 + $1.amount } ?? 0
 
             if line.isChecked {
                 total += max(line.amount, consumed)
@@ -144,10 +152,9 @@ enum BudgetFormulas {
             }
         }
 
-        // Free transactions (no parent envelope)
-        let freeTransactions = transactions
-            .filter { $0.budgetLineId == nil && $0.isChecked && $0.kind.isOutflow }
-            .reduce(Decimal.zero) { $0 + $1.amount }
+        // Free transactions (no parent envelope) - already filtered in index
+        let freeTransactions = transactionsByLineId[""]?
+            .reduce(Decimal.zero) { $0 + $1.amount } ?? 0
 
         return total + freeTransactions
     }
@@ -184,17 +191,53 @@ enum BudgetFormulas {
 
     // MARK: - All Metrics
 
-    /// Calculate all metrics at once (optimized)
+    /// Calculate all metrics at once (single-pass optimization)
+    /// Performance: O(n+m) with 2 iterations instead of 10
     static func calculateAllMetrics(
         budgetLines: [BudgetLine],
         transactions: [Transaction] = [],
         rollover: Decimal = 0
     ) -> Metrics {
-        let totalIncome = calculateTotalIncome(budgetLines: budgetLines, transactions: transactions)
-        let totalExpenses = calculateTotalExpenses(budgetLines: budgetLines, transactions: transactions)
-        let totalSavings = calculateTotalSavings(budgetLines: budgetLines, transactions: transactions)
-        let available = calculateAvailable(totalIncome: totalIncome, rollover: rollover)
-        let endingBalance = calculateEndingBalance(available: available, totalExpenses: totalExpenses)
+        // Single pass over budget lines
+        var budgetIncome: Decimal = 0
+        var budgetExpenses: Decimal = 0
+        var budgetSavings: Decimal = 0
+        
+        for line in budgetLines {
+            guard !(line.isRollover ?? false) else { continue }
+            switch line.kind {
+            case .income:
+                budgetIncome += line.amount
+            case .expense:
+                budgetExpenses += line.amount
+            case .saving:
+                budgetSavings += line.amount
+                budgetExpenses += line.amount // Savings count as expenses per SPECS
+            }
+        }
+        
+        // Single pass over transactions
+        var transactionIncome: Decimal = 0
+        var transactionExpenses: Decimal = 0
+        var transactionSavings: Decimal = 0
+        
+        for tx in transactions {
+            switch tx.kind {
+            case .income:
+                transactionIncome += tx.amount
+            case .expense:
+                transactionExpenses += tx.amount
+            case .saving:
+                transactionSavings += tx.amount
+                transactionExpenses += tx.amount // Savings count as expenses per SPECS
+            }
+        }
+        
+        let totalIncome = budgetIncome + transactionIncome
+        let totalExpenses = budgetExpenses + transactionExpenses
+        let totalSavings = budgetSavings + transactionSavings
+        let available = totalIncome + rollover
+        let endingBalance = available - totalExpenses
 
         return Metrics(
             totalIncome: totalIncome,
@@ -257,6 +300,90 @@ enum BudgetFormulas {
             allocated: allocated,
             available: available,
             percentage: percentage
+        )
+    }
+
+    // MARK: - Forward Projection
+
+    struct Projection: Equatable, Sendable {
+        let projectedEndOfMonthBalance: Decimal
+        let dailySpendingRate: Decimal
+        let daysElapsed: Int
+        let daysRemaining: Int
+        let isOnTrack: Bool
+        
+        /// Trend direction relative to budget
+        var trend: Trend {
+            if isOnTrack { return .onTrack }
+            return projectedEndOfMonthBalance < 0 ? .deficit : .surplus
+        }
+        
+        enum Trend {
+            case onTrack, deficit, surplus
+        }
+    }
+
+    /// Calculate forward-looking projection based on current spending rate
+    /// "À ce rythme, tu termineras le mois avec X CHF de disponible"
+    static func calculateProjection(
+        realizedExpenses: Decimal,
+        totalBudgetedExpenses: Decimal,
+        available: Decimal,
+        month: Int,
+        year: Int,
+        referenceDate: Date = Date()
+    ) -> Projection? {
+        let calendar = Calendar.current
+        
+        // Create date for the budget month
+        var components = DateComponents()
+        components.month = month
+        components.year = year
+        components.day = 1
+        guard let monthStart = calendar.date(from: components),
+              let monthEnd = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: monthStart)
+        else { return nil }
+        
+        let totalDaysInMonth = calendar.component(.day, from: monthEnd)
+        let currentDay = calendar.component(.day, from: referenceDate)
+        let currentMonth = calendar.component(.month, from: referenceDate)
+        let currentYear = calendar.component(.year, from: referenceDate)
+        
+        // Only calculate projection for current or future months
+        guard year > currentYear || (year == currentYear && month >= currentMonth) else {
+            return nil
+        }
+        
+        // For the current month, use actual days elapsed
+        let daysElapsed: Int
+        if month == currentMonth && year == currentYear {
+            daysElapsed = max(1, currentDay) // At least 1 day to avoid division by zero
+        } else {
+            // For future months, no projection needed (no spending yet)
+            return nil
+        }
+        
+        let daysRemaining = totalDaysInMonth - daysElapsed
+        
+        // Calculate daily spending rate based on realized expenses
+        let dailySpendingRate = realizedExpenses / Decimal(daysElapsed)
+        
+        // Project total expenses to end of month
+        let projectedTotalExpenses = dailySpendingRate * Decimal(totalDaysInMonth)
+        
+        // Calculate projected end-of-month balance
+        let projectedEndOfMonthBalance = available - projectedTotalExpenses
+        
+        // Determine if on track (projected balance >= planned remaining)
+        let plannedRemaining = available - totalBudgetedExpenses
+        let isOnTrack = projectedEndOfMonthBalance >= plannedRemaining
+        
+        return Projection(
+            projectedEndOfMonthBalance: projectedEndOfMonthBalance,
+            dailySpendingRate: dailySpendingRate,
+            daysElapsed: daysElapsed,
+            daysRemaining: daysRemaining,
+            isOnTrack: isOnTrack
         )
     }
 

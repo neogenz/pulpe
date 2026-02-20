@@ -306,7 +306,7 @@ describe('EnterVaultCode', () => {
       );
     });
 
-    it('should show generic error when validateKey$ returns HTTP 429', async () => {
+    it('should show rate-limit error when validateKey$ returns HTTP 429', async () => {
       mockEncryptionApi.validateKey$.mockReturnValue(
         throwError(
           () =>
@@ -318,8 +318,8 @@ describe('EnterVaultCode', () => {
       );
       await submitFormViaDom();
       await vi.waitFor(() =>
-        expect(component['errorMessage']()).toContain(
-          "Quelque chose n'a pas fonctionné",
+        expect(component['errorMessage']()).toBe(
+          'Trop de tentatives, patiente quelques minutes',
         ),
       );
     });

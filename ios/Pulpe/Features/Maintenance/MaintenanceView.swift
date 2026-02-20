@@ -15,18 +15,18 @@ struct MaintenanceView: View {
                 .frame(width: 200, height: 200)
 
             Text("Maintenance en cours")
-                .font(.title)
+                .font(PulpeTypography.title)
                 .fontWeight(.bold)
 
             Text("On améliore Pulpe pour toi — tes données sont bien au chaud, pas d'inquiétude. Réessaie dans quelques instants.")
-                .font(.body)
+                .font(PulpeTypography.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
             if let error = errorMessage {
                 Text(error)
-                    .font(.footnote)
+                    .font(PulpeTypography.footnote)
                     .foregroundStyle(Color.errorPrimary)
             }
 

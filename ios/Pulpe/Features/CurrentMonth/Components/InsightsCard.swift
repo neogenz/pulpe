@@ -46,7 +46,7 @@ struct InsightsCard: View {
             .accessibilityHint("Ouvre la vue détaillée du budget")
         } else {
             Text("Enregistre tes dépenses pour voir où part ton argent")
-                .font(.subheadline)
+                .font(PulpeTypography.subheadline)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .pulpeCard()
@@ -70,11 +70,10 @@ struct InsightsCard: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Où part ton argent")
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)
                 Text(spending.name)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(PulpeTypography.labelLarge)
                     .foregroundStyle(.primary)
                     .lineLimit(1)
             }
@@ -83,12 +82,11 @@ struct InsightsCard: View {
 
             VStack(alignment: .trailing, spacing: 2) {
                 Text(spending.amount.asCHF)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(PulpeTypography.labelLarge)
                     .foregroundStyle(.primary)
                     .sensitiveAmount()
                 Text("\(percentage)% de tes dépenses")
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)
             }
         }
@@ -102,10 +100,10 @@ struct InsightsCard: View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(Color.financialOverBudget)
-                .font(.subheadline)
+                .font(PulpeTypography.subheadline)
 
             alertText
-                .font(.subheadline)
+                .font(PulpeTypography.subheadline)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }

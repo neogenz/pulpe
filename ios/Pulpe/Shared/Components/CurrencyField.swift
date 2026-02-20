@@ -16,7 +16,8 @@ struct CurrencyField: View {
     let label: String?
 
     @FocusState private var internalFocus: Bool
-    @State private var textValue: String = ""
+    @State private var textValue: String
+    @State private var hasInitialized = false
 
     private let externalFocus: FocusState<Bool>.Binding?
 
@@ -34,37 +35,65 @@ struct CurrencyField: View {
         self.hint = hint
         self.label = label
         self.externalFocus = externalFocus
+        
+        // Initialize text value from binding immediately (not in onAppear)
+        if let decimal = value.wrappedValue {
+            self._textValue = State(initialValue: Self.displayFormatter.string(from: decimal as NSDecimalNumber) ?? "")
+        } else {
+            self._textValue = State(initialValue: "")
+        }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             if let label {
                 Text(label)
-                    .font(PulpeTypography.inputLabel)
-                    .foregroundStyle(.secondary)
+                    .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
+                    .foregroundStyle(Color.textPrimaryOnboarding)
             }
 
             HStack {
                 Text("CHF")
-                    .foregroundStyle(.secondary)
-                    .font(.body)
+                    .foregroundStyle(Color.textSecondaryOnboarding)
+                    .font(.custom("DMSans-Medium", size: 17, relativeTo: .body))
 
                 TextField(hint, text: $textValue)
                     .keyboardType(.decimalPad)
+                    .foregroundStyle(Color.authInputText)
                     .focused(externalFocus ?? $internalFocus)
+                    .accessibilityLabel(label ?? "Montant en CHF")
                     .onChange(of: textValue) { _, newValue in
                         updateValue(from: newValue)
                     }
                     .onChange(of: value) { _, newValue in
-                        updateText(from: newValue)
+                        // Only update text if value changed externally (not from user input)
+                        if hasInitialized {
+                            updateText(from: newValue)
+                        }
                     }
             }
             .padding(DesignTokens.Spacing.lg)
-            .background(Color.inputBackgroundSoft)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+            .background {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.authInputBackground)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(
+                                effectiveFocus ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder,
+                                lineWidth: effectiveFocus ? 2 : 1
+                            )
+                    }
+            }
+            .shadow(
+                color: effectiveFocus ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05),
+                radius: effectiveFocus ? 12 : 4,
+                y: 4
+            )
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: effectiveFocus)
         }
-        .onAppear {
-            updateText(from: value)
+        .task {
+            // Mark as initialized after first render
+            hasInitialized = true
         }
     }
 

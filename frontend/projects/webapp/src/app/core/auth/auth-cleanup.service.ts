@@ -1,12 +1,15 @@
 import { Injectable, inject, DestroyRef } from '@angular/core';
 
 import { BudgetApi } from '@core/budget';
+import { BudgetInvalidationService } from '../budget/budget-invalidation.service';
 import { ClientKeyService } from '@core/encryption';
 
 import { DemoModeService } from '../demo/demo-mode.service';
 import { HasBudgetCache } from './has-budget-cache';
+import { PreloadService } from '../preload/preload.service';
 import { PostHogService } from '../analytics/posthog';
 import { StorageService } from '../storage';
+import { UserSettingsApi } from '../user-settings/user-settings-api';
 import { Logger } from '../logging/logger';
 
 // Debounce delay before allowing another cleanup. Prevents duplicate calls
@@ -18,11 +21,14 @@ const CLEANUP_RESET_DELAY_MS = 100;
 })
 export class AuthCleanupService {
   readonly #budgetApi = inject(BudgetApi);
+  readonly #budgetInvalidationService = inject(BudgetInvalidationService);
   readonly #clientKeyService = inject(ClientKeyService);
   readonly #demoModeService = inject(DemoModeService);
   readonly #hasBudgetCache = inject(HasBudgetCache);
+  readonly #preloadService = inject(PreloadService);
   readonly #postHogService = inject(PostHogService);
   readonly #storageService = inject(StorageService);
+  readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #logger = inject(Logger);
   readonly #destroyRef = inject(DestroyRef);
 
@@ -66,6 +72,12 @@ export class AuthCleanupService {
         () => this.#budgetApi.cache.clear(),
         'budget data cache',
       );
+      this.#safeCleanup(() => this.#preloadService.reset(), 'preload state');
+      this.#safeCleanup(
+        () => this.#budgetInvalidationService.reset(),
+        'budget invalidation',
+      );
+      this.#safeCleanup(() => this.#userSettingsApi.reset(), 'user settings');
       this.#safeCleanup(() => this.#postHogService.reset(), 'PostHog');
       this.#safeCleanup(
         () => this.#storageService.clearAllUserData(),

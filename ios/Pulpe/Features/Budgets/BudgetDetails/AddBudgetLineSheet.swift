@@ -32,46 +32,38 @@ struct AddBudgetLineSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: DesignTokens.Spacing.xxl) {
-                    heroAmountSection
-                    quickAmountChips
-                    descriptionField
-                    kindSelector
+        ScrollView {
+            VStack(spacing: DesignTokens.Spacing.xxl) {
+                KindToggle(selection: $kind)
+                heroAmountSection
+                quickAmountChips
+                descriptionField
 
-                    if let error {
-                        ErrorBanner(message: error.localizedDescription) {
-                            self.error = nil
-                        }
+                if let error {
+                    ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                        self.error = nil
                     }
+                }
 
-                    addButton
-                }
-                .padding(.horizontal, DesignTokens.Spacing.xl)
-                .padding(.top, DesignTokens.Spacing.xxxl)
-                .padding(.bottom, DesignTokens.Spacing.xl)
+                addButton
             }
-            .background(Color.surfacePrimary)
-            .navigationTitle("Nouvelle prévision")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
-                }
-            }
-            .loadingOverlay(isLoading)
-            .dismissKeyboardOnTap()
-            .task {
-                try? await Task.sleep(for: .milliseconds(200))
-                isAmountFocused = true
-            }
-            .onChange(of: isAmountFocused) { _, isFocused in
-                if !isFocused, let quickAmount = pendingQuickAmount {
-                    amount = Decimal(quickAmount)
-                    amountText = "\(quickAmount)"
-                    pendingQuickAmount = nil
-                }
+            .padding(.horizontal, DesignTokens.Spacing.xl)
+            .padding(.top, DesignTokens.Spacing.lg)
+            .padding(.bottom, DesignTokens.Spacing.xl)
+        }
+        .background(Color.surfacePrimary)
+        .modernSheet(title: kind.newBudgetLineTitle)
+        .loadingOverlay(isLoading)
+        .dismissKeyboardOnTap()
+        .task {
+            try? await Task.sleep(for: .milliseconds(200))
+            isAmountFocused = true
+        }
+        .onChange(of: isAmountFocused) { _, isFocused in
+            if !isFocused, let quickAmount = pendingQuickAmount {
+                amount = Decimal(quickAmount)
+                amountText = "\(quickAmount)"
+                pendingQuickAmount = nil
             }
         }
     }
@@ -104,7 +96,7 @@ struct AddBudgetLineSheet: View {
             .accessibilityLabel("Montant")
             .onTapGesture { isAmountFocused = true }
 
-            RoundedRectangle(cornerRadius: 1)
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
                 .fill(isAmountFocused ? Color.pulpePrimary : Color.textTertiary.opacity(DesignTokens.Opacity.strong))
                 .frame(width: 120, height: 2)
                 .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isAmountFocused)
@@ -128,8 +120,7 @@ struct AddBudgetLineSheet: View {
                     }
                 } label: {
                     Text("\(quickAmount) \(DesignTokens.AmountInput.currencyCode)")
-                        .font(PulpeTypography.buttonSecondary)
-                        .fontWeight(.semibold)
+                        .font(PulpeTypography.labelLarge)
                         .fixedSize()
                         .padding(.horizontal, DesignTokens.Spacing.md)
                         .padding(.vertical, DesignTokens.Spacing.sm)
@@ -154,36 +145,6 @@ struct AddBudgetLineSheet: View {
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
 
-    // MARK: - Kind Selector
-
-    private var kindSelector: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            ForEach(TransactionKind.allCases, id: \.self) { type in
-                Button {
-                    withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
-                        kind = type
-                    }
-                } label: {
-                    Label(type.label, systemImage: type.icon)
-                        .font(PulpeTypography.buttonSecondary)
-                        .fontWeight(kind == type ? .semibold : .medium)
-                        .padding(.horizontal, DesignTokens.Spacing.md)
-                        .padding(.vertical, DesignTokens.Spacing.sm + 2)
-                        .frame(maxWidth: .infinity)
-                        .background(kind == type ? Color.pulpePrimary : Color.surfaceSecondary)
-                        .foregroundStyle(kind == type ? Color.textOnPrimary : .primary)
-                        .clipShape(Capsule())
-                        .overlay(
-                            kind == type ? nil :
-                            Capsule().strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
-                        )
-                }
-                .buttonStyle(.plain)
-                .sensoryFeedback(.selection, trigger: kind)
-            }
-        }
-    }
-
     // MARK: - Add Button
 
     private var addButton: some View {
@@ -191,15 +152,9 @@ struct AddBudgetLineSheet: View {
             Task { await addBudgetLine() }
         } label: {
             Text("Ajouter")
-                .font(PulpeTypography.buttonPrimary)
-                .foregroundStyle(canSubmit ? Color.textOnPrimary : .secondary)
-                .frame(maxWidth: .infinity)
-                .frame(height: DesignTokens.FrameHeight.button)
-                .background(canSubmit ? Color.pulpePrimary : Color.surfaceSecondary)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
         }
         .disabled(!canSubmit)
-        .buttonStyle(.plain)
+        .primaryButtonStyle(isEnabled: canSubmit)
     }
 
     // MARK: - Logic

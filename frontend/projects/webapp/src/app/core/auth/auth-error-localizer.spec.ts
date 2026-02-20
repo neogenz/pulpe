@@ -11,7 +11,7 @@ describe('AuthErrorLocalizer', () => {
 
   it('should localize known error messages', () => {
     expect(service.localizeError('Invalid login credentials')).toBe(
-      'Email ou mot de passe incorrect — on réessaie ?',
+      'Email ou mot de passe incorrect — réessaie',
     );
     expect(service.localizeError('User already registered')).toBe(
       'Cet email est déjà utilisé — tu as peut-être déjà un compte ?',
@@ -23,13 +23,13 @@ describe('AuthErrorLocalizer', () => {
 
   it('should handle empty or null messages', () => {
     expect(service.localizeError('')).toBe(
-      "Quelque chose n'a pas fonctionné — réessayons",
+      "Quelque chose n'a pas fonctionné — réessaie",
     );
     expect(service.localizeError(null as unknown as string)).toBe(
-      "Quelque chose n'a pas fonctionné — réessayons",
+      "Quelque chose n'a pas fonctionné — réessaie",
     );
     expect(service.localizeError(undefined as unknown as string)).toBe(
-      "Quelque chose n'a pas fonctionné — réessayons",
+      "Quelque chose n'a pas fonctionné — réessaie",
     );
   });
 
@@ -47,7 +47,7 @@ describe('AuthErrorLocalizer', () => {
       service.localizeError(
         'New password should be different from the old password.',
       ),
-    ).toBe("Quelque chose n'a pas fonctionné — réessayons");
+    ).toBe("Quelque chose n'a pas fonctionné — réessaie");
   });
 
   it('should detect rate limit errors', () => {
@@ -70,10 +70,10 @@ describe('AuthErrorLocalizer', () => {
 
   it('should return default message for unknown errors', () => {
     expect(service.localizeError('Some unknown error message')).toBe(
-      "Quelque chose n'a pas fonctionné — réessayons",
+      "Quelque chose n'a pas fonctionné — réessaie",
     );
     expect(service.localizeError('Random error text')).toBe(
-      "Quelque chose n'a pas fonctionné — réessayons",
+      "Quelque chose n'a pas fonctionné — réessaie",
     );
   });
 
@@ -114,7 +114,7 @@ describe('AuthErrorLocalizer', () => {
       );
 
       expect(service.localizeAuthError(error)).toBe(
-        'Email ou mot de passe incorrect — on réessaie ?',
+        'Email ou mot de passe incorrect — réessaie',
       );
     });
 
@@ -169,7 +169,7 @@ describe('AuthErrorLocalizer', () => {
         'some_unknown_code',
       );
       expect(service.localizeAuthError(error)).toBe(
-        'Email ou mot de passe incorrect — on réessaie ?',
+        'Email ou mot de passe incorrect — réessaie',
       );
     });
   });

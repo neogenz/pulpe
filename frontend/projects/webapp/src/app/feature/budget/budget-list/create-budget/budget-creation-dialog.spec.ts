@@ -512,8 +512,7 @@ describe('CreateBudgetDialogComponent', () => {
 
       // Mock API error with proper BudgetApiError structure (as would be returned by the service's error handling)
       const budgetApiError = {
-        message:
-          'Une erreur est survenue lors de la création du budget. Veuillez réessayer.',
+        message: 'La création du budget a échoué — réessaie',
         code: 'ERR_BUDGET_ALREADY_EXISTS',
         details: undefined,
       };
@@ -543,7 +542,7 @@ describe('CreateBudgetDialogComponent', () => {
 
       // Should show error notification with French message
       expect(snackbarSpy).toHaveBeenCalledWith(
-        'Une erreur est survenue lors de la création du budget. Veuillez réessayer.',
+        'La création du budget a échoué — réessaie',
         'Fermer',
         expect.objectContaining({
           duration: 8000,

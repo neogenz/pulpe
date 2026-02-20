@@ -9,4 +9,5 @@ extension Logger {
     static let ui = Logger(subsystem: subsystem, category: "ui")
     static let widget = Logger(subsystem: subsystem, category: "widget")
     static let app = Logger(subsystem: subsystem, category: "app")
+    static let encryption = Logger(subsystem: subsystem, category: "encryption")
 }

@@ -7,12 +7,20 @@ final class BudgetListStore: StoreProtocol {
 
     private(set) var budgets: [BudgetSparse] = []
     private(set) var isLoading = false
-    private(set) var error: Error?
+    private(set) var error: APIError?
+    
+    /// Returns true if the store has an error and no budget data to display
+    var hasError: Bool {
+        error != nil && budgets.isEmpty
+    }
 
     // MARK: - Cache Metadata
 
+    private(set) var hasLoadedOnce = false
     private var lastLoadTime: Date?
-    private static let cacheValidityDuration: TimeInterval = 30 // 30 seconds (short for multi-device sync)
+
+    /// Coalescing task to prevent concurrent API loads
+    private var loadTask: Task<Void, Never>?
 
     // MARK: - Services
 
@@ -32,56 +40,49 @@ final class BudgetListStore: StoreProtocol {
     // MARK: - Smart Loading (StoreProtocol)
 
     func loadIfNeeded() async {
-        // Skip if data is fresh (within 30s)
+        // Skip if data is fresh
         if let lastLoad = lastLoadTime,
-           Date().timeIntervalSince(lastLoad) < Self.cacheValidityDuration {
+           Date().timeIntervalSince(lastLoad) < AppConfiguration.shortCacheValidity {
             return
         }
         await forceRefresh()
     }
 
     func forceRefresh() async {
-        isLoading = true
-        defer { isLoading = false }
-        error = nil
+        // Cancel any existing load task to avoid duplicate requests
+        loadTask?.cancel()
+        
+        let task = Task {
+            isLoading = true
+            error = nil
+            defer { isLoading = false }
 
-        do {
-            budgets = try await budgetService.getBudgetsSparse(fields: "month,year,remaining")
-            lastLoadTime = Date()
+            do {
+                let fetchedBudgets = try await budgetService.getBudgetsSparse(fields: "month,year,remaining")
+                
+                // Check for cancellation before updating state
+                try Task.checkCancellation()
+                
+                budgets = fetchedBudgets
+                lastLoadTime = Date()
+                hasLoadedOnce = true
 
-            // Sync widget data after refresh
-            await syncWidgetData()
-        } catch {
-            self.error = error
-        }
-    }
-
-    // MARK: - Widget Sync
-
-    private func syncWidgetData() async {
-        do {
-            let exportData = try await budgetService.exportAllBudgets()
-
-            // Also get current budget details if it exists
-            if let currentBudget = try? await budgetService.getCurrentMonthBudget() {
-                let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
-                await widgetSyncService.sync(
-                    budgetsWithDetails: exportData.budgets,
-                    currentBudgetDetails: details
-                )
-            } else {
-                await widgetSyncService.sync(
-                    budgetsWithDetails: exportData.budgets,
-                    currentBudgetDetails: nil
-                )
+                // Sync widget data in background (non-blocking)
+                Task.detached(priority: .utility) { [widgetSyncService] in
+                    await widgetSyncService.syncAll()
+                }
+            } catch is CancellationError {
+                // Task was cancelled, don't update error state
+            } catch let apiError as APIError {
+                self.error = apiError
+            } catch {
+                self.error = .networkError(error)
             }
-        } catch {
-            Logger.sync.error("BudgetListStore: syncWidgetData failed - \(error)")
-            await widgetSyncService.sync(
-                budgetsWithDetails: [],
-                currentBudgetDetails: nil
-            )
         }
+        
+        loadTask = task
+        await task.value
+        loadTask = nil
     }
 
     // MARK: - Computed Properties

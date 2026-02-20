@@ -39,7 +39,7 @@ struct MonthDropdownMenu: View {
     private var labelContent: some View {
         HStack(spacing: DesignTokens.Spacing.xs) {
             Text(currentMonthYear)
-                .font(.headline)
+                .font(PulpeTypography.headline)
                 .lineLimit(1)
             Image(systemName: "chevron.up.chevron.down")
                 .font(.caption2.weight(.semibold))
@@ -166,7 +166,8 @@ struct BudgetDetailsView: View {
                     selectedTransactionForEdit = transaction
                 },
                 onDelete: { transaction in
-                    Task { await viewModel.deleteTransaction(transaction) }
+                    linkedTransactionsContext = nil // Dismiss sheet first
+                    viewModel.softDeleteTransaction(transaction, toastManager: appState.toastManager)
                 },
                 onAddTransaction: {
                     linkedTransactionsContext = nil
@@ -283,7 +284,7 @@ struct BudgetDetailsView: View {
                         Task { await viewModel.toggleTransaction(transaction) }
                     },
                     onDelete: { transaction in
-                        Task { await viewModel.deleteTransaction(transaction) }
+                        viewModel.softDeleteTransaction(transaction, toastManager: appState.toastManager)
                     },
                     onEdit: { transaction in
                         selectedTransactionForEdit = transaction
@@ -318,7 +319,7 @@ struct BudgetDetailsView: View {
                 }
             },
             onDelete: { line in
-                Task { await viewModel.deleteBudgetLine(line) }
+                viewModel.softDeleteBudgetLine(line, toastManager: appState.toastManager)
             },
             onAddTransaction: { line in
                 selectedLineForTransaction = line
@@ -378,6 +379,9 @@ final class BudgetDetailsViewModel {
     }
 
     var isShowingOnlyUnchecked: Bool { checkedFilter == .unchecked }
+    
+    // Cached metrics to avoid recalculation on every access
+    private var cachedMetrics: BudgetFormulas.Metrics?
 
     private let budgetService = BudgetService.shared
     private let budgetLineService = BudgetLineService.shared
@@ -400,11 +404,21 @@ final class BudgetDetailsViewModel {
     }
 
     var metrics: BudgetFormulas.Metrics {
-        BudgetFormulas.calculateAllMetrics(
+        if let cached = cachedMetrics {
+            return cached
+        }
+        let calculated = BudgetFormulas.calculateAllMetrics(
             budgetLines: budgetLines,
             transactions: transactions,
             rollover: budget?.rollover.orZero ?? 0
         )
+        cachedMetrics = calculated
+        return calculated
+    }
+    
+    /// Invalidate cached metrics when data changes
+    private func invalidateMetricsCache() {
+        cachedMetrics = nil
     }
 
     var incomeLines: [BudgetLine] {
@@ -480,16 +494,24 @@ final class BudgetDetailsViewModel {
     }
 
     /// Filters budget lines by name or by linked transaction names (accent and case insensitive)
+    /// Performance: O(n+m) with Dictionary indexing instead of O(n×m) nested loops
     func filteredLines(_ lines: [BudgetLine], searchText: String) -> [BudgetLine] {
         guard !searchText.isEmpty else { return lines }
+        
+        // Pre-index transactions by budgetLineId for O(1) lookups - O(m)
+        let transactionsByLineId = Dictionary(
+            grouping: transactions,
+            by: { $0.budgetLineId ?? "" }
+        )
+        
+        // Filter lines with O(1) transaction lookups - O(n)
         return lines.filter { line in
             line.name.localizedStandardContains(searchText) ||
                 "\(line.amount)".contains(searchText) ||
-                transactions.contains {
-                    $0.budgetLineId == line.id &&
-                        ($0.name.localizedStandardContains(searchText) ||
-                         "\($0.amount)".contains(searchText))
-                }
+                (transactionsByLineId[line.id]?.contains {
+                    $0.name.localizedStandardContains(searchText) ||
+                        "\($0.amount)".contains(searchText)
+                } ?? false)
         }
     }
 
@@ -518,6 +540,7 @@ final class BudgetDetailsViewModel {
             budgetLines = details.budgetLines
             transactions = details.transactions
             allBudgets = budgets
+            invalidateMetricsCache()
 
             updateAdjacentBudgets()
         } catch {
@@ -539,6 +562,7 @@ final class BudgetDetailsViewModel {
             budget = details.budget
             budgetLines = details.budgetLines
             transactions = details.transactions
+            invalidateMetricsCache()
             updateAdjacentBudgets()
         } catch {
             self.error = error
@@ -618,6 +642,7 @@ final class BudgetDetailsViewModel {
         let originalLines = budgetLines
         if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
             budgetLines[index] = line.toggled()
+            invalidateMetricsCache()
         }
 
         do {
@@ -626,6 +651,7 @@ final class BudgetDetailsViewModel {
             return true
         } catch {
             budgetLines = originalLines
+            invalidateMetricsCache()
             self.error = error
             return false
         }
@@ -642,13 +668,63 @@ final class BudgetDetailsViewModel {
         toastManager.show("Comptabilisé \(effective.asCHF) (enveloppe)")
     }
 
+    /// Toggle all unchecked transactions for a budget line in parallel
+    /// Performance: O(1) latency instead of O(n) sequential network calls
     func checkAllAllocatedTransactions(for budgetLineId: String) async {
         let unchecked = transactions.filter {
             $0.budgetLineId == budgetLineId && !$0.isChecked
         }
+        
+        guard !unchecked.isEmpty else { return }
+        
+        // Mark all as syncing
         for tx in unchecked {
-            await toggleTransaction(tx)
+            syncingTransactionIds.insert(tx.id)
         }
+        
+        // Optimistic update all at once
+        let originalTransactions = transactions
+        for tx in unchecked {
+            if let index = transactions.firstIndex(where: { $0.id == tx.id }) {
+                transactions[index] = tx.toggled()
+            }
+        }
+        invalidateMetricsCache()
+        
+        // Parallel API calls
+        await withTaskGroup(of: (String, Bool).self) { group in
+            for tx in unchecked {
+                group.addTask {
+                    do {
+                        _ = try await self.transactionService.toggleCheck(id: tx.id)
+                        return (tx.id, true)
+                    } catch {
+                        return (tx.id, false)
+                    }
+                }
+            }
+            
+            // Collect results
+            var anyFailed = false
+            try? Task.checkCancellation()
+            for await (_, success) in group {
+                if !success {
+                    anyFailed = true
+                }
+            }
+            
+            // If any failed, reload to get correct state
+            if anyFailed {
+                transactions = originalTransactions
+                invalidateMetricsCache()
+            }
+        }
+        
+        // Clear syncing state and reload
+        for tx in unchecked {
+            syncingTransactionIds.remove(tx.id)
+        }
+        await reloadCurrentBudget()
     }
 
     func toggleTransaction(_ transaction: Transaction) async {
@@ -659,6 +735,7 @@ final class BudgetDetailsViewModel {
         let originalTransactions = transactions
         if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
             transactions[index] = transaction.toggled()
+            invalidateMetricsCache()
         }
 
         do {
@@ -666,32 +743,110 @@ final class BudgetDetailsViewModel {
             await reloadCurrentBudget()
         } catch {
             transactions = originalTransactions
+            invalidateMetricsCache()
             self.error = error
         }
 
         syncingTransactionIds.remove(transaction.id)
     }
 
+    /// Soft delete with undo support - removes from UI immediately but delays API call
+    /// Returns an undo closure that restores the transaction if called before commit
+    func softDeleteTransaction(_ transaction: Transaction, toastManager: ToastManager) {
+        // Remove from UI immediately (optimistic)
+        transactions.removeAll { $0.id == transaction.id }
+        invalidateMetricsCache()
+
+        // Show undo toast - actual deletion happens when toast dismisses
+        toastManager.showWithUndo("Transaction supprimée") { [weak self] in
+            // Undo: restore the transaction
+            self?.transactions.append(transaction)
+            self?.invalidateMetricsCache()
+        }
+
+        // Schedule actual deletion after toast timeout
+        Task {
+            try? await Task.sleep(for: .seconds(3.5))
+            // If transaction is still removed (not restored via undo), commit deletion
+            guard !(self.transactions.contains { $0.id == transaction.id }) else { return }
+            await self.commitDeleteTransaction(transaction)
+        }
+    }
+
+    /// Actually delete the transaction from the server
+    private func commitDeleteTransaction(_ transaction: Transaction) async {
+        do {
+            try await transactionService.deleteTransaction(id: transaction.id)
+            await reloadCurrentBudget()
+        } catch {
+            // Restore on error
+            transactions.append(transaction)
+            invalidateMetricsCache()
+            self.error = error
+        }
+    }
+
     func deleteTransaction(_ transaction: Transaction) async {
         // Optimistic update
         let originalTransactions = transactions
         transactions.removeAll { $0.id == transaction.id }
+        invalidateMetricsCache()
 
         do {
             try await transactionService.deleteTransaction(id: transaction.id)
             await reloadCurrentBudget()
         } catch {
             transactions = originalTransactions
+            invalidateMetricsCache()
             self.error = error
         }
     }
 
     func addTransaction(_ transaction: Transaction) {
         transactions.append(transaction)
+        invalidateMetricsCache()
     }
 
     func addBudgetLine(_ budgetLine: BudgetLine) {
         budgetLines.append(budgetLine)
+        invalidateMetricsCache()
+    }
+
+    /// Soft delete with undo support - removes from UI immediately but delays API call
+    func softDeleteBudgetLine(_ line: BudgetLine, toastManager: ToastManager) {
+        guard !(line.isRollover ?? false) else { return }
+
+        // Remove from UI immediately (optimistic)
+        budgetLines.removeAll { $0.id == line.id }
+        invalidateMetricsCache()
+
+        // Show undo toast
+        toastManager.showWithUndo("Prévision supprimée") { [weak self] in
+            // Undo: restore the budget line
+            self?.budgetLines.append(line)
+            self?.invalidateMetricsCache()
+        }
+
+        // Schedule actual deletion after toast timeout
+        Task {
+            try? await Task.sleep(for: .seconds(3.5))
+            // If budget line is still removed (not restored via undo), commit deletion
+            guard !(self.budgetLines.contains { $0.id == line.id }) else { return }
+            await self.commitDeleteBudgetLine(line)
+        }
+    }
+
+    /// Actually delete the budget line from the server
+    private func commitDeleteBudgetLine(_ line: BudgetLine) async {
+        do {
+            try await budgetLineService.deleteBudgetLine(id: line.id)
+            await reloadCurrentBudget()
+        } catch {
+            // Restore on error
+            budgetLines.append(line)
+            invalidateMetricsCache()
+            self.error = error
+        }
     }
 
     func deleteBudgetLine(_ line: BudgetLine) async {
@@ -700,12 +855,14 @@ final class BudgetDetailsViewModel {
         // Optimistic update
         let originalLines = budgetLines
         budgetLines.removeAll { $0.id == line.id }
+        invalidateMetricsCache()
 
         do {
             try await budgetLineService.deleteBudgetLine(id: line.id)
             await reloadCurrentBudget()
         } catch {
             budgetLines = originalLines
+            invalidateMetricsCache()
             self.error = error
         }
     }
@@ -716,6 +873,7 @@ final class BudgetDetailsViewModel {
         // Optimistic update
         if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
             budgetLines[index] = line
+            invalidateMetricsCache()
         }
 
         // Reload to sync with server
@@ -726,6 +884,7 @@ final class BudgetDetailsViewModel {
         // Optimistic update
         if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
             transactions[index] = transaction
+            invalidateMetricsCache()
         }
 
         // Reload to sync with server
@@ -754,24 +913,22 @@ private struct RolloverInfoRow: View {
     private var content: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "arrow.uturn.backward.circle.fill")
-                .font(.title2)
+                .font(PulpeTypography.title2)
                 .foregroundStyle(isPositive ? Color.financialSavings : Color.financialOverBudget)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Report du mois précédent")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    .font(PulpeTypography.buttonSecondary)
                     .foregroundStyle(.primary)
                 Text(isPositive ? "Excédent reporté" : "Déficit reporté")
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)
             }
 
             Spacer()
 
             Text(amount.asCHF)
-                .font(.headline)
-                .fontWeight(.semibold)
+                .font(PulpeTypography.headline)
                 .foregroundStyle(isPositive ? Color.financialSavings : Color.financialOverBudget)
                 .sensitiveAmount()
         }

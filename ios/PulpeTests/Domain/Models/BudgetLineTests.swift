@@ -1,62 +1,40 @@
-import XCTest
+import Foundation
+import Testing
 @testable import Pulpe
 
-/// Tests for BudgetLine model behavior
-/// Focuses on state management and business logic
-final class BudgetLineTests: XCTestCase {
+struct BudgetLineTests {
 
     // MARK: - Check Status
 
-    func testIsChecked_whenCheckedAtIsNil_returnsFalse() {
-        // Arrange
+    @Test func isChecked_whenCheckedAtIsNil_returnsFalse() {
         let line = TestDataFactory.createBudgetLine(isChecked: false)
-
-        // Act
         let result = line.isChecked
-
-        // Assert
-        XCTAssertFalse(result, "Should return false when checkedAt is nil")
+        #expect(!result)
     }
 
-    func testIsChecked_whenCheckedAtHasValue_returnsTrue() {
-        // Arrange
+    @Test func isChecked_whenCheckedAtHasValue_returnsTrue() {
         let line = TestDataFactory.createBudgetLine(isChecked: true)
-
-        // Act
         let result = line.isChecked
-
-        // Assert
-        XCTAssertTrue(result, "Should return true when checkedAt has a value")
+        #expect(result)
     }
 
     // MARK: - Toggle Behavior
 
-    func testToggled_whenUnchecked_setsCheckedAt() {
-        // Arrange
+    @Test func toggled_whenUnchecked_setsCheckedAt() {
         let line = TestDataFactory.createBudgetLine(isChecked: false)
-
-        // Act
         let toggled = line.toggled()
-
-        // Assert
-        XCTAssertTrue(toggled.isChecked, "Should set checkedAt when toggling unchecked line")
-        XCTAssertNotNil(toggled.checkedAt, "checkedAt should not be nil after toggling")
+        #expect(toggled.isChecked)
+        #expect(toggled.checkedAt != nil)
     }
 
-    func testToggled_whenChecked_clearsCheckedAt() {
-        // Arrange
+    @Test func toggled_whenChecked_clearsCheckedAt() {
         let line = TestDataFactory.createBudgetLine(isChecked: true)
-
-        // Act
         let toggled = line.toggled()
-
-        // Assert
-        XCTAssertFalse(toggled.isChecked, "Should clear checkedAt when toggling checked line")
-        XCTAssertNil(toggled.checkedAt, "checkedAt should be nil after toggling")
+        #expect(!toggled.isChecked)
+        #expect(toggled.checkedAt == nil)
     }
 
-    func testToggled_preservesAllOtherFields() {
-        // Arrange
+    @Test func toggled_preservesAllOtherFields() {
         let original = BudgetLine(
             id: "test-id",
             budgetId: "budget-123",
@@ -73,42 +51,32 @@ final class BudgetLineTests: XCTestCase {
             isRollover: false,
             rolloverSourceBudgetId: nil
         )
-
-        // Act
         let toggled = original.toggled()
-
-        // Assert
-        XCTAssertEqual(toggled.id, original.id)
-        XCTAssertEqual(toggled.budgetId, original.budgetId)
-        XCTAssertEqual(toggled.templateLineId, original.templateLineId)
-        XCTAssertEqual(toggled.savingsGoalId, original.savingsGoalId)
-        XCTAssertEqual(toggled.name, original.name)
-        XCTAssertEqual(toggled.amount, original.amount)
-        XCTAssertEqual(toggled.kind, original.kind)
-        XCTAssertEqual(toggled.recurrence, original.recurrence)
-        XCTAssertEqual(toggled.isManuallyAdjusted, original.isManuallyAdjusted)
-        XCTAssertEqual(toggled.isRollover, original.isRollover)
+        #expect(toggled.id == original.id)
+        #expect(toggled.budgetId == original.budgetId)
+        #expect(toggled.templateLineId == original.templateLineId)
+        #expect(toggled.savingsGoalId == original.savingsGoalId)
+        #expect(toggled.name == original.name)
+        #expect(toggled.amount == original.amount)
+        #expect(toggled.kind == original.kind)
+        #expect(toggled.recurrence == original.recurrence)
+        #expect(toggled.isManuallyAdjusted == original.isManuallyAdjusted)
+        #expect(toggled.isRollover == original.isRollover)
     }
 
-    func testToggled_canBeToggledMultipleTimes() {
-        // Arrange
+    @Test func toggled_canBeToggledMultipleTimes() {
         let line = TestDataFactory.createBudgetLine(isChecked: false)
-
-        // Act
         let toggled1 = line.toggled()
         let toggled2 = toggled1.toggled()
         let toggled3 = toggled2.toggled()
-
-        // Assert
-        XCTAssertTrue(toggled1.isChecked, "First toggle should check")
-        XCTAssertFalse(toggled2.isChecked, "Second toggle should uncheck")
-        XCTAssertTrue(toggled3.isChecked, "Third toggle should check again")
+        #expect(toggled1.isChecked)
+        #expect(!toggled2.isChecked)
+        #expect(toggled3.isChecked)
     }
 
     // MARK: - Template Association
 
-    func testIsFromTemplate_whenTemplateLineIdExists_returnsTrue() {
-        // Arrange
+    @Test func isFromTemplate_whenTemplateLineIdExists_returnsTrue() {
         let line = BudgetLine(
             id: "test-id",
             budgetId: "budget-123",
@@ -123,16 +91,11 @@ final class BudgetLineTests: XCTestCase {
             createdAt: Date(),
             updatedAt: Date()
         )
-
-        // Act
         let result = line.isFromTemplate
-
-        // Assert
-        XCTAssertTrue(result, "Should return true when templateLineId is present")
+        #expect(result)
     }
 
-    func testIsFromTemplate_whenTemplateLineIdIsNil_returnsFalse() {
-        // Arrange
+    @Test func isFromTemplate_whenTemplateLineIdIsNil_returnsFalse() {
         let line = BudgetLine(
             id: "test-id",
             budgetId: "budget-123",
@@ -147,191 +110,129 @@ final class BudgetLineTests: XCTestCase {
             createdAt: Date(),
             updatedAt: Date()
         )
-
-        // Act
         let result = line.isFromTemplate
-
-        // Assert
-        XCTAssertFalse(result, "Should return false when templateLineId is nil")
+        #expect(!result)
     }
 
     // MARK: - Rollover Handling
 
-    func testIsVirtualRollover_whenIsRolloverTrue_returnsTrue() {
-        // Arrange
+    @Test func isVirtualRollover_whenIsRolloverTrue_returnsTrue() {
         let line = TestDataFactory.createBudgetLine(isRollover: true)
-
-        // Act
         let result = line.isVirtualRollover
-
-        // Assert
-        XCTAssertTrue(result, "Should return true when isRollover is true")
+        #expect(result)
     }
 
-    func testIsVirtualRollover_whenIsRolloverFalse_returnsFalse() {
-        // Arrange
+    @Test func isVirtualRollover_whenIsRolloverFalse_returnsFalse() {
         let line = TestDataFactory.createBudgetLine(isRollover: false)
-
-        // Act
         let result = line.isVirtualRollover
-
-        // Assert
-        XCTAssertFalse(result, "Should return false when isRollover is false")
+        #expect(!result)
     }
 
-    func testRolloverLine_createsCorrectVirtualLine() {
-        // Arrange
+    @Test func rolloverLine_createsCorrectVirtualLine() {
         let amount: Decimal = 500
         let budgetId = "budget-123"
         let sourceBudgetId = "budget-122"
-
-        // Act
         let rollover = BudgetLine.rolloverLine(
             amount: amount,
             budgetId: budgetId,
             sourceBudgetId: sourceBudgetId
         )
-
-        // Assert
-        XCTAssertEqual(rollover.amount, 500)
-        XCTAssertEqual(rollover.budgetId, budgetId)
-        XCTAssertEqual(rollover.rolloverSourceBudgetId, sourceBudgetId)
-        XCTAssertTrue(rollover.isVirtualRollover)
-        XCTAssertTrue(rollover.isChecked, "Rollover lines should always be checked")
-        XCTAssertEqual(rollover.kind, .income, "Positive rollover should be income")
+        #expect(rollover.amount == 500)
+        #expect(rollover.budgetId == budgetId)
+        #expect(rollover.rolloverSourceBudgetId == sourceBudgetId)
+        #expect(rollover.isVirtualRollover)
+        #expect(rollover.isChecked)
+        #expect(rollover.kind == .income)
     }
 
-    func testRolloverLine_withNegativeAmount_createsExpense() {
-        // Arrange
+    @Test func rolloverLine_withNegativeAmount_createsExpense() {
         let amount: Decimal = -300
-
-        // Act
         let rollover = BudgetLine.rolloverLine(
             amount: amount,
             budgetId: "budget-123",
             sourceBudgetId: nil
         )
-
-        // Assert
-        XCTAssertEqual(rollover.amount, -300)
-        XCTAssertEqual(rollover.kind, .expense, "Negative rollover should be expense")
+        #expect(rollover.amount == -300)
+        #expect(rollover.kind == .expense)
     }
 
-    func testRolloverLine_hasExpectedName() {
-        // Arrange & Act
+    @Test func rolloverLine_hasExpectedName() {
         let rollover = BudgetLine.rolloverLine(
             amount: 100,
             budgetId: "budget-123",
             sourceBudgetId: nil
         )
-
-        // Assert
-        XCTAssertEqual(rollover.name, "Report du mois précédent")
+        #expect(rollover.name == "Report du mois précédent")
     }
 
     // MARK: - Kind Categorization
 
-    func testKind_income_isNotOutflow() {
-        // Arrange
+    @Test func kind_income_isNotOutflow() {
         let line = TestDataFactory.createBudgetLine(kind: .income)
-
-        // Act & Assert
-        XCTAssertEqual(line.kind, .income)
-        XCTAssertFalse(line.kind.isOutflow, "Income should not be outflow")
+        #expect(line.kind == .income)
+        #expect(!line.kind.isOutflow)
     }
 
-    func testKind_expense_isOutflow() {
-        // Arrange
+    @Test func kind_expense_isOutflow() {
         let line = TestDataFactory.createBudgetLine(kind: .expense)
-
-        // Act & Assert
-        XCTAssertEqual(line.kind, .expense)
-        XCTAssertTrue(line.kind.isOutflow, "Expense should be outflow")
+        #expect(line.kind == .expense)
+        #expect(line.kind.isOutflow)
     }
 
-    func testKind_saving_isOutflow() {
-        // Arrange
+    @Test func kind_saving_isOutflow() {
         let line = TestDataFactory.createBudgetLine(kind: .saving)
-
-        // Act & Assert
-        XCTAssertEqual(line.kind, .saving)
-        XCTAssertTrue(line.kind.isOutflow, "Saving should be outflow")
+        #expect(line.kind == .saving)
+        #expect(line.kind.isOutflow)
     }
 
     // MARK: - Recurrence Types
 
-    func testRecurrence_fixed_representsRecurring() {
-        // Arrange
+    @Test func recurrence_fixed_representsRecurring() {
         let line = TestDataFactory.createBudgetLine(recurrence: .fixed)
-
-        // Act & Assert
-        XCTAssertEqual(line.recurrence, .fixed, "Should support fixed recurrence")
+        #expect(line.recurrence == .fixed)
     }
 
-    func testRecurrence_oneOff_representsNonRecurring() {
-        // Arrange
+    @Test func recurrence_oneOff_representsNonRecurring() {
         let line = TestDataFactory.createBudgetLine(recurrence: .oneOff)
-
-        // Act & Assert
-        XCTAssertEqual(line.recurrence, .oneOff, "Should support one-off recurrence")
+        #expect(line.recurrence == .oneOff)
     }
 
     // MARK: - Equality and Hashing
 
-    func testEquality_sameBudgetLines_areEqual() {
-        // Arrange
+    @Test func equality_sameBudgetLines_areEqual() {
         let line1 = TestDataFactory.createBudgetLine(id: "test-1")
         let line2 = TestDataFactory.createBudgetLine(id: "test-1")
-
-        // Act & Assert
-        XCTAssertEqual(line1, line2, "BudgetLines with same ID should be equal")
+        #expect(line1 == line2)
     }
 
-    func testEquality_differentIDs_areNotEqual() {
-        // Arrange
+    @Test func equality_differentIDs_areNotEqual() {
         let line1 = TestDataFactory.createBudgetLine(id: "test-1")
         let line2 = TestDataFactory.createBudgetLine(id: "test-2")
-
-        // Act & Assert
-        XCTAssertNotEqual(line1, line2, "BudgetLines with different IDs should not be equal")
+        #expect(line1 != line2)
     }
 
-    func testHashable_canBeUsedInSet() {
-        // Arrange
+    @Test func hashable_canBeUsedInSet() {
         let line1 = TestDataFactory.createBudgetLine(id: "test-1")
         let line2 = TestDataFactory.createBudgetLine(id: "test-2")
         let line3 = TestDataFactory.createBudgetLine(id: "test-1")
-
-        // Act
         let lineSet: Set<BudgetLine> = [line1, line2, line3]
-
-        // Assert
-        XCTAssertEqual(lineSet.count, 2, "Set should contain only unique budget lines")
+        #expect(lineSet.count == 2)
     }
 
     // MARK: - Amount Validation
 
-    func testAmount_canBePositive() {
-        // Arrange
+    @Test func amount_canBePositive() {
         let line = TestDataFactory.createBudgetLine(amount: 1500)
-
-        // Act & Assert
-        XCTAssertEqual(line.amount, 1500, "Should store positive amounts")
+        #expect(line.amount == 1500)
     }
 
-    func testAmount_canBeZero() {
-        // Arrange
+    @Test func amount_canBeZero() {
         let line = TestDataFactory.createBudgetLine(amount: 0)
-
-        // Act & Assert
-        XCTAssertEqual(line.amount, 0, "Should allow zero amounts")
+        #expect(line.amount == 0)
     }
 
-    func testAmount_usesDecimalForPrecision() {
-        // Arrange
+    @Test func amount_usesDecimalForPrecision() {
         let line = TestDataFactory.createBudgetLine(amount: Decimal(string: "1234.56")!)
-
-        // Act & Assert
-        XCTAssertEqual(line.amount, Decimal(string: "1234.56")!, "Should preserve decimal precision")
+        #expect(line.amount == Decimal(string: "1234.56")!)
     }
 }

@@ -90,7 +90,7 @@ export class DemoController {
 
     if (!isValidToken) {
       throw new ForbiddenException(
-        'Échec de la vérification anti-robot. Veuillez réessayer.',
+        'La vérification anti-robot a échoué — réessaie',
       );
     }
 

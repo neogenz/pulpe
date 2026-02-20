@@ -12,6 +12,10 @@ actor KeychainManager {
     private let refreshTokenKey = "refresh_token"
     private let biometricAccessTokenKey = "biometric_access_token"
     private let biometricRefreshTokenKey = "biometric_refresh_token"
+    private let clientKeyKey = "client_key"
+    private let biometricClientKeyKey = "biometric_client_key"
+    private let biometricEnabledPreferenceKey = "biometric_enabled"
+    private let onboardingCompletedKey = "onboarding_completed"
 
     private var isAvailableCache: Bool?
 
@@ -106,9 +110,14 @@ actor KeychainManager {
         try getBiometric(key: biometricRefreshTokenKey)
     }
 
+    func getBiometricRefreshToken(context: LAContext) throws -> String? {
+        try getBiometric(key: biometricRefreshTokenKey, context: context)
+    }
+
     func clearBiometricTokens() {
         delete(key: biometricAccessTokenKey)
         delete(key: biometricRefreshTokenKey)
+        delete(key: biometricClientKeyKey)
     }
 
     func hasBiometricTokens() -> Bool {
@@ -125,6 +134,94 @@ actor KeychainManager {
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         return status == errSecSuccess || status == errSecInteractionNotAllowed
+    }
+
+    // MARK: - Client Key Management
+
+    func saveClientKey(_ hex: String) throws {
+        try ensureAvailable()
+
+        let status = saveReturningStatus(key: clientKeyKey, value: hex)
+        guard status == errSecSuccess else {
+            throw KeychainError.unknown(status)
+        }
+    }
+
+    func getClientKey() -> String? {
+        get(key: clientKeyKey)
+    }
+
+    func clearClientKey() {
+        delete(key: clientKeyKey)
+    }
+
+    @discardableResult
+    func saveBiometricClientKey(_ hex: String) -> Bool {
+        saveBiometric(key: biometricClientKeyKey, value: hex)
+    }
+
+    func getBiometricClientKey() throws -> String? {
+        try getBiometric(key: biometricClientKeyKey)
+    }
+
+    func getBiometricClientKey(context: LAContext) throws -> String? {
+        try getBiometric(key: biometricClientKeyKey, context: context)
+    }
+
+    func clearBiometricClientKey() {
+        delete(key: biometricClientKeyKey)
+    }
+
+    func hasBiometricClientKey() -> Bool {
+        let context = LAContext()
+        context.interactionNotAllowed = true
+
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: biometricClientKeyKey,
+            kSecUseAuthenticationContext as String: context
+        ]
+
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        return status == errSecSuccess || status == errSecInteractionNotAllowed
+    }
+
+    // MARK: - Biometric Preference
+
+    func saveBiometricEnabledPreference(_ enabled: Bool) {
+        save(key: biometricEnabledPreferenceKey, value: enabled ? "true" : "false")
+    }
+
+    func getBiometricEnabledPreference() -> Bool? {
+        guard let raw = get(key: biometricEnabledPreferenceKey) else { return nil }
+        switch raw {
+        case "true": return true
+        case "false": return false
+        default: return nil
+        }
+    }
+
+    func clearBiometricEnabledPreference() {
+        delete(key: biometricEnabledPreferenceKey)
+    }
+
+    // MARK: - Onboarding Status
+    // TODO: Migrate to backend storage (user.onboardingCompleted) as the single source of truth.
+    // Keychain is a workaround for UserDefaults being cleared on reinstall while Keychain persists.
+    // Backend storage would be more robust and sync across devices.
+
+    func setOnboardingCompleted(_ completed: Bool) {
+        if completed {
+            save(key: onboardingCompletedKey, value: "true")
+        } else {
+            delete(key: onboardingCompletedKey)
+        }
+    }
+
+    func isOnboardingCompleted() -> Bool {
+        get(key: onboardingCompletedKey) == "true"
     }
 
     // MARK: - Generic Value Storage (for Supabase SDK)
@@ -243,7 +340,10 @@ actor KeychainManager {
     private func getBiometric(key: String) throws -> String? {
         let context = LAContext()
         context.interactionNotAllowed = false
+        return try getBiometric(key: key, context: context)
+    }
 
+    private func getBiometric(key: String, context: LAContext) throws -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,

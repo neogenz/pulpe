@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Sheet for editing an existing budget line (prévision)
+/// Sheet for editing an existing budget line (prévision) — hero amount layout
 struct EditBudgetLineSheet: View {
     let budgetLine: BudgetLine
     let onUpdate: (BudgetLine) -> Void
@@ -11,6 +11,8 @@ struct EditBudgetLineSheet: View {
     @State private var kind: TransactionKind
     @State private var isLoading = false
     @State private var error: Error?
+    @FocusState private var isAmountFocused: Bool
+    @State private var amountText: String
 
     private let budgetLineService = BudgetLineService.shared
 
@@ -20,6 +22,12 @@ struct EditBudgetLineSheet: View {
         _name = State(initialValue: budgetLine.name)
         _amount = State(initialValue: budgetLine.amount)
         _kind = State(initialValue: budgetLine.kind)
+        _amountText = State(initialValue: {
+            if let str = Formatters.amountInput.string(from: budgetLine.amount as NSDecimalNumber) {
+                return str
+            }
+            return ""
+        }())
     }
 
     private var canSubmit: Bool {
@@ -27,65 +35,104 @@ struct EditBudgetLineSheet: View {
         return !name.trimmingCharacters(in: .whitespaces).isEmpty && !isLoading
     }
 
+    private var displayAmount: String {
+        if let amount, amount > 0 {
+            return Formatters.amountInput.string(from: amount as NSDecimalNumber) ?? "0"
+        }
+        return "0.00"
+    }
+
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField("Description", text: $name)
-                        .font(PulpeTypography.bodyLarge)
-                        .listRowBackground(Color.surfaceCard)
-                } header: {
-                    Text("Description")
-                        .font(PulpeTypography.labelLarge)
-                }
-
-                Section {
-                    CurrencyField(value: $amount)
-                        .listRowBackground(Color.surfaceCard)
-                } header: {
-                    Text("Montant")
-                        .font(PulpeTypography.labelLarge)
-                }
-
-                Section {
-                    Picker("Type", selection: $kind) {
-                        ForEach(TransactionKind.allCases, id: \.self) { type in
-                            Label(type.label, systemImage: type.icon)
-                                .tag(type)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .listRowBackground(Color.surfaceCard)
-                } header: {
-                    Text("Type")
-                        .font(PulpeTypography.labelLarge)
-                }
+        ScrollView {
+            VStack(spacing: DesignTokens.Spacing.xxl) {
+                KindToggle(selection: $kind)
+                heroAmountSection
+                descriptionField
 
                 if let error {
-                    Section {
-                        ErrorBanner(message: error.localizedDescription) {
-                            self.error = nil
-                        }
-                    }
-                }
-            }
-            .navigationTitle("Modifier la prévision")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") {
-                        dismiss()
+                    ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                        self.error = nil
                     }
                 }
 
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Enregistrer") {
-                        Task { await updateBudgetLine() }
-                    }
-                    .disabled(!canSubmit)
-                }
+                saveButton
             }
-            .loadingOverlay(isLoading)
+            .padding(.horizontal, DesignTokens.Spacing.xl)
+            .padding(.top, DesignTokens.Spacing.lg)
+            .padding(.bottom, DesignTokens.Spacing.xl)
+        }
+        .background(Color.surfacePrimary)
+        .modernSheet(title: kind.editBudgetLineTitle)
+        .loadingOverlay(isLoading)
+        .dismissKeyboardOnTap()
+    }
+
+    // MARK: - Hero Amount
+
+    private var heroAmountSection: some View {
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            Text(DesignTokens.AmountInput.currencyCode)
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.textTertiary)
+
+            ZStack {
+                TextField("", text: $amountText)
+                    .keyboardType(.decimalPad)
+                    .focused($isAmountFocused)
+                    .opacity(0)
+                    .frame(width: 0, height: 0)
+                    .onChange(of: amountText) { _, newValue in
+                        parseAmount(newValue)
+                    }
+
+                Text(displayAmount)
+                    .font(PulpeTypography.amountHero)
+                    .foregroundStyle((amount ?? 0) > 0 ? Color.textPrimary : Color.textTertiary)
+                    .contentTransition(.numericText())
+                    .animation(.snappy(duration: DesignTokens.Animation.fast), value: amount)
+            }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel("Montant")
+            .onTapGesture { isAmountFocused = true }
+
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
+                .fill(isAmountFocused ? Color.pulpePrimary : Color.textTertiary.opacity(DesignTokens.Opacity.strong))
+                .frame(width: 120, height: 2)
+                .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isAmountFocused)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, DesignTokens.Spacing.lg)
+    }
+
+    // MARK: - Description
+
+    private var descriptionField: some View {
+        TextField("Description", text: $name)
+            .font(PulpeTypography.bodyLarge)
+            .padding(DesignTokens.Spacing.lg)
+            .background(Color.inputBackgroundSoft)
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+    }
+
+    // MARK: - Save Button
+
+    private var saveButton: some View {
+        Button {
+            Task { await updateBudgetLine() }
+        } label: {
+            Text("Enregistrer")
+        }
+        .disabled(!canSubmit)
+        .primaryButtonStyle(isEnabled: canSubmit)
+    }
+
+    // MARK: - Logic
+
+    private func parseAmount(_ text: String) {
+        if let value = text.parsedAsAmount {
+            amount = value
+        } else {
+            amount = nil
         }
     }
 

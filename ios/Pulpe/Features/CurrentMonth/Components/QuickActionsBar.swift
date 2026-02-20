@@ -7,7 +7,7 @@ struct QuickActionsBar: View {
     let onShowBudget: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DesignTokens.Spacing.md) {
             QuickActionButton(
                 title: "Achat",
                 systemImage: "plus",
@@ -41,7 +41,7 @@ private struct QuickActionButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 8) {
+            VStack(spacing: DesignTokens.Spacing.sm) {
                 Image(systemName: systemImage)
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(color)
@@ -50,14 +50,13 @@ private struct QuickActionButton: View {
                     .clipShape(Circle())
 
                 Text(title)
-                    .font(.caption)
-                    .fontWeight(.medium)
+                    .font(PulpeTypography.inputHelper)
                     .foregroundStyle(.primary)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
+            .padding(.vertical, DesignTokens.Spacing.md)
             .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(.rect(cornerRadius: 12))
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)

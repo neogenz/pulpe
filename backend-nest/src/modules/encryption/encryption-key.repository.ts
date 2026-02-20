@@ -7,9 +7,15 @@ interface UserEncryptionKeyRow {
   key_check: string | null;
 }
 
-interface UserEncryptionKeyFullRow extends UserEncryptionKeyRow {
+export interface UserEncryptionKeyFullRow extends UserEncryptionKeyRow {
   wrapped_dek: string | null;
   key_check: string | null;
+}
+
+export interface VaultStatusRow {
+  pinCodeConfigured: boolean;
+  recoveryKeyConfigured: boolean;
+  vaultCodeConfigured: boolean;
 }
 
 @Injectable()
@@ -115,6 +121,54 @@ export class EncryptionKeyRepository {
     }
   }
 
+  async hasVaultCode(userId: string): Promise<boolean> {
+    const supabase = this.#supabaseService.getServiceRoleClient();
+    const { data, error } = await supabase
+      .from('user_encryption_key')
+      .select('key_check, wrapped_dek')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return false;
+      throw new Error(
+        `Failed to check vault code for user ${userId}: ${error.message}`,
+      );
+    }
+    return data?.key_check != null && data?.wrapped_dek != null;
+  }
+
+  async getVaultStatus(userId: string): Promise<VaultStatusRow> {
+    const supabase = this.#supabaseService.getServiceRoleClient();
+    const { data, error } = await supabase
+      .from('user_encryption_key')
+      .select('key_check, wrapped_dek')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return {
+          pinCodeConfigured: false,
+          recoveryKeyConfigured: false,
+          vaultCodeConfigured: false,
+        };
+      }
+      throw new Error(
+        `Failed to fetch vault status for user ${userId}: ${error.message}`,
+      );
+    }
+
+    const pinCodeConfigured = data?.key_check != null;
+    const recoveryKeyConfigured = data?.wrapped_dek != null;
+
+    return {
+      pinCodeConfigured,
+      recoveryKeyConfigured,
+      vaultCodeConfigured: pinCodeConfigured && recoveryKeyConfigured,
+    };
+  }
+
   async updateKeyCheck(userId: string, keyCheck: string): Promise<void> {
     const supabase = this.#supabaseService.getServiceRoleClient();
     const { error } = await supabase
@@ -127,5 +181,41 @@ export class EncryptionKeyRepository {
         `Failed to update key_check for user ${userId}: ${error.message}`,
       );
     }
+  }
+
+  async updateKeyCheckIfNull(userId: string, keyCheck: string): Promise<void> {
+    const supabase = this.#supabaseService.getServiceRoleClient();
+    const { error } = await supabase
+      .from('user_encryption_key')
+      .update({ key_check: keyCheck, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .is('key_check', null);
+
+    if (error) {
+      throw new Error(
+        `Failed to update key_check for user ${userId}: ${error.message}`,
+      );
+    }
+  }
+
+  async updateWrappedDEKIfNull(
+    userId: string,
+    wrappedDEK: string,
+  ): Promise<boolean> {
+    const supabase = this.#supabaseService.getServiceRoleClient();
+    const { data, error } = await supabase
+      .from('user_encryption_key')
+      .update({ wrapped_dek: wrappedDEK, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .is('wrapped_dek', null)
+      .select('user_id')
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(
+        `Failed to update wrapped DEK for user ${userId}: ${error.message}`,
+      );
+    }
+    return data !== null;
   }
 }

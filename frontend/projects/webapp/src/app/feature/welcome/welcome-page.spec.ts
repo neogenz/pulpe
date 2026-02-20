@@ -2,12 +2,22 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterModule } from '@angular/router';
-import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
+import { NO_ERRORS_SCHEMA, signal, Component, input } from '@angular/core';
 import WelcomePage from './welcome-page';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { Logger } from '@core/logging/logger';
 import { TurnstileService } from '@core/turnstile';
 import { PostHogService } from '@core/analytics/posthog';
+import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
+
+@Component({
+  // eslint-disable-next-line @angular-eslint/component-selector
+  selector: 'ng-lottie',
+  template: '<div class="mock-lottie"></div>',
+})
+class MockLottieComponent {
+  readonly options = input<AnimationOptions>();
+}
 
 describe('WelcomePage', () => {
   let fixture: ComponentFixture<WelcomePage>;
@@ -73,7 +83,12 @@ describe('WelcomePage', () => {
         { provide: PostHogService, useValue: mockPostHogService },
       ],
       schemas: [NO_ERRORS_SCHEMA],
-    }).compileComponents();
+    })
+      .overrideComponent(WelcomePage, {
+        remove: { imports: [LottieComponent] },
+        add: { imports: [MockLottieComponent] },
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(WelcomePage);
     component = fixture.componentInstance;
@@ -197,7 +212,7 @@ describe('WelcomePage', () => {
           _onToken: unknown,
           onError: (message: string) => void,
         ) => {
-          onError('Échec de la vérification de sécurité. Veuillez réessayer.');
+          onError('La vérification de sécurité a échoué — réessaie');
         },
       );
 

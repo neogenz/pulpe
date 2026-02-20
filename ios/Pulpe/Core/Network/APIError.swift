@@ -24,6 +24,7 @@ enum APIError: LocalizedError {
     case weakPassword
     case rateLimited
     case maintenance
+    case clientKeyInvalid
 
     var errorDescription: String? {
         switch self {
@@ -67,6 +68,8 @@ enum APIError: LocalizedError {
             return "Trop de tentatives — patiente quelques minutes"
         case .maintenance:
             return "Application en maintenance — réessaie dans quelques instants"
+        case .clientKeyInvalid:
+            return "Ton code d'accès a été modifié — saisis ton nouveau code"
         }
     }
 
@@ -93,6 +96,8 @@ enum APIError: LocalizedError {
             return .rateLimited
         case "MAINTENANCE":
             return .maintenance
+        case "ERR_ENCRYPTION_KEY_CHECK_FAILED":
+            return .clientKeyInvalid
         default:
             return .serverError(message: message ?? code)
         }

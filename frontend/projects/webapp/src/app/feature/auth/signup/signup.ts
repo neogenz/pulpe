@@ -337,12 +337,12 @@ export default class Signup {
         this.#router.navigate(['/', ROUTES.DASHBOARD]);
       } else {
         this.errorMessage.set(
-          result.error || 'La création du compte a échoué — on réessaie ?',
+          result.error || 'La création du compte a échoué — réessaie',
         );
       }
     } catch (error) {
       this.#logger.error('Erreur lors de la création du compte:', error);
-      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessayons");
+      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessaie");
     } finally {
       this.isSubmitting.set(false);
     }

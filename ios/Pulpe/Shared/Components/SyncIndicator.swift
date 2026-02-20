@@ -14,7 +14,7 @@ struct SyncIndicator: View {
             .scaleEffect(isSyncing ? 1.0 : 0.5)
             .animation(
                 isSyncing
-                    ? .easeInOut(duration: 0.6).repeatForever(autoreverses: true)
+                    ? DesignTokens.Animation.pulse
                     : .default,
                 value: isPulsing
             )

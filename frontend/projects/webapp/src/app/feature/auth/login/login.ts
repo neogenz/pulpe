@@ -239,12 +239,12 @@ export default class Login {
         this.#router.navigate(['/', ROUTES.DASHBOARD]);
       } else {
         this.errorMessage.set(
-          result.error || 'Email ou mot de passe incorrect — on réessaie ?',
+          result.error || 'Email ou mot de passe incorrect — réessaie',
         );
       }
     } catch (error) {
       this.#logger.error('Erreur lors de la connexion:', error);
-      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessayons");
+      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessaie");
     } finally {
       this.isSubmitting.set(false);
     }

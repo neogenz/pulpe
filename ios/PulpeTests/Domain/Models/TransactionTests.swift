@@ -1,62 +1,40 @@
-import XCTest
+import Foundation
+import Testing
 @testable import Pulpe
 
-/// Tests for Transaction model behavior
-/// Focuses on state management and allocation logic
-final class TransactionTests: XCTestCase {
+struct TransactionTests {
 
     // MARK: - Check Status
 
-    func testIsChecked_whenCheckedAtIsNil_returnsFalse() {
-        // Arrange
+    @Test func isChecked_whenCheckedAtIsNil_returnsFalse() {
         let transaction = TestDataFactory.createTransaction(isChecked: false)
-
-        // Act
         let result = transaction.isChecked
-
-        // Assert
-        XCTAssertFalse(result, "Should return false when checkedAt is nil")
+        #expect(!result)
     }
 
-    func testIsChecked_whenCheckedAtHasValue_returnsTrue() {
-        // Arrange
+    @Test func isChecked_whenCheckedAtHasValue_returnsTrue() {
         let transaction = TestDataFactory.createTransaction(isChecked: true)
-
-        // Act
         let result = transaction.isChecked
-
-        // Assert
-        XCTAssertTrue(result, "Should return true when checkedAt has a value")
+        #expect(result)
     }
 
     // MARK: - Toggle Behavior
 
-    func testToggled_whenUnchecked_setsCheckedAt() {
-        // Arrange
+    @Test func toggled_whenUnchecked_setsCheckedAt() {
         let transaction = TestDataFactory.createTransaction(isChecked: false)
-
-        // Act
         let toggled = transaction.toggled()
-
-        // Assert
-        XCTAssertTrue(toggled.isChecked, "Should set checkedAt when toggling unchecked transaction")
-        XCTAssertNotNil(toggled.checkedAt, "checkedAt should not be nil after toggling")
+        #expect(toggled.isChecked)
+        #expect(toggled.checkedAt != nil)
     }
 
-    func testToggled_whenChecked_clearsCheckedAt() {
-        // Arrange
+    @Test func toggled_whenChecked_clearsCheckedAt() {
         let transaction = TestDataFactory.createTransaction(isChecked: true)
-
-        // Act
         let toggled = transaction.toggled()
-
-        // Assert
-        XCTAssertFalse(toggled.isChecked, "Should clear checkedAt when toggling checked transaction")
-        XCTAssertNil(toggled.checkedAt, "checkedAt should be nil after toggling")
+        #expect(!toggled.isChecked)
+        #expect(toggled.checkedAt == nil)
     }
 
-    func testToggled_preservesAllOtherFields() {
-        // Arrange
+    @Test func toggled_preservesAllOtherFields() {
         let original = Transaction(
             id: "test-tx-id",
             budgetId: "budget-123",
@@ -70,162 +48,108 @@ final class TransactionTests: XCTestCase {
             createdAt: Date(),
             updatedAt: Date()
         )
-
-        // Act
         let toggled = original.toggled()
-
-        // Assert
-        XCTAssertEqual(toggled.id, original.id)
-        XCTAssertEqual(toggled.budgetId, original.budgetId)
-        XCTAssertEqual(toggled.budgetLineId, original.budgetLineId)
-        XCTAssertEqual(toggled.name, original.name)
-        XCTAssertEqual(toggled.amount, original.amount)
-        XCTAssertEqual(toggled.kind, original.kind)
-        XCTAssertEqual(toggled.category, original.category)
+        #expect(toggled.id == original.id)
+        #expect(toggled.budgetId == original.budgetId)
+        #expect(toggled.budgetLineId == original.budgetLineId)
+        #expect(toggled.name == original.name)
+        #expect(toggled.amount == original.amount)
+        #expect(toggled.kind == original.kind)
+        #expect(toggled.category == original.category)
     }
 
-    func testToggled_canBeToggledMultipleTimes() {
-        // Arrange
+    @Test func toggled_canBeToggledMultipleTimes() {
         let transaction = TestDataFactory.createTransaction(isChecked: false)
-
-        // Act
         let toggled1 = transaction.toggled()
         let toggled2 = toggled1.toggled()
         let toggled3 = toggled2.toggled()
-
-        // Assert
-        XCTAssertTrue(toggled1.isChecked, "First toggle should check")
-        XCTAssertFalse(toggled2.isChecked, "Second toggle should uncheck")
-        XCTAssertTrue(toggled3.isChecked, "Third toggle should check again")
+        #expect(toggled1.isChecked)
+        #expect(!toggled2.isChecked)
+        #expect(toggled3.isChecked)
     }
 
     // MARK: - Allocation Status
 
-    func testIsAllocated_whenBudgetLineIdExists_returnsTrue() {
-        // Arrange
+    @Test func isAllocated_whenBudgetLineIdExists_returnsTrue() {
         let transaction = TestDataFactory.createTransaction(budgetLineId: "line-123")
-
-        // Act
         let result = transaction.isAllocated
-
-        // Assert
-        XCTAssertTrue(result, "Should return true when budgetLineId is present")
+        #expect(result)
     }
 
-    func testIsAllocated_whenBudgetLineIdIsNil_returnsFalse() {
-        // Arrange
+    @Test func isAllocated_whenBudgetLineIdIsNil_returnsFalse() {
         let transaction = TestDataFactory.createTransaction(budgetLineId: nil)
-
-        // Act
         let result = transaction.isAllocated
-
-        // Assert
-        XCTAssertFalse(result, "Should return false when budgetLineId is nil")
+        #expect(!result)
     }
 
-    func testIsFree_whenBudgetLineIdIsNil_returnsTrue() {
-        // Arrange
+    @Test func isFree_whenBudgetLineIdIsNil_returnsTrue() {
         let transaction = TestDataFactory.createTransaction(budgetLineId: nil)
-
-        // Act
         let result = transaction.isFree
-
-        // Assert
-        XCTAssertTrue(result, "Should return true when budgetLineId is nil")
+        #expect(result)
     }
 
-    func testIsFree_whenBudgetLineIdExists_returnsFalse() {
-        // Arrange
+    @Test func isFree_whenBudgetLineIdExists_returnsFalse() {
         let transaction = TestDataFactory.createTransaction(budgetLineId: "line-123")
-
-        // Act
         let result = transaction.isFree
-
-        // Assert
-        XCTAssertFalse(result, "Should return false when budgetLineId is present")
+        #expect(!result)
     }
 
-    func testIsAllocated_and_isFree_areMutuallyExclusive() {
-        // Arrange
+    @Test func isAllocated_and_isFree_areMutuallyExclusive() {
         let allocated = TestDataFactory.createTransaction(budgetLineId: "line-123")
         let free = TestDataFactory.createTransaction(budgetLineId: nil)
-
-        // Act & Assert
-        XCTAssertTrue(allocated.isAllocated && !allocated.isFree, "Allocated transaction should not be free")
-        XCTAssertTrue(free.isFree && !free.isAllocated, "Free transaction should not be allocated")
+        #expect(allocated.isAllocated && !allocated.isFree)
+        #expect(free.isFree && !free.isAllocated)
     }
 
     // MARK: - Kind Categorization
 
-    func testKind_income_isNotOutflow() {
-        // Arrange
+    @Test func kind_income_isNotOutflow() {
         let transaction = TestDataFactory.createTransaction(kind: .income)
-
-        // Act & Assert
-        XCTAssertEqual(transaction.kind, .income)
-        XCTAssertFalse(transaction.kind.isOutflow, "Income should not be outflow")
+        #expect(transaction.kind == .income)
+        #expect(!transaction.kind.isOutflow)
     }
 
-    func testKind_expense_isOutflow() {
-        // Arrange
+    @Test func kind_expense_isOutflow() {
         let transaction = TestDataFactory.createTransaction(kind: .expense)
-
-        // Act & Assert
-        XCTAssertEqual(transaction.kind, .expense)
-        XCTAssertTrue(transaction.kind.isOutflow, "Expense should be outflow")
+        #expect(transaction.kind == .expense)
+        #expect(transaction.kind.isOutflow)
     }
 
-    func testKind_saving_isOutflow() {
-        // Arrange
+    @Test func kind_saving_isOutflow() {
         let transaction = TestDataFactory.createTransaction(kind: .saving)
-
-        // Act & Assert
-        XCTAssertEqual(transaction.kind, .saving)
-        XCTAssertTrue(transaction.kind.isOutflow, "Saving should be outflow")
+        #expect(transaction.kind == .saving)
+        #expect(transaction.kind.isOutflow)
     }
 
     // MARK: - Amount Validation
 
-    func testAmount_canBePositive() {
-        // Arrange
+    @Test func amount_canBePositive() {
         let transaction = TestDataFactory.createTransaction(amount: 150.50)
-
-        // Act & Assert
-        XCTAssertEqual(transaction.amount, Decimal(string: "150.50")!, "Should store positive amounts")
+        #expect(transaction.amount == Decimal(string: "150.50")!)
     }
 
-    func testAmount_canBeZero() {
-        // Arrange
+    @Test func amount_canBeZero() {
         let transaction = TestDataFactory.createTransaction(amount: 0)
-
-        // Act & Assert
-        XCTAssertEqual(transaction.amount, 0, "Should allow zero amounts")
+        #expect(transaction.amount == 0)
     }
 
-    func testAmount_usesDecimalForPrecision() {
-        // Arrange
+    @Test func amount_usesDecimalForPrecision() {
         let transaction = TestDataFactory.createTransaction(amount: Decimal(string: "99.99")!)
-
-        // Act & Assert
-        XCTAssertEqual(transaction.amount, Decimal(string: "99.99")!, "Should preserve decimal precision")
+        #expect(transaction.amount == Decimal(string: "99.99")!)
     }
 
-    func testAmount_handlesCHFFormatting() {
-        // Arrange
+    @Test func amount_handlesCHFFormatting() {
         let transaction = TestDataFactory.createTransaction(amount: Decimal(string: "1234.56")!)
-
-        // Act
         let formatted = transaction.amount.asCHF
-
-        // Assert - Swiss locale uses RIGHT SINGLE QUOTATION MARK (U+2019) as thousand separator
-        XCTAssertTrue(formatted.contains("1\u{2019}234"), "Should format with Swiss thousand separator")
-        XCTAssertTrue(formatted.contains("56"), "Should include cents")
+        // Swiss locale uses apostrophe as thousands separator (either ' or ')
+        let hasThousandsSeparator = formatted.contains("1'234") || formatted.contains("1\u{2019}234")
+        #expect(hasThousandsSeparator)
+        #expect(formatted.contains("56"))
     }
 
     // MARK: - Category Handling
 
-    func testCategory_canBeNil() {
-        // Arrange
+    @Test func category_canBeNil() {
         let transaction = Transaction(
             id: "test-id",
             budgetId: "budget-123",
@@ -239,13 +163,10 @@ final class TransactionTests: XCTestCase {
             createdAt: Date(),
             updatedAt: Date()
         )
-
-        // Act & Assert
-        XCTAssertNil(transaction.category, "Category should be optional")
+        #expect(transaction.category == nil)
     }
 
-    func testCategory_canHaveValue() {
-        // Arrange
+    @Test func category_canHaveValue() {
         let transaction = Transaction(
             id: "test-id",
             budgetId: "budget-123",
@@ -259,15 +180,12 @@ final class TransactionTests: XCTestCase {
             createdAt: Date(),
             updatedAt: Date()
         )
-
-        // Act & Assert
-        XCTAssertEqual(transaction.category, "Food", "Should store category value")
+        #expect(transaction.category == "Food")
     }
 
     // MARK: - Transaction Date
 
-    func testTransactionDate_storesCorrectDate() {
-        // Arrange
+    @Test func transactionDate_storesCorrectDate() {
         let specificDate = Date()
         let transaction = Transaction(
             id: "test-id",
@@ -282,144 +200,97 @@ final class TransactionTests: XCTestCase {
             createdAt: Date(),
             updatedAt: Date()
         )
-
-        // Act & Assert
-        XCTAssertEqual(transaction.transactionDate, specificDate, "Should store transaction date")
+        #expect(transaction.transactionDate == specificDate)
     }
 
     // MARK: - Signed Amount (Used for Display)
 
-    func testSignedAmount_income_returnsPositive() {
-        // Arrange
+    @Test func signedAmount_income_returnsPositive() {
         let transaction = TestDataFactory.createTransaction(amount: 1500, kind: .income)
-
-        // Act
         let result = transaction.signedAmount
-
-        // Assert
-        XCTAssertEqual(result, 1500, "Income should return positive amount")
-        XCTAssertGreaterThan(result, 0, "Income should be positive")
+        #expect(result == 1500)
+        #expect(result > 0)
     }
 
-    func testSignedAmount_expense_returnsNegative() {
-        // Arrange
+    @Test func signedAmount_expense_returnsNegative() {
         let transaction = TestDataFactory.createTransaction(amount: 500, kind: .expense)
-
-        // Act
         let result = transaction.signedAmount
-
-        // Assert
-        XCTAssertEqual(result, -500, "Expense should return negative amount")
-        XCTAssertLessThan(result, 0, "Expense should be negative")
+        #expect(result == -500)
+        #expect(result < 0)
     }
 
-    func testSignedAmount_saving_returnsNegative() {
-        // Arrange
+    @Test func signedAmount_saving_returnsNegative() {
         let transaction = TestDataFactory.createTransaction(amount: 200, kind: .saving)
-
-        // Act
         let result = transaction.signedAmount
-
-        // Assert
-        XCTAssertEqual(result, -200, "Saving should return negative amount (treated as expense)")
-        XCTAssertLessThan(result, 0, "Saving should be negative")
+        #expect(result == -200)
+        #expect(result < 0)
     }
 
-    func testSignedAmount_zeroAmount_staysZero() {
-        // Arrange
+    @Test func signedAmount_zeroAmount_staysZero() {
         let incomeZero = TestDataFactory.createTransaction(amount: 0, kind: .income)
         let expenseZero = TestDataFactory.createTransaction(amount: 0, kind: .expense)
-
-        // Act & Assert
-        XCTAssertEqual(incomeZero.signedAmount, 0, "Zero income should be zero")
-        XCTAssertEqual(expenseZero.signedAmount, 0, "Zero expense should be zero")
+        #expect(incomeZero.signedAmount == 0)
+        #expect(expenseZero.signedAmount == 0)
     }
 
     // MARK: - Equality and Hashing
 
-    func testEquality_sameTransactions_areEqual() {
-        // Arrange
+    @Test func equality_sameTransactions_areEqual() {
         let tx1 = TestDataFactory.createTransaction(id: "test-1")
         let tx2 = TestDataFactory.createTransaction(id: "test-1")
-
-        // Act & Assert
-        XCTAssertEqual(tx1, tx2, "Transactions with same ID should be equal")
+        #expect(tx1 == tx2)
     }
 
-    func testEquality_differentIDs_areNotEqual() {
-        // Arrange
+    @Test func equality_differentIDs_areNotEqual() {
         let tx1 = TestDataFactory.createTransaction(id: "test-1")
         let tx2 = TestDataFactory.createTransaction(id: "test-2")
-
-        // Act & Assert
-        XCTAssertNotEqual(tx1, tx2, "Transactions with different IDs should not be equal")
+        #expect(tx1 != tx2)
     }
 
-    func testHashable_canBeUsedInSet() {
-        // Arrange
+    @Test func hashable_canBeUsedInSet() {
         let tx1 = TestDataFactory.createTransaction(id: "test-1")
         let tx2 = TestDataFactory.createTransaction(id: "test-2")
         let tx3 = TestDataFactory.createTransaction(id: "test-1")
-
-        // Act
         let txSet: Set<Transaction> = [tx1, tx2, tx3]
-
-        // Assert
-        XCTAssertEqual(txSet.count, 2, "Set should contain only unique transactions")
+        #expect(txSet.count == 2)
     }
 
     // MARK: - Business Logic
 
-    func testAllocatedTransaction_belongsToBudgetLine() {
-        // Arrange
+    @Test func allocatedTransaction_belongsToBudgetLine() {
         let budgetLineId = "line-123"
         let transaction = TestDataFactory.createTransaction(budgetLineId: budgetLineId)
-
-        // Act & Assert
-        XCTAssertEqual(transaction.budgetLineId, budgetLineId, "Allocated transaction should reference budget line")
-        XCTAssertTrue(transaction.isAllocated)
+        #expect(transaction.budgetLineId == budgetLineId)
+        #expect(transaction.isAllocated)
     }
 
-    func testFreeTransaction_doesNotBelongToBudgetLine() {
-        // Arrange
+    @Test func freeTransaction_doesNotBelongToBudgetLine() {
         let transaction = TestDataFactory.createTransaction(budgetLineId: nil)
-
-        // Act & Assert
-        XCTAssertNil(transaction.budgetLineId, "Free transaction should not reference budget line")
-        XCTAssertTrue(transaction.isFree)
+        #expect(transaction.budgetLineId == nil)
+        #expect(transaction.isFree)
     }
 
     // MARK: - Integration with BudgetFormulas
 
-    func testTransaction_canBeUsedInFormulaCalculations() {
-        // Arrange
+    @Test func transaction_canBeUsedInFormulaCalculations() {
         let transactions = [
             TestDataFactory.createTransaction(id: "1", amount: 100, kind: .income),
             TestDataFactory.createTransaction(id: "2", amount: 50, kind: .expense)
         ]
-
-        // Act
         let totalIncome = BudgetFormulas.calculateTotalIncome(budgetLines: [], transactions: transactions)
         let totalExpenses = BudgetFormulas.calculateTotalExpenses(budgetLines: [], transactions: transactions)
-
-        // Assert
-        XCTAssertEqual(totalIncome, 100, "Should contribute to income calculations")
-        XCTAssertEqual(totalExpenses, 50, "Should contribute to expense calculations")
+        #expect(totalIncome == 100)
+        #expect(totalExpenses == 50)
     }
 
-    func testCheckedTransaction_contributesToRealizedMetrics() {
-        // Arrange
+    @Test func checkedTransaction_contributesToRealizedMetrics() {
         let transactions = [
             TestDataFactory.createTransaction(id: "1", amount: 100, kind: .income, isChecked: true),
             TestDataFactory.createTransaction(id: "2", amount: 50, kind: .expense, isChecked: false)
         ]
-
-        // Act
         let realizedIncome = BudgetFormulas.calculateRealizedIncome(budgetLines: [], transactions: transactions)
         let realizedExpenses = BudgetFormulas.calculateRealizedExpenses(budgetLines: [], transactions: transactions)
-
-        // Assert
-        XCTAssertEqual(realizedIncome, 100, "Checked income should contribute to realized metrics")
-        XCTAssertEqual(realizedExpenses, 0, "Unchecked expense should not contribute to realized metrics")
+        #expect(realizedIncome == 100)
+        #expect(realizedExpenses == 0)
     }
 }

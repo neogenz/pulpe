@@ -255,7 +255,7 @@ describe('ForgotPassword', () => {
       await component['onSubmit']();
 
       expect(component['errorMessage']()).toBe(
-        "Quelque chose n'a pas fonctionné — réessayons",
+        "Quelque chose n'a pas fonctionné — réessaie",
       );
     });
 

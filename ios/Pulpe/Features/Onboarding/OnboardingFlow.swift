@@ -9,9 +9,8 @@ struct OnboardingFlow: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Premium gradient background for Liquid Glass
-                Color.appPremiumBackground
-                    .ignoresSafeArea()
+                // Beautiful auth gradient background (same as welcome/login)
+                Color.authGradientBackground
 
                 VStack(spacing: 0) {
                     // Segmented progress indicator (except welcome)
@@ -49,7 +48,7 @@ struct OnboardingFlow: View {
             BudgetPreviewStep(state: state)
         case .registration:
             RegistrationStep(state: state) { user in
-                appState.completeOnboarding(user: user)
+                appState.completeOnboarding(user: user, onboardingData: state.createTemplateData())
             }
         }
     }
@@ -82,14 +81,14 @@ struct OnboardingStepView<Content: View>: View {
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: DesignTokens.Spacing.xxl) {
                     // New animated header with icon
                     OnboardingStepHeader(step: step)
-                        .padding(.top, 24)
+                        .padding(.top, DesignTokens.Spacing.xxl)
 
                     // Content with entrance animation
                     content()
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, DesignTokens.Spacing.xxl)
                         .opacity(contentOpacity)
                         .offset(y: contentOffset)
                 }
@@ -100,11 +99,11 @@ struct OnboardingStepView<Content: View>: View {
 
             // Error display
             if let error = state.error {
-                ErrorBanner(message: error.localizedDescription) {
+                ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
                     state.error = nil
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 16)
+                .padding(.horizontal, DesignTokens.Spacing.xxl)
+                .padding(.bottom, DesignTokens.Spacing.lg)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 

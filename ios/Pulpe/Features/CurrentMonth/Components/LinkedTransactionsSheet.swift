@@ -102,14 +102,13 @@ struct LinkedTransactionsSheet: View {
         VStack(spacing: DesignTokens.Spacing.sm) {
             HStack {
                 Text("Utilisation du budget")
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
                     .foregroundStyle(.secondary)
 
                 Spacer()
 
                 Text("\(Int(consumption.percentage))%")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(PulpeTypography.labelLarge)
                     .foregroundStyle(progressColor)
             }
 
@@ -139,13 +138,13 @@ struct LinkedTransactionsSheet: View {
                 .font(.system(size: 44, weight: .light))
                 .foregroundStyle(.quaternary)
 
-            VStack(spacing: 4) {
+            VStack(spacing: DesignTokens.Spacing.xs) {
                 Text("Pas encore de transaction")
-                    .font(.headline)
+                    .font(PulpeTypography.headline)
                     .foregroundStyle(.secondary)
 
                 Text("Ajoute une transaction pour suivre tes dépenses")
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
                     .foregroundStyle(Color.textTertiary)
                     .multilineTextAlignment(.center)
             }
@@ -160,8 +159,7 @@ struct LinkedTransactionsSheet: View {
     private var transactionsSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             Text("Transactions")
-                .font(.subheadline)
-                .fontWeight(.medium)
+                .font(PulpeTypography.buttonSecondary)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal)
 
@@ -189,7 +187,7 @@ struct LinkedTransactionsSheet: View {
             onAddTransaction()
         } label: {
             Label("Nouvelle transaction", systemImage: "plus")
-                .font(.headline)
+                .font(PulpeTypography.headline)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, DesignTokens.Spacing.lg)
         }
@@ -217,11 +215,11 @@ private struct MetricCard: View {
 
             VStack(spacing: 2) {
                 Text(label)
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)
 
                 Text(value.asCompactCHF)
-                    .font(.system(.callout, design: .rounded, weight: .bold))
+                    .font(PulpeTypography.progressValue)
                     .foregroundStyle(color == .secondary ? .primary : color)
                     .sensitiveAmount()
             }
@@ -242,25 +240,23 @@ private struct LinkedTransactionRow: View {
     let onEdit: () -> Void
     let onDelete: () -> Void
 
-    @State private var showDeleteConfirmation = false
-
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(transaction.name)
-                    .font(.body)
+                    .font(PulpeTypography.body)
                     .fontWeight(.medium)
                     .lineLimit(1)
 
                 Text(transaction.transactionDate.formatted(date: .abbreviated, time: .omitted))
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)
             }
 
             Spacer(minLength: 8)
 
             Text(transaction.amount.asCHF)
-                .font(.system(.body, design: .rounded, weight: .semibold))
+                .font(PulpeTypography.buttonPrimary)
                 .foregroundStyle(transaction.kind.color)
                 .sensitiveAmount()
 
@@ -275,7 +271,7 @@ private struct LinkedTransactionRow: View {
             .buttonStyle(.plain)
 
             Button {
-                showDeleteConfirmation = true
+                onDelete()
             } label: {
                 Image(systemName: "trash")
                     .font(.system(size: 15))
@@ -292,17 +288,6 @@ private struct LinkedTransactionRow: View {
                 Divider()
                     .padding(.leading, DesignTokens.Spacing.lg)
             }
-        }
-        .alert(
-            "Supprimer cette transaction ?",
-            isPresented: $showDeleteConfirmation
-        ) {
-            Button("Annuler", role: .cancel) {}
-            Button("Supprimer", role: .destructive) {
-                onDelete()
-            }
-        } message: {
-            Text("Cette action est irréversible.")
         }
     }
 }

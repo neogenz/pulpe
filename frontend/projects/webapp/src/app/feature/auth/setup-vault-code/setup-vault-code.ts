@@ -148,7 +148,7 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
                 } @else if (
                   form.get('confirmCode')?.hasError('fieldsMismatch')
                 ) {
-                  Les deux codes ne sont pas identiques — on réessaie ?
+                  Les deux codes ne sont pas identiques — réessaie
                 }
               </mat-error>
             }
@@ -267,22 +267,25 @@ export default class SetupVaultCode {
         kdfIterations,
       );
 
-      // 2. Store new client key
+      // 2. Validate key (generates key_check for new users)
+      await firstValueFrom(this.#encryptionApi.validateKey$(clientKeyHex));
+
+      // 3. Store new client key
       this.#clientKeyService.setDirectKey(clientKeyHex, rememberDevice);
 
-      // 3. Setup recovery key (must succeed before marking configured)
+      // 4. Setup recovery key (must succeed before marking configured)
       await this.#showRecoveryKey();
 
-      // 4. Mark user as configured only after recovery key is saved
+      // 5. Mark user as configured only after recovery key is saved
       await this.#authSession
         .getClient()
         .auth.updateUser({ data: { vaultCodeConfigured: true } });
 
-      // 5. Redirect to dashboard
+      // 6. Redirect to dashboard
       this.#router.navigate(['/', ROUTES.DASHBOARD]);
     } catch (error) {
       this.#logger.error('Setup vault code failed:', error);
-      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessayons");
+      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessaie");
     } finally {
       this.form.enable();
       this.isSubmitting.set(false);

@@ -10,7 +10,10 @@ import {
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { EncryptionKeyRepository } from './encryption-key.repository';
+import {
+  EncryptionKeyRepository,
+  type UserEncryptionKeyFullRow,
+} from './encryption-key.repository';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
@@ -198,6 +201,14 @@ export class EncryptionService {
     return dek;
   }
 
+  async getVaultStatus(userId: string): Promise<{
+    pinCodeConfigured: boolean;
+    recoveryKeyConfigured: boolean;
+    vaultCodeConfigured: boolean;
+  }> {
+    return this.#repository.getVaultStatus(userId);
+  }
+
   async getUserSalt(
     userId: string,
   ): Promise<{ salt: string; kdfIterations: number; hasRecoveryKey: boolean }> {
@@ -259,39 +270,92 @@ export class EncryptionService {
     clientKey: Buffer,
   ): Promise<boolean> {
     const row = await this.#repository.findByUserId(userId);
-    const dek = await this.ensureUserDEK(userId, clientKey);
 
-    if (!row?.key_check) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
-      );
+    if (!row) {
+      const dek = await this.ensureUserDEK(userId, clientKey);
+      const keyCheck = this.generateKeyCheck(dek);
+      await this.#repository.updateKeyCheckIfNull(userId, keyCheck);
+      return true;
     }
 
-    return this.validateKeyCheck(row.key_check, dek);
+    const salt = Buffer.from(row.salt, 'hex');
+    const dek = this.#deriveDEK(clientKey, salt, userId);
+
+    this.#dekCache.set(this.#buildCacheKey(userId, clientKey), {
+      dek,
+      expiry: Date.now() + DEK_CACHE_TTL_MS,
+    });
+
+    if (row.key_check) {
+      return this.validateKeyCheck(row.key_check, dek);
+    }
+
+    const keyCheck = this.generateKeyCheck(dek);
+    await this.#repository.updateKeyCheckIfNull(userId, keyCheck);
+    return true;
   }
 
   async storeKeyCheck(userId: string, keyCheck: string): Promise<void> {
     await this.#repository.updateKeyCheck(userId, keyCheck);
   }
 
-  async setupRecoveryKey(
+  async createRecoveryKey(
     userId: string,
     clientKey: Buffer,
   ): Promise<{ formatted: string }> {
     const dek = await this.getUserDEK(userId, clientKey);
     const { raw, formatted } = this.generateRecoveryKey();
 
-    const wrappedDEK = this.wrapDEK(dek, raw);
-    await this.#repository.updateWrappedDEK(userId, wrappedDEK);
+    try {
+      const wrappedDEK = this.wrapDEK(dek, raw);
+      const wasUpdated = await this.#repository.updateWrappedDEKIfNull(
+        userId,
+        wrappedDEK,
+      );
 
-    // Ensure key_check exists so validate-key succeeds on next session
-    const existing = await this.#repository.findByUserId(userId);
-    if (!existing?.key_check) {
+      if (!wasUpdated) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.RECOVERY_KEY_ALREADY_EXISTS,
+        );
+      }
+
       const keyCheck = this.generateKeyCheck(dek);
-      await this.#repository.updateKeyCheck(userId, keyCheck);
+      await this.#repository.updateKeyCheckIfNull(userId, keyCheck);
+    } finally {
+      raw.fill(0);
     }
 
-    raw.fill(0);
+    return { formatted };
+  }
+
+  async regenerateRecoveryKey(
+    userId: string,
+    clientKey: Buffer,
+  ): Promise<{ formatted: string }> {
+    const existing = await this.#repository.findByUserId(userId);
+    return this.#generateAndStoreRecoveryKey(userId, clientKey, existing);
+  }
+
+  async #generateAndStoreRecoveryKey(
+    userId: string,
+    clientKey: Buffer,
+    existing: UserEncryptionKeyFullRow | null,
+  ): Promise<{ formatted: string }> {
+    const dek = await this.getUserDEK(userId, clientKey);
+    const { raw, formatted } = this.generateRecoveryKey();
+
+    try {
+      const wrappedDEK = this.wrapDEK(dek, raw);
+      await this.#repository.updateWrappedDEK(userId, wrappedDEK);
+
+      if (!existing?.key_check) {
+        const keyCheck = this.generateKeyCheck(dek);
+        await this.#repository.updateKeyCheckIfNull(userId, keyCheck);
+      }
+    } finally {
+      raw.fill(0);
+    }
+
     return { formatted };
   }
 
@@ -581,8 +645,11 @@ export class EncryptionService {
   }
 
   #invalidateUserDEKCache(userId: string): void {
-    for (const key of this.#dekCache.keys()) {
+    for (const [key, entry] of this.#dekCache) {
       if (key.startsWith(`${userId}:`)) {
+        if (Buffer.isBuffer(entry.dek)) {
+          entry.dek.fill(0);
+        }
         this.#dekCache.delete(key);
       }
     }

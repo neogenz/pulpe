@@ -179,7 +179,7 @@ export default class ForgotPassword {
       }
     } catch (error) {
       this.#logger.error('Error sending reset email:', error);
-      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessayons");
+      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessaie");
     } finally {
       this.isSubmitting.set(false);
     }

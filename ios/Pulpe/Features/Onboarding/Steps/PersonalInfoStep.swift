@@ -14,8 +14,8 @@ struct PersonalInfoStep: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     Text("Prénom")
-                        .font(PulpeTypography.inputLabel)
-                        .foregroundStyle(.secondary)
+                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
+                        .foregroundStyle(Color.textPrimaryOnboarding)
 
                     TextField("Ton prénom", text: Binding(
                         get: { state.firstName },
@@ -24,9 +24,18 @@ struct PersonalInfoStep: View {
                     .textContentType(.givenName)
                     .autocapitalization(.words)
                     .focused($isFocused)
+                    .font(PulpeTypography.body)
+                    .foregroundStyle(Color.authInputText)
                     .padding(DesignTokens.Spacing.lg)
-                    .background(Color.inputBackgroundSoft)
-                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+                    .background {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.authInputBackground)
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .strokeBorder(Color.authInputBorder, lineWidth: 1)
+                            }
+                    }
+                    .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
                 }
 
                 CurrencyField(

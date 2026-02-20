@@ -21,16 +21,16 @@ extension Color {
     /// Primary brand color - Dark green (#006820 light, #4AA070 dark)
     static let pulpePrimary = Color("PulpePrimary")
 
-    // MARK: - Surface Colors (system semantic for proper light/dark/high-contrast)
+    // MARK: - Surface Colors (green-tinted for brand identity, dark mode uses system for comfort)
 
-    /// Primary background — system grouped background (off-white in light, elevated dark in dark mode)
-    static let surfacePrimary = Color(uiColor: .systemGroupedBackground)
+    /// Primary background — sage green matching mesh gradient center (#EEF5EF), system dark in dark mode
+    static let surfacePrimary = Color(light: Color(hex: 0xEEF5EF), dark: Color(uiColor: .systemGroupedBackground))
 
-    /// Card/modal surfaces — elevated in dark mode for visible card definition
-    static let surfaceCard = Color(uiColor: .secondarySystemGroupedBackground)
+    /// Card/modal surfaces — white in light mode for maximum contrast, elevated dark in dark mode
+    static let surfaceCard = Color(light: .white, dark: Color(uiColor: .secondarySystemGroupedBackground))
 
-    /// Secondary surface for form backgrounds, inactive pills
-    static let surfaceSecondary = Color(uiColor: .secondarySystemGroupedBackground)
+    /// Secondary surface for form backgrounds, inactive pills — system grey in light mode
+    static let surfaceSecondary = Color(light: Color(uiColor: .secondarySystemGroupedBackground), dark: Color(uiColor: .secondarySystemGroupedBackground))
 
     // MARK: - Semantic Text Colors
 
@@ -50,6 +50,14 @@ extension Color {
 
     /// Error background — soft warm tint (#FFF3E0 light, #2A1F10 dark)
     static let errorBackground = Color(light: Color(hex: 0xFFF3E0), dark: Color(hex: 0x2A1F10))
+
+    // MARK: - Destructive Colors (true red for irreversible actions)
+
+    /// Destructive primary — true red for account deletion, danger zones (#C62828 light, #EF5350 dark)
+    static let destructivePrimary = Color(light: Color(hex: 0xC62828), dark: Color(hex: 0xEF5350))
+
+    /// Destructive background — soft red tint for danger zone cards (#FDECEA light, #2A1414 dark)
+    static let destructiveBackground = Color(light: Color(hex: 0xFDECEA), dark: Color(hex: 0x2A1414))
 
     // MARK: - Warning Colors
 
@@ -73,8 +81,8 @@ extension Color {
     /// Generic badge background
     static let badgeBackground = Color("BadgeBackground")
 
-    /// Input field background — system tertiary fill for native feel
-    static let inputBackgroundSoft = Color(uiColor: .tertiarySystemFill)
+    /// Input field background — green-tinted soft fill for brand consistency
+    static let inputBackgroundSoft = Color(light: Color(hex: 0xE8F5E9).opacity(0.6), dark: Color(uiColor: .tertiarySystemFill))
 
     /// Input focus glow color
     static let inputFocusGlow = Color(light: Color(hex: 0x006820).opacity(0.12), dark: Color(hex: 0x4AA070).opacity(0.15))
@@ -252,12 +260,65 @@ extension Color {
 
     /// High-contrast text colors for onboarding
     static let textPrimaryOnboarding = Color(light: Color(hex: 0x1A1A1A), dark: Color(hex: 0xF5F5F5))
-    static let textSecondaryOnboarding = Color(light: Color(hex: 0x4A4A4A), dark: Color(hex: 0xB0B0B0))
-    static let textTertiaryOnboarding = Color(light: Color(hex: 0x6B6B6B), dark: Color(hex: 0x8A8A8A))
+    /// Secondary text - improved dark mode contrast (#D0D0D0 ≈ 81% luminance for better readability)
+    static let textSecondaryOnboarding = Color(light: Color(hex: 0x4A4A4A), dark: Color(hex: 0xD0D0D0))
+    /// Tertiary text - improved dark mode contrast (#ABABAB ≈ 67% luminance)
+    static let textTertiaryOnboarding = Color(light: Color(hex: 0x6B6B6B), dark: Color(hex: 0xABABAB))
 
     /// Onboarding backgrounds
     static let onboardingBackground = Color(light: Color(hex: 0xF8FAF9), dark: Color(hex: 0x1C1C1E))
     static let onboardingCardBackground = Color(light: .white, dark: Color(hex: 0x2C2C2E))
+    
+    // MARK: - Auth Screen Gradient Colors (inspired by reference design)
+    
+    /// Auth screen gradient stops - light mode: vibrant greens, dark mode: deep charcoals with green accent
+    private static let authGradientTop = Color(light: Color(hex: 0xA8E6CF), dark: Color(hex: 0x0A0F0C))
+    private static let authGradientMid = Color(light: Color(hex: 0xC2F0D8), dark: Color(hex: 0x0E1612))
+    private static let authGradientBottom = Color(light: Color(hex: 0xD4F5E3), dark: Color(hex: 0x121A15))
+    private static let authGradientAccent = Color(light: Color(hex: 0x8FDDBB), dark: Color(hex: 0x1A3A28))
+    
+    /// Full-screen auth gradient background
+    @ViewBuilder
+    static var authGradientBackground: some View {
+        ZStack {
+            // Base gradient
+            LinearGradient(
+                colors: [authGradientTop, authGradientMid, authGradientBottom],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            // Accent radial overlay (top-trailing)
+            RadialGradient(
+                colors: [authGradientAccent.opacity(0.6), .clear],
+                center: .topTrailing,
+                startRadius: 50,
+                endRadius: 500
+            )
+            // Subtle center glow
+            RadialGradient(
+                colors: [Color(light: .white.opacity(0.2), dark: .clear), .clear],
+                center: .center,
+                startRadius: 100,
+                endRadius: 600
+            )
+        }
+        .ignoresSafeArea()
+    }
+    
+    /// Glass-morphic card background for auth forms
+    static let authCardGlass = Color(light: .white.opacity(0.85), dark: Color(hex: 0x1C1C1E).opacity(0.75))
+    
+    /// Input field background for auth screens (high contrast - fully opaque)
+    static let authInputBackground = Color(light: .white, dark: Color(hex: 0x2C2C2E))
+    
+    /// Input field text color for auth screens
+    static let authInputText = Color(light: Color(hex: 0x1A1A1A), dark: .white)
+    
+    /// Input field placeholder color for auth screens
+    static let authInputPlaceholder = Color(light: Color(hex: 0x999999), dark: Color(hex: 0x999999))
+    
+    /// Input field border color for auth screens
+    static let authInputBorder = Color(light: Color(hex: 0xE0E0E0), dark: Color(hex: 0x3C3C3E))
 
     /// Mint green background matching landing page suggestion
     static let mintBackground = Color(light: Color(hex: 0xBDF5B7), dark: Color(hex: 0x1A3A1A))
@@ -281,6 +342,44 @@ extension Color {
         startPoint: .leading,
         endPoint: .trailing
     )
+
+    // MARK: - PIN Screen Colors (adaptive light/dark)
+
+    /// PIN background gradient stops
+    static let pinGradientTop = Color(light: Color(hex: 0xF0F2F5), dark: Color(hex: 0x0F1923))
+    static let pinGradientMid = Color(light: Color(hex: 0xE8EBF0), dark: Color(hex: 0x1A2733))
+    static let pinGradientBottom = Color(light: Color(hex: 0xE0E4EA), dark: Color(hex: 0x0D1520))
+
+    /// PIN screen gradient
+    static let pinBackground = LinearGradient(
+        colors: [pinGradientTop, pinGradientMid, pinGradientBottom],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+
+    /// Primary text on PIN screens
+    static let pinText = Color(light: Color(hex: 0x1A1F2B), dark: .white)
+
+    /// Secondary text on PIN screens (subtitles, links) - improved dark mode contrast (70% opacity)
+    static let pinTextSecondary = Color(light: Color(hex: 0x5A6070), dark: .white.opacity(0.7))
+
+    /// Numpad button fill
+    static let pinButtonFill = Color(light: Color(hex: 0x1A1F2B).opacity(0.06), dark: .white.opacity(0.08))
+
+    /// Numpad button stroke
+    static let pinButtonStroke = Color(light: Color(hex: 0x1A1F2B).opacity(0.10), dark: .white.opacity(0.15))
+
+    /// PIN dot color (filled state)
+    static let pinDotFilled = Color(light: Color(hex: 0x1A1F2B), dark: .white)
+
+    /// PIN dot color (empty state)
+    static let pinDotEmpty = Color(light: Color(hex: 0x1A1F2B).opacity(0.2), dark: .white.opacity(0.3))
+
+    /// Recovery key input field background
+    static let pinInputBackground = Color(light: Color(hex: 0x1A1F2B).opacity(0.05), dark: .white.opacity(0.08))
+
+    /// Recovery key input field border
+    static let pinInputBorder = Color(light: Color(hex: 0x1A1F2B).opacity(0.12), dark: .white.opacity(0.15))
 
     // MARK: - Initializers
 

@@ -110,7 +110,7 @@ struct TemplateDetailsView: View {
                 Text(title)
                 Spacer()
                 Text(lines.reduce(Decimal.zero) { $0 + $1.amount }.asCHF)
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .sensitiveAmount()
             }
         }
@@ -126,9 +126,9 @@ struct TemplateLineRow: View {
     var body: some View {
         Button(action: onEdit) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(line.name)
-                        .font(.subheadline)
+                        .font(PulpeTypography.subheadline)
 
                     RecurrenceBadge(line.recurrence, style: .compact)
                 }

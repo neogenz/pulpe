@@ -74,18 +74,12 @@ enum Formatters {
         f.dateFormat = "MMMM"
         return f
     }()
-
-    // MARK: - ISO8601
-
-    static let iso8601WithFractional: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    
+    static let weekday: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "fr_FR")
+        f.dateFormat = "EEEE"
         return f
     }()
 
-    static let iso8601: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime]
-        return f
-    }()
 }
