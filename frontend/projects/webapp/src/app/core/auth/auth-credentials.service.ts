@@ -6,7 +6,10 @@ import { AuthSessionService } from './auth-session.service';
 import { AuthStateService } from './auth-state.service';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { Logger } from '../logging/logger';
-import { AUTH_ERROR_MESSAGES } from './auth-constants';
+import {
+  AUTH_ERROR_MESSAGES,
+  formatScheduledDeletionMessage,
+} from './auth-constants';
 import { isE2EMode } from './e2e-window';
 
 @Injectable({
@@ -51,8 +54,9 @@ export class AuthCredentialsService {
         await this.#session.signOut();
         return {
           success: false,
-          error:
-            'Ton compte est en attente de suppression et ne peut plus être utilisé.',
+          error: formatScheduledDeletionMessage(
+            data.session.user.user_metadata['scheduledDeletionAt'],
+          ),
         };
       }
 

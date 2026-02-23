@@ -117,6 +117,165 @@ describe('AuthStateService', () => {
     });
   });
 
+  describe('isOAuthUser', () => {
+    it('should return false when there is no session', () => {
+      expect(service.isOAuthUser()).toBe(false);
+    });
+
+    it('should return false when user has no identities', () => {
+      const sessionWithNoIdentities: Session = {
+        ...mockSession,
+        user: { ...mockSession.user, identities: undefined },
+      };
+      service.setSession(sessionWithNoIdentities);
+
+      expect(service.isOAuthUser()).toBe(false);
+    });
+
+    it('should return false when user has empty identities array', () => {
+      const sessionWithEmptyIdentities: Session = {
+        ...mockSession,
+        user: { ...mockSession.user, identities: [] },
+      };
+      service.setSession(sessionWithEmptyIdentities);
+
+      expect(service.isOAuthUser()).toBe(false);
+    });
+
+    it('should return false when user has only email identity', () => {
+      const sessionWithEmailIdentity: Session = {
+        ...mockSession,
+        user: {
+          ...mockSession.user,
+          identities: [
+            {
+              id: 'identity-1',
+              user_id: 'user-123',
+              identity_id: 'identity-1',
+              provider: 'email',
+              identity_data: {},
+              last_sign_in_at: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          ],
+        },
+      };
+      service.setSession(sessionWithEmailIdentity);
+
+      expect(service.isOAuthUser()).toBe(false);
+    });
+
+    it('should return true when user has OAuth identity (google)', () => {
+      const sessionWithGoogleIdentity: Session = {
+        ...mockSession,
+        user: {
+          ...mockSession.user,
+          identities: [
+            {
+              id: 'identity-1',
+              user_id: 'user-123',
+              identity_id: 'identity-1',
+              provider: 'google',
+              identity_data: {},
+              last_sign_in_at: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          ],
+        },
+      };
+      service.setSession(sessionWithGoogleIdentity);
+
+      expect(service.isOAuthUser()).toBe(true);
+    });
+
+    it('should return true when user has multiple identities including OAuth provider', () => {
+      const sessionWithMultipleIdentities: Session = {
+        ...mockSession,
+        user: {
+          ...mockSession.user,
+          identities: [
+            {
+              id: 'identity-1',
+              user_id: 'user-123',
+              identity_id: 'identity-1',
+              provider: 'email',
+              identity_data: {},
+              last_sign_in_at: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+            {
+              id: 'identity-2',
+              user_id: 'user-123',
+              identity_id: 'identity-2',
+              provider: 'google',
+              identity_data: {},
+              last_sign_in_at: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          ],
+        },
+      };
+      service.setSession(sessionWithMultipleIdentities);
+
+      expect(service.isOAuthUser()).toBe(true);
+    });
+
+    it('should return true when user has OAuth identity (apple)', () => {
+      const sessionWithAppleIdentity: Session = {
+        ...mockSession,
+        user: {
+          ...mockSession.user,
+          identities: [
+            {
+              id: 'identity-1',
+              user_id: 'user-123',
+              identity_id: 'identity-1',
+              provider: 'apple',
+              identity_data: {},
+              last_sign_in_at: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          ],
+        },
+      };
+      service.setSession(sessionWithAppleIdentity);
+
+      expect(service.isOAuthUser()).toBe(true);
+    });
+
+    it('should update reactively when session changes', () => {
+      const googleSession: Session = {
+        ...mockSession,
+        user: {
+          ...mockSession.user,
+          identities: [
+            {
+              id: 'identity-1',
+              user_id: 'user-123',
+              identity_id: 'identity-1',
+              provider: 'google',
+              identity_data: {},
+              last_sign_in_at: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          ],
+        },
+      };
+      service.setSession(googleSession);
+      expect(service.isOAuthUser()).toBe(true);
+
+      service.setSession(null);
+
+      expect(service.isOAuthUser()).toBe(false);
+    });
+  });
+
   describe('state transition consistency', () => {
     it('should update all signals atomically when transitioning from authenticated to unauthenticated', () => {
       service.setSession(mockSession);

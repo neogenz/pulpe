@@ -7,6 +7,8 @@ import { AUTH_ERROR_MESSAGES } from './auth-constants';
 import { ROUTES } from '@core/routing/routes-constants';
 import { isE2EMode } from './e2e-window';
 
+export type OAuthProvider = 'google';
+
 export interface OAuthUserMetadata {
   givenName?: string;
   fullName?: string;
@@ -44,15 +46,17 @@ export class AuthOAuthService {
     return { givenName, fullName };
   }
 
-  async signInWithGoogle(): Promise<{ success: boolean; error?: string }> {
+  async signInWithOAuth(
+    provider: OAuthProvider,
+  ): Promise<{ success: boolean; error?: string }> {
     if (this.#isE2EBypass()) {
-      this.#logger.info('🎭 Mode test E2E: Simulation du signin Google');
+      this.#logger.info(`🎭 Mode test E2E: Simulation du signin ${provider}`);
       return { success: true };
     }
 
     try {
       const { error } = await this.#session.getClient().auth.signInWithOAuth({
-        provider: 'google',
+        provider,
         options: {
           redirectTo: `${window.location.origin}/${ROUTES.DASHBOARD}`,
         },
@@ -69,7 +73,7 @@ export class AuthOAuthService {
     } catch {
       return {
         success: false,
-        error: AUTH_ERROR_MESSAGES.GOOGLE_CONNECTION_ERROR,
+        error: AUTH_ERROR_MESSAGES.OAUTH_CONNECTION_ERROR,
       };
     }
   }

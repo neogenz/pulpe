@@ -12,6 +12,7 @@ import { ApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsApi } from '@core/user-settings';
 import { AuthSessionService } from '@core/auth/auth-session.service';
+import { AuthStateService } from '@core/auth';
 import { EncryptionApi } from '@core/encryption';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 
@@ -30,6 +31,7 @@ describe('SettingsPage', () => {
     warn: ReturnType<typeof vi.fn>;
   };
   let mockAuthSession: { signOut: ReturnType<typeof vi.fn> };
+  let mockAuthState: { isOAuthUser: ReturnType<typeof signal<boolean>> };
   let mockDialog: { open: ReturnType<typeof vi.fn> };
   let mockDialogRef: { afterClosed: () => Observable<boolean> };
 
@@ -61,6 +63,10 @@ describe('SettingsPage', () => {
       signOut: vi.fn().mockResolvedValue(undefined),
     };
 
+    mockAuthState = {
+      isOAuthUser: signal(false),
+    };
+
     await TestBed.configureTestingModule({
       imports: [SettingsPage],
       providers: [
@@ -75,6 +81,7 @@ describe('SettingsPage', () => {
           useValue: { navigate: vi.fn().mockResolvedValue(true) },
         },
         { provide: AuthSessionService, useValue: mockAuthSession },
+        { provide: AuthStateService, useValue: mockAuthState },
         { provide: EncryptionApi, useValue: { setupRecoveryKey$: vi.fn() } },
         { provide: DemoModeService, useValue: { isDemoMode: signal(false) } },
       ],
@@ -137,6 +144,28 @@ describe('SettingsPage', () => {
         'OK',
         expect.any(Object),
       );
+    });
+  });
+
+  describe('change-password-button visibility', () => {
+    it('should hide change-password-button when user is OAuth', async () => {
+      mockAuthState.isOAuthUser.set(true);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const btn = fixture.nativeElement.querySelector(
+        '[data-testid="change-password-button"]',
+      );
+      expect(btn).toBeNull();
+    });
+
+    it('should show change-password-button when user is not OAuth', async () => {
+      mockAuthState.isOAuthUser.set(false);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const btn = fixture.nativeElement.querySelector(
+        '[data-testid="change-password-button"]',
+      );
+      expect(btn).not.toBeNull();
     });
   });
 

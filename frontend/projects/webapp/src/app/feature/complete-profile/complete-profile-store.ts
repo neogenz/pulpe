@@ -237,9 +237,9 @@ export class CompleteProfileStore {
     }
   }
 
-  #determineSignupMethod(): 'google' | 'email' {
+  #determineSignupMethod(): 'oauth' | 'email' {
     const metadata = this.#authOAuth.getOAuthUserMetadata();
-    return metadata ? 'google' : 'email';
+    return metadata ? 'oauth' : 'email';
   }
 
   #countOptionalCharges(state: CompleteProfileState): number {

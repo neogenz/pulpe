@@ -6,14 +6,19 @@ import {
   computed,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
-import { AuthCredentialsService, PASSWORD_MIN_LENGTH } from '@core/auth';
+import {
+  AuthCredentialsService,
+  formatScheduledDeletionMessage,
+  PASSWORD_MIN_LENGTH,
+  SCHEDULED_DELETION_PARAMS,
+} from '@core/auth';
 import { GoogleOAuthButton } from '@app/pattern/google-oauth';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
@@ -184,12 +189,25 @@ export default class Login {
   readonly #authCredentials = inject(AuthCredentialsService);
   readonly #formBuilder = inject(FormBuilder);
   readonly #router = inject(Router);
+  readonly #route = inject(ActivatedRoute);
   readonly #logger = inject(Logger);
 
   protected readonly ROUTES = ROUTES;
   protected readonly isPasswordHidden = signal(true);
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
+
+  constructor() {
+    const reason = this.#route.snapshot.queryParamMap.get(
+      SCHEDULED_DELETION_PARAMS.REASON,
+    );
+    const date = this.#route.snapshot.queryParamMap.get(
+      SCHEDULED_DELETION_PARAMS.DATE,
+    );
+    if (reason === SCHEDULED_DELETION_PARAMS.REASON_VALUE && date) {
+      this.errorMessage.set(formatScheduledDeletionMessage(date));
+    }
+  }
 
   protected loginForm = this.#formBuilder.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],

@@ -422,7 +422,7 @@ describe('CompleteProfileStore', () => {
       );
     });
 
-    it('should track first_budget_created with google method when OAuth metadata exists', async () => {
+    it('should track first_budget_created with oauth method when OAuth metadata exists', async () => {
       mockProfileSetupService.createInitialBudget.mockResolvedValue({
         success: true,
       });
@@ -438,7 +438,7 @@ describe('CompleteProfileStore', () => {
       expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
         'first_budget_created',
         expect.objectContaining({
-          signup_method: 'google',
+          signup_method: 'oauth',
         }),
       );
     });

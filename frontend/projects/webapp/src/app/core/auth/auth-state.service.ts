@@ -33,6 +33,12 @@ export class AuthStateService {
     );
   });
 
+  readonly isOAuthUser = computed(() => {
+    const user = this.#userSignal();
+    if (!user?.identities) return false;
+    return user.identities.some((identity) => identity.provider !== 'email');
+  });
+
   readonly authState = computed<AuthState>(() => ({
     user: this.#userSignal(),
     session: this.#sessionSignal(),

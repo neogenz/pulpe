@@ -87,16 +87,16 @@ export class GoogleOAuthButton {
     this.loadingChange.emit(true);
 
     try {
-      const result = await this.#authOAuth.signInWithGoogle();
+      const result = await this.#authOAuth.signInWithOAuth('google');
 
       if (!result.success) {
         this.authError.emit(
-          result.error ?? AUTH_ERROR_MESSAGES.GOOGLE_CONNECTION_ERROR,
+          result.error ?? AUTH_ERROR_MESSAGES.OAUTH_CONNECTION_ERROR,
         );
       }
     } catch (err) {
       this.#logger.error('Google OAuth error', err);
-      this.authError.emit(AUTH_ERROR_MESSAGES.GOOGLE_CONNECTION_ERROR);
+      this.authError.emit(AUTH_ERROR_MESSAGES.OAUTH_CONNECTION_ERROR);
     } finally {
       this.isLoading.set(false);
       this.loadingChange.emit(false);
