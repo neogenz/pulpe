@@ -3,6 +3,14 @@ import OSLog
 
 @Observable @MainActor
 final class CurrentMonthStore: StoreProtocol {
+    // MARK: - Types
+
+    struct TopSpending: Sendable {
+        let name: String
+        let amount: Decimal
+        let totalExpenses: Decimal
+    }
+
     // MARK: - State
 
     private(set) var budget: Budget?
@@ -485,10 +493,4 @@ extension CurrentMonthStore {
         // Refresh to get server state (needed for recalculations)
         await forceRefresh()
     }
-}
-
-struct TopSpending: Sendable {
-    let name: String
-    let amount: Decimal
-    let totalExpenses: Decimal
 }

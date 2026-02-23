@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Combined insights card merging top spending and budget alerts into one cohesive section
 struct InsightsCard: View {
-    let topSpending: TopSpending?
+    let topSpending: CurrentMonthStore.TopSpending?
     let alerts: [BudgetAlert]
     var onTap: (() -> Void)?
 
@@ -58,7 +58,7 @@ struct InsightsCard: View {
 
     // MARK: - Top Spending Section
 
-    private func topSpendingSection(_ spending: TopSpending) -> some View {
+    private func topSpendingSection(_ spending: CurrentMonthStore.TopSpending) -> some View {
         let percentage = Self.percentageOfTotal(spending.amount, of: spending.totalExpenses)
 
         return HStack(spacing: DesignTokens.Spacing.md) {
@@ -187,7 +187,7 @@ struct InsightsCard: View {
     VStack(spacing: 16) {
         // Both sections
         InsightsCard(
-            topSpending: TopSpending(name: "Courses", amount: 200, totalExpenses: 2500),
+            topSpending: CurrentMonthStore.TopSpending(name: "Courses", amount: 200, totalExpenses: 2500),
             alerts: [
                 BudgetAlert(
                     line: BudgetLine(
@@ -210,7 +210,7 @@ struct InsightsCard: View {
 
         // Top spending only
         InsightsCard(
-            topSpending: TopSpending(name: "Restaurants", amount: 450, totalExpenses: 2500),
+            topSpending: CurrentMonthStore.TopSpending(name: "Restaurants", amount: 450, totalExpenses: 2500),
             alerts: []
         )
 
