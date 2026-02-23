@@ -14,11 +14,17 @@
 @include meta.load-css("@fontsource/manrope/latin-600.css");
 @include meta.load-css("@fontsource/manrope/latin-700.css");
 @include meta.load-css("@fontsource/manrope/latin-800.css");
-@include meta.load-css(
-  "@fontsource-variable/material-symbols-outlined/full.css"
-);
+// Material Symbols Outlined — self-hosted icon font (fill variant: FILL + wght axes, 1 MB)
+// Uses font-display: block so icons stay invisible until loaded (no ligature text flash)
+@font-face {
+  font-family: "Material Symbols Outlined Variable";
+  font-style: normal;
+  font-display: block;
+  font-weight: 100 700;
+  src: url("@fontsource-variable/material-symbols-outlined/files/material-symbols-outlined-latin-fill-normal.woff2")
+    format("woff2-variations");
+}
 
-// Material Symbols icon font class (replaces Google Fonts CDN stylesheet)
 .material-symbols-outlined {
   font-family: "Material Symbols Outlined Variable";
   font-weight: normal;
