@@ -1,10 +1,9 @@
 import OSLog
 import SwiftUI
 
-struct PinEntryView: View {
-    static let pinEntryTitle = "Saisis ton code PIN"
-    static let forgotPinLabel = "Code PIN oublié ?"
+// MARK: - View
 
+struct PinEntryView: View {
     let firstName: String
     let onSuccess: () -> Void
     var onBiometric: (() -> Void)? = nil
@@ -33,12 +32,10 @@ struct PinEntryView: View {
             dotsSection
             Spacer().frame(height: 48)
             NumpadView(
-                onDigit: { digit in
-                    viewModel.appendDigit(digit)
-                },
+                onDigit: { viewModel.appendDigit($0) },
                 onDelete: { viewModel.deleteLastDigit() },
                 onBiometric: onBiometric,
-                onConfirm: viewModel.digits.count >= viewModel.minDigits ? {
+                onConfirm: viewModel.canConfirm ? {
                     Task { await viewModel.confirm() }
                 } : nil,
                 isDisabled: viewModel.isValidating
@@ -56,9 +53,7 @@ struct PinEntryView: View {
         HStack {
             Spacer()
             Button {
-                Task {
-                    await onLogout()
-                }
+                Task { await onLogout() }
             } label: {
                 Text("Se déconnecter")
                     .font(PulpeTypography.footnote)
@@ -74,7 +69,7 @@ struct PinEntryView: View {
         VStack(spacing: DesignTokens.Spacing.md) {
             PulpeIcon(size: 56)
 
-            Text(Self.pinEntryTitle)
+            Text("Saisis ton code PIN")
                 .font(PulpeTypography.onboardingTitle)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
@@ -112,36 +107,20 @@ struct PinEntryView: View {
         Button {
             onForgotPin()
         } label: {
-            Text(Self.forgotPinLabel)
+            Text("Code PIN oublié ?")
                 .font(PulpeTypography.stepSubtitle)
                 .foregroundStyle(Color.textSecondaryOnboarding)
         }
     }
 }
 
-// MARK: - Dependency Protocols
-
-protocol CryptoKeyDerivation: Sendable {
-    func deriveClientKey(pin: String, saltHex: String, iterations: Int) async throws -> String
-}
-
-protocol EncryptionKeyValidation: Sendable {
-    func getSalt() async throws -> EncryptionSaltResponse
-    func validateKey(_ clientKeyHex: String) async throws
-}
-
-protocol ClientKeyStorage: Sendable {
-    func store(_ clientKeyHex: String, enableBiometric: Bool) async
-}
-
-extension CryptoService: CryptoKeyDerivation {}
-extension EncryptionAPI: EncryptionKeyValidation {}
-extension ClientKeyManager: ClientKeyStorage {}
-
 // MARK: - ViewModel
 
 @Observable @MainActor
 final class PinEntryViewModel {
+    
+    // MARK: - Public State
+    
     private(set) var digits: [Int] = []
     private(set) var isValidating = false
     private(set) var isError = false
@@ -151,38 +130,40 @@ final class PinEntryViewModel {
     let maxDigits = 6
     let minDigits = 4
 
+    var canConfirm: Bool {
+        digits.count >= minDigits && !isValidating
+    }
+    
+    // MARK: - Private
+    
     private var errorResetTask: Task<Void, Never>?
-    private let cryptoService: any CryptoKeyDerivation
-    private let encryptionAPI: any EncryptionKeyValidation
-    private let clientKeyManager: any ClientKeyStorage
+    private let cryptoService: any PinCryptoKeyDerivation
+    private let encryptionAPI: any PinEncryptionValidation
+    private let clientKeyManager: any PinClientKeyStorage
+
+    // MARK: - Init
 
     init(
-        cryptoService: any CryptoKeyDerivation = CryptoService.shared,
-        encryptionAPI: any EncryptionKeyValidation = EncryptionAPI.shared,
-        clientKeyManager: any ClientKeyStorage = ClientKeyManager.shared
+        cryptoService: any PinCryptoKeyDerivation = CryptoService.shared,
+        encryptionAPI: any PinEncryptionValidation = EncryptionAPI.shared,
+        clientKeyManager: any PinClientKeyStorage = ClientKeyManager.shared
     ) {
         self.cryptoService = cryptoService
         self.encryptionAPI = encryptionAPI
         self.clientKeyManager = clientKeyManager
     }
 
-    var canConfirm: Bool {
-        digits.count >= minDigits && !isValidating
-    }
+    // MARK: - Actions
 
     func appendDigit(_ digit: Int) {
         guard digits.count < maxDigits, !isValidating else { return }
         digits.append(digit)
-        
-        // Let user review their full PIN before validation
-        // Consistent with PIN setup flow which requires explicit confirmation
     }
 
     func deleteLastDigit() {
         guard !digits.isEmpty, !isValidating else { return }
         digits.removeLast()
-        isError = false
-        errorMessage = nil
+        clearError()
     }
 
     func confirm() async {
@@ -190,7 +171,7 @@ final class PinEntryViewModel {
         await validatePin()
     }
 
-    // MARK: - Private
+    // MARK: - Validation
 
     private func validatePin() async {
         isValidating = true
@@ -207,23 +188,26 @@ final class PinEntryViewModel {
             )
             try await encryptionAPI.validateKey(clientKeyHex)
             await clientKeyManager.store(clientKeyHex, enableBiometric: false)
+            
             digits = []
             authenticated = true
         } catch let error as APIError {
-            handleError(error)
+            handleAPIError(error)
         } catch let error as CryptoServiceError {
             handleCryptoError(error)
         } catch {
-            showError("Erreur inattendue, reessaie")
+            showError("Erreur inattendue, réessaie")
         }
     }
 
-    private func handleError(_ error: APIError) {
+    // MARK: - Error Handling
+
+    private func handleAPIError(_ error: APIError) {
         switch error {
         case .rateLimited:
             showError("Trop de tentatives, patiente un moment")
         case .networkError:
-            showError("Erreur de connexion, reessaie")
+            showError("Erreur de connexion, réessaie")
         default:
             showError("Ce code ne semble pas correct")
         }
@@ -234,7 +218,7 @@ final class PinEntryViewModel {
         case .invalidSalt, .invalidIterations:
             showError("Erreur de sécurité, contacte le support")
         case .derivationFailed:
-            showError("Erreur de chiffrement, reessaie")
+            showError("Erreur de chiffrement, réessaie")
         case .invalidPin:
             showError("Code invalide")
         }
@@ -252,7 +236,14 @@ final class PinEntryViewModel {
             isError = false
         }
     }
+    
+    private func clearError() {
+        isError = false
+        errorMessage = nil
+    }
 }
+
+// MARK: - Preview
 
 #Preview {
     PinEntryView(

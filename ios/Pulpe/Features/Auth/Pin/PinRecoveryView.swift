@@ -1,6 +1,17 @@
 import OSLog
 import SwiftUI
 
+// MARK: - Recovery Step
+
+enum RecoveryStep: Equatable {
+    case enterRecoveryKey
+    case createPin
+    case confirmPin
+    case processing
+}
+
+// MARK: - View
+
 struct PinRecoveryView: View {
     let onComplete: () -> Void
     let onCancel: () -> Void
@@ -12,19 +23,17 @@ struct PinRecoveryView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .pulpeBackground()
             .sheet(isPresented: $viewModel.showRecoverySheet) {
-            if let key = viewModel.newRecoveryKey {
-                RecoveryKeySheet(recoveryKey: key) {
-                    onComplete()
+                if let key = viewModel.newRecoveryKey {
+                    RecoveryKeySheet(recoveryKey: key) {
+                        onComplete()
+                    }
                 }
             }
-        }
-        .alert("Clé de récupération", isPresented: $viewModel.showRecoveryKeyWarning) {
-            Button("OK") {
-                onComplete()
+            .alert("Clé de récupération", isPresented: $viewModel.showRecoveryKeyWarning) {
+                Button("OK") { onComplete() }
+            } message: {
+                Text("Ta récupération est réussie mais la nouvelle clé de récupération n'a pas pu être générée. Tu peux en créer une depuis les réglages.")
             }
-        } message: {
-            Text("Ta récupération est réussie mais la nouvelle clé de récupération n'a pas pu être générée. Tu peux en créer une depuis les réglages.")
-        }
     }
 
     // MARK: - Content
@@ -77,8 +86,7 @@ struct PinRecoveryView: View {
                     .transition(.opacity)
             }
 
-            recoverButton
-
+            continueButton
             cancelButton
         }
         .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: viewModel.errorMessage)
@@ -108,7 +116,7 @@ struct PinRecoveryView: View {
         .foregroundStyle(Color.textPrimaryOnboarding)
     }
 
-    private var recoverButton: some View {
+    private var continueButton: some View {
         Button {
             viewModel.submitRecoveryKey()
         } label: {
@@ -116,13 +124,11 @@ struct PinRecoveryView: View {
                 .font(PulpeTypography.buttonPrimary)
                 .frame(maxWidth: .infinity)
                 .frame(height: DesignTokens.FrameHeight.button)
-                .background {
-                    if viewModel.isRecoveryKeyValid {
-                        Color.onboardingGradient
-                    } else {
-                        Color(uiColor: .systemGray4)
-                    }
-                }
+                .background(
+                    viewModel.isRecoveryKeyValid
+                        ? AnyShapeStyle(Color.onboardingGradient)
+                        : AnyShapeStyle(Color(uiColor: .systemGray4))
+                )
                 .foregroundStyle(Color.textOnPrimary)
                 .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
         }
@@ -218,39 +224,13 @@ struct PinRecoveryView: View {
     }
 }
 
-// MARK: - Step
-
-enum RecoveryStep {
-    case enterRecoveryKey
-    case createPin
-    case confirmPin
-    case processing
-}
-
-// MARK: - Dependency Protocols
-
-protocol PinRecoveryCryptoKeyDerivation: Sendable {
-    func deriveClientKey(pin: String, saltHex: String, iterations: Int) async throws -> String
-}
-
-protocol PinRecoveryEncryptionAPI: Sendable {
-    func getSalt() async throws -> EncryptionSaltResponse
-    func recover(recoveryKey: String, newClientKeyHex: String) async throws
-    func regenerateRecoveryKey() async throws -> String
-}
-
-protocol PinRecoveryClientKeyStorage: Sendable {
-    func store(_ clientKeyHex: String, enableBiometric: Bool) async
-}
-
-extension CryptoService: PinRecoveryCryptoKeyDerivation {}
-extension EncryptionAPI: PinRecoveryEncryptionAPI {}
-extension ClientKeyManager: PinRecoveryClientKeyStorage {}
-
 // MARK: - ViewModel
 
 @Observable @MainActor
 final class PinRecoveryViewModel {
+    
+    // MARK: - Public State
+    
     private(set) var step: RecoveryStep = .enterRecoveryKey
     private(set) var digits: [Int] = []
     private(set) var isError = false
@@ -264,34 +244,36 @@ final class PinRecoveryViewModel {
     let maxDigits = 6
     let minDigits = 4
 
+    var isRecoveryKeyValid: Bool {
+        RecoveryKeyFormatter.strip(recoveryKey).count == 52
+    }
+
+    var canConfirm: Bool {
+        digits.count >= minDigits && !isProcessing
+    }
+    
+    // MARK: - Private
+    
     private var recoveryKey = ""
     private var firstPin: String?
     private var errorResetTask: Task<Void, Never>?
-    private let cryptoService: any PinRecoveryCryptoKeyDerivation
-    private let encryptionAPI: any PinRecoveryEncryptionAPI
-    private let clientKeyManager: any PinRecoveryClientKeyStorage
+    private let cryptoService: any PinCryptoKeyDerivation
+    private let encryptionAPI: any PinEncryptionRecovery
+    private let clientKeyManager: any PinClientKeyStorage
+
+    // MARK: - Init
 
     init(
-        cryptoService: any PinRecoveryCryptoKeyDerivation = CryptoService.shared,
-        encryptionAPI: any PinRecoveryEncryptionAPI = EncryptionAPI.shared,
-        clientKeyManager: any PinRecoveryClientKeyStorage = ClientKeyManager.shared
+        cryptoService: any PinCryptoKeyDerivation = CryptoService.shared,
+        encryptionAPI: any PinEncryptionRecovery = EncryptionAPI.shared,
+        clientKeyManager: any PinClientKeyStorage = ClientKeyManager.shared
     ) {
         self.cryptoService = cryptoService
         self.encryptionAPI = encryptionAPI
         self.clientKeyManager = clientKeyManager
     }
 
-    var isRecoveryKeyValid: Bool {
-        // Base32 recovery key (256-bit): 52 characters
-        let stripped = RecoveryKeyFormatter.strip(recoveryKey)
-        return stripped.count == 52
-    }
-
-    var canConfirm: Bool {
-        digits.count >= minDigits && !isProcessing
-    }
-
-    // MARK: - Recovery Key
+    // MARK: - Recovery Key Actions
 
     func updateRecoveryKey(_ input: String) {
         let formatted = RecoveryKeyFormatter.format(input)
@@ -306,7 +288,7 @@ final class PinRecoveryViewModel {
         errorMessage = nil
     }
 
-    // MARK: - PIN Input
+    // MARK: - PIN Input Actions
 
     func appendDigit(_ digit: Int) {
         guard digits.count < maxDigits, !isProcessing else { return }
@@ -320,8 +302,7 @@ final class PinRecoveryViewModel {
     func deleteLastDigit() {
         guard !digits.isEmpty, !isProcessing else { return }
         digits.removeLast()
-        isError = false
-        errorMessage = nil
+        clearError()
     }
 
     func confirmPin() async {
@@ -341,15 +322,10 @@ final class PinRecoveryViewModel {
         default:
             break
         }
-        isError = false
-        errorMessage = nil
+        clearError()
     }
 
-    // MARK: - Private
-
-    private var pinString: String {
-        digits.map(String.init).joined()
-    }
+    // MARK: - PIN Flow
 
     private func handlePinComplete() async {
         switch step {
@@ -367,6 +343,12 @@ final class PinRecoveryViewModel {
             break
         }
     }
+
+    private var pinString: String {
+        digits.map(String.init).joined()
+    }
+
+    // MARK: - Recovery Execution
 
     private func executeRecovery() async {
         step = .processing
@@ -394,18 +376,8 @@ final class PinRecoveryViewModel {
             // 4. Store new clientKey
             await clientKeyManager.store(newClientKeyHex, enableBiometric: false)
 
-            // 5. Generate new recovery key
-            do {
-                let key = try await encryptionAPI.regenerateRecoveryKey()
-                newRecoveryKey = key
-                showRecoverySheet = true
-            } catch {
-                // Non-blocking: user can regenerate from settings later
-                Logger.encryption.warning("Recovery key setup failed after recovery: \(error.localizedDescription)")
-                newRecoveryKey = nil
-                showRecoverySheet = false
-                showRecoveryKeyWarning = true
-            }
+            // 5. Generate new recovery key (non-blocking)
+            await generateNewRecoveryKey()
 
             isProcessing = false
 
@@ -414,17 +386,28 @@ final class PinRecoveryViewModel {
             handleRecoveryError(error)
         } catch {
             isProcessing = false
-            step = .enterRecoveryKey
-            digits = []
-            firstPin = nil
+            resetToRecoveryKeyStep()
             showError("Une erreur est survenue, réessaie")
         }
     }
 
+    private func generateNewRecoveryKey() async {
+        do {
+            let key = try await encryptionAPI.regenerateRecoveryKey()
+            newRecoveryKey = key
+            showRecoverySheet = true
+        } catch {
+            Logger.encryption.warning("Recovery key setup failed after recovery: \(error.localizedDescription)")
+            newRecoveryKey = nil
+            showRecoverySheet = false
+            showRecoveryKeyWarning = true
+        }
+    }
+
+    // MARK: - Error Handling
+
     private func handleRecoveryError(_ error: APIError) {
-        step = .enterRecoveryKey
-        digits = []
-        firstPin = nil
+        resetToRecoveryKeyStep()
 
         switch error {
         case .validationError:
@@ -438,6 +421,12 @@ final class PinRecoveryViewModel {
         }
     }
 
+    private func resetToRecoveryKeyStep() {
+        step = .enterRecoveryKey
+        digits = []
+        firstPin = nil
+    }
+
     private func showError(_ message: String) {
         errorMessage = message
         isError = true
@@ -449,7 +438,14 @@ final class PinRecoveryViewModel {
             isError = false
         }
     }
+    
+    private func clearError() {
+        isError = false
+        errorMessage = nil
+    }
 }
+
+// MARK: - Preview
 
 #Preview {
     PinRecoveryView(

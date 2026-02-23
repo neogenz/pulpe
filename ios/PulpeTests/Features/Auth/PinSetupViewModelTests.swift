@@ -127,20 +127,20 @@ struct PinSetupFlowTests {
         hasRecoveryKey: Bool = false
     ) -> (
         sut: PinSetupViewModel,
-        encryptionAPI: StubPinSetupEncryptionAPI,
-        storage: StubPinSetupClientKeyStorage
+        encryptionAPI: StubEncryptionSetup,
+        storage: StubClientKeyStorage
     ) {
-        let encryptionAPI = StubPinSetupEncryptionAPI(
+        let encryptionAPI = StubEncryptionSetup(
             saltResponse: EncryptionSaltResponse(
                 salt: Self.validSalt,
                 kdfIterations: 1,
                 hasRecoveryKey: hasRecoveryKey
             )
         )
-        let storage = StubPinSetupClientKeyStorage()
+        let storage = StubClientKeyStorage()
         let sut = PinSetupViewModel(
             mode: mode,
-            cryptoService: StubPinSetupCryptoService(derivedKey: Self.validKey),
+            cryptoService: StubCryptoKeyDerivation(derivedKey: Self.validKey),
             encryptionAPI: encryptionAPI,
             clientKeyManager: storage
         )
@@ -188,7 +188,7 @@ struct PinSetupFlowTests {
 
     @Test("clientKeyInvalid error shows specific PIN-exists message")
     func clientKeyInvalid_showsSpecificErrorMessage() async {
-        let encryptionAPI = StubPinSetupEncryptionAPI(
+        let encryptionAPI = StubEncryptionSetup(
             saltResponse: EncryptionSaltResponse(
                 salt: Self.validSalt,
                 kdfIterations: 1,
@@ -196,10 +196,10 @@ struct PinSetupFlowTests {
             ),
             validateKeyError: APIError.clientKeyInvalid
         )
-        let storage = StubPinSetupClientKeyStorage()
+        let storage = StubClientKeyStorage()
         let sut = PinSetupViewModel(
             mode: .chooseAndSetupRecovery,
-            cryptoService: StubPinSetupCryptoService(derivedKey: Self.validKey),
+            cryptoService: StubCryptoKeyDerivation(derivedKey: Self.validKey),
             encryptionAPI: encryptionAPI,
             clientKeyManager: storage
         )
@@ -214,7 +214,7 @@ struct PinSetupFlowTests {
 
     @Test("generic API error shows generic error message")
     func genericAPIError_showsGenericErrorMessage() async {
-        let encryptionAPI = StubPinSetupEncryptionAPI(
+        let encryptionAPI = StubEncryptionSetup(
             saltResponse: EncryptionSaltResponse(
                 salt: Self.validSalt,
                 kdfIterations: 1,
@@ -222,10 +222,10 @@ struct PinSetupFlowTests {
             ),
             validateKeyError: APIError.serverError(message: "Internal Server Error")
         )
-        let storage = StubPinSetupClientKeyStorage()
+        let storage = StubClientKeyStorage()
         let sut = PinSetupViewModel(
             mode: .chooseAndSetupRecovery,
-            cryptoService: StubPinSetupCryptoService(derivedKey: Self.validKey),
+            cryptoService: StubCryptoKeyDerivation(derivedKey: Self.validKey),
             encryptionAPI: encryptionAPI,
             clientKeyManager: storage
         )
@@ -234,14 +234,14 @@ struct PinSetupFlowTests {
         await sut.confirm()
 
         #expect(sut.isError == true)
-        #expect(sut.errorMessage == "Une erreur est survenue, reessaie")
+        #expect(sut.errorMessage == "Une erreur est survenue, réessaie")
         #expect(storage.storeCallCount == 0)
     }
 }
 
 // MARK: - Stubs
 
-private final class StubPinSetupCryptoService: PinSetupCryptoKeyDerivation, @unchecked Sendable {
+private final class StubCryptoKeyDerivation: PinCryptoKeyDerivation, @unchecked Sendable {
     private let derivedKey: String
 
     init(derivedKey: String) {
@@ -253,7 +253,7 @@ private final class StubPinSetupCryptoService: PinSetupCryptoKeyDerivation, @unc
     }
 }
 
-private final class StubPinSetupEncryptionAPI: PinSetupEncryptionKeyValidation, @unchecked Sendable {
+private final class StubEncryptionSetup: PinEncryptionSetup, @unchecked Sendable {
     private let saltResponse: EncryptionSaltResponse
     private let validateKeyError: (any Error)?
     private(set) var setupRecoveryCallCount = 0
@@ -277,7 +277,7 @@ private final class StubPinSetupEncryptionAPI: PinSetupEncryptionKeyValidation, 
     }
 }
 
-private final class StubPinSetupClientKeyStorage: PinSetupClientKeyStorage, @unchecked Sendable {
+private final class StubClientKeyStorage: PinClientKeyStorage, @unchecked Sendable {
     private(set) var storeCallCount = 0
 
     func store(_ clientKeyHex: String, enableBiometric: Bool) async {

@@ -1,23 +1,23 @@
 import OSLog
 import SwiftUI
 
+// MARK: - Setup Mode
+
 enum PinSetupMode: Equatable, Sendable {
     case chooseAndSetupRecovery
     case enterExistingPin
 
     var title: String {
         switch self {
-        case .chooseAndSetupRecovery:
-            return "Choisis ton code PIN"
-        case .enterExistingPin:
-            return "Saisis ton code PIN"
+        case .chooseAndSetupRecovery: "Choisis ton code PIN"
+        case .enterExistingPin: "Saisis ton code PIN"
         }
     }
 
-    var subtitle: String {
-        "4 chiffres minimum"
-    }
+    var subtitle: String { "4 chiffres minimum" }
 }
+
+// MARK: - View
 
 struct PinSetupView: View {
     let mode: PinSetupMode
@@ -42,14 +42,12 @@ struct PinSetupView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .pulpeBackground()
             .sheet(isPresented: $viewModel.showRecoverySheet) {
-            if let key = viewModel.recoveryKey {
-                RecoveryKeySheet(recoveryKey: key) {
-                    Task {
-                        await onComplete()
+                if let key = viewModel.recoveryKey {
+                    RecoveryKeySheet(recoveryKey: key) {
+                        Task { await onComplete() }
                     }
                 }
             }
-        }
             .onChange(of: viewModel.completedWithoutRecovery) { _, completed in
                 if completed {
                     Task { await onComplete() }
@@ -70,9 +68,7 @@ struct PinSetupView: View {
             dotsSection
             Spacer().frame(height: 48)
             NumpadView(
-                onDigit: { digit in
-                    viewModel.appendDigit(digit)
-                },
+                onDigit: { viewModel.appendDigit($0) },
                 onDelete: { viewModel.deleteLastDigit() },
                 onConfirm: viewModel.canConfirm ? {
                     Task { await viewModel.confirm() }
@@ -80,7 +76,7 @@ struct PinSetupView: View {
                 isDisabled: viewModel.isValidating
             )
             Spacer().frame(height: 24)
-            backButton
+            Spacer().frame(height: 20)
             Spacer().frame(height: 16)
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
@@ -92,9 +88,7 @@ struct PinSetupView: View {
         HStack {
             Spacer()
             Button {
-                Task {
-                    await onLogout?()
-                }
+                Task { await onLogout?() }
             } label: {
                 Text("Se déconnecter")
                     .font(PulpeTypography.footnote)
@@ -137,39 +131,16 @@ struct PinSetupView: View {
         }
         .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: viewModel.errorMessage)
     }
-
-    // MARK: - Back Button
-
-    @ViewBuilder
-    private var backButton: some View {
-        Color.clear.frame(height: 20)
-    }
 }
 
 // MARK: - ViewModel
 
-protocol PinSetupCryptoKeyDerivation: Sendable {
-    func deriveClientKey(pin: String, saltHex: String, iterations: Int) async throws -> String
-}
-
-protocol PinSetupEncryptionKeyValidation: Sendable {
-    func getSalt() async throws -> EncryptionSaltResponse
-    func validateKey(_ clientKeyHex: String) async throws
-    func setupRecoveryKey() async throws -> String
-}
-
-protocol PinSetupClientKeyStorage: Sendable {
-    func store(_ clientKeyHex: String, enableBiometric: Bool) async
-}
-
-extension CryptoService: PinSetupCryptoKeyDerivation {}
-extension EncryptionAPI: PinSetupEncryptionKeyValidation {}
-extension ClientKeyManager: PinSetupClientKeyStorage {}
-
 @Observable @MainActor
 final class PinSetupViewModel {
+    
+    // MARK: - Public State
+    
     let mode: PinSetupMode
-
     private(set) var digits: [Int] = []
     private(set) var isValidating = false
     private(set) var isError = false
@@ -181,16 +152,24 @@ final class PinSetupViewModel {
     let maxDigits = 6
     let minDigits = 4
 
+    var canConfirm: Bool {
+        digits.count >= minDigits && !isValidating
+    }
+    
+    // MARK: - Private
+    
     private var errorResetTask: Task<Void, Never>?
-    private let cryptoService: any PinSetupCryptoKeyDerivation
-    private let encryptionAPI: any PinSetupEncryptionKeyValidation
-    private let clientKeyManager: any PinSetupClientKeyStorage
+    private let cryptoService: any PinCryptoKeyDerivation
+    private let encryptionAPI: any PinEncryptionSetup
+    private let clientKeyManager: any PinClientKeyStorage
+
+    // MARK: - Init
 
     init(
         mode: PinSetupMode = .chooseAndSetupRecovery,
-        cryptoService: any PinSetupCryptoKeyDerivation = CryptoService.shared,
-        encryptionAPI: any PinSetupEncryptionKeyValidation = EncryptionAPI.shared,
-        clientKeyManager: any PinSetupClientKeyStorage = ClientKeyManager.shared
+        cryptoService: any PinCryptoKeyDerivation = CryptoService.shared,
+        encryptionAPI: any PinEncryptionSetup = EncryptionAPI.shared,
+        clientKeyManager: any PinClientKeyStorage = ClientKeyManager.shared
     ) {
         self.mode = mode
         self.cryptoService = cryptoService
@@ -198,9 +177,7 @@ final class PinSetupViewModel {
         self.clientKeyManager = clientKeyManager
     }
 
-    var canConfirm: Bool {
-        digits.count >= minDigits && !isValidating
-    }
+    // MARK: - Actions
 
     func appendDigit(_ digit: Int) {
         guard digits.count < maxDigits, !isValidating else { return }
@@ -219,21 +196,16 @@ final class PinSetupViewModel {
     func deleteLastDigit() {
         guard !digits.isEmpty, !isValidating else { return }
         digits.removeLast()
-        isError = false
-        errorMessage = nil
+        clearError()
     }
 
-    // MARK: - Private
-
-    private var pinString: String {
-        digits.map(String.init).joined()
-    }
+    // MARK: - Setup Flow
 
     private func completeSetup() async {
         isValidating = true
         defer { isValidating = false }
 
-        let pin = pinString
+        let pin = digits.map(String.init).joined()
 
         do {
             let saltResponse = try await encryptionAPI.getSalt()
@@ -245,14 +217,14 @@ final class PinSetupViewModel {
             try await encryptionAPI.validateKey(clientKeyHex)
             await clientKeyManager.store(clientKeyHex, enableBiometric: false)
 
+            // For existing PIN mode, skip recovery key setup
             if mode == .enterExistingPin {
                 digits = []
                 completedWithoutRecovery = true
                 return
             }
 
-            // Guard: if user already has a recovery key, skip setup to avoid overwriting it.
-            // This can happen when vault-status returns 404 and the app routes here by mistake.
+            // Skip recovery setup if user already has one (edge case: vault-status 404)
             guard !saltResponse.hasRecoveryKey else {
                 Logger.encryption.info("Skipping recovery key setup — user already has one")
                 digits = []
@@ -264,18 +236,25 @@ final class PinSetupViewModel {
             recoveryKey = key
             digits = []
             showRecoverySheet = true
+            
         } catch let apiError as APIError {
-            switch apiError {
-            case .clientKeyInvalid:
-                Logger.encryption.warning("PIN setup: existing key_check detected — account already has a PIN")
-                showError("Un code PIN existe déjà pour ce compte — saisis-le")
-            default:
-                Logger.encryption.error("PIN setup failed: \(apiError.localizedDescription)")
-                showError("Une erreur est survenue, reessaie")
-            }
+            handleAPIError(apiError)
         } catch {
             Logger.encryption.error("PIN setup failed: \(error.localizedDescription)")
-            showError("Une erreur est survenue, reessaie")
+            showError("Une erreur est survenue, réessaie")
+        }
+    }
+
+    // MARK: - Error Handling
+
+    private func handleAPIError(_ error: APIError) {
+        switch error {
+        case .clientKeyInvalid:
+            Logger.encryption.warning("PIN setup: existing key_check detected — account already has a PIN")
+            showError("Un code PIN existe déjà pour ce compte — saisis-le")
+        default:
+            Logger.encryption.error("PIN setup failed: \(error.localizedDescription)")
+            showError("Une erreur est survenue, réessaie")
         }
     }
 
@@ -291,7 +270,14 @@ final class PinSetupViewModel {
             isError = false
         }
     }
+    
+    private func clearError() {
+        isError = false
+        errorMessage = nil
+    }
 }
+
+// MARK: - Preview
 
 #Preview {
     PinSetupView(onComplete: {}, onLogout: nil)
