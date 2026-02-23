@@ -137,7 +137,9 @@ struct CurrentMonthView: View {
 
                     InsightsCard(
                         topSpending: store.topSpending,
-                        alerts: store.alertBudgetLines,
+                        alerts: store.alertBudgetLines.map {
+                            BudgetAlert(line: $0.line, consumption: $0.consumption)
+                        },
                         onTap: { navigateToBudget = true }
                     )
                 }

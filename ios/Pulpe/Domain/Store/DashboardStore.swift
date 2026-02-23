@@ -53,7 +53,7 @@ final class DashboardStore: StoreProtocol {
     func forceRefresh() async {
         // Cancel any existing load task to avoid duplicate requests
         loadTask?.cancel()
-        
+
         let task = Task { @MainActor in
             isLoading = true
             error = nil
@@ -78,7 +78,7 @@ final class DashboardStore: StoreProtocol {
                 self.error = .networkError(error)
             }
         }
-        
+
         loadTask = task
         await task.value
         loadTask = nil

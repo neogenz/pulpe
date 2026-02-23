@@ -1,9 +1,8 @@
+@testable import Pulpe
 import Testing
 import UIKit
-@testable import Pulpe
 
 struct TypographyTests {
-
     // MARK: - Font Registration
 
     /// All custom font PostScript names must resolve to a UIFont, proving the .ttf files

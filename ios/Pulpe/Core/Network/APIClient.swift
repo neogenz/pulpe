@@ -115,7 +115,9 @@ actor APIClient {
             (data, response) = try await session.data(for: request)
         } catch {
             if !isRetry, Self.isTransientError(error) {
-                Logger.network.warning("Transient network error, retrying: \(error.localizedDescription, privacy: .public)")
+                Logger.network.warning(
+                    "Transient network error, retrying: \(error.localizedDescription, privacy: .public)"
+                )
                 try await requestVoid(endpoint, body: body, method: method, isRetry: true)
                 return
             }
@@ -183,7 +185,9 @@ actor APIClient {
         } catch {
             // Retry once on transient network errors
             if !isRetry, Self.isTransientError(error) {
-                Logger.network.warning("Transient network error, retrying: \(error.localizedDescription, privacy: .public)")
+                Logger.network.warning(
+                    "Transient network error, retrying: \(error.localizedDescription, privacy: .public)"
+                )
                 return try await performRequest(request, endpoint: endpoint, body: body, isRetry: true)
             }
             throw APIError.networkError(error)
@@ -232,25 +236,28 @@ actor APIClient {
                 code: errorResponse.code,
                 message: errorResponse.error ?? errorResponse.message
             )
-
-            // Broadcast maintenance notification to trigger UI update
-            if case .maintenance = error {
-                Task { @MainActor in
-                    NotificationCenter.default.post(name: .maintenanceModeDetected, object: nil)
-                }
-            }
-
-            // Broadcast stale client key to trigger PIN re-entry
-            if case .clientKeyInvalid = error {
-                Task { @MainActor in
-                    NotificationCenter.default.post(name: .clientKeyCheckFailed, object: nil)
-                }
-            }
-
+            broadcastErrorNotifications(error)
             return error
         }
 
         // Fallback to status code
+        return statusCodeError(statusCode)
+    }
+
+    private func broadcastErrorNotifications(_ error: APIError) {
+        if case .maintenance = error {
+            Task { @MainActor in
+                NotificationCenter.default.post(name: .maintenanceModeDetected, object: nil)
+            }
+        }
+        if case .clientKeyInvalid = error {
+            Task { @MainActor in
+                NotificationCenter.default.post(name: .clientKeyCheckFailed, object: nil)
+            }
+        }
+    }
+
+    private func statusCodeError(_ statusCode: Int) -> APIError {
         switch statusCode {
         case 400:
             return .validationError(details: ["Quelque chose ne colle pas — vérifie ta saisie"])
@@ -311,9 +318,13 @@ actor APIClient {
         let path = request.url?.path ?? "?"
         let status = response.statusCode
 
-        Logger.network.debug("[\(method, privacy: .public)] \(path, privacy: .public) -> \(status, privacy: .public)")
+        Logger.network.debug(
+            "[\(method, privacy: .public)] \(path, privacy: .public) -> \(status, privacy: .public)"
+        )
         if status >= 400 {
-            Logger.network.error("Request failed: [\(method, privacy: .public)] \(path, privacy: .public) -> \(status, privacy: .public)")
+            Logger.network.error(
+                "Request failed: [\(method, privacy: .public)] \(path, privacy: .public) -> \(status, privacy: .public)"
+            )
         }
     }
 }

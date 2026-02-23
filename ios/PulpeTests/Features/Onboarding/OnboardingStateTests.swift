@@ -1,11 +1,10 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 @Suite(.serialized)
 @MainActor
 struct OnboardingStateTests {
-
     /// Creates a clean OnboardingState for testing.
     /// Clears persisted data to ensure test isolation, then sets initial step to .welcome.
     private func makeSUT() -> OnboardingState {

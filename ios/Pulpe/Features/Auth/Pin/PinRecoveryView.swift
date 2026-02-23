@@ -32,7 +32,10 @@ struct PinRecoveryView: View {
             .alert("Clé de récupération", isPresented: $viewModel.showRecoveryKeyWarning) {
                 Button("OK") { onComplete() }
             } message: {
-                Text("Ta récupération est réussie mais la nouvelle clé de récupération n'a pas pu être générée. Tu peux en créer une depuis les réglages.")
+                Text(
+                    "Ta récupération est réussie mais la nouvelle clé de récupération n'a pas pu être générée. "
+                    + "Tu peux en créer une depuis les réglages."
+                )
             }
     }
 
@@ -228,9 +231,8 @@ struct PinRecoveryView: View {
 
 @Observable @MainActor
 final class PinRecoveryViewModel {
-    
     // MARK: - Public State
-    
+
     private(set) var step: RecoveryStep = .enterRecoveryKey
     private(set) var digits: [Int] = []
     private(set) var isError = false
@@ -251,9 +253,9 @@ final class PinRecoveryViewModel {
     var canConfirm: Bool {
         digits.count >= minDigits && !isProcessing
     }
-    
+
     // MARK: - Private
-    
+
     private var recoveryKey = ""
     private var firstPin: String?
     private var errorResetTask: Task<Void, Never>?
@@ -382,7 +384,6 @@ final class PinRecoveryViewModel {
             await generateNewRecoveryKey()
 
             isProcessing = false
-
         } catch let error as APIError {
             isProcessing = false
             handleRecoveryError(error)
@@ -442,7 +443,7 @@ final class PinRecoveryViewModel {
             isError = false
         }
     }
-    
+
     private func clearError() {
         isError = false
         errorMessage = nil

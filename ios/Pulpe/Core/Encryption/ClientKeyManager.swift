@@ -9,7 +9,7 @@ actor ClientKeyManager {
     private var cachedClientKeyHex: String?
     private let keychainManager: KeychainManager
     private let biometricService: BiometricService
-    
+
     /// Coalescing task to prevent concurrent keychain reads
     private var resolveTask: Task<String?, Never>?
 
@@ -35,18 +35,18 @@ actor ClientKeyManager {
         let task = Task<String?, Never> {
             // Double-check cache after acquiring the task slot
             if let cached = cachedClientKeyHex { return cached }
-            
+
             if let stored = await keychainManager.getClientKey() {
                 cachedClientKeyHex = stored
                 return stored
             }
             return nil
         }
-        
+
         resolveTask = task
         let result = await task.value
         resolveTask = nil
-        
+
         return result
     }
 

@@ -1,11 +1,10 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 @Suite(.serialized)
 @MainActor
 struct BudgetDetailsViewModelFilterTests {
-
     // MARK: - Default Filter Behavior
 
     @Test
@@ -67,7 +66,6 @@ struct BudgetDetailsViewModelFilterTests {
 // MARK: - Filter Logic Tests
 
 struct BudgetDetailsFilterLogicTests {
-
     // MARK: - Budget Line Filter Rules
 
     @Test
@@ -176,17 +174,18 @@ struct BudgetDetailsFilterLogicTests {
         return lines.filter { $0.checkedAt == nil }
     }
 
-    private func applyCheckedFilterToTransactions(_ transactions: [Transaction], showOnlyUnchecked: Bool) -> [Transaction] {
+    private func applyCheckedFilterToTransactions(
+        _ transactions: [Transaction],
+        showOnlyUnchecked: Bool
+    ) -> [Transaction] {
         guard showOnlyUnchecked else { return transactions }
         return transactions.filter { $0.checkedAt == nil }
     }
-
 }
 
 // MARK: - Search Filter Tests
 
 struct BudgetDetailsSearchFilterTests {
-
     // MARK: - Test Data
 
     private let loyer = TestDataFactory.createBudgetLine(

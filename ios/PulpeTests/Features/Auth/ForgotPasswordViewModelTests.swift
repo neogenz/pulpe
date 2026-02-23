@@ -1,10 +1,9 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 @MainActor
 struct ForgotPasswordViewModelTests {
-
     @Test func submit_withInvalidEmail_setsValidationError() async {
         // Given
         let viewModel = ForgotPasswordViewModel(

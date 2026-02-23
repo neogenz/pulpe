@@ -70,7 +70,10 @@ private struct RecentTransactionCardRow: View {
         }
         .padding(.vertical, DesignTokens.Spacing.sm)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(transaction.name), \(transaction.kind.label), \(transaction.transactionDate.relativeFormatted), \(transaction.signedAmount.asCHF)")
+        .accessibilityLabel(
+            "\(transaction.name), \(transaction.kind.label), "
+            + "\(transaction.transactionDate.relativeFormatted), \(transaction.signedAmount.asCHF)"
+        )
     }
 }
 

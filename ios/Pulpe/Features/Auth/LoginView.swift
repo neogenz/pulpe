@@ -59,9 +59,11 @@ struct LoginView: View {
             }
         }
     }
+}
 
-    // MARK: - Header
+// MARK: - Computed Properties
 
+extension LoginView {
     private var headerSection: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             PulpeIcon(size: 64)
@@ -85,8 +87,6 @@ struct LoginView: View {
         .animation(reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 0.8), value: isAppeared)
     }
 
-    // MARK: - Form
-
     private var formSection: some View {
         VStack(spacing: DesignTokens.Spacing.xl) {
             errorBanner
@@ -100,8 +100,6 @@ struct LoginView: View {
         .offset(y: isAppeared ? 0 : 20)
         .animation(reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: isAppeared)
     }
-
-    // MARK: - Error Banner
 
     @ViewBuilder
     private var errorBanner: some View {
@@ -120,8 +118,6 @@ struct LoginView: View {
             .background(Color.errorBackground, in: .rect(cornerRadius: DesignTokens.CornerRadius.md))
         }
     }
-
-    // MARK: - Biometric Section
 
     @ViewBuilder
     private var biometricSection: some View {
@@ -161,8 +157,6 @@ struct LoginView: View {
         }
     }
 
-    // MARK: - Email Field
-
     private var emailField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text("E-mail")
@@ -201,8 +195,6 @@ struct LoginView: View {
             .accessibilityHint("Saisis ton adresse e-mail")
         }
     }
-
-    // MARK: - Password Field
 
     private var passwordField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
@@ -265,8 +257,6 @@ struct LoginView: View {
         }
     }
 
-    // MARK: - Login Button
-
     private var forgotPasswordButton: some View {
         HStack {
             Spacer()
@@ -306,8 +296,6 @@ struct LoginView: View {
         .accessibilityIdentifier("loginButton")
         .padding(.top, DesignTokens.Spacing.sm)
     }
-
-    // MARK: - Create Account
 
     private var createAccountSection: some View {
         HStack(spacing: DesignTokens.Spacing.xs) {

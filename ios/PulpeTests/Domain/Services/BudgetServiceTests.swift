@@ -1,9 +1,8 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 struct BudgetServiceTests {
-
     private let sut = BudgetService.shared
 
     // MARK: - getNextAvailableMonth Tests

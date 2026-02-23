@@ -4,8 +4,8 @@ import SwiftUI
 struct NumpadView: View {
     let onDigit: (Int) -> Void
     let onDelete: () -> Void
-    var onBiometric: (() -> Void)? = nil
-    var onConfirm: (() -> Void)? = nil
+    var onBiometric: (() -> Void)?
+    var onConfirm: (() -> Void)?
     var isDisabled: Bool = false
 
     var body: some View {
@@ -42,15 +42,15 @@ struct NumpadView: View {
     @ViewBuilder
     private func numpadItem(_ item: NumpadItem) -> some View {
         switch item {
-        case .digit(let n):
+        case .digit(let number):
             NumpadButton(isDisabled: isDisabled) {
-                onDigit(n)
+                onDigit(number)
             } label: {
-                Text("\(n)")
+                Text("\(number)")
                     .font(PulpeTypography.numpadKey)
                     .foregroundStyle(Color.pinText)
             }
-            .accessibilityLabel("\(n)")
+            .accessibilityLabel("\(number)")
 
         case .biometric:
             NumpadButton(isDisabled: isDisabled) {
@@ -109,7 +109,7 @@ private enum NumpadItem: Hashable, Identifiable {
 
     var id: String {
         switch self {
-        case .digit(let n): "digit-\(n)"
+        case .digit(let number): "digit-\(number)"
         case .biometric: "biometric"
         case .confirm: "confirm"
         case .delete: "delete"

@@ -9,9 +9,9 @@ struct PersonalInfoStep: View {
             step: .personalInfo,
             state: state,
             canProceed: state.isFirstNameValid && state.isIncomeValid,
-            onNext: { state.nextStep() }
-        ) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            onNext: { state.nextStep() },
+            content: {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     Text("Prénom")
                         .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
@@ -46,11 +46,12 @@ struct PersonalInfoStep: View {
                     hint: "5000",
                     label: "Revenu mensuel net"
                 )
+                }
+                .onAppear {
+                    isFocused = true
+                }
             }
-            .onAppear {
-                isFocused = true
-            }
-        }
+        )
     }
 }
 

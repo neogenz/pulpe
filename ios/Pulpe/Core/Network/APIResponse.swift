@@ -53,7 +53,7 @@ enum APIErrorDetails: Decodable {
 
     var messages: [String] {
         switch self {
-        case .string(let s): return [s]
+        case .string(let status): return [status]
         case .array(let arr): return arr
         case .dictionary(let dict): return dict.values.map { $0 }
         }

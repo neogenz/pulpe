@@ -21,7 +21,7 @@ protocol PinCryptoKeyDerivation: Sendable {
 protocol PinEncryptionValidation: Sendable {
     /// Fetches the user's encryption salt and KDF parameters.
     func getSalt() async throws -> EncryptionSaltResponse
-    
+
     /// Validates a client key against the server's key check.
     /// - Throws: `APIError.clientKeyInvalid` if the key doesn't match
     func validateKey(_ clientKeyHex: String) async throws
@@ -41,7 +41,7 @@ protocol PinEncryptionRecovery: PinEncryptionValidation {
     ///   - recoveryKey: The user's recovery key (stripped of formatting)
     ///   - newClientKeyHex: The new derived client key to set
     func recover(recoveryKey: String, newClientKeyHex: String) async throws
-    
+
     /// Generates a new recovery key after successful recovery.
     /// - Returns: The new formatted recovery key
     func regenerateRecoveryKey() async throws -> String

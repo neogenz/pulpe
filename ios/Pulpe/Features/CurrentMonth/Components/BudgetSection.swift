@@ -62,7 +62,11 @@ struct BudgetSection: View {
                         swipeActions(for: item)
                     }
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
-                    .animation(.easeOut(duration: DesignTokens.Animation.normal).delay(Double(index) * 0.05), value: items.count)
+                    .animation(
+                        .easeOut(duration: DesignTokens.Animation.normal)
+                            .delay(Double(index) * 0.05),
+                        value: items.count
+                    )
             }
 
             expandCollapseButton
@@ -138,7 +142,6 @@ struct BudgetSection: View {
         )
     }
 }
-
 
 /// Single budget line row - Revolut-inspired design
 struct BudgetLineRow: View {
@@ -273,9 +276,11 @@ struct BudgetLineRow: View {
         .sensoryFeedback(.success, trigger: triggerSuccessFeedback)
         .sensoryFeedback(.warning, trigger: triggerWarningFeedback)
         .accessibilityAddTraits(.isButton)
-        .accessibilityHint(hasConsumption
-            ? "Montant restant: \(consumption.available.asCHF). Touche pour modifier, maintiens pour voir les transactions"
-            : "Touche pour modifier, maintiens pour voir les transactions"
+        .accessibilityHint(
+            hasConsumption
+                ? "Montant restant: \(consumption.available.asCHF). " +
+                  "Touche pour modifier, maintiens pour voir les transactions"
+                : "Touche pour modifier, maintiens pour voir les transactions"
         )
     }
 
@@ -284,7 +289,11 @@ struct BudgetLineRow: View {
     private var kindIconCircle: some View {
         ZStack {
             Circle()
-                .fill(line.isChecked ? Color.progressTrack : line.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
+                .fill(
+                    line.isChecked
+                        ? Color.progressTrack
+                        : line.kind.color.opacity(DesignTokens.Opacity.badgeBackground)
+                )
                 .frame(width: 40, height: 40)
 
             if line.isChecked {

@@ -6,12 +6,12 @@ struct ModernSheetModifier: ViewModifier {
     let title: String
     let showDismissButton: Bool
     @Environment(\.dismiss) private var dismiss
-    
+
     init(title: String, showDismissButton: Bool = true) {
         self.title = title
         self.showDismissButton = showDismissButton
     }
-    
+
     func body(content: Content) -> some View {
         VStack(spacing: 0) {
             // MARK: - Header with drag handle
@@ -21,15 +21,15 @@ struct ModernSheetModifier: ViewModifier {
                     .fill(Color.textTertiary.opacity(DesignTokens.Opacity.secondary))
                     .frame(width: 36, height: 4)
                     .padding(.top, DesignTokens.Spacing.md)
-                
+
                 // Title and dismiss button
                 HStack {
                     Text(title)
                         .font(PulpeTypography.title3)
                         .foregroundStyle(Color.textPrimary)
-                    
+
                     Spacer()
-                    
+
                     if showDismissButton {
                         Button {
                             dismiss()
@@ -47,10 +47,10 @@ struct ModernSheetModifier: ViewModifier {
                 .padding(.bottom, DesignTokens.Spacing.sm)
             }
             .background(Color.surfacePrimary)
-            
+
             Divider()
                 .opacity(0.1)
-            
+
             // MARK: - Content
             content
         }
@@ -81,7 +81,7 @@ extension View {
                     Text("Voici le contenu de la sheet avec le nouveau design moderne.")
                         .font(PulpeTypography.bodyLarge)
                         .padding()
-                    
+
                     Button("Action principale") {}
                         .font(PulpeTypography.buttonPrimary)
                         .foregroundStyle(Color.textOnPrimary)

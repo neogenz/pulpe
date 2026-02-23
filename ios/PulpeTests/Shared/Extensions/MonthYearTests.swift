@@ -1,9 +1,8 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 struct MonthYearTests {
-
     // MARK: - Comparable Tests (Used for Budget Sorting)
 
     @Test func comparable_sameYear_comparesMonths() {

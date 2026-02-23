@@ -241,7 +241,10 @@ struct RootView: View {
                 Task { await appState.declineRecoveryKeyRepairConsent() }
             }
         } message: {
-            Text("Ton coffre est configuré sans clé de récupération. Génère-la maintenant pour éviter de perdre l'accès à tes données chiffrées.")
+            Text(
+                "Ton coffre est configuré sans clé de récupération. " +
+                "Génère-la maintenant pour éviter de perdre l'accès à tes données chiffrées."
+            )
         }
         .onChange(of: deepLinkDestination) { _, _ in
             handlePendingDeepLink()

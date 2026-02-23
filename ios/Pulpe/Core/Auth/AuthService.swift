@@ -226,7 +226,7 @@ actor AuthService {
         guard let refreshToken = await keychain.getRefreshToken() else {
             return false
         }
-        
+
         // Validate token is still valid before saving
         do {
             let session = try await supabase.auth.refreshSession(refreshToken: refreshToken)

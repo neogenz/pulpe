@@ -43,16 +43,6 @@ struct PostAuthResolver: PostAuthResolving {
     let sessionRefresher: any SessionRefreshing
     let clientKeyResolver: any ClientKeyResolving
 
-    init(
-        vaultStatusProvider: any VaultStatusProviding,
-        sessionRefresher: any SessionRefreshing,
-        clientKeyResolver: any ClientKeyResolving
-    ) {
-        self.vaultStatusProvider = vaultStatusProvider
-        self.sessionRefresher = sessionRefresher
-        self.clientKeyResolver = clientKeyResolver
-    }
-
     func resolve() async -> PostAuthDestination {
         switch await loadVaultStatusWithRetry() {
         case .sessionExpired:

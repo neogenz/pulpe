@@ -1,9 +1,8 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 struct BudgetTests {
-
     // MARK: - Month/Year Display
 
     @Test func monthYearFormatsCorrectly() {
@@ -163,5 +162,4 @@ struct BudgetTests {
         // Act & Assert
         #expect(budget.rollover == 0)
     }
-
 }

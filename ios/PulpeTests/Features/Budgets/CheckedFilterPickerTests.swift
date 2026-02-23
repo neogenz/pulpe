@@ -1,9 +1,8 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 struct CheckedFilterPickerTests {
-
     // MARK: - Filter Option Properties
 
     @Test func uncheckedOptionHasCorrectLabel() {

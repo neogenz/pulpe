@@ -137,9 +137,8 @@ struct PinSetupView: View {
 
 @Observable @MainActor
 final class PinSetupViewModel {
-    
     // MARK: - Public State
-    
+
     let mode: PinSetupMode
     private(set) var digits: [Int] = []
     private(set) var isValidating = false
@@ -155,9 +154,9 @@ final class PinSetupViewModel {
     var canConfirm: Bool {
         digits.count >= minDigits && !isValidating
     }
-    
+
     // MARK: - Private
-    
+
     private var errorResetTask: Task<Void, Never>?
     private let cryptoService: any PinCryptoKeyDerivation
     private let encryptionAPI: any PinEncryptionSetup
@@ -236,7 +235,6 @@ final class PinSetupViewModel {
             recoveryKey = key
             digits = []
             showRecoverySheet = true
-            
         } catch let apiError as APIError {
             handleAPIError(apiError)
         } catch {
@@ -270,7 +268,7 @@ final class PinSetupViewModel {
             isError = false
         }
     }
-    
+
     private func clearError() {
         isError = false
         errorMessage = nil

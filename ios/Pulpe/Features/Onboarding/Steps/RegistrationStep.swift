@@ -36,9 +36,9 @@ struct RegistrationStep: View {
             step: .registration,
             state: state,
             canProceed: canSubmit,
-            onNext: { Task { await submitRegistration() } }
-        ) {
-            VStack(spacing: DesignTokens.Spacing.xxl) {
+            onNext: { Task { await submitRegistration() } },
+            content: {
+                VStack(spacing: DesignTokens.Spacing.xxl) {
                 Text("Crée ton compte pour sauvegarder ton budget")
                     .font(PulpeTypography.body.weight(.medium))
                     .foregroundStyle(Color.textPrimaryOnboarding)
@@ -70,7 +70,8 @@ struct RegistrationStep: View {
                             .overlay {
                                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
                                     .strokeBorder(
-                                        focusedField == .email ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder,
+                                        focusedField == .email ? Color.pulpePrimary.opacity(0.6) :
+                                            Color.authInputBorder,
                                         lineWidth: focusedField == .email ? 2 : 1
                                     )
                             }
@@ -123,7 +124,8 @@ struct RegistrationStep: View {
                             .overlay {
                                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
                                     .strokeBorder(
-                                        focusedField == .password ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder,
+                                        focusedField == .password ? Color.pulpePrimary.opacity(0.6) :
+                                            Color.authInputBorder,
                                         lineWidth: focusedField == .password ? 2 : 1
                                     )
                             }
@@ -175,7 +177,9 @@ struct RegistrationStep: View {
                                 .foregroundStyle(Color.authInputText.opacity(0.6))
                                 .contentTransition(.symbolEffect(.replace))
                         }
-                        .accessibilityLabel(showPasswordConfirmation ? "Masquer le mot de passe" : "Afficher le mot de passe")
+                        .accessibilityLabel(
+                            showPasswordConfirmation ? "Masquer le mot de passe" : "Afficher le mot de passe"
+                        )
                     }
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .frame(height: DesignTokens.FrameHeight.button)
@@ -186,13 +190,15 @@ struct RegistrationStep: View {
                                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
                                     .strokeBorder(
                                         passwordMismatch ? Color.errorPrimary.opacity(0.5) :
-                                        focusedField == .passwordConfirmation ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder,
+                                            focusedField == .passwordConfirmation ? Color.pulpePrimary.opacity(0.6)
+                                            : Color.authInputBorder,
                                         lineWidth: focusedField == .passwordConfirmation || passwordMismatch ? 2 : 1
                                     )
                             }
                     }
                     .shadow(
-                        color: focusedField == .passwordConfirmation ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05),
+                        color: focusedField == .passwordConfirmation ? Color.pulpePrimary.opacity(0.2)
+                            : Color.black.opacity(0.05),
                         radius: focusedField == .passwordConfirmation ? 12 : 4,
                         y: 4
                     )
@@ -213,7 +219,11 @@ struct RegistrationStep: View {
                     HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                         ZStack {
                             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm, style: .continuous)
-                                .strokeBorder(state.acceptTerms ? Color.pulpePrimary : Color.textPrimaryOnboarding.opacity(0.4), lineWidth: 2)
+                                .strokeBorder(
+                                    state.acceptTerms ? Color.pulpePrimary :
+                                        Color.textPrimaryOnboarding.opacity(0.4),
+                                    lineWidth: 2
+                                )
                                 .frame(width: 24, height: 24)
                                 .background {
                                     if !state.acceptTerms {
@@ -221,7 +231,7 @@ struct RegistrationStep: View {
                                             .fill(Color.authInputBackground)
                                     }
                                 }
-                            
+
                             if state.acceptTerms {
                                 Image(systemName: "checkmark")
                                     .font(.caption.weight(.bold))
@@ -230,7 +240,7 @@ struct RegistrationStep: View {
                             }
                         }
                         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: state.acceptTerms)
-                        
+
                         Text("J'accepte les [conditions d'utilisation](https://pulpe.app/terms) et la [politique de confidentialité](https://pulpe.app/privacy)")
                             .font(PulpeTypography.footnote)
                             .foregroundStyle(Color.textPrimaryOnboarding)
@@ -240,7 +250,7 @@ struct RegistrationStep: View {
                 }
                 .buttonStyle(.plain)
             }
-        }
+        })
     }
 
     private func submitRegistration() async {
@@ -253,7 +263,6 @@ struct RegistrationStep: View {
 
             state.isLoading = false
             onComplete(user)
-
         } catch let apiError as APIError {
             state.error = apiError
             state.isLoading = false

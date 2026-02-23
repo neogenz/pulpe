@@ -1,18 +1,22 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 struct APIClientClientKeyHeaderTests {
-    private let baseURL = URL(string: "https://pulpe.test")!
+    private let baseURL: URL
     private let authToken = "test-auth-token"
-    private let clientKey =
-        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    private let clientKey: String
+
+    init() {
+        self.baseURL = URL(string: "https://pulpe.test") ?? URL(fileURLWithPath: "/")
+        self.clientKey = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    }
 
     @Test func request_includesClientKeyAndAuthorizationHeaders() async throws {
         let recorder = RequestRecorder()
         InterceptingURLProtocol.requestHandler = { request in
             recorder.record(request)
-            let body = #"{"id":"user-1"}"#.data(using: .utf8) ?? Data()
+            let body = Data(#"{"id":"user-1"}"#.utf8)
             return (Self.httpResponse(for: request, statusCode: 200), body)
         }
         defer { InterceptingURLProtocol.requestHandler = nil }
@@ -45,7 +49,7 @@ struct APIClientClientKeyHeaderTests {
         let recorder = RequestRecorder()
         InterceptingURLProtocol.requestHandler = { request in
             recorder.record(request)
-            let body = #"{"id":"user-2"}"#.data(using: .utf8) ?? Data()
+            let body = Data(#"{"id":"user-2"}"#.utf8)
             return (Self.httpResponse(for: request, statusCode: 200), body)
         }
         defer { InterceptingURLProtocol.requestHandler = nil }
@@ -72,12 +76,16 @@ struct APIClientClientKeyHeaderTests {
     }
 
     private static func httpResponse(for request: URLRequest, statusCode: Int) -> HTTPURLResponse {
-        HTTPURLResponse(
-            url: request.url ?? URL(string: "https://pulpe.test/fallback")!,
+        let url = request.url ?? URL(string: "https://pulpe.test/fallback") ?? URL(fileURLWithPath: "/")
+        guard let response = HTTPURLResponse(
+            url: url,
             statusCode: statusCode,
             httpVersion: nil,
             headerFields: ["Content-Type": "application/json"]
-        )!
+        ) else {
+            fatalError("Failed to create HTTPURLResponse")
+        }
+        return response
     }
 }
 
@@ -88,11 +96,11 @@ private struct UserPayload: Decodable {
 private final class InterceptingURLProtocol: URLProtocol, @unchecked Sendable {
     nonisolated(unsafe) static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
 
-    override class func canInit(with request: URLRequest) -> Bool {
+    override static func canInit(with request: URLRequest) -> Bool {
         request.url?.host == "pulpe.test"
     }
 
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+    override static func canonicalRequest(for request: URLRequest) -> URLRequest {
         request
     }
 

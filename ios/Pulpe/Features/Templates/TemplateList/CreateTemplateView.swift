@@ -56,7 +56,9 @@ struct CreateTemplateView: View {
                             Text("Dépenses: \(totals.expenses.asCHF)")
                                 .sensitiveAmount()
                             Text("Solde: \(totals.balance.asCHF)")
-                                .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
+                                .foregroundStyle(
+                                    totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget
+                                )
                                 .sensitiveAmount()
                         }
                     }
@@ -96,10 +98,10 @@ struct CreateTemplateView: View {
         }
     }
 
-    private func calculateTotals() -> (income: Decimal, expenses: Decimal, balance: Decimal) {
+    private func calculateTotals() -> LineTotals {
         let income = lines.filter { $0.kind == .income }.reduce(Decimal.zero) { $0 + $1.amount }
         let expenses = lines.filter { $0.kind.isOutflow }.reduce(Decimal.zero) { $0 + $1.amount }
-        return (income, expenses, income - expenses)
+        return LineTotals(income: income, expenses: expenses, balance: income - expenses)
     }
 
     private func createTemplate() async {
@@ -369,4 +371,10 @@ struct AddTemplateLineSheet: View {
     CreateTemplateView { template in
         print("Created: \(template)")
     }
+}
+
+struct LineTotals: Sendable {
+    let income: Decimal
+    let expenses: Decimal
+    let balance: Decimal
 }

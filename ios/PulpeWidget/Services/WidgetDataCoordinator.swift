@@ -6,9 +6,15 @@ struct WidgetDataCoordinator: Sendable {
     private static let cacheKey = "widget_budget_cache"
     private static let logger = Logger(subsystem: "app.pulpe.ios.widget", category: "data")
 
+    private let appGroupId: String
+
+    init(appGroupId: String = Self.appGroupId) {
+        self.appGroupId = appGroupId
+    }
+
     private func sharedDefaults() -> UserDefaults? {
-        guard let defaults = UserDefaults(suiteName: Self.appGroupId) else {
-            Self.logger.fault("Failed to create UserDefaults for App Group '\(Self.appGroupId)'")
+        guard let defaults = UserDefaults(suiteName: appGroupId) else {
+            Self.logger.fault("Failed to create UserDefaults for App Group '\(appGroupId)'")
             return nil
         }
         return defaults

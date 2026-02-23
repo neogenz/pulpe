@@ -2,7 +2,6 @@ import SwiftUI
 
 /// Centralized design tokens for visual consistency across the app
 enum DesignTokens {
-
     // MARK: - Corner Radius
 
     enum CornerRadius {

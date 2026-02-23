@@ -109,7 +109,7 @@ struct AccountView: View {
                         }
                 }
                 .listRowBackground(Color.surfaceCard)
-                
+
                 Section {
                     Button {
                         Task {
@@ -162,7 +162,10 @@ struct AccountView: View {
                     }
                 }
             } message: {
-                Text("Votre compte sera définitivement supprimé après un délai de 3 jours. Cette action est irréversible.")
+                Text(
+                    "Votre compte sera définitivement supprimé " +
+                    "après un délai de 3 jours. Cette action est irréversible."
+                )
             }
             .sensoryFeedback(.impact, trigger: debugToggleTrigger)
             .listStyle(.insetGrouped)

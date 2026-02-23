@@ -1,9 +1,8 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 struct BudgetListAccessibilityTests {
-
     // MARK: - BudgetSparse.isCurrentMonth
 
     @Test func isCurrentMonthWithCurrentMonthAndYearReturnsTrue() {

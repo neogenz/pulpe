@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 struct BiometricPreferencePersistenceTests {
     @Test("keychain preference is used first when available")

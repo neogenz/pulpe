@@ -1,9 +1,8 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 struct StringParsedAsAmountTests {
-
     // MARK: - Valid Amounts
 
     @Test func validInteger() {

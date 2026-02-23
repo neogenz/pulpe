@@ -42,7 +42,10 @@ struct RecoveryKeySheet: View {
                     .font(PulpeTypography.onboardingTitle)
                     .multilineTextAlignment(.center)
 
-                Text("Note cette clé dans un endroit sûr. Elle te permettra de retrouver l'accès à tes données si tu oublies ton code PIN.")
+                Text(
+                    "Note cette clé dans un endroit sûr. Elle te permettra de " +
+                    "retrouver l'accès à tes données si tu oublies ton code PIN."
+                )
                     .font(PulpeTypography.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

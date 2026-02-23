@@ -1,10 +1,9 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 @MainActor
 struct AccountRecoveryKeyTests {
-
     @Test func verifyAndRegenerate_whenVerificationFails_returnsIncorrectPasswordErrorFromClassification() async {
         // Given
         var capturedEmail: String?

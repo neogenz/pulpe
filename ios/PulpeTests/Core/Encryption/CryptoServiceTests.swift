@@ -1,11 +1,11 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 struct CryptoServiceTests {
     private let sut = CryptoService.shared
     private let validSalt = "aa" * 32 // 64-char hex
-    
+
     /// Valid iteration count within bounds (uses minimum for faster tests)
     private let validIterations = CryptoService.minIterations
 
@@ -41,8 +41,16 @@ struct CryptoServiceTests {
 
     @Test func deriveClientKey_differentIterations_differentKeys() async throws {
         // Use two valid iteration counts to verify different keys are produced
-        let key1 = try await sut.deriveClientKey(pin: "1234", saltHex: validSalt, iterations: CryptoService.minIterations)
-        let key2 = try await sut.deriveClientKey(pin: "1234", saltHex: validSalt, iterations: CryptoService.minIterations + 1)
+        let key1 = try await sut.deriveClientKey(
+            pin: "1234",
+            saltHex: validSalt,
+            iterations: CryptoService.minIterations
+        )
+        let key2 = try await sut.deriveClientKey(
+            pin: "1234",
+            saltHex: validSalt,
+            iterations: CryptoService.minIterations + 1
+        )
         #expect(key1 != key2)
     }
 
@@ -63,44 +71,52 @@ struct CryptoServiceTests {
         let key = try await sut.deriveClientKey(pin: "12345678", saltHex: validSalt, iterations: validIterations)
         #expect(key.count == 64)
     }
-    
+
     // MARK: - Iteration Bounds Validation
-    
+
     @Test func deriveClientKey_iterationsBelowMinimum_throwsInvalidIterations() async {
         await #expect(throws: CryptoServiceError.invalidIterations) {
             try await sut.deriveClientKey(pin: "1234", saltHex: validSalt, iterations: CryptoService.minIterations - 1)
         }
     }
-    
+
     @Test func deriveClientKey_iterationsAtMinimum_succeeds() async throws {
-        let key = try await sut.deriveClientKey(pin: "1234", saltHex: validSalt, iterations: CryptoService.minIterations)
+        let key = try await sut.deriveClientKey(
+            pin: "1234",
+            saltHex: validSalt,
+            iterations: CryptoService.minIterations
+        )
         #expect(key.count == 64)
     }
-    
+
     @Test func deriveClientKey_iterationsAboveMaximum_throwsInvalidIterations() async {
         await #expect(throws: CryptoServiceError.invalidIterations) {
             try await sut.deriveClientKey(pin: "1234", saltHex: validSalt, iterations: CryptoService.maxIterations + 1)
         }
     }
-    
+
     @Test(.timeLimit(.minutes(1))) func deriveClientKey_iterationsAtMaximum_succeeds() async throws {
         // Note: This test is slower due to high iteration count
-        let key = try await sut.deriveClientKey(pin: "1234", saltHex: validSalt, iterations: CryptoService.maxIterations)
+        let key = try await sut.deriveClientKey(
+            pin: "1234",
+            saltHex: validSalt,
+            iterations: CryptoService.maxIterations
+        )
         #expect(key.count == 64)
     }
-    
+
     @Test func deriveClientKey_zeroIterations_throwsInvalidIterations() async {
         await #expect(throws: CryptoServiceError.invalidIterations) {
             try await sut.deriveClientKey(pin: "1234", saltHex: validSalt, iterations: 0)
         }
     }
-    
+
     @Test func deriveClientKey_negativeIterations_throwsInvalidIterations() async {
         await #expect(throws: CryptoServiceError.invalidIterations) {
             try await sut.deriveClientKey(pin: "1234", saltHex: validSalt, iterations: -1)
         }
     }
-    
+
     @Test func deriveClientKey_typicalProductionIterations_succeeds() async throws {
         // 600k is the typical production value
         let productionIterations = 600_000
@@ -164,15 +180,15 @@ struct CryptoServiceTests {
     func deriveClientKey_productionIterations_completesInReasonableTime() async throws {
         let productionIterations = 600_000
         let start = ContinuousClock().now
-        
+
         let key = try await sut.deriveClientKey(
             pin: "1234",
             saltHex: validSalt,
             iterations: productionIterations
         )
-        
+
         let elapsed = ContinuousClock().now - start
-        
+
         #expect(key.count == 64)
         #expect(elapsed < .seconds(2), "PBKDF2 with \(productionIterations) iterations took \(elapsed), expected < 2s")
     }

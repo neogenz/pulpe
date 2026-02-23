@@ -102,7 +102,7 @@ actor WidgetDataSyncService {
         }
     }
 
-    private nonisolated func buildYearBudgets(
+    nonisolated private func buildYearBudgets(
         from budgets: [BudgetWithDetails],
         forYear year: Int,
         currentMonth: Int

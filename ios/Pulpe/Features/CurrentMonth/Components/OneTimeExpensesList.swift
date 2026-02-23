@@ -30,10 +30,10 @@ struct TransactionSection: View {
     }
 
     private var totalAmount: Decimal {
-        transactions.reduce(0) { sum, t in
-            switch t.kind {
-            case .income: sum + t.amount
-            case .expense, .saving: sum - t.amount
+        transactions.reduce(0) { sum, tx in
+            switch tx.kind {
+            case .income: sum + tx.amount
+            case .expense, .saving: sum - tx.amount
             }
         }
     }
@@ -161,7 +161,10 @@ struct TransactionRow: View {
     private var kindIconCircle: some View {
         ZStack {
             Circle()
-                .fill(transaction.isChecked ? Color.progressTrack : transaction.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
+                .fill(
+                    transaction.isChecked ? Color.progressTrack :
+                        transaction.kind.color.opacity(DesignTokens.Opacity.badgeBackground)
+                )
                 .frame(width: 40, height: 40)
 
             if transaction.isChecked {

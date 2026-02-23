@@ -1,9 +1,8 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 struct AuthErrorLocalizerTests {
-
     @Test func classifyWithAPIErrorInvalidCredentialsReturnsInvalidCredentials() {
         // When
         let kind = AuthErrorLocalizer.classify(APIError.invalidCredentials)

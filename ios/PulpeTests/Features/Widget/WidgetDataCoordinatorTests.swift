@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 struct WidgetDataCacheTests {
     private func makeCache(lastUpdated: Date) -> WidgetDataCache {
@@ -30,31 +30,36 @@ struct WidgetDataCacheTests {
 }
 
 struct WidgetDataCoordinatorTests {
-    // NOTE: WidgetDataCoordinator uses UserDefaults(suiteName:) with app group
-    // "group.app.pulpe.ios". In the test environment, the app group entitlement
-    // is unavailable, so sharedDefaults() returns nil and all operations
-    // gracefully degrade. These tests verify that graceful degradation.
+    // Use a unique suite name per test to avoid cross-test contamination.
+    // UserDefaults(suiteName:) always succeeds for non-empty strings,
+    // so we test save/load/clear roundtrip behavior instead.
 
-    @Test("save returns false when app group defaults unavailable")
-    func save_whenAppGroupUnavailable_returnsFalse() {
-        let coordinator = WidgetDataCoordinator()
-        let cache = WidgetDataCache.empty
-        let result = coordinator.save(cache)
-        // In test environment without the app group entitlement,
-        // save() returns false gracefully
-        #expect(result == false)
+    private func makeCoordinator() -> WidgetDataCoordinator {
+        WidgetDataCoordinator(appGroupId: "test.widget.\(UUID().uuidString)")
     }
 
-    @Test("load returns nil when app group defaults unavailable")
-    func load_whenAppGroupUnavailable_returnsNil() {
-        let coordinator = WidgetDataCoordinator()
+    @Test("save succeeds and load returns saved cache")
+    func saveAndLoad_roundtrip() {
+        let coordinator = makeCoordinator()
+        let cache = WidgetDataCache.empty
+        let saved = coordinator.save(cache)
+        #expect(saved == true)
+
+        let loaded = coordinator.load()
+        #expect(loaded != nil)
+    }
+
+    @Test("load returns nil when no data saved")
+    func load_whenEmpty_returnsNil() {
+        let coordinator = makeCoordinator()
         let result = coordinator.load()
         #expect(result == nil)
     }
 
-    @Test("clear then load returns nil when app group defaults unavailable")
-    func clear_whenAppGroupUnavailable_loadReturnsNil() {
-        let coordinator = WidgetDataCoordinator()
+    @Test("clear removes saved data")
+    func clear_removesSavedData() {
+        let coordinator = makeCoordinator()
+        coordinator.save(.empty)
         coordinator.clear()
         #expect(coordinator.load() == nil)
     }

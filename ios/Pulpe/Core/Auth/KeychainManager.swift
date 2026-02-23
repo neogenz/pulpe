@@ -25,7 +25,7 @@ actor KeychainManager {
 
     static func checkAvailability() -> Bool {
         let testKey = "app.pulpe.keychain-test"
-        let testData = "test".data(using: .utf8)!
+        let testData = Data("test".utf8)
 
         let addQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -208,7 +208,8 @@ actor KeychainManager {
     }
 
     // MARK: - Onboarding Status
-    // TODO: Migrate to backend storage (user.onboardingCompleted) as the single source of truth.
+    // MARK: - Future
+    // Migrate to backend storage (user.onboardingCompleted) as the single source of truth.
     // Keychain is a workaround for UserDefaults being cleared on reinstall while Keychain persists.
     // Backend storage would be more robust and sync across devices.
 

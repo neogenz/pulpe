@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 @MainActor
 struct PinEntryViewModelTests {
@@ -164,12 +164,12 @@ struct PinEntryValidationFlowTests {
         )
     }
 
-    private typealias SUTComponents = (
-        sut: PinEntryViewModel,
-        crypto: StubCryptoKeyDerivation,
-        encryptionAPI: StubEncryptionKeyValidation,
-        storage: StubClientKeyStorage
-    )
+    private struct SUTComponents {
+        let sut: PinEntryViewModel
+        let crypto: StubCryptoKeyDerivation
+        let encryptionAPI: StubEncryptionKeyValidation
+        let storage: StubClientKeyStorage
+    }
 
     private func makeSUTWithStubs(
         derivedKey: String = validKey,
@@ -191,7 +191,7 @@ struct PinEntryValidationFlowTests {
             encryptionAPI: encryptionAPI,
             clientKeyManager: storage
         )
-        return (sut, crypto, encryptionAPI, storage)
+        return SUTComponents(sut: sut, crypto: crypto, encryptionAPI: encryptionAPI, storage: storage)
     }
 
     private func enterPin(_ sut: PinEntryViewModel, digits: [Int] = [1, 2, 3, 4]) {
@@ -214,15 +214,15 @@ struct PinEntryValidationFlowTests {
     }
 
     @Test func confirm_validPin_callsEachServiceExactlyOnce() async {
-        let (sut, crypto, encryptionAPI, storage) = makeSUTWithStubs()
-        enterPin(sut)
+        let components = makeSUTWithStubs()
+        enterPin(components.sut)
 
-        await sut.confirm()
+        await components.sut.confirm()
 
-        #expect(encryptionAPI.getSaltCallCount == 1)
-        #expect(crypto.deriveCallCount == 1)
-        #expect(encryptionAPI.validateKeyCallCount == 1)
-        #expect(storage.storeCallCount == 1)
+        #expect(components.encryptionAPI.getSaltCallCount == 1)
+        #expect(components.crypto.deriveCallCount == 1)
+        #expect(components.encryptionAPI.validateKeyCallCount == 1)
+        #expect(components.storage.storeCallCount == 1)
     }
 
     // MARK: - Validation Error
@@ -259,7 +259,7 @@ struct PinEntryValidationFlowTests {
         await sut.confirm()
 
         #expect(sut.authenticated == false)
-        #expect(sut.errorMessage == "Erreur de connexion, reessaie")
+        #expect(sut.errorMessage == "Erreur de connexion, réessaie")
     }
 
     // MARK: - State Reset After Error

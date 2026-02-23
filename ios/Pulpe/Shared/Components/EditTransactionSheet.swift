@@ -82,7 +82,7 @@ struct EditTransactionSheet: View {
                     }
                 }
             }
-            
+
             Section {
                 Button {
                     Task { await updateTransaction() }

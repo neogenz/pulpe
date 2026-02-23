@@ -8,7 +8,7 @@ struct ConfirmPasswordSheet: View {
     @State private var errorMessage: String?
 
     var onVerify: (String) async -> String?
-    
+
     var body: some View {
         NavigationStack {
             VStack(spacing: DesignTokens.Spacing.xl) {
@@ -17,7 +17,7 @@ struct ConfirmPasswordSheet: View {
                     .foregroundStyle(Color.textSecondaryOnboarding)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
-                
+
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     SecureField("Mot de passe", text: $password)
                         .textFieldStyle(.plain)
@@ -26,9 +26,12 @@ struct ConfirmPasswordSheet: View {
                         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
                         .overlay(
                             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                                .stroke(errorMessage != nil ? Color.errorPrimary : Color.primary.opacity(0.1), lineWidth: 1)
+                                .stroke(
+                                    errorMessage != nil ? Color.errorPrimary : Color.primary.opacity(0.1),
+                                    lineWidth: 1
+                                )
                         )
-                    
+
                     if let error = errorMessage {
                         Text(error)
                             .font(PulpeTypography.caption)
@@ -37,9 +40,9 @@ struct ConfirmPasswordSheet: View {
                     }
                 }
                 .padding(.horizontal)
-                
+
                 Spacer()
-                
+
                 Button {
                     verifyPassword()
                 } label: {

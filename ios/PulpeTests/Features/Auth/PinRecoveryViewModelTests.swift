@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 @MainActor
 struct PinRecoveryViewModelTests {
@@ -233,11 +233,7 @@ struct PinRecoveryFlowTests {
     private func makeSUT(
         recoverError: APIError? = nil,
         regenerateKey: String = "NEW-RECOVERY-KEY-1234"
-    ) -> (
-        sut: PinRecoveryViewModel,
-        encryption: StubPinRecoveryEncryption,
-        storage: StubPinRecoveryKeyStorage
-    ) {
+    ) -> PinRecoveryTestSUT {
         let encryption = StubPinRecoveryEncryption(
             saltResponse: EncryptionSaltResponse(
                 salt: Self.validSalt,
@@ -253,7 +249,7 @@ struct PinRecoveryFlowTests {
             encryptionAPI: encryption,
             clientKeyManager: storage
         )
-        return (sut, encryption, storage)
+        return PinRecoveryTestSUT(sut: sut, encryption: encryption, storage: storage)
     }
 
     private func enterRecoveryKeyAndMatchingPins(_ sut: PinRecoveryViewModel) async {
@@ -269,42 +265,42 @@ struct PinRecoveryFlowTests {
 
     @Test("successful recovery stores key and shows recovery sheet")
     func successfulRecovery_storesKeyAndShowsSheet() async {
-        let (sut, encryption, storage) = makeSUT()
+        let result = makeSUT()
 
-        await enterRecoveryKeyAndMatchingPins(sut)
+        await enterRecoveryKeyAndMatchingPins(result.sut)
 
-        #expect(storage.storeCallCount == 1)
-        #expect(encryption.recoverCallCount == 1)
-        #expect(encryption.regenerateCallCount == 1)
-        #expect(sut.showRecoverySheet == true)
-        #expect(sut.newRecoveryKey == "NEW-RECOVERY-KEY-1234")
+        #expect(result.storage.storeCallCount == 1)
+        #expect(result.encryption.recoverCallCount == 1)
+        #expect(result.encryption.regenerateCallCount == 1)
+        #expect(result.sut.showRecoverySheet == true)
+        #expect(result.sut.newRecoveryKey == "NEW-RECOVERY-KEY-1234")
     }
 
     @Test("invalid recovery key shows validation error")
     func invalidRecoveryKey_showsError() async {
-        let (sut, _, _) = makeSUT(recoverError: .validationError(details: ["invalid"]))
+        let result = makeSUT(recoverError: .validationError(details: ["invalid"]))
 
-        await enterRecoveryKeyAndMatchingPins(sut)
+        await enterRecoveryKeyAndMatchingPins(result.sut)
 
-        #expect(sut.errorMessage == "Clé de récupération invalide — vérifie que tu as bien copié la clé")
-        #expect(sut.step == .enterRecoveryKey)
+        #expect(result.sut.errorMessage == "Clé de récupération invalide — vérifie que tu as bien copié la clé")
+        #expect(result.sut.step == .enterRecoveryKey)
     }
 
     @Test("network error resets to recovery key step")
     func networkError_resetsToRecoveryKeyStep() async {
-        let (sut, _, _) = makeSUT(recoverError: .networkError(URLError(.notConnectedToInternet)))
+        let result = makeSUT(recoverError: .networkError(URLError(.notConnectedToInternet)))
 
-        await enterRecoveryKeyAndMatchingPins(sut)
+        await enterRecoveryKeyAndMatchingPins(result.sut)
 
-        #expect(sut.errorMessage == "Erreur de connexion, réessaie")
-        #expect(sut.step == .enterRecoveryKey)
-        #expect(sut.digits.isEmpty)
+        #expect(result.sut.errorMessage == "Erreur de connexion, réessaie")
+        #expect(result.sut.step == .enterRecoveryKey)
+        #expect(result.sut.digits.isEmpty)
     }
 }
 
 // MARK: - Stubs
 
-private final class StubPinRecoveryCrypto: PinRecoveryCryptoKeyDerivation, @unchecked Sendable {
+private final class StubPinRecoveryCrypto: PinCryptoKeyDerivation, @unchecked Sendable {
     private let derivedKey: String
 
     init(derivedKey: String) {
@@ -316,7 +312,7 @@ private final class StubPinRecoveryCrypto: PinRecoveryCryptoKeyDerivation, @unch
     }
 }
 
-private final class StubPinRecoveryEncryption: PinRecoveryEncryptionAPI, @unchecked Sendable {
+private final class StubPinRecoveryEncryption: PinEncryptionRecovery, @unchecked Sendable {
     private let saltResponse: EncryptionSaltResponse
     private let recoverError: APIError?
     private let regenerateKey: String
@@ -337,6 +333,10 @@ private final class StubPinRecoveryEncryption: PinRecoveryEncryptionAPI, @unchec
         saltResponse
     }
 
+    func validateKey(_ clientKeyHex: String) async throws {
+        // No-op for recovery tests
+    }
+
     func recover(recoveryKey: String, newClientKeyHex: String) async throws {
         recoverCallCount += 1
         if let error = recoverError { throw error }
@@ -348,10 +348,16 @@ private final class StubPinRecoveryEncryption: PinRecoveryEncryptionAPI, @unchec
     }
 }
 
-private final class StubPinRecoveryKeyStorage: PinRecoveryClientKeyStorage, @unchecked Sendable {
+private final class StubPinRecoveryKeyStorage: PinClientKeyStorage, @unchecked Sendable {
     private(set) var storeCallCount = 0
 
     func store(_ clientKeyHex: String, enableBiometric: Bool) async {
         storeCallCount += 1
     }
+}
+
+private struct PinRecoveryTestSUT {
+    let sut: PinRecoveryViewModel
+    let encryption: StubPinRecoveryEncryption
+    let storage: StubPinRecoveryKeyStorage
 }

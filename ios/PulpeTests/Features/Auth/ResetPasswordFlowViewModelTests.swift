@@ -1,13 +1,17 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 @MainActor
 struct ResetPasswordFlowViewModelTests {
-
-    private let callbackURL = URL(
-        string: "pulpe://reset-password#access_token=test&refresh_token=test&type=recovery"
-    )!
+    private let callbackURL = {
+        guard let url = URL(
+            string: "pulpe://reset-password#access_token=test&refresh_token=test&type=recovery"
+        ) else {
+            fatalError("callbackURL is invalid")
+        }
+        return url
+    }()
 
     @Test func prepare_whenCallbackIsInvalid_setsInvalidLinkMessage() async {
         // Given

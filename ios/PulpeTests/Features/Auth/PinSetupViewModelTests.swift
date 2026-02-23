@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 @MainActor
 struct PinSetupViewModelTests {
@@ -125,11 +125,7 @@ struct PinSetupFlowTests {
     private func makeSUT(
         mode: PinSetupMode,
         hasRecoveryKey: Bool = false
-    ) -> (
-        sut: PinSetupViewModel,
-        encryptionAPI: StubEncryptionSetup,
-        storage: StubClientKeyStorage
-    ) {
+    ) -> PinSetupTestSUT {
         let encryptionAPI = StubEncryptionSetup(
             saltResponse: EncryptionSaltResponse(
                 salt: Self.validSalt,
@@ -144,7 +140,7 @@ struct PinSetupFlowTests {
             encryptionAPI: encryptionAPI,
             clientKeyManager: storage
         )
-        return (sut, encryptionAPI, storage)
+        return PinSetupTestSUT(sut: sut, encryptionAPI: encryptionAPI, storage: storage)
     }
 
     private func enterPin(_ sut: PinSetupViewModel, digits: [Int] = [1, 2, 3, 4]) {
@@ -155,29 +151,29 @@ struct PinSetupFlowTests {
 
     @Test("entry mode validates and never calls setup-recovery")
     func entryMode_doesNotCallSetupRecovery() async {
-        let (sut, encryptionAPI, storage) = makeSUT(mode: .enterExistingPin)
-        enterPin(sut)
+        let result = makeSUT(mode: .enterExistingPin)
+        enterPin(result.sut)
 
-        await sut.confirm()
+        await result.sut.confirm()
 
-        #expect(encryptionAPI.setupRecoveryCallCount == 0)
-        #expect(storage.storeCallCount == 1)
-        #expect(sut.completedWithoutRecovery == true)
-        #expect(sut.showRecoverySheet == false)
+        #expect(result.encryptionAPI.setupRecoveryCallCount == 0)
+        #expect(result.storage.storeCallCount == 1)
+        #expect(result.sut.completedWithoutRecovery == true)
+        #expect(result.sut.showRecoverySheet == false)
     }
 
     @Test("setup mode calls setup-recovery and shows recovery key")
     func setupMode_callsSetupRecovery() async {
-        let (sut, encryptionAPI, storage) = makeSUT(mode: .chooseAndSetupRecovery)
-        enterPin(sut)
+        let result = makeSUT(mode: .chooseAndSetupRecovery)
+        enterPin(result.sut)
 
-        await sut.confirm()
+        await result.sut.confirm()
 
-        #expect(encryptionAPI.setupRecoveryCallCount == 1)
-        #expect(storage.storeCallCount == 1)
-        #expect(sut.recoveryKey == "ABCD-EFGH-IJKL-MNOP")
-        #expect(sut.showRecoverySheet == true)
-        #expect(sut.completedWithoutRecovery == false)
+        #expect(result.encryptionAPI.setupRecoveryCallCount == 1)
+        #expect(result.storage.storeCallCount == 1)
+        #expect(result.sut.recoveryKey == "ABCD-EFGH-IJKL-MNOP")
+        #expect(result.sut.showRecoverySheet == true)
+        #expect(result.sut.completedWithoutRecovery == false)
     }
 
     @Test("mode titles are contextual")
@@ -283,4 +279,10 @@ private final class StubClientKeyStorage: PinClientKeyStorage, @unchecked Sendab
     func store(_ clientKeyHex: String, enableBiometric: Bool) async {
         storeCallCount += 1
     }
+}
+
+private struct PinSetupTestSUT {
+    let sut: PinSetupViewModel
+    let encryptionAPI: StubEncryptionSetup
+    let storage: StubClientKeyStorage
 }

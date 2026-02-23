@@ -2,8 +2,8 @@ import SwiftUI
 
 /// Filter options for budget items visibility
 enum CheckedFilterOption: String, CaseIterable, Identifiable {
-    case unchecked = "unchecked"
-    case all = "all"
+    case unchecked
+    case all
 
     var id: String { rawValue }
 

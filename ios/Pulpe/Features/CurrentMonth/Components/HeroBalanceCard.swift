@@ -9,9 +9,9 @@ struct HeroBalanceCard: View {
     // MARK: - Constants
 
     private static let twentyPercent: Decimal = 2 / 10
-    
+
     // MARK: - Static Formatters (avoid recreation on every render)
-    
+
     private static let balanceFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
@@ -20,7 +20,7 @@ struct HeroBalanceCard: View {
         formatter.locale = Locale(identifier: "fr_CH")
         return formatter
     }()
-    
+
     private static let pillFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal

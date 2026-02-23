@@ -9,7 +9,7 @@ actor CryptoService {
 
     static let keyLengthBytes = 32
     static let keyLengthHex = 64
-    
+
     /// Minimum allowed PBKDF2 iterations (security floor)
     static let minIterations = 500_000
     /// Maximum allowed PBKDF2 iterations (DoS protection)
@@ -29,10 +29,12 @@ actor CryptoService {
     func deriveClientKey(pin: String, saltHex: String, iterations: Int) throws -> String {
         // Validate iteration bounds to prevent weak keys (too few) or DoS (too many)
         guard iterations >= Self.minIterations && iterations <= Self.maxIterations else {
-            Logger.encryption.error("PBKDF2 iterations out of bounds: \(iterations) (expected \(Self.minIterations)-\(Self.maxIterations))")
+            Logger.encryption.error(
+                "PBKDF2 iterations out of bounds: \(iterations) (expected \(Self.minIterations)-\(Self.maxIterations))"
+            )
             throw CryptoServiceError.invalidIterations
         }
-        
+
         guard let pinData = pin.data(using: .utf8) else {
             throw CryptoServiceError.invalidPin
         }

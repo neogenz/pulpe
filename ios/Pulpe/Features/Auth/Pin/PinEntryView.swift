@@ -4,9 +4,12 @@ import SwiftUI
 // MARK: - View
 
 struct PinEntryView: View {
+    static let pinEntryTitle = "Saisis ton code PIN"
+    static let forgotPinLabel = "Code PIN oublié ?"
+
     let firstName: String
     let onSuccess: () -> Void
-    var onBiometric: (() -> Void)? = nil
+    var onBiometric: (() -> Void)?
     let onForgotPin: () -> Void
     let onLogout: () async -> Void
 
@@ -69,7 +72,7 @@ struct PinEntryView: View {
         VStack(spacing: DesignTokens.Spacing.md) {
             PulpeIcon(size: 56)
 
-            Text("Saisis ton code PIN")
+            Text(Self.pinEntryTitle)
                 .font(PulpeTypography.onboardingTitle)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
@@ -107,7 +110,7 @@ struct PinEntryView: View {
         Button {
             onForgotPin()
         } label: {
-            Text("Code PIN oublié ?")
+            Text(Self.forgotPinLabel)
                 .font(PulpeTypography.stepSubtitle)
                 .foregroundStyle(Color.textSecondaryOnboarding)
         }
@@ -118,9 +121,8 @@ struct PinEntryView: View {
 
 @Observable @MainActor
 final class PinEntryViewModel {
-    
     // MARK: - Public State
-    
+
     private(set) var digits: [Int] = []
     private(set) var isValidating = false
     private(set) var isError = false
@@ -133,9 +135,9 @@ final class PinEntryViewModel {
     var canConfirm: Bool {
         digits.count >= minDigits && !isValidating
     }
-    
+
     // MARK: - Private
-    
+
     private var errorResetTask: Task<Void, Never>?
     private let cryptoService: any PinCryptoKeyDerivation
     private let encryptionAPI: any PinEncryptionValidation
@@ -188,7 +190,7 @@ final class PinEntryViewModel {
             )
             try await encryptionAPI.validateKey(clientKeyHex)
             await clientKeyManager.store(clientKeyHex, enableBiometric: false)
-            
+
             digits = []
             authenticated = true
         } catch let error as APIError {
@@ -236,7 +238,7 @@ final class PinEntryViewModel {
             isError = false
         }
     }
-    
+
     private func clearError() {
         isError = false
         errorMessage = nil

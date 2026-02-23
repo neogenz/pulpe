@@ -1,9 +1,12 @@
+// swiftlint:disable file_length
+
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 @MainActor
-struct PostAuthResolutionTests {
+// swiftlint:disable:next type_body_length
+struct PostAuthResolutionRouterTests {
     private let user = UserInfo(id: "user-1", email: "test@pulpe.app", firstName: "Max")
 
     private func makeBiometricPreferenceStore(initial: Bool) -> BiometricPreferenceStore {
@@ -38,7 +41,11 @@ struct PostAuthResolutionTests {
     func existingUser_routesToPinEntry() async {
         let realResolver = PostAuthResolver(
             vaultStatusProvider: StubVaultStatusProvider(results: [
-                .success(VaultStatusResponse(pinCodeConfigured: true, recoveryKeyConfigured: true, vaultCodeConfigured: true))
+                .success(VaultStatusResponse(
+                    pinCodeConfigured: true,
+                    recoveryKeyConfigured: true,
+                    vaultCodeConfigured: true
+                ))
             ]),
             sessionRefresher: StubSessionRefresher(result: false),
             clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
@@ -59,7 +66,11 @@ struct PostAuthResolutionTests {
     func newOrIncompleteUser_routesToPinSetup() async {
         let realResolver = PostAuthResolver(
             vaultStatusProvider: StubVaultStatusProvider(results: [
-                .success(VaultStatusResponse(pinCodeConfigured: false, recoveryKeyConfigured: false, vaultCodeConfigured: false))
+                .success(VaultStatusResponse(
+                    pinCodeConfigured: false,
+                    recoveryKeyConfigured: false,
+                    vaultCodeConfigured: false
+                ))
             ]),
             sessionRefresher: StubSessionRefresher(result: false),
             clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
@@ -79,7 +90,11 @@ struct PostAuthResolutionTests {
     func inconsistentUser_requiresConsentAfterPinEntry() async {
         let realResolver = PostAuthResolver(
             vaultStatusProvider: StubVaultStatusProvider(results: [
-                .success(VaultStatusResponse(pinCodeConfigured: true, recoveryKeyConfigured: false, vaultCodeConfigured: false))
+                .success(VaultStatusResponse(
+                    pinCodeConfigured: true,
+                    recoveryKeyConfigured: false,
+                    vaultCodeConfigured: false
+                ))
             ]),
             sessionRefresher: StubSessionRefresher(result: false),
             clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
@@ -100,7 +115,13 @@ struct PostAuthResolutionTests {
     func inconsistentUser_withCachedKeyStillRequiresPinEntry() async {
         let resolver = PostAuthResolver(
             vaultStatusProvider: StubVaultStatusProvider(results: [
-                .success(VaultStatusResponse(pinCodeConfigured: true, recoveryKeyConfigured: false, vaultCodeConfigured: false))
+                .success(
+                    VaultStatusResponse(
+                        pinCodeConfigured: true,
+                        recoveryKeyConfigured: false,
+                        vaultCodeConfigured: false
+                    )
+                )
             ]),
             sessionRefresher: StubSessionRefresher(result: false),
             clientKeyResolver: StubClientKeyResolver(resolvedKey: "cached-client-key")
@@ -115,7 +136,11 @@ struct PostAuthResolutionTests {
     func recoveryOnlyStatus_withCachedKey_requiresPinEntry() async {
         let resolver = PostAuthResolver(
             vaultStatusProvider: StubVaultStatusProvider(results: [
-                .success(VaultStatusResponse(pinCodeConfigured: false, recoveryKeyConfigured: true, vaultCodeConfigured: false))
+                .success(VaultStatusResponse(
+                    pinCodeConfigured: false,
+                    recoveryKeyConfigured: true,
+                    vaultCodeConfigured: false
+                ))
             ]),
             sessionRefresher: StubSessionRefresher(result: false),
             clientKeyResolver: StubClientKeyResolver(resolvedKey: "cached-client-key")
@@ -124,109 +149,6 @@ struct PostAuthResolutionTests {
         let destination = await resolver.resolve()
 
         #expect(destination == .needsPinEntry(needsRecoveryKeyConsent: false))
-    }
-
-    @Test("expired token during vault check refreshes once then succeeds")
-    func vaultUnauthorized_refreshRetrySuccess() async {
-        let resolver = PostAuthResolver(
-            vaultStatusProvider: StubVaultStatusProvider(results: [
-                .failure(.unauthorized),
-                .success(VaultStatusResponse(pinCodeConfigured: true, recoveryKeyConfigured: true, vaultCodeConfigured: true))
-            ]),
-            sessionRefresher: StubSessionRefresher(result: true),
-            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
-        )
-
-        let destination = await resolver.resolve()
-
-        #expect(destination == .needsPinEntry(needsRecoveryKeyConsent: false))
-    }
-
-    @Test("expired token during vault check returns session expired when retry fails")
-    func vaultUnauthorized_refreshRetryFails() async {
-        let resolver = PostAuthResolver(
-            vaultStatusProvider: StubVaultStatusProvider(results: [
-                .failure(.unauthorized)
-            ]),
-            sessionRefresher: StubSessionRefresher(result: false),
-            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
-        )
-
-        let destination = await resolver.resolve()
-
-        #expect(destination == .unauthenticatedSessionExpired)
-    }
-
-    @Test("network error on vault-status returns vaultCheckFailed")
-    func vaultNetworkError_returnsVaultCheckFailed() async {
-        let resolver = PostAuthResolver(
-            vaultStatusProvider: StubVaultStatusProvider(results: [
-                .failure(.networkError(URLError(.notConnectedToInternet)))
-            ]),
-            sessionRefresher: StubSessionRefresher(result: false),
-            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
-        )
-
-        let destination = await resolver.resolve()
-
-        #expect(destination == .vaultCheckFailed)
-    }
-
-    @Test("unexpected server error on vault-status returns vaultCheckFailed")
-    func vaultUnexpectedError_returnsVaultCheckFailed() async {
-        let resolver = PostAuthResolver(
-            vaultStatusProvider: StubVaultStatusProvider(results: [
-                .failure(.serverError(message: "Internal Server Error"))
-            ]),
-            sessionRefresher: StubSessionRefresher(result: false),
-            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
-        )
-
-        let destination = await resolver.resolve()
-
-        #expect(destination == .vaultCheckFailed)
-    }
-
-    @Test("401 retry with server error returns vaultCheckFailed")
-    func vaultRetryNonAuthError_returnsVaultCheckFailed() async {
-        let resolver = PostAuthResolver(
-            vaultStatusProvider: StubVaultStatusProvider(results: [
-                .failure(.unauthorized),
-                .failure(.serverError(message: "Internal Server Error"))
-            ]),
-            sessionRefresher: StubSessionRefresher(result: true),
-            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
-        )
-
-        let destination = await resolver.resolve()
-
-        #expect(destination == .vaultCheckFailed)
-    }
-
-    @Test("non-APIError on vault-status returns vaultCheckFailed")
-    func vaultNonAPIError_returnsVaultCheckFailed() async {
-        let resolver = PostAuthResolver(
-            vaultStatusProvider: ThrowingVaultStatusProvider(error: NSError(domain: "decoding", code: -1)),
-            sessionRefresher: StubSessionRefresher(result: false),
-            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
-        )
-
-        let destination = await resolver.resolve()
-
-        #expect(destination == .vaultCheckFailed)
-    }
-
-    @Test("forbidden error on vault-status returns vaultCheckFailed")
-    func vaultForbiddenError_returnsVaultCheckFailed() async {
-        let resolver = PostAuthResolver(
-            vaultStatusProvider: StubVaultStatusProvider(results: [.failure(.forbidden)]),
-            sessionRefresher: StubSessionRefresher(result: false),
-            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
-        )
-
-        let destination = await resolver.resolve()
-
-        #expect(destination == .vaultCheckFailed)
     }
 
     @Test("anti-flash: auth state stays loading while post-auth resolution is pending")
@@ -373,13 +295,9 @@ struct PostAuthResolutionTests {
 
         #expect(sut.biometricEnabled == true)
     }
-}
 
-// MARK: - completeOnboarding Routing
+    // MARK: - completeOnboarding Routing
 
-@MainActor
-struct CompleteOnboardingRoutingTests {
-    private let user = UserInfo(id: "user-1", email: "test@pulpe.app", firstName: "Max")
     private let onboardingData = BudgetTemplateCreateFromOnboarding()
 
     @Test("reused email with existing vault routes to PIN entry, not PIN setup")
@@ -510,6 +428,117 @@ struct CompleteOnboardingRoutingTests {
         resolver.resume(with: .needsPinSetup)
         await task.value
         #expect(sut.authState == .needsPinSetup)
+    }
+
+    // MARK: - Vault Error Handling
+
+    @Test("expired token during vault check refreshes once then succeeds")
+    func vaultUnauthorized_refreshRetrySuccess() async {
+        let resolver = PostAuthResolver(
+            vaultStatusProvider: StubVaultStatusProvider(results: [
+                .failure(.unauthorized),
+                .success(
+                    VaultStatusResponse(
+                        pinCodeConfigured: true,
+                        recoveryKeyConfigured: true,
+                        vaultCodeConfigured: true
+                    )
+                )
+            ]),
+            sessionRefresher: StubSessionRefresher(result: true),
+            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
+        )
+
+        let destination = await resolver.resolve()
+
+        #expect(destination == .needsPinEntry(needsRecoveryKeyConsent: false))
+    }
+
+    @Test("expired token during vault check returns session expired when retry fails")
+    func vaultUnauthorized_refreshRetryFails() async {
+        let resolver = PostAuthResolver(
+            vaultStatusProvider: StubVaultStatusProvider(results: [
+                .failure(.unauthorized)
+            ]),
+            sessionRefresher: StubSessionRefresher(result: false),
+            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
+        )
+
+        let destination = await resolver.resolve()
+
+        #expect(destination == .unauthenticatedSessionExpired)
+    }
+
+    @Test("network error on vault-status returns vaultCheckFailed")
+    func vaultNetworkError_returnsVaultCheckFailed() async {
+        let resolver = PostAuthResolver(
+            vaultStatusProvider: StubVaultStatusProvider(results: [
+                .failure(.networkError(URLError(.notConnectedToInternet)))
+            ]),
+            sessionRefresher: StubSessionRefresher(result: false),
+            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
+        )
+
+        let destination = await resolver.resolve()
+
+        #expect(destination == .vaultCheckFailed)
+    }
+
+    @Test("unexpected server error on vault-status returns vaultCheckFailed")
+    func vaultUnexpectedError_returnsVaultCheckFailed() async {
+        let resolver = PostAuthResolver(
+            vaultStatusProvider: StubVaultStatusProvider(results: [
+                .failure(.serverError(message: "Internal Server Error"))
+            ]),
+            sessionRefresher: StubSessionRefresher(result: false),
+            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
+        )
+
+        let destination = await resolver.resolve()
+
+        #expect(destination == .vaultCheckFailed)
+    }
+
+    @Test("401 retry with server error returns vaultCheckFailed")
+    func vaultRetryNonAuthError_returnsVaultCheckFailed() async {
+        let resolver = PostAuthResolver(
+            vaultStatusProvider: StubVaultStatusProvider(results: [
+                .failure(.unauthorized),
+                .failure(.serverError(message: "Internal Server Error"))
+            ]),
+            sessionRefresher: StubSessionRefresher(result: true),
+            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
+        )
+
+        let destination = await resolver.resolve()
+
+        #expect(destination == .vaultCheckFailed)
+    }
+
+    @Test("non-APIError on vault-status returns vaultCheckFailed")
+    func vaultNonAPIError_returnsVaultCheckFailed() async {
+        let resolver = PostAuthResolver(
+            vaultStatusProvider: ThrowingVaultStatusProvider(error: NSError(domain: "decoding", code: -1)),
+            sessionRefresher: StubSessionRefresher(result: false),
+            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
+        )
+
+        let destination = await resolver.resolve()
+
+        #expect(destination == .vaultCheckFailed)
+    }
+
+    @Test("forbidden error on vault-status returns vaultCheckFailed")
+    func vaultForbiddenError_returnsVaultCheckFailed() async {
+        let resolver = PostAuthResolver(
+            vaultStatusProvider: StubVaultStatusProvider(results: [.failure(.forbidden)]),
+            sessionRefresher: StubSessionRefresher(result: false),
+            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
+        )
+
+        let destination = await resolver.resolve()
+
+        #expect(destination == .vaultCheckFailed)
     }
 }
 

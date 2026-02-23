@@ -8,9 +8,9 @@ struct ExpensesStep: View {
             step: .expenses,
             state: state,
             canProceed: true,
-            onNext: { state.nextStep() }
-        ) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            onNext: { state.nextStep() },
+            content: {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 CurrencyField(
                     value: Binding(
                         get: { state.housingCosts },
@@ -55,8 +55,9 @@ struct ExpensesStep: View {
                     hint: "300",
                     label: "Leasing ou mensualité de crédit"
                 )
+                }
             }
-        }
+        )
     }
 }
 

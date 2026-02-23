@@ -8,7 +8,7 @@ protocol StoreProtocol: Observable {
 
     /// Current error state, if any (typed as APIError for consistent error handling)
     var error: APIError? { get }
-    
+
     /// Returns true if the store has an error and no data to display
     var hasError: Bool { get }
 

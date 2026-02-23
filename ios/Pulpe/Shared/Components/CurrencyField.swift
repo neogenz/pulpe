@@ -35,7 +35,7 @@ struct CurrencyField: View {
         self.hint = hint
         self.label = label
         self.externalFocus = externalFocus
-        
+
         // Initialize text value from binding immediately (not in onAppear)
         if let decimal = value.wrappedValue {
             self._textValue = State(initialValue: Self.displayFormatter.string(from: decimal as NSDecimalNumber) ?? "")

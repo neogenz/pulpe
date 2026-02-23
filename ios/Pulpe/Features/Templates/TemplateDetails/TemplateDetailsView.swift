@@ -49,36 +49,7 @@ struct TemplateDetailsView: View {
                 Text("Informations")
             }
 
-            // Totals
-            Section {
-                HStack {
-                    Label("Revenus", systemImage: "arrow.down.circle")
-                        .foregroundStyle(Color.financialIncome)
-                    Spacer()
-                    Text(viewModel.totals.totalIncome.asCHF)
-                        .sensitiveAmount()
-                }
-
-                HStack {
-                    Label("Dépenses", systemImage: "arrow.up.circle")
-                        .foregroundStyle(Color.financialExpense)
-                    Spacer()
-                    Text(viewModel.totals.totalExpenses.asCHF)
-                        .sensitiveAmount()
-                }
-
-                HStack {
-                    Label("Solde", systemImage: "banknote")
-                        .fontWeight(.semibold)
-                    Spacer()
-                    Text(viewModel.totals.balance.asCHF)
-                        .foregroundStyle(viewModel.totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
-                        .fontWeight(.semibold)
-                        .sensitiveAmount()
-                }
-            } header: {
-                Text("Récapitulatif")
-            }
+            totalsSection
 
             // Lines by kind
             if !viewModel.incomeLines.isEmpty {
@@ -95,6 +66,40 @@ struct TemplateDetailsView: View {
         }
         .refreshable {
             await viewModel.loadDetails()
+        }
+    }
+
+    private var totalsSection: some View {
+        Section {
+            HStack {
+                Label("Revenus", systemImage: "arrow.down.circle")
+                    .foregroundStyle(Color.financialIncome)
+                Spacer()
+                Text(viewModel.totals.totalIncome.asCHF)
+                    .sensitiveAmount()
+            }
+
+            HStack {
+                Label("Dépenses", systemImage: "arrow.up.circle")
+                    .foregroundStyle(Color.financialExpense)
+                Spacer()
+                Text(viewModel.totals.totalExpenses.asCHF)
+                    .sensitiveAmount()
+            }
+
+            HStack {
+                Label("Solde", systemImage: "banknote")
+                    .fontWeight(.semibold)
+                Spacer()
+                Text(viewModel.totals.balance.asCHF)
+                    .foregroundStyle(
+                        viewModel.totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget
+                    )
+                    .fontWeight(.semibold)
+                    .sensitiveAmount()
+            }
+        } header: {
+            Text("Récapitulatif")
         }
     }
 

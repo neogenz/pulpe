@@ -1,7 +1,6 @@
 import SwiftUI
 
 extension Color {
-
     // MARK: - Financial Colors (from Asset Catalog with light/dark/high-contrast variants)
 
     /// Income indicator color - Blue (#0056A3 light, #5AA8E0 dark)
@@ -30,7 +29,10 @@ extension Color {
     static let surfaceCard = Color(light: .white, dark: Color(uiColor: .secondarySystemGroupedBackground))
 
     /// Secondary surface for form backgrounds, inactive pills — system grey in light mode
-    static let surfaceSecondary = Color(light: Color(uiColor: .secondarySystemGroupedBackground), dark: Color(uiColor: .secondarySystemGroupedBackground))
+    static let surfaceSecondary = Color(
+        light: Color(uiColor: .secondarySystemGroupedBackground),
+        dark: Color(uiColor: .secondarySystemGroupedBackground)
+    )
 
     // MARK: - Semantic Text Colors
 
@@ -82,10 +84,16 @@ extension Color {
     static let badgeBackground = Color("BadgeBackground")
 
     /// Input field background — green-tinted soft fill for brand consistency
-    static let inputBackgroundSoft = Color(light: Color(hex: 0xE8F5E9).opacity(0.6), dark: Color(uiColor: .tertiarySystemFill))
+    static let inputBackgroundSoft = Color(
+        light: Color(hex: 0xE8F5E9).opacity(0.6),
+        dark: Color(uiColor: .tertiarySystemFill)
+    )
 
     /// Input focus glow color
-    static let inputFocusGlow = Color(light: Color(hex: 0x006820).opacity(0.12), dark: Color(hex: 0x4AA070).opacity(0.15))
+    static let inputFocusGlow = Color(
+        light: Color(hex: 0x006820).opacity(0.12),
+        dark: Color(hex: 0x4AA070).opacity(0.15)
+    )
 
     // MARK: - Gradient Colors
 
@@ -110,9 +118,9 @@ extension Color {
     // MARK: - Mesh Gradient Data (light mode only — dark mode uses system background)
 
     static let meshPoints: [SIMD2<Float>] = [
-        .init(x: 0, y: 0),    .init(x: 0.5, y: 0),    .init(x: 1, y: 0),
-        .init(x: 0, y: 0.5),  .init(x: 0.55, y: 0.5), .init(x: 1, y: 0.5),
-        .init(x: 0, y: 1),    .init(x: 0.5, y: 1),    .init(x: 1, y: 1)
+        .init(x: 0, y: 0), .init(x: 0.5, y: 0), .init(x: 1, y: 0),
+        .init(x: 0, y: 0.5), .init(x: 0.55, y: 0.5), .init(x: 1, y: 0.5),
+        .init(x: 0, y: 1), .init(x: 0.5, y: 1), .init(x: 1, y: 1)
     ]
 
     @available(iOS 18.0, *)
@@ -133,7 +141,11 @@ extension Color {
         ZStack {
             Color(uiColor: .systemGroupedBackground)
             LinearGradient(
-                colors: [gradientBaseTop.opacity(0.50), gradientBaseMid.opacity(0.45), gradientBaseBottom.opacity(0.40)],
+                colors: [
+                    gradientBaseTop.opacity(0.50),
+                    gradientBaseMid.opacity(0.45),
+                    gradientBaseBottom.opacity(0.40)
+                ],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -268,15 +280,15 @@ extension Color {
     /// Onboarding backgrounds
     static let onboardingBackground = Color(light: Color(hex: 0xF8FAF9), dark: Color(hex: 0x1C1C1E))
     static let onboardingCardBackground = Color(light: .white, dark: Color(hex: 0x2C2C2E))
-    
+
     // MARK: - Auth Screen Gradient Colors (inspired by reference design)
-    
+
     /// Auth screen gradient stops - light mode: vibrant greens, dark mode: deep charcoals with green accent
     private static let authGradientTop = Color(light: Color(hex: 0xA8E6CF), dark: Color(hex: 0x0A0F0C))
     private static let authGradientMid = Color(light: Color(hex: 0xC2F0D8), dark: Color(hex: 0x0E1612))
     private static let authGradientBottom = Color(light: Color(hex: 0xD4F5E3), dark: Color(hex: 0x121A15))
     private static let authGradientAccent = Color(light: Color(hex: 0x8FDDBB), dark: Color(hex: 0x1A3A28))
-    
+
     /// Full-screen auth gradient background
     @ViewBuilder
     static var authGradientBackground: some View {
@@ -304,19 +316,19 @@ extension Color {
         }
         .ignoresSafeArea()
     }
-    
+
     /// Glass-morphic card background for auth forms
     static let authCardGlass = Color(light: .white.opacity(0.85), dark: Color(hex: 0x1C1C1E).opacity(0.75))
-    
+
     /// Input field background for auth screens (high contrast - fully opaque)
     static let authInputBackground = Color(light: .white, dark: Color(hex: 0x2C2C2E))
-    
+
     /// Input field text color for auth screens
     static let authInputText = Color(light: Color(hex: 0x1A1A1A), dark: .white)
-    
+
     /// Input field placeholder color for auth screens
     static let authInputPlaceholder = Color(light: Color(hex: 0x999999), dark: Color(hex: 0x999999))
-    
+
     /// Input field border color for auth screens
     static let authInputBorder = Color(light: Color(hex: 0xE0E0E0), dark: Color(hex: 0x3C3C3E))
 

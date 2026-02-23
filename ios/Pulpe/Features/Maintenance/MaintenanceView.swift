@@ -18,7 +18,10 @@ struct MaintenanceView: View {
                 .font(PulpeTypography.title)
                 .fontWeight(.bold)
 
-            Text("On améliore Pulpe pour toi — tes données sont bien au chaud, pas d'inquiétude. Réessaie dans quelques instants.")
+            Text(
+                "On améliore Pulpe pour toi — tes données sont bien au chaud, " +
+                "pas d'inquiétude. Réessaie dans quelques instants."
+            )
                 .font(PulpeTypography.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

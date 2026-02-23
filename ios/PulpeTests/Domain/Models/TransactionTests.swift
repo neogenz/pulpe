@@ -1,9 +1,8 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 struct TransactionTests {
-
     // MARK: - Check Status
 
     @Test func isChecked_whenCheckedAtIsNil_returnsFalse() {
@@ -123,9 +122,10 @@ struct TransactionTests {
 
     // MARK: - Amount Validation
 
-    @Test func amount_canBePositive() {
-        let transaction = TestDataFactory.createTransaction(amount: 150.50)
-        #expect(transaction.amount == Decimal(string: "150.50")!)
+    @Test func amount_canBePositive() throws {
+        let decimalValue = try #require(Decimal(string: "150.50"))
+        let transaction = TestDataFactory.createTransaction(amount: decimalValue)
+        #expect(transaction.amount == decimalValue)
     }
 
     @Test func amount_canBeZero() {
@@ -133,13 +133,15 @@ struct TransactionTests {
         #expect(transaction.amount == 0)
     }
 
-    @Test func amount_usesDecimalForPrecision() {
-        let transaction = TestDataFactory.createTransaction(amount: Decimal(string: "99.99")!)
-        #expect(transaction.amount == Decimal(string: "99.99")!)
+    @Test func amount_usesDecimalForPrecision() throws {
+        let decimalValue = try #require(Decimal(string: "99.99"))
+        let transaction = TestDataFactory.createTransaction(amount: decimalValue)
+        #expect(transaction.amount == decimalValue)
     }
 
-    @Test func amount_handlesCHFFormatting() {
-        let transaction = TestDataFactory.createTransaction(amount: Decimal(string: "1234.56")!)
+    @Test func amount_handlesCHFFormatting() throws {
+        let decimalValue = try #require(Decimal(string: "1234.56"))
+        let transaction = TestDataFactory.createTransaction(amount: decimalValue)
         let formatted = transaction.amount.asCHF
         // Swiss locale uses apostrophe as thousands separator (either ' or ')
         let hasThousandsSeparator = formatted.contains("1'234") || formatted.contains("1\u{2019}234")

@@ -1,10 +1,9 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 @MainActor
 struct DashboardStoreLogicTests {
-
     // MARK: - Helpers
 
     private let calendar = Calendar.current

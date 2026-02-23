@@ -8,7 +8,7 @@ final class BudgetListStore: StoreProtocol {
     private(set) var budgets: [BudgetSparse] = []
     private(set) var isLoading = false
     private(set) var error: APIError?
-    
+
     /// Returns true if the store has an error and no budget data to display
     var hasError: Bool {
         error != nil && budgets.isEmpty
@@ -51,7 +51,7 @@ final class BudgetListStore: StoreProtocol {
     func forceRefresh() async {
         // Cancel any existing load task to avoid duplicate requests
         loadTask?.cancel()
-        
+
         let task = Task {
             isLoading = true
             error = nil
@@ -59,10 +59,10 @@ final class BudgetListStore: StoreProtocol {
 
             do {
                 let fetchedBudgets = try await budgetService.getBudgetsSparse(fields: "month,year,remaining")
-                
+
                 // Check for cancellation before updating state
                 try Task.checkCancellation()
-                
+
                 budgets = fetchedBudgets
                 lastLoadTime = Date()
                 hasLoadedOnce = true
@@ -79,7 +79,7 @@ final class BudgetListStore: StoreProtocol {
                 self.error = .networkError(error)
             }
         }
-        
+
         loadTask = task
         await task.value
         loadTask = nil

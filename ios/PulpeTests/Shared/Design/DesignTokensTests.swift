@@ -1,9 +1,8 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 struct DesignTokensTests {
-
     // MARK: - Opacity Tokens
 
     @Test func opacityTokensAreInValidRange() {

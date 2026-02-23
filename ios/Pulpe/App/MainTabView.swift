@@ -69,7 +69,9 @@ struct MainTabView: View {
                                             .font(PulpeTypography.tabLabel)
                                     }
                                     .symbolVariant(.fill)
-                                    .foregroundStyle(selectedTab.wrappedValue == tab ? Color.pulpePrimary : Color(.label))
+                                    .foregroundStyle(
+                                        selectedTab.wrappedValue == tab ? Color.pulpePrimary : Color(.label)
+                                    )
                                     .frame(maxWidth: .infinity)
                                 }
                             }

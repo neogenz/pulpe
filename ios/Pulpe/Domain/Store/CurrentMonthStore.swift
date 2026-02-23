@@ -10,7 +10,7 @@ final class CurrentMonthStore: StoreProtocol {
     private(set) var transactions: [Transaction] = []
     private(set) var isLoading = false
     private(set) var error: APIError?
-    
+
     /// Returns true if the store has an error and no budget data to display
     var hasError: Bool {
         error != nil && budget == nil
@@ -23,14 +23,14 @@ final class CurrentMonthStore: StoreProtocol {
     // MARK: - Cache Metadata
 
     private var lastLoadTime: Date?
-    
+
     // Cache for expensive computed properties
     private var cachedMetrics: BudgetFormulas.Metrics?
     private var cachedRealizedMetrics: BudgetFormulas.RealizedMetrics?
-    
+
     // Widget sync debouncing
     private var widgetSyncTask: Task<Void, Never>?
-    
+
     /// Coalescing task to prevent concurrent API loads
     private var loadTask: Task<Void, Never>?
 
@@ -134,7 +134,7 @@ final class CurrentMonthStore: StoreProtocol {
     func forceRefresh() async {
         // Cancel any existing load task to avoid duplicate requests
         loadTask?.cancel()
-        
+
         let task = Task {
             isLoading = true
             error = nil
@@ -152,7 +152,7 @@ final class CurrentMonthStore: StoreProtocol {
 
                 // Check for cancellation before expensive network call
                 try Task.checkCancellation()
-                
+
                 let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
                 budget = details.budget
                 budgetLines = details.budgetLines
@@ -167,7 +167,7 @@ final class CurrentMonthStore: StoreProtocol {
                 self.error = .networkError(error)
             }
         }
-        
+
         loadTask = task
         await task.value
         loadTask = nil
@@ -183,11 +183,11 @@ final class CurrentMonthStore: StoreProtocol {
     private func syncWidgetAfterChange() async {
         // Cancel any pending sync task
         widgetSyncTask?.cancel()
-        
+
         // Debounce widget sync to avoid excessive reloads
         widgetSyncTask = Task {
             try? await Task.sleep(nanoseconds: UInt64(AppConfiguration.widgetSyncDebounceDelay * 1_000_000_000))
-            
+
             guard !Task.isCancelled else { return }
             guard let currentBudget = budget else { return }
 
@@ -217,7 +217,7 @@ final class CurrentMonthStore: StoreProtocol {
             transactions: transactions
         )
     }
-    
+
     /// Recompute and cache metrics - call after data changes
     private func invalidateMetricsCache() {
         cachedMetrics = BudgetFormulas.calculateAllMetrics(
@@ -230,9 +230,11 @@ final class CurrentMonthStore: StoreProtocol {
             transactions: transactions
         )
     }
+}
 
-    // MARK: - Dashboard Computed Properties
+// MARK: - Computed Properties
 
+extension CurrentMonthStore {
     /// Days remaining in current month
     var daysRemaining: Int {
         let calendar = Calendar.current
@@ -267,11 +269,11 @@ final class CurrentMonthStore: StoreProtocol {
     }
 
     /// Top expense transaction by amount (linked or free)
-    var topSpending: (name: String, amount: Decimal, totalExpenses: Decimal)? {
+    var topSpending: TopSpending? {
         guard let top = transactions.filter({ $0.kind == .expense }).max(by: { $0.amount < $1.amount }) else {
             return nil
         }
-        return (name: top.name, amount: top.amount, totalExpenses: metrics.totalExpenses)
+        return TopSpending(name: top.name, amount: top.amount, totalExpenses: metrics.totalExpenses)
     }
 
     /// 5 most recent transactions (all types)
@@ -305,8 +307,6 @@ final class CurrentMonthStore: StoreProtocol {
         )
     }
 
-    // MARK: - Legacy Computed (kept for compatibility during transition)
-
     var displayBudgetLines: [BudgetLine] {
         guard let budget, let rollover = budget.rollover, rollover != 0 else {
             return budgetLines
@@ -337,9 +337,11 @@ final class CurrentMonthStore: StoreProtocol {
             .filter { $0.budgetLineId == nil }
             .sorted { $0.transactionDate > $1.transactionDate }
     }
+}
 
-    // MARK: - Mutations
+// MARK: - Mutations
 
+extension CurrentMonthStore {
     func toggleBudgetLine(_ line: BudgetLine) async {
         // Skip virtual rollover lines
         guard !(line.isRollover ?? false) else { return }
@@ -483,4 +485,10 @@ final class CurrentMonthStore: StoreProtocol {
         // Refresh to get server state (needed for recalculations)
         await forceRefresh()
     }
+}
+
+struct TopSpending: Sendable {
+    let name: String
+    let amount: Decimal
+    let totalExpenses: Decimal
 }

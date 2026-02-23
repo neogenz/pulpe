@@ -65,11 +65,17 @@ struct RealizedBalanceSheet: View {
             .foregroundStyle(isPositiveBalance ? Color.financialSavings : Color.financialOverBudget)
             .padding(.horizontal, DesignTokens.Spacing.md)
             .padding(.vertical, 6)
-            .background((isPositiveBalance ? Color.financialSavings : Color.financialOverBudget).opacity(DesignTokens.Opacity.badgeBackground))
+            .background(
+                (isPositiveBalance ? Color.financialSavings : Color.financialOverBudget)
+                    .opacity(DesignTokens.Opacity.badgeBackground)
+            )
             .clipShape(Capsule())
 
             // Completion info
-            Text("Basé sur \(realizedMetrics.checkedItemsCount) éléments comptabilisés sur \(realizedMetrics.totalItemsCount)")
+            Text(
+                "Basé sur \(realizedMetrics.checkedItemsCount) éléments comptabilisés sur " +
+                "\(realizedMetrics.totalItemsCount)"
+            )
                 .font(PulpeTypography.caption)
                 .foregroundStyle(Color.textTertiary)
         }
@@ -134,7 +140,10 @@ struct RealizedBalanceSheet: View {
                 Text("Astuce")
                     .font(PulpeTypography.labelLarge)
 
-                Text("Compare ce solde avec ton compte bancaire. S'il y a un écart, vérifie que toutes tes dépenses sont bien cochées.")
+                Text(
+                    "Compare ce solde avec ton compte bancaire. S'il y a un écart, " +
+                    "vérifie que toutes tes dépenses sont bien cochées."
+                )
                     .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)
             }

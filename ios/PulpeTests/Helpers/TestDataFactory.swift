@@ -3,7 +3,6 @@ import Foundation
 
 /// Factory to create test data with sensible defaults
 enum TestDataFactory {
-
     // MARK: - Fixed Dates for Testing
 
     static let fixedDate = Date(timeIntervalSince1970: 1704067200) // 2024-01-01 00:00:00 UTC

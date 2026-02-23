@@ -1,9 +1,8 @@
 import Foundation
-import Testing
 @testable import Pulpe
+import Testing
 
 struct BudgetLineTests {
-
     // MARK: - Check Status
 
     @Test func isChecked_whenCheckedAtIsNil_returnsFalse() {
@@ -231,8 +230,9 @@ struct BudgetLineTests {
         #expect(line.amount == 0)
     }
 
-    @Test func amount_usesDecimalForPrecision() {
-        let line = TestDataFactory.createBudgetLine(amount: Decimal(string: "1234.56")!)
-        #expect(line.amount == Decimal(string: "1234.56")!)
+    @Test func amount_usesDecimalForPrecision() throws {
+        let decimalValue = try #require(Decimal(string: "1234.56"))
+        let line = TestDataFactory.createBudgetLine(amount: decimalValue)
+        #expect(line.amount == decimalValue)
     }
 }

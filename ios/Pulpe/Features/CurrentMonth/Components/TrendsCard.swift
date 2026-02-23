@@ -1,5 +1,5 @@
-import SwiftUI
 import Charts
+import SwiftUI
 
 /// Card showing expense trends over the last 3 months with sparkline
 struct TrendsCard: View {

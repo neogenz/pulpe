@@ -9,7 +9,7 @@ struct WelcomeStep: View {
         ZStack {
             // Full-screen gradient background
             Color.authGradientBackground
-            
+
             VStack(spacing: 0) {
                 Spacer()
 
@@ -19,7 +19,7 @@ struct WelcomeStep: View {
                         .fill(Color.white.opacity(0.15))
                         .frame(width: 160, height: 160)
                         .blur(radius: 30)
-                    
+
                     Circle()
                         .fill(Color.white.opacity(0.25))
                         .frame(width: 140, height: 140)

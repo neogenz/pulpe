@@ -3,7 +3,6 @@ import Foundation
 /// Budget calculation formulas - Single Source of Truth
 /// Port of shared/src/calculators/budget-formulas.ts
 enum BudgetFormulas {
-
     // MARK: - Metrics Result
 
     struct Metrics: Equatable, Sendable {
@@ -135,7 +134,7 @@ enum BudgetFormulas {
             grouping: transactions.filter { $0.isChecked && $0.kind.isOutflow },
             by: { $0.budgetLineId ?? "" }
         )
-        
+
         var total: Decimal = 0
 
         // Calculate envelope totals - O(n) with O(1) lookups
@@ -203,7 +202,7 @@ enum BudgetFormulas {
         var budgetIncome: Decimal = 0
         var budgetExpenses: Decimal = 0
         var budgetSavings: Decimal = 0
-        
+
         for line in budgetLines {
             guard !(line.isRollover ?? false) else { continue }
             switch line.kind {
@@ -216,12 +215,12 @@ enum BudgetFormulas {
                 budgetExpenses += line.amount // Savings count as expenses per SPECS
             }
         }
-        
+
         // Single pass over transactions
         var transactionIncome: Decimal = 0
         var transactionExpenses: Decimal = 0
         var transactionSavings: Decimal = 0
-        
+
         for tx in transactions {
             switch tx.kind {
             case .income:
@@ -233,7 +232,7 @@ enum BudgetFormulas {
                 transactionExpenses += tx.amount // Savings count as expenses per SPECS
             }
         }
-        
+
         let totalIncome = budgetIncome + transactionIncome
         let totalExpenses = budgetExpenses + transactionExpenses
         let totalSavings = budgetSavings + transactionSavings
@@ -320,13 +319,13 @@ enum BudgetFormulas {
         let daysElapsed: Int
         let daysRemaining: Int
         let isOnTrack: Bool
-        
+
         /// Trend direction relative to budget
         var trend: Trend {
             if isOnTrack { return .onTrack }
             return projectedEndOfMonthBalance < 0 ? .deficit : .surplus
         }
-        
+
         enum Trend {
             case onTrack, deficit, surplus
         }
@@ -343,7 +342,7 @@ enum BudgetFormulas {
         referenceDate: Date = Date()
     ) -> Projection? {
         let calendar = Calendar.current
-        
+
         // Create date for the budget month
         var components = DateComponents()
         components.month = month
@@ -352,17 +351,17 @@ enum BudgetFormulas {
         guard let monthStart = calendar.date(from: components),
               let monthEnd = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: monthStart)
         else { return nil }
-        
+
         let totalDaysInMonth = calendar.component(.day, from: monthEnd)
         let currentDay = calendar.component(.day, from: referenceDate)
         let currentMonth = calendar.component(.month, from: referenceDate)
         let currentYear = calendar.component(.year, from: referenceDate)
-        
+
         // Only calculate projection for current or future months
         guard year > currentYear || (year == currentYear && month >= currentMonth) else {
             return nil
         }
-        
+
         // For the current month, use actual days elapsed
         let daysElapsed: Int
         if month == currentMonth && year == currentYear {
@@ -371,22 +370,22 @@ enum BudgetFormulas {
             // For future months, no projection needed (no spending yet)
             return nil
         }
-        
+
         let daysRemaining = totalDaysInMonth - daysElapsed
-        
+
         // Calculate daily spending rate based on realized expenses
         let dailySpendingRate = realizedExpenses / Decimal(daysElapsed)
-        
+
         // Project total expenses to end of month
         let projectedTotalExpenses = dailySpendingRate * Decimal(totalDaysInMonth)
-        
+
         // Calculate projected end-of-month balance
         let projectedEndOfMonthBalance = available - projectedTotalExpenses
-        
+
         // Determine if on track (projected balance >= planned remaining)
         let plannedRemaining = available - totalBudgetedExpenses
         let isOnTrack = projectedEndOfMonthBalance >= plannedRemaining
-        
+
         return Projection(
             projectedEndOfMonthBalance: projectedEndOfMonthBalance,
             dailySpendingRate: dailySpendingRate,

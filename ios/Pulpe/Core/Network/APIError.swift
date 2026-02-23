@@ -73,33 +73,30 @@ enum APIError: LocalizedError {
         }
     }
 
+    private static let codeMapping: [String: APIError] = [
+        "ERR_BUDGET_ALREADY_EXISTS": .budgetAlreadyExists,
+        "ERR_TEMPLATE_NOT_FOUND": .templateNotFound,
+        "ERR_TEMPLATE_LIMIT_REACHED": .templateLimitReached,
+        "invalid_credentials": .invalidCredentials,
+        "Invalid login credentials": .invalidCredentials,
+        "user_already_exists": .userAlreadyExists,
+        "User already registered": .userAlreadyExists,
+        "weak_password": .weakPassword,
+        "over_request_rate_limit": .rateLimited,
+        "MAINTENANCE": .maintenance,
+        "ERR_ENCRYPTION_KEY_CHECK_FAILED": .clientKeyInvalid,
+    ]
+
     /// Create APIError from server error code
     static func from(code: String?, message: String?) -> APIError {
         guard let code else {
             return .serverError(message: message ?? "Quelque chose n'a pas fonctionné")
         }
 
-        switch code {
-        case "ERR_BUDGET_ALREADY_EXISTS":
-            return .budgetAlreadyExists
-        case "ERR_TEMPLATE_NOT_FOUND":
-            return .templateNotFound
-        case "ERR_TEMPLATE_LIMIT_REACHED":
-            return .templateLimitReached
-        case "invalid_credentials", "Invalid login credentials":
-            return .invalidCredentials
-        case "user_already_exists", "User already registered":
-            return .userAlreadyExists
-        case "weak_password":
-            return .weakPassword
-        case "over_request_rate_limit":
-            return .rateLimited
-        case "MAINTENANCE":
-            return .maintenance
-        case "ERR_ENCRYPTION_KEY_CHECK_FAILED":
-            return .clientKeyInvalid
-        default:
-            return .serverError(message: message ?? code)
+        if let error = codeMapping[code] {
+            return error
         }
+
+        return .serverError(message: message ?? code)
     }
 }
