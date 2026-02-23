@@ -12,8 +12,7 @@ struct AlertsSection: View {
                     ForEach(alerts.prefix(3), id: \.line.id) { alert in
                         AlertRow(
                             name: alert.line.name,
-                            percentage: Int(alert.consumption.percentage),
-                            isOverBudget: alert.consumption.isOverBudget
+                            percentage: Int(alert.consumption.percentage)
                         )
                     }
 
@@ -47,16 +46,15 @@ struct AlertsSection: View {
 private struct AlertRow: View {
     let name: String
     let percentage: Int
-    let isOverBudget: Bool
 
-    private var color: Color {
-        Color.financialOverBudget
+    private var severityColor: Color {
+        percentage >= 90 ? .financialOverBudget : .orange
     }
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             Circle()
-                .fill(color)
+                .fill(severityColor)
                 .frame(width: 8, height: 8)
 
             Text(name)
@@ -67,7 +65,7 @@ private struct AlertRow: View {
 
             Text("\(percentage)%")
                 .font(PulpeTypography.labelLarge)
-                .foregroundStyle(color)
+                .foregroundStyle(severityColor)
         }
     }
 }

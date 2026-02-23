@@ -133,7 +133,7 @@ actor KeychainManager {
 
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        return status == errSecSuccess || status == errSecInteractionNotAllowed
+        return status == errSecSuccess
     }
 
     // MARK: - Client Key Management
@@ -185,7 +185,7 @@ actor KeychainManager {
 
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        return status == errSecSuccess || status == errSecInteractionNotAllowed
+        return status == errSecSuccess
     }
 
     // MARK: - Biometric Preference

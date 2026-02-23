@@ -50,6 +50,9 @@ struct OnboardingFlow: View {
             RegistrationStep(state: state) { user in
                 Task {
                     await appState.completeOnboarding(user: user, onboardingData: state.createTemplateData())
+                    if appState.showPostAuthError {
+                        state.error = APIError.serverError(message: "La création du budget a échoué. Réessaie.")
+                    }
                 }
             }
         }

@@ -118,14 +118,8 @@ struct RealizedBalanceSheet: View {
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
     }
 
-    /// Calculate realized savings from realized metrics
     private var realizedSavings: Decimal {
-        // Savings are part of realized expenses in the formula
-        // For simplicity, show proportion based on completion
-        let completionRatio = realizedMetrics.totalItemsCount > 0
-            ? Decimal(realizedMetrics.checkedItemsCount) / Decimal(realizedMetrics.totalItemsCount)
-            : 0
-        return metrics.totalSavings * completionRatio
+        realizedMetrics.checkedSavingsAmount
     }
 
     // MARK: - Tip Section
@@ -231,7 +225,8 @@ private struct ProgressRow: View {
                     realizedExpenses: 2500,
                     realizedBalance: 5456,
                     checkedItemsCount: 12,
-                    totalItemsCount: 25
+                    totalItemsCount: 25,
+                    checkedSavingsAmount: 250
                 )
             )
         }
@@ -255,7 +250,8 @@ private struct ProgressRow: View {
                     realizedExpenses: 5200,
                     realizedBalance: -200,
                     checkedItemsCount: 18,
-                    totalItemsCount: 20
+                    totalItemsCount: 20,
+                    checkedSavingsAmount: 200
                 )
             )
         }
@@ -279,7 +275,8 @@ private struct ProgressRow: View {
                     realizedExpenses: 4000,
                     realizedBalance: 2000,
                     checkedItemsCount: 15,
-                    totalItemsCount: 15
+                    totalItemsCount: 15,
+                    checkedSavingsAmount: 800
                 )
             )
         }

@@ -4,6 +4,8 @@ struct RegistrationStep: View {
     let state: OnboardingState
     let onComplete: (UserInfo) -> Void
 
+    @State private var password = ""
+    @State private var passwordConfirmation = ""
     @State private var showPassword = false
     @State private var showPasswordConfirmation = false
     @FocusState private var focusedField: Field?
@@ -12,15 +14,28 @@ struct RegistrationStep: View {
         case email, password, passwordConfirmation
     }
 
+    private var isPasswordValid: Bool {
+        password.count >= 8 &&
+        password.contains { $0.isNumber }
+    }
+
+    private var isPasswordConfirmed: Bool {
+        !passwordConfirmation.isEmpty && password == passwordConfirmation
+    }
+
+    private var canSubmit: Bool {
+        state.canSubmitRegistration && isPasswordValid && isPasswordConfirmed
+    }
+
     private var passwordMismatch: Bool {
-        !state.passwordConfirmation.isEmpty && state.password != state.passwordConfirmation
+        !passwordConfirmation.isEmpty && password != passwordConfirmation
     }
 
     var body: some View {
         OnboardingStepView(
             step: .registration,
             state: state,
-            canProceed: state.canSubmitRegistration,
+            canProceed: canSubmit,
             onNext: { Task { await submitRegistration() } }
         ) {
             VStack(spacing: DesignTokens.Spacing.xxl) {
@@ -78,15 +93,9 @@ struct RegistrationStep: View {
                     HStack(spacing: DesignTokens.Spacing.md) {
                         Group {
                             if showPassword {
-                                TextField("••••••••", text: Binding(
-                                    get: { state.password },
-                                    set: { state.password = $0 }
-                                ))
+                                TextField("••••••••", text: $password)
                             } else {
-                                SecureField("••••••••", text: Binding(
-                                    get: { state.password },
-                                    set: { state.password = $0 }
-                                ))
+                                SecureField("••••••••", text: $password)
                             }
                         }
                         .textContentType(.newPassword)
@@ -146,15 +155,9 @@ struct RegistrationStep: View {
                     HStack(spacing: DesignTokens.Spacing.md) {
                         Group {
                             if showPasswordConfirmation {
-                                TextField("••••••••", text: Binding(
-                                    get: { state.passwordConfirmation },
-                                    set: { state.passwordConfirmation = $0 }
-                                ))
+                                TextField("••••••••", text: $passwordConfirmation)
                             } else {
-                                SecureField("••••••••", text: Binding(
-                                    get: { state.passwordConfirmation },
-                                    set: { state.passwordConfirmation = $0 }
-                                ))
+                                SecureField("••••••••", text: $passwordConfirmation)
                             }
                         }
                         .textContentType(.newPassword)
@@ -245,15 +248,10 @@ struct RegistrationStep: View {
         state.error = nil
 
         do {
-            // Create user account
             let authService = AuthService.shared
-            let user = try await authService.signup(email: state.email, password: state.password)
+            let user = try await authService.signup(email: state.email, password: password)
 
-            // Clear sensitive data (keep onboarding data for later template creation)
-            state.password = ""
-            state.passwordConfirmation = ""
             state.isLoading = false
-
             onComplete(user)
 
         } catch let apiError as APIError {

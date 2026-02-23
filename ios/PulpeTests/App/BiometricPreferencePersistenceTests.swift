@@ -50,6 +50,25 @@ struct BiometricPreferencePersistenceTests {
 
         #expect(await keychain.savedValues == [true, false])
     }
+
+    @Test("concurrent load and save do not race")
+    func concurrentLoadSave_noRace() async {
+        let keychain = StubBiometricPreferenceKeychain(initial: nil)
+        let defaults = StubBiometricPreferenceDefaults(initial: false)
+        let sut = BiometricPreferenceStore(keychain: keychain, defaults: defaults)
+
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<10 {
+                group.addTask { await sut.save(true) }
+                group.addTask { _ = await sut.load() }
+            }
+        }
+
+        // Verify no crash and all saves were recorded
+        let savedValues = await keychain.savedValues
+        #expect(savedValues.count == 10)
+        #expect(savedValues.allSatisfy { $0 == true })
+    }
 }
 
 // MARK: - Stubs

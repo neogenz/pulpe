@@ -146,6 +146,7 @@ struct PinEntryValidationFlowTests {
 
     private func makeSUT(
         derivedKey: String = validKey,
+        deriveError: (any Error)? = nil,
         saltResponse: EncryptionSaltResponse = EncryptionSaltResponse(
             salt: validSalt,
             kdfIterations: 1,
@@ -154,7 +155,7 @@ struct PinEntryValidationFlowTests {
         validateKeyError: APIError? = nil
     ) -> PinEntryViewModel {
         PinEntryViewModel(
-            cryptoService: StubCryptoKeyDerivation(derivedKey: derivedKey),
+            cryptoService: StubCryptoKeyDerivation(derivedKey: derivedKey, deriveError: deriveError),
             encryptionAPI: StubEncryptionKeyValidation(
                 saltResponse: saltResponse,
                 validateKeyError: validateKeyError
@@ -271,25 +272,43 @@ struct PinEntryValidationFlowTests {
 
         #expect(sut.isValidating == false)
     }
+
+    // MARK: - Keychain Unavailable
+
+    @Test("keychain unavailable surfaces error to user")
+    func keychainUnavailable_surfacesError() async {
+        struct KeychainUnavailableError: Error {}
+        let sut = makeSUT(deriveError: KeychainUnavailableError())
+        enterPin(sut)
+
+        await sut.confirm()
+
+        #expect(sut.authenticated == false)
+        #expect(sut.errorMessage == "Erreur inattendue, réessaie")
+        #expect(sut.isValidating == false)
+    }
 }
 
 // MARK: - Test Stubs
 
-private final class StubCryptoKeyDerivation: CryptoKeyDerivation, @unchecked Sendable {
+private final class StubCryptoKeyDerivation: PinCryptoKeyDerivation, @unchecked Sendable {
     let derivedKey: String
+    let deriveError: (any Error)?
     private(set) var deriveCallCount = 0
 
-    init(derivedKey: String) {
+    init(derivedKey: String, deriveError: (any Error)? = nil) {
         self.derivedKey = derivedKey
+        self.deriveError = deriveError
     }
 
     func deriveClientKey(pin: String, saltHex: String, iterations: Int) async throws -> String {
         deriveCallCount += 1
+        if let error = deriveError { throw error }
         return derivedKey
     }
 }
 
-private final class StubEncryptionKeyValidation: EncryptionKeyValidation, @unchecked Sendable {
+private final class StubEncryptionKeyValidation: PinEncryptionValidation, @unchecked Sendable {
     let saltResponse: EncryptionSaltResponse
     let validateKeyError: APIError?
     private(set) var getSaltCallCount = 0
@@ -311,7 +330,7 @@ private final class StubEncryptionKeyValidation: EncryptionKeyValidation, @unche
     }
 }
 
-private final class StubClientKeyStorage: ClientKeyStorage, @unchecked Sendable {
+private final class StubClientKeyStorage: PinClientKeyStorage, @unchecked Sendable {
     private(set) var storeCallCount = 0
 
     func store(_ clientKeyHex: String, enableBiometric: Bool) async {

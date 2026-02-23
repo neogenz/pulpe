@@ -313,6 +313,8 @@ final class PinRecoveryViewModel {
     func goBack() {
         switch step {
         case .createPin:
+            recoveryKeyInput = ""
+            recoveryKey = ""
             step = .enterRecoveryKey
             digits = []
             firstPin = nil
@@ -422,6 +424,8 @@ final class PinRecoveryViewModel {
     }
 
     private func resetToRecoveryKeyStep() {
+        recoveryKeyInput = ""
+        recoveryKey = ""
         step = .enterRecoveryKey
         digits = []
         firstPin = nil

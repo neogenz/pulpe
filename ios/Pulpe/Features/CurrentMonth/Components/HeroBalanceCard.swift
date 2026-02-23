@@ -17,14 +17,14 @@ struct HeroBalanceCard: View {
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 0
         formatter.maximumFractionDigits = 2
-        formatter.locale = Locale(identifier: "de_CH")
+        formatter.locale = Locale(identifier: "fr_CH")
         return formatter
     }()
     
     private static let pillFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
-        formatter.locale = Locale(identifier: "de_CH")
+        formatter.locale = Locale(identifier: "fr_CH")
         return formatter
     }()
 
@@ -200,12 +200,6 @@ private extension View {
     func heroCardBackground(tint: Color) -> some View {
         background(tint, in: .rect(cornerRadius: DesignTokens.CornerRadius.xl))
     }
-}
-
-// MARK: - Helpers
-
-private func abs(_ value: Decimal) -> Decimal {
-    value < 0 ? -value : value
 }
 
 // MARK: - Preview

@@ -128,12 +128,10 @@ actor APIClient {
 
         // Handle 401 - try token refresh (once only to prevent infinite retry loop)
         if httpResponse.statusCode == 401 {
-            guard !isRetry else { throw APIError.unauthorized }
-            if try await refreshTokenAndRetry() {
+            if try await handleUnauthorized(isRetry: isRetry) {
                 try await requestVoid(endpoint, body: body, method: method, isRetry: true)
                 return
             }
-            throw APIError.unauthorized
         }
 
         guard (200...299).contains(httpResponse.statusCode) else {
@@ -201,11 +199,9 @@ actor APIClient {
 
         // Handle 401 - try token refresh (once only to prevent infinite retry loop)
         if httpResponse.statusCode == 401 {
-            guard !isRetry else { throw APIError.unauthorized }
-            if try await refreshTokenAndRetry() {
+            if try await handleUnauthorized(isRetry: isRetry) {
                 return try await self.request(endpoint, body: body, isRetry: true)
             }
-            throw APIError.unauthorized
         }
 
         guard (200...299).contains(httpResponse.statusCode) else {
@@ -273,6 +269,15 @@ actor APIClient {
         default:
             return .unknown(statusCode: statusCode)
         }
+    }
+
+    /// Attempt token refresh on 401. Returns true if refresh succeeded and caller should retry.
+    /// Throws APIError.unauthorized if this is already a retry or if refresh fails.
+    private func handleUnauthorized(isRetry: Bool) async throws -> Bool {
+        guard !isRetry else { throw APIError.unauthorized }
+        let refreshed = try await refreshTokenAndRetry()
+        guard refreshed else { throw APIError.unauthorized }
+        return true
     }
 
     private func refreshTokenAndRetry() async throws -> Bool {

@@ -30,6 +30,15 @@ struct VaultStatusResponse: Codable, Sendable {
         let pinCodeConfigured = try container.decodeIfPresent(Bool.self, forKey: .pinCodeConfigured) ?? vaultCodeConfigured
         let recoveryKeyConfigured = try container.decodeIfPresent(Bool.self, forKey: .recoveryKeyConfigured) ?? vaultCodeConfigured
 
+        // Validate logical consistency
+        if vaultCodeConfigured && !pinCodeConfigured && !recoveryKeyConfigured {
+            throw DecodingError.dataCorruptedError(
+                forKey: .vaultCodeConfigured,
+                in: container,
+                debugDescription: "vaultCodeConfigured is true but neither pinCodeConfigured nor recoveryKeyConfigured is true"
+            )
+        }
+
         self.pinCodeConfigured = pinCodeConfigured
         self.recoveryKeyConfigured = recoveryKeyConfigured
         self.vaultCodeConfigured = vaultCodeConfigured || (pinCodeConfigured && recoveryKeyConfigured)

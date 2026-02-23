@@ -331,6 +331,10 @@ struct BudgetDetailsView: View {
                 )
             },
             onEdit: { line in
+                guard !line.isManuallyAdjusted else {
+                    appState.toastManager.show("Cette ligne ajustée manuellement ne peut pas être modifiée", type: .error)
+                    return
+                }
                 selectedBudgetLineForEdit = line
             }
         )
@@ -759,9 +763,9 @@ final class BudgetDetailsViewModel {
 
         // Show undo toast - actual deletion happens when toast dismisses
         toastManager.showWithUndo("Transaction supprimée") { [weak self] in
-            // Undo: restore the transaction
-            self?.transactions.append(transaction)
-            self?.invalidateMetricsCache()
+            guard let self, !self.transactions.contains(where: { $0.id == transaction.id }) else { return }
+            self.transactions.append(transaction)
+            self.invalidateMetricsCache()
         }
 
         // Schedule actual deletion after toast timeout
@@ -822,9 +826,9 @@ final class BudgetDetailsViewModel {
 
         // Show undo toast
         toastManager.showWithUndo("Prévision supprimée") { [weak self] in
-            // Undo: restore the budget line
-            self?.budgetLines.append(line)
-            self?.invalidateMetricsCache()
+            guard let self, !self.budgetLines.contains(where: { $0.id == line.id }) else { return }
+            self.budgetLines.append(line)
+            self.invalidateMetricsCache()
         }
 
         // Schedule actual deletion after toast timeout

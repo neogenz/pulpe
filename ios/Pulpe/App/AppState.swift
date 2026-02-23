@@ -338,6 +338,7 @@ final class AppState {
             return
         }
 
+        hasCompletedOnboarding = false
         await logout()
     }
 
@@ -371,6 +372,7 @@ final class AppState {
                 Logger.auth.warning(
                     "transitionToAuthenticated: biometric silent reactivation incomplete (tokens=\(tokensReady), key=\(keyReady))"
                 )
+                toastManager.show("La reconnaissance biométrique n'a pas pu être activée", type: .error)
             }
         }
 

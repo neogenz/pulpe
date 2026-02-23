@@ -36,6 +36,7 @@ enum BudgetFormulas {
         let realizedBalance: Decimal
         let checkedItemsCount: Int
         let totalItemsCount: Int
+        let checkedSavingsAmount: Decimal
 
         var completionPercentage: Double {
             guard totalItemsCount > 0 else { return 0 }
@@ -262,12 +263,20 @@ enum BudgetFormulas {
         let checkedCount = budgetLines.filter { $0.isChecked }.count + transactions.filter { $0.isChecked }.count
         let totalCount = budgetLines.count + transactions.count
 
+        let checkedSavingsAmount = budgetLines
+            .filter { $0.isChecked && $0.kind == .saving }
+            .reduce(Decimal.zero) { $0 + $1.amount }
+            + transactions
+            .filter { $0.isChecked && $0.kind == .saving }
+            .reduce(Decimal.zero) { $0 + $1.amount }
+
         return RealizedMetrics(
             realizedIncome: realizedIncome,
             realizedExpenses: realizedExpenses,
             realizedBalance: realizedBalance,
             checkedItemsCount: checkedCount,
-            totalItemsCount: totalCount
+            totalItemsCount: totalCount,
+            checkedSavingsAmount: checkedSavingsAmount
         )
     }
 
