@@ -185,6 +185,58 @@ struct PinSetupFlowTests {
         #expect(PinSetupMode.chooseAndSetupRecovery.title == "Choisis ton code PIN")
         #expect(PinSetupMode.enterExistingPin.title == "Saisis ton code PIN")
     }
+
+    @Test("clientKeyInvalid error shows specific PIN-exists message")
+    func clientKeyInvalid_showsSpecificErrorMessage() async {
+        let encryptionAPI = StubPinSetupEncryptionAPI(
+            saltResponse: EncryptionSaltResponse(
+                salt: Self.validSalt,
+                kdfIterations: 1,
+                hasRecoveryKey: false
+            ),
+            validateKeyError: APIError.clientKeyInvalid
+        )
+        let storage = StubPinSetupClientKeyStorage()
+        let sut = PinSetupViewModel(
+            mode: .chooseAndSetupRecovery,
+            cryptoService: StubPinSetupCryptoService(derivedKey: Self.validKey),
+            encryptionAPI: encryptionAPI,
+            clientKeyManager: storage
+        )
+        enterPin(sut)
+
+        await sut.confirm()
+
+        #expect(sut.isError == true)
+        #expect(sut.errorMessage == "Un code PIN existe déjà pour ce compte — saisis-le")
+        #expect(storage.storeCallCount == 0)
+    }
+
+    @Test("generic API error shows generic error message")
+    func genericAPIError_showsGenericErrorMessage() async {
+        let encryptionAPI = StubPinSetupEncryptionAPI(
+            saltResponse: EncryptionSaltResponse(
+                salt: Self.validSalt,
+                kdfIterations: 1,
+                hasRecoveryKey: false
+            ),
+            validateKeyError: APIError.serverError(message: "Internal Server Error")
+        )
+        let storage = StubPinSetupClientKeyStorage()
+        let sut = PinSetupViewModel(
+            mode: .chooseAndSetupRecovery,
+            cryptoService: StubPinSetupCryptoService(derivedKey: Self.validKey),
+            encryptionAPI: encryptionAPI,
+            clientKeyManager: storage
+        )
+        enterPin(sut)
+
+        await sut.confirm()
+
+        #expect(sut.isError == true)
+        #expect(sut.errorMessage == "Une erreur est survenue, reessaie")
+        #expect(storage.storeCallCount == 0)
+    }
 }
 
 // MARK: - Stubs
@@ -203,17 +255,21 @@ private final class StubPinSetupCryptoService: PinSetupCryptoKeyDerivation, @unc
 
 private final class StubPinSetupEncryptionAPI: PinSetupEncryptionKeyValidation, @unchecked Sendable {
     private let saltResponse: EncryptionSaltResponse
+    private let validateKeyError: (any Error)?
     private(set) var setupRecoveryCallCount = 0
 
-    init(saltResponse: EncryptionSaltResponse) {
+    init(saltResponse: EncryptionSaltResponse, validateKeyError: (any Error)? = nil) {
         self.saltResponse = saltResponse
+        self.validateKeyError = validateKeyError
     }
 
     func getSalt() async throws -> EncryptionSaltResponse {
         saltResponse
     }
 
-    func validateKey(_ clientKeyHex: String) async throws {}
+    func validateKey(_ clientKeyHex: String) async throws {
+        if let error = validateKeyError { throw error }
+    }
 
     func setupRecoveryKey() async throws -> String {
         setupRecoveryCallCount += 1

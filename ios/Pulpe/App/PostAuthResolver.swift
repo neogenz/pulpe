@@ -6,6 +6,7 @@ enum PostAuthDestination: Equatable, Sendable {
     case needsPinEntry(needsRecoveryKeyConsent: Bool)
     case authenticated(needsRecoveryKeyConsent: Bool)
     case unauthenticatedSessionExpired
+    case vaultCheckFailed
 }
 
 protocol PostAuthResolving: Sendable {
@@ -53,10 +54,17 @@ struct PostAuthResolver: PostAuthResolving {
     }
 
     func resolve() async -> PostAuthDestination {
-        guard let status = await loadVaultStatusWithRetry() else {
+        switch await loadVaultStatusWithRetry() {
+        case .sessionExpired:
             return .unauthenticatedSessionExpired
+        case .unavailable:
+            return .vaultCheckFailed
+        case .success(let status):
+            return await routeFromVaultStatus(status)
         }
+    }
 
+    private func routeFromVaultStatus(_ status: VaultStatusResponse) async -> PostAuthDestination {
         // New or interrupted setup: no PIN and no recovery key.
         if !status.pinCodeConfigured && !status.recoveryKeyConfigured {
             return .needsPinSetup
@@ -83,40 +91,42 @@ struct PostAuthResolver: PostAuthResolving {
         return .needsPinEntry(needsRecoveryKeyConsent: false)
     }
 
-    private func loadVaultStatusWithRetry() async -> VaultStatusResponse? {
+    private enum VaultLoadResult {
+        case success(VaultStatusResponse)
+        case sessionExpired
+        case unavailable
+    }
+
+    private func loadVaultStatusWithRetry() async -> VaultLoadResult {
         do {
-            return try await vaultStatusProvider.getVaultStatus()
+            return .success(try await vaultStatusProvider.getVaultStatus())
         } catch let error as APIError {
             switch error {
             case .unauthorized:
                 let refreshed = await sessionRefresher.refreshSessionForVaultCheck()
-                guard refreshed else { return nil }
+                guard refreshed else { return .sessionExpired }
                 do {
-                    return try await vaultStatusProvider.getVaultStatus()
+                    return .success(try await vaultStatusProvider.getVaultStatus())
                 } catch let retryError as APIError {
                     if case .unauthorized = retryError {
-                        return nil
+                        return .sessionExpired
                     }
                     Logger.auth.error("PostAuthResolver: vault-status retry failed - \(retryError)")
-                    return fallbackVaultStatus()
+                    return .unavailable
                 } catch let retryError {
                     Logger.auth.error("PostAuthResolver: vault-status retry failed - \(retryError)")
-                    return fallbackVaultStatus()
+                    return .unavailable
                 }
             case .networkError:
-                Logger.auth.warning("PostAuthResolver: network error on vault-status, using fallback")
-                return fallbackVaultStatus()
+                Logger.auth.warning("PostAuthResolver: network error on vault-status")
+                return .unavailable
             default:
                 Logger.auth.error("PostAuthResolver: API error on vault-status - \(error)")
-                return fallbackVaultStatus()
+                return .unavailable
             }
         } catch {
             Logger.auth.error("PostAuthResolver: unexpected vault-status error - \(error)")
-            return fallbackVaultStatus()
+            return .unavailable
         }
-    }
-
-    private func fallbackVaultStatus() -> VaultStatusResponse? {
-        nil
     }
 }

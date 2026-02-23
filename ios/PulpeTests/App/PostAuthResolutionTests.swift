@@ -157,8 +157,8 @@ struct PostAuthResolutionTests {
         #expect(destination == .unauthenticatedSessionExpired)
     }
 
-    @Test("network error on vault-status returns session expired")
-    func vaultNetworkError_returnsSessionExpired() async {
+    @Test("network error on vault-status returns vaultCheckFailed")
+    func vaultNetworkError_returnsVaultCheckFailed() async {
         let resolver = PostAuthResolver(
             vaultStatusProvider: StubVaultStatusProvider(results: [
                 .failure(.networkError(URLError(.notConnectedToInternet)))
@@ -169,11 +169,11 @@ struct PostAuthResolutionTests {
 
         let destination = await resolver.resolve()
 
-        #expect(destination == .unauthenticatedSessionExpired)
+        #expect(destination == .vaultCheckFailed)
     }
 
-    @Test("unexpected server error on vault-status returns session expired")
-    func vaultUnexpectedError_returnsSessionExpired() async {
+    @Test("unexpected server error on vault-status returns vaultCheckFailed")
+    func vaultUnexpectedError_returnsVaultCheckFailed() async {
         let resolver = PostAuthResolver(
             vaultStatusProvider: StubVaultStatusProvider(results: [
                 .failure(.serverError(message: "Internal Server Error"))
@@ -184,11 +184,11 @@ struct PostAuthResolutionTests {
 
         let destination = await resolver.resolve()
 
-        #expect(destination == .unauthenticatedSessionExpired)
+        #expect(destination == .vaultCheckFailed)
     }
 
-    @Test("401 retry with server error returns session expired")
-    func vaultRetryNonAuthError_returnsSessionExpired() async {
+    @Test("401 retry with server error returns vaultCheckFailed")
+    func vaultRetryNonAuthError_returnsVaultCheckFailed() async {
         let resolver = PostAuthResolver(
             vaultStatusProvider: StubVaultStatusProvider(results: [
                 .failure(.unauthorized),
@@ -200,7 +200,33 @@ struct PostAuthResolutionTests {
 
         let destination = await resolver.resolve()
 
-        #expect(destination == .unauthenticatedSessionExpired)
+        #expect(destination == .vaultCheckFailed)
+    }
+
+    @Test("non-APIError on vault-status returns vaultCheckFailed")
+    func vaultNonAPIError_returnsVaultCheckFailed() async {
+        let resolver = PostAuthResolver(
+            vaultStatusProvider: ThrowingVaultStatusProvider(error: NSError(domain: "decoding", code: -1)),
+            sessionRefresher: StubSessionRefresher(result: false),
+            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
+        )
+
+        let destination = await resolver.resolve()
+
+        #expect(destination == .vaultCheckFailed)
+    }
+
+    @Test("forbidden error on vault-status returns vaultCheckFailed")
+    func vaultForbiddenError_returnsVaultCheckFailed() async {
+        let resolver = PostAuthResolver(
+            vaultStatusProvider: StubVaultStatusProvider(results: [.failure(.forbidden)]),
+            sessionRefresher: StubSessionRefresher(result: false),
+            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
+        )
+
+        let destination = await resolver.resolve()
+
+        #expect(destination == .vaultCheckFailed)
     }
 
     @Test("anti-flash: auth state stays loading while post-auth resolution is pending")
@@ -349,6 +375,144 @@ struct PostAuthResolutionTests {
     }
 }
 
+// MARK: - completeOnboarding Routing
+
+@MainActor
+struct CompleteOnboardingRoutingTests {
+    private let user = UserInfo(id: "user-1", email: "test@pulpe.app", firstName: "Max")
+    private let onboardingData = BudgetTemplateCreateFromOnboarding()
+
+    @Test("reused email with existing vault routes to PIN entry, not PIN setup")
+    func reusedEmail_withExistingVault_routesToPinEntry() async {
+        // Given: vault has key_check (pinCodeConfigured = true) — reused email scenario
+        let resolver = StubPostAuthResolver(
+            destination: .needsPinEntry(needsRecoveryKeyConsent: false)
+        )
+        let sut = AppState(postAuthResolver: resolver)
+
+        // When: completing onboarding
+        await sut.completeOnboarding(user: user, onboardingData: onboardingData)
+
+        // Then: routes to PIN entry (not PIN setup)
+        #expect(sut.authState == .needsPinEntry)
+        #expect(sut.hasCompletedOnboarding == true)
+        #expect(sut.pendingOnboardingData != nil)
+    }
+
+    @Test("fresh account routes to PIN setup")
+    func freshAccount_routesToPinSetup() async {
+        // Given: vault is empty (new user, no key_check)
+        let resolver = StubPostAuthResolver(destination: .needsPinSetup)
+        let sut = AppState(postAuthResolver: resolver)
+
+        // When: completing onboarding
+        await sut.completeOnboarding(user: user, onboardingData: onboardingData)
+
+        // Then: routes to PIN setup
+        #expect(sut.authState == .needsPinSetup)
+        #expect(sut.hasCompletedOnboarding == true)
+    }
+
+    @Test("vault check failure during onboarding shows error")
+    func vaultCheckFailure_showsPostAuthError() async {
+        // Given: vault-status check fails (network/server error)
+        let resolver = StubPostAuthResolver(destination: .vaultCheckFailed)
+        let sut = AppState(postAuthResolver: resolver)
+
+        // When: completing onboarding
+        await sut.completeOnboarding(user: user, onboardingData: onboardingData)
+
+        // Then: shows error alert instead of routing to wrong screen
+        #expect(sut.showPostAuthError == true)
+        #expect(sut.authState == .loading)
+    }
+
+    @Test("session expired during onboarding shows error")
+    func sessionExpired_showsPostAuthError() async {
+        // Given: session is expired (401 + refresh failed)
+        let resolver = StubPostAuthResolver(destination: .unauthenticatedSessionExpired)
+        let sut = AppState(postAuthResolver: resolver)
+
+        // When: completing onboarding
+        await sut.completeOnboarding(user: user, onboardingData: onboardingData)
+
+        // Then: shows error alert (session expired right after signup = can't proceed)
+        #expect(sut.showPostAuthError == true)
+        #expect(sut.authState == .loading)
+    }
+
+    @Test("vault check failure during login routes to PIN entry")
+    func vaultCheckFailure_loginRoutesToPinEntry() async {
+        // Given: vault check fails during login (network error)
+        let resolver = StubPostAuthResolver(destination: .vaultCheckFailed)
+        let sut = AppState(postAuthResolver: resolver)
+
+        // When: resolving post-auth for existing user
+        await sut.resolvePostAuth(user: user)
+
+        // Then: safe fallback to PIN entry for existing users
+        #expect(sut.authState == .needsPinEntry)
+        #expect(sut.showPostAuthError == false)
+    }
+
+    @Test("retry after vault check failure succeeds")
+    func retryAfterVaultCheckFailure_succeeds() async {
+        // Given: first resolve fails, second succeeds
+        let sequentialResolver = SequentialPostAuthResolver(destinations: [
+            .vaultCheckFailed,
+            .needsPinSetup
+        ])
+        let sut = AppState(postAuthResolver: sequentialResolver)
+
+        // When: onboarding fails
+        await sut.completeOnboarding(user: user, onboardingData: onboardingData)
+        #expect(sut.showPostAuthError == true)
+
+        // When: user taps retry
+        await sut.retryOnboardingPostAuth()
+
+        // Then: succeeds and routes to PIN setup
+        #expect(sut.showPostAuthError == false)
+        #expect(sut.authState == .needsPinSetup)
+    }
+
+    @Test("authenticated destination during onboarding routes to PIN entry")
+    func authenticatedDestination_routesToPinEntry() async {
+        // Given: vault is fully configured with cached key (unlikely but defensive)
+        let resolver = StubPostAuthResolver(
+            destination: .authenticated(needsRecoveryKeyConsent: false)
+        )
+        let sut = AppState(postAuthResolver: resolver)
+
+        // When: completing onboarding
+        await sut.completeOnboarding(user: user, onboardingData: onboardingData)
+
+        // Then: routes to PIN entry to verify existing PIN (not directly authenticated)
+        #expect(sut.authState == .needsPinEntry)
+    }
+
+    @Test("auth state is loading during vault status check")
+    func authState_isLoadingDuringVaultCheck() async {
+        // Given: deferred resolver
+        let resolver = DeferredPostAuthResolver()
+        let sut = AppState(postAuthResolver: resolver)
+
+        // When: starting onboarding completion
+        let task = Task {
+            await sut.completeOnboarding(user: user, onboardingData: onboardingData)
+        }
+
+        try? await Task.sleep(for: .milliseconds(30))
+
+        // Then: auth state is loading while checking vault
+        #expect(sut.authState == .loading)
+
+        resolver.resume(with: .needsPinSetup)
+        await task.value
+        #expect(sut.authState == .needsPinSetup)
+    }
+}
+
 // MARK: - Stubs
 
 private final class StubPostAuthResolver: PostAuthResolving, @unchecked Sendable {
@@ -360,6 +524,21 @@ private final class StubPostAuthResolver: PostAuthResolving, @unchecked Sendable
 
     func resolve() async -> PostAuthDestination {
         destination
+    }
+}
+
+private final class SequentialPostAuthResolver: PostAuthResolving, @unchecked Sendable {
+    private var destinations: [PostAuthDestination]
+    private var index = 0
+
+    init(destinations: [PostAuthDestination]) {
+        self.destinations = destinations
+    }
+
+    func resolve() async -> PostAuthDestination {
+        let result = destinations[min(index, destinations.count - 1)]
+        index += 1
+        return result
     }
 }
 
@@ -485,5 +664,17 @@ private final actor DelayedBiometricPreferenceKeychain: BiometricPreferenceKeych
 
     func saveBiometricEnabledPreference(_ enabled: Bool) async {
         value = enabled
+    }
+}
+
+private final class ThrowingVaultStatusProvider: VaultStatusProviding, @unchecked Sendable {
+    private let error: Error
+
+    init(error: Error) {
+        self.error = error
+    }
+
+    func getVaultStatus() async throws -> VaultStatusResponse {
+        throw error
     }
 }

@@ -17,6 +17,7 @@ final class AppState {
 
     private(set) var authState: AuthStatus = .loading
     private(set) var currentUser: UserInfo?
+    var showPostAuthError = false
 
     // MARK: - Maintenance & Network State
 
@@ -251,6 +252,10 @@ final class AppState {
             needsRecoveryKeyRepairConsent = false
             biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
             authState = .unauthenticated
+        case .vaultCheckFailed:
+            // Safe fallback for existing users: assume PIN entry.
+            needsRecoveryKeyRepairConsent = false
+            authState = .needsPinEntry
         }
     }
 
@@ -374,12 +379,37 @@ final class AppState {
         }
     }
 
-    func completeOnboarding(user: UserInfo, onboardingData: BudgetTemplateCreateFromOnboarding) {
+    func completeOnboarding(user: UserInfo, onboardingData: BudgetTemplateCreateFromOnboarding) async {
         currentUser = user
         hasCompletedOnboarding = true
         pendingOnboardingData = onboardingData
-        // After onboarding, user needs to set up PIN
-        authState = .needsPinSetup
+        authState = .loading
+
+        // Route based on actual vault status.
+        // Handles reused emails where encryption keys already exist.
+        let destination = await postAuthResolver.resolve()
+        handleOnboardingDestination(destination)
+    }
+
+    func retryOnboardingPostAuth() async {
+        showPostAuthError = false
+        let destination = await postAuthResolver.resolve()
+        handleOnboardingDestination(destination)
+    }
+
+    private func handleOnboardingDestination(_ destination: PostAuthDestination) {
+        switch destination {
+        case .needsPinSetup:
+            authState = .needsPinSetup
+        case .needsPinEntry(let needsRecoveryConsent):
+            needsRecoveryKeyRepairConsent = needsRecoveryConsent
+            authState = .needsPinEntry
+        case .authenticated:
+            // Vault fully configured — verify existing PIN
+            authState = .needsPinEntry
+        case .unauthenticatedSessionExpired, .vaultCheckFailed:
+            showPostAuthError = true
+        }
     }
 
     func completePinSetup() async {

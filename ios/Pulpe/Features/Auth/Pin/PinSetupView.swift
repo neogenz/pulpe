@@ -264,6 +264,15 @@ final class PinSetupViewModel {
             recoveryKey = key
             digits = []
             showRecoverySheet = true
+        } catch let apiError as APIError {
+            switch apiError {
+            case .clientKeyInvalid:
+                Logger.encryption.warning("PIN setup: existing key_check detected — account already has a PIN")
+                showError("Un code PIN existe déjà pour ce compte — saisis-le")
+            default:
+                Logger.encryption.error("PIN setup failed: \(apiError.localizedDescription)")
+                showError("Une erreur est survenue, reessaie")
+            }
         } catch {
             Logger.encryption.error("PIN setup failed: \(error.localizedDescription)")
             showError("Une erreur est survenue, reessaie")

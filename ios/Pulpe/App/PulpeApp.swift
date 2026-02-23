@@ -23,6 +23,12 @@ struct PulpeApp: App {
             .datastoreLocation(.applicationDefault)
         ])
         BackgroundTaskService.shared.registerTasks()
+
+        UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(.pulpePrimary)
+        UISegmentedControl.appearance().setTitleTextAttributes(
+            [.foregroundColor: UIColor(.textOnPrimary)],
+            for: .selected
+        )
     }
 
     var body: some Scene {
@@ -141,6 +147,19 @@ struct RootView: View {
             if shouldShowPrivacyShield {
                 PrivacyShieldOverlay()
             }
+        }
+        .alert(
+            "Petit souci de connexion",
+            isPresented: $appState.showPostAuthError
+        ) {
+            Button("Réessayer") {
+                Task { await appState.retryOnboardingPostAuth() }
+            }
+            Button("Se déconnecter", role: .destructive) {
+                Task { await appState.logout() }
+            }
+        } message: {
+            Text("La configuration de ton compte n'a pas abouti — vérifie ta connexion et réessaie.")
         }
         .toastOverlay(appState.toastManager)
         .environment(appState.toastManager)
