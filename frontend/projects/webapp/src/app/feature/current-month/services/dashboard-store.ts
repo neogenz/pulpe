@@ -1,4 +1,10 @@
-import { computed, inject, Injectable, resource } from '@angular/core';
+import {
+  computed,
+  inject,
+  Injectable,
+  InjectionToken,
+  resource,
+} from '@angular/core';
 import { BudgetApi } from '@core/budget';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { UserSettingsApi } from '@core/user-settings';
@@ -19,6 +25,10 @@ import {
   type UpcomingMonthForecast,
 } from './dashboard-state';
 
+export const DASHBOARD_NOW = new InjectionToken<Date>('DASHBOARD_NOW', {
+  factory: () => new Date(),
+});
+
 const RECENT_TRANSACTIONS_LIMIT = 5;
 const HISTORY_MONTHS_LIMIT = 6;
 const UPCOMING_MONTHS_LIMIT = 12;
@@ -33,7 +43,7 @@ export class DashboardStore {
   readonly #invalidationService = inject(BudgetInvalidationService);
 
   // ── 2. State ──
-  readonly #currentDate = new Date();
+  readonly #currentDate = inject(DASHBOARD_NOW);
 
   readonly payDayOfMonth = this.#userSettingsApi.payDayOfMonth;
 

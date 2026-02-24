@@ -111,6 +111,8 @@ type TransactionFormData = Pick<
           <pulpe-dashboard-hero
             [expenses]="store.totalExpenses()"
             [available]="store.totalAvailable()"
+            [remaining]="store.remaining()"
+            [budgetConsumedPercentage]="store.budgetConsumedPercentage()"
             [periodDates]="store.periodDates()"
             [totalIncome]="store.totalIncome()"
             [rolloverAmount]="store.rolloverAmount()"
@@ -118,10 +120,14 @@ type TransactionFormData = Pick<
             [paceStatus]="store.paceStatus()"
             (heroClick)="navigateToBudgetDetails()"
             data-testid="dashboard-block-hero"
+            data-tour="dashboard-hero"
           />
 
           <!-- Paired lists: Recent Transactions + Unchecked Forecasts -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div
+            class="grid grid-cols-1 lg:grid-cols-2 gap-8"
+            data-tour="dashboard-lists"
+          >
             <pulpe-dashboard-recent-transactions
               class="order-2 lg:order-1"
               [transactions]="store.recentTransactions()"
@@ -303,9 +309,9 @@ export default class Dashboard {
     });
 
     afterNextRender(() => {
-      if (!this.#productTourService.hasSeenPageTour('current-month')) {
+      if (!this.#productTourService.hasSeenPageTour('dashboard')) {
         setTimeout(
-          () => this.#productTourService.startPageTour('current-month'),
+          () => this.#productTourService.startPageTour('dashboard'),
           TOUR_START_DELAY,
         );
       }

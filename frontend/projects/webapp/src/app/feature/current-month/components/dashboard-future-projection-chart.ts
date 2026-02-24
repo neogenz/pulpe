@@ -12,7 +12,9 @@ import { BaseChartDirective } from 'ng2-charts';
 import { type Chart, type ChartConfiguration, type ChartType } from 'chart.js';
 import type { UpcomingMonthForecast } from '../services/dashboard-state';
 import {
-  resolveColors,
+  type ChartThemeColors,
+  resolveChartThemeColors,
+  registerChartPlugins,
   colorWithAlpha,
   formatShortMonth,
   formatCHF,
@@ -29,7 +31,7 @@ import {
         <div
           class="w-10 h-10 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center flex-shrink-0"
         >
-          <mat-icon>trending_up</mat-icon>
+          <mat-icon aria-hidden="true">trending_up</mat-icon>
         </div>
         <div>
           <h2 class="text-title-medium font-bold text-on-surface mb-0">
@@ -59,7 +61,11 @@ import {
               [matTooltip]="'Mois manquants : ' + missingMonthsLabel()"
               matTooltipPosition="above"
             >
-              <mat-icon class="text-on-surface-variant shrink-0">info</mat-icon>
+              <mat-icon
+                class="text-on-surface-variant shrink-0"
+                aria-hidden="true"
+                >info</mat-icon
+              >
               <p class="text-body-small text-on-surface-variant">
                 {{ missingMonthsCount() }} mois sans budget — crée-les pour
                 affiner ta projection.
@@ -70,7 +76,9 @@ import {
           <div
             class="flex flex-col items-center justify-center text-center h-full gap-2 p-6"
           >
-            <mat-icon class="text-on-surface-variant/50 mb-2 empty-state-icon"
+            <mat-icon
+              class="text-on-surface-variant/50 mb-2 empty-state-icon"
+              aria-hidden="true"
               >show_chart</mat-icon
             >
             <p class="text-body-medium text-on-surface-variant">
@@ -102,55 +110,19 @@ import {
 export class DashboardFutureProjectionChart {
   readonly forecasts = input.required<UpcomingMonthForecast[]>();
 
-  readonly #colorsReady = signal(false);
-  readonly #balanceLineColor = signal('');
-  readonly #balanceFillColor = signal('');
-  readonly #savingsLineColor = signal('');
-  readonly #savingsFillColor = signal('');
-  readonly #negativeFillColor = signal('');
-  readonly #tickColor = signal('');
-  readonly #gridColor = signal('');
-  readonly #tooltipBg = signal('');
+  readonly #theme = signal<ChartThemeColors | null>(null);
 
   constructor() {
     afterNextRender(() => {
-      this.#resolveThemeColors();
+      registerChartPlugins();
+      this.#theme.set(resolveChartThemeColors());
     });
-  }
-
-  #resolveThemeColors(): void {
-    const resolved = resolveColors({
-      income: 'var(--pulpe-financial-income)',
-      savings: 'var(--pulpe-financial-savings)',
-      negative: 'var(--pulpe-financial-negative)',
-      onSurfaceVariant: 'var(--mat-sys-on-surface-variant)',
-      inverseSurface: 'var(--mat-sys-inverse-surface)',
-    });
-    if (resolved.income) {
-      this.#balanceLineColor.set(resolved.income);
-      this.#balanceFillColor.set(colorWithAlpha(resolved.income, 0.15));
-    }
-    if (resolved.savings) {
-      this.#savingsLineColor.set(resolved.savings);
-      this.#savingsFillColor.set(colorWithAlpha(resolved.savings, 0.1));
-    }
-    if (resolved.negative) {
-      this.#negativeFillColor.set(colorWithAlpha(resolved.negative, 0.15));
-    }
-    if (resolved.onSurfaceVariant) {
-      this.#tickColor.set(resolved.onSurfaceVariant);
-      this.#gridColor.set(colorWithAlpha(resolved.onSurfaceVariant, 0.08));
-    }
-    if (resolved.inverseSurface) {
-      this.#tooltipBg.set(colorWithAlpha(resolved.inverseSurface, 0.9));
-    }
-    this.#colorsReady.set(true);
   }
 
   readonly hasData = computed(() => {
     const data = this.forecasts();
     return (
-      this.#colorsReady() &&
+      this.#theme() !== null &&
       data &&
       data.length > 0 &&
       data.some((f) => f.hasBudget)
@@ -171,9 +143,10 @@ export class DashboardFutureProjectionChart {
   readonly chartType: ChartType = 'line';
 
   readonly chartOptions = computed<ChartConfiguration['options']>(() => {
-    const tickColor = this.#tickColor() || undefined;
-    const gridColor = this.#gridColor() || undefined;
-    const tooltipBg = this.#tooltipBg() || undefined;
+    const theme = this.#theme();
+    const tickColor = theme?.tickColor || undefined;
+    const gridColor = theme?.gridColor || undefined;
+    const tooltipBg = theme?.tooltipBg || undefined;
 
     return {
       responsive: true,
@@ -258,8 +231,9 @@ export class DashboardFutureProjectionChart {
 
   readonly chartData = computed<ChartConfiguration['data']>(() => {
     const withBudget = this.forecasts().filter((f) => f.hasBudget);
+    const theme = this.#theme();
 
-    if (withBudget.length === 0) {
+    if (withBudget.length === 0 || !theme) {
       return { datasets: [], labels: [] };
     }
 
@@ -275,15 +249,14 @@ export class DashboardFutureProjectionChart {
       savingsData.push(cumulativeSavings);
     }
 
-    const balanceLineColor = this.#balanceLineColor();
-    const balanceFillColor = this.#balanceFillColor();
-    const negativeFillColor = this.#negativeFillColor();
+    const balanceFillColor = colorWithAlpha(theme.income, 0.15);
+    const negativeFillColor = colorWithAlpha(theme.negative, 0.15);
 
     const datasets: ChartConfiguration['data']['datasets'] = [
       {
         data: balanceData,
         label: 'Disponible',
-        borderColor: balanceLineColor,
+        borderColor: theme.income,
         fill: 'origin',
         backgroundColor: ((context: { chart: Chart }) => {
           const yScale = context.chart.scales['y'];
@@ -311,8 +284,8 @@ export class DashboardFutureProjectionChart {
           gradient.addColorStop(1, negativeFillColor);
           return gradient;
         }) as unknown as string,
-        pointBackgroundColor: balanceLineColor,
-        pointBorderColor: balanceLineColor,
+        pointBackgroundColor: theme.income,
+        pointBorderColor: theme.income,
       },
     ];
 
@@ -320,10 +293,10 @@ export class DashboardFutureProjectionChart {
       datasets.push({
         data: savingsData,
         label: 'Épargne cumulée',
-        borderColor: this.#savingsLineColor(),
-        backgroundColor: this.#savingsFillColor(),
+        borderColor: theme.savings,
+        backgroundColor: colorWithAlpha(theme.savings, 0.1),
         fill: true,
-        pointBackgroundColor: this.#savingsLineColor(),
+        pointBackgroundColor: theme.savings,
         borderDash: [6, 4],
         borderWidth: 2,
       } as ChartConfiguration['data']['datasets'][number]);

@@ -501,7 +501,7 @@ export default class MainLayout {
   protected readonly hasBreadcrumb = computed(
     () => this.breadcrumbState.breadcrumbs().length > 1,
   );
-  readonly #scrollSentinel =
+  private readonly scrollSentinel =
     viewChild<ElementRef<HTMLElement>>('scrollSentinel');
   readonly #destroyRef = inject(DestroyRef);
   readonly #logger = inject(Logger);
@@ -574,7 +574,7 @@ export default class MainLayout {
   // Current tour page ID based on route
   protected readonly currentTourPageId = computed((): TourPageId | null => {
     const url = this.#currentRoute();
-    if (url.includes(`/${ROUTES.DASHBOARD}`)) return 'current-month';
+    if (url.includes(`/${ROUTES.DASHBOARD}`)) return 'dashboard';
     if (url.match(/\/budget\/[^/]+$/)) return 'budget-details';
     if (url.includes(`/${ROUTES.BUDGET}`)) return 'budget-list';
     if (url.includes(`/${ROUTES.BUDGET_TEMPLATES}`)) return 'templates-list';
@@ -595,7 +595,7 @@ export default class MainLayout {
 
   constructor() {
     afterNextRender(() => {
-      const sentinel = this.#scrollSentinel()?.nativeElement;
+      const sentinel = this.scrollSentinel()?.nativeElement;
       if (!sentinel) return;
 
       const observer = new IntersectionObserver(

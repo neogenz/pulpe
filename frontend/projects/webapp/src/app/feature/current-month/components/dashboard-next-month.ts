@@ -60,7 +60,7 @@ const ROLLOVER_FORMATTER = new Intl.NumberFormat('de-CH', {
         } @else {
           <div class="flex flex-col items-center justify-center gap-3 py-4">
             <mat-icon
-              class="text-on-surface-variant opacity-40 !text-4xl !w-9 !h-9"
+              class="text-on-surface-variant opacity-40 empty-icon"
               aria-hidden="true"
             >
               event_busy
@@ -80,6 +80,12 @@ const ROLLOVER_FORMATTER = new Intl.NumberFormat('de-CH', {
   styles: `
     :host {
       display: block;
+    }
+
+    .empty-icon {
+      font-size: 36px;
+      width: 36px;
+      height: 36px;
     }
   `,
 })

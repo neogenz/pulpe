@@ -11,7 +11,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { type ChartConfiguration } from 'chart.js';
 import type { HistoryDataPoint } from '../services/dashboard-state';
 import {
-  resolveColors,
+  type ChartThemeColors,
+  resolveChartThemeColors,
+  registerChartPlugins,
   colorWithAlpha,
   formatShortMonth,
   formatCHF,
@@ -27,7 +29,7 @@ import {
         <div
           class="w-10 h-10 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center flex-shrink-0"
         >
-          <mat-icon>bar_chart</mat-icon>
+          <mat-icon aria-hidden="true">bar_chart</mat-icon>
         </div>
         <div>
           <h2 class="text-title-medium font-bold text-on-surface leading-tight">
@@ -55,7 +57,9 @@ import {
           <div
             class="flex flex-col items-center justify-center text-center h-full gap-2 p-6"
           >
-            <mat-icon class="text-on-surface-variant/50 mb-2 empty-state-icon"
+            <mat-icon
+              class="text-on-surface-variant/50 mb-2 empty-state-icon"
+              aria-hidden="true"
               >bar_chart</mat-icon
             >
             <p class="text-body-medium text-on-surface-variant">
@@ -87,54 +91,29 @@ export class DashboardHistoryChart {
 
   readonly chartType = 'bar' as const;
 
-  readonly #colorsReady = signal(false);
-  readonly #incomeColor = signal('');
-  readonly #expenseColor = signal('');
-  readonly #savingsColor = signal('');
-  readonly #tickColor = signal('');
-  readonly #gridColor = signal('');
-  readonly #tooltipBg = signal('');
+  readonly #theme = signal<ChartThemeColors | null>(null);
 
   constructor() {
     afterNextRender(() => {
-      this.#resolveThemeColors();
+      registerChartPlugins();
+      this.#theme.set(resolveChartThemeColors());
     });
-  }
-
-  #resolveThemeColors(): void {
-    const resolved = resolveColors({
-      income: 'var(--pulpe-financial-income)',
-      expense: 'var(--pulpe-financial-expense)',
-      savings: 'var(--pulpe-financial-savings)',
-      onSurfaceVariant: 'var(--mat-sys-on-surface-variant)',
-      inverseSurface: 'var(--mat-sys-inverse-surface)',
-    });
-    if (resolved.income) this.#incomeColor.set(resolved.income);
-    if (resolved.expense) this.#expenseColor.set(resolved.expense);
-    if (resolved.savings) this.#savingsColor.set(resolved.savings);
-    if (resolved.onSurfaceVariant) {
-      this.#tickColor.set(resolved.onSurfaceVariant);
-      this.#gridColor.set(colorWithAlpha(resolved.onSurfaceVariant, 0.08));
-    }
-    if (resolved.inverseSurface) {
-      this.#tooltipBg.set(colorWithAlpha(resolved.inverseSurface, 0.9));
-    }
-    this.#colorsReady.set(true);
   }
 
   readonly hasData = computed(
-    () => this.#colorsReady() && this.history().length > 0,
+    () => this.#theme() !== null && this.history().length > 0,
   );
 
   readonly chartData = computed<ChartConfiguration['data']>(() => {
     const data = this.history();
+    const theme = this.#theme();
     const hasSavingsData = data.some((d) => d.savings > 0);
 
     const datasets: ChartConfiguration['data']['datasets'] = [
       {
         data: data.map((d) => d.income),
         label: 'Revenus',
-        backgroundColor: this.#incomeColor(),
+        backgroundColor: theme?.income ?? '',
         borderRadius: 4,
         barPercentage: 0.6,
         categoryPercentage: 0.8,
@@ -142,7 +121,7 @@ export class DashboardHistoryChart {
       {
         data: data.map((d) => d.expenses),
         label: 'Dépenses',
-        backgroundColor: this.#expenseColor(),
+        backgroundColor: theme?.expense ?? '',
         borderRadius: 4,
         barPercentage: 0.6,
         categoryPercentage: 0.8,
@@ -153,7 +132,7 @@ export class DashboardHistoryChart {
       datasets.push({
         data: data.map((d) => d.savings),
         label: 'Épargne',
-        backgroundColor: this.#savingsColor(),
+        backgroundColor: theme?.savings ?? '',
         borderRadius: 4,
         barPercentage: 0.6,
         categoryPercentage: 0.8,
@@ -167,7 +146,7 @@ export class DashboardHistoryChart {
         type: 'line',
         data: Array(data.length).fill(avgIncome),
         label: 'Revenu moyen',
-        borderColor: colorWithAlpha(this.#incomeColor(), 0.38),
+        borderColor: colorWithAlpha(theme?.income ?? '', 0.38),
         borderDash: [6, 4],
         borderWidth: 2,
         pointRadius: 0,
@@ -183,9 +162,10 @@ export class DashboardHistoryChart {
   });
 
   readonly chartOptions = computed<ChartConfiguration['options']>(() => {
-    const tickColor = this.#tickColor() || undefined;
-    const gridColor = this.#gridColor() || undefined;
-    const tooltipBg = this.#tooltipBg() || undefined;
+    const theme = this.#theme();
+    const tickColor = theme?.tickColor || undefined;
+    const gridColor = theme?.gridColor || undefined;
+    const tooltipBg = theme?.tooltipBg || undefined;
 
     return {
       responsive: true,

@@ -64,7 +64,7 @@ import { MatIconModule } from '@angular/material/icon';
         } @else {
           <div class="flex flex-col items-center justify-center py-6 gap-2">
             <mat-icon
-              class="text-on-surface-variant opacity-40 !text-4xl !w-9 !h-9"
+              class="text-on-surface-variant opacity-40 empty-icon"
               aria-hidden="true"
             >
               savings
@@ -80,6 +80,12 @@ import { MatIconModule } from '@angular/material/icon';
   styles: `
     :host {
       display: block;
+    }
+
+    .empty-icon {
+      font-size: 36px;
+      width: 36px;
+      height: 36px;
     }
   `,
 })

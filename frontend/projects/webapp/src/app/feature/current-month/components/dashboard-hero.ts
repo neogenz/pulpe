@@ -59,13 +59,13 @@ const WARNING_THRESHOLD_PERCENT = 80;
         >
           @switch (budgetStatus()) {
             @case ('on-track') {
-              <mat-icon class="bolt-icon">bolt</mat-icon>
+              <mat-icon class="bolt-icon" aria-hidden="true">bolt</mat-icon>
             }
             @case ('warning') {
-              <mat-icon class="bolt-icon">warning</mat-icon>
+              <mat-icon class="bolt-icon" aria-hidden="true">warning</mat-icon>
             }
             @case ('over-budget') {
-              <mat-icon class="bolt-icon">error</mat-icon>
+              <mat-icon class="bolt-icon" aria-hidden="true">error</mat-icon>
             }
           }
         </div>
@@ -208,25 +208,15 @@ export class DashboardHero {
   readonly timeElapsedPercentage = input(0);
   readonly paceStatus = input<'on-track' | 'tight'>('on-track');
 
+  readonly remaining = input.required<number>();
+  readonly budgetConsumedPercentage = input.required<number>();
+
   readonly heroClick = output<void>();
 
-  readonly remaining = computed(() => this.available() - this.expenses());
   readonly absRolloverAmount = computed(() => Math.abs(this.rolloverAmount()));
   readonly absExpenses = computed(() => Math.abs(this.expenses()));
 
   readonly isOverBudget = computed(() => this.remaining() < 0);
-
-  readonly budgetConsumedPercentage = computed(() => {
-    const available = this.available();
-    const expenses = this.expenses();
-
-    if (available <= 0) {
-      return expenses > 0 ? 100 : 0;
-    }
-
-    const percentage = (expenses / available) * 100;
-    return Math.round(Math.min(Math.max(0, percentage), 100));
-  });
 
   readonly isWarning = computed(
     () =>

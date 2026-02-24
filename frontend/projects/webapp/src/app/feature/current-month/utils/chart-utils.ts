@@ -1,6 +1,12 @@
 import { Chart, registerables } from 'chart.js';
 
-Chart.register(...registerables);
+let _registered = false;
+
+export function registerChartPlugins(): void {
+  if (_registered) return;
+  Chart.register(...registerables);
+  _registered = true;
+}
 
 const MONTH_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'short' });
 
@@ -16,9 +22,11 @@ export function resolveColor(cssValue: string): string {
   el.style.color = cssValue;
   el.style.display = 'none';
   document.body.appendChild(el);
-  const resolved = getComputedStyle(el).color;
-  document.body.removeChild(el);
-  return resolved;
+  try {
+    return getComputedStyle(el).color;
+  } finally {
+    document.body.removeChild(el);
+  }
 }
 
 export function resolveColors<K extends string>(
@@ -26,20 +34,23 @@ export function resolveColors<K extends string>(
 ): Record<K, string> {
   const container = document.createElement('div');
   container.style.display = 'none';
-  const keys = Object.keys(vars) as K[];
-  const elements = keys.map((key) => {
-    const el = document.createElement('span');
-    el.style.color = vars[key];
-    container.appendChild(el);
-    return el;
-  });
   document.body.appendChild(container);
-  const result = {} as Record<K, string>;
-  keys.forEach((key, i) => {
-    result[key] = getComputedStyle(elements[i]).color;
-  });
-  document.body.removeChild(container);
-  return result;
+  try {
+    const keys = Object.keys(vars) as K[];
+    const elements = keys.map((key) => {
+      const el = document.createElement('span');
+      el.style.color = vars[key];
+      container.appendChild(el);
+      return el;
+    });
+    const result = {} as Record<K, string>;
+    keys.forEach((key, i) => {
+      result[key] = getComputedStyle(elements[i]).color;
+    });
+    return result;
+  } finally {
+    document.body.removeChild(container);
+  }
 }
 
 export function colorWithAlpha(resolvedColor: string, alpha: number): string {
@@ -50,6 +61,36 @@ export function colorWithAlpha(resolvedColor: string, alpha: number): string {
     return `rgba(${match[1]}, ${match[2]}, ${match[3]}, ${alpha})`;
   }
   return resolvedColor;
+}
+
+export interface ChartThemeColors {
+  income: string;
+  expense: string;
+  savings: string;
+  negative: string;
+  tickColor: string;
+  gridColor: string;
+  tooltipBg: string;
+}
+
+export function resolveChartThemeColors(): ChartThemeColors {
+  const resolved = resolveColors({
+    income: 'var(--pulpe-financial-income)',
+    expense: 'var(--pulpe-financial-expense)',
+    savings: 'var(--pulpe-financial-savings)',
+    negative: 'var(--pulpe-financial-negative)',
+    onSurfaceVariant: 'var(--mat-sys-on-surface-variant)',
+    inverseSurface: 'var(--mat-sys-inverse-surface)',
+  });
+  return {
+    income: resolved.income,
+    expense: resolved.expense,
+    savings: resolved.savings,
+    negative: resolved.negative,
+    tickColor: resolved.onSurfaceVariant,
+    gridColor: colorWithAlpha(resolved.onSurfaceVariant, 0.08),
+    tooltipBg: colorWithAlpha(resolved.inverseSurface, 0.9),
+  };
 }
 
 export function formatShortMonth(monthNumber: number): string {

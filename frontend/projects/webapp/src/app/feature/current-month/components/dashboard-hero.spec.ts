@@ -22,6 +22,8 @@ describe('DashboardHero', () => {
 
     setTestInput(component.available, 0);
     setTestInput(component.expenses, 0);
+    setTestInput(component.remaining, 0);
+    setTestInput(component.budgetConsumedPercentage, 0);
     setTestInput(component.totalIncome, 0);
     setTestInput(component.periodDates, {
       startDate: new Date(),
@@ -31,13 +33,8 @@ describe('DashboardHero', () => {
     setTestInput(component.paceStatus, 'on-track');
   });
 
-  it('should compute remaining correctly', () => {
-    setTestInput(component.available, 1000);
-    setTestInput(component.expenses, 400);
-    setTestInput(component.periodDates, {
-      startDate: new Date(),
-      endDate: new Date(),
-    });
+  it('should expose remaining from input', () => {
+    setTestInput(component.remaining, 600);
 
     expect(component.remaining()).toBe(600);
   });
@@ -45,6 +42,8 @@ describe('DashboardHero', () => {
   it('should determine isOverBudget', () => {
     setTestInput(component.available, 1000);
     setTestInput(component.expenses, 1200);
+    setTestInput(component.remaining, -200);
+    setTestInput(component.budgetConsumedPercentage, 100);
     setTestInput(component.periodDates, {
       startDate: new Date(),
       endDate: new Date(),
@@ -58,6 +57,8 @@ describe('DashboardHero', () => {
   it('should determine isWarning (>80% consumed)', () => {
     setTestInput(component.available, 1000);
     setTestInput(component.expenses, 850);
+    setTestInput(component.remaining, 150);
+    setTestInput(component.budgetConsumedPercentage, 85);
     setTestInput(component.periodDates, {
       startDate: new Date(),
       endDate: new Date(),
@@ -68,13 +69,8 @@ describe('DashboardHero', () => {
     expect(component.budgetConsumedPercentage()).toBe(85);
   });
 
-  it('should compute budgetConsumedPercentage clamped to 100', () => {
-    setTestInput(component.available, 1000);
-    setTestInput(component.expenses, 1200);
-    setTestInput(component.periodDates, {
-      startDate: new Date(),
-      endDate: new Date(),
-    });
+  it('should expose budgetConsumedPercentage from input', () => {
+    setTestInput(component.budgetConsumedPercentage, 100);
 
     expect(component.budgetConsumedPercentage()).toBe(100);
   });
