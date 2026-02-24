@@ -113,6 +113,26 @@ import {
               Demander un nouveau lien
             </a>
           </div>
+        } @else if (isOAuthOnly()) {
+          <div class="text-center space-y-6" data-testid="oauth-user-blocked">
+            <mat-icon class="text-6xl text-error">block</mat-icon>
+            <h1 class="text-2xl font-bold text-on-surface">
+              Réinitialisation non disponible
+            </h1>
+            <p class="text-body-medium text-on-surface-variant">
+              Ton compte utilise une connexion via un fournisseur externe
+              (Google, Apple...). Tu ne peux pas définir de mot de passe.
+            </p>
+            <a
+              [routerLink]="['/', ROUTES.LOGIN]"
+              mat-flat-button
+              color="primary"
+              class="w-full"
+              data-testid="back-to-login-button"
+            >
+              Retour à la connexion
+            </a>
+          </div>
         } @else {
           <button
             matButton
@@ -324,6 +344,7 @@ export default class ResetPassword {
   protected readonly showRecoveryKeyField = computed(
     () => !this.hasVaultCode() && this.hasRecoveryKey(),
   );
+  protected readonly isOAuthOnly = this.#authState.isOAuthOnly;
 
   protected readonly form = this.#formBuilder.nonNullable.group(
     {

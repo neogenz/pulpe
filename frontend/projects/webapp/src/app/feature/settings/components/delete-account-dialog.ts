@@ -64,7 +64,7 @@ import { ErrorAlert } from '@ui/error-alert';
         data-testid="delete-account-error"
       />
 
-      @if (isOAuthUser()) {
+      @if (isOAuthOnly()) {
         <form [formGroup]="vaultCodeForm" (ngSubmit)="onSubmit()">
           <mat-form-field appearance="outline" class="w-full mb-2">
             <mat-label>Code PIN</mat-label>
@@ -149,7 +149,7 @@ import { ErrorAlert } from '@ui/error-alert';
         data-testid="confirm-delete-account-button"
         [disabled]="
           isSubmitting() ||
-          (isOAuthUser() ? !vaultCodeForm.valid : !deleteForm.valid)
+          (isOAuthOnly() ? !vaultCodeForm.valid : !deleteForm.valid)
         "
         (click)="onSubmit()"
       >
@@ -174,7 +174,7 @@ export class DeleteAccountDialog {
   readonly #authState = inject(AuthStateService);
   readonly #encryptionApi = inject(EncryptionApi);
 
-  protected readonly isOAuthUser = this.#authState.isOAuthUser;
+  protected readonly isOAuthOnly = this.#authState.isOAuthOnly;
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
   protected readonly isPasswordHidden = signal(true);
@@ -205,7 +205,7 @@ export class DeleteAccountDialog {
   });
 
   protected async onSubmit(): Promise<void> {
-    if (this.isOAuthUser()) {
+    if (this.isOAuthOnly()) {
       await this.#submitWithVaultCode();
     } else {
       await this.#submitWithPassword();

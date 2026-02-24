@@ -31,7 +31,7 @@ describe('SettingsPage', () => {
     warn: ReturnType<typeof vi.fn>;
   };
   let mockAuthSession: { signOut: ReturnType<typeof vi.fn> };
-  let mockAuthState: { isOAuthUser: ReturnType<typeof signal<boolean>> };
+  let mockAuthState: { isOAuthOnly: ReturnType<typeof signal<boolean>> };
   let mockDialog: { open: ReturnType<typeof vi.fn> };
   let mockDialogRef: { afterClosed: () => Observable<boolean> };
 
@@ -64,7 +64,7 @@ describe('SettingsPage', () => {
     };
 
     mockAuthState = {
-      isOAuthUser: signal(false),
+      isOAuthOnly: signal(false),
     };
 
     await TestBed.configureTestingModule({
@@ -149,7 +149,7 @@ describe('SettingsPage', () => {
 
   describe('change-password-button visibility', () => {
     it('should hide change-password-button when user is OAuth', async () => {
-      mockAuthState.isOAuthUser.set(true);
+      mockAuthState.isOAuthOnly.set(true);
       fixture.detectChanges();
       await fixture.whenStable();
       const btn = fixture.nativeElement.querySelector(
@@ -159,7 +159,7 @@ describe('SettingsPage', () => {
     });
 
     it('should show change-password-button when user is not OAuth', async () => {
-      mockAuthState.isOAuthUser.set(false);
+      mockAuthState.isOAuthOnly.set(false);
       fixture.detectChanges();
       await fixture.whenStable();
       const btn = fixture.nativeElement.querySelector(

@@ -24,14 +24,14 @@ describe('DeleteAccountDialog', () => {
   let component: DeleteAccountDialog;
   let mockDialogRef: { close: Mock };
   let mockAuthSession: { verifyPassword: Mock };
-  let mockAuthState: { isOAuthUser: ReturnType<typeof signal<boolean>> };
+  let mockAuthState: { isOAuthOnly: ReturnType<typeof signal<boolean>> };
   let mockEncryptionApi: { getSalt$: Mock; validateKey$: Mock };
   let mockLogger: { debug: Mock; info: Mock; warn: Mock; error: Mock };
 
   function setup(isOAuth: boolean) {
     mockDialogRef = { close: vi.fn() };
     mockAuthSession = { verifyPassword: vi.fn() };
-    mockAuthState = { isOAuthUser: signal(isOAuth) };
+    mockAuthState = { isOAuthOnly: signal(isOAuth) };
     mockEncryptionApi = {
       getSalt$: vi.fn(),
       validateKey$: vi.fn(),
@@ -62,8 +62,8 @@ describe('DeleteAccountDialog', () => {
       setup(true);
     });
 
-    it('should expose isOAuthUser as true', () => {
-      expect(component['isOAuthUser']()).toBe(true);
+    it('should expose isOAuthOnly as true', () => {
+      expect(component['isOAuthOnly']()).toBe(true);
     });
 
     it('should have vault code form control', () => {
@@ -148,8 +148,8 @@ describe('DeleteAccountDialog', () => {
       setup(false);
     });
 
-    it('should expose isOAuthUser as false', () => {
-      expect(component['isOAuthUser']()).toBe(false);
+    it('should expose isOAuthOnly as false', () => {
+      expect(component['isOAuthOnly']()).toBe(false);
     });
 
     it('should have password form control', () => {

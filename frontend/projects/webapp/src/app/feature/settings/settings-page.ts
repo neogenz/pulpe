@@ -155,7 +155,7 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
           </div>
 
           <div class="md:col-span-2 space-y-10">
-            @if (!isOAuthUser()) {
+            @if (!isOAuthOnly()) {
               <!-- Mot de passe -->
               <div
                 class="flex items-center justify-between gap-6 pb-6 border-b border-outline-variant/20"
@@ -259,7 +259,7 @@ export default class SettingsPage {
   readonly #authState = inject(AuthStateService);
 
   readonly isDemoMode = this.#demoMode.isDemoMode;
-  protected readonly isOAuthUser = this.#authState.isOAuthUser;
+  protected readonly isOAuthOnly = this.#authState.isOAuthOnly;
   protected readonly isSaving = signal(false);
   protected readonly isDeleting = signal(false);
   protected readonly isGeneratingRecoveryKey = signal(false);

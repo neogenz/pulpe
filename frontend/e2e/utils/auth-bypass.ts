@@ -41,6 +41,16 @@ export async function setupAuthBypass(page: Page, options: {
       email: config.USER.EMAIL,
       ...(Object.keys(appMetadata).length > 0 && { app_metadata: appMetadata }),
       ...(Object.keys(userMetadata).length > 0 && { user_metadata: userMetadata }),
+      identities: [{
+        id: 'e2e-identity',
+        user_id: config.USER.ID,
+        identity_id: 'e2e-identity',
+        provider: config.provider ?? 'email',
+        identity_data: {},
+        last_sign_in_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }],
     };
 
     e2eWindow.__E2E_MOCK_AUTH_STATE__ = {

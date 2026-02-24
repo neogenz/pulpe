@@ -27,6 +27,7 @@ describe('ResetPassword', () => {
     isLoading: ReturnType<typeof vi.fn>;
     isAuthenticated: ReturnType<typeof vi.fn>;
     authState: ReturnType<typeof vi.fn>;
+    isOAuthOnly: ReturnType<typeof vi.fn>;
   };
   let mockClientKeyService: { setDirectKey: ReturnType<typeof vi.fn> };
   let mockEncryptionApi: {
@@ -64,6 +65,7 @@ describe('ResetPassword', () => {
         isLoading: false,
         isAuthenticated: true,
       }),
+      isOAuthOnly: vi.fn().mockReturnValue(false),
     };
 
     mockClientKeyService = {
@@ -255,6 +257,40 @@ describe('ResetPassword', () => {
 
     it('should not show spinner after session check completes', () => {
       expect(fixture.nativeElement.querySelector('mat-spinner')).toBeFalsy();
+    });
+  });
+
+  describe('OAuth user blocked', () => {
+    it('should show blocked message when user is OAuth-only', async () => {
+      mockAuthStateService.isOAuthOnly.mockReturnValue(true);
+      const oauthFixture = TestBed.createComponent(ResetPassword);
+      oauthFixture.detectChanges();
+      await oauthFixture.whenStable();
+      oauthFixture.detectChanges();
+
+      expect(
+        oauthFixture.nativeElement.querySelector(
+          '[data-testid="oauth-user-blocked"]',
+        ),
+      ).toBeTruthy();
+      expect(
+        oauthFixture.nativeElement.querySelector(
+          '[data-testid="reset-password-form"]',
+        ),
+      ).toBeFalsy();
+    });
+
+    it('should show reset form when user is not OAuth-only', () => {
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="oauth-user-blocked"]',
+        ),
+      ).toBeFalsy();
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="reset-password-form"]',
+        ),
+      ).toBeTruthy();
     });
   });
 
