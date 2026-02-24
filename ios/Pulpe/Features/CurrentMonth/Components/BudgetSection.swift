@@ -256,13 +256,6 @@ struct BudgetLineRow: View {
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture {
-            guard !line.isVirtualRollover else { return }
-            ProductTips.gestures.invalidate(reason: .actionPerformed)
-            onEdit()
-        }
-        .scaleEffect(isPressed ? 0.97 : 1.0)
-        .animation(.spring(duration: DesignTokens.Animation.fast), value: isPressed)
         .onLongPressGesture(
             minimumDuration: 0.4,
             maximumDistance: 10,
@@ -273,6 +266,13 @@ struct BudgetLineRow: View {
             },
             perform: handleLongPress
         )
+        .onTapGesture {
+            guard !line.isVirtualRollover else { return }
+            ProductTips.gestures.invalidate(reason: .actionPerformed)
+            onEdit()
+        }
+        .scaleEffect(isPressed ? 0.97 : 1.0)
+        .animation(.spring(duration: DesignTokens.Animation.fast), value: isPressed)
         .sensoryFeedback(.success, trigger: triggerSuccessFeedback)
         .sensoryFeedback(.error, trigger: triggerWarningFeedback)
         .accessibilityIdentifier("budgetLineRow-\(line.id)")
