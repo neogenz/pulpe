@@ -35,8 +35,9 @@ export class AuthStateService {
 
   readonly isOAuthOnly = computed(() => {
     const user = this.#userSignal();
-    if (!user?.identities?.length) return false;
-    return user.identities.every((identity) => identity.provider !== 'email');
+    const providers: string[] | undefined = user?.app_metadata?.['providers'];
+    if (!providers?.length) return false;
+    return providers.every((provider) => provider !== 'email');
   });
 
   readonly authState = computed<AuthState>(() => ({

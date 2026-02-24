@@ -118,65 +118,53 @@ describe('AuthStateService', () => {
   });
 
   describe('isOAuthOnly', () => {
-    const createIdentity = (provider: string) => ({
-      id: `identity-${provider}`,
-      user_id: 'user-123',
-      identity_id: `identity-${provider}`,
-      provider,
-      identity_data: {},
-      last_sign_in_at: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
-
-    const createSessionWith = (
-      identities: ReturnType<typeof createIdentity>[],
-    ): Session => ({
+    const createSessionWithProviders = (providers: string[]): Session => ({
       ...mockSession,
-      user: { ...mockSession.user, identities },
+      user: {
+        ...mockSession.user,
+        app_metadata: { provider: providers[0] ?? '', providers },
+      },
     });
 
     it('should return false when there is no session', () => {
       expect(service.isOAuthOnly()).toBe(false);
     });
 
-    it('should return false when user has no identities', () => {
+    it('should return false when app_metadata has no providers', () => {
       service.setSession({
         ...mockSession,
-        user: { ...mockSession.user, identities: undefined as never },
+        user: { ...mockSession.user, app_metadata: {} },
       });
       expect(service.isOAuthOnly()).toBe(false);
     });
 
-    it('should return false when user has empty identities array', () => {
-      service.setSession(createSessionWith([]));
+    it('should return false when providers array is empty', () => {
+      service.setSession(createSessionWithProviders([]));
       expect(service.isOAuthOnly()).toBe(false);
     });
 
-    it('should return false when user has only email identity', () => {
-      service.setSession(createSessionWith([createIdentity('email')]));
+    it('should return false when user has only email provider', () => {
+      service.setSession(createSessionWithProviders(['email']));
       expect(service.isOAuthOnly()).toBe(false);
     });
 
-    it('should return true when user has only Google identity', () => {
-      service.setSession(createSessionWith([createIdentity('google')]));
+    it('should return true when user has only Google provider', () => {
+      service.setSession(createSessionWithProviders(['google']));
       expect(service.isOAuthOnly()).toBe(true);
     });
 
-    it('should return true when user has only Apple identity', () => {
-      service.setSession(createSessionWith([createIdentity('apple')]));
+    it('should return true when user has only Apple provider', () => {
+      service.setSession(createSessionWithProviders(['apple']));
       expect(service.isOAuthOnly()).toBe(true);
     });
 
-    it('should return false when user has both email and Google identities', () => {
-      service.setSession(
-        createSessionWith([createIdentity('email'), createIdentity('google')]),
-      );
+    it('should return false when user has both email and Google providers', () => {
+      service.setSession(createSessionWithProviders(['email', 'google']));
       expect(service.isOAuthOnly()).toBe(false);
     });
 
     it('should update reactively when session changes', () => {
-      service.setSession(createSessionWith([createIdentity('google')]));
+      service.setSession(createSessionWithProviders(['google']));
       expect(service.isOAuthOnly()).toBe(true);
 
       service.setSession(null);
