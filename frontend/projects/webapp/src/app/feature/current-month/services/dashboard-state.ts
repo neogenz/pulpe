@@ -1,10 +1,10 @@
 import type { Budget, BudgetLine, Transaction } from 'pulpe-shared';
 
 /**
- * State interface for CurrentMonthStore following the single state signal pattern
+ * State interface for DashboardStore following the single state signal pattern
  * Simplified to work better with resource() API
  */
-export interface CurrentMonthState {
+export interface DashboardState {
   /**
    * Current date used for calculations and data fetching
    */
@@ -23,7 +23,7 @@ export interface DashboardData {
 /**
  * Factory function to create initial internal state
  */
-export function createInitialCurrentMonthInternalState(): CurrentMonthState {
+export function createInitialDashboardState(): DashboardState {
   return {
     currentDate: new Date(),
   };

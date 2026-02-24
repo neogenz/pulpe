@@ -2,33 +2,47 @@ import { computed, inject, Injectable, resource, signal } from '@angular/core';
 import { BudgetApi } from '@core/budget';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { UserSettingsApi } from '@core/user-settings';
-import { createRolloverLine } from '@core/budget/rollover/rollover-types';
+import { ApiClient } from '@core/api/api-client';
 import {
   type BudgetLine,
   type Transaction,
   type TransactionCreate,
-  type TransactionUpdate,
   BudgetFormulas,
   getBudgetPeriodForDate,
+  budgetSparseListResponseSchema,
 } from 'pulpe-shared';
 import { firstValueFrom, type Observable } from 'rxjs';
 import {
-  type CurrentMonthState,
+  type DashboardState,
   type DashboardData,
-  createInitialCurrentMonthInternalState,
-} from './current-month-state';
+  createInitialDashboardState,
+} from './dashboard-state';
+
+export interface HistoryDataPoint {
+  month: number;
+  year: number;
+  income: number;
+  expenses: number;
+}
+
+export interface UpcomingMonthForecast {
+  month: number;
+  year: number;
+  hasBudget: boolean;
+  income: number | null;
+  expenses: number | null;
+}
 
 @Injectable()
-export class CurrentMonthStore {
+export class DashboardStore {
   // ── 1. Dependencies ──
   readonly #budgetApi = inject(BudgetApi);
+  readonly #apiClient = inject(ApiClient);
   readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #invalidationService = inject(BudgetInvalidationService);
 
   // ── 2. State ──
-  readonly #state = signal<CurrentMonthState>(
-    createInitialCurrentMonthInternalState(),
-  );
+  readonly #state = signal<DashboardState>(createInitialDashboardState());
 
   readonly payDayOfMonth = this.#userSettingsApi.payDayOfMonth;
 
@@ -39,7 +53,7 @@ export class CurrentMonthStore {
     return getBudgetPeriodForDate(currentDate, payDay);
   });
 
-  // ── 3. Resource ──
+  // ── 3. Resources ──
   readonly #dashboardResource = resource<
     DashboardData,
     { month: string; year: string; version: number }
@@ -54,6 +68,15 @@ export class CurrentMonthStore {
     },
     loader: async ({ params }) => this.#loadDashboardData(params),
   });
+
+  readonly #historyResource = resource<HistoryDataPoint[], { version: number }>(
+    {
+      params: () => ({
+        version: this.#invalidationService.version(),
+      }),
+      loader: async () => this.#loadHistoryData(),
+    },
+  );
 
   // ── 4. Selectors ──
   readonly dashboardData = computed(() => {
@@ -80,34 +103,15 @@ export class CurrentMonthStore {
     () => this.dashboardData()?.budgetLines || [],
   );
 
-  /** Budget lines including a virtual rollover line for display */
-  readonly displayBudgetLines = computed<BudgetLine[]>(() => {
-    const lines = [...this.budgetLines()];
-    const rollover = this.rolloverAmount();
-    const budget = this.dashboardData()?.budget;
-
-    if (rollover !== 0 && budget) {
-      const rolloverLine = createRolloverLine({
-        budgetId: budget.id,
-        amount: rollover,
-        month: budget.month,
-        year: budget.year,
-        previousBudgetId: budget.previousBudgetId,
-      });
-
-      lines.unshift(rolloverLine);
-    }
-
-    return lines;
-  });
-
   readonly isSettingsLoading = computed(() =>
     this.#userSettingsApi.isLoading(),
   );
 
-  /** Includes settings loading to prevent flash of incorrect period data */
   readonly isLoading = computed(
-    () => this.#dashboardResource.isLoading() || this.isSettingsLoading(),
+    () =>
+      this.#dashboardResource.isLoading() ||
+      this.isSettingsLoading() ||
+      this.#historyResource.isLoading(),
   );
   readonly hasValue = computed(() => this.#dashboardResource.hasValue());
   readonly error = computed(() => this.#dashboardResource.error());
@@ -119,7 +123,6 @@ export class CurrentMonthStore {
     return resourceStatus;
   });
 
-  /** SWR: true only on first load, false during background revalidation */
   readonly isInitialLoading = computed(() => {
     if (this.dashboardData()) return false;
     return (
@@ -161,10 +164,68 @@ export class CurrentMonthStore {
     return BudgetFormulas.calculateRemaining(available, expenses);
   });
 
+  /** Unchecked recurring forecasts for the current month */
+  readonly uncheckedForecasts = computed<BudgetLine[]>(() => {
+    return this.budgetLines().filter(
+      (line) =>
+        (line.recurrence === 'fixed' || line.recurrence === 'one_off') &&
+        line.checkedAt === null,
+    );
+  });
+
+  /** Historical 6-month budget data for chart */
+  readonly historyData = computed<HistoryDataPoint[]>(() => {
+    const all = this.#historyResource.value() ?? [];
+    const current = this.currentBudgetPeriod();
+    const currentScore = current.year * 12 + current.month;
+
+    const pastAndPresent = all.filter(
+      (b) => b.year * 12 + b.month <= currentScore,
+    );
+    const sorted = pastAndPresent.sort(
+      (a, b) => b.year * 12 + b.month - (a.year * 12 + a.month),
+    );
+    return sorted.slice(0, 6).reverse(); // Oldest first
+  });
+
+  /** Forecast for upcoming 12 months */
+  readonly upcomingBudgetsData = computed<UpcomingMonthForecast[]>(() => {
+    const all = this.#historyResource.value() ?? [];
+    const current = this.currentBudgetPeriod();
+    const result: UpcomingMonthForecast[] = [];
+
+    let nextMonth = current.month === 12 ? 1 : current.month + 1;
+    let nextYear = current.month === 12 ? current.year + 1 : current.year;
+
+    for (let i = 0; i < 12; i++) {
+      const budget = all.find(
+        (b) => b.month === nextMonth && b.year === nextYear,
+      );
+      result.push({
+        month: nextMonth,
+        year: nextYear,
+        hasBudget: !!budget,
+        income: budget ? budget.income : null,
+        expenses: budget ? budget.expenses : null,
+      });
+
+      nextMonth++;
+      if (nextMonth > 12) {
+        nextMonth = 1;
+        nextYear++;
+      }
+    }
+
+    return result;
+  });
+
   // ── 5. Mutations ──
   refreshData(): void {
-    if (!this.isLoading()) {
+    if (!this.#dashboardResource.isLoading()) {
       this.#dashboardResource.reload();
+    }
+    if (!this.#historyResource.isLoading()) {
+      this.#historyResource.reload();
     }
   }
 
@@ -185,31 +246,33 @@ export class CurrentMonthStore {
     );
   }
 
-  async deleteTransaction(transactionId: string): Promise<void> {
-    return this.#performOptimisticMutation(
-      () => this.#budgetApi.deleteTransaction$(transactionId),
-      (currentData) => ({
-        ...currentData,
-        transactions: currentData.transactions.filter(
-          (t: Transaction) => t.id !== transactionId,
-        ),
-      }),
-    );
-  }
+  async toggleBudgetLineCheck(budgetLineId: string): Promise<void> {
+    const originalData = this.#dashboardResource.value();
+    if (!originalData) return;
 
-  async updateTransaction(
-    transactionId: string,
-    transactionData: TransactionUpdate,
-  ): Promise<void> {
-    return this.#performOptimisticMutation<Transaction>(
-      () => this.#budgetApi.updateTransaction$(transactionId, transactionData),
-      (currentData, response) => ({
-        ...currentData,
-        transactions: currentData.transactions.map((t: Transaction) =>
-          t.id === transactionId ? response : t,
-        ),
-      }),
+    const budgetLine = originalData.budgetLines.find(
+      (line) => line.id === budgetLineId,
     );
+    if (!budgetLine) return;
+
+    const newCheckedAt =
+      budgetLine.checkedAt === null ? new Date().toISOString() : null;
+
+    this.#dashboardResource.set({
+      ...originalData,
+      budgetLines: originalData.budgetLines.map((line) =>
+        line.id === budgetLineId ? { ...line, checkedAt: newCheckedAt } : line,
+      ),
+    });
+
+    try {
+      await firstValueFrom(
+        this.#budgetApi.toggleBudgetLineCheck$(budgetLineId),
+      );
+    } catch (error) {
+      this.#dashboardResource.set(originalData);
+      throw error;
+    }
   }
 
   // ── 6. Private utils ──
@@ -280,64 +343,6 @@ export class CurrentMonthStore {
     }
   }
 
-  async toggleBudgetLineCheck(budgetLineId: string): Promise<void> {
-    const originalData = this.#dashboardResource.value();
-    if (!originalData) return;
-
-    const budgetLine = originalData.budgetLines.find(
-      (line) => line.id === budgetLineId,
-    );
-    if (!budgetLine) return;
-
-    const newCheckedAt =
-      budgetLine.checkedAt === null ? new Date().toISOString() : null;
-
-    this.#dashboardResource.set({
-      ...originalData,
-      budgetLines: originalData.budgetLines.map((line) =>
-        line.id === budgetLineId ? { ...line, checkedAt: newCheckedAt } : line,
-      ),
-    });
-
-    try {
-      await firstValueFrom(
-        this.#budgetApi.toggleBudgetLineCheck$(budgetLineId),
-      );
-    } catch (error) {
-      this.#dashboardResource.set(originalData);
-      throw error;
-    }
-  }
-
-  async toggleTransactionCheck(transactionId: string): Promise<void> {
-    const originalData = this.#dashboardResource.value();
-    if (!originalData) return;
-
-    const transaction = originalData.transactions.find(
-      (tx) => tx.id === transactionId,
-    );
-    if (!transaction) return;
-
-    const newCheckedAt =
-      transaction.checkedAt === null ? new Date().toISOString() : null;
-
-    this.#dashboardResource.set({
-      ...originalData,
-      transactions: originalData.transactions.map((tx) =>
-        tx.id === transactionId ? { ...tx, checkedAt: newCheckedAt } : tx,
-      ),
-    });
-
-    try {
-      await firstValueFrom(
-        this.#budgetApi.toggleTransactionCheck$(transactionId),
-      );
-    } catch (error) {
-      this.#dashboardResource.set(originalData);
-      throw error;
-    }
-  }
-
   async #loadDashboardData(params: {
     month: string;
     year: string;
@@ -366,7 +371,6 @@ export class CurrentMonthStore {
         return empty;
       }
 
-      // Reuse details already prefetched by PreloadService or BudgetDetailsStore
       const detailsCached = this.#budgetApi.cache.get<{
         budgetLines: BudgetLine[];
         transactions: Transaction[];
@@ -398,6 +402,32 @@ export class CurrentMonthStore {
         budgetLines: response.data.budgetLines,
       };
       return result;
+    });
+
+    return freshData;
+  }
+
+  async #loadHistoryData(): Promise<HistoryDataPoint[]> {
+    const cacheKey: string[] = ['budget', 'history'];
+    const cached = this.#budgetApi.cache.get<HistoryDataPoint[]>(cacheKey);
+
+    if (cached?.fresh) return cached.data;
+
+    const freshData = this.#budgetApi.cache.deduplicate(cacheKey, async () => {
+      // Fetch up to 24 budgets using sparse fields to cover past and future
+      const response = await firstValueFrom(
+        this.#apiClient.get$(
+          '/budgets?fields=month,year,totalIncome,totalExpenses&limit=24',
+          budgetSparseListResponseSchema,
+        ),
+      );
+
+      return response.data.map((b) => ({
+        month: b.month!,
+        year: b.year!,
+        income: b.totalIncome ?? 0,
+        expenses: b.totalExpenses ?? 0,
+      }));
     });
 
     return freshData;

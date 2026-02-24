@@ -1,11 +1,11 @@
 import { type Routes } from '@angular/router';
 import { PAGE_TITLES } from '@core/routing';
-import { CurrentMonthStore } from './services/current-month-store';
+import { DashboardStore } from './services/dashboard-store';
 
 export const currentMonthRoutes: Routes = [
   {
     path: '',
-    providers: [CurrentMonthStore],
+    providers: [DashboardStore],
     children: [
       {
         path: '',
