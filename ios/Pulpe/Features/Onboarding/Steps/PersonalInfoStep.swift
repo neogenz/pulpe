@@ -22,7 +22,7 @@ struct PersonalInfoStep: View {
                         set: { state.firstName = $0 }
                     ))
                     .textContentType(.givenName)
-                    .autocapitalization(.words)
+                    .textInputAutocapitalization(.words)
                     .focused($isFocused)
                     .font(PulpeTypography.body)
                     .foregroundStyle(Color.authInputText)

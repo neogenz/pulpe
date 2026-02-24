@@ -189,8 +189,13 @@ struct BudgetLineRow: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: DesignTokens.Spacing.md) {
+        Button {
+            guard !line.isVirtualRollover else { return }
+            ProductTips.gestures.invalidate(reason: .actionPerformed)
+            onEdit()
+        } label: {
+            VStack(spacing: 0) {
+                HStack(spacing: DesignTokens.Spacing.md) {
                 // Kind icon circle (Revolut-style)
                 kindIconCircle
 
@@ -250,17 +255,14 @@ struct BudgetLineRow: View {
             }
             .padding(.vertical, DesignTokens.Spacing.sm)
 
-            // Consumption progress bar
-            if hasConsumption {
-                progressBar
-            }
+                // Consumption progress bar
+                if hasConsumption {
+                    progressBar
+                }
+                }
         }
+        .buttonStyle(.plain)
         .contentShape(Rectangle())
-        .onTapGesture {
-            guard !line.isVirtualRollover else { return }
-            ProductTips.gestures.invalidate(reason: .actionPerformed)
-            onEdit()
-        }
         .scaleEffect(isPressed ? 0.97 : 1.0)
         .animation(.spring(duration: DesignTokens.Animation.fast), value: isPressed)
         .onLongPressGesture(
@@ -275,7 +277,6 @@ struct BudgetLineRow: View {
         )
         .sensoryFeedback(.success, trigger: triggerSuccessFeedback)
         .sensoryFeedback(.warning, trigger: triggerWarningFeedback)
-        .accessibilityAddTraits(.isButton)
         .accessibilityHint(
             hasConsumption
                 ? "Montant restant: \(consumption.available.asCHF). " +

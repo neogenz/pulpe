@@ -383,6 +383,7 @@ final class PinRecoveryViewModel {
             // 5. Generate new recovery key (non-blocking)
             await generateNewRecoveryKey()
 
+            firstPin = nil
             isProcessing = false
         } catch let error as APIError {
             isProcessing = false

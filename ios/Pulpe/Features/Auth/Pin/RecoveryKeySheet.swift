@@ -64,7 +64,13 @@ struct RecoveryKeySheet: View {
                 .textSelection(.enabled)
 
             Button {
-                UIPasteboard.general.string = recoveryKey
+                UIPasteboard.general.setItems(
+                    [[UIPasteboard.typeAutomatic: recoveryKey]],
+                    options: [
+                        .expirationDate: Date().addingTimeInterval(120),
+                        .localOnly: true
+                    ]
+                )
                 withAnimation {
                     copied = true
                 }

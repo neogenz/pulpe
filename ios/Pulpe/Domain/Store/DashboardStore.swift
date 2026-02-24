@@ -54,7 +54,7 @@ final class DashboardStore: StoreProtocol {
         // Cancel any existing load task to avoid duplicate requests
         loadTask?.cancel()
 
-        let task = Task { @MainActor in
+        let task = Task {
             isLoading = true
             error = nil
             defer { isLoading = false }

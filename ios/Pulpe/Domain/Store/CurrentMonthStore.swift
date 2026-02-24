@@ -194,7 +194,7 @@ final class CurrentMonthStore: StoreProtocol {
 
         // Debounce widget sync to avoid excessive reloads
         widgetSyncTask = Task {
-            try? await Task.sleep(nanoseconds: UInt64(AppConfiguration.widgetSyncDebounceDelay * 1_000_000_000))
+            try? await Task.sleep(for: .seconds(AppConfiguration.widgetSyncDebounceDelay))
 
             guard !Task.isCancelled else { return }
             guard let currentBudget = budget else { return }

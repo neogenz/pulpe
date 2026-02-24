@@ -88,14 +88,9 @@ struct EditTransactionSheet: View {
                     Task { await updateTransaction() }
                 } label: {
                     Text("Enregistrer")
-                        .font(PulpeTypography.buttonPrimary)
-                        .foregroundStyle(canSubmit ? Color.textOnPrimary : .secondary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: DesignTokens.FrameHeight.button)
-                        .background(canSubmit ? Color.pulpePrimary : Color.surfaceSecondary)
-                        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
                 }
                 .disabled(!canSubmit)
+                .primaryButtonStyle(isEnabled: canSubmit)
                 .buttonStyle(.plain)
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)

@@ -4,14 +4,14 @@ import SwiftUI
 /// Reduces visual density by allowing users to expand/collapse secondary content
 struct CollapsibleSection<Content: View>: View {
     let title: String
-    let isExpanded: Binding<Bool>
+    @Binding var isExpanded: Bool
     @ViewBuilder let content: () -> Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Button {
                 withAnimation(DesignTokens.Animation.smoothEaseInOut) {
-                    isExpanded.wrappedValue.toggle()
+                    isExpanded.toggle()
                 }
             } label: {
                 HStack {
@@ -23,16 +23,16 @@ struct CollapsibleSection<Content: View>: View {
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
-                        .rotationEffect(.degrees(isExpanded.wrappedValue ? 90 : 0))
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(title)
-            .accessibilityHint(isExpanded.wrappedValue ? "Appuie pour réduire" : "Appuie pour développer")
+            .accessibilityHint(isExpanded ? "Appuie pour réduire" : "Appuie pour développer")
             .accessibilityAddTraits(.isButton)
 
-            if isExpanded.wrappedValue {
+            if isExpanded {
                 content()
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }

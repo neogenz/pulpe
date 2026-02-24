@@ -269,6 +269,7 @@ private struct LinkedTransactionRow: View {
                     .frame(minWidth: 44, minHeight: 44)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Modifier")
 
             Button {
                 onDelete()
@@ -279,6 +280,7 @@ private struct LinkedTransactionRow: View {
                     .frame(minWidth: 44, minHeight: 44)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Supprimer")
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, 14)

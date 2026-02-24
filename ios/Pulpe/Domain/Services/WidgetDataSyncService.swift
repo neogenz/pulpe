@@ -96,10 +96,8 @@ actor WidgetDataSyncService {
             return
         }
 
-        await MainActor.run {
-            WidgetCenter.shared.reloadTimelines(ofKind: Self.currentMonthWidgetKind)
-            WidgetCenter.shared.reloadTimelines(ofKind: Self.yearOverviewWidgetKind)
-        }
+        WidgetCenter.shared.reloadTimelines(ofKind: Self.currentMonthWidgetKind)
+        WidgetCenter.shared.reloadTimelines(ofKind: Self.yearOverviewWidgetKind)
     }
 
     nonisolated private func buildYearBudgets(

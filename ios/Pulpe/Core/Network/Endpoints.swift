@@ -116,7 +116,9 @@ enum Endpoint {
     var method: HTTPMethod {
         switch self {
         case .budgets, .budgetLines, .budgetLinesCreate, .transactionsCreate, .templates,
-             .templateLines, .templateFromOnboarding, .templateLinesBulk:
+             .templateLines, .templateFromOnboarding, .templateLinesBulk,
+             .budgetLineToggle, .budgetLineResetFromTemplate, .transactionToggle,
+             .encryptionValidateKey, .encryptionSetupRecovery, .encryptionRegenerateRecovery, .encryptionRecover:
             return .post
 
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetsExport,
@@ -130,10 +132,6 @@ enum Endpoint {
 
         case .deleteAccount:
             return .delete
-
-        case .budgetLineToggle, .budgetLineResetFromTemplate, .transactionToggle,
-             .encryptionValidateKey, .encryptionSetupRecovery, .encryptionRegenerateRecovery, .encryptionRecover:
-            return .post
         }
     }
 

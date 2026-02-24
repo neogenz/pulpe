@@ -12,6 +12,7 @@ struct LoadingView: View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             ProgressView()
                 .scaleEffect(1.2)
+                .accessibilityLabel(message ?? "Chargement en cours")
 
             if let message {
                 Text(message)
