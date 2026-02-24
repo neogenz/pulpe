@@ -133,12 +133,14 @@ type TransactionFormData = Pick<
               <!-- Paired lists: Recent Transactions + Unchecked Forecasts -->
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <pulpe-dashboard-recent-transactions
+                  class="order-2 lg:order-1"
                   [transactions]="store.recentTransactions()"
                   (viewBudget)="navigateToBudgetDetails()"
                   data-testid="dashboard-block-recent-transactions"
                 />
 
                 <pulpe-dashboard-unchecked-forecasts
+                  class="order-1 lg:order-2"
                   [forecasts]="store.uncheckedForecasts()"
                   (toggleCheck)="store.toggleBudgetLineCheck($event)"
                   data-testid="dashboard-block-forecasts"
