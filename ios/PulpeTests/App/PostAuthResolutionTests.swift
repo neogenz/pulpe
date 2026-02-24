@@ -163,7 +163,7 @@ struct PostAuthResolutionRouterTests {
         try? await Task.sleep(for: .milliseconds(30))
         #expect(sut.authState == .loading)
 
-        resolver.resume(with: .needsPinEntry(needsRecoveryKeyConsent: false))
+        await resolver.resume(with: .needsPinEntry(needsRecoveryKeyConsent: false))
         await task.value
 
         #expect(sut.authState == .needsPinEntry)
@@ -425,7 +425,7 @@ struct PostAuthResolutionRouterTests {
         // Then: auth state is loading while checking vault
         #expect(sut.authState == .loading)
 
-        resolver.resume(with: .needsPinSetup)
+        await resolver.resume(with: .needsPinSetup)
         await task.value
         #expect(sut.authState == .needsPinSetup)
     }
@@ -544,19 +544,15 @@ struct PostAuthResolutionRouterTests {
 
 // MARK: - Stubs
 
-private final class StubPostAuthResolver: PostAuthResolving, @unchecked Sendable {
-    private let destination: PostAuthDestination
-
-    init(destination: PostAuthDestination) {
-        self.destination = destination
-    }
+private struct StubPostAuthResolver: PostAuthResolving {
+    let destination: PostAuthDestination
 
     func resolve() async -> PostAuthDestination {
         destination
     }
 }
 
-private final class SequentialPostAuthResolver: PostAuthResolving, @unchecked Sendable {
+private actor SequentialPostAuthResolver: PostAuthResolving {
     private var destinations: [PostAuthDestination]
     private var index = 0
 
@@ -571,7 +567,7 @@ private final class SequentialPostAuthResolver: PostAuthResolving, @unchecked Se
     }
 }
 
-private final class DeferredPostAuthResolver: PostAuthResolving, @unchecked Sendable {
+private actor DeferredPostAuthResolver: PostAuthResolving {
     private var continuation: CheckedContinuation<PostAuthDestination, Never>?
 
     func resolve() async -> PostAuthDestination {
@@ -586,7 +582,7 @@ private final class DeferredPostAuthResolver: PostAuthResolving, @unchecked Send
     }
 }
 
-private final class StubVaultStatusProvider: VaultStatusProviding, @unchecked Sendable {
+private actor StubVaultStatusProvider: VaultStatusProviding {
     private var queue: [Result<VaultStatusResponse, APIError>]
 
     init(results: [Result<VaultStatusResponse, APIError>]) {
@@ -696,12 +692,8 @@ private final actor DelayedBiometricPreferenceKeychain: BiometricPreferenceKeych
     }
 }
 
-private final class ThrowingVaultStatusProvider: VaultStatusProviding, @unchecked Sendable {
-    private let error: Error
-
-    init(error: Error) {
-        self.error = error
-    }
+private struct ThrowingVaultStatusProvider: VaultStatusProviding {
+    let error: Error
 
     func getVaultStatus() async throws -> VaultStatusResponse {
         throw error

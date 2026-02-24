@@ -151,6 +151,27 @@ L'endpoint `validate-key` est limité à 5 tentatives par minute par utilisateur
 |----------|-------------|
 | `POST /v1/encryption/validate-key` | Vérifie le clientKey via le canary key_check |
 
+## Brute-force du code PIN hors ligne (risque accepté)
+
+Le code PIN 4 chiffres comporte 10 000 combinaisons. Si la table `user_encryption_key` fuit (salt + key_check), un attaquant peut brute-forcer la clé client hors ligne en ~16ms avec PBKDF2-600K itérations.
+
+Cependant, l'architecture split-key atténue ce risque : DEK = HKDF(clientKey + masterKey, salt). La clé client seule est inutile — l'attaquant aurait aussi besoin de la `masterKey` (variable d'environnement serveur, jamais stockée en base de données). Une fuite simultanée de la base de données ET des variables d'environnement serveur représente un compromis catastrophique où même un code PIN 6–8 chiffres serait insuffisant.
+
+De plus :
+- La table `user_encryption_key` est accessible uniquement au `service_role` (`REVOKE ALL` sur les rôles `authenticated` et `anon`)
+- Le brute-force en ligne est bloqué par le rate limiting (5 tentatives/min sur `validate-key`)
+- La constante `minDigits` dans `CryptoService` peut être augmentée si la réglementation l'exige
+
+## Transport du client key via header HTTP (risque accepté)
+
+Le header `X-Client-Key` est envoyé sur tous les endpoints de données (budgets, transactions, templates) car le serveur a besoin de la clé client au moment de la requête pour dériver la DEK. Seuls 4 endpoints utilisent `@SkipClientKey()` (vault-status, salt, validate-key, recover).
+
+Atténuations :
+- HTTPS/TLS chiffre les headers en transit
+- Le `logRequest` iOS ne journalise que la méthode, le chemin et le code de statut (jamais les headers)
+- Le backend ne journalise que des avertissements pour les headers manquants/invalides (jamais la valeur)
+- La clé client seule est insuffisante pour le déchiffrement (architecture split-key)
+
 ## Sécurité de la table `user_encryption_key`
 
 - RLS activé : seul `service_role` peut lire/écrire

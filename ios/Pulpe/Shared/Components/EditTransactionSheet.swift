@@ -13,9 +13,14 @@ struct EditTransactionSheet: View {
     @State private var isLoading = false
     @State private var error: Error?
 
-    private let transactionService = TransactionService.shared
+    private let dependencies: EditTransactionDependencies
 
-    init(transaction: Transaction, onUpdate: @escaping (Transaction) -> Void) {
+    init(
+        transaction: Transaction,
+        dependencies: EditTransactionDependencies = .live,
+        onUpdate: @escaping (Transaction) -> Void
+    ) {
+        self.dependencies = dependencies
         self.transaction = transaction
         self.onUpdate = onUpdate
         _name = State(initialValue: transaction.name)
@@ -117,13 +122,23 @@ struct EditTransactionSheet: View {
         )
 
         do {
-            let updatedTransaction = try await transactionService.updateTransaction(id: transaction.id, data: data)
+            let updatedTransaction = try await dependencies.updateTransaction(transaction.id, data)
             onUpdate(updatedTransaction)
             dismiss()
         } catch {
             self.error = error
         }
     }
+}
+
+struct EditTransactionDependencies: Sendable {
+    var updateTransaction: @Sendable (String, TransactionUpdate) async throws -> Transaction
+
+    static let live = EditTransactionDependencies(
+        updateTransaction: { id, data in
+            try await TransactionService.shared.updateTransaction(id: id, data: data)
+        }
+    )
 }
 
 #Preview {

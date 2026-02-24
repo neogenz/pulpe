@@ -164,33 +164,16 @@ extension LoginView {
                 .font(PulpeTypography.buttonSecondary)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
-            TextField(
-                "",
+            AuthTextField(
+                placeholder: "exemple@email.com",
                 text: $viewModel.email,
-                prompt: Text("exemple@email.com")
-                    .foregroundStyle(Color.authInputPlaceholder)
+                isFocused: focusedField == .email
             )
             .textContentType(.emailAddress)
             .keyboardType(.emailAddress)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
             .focused($focusedField, equals: .email)
-            .font(PulpeTypography.body)
-            .foregroundStyle(Color.authInputText)
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .frame(height: DesignTokens.FrameHeight.button)
-            .background {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                    .fill(Color.authInputBackground)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                            .strokeBorder(
-                                focusedField == .email ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder,
-                                lineWidth: focusedField == .email ? 2 : 1
-                            )
-                    }
-            }
-            .animation(.easeInOut(duration: 0.2), value: focusedField)
             .accessibilityIdentifier("email")
             .accessibilityLabel("Adresse e-mail")
             .accessibilityHint("Saisis ton adresse e-mail")
@@ -203,56 +186,15 @@ extension LoginView {
                 .font(PulpeTypography.buttonSecondary)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
-            HStack(spacing: DesignTokens.Spacing.md) {
-                Group {
-                    if viewModel.showPassword {
-                        TextField(
-                            "",
-                            text: $viewModel.password,
-                            prompt: Text("Ton mot de passe")
-                                .foregroundStyle(Color.authInputPlaceholder)
-                        )
-                    } else {
-                        SecureField(
-                            "",
-                            text: $viewModel.password,
-                            prompt: Text("Ton mot de passe")
-                                .foregroundStyle(Color.authInputPlaceholder)
-                        )
-                    }
-                }
-                .textContentType(.password)
-                .focused($focusedField, equals: .password)
-                .font(PulpeTypography.body)
-                .foregroundStyle(Color.authInputText)
-                .accessibilityIdentifier("password")
-
-                Button {
-                    withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
-                        viewModel.showPassword.toggle()
-                    }
-                } label: {
-                    Image(systemName: viewModel.showPassword ? "eye.slash.fill" : "eye.fill")
-                        .font(PulpeTypography.body)
-                        .foregroundStyle(Color.authInputText.opacity(0.6))
-                        .contentTransition(.symbolEffect(.replace))
-                }
-                .accessibilityLabel(viewModel.showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe")
-            }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .frame(height: DesignTokens.FrameHeight.button)
-            .background {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                    .fill(Color.authInputBackground)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                            .strokeBorder(
-                                focusedField == .password ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder,
-                                lineWidth: focusedField == .password ? 2 : 1
-                            )
-                    }
-            }
-            .animation(.easeInOut(duration: 0.2), value: focusedField)
+            AuthSecureField(
+                placeholder: "Ton mot de passe",
+                text: $viewModel.password,
+                isVisible: $viewModel.showPassword,
+                isFocused: focusedField == .password
+            )
+            .textContentType(.password)
+            .focused($focusedField, equals: .password)
+            .accessibilityIdentifier("password")
             .accessibilityLabel("Mot de passe")
             .accessibilityHint("Saisis ton mot de passe")
         }

@@ -302,9 +302,9 @@ struct PinRecoveryFlowTests {
 
         await enterRecoveryKeyAndMatchingPins(result.sut)
 
-        #expect(result.storage.storeCallCount == 1)
-        #expect(result.encryption.recoverCallCount == 1)
-        #expect(result.encryption.regenerateCallCount == 1)
+        #expect(await result.storage.storeCallCount == 1)
+        #expect(await result.encryption.recoverCallCount == 1)
+        #expect(await result.encryption.regenerateCallCount == 1)
         #expect(result.sut.showRecoverySheet == true)
         #expect(result.sut.newRecoveryKey == "NEW-RECOVERY-KEY-1234")
     }
@@ -348,8 +348,8 @@ struct PinRecoveryFlowTests {
         await enterRecoveryKeyAndMatchingPins(result.sut)
 
         // Recovery itself succeeded (key was stored)
-        #expect(result.storage.storeCallCount == 1)
-        #expect(result.encryption.recoverCallCount == 1)
+        #expect(await result.storage.storeCallCount == 1)
+        #expect(await result.encryption.recoverCallCount == 1)
         // But regenerateRecoveryKey failed, so warning shown instead of sheet
         #expect(result.sut.showRecoveryKeyWarning == true)
         #expect(result.sut.showRecoverySheet == false)
@@ -359,7 +359,7 @@ struct PinRecoveryFlowTests {
 
 // MARK: - Stubs
 
-private final class StubPinRecoveryCrypto: PinCryptoKeyDerivation, @unchecked Sendable {
+private actor StubPinRecoveryCrypto: PinCryptoKeyDerivation {
     private let derivedKey: String
 
     init(derivedKey: String) {
@@ -371,7 +371,7 @@ private final class StubPinRecoveryCrypto: PinCryptoKeyDerivation, @unchecked Se
     }
 }
 
-private final class StubPinRecoveryEncryption: PinEncryptionRecovery, @unchecked Sendable {
+private actor StubPinRecoveryEncryption: PinEncryptionRecovery {
     private let saltResponse: EncryptionSaltResponse
     private let recoverError: APIError?
     private let getSaltError: Error?
@@ -415,7 +415,7 @@ private final class StubPinRecoveryEncryption: PinEncryptionRecovery, @unchecked
     }
 }
 
-private final class StubPinRecoveryKeyStorage: PinClientKeyStorage, @unchecked Sendable {
+private actor StubPinRecoveryKeyStorage: PinClientKeyStorage {
     private(set) var storeCallCount = 0
 
     func store(_ clientKeyHex: String, enableBiometric: Bool) async {

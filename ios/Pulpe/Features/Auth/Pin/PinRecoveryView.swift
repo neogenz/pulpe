@@ -278,10 +278,15 @@ final class PinRecoveryViewModel {
     // MARK: - Recovery Key Actions
 
     func updateRecoveryKey(_ input: String) {
+        if RecoveryKeyFormatter.containsInvalidCharacters(input) {
+            errorMessage = "Ta clé contient des caractères invalides"
+        } else {
+            errorMessage = nil
+        }
+
         let formatted = RecoveryKeyFormatter.format(input)
         recoveryKeyInput = formatted
         recoveryKey = RecoveryKeyFormatter.strip(formatted)
-        errorMessage = nil
     }
 
     func submitRecoveryKey() {

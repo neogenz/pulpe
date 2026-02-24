@@ -251,7 +251,10 @@ actor AuthService {
         }
 
         // Single Face ID prompt via pre-authenticated LAContext
-        // LAContext is not Sendable but is safe here: evaluation completes before reuse
+        // SAFETY: LAContext is not Sendable but nonisolated(unsafe) is correct here because:
+        // 1. The context is created, evaluated, and consumed entirely within this function scope.
+        // 2. It is never shared with another task or stored beyond this call.
+        // 3. All subsequent uses (getBiometricRefreshToken, getBiometricClientKey) are sequential awaits.
         nonisolated(unsafe) let context = LAContext()
         do {
             try await context.evaluatePolicy(

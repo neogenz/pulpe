@@ -40,4 +40,40 @@ struct RecoveryKeyFormatterTests {
             )
         }
     }
+
+    // MARK: - containsInvalidCharacters tests
+
+    @Test func containsInvalidCharacters_validBase32_returnsFalse() {
+        #expect(!RecoveryKeyFormatter.containsInvalidCharacters("ABCD2345"))
+        #expect(!RecoveryKeyFormatter.containsInvalidCharacters("abcd2345"))
+        #expect(!RecoveryKeyFormatter.containsInvalidCharacters("234567"))
+        #expect(!RecoveryKeyFormatter.containsInvalidCharacters("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"))
+    }
+
+    @Test func containsInvalidCharacters_withValidSeparators_returnsFalse() {
+        #expect(!RecoveryKeyFormatter.containsInvalidCharacters("ABCD-EFGH-2345"))
+        #expect(!RecoveryKeyFormatter.containsInvalidCharacters("ABCD EFGH 2345"))
+        #expect(!RecoveryKeyFormatter.containsInvalidCharacters("ABCD-EFGH 2345"))
+        #expect(!RecoveryKeyFormatter.containsInvalidCharacters("A-B-C-D"))
+    }
+
+    @Test func containsInvalidCharacters_invalidDigits_returnsTrue() {
+        #expect(RecoveryKeyFormatter.containsInvalidCharacters("ABCD0123"))
+        #expect(RecoveryKeyFormatter.containsInvalidCharacters("ABCD1234"))
+        #expect(RecoveryKeyFormatter.containsInvalidCharacters("ABCD8901"))
+        #expect(RecoveryKeyFormatter.containsInvalidCharacters("ABCD9999"))
+    }
+
+    @Test func containsInvalidCharacters_specialCharacters_returnsTrue() {
+        #expect(RecoveryKeyFormatter.containsInvalidCharacters("ABCD!@#$"))
+        #expect(RecoveryKeyFormatter.containsInvalidCharacters("ABCD.EFGH"))
+        #expect(RecoveryKeyFormatter.containsInvalidCharacters("ABCD/EFGH"))
+        #expect(RecoveryKeyFormatter.containsInvalidCharacters("ABCD\\EFGH"))
+    }
+
+    @Test func containsInvalidCharacters_onlyValidSeparators_returnsFalse() {
+        #expect(!RecoveryKeyFormatter.containsInvalidCharacters("----"))
+        #expect(!RecoveryKeyFormatter.containsInvalidCharacters("    "))
+        #expect(!RecoveryKeyFormatter.containsInvalidCharacters("- - - "))
+    }
 }

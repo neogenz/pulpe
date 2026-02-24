@@ -156,8 +156,8 @@ struct PinSetupFlowTests {
 
         await result.sut.confirm()
 
-        #expect(result.encryptionAPI.setupRecoveryCallCount == 0)
-        #expect(result.storage.storeCallCount == 1)
+        #expect(await result.encryptionAPI.setupRecoveryCallCount == 0)
+        #expect(await result.storage.storeCallCount == 1)
         #expect(result.sut.completedWithoutRecovery == true)
         #expect(result.sut.showRecoverySheet == false)
     }
@@ -173,8 +173,8 @@ struct PinSetupFlowTests {
         enterPin(result.sut)
         await result.sut.confirm()
 
-        #expect(result.encryptionAPI.setupRecoveryCallCount == 1)
-        #expect(result.storage.storeCallCount == 1)
+        #expect(await result.encryptionAPI.setupRecoveryCallCount == 1)
+        #expect(await result.storage.storeCallCount == 1)
         #expect(result.sut.recoveryKey == "ABCD-EFGH-IJKL-MNOP")
         #expect(result.sut.showRecoverySheet == true)
         #expect(result.sut.completedWithoutRecovery == false)
@@ -213,7 +213,7 @@ struct PinSetupFlowTests {
 
         #expect(sut.isError == true)
         #expect(sut.errorMessage == "Un code PIN existe déjà pour ce compte — saisis-le")
-        #expect(storage.storeCallCount == 0)
+        #expect(await storage.storeCallCount == 0)
     }
 
     @Test("generic API error shows generic error message")
@@ -243,13 +243,13 @@ struct PinSetupFlowTests {
 
         #expect(sut.isError == true)
         #expect(sut.errorMessage == "Une erreur est survenue, réessaie")
-        #expect(storage.storeCallCount == 0)
+        #expect(await storage.storeCallCount == 0)
     }
 }
 
 // MARK: - Stubs
 
-private final class StubCryptoKeyDerivation: PinCryptoKeyDerivation, @unchecked Sendable {
+private actor StubCryptoKeyDerivation: PinCryptoKeyDerivation {
     private let derivedKey: String
 
     init(derivedKey: String) {
@@ -261,7 +261,7 @@ private final class StubCryptoKeyDerivation: PinCryptoKeyDerivation, @unchecked 
     }
 }
 
-private final class StubEncryptionSetup: PinEncryptionSetup, @unchecked Sendable {
+private actor StubEncryptionSetup: PinEncryptionSetup {
     private let saltResponse: EncryptionSaltResponse
     private let validateKeyError: (any Error)?
     private(set) var setupRecoveryCallCount = 0
@@ -285,7 +285,7 @@ private final class StubEncryptionSetup: PinEncryptionSetup, @unchecked Sendable
     }
 }
 
-private final class StubClientKeyStorage: PinClientKeyStorage, @unchecked Sendable {
+private actor StubClientKeyStorage: PinClientKeyStorage {
     private(set) var storeCallCount = 0
 
     func store(_ clientKeyHex: String, enableBiometric: Bool) async {

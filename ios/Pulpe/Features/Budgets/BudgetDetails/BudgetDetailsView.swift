@@ -17,6 +17,14 @@ struct BudgetDetailsView: View {
         self._viewModel = State(initialValue: BudgetDetailsViewModel(budgetId: budgetId))
     }
 
+    private var checkedFilterBinding: Binding<CheckedFilterOption> {
+        let vm = viewModel
+        return Binding(
+            get: { vm.checkedFilter },
+            set: { vm.setCheckedFilter($0) }
+        )
+    }
+
     var body: some View {
         Group {
             if viewModel.isLoading && viewModel.budget == nil {
@@ -134,7 +142,7 @@ struct BudgetDetailsView: View {
         return List {
             // Filter picker
             Section {
-                CheckedFilterPicker(selection: $viewModel.checkedFilter)
+                CheckedFilterPicker(selection: checkedFilterBinding)
             }
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)

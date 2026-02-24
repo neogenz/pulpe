@@ -384,10 +384,17 @@ export class EncryptionService {
     this.#invalidateUserDEKCache(userId);
 
     try {
+      // Invalidate the wrapped DEK BEFORE re-encryption so a compromised recovery
+      // key cannot unwrap a valid DEK during the re-encryption window.
+      // If the process fails after this point, recovery access is lost — the user
+      // will need to regenerate a recovery key from settings.
+      await this.#repository.updateWrappedDEK(userId, null);
+
       // Re-encrypt user data with new DEK (newClientKey produces different DEK)
       await reEncryptUserData(oldDek, newDek);
 
-      // Wrap new DEK with the same recovery key
+      // Re-wrap with the same recovery key — the frontend will immediately call
+      // regenerateRecoveryKey$() to replace it with a fresh one.
       const newWrappedDEK = this.wrapDEK(newDek, recoveryKey);
       await this.#repository.updateWrappedDEK(userId, newWrappedDEK);
     } finally {

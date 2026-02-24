@@ -219,10 +219,10 @@ struct PinEntryValidationFlowTests {
 
         await components.sut.confirm()
 
-        #expect(components.encryptionAPI.getSaltCallCount == 1)
-        #expect(components.crypto.deriveCallCount == 1)
-        #expect(components.encryptionAPI.validateKeyCallCount == 1)
-        #expect(components.storage.storeCallCount == 1)
+        #expect(await components.encryptionAPI.getSaltCallCount == 1)
+        #expect(await components.crypto.deriveCallCount == 1)
+        #expect(await components.encryptionAPI.validateKeyCallCount == 1)
+        #expect(await components.storage.storeCallCount == 1)
     }
 
     // MARK: - Validation Error
@@ -291,7 +291,7 @@ struct PinEntryValidationFlowTests {
 
 // MARK: - Test Stubs
 
-private final class StubCryptoKeyDerivation: PinCryptoKeyDerivation, @unchecked Sendable {
+private actor StubCryptoKeyDerivation: PinCryptoKeyDerivation {
     let derivedKey: String
     let deriveError: (any Error)?
     private(set) var deriveCallCount = 0
@@ -308,7 +308,7 @@ private final class StubCryptoKeyDerivation: PinCryptoKeyDerivation, @unchecked 
     }
 }
 
-private final class StubEncryptionKeyValidation: PinEncryptionValidation, @unchecked Sendable {
+private actor StubEncryptionKeyValidation: PinEncryptionValidation {
     let saltResponse: EncryptionSaltResponse
     let validateKeyError: APIError?
     private(set) var getSaltCallCount = 0
@@ -330,7 +330,7 @@ private final class StubEncryptionKeyValidation: PinEncryptionValidation, @unche
     }
 }
 
-private final class StubClientKeyStorage: PinClientKeyStorage, @unchecked Sendable {
+private actor StubClientKeyStorage: PinClientKeyStorage {
     private(set) var storeCallCount = 0
 
     func store(_ clientKeyHex: String, enableBiometric: Bool) async {

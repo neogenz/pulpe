@@ -1623,6 +1623,92 @@ describe('EncryptionService', () => {
       }
     });
 
+    it('should nullify wrapped_dek before re-encryption to close reuse window', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const wrappedDekUpdates: Array<string | null> = [];
+
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
+      );
+      const updateWrappedDEK = mock((_userId: string, value: string | null) => {
+        wrappedDekUpdates.push(value);
+        return Promise.resolve();
+      });
+      const updateWrappedDEKIfNull = mock((_userId: string, value: string) => {
+        wrappedDekUpdates.push(value);
+        return Promise.resolve(true);
+      });
+
+      const clientKey = randomBytes(32);
+
+      // First, create a recovery key so we get a valid formatted key and wrapped DEK
+      const repo1 = createMockRepository({
+        findSaltByUserId,
+        updateWrappedDEK,
+        updateWrappedDEKIfNull,
+      });
+      const svc1 = new EncryptionService(
+        mockConfigService as any,
+        repo1 as any,
+      );
+      const { formatted } = await svc1.createRecoveryKey(
+        TEST_USER_ID,
+        clientKey,
+      );
+
+      // The createRecoveryKey stored a wrappedDEK — capture it
+      const storedWrappedDek = wrappedDekUpdates[wrappedDekUpdates.length - 1];
+      expect(storedWrappedDek).not.toBeNull();
+
+      // Now set up the recovery scenario
+      const recoveryUpdates: Array<string | null> = [];
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: storedWrappedDek,
+          key_check: null,
+        }),
+      );
+      const updateWrappedDEK2 = mock(
+        (_userId: string, value: string | null) => {
+          recoveryUpdates.push(value);
+          return Promise.resolve();
+        },
+      );
+
+      const repo2 = createMockRepository({
+        findSaltByUserId,
+        findByUserId,
+        updateWrappedDEK: updateWrappedDEK2,
+      });
+      const svc2 = new EncryptionService(
+        mockConfigService as any,
+        repo2 as any,
+      );
+
+      const newClientKey = randomBytes(32);
+      const reEncryptUserData = mock(() => Promise.resolve());
+
+      await svc2.recoverWithKey(
+        TEST_USER_ID,
+        formatted,
+        newClientKey,
+        reEncryptUserData,
+      );
+
+      // First updateWrappedDEK call should be null (invalidation before re-encryption)
+      expect(updateWrappedDEK2).toHaveBeenCalledTimes(2);
+      expect(recoveryUpdates[0]).toBeNull();
+      // Second call should be the new wrapped DEK
+      expect(recoveryUpdates[1]).not.toBeNull();
+      expect(typeof recoveryUpdates[1]).toBe('string');
+    });
+
     it('should invalidate previous recovery key after regeneration', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       let wrappedDek: string | null = null;

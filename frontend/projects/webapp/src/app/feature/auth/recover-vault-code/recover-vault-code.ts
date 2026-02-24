@@ -15,7 +15,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialog } from '@angular/material/dialog';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
 
 import {
@@ -48,7 +48,7 @@ import {
     MatButtonModule,
     MatIconModule,
     MatCheckboxModule,
-    MatProgressSpinnerModule,
+    MatSnackBarModule,
     RouterLink,
     ErrorAlert,
     LoadingButton,
@@ -254,6 +254,7 @@ export default class RecoverVaultCode {
   readonly #formBuilder = inject(FormBuilder);
   readonly #router = inject(Router);
   readonly #dialog = inject(MatDialog);
+  readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
 
   protected readonly ROUTES = ROUTES;
@@ -396,6 +397,11 @@ export default class RecoverVaultCode {
       this.#logger.warn(
         'Recovery key setup failed after vault code recovery — user can generate later from settings',
         error,
+      );
+      this.#snackBar.open(
+        "La clé de récupération n'a pas pu être générée — pense à en créer une dans les paramètres",
+        'OK',
+        { duration: 8000, horizontalPosition: 'center' },
       );
     }
   }

@@ -25,7 +25,7 @@ struct BudgetDetailsViewModelFilterTests {
         let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
         defer { UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked") }
 
-        viewModel.checkedFilter = .all
+        viewModel.setCheckedFilter(.all)
 
         let persistedValue = UserDefaults.standard.bool(forKey: "pulpe-budget-show-only-unchecked")
         #expect(!persistedValue)
@@ -51,12 +51,12 @@ struct BudgetDetailsViewModelFilterTests {
 
         #expect(viewModel.checkedFilter == .unchecked)
 
-        viewModel.checkedFilter = .all
+        viewModel.setCheckedFilter(.all)
 
         #expect(viewModel.checkedFilter == .all)
         #expect(!viewModel.isShowingOnlyUnchecked)
 
-        viewModel.checkedFilter = .unchecked
+        viewModel.setCheckedFilter(.unchecked)
 
         #expect(viewModel.checkedFilter == .unchecked)
         #expect(viewModel.isShowingOnlyUnchecked)
@@ -218,7 +218,7 @@ struct BudgetDetailsCombinedFilterTests {
         viewModel.addTransaction(uncheckedTx)
         viewModel.addTransaction(checkedTx)
 
-        viewModel.checkedFilter = .all
+        viewModel.setCheckedFilter(.all)
 
         let result = viewModel.combinedFilteredFreeTransactions(searchText: "")
 
@@ -236,7 +236,7 @@ struct BudgetDetailsCombinedFilterTests {
         viewModel.addTransaction(tx1)
         viewModel.addTransaction(tx2)
 
-        viewModel.checkedFilter = .all
+        viewModel.setCheckedFilter(.all)
 
         let result = viewModel.combinedFilteredFreeTransactions(searchText: "migros")
 
@@ -255,7 +255,7 @@ struct BudgetDetailsCombinedFilterTests {
         viewModel.addTransaction(tx1)
         viewModel.addTransaction(tx2)
 
-        viewModel.checkedFilter = .all
+        viewModel.setCheckedFilter(.all)
 
         let result = viewModel.combinedFilteredFreeTransactions(searchText: "150")
 

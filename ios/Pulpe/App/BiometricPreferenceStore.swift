@@ -16,15 +16,14 @@ protocol BiometricPreferenceDefaultsStoring: Sendable {
     func removeLegacyBiometricEnabled() async
 }
 
-actor LegacyBiometricPreferenceDefaultsStore: BiometricPreferenceDefaultsStoring {
-    private let defaults = UserDefaults.standard
-
-    func getLegacyBiometricEnabled() async -> Bool {
-        defaults.bool(forKey: LegacyBiometricDefaultsKey.biometricEnabled)
+/// UserDefaults is thread-safe per Apple documentation, so no actor isolation needed.
+struct LegacyBiometricPreferenceDefaultsStore: BiometricPreferenceDefaultsStoring {
+    func getLegacyBiometricEnabled() -> Bool {
+        UserDefaults.standard.bool(forKey: LegacyBiometricDefaultsKey.biometricEnabled)
     }
 
-    func removeLegacyBiometricEnabled() async {
-        defaults.removeObject(forKey: LegacyBiometricDefaultsKey.biometricEnabled)
+    func removeLegacyBiometricEnabled() {
+        UserDefaults.standard.removeObject(forKey: LegacyBiometricDefaultsKey.biometricEnabled)
     }
 }
 

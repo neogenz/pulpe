@@ -245,8 +245,8 @@ struct AppStateBiometricColdStartTests {
     // MARK: - hasReturningUser Loaded Before .unauthenticated
 
     @Test("checkAuthState loads hasReturningUser before transitioning to unauthenticated")
-    func checkAuthState_loadsReturningUserFlag_beforeUnauthenticated() async {
-        guard KeychainManager.checkAvailability() else { return }
+    func checkAuthState_loadsReturningUserFlag_beforeUnauthenticated() async throws {
+        try #require(KeychainManager.checkAvailability(), "Keychain unavailable")
         let keychain = KeychainManager.shared
 
         // Simulate a returning user with saved email
@@ -277,8 +277,8 @@ struct AppStateBiometricColdStartTests {
     // MARK: - Expired Biometric Token Cleanup
 
     @Test("clearBiometricTokens removes all biometric credentials from keychain")
-    func clearBiometricTokens_removesAllCredentials() async {
-        guard KeychainManager.checkAvailability() else { return }
+    func clearBiometricTokens_removesAllCredentials() async throws {
+        try #require(KeychainManager.checkAvailability(), "Keychain unavailable")
         let authService = AuthService.shared
         let keychain = KeychainManager.shared
 
@@ -377,8 +377,8 @@ struct AppStateBiometricColdStartTests {
     // MARK: - Session-Based Cold Start Routing (no biometric)
 
     @Test("login() sets hasReturningUser to true")
-    func login_setsHasReturningUser() async {
-        guard KeychainManager.checkAvailability() else { return }
+    func login_setsHasReturningUser() async throws {
+        try #require(KeychainManager.checkAvailability(), "Keychain unavailable")
         let keychain = KeychainManager.shared
         await keychain.clearLastUsedEmail()
 
@@ -398,8 +398,8 @@ struct AppStateBiometricColdStartTests {
     }
 
     @Test("completeOnboarding() saves email and sets hasReturningUser")
-    func completeOnboarding_savesEmailAndSetsReturningUser() async {
-        guard KeychainManager.checkAvailability() else { return }
+    func completeOnboarding_savesEmailAndSetsReturningUser() async throws {
+        try #require(KeychainManager.checkAvailability(), "Keychain unavailable")
         let keychain = KeychainManager.shared
         await keychain.clearLastUsedEmail()
 
@@ -423,8 +423,8 @@ struct AppStateBiometricColdStartTests {
     }
 
     @Test("enterSignupFlow() flips hasReturningUser to false without clearing email")
-    func enterSignupFlow_flipsReturningUserWithoutClearingEmail() async {
-        guard KeychainManager.checkAvailability() else { return }
+    func enterSignupFlow_flipsReturningUserWithoutClearingEmail() async throws {
+        try #require(KeychainManager.checkAvailability(), "Keychain unavailable")
         let keychain = KeychainManager.shared
         await keychain.saveLastUsedEmail("keep@pulpe.app")
 
@@ -447,8 +447,8 @@ struct AppStateBiometricColdStartTests {
     }
 
     @Test("checkAuthState without biometric + no session + saved email → unauthenticated with hasReturningUser")
-    func checkAuthState_noSession_savedEmail_returningUser() async {
-        guard KeychainManager.checkAvailability() else { return }
+    func checkAuthState_noSession_savedEmail_returningUser() async throws {
+        try #require(KeychainManager.checkAvailability(), "Keychain unavailable")
         let keychain = KeychainManager.shared
         await keychain.saveLastUsedEmail("returning@pulpe.app")
 
@@ -464,8 +464,8 @@ struct AppStateBiometricColdStartTests {
     }
 
     @Test("checkAuthState without biometric + no session + no email → unauthenticated without hasReturningUser")
-    func checkAuthState_noSession_noEmail_newUser() async {
-        guard KeychainManager.checkAvailability() else { return }
+    func checkAuthState_noSession_noEmail_newUser() async throws {
+        try #require(KeychainManager.checkAvailability(), "Keychain unavailable")
         let keychain = KeychainManager.shared
         await keychain.clearLastUsedEmail()
 
@@ -574,8 +574,8 @@ struct AppStateBiometricColdStartTests {
     }
 
     @Test("biometricCredentialsAvailable restored after PIN entry with successful biometric sync")
-    func biometricCredentialsAvailable_restoredAfterSuccessfulSync() async {
-        guard KeychainManager.checkAvailability() else { return }
+    func biometricCredentialsAvailable_restoredAfterSuccessfulSync() async throws {
+        try #require(KeychainManager.checkAvailability(), "Keychain unavailable")
         let clientKeyManager = ClientKeyManager.shared
         await clientKeyManager.store("test-key-for-restore", enableBiometric: false)
         defer { Task { await clientKeyManager.clearAll() } }

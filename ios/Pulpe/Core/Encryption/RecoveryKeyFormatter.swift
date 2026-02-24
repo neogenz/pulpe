@@ -23,4 +23,12 @@ public struct RecoveryKeyFormatter {
         return input.uppercased()
             .filter { allowed.contains($0) }
     }
+
+    /// Checks if the input (ignoring dashes and spaces) contains characters outside Base32 alphabet.
+    /// Valid characters are A-Z and 2-7 (RFC 4648). Dashes and spaces are valid separators.
+    public static func containsInvalidCharacters(_ input: String) -> Bool {
+        let allowed = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567- "
+        let uppercased = input.uppercased()
+        return uppercased.contains { !allowed.contains($0) }
+    }
 }

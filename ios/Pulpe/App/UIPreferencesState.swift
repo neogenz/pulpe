@@ -13,9 +13,7 @@ final class UIPreferencesState {
     var amountsHidden: Bool = false {
         didSet {
             guard !isHydrating else { return }
-            Task {
-                await UserDefaultsStore.shared.setBool(amountsHidden, forKey: UserDefaultsKey.amountsHidden)
-            }
+            UserDefaults.standard.set(amountsHidden, forKey: UserDefaultsKey.amountsHidden)
         }
     }
 
@@ -30,11 +28,8 @@ final class UIPreferencesState {
     // MARK: - Initialization
 
     init() {
-        // Load UserDefaults values asynchronously
-        Task { @MainActor in
-            isHydrating = true
-            amountsHidden = await UserDefaultsStore.shared.getBool(forKey: UserDefaultsKey.amountsHidden)
-            isHydrating = false
-        }
+        isHydrating = true
+        amountsHidden = UserDefaults.standard.bool(forKey: UserDefaultsKey.amountsHidden)
+        isHydrating = false
     }
 }

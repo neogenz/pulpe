@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -24,6 +25,7 @@ describe('RecoverVaultCode', () => {
     regenerateRecoveryKey$: ReturnType<typeof vi.fn>;
   };
   let mockDialog: { open: ReturnType<typeof vi.fn> };
+  let mockSnackBar: { open: ReturnType<typeof vi.fn> };
   let mockLogger: {
     error: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
@@ -58,6 +60,10 @@ describe('RecoverVaultCode', () => {
       open: vi.fn().mockReturnValue(mockDialogRef),
     };
 
+    mockSnackBar = {
+      open: vi.fn(),
+    };
+
     mockLogger = {
       error: vi.fn(),
       warn: vi.fn(),
@@ -72,9 +78,16 @@ describe('RecoverVaultCode', () => {
         { provide: ClientKeyService, useValue: mockClientKeyService },
         { provide: EncryptionApi, useValue: mockEncryptionApi },
         { provide: MatDialog, useValue: mockDialog },
+        { provide: MatSnackBar, useValue: mockSnackBar },
         { provide: Logger, useValue: mockLogger },
       ],
-    }).compileComponents();
+    })
+      .overrideComponent(RecoverVaultCode, {
+        set: {
+          providers: [{ provide: MatSnackBar, useValue: mockSnackBar }],
+        },
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(RecoverVaultCode);
     component = fixture.componentInstance;
@@ -383,6 +396,22 @@ describe('RecoverVaultCode', () => {
         expect(mockClientKeyService.setDirectKey).toHaveBeenCalled();
         expect(mockLogger.warn).toHaveBeenCalled();
         expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']);
+      });
+    });
+
+    it('should show snackbar warning when regenerateRecoveryKey$ fails', async () => {
+      mockEncryptionApi.regenerateRecoveryKey$.mockReturnValue(
+        throwError(() => new Error('Recovery key setup failed')),
+      );
+
+      await submitFormViaDom();
+
+      await vi.waitFor(() => {
+        expect(mockSnackBar.open).toHaveBeenCalledWith(
+          expect.stringContaining('clé de récupération'),
+          'OK',
+          expect.objectContaining({ duration: 8000 }),
+        );
       });
     });
   });

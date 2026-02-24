@@ -32,14 +32,7 @@ final class BudgetDetailsViewModel {
     private(set) var nextBudgetId: String?
 
     // Filter state - persisted to UserDefaults
-    var checkedFilter: CheckedFilterOption {
-        didSet {
-            UserDefaults.standard.set(
-                checkedFilter == .unchecked,
-                forKey: BudgetDetailsUserDefaultsKey.showOnlyUnchecked
-            )
-        }
-    }
+    private(set) var checkedFilter: CheckedFilterOption
 
     var isShowingOnlyUnchecked: Bool { checkedFilter == .unchecked }
 
@@ -58,6 +51,14 @@ final class BudgetDetailsViewModel {
             forKey: BudgetDetailsUserDefaultsKey.showOnlyUnchecked
         ) as? Bool ?? true
         self.checkedFilter = showOnlyUnchecked ? .unchecked : .all
+    }
+
+    func setCheckedFilter(_ filter: CheckedFilterOption) {
+        checkedFilter = filter
+        UserDefaults.standard.set(
+            filter == .unchecked,
+            forKey: BudgetDetailsUserDefaultsKey.showOnlyUnchecked
+        )
     }
 
     var hasPreviousBudget: Bool { previousBudgetId != nil }

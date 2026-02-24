@@ -42,220 +42,136 @@ struct RegistrationStep: View {
             onNext: { Task { await submitRegistration() } },
             content: {
                 VStack(spacing: DesignTokens.Spacing.xxl) {
-                Text("Crée ton compte pour sauvegarder ton budget")
-                    .font(PulpeTypography.body.weight(.medium))
-                    .foregroundStyle(Color.textPrimaryOnboarding)
-                    .multilineTextAlignment(.center)
-                    .padding(.bottom, DesignTokens.Spacing.sm)
-
-                // Email
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text("Email")
-                        .font(PulpeTypography.buttonSecondary)
+                    Text("Crée ton compte pour sauvegarder ton budget")
+                        .font(PulpeTypography.body.weight(.medium))
                         .foregroundStyle(Color.textPrimaryOnboarding)
+                        .multilineTextAlignment(.center)
+                        .padding(.bottom, DesignTokens.Spacing.sm)
 
-                    TextField("ton@email.com", text: Binding(
-                        get: { state.email },
-                        set: { state.email = $0 }
-                    ))
-                    .textContentType(.emailAddress)
-                    .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .focused($focusedField, equals: .email)
-                    .font(PulpeTypography.body)
-                    .foregroundStyle(Color.authInputText)
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .frame(height: DesignTokens.FrameHeight.button)
-                    .background {
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                            .fill(Color.authInputBackground)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                                    .strokeBorder(
-                                        focusedField == .email ? Color.pulpePrimary.opacity(0.6) :
-                                            Color.authInputBorder,
-                                        lineWidth: focusedField == .email ? 2 : 1
-                                    )
-                            }
-                    }
-                    .shadow(
-                        color: focusedField == .email ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05),
-                        radius: focusedField == .email ? 12 : 4,
-                        y: 4
-                    )
-                    .scaleEffect(focusedField == .email ? 1.01 : 1)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
+                    emailSection
+                    passwordSection
+                    confirmPasswordSection
+                    termsCheckbox
                 }
-
-                // Password
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text("Mot de passe")
-                        .font(PulpeTypography.buttonSecondary)
-                        .foregroundStyle(Color.textPrimaryOnboarding)
-
-                    HStack(spacing: DesignTokens.Spacing.md) {
-                        Group {
-                            if showPassword {
-                                TextField("••••••••", text: $password)
-                            } else {
-                                SecureField("••••••••", text: $password)
-                            }
-                        }
-                        .textContentType(.newPassword)
-                        .focused($focusedField, equals: .password)
-                        .font(PulpeTypography.body)
-                        .foregroundStyle(Color.authInputText)
-
-                        Button {
-                            withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
-                                showPassword.toggle()
-                            }
-                        } label: {
-                            Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
-                                .font(PulpeTypography.body)
-                                .foregroundStyle(Color.authInputText.opacity(0.6))
-                                .contentTransition(.symbolEffect(.replace))
-                        }
-                        .accessibilityLabel(showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe")
-                    }
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .frame(height: DesignTokens.FrameHeight.button)
-                    .background {
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                            .fill(Color.authInputBackground)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                                    .strokeBorder(
-                                        focusedField == .password ? Color.pulpePrimary.opacity(0.6) :
-                                            Color.authInputBorder,
-                                        lineWidth: focusedField == .password ? 2 : 1
-                                    )
-                            }
-                    }
-                    .shadow(
-                        color: focusedField == .password ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05),
-                        radius: focusedField == .password ? 12 : 4,
-                        y: 4
-                    )
-                    .scaleEffect(focusedField == .password ? 1.01 : 1)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
-
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        passwordCriteriaRow(
-                            met: hasMinLength,
-                            text: "8 caractères minimum"
-                        )
-                        passwordCriteriaRow(
-                            met: hasNumber,
-                            text: "Au moins un chiffre"
-                        )
-                    }
-                }
-
-                // Password confirmation
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text("Confirmer le mot de passe")
-                        .font(PulpeTypography.buttonSecondary)
-                        .foregroundStyle(Color.textPrimaryOnboarding)
-
-                    HStack(spacing: DesignTokens.Spacing.md) {
-                        Group {
-                            if showPasswordConfirmation {
-                                TextField("••••••••", text: $passwordConfirmation)
-                            } else {
-                                SecureField("••••••••", text: $passwordConfirmation)
-                            }
-                        }
-                        .textContentType(.newPassword)
-                        .focused($focusedField, equals: .passwordConfirmation)
-                        .font(PulpeTypography.body)
-                        .foregroundStyle(Color.authInputText)
-
-                        Button {
-                            withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
-                                showPasswordConfirmation.toggle()
-                            }
-                        } label: {
-                            Image(systemName: showPasswordConfirmation ? "eye.slash.fill" : "eye.fill")
-                                .font(PulpeTypography.body)
-                                .foregroundStyle(Color.authInputText.opacity(0.6))
-                                .contentTransition(.symbolEffect(.replace))
-                        }
-                        .accessibilityLabel(
-                            showPasswordConfirmation ? "Masquer le mot de passe" : "Afficher le mot de passe"
-                        )
-                    }
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .frame(height: DesignTokens.FrameHeight.button)
-                    .background {
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                            .fill(passwordMismatch ? Color.errorBackground : Color.authInputBackground)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                                    .strokeBorder(
-                                        passwordMismatch ? Color.errorPrimary.opacity(0.5) :
-                                            focusedField == .passwordConfirmation ? Color.pulpePrimary.opacity(0.6)
-                                            : Color.authInputBorder,
-                                        lineWidth: focusedField == .passwordConfirmation || passwordMismatch ? 2 : 1
-                                    )
-                            }
-                    }
-                    .shadow(
-                        color: focusedField == .passwordConfirmation ? Color.pulpePrimary.opacity(0.2)
-                            : Color.black.opacity(0.05),
-                        radius: focusedField == .passwordConfirmation ? 12 : 4,
-                        y: 4
-                    )
-                    .scaleEffect(focusedField == .passwordConfirmation ? 1.01 : 1)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
-
-                    if passwordMismatch {
-                        Text("Les mots de passe ne correspondent pas")
-                            .font(PulpeTypography.caption)
-                            .foregroundStyle(Color.errorPrimary)
-                    }
-                }
-
-                // Terms acceptance - modern checkbox
-                Button {
-                    state.acceptTerms.toggle()
-                } label: {
-                    HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm, style: .continuous)
-                                .strokeBorder(
-                                    state.acceptTerms ? Color.pulpePrimary :
-                                        Color.textPrimaryOnboarding.opacity(0.4),
-                                    lineWidth: 2
-                                )
-                                .frame(width: 24, height: 24)
-                                .background {
-                                    if !state.acceptTerms {
-                                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm, style: .continuous)
-                                            .fill(Color.authInputBackground)
-                                    }
-                                }
-
-                            if state.acceptTerms {
-                                Image(systemName: "checkmark")
-                                    .font(.caption.weight(.bold))
-                                    .foregroundStyle(Color.pulpePrimary)
-                                    .transition(.scale.combined(with: .opacity))
-                            }
-                        }
-                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: state.acceptTerms)
-
-                        Text("J'accepte les [conditions d'utilisation](https://pulpe.app/terms) et la [politique de confidentialité](https://pulpe.app/privacy)")
-                            .font(PulpeTypography.footnote)
-                            .foregroundStyle(Color.textPrimaryOnboarding)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-                .buttonStyle(.plain)
             }
-        })
+        )
+    }
+}
+
+// MARK: - Sections
+
+extension RegistrationStep {
+    private var emailSection: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text("Email")
+                .font(PulpeTypography.buttonSecondary)
+                .foregroundStyle(Color.textPrimaryOnboarding)
+
+            AuthTextField(
+                placeholder: "ton@email.com",
+                text: Binding(
+                    get: { state.email },
+                    set: { state.email = $0 }
+                ),
+                isFocused: focusedField == .email
+            )
+            .textContentType(.emailAddress)
+            .keyboardType(.emailAddress)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .focused($focusedField, equals: .email)
+        }
+    }
+
+    private var passwordSection: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text("Mot de passe")
+                .font(PulpeTypography.buttonSecondary)
+                .foregroundStyle(Color.textPrimaryOnboarding)
+
+            AuthSecureField(
+                placeholder: "••••••••",
+                text: $password,
+                isVisible: $showPassword,
+                isFocused: focusedField == .password
+            )
+            .textContentType(.newPassword)
+            .focused($focusedField, equals: .password)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                passwordCriteriaRow(
+                    met: hasMinLength,
+                    text: "8 caractères minimum"
+                )
+                passwordCriteriaRow(
+                    met: hasNumber,
+                    text: "Au moins un chiffre"
+                )
+            }
+        }
+    }
+
+    private var confirmPasswordSection: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text("Confirmer le mot de passe")
+                .font(PulpeTypography.buttonSecondary)
+                .foregroundStyle(Color.textPrimaryOnboarding)
+
+            AuthSecureField(
+                placeholder: "••••••••",
+                text: $passwordConfirmation,
+                isVisible: $showPasswordConfirmation,
+                isFocused: focusedField == .passwordConfirmation,
+                hasError: passwordMismatch
+            )
+            .textContentType(.newPassword)
+            .focused($focusedField, equals: .passwordConfirmation)
+
+            if passwordMismatch {
+                Text("Les mots de passe ne correspondent pas")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.errorPrimary)
+            }
+        }
+    }
+
+    private var termsCheckbox: some View {
+        Button {
+            state.acceptTerms.toggle()
+        } label: {
+            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm, style: .continuous)
+                        .strokeBorder(
+                            state.acceptTerms ? Color.pulpePrimary :
+                                Color.textPrimaryOnboarding.opacity(0.4),
+                            lineWidth: 2
+                        )
+                        .frame(width: 24, height: 24)
+                        .background {
+                            if !state.acceptTerms {
+                                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm, style: .continuous)
+                                    .fill(Color.authInputBackground)
+                            }
+                        }
+
+                    if state.acceptTerms {
+                        Image(systemName: "checkmark")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Color.pulpePrimary)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: state.acceptTerms)
+
+                Text("J'accepte les [conditions d'utilisation](https://pulpe.app/terms) et la [politique de confidentialité](https://pulpe.app/privacy)")
+                    .font(PulpeTypography.footnote)
+                    .foregroundStyle(Color.textPrimaryOnboarding)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private func passwordCriteriaRow(met: Bool, text: String) -> some View {

@@ -14,10 +14,15 @@ struct EditBudgetLineSheet: View {
     @FocusState private var isAmountFocused: Bool
     @State private var amountText: String
 
-    private let budgetLineService = BudgetLineService.shared
+    private let dependencies: EditBudgetLineDependencies
 
-    init(budgetLine: BudgetLine, onUpdate: @escaping (BudgetLine) -> Void) {
+    init(
+        budgetLine: BudgetLine,
+        dependencies: EditBudgetLineDependencies = .live,
+        onUpdate: @escaping (BudgetLine) -> Void
+    ) {
         self.budgetLine = budgetLine
+        self.dependencies = dependencies
         self.onUpdate = onUpdate
         _name = State(initialValue: budgetLine.name)
         _amount = State(initialValue: budgetLine.amount)
@@ -152,13 +157,23 @@ struct EditBudgetLineSheet: View {
         )
 
         do {
-            let updatedLine = try await budgetLineService.updateBudgetLine(id: budgetLine.id, data: data)
+            let updatedLine = try await dependencies.updateBudgetLine(budgetLine.id, data)
             onUpdate(updatedLine)
             dismiss()
         } catch {
             self.error = error
         }
     }
+}
+
+struct EditBudgetLineDependencies: Sendable {
+    var updateBudgetLine: @Sendable (String, BudgetLineUpdate) async throws -> BudgetLine
+
+    static let live = EditBudgetLineDependencies(
+        updateBudgetLine: { id, data in
+            try await BudgetLineService.shared.updateBudgetLine(id: id, data: data)
+        }
+    )
 }
 
 #Preview {

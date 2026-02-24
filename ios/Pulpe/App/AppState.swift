@@ -141,7 +141,11 @@ final class AppState {
         self.validateBiometricSession =
             validateBiometricSession ?? Self.defaultValidateBiometricSession(authService)
 
-        // Load persisted values asynchronously
+        // Eagerly start loading persisted values so they may be ready before checkAuthState() runs.
+        // SAFETY: No race with checkAuthState() — both paths use idempotent "ensure" methods
+        // guarded by `returningUserFlagLoaded` and `biometricPreferenceLoaded` flags.
+        // If this Task completes first, checkAuthState() skips the loads; if checkAuthState()
+        // runs first, this Task's loads become no-ops.
         Task { @MainActor in
             if !returningUserFlagLoaded {
                 hasReturningUser = await keychainManager.getLastUsedEmail() != nil

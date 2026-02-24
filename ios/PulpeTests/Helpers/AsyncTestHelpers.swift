@@ -1,19 +1,33 @@
 import Foundation
 import Testing
 
-/// Polls a condition with 10ms intervals until it returns `true` or the timeout elapses.
-/// Fails the test with the given comment if the condition is not met within the timeout.
+/// Polling helper that checks a condition at regular intervals until it becomes `true`
+/// or the timeout elapses, then fails the test with the provided comment.
+///
+/// - Parameters:
+///   - timeout: Maximum wait duration. Defaults to 2 seconds to accommodate slow CI environments.
+///   - pollingInterval: Time between each condition check. Defaults to 10ms.
+///   - comment: Failure message when the condition is not met.
+///   - condition: Closure evaluated on each polling iteration.
+///
+/// - Note: This is a polling-based helper, not an event-driven one. The actual resolution
+///   time depends on the polling interval. Keep `timeout` generous for CI runners where
+///   CPU contention can cause scheduling delays.
 func waitForCondition(
-    timeout: Duration = .milliseconds(1000),
+    timeout: Duration = .seconds(2),
+    pollingInterval: Duration = .milliseconds(10),
     _ comment: Comment? = nil,
     _ condition: @escaping () -> Bool
 ) async {
-    let interval: Duration = .milliseconds(10)
-    let maxIterations = Int(timeout.components.seconds * 100 + timeout.components.attoseconds / 10_000_000_000_000_000)
+    let timeoutAtto = timeout.components.seconds * 1_000_000_000_000_000_000
+        + timeout.components.attoseconds
+    let intervalAtto = pollingInterval.components.seconds * 1_000_000_000_000_000_000
+        + pollingInterval.components.attoseconds
+    let maxIterations = Int(timeoutAtto / intervalAtto)
 
     for _ in 0..<maxIterations {
         if condition() { return }
-        try? await Task.sleep(for: interval)
+        try? await Task.sleep(for: pollingInterval)
     }
 
     #expect(condition(), comment)

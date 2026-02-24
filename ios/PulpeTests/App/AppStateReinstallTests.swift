@@ -8,8 +8,8 @@ import Testing
 @MainActor
 @Suite(.serialized)
 struct AppStateReinstallTests {
-    private func requiresKeychainAvailability() -> Bool {
-        KeychainManager.checkAvailability()
+    private func requireKeychainAvailability() throws {
+        try #require(KeychainManager.checkAvailability(), "Keychain unavailable")
     }
 
     // Clean keychain state before each test to ensure isolation
@@ -20,8 +20,8 @@ struct AppStateReinstallTests {
     // MARK: - Returning User Flag Persistence
 
     @Test("Last used email persists in Keychain as returning user indicator")
-    func lastUsedEmail_persistsInKeychain() async {
-        guard requiresKeychainAvailability() else { return }
+    func lastUsedEmail_persistsInKeychain() async throws {
+        try requireKeychainAvailability()
         let keychain = KeychainManager.shared
 
         // Clean state
@@ -37,8 +37,8 @@ struct AppStateReinstallTests {
     }
 
     @Test("Returning user flag survives AppState recreation")
-    func returningUser_survivesAppStateRecreation() async {
-        guard requiresKeychainAvailability() else { return }
+    func returningUser_survivesAppStateRecreation() async throws {
+        try requireKeychainAvailability()
         let keychain = KeychainManager.shared
 
         // Simulate: user logged in during previous session
@@ -77,8 +77,8 @@ struct AppStateReinstallTests {
     }
 
     @Test("User with saved email routes to login not welcome")
-    func returningUser_routesToLogin() async {
-        guard requiresKeychainAvailability() else { return }
+    func returningUser_routesToLogin() async throws {
+        try requireKeychainAvailability()
         let keychain = KeychainManager.shared
 
         // Simulate: returning user who logged in before
@@ -101,8 +101,8 @@ struct AppStateReinstallTests {
     }
 
     @Test("New user without saved email routes to welcome")
-    func newUser_routesToWelcome() async {
-        guard requiresKeychainAvailability() else { return }
+    func newUser_routesToWelcome() async throws {
+        try requireKeychainAvailability()
         let keychain = KeychainManager.shared
 
         // Simulate: fresh install, no email saved
@@ -123,8 +123,8 @@ struct AppStateReinstallTests {
     // MARK: - Keychain vs UserDefaults Behavior
 
     @Test("Keychain persists across app reinstall simulation")
-    func keychain_persistsAcrossReinstall() async {
-        guard requiresKeychainAvailability() else { return }
+    func keychain_persistsAcrossReinstall() async throws {
+        try requireKeychainAvailability()
         let keychain = KeychainManager.shared
 
         // Step 1: User logs in (email stored in Keychain)

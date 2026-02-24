@@ -83,8 +83,8 @@ struct AppStateBiometricKeyValidationTests {
     // MARK: - attemptBiometricSessionValidation Tests
 
     @Test("attemptBiometricSessionValidation stores key when valid during cold start")
-    func attemptBiometricSessionValidation_validKey_storesKey() async {
-        guard KeychainManager.checkAvailability() else { return }
+    func attemptBiometricSessionValidation_validKey_storesKey() async throws {
+        try #require(KeychainManager.checkAvailability(), "Keychain unavailable")
 
         let testUser = UserInfo(
             id: "test-user-id",
@@ -123,8 +123,8 @@ struct AppStateBiometricKeyValidationTests {
     }
 
     @Test("attemptBiometricSessionValidation clears biometric state when key is stale")
-    func attemptBiometricSessionValidation_staleKey_clearsState() async {
-        guard KeychainManager.checkAvailability() else { return }
+    func attemptBiometricSessionValidation_staleKey_clearsState() async throws {
+        try #require(KeychainManager.checkAvailability(), "Keychain unavailable")
 
         let testUser = UserInfo(
             id: "test-user-id",
@@ -162,8 +162,8 @@ struct AppStateBiometricKeyValidationTests {
     // MARK: - Key Validation Error Paths
 
     @Test("stale key in attemptBiometricUnlock clears clientKeyManager")
-    func attemptBiometricUnlock_staleKey_clearsClientKeyManager() async {
-        guard KeychainManager.checkAvailability() else { return }
+    func attemptBiometricUnlock_staleKey_clearsClientKeyManager() async throws {
+        try #require(KeychainManager.checkAvailability(), "Keychain unavailable")
 
         let clientKeyManager = ClientKeyManager.shared
 

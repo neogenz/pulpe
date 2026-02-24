@@ -15,139 +15,11 @@ struct AccountView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section {
-                    LabeledContent("E-mail", value: appState.currentUser?.email ?? "Non connecté(e)")
-                } header: {
-                    Text("INFORMATIONS PERSONNELLES")
-                        .font(PulpeTypography.labelLarge)
-                }
-                .listRowBackground(Color.surfaceCard)
-
-                Section {
-                    LabeledContent("Code PIN") {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                    }
-
-                    if BiometricService.shared.canUseBiometrics() {
-                        Toggle(
-                            BiometricService.shared.biometryDisplayName,
-                            isOn: $biometricToggle
-                        )
-                        .onChange(of: biometricToggle) { _, newValue in
-                            guard newValue != appState.biometricEnabled else { return }
-                            if newValue {
-                                Task {
-                                    let displayName = BiometricService.shared.biometryDisplayName
-                                    let success = await appState.enableBiometric()
-                                    if success {
-                                        appState.toastManager.show("\(displayName) activé", type: .success)
-                                    } else {
-                                        appState.toastManager.show("Impossible d'activer \(displayName)", type: .error)
-                                    }
-                                    biometricToggle = appState.biometricEnabled
-                                }
-                            } else {
-                                biometricToggle = true
-                                showDisableBiometricConfirmation = true
-                            }
-                        }
-                    }
-
-                    LabeledContent("Mot de passe") {
-                        Button("Changer") {
-                            showChangePassword = true
-                        }
-                        .buttonStyle(.bordered)
-                        .buttonBorderShape(.capsule)
-                        .tint(.pulpePrimary)
-                    }
-
-                    LabeledContent("Clé de secours") {
-                        Button("Régénérer") {
-                            securityViewModel.showConfirmPassword = true
-                        }
-                        .buttonStyle(.bordered)
-                        .buttonBorderShape(.capsule)
-                        .tint(.pulpePrimary)
-                        .disabled(securityViewModel.isRegenerating)
-                    }
-                } header: {
-                    Text("SÉCURITÉ")
-                        .font(PulpeTypography.labelLarge)
-                }
-                .listRowBackground(Color.surfaceCard)
-
-                Section {
-                    LabeledContent("Version", value: AppConfiguration.appVersion)
-                    LabeledContent("Build", value: AppConfiguration.buildNumber)
-
-                    if isDebugVisible {
-                        Group {
-                            LabeledContent("Environnement", value: AppConfiguration.environment.rawValue)
-                            LabeledContent("API") {
-                                Text(AppConfiguration.apiBaseURL.host() ?? AppConfiguration.apiBaseURL.absoluteString)
-                                    .font(.footnote.monospaced())
-                            }
-                            LabeledContent("Supabase") {
-                                Text(AppConfiguration.supabaseURL.host() ?? AppConfiguration.supabaseURL.absoluteString)
-                                    .font(.footnote.monospaced())
-                            }
-                            LabeledContent("Anon Key") {
-                                Text(AppConfiguration.supabaseAnonKey)
-                                    .font(.caption2.monospaced())
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                            }
-                        }
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                    }
-                } header: {
-                    Text("APPLICATION")
-                        .font(PulpeTypography.labelLarge)
-                        .onLongPressGesture(minimumDuration: 5) {
-                            debugToggleTrigger.toggle()
-                            withAnimation(.easeInOut(duration: 0.3)) { isDebugVisible.toggle() }
-                        }
-                }
-                .listRowBackground(Color.surfaceCard)
-
-                Section {
-                    Button {
-                        showLogoutConfirmation = true
-                    } label: {
-                        Text("Déconnexion")
-                            .foregroundStyle(Color.errorPrimary)
-                    }
-                }
-                .listRowBackground(Color.surfaceCard)
-
-                Section {
-                    HStack(spacing: DesignTokens.Spacing.md) {
-                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                            Text("Supprimer mon compte")
-                                .font(PulpeTypography.labelLarge)
-                                .foregroundStyle(Color.destructivePrimary)
-                            Text("Tes données seront supprimées définitivement après 3 jours.")
-                                .font(PulpeTypography.labelMedium)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Spacer(minLength: 0)
-
-                        Button("Supprimer") {
-                            showDeleteConfirmation = true
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .buttonBorderShape(.capsule)
-                        .tint(.destructivePrimary)
-                    }
-                } header: {
-                    Text("ZONE DE DANGER")
-                        .font(PulpeTypography.labelLarge)
-                        .foregroundStyle(Color.destructivePrimary)
-                }
-                .listRowBackground(Color.destructiveBackground)
+                personalInfoSection
+                securitySection
+                applicationSection
+                logoutSection
+                dangerZoneSection
             }
             .onAppear {
                 biometricToggle = appState.biometricEnabled
@@ -243,6 +115,154 @@ struct AccountView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Sections
+
+extension AccountView {
+    private var personalInfoSection: some View {
+        Section {
+            LabeledContent("E-mail", value: appState.currentUser?.email ?? "Non connecté(e)")
+        } header: {
+            Text("INFORMATIONS PERSONNELLES")
+                .font(PulpeTypography.labelLarge)
+        }
+        .listRowBackground(Color.surfaceCard)
+    }
+
+    private var securitySection: some View {
+        Section {
+            LabeledContent("Code PIN") {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+            }
+
+            if BiometricService.shared.canUseBiometrics() {
+                Toggle(
+                    BiometricService.shared.biometryDisplayName,
+                    isOn: $biometricToggle
+                )
+                .onChange(of: biometricToggle) { _, newValue in
+                    guard newValue != appState.biometricEnabled else { return }
+                    if newValue {
+                        Task {
+                            let displayName = BiometricService.shared.biometryDisplayName
+                            let success = await appState.enableBiometric()
+                            if success {
+                                appState.toastManager.show("\(displayName) activé", type: .success)
+                            } else {
+                                appState.toastManager.show("Impossible d'activer \(displayName)", type: .error)
+                            }
+                            biometricToggle = appState.biometricEnabled
+                        }
+                    } else {
+                        biometricToggle = true
+                        showDisableBiometricConfirmation = true
+                    }
+                }
+            }
+
+            LabeledContent("Mot de passe") {
+                Button("Changer") {
+                    showChangePassword = true
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.capsule)
+                .tint(.pulpePrimary)
+            }
+
+            LabeledContent("Clé de secours") {
+                Button("Régénérer") {
+                    securityViewModel.showConfirmPassword = true
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.capsule)
+                .tint(.pulpePrimary)
+                .disabled(securityViewModel.isRegenerating)
+            }
+        } header: {
+            Text("SÉCURITÉ")
+                .font(PulpeTypography.labelLarge)
+        }
+        .listRowBackground(Color.surfaceCard)
+    }
+
+    private var applicationSection: some View {
+        Section {
+            LabeledContent("Version", value: AppConfiguration.appVersion)
+            LabeledContent("Build", value: AppConfiguration.buildNumber)
+
+            if isDebugVisible {
+                Group {
+                    LabeledContent("Environnement", value: AppConfiguration.environment.rawValue)
+                    LabeledContent("API") {
+                        Text(AppConfiguration.apiBaseURL.host() ?? AppConfiguration.apiBaseURL.absoluteString)
+                            .font(.footnote.monospaced())
+                    }
+                    LabeledContent("Supabase") {
+                        Text(AppConfiguration.supabaseURL.host() ?? AppConfiguration.supabaseURL.absoluteString)
+                            .font(.footnote.monospaced())
+                    }
+                    LabeledContent("Anon Key") {
+                        Text(AppConfiguration.supabaseAnonKey)
+                            .font(.caption2.monospaced())
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        } header: {
+            Text("APPLICATION")
+                .font(PulpeTypography.labelLarge)
+                .onLongPressGesture(minimumDuration: 5) {
+                    debugToggleTrigger.toggle()
+                    withAnimation(.easeInOut(duration: 0.3)) { isDebugVisible.toggle() }
+                }
+        }
+        .listRowBackground(Color.surfaceCard)
+    }
+
+    private var logoutSection: some View {
+        Section {
+            Button {
+                showLogoutConfirmation = true
+            } label: {
+                Text("Déconnexion")
+                    .foregroundStyle(Color.errorPrimary)
+            }
+        }
+        .listRowBackground(Color.surfaceCard)
+    }
+
+    private var dangerZoneSection: some View {
+        Section {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text("Supprimer mon compte")
+                        .font(PulpeTypography.labelLarge)
+                        .foregroundStyle(Color.destructivePrimary)
+                    Text("Tes données seront supprimées définitivement après 3 jours.")
+                        .font(PulpeTypography.labelMedium)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 0)
+
+                Button("Supprimer") {
+                    showDeleteConfirmation = true
+                }
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.capsule)
+                .tint(.destructivePrimary)
+            }
+        } header: {
+            Text("ZONE DE DANGER")
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.destructivePrimary)
+        }
+        .listRowBackground(Color.destructiveBackground)
     }
 }
 
