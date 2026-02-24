@@ -1,4 +1,5 @@
 import { Injectable, inject, DestroyRef } from '@angular/core';
+import { Router } from '@angular/router';
 import {
   createClient,
   type Session,
@@ -8,15 +9,20 @@ import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { AuthStateService, type AuthState } from './auth-state.service';
 import { AuthErrorLocalizer } from './auth-error-localizer';
-import { AUTH_ERROR_MESSAGES } from './auth-constants';
+import {
+  AUTH_ERROR_MESSAGES,
+  SCHEDULED_DELETION_PARAMS,
+} from './auth-constants';
 import { AuthCleanupService } from './auth-cleanup.service';
 import { isE2EMode, type E2EWindow } from './e2e-window';
+import { ROUTES } from '@core/routing/routes-constants';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthSessionService {
   readonly #state = inject(AuthStateService);
+  readonly #router = inject(Router);
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
   readonly #logger = inject(Logger);
@@ -92,11 +98,21 @@ export class AuthSessionService {
               event === 'USER_UPDATED') &&
             session?.user?.user_metadata?.['scheduledDeletionAt']
           ) {
+            const deletionDate =
+              session.user.user_metadata['scheduledDeletionAt'];
             this.#logger.warn(
               'User account scheduled for deletion detected, signing out',
               { userId: session.user.id },
             );
-            this.signOut();
+            this.signOut().finally(() => {
+              this.#router.navigate(['/', ROUTES.LOGIN], {
+                queryParams: {
+                  [SCHEDULED_DELETION_PARAMS.REASON]:
+                    SCHEDULED_DELETION_PARAMS.REASON_VALUE,
+                  [SCHEDULED_DELETION_PARAMS.DATE]: String(deletionDate),
+                },
+              });
+            });
             return;
           }
 

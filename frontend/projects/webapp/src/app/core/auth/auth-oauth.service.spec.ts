@@ -127,14 +127,14 @@ describe('AuthOAuthService', () => {
     });
   });
 
-  describe('signInWithGoogle', () => {
-    it('should call Supabase OAuth with correct redirect URL', async () => {
+  describe('signInWithOAuth', () => {
+    it('should call Supabase OAuth with correct provider and redirect URL', async () => {
       vi.mocked(mockSupabaseClient.auth.signInWithOAuth).mockResolvedValue({
         data: { provider: 'google', url: 'https://google.com/oauth' },
         error: null,
       } as const);
 
-      const result = await service.signInWithGoogle();
+      const result = await service.signInWithOAuth('google');
 
       expect(result).toEqual({ success: true });
       expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith({
@@ -152,7 +152,7 @@ describe('AuthOAuthService', () => {
         error,
       } as const);
 
-      const result = await service.signInWithGoogle();
+      const result = await service.signInWithOAuth('google');
 
       expect(result).toEqual({
         success: false,
@@ -163,27 +163,27 @@ describe('AuthOAuthService', () => {
       );
     });
 
-    it('should return google connection error when exception occurs', async () => {
+    it('should return oauth connection error when exception occurs', async () => {
       vi.mocked(mockSupabaseClient.auth.signInWithOAuth).mockRejectedValue(
         new Error('Network error'),
       );
 
-      const result = await service.signInWithGoogle();
+      const result = await service.signInWithOAuth('google');
 
       expect(result).toEqual({
         success: false,
-        error: AUTH_ERROR_MESSAGES.GOOGLE_CONNECTION_ERROR,
+        error: AUTH_ERROR_MESSAGES.OAUTH_CONNECTION_ERROR,
       });
     });
 
     it('should bypass Supabase in E2E mode', async () => {
       (window as E2EWindow).__E2E_AUTH_BYPASS__ = true;
 
-      const result = await service.signInWithGoogle();
+      const result = await service.signInWithOAuth('google');
 
       expect(result).toEqual({ success: true });
       expect(mockLogger.info).toHaveBeenCalledWith(
-        '🎭 Mode test E2E: Simulation du signin Google',
+        '🎭 Mode test E2E: Simulation du signin google',
       );
       expect(mockSupabaseClient.auth.signInWithOAuth).not.toHaveBeenCalled();
     });

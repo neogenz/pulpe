@@ -29,6 +29,7 @@ describe('AuthCredentialsService', () => {
 
     mockSession = {
       getClient: vi.fn().mockReturnValue(mockSupabaseClient),
+      signOut: vi.fn().mockResolvedValue(undefined),
     };
 
     mockState = {
@@ -43,6 +44,7 @@ describe('AuthCredentialsService', () => {
 
     mockLogger = {
       info: vi.fn(),
+      warn: vi.fn(),
       error: vi.fn(),
     };
 
@@ -117,6 +119,35 @@ describe('AuthCredentialsService', () => {
         success: false,
         error: AUTH_ERROR_MESSAGES.UNEXPECTED_LOGIN_ERROR,
       });
+    });
+
+    it('should return harmonized message with Swiss date format when account is scheduled for deletion', async () => {
+      const deletionDate = '2026-02-26T00:00:00Z';
+      vi.mocked(mockSupabaseClient.auth.signInWithPassword).mockResolvedValue({
+        data: {
+          user: {
+            id: 'user-123',
+            user_metadata: { scheduledDeletionAt: deletionDate },
+          } as unknown as User,
+          session: {
+            user: {
+              id: 'user-123',
+              user_metadata: { scheduledDeletionAt: deletionDate },
+            },
+          } as unknown as Session,
+        },
+        error: null,
+      } satisfies AuthSessionResult);
+
+      const result = await service.signInWithEmail(
+        'test@example.com',
+        'password',
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe(
+        "Ton compte est programmé pour suppression le 26.02.2026. Si c'est une erreur, contacte le support.",
+      );
     });
 
     it('should bypass Supabase in E2E mode', async () => {

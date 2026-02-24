@@ -33,6 +33,23 @@ export class AuthStateService {
     );
   });
 
+  readonly isOAuthOnly = computed(() => {
+    const user = this.#userSignal();
+    if (!user) return false;
+
+    const providers: string[] | undefined = user.app_metadata?.['providers'];
+    if (providers?.length) {
+      return providers.every((provider) => provider !== 'email');
+    }
+
+    const identities = user.identities;
+    if (identities?.length) {
+      return identities.every((identity) => identity.provider !== 'email');
+    }
+
+    return false;
+  });
+
   readonly authState = computed<AuthState>(() => ({
     user: this.#userSignal(),
     session: this.#sessionSignal(),

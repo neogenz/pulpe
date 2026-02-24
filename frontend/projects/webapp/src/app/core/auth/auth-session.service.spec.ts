@@ -10,13 +10,16 @@ import {
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
+import { Router } from '@angular/router';
 import { AuthSessionService } from './auth-session.service';
 import { AuthStateService } from './auth-state.service';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { AuthErrorLocalizer } from './auth-error-localizer';
+import { SCHEDULED_DELETION_PARAMS } from './auth-constants';
 import { type E2EWindow } from './e2e-window';
 import { AuthCleanupService } from './auth-cleanup.service';
+import { ROUTES } from '@core/routing/routes-constants';
 import {
   createMockSupabaseClient,
   type MockSupabaseClient,
@@ -51,6 +54,9 @@ describe('AuthSessionService', () => {
   let mockSupabaseClient: MockSupabaseClient;
   let mockCleanup: {
     performCleanup: Mock;
+  };
+  let mockRouter: {
+    navigate: Mock;
   };
   let mockUserSignal: ReturnType<typeof signal<User | null>>;
 
@@ -112,6 +118,10 @@ describe('AuthSessionService', () => {
       performCleanup: vi.fn(),
     };
 
+    mockRouter = {
+      navigate: vi.fn(),
+    };
+
     mockSupabaseClient = createMockSupabaseClient();
 
     // Configure the mock BEFORE creating the service
@@ -125,6 +135,7 @@ describe('AuthSessionService', () => {
         { provide: Logger, useValue: mockLogger },
         { provide: AuthErrorLocalizer, useValue: mockErrorLocalizer },
         { provide: AuthCleanupService, useValue: mockCleanup },
+        { provide: Router, useValue: mockRouter },
       ],
     });
 
@@ -203,6 +214,43 @@ describe('AuthSessionService', () => {
     );
     expect(mockAuthState.setLoading).not.toHaveBeenCalled();
     expect(mockSupabaseClient.auth.onAuthStateChange).not.toHaveBeenCalled();
+  });
+
+  it('should sign out and navigate to login with scheduled-deletion params on SIGNED_IN with scheduledDeletionAt', async () => {
+    const deletionDate = '2026-02-26T00:00:00Z';
+    const sessionWithDeletion: Session = {
+      ...mockSession,
+      user: {
+        ...mockSession.user,
+        user_metadata: { scheduledDeletionAt: deletionDate },
+      },
+    };
+
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
+    mockSupabaseClient.auth.signOut.mockResolvedValue({ error: null });
+
+    const callback = captureAuthStateChangeCallback(mockSupabaseClient);
+
+    await service.initializeAuthState();
+
+    callback('SIGNED_IN', sessionWithDeletion);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      'User account scheduled for deletion detected, signing out',
+      { userId: sessionWithDeletion.user.id },
+    );
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/', ROUTES.LOGIN], {
+      queryParams: {
+        [SCHEDULED_DELETION_PARAMS.REASON]:
+          SCHEDULED_DELETION_PARAMS.REASON_VALUE,
+        [SCHEDULED_DELETION_PARAMS.DATE]: deletionDate,
+      },
+    });
   });
 
   it('should update auth state on SIGNED_IN event', async () => {

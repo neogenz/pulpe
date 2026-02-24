@@ -26,6 +26,7 @@ import { isApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsApi } from '@core/user-settings';
 import { AuthSessionService } from '@core/auth/auth-session.service';
+import { AuthStateService } from '@core/auth';
 import { EncryptionApi } from '@core/encryption';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import {
@@ -154,24 +155,26 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
           </div>
 
           <div class="md:col-span-2 space-y-10">
-            <!-- Mot de passe -->
-            <div
-              class="flex items-center justify-between gap-6 pb-6 border-b border-outline-variant/20"
-            >
-              <div class="space-y-1">
-                <h3 class="text-title-small">Mot de passe</h3>
-                <p class="text-body-medium text-on-surface-variant">
-                  Modifier ton mot de passe de connexion.
-                </p>
-              </div>
-              <button
-                mat-stroked-button
-                data-testid="change-password-button"
-                (click)="onChangePassword()"
+            @if (!isOAuthOnly()) {
+              <!-- Mot de passe -->
+              <div
+                class="flex items-center justify-between gap-6 pb-6 border-b border-outline-variant/20"
               >
-                Modifier
-              </button>
-            </div>
+                <div class="space-y-1">
+                  <h3 class="text-title-small">Mot de passe</h3>
+                  <p class="text-body-medium text-on-surface-variant">
+                    Modifier ton mot de passe de connexion.
+                  </p>
+                </div>
+                <button
+                  matButton="outlined"
+                  data-testid="change-password-button"
+                  (click)="onChangePassword()"
+                >
+                  Modifier
+                </button>
+              </div>
+            }
 
             <!-- Clé de récupération -->
             <div class="flex items-center justify-between gap-6">
@@ -182,7 +185,7 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                 </p>
               </div>
               <button
-                mat-stroked-button
+                matButton="outlined"
                 data-testid="generate-recovery-key-button"
                 [disabled]="isGeneratingRecoveryKey()"
                 (click)="onRegenerateRecoveryKey()"
@@ -253,8 +256,10 @@ export default class SettingsPage {
   readonly #authSession = inject(AuthSessionService);
   readonly #demoMode = inject(DemoModeService);
   readonly #encryptionApi = inject(EncryptionApi);
+  readonly #authState = inject(AuthStateService);
 
   readonly isDemoMode = this.#demoMode.isDemoMode;
+  protected readonly isOAuthOnly = this.#authState.isOAuthOnly;
   protected readonly isSaving = signal(false);
   protected readonly isDeleting = signal(false);
   protected readonly isGeneratingRecoveryKey = signal(false);
