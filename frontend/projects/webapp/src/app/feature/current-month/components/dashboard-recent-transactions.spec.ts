@@ -1,14 +1,10 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import {
-  provideZonelessChangeDetection,
-  Directive,
-  input,
-  LOCALE_ID,
-} from '@angular/core';
+import { provideZonelessChangeDetection, LOCALE_ID } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { DashboardRecentTransactions } from './dashboard-recent-transactions';
-import type { Transaction, TransactionKind } from 'pulpe-shared';
+import type { Transaction } from 'pulpe-shared';
 import { setTestInput } from '../../../testing/signal-test-utils';
+import { StubFinancialKindDirective } from '../../../testing/stub-directives';
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
 import localeFR from '@angular/common/locales/fr';
@@ -16,13 +12,6 @@ import { FinancialKindDirective } from '@ui/financial-kind';
 
 registerLocaleData(localeDE);
 registerLocaleData(localeFR);
-
-@Directive({ selector: '[pulpeFinancialKind]' })
-class StubFinancialKindDirective {
-  readonly kind = input<TransactionKind | undefined>(undefined, {
-    alias: 'pulpeFinancialKind',
-  });
-}
 
 const createTransaction = (
   overrides: Partial<Transaction> = {},

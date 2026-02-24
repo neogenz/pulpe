@@ -1,25 +1,15 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import {
-  Directive,
-  input,
-  provideZonelessChangeDetection,
-} from '@angular/core';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { DashboardUncheckedForecasts } from './dashboard-unchecked-forecasts';
-import type { BudgetLine, TransactionKind } from 'pulpe-shared';
+import type { BudgetLine } from 'pulpe-shared';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { setTestInput } from '../../../testing/signal-test-utils';
+import { StubFinancialKindDirective } from '../../../testing/stub-directives';
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
 
 registerLocaleData(localeDE);
-
-@Directive({ selector: '[pulpeFinancialKind]' })
-class StubFinancialKindDirective {
-  readonly kind = input<TransactionKind | undefined>(undefined, {
-    alias: 'pulpeFinancialKind',
-  });
-}
 
 describe('DashboardUncheckedForecasts', () => {
   let component: DashboardUncheckedForecasts;
@@ -59,13 +49,11 @@ describe('DashboardUncheckedForecasts', () => {
   });
 
   it('should create', () => {
-    setTestInput(component.forecasts, []);
     fixture.detectChanges();
     expect(component).toBeTruthy();
   });
 
   it('should display the empty state message when there are no forecasts', () => {
-    setTestInput(component.forecasts, []);
     fixture.detectChanges();
 
     const messageEl = fixture.debugElement.query(By.css('.p-8.text-center'));
