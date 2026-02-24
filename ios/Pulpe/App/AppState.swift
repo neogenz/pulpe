@@ -79,6 +79,8 @@ final class AppState {
 
     private(set) var isRestoringSession = false
     private var backgroundDate: Date?
+    private var backgroundRefreshTask: Task<Void, Never>?
+    private var isLoggingOut = false
     private var biometricSaveTask: Task<Void, Never>?
     private var biometricPreferenceLoaded = false
     private var isHydratingBiometricPreference = false
@@ -483,7 +485,7 @@ final class AppState {
     // MARK: - Stale Client Key
 
     func handleStaleClientKey() async {
-        guard authState == .authenticated else { return }
+        guard !isLoggingOut, authState == .authenticated else { return }
         await clientKeyManager.clearAll()
         authState = .needsPinEntry
     }
@@ -493,6 +495,7 @@ final class AppState {
     /// Called when APIClient detects an unrecoverable 401. AuthService.logout() was already
     /// called by APIClient — this method only resets local UI state.
     func handleSessionExpired() async {
+        guard !isLoggingOut else { return }
         await clientKeyManager.clearSession()
         currentUser = nil
         authState = .unauthenticated
@@ -523,14 +526,18 @@ extension AppState {
                 // Refresh Supabase session in background — token may have expired
                 // during long background periods. Non-blocking: user sees the app
                 // immediately, session refresh happens concurrently.
-                Task {
+                backgroundRefreshTask?.cancel()
+                let validate = validateRegularSession
+                backgroundRefreshTask = Task { [weak self] in
+                    defer { Task { @MainActor [weak self] in self?.backgroundRefreshTask = nil } }
                     do {
-                        _ = try await validateRegularSession()
+                        _ = try await validate()
                     } catch {
+                        guard !Task.isCancelled else { return }
                         Logger.auth.warning(
                             "handleEnterForeground: session refresh failed - \(error)"
                         )
-                        await logout(source: .system)
+                        await self?.logout(source: .system)
                     }
                 }
                 return
@@ -570,6 +577,13 @@ extension AppState {
     }
 
     func logout(source: LogoutSource = .userInitiated) async {
+        guard !isLoggingOut else { return }
+        isLoggingOut = true
+        defer { isLoggingOut = false }
+
+        backgroundRefreshTask?.cancel()
+        backgroundRefreshTask = nil
+
         switch source {
         case .userInitiated:
             UserDefaults.standard.set(true, forKey: UserDefaultsKey.didExplicitLogout)
@@ -897,6 +911,7 @@ extension AppState {
     }
 
     func handleRecoverySessionExpired() async {
+        guard !isLoggingOut else { return }
         await clientKeyManager.clearSession()
         currentUser = nil
         authState = .unauthenticated
