@@ -190,6 +190,8 @@ export class DashboardHero {
   readonly periodDates = input.required<BudgetPeriodDates>();
   readonly totalIncome = input.required<number>();
   readonly rolloverAmount = input(0);
+  readonly timeElapsedPercentage = input(0);
+  readonly paceStatus = input<'on-track' | 'tight'>('on-track');
 
   readonly heroClick = output<void>();
 
@@ -217,31 +219,6 @@ export class DashboardHero {
   readonly isOnTrack = computed(
     () => !this.isOverBudget() && !this.isWarning(),
   );
-
-  readonly timeElapsedPercentage = computed(() => {
-    const dates = this.periodDates();
-    if (!dates) return 0;
-
-    const start = dates.startDate.getTime();
-    const end = dates.endDate.getTime();
-
-    const now = new Date();
-    now.setHours(23, 59, 59, 999);
-
-    const elapsed = now.getTime() - start;
-    const total = end - start;
-
-    if (total <= 0) return 100;
-
-    const percentage = (elapsed / total) * 100;
-    return Math.round(Math.min(Math.max(0, percentage), 100));
-  });
-
-  readonly paceStatus = computed(() => {
-    const consumed = this.budgetConsumedPercentage();
-    const elapsed = this.timeElapsedPercentage();
-    return consumed <= elapsed + 5 ? 'on-track' : 'tight';
-  });
 
   formatPeriod(): string {
     const dates = this.periodDates();

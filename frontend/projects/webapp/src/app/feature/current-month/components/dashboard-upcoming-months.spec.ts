@@ -23,8 +23,15 @@ describe('DashboardUpcomingMonths', () => {
     expect(component).toBeTruthy();
   });
 
-  it('ควrender future budgets with and without setup properly', () => {
+  it('should render future budgets skipping first item', () => {
     setTestInput(component.forecasts, [
+      {
+        month: 10,
+        year: 2024,
+        hasBudget: true,
+        income: 3000,
+        expenses: -1200,
+      },
       {
         month: 11,
         year: 2024,
@@ -43,9 +50,11 @@ describe('DashboardUpcomingMonths', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+    // First item (octobre) is skipped by displayedForecasts
+    expect(compiled.textContent).not.toContain('octobre 2024');
     expect(compiled.textContent).toContain('novembre 2024');
-    expect(compiled.textContent).toContain('2’500.00 CHF'); // de-CH format
-    expect(compiled.textContent).toContain('décembre 2024');
-    expect(compiled.textContent).toContain('Pas encore de budget');
+    expect(compiled.textContent).toContain('2\u2019500.00 CHF');
+    expect(compiled.textContent).toContain('d\u00e9cembre 2024');
+    expect(compiled.textContent).toContain('Pas encore anticip\u00e9');
   });
 });

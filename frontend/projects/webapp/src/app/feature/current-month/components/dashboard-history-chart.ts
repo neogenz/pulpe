@@ -33,10 +33,10 @@ Chart.register(...registerables);
         </div>
         <div>
           <h2 class="text-title-medium font-bold text-on-surface leading-tight">
-            Revenus vs Dépenses
+            Historique
           </h2>
           <p class="text-body-small text-on-surface-variant font-medium mt-0.5">
-            Évolution sur les 6 derniers mois
+            Revenus, dépenses et épargne
           </p>
         </div>
       </div>
@@ -76,14 +76,15 @@ export class DashboardHistoryChart {
   readonly chartType = 'bar' as const;
 
   readonly #incomeColor = signal('#10b981');
-  readonly #expenseColor = signal('#ef4444');
+  readonly #expenseColor = signal('#d97706');
+  readonly #savingsColor = signal('#406741');
 
   constructor() {
     afterNextRender(() => {
       const primary = this.#resolveColor('var(--mat-sys-primary)');
-      const error = this.#resolveColor('var(--mat-sys-error)');
+      const secondary = this.#resolveColor('var(--mat-sys-secondary)');
       if (primary) this.#incomeColor.set(primary);
-      if (error) this.#expenseColor.set(error);
+      if (secondary) this.#savingsColor.set(secondary);
     });
   }
 
@@ -102,6 +103,53 @@ export class DashboardHistoryChart {
   readonly chartData = computed<ChartData<'bar', number[], string>>(() => {
     const data = this.history();
     const formatter = new Intl.DateTimeFormat('fr-CH', { month: 'short' });
+    const hasSavingsData = data.some((d) => d.savings > 0);
+
+    const datasets: ChartData<'bar', number[], string>['datasets'] = [
+      {
+        data: data.map((d) => d.income),
+        label: 'Revenus',
+        backgroundColor: this.#incomeColor(),
+        borderRadius: 4,
+        barPercentage: 0.6,
+        categoryPercentage: 0.8,
+      },
+      {
+        data: data.map((d) => d.expenses),
+        label: 'Dépenses',
+        backgroundColor: this.#expenseColor(),
+        borderRadius: 4,
+        barPercentage: 0.6,
+        categoryPercentage: 0.8,
+      },
+    ];
+
+    if (hasSavingsData) {
+      datasets.push({
+        data: data.map((d) => d.savings),
+        label: 'Épargne',
+        backgroundColor: this.#savingsColor(),
+        borderRadius: 4,
+        barPercentage: 0.6,
+        categoryPercentage: 0.8,
+      });
+    }
+
+    if (data.length > 0) {
+      const avgIncome =
+        data.reduce((sum, d) => sum + d.income, 0) / data.length;
+      datasets.push({
+        type: 'line',
+        data: Array(data.length).fill(avgIncome),
+        label: 'Revenu moyen',
+        borderColor: this.#incomeColor() + '60',
+        borderDash: [6, 4],
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: false,
+        backgroundColor: 'transparent',
+      } as never);
+    }
 
     return {
       labels: data.map((d) => {
@@ -109,24 +157,7 @@ export class DashboardHistoryChart {
         const name = formatter.format(date);
         return name.charAt(0).toUpperCase() + name.slice(1);
       }),
-      datasets: [
-        {
-          data: data.map((d) => d.income),
-          label: 'Revenus',
-          backgroundColor: this.#incomeColor(),
-          borderRadius: 4,
-          barPercentage: 0.6,
-          categoryPercentage: 0.8,
-        },
-        {
-          data: data.map((d) => d.expenses),
-          label: 'Dépenses',
-          backgroundColor: this.#expenseColor(),
-          borderRadius: 4,
-          barPercentage: 0.6,
-          categoryPercentage: 0.8,
-        },
-      ],
+      datasets,
     };
   });
 

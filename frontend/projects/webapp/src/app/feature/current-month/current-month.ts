@@ -25,7 +25,7 @@ import {
   ProductTourService,
   TOUR_START_DELAY,
 } from '@core/product-tour/product-tour.service';
-import { type TransactionCreate, getBudgetPeriodDates } from 'pulpe-shared';
+import { type TransactionCreate } from 'pulpe-shared';
 import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
 import { AddTransactionBottomSheet } from './components/add-transaction-bottom-sheet';
@@ -39,6 +39,10 @@ import { DashboardHistoryChart } from './components/dashboard-history-chart';
 import { DashboardUpcomingMonths } from './components/dashboard-upcoming-months';
 import { DashboardFutureProjectionChart } from './components/dashboard-future-projection-chart';
 import { DashboardRecentTransactions } from './components/dashboard-recent-transactions';
+import { DashboardSavingsSummary } from './components/dashboard-savings-summary';
+import { DashboardMonthInsight } from './components/dashboard-month-insight';
+import { DashboardPulse } from './components/dashboard-pulse';
+import { DashboardNextMonth } from './components/dashboard-next-month';
 
 type TransactionFormData = Pick<
   TransactionCreate,
@@ -62,6 +66,10 @@ type TransactionFormData = Pick<
     DashboardUpcomingMonths,
     DashboardFutureProjectionChart,
     DashboardRecentTransactions,
+    DashboardSavingsSummary,
+    DashboardMonthInsight,
+    DashboardPulse,
+    DashboardNextMonth,
   ],
   template: `
     <div class="flex flex-col gap-4 min-w-0" data-testid="dashboard-page">
@@ -107,17 +115,37 @@ type TransactionFormData = Pick<
         ) {
           @if (store.dashboardData()?.budget) {
             <div class="flex flex-col gap-8">
-              <!-- BLOCK 1: Hero figure "Disponible à dépenser" -->
+              <!-- BLOCK: Month closing insight (only visible last 10% of month) -->
+              <pulpe-dashboard-month-insight
+                [timeElapsedPercentage]="store.timeElapsedPercentage()"
+                [remaining]="store.remaining()"
+                data-testid="dashboard-block-month-insight"
+              />
+
+              <!-- BLOCK: Hero "Disponible à dépenser" -->
               <pulpe-dashboard-hero
                 [expenses]="store.totalExpenses()"
                 [available]="store.totalAvailable()"
-                [periodDates]="periodDates()"
+                [periodDates]="store.periodDates()"
                 [totalIncome]="store.totalIncome()"
                 [rolloverAmount]="store.rolloverAmount()"
+                [timeElapsedPercentage]="store.timeElapsedPercentage()"
+                [paceStatus]="store.paceStatus()"
                 (heroClick)="navigateToBudgetDetails()"
                 data-testid="dashboard-block-hero"
               />
 
+              <!-- BLOCK: Budget Pulse (3 health dots) -->
+              <pulpe-dashboard-pulse
+                [budgetConsumedPercentage]="store.budgetConsumedPercentage()"
+                [timeElapsedPercentage]="store.timeElapsedPercentage()"
+                [checkedForecastCount]="store.checkedForecastCount()"
+                [totalForecastCount]="store.totalForecastCount()"
+                [nextMonthHasBudget]="store.nextMonthHasBudget()"
+                data-testid="dashboard-block-pulse"
+              />
+
+              <!-- BLOCK: Recent transactions -->
               <pulpe-dashboard-recent-transactions
                 [transactions]="store.recentTransactions()"
                 (viewBudget)="navigateToBudgetDetails()"
@@ -138,6 +166,22 @@ type TransactionFormData = Pick<
                 />
 
                 <!-- Row 2 -->
+                <pulpe-dashboard-savings-summary
+                  [totalPlanned]="store.totalSavingsPlanned()"
+                  [totalRealized]="store.totalSavingsRealized()"
+                  data-testid="dashboard-block-savings"
+                />
+
+                @if (store.upcomingBudgetsData().length > 0) {
+                  <pulpe-dashboard-next-month
+                    [forecast]="store.upcomingBudgetsData()[0]"
+                    [estimatedRollover]="store.remaining()"
+                    (navigateToBudgets)="navigateToBudgetTemplates()"
+                    data-testid="dashboard-block-next-month"
+                  />
+                }
+
+                <!-- Row 3 -->
                 <pulpe-dashboard-upcoming-months
                   [forecasts]="store.upcomingBudgetsData()"
                   data-testid="dashboard-block-upcoming"
@@ -287,12 +331,6 @@ export default class Dashboard {
     });
   });
 
-  protected readonly periodDates = computed(() => {
-    const period = this.store.currentBudgetPeriod();
-    const payDay = this.store.payDayOfMonth();
-    return getBudgetPeriodDates(period.month, period.year, payDay);
-  });
-
   constructor() {
     this.store.refreshData();
 
@@ -320,6 +358,10 @@ export default class Dashboard {
     if (budgetId) {
       this.#router.navigate(['/budget', budgetId]);
     }
+  }
+
+  protected navigateToBudgetTemplates(): void {
+    this.#router.navigate(['/budgets']);
   }
 
   openAddTransactionBottomSheet(): void {

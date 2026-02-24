@@ -1,6 +1,5 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { By } from '@angular/platform-browser';
 import { DashboardHistoryChart } from './dashboard-history-chart';
 import type { HistoryDataPoint } from '../services/dashboard-store';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
@@ -15,8 +14,13 @@ describe('DashboardHistoryChart', () => {
   let fixture: ComponentFixture<DashboardHistoryChart>;
 
   const mockHistoryData: HistoryDataPoint[] = [
-    { month: 1, year: 2025, income: 5000, expenses: 3000 },
-    { month: 2, year: 2025, income: 5200, expenses: 3100 },
+    { month: 1, year: 2025, income: 5000, expenses: 3000, savings: 500 },
+    { month: 2, year: 2025, income: 5200, expenses: 3100, savings: 300 },
+  ];
+
+  const mockHistoryDataNoSavings: HistoryDataPoint[] = [
+    { month: 1, year: 2025, income: 5000, expenses: 3000, savings: 0 },
+    { month: 2, year: 2025, income: 5200, expenses: 3100, savings: 0 },
   ];
 
   beforeEach(async () => {
@@ -34,37 +38,95 @@ describe('DashboardHistoryChart', () => {
   });
 
   it('should create', () => {
-    setTestInput(component.history, []);
     fixture.detectChanges();
     expect(component).toBeTruthy();
   });
 
   it('should display empty message when no data is provided', () => {
-    setTestInput(component.history, []);
     fixture.detectChanges();
-
-    // May not exactly match selector, checking for empty view
     expect(fixture.nativeElement.textContent).toContain('Pas assez de données');
   });
 
-  it('should display chart canvas when data is provided', () => {
-    setTestInput(component.history, mockHistoryData);
-    fixture.detectChanges();
+  it('should report hasData false when history is empty', () => {
+    expect(component.hasData()).toBe(false);
+  });
 
-    const canvas = fixture.debugElement.query(By.css('canvas'));
-    expect(canvas).toBeTruthy();
+  it('should report hasData true when history has entries', () => {
+    setTestInput(component.history, mockHistoryData);
+    expect(component.hasData()).toBe(true);
   });
 
   it('should compute chart data properly based on inputs', () => {
     setTestInput(component.history, mockHistoryData);
-    fixture.detectChanges();
 
     const chartData = component.chartData();
     expect(chartData.labels?.length).toBe(2);
-    expect(chartData.datasets.length).toBe(2);
-    // Datasets mapped to labels Revnus/Dépenses
+    // 4 datasets: Revenus, Dépenses, Épargne (savings > 0), Revenu moyen
+    expect(chartData.datasets.length).toBe(4);
     expect(chartData.datasets[0].label).toBe('Revenus');
     expect(chartData.datasets[0].data).toEqual([5000, 5200]);
+    expect(chartData.datasets[1].label).toBe('Dépenses');
     expect(chartData.datasets[1].data).toEqual([3000, 3100]);
+  });
+
+  describe('savings dataset', () => {
+    it('should include savings dataset when savings data exists', () => {
+      setTestInput(component.history, mockHistoryData);
+
+      const chartData = component.chartData();
+      const savingsDataset = chartData.datasets.find(
+        (d) => d.label === 'Épargne',
+      );
+      expect(savingsDataset).toBeTruthy();
+      expect(savingsDataset!.data).toEqual([500, 300]);
+    });
+
+    it('should not include savings dataset when all savings are 0', () => {
+      setTestInput(component.history, mockHistoryDataNoSavings);
+
+      const chartData = component.chartData();
+      const savingsDataset = chartData.datasets.find(
+        (d) => d.label === 'Épargne',
+      );
+      expect(savingsDataset).toBeUndefined();
+    });
+  });
+
+  describe('expense color', () => {
+    it('should use amber color for expenses', () => {
+      setTestInput(component.history, mockHistoryData);
+
+      const chartData = component.chartData();
+      const expenseDataset = chartData.datasets.find(
+        (d) => d.label === 'Dépenses',
+      );
+      expect(expenseDataset!.backgroundColor).toBe('#d97706');
+    });
+  });
+
+  describe('average income line', () => {
+    it('should include average income reference line', () => {
+      setTestInput(component.history, mockHistoryData);
+
+      const chartData = component.chartData();
+      const avgDataset = chartData.datasets.find(
+        (d) => d.label === 'Revenu moyen',
+      );
+      expect(avgDataset).toBeTruthy();
+      expect(
+        (avgDataset as unknown as Record<string, unknown>)['borderDash'],
+      ).toEqual([6, 4]);
+    });
+
+    it('should compute correct average income', () => {
+      setTestInput(component.history, mockHistoryData);
+
+      const chartData = component.chartData();
+      const avgDataset = chartData.datasets.find(
+        (d) => d.label === 'Revenu moyen',
+      );
+      const expectedAvg = (5000 + 5200) / 2;
+      expect(avgDataset!.data).toEqual([expectedAvg, expectedAvg]);
+    });
   });
 });

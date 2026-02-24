@@ -8,6 +8,7 @@ import {
   type Transaction,
   type TransactionCreate,
   BudgetFormulas,
+  getBudgetPeriodDates,
   getBudgetPeriodForDate,
   budgetSparseListResponseSchema,
 } from 'pulpe-shared';
@@ -23,6 +24,7 @@ export interface HistoryDataPoint {
   year: number;
   income: number;
   expenses: number;
+  savings: number;
 }
 
 export interface UpcomingMonthForecast {
@@ -144,6 +146,40 @@ export class DashboardStore {
 
   readonly budgetDate = computed(() => this.#state().currentDate);
 
+  readonly periodDates = computed(() => {
+    const period = this.currentBudgetPeriod();
+    const payDay = this.payDayOfMonth();
+    return getBudgetPeriodDates(period.month, period.year, payDay);
+  });
+
+  readonly timeElapsedPercentage = computed(() => {
+    const dates = this.periodDates();
+    if (!dates) return 0;
+    const start = dates.startDate.getTime();
+    const end = dates.endDate.getTime();
+    const now = new Date();
+    now.setHours(23, 59, 59, 999);
+    const elapsed = now.getTime() - start;
+    const total = end - start;
+    if (total <= 0) return 100;
+    const percentage = (elapsed / total) * 100;
+    return Math.round(Math.min(Math.max(0, percentage), 100));
+  });
+
+  readonly budgetConsumedPercentage = computed(() => {
+    const available = this.totalAvailable();
+    const expenses = this.totalExpenses();
+    if (available <= 0) return expenses > 0 ? 100 : 0;
+    const percentage = (expenses / available) * 100;
+    return Math.round(Math.min(Math.max(0, percentage), 100));
+  });
+
+  readonly paceStatus = computed<'on-track' | 'tight'>(() => {
+    const consumed = this.budgetConsumedPercentage();
+    const elapsed = this.timeElapsedPercentage();
+    return consumed <= elapsed + 5 ? 'on-track' : 'tight';
+  });
+
   readonly rolloverAmount = computed<number>(() => {
     const budget = this.dashboardData()?.budget;
     return budget?.rollover || 0;
@@ -228,6 +264,39 @@ export class DashboardStore {
     }
 
     return result;
+  });
+
+  readonly totalSavingsPlanned = computed<number>(() =>
+    this.budgetLines()
+      .filter((line) => line.kind === 'saving')
+      .reduce((sum, line) => sum + line.amount, 0),
+  );
+
+  readonly totalSavingsRealized = computed<number>(() =>
+    this.transactions()
+      .filter((tx) => tx.kind === 'saving')
+      .reduce((sum, tx) => sum + tx.amount, 0),
+  );
+
+  readonly totalForecastCount = computed(
+    () =>
+      this.budgetLines().filter(
+        (line) => line.recurrence === 'fixed' || line.recurrence === 'one_off',
+      ).length,
+  );
+
+  readonly checkedForecastCount = computed(
+    () =>
+      this.budgetLines().filter(
+        (line) =>
+          (line.recurrence === 'fixed' || line.recurrence === 'one_off') &&
+          line.checkedAt !== null,
+      ).length,
+  );
+
+  readonly nextMonthHasBudget = computed(() => {
+    const upcoming = this.upcomingBudgetsData();
+    return upcoming.length > 0 && upcoming[0].hasBudget;
   });
 
   // ── 5. Mutations ──
@@ -428,7 +497,7 @@ export class DashboardStore {
       // Fetch up to 24 budgets using sparse fields to cover past and future
       const response = await firstValueFrom(
         this.#apiClient.get$(
-          '/budgets?fields=month,year,totalIncome,totalExpenses&limit=24',
+          '/budgets?fields=month,year,totalIncome,totalExpenses,totalSavings&limit=24',
           budgetSparseListResponseSchema,
         ),
       );
@@ -438,6 +507,7 @@ export class DashboardStore {
         year: b.year!,
         income: b.totalIncome ?? 0,
         expenses: b.totalExpenses ?? 0,
+        savings: b.totalSavings ?? 0,
       }));
     });
 

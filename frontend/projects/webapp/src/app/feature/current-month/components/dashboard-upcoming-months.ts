@@ -27,7 +27,9 @@ import type { UpcomingMonthForecast } from '../services/dashboard-store';
             À venir
           </h2>
           <p class="text-body-small text-on-surface-variant font-medium mt-0.5">
-            Prochains mois ({{ budgetCount() }}/{{ forecasts().length }}
+            Prochains mois ({{ budgetCount() }}/{{
+              displayedForecasts().length
+            }}
             anticipés)
           </p>
         </div>
@@ -39,7 +41,7 @@ import type { UpcomingMonthForecast } from '../services/dashboard-store';
             class="flex flex-col gap-1.5 scroll-list max-h-[320px] overflow-y-auto"
           >
             @for (
-              forecast of forecasts();
+              forecast of displayedForecasts();
               track forecast.month + '-' + forecast.year
             ) {
               @if (forecast.hasBudget) {
@@ -174,8 +176,12 @@ import type { UpcomingMonthForecast } from '../services/dashboard-store';
 export class DashboardUpcomingMonths {
   readonly forecasts = input.required<UpcomingMonthForecast[]>();
 
+  protected readonly displayedForecasts = computed(() =>
+    this.forecasts().slice(1),
+  );
+
   readonly budgetCount = computed(
-    () => this.forecasts().filter((f) => f.hasBudget).length,
+    () => this.displayedForecasts().filter((f) => f.hasBudget).length,
   );
 
   getMonthName(monthNumber: number): string {

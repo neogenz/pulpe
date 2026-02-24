@@ -27,6 +27,8 @@ describe('DashboardHero', () => {
       startDate: new Date(),
       endDate: new Date(),
     });
+    setTestInput(component.timeElapsedPercentage, 50);
+    setTestInput(component.paceStatus, 'on-track');
   });
 
   it('should compute remaining correctly', () => {
@@ -77,26 +79,10 @@ describe('DashboardHero', () => {
     expect(component.budgetConsumedPercentage()).toBe(100);
   });
 
-  it('should compute timeElapsedPercentage', () => {
-    const start = new Date();
-    start.setDate(start.getDate() - 15);
+  it('should expose timeElapsedPercentage from input', () => {
+    setTestInput(component.timeElapsedPercentage, 75);
 
-    const end = new Date(start);
-    end.setDate(end.getDate() + 30); // 30 days total period
-
-    setTestInput(component.available, 1000);
-    setTestInput(component.expenses, 0);
-    setTestInput(component.periodDates, {
-      startDate: start,
-      endDate: end,
-    });
-
-    // Elapsed should be ~15 days out of 30, roughly 50%
-
-    // Because we use current date inside the component.timeElapsedPercentage,
-    // and setting hours to 23:59:59 modifies things slightly, we allow a small delta.
-    expect(component.timeElapsedPercentage()).toBeGreaterThanOrEqual(49);
-    expect(component.timeElapsedPercentage()).toBeLessThanOrEqual(55);
+    expect(component.timeElapsedPercentage()).toBe(75);
   });
 
   describe('rollover decomposition', () => {
@@ -137,39 +123,15 @@ describe('DashboardHero', () => {
   });
 
   describe('pace indicator', () => {
-    it('should return on-track when consumed <= elapsed + 5', () => {
-      setTestInput(component.available, 1000);
-      setTestInput(component.expenses, 400);
+    it('should expose paceStatus from input as on-track', () => {
+      setTestInput(component.paceStatus, 'on-track');
 
-      const start = new Date();
-      start.setDate(start.getDate() - 15);
-      const end = new Date(start);
-      end.setDate(end.getDate() + 30);
-
-      setTestInput(component.periodDates, {
-        startDate: start,
-        endDate: end,
-      });
-
-      // ~50% elapsed, 40% consumed => on-track
       expect(component.paceStatus()).toBe('on-track');
     });
 
-    it('should return tight when consumed > elapsed + 5', () => {
-      setTestInput(component.available, 1000);
-      setTestInput(component.expenses, 900);
+    it('should expose paceStatus from input as tight', () => {
+      setTestInput(component.paceStatus, 'tight');
 
-      const start = new Date();
-      start.setDate(start.getDate() - 15);
-      const end = new Date(start);
-      end.setDate(end.getDate() + 30);
-
-      setTestInput(component.periodDates, {
-        startDate: start,
-        endDate: end,
-      });
-
-      // ~50% elapsed, 90% consumed => tight
       expect(component.paceStatus()).toBe('tight');
     });
   });
