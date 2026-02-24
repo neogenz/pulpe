@@ -12,9 +12,10 @@ final class LoginViewModel {
 
     init(keychainManager: KeychainManager = .shared) {
         self.keychainManager = keychainManager
-        Task { @MainActor in
-            self.email = await keychainManager.getLastUsedEmail() ?? ""
-        }
+    }
+
+    func loadLastUsedEmail() async {
+        email = await keychainManager.getLastUsedEmail() ?? ""
     }
 
     var isEmailValid: Bool {

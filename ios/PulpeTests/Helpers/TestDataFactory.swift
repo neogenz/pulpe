@@ -8,6 +8,12 @@ enum TestDataFactory {
     static let fixedDate = Date(timeIntervalSince1970: 1704067200) // 2024-01-01 00:00:00 UTC
     static let fixedCheckedDate = Date(timeIntervalSince1970: 1704153600) // 2024-01-02 00:00:00 UTC
 
+    // MARK: - Client Key for Testing
+
+    /// A valid 64-hex-char client key used across test suites that touch ClientKeyManager.
+    static let testClientKey =
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
     // MARK: - BudgetLine Factory
 
     static func createBudgetLine(

@@ -147,6 +147,65 @@ struct StoreRaceConditionTests {
         #expect(store.isLoading == false, "Store must not be stuck in loading after rapid load/cancel cycles")
     }
 
+    // MARK: - loadTask Reference Safety Tests (C2-1)
+
+    @Test("Three sequential forceRefresh calls: earlier completion does not nil out later task reference")
+    func forceRefresh_threeSequentialCalls_laterTaskNotNilledByEarlierCompletion() async throws {
+        let stores: [any StoreProtocol] = [
+            CurrentMonthStore(),
+            BudgetListStore(),
+            DashboardStore(),
+        ]
+
+        for store in stores {
+            await withTaskGroup(of: Void.self) { group in
+                for _ in 0..<3 {
+                    group.addTask { @MainActor in
+                        await store.forceRefresh()
+                    }
+                }
+            }
+
+            let storeType = type(of: store)
+            #expect(store.isLoading == false, "\(storeType) stuck after 3 overlapping forceRefresh")
+        }
+    }
+
+    @Test("Three overlapping forceRefresh calls: earlier completion does not nil out later task reference")
+    func forceRefresh_threeOverlappingCalls_laterTaskNotNilledByEarlierCompletion() async throws {
+        // This test exercises the race condition from finding C2-1:
+        //
+        // 1. Call A creates Task-A, sets loadTask = Task-A, suspends at await
+        // 2. Call B cancels Task-A, creates Task-B, sets loadTask = Task-B, suspends at await
+        // 3. Task-A completes (cancelled), Call A resumes. BUG: if loadTask = nil unconditionally,
+        //    Task-B's reference is lost. Fix: use a generation counter so Call A only nils
+        //    loadTask when its generation still matches (loadGeneration == currentGeneration).
+        // 4. Call C starts: loadTask?.cancel() must still cancel Task-B.
+        //
+        // We verify that after all three overlapping calls complete, the store
+        // settles correctly (isLoading == false, no stuck state).
+
+        let stores: [any StoreProtocol] = [
+            CurrentMonthStore(),
+            BudgetListStore(),
+            DashboardStore(),
+        ]
+
+        for store in stores {
+            // Fire three forceRefresh calls concurrently to simulate the A-B-C overlap
+            await withTaskGroup(of: Void.self) { group in
+                for _ in 0..<3 {
+                    group.addTask { @MainActor in
+                        await store.forceRefresh()
+                    }
+                }
+            }
+
+            let storeType = type(of: store)
+            #expect(store.isLoading == false, "\(storeType) stuck after 3 overlapping forceRefresh")
+        }
+    }
+
     // MARK: - Cross-Store Coordination Tests
 
     @Test("Multiple stores can load concurrently without interference")

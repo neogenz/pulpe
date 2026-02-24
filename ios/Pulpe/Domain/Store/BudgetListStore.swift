@@ -21,6 +21,8 @@ final class BudgetListStore: StoreProtocol {
 
     /// Coalescing task to prevent concurrent API loads
     private var loadTask: Task<Void, Never>?
+    /// Generation counter to safely nil loadTask after completion
+    private var loadGeneration = 0
 
     // MARK: - Services
 
@@ -52,6 +54,9 @@ final class BudgetListStore: StoreProtocol {
         // Cancel any existing load task to avoid duplicate requests
         loadTask?.cancel()
 
+        loadGeneration += 1
+        let currentGeneration = loadGeneration
+
         let task = Task {
             isLoading = true
             error = nil
@@ -82,7 +87,7 @@ final class BudgetListStore: StoreProtocol {
 
         loadTask = task
         await task.value
-        loadTask = nil
+        if loadGeneration == currentGeneration { loadTask = nil }
     }
 
     // MARK: - Computed Properties

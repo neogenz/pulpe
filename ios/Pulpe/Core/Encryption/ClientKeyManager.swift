@@ -3,6 +3,40 @@ import OSLog
 
 /// Manages the client encryption key lifecycle with caching and biometric storage.
 /// Thread-safe actor that handles key derivation, storage, and retrieval for end-to-end encryption.
+///
+/// ## Security Note: Client Key as Swift `String` (Accepted Risk)
+///
+/// The client key is held as a hex-encoded `String`. Swift `String` is a value type
+/// backed by a heap-allocated buffer managed through ARC/copy-on-write. Setting the
+/// property to `nil` removes the reference but does **not** guarantee zeroing of the
+/// underlying bytes before the allocator reclaims the page. Copies may also exist
+/// transiently in registers, on the stack, or inside intermediate `String` values.
+///
+/// **Why this is accepted (LOW practical risk in the standard iOS threat model):**
+///
+/// 1. **iOS app sandbox** -- In the standard model (non-jailbroken/non-rooted device),
+///    process isolation blocks inter-app heap reads.
+/// 2. **Split-key architecture** -- The client key alone is insufficient to decrypt
+///    data. Decryption requires `DEK = HKDF(clientKey + masterKey, salt)` where
+///    `masterKey` remains server-side.
+/// 3. **Short residency** -- The cache is cleared on background timeout
+///    (`AppConfiguration.backgroundGracePeriod`, currently 30 s), logout, and app
+///    termination.
+/// 4. **Threat-model boundary** -- On compromised devices (jailbreak/root/instrumentation),
+///    residual-memory extraction assumptions can break. This accepted risk does not
+///    cover that scenario.
+/// 5. **Proportionality** -- A custom unsafe memory wrapper would increase complexity
+///    and unsafe surface without preventing compiler/runtime copies in all contexts.
+///
+/// **Mitigations in place:**
+/// - `clearCache()` / `clearSession()` / `clearAll()` nil out references promptly.
+/// - `CryptoService.deriveClientKey` zeros the raw `[UInt8]` derivation buffer before
+///   returning the hex string.
+/// - Keychain entries use `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`.
+/// - `X-Client-Key` is sent over HTTPS/TLS in production; local development can use
+///   `http://localhost`.
+///
+/// **Review date:** 2026-02-24 | **Reviewer:** Code review finding C1-1
 actor ClientKeyManager {
     static let shared = ClientKeyManager()
 

@@ -2,11 +2,9 @@ import Foundation
 @testable import Pulpe
 import Testing
 
+@Suite(.serialized)
 @MainActor
 struct AppStateColdStartLockTests {
-    private let testClientKey =
-        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-
     @Test func coldStart_authStateIsNotAuthenticated() async {
         // Given: a new AppState (simulating cold start)
         let sut = AppState()
@@ -26,7 +24,7 @@ struct AppStateColdStartLockTests {
         await clientKeyManager.clearAll()
 
         // Simulate: user was previously authenticated with a stored clientKey
-        await clientKeyManager.store(testClientKey, enableBiometric: false)
+        await clientKeyManager.store(TestDataFactory.testClientKey, enableBiometric: false)
         #expect(await clientKeyManager.resolveClientKey() != nil)
 
         // Simulate cold start: new AppState instance (app was killed)

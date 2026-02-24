@@ -2,11 +2,9 @@ import Foundation
 @testable import Pulpe
 import Testing
 
+@Suite(.serialized)
 @MainActor
 struct AppStateBackgroundLockTests {
-    private let testClientKey =
-        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-
     @Test func foregroundBeforeGracePeriod_keepsAuthenticated() async {
         var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(nowProvider: { now })
@@ -64,7 +62,7 @@ struct AppStateBackgroundLockTests {
         let clientKeyManager = ClientKeyManager.shared
 
         await clientKeyManager.clearAll()
-        await clientKeyManager.store(testClientKey, enableBiometric: false)
+        await clientKeyManager.store(TestDataFactory.testClientKey, enableBiometric: false)
         #expect(await clientKeyManager.hasClientKey)
 
         sut.biometricEnabled = false
@@ -237,6 +235,84 @@ struct AppStateBackgroundLockTests {
 
         #expect(sut.authState == .needsPinEntry)
         #expect(sut.isRestoringSession == false)
+    }
+
+    // MARK: - Session Refresh After Biometric Foreground Unlock (C2-2)
+
+    @Test func foregroundBiometricUnlock_refreshesSupabaseSession() async {
+        let sessionRefreshed = AtomicFlag()
+        var now = Date(timeIntervalSince1970: 0)
+        let user = UserInfo(id: "u1", email: "test@pulpe.app", firstName: "Max")
+
+        let sut = AppState(
+            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
+            syncBiometricCredentials: { true },
+            resolveBiometricKey: { "restored-key" },
+            validateBiometricKey: { _ in true },
+            validateRegularSession: {
+                sessionRefreshed.set()
+                return user
+            },
+            nowProvider: { now }
+        )
+        sut.biometricEnabled = true
+        await sut.completePinEntry()
+
+        // Simulate long background (token would be expired)
+        sut.handleEnterBackground()
+        now = Date(timeIntervalSince1970: 3600) // 1 hour
+        sut.prepareForForeground()
+
+        await sut.handleEnterForeground()
+
+        #expect(sut.authState == .authenticated)
+        // Session must be refreshed after biometric unlock to prevent 401 cascades
+        await waitForCondition(
+            timeout: .milliseconds(500),
+            "validateRegularSession must be called after biometric foreground unlock"
+        ) {
+            sessionRefreshed.value
+        }
+    }
+
+    @Test func foregroundBiometricUnlock_sessionRefreshFailure_logsOut() async {
+        let sessionRefreshAttempted = AtomicFlag()
+        var now = Date(timeIntervalSince1970: 0)
+
+        let sut = AppState(
+            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
+            syncBiometricCredentials: { true },
+            resolveBiometricKey: { "restored-key" },
+            validateBiometricKey: { _ in true },
+            validateRegularSession: {
+                sessionRefreshAttempted.set()
+                throw URLError(.userAuthenticationRequired)
+            },
+            nowProvider: { now }
+        )
+        sut.biometricEnabled = true
+        await sut.completePinEntry()
+
+        sut.handleEnterBackground()
+        now = Date(timeIntervalSince1970: 7200) // 2 hours
+        sut.prepareForForeground()
+
+        await sut.handleEnterForeground()
+
+        // Session refresh was attempted
+        await waitForCondition(
+            timeout: .milliseconds(500),
+            "validateRegularSession must be attempted"
+        ) {
+            sessionRefreshAttempted.value
+        }
+        // When session refresh fails, user should be logged out
+        await waitForCondition(
+            timeout: .milliseconds(500),
+            "authState should be unauthenticated after session refresh failure"
+        ) {
+            sut.authState == .unauthenticated
+        }
     }
 
     @Test func foregroundAfterGracePeriod_biometricDisabled_requiresPinEntry() async {

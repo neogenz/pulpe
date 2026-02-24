@@ -493,6 +493,19 @@ extension AppState {
         // Try biometric before routing to PIN entry — avoids PinEntryView flash
         if biometricEnabled, let clientKeyHex = await resolveBiometricKey() {
             if await validateBiometricKey(clientKeyHex) {
+                // Refresh Supabase session in background — token may have expired
+                // during long background periods. Non-blocking: user sees the app
+                // immediately, session refresh happens concurrently.
+                Task {
+                    do {
+                        _ = try await validateRegularSession()
+                    } catch {
+                        Logger.auth.warning(
+                            "handleEnterForeground: session refresh failed - \(error)"
+                        )
+                        await logout()
+                    }
+                }
                 return
             }
             Logger.auth.warning("handleEnterForeground: stale biometric key, requiring PIN")

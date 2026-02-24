@@ -2,6 +2,7 @@ import Foundation
 @testable import Pulpe
 import Testing
 
+@Suite(.serialized)
 struct APIClientClientKeyHeaderTests {
     private let baseURL: URL
     private let authToken = "test-auth-token"

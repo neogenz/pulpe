@@ -6,6 +6,7 @@ struct ConfirmPasswordSheet: View {
     @State private var password = ""
     @State private var isVerifying = false
     @State private var errorMessage: String?
+    @State private var verifyTask: Task<Void, Never>?
 
     var onVerify: (String) async -> String?
 
@@ -26,7 +27,7 @@ struct ConfirmPasswordSheet: View {
                         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
                         .overlay(
                             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                                .stroke(
+                                .strokeBorder(
                                     errorMessage != nil ? Color.errorPrimary : Color.primary.opacity(0.1),
                                     lineWidth: 1
                                 )
@@ -44,13 +45,13 @@ struct ConfirmPasswordSheet: View {
                 Spacer()
 
                 Button {
-                    verifyPassword()
+                    verifyTask = Task { await verifyPassword() }
                 } label: {
                     HStack {
                         if isVerifying {
                             ProgressView()
                                 .tint(.white)
-                                .padding(.trailing, 8)
+                                .padding(.trailing, DesignTokens.Spacing.xs)
                         }
                         Text("Confirmer")
                             .font(PulpeTypography.buttonPrimary)
@@ -72,24 +73,26 @@ struct ConfirmPasswordSheet: View {
                 }
             }
             .background(Color.surfacePrimary)
+            .interactiveDismissDisabled(isVerifying)
+            .onDisappear { verifyTask?.cancel() }
         }
     }
 
-    private func verifyPassword() {
+    private func verifyPassword() async {
         isVerifying = true
         errorMessage = nil
 
-        Task {
-            let error = await onVerify(password)
-            if let error {
-                isVerifying = false
-                errorMessage = error
-                return
-            }
+        let error = await onVerify(password)
+        guard !Task.isCancelled else { return }
 
+        if let error {
             isVerifying = false
-            dismiss()
+            errorMessage = error
+            return
         }
+
+        isVerifying = false
+        dismiss()
     }
 }
 

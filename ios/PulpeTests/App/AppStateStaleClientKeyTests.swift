@@ -2,11 +2,9 @@ import Foundation
 @testable import Pulpe
 import Testing
 
+@Suite(.serialized)
 @MainActor
 struct AppStateStaleClientKeyTests {
-    private let testClientKey =
-        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-
     @Test func handleStaleClientKey_whenAuthenticated_transitionsToPinEntry() async {
         let sut = AppState()
         sut.biometricEnabled = false
@@ -33,7 +31,7 @@ struct AppStateStaleClientKeyTests {
         let clientKeyManager = ClientKeyManager.shared
 
         await clientKeyManager.clearAll()
-        await clientKeyManager.store(testClientKey, enableBiometric: false)
+        await clientKeyManager.store(TestDataFactory.testClientKey, enableBiometric: false)
         #expect(await clientKeyManager.hasClientKey)
 
         sut.biometricEnabled = false

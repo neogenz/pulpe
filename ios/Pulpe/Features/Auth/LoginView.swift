@@ -49,6 +49,7 @@ struct LoginView: View {
                 }
             }
             .task {
+                await viewModel.loadLastUsedEmail()
                 canRetryBiometric = await appState.canRetryBiometric()
                 if !reduceMotion {
                     try? await Task.sleep(for: .milliseconds(100))
