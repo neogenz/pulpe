@@ -310,11 +310,11 @@ jobs:
         working-directory: backend-nest
         run: supabase stop || true
 
-  # 🎭 E2E TESTS avec cache Playwright optimisé
+  # 🎭 E2E TESTS (Chromium only - matching playwright.config.ts projects)
   test-e2e:
     name: 🎭 E2E Tests (${{ matrix.project }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     needs: [install, build]
     strategy:
       fail-fast: false
@@ -344,12 +344,6 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: "**/pnpm-lock.yaml"
 
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
-
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -358,20 +352,8 @@ jobs:
         with:
           name: build-artifacts
 
-      # 🚀 Cache Playwright optimisé (bonne pratique officielle)
-      - name: 🎭 Get Playwright version
-        id: playwright-version
-        run: echo "version=$(cd frontend && pnpm exec playwright --version)" >> $GITHUB_OUTPUT
-
-      - name: 🎭 Cache Playwright browsers
-        uses: actions/cache@v4
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
-
-      - name: 🎭 Install Playwright browsers
-        run: cd frontend && pnpm exec playwright install --with-deps
+      - name: 🎭 Install Playwright (Chromium only)
+        run: cd frontend && pnpm exec playwright install chromium --with-deps
 
       - name: 🎭 Run E2E tests
         run: cd frontend && pnpm test:e2e --project="${{ matrix.project }}"
