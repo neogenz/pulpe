@@ -167,7 +167,7 @@ import { BudgetGridSection } from './budget-grid-section';
             <div
               class="text-title-medium font-bold"
               [class.text-financial-income]="item.data.amount > 0"
-              [class.text-error]="item.data.amount < 0"
+              [class.text-financial-negative]="item.data.amount < 0"
             >
               {{ item.data.amount }}
             </div>

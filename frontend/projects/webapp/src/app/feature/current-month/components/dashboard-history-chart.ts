@@ -75,16 +75,18 @@ export class DashboardHistoryChart {
 
   readonly chartType = 'bar' as const;
 
-  readonly #incomeColor = signal('#10b981');
-  readonly #expenseColor = signal('#d97706');
-  readonly #savingsColor = signal('#406741');
+  readonly #incomeColor = signal('#0061A6');
+  readonly #expenseColor = signal('#B35800');
+  readonly #savingsColor = signal('#006E25');
 
   constructor() {
     afterNextRender(() => {
-      const primary = this.#resolveColor('var(--mat-sys-primary)');
-      const secondary = this.#resolveColor('var(--mat-sys-secondary)');
-      if (primary) this.#incomeColor.set(primary);
-      if (secondary) this.#savingsColor.set(secondary);
+      const income = this.#resolveColor('var(--pulpe-financial-income)');
+      const expense = this.#resolveColor('var(--pulpe-financial-expense)');
+      const savings = this.#resolveColor('var(--pulpe-financial-savings)');
+      if (income) this.#incomeColor.set(income);
+      if (expense) this.#expenseColor.set(expense);
+      if (savings) this.#savingsColor.set(savings);
     });
   }
 
@@ -142,7 +144,9 @@ export class DashboardHistoryChart {
         type: 'line',
         data: Array(data.length).fill(avgIncome),
         label: 'Revenu moyen',
-        borderColor: this.#incomeColor() + '60',
+        borderColor: this.#incomeColor()
+          .replace('rgb(', 'rgba(')
+          .replace(')', ', 0.38)'),
         borderDash: [6, 4],
         borderWidth: 2,
         pointRadius: 0,

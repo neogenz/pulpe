@@ -20,6 +20,7 @@ import {
 } from './dashboard-state';
 
 export interface HistoryDataPoint {
+  id: string;
   month: number;
   year: number;
   income: number;
@@ -503,6 +504,7 @@ export class DashboardStore {
       );
 
       return response.data.map((b) => ({
+        id: b.id,
         month: b.month!,
         year: b.year!,
         income: b.totalIncome ?? 0,

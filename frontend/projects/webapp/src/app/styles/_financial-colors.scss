@@ -1,62 +1,86 @@
-// Financial Summary Colors
-// Used by the pulpe-financial-summary component
+// ═══════════════════════════════════════════════════════════════════════
+// Pulpe — Financial Color Tokens
+//
+// Architecture: Primitives → Semantic tokens → Tailwind utilities
+//
+// TO CHANGE THE EXPENSE COLOR:
+//   Update ONLY the --pulpe-amber-* primitives below.
+//   Everything else (semantic tokens, Tailwind, components) cascades.
+// ═══════════════════════════════════════════════════════════════════════
+
+// ─── Layer 1: Primitive palette ─────────────────────────────────────
+// Raw hex values. Single source of truth for custom (non-Material) colors.
+// Income, savings, and critical use Material tokens — no primitives needed.
 
 :root {
-  // Primary financial colors (text) - semantic mappings to Material system
+  --pulpe-amber: #b35800;
+  --pulpe-amber-container: #fff3e0;
+  --pulpe-amber-on-container: #3e2723;
+}
+
+.dark-theme {
+  --pulpe-amber: #f0a050;
+  --pulpe-amber-container: #2a1f10;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --pulpe-amber: #f0a050;
+    --pulpe-amber-container: #2a1f10;
+  }
+}
+
+// ─── Layer 2: Semantic financial tokens ─────────────────────────────
+// What colors MEAN in Pulpe's financial context.
+// Consumed by Tailwind utilities (text-financial-*) and component styles.
+
+:root {
+  // Text colors per financial category
   --pulpe-financial-income: var(--mat-sys-tertiary);
-  --pulpe-financial-expense: var(--mat-sys-error);
+  --pulpe-financial-expense: var(--pulpe-amber);
   --pulpe-financial-savings: var(--mat-sys-primary);
-  --pulpe-financial-negative: var(--mat-sys-error);
+  --pulpe-financial-negative: var(--pulpe-amber);
 
-  // Background variants
+  // Container backgrounds (pills, hero, cards)
   --pulpe-financial-income-light: var(--mat-sys-tertiary-container);
-  --pulpe-financial-expense-light: var(--mat-sys-error-container);
+  --pulpe-financial-expense-light: var(--pulpe-amber-container);
   --pulpe-financial-savings-light: var(--mat-sys-primary-container);
-  --pulpe-financial-negative-light: var(--mat-sys-error-container);
+  --pulpe-financial-negative-light: var(--pulpe-amber-container);
 
-  // Text on financial backgrounds
+  // Text on financial containers
   --pulpe-on-financial-light: var(--mat-sys-on-surface);
 
-  // Dark variants for text/borders
+  // Border/accent variants
   --pulpe-financial-income-dark: var(--mat-sys-on-tertiary-container);
-  --pulpe-financial-expense-dark: var(--mat-sys-on-error-container);
+  --pulpe-financial-expense-dark: var(--pulpe-amber-on-container);
   --pulpe-financial-savings-dark: var(--mat-sys-on-primary-container);
-  --pulpe-financial-negative-dark: var(--mat-sys-on-error-container);
+  --pulpe-financial-negative-dark: var(--pulpe-amber-on-container);
 
-  // Hero card budget state tokens (amber family — no red for financial data)
+  // Critical: budget overrun (red preserved for danger)
+  --pulpe-financial-critical: var(--mat-sys-error);
+  --pulpe-financial-critical-light: var(--mat-sys-error-container);
+
+  // Hero card budget-state gradient
   --pulpe-hero-warning-start: #fef9c3;
   --pulpe-hero-warning-mid: #fbbf24;
   --pulpe-hero-warning-end: #d97706;
   --pulpe-hero-warning-on: #451a03;
-  --pulpe-hero-over-start: #d97706;
-  --pulpe-hero-over-mid: #92400e;
-  --pulpe-hero-over-end: #451a03;
-  --pulpe-hero-over-on: #fef3c7;
 }
 
-// Dark theme overrides
+// ─── Dark mode: Material reference swaps ────────────────────────────
+// Only tokens that switch to a DIFFERENT Material reference in dark mode.
+// Amber tokens cascade from the primitives above — no override needed.
+
 .dark-theme {
   --pulpe-financial-income: var(--mat-sys-on-tertiary-container);
-  --pulpe-financial-expense: var(--mat-sys-on-error-container);
   --pulpe-financial-savings: var(--mat-sys-on-primary-container);
-  --pulpe-financial-negative: var(--mat-sys-on-error-container);
-  --pulpe-financial-income-light: var(--mat-sys-tertiary-container);
-  --pulpe-financial-expense-light: var(--mat-sys-error-container);
-  --pulpe-financial-savings-light: var(--mat-sys-primary-container);
-  --pulpe-financial-negative-light: var(--mat-sys-error-container);
-  --pulpe-on-financial-light: var(--mat-sys-on-surface);
+  --pulpe-financial-critical: var(--mat-sys-on-error-container);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --pulpe-financial-income: var(--mat-sys-on-tertiary-container);
-    --pulpe-financial-expense: var(--mat-sys-on-error-container);
     --pulpe-financial-savings: var(--mat-sys-on-primary-container);
-    --pulpe-financial-negative: var(--mat-sys-on-error-container);
-    --pulpe-financial-income-light: var(--mat-sys-tertiary-container);
-    --pulpe-financial-expense-light: var(--mat-sys-error-container);
-    --pulpe-financial-savings-light: var(--mat-sys-primary-container);
-    --pulpe-financial-negative-light: var(--mat-sys-error-container);
-    --pulpe-on-financial-light: var(--mat-sys-on-surface);
+    --pulpe-financial-critical: var(--mat-sys-on-error-container);
   }
 }

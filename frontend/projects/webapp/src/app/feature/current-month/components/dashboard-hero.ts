@@ -161,11 +161,10 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
       .hero-container.budget-over {
         background: linear-gradient(
           145deg,
-          var(--pulpe-hero-over-start) 0%,
-          var(--pulpe-hero-over-mid) 60%,
-          var(--pulpe-hero-over-end) 100%
+          var(--mat-sys-error) 0%,
+          color-mix(in srgb, var(--mat-sys-error) 75%, black) 100%
         );
-        color: var(--pulpe-hero-over-on);
+        color: var(--mat-sys-on-error);
       }
 
       .indicator-dot {

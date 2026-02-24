@@ -32,12 +32,12 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
       <div
         class="text-center py-8 px-6 rounded-3xl"
         [class.bg-primary-container]="totals().remaining >= 0"
-        [class.bg-error-container]="totals().remaining < 0"
+        [class.bg-financial-negative-light]="totals().remaining < 0"
       >
         <p
           class="text-body-large mb-3"
           [class.text-on-primary-container]="totals().remaining >= 0"
-          [class.text-on-error-container]="totals().remaining < 0"
+          [class.text-on-surface]="totals().remaining < 0"
         >
           @if (totals().remaining >= 0) {
             Ce qu'il te reste ce mois
@@ -48,7 +48,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
         <div
           class="text-display-medium sm:text-display-large font-bold tracking-tight ph-no-capture"
           [class.text-on-primary-container]="totals().remaining >= 0"
-          [class.text-on-error-container]="totals().remaining < 0"
+          [class.text-on-surface]="totals().remaining < 0"
         >
           {{ remainingAbsolute() | number: '1.0-0' : 'de-CH' }}
           <span class="text-headline-small font-normal">CHF</span>
@@ -56,7 +56,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
         <p
           class="text-body-medium mt-3"
           [class.text-on-primary-container]="totals().remaining >= 0"
-          [class.text-on-error-container]="totals().remaining < 0"
+          [class.text-on-surface]="totals().remaining < 0"
         >
           @if (totals().remaining >= 0) {
             @if (totals().remaining > totals().income * 0.2) {

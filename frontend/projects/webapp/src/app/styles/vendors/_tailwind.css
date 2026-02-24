@@ -182,6 +182,9 @@
 @utility text-on-financial-light {
   color: var(--pulpe-on-financial-light) !important;
 }
+@utility text-financial-critical {
+  color: var(--pulpe-financial-critical) !important;
+}
 
 /* `.dark-theme` is the class name to enable dark mode in our application */
 @custom-variant dark (&:where(.dark-theme, .dark-theme *));
@@ -229,6 +232,8 @@
   --color-financial-savings-light: var(--pulpe-financial-savings-light);
   --color-financial-negative-light: var(--pulpe-financial-negative-light);
   --color-on-financial-light: var(--pulpe-on-financial-light);
+  --color-financial-critical: var(--pulpe-financial-critical);
+  --color-financial-critical-light: var(--pulpe-financial-critical-light);
 
   /* same as `plain-family` in angular material */
   --font-sans: var(--mat-sys-body-large-font), sans-serif;

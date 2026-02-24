@@ -39,7 +39,7 @@ import {
           <div
             class="text-headline-small md:text-headline-medium font-semibold ph-no-capture"
             [class.text-primary]="realizedBalance() >= 0"
-            [class.text-error]="realizedBalance() < 0"
+            [class.text-financial-negative]="realizedBalance() < 0"
           >
             {{ realizedBalance() | number: '1.0-0' : 'de-CH' }} CHF
           </div>

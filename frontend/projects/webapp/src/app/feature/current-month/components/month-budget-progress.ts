@@ -37,7 +37,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
         <div class="flex flex-col gap-3 w-full">
           <!-- Main line: Expenses over Available -->
           <div class="flex justify-between items-baseline gap-2">
-            <div class="flex flex-col" [class.text-error]="isOverBudget()">
+            <div
+              class="flex flex-col"
+              [class.text-financial-critical]="isOverBudget()"
+            >
               <span class="text-body-small md:text-body flex items-center gap-1"
                 >Dépenses CHF
                 @if (isOverBudget()) {
@@ -84,7 +87,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
           />
           <div
             class="text-label-small text-on-surface-variant ph-no-capture"
-            [class.text-error!]="isOverBudget()"
+            [class.text-financial-critical!]="isOverBudget()"
           >
             @if (displayPercentage() === -1) {
               Budget totalement dépassé

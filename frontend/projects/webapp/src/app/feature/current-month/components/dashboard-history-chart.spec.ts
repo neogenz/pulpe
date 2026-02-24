@@ -14,13 +14,41 @@ describe('DashboardHistoryChart', () => {
   let fixture: ComponentFixture<DashboardHistoryChart>;
 
   const mockHistoryData: HistoryDataPoint[] = [
-    { month: 1, year: 2025, income: 5000, expenses: 3000, savings: 500 },
-    { month: 2, year: 2025, income: 5200, expenses: 3100, savings: 300 },
+    {
+      id: 'b1',
+      month: 1,
+      year: 2025,
+      income: 5000,
+      expenses: 3000,
+      savings: 500,
+    },
+    {
+      id: 'b2',
+      month: 2,
+      year: 2025,
+      income: 5200,
+      expenses: 3100,
+      savings: 300,
+    },
   ];
 
   const mockHistoryDataNoSavings: HistoryDataPoint[] = [
-    { month: 1, year: 2025, income: 5000, expenses: 3000, savings: 0 },
-    { month: 2, year: 2025, income: 5200, expenses: 3100, savings: 0 },
+    {
+      id: 'b1',
+      month: 1,
+      year: 2025,
+      income: 5000,
+      expenses: 3000,
+      savings: 0,
+    },
+    {
+      id: 'b2',
+      month: 2,
+      year: 2025,
+      income: 5200,
+      expenses: 3100,
+      savings: 0,
+    },
   ];
 
   beforeEach(async () => {
@@ -93,14 +121,14 @@ describe('DashboardHistoryChart', () => {
   });
 
   describe('expense color', () => {
-    it('should use amber color for expenses', () => {
+    it('should use financial expense color for expenses', () => {
       setTestInput(component.history, mockHistoryData);
 
       const chartData = component.chartData();
       const expenseDataset = chartData.datasets.find(
         (d) => d.label === 'Dépenses',
       );
-      expect(expenseDataset!.backgroundColor).toBe('#d97706');
+      expect(expenseDataset!.backgroundColor).toBe('#B35800');
     });
   });
 
