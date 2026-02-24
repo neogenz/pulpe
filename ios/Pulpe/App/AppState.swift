@@ -497,9 +497,7 @@ final class AppState {
     func handleSessionExpired() async {
         guard !isLoggingOut else { return }
         await clientKeyManager.clearSession()
-        currentUser = nil
-        authState = .unauthenticated
-        biometricError = "Ta session a expiré, reconnecte-toi"
+        resetSession(.sessionExpiry)
     }
 
     // MARK: - Maintenance Actions
@@ -617,24 +615,7 @@ extension AppState {
         }
 
         await clientKeyManager.clearSession()
-        currentUser = nil
-        authState = .unauthenticated
-        showBiometricEnrollment = false
-        showRecoveryKeyRepairConsent = false
-        showPostAuthRecoveryKeySheet = false
-        needsRecoveryKeyRepairConsent = false
-        postAuthRecoveryKey = nil
-        showPostAuthError = false
-        biometricError = nil
-
-        // Clear sensitive widget data
-        WidgetDataCoordinator().clear()
-        WidgetCenter.shared.reloadAllTimelines()
-
-        // Reset navigation
-        budgetPath = NavigationPath()
-        templatePath = NavigationPath()
-        selectedTab = .currentMonth
+        resetSession(source == .userInitiated ? .userLogout : .systemLogout)
     }
 
     /// Complete password recovery flow by clearing temporary auth/encryption state
@@ -644,7 +625,7 @@ extension AppState {
         await authService.clearBiometricTokens()
         await clientKeyManager.clearAll()
         biometricEnabled = false
-        resetAfterPasswordResetCleanup()
+        resetSession(.passwordReset)
         toastManager.show("Mot de passe réinitialisé, reconnecte-toi", type: .success)
     }
 
@@ -655,7 +636,7 @@ extension AppState {
         await authService.clearBiometricTokens()
         await clientKeyManager.clearAll()
         biometricEnabled = false
-        resetAfterPasswordResetCleanup()
+        resetSession(.passwordReset)
     }
 
     func deleteAccount() async {
@@ -675,6 +656,73 @@ extension AppState {
         await logout(source: .system)
     }
 
+    // MARK: - Session Reset
+
+    private enum SessionResetScope {
+        case userLogout
+        case systemLogout
+        case sessionExpiry
+        case recoverySessionExpiry
+        case passwordReset
+
+        var clearsUIState: Bool {
+            switch self {
+            case .sessionExpiry: false
+            default: true
+            }
+        }
+
+        var clearsNavigation: Bool {
+            switch self {
+            case .userLogout, .systemLogout, .passwordReset: true
+            default: false
+            }
+        }
+
+        var clearsPostAuthError: Bool {
+            switch self {
+            case .userLogout, .systemLogout: true
+            default: false
+            }
+        }
+
+        var errorMessage: String? {
+            switch self {
+            case .sessionExpiry, .recoverySessionExpiry: "Ta session a expiré, reconnecte-toi"
+            default: nil
+            }
+        }
+
+        var setsManualBiometricRetry: Bool { self == .recoverySessionExpiry }
+    }
+
+    private func resetSession(_ scope: SessionResetScope) {
+        currentUser = nil
+        authState = .unauthenticated
+        biometricError = scope.errorMessage
+
+        if scope.clearsUIState {
+            showBiometricEnrollment = false
+            showRecoveryKeyRepairConsent = false
+            showPostAuthRecoveryKeySheet = false
+            needsRecoveryKeyRepairConsent = false
+            postAuthRecoveryKey = nil
+        }
+        if scope.clearsPostAuthError { showPostAuthError = false }
+        if scope.clearsNavigation {
+            budgetPath = NavigationPath()
+            templatePath = NavigationPath()
+            selectedTab = .currentMonth
+            WidgetDataCoordinator().clear()
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+        if scope.setsManualBiometricRetry {
+            setManualBiometricRetryRequiredFlag(true)
+        }
+    }
+
+    // MARK: - UserDefaults Helpers
+
     private func clearExplicitLogoutFlag() {
         UserDefaults.standard.removeObject(forKey: UserDefaultsKey.didExplicitLogout)
     }
@@ -685,26 +733,6 @@ extension AppState {
 
     private func clearManualBiometricRetryRequiredFlag() {
         UserDefaults.standard.removeObject(forKey: UserDefaultsKey.manualBiometricRetryRequired)
-    }
-
-    private func resetAfterPasswordResetCleanup() {
-        currentUser = nil
-        authState = .unauthenticated
-        biometricError = nil
-        showBiometricEnrollment = false
-        showRecoveryKeyRepairConsent = false
-        showPostAuthRecoveryKeySheet = false
-        needsRecoveryKeyRepairConsent = false
-        postAuthRecoveryKey = nil
-
-        // Clear sensitive widget data
-        WidgetDataCoordinator().clear()
-        WidgetCenter.shared.reloadAllTimelines()
-
-        // Reset navigation
-        budgetPath = NavigationPath()
-        templatePath = NavigationPath()
-        selectedTab = .currentMonth
     }
 }
 
@@ -913,15 +941,7 @@ extension AppState {
     func handleRecoverySessionExpired() async {
         guard !isLoggingOut else { return }
         await clientKeyManager.clearSession()
-        currentUser = nil
-        authState = .unauthenticated
-        biometricError = "Ta session a expiré, reconnecte-toi"
-        showBiometricEnrollment = false
-        showRecoveryKeyRepairConsent = false
-        showPostAuthRecoveryKeySheet = false
-        needsRecoveryKeyRepairConsent = false
-        postAuthRecoveryKey = nil
-        setManualBiometricRetryRequiredFlag(true)
+        resetSession(.recoverySessionExpiry)
     }
 
     func acceptRecoveryKeyRepairConsent() async {
