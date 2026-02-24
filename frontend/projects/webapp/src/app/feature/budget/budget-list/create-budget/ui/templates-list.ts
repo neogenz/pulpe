@@ -121,15 +121,15 @@ import { type TemplateViewModel } from './template-view-model';
 })
 export class TemplatesList {
   // Inputs
-  templates = input<TemplateViewModel[]>([]);
-  selectedTemplateId = input<string | null>(null);
-  isLoading = input<boolean>(false);
-  hasError = input<boolean>(false);
+  readonly templates = input<TemplateViewModel[]>([]);
+  readonly selectedTemplateId = input<string | null>(null);
+  readonly isLoading = input<boolean>(false);
+  readonly hasError = input<boolean>(false);
 
   // Outputs
-  templateSelected = output<string>();
-  templateDetailsRequested = output<TemplateViewModel>();
-  retryRequested = output<void>();
+  readonly templateSelected = output<string>();
+  readonly templateDetailsRequested = output<TemplateViewModel>();
+  readonly retryRequested = output<void>();
 
   // Local search state
   readonly searchControl = new FormControl('', { nonNullable: true });
