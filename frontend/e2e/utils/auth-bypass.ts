@@ -16,7 +16,7 @@ const TOUR_IDS = ['intro', 'current-month', 'budget-list', 'budget-details', 'te
 export async function setupAuthBypass(page: Page, options: {
   includeApiMocks?: boolean;
   setLocalStorage?: boolean;
-  provider?: 'email' | 'google';
+  provider?: 'email' | 'google' | 'apple';
   vaultCodeConfigured?: boolean;
 } = {}) {
   const { includeApiMocks = true, setLocalStorage = false, provider, vaultCodeConfigured } = options;
@@ -31,6 +31,7 @@ export async function setupAuthBypass(page: Page, options: {
 
     if (config.provider) {
       appMetadata['provider'] = config.provider;
+      appMetadata['providers'] = [config.provider];
     }
     if (config.vaultCodeConfigured !== undefined) {
       userMetadata['vaultCodeConfigured'] = config.vaultCodeConfigured;

@@ -7,7 +7,7 @@ import { AUTH_ERROR_MESSAGES } from './auth-constants';
 import { ROUTES } from '@core/routing/routes-constants';
 import { isE2EMode } from './e2e-window';
 
-export type OAuthProvider = 'google';
+export type OAuthProvider = 'google' | 'apple';
 
 export interface OAuthUserMetadata {
   givenName?: string;
