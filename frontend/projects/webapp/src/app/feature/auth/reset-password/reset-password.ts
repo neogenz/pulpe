@@ -125,7 +125,7 @@ import {
             </p>
             <a
               [routerLink]="['/', ROUTES.LOGIN]"
-              mat-flat-button
+              matButton="filled"
               color="primary"
               class="w-full"
               data-testid="back-to-login-button"

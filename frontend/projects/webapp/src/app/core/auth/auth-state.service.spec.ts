@@ -170,6 +170,48 @@ describe('AuthStateService', () => {
       service.setSession(null);
       expect(service.isOAuthOnly()).toBe(false);
     });
+
+    describe('identities fallback (when app_metadata.providers is missing)', () => {
+      const createSessionWithIdentities = (
+        providerNames: string[],
+      ): Session => ({
+        ...mockSession,
+        user: {
+          ...mockSession.user,
+          app_metadata: {},
+          identities: providerNames.map((provider) => ({
+            identity_id: `identity-${provider}`,
+            id: `id-${provider}`,
+            user_id: 'user-123',
+            provider,
+            identity_data: {},
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            last_sign_in_at: new Date().toISOString(),
+          })),
+        },
+      });
+
+      it('should return true when providers is missing but identities has only Google', () => {
+        service.setSession(createSessionWithIdentities(['google']));
+        expect(service.isOAuthOnly()).toBe(true);
+      });
+
+      it('should return false when providers is missing but identities has email', () => {
+        service.setSession(createSessionWithIdentities(['email']));
+        expect(service.isOAuthOnly()).toBe(false);
+      });
+
+      it('should return false when providers is missing and identities is empty', () => {
+        service.setSession(createSessionWithIdentities([]));
+        expect(service.isOAuthOnly()).toBe(false);
+      });
+
+      it('should return false when providers is missing but identities has both email and google', () => {
+        service.setSession(createSessionWithIdentities(['email', 'google']));
+        expect(service.isOAuthOnly()).toBe(false);
+      });
+    });
   });
 
   describe('state transition consistency', () => {
