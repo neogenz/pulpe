@@ -16,6 +16,7 @@ import {
 } from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
@@ -51,6 +52,7 @@ type TransactionFormData = Pick<
     MatButtonModule,
     MatBottomSheetModule,
     MatIconModule,
+    MatSnackBarModule,
     MatTooltipModule,
     DashboardError,
     BaseLoading,
@@ -82,7 +84,7 @@ type TransactionFormData = Pick<
             aria-label="Actualiser"
             data-testid="refresh-button"
           >
-            <mat-icon>refresh</mat-icon>
+            <mat-icon aria-hidden="true">refresh</mat-icon>
           </button>
         </div>
       </header>
@@ -183,7 +185,7 @@ type TransactionFormData = Pick<
           data-testid="add-transaction-fab"
           data-tour="add-transaction-fab"
         >
-          <mat-icon class="fab-icon">add</mat-icon>
+          <mat-icon aria-hidden="true" class="fab-icon">add</mat-icon>
         </button>
       } @else {
         <pulpe-state-card
@@ -290,6 +292,7 @@ export default class Dashboard {
   readonly #bottomSheet = inject(MatBottomSheet);
   readonly #router = inject(Router);
   readonly #logger = inject(Logger);
+  readonly #snackBar = inject(MatSnackBar);
 
   protected readonly budgetPeriodDisplayName = computed(() => {
     const period = this.store.currentBudgetPeriod();
@@ -361,6 +364,13 @@ export default class Dashboard {
       });
     } catch (error) {
       this.#logger.error('Error adding transaction:', error);
+      this.#snackBar.open(
+        "L'ajout a échoué — vérifie ta connexion et réessaie",
+        'Fermer',
+        {
+          duration: 5000,
+        },
+      );
     }
   }
 }

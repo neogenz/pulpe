@@ -10,12 +10,15 @@ import {
   budgetExportResponseSchema,
   budgetListResponseSchema,
   budgetResponseSchema,
+  budgetSparseListResponseSchema,
+  type BudgetLine,
   type BudgetLineCreate,
   type BudgetLineUpdate,
   type BudgetLineResponse,
   budgetLineResponseSchema,
   type BudgetLineDeleteResponse,
   budgetLineDeleteResponseSchema,
+  type Transaction,
   type TransactionCreate,
   type TransactionCreateResponse,
   type TransactionUpdate,
@@ -127,6 +130,119 @@ export class BudgetApi {
               budget.month === monthNumber && budget.year === yearNumber,
           ) ?? null,
       ),
+    );
+  }
+
+  getDashboardData$(
+    month: string,
+    year: string,
+  ): Observable<{
+    budget: Budget | null;
+    transactions: Transaction[];
+    budgetLines: BudgetLine[];
+  }> {
+    const cacheKey: string[] = ['budget', 'dashboard', month, year];
+    const cached = this.cache.get<{
+      budget: Budget | null;
+      transactions: Transaction[];
+      budgetLines: BudgetLine[];
+    }>(cacheKey);
+
+    if (cached?.fresh) {
+      return of(cached.data);
+    }
+
+    return from(
+      this.cache.deduplicate(cacheKey, async () => {
+        const budget = await firstValueFrom(
+          this.getBudgetForMonth$(month, year),
+        );
+
+        if (!budget) {
+          return {
+            budget: null,
+            transactions: [] as Transaction[],
+            budgetLines: [] as BudgetLine[],
+          };
+        }
+
+        const detailsCached = this.cache.get<{
+          budgetLines: BudgetLine[];
+          transactions: Transaction[];
+          rollover: number;
+          previousBudgetId: string | null;
+        }>(['budget', 'details', budget.id]);
+
+        if (detailsCached?.fresh) {
+          const details = detailsCached.data;
+          return {
+            budget: {
+              ...budget,
+              rollover: details.rollover,
+              previousBudgetId: details.previousBudgetId,
+            },
+            transactions: details.transactions,
+            budgetLines: details.budgetLines,
+          };
+        }
+
+        const response = await firstValueFrom(
+          this.getBudgetWithDetails$(budget.id),
+        );
+
+        return {
+          budget: response.data.budget,
+          transactions: response.data.transactions,
+          budgetLines: response.data.budgetLines,
+        };
+      }),
+    );
+  }
+
+  getHistoryData$(): Observable<
+    {
+      id: string;
+      month: number;
+      year: number;
+      income: number;
+      expenses: number;
+      savings: number;
+    }[]
+  > {
+    const cacheKey: string[] = ['budget', 'history'];
+    const cached = this.cache.get<
+      {
+        id: string;
+        month: number;
+        year: number;
+        income: number;
+        expenses: number;
+        savings: number;
+      }[]
+    >(cacheKey);
+
+    if (cached?.fresh) {
+      return of(cached.data);
+    }
+
+    return from(
+      this.cache.deduplicate(cacheKey, async () => {
+        const response = await firstValueFrom(
+          this.#api.get$(
+            '/budgets?fields=month,year,totalIncome,totalExpenses,totalSavings&limit=24',
+            budgetSparseListResponseSchema,
+          ),
+        );
+
+        return response.data.map((b) => ({
+          id: b.id,
+          month: b.month!,
+          year: b.year!,
+          income: b.totalIncome ?? 0,
+          expenses: b.totalExpenses ?? 0,
+          savings: b.totalSavings ?? 0,
+        }));
+      }),
     );
   }
 

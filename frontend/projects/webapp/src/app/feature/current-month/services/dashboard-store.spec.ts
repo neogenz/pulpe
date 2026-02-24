@@ -1,12 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { of, throwError } from 'rxjs';
+import { of, throwError, NEVER } from 'rxjs';
 import { DashboardStore, DASHBOARD_NOW } from './dashboard-store';
 import { BudgetApi } from '@core/budget';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { UserSettingsApi } from '@core/user-settings';
-import { ApiClient } from '@core/api/api-client';
 import type { Budget, BudgetLine, Transaction } from 'pulpe-shared';
 import { BudgetFormulas } from 'pulpe-shared';
 
@@ -70,23 +69,18 @@ function createMockTransaction(overrides: Partial<Transaction>): Transaction {
 function createMocks() {
   return {
     budgetApi: {
-      getBudgetForMonth$: vi.fn().mockReturnValue(of(null)),
+      getDashboardData$: vi
+        .fn()
+        .mockReturnValue(
+          of({ budget: null, transactions: [], budgetLines: [] }),
+        ),
+      getHistoryData$: vi.fn().mockReturnValue(of([])),
       getBudgetById$: vi.fn().mockReturnValue(of(createMockBudget())),
-      getBudgetWithDetails$: vi.fn(),
       createTransaction$: vi.fn(),
       toggleBudgetLineCheck$: vi.fn(),
       cache: {
         get: vi.fn().mockReturnValue(null),
-        set: vi.fn(),
-        has: vi.fn().mockReturnValue(false),
-        invalidate: vi.fn(),
-        deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) =>
-          fn(),
-        ),
       },
-    },
-    apiClient: {
-      get$: vi.fn().mockReturnValue(of({ success: true, data: [] })),
     },
     userSettingsApi: {
       payDayOfMonth: signal<number | null>(1),
@@ -105,7 +99,6 @@ function setup(mocks = createMocks()) {
       DashboardStore,
       provideZonelessChangeDetection(),
       { provide: BudgetApi, useValue: mocks.budgetApi },
-      { provide: ApiClient, useValue: mocks.apiClient },
       { provide: UserSettingsApi, useValue: mocks.userSettingsApi },
       {
         provide: BudgetInvalidationService,
@@ -125,18 +118,17 @@ async function setupWithBudgetAndWait(
   transactions: Transaction[] = [],
 ) {
   const mocks = createMocks();
-  mocks.budgetApi.getBudgetForMonth$.mockReturnValue(of(budget));
-  mocks.budgetApi.getBudgetWithDetails$.mockReturnValue(
-    of({
-      success: true,
-      data: { budget, transactions, budgetLines },
-    }),
+  mocks.budgetApi.getDashboardData$.mockReturnValue(
+    of({ budget, transactions, budgetLines }),
   );
   const result = setup(mocks);
 
   TestBed.tick();
   await vi.waitFor(() => {
-    expect(result.store.dashboardData()).not.toBeNull();
+    const data = result.store.dashboardData();
+    expect(data?.budget?.id).toBe(budget.id);
+    expect(data?.budgetLines.length).toBe(budgetLines.length);
+    expect(data?.transactions.length).toBe(transactions.length);
   });
 
   return result;
@@ -228,10 +220,7 @@ describe('DashboardStore - Business Scenarios', () => {
   describe('Loading states', () => {
     it('should report isInitialLoading true when first loading', () => {
       const mocks = createMocks();
-      mocks.budgetApi.cache.deduplicate.mockImplementation(
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
-        () => new Promise(() => {}),
-      );
+      mocks.budgetApi.getDashboardData$.mockReturnValue(NEVER);
       const { store } = setup(mocks);
 
       expect(store.isInitialLoading()).toBe(true);
@@ -251,13 +240,8 @@ describe('DashboardStore - Business Scenarios', () => {
     it('should return reloading status when loading with existing data', async () => {
       const mocks = createMocks();
       const budget = createMockBudget();
-      mocks.budgetApi.getBudgetForMonth$.mockReturnValue(of(budget));
-      mocks.budgetApi.getBudgetWithDetails$.mockReturnValue(
-        of({
-          success: true,
-          data: { budget, transactions: [], budgetLines: [] },
-        }),
-      );
+      const dashboardData = { budget, transactions: [], budgetLines: [] };
+      mocks.budgetApi.getDashboardData$.mockReturnValue(of(dashboardData));
       const { store } = setup(mocks);
 
       TestBed.tick();
@@ -265,16 +249,19 @@ describe('DashboardStore - Business Scenarios', () => {
         expect(store.dashboardData()).not.toBeNull();
       });
 
+      // Simulate cache returning stale data (resource clears value on reload)
+      mocks.budgetApi.cache.get.mockReturnValue({
+        fresh: false,
+        data: dashboardData,
+      });
+
       // Trigger reload by making the next load hang
-      mocks.budgetApi.cache.deduplicate.mockImplementation(
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
-        () => new Promise(() => {}),
-      );
+      mocks.budgetApi.getDashboardData$.mockReturnValue(NEVER);
       mocks.invalidationService.version.set(1);
 
       TestBed.tick();
 
-      // With existing data + loading → 'reloading'
+      // With existing cached data + loading → 'reloading'
       await vi.waitFor(() => {
         expect(store.status()).toBe('reloading');
       });
@@ -291,12 +278,8 @@ describe('DashboardStore - Business Scenarios', () => {
       });
 
       const mocks = createMocks();
-      mocks.budgetApi.getBudgetForMonth$.mockReturnValue(of(budget));
-      mocks.budgetApi.getBudgetWithDetails$.mockReturnValue(
-        of({
-          success: true,
-          data: { budget, transactions: [], budgetLines: [] },
-        }),
+      mocks.budgetApi.getDashboardData$.mockReturnValue(
+        of({ budget, transactions: [], budgetLines: [] }),
       );
       mocks.budgetApi.createTransaction$.mockReturnValue(
         of({ success: true, data: newTx }),
@@ -326,15 +309,11 @@ describe('DashboardStore - Business Scenarios', () => {
       const existingTx = createMockTransaction({ id: 'tx-existing' });
 
       const mocks = createMocks();
-      mocks.budgetApi.getBudgetForMonth$.mockReturnValue(of(budget));
-      mocks.budgetApi.getBudgetWithDetails$.mockReturnValue(
+      mocks.budgetApi.getDashboardData$.mockReturnValue(
         of({
-          success: true,
-          data: {
-            budget,
-            transactions: [existingTx],
-            budgetLines: [],
-          },
+          budget,
+          transactions: [existingTx],
+          budgetLines: [],
         }),
       );
       mocks.budgetApi.createTransaction$.mockReturnValue(
@@ -371,12 +350,8 @@ describe('DashboardStore - Business Scenarios', () => {
       });
 
       const mocks = createMocks();
-      mocks.budgetApi.getBudgetForMonth$.mockReturnValue(of(budget));
-      mocks.budgetApi.getBudgetWithDetails$.mockReturnValue(
-        of({
-          success: true,
-          data: { budget, transactions: [], budgetLines: [line] },
-        }),
+      mocks.budgetApi.getDashboardData$.mockReturnValue(
+        of({ budget, transactions: [], budgetLines: [line] }),
       );
       mocks.budgetApi.toggleBudgetLineCheck$.mockReturnValue(
         of({
@@ -405,12 +380,8 @@ describe('DashboardStore - Business Scenarios', () => {
       });
 
       const mocks = createMocks();
-      mocks.budgetApi.getBudgetForMonth$.mockReturnValue(of(budget));
-      mocks.budgetApi.getBudgetWithDetails$.mockReturnValue(
-        of({
-          success: true,
-          data: { budget, transactions: [], budgetLines: [line] },
-        }),
+      mocks.budgetApi.getDashboardData$.mockReturnValue(
+        of({ budget, transactions: [], budgetLines: [line] }),
       );
       mocks.budgetApi.toggleBudgetLineCheck$.mockReturnValue(
         of({ success: true, data: { ...line, checkedAt: null } }),
@@ -435,12 +406,8 @@ describe('DashboardStore - Business Scenarios', () => {
       });
 
       const mocks = createMocks();
-      mocks.budgetApi.getBudgetForMonth$.mockReturnValue(of(budget));
-      mocks.budgetApi.getBudgetWithDetails$.mockReturnValue(
-        of({
-          success: true,
-          data: { budget, transactions: [], budgetLines: [line] },
-        }),
+      mocks.budgetApi.getDashboardData$.mockReturnValue(
+        of({ budget, transactions: [], budgetLines: [line] }),
       );
       mocks.budgetApi.toggleBudgetLineCheck$.mockReturnValue(
         throwError(() => new Error('Toggle failed')),
@@ -586,7 +553,7 @@ describe('DashboardStore - Business Scenarios', () => {
   describe('Empty states', () => {
     it('should handle no budget gracefully', async () => {
       const mocks = createMocks();
-      mocks.budgetApi.getBudgetForMonth$.mockReturnValue(of(null));
+      // Default mock already returns { budget: null, ... }
       const { store } = setup(mocks);
 
       TestBed.tick();
@@ -658,13 +625,12 @@ describe('DashboardStore - Pay Day Integration', () => {
 
   it('should call API with computed budget period month/year', async () => {
     const mocks = createMocks();
-    mocks.budgetApi.getBudgetForMonth$.mockReturnValue(of(null));
     setup(mocks);
 
     TestBed.tick();
 
     await vi.waitFor(() => {
-      expect(mocks.budgetApi.getBudgetForMonth$).toHaveBeenCalledWith(
+      expect(mocks.budgetApi.getDashboardData$).toHaveBeenCalledWith(
         '06',
         '2025',
       );
@@ -727,5 +693,235 @@ describe('DashboardStore - Savings', () => {
 
     expect(store.totalSavingsPlanned()).toBe(0);
     expect(store.totalSavingsRealized()).toBe(0);
+  });
+});
+
+// ── Section 4: History & Upcoming Data ──
+
+async function setupWithHistory(
+  historyEntries: {
+    id: string;
+    month: number;
+    year: number;
+    totalIncome?: number;
+    totalExpenses?: number;
+    totalSavings?: number;
+  }[],
+) {
+  const mocks = createMocks();
+  mocks.budgetApi.getHistoryData$.mockReturnValue(
+    of(
+      historyEntries.map((e) => ({
+        id: e.id,
+        month: e.month,
+        year: e.year,
+        income: e.totalIncome ?? 0,
+        expenses: e.totalExpenses ?? 0,
+        savings: e.totalSavings ?? 0,
+      })),
+    ),
+  );
+  const result = setup(mocks);
+
+  TestBed.tick();
+  await vi.waitFor(() => {
+    expect(mocks.budgetApi.getHistoryData$).toHaveBeenCalled();
+  });
+  TestBed.tick();
+
+  return result;
+}
+
+describe('DashboardStore - History Data', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should return history data filtered to past and present months only', async () => {
+    // FIXED_DATE = June 15 2025, currentBudgetPeriod = { month: 6, year: 2025 }
+    // Include past, present, and future months
+    const { store } = await setupWithHistory([
+      { id: 'h1', month: 4, year: 2025, totalIncome: 4000 },
+      { id: 'h2', month: 5, year: 2025, totalIncome: 4500 },
+      { id: 'h3', month: 6, year: 2025, totalIncome: 5000 }, // current
+      { id: 'h4', month: 7, year: 2025, totalIncome: 5500 }, // future
+      { id: 'h5', month: 8, year: 2025, totalIncome: 6000 }, // future
+    ]);
+
+    await vi.waitFor(() => {
+      const history = store.historyData();
+      expect(history.length).toBe(3);
+      expect(history.map((h) => h.month)).toEqual([4, 5, 6]);
+    });
+  });
+
+  it('should return data in chronological ascending order', async () => {
+    // Provide data in random order
+    const { store } = await setupWithHistory([
+      { id: 'h3', month: 6, year: 2025 },
+      { id: 'h1', month: 3, year: 2025 },
+      { id: 'h2', month: 5, year: 2025 },
+      { id: 'h4', month: 4, year: 2025 },
+    ]);
+
+    await vi.waitFor(() => {
+      const history = store.historyData();
+      expect(history.length).toBe(4);
+      expect(history.map((h) => h.month)).toEqual([3, 4, 5, 6]);
+    });
+  });
+
+  it('should limit to 6 months maximum', async () => {
+    // Provide 10 past months
+    const entries = Array.from({ length: 10 }, (_, i) => ({
+      id: `h${i}`,
+      month: ((i + 9 - 1) % 12) + 1, // Sept 2024 through June 2025
+      year: i < 4 ? 2024 : 2025,
+      totalIncome: 1000 * (i + 1),
+    }));
+
+    const { store } = await setupWithHistory(entries);
+
+    await vi.waitFor(() => {
+      const history = store.historyData();
+      expect(history.length).toBe(6);
+      // Should be the 6 most recent (Jan–June 2025)
+      expect(history[0].month).toBe(1);
+      expect(history[0].year).toBe(2025);
+      expect(history[5].month).toBe(6);
+      expect(history[5].year).toBe(2025);
+    });
+  });
+
+  it('should return empty array when no history data', async () => {
+    const { store } = await setupWithHistory([]);
+
+    await vi.waitFor(() => {
+      expect(store.historyData()).toEqual([]);
+    });
+  });
+});
+
+describe('DashboardStore - Upcoming Budgets Data', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should generate exactly 12 forecast entries starting from next month', async () => {
+    // currentBudgetPeriod = { month: 6, year: 2025 }, so next month = July 2025
+    const { store } = await setupWithHistory([]);
+
+    await vi.waitFor(() => {
+      const upcoming = store.upcomingBudgetsData();
+      expect(upcoming.length).toBe(12);
+      expect(upcoming[0]).toEqual(
+        expect.objectContaining({ month: 7, year: 2025 }),
+      );
+      expect(upcoming[11]).toEqual(
+        expect.objectContaining({ month: 6, year: 2026 }),
+      );
+    });
+  });
+
+  it('should map history data when matching month/year found', async () => {
+    const { store } = await setupWithHistory([
+      {
+        id: 'h1',
+        month: 7,
+        year: 2025,
+        totalIncome: 5000,
+        totalExpenses: 3000,
+        totalSavings: 500,
+      },
+      {
+        id: 'h2',
+        month: 9,
+        year: 2025,
+        totalIncome: 5500,
+        totalExpenses: 3200,
+        totalSavings: 600,
+      },
+    ]);
+
+    await vi.waitFor(() => {
+      const upcoming = store.upcomingBudgetsData();
+      // July 2025 (index 0) should have budget data
+      expect(upcoming[0]).toEqual({
+        month: 7,
+        year: 2025,
+        hasBudget: true,
+        income: 5000,
+        expenses: 3000,
+        savings: 500,
+      });
+      // September 2025 (index 2) should have budget data
+      expect(upcoming[2]).toEqual({
+        month: 9,
+        year: 2025,
+        hasBudget: true,
+        income: 5500,
+        expenses: 3200,
+        savings: 600,
+      });
+    });
+  });
+
+  it('should return null financials when no matching history month', async () => {
+    const { store } = await setupWithHistory([]);
+
+    await vi.waitFor(() => {
+      const upcoming = store.upcomingBudgetsData();
+      expect(upcoming[0]).toEqual({
+        month: 7,
+        year: 2025,
+        hasBudget: false,
+        income: null,
+        expenses: null,
+        savings: null,
+      });
+    });
+  });
+
+  it('should handle year rollover correctly', async () => {
+    // Set payDay to cause December period
+    const mocks = createMocks();
+    // Use a date in December
+    const decemberDate = new Date(2025, 11, 15); // December 15, 2025
+    mocks.budgetApi.getHistoryData$.mockReturnValue(of([]));
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        DashboardStore,
+        provideZonelessChangeDetection(),
+        { provide: BudgetApi, useValue: mocks.budgetApi },
+        { provide: UserSettingsApi, useValue: mocks.userSettingsApi },
+        {
+          provide: BudgetInvalidationService,
+          useValue: mocks.invalidationService,
+        },
+        { provide: DASHBOARD_NOW, useValue: decemberDate },
+      ],
+    });
+
+    const store = TestBed.inject(DashboardStore);
+
+    TestBed.tick();
+    await vi.waitFor(() => {
+      expect(mocks.budgetApi.getHistoryData$).toHaveBeenCalled();
+    });
+    TestBed.tick();
+
+    await vi.waitFor(() => {
+      const upcoming = store.upcomingBudgetsData();
+      expect(upcoming.length).toBe(12);
+      // December period → first forecast is January next year
+      expect(upcoming[0]).toEqual(
+        expect.objectContaining({ month: 1, year: 2026 }),
+      );
+      expect(upcoming[11]).toEqual(
+        expect.objectContaining({ month: 12, year: 2026 }),
+      );
+    });
   });
 });

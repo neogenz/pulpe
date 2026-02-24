@@ -17,28 +17,29 @@ const CHF_FORMATTER = new Intl.NumberFormat('de-CH', {
 
 export const CHART_FONT_FAMILY = 'DM Sans, sans-serif';
 
-export function resolveColor(cssValue: string): string {
-  const el = document.createElement('div');
+export function resolveColor(cssValue: string, doc: Document): string {
+  const el = doc.createElement('div');
   el.style.color = cssValue;
   el.style.display = 'none';
-  document.body.appendChild(el);
+  doc.body.appendChild(el);
   try {
     return getComputedStyle(el).color;
   } finally {
-    document.body.removeChild(el);
+    doc.body.removeChild(el);
   }
 }
 
 export function resolveColors<K extends string>(
   vars: Record<K, string>,
+  doc: Document,
 ): Record<K, string> {
-  const container = document.createElement('div');
+  const container = doc.createElement('div');
   container.style.display = 'none';
-  document.body.appendChild(container);
+  doc.body.appendChild(container);
   try {
     const keys = Object.keys(vars) as K[];
     const elements = keys.map((key) => {
-      const el = document.createElement('span');
+      const el = doc.createElement('span');
       el.style.color = vars[key];
       container.appendChild(el);
       return el;
@@ -49,7 +50,7 @@ export function resolveColors<K extends string>(
     });
     return result;
   } finally {
-    document.body.removeChild(container);
+    doc.body.removeChild(container);
   }
 }
 
@@ -73,15 +74,18 @@ export interface ChartThemeColors {
   tooltipBg: string;
 }
 
-export function resolveChartThemeColors(): ChartThemeColors {
-  const resolved = resolveColors({
-    income: 'var(--pulpe-financial-income)',
-    expense: 'var(--pulpe-financial-expense)',
-    savings: 'var(--pulpe-financial-savings)',
-    negative: 'var(--pulpe-financial-negative)',
-    onSurfaceVariant: 'var(--mat-sys-on-surface-variant)',
-    inverseSurface: 'var(--mat-sys-inverse-surface)',
-  });
+export function resolveChartThemeColors(doc: Document): ChartThemeColors {
+  const resolved = resolveColors(
+    {
+      income: 'var(--pulpe-financial-income)',
+      expense: 'var(--pulpe-financial-expense)',
+      savings: 'var(--pulpe-financial-savings)',
+      negative: 'var(--pulpe-financial-negative)',
+      onSurfaceVariant: 'var(--mat-sys-on-surface-variant)',
+      inverseSurface: 'var(--mat-sys-inverse-surface)',
+    },
+    doc,
+  );
   return {
     income: resolved.income,
     expense: resolved.expense,

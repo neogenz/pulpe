@@ -8,7 +8,6 @@ import {
 import { BudgetApi } from '@core/budget';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { UserSettingsApi } from '@core/user-settings';
-import { ApiClient } from '@core/api/api-client';
 import {
   type BudgetLine,
   type Transaction,
@@ -16,7 +15,6 @@ import {
   BudgetFormulas,
   getBudgetPeriodDates,
   getBudgetPeriodForDate,
-  budgetSparseListResponseSchema,
 } from 'pulpe-shared';
 import { firstValueFrom, type Observable } from 'rxjs';
 import {
@@ -25,20 +23,19 @@ import {
   type UpcomingMonthForecast,
 } from './dashboard-state';
 
-export const DASHBOARD_NOW = new InjectionToken<Date>('DASHBOARD_NOW', {
-  factory: () => new Date(),
-});
-
 const RECENT_TRANSACTIONS_LIMIT = 5;
 const HISTORY_MONTHS_LIMIT = 6;
 const UPCOMING_MONTHS_LIMIT = 12;
 const PACE_TOLERANCE_PERCENT = 5;
 
+export const DASHBOARD_NOW = new InjectionToken<Date>('DASHBOARD_NOW', {
+  factory: () => new Date(),
+});
+
 @Injectable()
 export class DashboardStore {
   // ── 1. Dependencies ──
   readonly #budgetApi = inject(BudgetApi);
-  readonly #apiClient = inject(ApiClient);
   readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #invalidationService = inject(BudgetInvalidationService);
 
@@ -65,7 +62,10 @@ export class DashboardStore {
         version: this.#invalidationService.version(),
       };
     },
-    loader: async ({ params }) => this.#loadDashboardData(params),
+    loader: async ({ params }) =>
+      firstValueFrom(
+        this.#budgetApi.getDashboardData$(params.month, params.year),
+      ),
   });
 
   readonly #historyResource = resource<HistoryDataPoint[], { version: number }>(
@@ -73,7 +73,7 @@ export class DashboardStore {
       params: () => ({
         version: this.#invalidationService.version(),
       }),
-      loader: async () => this.#loadHistoryData(),
+      loader: async () => firstValueFrom(this.#budgetApi.getHistoryData$()),
     },
   );
 
@@ -100,8 +100,8 @@ export class DashboardStore {
 
   readonly recentTransactions = computed<Transaction[]>(() => {
     const txs = this.transactions();
-    return [...txs]
-      .sort(
+    return txs
+      .toSorted(
         (a, b) =>
           new Date(b.transactionDate).getTime() -
           new Date(a.transactionDate).getTime(),
@@ -220,10 +220,10 @@ export class DashboardStore {
     const pastAndPresent = all.filter(
       (b) => b.year * 12 + b.month <= currentScore,
     );
-    const sorted = [...pastAndPresent].sort(
-      (a, b) => b.year * 12 + b.month - (a.year * 12 + a.month),
-    );
-    return sorted.slice(0, HISTORY_MONTHS_LIMIT).reverse();
+    return pastAndPresent
+      .toSorted((a, b) => b.year * 12 + b.month - (a.year * 12 + a.month))
+      .slice(0, HISTORY_MONTHS_LIMIT)
+      .toReversed();
   });
 
   readonly upcomingBudgetsData = computed<UpcomingMonthForecast[]>(() => {
@@ -384,93 +384,5 @@ export class DashboardStore {
       }
       throw error;
     }
-  }
-
-  async #loadDashboardData(params: {
-    month: string;
-    year: string;
-  }): Promise<DashboardData> {
-    const cacheKey: string[] = [
-      'budget',
-      'dashboard',
-      params.month,
-      params.year,
-    ];
-    const cached = this.#budgetApi.cache.get<DashboardData>(cacheKey);
-
-    if (cached?.fresh) return cached.data;
-
-    const freshData = this.#budgetApi.cache.deduplicate(cacheKey, async () => {
-      const budget = await firstValueFrom(
-        this.#budgetApi.getBudgetForMonth$(params.month, params.year),
-      );
-
-      if (!budget) {
-        return {
-          budget: null,
-          transactions: [],
-          budgetLines: [],
-        } satisfies DashboardData;
-      }
-
-      const detailsCached = this.#budgetApi.cache.get<{
-        budgetLines: BudgetLine[];
-        transactions: Transaction[];
-        rollover: number;
-        previousBudgetId: string | null;
-      }>(['budget', 'details', budget.id]);
-
-      if (detailsCached?.fresh) {
-        const details = detailsCached.data;
-        return {
-          budget: {
-            ...budget,
-            rollover: details.rollover,
-            previousBudgetId: details.previousBudgetId,
-          },
-          transactions: details.transactions,
-          budgetLines: details.budgetLines,
-        } satisfies DashboardData;
-      }
-
-      const response = await firstValueFrom(
-        this.#budgetApi.getBudgetWithDetails$(budget.id),
-      );
-
-      return {
-        budget: response.data.budget,
-        transactions: response.data.transactions,
-        budgetLines: response.data.budgetLines,
-      } satisfies DashboardData;
-    });
-
-    return freshData;
-  }
-
-  async #loadHistoryData(): Promise<HistoryDataPoint[]> {
-    const cacheKey: string[] = ['budget', 'history'];
-    const cached = this.#budgetApi.cache.get<HistoryDataPoint[]>(cacheKey);
-
-    if (cached?.fresh) return cached.data;
-
-    const freshData = this.#budgetApi.cache.deduplicate(cacheKey, async () => {
-      const response = await firstValueFrom(
-        this.#apiClient.get$(
-          '/budgets?fields=month,year,totalIncome,totalExpenses,totalSavings&limit=24',
-          budgetSparseListResponseSchema,
-        ),
-      );
-
-      return response.data.map((b) => ({
-        id: b.id,
-        month: b.month!,
-        year: b.year!,
-        income: b.totalIncome ?? 0,
-        expenses: b.totalExpenses ?? 0,
-        savings: b.totalSavings ?? 0,
-      }));
-    });
-
-    return freshData;
   }
 }

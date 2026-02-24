@@ -3,9 +3,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
   signal,
 } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { BaseChartDirective } from 'ng2-charts';
 import { MatIconModule } from '@angular/material/icon';
 import { type ChartConfiguration } from 'chart.js';
@@ -87,6 +89,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardHistoryChart {
+  readonly #doc = inject(DOCUMENT);
   readonly history = input.required<HistoryDataPoint[]>();
 
   readonly chartType = 'bar' as const;
@@ -96,7 +99,7 @@ export class DashboardHistoryChart {
   constructor() {
     afterNextRender(() => {
       registerChartPlugins();
-      this.#theme.set(resolveChartThemeColors());
+      this.#theme.set(resolveChartThemeColors(this.#doc));
     });
   }
 

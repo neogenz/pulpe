@@ -3,23 +3,26 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
   signal,
 } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { BaseChartDirective } from 'ng2-charts';
-import { type Chart, type ChartConfiguration, type ChartType } from 'chart.js';
+import type { ChartType } from 'chart.js';
 import type { UpcomingMonthForecast } from '../services/dashboard-state';
 import {
   type ChartThemeColors,
   resolveChartThemeColors,
   registerChartPlugins,
-  colorWithAlpha,
   formatShortMonth,
-  formatCHF,
-  CHART_FONT_FAMILY,
 } from '../utils/chart-utils';
+import {
+  buildProjectionChartOptions,
+  buildProjectionChartData,
+} from './dashboard-projection-chart.config';
 
 @Component({
   selector: 'pulpe-dashboard-future-projection-chart',
@@ -108,6 +111,7 @@ import {
   ],
 })
 export class DashboardFutureProjectionChart {
+  readonly #doc = inject(DOCUMENT);
   readonly forecasts = input.required<UpcomingMonthForecast[]>();
 
   readonly #theme = signal<ChartThemeColors | null>(null);
@@ -115,7 +119,7 @@ export class DashboardFutureProjectionChart {
   constructor() {
     afterNextRender(() => {
       registerChartPlugins();
-      this.#theme.set(resolveChartThemeColors());
+      this.#theme.set(resolveChartThemeColors(this.#doc));
     });
   }
 
@@ -142,169 +146,11 @@ export class DashboardFutureProjectionChart {
 
   readonly chartType: ChartType = 'line';
 
-  readonly chartOptions = computed<ChartConfiguration['options']>(() => {
-    const theme = this.#theme();
-    const tickColor = theme?.tickColor || undefined;
-    const gridColor = theme?.gridColor || undefined;
-    const tooltipBg = theme?.tooltipBg || undefined;
+  readonly chartOptions = computed(() =>
+    buildProjectionChartOptions(this.#theme()),
+  );
 
-    return {
-      responsive: true,
-      maintainAspectRatio: false,
-      elements: {
-        line: {
-          tension: 0.4,
-          borderWidth: 3,
-        },
-        point: {
-          radius: 4,
-          hoverRadius: 6,
-        },
-      },
-      plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          align: 'end',
-          labels: {
-            usePointStyle: true,
-            boxWidth: 8,
-            boxHeight: 8,
-            font: { family: CHART_FONT_FAMILY },
-            color: tickColor,
-          },
-        },
-        tooltip: {
-          backgroundColor: tooltipBg,
-          padding: 12,
-          titleFont: { size: 14, family: CHART_FONT_FAMILY },
-          bodyFont: { size: 14, family: CHART_FONT_FAMILY, weight: 'bold' },
-          displayColors: true,
-          callbacks: {
-            label: function (context: {
-              dataset: { label?: string };
-              parsed: { y: number | null };
-            }) {
-              let label = context.dataset.label || '';
-              if (label) {
-                label += ': ';
-              }
-              if (context.parsed.y !== null) {
-                label += formatCHF(context.parsed.y);
-              }
-              return label;
-            },
-          },
-        },
-      },
-      scales: {
-        x: {
-          grid: {
-            display: false,
-          },
-          ticks: {
-            font: {
-              family: CHART_FONT_FAMILY,
-              size: 11,
-            },
-            color: tickColor,
-          },
-        },
-        y: {
-          grid: {
-            color: gridColor,
-          },
-          ticks: {
-            font: {
-              family: CHART_FONT_FAMILY,
-              size: 11,
-            },
-            color: tickColor,
-            callback: function (value: string | number) {
-              return Number(value) / 1000 + 'k';
-            },
-          },
-        },
-      },
-    };
-  });
-
-  readonly chartData = computed<ChartConfiguration['data']>(() => {
-    const withBudget = this.forecasts().filter((f) => f.hasBudget);
-    const theme = this.#theme();
-
-    if (withBudget.length === 0 || !theme) {
-      return { datasets: [], labels: [] };
-    }
-
-    const balanceData = withBudget.map(
-      (f) => (f.income || 0) - (f.expenses || 0) - (f.savings || 0),
-    );
-
-    let cumulativeSavings = 0;
-    const savingsData: number[] = [];
-    const hasSavings = withBudget.some((f) => (f.savings || 0) > 0);
-    for (const f of withBudget) {
-      cumulativeSavings += f.savings || 0;
-      savingsData.push(cumulativeSavings);
-    }
-
-    const balanceFillColor = colorWithAlpha(theme.income, 0.15);
-    const negativeFillColor = colorWithAlpha(theme.negative, 0.15);
-
-    const datasets: ChartConfiguration['data']['datasets'] = [
-      {
-        data: balanceData,
-        label: 'Disponible',
-        borderColor: theme.income,
-        fill: 'origin',
-        backgroundColor: ((context: { chart: Chart }) => {
-          const yScale = context.chart.scales['y'];
-          const chartArea = context.chart.chartArea;
-          if (!yScale || !chartArea || !chartArea.bottom) {
-            return balanceFillColor;
-          }
-          const zeroY = yScale.getPixelForValue(0);
-          const gradient = context.chart.ctx.createLinearGradient(
-            0,
-            chartArea.top,
-            0,
-            chartArea.bottom,
-          );
-          const ratio = Math.max(
-            0,
-            Math.min(
-              1,
-              (zeroY - chartArea.top) / (chartArea.bottom - chartArea.top),
-            ),
-          );
-          gradient.addColorStop(0, balanceFillColor);
-          gradient.addColorStop(ratio, balanceFillColor);
-          gradient.addColorStop(ratio, negativeFillColor);
-          gradient.addColorStop(1, negativeFillColor);
-          return gradient;
-        }) as unknown as string,
-        pointBackgroundColor: theme.income,
-        pointBorderColor: theme.income,
-      },
-    ];
-
-    if (hasSavings) {
-      datasets.push({
-        data: savingsData,
-        label: 'Épargne cumulée',
-        borderColor: theme.savings,
-        backgroundColor: colorWithAlpha(theme.savings, 0.1),
-        fill: true,
-        pointBackgroundColor: theme.savings,
-        borderDash: [6, 4],
-        borderWidth: 2,
-      } as ChartConfiguration['data']['datasets'][number]);
-    }
-
-    return {
-      labels: withBudget.map((f) => formatShortMonth(f.month)),
-      datasets,
-    };
-  });
+  readonly chartData = computed(() =>
+    buildProjectionChartData(this.forecasts(), this.#theme()),
+  );
 }
