@@ -1,13 +1,25 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {
+  Directive,
+  input,
+  provideZonelessChangeDetection,
+} from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { DashboardUncheckedForecasts } from './dashboard-unchecked-forecasts';
-import type { BudgetLine } from 'pulpe-shared';
+import type { BudgetLine, TransactionKind } from 'pulpe-shared';
+import { FinancialKindDirective } from '@ui/financial-kind';
 import { setTestInput } from '../../../testing/signal-test-utils';
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
 
 registerLocaleData(localeDE);
+
+@Directive({ selector: '[pulpeFinancialKind]' })
+class StubFinancialKindDirective {
+  readonly kind = input<TransactionKind | undefined>(undefined, {
+    alias: 'pulpeFinancialKind',
+  });
+}
 
 describe('DashboardUncheckedForecasts', () => {
   let component: DashboardUncheckedForecasts;
@@ -34,7 +46,12 @@ describe('DashboardUncheckedForecasts', () => {
     await TestBed.configureTestingModule({
       imports: [DashboardUncheckedForecasts],
       providers: [provideZonelessChangeDetection()],
-    }).compileComponents();
+    })
+      .overrideComponent(DashboardUncheckedForecasts, {
+        remove: { imports: [FinancialKindDirective] },
+        add: { imports: [StubFinancialKindDirective] },
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(DashboardUncheckedForecasts);
     component = fixture.componentInstance;

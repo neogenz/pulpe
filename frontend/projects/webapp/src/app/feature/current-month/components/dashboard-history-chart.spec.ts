@@ -81,6 +81,7 @@ describe('DashboardHistoryChart', () => {
 
   it('should report hasData true when history has entries', () => {
     setTestInput(component.history, mockHistoryData);
+    fixture.detectChanges();
     expect(component.hasData()).toBe(true);
   });
 

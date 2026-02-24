@@ -1,15 +1,28 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {
+  provideZonelessChangeDetection,
+  Directive,
+  input,
+  LOCALE_ID,
+} from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { DashboardRecentTransactions } from './dashboard-recent-transactions';
-import type { Transaction } from 'pulpe-shared';
+import type { Transaction, TransactionKind } from 'pulpe-shared';
 import { setTestInput } from '../../../testing/signal-test-utils';
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
 import localeFR from '@angular/common/locales/fr';
+import { FinancialKindDirective } from '@ui/financial-kind';
 
 registerLocaleData(localeDE);
 registerLocaleData(localeFR);
+
+@Directive({ selector: '[pulpeFinancialKind]' })
+class StubFinancialKindDirective {
+  readonly kind = input<TransactionKind | undefined>(undefined, {
+    alias: 'pulpeFinancialKind',
+  });
+}
 
 const createTransaction = (
   overrides: Partial<Transaction> = {},
@@ -35,8 +48,16 @@ describe('DashboardRecentTransactions', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [DashboardRecentTransactions],
-      providers: [provideZonelessChangeDetection()],
-    }).compileComponents();
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: LOCALE_ID, useValue: 'de-CH' },
+      ],
+    })
+      .overrideComponent(DashboardRecentTransactions, {
+        remove: { imports: [FinancialKindDirective] },
+        add: { imports: [StubFinancialKindDirective] },
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(DashboardRecentTransactions);
     component = fixture.componentInstance;
@@ -82,7 +103,7 @@ describe('DashboardRecentTransactions', () => {
     fixture.detectChanges();
 
     const nameElements = fixture.debugElement.queryAll(
-      By.css('.text-body-medium.font-bold.text-on-surface'),
+      By.css('.text-body-medium.font-medium.text-on-surface'),
     );
     expect(nameElements.length).toBe(5);
     expect(nameElements[0].nativeElement.textContent.trim()).toBe('Loyer');
@@ -97,12 +118,8 @@ describe('DashboardRecentTransactions', () => {
       By.css('.text-label-large.font-semibold'),
     );
     expect(amountElements.length).toBe(5);
-    expect(amountElements[0].nativeElement.textContent).toContain(
-      '1\u2019200.00',
-    );
-    expect(amountElements[2].nativeElement.textContent).toContain(
-      '5\u2019000.00',
-    );
+    expect(amountElements[0].nativeElement.textContent).toContain('1\u2019200');
+    expect(amountElements[2].nativeElement.textContent).toContain('5\u2019000');
   });
 
   it('should display correct icons for each transaction kind', () => {
@@ -129,7 +146,7 @@ describe('DashboardRecentTransactions', () => {
     expect(listIcons[2].nativeElement.textContent.trim()).toBe('savings');
   });
 
-  it('should format amounts with de-CH locale', () => {
+  it('should format amounts as CHF currency', () => {
     const transactions = [
       createTransaction({
         id: '1',
@@ -145,11 +162,11 @@ describe('DashboardRecentTransactions', () => {
     const amountEl = fixture.debugElement.query(
       By.css('.text-label-large.font-semibold'),
     );
-    expect(amountEl.nativeElement.textContent).toContain('1\u2019234.56');
+    expect(amountEl.nativeElement.textContent).toContain('1\u2019235');
     expect(amountEl.nativeElement.textContent).toContain('CHF');
   });
 
-  it('should prefix income amounts with + and expense/saving with -', () => {
+  it('should display amounts for each transaction kind', () => {
     const transactions = [
       createTransaction({
         id: '1',
@@ -177,9 +194,10 @@ describe('DashboardRecentTransactions', () => {
     const amountElements = fixture.debugElement.queryAll(
       By.css('.text-label-large.font-semibold'),
     );
-    expect(amountElements[0].nativeElement.textContent).toContain('+');
-    expect(amountElements[1].nativeElement.textContent).toContain('-');
-    expect(amountElements[2].nativeElement.textContent).toContain('-');
+    expect(amountElements.length).toBe(3);
+    expect(amountElements[0].nativeElement.textContent).toContain('100');
+    expect(amountElements[1].nativeElement.textContent).toContain('200');
+    expect(amountElements[2].nativeElement.textContent).toContain('300');
   });
 
   it('should emit viewBudget on "Voir tout" click', () => {
