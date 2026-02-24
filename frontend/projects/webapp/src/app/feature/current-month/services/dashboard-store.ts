@@ -1,4 +1,4 @@
-import { computed, inject, Injectable, resource, signal } from '@angular/core';
+import { computed, inject, Injectable, resource } from '@angular/core';
 import { BudgetApi } from '@core/budget';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { UserSettingsApi } from '@core/user-settings';
@@ -14,28 +14,15 @@ import {
 } from 'pulpe-shared';
 import { firstValueFrom, type Observable } from 'rxjs';
 import {
-  type DashboardState,
   type DashboardData,
-  createInitialDashboardState,
+  type HistoryDataPoint,
+  type UpcomingMonthForecast,
 } from './dashboard-state';
 
-export interface HistoryDataPoint {
-  id: string;
-  month: number;
-  year: number;
-  income: number;
-  expenses: number;
-  savings: number;
-}
-
-export interface UpcomingMonthForecast {
-  month: number;
-  year: number;
-  hasBudget: boolean;
-  income: number | null;
-  expenses: number | null;
-  savings: number | null;
-}
+const RECENT_TRANSACTIONS_LIMIT = 5;
+const HISTORY_MONTHS_LIMIT = 6;
+const UPCOMING_MONTHS_LIMIT = 12;
+const PACE_TOLERANCE_PERCENT = 5;
 
 @Injectable()
 export class DashboardStore {
@@ -46,15 +33,13 @@ export class DashboardStore {
   readonly #invalidationService = inject(BudgetInvalidationService);
 
   // ── 2. State ──
-  readonly #state = signal<DashboardState>(createInitialDashboardState());
+  readonly #currentDate = new Date();
 
   readonly payDayOfMonth = this.#userSettingsApi.payDayOfMonth;
 
-  /** Budget period derived from current date and user's pay cycle */
   readonly currentBudgetPeriod = computed(() => {
-    const currentDate = this.#state().currentDate;
     const payDay = this.payDayOfMonth();
-    return getBudgetPeriodForDate(currentDate, payDay);
+    return getBudgetPeriodForDate(this.#currentDate, payDay);
   });
 
   // ── 3. Resources ──
@@ -100,7 +85,7 @@ export class DashboardStore {
   });
 
   readonly transactions = computed<Transaction[]>(
-    () => this.dashboardData()?.transactions || [],
+    () => this.dashboardData()?.transactions ?? [],
   );
 
   readonly recentTransactions = computed<Transaction[]>(() => {
@@ -111,11 +96,11 @@ export class DashboardStore {
           new Date(b.transactionDate).getTime() -
           new Date(a.transactionDate).getTime(),
       )
-      .slice(0, 5);
+      .slice(0, RECENT_TRANSACTIONS_LIMIT);
   });
 
   readonly budgetLines = computed<BudgetLine[]>(
-    () => this.dashboardData()?.budgetLines || [],
+    () => this.dashboardData()?.budgetLines ?? [],
   );
 
   readonly isSettingsLoading = computed(() =>
@@ -146,8 +131,6 @@ export class DashboardStore {
     );
   });
 
-  readonly budgetDate = computed(() => this.#state().currentDate);
-
   readonly periodDates = computed(() => {
     const period = this.currentBudgetPeriod();
     const payDay = this.payDayOfMonth();
@@ -159,9 +142,8 @@ export class DashboardStore {
     if (!dates) return 0;
     const start = dates.startDate.getTime();
     const end = dates.endDate.getTime();
-    const now = new Date();
-    now.setHours(23, 59, 59, 999);
-    const elapsed = now.getTime() - start;
+    const now = this.#currentDate.getTime();
+    const elapsed = now - start;
     const total = end - start;
     if (total <= 0) return 100;
     const percentage = (elapsed / total) * 100;
@@ -179,12 +161,12 @@ export class DashboardStore {
   readonly paceStatus = computed<'on-track' | 'tight'>(() => {
     const consumed = this.budgetConsumedPercentage();
     const elapsed = this.timeElapsedPercentage();
-    return consumed <= elapsed + 5 ? 'on-track' : 'tight';
+    return consumed <= elapsed + PACE_TOLERANCE_PERCENT ? 'on-track' : 'tight';
   });
 
   readonly rolloverAmount = computed<number>(() => {
     const budget = this.dashboardData()?.budget;
-    return budget?.rollover || 0;
+    return budget?.rollover ?? 0;
   });
 
   readonly totalIncome = computed<number>(() => {
@@ -193,7 +175,6 @@ export class DashboardStore {
     return BudgetFormulas.calculateTotalIncome(budgetLines, transactions);
   });
 
-  /** Envelope-aware: only overspend above envelope amount impacts budget */
   readonly totalExpenses = computed<number>(() =>
     BudgetFormulas.calculateTotalExpensesWithEnvelopes(
       this.budgetLines(),
@@ -213,16 +194,14 @@ export class DashboardStore {
     return BudgetFormulas.calculateRemaining(available, expenses);
   });
 
-  /** Unchecked recurring forecasts for the current month */
-  readonly uncheckedForecasts = computed<BudgetLine[]>(() => {
-    return this.budgetLines().filter(
+  readonly uncheckedForecasts = computed<BudgetLine[]>(() =>
+    this.budgetLines().filter(
       (line) =>
         (line.recurrence === 'fixed' || line.recurrence === 'one_off') &&
         line.checkedAt === null,
-    );
-  });
+    ),
+  );
 
-  /** Historical 6-month budget data for chart */
   readonly historyData = computed<HistoryDataPoint[]>(() => {
     const all = this.#historyResource.value() ?? [];
     const current = this.currentBudgetPeriod();
@@ -231,13 +210,12 @@ export class DashboardStore {
     const pastAndPresent = all.filter(
       (b) => b.year * 12 + b.month <= currentScore,
     );
-    const sorted = pastAndPresent.sort(
+    const sorted = [...pastAndPresent].sort(
       (a, b) => b.year * 12 + b.month - (a.year * 12 + a.month),
     );
-    return sorted.slice(0, 6).reverse(); // Oldest first
+    return sorted.slice(0, HISTORY_MONTHS_LIMIT).reverse();
   });
 
-  /** Forecast for upcoming 12 months */
   readonly upcomingBudgetsData = computed<UpcomingMonthForecast[]>(() => {
     const all = this.#historyResource.value() ?? [];
     const current = this.currentBudgetPeriod();
@@ -246,7 +224,7 @@ export class DashboardStore {
     let nextMonth = current.month === 12 ? 1 : current.month + 1;
     let nextYear = current.month === 12 ? current.year + 1 : current.year;
 
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < UPCOMING_MONTHS_LIMIT; i++) {
       const budget = all.find(
         (b) => b.month === nextMonth && b.year === nextYear,
       );
@@ -254,9 +232,9 @@ export class DashboardStore {
         month: nextMonth,
         year: nextYear,
         hasBudget: !!budget,
-        income: budget ? budget.income : null,
-        expenses: budget ? budget.expenses : null,
-        savings: budget ? budget.savings : null,
+        income: budget?.income ?? null,
+        expenses: budget?.expenses ?? null,
+        savings: budget?.savings ?? null,
       });
 
       nextMonth++;
@@ -289,13 +267,6 @@ export class DashboardStore {
     if (!this.#historyResource.isLoading()) {
       this.#historyResource.reload();
     }
-  }
-
-  setCurrentDate(date: Date): void {
-    this.#state.update((state) => ({
-      ...state,
-      currentDate: new Date(date),
-    }));
   }
 
   async addTransaction(transactionData: TransactionCreate): Promise<void> {
@@ -363,7 +334,7 @@ export class DashboardStore {
             : undefined;
         const updatedData = updateData(currentData, responseData);
 
-        const rollover = updatedData.budget?.rollover || 0;
+        const rollover = updatedData.budget?.rollover ?? 0;
         const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
           updatedData.budgetLines,
           updatedData.transactions,
@@ -425,12 +396,11 @@ export class DashboardStore {
       );
 
       if (!budget) {
-        const empty: DashboardData = {
+        return {
           budget: null,
           transactions: [],
           budgetLines: [],
-        };
-        return empty;
+        } satisfies DashboardData;
       }
 
       const detailsCached = this.#budgetApi.cache.get<{
@@ -442,7 +412,7 @@ export class DashboardStore {
 
       if (detailsCached?.fresh) {
         const details = detailsCached.data;
-        const result: DashboardData = {
+        return {
           budget: {
             ...budget,
             rollover: details.rollover,
@@ -450,20 +420,18 @@ export class DashboardStore {
           },
           transactions: details.transactions,
           budgetLines: details.budgetLines,
-        };
-        return result;
+        } satisfies DashboardData;
       }
 
       const response = await firstValueFrom(
         this.#budgetApi.getBudgetWithDetails$(budget.id),
       );
 
-      const result: DashboardData = {
+      return {
         budget: response.data.budget,
         transactions: response.data.transactions,
         budgetLines: response.data.budgetLines,
-      };
-      return result;
+      } satisfies DashboardData;
     });
 
     return freshData;
@@ -476,7 +444,6 @@ export class DashboardStore {
     if (cached?.fresh) return cached.data;
 
     const freshData = this.#budgetApi.cache.deduplicate(cacheKey, async () => {
-      // Fetch up to 24 budgets using sparse fields to cover past and future
       const response = await firstValueFrom(
         this.#apiClient.get$(
           '/budgets?fields=month,year,totalIncome,totalExpenses,totalSavings&limit=24',

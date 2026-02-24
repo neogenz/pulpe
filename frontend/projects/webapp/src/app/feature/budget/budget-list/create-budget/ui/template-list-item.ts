@@ -13,7 +13,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { type TemplateViewModel } from './template-view-model';
 
 @Component({
@@ -25,7 +24,6 @@ import { type TemplateViewModel } from './template-view-model';
     MatIconModule,
     MatButtonModule,
     MatChipsModule,
-    MatTooltipModule,
     MatProgressSpinnerModule,
     MatListModule,
     MatDividerModule,

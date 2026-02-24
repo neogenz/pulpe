@@ -64,9 +64,7 @@ import { type TemplateViewModel } from './template-view-model';
         >
           <mat-icon class="text-display-small mb-2">error_outline</mat-icon>
           <p class="text-label-large">Erreur lors du chargement des modèles</p>
-          <button matButton color="primary" (click)="retryRequested.emit()">
-            Réessayer
-          </button>
+          <button matButton (click)="retryRequested.emit()">Réessayer</button>
         </div>
       } @else if (filteredTemplates().length === 0) {
         <div

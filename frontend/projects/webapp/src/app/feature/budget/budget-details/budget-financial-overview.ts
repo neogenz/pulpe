@@ -12,6 +12,8 @@ import { BudgetCalculator, calculateAllConsumptions } from '@core/budget';
 import { RealizedBalanceProgressBar } from '@ui/realized-balance-progress-bar/realized-balance-progress-bar';
 import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-balance-tooltip';
 
+const COMFORT_THRESHOLD = 0.2;
+
 /**
  * BudgetFinancialOverview - "Financial Pulse" design
  *
@@ -31,15 +33,15 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
       <!-- Hero Section: What matters most -->
       <div
         class="text-center py-8 px-6 rounded-3xl"
-        [class.bg-primary-container]="totals().remaining >= 0"
-        [class.bg-error-container]="totals().remaining < 0"
+        [class.bg-primary-container]="isPositive()"
+        [class.bg-error-container]="!isPositive()"
       >
         <p
           class="text-body-large mb-3"
-          [class.text-on-primary-container]="totals().remaining >= 0"
-          [class.text-on-error-container]="totals().remaining < 0"
+          [class.text-on-primary-container]="isPositive()"
+          [class.text-on-error-container]="!isPositive()"
         >
-          @if (totals().remaining >= 0) {
+          @if (isPositive()) {
             Ce qu'il te reste ce mois
           } @else {
             Déficit ce mois
@@ -47,20 +49,20 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
         </p>
         <div
           class="text-display-medium sm:text-display-large font-bold tracking-tight ph-no-capture"
-          [class.text-on-primary-container]="totals().remaining >= 0"
-          [class.text-on-error-container]="totals().remaining < 0"
+          [class.text-on-primary-container]="isPositive()"
+          [class.text-on-error-container]="!isPositive()"
         >
           {{ remainingAbsolute() | number: '1.0-0' : 'de-CH' }}
           <span class="text-headline-small font-normal">CHF</span>
         </div>
         <p
           class="text-body-medium mt-3"
-          [class.text-on-primary-container]="totals().remaining >= 0"
-          [class.text-on-error-container]="totals().remaining < 0"
+          [class.text-on-primary-container]="isPositive()"
+          [class.text-on-error-container]="!isPositive()"
         >
-          @if (totals().remaining >= 0) {
-            @if (totals().remaining > totals().income * 0.2) {
-              Belle marge ce mois 👍
+          @if (isPositive()) {
+            @if (isComfortable()) {
+              Belle marge ce mois
             } @else if (totals().remaining > 0) {
               Tu gères bien
             } @else {
@@ -74,10 +76,13 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
 
       <!-- Supporting Metrics: Pill-style, horizontal scroll on mobile -->
       <div
+        role="list"
+        aria-label="Résumé financier"
         class="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:justify-center scrollbar-hide"
       >
         <!-- Income Pill -->
         <div
+          role="listitem"
           class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-income-light)]"
         >
           <mat-icon class="text-financial-income mat-icon-sm"
@@ -97,6 +102,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
 
         <!-- Expenses Pill -->
         <div
+          role="listitem"
           class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-expense-light)]"
         >
           <mat-icon class="text-financial-expense mat-icon-sm"
@@ -116,6 +122,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
 
         <!-- Savings Pill -->
         <div
+          role="listitem"
           class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-savings-light)]"
         >
           <mat-icon class="text-financial-savings mat-icon-sm"
@@ -208,6 +215,12 @@ export class BudgetFinancialOverview {
 
     return { income, expenses, savings, remaining };
   });
+
+  readonly isPositive = computed(() => this.totals().remaining >= 0);
+
+  readonly isComfortable = computed(
+    () => this.totals().remaining > this.totals().income * COMFORT_THRESHOLD,
+  );
 
   readonly remainingAbsolute = computed(() =>
     Math.abs(this.totals().remaining),

@@ -8,7 +8,13 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 
-import type { UpcomingMonthForecast } from '../services/dashboard-store';
+import type { UpcomingMonthForecast } from '../services/dashboard-state';
+
+const MONTH_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'long' });
+const ROLLOVER_FORMATTER = new Intl.NumberFormat('de-CH', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
 
 @Component({
   selector: 'pulpe-dashboard-next-month',
@@ -20,7 +26,7 @@ import type { UpcomingMonthForecast } from '../services/dashboard-store';
         <div
           class="w-10 h-10 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center flex-shrink-0"
         >
-          <mat-icon>event_upcoming</mat-icon>
+          <mat-icon aria-hidden="true">event_upcoming</mat-icon>
         </div>
         <div>
           <h2 class="text-title-medium font-bold text-on-surface leading-tight">
@@ -55,6 +61,7 @@ import type { UpcomingMonthForecast } from '../services/dashboard-store';
           <div class="flex flex-col items-center justify-center gap-3 py-4">
             <mat-icon
               class="text-on-surface-variant opacity-40 !text-4xl !w-9 !h-9"
+              aria-hidden="true"
             >
               event_busy
             </mat-icon>
@@ -62,7 +69,7 @@ import type { UpcomingMonthForecast } from '../services/dashboard-store';
               Pas encore de budget pour {{ monthName() }}
             </p>
             <button matButton="outlined" (click)="navigateToBudgets.emit()">
-              <mat-icon>add</mat-icon>
+              <mat-icon aria-hidden="true">add</mat-icon>
               Anticiper le mois prochain
             </button>
           </div>
@@ -84,17 +91,12 @@ export class DashboardNextMonth {
 
   protected readonly monthName = computed(() => {
     const f = this.forecast();
-    return new Intl.DateTimeFormat('fr-FR', { month: 'long' }).format(
-      new Date(f.year, f.month - 1, 1),
-    );
+    return MONTH_FORMATTER.format(new Date(f.year, f.month - 1, 1));
   });
 
   protected readonly hasBudget = computed(() => this.forecast().hasBudget);
 
   protected readonly formattedRollover = computed(() =>
-    new Intl.NumberFormat('de-CH', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(this.estimatedRollover()),
+    ROLLOVER_FORMATTER.format(this.estimatedRollover()),
   );
 }

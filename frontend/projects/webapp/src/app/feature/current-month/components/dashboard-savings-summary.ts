@@ -9,16 +9,15 @@ import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'pulpe-dashboard-savings-summary',
-  standalone: true,
   imports: [DecimalPipe, MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col w-full h-full">
       <div class="mb-4 px-1 flex items-center gap-3">
         <div
-          class="w-10 h-10 rounded-full bg-[var(--pulpe-financial-savings)]/10 text-financial-savings flex items-center justify-center flex-shrink-0"
+          class="w-10 h-10 rounded-full bg-financial-savings/10 text-financial-savings flex items-center justify-center flex-shrink-0"
         >
-          <mat-icon>savings</mat-icon>
+          <mat-icon aria-hidden="true">savings</mat-icon>
         </div>
         <div>
           <h2 class="text-title-medium font-bold text-on-surface leading-tight">
@@ -39,10 +38,17 @@ import { MatIconModule } from '@angular/material/icon';
       >
         @if (hasSavings()) {
           <div
-            class="w-full h-2.5 bg-[var(--pulpe-financial-savings)]/10 rounded-full overflow-hidden mb-4"
+            class="w-full h-2.5 bg-financial-savings/10 rounded-full overflow-hidden mb-4"
+            role="progressbar"
+            [attr.aria-valuenow]="progressPercentage()"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            [attr.aria-label]="
+              'Épargne : ' + progressPercentage() + '% réalisé'
+            "
           >
             <div
-              class="h-full bg-[var(--pulpe-financial-savings)] rounded-full transition-all duration-700"
+              class="h-full bg-financial-savings rounded-full motion-safe:transition-all motion-safe:duration-700"
               [style.width.%]="progressPercentage()"
             ></div>
           </div>
@@ -59,6 +65,7 @@ import { MatIconModule } from '@angular/material/icon';
           <div class="flex flex-col items-center justify-center py-6 gap-2">
             <mat-icon
               class="text-on-surface-variant opacity-40 !text-4xl !w-9 !h-9"
+              aria-hidden="true"
             >
               savings
             </mat-icon>

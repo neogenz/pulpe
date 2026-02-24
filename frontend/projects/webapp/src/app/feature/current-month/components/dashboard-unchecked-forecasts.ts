@@ -13,7 +13,6 @@ import type { BudgetLine } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-dashboard-unchecked-forecasts',
-  standalone: true,
   imports: [
     MatCheckboxModule,
     MatRipple,
@@ -21,13 +20,14 @@ import type { BudgetLine } from 'pulpe-shared';
     DecimalPipe,
     FinancialKindDirective,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col w-full h-full">
       <div class="mb-4 px-1 flex items-center gap-3">
         <div
           class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0"
         >
-          <mat-icon>checklist</mat-icon>
+          <mat-icon aria-hidden="true">checklist</mat-icon>
         </div>
         <div>
           <h2 class="text-title-medium font-bold text-on-surface leading-tight">
@@ -44,14 +44,19 @@ import type { BudgetLine } from 'pulpe-shared';
           <div class="flex flex-col gap-1">
             @for (forecast of forecasts(); track forecast.id) {
               <div
-                class="relative overflow-hidden flex items-center justify-between p-3 rounded-2xl hover:bg-on-surface/8 transition-colors cursor-pointer"
+                class="relative overflow-hidden flex items-center justify-between p-3 rounded-2xl hover:bg-on-surface/8 motion-safe:transition-colors cursor-pointer"
                 matRipple
                 (click)="toggleCheck.emit(forecast.id)"
                 (keydown.enter)="toggleCheck.emit(forecast.id)"
+                (keydown.space)="
+                  toggleCheck.emit(forecast.id); $event.preventDefault()
+                "
                 tabindex="0"
                 role="checkbox"
                 [attr.aria-checked]="false"
-                [attr.aria-label]="forecast.name"
+                [attr.aria-label]="
+                  forecast.name + ' — ' + forecast.amount + ' CHF'
+                "
               >
                 <mat-checkbox
                   [checked]="false"
@@ -80,9 +85,9 @@ import type { BudgetLine } from 'pulpe-shared';
             class="p-8 flex flex-col items-center justify-center text-center h-full"
           >
             <div
-              class="w-16 h-16 rounded-full bg-success/10 text-success flex items-center justify-center mb-4"
+              class="w-16 h-16 rounded-full bg-financial-income/10 text-financial-income flex items-center justify-center mb-4"
             >
-              <mat-icon class="scale-150">done_all</mat-icon>
+              <mat-icon class="scale-150" aria-hidden="true">done_all</mat-icon>
             </div>
             <h3 class="text-title-medium font-bold text-on-surface mb-1">
               Tout est à jour !
@@ -95,14 +100,11 @@ import type { BudgetLine } from 'pulpe-shared';
       </div>
     </div>
   `,
-  styles: [
-    `
-      :host {
-        display: block;
-      }
-    `,
-  ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: `
+    :host {
+      display: block;
+    }
+  `,
 })
 export class DashboardUncheckedForecasts {
   readonly forecasts = input.required<BudgetLine[]>();

@@ -10,20 +10,24 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import type { BudgetPeriodDates } from 'pulpe-shared';
 
+const WARNING_THRESHOLD_PERCENT = 80;
+
 @Component({
   selector: 'pulpe-dashboard-hero',
   imports: [MatIconModule, DecimalPipe, MatTooltipModule],
   template: `
     <div
-      class="hero-container rounded-[32px] p-6 pb-5 shadow-premium relative overflow-hidden cursor-pointer transition-transform hover:scale-[0.99]"
+      class="hero-container rounded-[32px] p-6 pb-5 relative overflow-hidden cursor-pointer motion-safe:transition-transform motion-safe:hover:scale-[0.99]"
       [class.budget-over]="isOverBudget()"
       [class.budget-warning]="isWarning()"
       (click)="heroClick.emit()"
       (keydown.enter)="heroClick.emit()"
       tabindex="0"
       role="button"
+      [attr.aria-label]="
+        'Disponible ' + remaining() + ' CHF — ' + periodLabel()
+      "
     >
-      <!-- Background Accent Gradients -->
       <div
         class="absolute -right-10 -bottom-10 w-56 h-56 bg-white/15 rounded-full blur-3xl pointer-events-none"
       ></div>
@@ -34,11 +38,12 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
         class="absolute -left-8 top-1/2 w-24 h-24 bg-white/5 rounded-full blur-2xl pointer-events-none"
       ></div>
 
-      <!-- Top row -->
       <div class="flex justify-between items-start mb-6 relative z-10">
         <div>
           <div class="flex items-center gap-2 mb-2 opacity-90">
-            <div class="w-2 h-2 rounded-full animate-pulse indicator-dot"></div>
+            <div
+              class="w-2 h-2 rounded-full motion-safe:animate-pulse indicator-dot"
+            ></div>
             <p class="text-label-medium font-bold uppercase tracking-wider">
               Mois en cours
             </p>
@@ -46,20 +51,22 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
           <h2
             class="font-bold text-headline-medium capitalize tracking-tight leading-none"
           >
-            {{ formatPeriod() }}
+            {{ periodLabel() }}
           </h2>
         </div>
         <div
           class="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md shadow-sm border border-white/10"
         >
-          @if (isOnTrack()) {
-            <mat-icon class="bolt-icon">bolt</mat-icon>
-          }
-          @if (isWarning()) {
-            <mat-icon class="bolt-icon">warning</mat-icon>
-          }
-          @if (isOverBudget()) {
-            <mat-icon class="bolt-icon">error</mat-icon>
+          @switch (budgetStatus()) {
+            @case ('on-track') {
+              <mat-icon class="bolt-icon">bolt</mat-icon>
+            }
+            @case ('warning') {
+              <mat-icon class="bolt-icon">warning</mat-icon>
+            }
+            @case ('over-budget') {
+              <mat-icon class="bolt-icon">error</mat-icon>
+            }
           }
         </div>
       </div>
@@ -109,16 +116,13 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
           [matTooltip]="'Mois écoulé : ' + timeElapsedPercentage() + '%'"
         >
           <div
-            class="absolute top-0 h-full w-0.5 z-10 rounded-full transition-all duration-700"
-            [class]="
-              paceStatus() === 'on-track'
-                ? 'bg-green-400/70'
-                : 'bg-amber-400/70'
-            "
+            class="absolute top-0 h-full w-0.5 z-10 rounded-full pace-marker motion-safe:transition-all motion-safe:duration-700"
+            [class.pace-on-track]="paceStatus() === 'on-track'"
+            [class.pace-tight]="paceStatus() !== 'on-track'"
             [style.left.%]="timeElapsedPercentage()"
           ></div>
           <div
-            class="h-full rounded-full transition-all duration-1000 relative progress-fill"
+            class="h-full rounded-full motion-safe:transition-all motion-safe:duration-1000 relative progress-fill"
             [style.width.%]="budgetConsumedPercentage()"
           >
             <div
@@ -142,9 +146,7 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
           color-mix(in srgb, var(--mat-sys-primary) 75%, black) 100%
         );
         color: var(--mat-sys-on-primary);
-        box-shadow:
-          0 8px 30px rgba(0, 0, 0, 0.08),
-          0 4px 10px rgba(0, 0, 0, 0.02);
+        box-shadow: var(--mat-sys-level2);
       }
 
       .hero-container.budget-warning {
@@ -178,10 +180,20 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
         background-color: currentColor;
       }
 
-      .shadow-premium {
-        box-shadow:
-          0 8px 30px rgba(0, 0, 0, 0.04),
-          0 4px 10px rgba(0, 0, 0, 0.01);
+      .pace-marker.pace-on-track {
+        background-color: color-mix(
+          in srgb,
+          var(--mat-sys-tertiary) 70%,
+          transparent
+        );
+      }
+
+      .pace-marker.pace-tight {
+        background-color: color-mix(
+          in srgb,
+          var(--pulpe-financial-expense) 70%,
+          transparent
+        );
       }
     `,
   ],
@@ -217,22 +229,26 @@ export class DashboardHero {
   });
 
   readonly isWarning = computed(
-    () => !this.isOverBudget() && this.budgetConsumedPercentage() > 80,
+    () =>
+      !this.isOverBudget() &&
+      this.budgetConsumedPercentage() > WARNING_THRESHOLD_PERCENT,
   );
-  readonly isOnTrack = computed(
-    () => !this.isOverBudget() && !this.isWarning(),
+  readonly budgetStatus = computed<'on-track' | 'warning' | 'over-budget'>(
+    () => {
+      if (this.isOverBudget()) return 'over-budget';
+      if (this.isWarning()) return 'warning';
+      return 'on-track';
+    },
   );
 
-  formatPeriod(): string {
+  readonly periodLabel = computed(() => {
     const dates = this.periodDates();
     if (!dates) return '';
-    // Use the middle of the period to determine the month
     const start = dates.startDate.getTime();
     const end = dates.endDate.getTime();
     const middleDate = new Date(start + (end - start) / 2);
-
-    return new Intl.DateTimeFormat('fr-FR', {
-      month: 'long',
-    }).format(middleDate);
-  }
+    return new Intl.DateTimeFormat('fr-FR', { month: 'long' }).format(
+      middleDate,
+    );
+  });
 }

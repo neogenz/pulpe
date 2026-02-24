@@ -88,6 +88,7 @@ const DETAIL_SEGMENT_COUNT = 12;
             matIconButton
             (click)="close()"
             matTooltip="Fermer"
+            aria-label="Fermer le panneau"
             class="shrink-0"
           >
             <mat-icon>close</mat-icon>
@@ -131,22 +132,23 @@ const DETAIL_SEGMENT_COUNT = 12;
         </div>
 
         <!-- Progress Bar (12 segments for more detail) -->
-        @if (envelope.consumption?.hasTransactions) {
+        @let consumption = envelope.consumption;
+        @if (consumption && consumption.hasTransactions) {
           <pulpe-segmented-budget-progress
-            [percentage]="envelope.consumption!.percentage"
+            [percentage]="consumption.percentage"
             [segmentCount]="detailSegmentCount"
             [height]="10"
             class="mb-2"
           />
           <div class="text-center text-label-medium text-on-surface-variant">
-            @if (envelope.consumption!.percentage > 100) {
+            @if (consumption.percentage > 100) {
               Dépassé de
               {{
-                envelope.consumption!.consumed - envelope.data.amount
+                consumption.consumed - envelope.data.amount
                   | currency: 'CHF' : 'symbol' : '1.0-0'
               }}
             } @else {
-              {{ envelope.consumption!.percentage }}% utilisé
+              {{ consumption.percentage }}% utilisé
             }
           </div>
         }
@@ -168,6 +170,7 @@ const DETAIL_SEGMENT_COUNT = 12;
               matButton
               (click)="onAddTransaction()"
               class="!rounded-full"
+              aria-label="Ajouter une transaction"
             >
               <mat-icon>add</mat-icon>
               Ajouter
@@ -216,12 +219,18 @@ const DETAIL_SEGMENT_COUNT = 12;
                       (change)="onToggleCheck(tx.id)"
                       (click)="$event.stopPropagation()"
                       [attr.data-testid]="'toggle-tx-check-' + tx.id"
+                      [attr.aria-label]="
+                        tx.checkedAt
+                          ? 'Marquer ' + tx.name + ' comme non vérifié'
+                          : 'Marquer ' + tx.name + ' comme vérifié'
+                      "
                     />
                     <button
                       matIconButton
                       (click)="onEditTransaction(tx)"
                       matTooltip="Modifier"
                       [attr.data-testid]="'edit-tx-' + tx.id"
+                      [attr.aria-label]="'Modifier ' + tx.name"
                     >
                       <mat-icon>edit</mat-icon>
                     </button>
@@ -230,6 +239,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                       (click)="onDeleteTransaction(tx.id)"
                       matTooltip="Supprimer"
                       [attr.data-testid]="'delete-tx-' + tx.id"
+                      [attr.aria-label]="'Supprimer ' + tx.name"
                     >
                       <mat-icon class="text-error">delete</mat-icon>
                     </button>
@@ -269,23 +279,23 @@ export class BudgetDetailPanel {
     );
   });
 
-  close(): void {
+  protected close(): void {
     this.#dialogRef.close();
   }
 
-  onAddTransaction(): void {
+  protected onAddTransaction(): void {
     this.data.onAddTransaction(this.data.item.data);
   }
 
-  onDeleteTransaction(id: string): void {
+  protected onDeleteTransaction(id: string): void {
     this.data.onDeleteTransaction(id);
   }
 
-  onEditTransaction(tx: Transaction): void {
+  protected onEditTransaction(tx: Transaction): void {
     this.data.onEditTransaction(tx);
   }
 
-  onToggleCheck(id: string): void {
+  protected onToggleCheck(id: string): void {
     this.data.onToggleTransactionCheck(id);
   }
 }

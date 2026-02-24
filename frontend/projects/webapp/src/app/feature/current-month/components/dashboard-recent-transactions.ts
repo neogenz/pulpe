@@ -33,7 +33,7 @@ const KIND_ICONS: Record<TransactionKind, string> = {
           <div
             class="w-10 h-10 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center flex-shrink-0"
           >
-            <mat-icon>receipt_long</mat-icon>
+            <mat-icon aria-hidden="true">receipt_long</mat-icon>
           </div>
           <div>
             <h2
@@ -56,13 +56,13 @@ const KIND_ICONS: Record<TransactionKind, string> = {
           <div class="flex flex-col gap-1">
             @for (tx of transactions(); track tx.id) {
               <div
-                class="flex items-center gap-3 p-3 rounded-2xl hover:bg-on-surface/8 transition-colors"
+                class="flex items-center gap-3 p-3 rounded-2xl hover:bg-on-surface/8 motion-safe:transition-colors"
               >
                 <div
                   class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
                   [class]="kindClasses(tx.kind)"
                 >
-                  <mat-icon class="text-[20px]">
+                  <mat-icon class="text-[20px]" aria-hidden="true">
                     {{ kindIcon(tx.kind) }}
                   </mat-icon>
                 </div>
@@ -94,7 +94,9 @@ const KIND_ICONS: Record<TransactionKind, string> = {
             <div
               class="w-16 h-16 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center mb-4"
             >
-              <mat-icon class="scale-150">receipt_long</mat-icon>
+              <mat-icon class="scale-150" aria-hidden="true"
+                >receipt_long</mat-icon
+              >
             </div>
             <h3 class="text-title-medium font-bold text-on-surface mb-1">
               Aucune transaction
@@ -107,13 +109,11 @@ const KIND_ICONS: Record<TransactionKind, string> = {
       </div>
     </div>
   `,
-  styles: [
-    `
-      :host {
-        display: block;
-      }
-    `,
-  ],
+  styles: `
+    :host {
+      display: block;
+    }
+  `,
 })
 export class DashboardRecentTransactions {
   readonly transactions = input.required<Transaction[]>();
@@ -123,17 +123,14 @@ export class DashboardRecentTransactions {
     return KIND_ICONS[kind];
   }
 
-  protected kindClasses(kind: TransactionKind): Record<string, boolean> {
-    const isIncome = kind === 'income';
-    const isSaving = kind === 'saving';
-    const isExpense = kind === 'expense';
-    return {
-      'bg-success/10': isIncome,
-      'text-success': isIncome,
-      'bg-info/10': isSaving,
-      'text-info': isSaving,
-      'bg-surface-container-high': isExpense,
-      'text-on-surface-variant': isExpense,
-    };
+  protected kindClasses(kind: TransactionKind): string {
+    switch (kind) {
+      case 'income':
+        return 'bg-financial-income/10 text-financial-income';
+      case 'saving':
+        return 'bg-financial-savings/10 text-financial-savings';
+      case 'expense':
+        return 'bg-surface-container-high text-on-surface-variant';
+    }
   }
 }

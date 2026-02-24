@@ -7,18 +7,16 @@ import {
   signal,
 } from '@angular/core';
 import { BaseChartDirective } from 'ng2-charts';
-import {} from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { type ChartConfiguration } from 'chart.js';
+import type { HistoryDataPoint } from '../services/dashboard-state';
 import {
-  Chart,
-  type ChartConfiguration,
-  type ChartData,
-  registerables,
-} from 'chart.js';
-
-import type { HistoryDataPoint } from '../services/dashboard-store';
-
-Chart.register(...registerables);
+  resolveColors,
+  colorWithAlpha,
+  formatShortMonth,
+  formatCHF,
+  CHART_FONT_FAMILY,
+} from '../utils/chart-utils';
 
 @Component({
   selector: 'pulpe-dashboard-history-chart',
@@ -49,15 +47,23 @@ Chart.register(...registerables);
             <canvas
               baseChart
               [data]="chartData()"
-              [options]="chartOptions"
+              [options]="chartOptions()"
               [type]="chartType"
             ></canvas>
           </div>
         } @else {
           <div
-            class="flex items-center justify-center text-body-medium text-on-surface-variant h-full"
+            class="flex flex-col items-center justify-center text-center h-full gap-2 p-6"
           >
-            Pas assez de données pour afficher l'historique.
+            <mat-icon class="text-on-surface-variant/50 mb-2 empty-state-icon"
+              >bar_chart</mat-icon
+            >
+            <p class="text-body-medium text-on-surface-variant">
+              Pas assez de données pour afficher l'historique.
+            </p>
+            <p class="text-body-small text-on-surface-variant/70">
+              L'historique apparaitra avec tes prochains budgets.
+            </p>
           </div>
         }
       </div>
@@ -67,6 +73,12 @@ Chart.register(...registerables);
     :host {
       display: block;
     }
+
+    .empty-state-icon {
+      font-size: 36px;
+      width: 36px;
+      height: 36px;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -75,39 +87,50 @@ export class DashboardHistoryChart {
 
   readonly chartType = 'bar' as const;
 
-  readonly #incomeColor = signal('#0061A6');
-  readonly #expenseColor = signal('#B35800');
-  readonly #savingsColor = signal('#006E25');
+  readonly #colorsReady = signal(false);
+  readonly #incomeColor = signal('');
+  readonly #expenseColor = signal('');
+  readonly #savingsColor = signal('');
+  readonly #tickColor = signal('');
+  readonly #gridColor = signal('');
+  readonly #tooltipBg = signal('');
 
   constructor() {
     afterNextRender(() => {
-      const income = this.#resolveColor('var(--pulpe-financial-income)');
-      const expense = this.#resolveColor('var(--pulpe-financial-expense)');
-      const savings = this.#resolveColor('var(--pulpe-financial-savings)');
-      if (income) this.#incomeColor.set(income);
-      if (expense) this.#expenseColor.set(expense);
-      if (savings) this.#savingsColor.set(savings);
+      this.#resolveThemeColors();
     });
   }
 
-  #resolveColor(cssValue: string): string {
-    const el = document.createElement('div');
-    el.style.color = cssValue;
-    el.style.display = 'none';
-    document.body.appendChild(el);
-    const resolved = getComputedStyle(el).color;
-    document.body.removeChild(el);
-    return resolved;
+  #resolveThemeColors(): void {
+    const resolved = resolveColors({
+      income: 'var(--pulpe-financial-income)',
+      expense: 'var(--pulpe-financial-expense)',
+      savings: 'var(--pulpe-financial-savings)',
+      onSurfaceVariant: 'var(--mat-sys-on-surface-variant)',
+      inverseSurface: 'var(--mat-sys-inverse-surface)',
+    });
+    if (resolved.income) this.#incomeColor.set(resolved.income);
+    if (resolved.expense) this.#expenseColor.set(resolved.expense);
+    if (resolved.savings) this.#savingsColor.set(resolved.savings);
+    if (resolved.onSurfaceVariant) {
+      this.#tickColor.set(resolved.onSurfaceVariant);
+      this.#gridColor.set(colorWithAlpha(resolved.onSurfaceVariant, 0.08));
+    }
+    if (resolved.inverseSurface) {
+      this.#tooltipBg.set(colorWithAlpha(resolved.inverseSurface, 0.9));
+    }
+    this.#colorsReady.set(true);
   }
 
-  readonly hasData = computed(() => this.history().length > 0);
+  readonly hasData = computed(
+    () => this.#colorsReady() && this.history().length > 0,
+  );
 
-  readonly chartData = computed<ChartData<'bar', number[], string>>(() => {
+  readonly chartData = computed<ChartConfiguration['data']>(() => {
     const data = this.history();
-    const formatter = new Intl.DateTimeFormat('fr-CH', { month: 'short' });
     const hasSavingsData = data.some((d) => d.savings > 0);
 
-    const datasets: ChartData<'bar', number[], string>['datasets'] = [
+    const datasets: ChartConfiguration['data']['datasets'] = [
       {
         data: data.map((d) => d.income),
         label: 'Revenus',
@@ -144,108 +167,108 @@ export class DashboardHistoryChart {
         type: 'line',
         data: Array(data.length).fill(avgIncome),
         label: 'Revenu moyen',
-        borderColor: this.#incomeColor()
-          .replace('rgb(', 'rgba(')
-          .replace(')', ', 0.38)'),
+        borderColor: colorWithAlpha(this.#incomeColor(), 0.38),
         borderDash: [6, 4],
         borderWidth: 2,
         pointRadius: 0,
         fill: false,
         backgroundColor: 'transparent',
-      } as never);
+      });
     }
 
     return {
-      labels: data.map((d) => {
-        const date = new Date(d.year, d.month - 1, 1);
-        const name = formatter.format(date);
-        return name.charAt(0).toUpperCase() + name.slice(1);
-      }),
+      labels: data.map((d) => formatShortMonth(d.month)),
       datasets,
     };
   });
 
-  readonly chartOptions: ChartConfiguration<'bar'>['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: true,
-        position: 'top',
-        align: 'end',
-        labels: {
-          usePointStyle: true,
-          boxWidth: 8,
-          boxHeight: 8,
-          font: {
-            family: 'Outfit, sans-serif',
+  readonly chartOptions = computed<ChartConfiguration['options']>(() => {
+    const tickColor = this.#tickColor() || undefined;
+    const gridColor = this.#gridColor() || undefined;
+    const tooltipBg = this.#tooltipBg() || undefined;
+
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          align: 'end',
+          labels: {
+            usePointStyle: true,
+            boxWidth: 8,
+            boxHeight: 8,
+            font: {
+              family: CHART_FONT_FAMILY,
+            },
+            color: tickColor,
+          },
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          backgroundColor: tooltipBg,
+          titleFont: { family: CHART_FONT_FAMILY },
+          bodyFont: { family: CHART_FONT_FAMILY },
+          callbacks: {
+            label: (context) => {
+              let label = context.dataset.label || '';
+              if (label) {
+                label += ': ';
+              }
+              if (context.parsed.y !== null) {
+                label += formatCHF(context.parsed.y);
+              }
+              return label;
+            },
           },
         },
       },
-      tooltip: {
-        mode: 'index',
-        intersect: false,
-        backgroundColor: 'rgba(28, 27, 31, 0.9)',
-        titleFont: { family: 'Outfit, sans-serif' },
-        bodyFont: { family: 'Outfit, sans-serif' },
-        callbacks: {
-          label: (context) => {
-            let label = context.dataset.label || '';
-            if (label) {
-              label += ': ';
-            }
-            if (context.parsed.y !== null) {
-              label += new Intl.NumberFormat('de-CH', {
-                style: 'currency',
-                currency: 'CHF',
-              }).format(context.parsed.y);
-            }
-            return label;
+      scales: {
+        x: {
+          display: true,
+          grid: {
+            display: false,
+          },
+          border: {
+            display: false,
+          },
+          ticks: {
+            font: {
+              family: CHART_FONT_FAMILY,
+            },
+            color: tickColor,
           },
         },
-      },
-    },
-    scales: {
-      x: {
-        display: true,
-        grid: {
-          display: false,
-        },
-        border: {
-          display: false,
-        },
-        ticks: {
-          font: {
-            family: 'Outfit, sans-serif',
+        y: {
+          display: true,
+          grid: {
+            color: gridColor,
           },
-        },
-      },
-      y: {
-        display: true,
-        grid: {
-          color: 'rgba(0,0,0,0.05)',
-        },
-        border: {
-          display: false,
-          dash: [4, 4],
-        },
-        ticks: {
-          callback: (value) => {
-            if (typeof value === 'number') {
-              if (value >= 1000) return value / 1000 + 'k';
+          border: {
+            display: false,
+            dash: [4, 4],
+          },
+          ticks: {
+            callback: (value) => {
+              if (typeof value === 'number') {
+                if (value >= 1000) return value / 1000 + 'k';
+                return value;
+              }
               return value;
-            }
-            return value;
-          },
-          font: {
-            family: 'Outfit, sans-serif',
+            },
+            font: {
+              family: CHART_FONT_FAMILY,
+            },
+            color: tickColor,
           },
         },
       },
-    },
-    interaction: {
-      intersect: false,
-      mode: 'index',
-    },
-  };
+      interaction: {
+        intersect: false,
+        mode: 'index',
+      },
+    };
+  });
 }

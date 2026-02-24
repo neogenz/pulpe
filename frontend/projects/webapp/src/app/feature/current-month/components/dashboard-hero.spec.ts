@@ -52,7 +52,7 @@ describe('DashboardHero', () => {
 
     expect(component.isOverBudget()).toBe(true);
     expect(component.isWarning()).toBe(false);
-    expect(component.isOnTrack()).toBe(false);
+    expect(component.budgetStatus()).toBe('over-budget');
   });
 
   it('should determine isWarning (>80% consumed)', () => {

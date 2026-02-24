@@ -38,7 +38,7 @@ describe('DashboardSavingsSummary', () => {
 
     it('should show progress bar', () => {
       const progressBar = fixture.debugElement.query(
-        By.css('.bg-primary.rounded-full'),
+        By.css('[role="progressbar"]'),
       );
       expect(progressBar).toBeTruthy();
     });
@@ -67,7 +67,7 @@ describe('DashboardSavingsSummary', () => {
 
     it('should not show progress bar', () => {
       const progressBar = fixture.debugElement.query(
-        By.css('.bg-primary.rounded-full'),
+        By.css('[role="progressbar"]'),
       );
       expect(progressBar).toBeFalsy();
     });

@@ -47,7 +47,16 @@ import {
       </div>
 
       <!-- Segmented Progress: Visual representation of checked items -->
-      <div class="flex gap-1 h-2.5 mb-3">
+      <div
+        role="progressbar"
+        [attr.aria-valuenow]="progressPercentage()"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        [attr.aria-label]="
+          checkedCount() + ' sur ' + totalCount() + ' éléments comptabilisés'
+        "
+        class="flex gap-1 h-2.5 mb-3"
+      >
         @for (segment of progressSegments(); track $index) {
           <div
             class="flex-1 rounded-full transition-all duration-300 ease-out"

@@ -2,7 +2,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { DashboardNextMonth } from './dashboard-next-month';
-import type { UpcomingMonthForecast } from '../services/dashboard-store';
+import type { UpcomingMonthForecast } from '../services/dashboard-state';
 import { setTestInput } from '../../../testing/signal-test-utils';
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';

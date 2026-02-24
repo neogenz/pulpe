@@ -41,8 +41,10 @@ const AMOUNT_FORMATTER = new Intl.NumberFormat('de-CH', {
     @if (isVisible()) {
       <div
         class="bg-surface-container-low rounded-2xl p-4 flex items-start gap-3 border border-outline-variant/30 animate-fade-in"
+        role="status"
+        aria-live="polite"
       >
-        <mat-icon class="text-primary mt-0.5 flex-shrink-0">
+        <mat-icon class="text-primary mt-0.5 flex-shrink-0" aria-hidden="true">
           {{ icon() }}
         </mat-icon>
         @if (insightType() === 'surplus') {
@@ -78,7 +80,13 @@ const AMOUNT_FORMATTER = new Intl.NumberFormat('de-CH', {
     }
 
     .animate-fade-in {
-      animation: fade-in 300ms ease-out;
+      animation: fade-in var(--pulpe-motion-slow) var(--pulpe-ease-standard);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .animate-fade-in {
+        animation: none;
+      }
     }
   `,
 })

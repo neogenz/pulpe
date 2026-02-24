@@ -8,7 +8,6 @@ import {
   DestroyRef,
   effect,
   inject,
-  signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -48,7 +47,6 @@ type TransactionFormData = Pick<
 
 @Component({
   selector: 'pulpe-dashboard',
-  standalone: true,
   imports: [
     MatButtonModule,
     MatBottomSheetModule,
@@ -70,12 +68,12 @@ type TransactionFormData = Pick<
     <div class="flex flex-col gap-4 min-w-0" data-testid="dashboard-page">
       <header class="pulpe-page-header" data-testid="page-header">
         <h1
-          class="text-headline-medium md:text-display-small truncate min-w-0 flex-shrink capitalize"
+          class="text-headline-medium md:text-display-small truncate min-w-0 shrink capitalize"
           data-testid="page-title"
         >
           {{ budgetPeriodDisplayName() }}
         </h1>
-        <div class="flex gap-2 items-center flex-shrink-0 ml-auto">
+        <div class="flex gap-2 items-center shrink-0 ml-auto">
           <button
             matIconButton
             (click)="store.refreshData()"
@@ -89,120 +87,109 @@ type TransactionFormData = Pick<
         </div>
       </header>
 
-      @switch (true) {
-        @case (store.isInitialLoading()) {
-          <pulpe-base-loading
-            message="Préparation de ton tableau de bord..."
-            size="large"
-            testId="dashboard-loading"
+      @if (store.isInitialLoading()) {
+        <pulpe-base-loading
+          message="Préparation de ton tableau de bord..."
+          size="large"
+          testId="dashboard-loading"
+        />
+      } @else if (store.status() === 'error') {
+        <pulpe-dashboard-error
+          (reload)="store.refreshData()"
+          data-testid="dashboard-error"
+        />
+      } @else if (store.dashboardData()?.budget) {
+        <div class="flex flex-col gap-8">
+          <!-- Month closing insight (only visible last 10% of month) -->
+          <pulpe-dashboard-month-insight
+            [timeElapsedPercentage]="store.timeElapsedPercentage()"
+            [remaining]="store.remaining()"
+            data-testid="dashboard-block-month-insight"
           />
-        }
-        @case (store.status() === 'error') {
-          <pulpe-dashboard-error
-            (reload)="store.refreshData()"
-            data-testid="dashboard-error"
+
+          <!-- Hero "Disponible à dépenser" -->
+          <pulpe-dashboard-hero
+            [expenses]="store.totalExpenses()"
+            [available]="store.totalAvailable()"
+            [periodDates]="store.periodDates()"
+            [totalIncome]="store.totalIncome()"
+            [rolloverAmount]="store.rolloverAmount()"
+            [timeElapsedPercentage]="store.timeElapsedPercentage()"
+            [paceStatus]="store.paceStatus()"
+            (heroClick)="navigateToBudgetDetails()"
+            data-testid="dashboard-block-hero"
           />
-        }
-        @case (
-          store.status() === 'resolved' ||
-          store.status() === 'local' ||
-          store.status() === 'reloading'
-        ) {
-          @if (store.dashboardData()?.budget) {
-            <div class="flex flex-col gap-8">
-              <!-- Month closing insight (only visible last 10% of month) -->
-              <pulpe-dashboard-month-insight
-                [timeElapsedPercentage]="store.timeElapsedPercentage()"
-                [remaining]="store.remaining()"
-                data-testid="dashboard-block-month-insight"
-              />
 
-              <!-- Hero "Disponible à dépenser" -->
-              <pulpe-dashboard-hero
-                [expenses]="store.totalExpenses()"
-                [available]="store.totalAvailable()"
-                [periodDates]="store.periodDates()"
-                [totalIncome]="store.totalIncome()"
-                [rolloverAmount]="store.rolloverAmount()"
-                [timeElapsedPercentage]="store.timeElapsedPercentage()"
-                [paceStatus]="store.paceStatus()"
-                (heroClick)="navigateToBudgetDetails()"
-                data-testid="dashboard-block-hero"
-              />
-
-              <!-- Paired lists: Recent Transactions + Unchecked Forecasts -->
-              <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <pulpe-dashboard-recent-transactions
-                  class="order-2 lg:order-1"
-                  [transactions]="store.recentTransactions()"
-                  (viewBudget)="navigateToBudgetDetails()"
-                  data-testid="dashboard-block-recent-transactions"
-                />
-
-                <pulpe-dashboard-unchecked-forecasts
-                  class="order-1 lg:order-2"
-                  [forecasts]="store.uncheckedForecasts()"
-                  (toggleCheck)="store.toggleBudgetLineCheck($event)"
-                  data-testid="dashboard-block-forecasts"
-                />
-              </div>
-
-              <!-- Future Projection Chart -->
-              <pulpe-dashboard-future-projection-chart
-                [forecasts]="store.upcomingBudgetsData()"
-                data-testid="dashboard-block-projection"
-              />
-
-              <!-- Paired metrics: Savings Summary + Next Month -->
-              <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <pulpe-dashboard-savings-summary
-                  [totalPlanned]="store.totalSavingsPlanned()"
-                  [totalRealized]="store.totalSavingsRealized()"
-                  data-testid="dashboard-block-savings"
-                />
-
-                @if (store.upcomingBudgetsData().length > 0) {
-                  <pulpe-dashboard-next-month
-                    [forecast]="store.upcomingBudgetsData()[0]"
-                    [estimatedRollover]="store.remaining()"
-                    (navigateToBudgets)="navigateToBudgetTemplates()"
-                    data-testid="dashboard-block-next-month"
-                  />
-                }
-              </div>
-
-              <!-- History Chart -->
-              <pulpe-dashboard-history-chart
-                [history]="store.historyData()"
-                data-testid="dashboard-block-history"
-              />
-            </div>
-          } @else {
-            <pulpe-state-card
-              variant="empty"
-              testId="empty-state"
-              [title]="'Pas encore de budget pour ' + budgetPeriodDisplayName()"
-              message="Crée-le depuis tes modèles pour commencer à suivre ton mois."
-              actionLabel="Voir mes modèles"
-              (action)="navigateToBudgetTemplates()"
+          <!-- Paired lists: Recent Transactions + Unchecked Forecasts -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <pulpe-dashboard-recent-transactions
+              class="order-2 lg:order-1"
+              [transactions]="store.recentTransactions()"
+              (viewBudget)="navigateToBudgetDetails()"
+              data-testid="dashboard-block-recent-transactions"
             />
-          }
-        }
+
+            <pulpe-dashboard-unchecked-forecasts
+              class="order-1 lg:order-2"
+              [forecasts]="store.uncheckedForecasts()"
+              (toggleCheck)="store.toggleBudgetLineCheck($event)"
+              data-testid="dashboard-block-forecasts"
+            />
+          </div>
+
+          <!-- Future Projection Chart -->
+          <pulpe-dashboard-future-projection-chart
+            [forecasts]="store.upcomingBudgetsData()"
+            data-testid="dashboard-block-projection"
+          />
+
+          <!-- Paired metrics: Savings Summary + Next Month -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <pulpe-dashboard-savings-summary
+              [totalPlanned]="store.totalSavingsPlanned()"
+              [totalRealized]="store.totalSavingsRealized()"
+              data-testid="dashboard-block-savings"
+            />
+
+            @if (store.upcomingBudgetsData().length > 0) {
+              <pulpe-dashboard-next-month
+                [forecast]="store.upcomingBudgetsData()[0]"
+                [estimatedRollover]="store.remaining()"
+                (navigateToBudgets)="navigateToBudgetTemplates()"
+                data-testid="dashboard-block-next-month"
+              />
+            }
+          </div>
+
+          <!-- History Chart -->
+          <pulpe-dashboard-history-chart
+            [history]="store.historyData()"
+            data-testid="dashboard-block-history"
+          />
+        </div>
+
+        <!-- FAB: only visible when budget data is loaded -->
+        <button
+          matFab
+          (click)="openAddTransactionBottomSheet()"
+          class="fab-button"
+          aria-label="Ajouter une transaction"
+          data-testid="add-transaction-fab"
+          data-tour="add-transaction-fab"
+        >
+          <mat-icon class="fab-icon">add</mat-icon>
+        </button>
+      } @else {
+        <pulpe-state-card
+          variant="empty"
+          testId="empty-state"
+          [title]="'Pas encore de budget pour ' + budgetPeriodDisplayName()"
+          message="Crée-le depuis tes modèles pour commencer à suivre ton mois."
+          actionLabel="Voir mes modèles"
+          (action)="navigateToBudgetTemplates()"
+        />
       }
     </div>
-
-    <!-- FAB pour ajouter une transaction -->
-    <button
-      matFab
-      [disabled]="!store.dashboardData()?.budget"
-      (click)="openAddTransactionBottomSheet()"
-      class="fab-button"
-      aria-label="Ajouter une transaction"
-      data-testid="add-transaction-fab"
-      data-tour="add-transaction-fab"
-    >
-      <mat-icon class="fab-icon">add</mat-icon>
-    </button>
   `,
   styles: `
     :host {
@@ -215,17 +202,13 @@ type TransactionFormData = Pick<
       position: fixed;
       bottom: calc(24px + env(safe-area-inset-bottom));
       right: 24px;
-      z-index: 1000;
+      z-index: 100;
 
       width: 56px;
       height: 56px;
       border-radius: 50%;
 
-      --mdc-fab-container-color: var(--mat-sys-primary);
       --mat-fab-container-color: var(--mat-sys-primary);
-      --mat-fab-disabled-state-container-color: var(--mat-sys-primary);
-      --mat-fab-disabled-state-foreground-color: var(--mat-sys-on-primary);
-      --mdc-fab-icon-color: var(--mat-sys-on-primary);
       background: linear-gradient(
         145deg,
         var(--mat-sys-primary) 0%,
@@ -233,14 +216,7 @@ type TransactionFormData = Pick<
       );
       color: var(--mat-sys-on-primary);
 
-      &:disabled {
-        opacity: 0.5;
-      }
-
-      box-shadow:
-        0 2px 4px -1px rgba(0, 0, 0, 0.1),
-        0 4px 8px rgba(0, 0, 0, 0.08),
-        0 8px 16px rgba(0, 0, 0, 0.06);
+      box-shadow: var(--mat-sys-level3);
 
       transition:
         transform 200ms var(--pulpe-ease-emphasized),
@@ -249,23 +225,18 @@ type TransactionFormData = Pick<
       animation: fab-scale-in var(--pulpe-motion-base)
         var(--pulpe-ease-emphasized) both;
 
-      &:hover:not(:disabled) {
+      &:hover {
         transform: scale(1.05);
-        box-shadow:
-          0 4px 8px -2px rgba(0, 0, 0, 0.12),
-          0 8px 16px rgba(0, 0, 0, 0.1),
-          0 12px 24px rgba(0, 0, 0, 0.08);
+        box-shadow: var(--mat-sys-level4);
       }
 
-      &:active:not(:disabled) {
+      &:active {
         transform: scale(0.95);
-        box-shadow:
-          0 1px 2px rgba(0, 0, 0, 0.1),
-          0 2px 4px rgba(0, 0, 0, 0.08);
+        box-shadow: var(--mat-sys-level1);
         transition-duration: 100ms;
       }
 
-      &:hover:not(:disabled) .fab-icon {
+      &:hover .fab-icon {
         transform: rotate(90deg);
       }
     }
@@ -291,11 +262,21 @@ type TransactionFormData = Pick<
         opacity: 1;
       }
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      .fab-button {
+        animation: none;
+        transition: none;
+      }
+
+      .fab-icon {
+        transition: none;
+      }
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class Dashboard {
-  readonly isCreatingTransaction = signal(false);
   protected readonly store = inject(DashboardStore);
   readonly #productTourService = inject(ProductTourService);
   readonly #destroyRef = inject(DestroyRef);
@@ -312,8 +293,6 @@ export default class Dashboard {
   });
 
   constructor() {
-    this.store.refreshData();
-
     effect(() => {
       const status = this.store.status();
       this.#loadingIndicator.setLoading(status === 'reloading');
@@ -344,7 +323,7 @@ export default class Dashboard {
     this.#router.navigate(['/budgets']);
   }
 
-  openAddTransactionBottomSheet(): void {
+  protected openAddTransactionBottomSheet(): void {
     const bottomSheetRef = this.#bottomSheet.open(AddTransactionBottomSheet, {
       disableClose: false,
       panelClass: 'add-transaction-bottom-sheet',
@@ -355,14 +334,13 @@ export default class Dashboard {
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe((transaction: TransactionFormData | undefined) => {
         if (transaction) {
-          this.onAddTransaction(transaction);
+          this.#addTransaction(transaction);
         }
       });
   }
 
-  async onAddTransaction(transaction: TransactionFormData) {
+  async #addTransaction(transaction: TransactionFormData): Promise<void> {
     try {
-      this.isCreatingTransaction.set(true);
       const budgetId = this.store.dashboardData()?.budget?.id;
       if (!budgetId) {
         throw new Error('Budget ID not found');
@@ -377,8 +355,6 @@ export default class Dashboard {
       });
     } catch (error) {
       this.#logger.error('Error adding transaction:', error);
-    } finally {
-      this.isCreatingTransaction.set(false);
     }
   }
 }
