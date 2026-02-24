@@ -99,6 +99,17 @@ export class DashboardStore {
     () => this.dashboardData()?.transactions || [],
   );
 
+  readonly recentTransactions = computed<Transaction[]>(() => {
+    const txs = this.transactions();
+    return [...txs]
+      .sort(
+        (a, b) =>
+          new Date(b.transactionDate).getTime() -
+          new Date(a.transactionDate).getTime(),
+      )
+      .slice(0, 5);
+  });
+
   readonly budgetLines = computed<BudgetLine[]>(
     () => this.dashboardData()?.budgetLines || [],
   );

@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   input,
+  output,
 } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,6 +19,10 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
       class="hero-container rounded-[32px] p-6 pb-5 shadow-premium relative overflow-hidden cursor-pointer transition-transform hover:scale-[0.99]"
       [class.budget-over]="isOverBudget()"
       [class.budget-warning]="isWarning()"
+      (click)="heroClick.emit()"
+      (keydown.enter)="heroClick.emit()"
+      tabindex="0"
+      role="button"
     >
       <!-- Background Accent Gradients -->
       <div
@@ -76,6 +81,15 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
           </span>
           <span class="text-title-large font-semibold opacity-70">CHF</span>
         </div>
+        <p class="text-body-small opacity-60 mt-1">
+          Revenus {{ totalIncome() | number: '1.2-2' : 'de-CH' }}
+          @if (rolloverAmount() !== 0) {
+            <span class="opacity-80">
+              {{ rolloverAmount() > 0 ? '+' : '-' }} Report
+              {{ Math.abs(rolloverAmount()) | number: '1.2-2' : 'de-CH' }}
+            </span>
+          }
+        </p>
       </div>
 
       <!-- Progress Bar -->
@@ -92,9 +106,18 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
           </span>
         </div>
         <div
-          class="w-full h-3 bg-black/10 rounded-full overflow-hidden"
+          class="relative w-full h-3 bg-black/10 rounded-full overflow-hidden"
           [matTooltip]="'Mois écoulé : ' + timeElapsedPercentage() + '%'"
         >
+          <div
+            class="absolute top-0 h-full w-0.5 z-10 rounded-full transition-all duration-700"
+            [class]="
+              paceStatus() === 'on-track'
+                ? 'bg-green-400/70'
+                : 'bg-amber-400/70'
+            "
+            [style.left.%]="timeElapsedPercentage()"
+          ></div>
           <div
             class="h-full rounded-full transition-all duration-1000 relative progress-fill"
             [style.width.%]="budgetConsumedPercentage()"
@@ -165,6 +188,10 @@ export class DashboardHero {
   readonly expenses = input.required<number>();
   readonly available = input.required<number>();
   readonly periodDates = input.required<BudgetPeriodDates>();
+  readonly totalIncome = input.required<number>();
+  readonly rolloverAmount = input(0);
+
+  readonly heroClick = output<void>();
 
   readonly Math = Math;
 
@@ -208,6 +235,12 @@ export class DashboardHero {
 
     const percentage = (elapsed / total) * 100;
     return Math.round(Math.min(Math.max(0, percentage), 100));
+  });
+
+  readonly paceStatus = computed(() => {
+    const consumed = this.budgetConsumedPercentage();
+    const elapsed = this.timeElapsedPercentage();
+    return consumed <= elapsed + 5 ? 'on-track' : 'tight';
   });
 
   formatPeriod(): string {

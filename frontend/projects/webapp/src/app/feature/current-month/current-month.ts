@@ -18,6 +18,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Router } from '@angular/router';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { Logger } from '@core/logging/logger';
 import {
@@ -37,6 +38,7 @@ import { DashboardUncheckedForecasts } from './components/dashboard-unchecked-fo
 import { DashboardHistoryChart } from './components/dashboard-history-chart';
 import { DashboardUpcomingMonths } from './components/dashboard-upcoming-months';
 import { DashboardFutureProjectionChart } from './components/dashboard-future-projection-chart';
+import { DashboardRecentTransactions } from './components/dashboard-recent-transactions';
 
 type TransactionFormData = Pick<
   TransactionCreate,
@@ -59,6 +61,7 @@ type TransactionFormData = Pick<
     DashboardHistoryChart,
     DashboardUpcomingMonths,
     DashboardFutureProjectionChart,
+    DashboardRecentTransactions,
   ],
   template: `
     <div class="flex flex-col gap-4 min-w-0" data-testid="dashboard-page">
@@ -109,7 +112,16 @@ type TransactionFormData = Pick<
                 [expenses]="store.totalExpenses()"
                 [available]="store.totalAvailable()"
                 [periodDates]="periodDates()"
+                [totalIncome]="store.totalIncome()"
+                [rolloverAmount]="store.rolloverAmount()"
+                (heroClick)="navigateToBudgetDetails()"
                 data-testid="dashboard-block-hero"
+              />
+
+              <pulpe-dashboard-recent-transactions
+                [transactions]="store.recentTransactions()"
+                (viewBudget)="navigateToBudgetDetails()"
+                data-testid="dashboard-block-recent-transactions"
               />
 
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -265,6 +277,7 @@ export default class Dashboard {
   readonly #destroyRef = inject(DestroyRef);
   readonly #loadingIndicator = inject(LoadingIndicator);
   readonly #bottomSheet = inject(MatBottomSheet);
+  readonly #router = inject(Router);
   readonly #logger = inject(Logger);
 
   protected readonly budgetPeriodDisplayName = computed(() => {
@@ -300,6 +313,13 @@ export default class Dashboard {
         );
       }
     });
+  }
+
+  protected navigateToBudgetDetails(): void {
+    const budgetId = this.store.dashboardData()?.budget?.id;
+    if (budgetId) {
+      this.#router.navigate(['/budget', budgetId]);
+    }
   }
 
   openAddTransactionBottomSheet(): void {
