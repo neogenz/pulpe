@@ -126,7 +126,7 @@ extension LoginView {
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             AuthTextField(
-                placeholder: "",
+                placeholder: "Adresse e-mail",
                 text: $viewModel.email,
                 isFocused: focusedField == .email
             )
