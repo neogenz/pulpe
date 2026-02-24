@@ -96,7 +96,7 @@ export const routes: Routes = [
         path: ROUTES.DASHBOARD,
         title: PAGE_TITLES.DASHBOARD,
         canActivate: [hasBudgetGuard],
-        data: { breadcrumb: 'Mois en cours', icon: 'today' },
+        data: { breadcrumb: 'Tableau de bord', icon: 'space_dashboard' },
         loadChildren: () =>
           import('./feature/current-month/current-month.routes'),
       },

@@ -523,9 +523,9 @@ export default class MainLayout {
   protected readonly navigationItems: readonly NavigationItem[] = [
     {
       route: ROUTES.DASHBOARD,
-      label: 'Ce mois-ci',
-      icon: 'today',
-      tooltip: 'Suivez vos dépenses du mois',
+      label: 'Tableau de bord',
+      icon: 'space_dashboard',
+      tooltip: "Ta vue d'ensemble du mois",
     },
     {
       route: ROUTES.BUDGET,

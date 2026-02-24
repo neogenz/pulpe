@@ -68,10 +68,10 @@ type TransactionFormData = Pick<
     <div class="flex flex-col gap-4 min-w-0" data-testid="dashboard-page">
       <header class="pulpe-page-header" data-testid="page-header">
         <h1
-          class="text-headline-medium md:text-display-small truncate min-w-0 shrink capitalize"
+          class="text-headline-medium md:text-display-small truncate min-w-0 shrink"
           data-testid="page-title"
         >
-          {{ budgetPeriodDisplayName() }}
+          Tableau de bord
         </h1>
         <div class="flex gap-2 items-center shrink-0 ml-auto">
           <button

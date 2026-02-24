@@ -25,9 +25,9 @@ const NAVIGATION_CONFIG: NavigationSection[] = [
     title: 'Budget',
     items: [
       {
-        label: 'Mois en cours',
+        label: 'Tableau de bord',
         route: ROUTES.DASHBOARD,
-        icon: 'today',
+        icon: 'space_dashboard',
       },
       {
         label: 'Mes budgets',
