@@ -52,6 +52,15 @@ final class DashboardStore: StoreProtocol {
         await forceRefresh()
     }
 
+    func reset() {
+        loadTask?.cancel()
+        loadTask = nil
+        loadGeneration = 0
+        sparseBudgets = []
+        lastLoadTime = nil
+        error = nil
+    }
+
     func forceRefresh() async {
         // Cancel any existing load task to avoid duplicate requests
         loadTask?.cancel()

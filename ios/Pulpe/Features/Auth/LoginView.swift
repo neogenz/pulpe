@@ -4,12 +4,12 @@ struct LoginView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel = LoginViewModel()
-    @State private var canRetryBiometric = false
     @State private var isAppeared = false
     @State private var forgotPasswordPresentation: ForgotPasswordPresentation?
     @FocusState private var focusedField: Field?
 
     var isPresented: Binding<Bool>?
+    var onBiometric: (() -> Void)?
 
     private enum Field: Hashable {
         case email, password
@@ -50,7 +50,6 @@ struct LoginView: View {
             }
             .task {
                 await viewModel.loadLastUsedEmail()
-                canRetryBiometric = await appState.canRetryBiometric()
                 if !reduceMotion {
                     try? await Task.sleep(for: .milliseconds(100))
                 }
@@ -91,11 +90,11 @@ extension LoginView {
     private var formSection: some View {
         VStack(spacing: DesignTokens.Spacing.xl) {
             errorBanner
-            biometricSection
             emailField
             passwordField
             forgotPasswordButton
             loginButton
+            faceIDButton
         }
         .opacity(isAppeared ? 1 : 0)
         .offset(y: isAppeared ? 0 : 20)
@@ -117,44 +116,6 @@ extension LoginView {
             .padding(DesignTokens.Spacing.lg)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.errorBackground, in: .rect(cornerRadius: DesignTokens.CornerRadius.md))
-        }
-    }
-
-    @ViewBuilder
-    private var biometricSection: some View {
-        if canRetryBiometric && appState.biometricError == nil {
-            Button {
-                Task {
-                    await appState.retryBiometricLogin()
-                    canRetryBiometric = await appState.canRetryBiometric()
-                }
-            } label: {
-                HStack(spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: biometricIcon)
-                        .font(PulpeTypography.title3)
-                    Text("Continuer avec \(BiometricService.shared.biometryDisplayName)")
-                        .font(PulpeTypography.headline)
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: DesignTokens.FrameHeight.button)
-                .background(Color.textPrimaryOnboarding)
-                .foregroundStyle(Color.onboardingBackground)
-                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous))
-                .shadow(color: .black.opacity(0.12), radius: 12, y: 6)
-            }
-
-            HStack(spacing: DesignTokens.Spacing.lg) {
-                Rectangle()
-                    .fill(Color.textSecondaryOnboarding.opacity(0.3))
-                    .frame(height: DesignTokens.FrameHeight.separator)
-                Text("ou")
-                    .font(PulpeTypography.labelMedium)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
-                Rectangle()
-                    .fill(Color.textSecondaryOnboarding.opacity(0.3))
-                    .frame(height: DesignTokens.FrameHeight.separator)
-            }
-            .padding(.vertical, DesignTokens.Spacing.xs)
         }
     }
 
@@ -240,6 +201,28 @@ extension LoginView {
         .padding(.top, DesignTokens.Spacing.sm)
     }
 
+    @ViewBuilder
+    private var faceIDButton: some View {
+        if let onBiometric {
+            Button {
+                onBiometric()
+            } label: {
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    Image(systemName: "faceid")
+                        .font(PulpeTypography.body)
+                    Text("Face ID")
+                        .font(PulpeTypography.buttonSecondary)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: DesignTokens.FrameHeight.button)
+                .background(Color.textPrimaryOnboarding.opacity(0.1))
+                .foregroundStyle(Color.textPrimaryOnboarding)
+                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous))
+            }
+            .accessibilityIdentifier("faceIDButton")
+        }
+    }
+
     private var createAccountSection: some View {
         HStack(spacing: DesignTokens.Spacing.xs) {
             Text("Nouveau sur Pulpe ?")
@@ -261,19 +244,6 @@ extension LoginView {
         .padding(.top, DesignTokens.Spacing.md)
         .opacity(isAppeared ? 1 : 0)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.4).delay(0.2), value: isAppeared)
-    }
-
-    private var biometricIcon: String {
-        switch BiometricService.shared.biometryType {
-        case .faceID:
-            return "faceid"
-        case .touchID:
-            return "touchid"
-        case .opticID:
-            return "opticid"
-        default:
-            return "lock.fill"
-        }
     }
 
     private func login() async {

@@ -126,6 +126,16 @@ final class BudgetListStore: StoreProtocol {
         return nil
     }
 
+    func reset() {
+        loadTask?.cancel()
+        loadTask = nil
+        loadGeneration = 0
+        budgets = []
+        hasLoadedOnce = false
+        lastLoadTime = nil
+        error = nil
+    }
+
     // MARK: - Mutations
 
     func addBudget(_ budget: Budget) {

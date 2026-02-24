@@ -1,7 +1,7 @@
 import XCTest
 
 final class LoginFlowTests: XCTestCase {
-    private var app: XCUIApplication
+    private var app = XCUIApplication()
 
     override func setUp() {
         super.setUp()

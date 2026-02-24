@@ -64,6 +64,7 @@ struct LinkedTransactionsSheet: View {
                 }
             }
         }
+        .accessibilityIdentifier("linkedTransactionsSheetRoot")
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
     }

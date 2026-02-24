@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import Foundation
 @testable import Pulpe
 import Testing
@@ -354,6 +355,178 @@ struct PinRecoveryFlowTests {
         #expect(result.sut.showRecoveryKeyWarning == true)
         #expect(result.sut.showRecoverySheet == false)
         #expect(result.sut.newRecoveryKey == nil)
+    }
+}
+
+// MARK: - Bug 4: PIN Recovery Error Handling Regression Tests
+
+/// Regression tests for Bug 4: PIN recovery error handling.
+/// Verifies that each error type routes to the correct step:
+/// - validationError: resets to recovery key step (key is invalid)
+/// - networkError: stays on confirmPin step (retryable)
+/// - rateLimited: stays on confirmPin step (retryable)
+/// - generic error: stays on confirmPin step (retryable)
+/// - retryFromCurrentStep preserves firstPin and recoveryKey
+@MainActor
+struct PinRecoveryErrorHandlingTests {
+    private static let validSalt = String(repeating: "aa", count: 32)
+    private static let validKey = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    private static let validRecoveryKey = "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+    private func makeSUT(
+        recoverError: APIError? = nil,
+        getSaltError: Error? = nil
+    ) -> PinRecoveryTestSUT {
+        let encryption = StubPinRecoveryEncryption(
+            saltResponse: EncryptionSaltResponse(
+                salt: Self.validSalt,
+                kdfIterations: 1,
+                hasRecoveryKey: true
+            ),
+            recoverError: recoverError,
+            getSaltError: getSaltError
+        )
+        let storage = StubPinRecoveryKeyStorage()
+        let sut = PinRecoveryViewModel(
+            cryptoService: StubPinRecoveryCrypto(derivedKey: Self.validKey),
+            encryptionAPI: encryption,
+            clientKeyManager: storage
+        )
+        return PinRecoveryTestSUT(sut: sut, encryption: encryption, storage: storage)
+    }
+
+    private func enterRecoveryKeyAndMatchingPins(_ sut: PinRecoveryViewModel) async {
+        sut.updateRecoveryKey(Self.validRecoveryKey)
+        sut.submitRecoveryKey()
+        for digit in [1, 2, 3, 4] { sut.appendDigit(digit) }
+        await sut.confirmPin()
+        for digit in [1, 2, 3, 4] { sut.appendDigit(digit) }
+        await sut.confirmPin()
+    }
+
+    @Test("validationError resets to recovery key step (key is invalid)")
+    func validationError_resetsToRecoveryKeyStep() async {
+        let result = makeSUT(recoverError: .validationError(details: ["invalid key"]))
+
+        await enterRecoveryKeyAndMatchingPins(result.sut)
+
+        #expect(result.sut.step == .enterRecoveryKey,
+                "validationError must reset to enterRecoveryKey (the key itself is wrong)")
+        #expect(result.sut.errorMessage != nil, "Should show error message")
+        #expect(result.sut.digits.isEmpty, "Digits must be cleared after reset")
+        #expect(result.sut.isProcessing == false)
+    }
+
+    @Test("networkError stays on confirmPin step (retryFromCurrentStep)")
+    func networkError_staysOnConfirmPinStep() async {
+        let result = makeSUT(recoverError: .networkError(URLError(.notConnectedToInternet)))
+
+        await enterRecoveryKeyAndMatchingPins(result.sut)
+
+        #expect(result.sut.step == .confirmPin,
+                "networkError must stay on confirmPin so user can retry without re-entering recovery key")
+        #expect(result.sut.errorMessage == "Erreur de connexion, réessaie")
+        #expect(result.sut.digits.isEmpty, "Digits must be cleared for retry")
+        #expect(result.sut.isProcessing == false)
+    }
+
+    @Test("rateLimited stays on confirmPin step (retryFromCurrentStep)")
+    func rateLimited_staysOnConfirmPinStep() async {
+        let result = makeSUT(recoverError: .rateLimited)
+
+        await enterRecoveryKeyAndMatchingPins(result.sut)
+
+        #expect(result.sut.step == .confirmPin,
+                "rateLimited must stay on confirmPin so user can retry later")
+        #expect(result.sut.errorMessage == "Trop de tentatives, patiente un moment")
+        #expect(result.sut.digits.isEmpty, "Digits must be cleared for retry")
+        #expect(result.sut.isProcessing == false)
+    }
+
+    @Test("generic serverError stays on confirmPin step (retryFromCurrentStep)")
+    func serverError_staysOnConfirmPinStep() async {
+        let result = makeSUT(recoverError: .serverError(message: "Internal Server Error"))
+
+        await enterRecoveryKeyAndMatchingPins(result.sut)
+
+        #expect(result.sut.step == .confirmPin,
+                "generic server error must stay on confirmPin so user can retry")
+        #expect(result.sut.errorMessage == "Une erreur est survenue, réessaie")
+        #expect(result.sut.digits.isEmpty, "Digits must be cleared for retry")
+        #expect(result.sut.isProcessing == false)
+    }
+
+    @Test("unauthorized requires reauthentication and does not retry recovery flow")
+    func unauthorized_requiresReauthentication() async {
+        let result = makeSUT(recoverError: .unauthorized)
+
+        await enterRecoveryKeyAndMatchingPins(result.sut)
+
+        #expect(
+            result.sut.requiresReauthentication == true,
+            "401/unauthorized must require reauthentication instead of looping in recovery"
+        )
+        #expect(
+            result.sut.errorMessage == "Ta session a expiré — reconnecte-toi",
+            "Unauthorized should show a session-expired message"
+        )
+        #expect(result.sut.isProcessing == false)
+    }
+
+    @Test("forbidden requires reauthentication and does not retry recovery flow")
+    func forbidden_requiresReauthentication() async {
+        let result = makeSUT(recoverError: .forbidden)
+
+        await enterRecoveryKeyAndMatchingPins(result.sut)
+
+        #expect(
+            result.sut.requiresReauthentication == true,
+            "403/forbidden must require reauthentication instead of looping in recovery"
+        )
+        #expect(
+            result.sut.errorMessage == "Ta session a expiré — reconnecte-toi",
+            "Forbidden should show a session-expired message"
+        )
+        #expect(result.sut.isProcessing == false)
+    }
+
+    @Test("non-API error stays on confirmPin step (catch-all handler)")
+    func nonAPIError_staysOnConfirmPinStep() async {
+        struct SimulatedNonAPIError: Error {}
+
+        let result = makeSUT(getSaltError: SimulatedNonAPIError())
+
+        await enterRecoveryKeyAndMatchingPins(result.sut)
+
+        #expect(result.sut.step == .confirmPin,
+                "non-API error must stay on confirmPin via the catch-all handler")
+        #expect(result.sut.errorMessage == "Une erreur est survenue, réessaie")
+        #expect(result.sut.isProcessing == false)
+    }
+
+    @Test("retryFromCurrentStep after rateLimited allows re-entering PIN without recovery key")
+    func retryFromCurrentStep_preservesRecoveryKeyAndFirstPin() async {
+        let result = makeSUT(recoverError: .rateLimited)
+
+        // Enter recovery key and PINs
+        result.sut.updateRecoveryKey(Self.validRecoveryKey)
+        result.sut.submitRecoveryKey()
+        for digit in [1, 2, 3, 4] { result.sut.appendDigit(digit) }
+        await result.sut.confirmPin()
+        #expect(result.sut.step == .confirmPin, "Setup: should be on confirmPin after createPin")
+
+        // Trigger recovery which fails with rateLimited
+        for digit in [1, 2, 3, 4] { result.sut.appendDigit(digit) }
+        await result.sut.confirmPin()
+
+        // rateLimited: retryFromCurrentStep keeps firstPin and recoveryKey
+        #expect(result.sut.step == .confirmPin, "Should stay on confirmPin for retry")
+        #expect(result.sut.digits.isEmpty, "Digits cleared for re-entry")
+
+        // The recovery key input should still be populated (not cleared)
+        // because retryFromCurrentStep does NOT clear recoveryKeyInput
+        #expect(result.sut.recoveryKeyInput.isEmpty == false,
+                "recoveryKeyInput must be preserved so user doesn't have to re-enter it")
     }
 }
 

@@ -47,6 +47,18 @@ xcodebuild build -scheme PulpeProd -destination 'platform=iOS Simulator,name=iPh
 cd .. && pnpm dev:backend                # Run backend
 ```
 
+### Testing (schemes matter!)
+
+- **Unit tests** → scheme `PulpeLocal` → target `PulpeTests`
+- **UI tests** → scheme `PulpeUITests` → target `PulpeUITests`
+
+```bash
+# Unit tests
+xcodebuild test -scheme PulpeLocal -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=26.2' -only-testing:PulpeTests/SomeTest CODE_SIGNING_ALLOWED=NO
+# UI tests (NEVER use PulpeLocal for UI tests)
+xcodebuild test -scheme PulpeUITests -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=26.2' -only-testing:PulpeUITests/SomeTest CODE_SIGNING_ALLOWED=NO
+```
+
 ## Versioning
 
 | Variable                  | Usage              | Quand incrémenter            |

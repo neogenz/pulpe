@@ -10,6 +10,8 @@ final class AppState {
     private enum UserDefaultsKey {
         static let hasLaunchedBefore = "pulpe-has-launched-before"
         static let biometricEnrollmentDismissed = "pulpe-biometric-enrollment-dismissed"
+        static let didExplicitLogout = "pulpe-did-explicit-logout"
+        static let manualBiometricRetryRequired = "pulpe-manual-biometric-retry-required"
     }
 
     // MARK: - Auth State
@@ -21,6 +23,11 @@ final class AppState {
         case needsPinEntry
         case needsPinRecovery
         case authenticated
+    }
+
+    enum LogoutSource {
+        case userInitiated
+        case system
     }
 
     private(set) var authState: AuthStatus = .loading
@@ -238,6 +245,8 @@ final class AppState {
         isHydratingBiometricPreference = false
         hasReturningUser = false
         returningUserFlagLoaded = true
+        clearExplicitLogoutFlag()
+        clearManualBiometricRetryRequiredFlag()
 
         UserDefaults.standard.set(true, forKey: key)
     }
@@ -271,6 +280,7 @@ final class AppState {
 
     func enterSignupFlow() {
         OnboardingState.clearPersistedData()
+        pendingOnboardingData = nil
         hasReturningUser = false
         returningUserFlagLoaded = true
     }
@@ -290,8 +300,21 @@ final class AppState {
         // can't bypass FaceID/PIN. Biometric keychain is preserved.
         await clientKeyManager.clearSession()
 
-        // 1. Biometric: Face ID → PIN/dashboard
-        if biometricEnabled {
+        let manualBiometricRetryRequired = UserDefaults.standard.bool(
+            forKey: UserDefaultsKey.manualBiometricRetryRequired
+        )
+
+        if manualBiometricRetryRequired {
+            authDebug("AUTH_COLD_START_BRANCH", "manual_retry_required")
+            await ensureReturningUserFlagLoaded()
+            authState = .unauthenticated
+            return
+        }
+
+        // 1. Biometric: Face ID → PIN/dashboard (skip if user explicitly logged out)
+        let didExplicitLogout = UserDefaults.standard.bool(forKey: UserDefaultsKey.didExplicitLogout)
+
+        if biometricEnabled && !didExplicitLogout {
             authDebug("AUTH_COLD_START_BRANCH", "biometric")
             await attemptBiometricSessionValidation()
             return
@@ -507,7 +530,7 @@ extension AppState {
                         Logger.auth.warning(
                             "handleEnterForeground: session refresh failed - \(error)"
                         )
-                        await logout()
+                        await logout(source: .system)
                     }
                 }
                 return
@@ -532,13 +555,28 @@ extension AppState {
         // remount it on error — causing a jarring close/reopen animation.
 
         let user = try await authService.login(email: email, password: password)
+        clearExplicitLogoutFlag()
+        clearManualBiometricRetryRequiredFlag()
         await keychainManager.saveLastUsedEmail(email)
         hasReturningUser = true
         returningUserFlagLoaded = true
         await resolvePostAuth(user: user)
     }
 
-    func logout() async {
+    func loginWithBiometric() async {
+        clearExplicitLogoutFlag()
+        clearManualBiometricRetryRequiredFlag()
+        await attemptBiometricSessionValidation()
+    }
+
+    func logout(source: LogoutSource = .userInitiated) async {
+        switch source {
+        case .userInitiated:
+            UserDefaults.standard.set(true, forKey: UserDefaultsKey.didExplicitLogout)
+        case .system:
+            clearExplicitLogoutFlag()
+        }
+
         if biometricEnabled {
             // Refresh biometric tokens with the latest session before clearing
             var biometricTokensSaved = false
@@ -617,7 +655,22 @@ extension AppState {
         await keychainManager.clearLastUsedEmail()
         hasReturningUser = false
         returningUserFlagLoaded = true
-        await logout()
+        OnboardingState.clearPersistedData()
+        pendingOnboardingData = nil
+        clearManualBiometricRetryRequiredFlag()
+        await logout(source: .system)
+    }
+
+    private func clearExplicitLogoutFlag() {
+        UserDefaults.standard.removeObject(forKey: UserDefaultsKey.didExplicitLogout)
+    }
+
+    private func setManualBiometricRetryRequiredFlag(_ required: Bool) {
+        UserDefaults.standard.set(required, forKey: UserDefaultsKey.manualBiometricRetryRequired)
+    }
+
+    private func clearManualBiometricRetryRequiredFlag() {
+        UserDefaults.standard.removeObject(forKey: UserDefaultsKey.manualBiometricRetryRequired)
     }
 
     private func resetAfterPasswordResetCleanup() {
@@ -665,16 +718,6 @@ extension AppState {
             return false
         }
         return true
-    }
-
-    func canRetryBiometric() async -> Bool {
-        guard biometricCapability() else { return false }
-        return await authService.hasBiometricTokens()
-    }
-
-    func retryBiometricLogin() async {
-        biometricError = nil
-        await checkAuthState()
     }
 
     private func ensureBiometricPreferenceLoaded() async {
@@ -764,6 +807,8 @@ extension AppState {
 
 extension AppState {
     func completeOnboarding(user: UserInfo, onboardingData: BudgetTemplateCreateFromOnboarding) async {
+        clearExplicitLogoutFlag()
+        clearManualBiometricRetryRequiredFlag()
         currentUser = user
         await keychainManager.saveLastUsedEmail(user.email)
         hasReturningUser = true
@@ -837,15 +882,31 @@ extension AppState {
     }
 
     func startRecovery() {
+        setManualBiometricRetryRequiredFlag(true)
         authState = .needsPinRecovery
     }
 
     func completeRecovery() async {
+        clearManualBiometricRetryRequiredFlag()
         await transitionToAuthenticated()
     }
 
     func cancelRecovery() {
+        clearManualBiometricRetryRequiredFlag()
         authState = .needsPinEntry
+    }
+
+    func handleRecoverySessionExpired() async {
+        await clientKeyManager.clearSession()
+        currentUser = nil
+        authState = .unauthenticated
+        biometricError = "Ta session a expiré, reconnecte-toi"
+        showBiometricEnrollment = false
+        showRecoveryKeyRepairConsent = false
+        showPostAuthRecoveryKeySheet = false
+        needsRecoveryKeyRepairConsent = false
+        postAuthRecoveryKey = nil
+        setManualBiometricRetryRequiredFlag(true)
     }
 
     func acceptRecoveryKeyRepairConsent() async {

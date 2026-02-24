@@ -29,6 +29,7 @@ import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth';
 import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import { DemoModeService } from '@core/demo/demo-mode.service';
+import { ROUTES } from '@core/routing/routes-constants';
 import {
   RecoveryKeyDialog,
   type RecoveryKeyDialogData,
@@ -372,7 +373,7 @@ export default class SettingsPage {
         error,
       );
     }
-    await this.#router.navigate(['/login']);
+    await this.#router.navigate(['/', ROUTES.LOGIN]);
   }
 
   async #generateAndShowRecoveryKey(): Promise<void> {

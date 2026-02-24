@@ -17,4 +17,7 @@ protocol StoreProtocol: Observable {
 
     /// Forces a fresh data load, bypassing cache
     func forceRefresh() async
+
+    /// Clears all cached data — call when the user logs out
+    func reset()
 }

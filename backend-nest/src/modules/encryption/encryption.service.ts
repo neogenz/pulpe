@@ -465,12 +465,11 @@ export class EncryptionService {
     });
 
     if (error) {
-      this.#logger.error(
-        { userId, operation: 'rekey.rpc_failure', error: error.message },
-        'Atomic rekey RPC failed',
-      );
       throw new BusinessException(
         ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
+        undefined,
+        { userId, operation: 'rekey.rpc_failure' },
+        { cause: error },
       );
     }
 

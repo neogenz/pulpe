@@ -189,80 +189,78 @@ struct BudgetLineRow: View {
     }
 
     var body: some View {
-        Button {
+        VStack(spacing: 0) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+            // Kind icon circle (Revolut-style)
+            kindIconCircle
+
+            // Main content
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(line.name)
+                    .font(PulpeTypography.onboardingSubtitle)
+                    .foregroundStyle(line.isChecked ? .secondary : .primary)
+                    .strikethrough(line.isChecked, color: .secondary)
+                    .lineLimit(1)
+
+                // Consumption info or recurrence label
+                if hasConsumption {
+                    Text("\(consumptionPercentage)% · \(consumption.allocated.asCompactCHF) dépensé")
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .sensitiveAmount()
+                } else {
+                    Text(line.recurrence.label)
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(Color.textTertiary)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            // Sync indicator
+            SyncIndicator(isSyncing: isSyncing)
+
+            // Amount (remaining when transactions exist, otherwise budgeted)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(hasConsumption ? consumption.available.asCHF : line.amount.asCHF)
+                    .font(PulpeTypography.amountMedium)
+                    .foregroundStyle(amountTextColor)
+                    .sensitiveAmount()
+
+                if hasConsumption {
+                    Text("reste")
+                        .font(PulpeTypography.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            // Add button (only for non-rollover lines)
+            if !line.isVirtualRollover {
+                Button(action: onAddTransaction) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color.accentColor)
+                        .frame(width: 28, height: 28)
+                        .background(Color.accentColor.opacity(DesignTokens.Opacity.shadow))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.vertical, DesignTokens.Spacing.sm)
+
+            // Consumption progress bar
+            if hasConsumption {
+                progressBar
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
             guard !line.isVirtualRollover else { return }
             ProductTips.gestures.invalidate(reason: .actionPerformed)
             onEdit()
-        } label: {
-            VStack(spacing: 0) {
-                HStack(spacing: DesignTokens.Spacing.md) {
-                // Kind icon circle (Revolut-style)
-                kindIconCircle
-
-                // Main content
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(line.name)
-                        .font(PulpeTypography.onboardingSubtitle)
-                        .foregroundStyle(line.isChecked ? .secondary : .primary)
-                        .strikethrough(line.isChecked, color: .secondary)
-                        .lineLimit(1)
-
-                    // Consumption info or recurrence label
-                    if hasConsumption {
-                        Text("\(consumptionPercentage)% · \(consumption.allocated.asCompactCHF) dépensé")
-                            .font(PulpeTypography.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .sensitiveAmount()
-                    } else {
-                        Text(line.recurrence.label)
-                            .font(PulpeTypography.caption)
-                            .foregroundStyle(Color.textTertiary)
-                    }
-                }
-
-                Spacer(minLength: 8)
-
-                // Sync indicator
-                SyncIndicator(isSyncing: isSyncing)
-
-                // Amount (remaining when transactions exist, otherwise budgeted)
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(hasConsumption ? consumption.available.asCHF : line.amount.asCHF)
-                        .font(PulpeTypography.amountMedium)
-                        .foregroundStyle(amountTextColor)
-                        .sensitiveAmount()
-
-                    if hasConsumption {
-                        Text("reste")
-                            .font(PulpeTypography.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                // Add button (only for non-rollover lines)
-                if !line.isVirtualRollover {
-                    Button(action: onAddTransaction) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(Color.accentColor)
-                            .frame(width: 28, height: 28)
-                            .background(Color.accentColor.opacity(DesignTokens.Opacity.shadow))
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.vertical, DesignTokens.Spacing.sm)
-
-                // Consumption progress bar
-                if hasConsumption {
-                    progressBar
-                }
-                }
         }
-        .buttonStyle(.plain)
-        .contentShape(Rectangle())
         .scaleEffect(isPressed ? 0.97 : 1.0)
         .animation(.spring(duration: DesignTokens.Animation.fast), value: isPressed)
         .onLongPressGesture(
@@ -276,7 +274,10 @@ struct BudgetLineRow: View {
             perform: handleLongPress
         )
         .sensoryFeedback(.success, trigger: triggerSuccessFeedback)
-        .sensoryFeedback(.warning, trigger: triggerWarningFeedback)
+        .sensoryFeedback(.error, trigger: triggerWarningFeedback)
+        .accessibilityIdentifier("budgetLineRow-\(line.id)")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { onEdit() }
         .accessibilityHint(
             hasConsumption
                 ? "Montant restant: \(consumption.available.asCHF). " +

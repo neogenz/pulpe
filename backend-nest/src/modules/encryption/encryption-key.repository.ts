@@ -62,11 +62,9 @@ export class EncryptionKeyRepository {
     );
 
     if (error) {
-      this.#logger.error('Failed to upsert user salt', {
-        userId,
-        error: error.message,
-      });
-      throw new Error(`Failed to create encryption salt for user ${userId}`);
+      throw new Error(
+        `Failed to create encryption salt for user ${userId}: ${error.message}`,
+      );
     }
   }
 

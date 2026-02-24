@@ -15,6 +15,7 @@ enum RecoveryStep: Equatable {
 struct PinRecoveryView: View {
     let onComplete: () -> Void
     let onCancel: () -> Void
+    let onSessionExpired: () -> Void
 
     @State private var viewModel = PinRecoveryViewModel()
 
@@ -36,6 +37,10 @@ struct PinRecoveryView: View {
                     "Ta récupération est réussie mais la nouvelle clé de récupération n'a pas pu être générée. "
                     + "Tu peux en créer une depuis les réglages."
                 )
+            }
+            .onChange(of: viewModel.requiresReauthentication) { _, requiresReauthentication in
+                guard requiresReauthentication else { return }
+                onSessionExpired()
             }
     }
 
@@ -238,6 +243,7 @@ final class PinRecoveryViewModel {
     private(set) var isError = false
     private(set) var errorMessage: String?
     private(set) var isProcessing = false
+    private(set) var requiresReauthentication = false
     private(set) var newRecoveryKey: String?
     var showRecoverySheet = false
     var showRecoveryKeyWarning = false
@@ -293,6 +299,7 @@ final class PinRecoveryViewModel {
         guard isRecoveryKeyValid else { return }
         step = .createPin
         errorMessage = nil
+        requiresReauthentication = false
     }
 
     // MARK: - PIN Input Actions
@@ -362,6 +369,7 @@ final class PinRecoveryViewModel {
     private func executeRecovery() async {
         step = .processing
         isProcessing = true
+        requiresReauthentication = false
 
         guard let pin = firstPin else { return }
 
@@ -395,7 +403,7 @@ final class PinRecoveryViewModel {
             handleRecoveryError(error)
         } catch {
             isProcessing = false
-            resetToRecoveryKeyStep()
+            retryFromCurrentStep()
             showError("Une erreur est survenue, réessaie")
         }
     }
@@ -416,18 +424,31 @@ final class PinRecoveryViewModel {
     // MARK: - Error Handling
 
     private func handleRecoveryError(_ error: APIError) {
-        resetToRecoveryKeyStep()
-
         switch error {
+        case .unauthorized, .forbidden:
+            requiresReauthentication = true
+            step = .confirmPin
+            digits = []
+            showError("Ta session a expiré — reconnecte-toi")
         case .validationError:
+            resetToRecoveryKeyStep()
             showError("Clé de récupération invalide — vérifie que tu as bien copié la clé")
         case .rateLimited:
+            retryFromCurrentStep()
             showError("Trop de tentatives, patiente un moment")
         case .networkError:
+            retryFromCurrentStep()
             showError("Erreur de connexion, réessaie")
         default:
+            retryFromCurrentStep()
             showError("Une erreur est survenue, réessaie")
         }
+    }
+
+    private func retryFromCurrentStep() {
+        step = .confirmPin
+        digits = []
+        // Keep firstPin and recoveryKey intact — user can retry without re-entering
     }
 
     private func resetToRecoveryKeyStep() {
@@ -436,6 +457,7 @@ final class PinRecoveryViewModel {
         step = .enterRecoveryKey
         digits = []
         firstPin = nil
+        requiresReauthentication = false
     }
 
     private func showError(_ message: String) {
@@ -461,6 +483,7 @@ final class PinRecoveryViewModel {
 #Preview {
     PinRecoveryView(
         onComplete: {},
-        onCancel: {}
+        onCancel: {},
+        onSessionExpired: {}
     )
 }

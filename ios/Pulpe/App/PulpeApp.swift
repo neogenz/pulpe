@@ -33,15 +33,19 @@ struct PulpeApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(deepLinkDestination: $deepLinkDestination)
-                .environment(appState)
-                .environment(uiPreferences)
-                .environment(currentMonthStore)
-                .environment(budgetListStore)
-                .environment(dashboardStore)
-                .onOpenURL { url in
-                    handleDeepLink(url)
-                }
+            if let uiTestScenario = UITestLaunchScenario.current {
+                BudgetLongPressUITestHarness(scenario: uiTestScenario)
+            } else {
+                RootView(deepLinkDestination: $deepLinkDestination)
+                    .environment(appState)
+                    .environment(uiPreferences)
+                    .environment(currentMonthStore)
+                    .environment(budgetListStore)
+                    .environment(dashboardStore)
+                    .onOpenURL { url in
+                        handleDeepLink(url)
+                    }
+            }
         }
     }
 
@@ -107,7 +111,11 @@ struct RootView: View {
 
                 case .unauthenticated:
                     if appState.hasReturningUser {
-                        LoginView()
+                        LoginView(
+                            onBiometric: appState.biometricEnabled && appState.biometricCredentialsAvailable ? {
+                                Task { await appState.loginWithBiometric() }
+                            } : nil
+                        )
                     } else {
                         OnboardingFlow()
                     }
@@ -135,7 +143,10 @@ struct RootView: View {
                 case .needsPinRecovery:
                     PinRecoveryView(
                         onComplete: { Task { await appState.completeRecovery() } },
-                        onCancel: { appState.cancelRecovery() }
+                        onCancel: { appState.cancelRecovery() },
+                        onSessionExpired: {
+                            Task { await appState.handleRecoverySessionExpired() }
+                        }
                     )
 
                 case .authenticated:
@@ -254,8 +265,13 @@ struct RootView: View {
         .onChange(of: deepLinkDestination) { _, _ in
             handlePendingDeepLink()
         }
-        .onChange(of: appState.authState) { _, _ in
+        .onChange(of: appState.authState) { _, newState in
             handlePendingDeepLink()
+            if newState == .unauthenticated {
+                currentMonthStore.reset()
+                budgetListStore.reset()
+                dashboardStore.reset()
+            }
         }
         .sheet(isPresented: $showAddExpenseSheet) {
             DeepLinkAddExpenseSheet()

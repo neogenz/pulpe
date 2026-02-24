@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import Foundation
 import OSLog
 
@@ -139,6 +140,23 @@ final class CurrentMonthStore: StoreProtocol {
     func loadIfNeeded() async {
         guard !isCacheValid else { return }
         await forceRefresh()
+    }
+
+    func reset() {
+        loadTask?.cancel()
+        loadTask = nil
+        loadGeneration = 0
+        widgetSyncTask?.cancel()
+        widgetSyncTask = nil
+        budget = nil
+        budgetLines = []
+        transactions = []
+        syncingTransactionIds = []
+        syncingBudgetLineIds = []
+        lastLoadTime = nil
+        cachedMetrics = nil
+        cachedRealizedMetrics = nil
+        error = nil
     }
 
     func forceRefresh() async {
