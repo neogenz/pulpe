@@ -49,6 +49,14 @@ final class AtomicProperty<T>: @unchecked Sendable {
     }
 }
 
+extension AtomicProperty where T == Int {
+    func increment() {
+        lock.lock()
+        defer { lock.unlock() }
+        _value += 1
+    }
+}
+
 /// Convenience alias for boolean tracking.
 typealias AtomicFlag = AtomicProperty<Bool>
 

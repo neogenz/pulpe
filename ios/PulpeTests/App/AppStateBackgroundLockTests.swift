@@ -331,4 +331,57 @@ struct AppStateBackgroundLockTests {
         #expect(sut.authState == .needsPinEntry)
         #expect(sut.isRestoringSession == false)
     }
+
+    // MARK: - Race Condition: Logout During Foreground Refresh
+
+    @Test func foregroundRefresh_logoutDuringRefresh_endsUnauthenticated() async {
+        let refreshStarted = AtomicFlag()
+        var now = Date(timeIntervalSince1970: 0)
+
+        let sut = AppState(
+            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
+            syncBiometricCredentials: { true },
+            resolveBiometricKey: { "restored-key" },
+            validateBiometricKey: { _ in true },
+            validateRegularSession: {
+                refreshStarted.set()
+                try await Task.sleep(for: .milliseconds(200))
+                throw URLError(.userAuthenticationRequired)
+            },
+            nowProvider: { now }
+        )
+        sut.biometricEnabled = true
+        await sut.completePinEntry()
+
+        sut.handleEnterBackground()
+        now = Date(timeIntervalSince1970: 31)
+        sut.prepareForForeground()
+
+        // This triggers biometric unlock + fire-and-forget background refresh
+        await sut.handleEnterForeground()
+
+        // Wait for background refresh to actually start
+        await waitForCondition(timeout: .milliseconds(500), "refresh must start") {
+            refreshStarted.value
+        }
+
+        // User logs out while background refresh is in-flight
+        await sut.logout(source: .userInitiated)
+
+        // Wait for background task to settle
+        await waitForCondition(timeout: .milliseconds(500), "background task settled") {
+            sut.authState == .unauthenticated
+        }
+
+        #expect(sut.authState == .unauthenticated)
+
+        // The explicit logout flag must survive — if the background task's system logout
+        // clears it, FaceID would auto-trigger on next cold start instead of showing login.
+        // NOTE: This assertion will fail until Step 2 adds task cancellation + isLoggingOut guard.
+        let didExplicitLogout = UserDefaults.standard.bool(forKey: "pulpe-did-explicit-logout")
+        #expect(didExplicitLogout == true, "Background task must not clear explicit logout flag")
+
+        // Cleanup
+        UserDefaults.standard.removeObject(forKey: "pulpe-did-explicit-logout")
+    }
 }
