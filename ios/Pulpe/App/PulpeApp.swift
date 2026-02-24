@@ -93,6 +93,7 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var appState = appState
+        @Bindable var biometric = appState.biometric
 
         Group {
             if appState.isNetworkUnavailable {
@@ -235,7 +236,7 @@ struct RootView: View {
         }
         .alert(
             "Activer \(BiometricService.shared.biometryDisplayName) ?",
-            isPresented: $appState.showBiometricEnrollment
+            isPresented: $biometric.showEnrollmentPrompt
         ) {
             Button("Activer") {
                 Task { await appState.enableBiometric() }
