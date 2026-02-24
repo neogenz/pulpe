@@ -165,8 +165,12 @@ struct PinSetupFlowTests {
     @Test("setup mode calls setup-recovery and shows recovery key")
     func setupMode_callsSetupRecovery() async {
         let result = makeSUT(mode: .chooseAndSetupRecovery)
+        // Step 1: enter PIN
         enterPin(result.sut)
+        await result.sut.confirm()
 
+        // Step 2: confirm PIN (same digits)
+        enterPin(result.sut)
         await result.sut.confirm()
 
         #expect(result.encryptionAPI.setupRecoveryCallCount == 1)
@@ -199,8 +203,12 @@ struct PinSetupFlowTests {
             encryptionAPI: encryptionAPI,
             clientKeyManager: storage
         )
+        // Step 1: enter PIN
         enterPin(sut)
+        await sut.confirm()
 
+        // Step 2: confirm PIN (triggers server validation which fails)
+        enterPin(sut)
         await sut.confirm()
 
         #expect(sut.isError == true)
@@ -225,8 +233,12 @@ struct PinSetupFlowTests {
             encryptionAPI: encryptionAPI,
             clientKeyManager: storage
         )
+        // Step 1: enter PIN
         enterPin(sut)
+        await sut.confirm()
 
+        // Step 2: confirm PIN (triggers server validation which fails)
+        enterPin(sut)
         await sut.confirm()
 
         #expect(sut.isError == true)

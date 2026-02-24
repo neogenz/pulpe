@@ -216,7 +216,7 @@ final class ResetPasswordFlowViewModel {
     }
 
     var isNewPasswordValid: Bool {
-        newPassword.count >= 8
+        newPassword.count >= 8 && newPassword.contains(where: { $0.isNumber })
     }
 
     var isPasswordConfirmed: Bool {
@@ -243,7 +243,7 @@ final class ResetPasswordFlowViewModel {
     func submit() async {
         guard canSubmit else {
             if !isNewPasswordValid {
-                errorMessage = "8 caractères minimum"
+                errorMessage = "8 caractères minimum avec au moins un chiffre"
             } else if !isPasswordConfirmed {
                 errorMessage = "Les mots de passe ne correspondent pas"
             }

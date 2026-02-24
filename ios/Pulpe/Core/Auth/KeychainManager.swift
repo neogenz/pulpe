@@ -15,7 +15,7 @@ actor KeychainManager {
     private let clientKeyKey = "client_key"
     private let biometricClientKeyKey = "biometric_client_key"
     private let biometricEnabledPreferenceKey = "biometric_enabled"
-    private let onboardingCompletedKey = "onboarding_completed"
+    private let lastUsedEmailKey = "last_used_email"
 
     private var isAvailableCache: Bool?
 
@@ -127,13 +127,16 @@ actor KeychainManager {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: biometricAccessTokenKey,
+            kSecAttrAccount as String: biometricRefreshTokenKey,
+            kSecReturnAttributes as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
             kSecUseAuthenticationContext as String: context
         ]
 
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        return status == errSecSuccess
+        // Items protected with biometry may return interactionNotAllowed when UI is disabled.
+        return status == errSecSuccess || status == errSecInteractionNotAllowed
     }
 
     // MARK: - Client Key Management
@@ -172,6 +175,15 @@ actor KeychainManager {
         delete(key: biometricClientKeyKey)
     }
 
+    func clearAllData() async {
+        clearTokens()
+        clearBiometricTokens()
+        clearClientKey()
+        clearBiometricClientKey()
+        clearBiometricEnabledPreference()
+        clearLastUsedEmail()
+    }
+
     func hasBiometricClientKey() -> Bool {
         let context = LAContext()
         context.interactionNotAllowed = true
@@ -180,12 +192,14 @@ actor KeychainManager {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: biometricClientKeyKey,
+            kSecReturnAttributes as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
             kSecUseAuthenticationContext as String: context
         ]
 
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        return status == errSecSuccess
+        return status == errSecSuccess || status == errSecInteractionNotAllowed
     }
 
     // MARK: - Biometric Preference
@@ -207,22 +221,18 @@ actor KeychainManager {
         delete(key: biometricEnabledPreferenceKey)
     }
 
-    // MARK: - Onboarding Status
-    // MARK: - Future
-    // Migrate to backend storage (user.onboardingCompleted) as the single source of truth.
-    // Keychain is a workaround for UserDefaults being cleared on reinstall while Keychain persists.
-    // Backend storage would be more robust and sync across devices.
+    // MARK: - Last Used Email
 
-    func setOnboardingCompleted(_ completed: Bool) {
-        if completed {
-            save(key: onboardingCompletedKey, value: "true")
-        } else {
-            delete(key: onboardingCompletedKey)
-        }
+    func saveLastUsedEmail(_ email: String) {
+        save(key: lastUsedEmailKey, value: email)
     }
 
-    func isOnboardingCompleted() -> Bool {
-        get(key: onboardingCompletedKey) == "true"
+    func getLastUsedEmail() -> String? {
+        get(key: lastUsedEmailKey)
+    }
+
+    func clearLastUsedEmail() {
+        delete(key: lastUsedEmailKey)
     }
 
     // MARK: - Generic Value Storage (for Supabase SDK)

@@ -8,6 +8,15 @@ final class LoginViewModel {
     var isLoading = false
     var errorMessage: String?
 
+    private let keychainManager: KeychainManager
+
+    init(keychainManager: KeychainManager = .shared) {
+        self.keychainManager = keychainManager
+        Task { @MainActor in
+            self.email = await keychainManager.getLastUsedEmail() ?? ""
+        }
+    }
+
     var isEmailValid: Bool {
         let pattern = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/
         return email.wholeMatch(of: pattern) != nil

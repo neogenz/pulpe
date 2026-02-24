@@ -313,7 +313,7 @@ struct PostAuthResolutionRouterTests {
 
         // Then: routes to PIN entry (not PIN setup)
         #expect(sut.authState == .needsPinEntry)
-        #expect(sut.hasCompletedOnboarding == true)
+        #expect(sut.hasReturningUser == true)
         #expect(sut.pendingOnboardingData != nil)
     }
 
@@ -328,7 +328,7 @@ struct PostAuthResolutionRouterTests {
 
         // Then: routes to PIN setup
         #expect(sut.authState == .needsPinSetup)
-        #expect(sut.hasCompletedOnboarding == true)
+        #expect(sut.hasReturningUser == true)
     }
 
     @Test("vault check failure during onboarding shows error")

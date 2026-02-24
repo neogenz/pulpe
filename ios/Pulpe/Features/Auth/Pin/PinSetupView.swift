@@ -17,6 +17,13 @@ enum PinSetupMode: Equatable, Sendable {
     var subtitle: String { "4 chiffres minimum" }
 }
 
+// MARK: - Setup Step
+
+enum PinSetupStep {
+    case enterPin
+    case confirmPin
+}
+
 // MARK: - View
 
 struct PinSetupView: View {
@@ -41,6 +48,8 @@ struct PinSetupView: View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .pulpeBackground()
+            .sensoryFeedback(.error, trigger: viewModel.hapticError)
+            .sensoryFeedback(.success, trigger: viewModel.hapticSuccess)
             .sheet(isPresented: $viewModel.showRecoverySheet) {
                 if let key = viewModel.recoveryKey {
                     RecoveryKeySheet(recoveryKey: key) {
@@ -102,11 +111,11 @@ struct PinSetupView: View {
 
     private var headerSection: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
-            Text(viewModel.mode.title)
+            Text(viewModel.title)
                 .font(PulpeTypography.onboardingTitle)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
-            Text(viewModel.mode.subtitle)
+            Text(viewModel.subtitle)
                 .font(PulpeTypography.stepSubtitle)
                 .foregroundStyle(Color.textSecondaryOnboarding)
         }
@@ -147,12 +156,31 @@ final class PinSetupViewModel {
     private(set) var recoveryKey: String?
     private(set) var completedWithoutRecovery = false
     var showRecoverySheet = false
+    private(set) var currentStep: PinSetupStep = .enterPin
+    private var savedDigits: [Int]?
+    private(set) var hapticSuccess = false
+    private(set) var hapticError = false
 
     let maxDigits = 6
     let minDigits = 4
 
     var canConfirm: Bool {
         digits.count >= minDigits && !isValidating
+    }
+
+    var title: String {
+        if mode == .enterExistingPin { return mode.title }
+        switch currentStep {
+        case .enterPin: return "Choisis ton code PIN"
+        case .confirmPin: return "Confirme ton code PIN"
+        }
+    }
+
+    var subtitle: String {
+        switch currentStep {
+        case .enterPin: return "4 chiffres minimum"
+        case .confirmPin: return "Saisis à nouveau ton code"
+        }
     }
 
     // MARK: - Private
@@ -183,13 +211,13 @@ final class PinSetupViewModel {
         digits.append(digit)
 
         if digits.count == maxDigits {
-            Task { await completeSetup() }
+            Task { await handlePinComplete() }
         }
     }
 
     func confirm() async {
         guard canConfirm else { return }
-        await completeSetup()
+        await handlePinComplete()
     }
 
     func deleteLastDigit() {
@@ -199,6 +227,28 @@ final class PinSetupViewModel {
     }
 
     // MARK: - Setup Flow
+
+    private func handlePinComplete() async {
+        guard mode == .chooseAndSetupRecovery else {
+            await completeSetup()
+            return
+        }
+
+        switch currentStep {
+        case .enterPin:
+            savedDigits = digits
+            digits = []
+            currentStep = .confirmPin
+        case .confirmPin:
+            guard digits == savedDigits else {
+                showError("Les codes ne correspondent pas")
+                savedDigits = nil
+                currentStep = .enterPin
+                return
+            }
+            await completeSetup()
+        }
+    }
 
     private func completeSetup() async {
         isValidating = true
@@ -219,6 +269,7 @@ final class PinSetupViewModel {
             // For existing PIN mode, skip recovery key setup
             if mode == .enterExistingPin {
                 digits = []
+                hapticSuccess.toggle()
                 completedWithoutRecovery = true
                 return
             }
@@ -227,6 +278,7 @@ final class PinSetupViewModel {
             guard !saltResponse.hasRecoveryKey else {
                 Logger.encryption.info("Skipping recovery key setup — user already has one")
                 digits = []
+                hapticSuccess.toggle()
                 completedWithoutRecovery = true
                 return
             }
@@ -234,6 +286,7 @@ final class PinSetupViewModel {
             let key = try await encryptionAPI.setupRecoveryKey()
             recoveryKey = key
             digits = []
+            hapticSuccess.toggle()
             showRecoverySheet = true
         } catch let apiError as APIError {
             handleAPIError(apiError)
@@ -260,6 +313,7 @@ final class PinSetupViewModel {
         errorMessage = message
         isError = true
         digits = []
+        hapticError.toggle()
 
         errorResetTask?.cancel()
         errorResetTask = Task {

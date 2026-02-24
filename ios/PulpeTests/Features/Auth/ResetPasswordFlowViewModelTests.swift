@@ -102,7 +102,7 @@ struct ResetPasswordFlowViewModelTests {
 
         // Then
         #expect(!viewModel.isCompleted)
-        #expect(viewModel.errorMessage == "8 caractères minimum")
+        #expect(viewModel.errorMessage == "8 caractères minimum avec au moins un chiffre")
     }
 
     @Test func submit_networkError_showsConnectionError() async {

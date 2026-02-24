@@ -241,7 +241,11 @@ actor AuthService {
     }
 
     func validateBiometricSession() async throws -> BiometricSessionResult? {
-        guard await keychain.hasBiometricTokens() else {
+        let hasBiometricTokens = await keychain.hasBiometricTokens()
+        #if DEBUG
+        Logger.auth.debug("[AUTH_BIO_KEYCHAIN_TOKENS] present=\(hasBiometricTokens, privacy: .public)")
+        #endif
+        guard hasBiometricTokens else {
             return nil
         }
 
@@ -263,10 +267,16 @@ actor AuthService {
         let refreshToken = try await keychain.getBiometricRefreshToken(context: context)
 
         guard let refreshToken else {
+            #if DEBUG
+            Logger.auth.debug("[AUTH_BIO_KEYCHAIN_REFRESH] missing")
+            #endif
             return nil
         }
 
         let clientKeyHex = try? await keychain.getBiometricClientKey(context: context)
+        #if DEBUG
+        Logger.auth.debug("[AUTH_BIO_KEYCHAIN_CLIENT_KEY] present=\((clientKeyHex != nil), privacy: .public)")
+        #endif
 
         let session: Session
         do {

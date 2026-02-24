@@ -14,49 +14,49 @@ struct AppStateReinstallTests {
 
     // Clean keychain state before each test to ensure isolation
     init() async throws {
-        await KeychainManager.shared.setOnboardingCompleted(false)
+        await KeychainManager.shared.clearLastUsedEmail()
     }
 
-    // MARK: - Onboarding Flag Persistence
+    // MARK: - Returning User Flag Persistence
 
-    @Test("Onboarding completed flag persists in Keychain")
-    func onboardingCompleted_persistsInKeychain() async {
+    @Test("Last used email persists in Keychain as returning user indicator")
+    func lastUsedEmail_persistsInKeychain() async {
         guard requiresKeychainAvailability() else { return }
         let keychain = KeychainManager.shared
 
         // Clean state
-        await keychain.setOnboardingCompleted(false)
-        #expect(await keychain.isOnboardingCompleted() == false)
+        await keychain.clearLastUsedEmail()
+        #expect(await keychain.getLastUsedEmail() == nil)
 
-        // Set onboarding completed
-        await keychain.setOnboardingCompleted(true)
-        #expect(await keychain.isOnboardingCompleted() == true)
+        // Save email (returning user)
+        await keychain.saveLastUsedEmail("test@pulpe.app")
+        #expect(await keychain.getLastUsedEmail() == "test@pulpe.app")
 
         // Cleanup
-        await keychain.setOnboardingCompleted(false)
+        await keychain.clearLastUsedEmail()
     }
 
-    @Test("Onboarding completed flag survives AppState recreation")
-    func onboardingCompleted_survivesAppStateRecreation() async {
+    @Test("Returning user flag survives AppState recreation")
+    func returningUser_survivesAppStateRecreation() async {
         guard requiresKeychainAvailability() else { return }
         let keychain = KeychainManager.shared
 
-        // Simulate: user completed onboarding in previous session
-        await keychain.setOnboardingCompleted(true)
+        // Simulate: user logged in during previous session
+        await keychain.saveLastUsedEmail("test@pulpe.app")
 
         // Simulate: app killed and restarted (new AppState instance)
         let appState = AppState()
 
         // Wait for async initialization
-        await waitForCondition(timeout: .milliseconds(1000), "Onboarding flag should load from Keychain") {
-            appState.hasCompletedOnboarding == true
+        await waitForCondition(timeout: .milliseconds(1000), "Returning user flag should load from Keychain") {
+            appState.hasReturningUser == true
         }
 
-        // Verify: onboarding flag is loaded from Keychain
-        #expect(appState.hasCompletedOnboarding == true)
+        // Verify: returning user flag is loaded from Keychain
+        #expect(appState.hasReturningUser == true)
 
         // Cleanup
-        await keychain.setOnboardingCompleted(false)
+        await keychain.clearLastUsedEmail()
     }
 
     // MARK: - Biometric Token Expiration Scenarios
@@ -76,48 +76,48 @@ struct AppStateReinstallTests {
         #expect(appState.biometricError == "Ta session a expiré, connecte-toi avec ton mot de passe")
     }
 
-    @Test("User with completed onboarding routes to login not welcome")
-    func completedOnboarding_routesToLogin() async {
+    @Test("User with saved email routes to login not welcome")
+    func returningUser_routesToLogin() async {
         guard requiresKeychainAvailability() else { return }
         let keychain = KeychainManager.shared
 
-        // Simulate: returning user who completed onboarding before
-        await keychain.setOnboardingCompleted(true)
+        // Simulate: returning user who logged in before
+        await keychain.saveLastUsedEmail("test@pulpe.app")
 
         let appState = AppState()
 
         // Wait for async initialization
-        await waitForCondition(timeout: .milliseconds(1000), "Onboarding flag should load for routing") {
-            appState.hasCompletedOnboarding == true
+        await waitForCondition(timeout: .milliseconds(1000), "Returning user flag should load for routing") {
+            appState.hasReturningUser == true
         }
 
         // Simulate: unauthenticated state (expired tokens, logout, etc.)
-        // In this state, PulpeApp checks hasCompletedOnboarding to decide Login vs Welcome
-        #expect(appState.hasCompletedOnboarding == true,
-                "User with completed onboarding should see LoginView, not OnboardingFlow")
+        // In this state, PulpeApp checks hasReturningUser to decide Login vs Welcome
+        #expect(appState.hasReturningUser == true,
+                "User with saved email should see LoginView, not OnboardingFlow")
 
         // Cleanup
-        await keychain.setOnboardingCompleted(false)
+        await keychain.clearLastUsedEmail()
     }
 
-    @Test("New user without onboarding flag routes to welcome")
+    @Test("New user without saved email routes to welcome")
     func newUser_routesToWelcome() async {
         guard requiresKeychainAvailability() else { return }
         let keychain = KeychainManager.shared
 
-        // Simulate: fresh install, no onboarding completed
-        await keychain.setOnboardingCompleted(false)
+        // Simulate: fresh install, no email saved
+        await keychain.clearLastUsedEmail()
 
         let appState = AppState()
 
         // Wait for async initialization with polling - verify it stays false
         try? await Task.sleep(for: .milliseconds(200))
 
-        #expect(appState.hasCompletedOnboarding == false,
+        #expect(appState.hasReturningUser == false,
                 "New user should see OnboardingFlow")
 
         // Cleanup
-        await keychain.setOnboardingCompleted(false)
+        await keychain.clearLastUsedEmail()
     }
 
     // MARK: - Keychain vs UserDefaults Behavior
@@ -127,8 +127,8 @@ struct AppStateReinstallTests {
         guard requiresKeychainAvailability() else { return }
         let keychain = KeychainManager.shared
 
-        // Step 1: User completes onboarding (stored in Keychain)
-        await keychain.setOnboardingCompleted(true)
+        // Step 1: User logs in (email stored in Keychain)
+        await keychain.saveLastUsedEmail("test@pulpe.app")
 
         // Step 2: Simulate reinstall - UserDefaults would be cleared
         // but Keychain persists (we can't actually clear UserDefaults in test)
@@ -139,16 +139,16 @@ struct AppStateReinstallTests {
         // Wait for async initialization
         await waitForCondition(
             timeout: .milliseconds(1000),
-            "Keychain onboarding flag should persist after reinstall"
+            "Keychain email should persist after reinstall"
         ) {
-            appState.hasCompletedOnboarding == true
+            appState.hasReturningUser == true
         }
 
         // Step 4: Verify Keychain value is still available
-        #expect(appState.hasCompletedOnboarding == true,
-                "Keychain-stored onboarding flag should persist after reinstall")
+        #expect(appState.hasReturningUser == true,
+                "Keychain-stored email should persist after reinstall")
 
         // Cleanup
-        await keychain.setOnboardingCompleted(false)
+        await keychain.clearLastUsedEmail()
     }
 }

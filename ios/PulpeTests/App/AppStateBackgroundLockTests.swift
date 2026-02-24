@@ -7,24 +7,6 @@ struct AppStateBackgroundLockTests {
     private let testClientKey =
         "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
-    // MARK: - Test Doubles
-
-    private actor MockBiometricPreferenceStore: BiometricPreferenceKeychainStoring, BiometricPreferenceDefaultsStoring {
-        private var enabled: Bool
-        init(enabled: Bool) { self.enabled = enabled }
-        func getBiometricEnabledPreference() async -> Bool? { enabled }
-        func saveBiometricEnabledPreference(_ enabled: Bool) async { self.enabled = enabled }
-        func getLegacyBiometricEnabled() async -> Bool { false }
-        func removeLegacyBiometricEnabled() async {}
-    }
-
-    private static func biometricEnabledStore() -> BiometricPreferenceStore {
-        BiometricPreferenceStore(
-            keychain: MockBiometricPreferenceStore(enabled: true),
-            defaults: MockBiometricPreferenceStore(enabled: false)
-        )
-    }
-
     @Test func foregroundBeforeGracePeriod_keepsAuthenticated() async {
         var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(nowProvider: { now })
@@ -215,9 +197,10 @@ struct AppStateBackgroundLockTests {
     @Test func foregroundAfterGracePeriod_biometricSucceeds_staysAuthenticated() async {
         var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(
-            biometricPreferenceStore: Self.biometricEnabledStore(),
+            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
             syncBiometricCredentials: { true },
             resolveBiometricKey: { "restored-key" },
+            validateBiometricKey: { _ in true },
             nowProvider: { now }
         )
         sut.biometricEnabled = true
@@ -237,7 +220,7 @@ struct AppStateBackgroundLockTests {
     @Test func foregroundAfterGracePeriod_biometricFails_requiresPinEntry() async {
         var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(
-            biometricPreferenceStore: Self.biometricEnabledStore(),
+            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
             syncBiometricCredentials: { true },
             resolveBiometricKey: { nil },
             nowProvider: { now }

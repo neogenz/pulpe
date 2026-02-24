@@ -19,6 +19,9 @@ struct RegistrationStep: View {
         password.contains { $0.isNumber }
     }
 
+    private var hasMinLength: Bool { password.count >= 8 }
+    private var hasNumber: Bool { password.contains(where: { $0.isNumber }) }
+
     private var isPasswordConfirmed: Bool {
         !passwordConfirmation.isEmpty && password == passwordConfirmation
     }
@@ -138,13 +141,15 @@ struct RegistrationStep: View {
                     .scaleEffect(focusedField == .password ? 1.01 : 1)
                     .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
 
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        Image(systemName: "info.circle.fill")
-                            .font(PulpeTypography.caption)
-                            .foregroundStyle(Color.pulpePrimary.opacity(0.7))
-                        Text("8 caractères minimum avec au moins un chiffre")
-                            .font(PulpeTypography.caption)
-                            .foregroundStyle(Color.textSecondaryOnboarding)
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        passwordCriteriaRow(
+                            met: hasMinLength,
+                            text: "8 caractères minimum"
+                        )
+                        passwordCriteriaRow(
+                            met: hasNumber,
+                            text: "Au moins un chiffre"
+                        )
                     }
                 }
 
@@ -251,6 +256,17 @@ struct RegistrationStep: View {
                 .buttonStyle(.plain)
             }
         })
+    }
+
+    private func passwordCriteriaRow(met: Bool, text: String) -> some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            Image(systemName: met ? "checkmark.circle.fill" : "circle")
+                .font(PulpeTypography.caption)
+                .foregroundStyle(met ? .green : Color.textSecondaryOnboarding.opacity(0.5))
+            Text(text)
+                .font(PulpeTypography.caption)
+                .foregroundStyle(met ? Color.textPrimaryOnboarding : Color.textSecondaryOnboarding)
+        }
     }
 
     private func submitRegistration() async {

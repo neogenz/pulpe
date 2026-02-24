@@ -14,13 +14,19 @@ struct PinEntryView: View {
     let onLogout: () async -> Void
 
     @State private var viewModel = PinEntryViewModel()
+    @State private var hasTriggeredAutoBiometric = false
 
     var body: some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .pulpeBackground()
+            .sensoryFeedback(.error, trigger: viewModel.hapticError)
+            .sensoryFeedback(.success, trigger: viewModel.hapticSuccess)
             .onChange(of: viewModel.authenticated) { _, authenticated in
                 if authenticated { onSuccess() }
+            }
+            .onAppear {
+                triggerAutoBiometricIfNeeded()
             }
     }
 
@@ -115,6 +121,14 @@ struct PinEntryView: View {
                 .foregroundStyle(Color.textSecondaryOnboarding)
         }
     }
+
+    private func triggerAutoBiometricIfNeeded() {
+        guard !hasTriggeredAutoBiometric else { return }
+        guard onBiometric != nil else { return }
+
+        hasTriggeredAutoBiometric = true
+        onBiometric?()
+    }
 }
 
 // MARK: - ViewModel
@@ -128,6 +142,8 @@ final class PinEntryViewModel {
     private(set) var isError = false
     private(set) var errorMessage: String?
     private(set) var authenticated = false
+    private(set) var hapticSuccess = false
+    private(set) var hapticError = false
 
     let maxDigits = 6
     let minDigits = 4
@@ -192,6 +208,7 @@ final class PinEntryViewModel {
             await clientKeyManager.store(clientKeyHex, enableBiometric: false)
 
             digits = []
+            hapticSuccess.toggle()
             authenticated = true
         } catch let error as APIError {
             handleAPIError(error)
@@ -230,6 +247,7 @@ final class PinEntryViewModel {
         errorMessage = message
         isError = true
         digits = []
+        hapticError.toggle()
 
         errorResetTask?.cancel()
         errorResetTask = Task {

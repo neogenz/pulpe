@@ -307,8 +307,7 @@ extension LoginView {
                 if let isPresented {
                     isPresented.wrappedValue = false
                 } else {
-                    OnboardingState.clearPersistedData()
-                    appState.hasCompletedOnboarding = false
+                    appState.enterSignupFlow()
                 }
             } label: {
                 Text("Créer un compte")

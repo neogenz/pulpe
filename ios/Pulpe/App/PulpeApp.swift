@@ -106,7 +106,7 @@ struct RootView: View {
                     LoadingView(message: "Chargement...")
 
                 case .unauthenticated:
-                    if appState.hasCompletedOnboarding {
+                    if appState.hasReturningUser {
                         LoginView()
                     } else {
                         OnboardingFlow()
@@ -172,6 +172,9 @@ struct RootView: View {
         .onReceive(NotificationCenter.default.publisher(for: .clientKeyCheckFailed)) { _ in
             Task { await appState.handleStaleClientKey() }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .sessionExpired)) { _ in
+            Task { await appState.handleSessionExpired() }
+        }
         .task {
             await appState.checkMaintenanceStatus()
             guard !appState.isInMaintenance, !appState.isNetworkUnavailable else { return }
@@ -226,7 +229,9 @@ struct RootView: View {
             Button("Activer") {
                 Task { await appState.enableBiometric() }
             }
-            Button("Plus tard", role: .cancel) {}
+            Button("Plus tard", role: .cancel) {
+                appState.dismissBiometricEnrollment()
+            }
         } message: {
             Text("Utilise la reconnaissance biométrique pour te connecter plus rapidement")
         }
@@ -299,6 +304,10 @@ struct RootView: View {
 
         switch destination {
         case .resetPassword(let url):
+            guard appState.authState != .authenticated else {
+                deepLinkDestination = nil
+                return
+            }
             deepLinkDestination = nil
             resetPasswordDeepLink = ResetPasswordDeepLink(url: url)
         case .addExpense:
