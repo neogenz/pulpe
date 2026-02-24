@@ -555,6 +555,8 @@ extension AppState {
         showPostAuthRecoveryKeySheet = false
         needsRecoveryKeyRepairConsent = false
         postAuthRecoveryKey = nil
+        showPostAuthError = false
+        biometricError = nil
 
         // Clear sensitive widget data
         WidgetDataCoordinator().clear()

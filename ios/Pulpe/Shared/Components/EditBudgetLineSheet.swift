@@ -140,6 +140,7 @@ struct EditBudgetLineSheet: View {
         guard let amount else { return }
 
         isLoading = true
+        defer { isLoading = false }
         error = nil
 
         let data = BudgetLineUpdate(
@@ -156,7 +157,6 @@ struct EditBudgetLineSheet: View {
             dismiss()
         } catch {
             self.error = error
-            isLoading = false
         }
     }
 }

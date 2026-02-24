@@ -240,6 +240,7 @@ actor AuthService {
         }
     }
 
+    // swiftlint:disable:next function_body_length
     func validateBiometricSession() async throws -> BiometricSessionResult? {
         let hasBiometricTokens = await keychain.hasBiometricTokens()
         #if DEBUG
@@ -273,7 +274,13 @@ actor AuthService {
             return nil
         }
 
-        let clientKeyHex = try? await keychain.getBiometricClientKey(context: context)
+        let clientKeyHex: String?
+        do {
+            clientKeyHex = try await keychain.getBiometricClientKey(context: context)
+        } catch {
+            Logger.auth.warning("validateBiometricSession: biometric client key retrieval failed - \(error)")
+            clientKeyHex = nil
+        }
         #if DEBUG
         Logger.auth.debug("[AUTH_BIO_KEYCHAIN_CLIENT_KEY] present=\((clientKeyHex != nil), privacy: .public)")
         #endif

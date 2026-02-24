@@ -295,7 +295,9 @@ actor APIClient {
         }
         // Refresh failed — clear tokens and force logout
         await AuthService.shared.logout()
-        NotificationCenter.default.post(name: .sessionExpired, object: nil)
+        await MainActor.run {
+            NotificationCenter.default.post(name: .sessionExpired, object: nil)
+        }
         return false
     }
 

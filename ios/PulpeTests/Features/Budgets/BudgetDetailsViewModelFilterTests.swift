@@ -183,6 +183,108 @@ struct BudgetDetailsFilterLogicTests {
     }
 }
 
+// MARK: - Combined Filter Tests (checked filter + search)
+
+@MainActor
+struct BudgetDetailsCombinedFilterTests {
+    @Test
+    func combinedFilteredFreeTransactions_uncheckedFilter_hidesChecked() {
+        UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked")
+        let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
+        defer { UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked") }
+
+        let uncheckedTx = TestDataFactory.createTransaction(id: "tx-1", name: "Coop")
+        let checkedTx = TestDataFactory.createTransaction(id: "tx-2", name: "Migros", isChecked: true)
+        viewModel.addTransaction(uncheckedTx)
+        viewModel.addTransaction(checkedTx)
+
+        // Default filter is .unchecked
+        #expect(viewModel.isShowingOnlyUnchecked)
+
+        let result = viewModel.combinedFilteredFreeTransactions(searchText: "")
+
+        #expect(result.count == 1)
+        #expect(result.first?.id == "tx-1")
+    }
+
+    @Test
+    func combinedFilteredFreeTransactions_allFilter_showsAll() {
+        UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked")
+        let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
+        defer { UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked") }
+
+        let uncheckedTx = TestDataFactory.createTransaction(id: "tx-1", name: "Coop")
+        let checkedTx = TestDataFactory.createTransaction(id: "tx-2", name: "Migros", isChecked: true)
+        viewModel.addTransaction(uncheckedTx)
+        viewModel.addTransaction(checkedTx)
+
+        viewModel.checkedFilter = .all
+
+        let result = viewModel.combinedFilteredFreeTransactions(searchText: "")
+
+        #expect(result.count == 2)
+    }
+
+    @Test
+    func combinedFilteredFreeTransactions_searchFilter_matchesName() {
+        UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked")
+        let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
+        defer { UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked") }
+
+        let tx1 = TestDataFactory.createTransaction(id: "tx-1", name: "Coop Pronto", amount: 45)
+        let tx2 = TestDataFactory.createTransaction(id: "tx-2", name: "Migros Zürich", amount: 150)
+        viewModel.addTransaction(tx1)
+        viewModel.addTransaction(tx2)
+
+        viewModel.checkedFilter = .all
+
+        let result = viewModel.combinedFilteredFreeTransactions(searchText: "migros")
+
+        #expect(result.count == 1)
+        #expect(result.first?.id == "tx-2")
+    }
+
+    @Test
+    func combinedFilteredFreeTransactions_searchFilter_matchesAmount() {
+        UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked")
+        let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
+        defer { UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked") }
+
+        let tx1 = TestDataFactory.createTransaction(id: "tx-1", name: "Coop Pronto", amount: 45)
+        let tx2 = TestDataFactory.createTransaction(id: "tx-2", name: "Migros Zürich", amount: 150)
+        viewModel.addTransaction(tx1)
+        viewModel.addTransaction(tx2)
+
+        viewModel.checkedFilter = .all
+
+        let result = viewModel.combinedFilteredFreeTransactions(searchText: "150")
+
+        #expect(result.count == 1)
+        #expect(result.first?.id == "tx-2")
+    }
+
+    @Test
+    func combinedFilteredFreeTransactions_bothFilters_uncheckedAndSearch() {
+        UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked")
+        let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
+        defer { UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked") }
+
+        let tx1 = TestDataFactory.createTransaction(id: "tx-1", name: "Coop Pronto", amount: 45)
+        let tx2 = TestDataFactory.createTransaction(id: "tx-2", name: "Coop Lausanne", amount: 60, isChecked: true)
+        let tx3 = TestDataFactory.createTransaction(id: "tx-3", name: "Migros Zürich", amount: 150)
+        viewModel.addTransaction(tx1)
+        viewModel.addTransaction(tx2)
+        viewModel.addTransaction(tx3)
+
+        // Default: unchecked only + search "Coop"
+        let result = viewModel.combinedFilteredFreeTransactions(searchText: "Coop")
+
+        // tx-1 matches (unchecked + name match), tx-2 excluded (checked), tx-3 excluded (no name match)
+        #expect(result.count == 1)
+        #expect(result.first?.id == "tx-1")
+    }
+}
+
 // MARK: - Search Filter Tests
 
 struct BudgetDetailsSearchFilterTests {

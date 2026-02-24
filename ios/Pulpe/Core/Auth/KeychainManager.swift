@@ -3,6 +3,7 @@ import LocalAuthentication
 import OSLog
 import Security
 
+// swiftlint:disable type_body_length
 /// Thread-safe Keychain manager for secure token storage
 actor KeychainManager {
     static let shared = KeychainManager()
@@ -64,6 +65,11 @@ actor KeychainManager {
 
         let refreshStatus = saveReturningStatus(key: refreshTokenKey, value: refreshToken)
         guard refreshStatus == errSecSuccess else {
+            // WARNING: Non-atomic operation. If we reach here, the access token was already saved
+            // but refresh token save failed. We delete the access token to maintain consistency,
+            // but the old refresh token may have already been deleted by saveReturningStatus.
+            // Result: both tokens are lost. User must re-login to recover.
+            Logger.auth.error("Refresh token save failed (\(refreshStatus)). Access token deleted. User must re-login.")
             delete(key: accessTokenKey)
             throw KeychainError.unknown(refreshStatus)
         }
@@ -261,20 +267,32 @@ actor KeychainManager {
     private func saveReturningStatus(key: String, value: String) -> OSStatus {
         guard let data = value.data(using: .utf8) else { return errSecParam }
 
-        let deleteStatus = delete(key: key)
-        guard deleteStatus == errSecSuccess || deleteStatus == errSecItemNotFound else {
-            return deleteStatus
-        }
-
-        let query: [String: Any] = [
+        let baseQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: key,
+            kSecAttrAccount as String: key
+        ]
+
+        // Try update first (atomic operation if item exists)
+        let updateAttributes: [String: Any] = [
             kSecValueData as String: data,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         ]
+        let updateStatus = SecItemUpdate(baseQuery as CFDictionary, updateAttributes as CFDictionary)
 
-        return SecItemAdd(query as CFDictionary, nil)
+        // If item doesn't exist, create it
+        if updateStatus == errSecItemNotFound {
+            let addQuery: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: service,
+                kSecAttrAccount as String: key,
+                kSecValueData as String: data,
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            ]
+            return SecItemAdd(addQuery as CFDictionary, nil)
+        }
+
+        return updateStatus
     }
 
     private func get(key: String) -> String? {
@@ -385,6 +403,7 @@ actor KeychainManager {
         }
     }
 }
+// swiftlint:enable type_body_length
 
 // MARK: - Keychain Errors
 

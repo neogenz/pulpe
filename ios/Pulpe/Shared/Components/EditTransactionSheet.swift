@@ -111,6 +111,7 @@ struct EditTransactionSheet: View {
         guard let amount else { return }
 
         isLoading = true
+        defer { isLoading = false }
         error = nil
 
         let data = TransactionUpdate(
@@ -126,7 +127,6 @@ struct EditTransactionSheet: View {
             dismiss()
         } catch {
             self.error = error
-            isLoading = false
         }
     }
 }
