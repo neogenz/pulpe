@@ -22,6 +22,16 @@
   --pulpe-financial-expense-dark: var(--mat-sys-on-error-container);
   --pulpe-financial-savings-dark: var(--mat-sys-on-primary-container);
   --pulpe-financial-negative-dark: var(--mat-sys-on-error-container);
+
+  // Hero card budget state tokens (amber family — no red for financial data)
+  --pulpe-hero-warning-start: #fef9c3;
+  --pulpe-hero-warning-mid: #fbbf24;
+  --pulpe-hero-warning-end: #d97706;
+  --pulpe-hero-warning-on: #451a03;
+  --pulpe-hero-over-start: #d97706;
+  --pulpe-hero-over-mid: #92400e;
+  --pulpe-hero-over-end: #451a03;
+  --pulpe-hero-over-on: #fef3c7;
 }
 
 // Dark theme overrides

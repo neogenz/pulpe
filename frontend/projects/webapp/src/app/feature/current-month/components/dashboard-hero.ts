@@ -149,18 +149,23 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
       }
 
       .hero-container.budget-warning {
-        background: linear-gradient(145deg, #fef9c3, #fbbf24 55%, #d97706);
-        color: #451a03;
+        background: linear-gradient(
+          145deg,
+          var(--pulpe-hero-warning-start),
+          var(--pulpe-hero-warning-mid) 55%,
+          var(--pulpe-hero-warning-end)
+        );
+        color: var(--pulpe-hero-warning-on);
       }
 
       .hero-container.budget-over {
         background: linear-gradient(
           145deg,
-          var(--mat-sys-error-container) 0%,
-          var(--mat-sys-error) 60%,
-          color-mix(in srgb, var(--mat-sys-error) 85%, black) 100%
+          var(--pulpe-hero-over-start) 0%,
+          var(--pulpe-hero-over-mid) 60%,
+          var(--pulpe-hero-over-end) 100%
         );
-        color: var(--mat-sys-on-error);
+        color: var(--pulpe-hero-over-on);
       }
 
       .indicator-dot {
