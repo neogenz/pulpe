@@ -257,14 +257,12 @@ final class PinSetupViewModel {
         let pin = digits.map(String.init).joined()
 
         do {
-            let saltResponse = try await encryptionAPI.getSalt()
-            let clientKeyHex = try await cryptoService.deriveClientKey(
+            let result = try await PinValidation.deriveValidateAndStore(
                 pin: pin,
-                saltHex: saltResponse.salt,
-                iterations: saltResponse.kdfIterations
+                cryptoService: cryptoService,
+                encryptionAPI: encryptionAPI,
+                clientKeyManager: clientKeyManager
             )
-            try await encryptionAPI.validateKey(clientKeyHex)
-            await clientKeyManager.store(clientKeyHex, enableBiometric: false)
 
             // For existing PIN mode, skip recovery key setup
             if mode == .enterExistingPin {
@@ -275,7 +273,7 @@ final class PinSetupViewModel {
             }
 
             // Skip recovery setup if user already has one (edge case: vault-status 404)
-            guard !saltResponse.hasRecoveryKey else {
+            guard !result.saltResponse.hasRecoveryKey else {
                 Logger.encryption.info("Skipping recovery key setup — user already has one")
                 digits = []
                 hapticSuccess.toggle()

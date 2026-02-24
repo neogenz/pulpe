@@ -198,14 +198,12 @@ final class PinEntryViewModel {
         let pin = digits.map(String.init).joined()
 
         do {
-            let saltResponse = try await encryptionAPI.getSalt()
-            let clientKeyHex = try await cryptoService.deriveClientKey(
+            _ = try await PinValidation.deriveValidateAndStore(
                 pin: pin,
-                saltHex: saltResponse.salt,
-                iterations: saltResponse.kdfIterations
+                cryptoService: cryptoService,
+                encryptionAPI: encryptionAPI,
+                clientKeyManager: clientKeyManager
             )
-            try await encryptionAPI.validateKey(clientKeyHex)
-            await clientKeyManager.store(clientKeyHex, enableBiometric: false)
 
             digits = []
             hapticSuccess.toggle()

@@ -374,24 +374,21 @@ final class PinRecoveryViewModel {
         guard let pin = firstPin else { return }
 
         do {
-            // 1. Get salt & KDF params
-            let saltResponse = try await encryptionAPI.getSalt()
-
-            // 2. Derive new clientKey from new PIN
-            let newClientKeyHex = try await cryptoService.deriveClientKey(
+            // 1. Derive new clientKey from new PIN
+            let result = try await PinValidation.derive(
                 pin: pin,
-                saltHex: saltResponse.salt,
-                iterations: saltResponse.kdfIterations
+                cryptoService: cryptoService,
+                encryptionAPI: encryptionAPI
             )
 
-            // 3. Recover with recovery key + new clientKey
+            // 2. Recover with recovery key + new clientKey
             try await encryptionAPI.recover(
                 recoveryKey: recoveryKey,
-                newClientKeyHex: newClientKeyHex
+                newClientKeyHex: result.clientKeyHex
             )
 
-            // 4. Store new clientKey
-            await clientKeyManager.store(newClientKeyHex, enableBiometric: false)
+            // 3. Store new clientKey
+            await clientKeyManager.store(result.clientKeyHex, enableBiometric: false)
 
             // 5. Generate new recovery key (non-blocking)
             await generateNewRecoveryKey()
