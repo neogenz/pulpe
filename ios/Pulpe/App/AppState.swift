@@ -59,6 +59,7 @@ final class AppState {
     var showBiometricEnrollment = false
     var biometricError: String?
     var showRecoveryKeyRepairConsent = false
+    var biometricCredentialsAvailable = true
 
     private var biometricEnrollmentDismissed: Bool {
         UserDefaults.standard.bool(forKey: UserDefaultsKey.biometricEnrollmentDismissed)
@@ -350,21 +351,21 @@ final class AppState {
             biometricError = "Connexion impossible, réessaie"
             authState = .unauthenticated
         } catch let error as AuthServiceError {
-            // Auth-specific error (expired tokens, etc.)
-            await clientKeyManager.clearAll()
             Logger.auth.error("checkAuthState: biometric session refresh failed - \(error)")
-            await authService.clearBiometricTokens()
-            authDebug("AUTH_BIO_VALIDATE_RESULT", "session_expired")
-            biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
-            authState = .unauthenticated
+            await handleBiometricSessionExpired()
         } catch {
             Logger.auth.error("checkAuthState: unknown error during biometric login - \(error)")
-            await clientKeyManager.clearAll()
-            await authService.clearBiometricTokens()
-            authDebug("AUTH_BIO_VALIDATE_RESULT", "session_expired")
-            biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
-            authState = .unauthenticated
+            await handleBiometricSessionExpired()
         }
+    }
+
+    private func handleBiometricSessionExpired() async {
+        await clientKeyManager.clearAll()
+        await authService.clearBiometricTokens()
+        biometricCredentialsAvailable = false
+        authDebug("AUTH_BIO_VALIDATE_RESULT", "session_expired")
+        biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
+        authState = .unauthenticated
     }
 
     /// After Supabase session is valid, route deterministically to setup/entry/app.
@@ -412,7 +413,9 @@ final class AppState {
         if biometricEnabled {
             let tokensReady = await syncBiometricCredentials()
             let keyReady = await clientKeyManager.enableBiometric()
-            if !tokensReady || !keyReady {
+            if tokensReady && keyReady {
+                biometricCredentialsAvailable = true
+            } else {
                 Logger.auth.warning(
                     "biometric silent reactivation incomplete (tokens=\(tokensReady), key=\(keyReady))"
                 )
@@ -697,6 +700,7 @@ extension AppState {
         guard clientKeyStored else { return false }
 
         biometricEnabled = true
+        biometricCredentialsAvailable = true
         UserDefaults.standard.removeObject(forKey: UserDefaultsKey.biometricEnrollmentDismissed)
         authDebug("AUTH_BIO_ENABLE_RESULT", "success")
         return true

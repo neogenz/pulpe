@@ -122,7 +122,7 @@ struct RootView: View {
                     PinEntryView(
                         firstName: appState.currentUser?.firstName ?? "",
                         onSuccess: { Task { await appState.completePinEntry() } },
-                        onBiometric: appState.biometricEnabled ? {
+                        onBiometric: appState.biometricEnabled && appState.biometricCredentialsAvailable ? {
                             Task {
                                 guard await appState.attemptBiometricUnlock() else { return }
                                 await appState.completePinEntry()
