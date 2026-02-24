@@ -12,7 +12,6 @@ import type { UpcomingMonthForecast } from '../services/dashboard-store';
 
 @Component({
   selector: 'pulpe-dashboard-next-month',
-  standalone: true,
   imports: [MatIconModule, MatButtonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -42,11 +41,11 @@ import type { UpcomingMonthForecast } from '../services/dashboard-store';
           <p class="text-body-medium text-on-surface-variant text-center">
             Budget anticipé — report estimé :
             <span
-              class="font-bold"
+              class="font-bold tabular-nums"
               [class]="
                 estimatedRollover() >= 0
-                  ? 'text-primary'
-                  : 'text-on-surface-variant'
+                  ? 'text-financial-savings'
+                  : 'text-financial-negative'
               "
             >
               {{ formattedRollover() }} CHF

@@ -33,6 +33,28 @@
 // ─── Layer 2: Semantic financial tokens ─────────────────────────────
 // What colors MEAN in Pulpe's financial context.
 // Consumed by Tailwind utilities (text-financial-*) and component styles.
+//
+// Semantic model — expense (category) vs deficit (state):
+//
+//   CATEGORY tokens (normal, planned):
+//     income   → green/primary   (--pulpe-financial-income)
+//     expense  → amber           (--pulpe-financial-expense)
+//     savings  → blue/tertiary   (--pulpe-financial-savings)
+//
+//   STATE tokens (critical, overrun):
+//     critical → red/error       (--pulpe-financial-critical)
+//
+//   Rule: amber = a category (expense is planned, normal)
+//         red   = a state (deficit is a critical consequence)
+//
+//   Where to use red (--pulpe-financial-critical):
+//     - Hero section showing a deficit
+//     - Budget envelope overrun (>100%)
+//
+//   Where to use amber (--pulpe-financial-expense):
+//     - Individual transactions
+//     - Budget line amounts
+//     - Category pills and labels
 
 :root {
   // Text colors per financial category

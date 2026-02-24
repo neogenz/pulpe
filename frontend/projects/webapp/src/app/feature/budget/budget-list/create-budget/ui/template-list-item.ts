@@ -172,7 +172,7 @@ import { type TemplateViewModel } from './template-view-model';
               showDetails.emit(templateViewModel()); $event.stopPropagation()
             "
           >
-            <mat-icon>info_outline</mat-icon>
+            <mat-icon class="shrink-0">info_outline</mat-icon>
             Détails
           </button>
         </div>

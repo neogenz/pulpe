@@ -4,9 +4,11 @@ import {
   input,
   output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import type { Transaction, TransactionKind } from 'pulpe-shared';
+import { FinancialKindDirective } from '@ui/financial-kind';
 
 const KIND_ICONS: Record<TransactionKind, string> = {
   income: 'arrow_upward',
@@ -16,8 +18,13 @@ const KIND_ICONS: Record<TransactionKind, string> = {
 
 @Component({
   selector: 'pulpe-dashboard-recent-transactions',
-  standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [
+    CurrencyPipe,
+    DatePipe,
+    MatButtonModule,
+    MatIconModule,
+    FinancialKindDirective,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col w-full h-full">
@@ -41,12 +48,7 @@ const KIND_ICONS: Record<TransactionKind, string> = {
             </p>
           </div>
         </div>
-        <button
-          class="text-label-small font-medium text-primary hover:text-primary/80 transition-colors"
-          (click)="viewBudget.emit()"
-        >
-          Voir tout
-        </button>
+        <button matButton (click)="viewBudget.emit()">Voir tout</button>
       </div>
 
       <div class="bg-surface-container-low rounded-3xl py-3 px-3 flex-1">
@@ -54,11 +56,11 @@ const KIND_ICONS: Record<TransactionKind, string> = {
           <div class="flex flex-col gap-1">
             @for (tx of transactions(); track tx.id) {
               <div
-                class="flex items-center gap-3 p-3 rounded-2xl hover:bg-surface-container-low transition-colors"
+                class="flex items-center gap-3 p-3 rounded-2xl hover:bg-on-surface/8 transition-colors"
               >
                 <div
                   class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                  [ngClass]="kindClasses(tx.kind)"
+                  [class]="kindClasses(tx.kind)"
                 >
                   <mat-icon class="text-[20px]">
                     {{ kindIcon(tx.kind) }}
@@ -66,7 +68,7 @@ const KIND_ICONS: Record<TransactionKind, string> = {
                 </div>
                 <div class="flex-1 min-w-0">
                   <p
-                    class="text-body-medium font-bold text-on-surface truncate ph-no-capture"
+                    class="text-body-medium font-medium text-on-surface truncate ph-no-capture"
                   >
                     {{ tx.name }}
                   </p>
@@ -78,13 +80,9 @@ const KIND_ICONS: Record<TransactionKind, string> = {
                 </div>
                 <span
                   class="text-label-large whitespace-nowrap ml-4 font-semibold tabular-nums ph-no-capture"
-                  [ngClass]="{
-                    'text-success': tx.kind === 'income',
-                    'text-on-surface-variant opacity-80': tx.kind !== 'income',
-                  }"
+                  [pulpeFinancialKind]="tx.kind"
                 >
-                  {{ tx.kind === 'income' ? '+' : '-'
-                  }}{{ tx.amount | number: '1.2-2' : 'de-CH' }} CHF
+                  {{ tx.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
                 </span>
               </div>
             }
@@ -126,10 +124,16 @@ export class DashboardRecentTransactions {
   }
 
   protected kindClasses(kind: TransactionKind): Record<string, boolean> {
+    const isIncome = kind === 'income';
+    const isSaving = kind === 'saving';
+    const isExpense = kind === 'expense';
     return {
-      'bg-success/10 text-success': kind === 'income',
-      'bg-info/10 text-info': kind === 'saving',
-      'bg-surface-container-high text-on-surface-variant': kind === 'expense',
+      'bg-success/10': isIncome,
+      'text-success': isIncome,
+      'bg-info/10': isSaving,
+      'text-info': isSaving,
+      'bg-surface-container-high': isExpense,
+      'text-on-surface-variant': isExpense,
     };
   }
 }

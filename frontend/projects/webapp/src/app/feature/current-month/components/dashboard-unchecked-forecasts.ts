@@ -4,21 +4,22 @@ import {
   input,
   output,
 } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatRipple } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
+import { FinancialKindDirective } from '@ui/financial-kind';
 import type { BudgetLine } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-dashboard-unchecked-forecasts',
   standalone: true,
   imports: [
-    CommonModule,
     MatCheckboxModule,
     MatRipple,
     MatIconModule,
     DecimalPipe,
+    FinancialKindDirective,
   ],
   template: `
     <div class="flex flex-col w-full h-full">
@@ -66,7 +67,8 @@ import type { BudgetLine } from 'pulpe-shared';
                   </span>
                 </mat-checkbox>
                 <span
-                  class="text-label-large text-on-surface-variant whitespace-nowrap ml-4 font-semibold opacity-80 ph-no-capture"
+                  class="text-label-large whitespace-nowrap ml-4 font-semibold tabular-nums ph-no-capture"
+                  [pulpeFinancialKind]="forecast.kind"
                 >
                   {{ forecast.amount | number: '1.2-2' : 'de-CH' }} CHF
                 </span>

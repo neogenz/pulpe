@@ -9,12 +9,18 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { BaseChartDirective } from 'ng2-charts';
-import type { ChartConfiguration, ChartType } from 'chart.js';
+import {
+  Chart,
+  type ChartConfiguration,
+  type ChartType,
+  registerables,
+} from 'chart.js';
 import type { UpcomingMonthForecast } from '../services/dashboard-store';
+
+Chart.register(...registerables);
 
 @Component({
   selector: 'pulpe-dashboard-future-projection-chart',
-  standalone: true,
   imports: [MatIconModule, MatTooltipModule, BaseChartDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -53,7 +59,7 @@ import type { UpcomingMonthForecast } from '../services/dashboard-store';
               [matTooltip]="'Mois manquants : ' + missingMonthsLabel()"
               matTooltipPosition="above"
             >
-              <mat-icon class="text-on-surface-variant text-[18px]"
+              <mat-icon class="text-on-surface-variant shrink-0"
                 >info_outline</mat-icon
               >
               <p class="text-body-small text-on-surface-variant">
@@ -96,10 +102,11 @@ export class DashboardFutureProjectionChart {
   readonly #balanceFillColor = signal('rgba(0, 97, 166, 0.15)');
   readonly #savingsLineColor = signal('#006E25');
   readonly #savingsFillColor = signal('rgba(0, 110, 37, 0.10)');
+  readonly #negativeFillColor = signal('rgba(186, 26, 26, 0.15)');
 
   constructor() {
     afterNextRender(() => {
-      const tertiary = this.#resolveColor('var(--mat-sys-tertiary)');
+      const tertiary = this.#resolveColor('var(--pulpe-financial-income)');
       if (tertiary) {
         this.#balanceLineColor.set(tertiary);
         this.#balanceFillColor.set(
@@ -111,6 +118,12 @@ export class DashboardFutureProjectionChart {
         this.#savingsLineColor.set(primary);
         this.#savingsFillColor.set(
           primary.replace('rgb(', 'rgba(').replace(')', ', 0.10)'),
+        );
+      }
+      const negative = this.#resolveColor('var(--pulpe-financial-negative)');
+      if (negative) {
+        this.#negativeFillColor.set(
+          negative.replace('rgb(', 'rgba(').replace(')', ', 0.15)'),
         );
       }
     });
@@ -142,9 +155,9 @@ export class DashboardFutureProjectionChart {
       .join(', '),
   );
 
-  public chartType: ChartType = 'line';
+  readonly chartType: ChartType = 'line';
 
-  public chartOptions: ChartConfiguration['options'] = {
+  readonly chartOptions: ChartConfiguration['options'] = {
     responsive: true,
     maintainAspectRatio: false,
     elements: {
@@ -247,14 +260,44 @@ export class DashboardFutureProjectionChart {
       savingsData.push(cumulativeSavings);
     }
 
+    const balanceLineColor = this.#balanceLineColor();
+    const balanceFillColor = this.#balanceFillColor();
+    const negativeFillColor = this.#negativeFillColor();
+
     const datasets: ChartConfiguration['data']['datasets'] = [
       {
         data: balanceData,
         label: 'Disponible',
-        borderColor: this.#balanceLineColor(),
-        backgroundColor: this.#balanceFillColor(),
-        fill: true,
-        pointBackgroundColor: this.#balanceLineColor(),
+        borderColor: balanceLineColor,
+        fill: 'origin',
+        backgroundColor: ((context: { chart: Chart }) => {
+          const yScale = context.chart.scales['y'];
+          const chartArea = context.chart.chartArea;
+          if (!yScale || !chartArea || !chartArea.bottom) {
+            return balanceFillColor;
+          }
+          const zeroY = yScale.getPixelForValue(0);
+          const gradient = context.chart.ctx.createLinearGradient(
+            0,
+            chartArea.top,
+            0,
+            chartArea.bottom,
+          );
+          const ratio = Math.max(
+            0,
+            Math.min(
+              1,
+              (zeroY - chartArea.top) / (chartArea.bottom - chartArea.top),
+            ),
+          );
+          gradient.addColorStop(0, balanceFillColor);
+          gradient.addColorStop(ratio, balanceFillColor);
+          gradient.addColorStop(ratio, negativeFillColor);
+          gradient.addColorStop(1, negativeFillColor);
+          return gradient;
+        }) as unknown as string,
+        pointBackgroundColor: balanceLineColor,
+        pointBorderColor: balanceLineColor,
       },
     ];
 

@@ -141,6 +141,20 @@ Utility classes win thanks to `@layer utilities`.
 - Do not hardcode financial hex values in components.
 - Financial token values must map to Material system tokens for theme consistency.
 
+**Expense (category) vs Deficit (state) — different concepts, different colors:**
+
+| Concept | Color | Token | When to use |
+|---------|-------|-------|-------------|
+| Income (category) | Green / Primary | `--pulpe-financial-income` | Budget lines, pills, amounts |
+| Expense (category) | Amber | `--pulpe-financial-expense` | Budget lines, pills, amounts, individual transactions |
+| Savings (category) | Blue / Tertiary | `--pulpe-financial-savings` | Budget lines, pills, amounts |
+| Deficit (critical state) | Red / Error | `--pulpe-financial-critical` | Hero section in deficit, envelope overrun (>100%) |
+
+- Amber signals a **category** — an expense is planned and normal
+- Red signals a **state** — a deficit is a critical consequence
+- Do NOT use `text-error` / `bg-error-container` for individual expense amounts or transaction rows
+- Red is reserved for hero deficit display and critical overrun states only
+
 ## State Card Spec
 
 - Component: `pulpe-state-card`

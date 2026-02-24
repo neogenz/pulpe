@@ -35,7 +35,6 @@ const AMOUNT_FORMATTER = new Intl.NumberFormat('de-CH', {
 
 @Component({
   selector: 'pulpe-dashboard-month-insight',
-  standalone: true,
   imports: [MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -46,9 +45,19 @@ const AMOUNT_FORMATTER = new Intl.NumberFormat('de-CH', {
         <mat-icon class="text-primary mt-0.5 flex-shrink-0">
           {{ icon() }}
         </mat-icon>
-        <p class="text-body-medium text-on-surface-variant leading-relaxed">
-          {{ message() }}
-        </p>
+        @if (insightType() === 'surplus') {
+          <p class="text-body-medium text-on-surface-variant leading-relaxed">
+            Ce mois se termine bien — il te reste
+            <span class="text-financial-savings font-bold tabular-nums"
+              >{{ surplusAmount() }} CHF</span
+            >
+            qui seront reportés.
+          </p>
+        } @else {
+          <p class="text-body-medium text-on-surface-variant leading-relaxed">
+            {{ message() }}
+          </p>
+        }
       </div>
     }
   `,
@@ -89,12 +98,13 @@ export class DashboardMonthInsight {
     return 'deficit';
   });
 
+  protected readonly surplusAmount = computed(() =>
+    AMOUNT_FORMATTER.format(Math.abs(this.remaining())),
+  );
+
   protected readonly message = computed(() => {
     const type = this.insightType();
-    if (type === 'surplus') {
-      const formatted = AMOUNT_FORMATTER.format(Math.abs(this.remaining()));
-      return `Ce mois se termine bien — il te reste ${formatted} CHF qui seront reportés.`;
-    }
+    if (type === 'surplus') return null;
     return INSIGHT_MESSAGES[type];
   });
 

@@ -5,15 +5,14 @@ import {
   input,
   output,
 } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import type { BudgetPeriodDates } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-dashboard-hero',
-  standalone: true,
-  imports: [CommonModule, MatIconModule, DecimalPipe, MatTooltipModule],
+  imports: [MatIconModule, DecimalPipe, MatTooltipModule],
   template: `
     <div
       class="hero-container rounded-[32px] p-6 pb-5 shadow-premium relative overflow-hidden cursor-pointer transition-transform hover:scale-[0.99]"
@@ -86,7 +85,7 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
           @if (rolloverAmount() !== 0) {
             <span class="opacity-80">
               {{ rolloverAmount() > 0 ? '+' : '-' }} Report
-              {{ Math.abs(rolloverAmount()) | number: '1.2-2' : 'de-CH' }}
+              {{ absRolloverAmount() | number: '1.2-2' : 'de-CH' }}
             </span>
           }
         </p>
@@ -99,7 +98,7 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
         <div class="flex justify-between text-label-small font-bold">
           <span>
             Dépensé
-            {{ Math.abs(expenses()) | number: '1.2-2' : 'de-CH' }} CHF
+            {{ absExpenses() | number: '1.2-2' : 'de-CH' }} CHF
           </span>
           <span class="opacity-70">
             sur {{ available() | number: '1.2-2' : 'de-CH' }} CHF
@@ -199,9 +198,9 @@ export class DashboardHero {
 
   readonly heroClick = output<void>();
 
-  readonly Math = Math;
-
   readonly remaining = computed(() => this.available() - this.expenses());
+  readonly absRolloverAmount = computed(() => Math.abs(this.rolloverAmount()));
+  readonly absExpenses = computed(() => Math.abs(this.expenses()));
 
   readonly isOverBudget = computed(() => this.remaining() < 0);
 

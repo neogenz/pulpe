@@ -206,7 +206,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                   <div
                     class="text-title-medium font-bold shrink-0"
                     [class.text-financial-income]="tx.kind === 'income'"
-                    [class.text-error]="tx.kind !== 'income'"
+                    [class.text-on-surface-variant]="tx.kind !== 'income'"
                   >
                     {{ tx.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
                   </div>

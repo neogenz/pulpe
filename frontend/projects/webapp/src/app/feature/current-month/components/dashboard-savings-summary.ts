@@ -16,7 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
     <div class="flex flex-col w-full h-full">
       <div class="mb-4 px-1 flex items-center gap-3">
         <div
-          class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0"
+          class="w-10 h-10 rounded-full bg-[var(--pulpe-financial-savings)]/10 text-financial-savings flex items-center justify-center flex-shrink-0"
         >
           <mat-icon>savings</mat-icon>
         </div>
@@ -39,17 +39,17 @@ import { MatIconModule } from '@angular/material/icon';
       >
         @if (hasSavings()) {
           <div
-            class="w-full h-2.5 bg-primary/10 rounded-full overflow-hidden mb-4"
+            class="w-full h-2.5 bg-[var(--pulpe-financial-savings)]/10 rounded-full overflow-hidden mb-4"
           >
             <div
-              class="h-full bg-primary rounded-full transition-all duration-700"
+              class="h-full bg-[var(--pulpe-financial-savings)] rounded-full transition-all duration-700"
               [style.width.%]="progressPercentage()"
             ></div>
           </div>
           <div class="flex justify-between items-baseline">
             <p class="text-body-medium text-on-surface">
               Tu as mis de côté
-              <span class="font-bold">
+              <span class="font-bold text-financial-savings">
                 {{ totalRealized() | number: '1.2-2' : 'de-CH' }} CHF
               </span>
               sur {{ totalPlanned() | number: '1.2-2' : 'de-CH' }} prévus
