@@ -5,7 +5,6 @@ import {
   input,
   output,
 } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 
@@ -14,7 +13,7 @@ import type { UpcomingMonthForecast } from '../services/dashboard-store';
 @Component({
   selector: 'pulpe-dashboard-next-month',
   standalone: true,
-  imports: [DecimalPipe, MatIconModule, MatButtonModule],
+  imports: [MatIconModule, MatButtonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col w-full h-full">
@@ -40,39 +39,19 @@ import type { UpcomingMonthForecast } from '../services/dashboard-store';
         class="bg-surface-container-low rounded-3xl p-5 flex-1 flex flex-col justify-center"
       >
         @if (hasBudget()) {
-          <div class="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p class="text-label-small text-on-surface-variant mb-1">
-                Revenus
-              </p>
-              <p class="text-title-medium font-bold text-on-surface">
-                {{ forecast().income | number: '1.0-0' : 'de-CH' }}
-              </p>
-            </div>
-            <div>
-              <p class="text-label-small text-on-surface-variant mb-1">
-                Dépenses
-              </p>
-              <p class="text-title-medium font-bold text-on-surface">
-                {{ forecast().expenses | number: '1.0-0' : 'de-CH' }}
-              </p>
-            </div>
-            <div>
-              <p class="text-label-small text-on-surface-variant mb-1">
-                Report estimé
-              </p>
-              <p
-                class="text-title-medium font-bold"
-                [class]="
-                  estimatedRollover() >= 0
-                    ? 'text-primary'
-                    : 'text-on-surface-variant'
-                "
-              >
-                {{ estimatedRollover() | number: '1.0-0' : 'de-CH' }}
-              </p>
-            </div>
-          </div>
+          <p class="text-body-medium text-on-surface-variant text-center">
+            Budget anticipé — report estimé :
+            <span
+              class="font-bold"
+              [class]="
+                estimatedRollover() >= 0
+                  ? 'text-primary'
+                  : 'text-on-surface-variant'
+              "
+            >
+              {{ formattedRollover() }} CHF
+            </span>
+          </p>
         } @else {
           <div class="flex flex-col items-center justify-center gap-3 py-4">
             <mat-icon
@@ -112,4 +91,11 @@ export class DashboardNextMonth {
   });
 
   protected readonly hasBudget = computed(() => this.forecast().hasBudget);
+
+  protected readonly formattedRollover = computed(() =>
+    new Intl.NumberFormat('de-CH', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(this.estimatedRollover()),
+  );
 }

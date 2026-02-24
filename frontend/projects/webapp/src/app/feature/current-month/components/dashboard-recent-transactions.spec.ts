@@ -115,9 +115,11 @@ describe('DashboardRecentTransactions', () => {
     setTestInput(component.transactions, transactions);
     fixture.detectChanges();
 
-    // Select only icons inside transaction rows (inside scroll-list), not the header icon
-    const scrollList = fixture.debugElement.query(By.css('.scroll-list'));
-    const listIcons = scrollList.queryAll(By.css('mat-icon'));
+    // Select only icons inside the list container, not the header icon
+    const listContainer = fixture.debugElement.query(
+      By.css('.bg-surface-container-low'),
+    );
+    const listIcons = listContainer.queryAll(By.css('mat-icon'));
 
     expect(listIcons.length).toBe(3);
     expect(listIcons[0].nativeElement.textContent.trim()).toBe('arrow_upward');

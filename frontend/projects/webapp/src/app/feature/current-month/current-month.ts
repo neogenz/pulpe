@@ -32,16 +32,13 @@ import { AddTransactionBottomSheet } from './components/add-transaction-bottom-s
 import { DashboardError } from './components/dashboard-error';
 import { DashboardStore } from './services/dashboard-store';
 
-// New Blocks
 import { DashboardHero } from './components/dashboard-hero';
 import { DashboardUncheckedForecasts } from './components/dashboard-unchecked-forecasts';
 import { DashboardHistoryChart } from './components/dashboard-history-chart';
-import { DashboardUpcomingMonths } from './components/dashboard-upcoming-months';
 import { DashboardFutureProjectionChart } from './components/dashboard-future-projection-chart';
 import { DashboardRecentTransactions } from './components/dashboard-recent-transactions';
 import { DashboardSavingsSummary } from './components/dashboard-savings-summary';
 import { DashboardMonthInsight } from './components/dashboard-month-insight';
-import { DashboardPulse } from './components/dashboard-pulse';
 import { DashboardNextMonth } from './components/dashboard-next-month';
 
 type TransactionFormData = Pick<
@@ -63,22 +60,20 @@ type TransactionFormData = Pick<
     DashboardHero,
     DashboardUncheckedForecasts,
     DashboardHistoryChart,
-    DashboardUpcomingMonths,
     DashboardFutureProjectionChart,
     DashboardRecentTransactions,
     DashboardSavingsSummary,
     DashboardMonthInsight,
-    DashboardPulse,
     DashboardNextMonth,
   ],
   template: `
     <div class="flex flex-col gap-4 min-w-0" data-testid="dashboard-page">
       <header class="pulpe-page-header" data-testid="page-header">
         <h1
-          class="text-headline-medium md:text-display-small truncate min-w-0 flex-shrink"
+          class="text-headline-medium md:text-display-small truncate min-w-0 flex-shrink capitalize"
           data-testid="page-title"
         >
-          Tableau de bord
+          {{ budgetPeriodDisplayName() }}
         </h1>
         <div class="flex gap-2 items-center flex-shrink-0 ml-auto">
           <button
@@ -115,14 +110,14 @@ type TransactionFormData = Pick<
         ) {
           @if (store.dashboardData()?.budget) {
             <div class="flex flex-col gap-8">
-              <!-- BLOCK: Month closing insight (only visible last 10% of month) -->
+              <!-- Month closing insight (only visible last 10% of month) -->
               <pulpe-dashboard-month-insight
                 [timeElapsedPercentage]="store.timeElapsedPercentage()"
                 [remaining]="store.remaining()"
                 data-testid="dashboard-block-month-insight"
               />
 
-              <!-- BLOCK: Hero "Disponible à dépenser" -->
+              <!-- Hero "Disponible à dépenser" -->
               <pulpe-dashboard-hero
                 [expenses]="store.totalExpenses()"
                 [available]="store.totalAvailable()"
@@ -135,37 +130,29 @@ type TransactionFormData = Pick<
                 data-testid="dashboard-block-hero"
               />
 
-              <!-- BLOCK: Budget Pulse (3 health dots) -->
-              <pulpe-dashboard-pulse
-                [budgetConsumedPercentage]="store.budgetConsumedPercentage()"
-                [timeElapsedPercentage]="store.timeElapsedPercentage()"
-                [checkedForecastCount]="store.checkedForecastCount()"
-                [totalForecastCount]="store.totalForecastCount()"
-                [nextMonthHasBudget]="store.nextMonthHasBudget()"
-                data-testid="dashboard-block-pulse"
-              />
+              <!-- Paired lists: Recent Transactions + Unchecked Forecasts -->
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <pulpe-dashboard-recent-transactions
+                  [transactions]="store.recentTransactions()"
+                  (viewBudget)="navigateToBudgetDetails()"
+                  data-testid="dashboard-block-recent-transactions"
+                />
 
-              <!-- BLOCK: Recent transactions -->
-              <pulpe-dashboard-recent-transactions
-                [transactions]="store.recentTransactions()"
-                (viewBudget)="navigateToBudgetDetails()"
-                data-testid="dashboard-block-recent-transactions"
-              />
-
-              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Row 1 -->
                 <pulpe-dashboard-unchecked-forecasts
                   [forecasts]="store.uncheckedForecasts()"
                   (toggleCheck)="store.toggleBudgetLineCheck($event)"
                   data-testid="dashboard-block-forecasts"
                 />
+              </div>
 
-                <pulpe-dashboard-history-chart
-                  [history]="store.historyData()"
-                  data-testid="dashboard-block-history"
-                />
+              <!-- Future Projection Chart -->
+              <pulpe-dashboard-future-projection-chart
+                [forecasts]="store.upcomingBudgetsData()"
+                data-testid="dashboard-block-projection"
+              />
 
-                <!-- Row 2 -->
+              <!-- Paired metrics: Savings Summary + Next Month -->
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <pulpe-dashboard-savings-summary
                   [totalPlanned]="store.totalSavingsPlanned()"
                   [totalRealized]="store.totalSavingsRealized()"
@@ -180,18 +167,13 @@ type TransactionFormData = Pick<
                     data-testid="dashboard-block-next-month"
                   />
                 }
-
-                <!-- Row 3 -->
-                <pulpe-dashboard-upcoming-months
-                  [forecasts]="store.upcomingBudgetsData()"
-                  data-testid="dashboard-block-upcoming"
-                />
-
-                <pulpe-dashboard-future-projection-chart
-                  [forecasts]="store.upcomingBudgetsData()"
-                  data-testid="dashboard-block-projection"
-                />
               </div>
+
+              <!-- History Chart -->
+              <pulpe-dashboard-history-chart
+                [history]="store.historyData()"
+                data-testid="dashboard-block-history"
+              />
             </div>
           } @else {
             <pulpe-state-card
@@ -199,6 +181,8 @@ type TransactionFormData = Pick<
               testId="empty-state"
               [title]="'Pas encore de budget pour ' + budgetPeriodDisplayName()"
               message="Crée-le depuis tes modèles pour commencer à suivre ton mois."
+              actionLabel="Voir mes modèles"
+              (action)="navigateToBudgetTemplates()"
             />
           }
         }
@@ -223,7 +207,6 @@ type TransactionFormData = Pick<
       display: block;
       position: relative;
       padding-bottom: 100px;
-      /* Optional M3 Expressive adjustments */
     }
 
     .fab-button {
@@ -232,12 +215,10 @@ type TransactionFormData = Pick<
       right: 24px;
       z-index: 1000;
 
-      /* M3: standard round FAB */
       width: 56px;
       height: 56px;
       border-radius: 50%;
 
-      /* M3 Expressive: gradient matching the hero card */
       --mdc-fab-container-color: var(--mat-sys-primary);
       --mat-fab-container-color: var(--mat-sys-primary);
       --mat-fab-disabled-state-container-color: var(--mat-sys-primary);
@@ -254,18 +235,15 @@ type TransactionFormData = Pick<
         opacity: 0.5;
       }
 
-      /* Premium multi-layer shadow */
       box-shadow:
         0 2px 4px -1px rgba(0, 0, 0, 0.1),
         0 4px 8px rgba(0, 0, 0, 0.08),
         0 8px 16px rgba(0, 0, 0, 0.06);
 
-      /* Smooth transitions for hover/press */
       transition:
         transform 200ms var(--pulpe-ease-emphasized),
         box-shadow 200ms var(--pulpe-ease-emphasized);
 
-      /* Entrance animation with overshoot bounce */
       animation: fab-scale-in var(--pulpe-motion-base)
         var(--pulpe-ease-emphasized) both;
 

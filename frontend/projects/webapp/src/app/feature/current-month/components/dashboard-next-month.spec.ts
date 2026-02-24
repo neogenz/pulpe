@@ -15,6 +15,7 @@ const mockForecastWithBudget: UpcomingMonthForecast = {
   hasBudget: true,
   income: 5000,
   expenses: 3500,
+  savings: 500,
 };
 
 const mockForecastWithoutBudget: UpcomingMonthForecast = {
@@ -23,6 +24,7 @@ const mockForecastWithoutBudget: UpcomingMonthForecast = {
   hasBudget: false,
   income: null,
   expenses: null,
+  savings: null,
 };
 
 describe('DashboardNextMonth', () => {
@@ -53,14 +55,10 @@ describe('DashboardNextMonth', () => {
       fixture.detectChanges();
     });
 
-    it('should display income and expenses', () => {
+    it('should display rollover info', () => {
       const text = fixture.nativeElement.textContent;
-      expect(text).toContain('Revenus');
-      expect(text).toContain('Dépenses');
-    });
-
-    it('should display rollover', () => {
-      expect(fixture.nativeElement.textContent).toContain('Report estimé');
+      expect(text).toContain('report estimé');
+      expect(text).toContain('200');
     });
 
     it('should show month name', () => {

@@ -34,6 +34,7 @@ export interface UpcomingMonthForecast {
   hasBudget: boolean;
   income: number | null;
   expenses: number | null;
+  savings: number | null;
 }
 
 @Injectable()
@@ -255,6 +256,7 @@ export class DashboardStore {
         hasBudget: !!budget,
         income: budget ? budget.income : null,
         expenses: budget ? budget.expenses : null,
+        savings: budget ? budget.savings : null,
       });
 
       nextMonth++;
@@ -278,27 +280,6 @@ export class DashboardStore {
       .filter((tx) => tx.kind === 'saving')
       .reduce((sum, tx) => sum + tx.amount, 0),
   );
-
-  readonly totalForecastCount = computed(
-    () =>
-      this.budgetLines().filter(
-        (line) => line.recurrence === 'fixed' || line.recurrence === 'one_off',
-      ).length,
-  );
-
-  readonly checkedForecastCount = computed(
-    () =>
-      this.budgetLines().filter(
-        (line) =>
-          (line.recurrence === 'fixed' || line.recurrence === 'one_off') &&
-          line.checkedAt !== null,
-      ).length,
-  );
-
-  readonly nextMonthHasBudget = computed(() => {
-    const upcoming = this.upcomingBudgetsData();
-    return upcoming.length > 0 && upcoming[0].hasBudget;
-  });
 
   // ── 5. Mutations ──
   refreshData(): void {

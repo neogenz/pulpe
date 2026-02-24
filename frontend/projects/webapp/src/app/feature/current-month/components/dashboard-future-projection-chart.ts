@@ -6,7 +6,6 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { BaseChartDirective } from 'ng2-charts';
@@ -16,7 +15,7 @@ import type { UpcomingMonthForecast } from '../services/dashboard-store';
 @Component({
   selector: 'pulpe-dashboard-future-projection-chart',
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatTooltipModule, BaseChartDirective],
+  imports: [MatIconModule, MatTooltipModule, BaseChartDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col h-full w-full">
@@ -31,7 +30,7 @@ import type { UpcomingMonthForecast } from '../services/dashboard-store';
             Projection du solde
           </h2>
           <p class="text-body-small text-on-surface-variant font-medium mt-0.5">
-            Évolution prévisionnelle (Revenus - Dépenses)
+            Disponible et épargne par mois futur
           </p>
         </div>
       </div>
@@ -93,17 +92,25 @@ import type { UpcomingMonthForecast } from '../services/dashboard-store';
 export class DashboardFutureProjectionChart {
   readonly forecasts = input.required<UpcomingMonthForecast[]>();
 
-  readonly #lineColor = signal('#0061A6');
-  readonly #fillColor = signal('rgba(0, 97, 166, 0.15)');
+  readonly #balanceLineColor = signal('#0061A6');
+  readonly #balanceFillColor = signal('rgba(0, 97, 166, 0.15)');
+  readonly #savingsLineColor = signal('#006E25');
+  readonly #savingsFillColor = signal('rgba(0, 110, 37, 0.10)');
 
   constructor() {
     afterNextRender(() => {
       const tertiary = this.#resolveColor('var(--mat-sys-tertiary)');
       if (tertiary) {
-        this.#lineColor.set(tertiary);
-        // Convert rgb() to rgba() with 15% opacity for the fill
-        this.#fillColor.set(
+        this.#balanceLineColor.set(tertiary);
+        this.#balanceFillColor.set(
           tertiary.replace('rgb(', 'rgba(').replace(')', ', 0.15)'),
+        );
+      }
+      const primary = this.#resolveColor('var(--pulpe-financial-savings)');
+      if (primary) {
+        this.#savingsLineColor.set(primary);
+        this.#savingsFillColor.set(
+          primary.replace('rgb(', 'rgba(').replace(')', ', 0.10)'),
         );
       }
     });
@@ -131,7 +138,7 @@ export class DashboardFutureProjectionChart {
   readonly missingMonthsLabel = computed(() =>
     this.forecasts()
       .filter((f) => !f.hasBudget)
-      .map((f) => `${this.getMonthName(f.month)} ${f.year}`)
+      .map((f) => `${this.#getMonthName(f.month)} ${f.year}`)
       .join(', '),
   );
 
@@ -142,7 +149,7 @@ export class DashboardFutureProjectionChart {
     maintainAspectRatio: false,
     elements: {
       line: {
-        tension: 0.4, // Smooth curves
+        tension: 0.4,
         borderWidth: 3,
       },
       point: {
@@ -152,14 +159,22 @@ export class DashboardFutureProjectionChart {
     },
     plugins: {
       legend: {
-        display: false,
+        display: true,
+        position: 'top',
+        align: 'end',
+        labels: {
+          usePointStyle: true,
+          boxWidth: 8,
+          boxHeight: 8,
+          font: { family: 'Outfit, sans-serif' },
+        },
       },
       tooltip: {
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         padding: 12,
-        titleFont: { size: 14, family: 'sans-serif' },
-        bodyFont: { size: 14, family: 'sans-serif', weight: 'bold' },
-        displayColors: false,
+        titleFont: { size: 14, family: 'Outfit, sans-serif' },
+        bodyFont: { size: 14, family: 'Outfit, sans-serif', weight: 'bold' },
+        displayColors: true,
         callbacks: {
           label: function (context: {
             dataset: { label?: string };
@@ -187,19 +202,19 @@ export class DashboardFutureProjectionChart {
         },
         ticks: {
           font: {
-            family: 'sans-serif',
+            family: 'Outfit, sans-serif',
             size: 11,
           },
-          color: '#737373', // tailwind neutral-500
+          color: '#737373',
         },
       },
       y: {
         grid: {
-          color: '#f5f5f5', // very light gray
+          color: '#f5f5f5',
         },
         ticks: {
           font: {
-            family: 'sans-serif',
+            family: 'Outfit, sans-serif',
             size: 11,
           },
           color: '#737373',
@@ -218,27 +233,55 @@ export class DashboardFutureProjectionChart {
       return { datasets: [], labels: [] };
     }
 
+    // Disponible par mois = income - expenses - savings (même formule que le backend sparse)
+    const balanceData = withBudget.map(
+      (f) => (f.income || 0) - (f.expenses || 0) - (f.savings || 0),
+    );
+
+    // Cumulative savings
+    let cumulativeSavings = 0;
+    const savingsData: number[] = [];
+    const hasSavings = withBudget.some((f) => (f.savings || 0) > 0);
+    for (const f of withBudget) {
+      cumulativeSavings += f.savings || 0;
+      savingsData.push(cumulativeSavings);
+    }
+
+    const datasets: ChartConfiguration['data']['datasets'] = [
+      {
+        data: balanceData,
+        label: 'Disponible',
+        borderColor: this.#balanceLineColor(),
+        backgroundColor: this.#balanceFillColor(),
+        fill: true,
+        pointBackgroundColor: this.#balanceLineColor(),
+      },
+    ];
+
+    if (hasSavings) {
+      datasets.push({
+        data: savingsData,
+        label: 'Épargne cumulée',
+        borderColor: this.#savingsLineColor(),
+        backgroundColor: this.#savingsFillColor(),
+        fill: true,
+        pointBackgroundColor: this.#savingsLineColor(),
+        borderDash: [6, 4],
+        borderWidth: 2,
+      } as ChartConfiguration['data']['datasets'][number]);
+    }
+
     return {
-      labels: withBudget.map((f) => this.getMonthName(f.month)),
-      datasets: [
-        {
-          data: withBudget.map((f) => (f.income || 0) - (f.expenses || 0)),
-          label: 'Solde Projeté',
-          borderColor: this.#lineColor(),
-          backgroundColor: this.#fillColor(),
-          fill: true,
-          pointBackgroundColor: this.#lineColor(),
-        },
-      ],
+      labels: withBudget.map((f) => this.#getMonthName(f.month)),
+      datasets,
     };
   });
 
-  getMonthName(monthNumber: number): string {
+  #getMonthName(monthNumber: number): string {
     const date = new Date(2000, monthNumber - 1, 1);
     const month = new Intl.DateTimeFormat('fr-FR', { month: 'short' }).format(
       date,
     );
-    // capitalize first letter
     return month.charAt(0).toUpperCase() + month.slice(1);
   }
 }

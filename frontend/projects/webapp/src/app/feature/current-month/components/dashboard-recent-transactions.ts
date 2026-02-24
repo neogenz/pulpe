@@ -51,52 +51,43 @@ const KIND_ICONS: Record<TransactionKind, string> = {
 
       <div class="bg-surface-container-low rounded-3xl py-3 px-3 flex-1">
         @if (transactions().length > 0) {
-          <div class="relative">
-            <div
-              class="flex flex-col gap-1 scroll-list max-h-[280px] overflow-y-auto"
-            >
-              @for (tx of transactions(); track tx.id) {
+          <div class="flex flex-col gap-1">
+            @for (tx of transactions(); track tx.id) {
+              <div
+                class="flex items-center gap-3 p-3 rounded-2xl hover:bg-surface-container-low transition-colors"
+              >
                 <div
-                  class="flex items-center gap-3 p-3 rounded-2xl hover:bg-surface-container-low transition-colors"
+                  class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                  [ngClass]="kindClasses(tx.kind)"
                 >
-                  <div
-                    class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    [ngClass]="kindClasses(tx.kind)"
-                  >
-                    <mat-icon class="text-[20px]">
-                      {{ kindIcon(tx.kind) }}
-                    </mat-icon>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <p
-                      class="text-body-medium font-bold text-on-surface truncate ph-no-capture"
-                    >
-                      {{ tx.name }}
-                    </p>
-                    <p
-                      class="text-body-small text-on-surface-variant font-medium"
-                    >
-                      {{ tx.transactionDate | date: 'dd MMM' : '' : 'fr-CH' }}
-                    </p>
-                  </div>
-                  <span
-                    class="text-label-large whitespace-nowrap ml-4 font-semibold tabular-nums ph-no-capture"
-                    [ngClass]="{
-                      'text-success': tx.kind === 'income',
-                      'text-on-surface-variant opacity-80':
-                        tx.kind !== 'income',
-                    }"
-                  >
-                    {{ tx.kind === 'income' ? '+' : '-'
-                    }}{{ tx.amount | number: '1.2-2' : 'de-CH' }} CHF
-                  </span>
+                  <mat-icon class="text-[20px]">
+                    {{ kindIcon(tx.kind) }}
+                  </mat-icon>
                 </div>
-              }
-            </div>
-            <div class="scroll-fade"></div>
-            <div class="scroll-hint">
-              <mat-icon class="text-[16px]">keyboard_arrow_down</mat-icon>
-            </div>
+                <div class="flex-1 min-w-0">
+                  <p
+                    class="text-body-medium font-bold text-on-surface truncate ph-no-capture"
+                  >
+                    {{ tx.name }}
+                  </p>
+                  <p
+                    class="text-body-small text-on-surface-variant font-medium"
+                  >
+                    {{ tx.transactionDate | date: 'dd MMM' : '' : 'fr-CH' }}
+                  </p>
+                </div>
+                <span
+                  class="text-label-large whitespace-nowrap ml-4 font-semibold tabular-nums ph-no-capture"
+                  [ngClass]="{
+                    'text-success': tx.kind === 'income',
+                    'text-on-surface-variant opacity-80': tx.kind !== 'income',
+                  }"
+                >
+                  {{ tx.kind === 'income' ? '+' : '-'
+                  }}{{ tx.amount | number: '1.2-2' : 'de-CH' }} CHF
+                </span>
+              </div>
+            }
           </div>
         } @else {
           <div
@@ -122,65 +113,6 @@ const KIND_ICONS: Record<TransactionKind, string> = {
     `
       :host {
         display: block;
-      }
-
-      .scroll-list {
-        scrollbar-width: thin;
-        scrollbar-color: transparent transparent;
-      }
-
-      .scroll-list:hover,
-      .scroll-list:active {
-        scrollbar-color: var(--mat-sys-outline-variant) transparent;
-      }
-
-      .scroll-list::-webkit-scrollbar {
-        width: 4px;
-      }
-
-      .scroll-list::-webkit-scrollbar-thumb {
-        background: transparent;
-        border-radius: 4px;
-      }
-
-      .scroll-list:hover::-webkit-scrollbar-thumb,
-      .scroll-list:active::-webkit-scrollbar-thumb {
-        background: var(--mat-sys-outline-variant);
-      }
-
-      .scroll-fade {
-        position: absolute;
-        bottom: 28px;
-        left: 0;
-        right: 0;
-        height: 48px;
-        background: linear-gradient(
-          to bottom,
-          transparent 0%,
-          var(--mat-sys-surface-container-low) 100%
-        );
-        pointer-events: none;
-        z-index: 1;
-      }
-
-      .scroll-hint {
-        display: flex;
-        justify-content: center;
-        padding: 4px 0 2px;
-        color: var(--mat-sys-on-surface-variant);
-        opacity: 0.5;
-        animation: bounce-down 1.5s ease-in-out infinite;
-        pointer-events: none;
-      }
-
-      @keyframes bounce-down {
-        0%,
-        100% {
-          transform: translateY(0);
-        }
-        50% {
-          transform: translateY(4px);
-        }
       }
     `,
   ],
