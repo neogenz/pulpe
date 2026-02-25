@@ -16,15 +16,6 @@ struct PostAuthResolutionRouterTests {
         )
     }
 
-    private func waitForBiometricPreferenceLoad(_ sut: AppState, expected: Bool) async {
-        for _ in 0..<20 {
-            if sut.biometricEnabled == expected {
-                return
-            }
-            try? await Task.sleep(for: .milliseconds(10))
-        }
-    }
-
     private func waitForSilentBiometricSync(
         _ spy: SilentBiometricSyncSpy,
         expectedCalls: Int
@@ -183,7 +174,7 @@ struct PostAuthResolutionRouterTests {
             }
         )
 
-        await waitForBiometricPreferenceLoad(sut, expected: true)
+        await sut.bootstrap()
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .authenticated)
@@ -199,7 +190,7 @@ struct PostAuthResolutionRouterTests {
             biometricCapability: { true }
         )
 
-        await waitForBiometricPreferenceLoad(sut, expected: true)
+        await sut.bootstrap()
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .needsPinEntry)
@@ -218,7 +209,7 @@ struct PostAuthResolutionRouterTests {
             }
         )
 
-        await waitForBiometricPreferenceLoad(sut, expected: false)
+        await sut.bootstrap()
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .authenticated)
@@ -238,7 +229,7 @@ struct PostAuthResolutionRouterTests {
             }
         )
 
-        await waitForBiometricPreferenceLoad(sut, expected: false)
+        await sut.bootstrap()
         await sut.resolvePostAuth(user: user)
 
         _ = await sut.enableBiometric()
@@ -259,7 +250,7 @@ struct PostAuthResolutionRouterTests {
             }
         )
 
-        await waitForBiometricPreferenceLoad(sut, expected: false)
+        await sut.bootstrap()
         await sut.resolvePostAuth(user: user)
         #expect(sut.authState == .needsPinEntry)
 
@@ -285,7 +276,7 @@ struct PostAuthResolutionRouterTests {
             }
         )
 
-        await waitForBiometricPreferenceLoad(sut, expected: false)
+        await sut.bootstrap()
 
         await sut.resolvePostAuth(user: user)
         await sut.completePinEntry()
@@ -317,7 +308,7 @@ struct PostAuthResolutionRouterTests {
             }
         )
 
-        await waitForBiometricPreferenceLoad(sut, expected: false)
+        await sut.bootstrap()
         await sut.resolvePostAuth(user: user)
         await sut.completePinEntry()
 
@@ -341,7 +332,7 @@ struct PostAuthResolutionRouterTests {
             }
         )
 
-        await waitForBiometricPreferenceLoad(sut, expected: false)
+        await sut.bootstrap()
         await sut.resolvePostAuth(user: user)
         await sut.completePinEntry()
 
@@ -361,7 +352,7 @@ struct PostAuthResolutionRouterTests {
             }
         )
 
-        await waitForBiometricPreferenceLoad(sut, expected: true)
+        await sut.bootstrap()
         await sut.resolvePostAuth(user: user)
         #expect(sut.authState == .needsPinEntry)
 
@@ -381,7 +372,7 @@ struct PostAuthResolutionRouterTests {
             biometricCapability: { true }
         )
 
-        await waitForBiometricPreferenceLoad(sut, expected: false)
+        await sut.bootstrap()
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .authenticated)
@@ -401,7 +392,7 @@ struct PostAuthResolutionRouterTests {
             }
         )
 
-        await waitForBiometricPreferenceLoad(sut, expected: false)
+        await sut.bootstrap()
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .authenticated)

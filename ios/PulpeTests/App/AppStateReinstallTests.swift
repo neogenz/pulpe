@@ -30,10 +30,7 @@ struct AppStateReinstallTests {
         // Simulate: app killed and restarted (new AppState instance)
         let appState = AppState(keychainManager: keychain, biometricPreferenceStore: .init())
 
-        // Wait for async initialization
-        await waitForCondition(timeout: .milliseconds(1000), "Returning user flag should load from Keychain") {
-            appState.hasReturningUser == true
-        }
+        await appState.bootstrap()
 
         // Verify: returning user flag is loaded from Keychain
         #expect(appState.hasReturningUser == true)
@@ -62,10 +59,7 @@ struct AppStateReinstallTests {
 
         let appState = AppState(keychainManager: keychain, biometricPreferenceStore: .init())
 
-        // Wait for async initialization
-        await waitForCondition(timeout: .milliseconds(1000), "Returning user flag should load for routing") {
-            appState.hasReturningUser == true
-        }
+        await appState.bootstrap()
 
         // Simulate: unauthenticated state (expired tokens, logout, etc.)
         // In this state, PulpeApp checks hasReturningUser to decide Login vs Welcome
@@ -95,13 +89,7 @@ struct AppStateReinstallTests {
         // Step 1: Create new AppState (simulating fresh app launch after reinstall)
         let appState = AppState(keychainManager: keychain, biometricPreferenceStore: .init())
 
-        // Wait for async initialization
-        await waitForCondition(
-            timeout: .milliseconds(1000),
-            "Keychain email should persist after reinstall"
-        ) {
-            appState.hasReturningUser == true
-        }
+        await appState.bootstrap()
 
         // Step 2: Verify Keychain value is still available
         #expect(appState.hasReturningUser == true,

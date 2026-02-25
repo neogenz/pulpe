@@ -376,10 +376,7 @@ struct AppStateCharacterizationTests {
             }
         )
 
-        // Wait for biometric preference to load
-        await waitForCondition(timeout: .milliseconds(500), "Biometric should load") {
-            sut.biometricEnabled == true
-        }
+        await sut.bootstrap()
 
         await sut.checkAuthState()
 
@@ -458,6 +455,143 @@ struct AppStateCharacterizationTests {
         #expect(sut.authState == .authenticated)
         #expect(sut.recoveryFlowState == .consentPrompt)
     }
+
+    // MARK: - Section 5: DI Validation (no .shared singletons)
+
+    @Test("checkMaintenanceStatus uses injected maintenanceChecking, not MaintenanceService.shared")
+    func checkMaintenanceStatus_usesInjectedChecker() async {
+        let spy = AtomicFlag()
+        let deps = AppStateDependencies(
+            authService: .shared,
+            clientKeyManager: .shared,
+            keychainManager: KeychainManager.shared,
+            encryptionAPI: .shared,
+            biometricService: .shared,
+            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            maintenanceChecking: {
+                spy.set()
+                return false
+            }
+        )
+        let sut = AppState(dependencies: deps)
+
+        await sut.checkMaintenanceStatus()
+
+        #expect(spy.value == true, "checkMaintenanceStatus must call injected maintenanceChecking closure")
+        #expect(sut.isInMaintenance == false)
+    }
+
+    @Test("logout uses injected widgetSyncing, not WidgetDataCoordinator directly")
+    func logout_usesInjectedWidgetSync() async {
+        let mockWidget = MockWidgetSync()
+        let deps = AppStateDependencies(
+            authService: .shared,
+            clientKeyManager: .shared,
+            keychainManager: MockKeychainStore(),
+            encryptionAPI: .shared,
+            postAuthResolver: CharStubResolver(
+                destination: .authenticated(needsRecoveryKeyConsent: false)
+            ),
+            biometricService: .shared,
+            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            widgetSyncing: mockWidget
+        )
+        let sut = AppState(dependencies: deps)
+
+        await sut.resolvePostAuth(user: user)
+
+        await sut.logout(source: .system)
+
+        #expect(
+            mockWidget.clearAndReloadCalled.value == true,
+            "logout must call widgetSyncing.clearAndReload() via injected dependency"
+        )
+    }
+
+    @Test("completePinSetup uses injected createTemplate/createBudget, not Service.shared")
+    func completePinSetup_usesInjectedOnboardingCreators() async {
+        let templateSpy = AtomicFlag()
+        let budgetSpy = AtomicFlag()
+        let stubTemplate = BudgetTemplate(
+            id: "tpl-1", name: "Test", description: nil, userId: nil,
+            isDefault: true, createdAt: TestDataFactory.fixedDate, updatedAt: TestDataFactory.fixedDate
+        )
+        let deps = AppStateDependencies(
+            authService: .shared,
+            clientKeyManager: .shared,
+            keychainManager: MockKeychainStore(),
+            encryptionAPI: .shared,
+            postAuthResolver: CharStubResolver(destination: .needsPinSetup),
+            biometricService: .shared,
+            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            createTemplate: { _ in
+                templateSpy.set()
+                return stubTemplate
+            },
+            createBudget: { _ in
+                budgetSpy.set()
+                return TestDataFactory.createBudget()
+            }
+        )
+        let sut = AppState(dependencies: deps)
+
+        await sut.resolvePostAuth(user: user)
+        #expect(sut.authState == .needsPinSetup)
+
+        sut.pendingOnboardingData = BudgetTemplateCreateFromOnboarding()
+        await sut.completePinSetup()
+
+        #expect(sut.authState == .authenticated)
+        #expect(templateSpy.value == true, "completePinSetup must use injected createTemplate closure")
+        #expect(budgetSpy.value == true, "completePinSetup must use injected createBudget closure")
+    }
+
+    // MARK: - Section 6: Bootstrap Idempotency
+
+    @Test("bootstrap is idempotent — second checkAuthState does not duplicate keychain reads")
+    func bootstrap_isIdempotent() async {
+        let keychainReadCount = AtomicProperty<Int>(0)
+        let spyKeychain = SpyKeychainStore(
+            lastUsedEmail: "returning@pulpe.app",
+            onGetEmail: { keychainReadCount.increment() }
+        )
+
+        // Use the convenience init directly so we can inject the spy keychain
+        let sut = AppState(
+            keychainManager: spyKeychain,
+            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            validateRegularSession: { nil },
+            validateBiometricSession: { nil }
+        )
+
+        // First bootstrap: loads returning user flag from spy keychain
+        await sut.bootstrap()
+
+        // Record state and read count after first bootstrap
+        let readsAfterInit = keychainReadCount.value
+        let hasReturningUserBefore = sut.hasReturningUser
+        let biometricEnabledBefore = sut.biometricEnabled
+
+        // Run checkAuthState (simulates a second bootstrap)
+        await sut.checkAuthState()
+
+        // Assert no state changes
+        #expect(
+            sut.hasReturningUser == hasReturningUserBefore,
+            "hasReturningUser must not change on second checkAuthState"
+        )
+        #expect(
+            sut.biometricEnabled == biometricEnabledBefore,
+            "biometricEnabled must not change on second checkAuthState"
+        )
+
+        // ensureReturningUserFlagLoaded should guard on returningUserFlagLoaded
+        // and NOT re-read the keychain
+        #expect(
+            keychainReadCount.value == readsAfterInit,
+            "Keychain should not be re-read after flag is already loaded (reads: \(keychainReadCount.value), expected: \(readsAfterInit))"
+        )
+    }
 }
 
 // MARK: - Local Stubs
@@ -476,4 +610,23 @@ private actor CharTimeline {
     private var log: [String] = []
     func record(_ event: String) { log.append(event) }
     func events() -> [String] { log }
+}
+
+private actor SpyKeychainStore: KeychainEmailStoring {
+    private var lastUsedEmail: String?
+    private let onGetEmail: @Sendable () -> Void
+
+    init(lastUsedEmail: String?, onGetEmail: @escaping @Sendable () -> Void) {
+        self.lastUsedEmail = lastUsedEmail
+        self.onGetEmail = onGetEmail
+    }
+
+    func getLastUsedEmail() -> String? {
+        onGetEmail()
+        return lastUsedEmail
+    }
+
+    func saveLastUsedEmail(_ email: String) { lastUsedEmail = email }
+    func clearLastUsedEmail() { lastUsedEmail = nil }
+    func clearAllData() { lastUsedEmail = nil }
 }

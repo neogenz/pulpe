@@ -64,10 +64,7 @@ struct AppStateBiometricEnableDisableTests {
             biometricCapability: { true }
         )
 
-        // Wait for biometric preference to load from keychain
-        await waitForCondition(timeout: .milliseconds(500), "Biometric preference should load as true") {
-            sut.biometricEnabled == true
-        }
+        await sut.bootstrap()
 
         try #require(sut.biometricEnabled == true, "Setup: biometric should be enabled before disabling")
 
@@ -119,9 +116,7 @@ struct AppStateBiometricEnableDisableTests {
             biometricCapability: { true }
         )
 
-        await waitForCondition(timeout: .milliseconds(500), "Biometric preference should load") {
-            sut.biometricEnabled == true
-        }
+        await sut.bootstrap()
 
         sut.biometricCredentialsAvailable = true
 

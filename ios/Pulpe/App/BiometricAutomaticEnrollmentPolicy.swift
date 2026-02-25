@@ -1,6 +1,6 @@
 import OSLog
 
-@Observable @MainActor
+@MainActor
 final class BiometricAutomaticEnrollmentPolicy {
     enum SkipReason: String, Equatable {
         case alreadyAttempted = "already_attempted"

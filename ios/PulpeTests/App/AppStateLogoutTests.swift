@@ -165,9 +165,7 @@ struct AppStateLogoutTests {
             syncBiometricCredentials: { true }
         )
 
-        await waitForCondition(timeout: .milliseconds(500), "Biometric preference should load") {
-            sut.biometricEnabled == true
-        }
+        await sut.bootstrap()
 
         await sut.resolvePostAuth(user: user)
         await sut.completePinEntry()

@@ -37,10 +37,7 @@ struct AppStateBiometricColdStartTests {
             resolveBiometricKey: { "mock-client-key" }
         )
 
-        // Wait for biometric preference to load
-        await waitForCondition(timeout: .milliseconds(500), "Biometric preference should load from keychain") {
-            sut.biometricEnabled == true
-        }
+        await sut.bootstrap()
 
         // Manually set biometricEnabled since we can't easily mock the full auth flow
         sut.biometricEnabled = true
@@ -82,10 +79,7 @@ struct AppStateBiometricColdStartTests {
             biometricCapability: { true }
         )
 
-        // Wait for async preference loading
-        await waitForCondition(timeout: .milliseconds(1000), "Biometric preference should load as true") {
-            sut.biometricEnabled == true
-        }
+        await sut.bootstrap()
 
         #expect(sut.biometricEnabled == true)
     }
@@ -123,13 +117,7 @@ struct AppStateBiometricColdStartTests {
             biometricCapability: { true }
         )
 
-        // Wait for preference to load
-        await waitForCondition(
-            timeout: .milliseconds(1000),
-            "Biometric preference should load as true for DEBUG test"
-        ) {
-            sut.biometricEnabled == true
-        }
+        await sut.bootstrap()
 
         // The key assertion: biometricEnabled should be true
         // This ensures the DEBUG block in checkAuthState() will NOT bypass biometric auth
@@ -323,10 +311,7 @@ struct AppStateBiometricColdStartTests {
             )
         )
 
-        // Wait for biometric preference to load as true
-        await waitForCondition(timeout: .milliseconds(500), "Biometric preference should load") {
-            sut.biometricEnabled == true
-        }
+        await sut.bootstrap()
 
         // Ensure no biometric tokens are stored so validateBiometricSession returns nil
         await AuthService.shared.clearBiometricTokens()
@@ -354,9 +339,7 @@ struct AppStateBiometricColdStartTests {
             validateBiometricSession: { nil }
         )
 
-        await waitForCondition(timeout: .milliseconds(500), "Biometric preference should load") {
-            sut.biometricEnabled == true
-        }
+        await sut.bootstrap()
 
         await sut.checkAuthState()
 
@@ -375,9 +358,7 @@ struct AppStateBiometricColdStartTests {
             validateBiometricSession: { nil }
         )
 
-        await waitForCondition(timeout: .milliseconds(500), "Biometric preference should load") {
-            sut.biometricEnabled == true
-        }
+        await sut.bootstrap()
 
         await sut.checkAuthState()
 
@@ -438,9 +419,7 @@ struct AppStateBiometricColdStartTests {
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore()
         )
 
-        await waitForCondition(timeout: .milliseconds(500), "Returning user flag should load") {
-            sut.hasReturningUser == true
-        }
+        await sut.bootstrap()
 
         sut.enterSignupFlow()
 
@@ -494,9 +473,7 @@ struct AppStateBiometricColdStartTests {
             validateBiometricSession: { throw AuthServiceError.biometricSessionExpired }
         )
 
-        await waitForCondition(timeout: .milliseconds(500), "Biometric preference should load") {
-            sut.biometricEnabled == true
-        }
+        await sut.bootstrap()
 
         await sut.checkAuthState()
 
@@ -521,9 +498,7 @@ struct AppStateBiometricColdStartTests {
             validateBiometricSession: { throw SimulatedUnknownError() }
         )
 
-        await waitForCondition(timeout: .milliseconds(500), "Biometric preference should load") {
-            sut.biometricEnabled == true
-        }
+        await sut.bootstrap()
 
         await sut.checkAuthState()
 
@@ -554,9 +529,7 @@ struct AppStateBiometricColdStartTests {
             validateBiometricSession: { throw AuthServiceError.biometricSessionExpired }
         )
 
-        await waitForCondition(timeout: .milliseconds(500), "Biometric preference should load") {
-            sut.biometricEnabled == true
-        }
+        await sut.bootstrap()
 
         // Cold start: biometric session validation fails
         await sut.checkAuthState()
@@ -591,9 +564,7 @@ struct AppStateBiometricColdStartTests {
             syncBiometricCredentials: { true }
         )
 
-        await waitForCondition(timeout: .milliseconds(500), "Biometric preference should load") {
-            sut.biometricEnabled == true
-        }
+        await sut.bootstrap()
 
         // Simulate post-session-expiry state
         sut.biometricCredentialsAvailable = false
@@ -606,5 +577,63 @@ struct AppStateBiometricColdStartTests {
         // On simulators without biometric enrollment, enableBiometric may fail
         // (saveBiometricClientKey requires .biometryCurrentSet), so we accept either state
         // On real devices with enrolled biometrics, this would be true
+    }
+
+    // MARK: - hasReturningUser Loaded Before .unauthenticated (Error Paths)
+
+    @Test("checkAuthState with network error loads hasReturningUser before unauthenticated")
+    func checkAuthState_networkError_loadsReturningUserBeforeUnauthenticated() async {
+        let keychain = MockKeychainStore(lastUsedEmail: "returning@pulpe.app")
+
+        UserDefaults.standard.set(true, forKey: "pulpe-has-launched-before")
+        defer { UserDefaults.standard.removeObject(forKey: "pulpe-has-launched-before") }
+
+        let sut = AppState(
+            keychainManager: keychain,
+            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
+            validateRegularSession: { throw URLError(.notConnectedToInternet) },
+            validateBiometricSession: { throw URLError(.notConnectedToInternet) }
+        )
+
+        await sut.bootstrap()
+
+        await sut.checkAuthState()
+
+        #expect(
+            sut.authState == .unauthenticated,
+            "State should be unauthenticated on network error"
+        )
+        #expect(
+            sut.hasReturningUser == true,
+            "Returning user flag must be loaded even on network error path so LoginView shows instead of OnboardingFlow"
+        )
+    }
+
+    @Test("checkAuthState with biometric session expired loads hasReturningUser before unauthenticated")
+    func checkAuthState_biometricSessionExpired_loadsReturningUserBeforeUnauthenticated() async {
+        let keychain = MockKeychainStore(lastUsedEmail: "returning@pulpe.app")
+
+        UserDefaults.standard.set(true, forKey: "pulpe-has-launched-before")
+        defer { UserDefaults.standard.removeObject(forKey: "pulpe-has-launched-before") }
+
+        let sut = AppState(
+            keychainManager: keychain,
+            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
+            validateRegularSession: { nil },
+            validateBiometricSession: { throw AuthServiceError.biometricSessionExpired }
+        )
+
+        await sut.bootstrap()
+
+        await sut.checkAuthState()
+
+        #expect(
+            sut.authState == .unauthenticated,
+            "State should be unauthenticated when biometric session has expired"
+        )
+        #expect(
+            sut.hasReturningUser == true,
+            "Returning user flag must be loaded even on biometric session expiry path so LoginView shows instead of OnboardingFlow"
+        )
     }
 }

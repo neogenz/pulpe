@@ -102,10 +102,7 @@ struct AppStateLogoutBiometricTests {
             }
         )
 
-        // Wait for biometric preference to load
-        await waitForCondition(timeout: .milliseconds(500), "Biometric preference should load") {
-            sut.biometricEnabled == true
-        }
+        await sut.bootstrap()
 
         await sut.checkAuthState()
 
@@ -136,9 +133,7 @@ struct AppStateLogoutBiometricTests {
             }
         )
 
-        await waitForCondition(timeout: .milliseconds(500), "Biometric preference should load") {
-            sut.biometricEnabled == true
-        }
+        await sut.bootstrap()
 
         await sut.checkAuthState()
 
@@ -168,9 +163,7 @@ struct AppStateLogoutBiometricTests {
             }
         )
 
-        await waitForCondition(timeout: .milliseconds(500), "Biometric preference should load") {
-            sut.biometricEnabled == true
-        }
+        await sut.bootstrap()
 
         await sut.checkAuthState()
 
@@ -198,9 +191,7 @@ struct AppStateLogoutBiometricTests {
             validateBiometricSession: { nil }
         )
 
-        await waitForCondition(timeout: .milliseconds(500), "Biometric preference should load") {
-            sut.biometricEnabled == true
-        }
+        await sut.bootstrap()
 
         #expect(
             UserDefaults.standard.bool(forKey: Self.didExplicitLogoutKey) == true,

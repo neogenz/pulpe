@@ -70,7 +70,82 @@ extension AtomicFlag {
     }
 }
 
-// MARK: - BiometricPreferenceStore Factory
+// MARK: - Mock AppAuthFlagsStore
+
+final class MockAppAuthFlagsStore: AppAuthFlagsStoring, @unchecked Sendable {
+    private let lock = NSLock()
+    private var _hasLaunchedBefore: Bool
+    private var _didExplicitLogout: Bool
+    private var _manualBiometricRetryRequired: Bool
+
+    init(
+        hasLaunchedBefore: Bool = true,
+        didExplicitLogout: Bool = false,
+        manualBiometricRetryRequired: Bool = false
+    ) {
+        _hasLaunchedBefore = hasLaunchedBefore
+        _didExplicitLogout = didExplicitLogout
+        _manualBiometricRetryRequired = manualBiometricRetryRequired
+    }
+
+    var hasLaunchedBefore: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return _hasLaunchedBefore
+    }
+
+    func setHasLaunchedBefore() {
+        lock.lock()
+        defer { lock.unlock() }
+        _hasLaunchedBefore = true
+    }
+
+    var didExplicitLogout: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return _didExplicitLogout
+    }
+
+    func setDidExplicitLogout(_ value: Bool) {
+        lock.lock()
+        defer { lock.unlock() }
+        _didExplicitLogout = value
+    }
+
+    func clearExplicitLogoutFlag() {
+        lock.lock()
+        defer { lock.unlock() }
+        _didExplicitLogout = false
+    }
+
+    var manualBiometricRetryRequired: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return _manualBiometricRetryRequired
+    }
+
+    func setManualBiometricRetryRequired(_ value: Bool) {
+        lock.lock()
+        defer { lock.unlock() }
+        _manualBiometricRetryRequired = value
+    }
+
+    func clearManualBiometricRetryFlag() {
+        lock.lock()
+        defer { lock.unlock() }
+        _manualBiometricRetryRequired = false
+    }
+}
+
+// MARK: - Mock WidgetSync
+
+final class MockWidgetSync: WidgetSyncing, @unchecked Sendable {
+    let clearAndReloadCalled = AtomicFlag()
+
+    func clearAndReload() {
+        clearAndReloadCalled.set()
+    }
+}
 
 // MARK: - Mock KeychainEmailStoring
 

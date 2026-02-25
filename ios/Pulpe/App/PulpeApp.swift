@@ -187,6 +187,7 @@ struct RootView: View {
             handleSessionExpired()
         }
         .task {
+            await appState.bootstrap()
             await appState.checkMaintenanceStatus()
             guard !appState.isInMaintenance, !appState.isNetworkUnavailable else { return }
             await appState.checkAuthState()
