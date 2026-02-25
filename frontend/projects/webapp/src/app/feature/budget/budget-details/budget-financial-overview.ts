@@ -33,43 +33,57 @@ const COMFORT_THRESHOLD = 0.2;
       <!-- Hero Section: What matters most -->
       <div
         class="text-center py-8 px-6 rounded-3xl"
-        [class.bg-primary-container]="isPositive()"
-        [class.bg-error-container]="!isPositive()"
+        [class.bg-primary-container]="budgetState() === 'comfortable'"
+        [class.hero-warning]="budgetState() === 'warning'"
+        [class.bg-error-container]="budgetState() === 'deficit'"
       >
         <p
           class="text-body-large mb-3"
-          [class.text-on-primary-container]="isPositive()"
-          [class.text-on-error-container]="!isPositive()"
+          [class.text-on-primary-container]="budgetState() === 'comfortable'"
+          [class.text-warning]="budgetState() === 'warning'"
+          [class.text-on-error-container]="budgetState() === 'deficit'"
         >
-          @if (isPositive()) {
-            Ce qu'il te reste ce mois
-          } @else {
-            Déficit ce mois
+          @switch (budgetState()) {
+            @case ('comfortable') {
+              Ce qu'il te reste ce mois
+            }
+            @case ('warning') {
+              Ce qu'il te reste ce mois
+            }
+            @case ('deficit') {
+              Déficit ce mois
+            }
           }
         </p>
         <div
           class="text-display-medium sm:text-display-large font-bold tracking-tight ph-no-capture"
-          [class.text-on-primary-container]="isPositive()"
-          [class.text-on-error-container]="!isPositive()"
+          [class.text-on-primary-container]="budgetState() === 'comfortable'"
+          [class.text-warning]="budgetState() === 'warning'"
+          [class.text-on-error-container]="budgetState() === 'deficit'"
         >
           {{ remainingAbsolute() | number: '1.0-0' : 'de-CH' }}
           <span class="text-headline-small font-normal">CHF</span>
         </div>
         <p
           class="text-body-medium mt-3"
-          [class.text-on-primary-container]="isPositive()"
-          [class.text-on-error-container]="!isPositive()"
+          [class.text-on-primary-container]="budgetState() === 'comfortable'"
+          [class.text-warning]="budgetState() === 'warning'"
+          [class.text-on-error-container]="budgetState() === 'deficit'"
         >
-          @if (isPositive()) {
-            @if (isComfortable()) {
+          @switch (budgetState()) {
+            @case ('comfortable') {
               Belle marge ce mois
-            } @else if (totals().remaining > 0) {
-              Tu gères bien
-            } @else {
-              Pile à l'équilibre
             }
-          } @else {
-            Ce mois sera serré — mais tu le sais
+            @case ('warning') {
+              @if (totals().remaining > 0) {
+                Tu gères bien
+              } @else {
+                Pile à l'équilibre
+              }
+            }
+            @case ('deficit') {
+              Ce mois sera serré — mais tu le sais
+            }
           }
         </p>
       </div>
@@ -158,6 +172,14 @@ const COMFORT_THRESHOLD = 0.2;
       display: block;
     }
 
+    .hero-warning {
+      background-color: var(--pulpe-amber-container);
+    }
+
+    .text-warning {
+      color: var(--pulpe-amber);
+    }
+
     /* Hide scrollbar but keep functionality */
     .scrollbar-hide {
       -ms-overflow-style: none;
@@ -221,6 +243,12 @@ export class BudgetFinancialOverview {
   readonly isComfortable = computed(
     () => this.totals().remaining > this.totals().income * COMFORT_THRESHOLD,
   );
+
+  readonly budgetState = computed<'comfortable' | 'warning' | 'deficit'>(() => {
+    if (!this.isPositive()) return 'deficit';
+    if (!this.isComfortable()) return 'warning';
+    return 'comfortable';
+  });
 
   readonly remainingAbsolute = computed(() =>
     Math.abs(this.totals().remaining),

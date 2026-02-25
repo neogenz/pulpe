@@ -115,17 +115,15 @@ const WARNING_THRESHOLD_PERCENT = 80;
           </span>
         </div>
         <div
-          class="relative w-full h-3 bg-black/10 rounded-full overflow-hidden"
+          class="relative w-full h-3 bg-black/10 rounded-full"
           [matTooltip]="'Mois écoulé : ' + timeElapsedPercentage() + '%'"
         >
           <div
-            class="absolute top-0 h-full w-0.5 z-10 rounded-full pace-marker motion-safe:transition-all motion-safe:duration-700"
-            [class.pace-on-track]="paceStatus() === 'on-track'"
-            [class.pace-tight]="paceStatus() !== 'on-track'"
+            class="absolute -top-0.5 -bottom-0.5 w-1 z-10 rounded-full pace-marker motion-safe:transition-all motion-safe:duration-700"
             [style.left.%]="timeElapsedPercentage()"
           ></div>
           <div
-            class="h-full rounded-full motion-safe:transition-all motion-safe:duration-1000 relative progress-fill"
+            class="h-full rounded-full overflow-hidden motion-safe:transition-all motion-safe:duration-1000 relative progress-fill"
             [style.width.%]="budgetConsumedPercentage()"
           >
             <div
@@ -155,11 +153,10 @@ const WARNING_THRESHOLD_PERCENT = 80;
       .hero-container.budget-warning {
         background: linear-gradient(
           145deg,
-          var(--pulpe-hero-warning-start),
-          var(--pulpe-hero-warning-mid) 55%,
-          var(--pulpe-hero-warning-end)
+          var(--pulpe-amber) 0%,
+          color-mix(in srgb, var(--pulpe-amber) 75%, black) 100%
         );
-        color: var(--pulpe-hero-warning-on);
+        color: white;
       }
 
       .hero-container.budget-over {
@@ -183,20 +180,10 @@ const WARNING_THRESHOLD_PERCENT = 80;
         background-color: currentColor;
       }
 
-      .pace-marker.pace-on-track {
-        background-color: color-mix(
-          in srgb,
-          var(--mat-sys-tertiary) 70%,
-          transparent
-        );
-      }
-
-      .pace-marker.pace-tight {
-        background-color: color-mix(
-          in srgb,
-          var(--pulpe-financial-expense) 70%,
-          transparent
-        );
+      .pace-marker {
+        background-color: currentColor;
+        opacity: 0.7;
+        box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
       }
     `,
   ],

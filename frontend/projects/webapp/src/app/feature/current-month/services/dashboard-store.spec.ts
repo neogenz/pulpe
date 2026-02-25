@@ -78,8 +78,11 @@ function createMocks() {
       getBudgetById$: vi.fn().mockReturnValue(of(createMockBudget())),
       createTransaction$: vi.fn(),
       toggleBudgetLineCheck$: vi.fn(),
+      seedDashboardCache: vi.fn(),
+      getDashboardCached: vi.fn().mockReturnValue(null),
       cache: {
         get: vi.fn().mockReturnValue(null),
+        set: vi.fn(),
       },
     },
     userSettingsApi: {
@@ -250,10 +253,7 @@ describe('DashboardStore - Business Scenarios', () => {
       });
 
       // Simulate cache returning stale data (resource clears value on reload)
-      mocks.budgetApi.cache.get.mockReturnValue({
-        fresh: false,
-        data: dashboardData,
-      });
+      mocks.budgetApi.getDashboardCached.mockReturnValue(dashboardData);
 
       // Trigger reload by making the next load hang
       mocks.budgetApi.getDashboardData$.mockReturnValue(NEVER);

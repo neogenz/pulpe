@@ -85,13 +85,7 @@ export class DashboardStore {
     const period = this.currentBudgetPeriod();
     const month = period.month.toString().padStart(2, '0');
     const year = period.year.toString();
-    const cached = this.#budgetApi.cache.get<DashboardData>([
-      'budget',
-      'dashboard',
-      month,
-      year,
-    ]);
-    return cached?.data ?? null;
+    return this.#budgetApi.getDashboardCached(month, year);
   });
 
   readonly transactions = computed<Transaction[]>(
@@ -301,12 +295,15 @@ export class DashboardStore {
     const newCheckedAt =
       budgetLine.checkedAt === null ? new Date().toISOString() : null;
 
-    this.#dashboardResource.set({
+    const optimisticData = {
       ...originalData,
       budgetLines: originalData.budgetLines.map((line) =>
         line.id === budgetLineId ? { ...line, checkedAt: newCheckedAt } : line,
       ),
-    });
+    };
+
+    this.#dashboardResource.set(optimisticData);
+    this.#syncDashboardCache(optimisticData);
 
     try {
       await firstValueFrom(
@@ -314,11 +311,19 @@ export class DashboardStore {
       );
     } catch (error) {
       this.#dashboardResource.set(originalData);
+      this.#syncDashboardCache(originalData);
       throw error;
     }
   }
 
   // ── 6. Private utils ──
+  #syncDashboardCache(data: DashboardData): void {
+    const period = this.currentBudgetPeriod();
+    const month = period.month.toString().padStart(2, '0');
+    const year = period.year.toString();
+    this.#budgetApi.seedDashboardCache(month, year, data);
+  }
+
   async #performOptimisticMutation<T>(
     operation: () => Observable<{ data: T }>,
     updateData: (currentData: DashboardData, response: T) => DashboardData,
@@ -351,13 +356,15 @@ export class DashboardStore {
           rollover,
         );
 
-        this.#dashboardResource.set({
+        const withMetrics = {
           ...updatedData,
           budget: {
             ...currentData.budget,
             endingBalance: metrics.endingBalance,
           },
-        });
+        };
+        this.#dashboardResource.set(withMetrics);
+        this.#syncDashboardCache(withMetrics);
 
         const budgetId = currentData.budget.id;
         const updatedBudget = await firstValueFrom(
@@ -366,19 +373,22 @@ export class DashboardStore {
 
         const latestData = this.#dashboardResource.value();
         if (latestData && latestData.budget && updatedBudget) {
-          this.#dashboardResource.set({
+          const withBudget = {
             ...latestData,
             budget: {
               ...updatedBudget,
               rollover: latestData.budget.rollover,
               previousBudgetId: latestData.budget.previousBudgetId,
             },
-          });
+          };
+          this.#dashboardResource.set(withBudget);
+          this.#syncDashboardCache(withBudget);
         }
       }
     } catch (error) {
       if (originalData) {
         this.#dashboardResource.set(originalData);
+        this.#syncDashboardCache(originalData);
       } else {
         this.refreshData();
       }

@@ -70,7 +70,7 @@ describe('BudgetApi', () => {
   }
 
   describe('createBudget$', () => {
-    it('should make HTTP POST request and store budget ID', () => {
+    it('should create a budget and cache its ID', () => {
       const { service, httpTesting, mockHasBudgetCache, mockInvalidation } =
         createTestBed();
       const templateData = {
@@ -336,6 +336,76 @@ describe('BudgetApi', () => {
     });
   });
 
+  describe('seedDashboardCache', () => {
+    it('should write data to cache with dashboard key', () => {
+      const { service } = createTestBed();
+      const cacheSpy = vi.spyOn(service.cache, 'set');
+      const data = {
+        budget: null,
+        transactions: [],
+        budgetLines: [],
+      };
+
+      service.seedDashboardCache('06', '2025', data);
+
+      expect(cacheSpy).toHaveBeenCalledWith(
+        ['budget', 'dashboard', '06', '2025'],
+        data,
+      );
+    });
+
+    it('should pad single-digit month to two digits', () => {
+      const { service } = createTestBed();
+      const cacheSpy = vi.spyOn(service.cache, 'set');
+      const data = {
+        budget: null,
+        transactions: [],
+        budgetLines: [],
+      };
+
+      service.seedDashboardCache('6', '2025', data);
+
+      expect(cacheSpy).toHaveBeenCalledWith(
+        ['budget', 'dashboard', '06', '2025'],
+        data,
+      );
+    });
+  });
+
+  describe('getDashboardCached', () => {
+    it('should return cached data when available', () => {
+      const { service } = createTestBed();
+      const data = {
+        budget: null,
+        transactions: [],
+        budgetLines: [],
+      };
+
+      service.seedDashboardCache('06', '2025', data);
+
+      expect(service.getDashboardCached('06', '2025')).toEqual(data);
+    });
+
+    it('should return null when no cached data', () => {
+      const { service } = createTestBed();
+
+      expect(service.getDashboardCached('06', '2025')).toBeNull();
+    });
+
+    it('should pad single-digit month', () => {
+      const { service } = createTestBed();
+      const data = {
+        budget: null,
+        transactions: [],
+        budgetLines: [],
+      };
+
+      service.seedDashboardCache('06', '2025', data);
+
+      expect(service.getDashboardCached('6', '2025')).toEqual(data);
+    });
+  });
+
   const BUDGET_LINE_DATA = {
     id: '550e8400-e29b-41d4-a716-446655440010',
     budgetId: '550e8400-e29b-41d4-a716-446655440000',
@@ -376,7 +446,7 @@ describe('BudgetApi', () => {
   };
 
   describe('createBudgetLine$', () => {
-    it('should POST to /budget-lines and invalidate', () => {
+    it('should create a budget line and invalidate cache', () => {
       const { service, httpTesting, mockInvalidation } = createTestBed();
       const data = {
         budgetId: '550e8400-e29b-41d4-a716-446655440000',
@@ -461,7 +531,7 @@ describe('BudgetApi', () => {
   });
 
   describe('toggleBudgetLineCheck$', () => {
-    it('should POST to /budget-lines/:id/toggle-check without global invalidation but with cache invalidation', () => {
+    it('should POST to /budget-lines/:id/toggle-check and invalidate', () => {
       const { service, httpTesting, mockInvalidation } = createTestBed();
       const cacheInvalidateSpy = vi.spyOn(service.cache, 'invalidate');
       const id = '550e8400-e29b-41d4-a716-446655440010';
@@ -476,13 +546,13 @@ describe('BudgetApi', () => {
       req.flush(BUDGET_LINE_RESPONSE);
 
       expect(result).toEqual(BUDGET_LINE_RESPONSE);
-      expect(mockInvalidation.invalidate).not.toHaveBeenCalled();
+      expect(mockInvalidation.invalidate).toHaveBeenCalled();
       expect(cacheInvalidateSpy).toHaveBeenCalledWith(['budget']);
     });
   });
 
   describe('checkBudgetLineTransactions$', () => {
-    it('should POST to /budget-lines/:id/check-transactions without global invalidation but with cache invalidation', () => {
+    it('should POST to /budget-lines/:id/check-transactions and invalidate', () => {
       const { service, httpTesting, mockInvalidation } = createTestBed();
       const cacheInvalidateSpy = vi.spyOn(service.cache, 'invalidate');
       const id = '550e8400-e29b-41d4-a716-446655440010';
@@ -498,7 +568,7 @@ describe('BudgetApi', () => {
       req.flush(listResponse);
 
       expect(result).toEqual(listResponse);
-      expect(mockInvalidation.invalidate).not.toHaveBeenCalled();
+      expect(mockInvalidation.invalidate).toHaveBeenCalled();
       expect(cacheInvalidateSpy).toHaveBeenCalledWith(['budget']);
     });
   });
@@ -561,7 +631,7 @@ describe('BudgetApi', () => {
   });
 
   describe('toggleTransactionCheck$', () => {
-    it('should delegate to TransactionApi.toggleCheck$ without global invalidation but with cache invalidation', () => {
+    it('should delegate to TransactionApi.toggleCheck$ and invalidate', () => {
       const { service, mockTransactionApi, mockInvalidation } = createTestBed();
       const cacheInvalidateSpy = vi.spyOn(service.cache, 'invalidate');
       mockTransactionApi.toggleCheck$.mockReturnValue(of(TRANSACTION_RESPONSE));
@@ -572,7 +642,7 @@ describe('BudgetApi', () => {
 
       expect(mockTransactionApi.toggleCheck$).toHaveBeenCalledWith(id);
       expect(result).toEqual(TRANSACTION_RESPONSE);
-      expect(mockInvalidation.invalidate).not.toHaveBeenCalled();
+      expect(mockInvalidation.invalidate).toHaveBeenCalled();
       expect(cacheInvalidateSpy).toHaveBeenCalledWith(['budget']);
     });
   });

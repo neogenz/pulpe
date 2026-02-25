@@ -370,7 +370,9 @@ interface NavigationItem {
             data-tour="page-content"
           >
             <div #scrollSentinel class="h-0" aria-hidden="true"></div>
-            <router-outlet />
+            <div class="container mx-auto">
+              <router-outlet />
+            </div>
           </main>
         </div>
       </mat-sidenav-content>
@@ -501,7 +503,7 @@ export default class MainLayout {
   protected readonly hasBreadcrumb = computed(
     () => this.breadcrumbState.breadcrumbs().length > 1,
   );
-  private readonly scrollSentinel =
+  readonly #scrollSentinel =
     viewChild<ElementRef<HTMLElement>>('scrollSentinel');
   readonly #destroyRef = inject(DestroyRef);
   readonly #logger = inject(Logger);
@@ -595,7 +597,7 @@ export default class MainLayout {
 
   constructor() {
     afterNextRender(() => {
-      const sentinel = this.scrollSentinel()?.nativeElement;
+      const sentinel = this.#scrollSentinel()?.nativeElement;
       if (!sentinel) return;
 
       const observer = new IntersectionObserver(

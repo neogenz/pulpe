@@ -16,22 +16,12 @@
   --pulpe-amber: #b35800;
   --pulpe-amber-container: #fff3e0;
   --pulpe-amber-on-container: #3e2723;
-
-  --pulpe-yellow-light: #fef9c3;
-  --pulpe-yellow-mid: #fbbf24;
-  --pulpe-yellow-dark: #d97706;
-  --pulpe-yellow-on: #451a03;
 }
 
 .dark-theme {
   --pulpe-amber: #f0a050;
   --pulpe-amber-container: #2a1f10;
   --pulpe-amber-on-container: #fff3e0;
-
-  --pulpe-yellow-light: #451a03;
-  --pulpe-yellow-mid: #b45309;
-  --pulpe-yellow-dark: #fbbf24;
-  --pulpe-yellow-on: #fef9c3;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -39,11 +29,6 @@
     --pulpe-amber: #f0a050;
     --pulpe-amber-container: #2a1f10;
     --pulpe-amber-on-container: #fff3e0;
-
-    --pulpe-yellow-light: #451a03;
-    --pulpe-yellow-mid: #b45309;
-    --pulpe-yellow-dark: #fbbf24;
-    --pulpe-yellow-on: #fef9c3;
   }
 }
 
@@ -99,11 +84,7 @@
   --pulpe-financial-critical: var(--mat-sys-error);
   --pulpe-financial-critical-light: var(--mat-sys-error-container);
 
-  // Hero card budget-state gradient
-  --pulpe-hero-warning-start: var(--pulpe-yellow-light);
-  --pulpe-hero-warning-mid: var(--pulpe-yellow-mid);
-  --pulpe-hero-warning-end: var(--pulpe-yellow-dark);
-  --pulpe-hero-warning-on: var(--pulpe-yellow-on);
+  // Hero card budget-state gradient (cascades from primitives above)
 }
 
 // ─── Dark mode: Material reference swaps ────────────────────────────

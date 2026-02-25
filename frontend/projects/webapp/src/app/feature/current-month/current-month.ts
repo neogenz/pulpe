@@ -133,6 +133,7 @@ type TransactionFormData = Pick<
               class="order-1 lg:order-2"
               [forecasts]="store.uncheckedForecasts()"
               (toggleCheck)="toggleBudgetLineCheck($event)"
+              (viewBudget)="navigateToBudgetDetails()"
               data-testid="dashboard-block-forecasts"
             />
           </div>

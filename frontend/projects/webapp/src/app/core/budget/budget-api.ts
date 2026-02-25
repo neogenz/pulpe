@@ -199,6 +199,37 @@ export class BudgetApi {
     );
   }
 
+  seedDashboardCache(
+    month: string,
+    year: string,
+    data: {
+      budget: Budget | null;
+      transactions: Transaction[];
+      budgetLines: BudgetLine[];
+    },
+  ): void {
+    const paddedMonth = month.padStart(2, '0');
+    this.cache.set(['budget', 'dashboard', paddedMonth, year], data);
+  }
+
+  getDashboardCached(
+    month: string,
+    year: string,
+  ): {
+    budget: Budget | null;
+    transactions: Transaction[];
+    budgetLines: BudgetLine[];
+  } | null {
+    const paddedMonth = month.padStart(2, '0');
+    return (
+      this.cache.get<{
+        budget: Budget | null;
+        transactions: Transaction[];
+        budgetLines: BudgetLine[];
+      }>(['budget', 'dashboard', paddedMonth, year])?.data ?? null
+    );
+  }
+
   getHistoryData$(): Observable<
     {
       id: string;
@@ -337,7 +368,12 @@ export class BudgetApi {
         {},
         budgetLineResponseSchema,
       )
-      .pipe(tap(() => this.cache.invalidate(['budget'])));
+      .pipe(
+        tap(() => {
+          this.#invalidationService.invalidate();
+          this.cache.invalidate(['budget']);
+        }),
+      );
   }
 
   checkBudgetLineTransactions$(
@@ -349,7 +385,12 @@ export class BudgetApi {
         {},
         transactionListResponseSchema,
       )
-      .pipe(tap(() => this.cache.invalidate(['budget'])));
+      .pipe(
+        tap(() => {
+          this.#invalidationService.invalidate();
+          this.cache.invalidate(['budget']);
+        }),
+      );
   }
 
   createTransaction$(
@@ -385,8 +426,11 @@ export class BudgetApi {
   }
 
   toggleTransactionCheck$(id: string): Observable<TransactionUpdateResponse> {
-    return this.#transactionApi
-      .toggleCheck$(id)
-      .pipe(tap(() => this.cache.invalidate(['budget'])));
+    return this.#transactionApi.toggleCheck$(id).pipe(
+      tap(() => {
+        this.#invalidationService.invalidate();
+        this.cache.invalidate(['budget']);
+      }),
+    );
   }
 }
