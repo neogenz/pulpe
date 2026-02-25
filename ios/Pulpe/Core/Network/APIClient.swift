@@ -234,7 +234,7 @@ actor APIClient {
         if let errorResponse = try? decoder.decode(APIResponse<EmptyResponse>.self, from: data) {
             let error = APIError.from(
                 code: errorResponse.code,
-                message: errorResponse.error ?? errorResponse.message
+                message: errorResponse.message ?? errorResponse.error
             )
             broadcastErrorNotifications(error)
             return error

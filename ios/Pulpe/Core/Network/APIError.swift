@@ -25,6 +25,7 @@ enum APIError: LocalizedError {
     case rateLimited
     case maintenance
     case clientKeyInvalid
+    case recoveryKeyInvalid
 
     var errorDescription: String? {
         switch self {
@@ -70,6 +71,8 @@ enum APIError: LocalizedError {
             return "Application en maintenance — réessaie dans quelques instants"
         case .clientKeyInvalid:
             return "Ton code d'accès a été modifié — saisis ton nouveau code"
+        case .recoveryKeyInvalid:
+            return "Clé de récupération invalide — vérifie que tu as bien copié la clé"
         }
     }
 
@@ -85,6 +88,7 @@ enum APIError: LocalizedError {
         "over_request_rate_limit": .rateLimited,
         "MAINTENANCE": .maintenance,
         "ERR_ENCRYPTION_KEY_CHECK_FAILED": .clientKeyInvalid,
+        "ERR_RECOVERY_KEY_INVALID": .recoveryKeyInvalid,
     ]
 
     /// Create APIError from server error code

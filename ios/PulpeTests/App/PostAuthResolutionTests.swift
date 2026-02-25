@@ -8,6 +8,7 @@ import Testing
 // swiftlint:disable:next type_body_length
 struct PostAuthResolutionRouterTests {
     private let user = UserInfo(id: "user-1", email: "test@pulpe.app", firstName: "Max")
+    private let biometricAutoEnrollmentAttemptedKey = "pulpe-biometric-enrollment-dismissed"
 
     private func makeBiometricPreferenceStore(initial: Bool) -> BiometricPreferenceStore {
         BiometricPreferenceStore(
@@ -35,6 +36,10 @@ struct PostAuthResolutionRouterTests {
             }
             try? await Task.sleep(for: .milliseconds(10))
         }
+    }
+
+    private func clearBiometricAutoEnrollmentAttemptFlag() {
+        UserDefaults.standard.removeObject(forKey: biometricAutoEnrollmentAttemptedKey)
     }
 
     @Test("existing user routes to PIN entry")
@@ -169,20 +174,24 @@ struct PostAuthResolutionRouterTests {
         #expect(sut.authState == .needsPinEntry)
     }
 
-    @Test("existing user with Face ID enabled skips enrollment prompt")
-    func existingUserWithBiometricEnabled_skipsEnrollmentPrompt() async {
+    @Test("existing user with Face ID enabled does not auto-trigger enrollment")
+    func existingUserWithBiometricEnabled_doesNotAutoTriggerEnrollment() async {
         let resolver = StubPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: false))
+        let authSpy = BiometricAuthenticateSpy()
         let sut = AppState(
             postAuthResolver: resolver,
             biometricPreferenceStore: makeBiometricPreferenceStore(initial: true),
-            biometricCapability: { true }
+            biometricCapability: { true },
+            biometricAuthenticate: {
+                await authSpy.recordCall()
+            }
         )
 
         await waitForBiometricPreferenceLoad(sut, expected: true)
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .authenticated)
-        #expect(sut.showBiometricEnrollment == false)
+        #expect(await authSpy.callCount() == 0)
     }
 
     @Test("post-auth PIN entry disables biometric auto unlock, even when preference exists")
@@ -200,20 +209,24 @@ struct PostAuthResolutionRouterTests {
         #expect(sut.authState == .needsPinEntry)
     }
 
-    @Test("existing user without Face ID preference shows enrollment prompt")
-    func existingUserWithoutBiometricPreference_showsEnrollmentPrompt() async {
+    @Test("existing user without Face ID preference does not auto-trigger enrollment from direct authenticated route")
+    func existingUserWithoutBiometricPreference_directAuthenticatedRouteDoesNotAutoTrigger() async {
         let resolver = StubPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: false))
+        let authSpy = BiometricAuthenticateSpy()
         let sut = AppState(
             postAuthResolver: resolver,
             biometricPreferenceStore: makeBiometricPreferenceStore(initial: false),
-            biometricCapability: { true }
+            biometricCapability: { true },
+            biometricAuthenticate: {
+                await authSpy.recordCall()
+            }
         )
 
         await waitForBiometricPreferenceLoad(sut, expected: false)
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .authenticated)
-        #expect(sut.showBiometricEnrollment == true)
+        #expect(await authSpy.callCount() == 0)
     }
 
     @Test("biometric enrollment acceptance triggers one OS prompt")
@@ -231,10 +244,70 @@ struct PostAuthResolutionRouterTests {
 
         await waitForBiometricPreferenceLoad(sut, expected: false)
         await sut.resolvePostAuth(user: user)
-        #expect(sut.showBiometricEnrollment == true)
 
         _ = await sut.enableBiometric()
 
+        #expect(await authSpy.callCount() == 1)
+    }
+
+    @Test("PIN success auto-triggers biometric enrollment once without custom enrollment prompt")
+    func pinSuccess_autoTriggersBiometricEnrollmentOnce() async {
+        clearBiometricAutoEnrollmentAttemptFlag()
+        defer { clearBiometricAutoEnrollmentAttemptFlag() }
+
+        let resolver = StubPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false))
+        let authSpy = BiometricAuthenticateSpy()
+        let sut = AppState(
+            postAuthResolver: resolver,
+            biometricPreferenceStore: makeBiometricPreferenceStore(initial: false),
+            biometricCapability: { true },
+            biometricAuthenticate: {
+                await authSpy.recordCall()
+            }
+        )
+
+        await waitForBiometricPreferenceLoad(sut, expected: false)
+        await sut.resolvePostAuth(user: user)
+        #expect(sut.authState == .needsPinEntry)
+
+        await sut.completePinEntry()
+
+        #expect(sut.authState == .authenticated)
+        #expect(await authSpy.callCount() == 1)
+    }
+
+    @Test("automatic biometric enrollment denial does not retry on next PIN auth session")
+    func automaticBiometricEnrollment_denied_doesNotRetryOnNextPinAuthSession() async {
+        clearBiometricAutoEnrollmentAttemptFlag()
+        defer { clearBiometricAutoEnrollmentAttemptFlag() }
+
+        struct DenialError: Error {}
+
+        let resolver = StubPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false))
+        let authSpy = BiometricAuthenticateSpy()
+        let sut = AppState(
+            postAuthResolver: resolver,
+            biometricPreferenceStore: makeBiometricPreferenceStore(initial: false),
+            biometricCapability: { true },
+            biometricAuthenticate: {
+                await authSpy.recordCall()
+                throw DenialError()
+            }
+        )
+
+        await waitForBiometricPreferenceLoad(sut, expected: false)
+
+        await sut.resolvePostAuth(user: user)
+        await sut.completePinEntry()
+        #expect(sut.authState == .authenticated)
+
+        await sut.logout(source: .system)
+        #expect(sut.authState == .unauthenticated)
+
+        await sut.resolvePostAuth(user: user)
+        await sut.completePinEntry()
+
+        #expect(sut.authState == .authenticated)
         #expect(await authSpy.callCount() == 1)
     }
 
@@ -275,7 +348,6 @@ struct PostAuthResolutionRouterTests {
 
         #expect(sut.authState == .authenticated)
         #expect(sut.showRecoveryKeyRepairConsent == true)
-        #expect(sut.showBiometricEnrollment == false)
     }
 
     @Test("checkAuthState waits for biometric preference hydration before decision")

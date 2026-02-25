@@ -427,6 +427,9 @@ final class PinRecoveryViewModel {
             step = .confirmPin
             digits = []
             showError("Ta session a expiré — reconnecte-toi")
+        case .recoveryKeyInvalid:
+            resetToRecoveryKeyStep()
+            showError("Clé de récupération invalide — vérifie que tu as bien copié la clé")
         case .validationError:
             resetToRecoveryKeyStep()
             showError("Clé de récupération invalide — vérifie que tu as bien copié la clé")

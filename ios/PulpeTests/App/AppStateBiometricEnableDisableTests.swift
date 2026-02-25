@@ -7,6 +7,7 @@ import Testing
 @MainActor
 @Suite(.serialized)
 struct AppStateBiometricEnableDisableTests {
+    private static let biometricAutoEnrollmentAttemptedKey = "pulpe-biometric-enrollment-dismissed"
     // MARK: - enableBiometric() Tests
 
     @Test("enableBiometric with no biometric capability returns false")
@@ -130,5 +131,46 @@ struct AppStateBiometricEnableDisableTests {
         #expect(sut.biometricEnabled == false, "biometricEnabled should be false")
         // Note: biometricCredentialsAvailable is not explicitly cleared by disableBiometric(),
         // but biometricEnabled being false prevents its use (Face ID button hidden via &&).
+    }
+
+    @Test("automatic biometric enrollment concurrency triggers only one OS prompt")
+    func automaticEnrollmentConcurrency_triggersSinglePrompt() async throws {
+        UserDefaults.standard.removeObject(forKey: Self.biometricAutoEnrollmentAttemptedKey)
+        defer { UserDefaults.standard.removeObject(forKey: Self.biometricAutoEnrollmentAttemptedKey) }
+
+        let authSpy = ConcurrentBiometricAuthSpy()
+        let sut = AppState(
+            postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false)),
+            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            biometricCapability: { true },
+            biometricAuthenticate: {
+                await authSpy.recordCallAndDelay()
+            }
+        )
+
+        let user = UserInfo(id: "concurrency-user", email: "concurrency@pulpe.app", firstName: "Concurrent")
+        await sut.resolvePostAuth(user: user)
+        try #require(sut.authState == .needsPinEntry, "Setup: expected PIN entry state")
+
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await sut.completePinEntry() }
+            group.addTask { await sut.completePinEntry() }
+        }
+
+        #expect(sut.authState == .authenticated)
+        #expect(await authSpy.callCount() == 1, "Concurrent auto-enrollment triggers must coalesce to one prompt")
+    }
+}
+
+private actor ConcurrentBiometricAuthSpy {
+    private var calls = 0
+
+    func recordCallAndDelay() async {
+        calls += 1
+        try? await Task.sleep(for: .milliseconds(50))
+    }
+
+    func callCount() -> Int {
+        calls
     }
 }
