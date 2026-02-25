@@ -243,9 +243,30 @@ private struct PulpeStatusBackgroundModifier: ViewModifier {
 // MARK: - Keyboard Extensions
 
 extension View {
-    /// Dismiss keyboard on tap
+    /// Dismiss keyboard when tapping outside text fields.
+    /// Uses a UIKit gesture recognizer that does not cancel touches in the view,
+    /// avoiding gesture disambiguation delays with TextFields.
     func dismissKeyboardOnTap() -> some View {
-        onTapGesture {
+        background(KeyboardDismissView())
+    }
+}
+
+private struct KeyboardDismissView: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.backgroundColor = .clear
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.dismiss))
+        tap.cancelsTouchesInView = false
+        view.addGestureRecognizer(tap)
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    final class Coordinator {
+        @objc func dismiss() {
             UIApplication.shared.sendAction(
                 #selector(UIResponder.resignFirstResponder),
                 to: nil,
