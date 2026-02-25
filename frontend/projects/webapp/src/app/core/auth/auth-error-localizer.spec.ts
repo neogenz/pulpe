@@ -92,7 +92,7 @@ describe('AuthErrorLocalizer', () => {
       ]);
 
       expect(service.localizeAuthError(error)).toBe(
-        'Ce mot de passe est trop courant — choisis-en un plus unique',
+        'Ce mot de passe a été exposé dans une fuite de données — choisis-en un autre',
       );
     });
 

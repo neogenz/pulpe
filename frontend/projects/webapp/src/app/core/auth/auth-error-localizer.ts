@@ -87,7 +87,7 @@ export class AuthErrorLocalizer {
 
   localizeAuthError(error: AuthError): string {
     if (isAuthWeakPasswordError(error) && error.reasons.includes('pwned')) {
-      return 'Ce mot de passe est trop courant — choisis-en un plus unique';
+      return 'Ce mot de passe a été exposé dans une fuite de données — choisis-en un autre';
     }
 
     if (error.code) {
