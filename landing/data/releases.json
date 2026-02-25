@@ -1,5 +1,30 @@
 [
   {
+    "version": "0.24.0",
+    "date": "2026-02-25",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.24.0",
+    "platforms": ["web"],
+    "changes": {
+      "features": [
+        {
+          "title": "Tableau de bord repense",
+          "description": "La page Mois courant devient un tableau de bord actionnable avec report de solde, indicateur de rythme de depenses, transactions recentes et navigation rapide"
+        },
+        {
+          "title": "Blocs epargne et apercu du mois suivant",
+          "description": "Nouveaux blocs pour le suivi de l'epargne, l'apercu du mois prochain et des graphiques ameliores"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Message de mot de passe compromis clarifie",
+          "description": "Le message d'erreur pour un mot de passe compromis est plus explicite"
+        }
+      ],
+      "technical": []
+    }
+  },
+  {
     "version": "0.23.1",
     "date": "2026-02-25",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.23.1",
