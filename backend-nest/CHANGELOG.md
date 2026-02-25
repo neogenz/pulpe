@@ -1,5 +1,11 @@
 # backend-nest
 
+## 0.14.3
+
+### Patch Changes
+
+- Correction de la detection des comptes OAuth et augmentation de la limite de recuperation de compte.
+
 ## 0.14.2
 
 ### Patch Changes

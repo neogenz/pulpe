@@ -1,5 +1,25 @@
 [
   {
+    "version": "0.23.1",
+    "date": "2026-02-25",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.23.1",
+    "platforms": ["web"],
+    "changes": {
+      "features": [],
+      "fixes": [
+        {
+          "title": "Detection des comptes OAuth",
+          "description": "La detection des utilisateurs connectes via un fournisseur OAuth est desormais plus fiable, avec une meilleure gestion du flux de suppression de compte"
+        },
+        {
+          "title": "Limite de recuperation de compte",
+          "description": "Le nombre de tentatives autorisees pour configurer la recuperation de compte passe de 1 a 5 par heure"
+        }
+      ],
+      "technical": []
+    }
+  },
+  {
     "version": "0.23.0",
     "date": "2026-02-20",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.23.0",

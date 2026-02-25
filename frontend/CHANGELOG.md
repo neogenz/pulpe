@@ -1,5 +1,11 @@
 # pulpe-frontend
 
+## 0.22.1
+
+### Patch Changes
+
+- Correction de la detection des comptes OAuth et augmentation de la limite de recuperation de compte.
+
 ## 0.22.0
 
 ### Minor Changes
