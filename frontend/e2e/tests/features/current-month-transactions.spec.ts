@@ -7,13 +7,13 @@ import {
 } from '../../helpers/api-mocks';
 
 /**
- * E2E Tests for Current Month Transactions (Scenarios 6.2-6.4)
+ * E2E Tests for Current Month Transactions
  *
- * Tests the transaction lifecycle on the current month dashboard:
+ * Tests the transaction lifecycle on the dashboard:
  * - Adding a transaction via FAB
- * - Editing a transaction
- * - Deleting a transaction
  * - Totals recalculation after adding a free transaction
+ *
+ * Note: Edit/delete functionality lives in budget-details, not the dashboard.
  */
 test.describe('Current Month Transactions', () => {
   const budgetId = TEST_UUIDS.BUDGET_1;
@@ -36,7 +36,7 @@ test.describe('Current Month Transactions', () => {
     kind: 'expense',
   });
 
-  test('should add a transaction via FAB and display it in the list', async ({
+  test('should add a transaction via FAB and display it in recent transactions', async ({
     authenticatedPage,
     currentMonthPage,
   }) => {
@@ -114,188 +114,9 @@ test.describe('Current Month Transactions', () => {
     // Bottom sheet should close
     await expect(form).toBeHidden();
 
-    // Transaction should appear in the one-time expenses list
-    const oneTimeList = authenticatedPage.getByTestId('one-time-expenses-list');
-    await expect(oneTimeList).toContainText('Cafe');
-  });
-
-  test('should edit a transaction amount from current month view', async ({
-    authenticatedPage,
-    currentMonthPage,
-  }) => {
-    const existingTransaction = createTransactionMock(TEST_UUIDS.TRANSACTION_1, budgetId, {
-      name: 'Courses Migros',
-      amount: 100,
-      kind: 'expense',
-      budgetLineId: null,
-      transactionDate: currentMonthDate,
-    });
-
-    const updatedTransaction = {
-      ...existingTransaction,
-      name: 'Courses Migros modifie',
-      amount: 150,
-    };
-
-    let hasUpdated = false;
-
-    await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
-      const response = createBudgetDetailsMock(budgetId, {
-        budget: { rollover: 0, month: currentMonth, year: currentYear },
-        budgetLines: [salaireLine, coursesLine],
-        transactions: [hasUpdated ? updatedTransaction : existingTransaction],
-      });
-
-      void route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(response),
-      });
-    });
-
-    // Mock PATCH /transactions/:id
-    await authenticatedPage.route(
-      `**/api/v1/transactions/${TEST_UUIDS.TRANSACTION_1}`,
-      (route) => {
-        if (route.request().method() === 'PATCH') {
-          hasUpdated = true;
-          void route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({ success: true, data: updatedTransaction }),
-          });
-        } else {
-          void route.fallback();
-        }
-      },
-    );
-
-    // Mock GET /budgets/:id
-    await authenticatedPage.route('**/api/v1/budgets/' + budgetId, (route) => {
-      if (route.request().url().includes('/details')) {
-        void route.fallback();
-        return;
-      }
-      void route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          data: { id: budgetId, month: currentMonth, year: currentYear, userId: TEST_UUIDS.USER_1, rollover: 0 },
-        }),
-      });
-    });
-
-    await currentMonthPage.goto();
-
-    // Click edit on the transaction (desktop view uses direct edit button)
-    await authenticatedPage
-      .getByTestId(`edit-transaction-${TEST_UUIDS.TRANSACTION_1}`)
-      .first()
-      .click();
-
-    // Edit dialog should appear
-    const dialog = authenticatedPage.locator('mat-dialog-container');
-    await expect(dialog).toBeVisible();
-
-    // Change name and amount
-    const nameInput = dialog.locator('input[formControlName="name"]');
-    await nameInput.clear();
-    await nameInput.fill('Courses Migros modifie');
-
-    const amountInput = dialog.locator('input[formControlName="amount"]');
-    await amountInput.clear();
-    await amountInput.fill('150');
-
-    // Click save ("Enregistrer")
-    await dialog.locator('button:has-text("Enregistrer")').click();
-
-    // Dialog should close
-    await expect(dialog).not.toBeVisible();
-
-    // Updated name should appear
-    const oneTimeList = authenticatedPage.getByTestId('one-time-expenses-list');
-    await expect(oneTimeList).toContainText('Courses Migros modifie');
-  });
-
-  test('should delete a transaction from current month view', async ({
-    authenticatedPage,
-    currentMonthPage,
-  }) => {
-    const existingTransaction = createTransactionMock(TEST_UUIDS.TRANSACTION_1, budgetId, {
-      name: 'Achat impulsif',
-      amount: 50,
-      kind: 'expense',
-      budgetLineId: null,
-      transactionDate: currentMonthDate,
-    });
-
-    let hasDeleted = false;
-
-    await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
-      void route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(
-          createBudgetDetailsMock(budgetId, {
-            budget: { rollover: 0, month: currentMonth, year: currentYear },
-            budgetLines: [salaireLine, coursesLine],
-            transactions: hasDeleted ? [] : [existingTransaction],
-          }),
-        ),
-      });
-    });
-
-    // Mock DELETE /transactions/:id
-    await authenticatedPage.route(
-      `**/api/v1/transactions/${TEST_UUIDS.TRANSACTION_1}`,
-      (route) => {
-        if (route.request().method() === 'DELETE') {
-          hasDeleted = true;
-          void route.fulfill({ status: 204, body: '' });
-        } else {
-          void route.fallback();
-        }
-      },
-    );
-
-    // Mock GET /budgets/:id
-    await authenticatedPage.route('**/api/v1/budgets/' + budgetId, (route) => {
-      if (route.request().url().includes('/details')) {
-        void route.fallback();
-        return;
-      }
-      void route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          data: { id: budgetId, month: currentMonth, year: currentYear, userId: TEST_UUIDS.USER_1, rollover: 0 },
-        }),
-      });
-    });
-
-    await currentMonthPage.goto();
-
-    // Verify transaction is displayed initially
-    const oneTimeList = authenticatedPage.getByTestId('one-time-expenses-list');
-    await expect(oneTimeList).toContainText('Achat impulsif');
-
-    // Click delete on the transaction
-    await authenticatedPage
-      .getByTestId(`delete-transaction-${TEST_UUIDS.TRANSACTION_1}`)
-      .first()
-      .click();
-
-    // Confirmation dialog should appear
-    const confirmDialog = authenticatedPage.getByTestId('confirmation-dialog');
-    await expect(confirmDialog).toBeVisible();
-
-    // Confirm deletion
-    await authenticatedPage.getByTestId('confirmation-confirm-button').click();
-
-    // Transaction should be removed from the list (optimistic update)
-    await expect(oneTimeList).not.toContainText('Achat impulsif');
+    // Transaction should appear in the recent transactions block
+    const recentTransactions = authenticatedPage.getByTestId('dashboard-block-recent-transactions');
+    await expect(recentTransactions).toContainText('Cafe');
   });
 
   test('totals should recalculate after adding a free transaction', async ({

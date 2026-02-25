@@ -105,7 +105,10 @@ const WARNING_THRESHOLD_PERCENT = 80;
         <div class="flex justify-between text-label-small font-bold">
           <span>
             Dépensé
-            {{ absExpenses() | number: '1.2-2' : 'de-CH' }} CHF
+            <span data-testid="hero-expenses-amount">{{
+              absExpenses() | number: '1.2-2' : 'de-CH'
+            }}</span>
+            CHF
           </span>
           <span class="opacity-70">
             sur {{ available() | number: '1.2-2' : 'de-CH' }} CHF

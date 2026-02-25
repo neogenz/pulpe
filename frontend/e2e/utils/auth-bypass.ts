@@ -7,7 +7,7 @@ import { MOCK_API_RESPONSES } from '../mocks/api-responses';
  * Tour IDs that match the ProductTourService.
  * We define them here to avoid importing Angular code into Playwright.
  */
-const TOUR_IDS = ['intro', 'current-month', 'budget-list', 'budget-details', 'templates-list'] as const;
+const TOUR_IDS = ['intro', 'dashboard', 'budget-list', 'budget-details', 'templates-list'] as const;
 
 /**
  * Shared utility for E2E auth bypass setup

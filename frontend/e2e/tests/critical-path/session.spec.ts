@@ -9,7 +9,7 @@ test.describe('Authenticated Session Management', () => {
     await page.waitForLoadState('domcontentloaded');
 
     // Should successfully reach the current month page
-    await expect(page.getByTestId('current-month-page')).toBeVisible();
+    await expect(page.getByTestId('dashboard-page')).toBeVisible();
     
     // Should not be on login page
     expect(page.url()).not.toMatch(/\/login/);
@@ -20,7 +20,7 @@ test.describe('Authenticated Session Management', () => {
   }) => {
     // Test current month access
     await page.goto('/dashboard');
-    await expect(page.getByTestId('current-month-page')).toBeVisible();
+    await expect(page.getByTestId('dashboard-page')).toBeVisible();
     expect(page.url()).toMatch(/\/dashboard/);
 
     // Test budget templates access  
@@ -33,13 +33,13 @@ test.describe('Authenticated Session Management', () => {
     authenticatedPage: page,
   }) => {
     await page.goto('/dashboard');
-    await expect(page.getByTestId('current-month-page')).toBeVisible();
+    await expect(page.getByTestId('dashboard-page')).toBeVisible();
 
     // Refresh page
     await page.reload({ waitUntil: 'domcontentloaded' });
 
     // Should remain on current month page
-    await expect(page.getByTestId('current-month-page')).toBeVisible();
+    await expect(page.getByTestId('dashboard-page')).toBeVisible();
     expect(page.url()).toMatch(/\/dashboard/);
   });
 
@@ -47,7 +47,7 @@ test.describe('Authenticated Session Management', () => {
     authenticatedPage: page,
   }) => {
     await page.goto('/dashboard');
-    await expect(page.getByTestId('current-month-page')).toBeVisible();
+    await expect(page.getByTestId('dashboard-page')).toBeVisible();
 
     // Wait for user menu to be visible then open it
     await expect(page.getByTestId('user-menu-trigger')).toBeVisible();
@@ -61,7 +61,7 @@ test.describe('Authenticated Session Management', () => {
     authenticatedPage: page,
   }) => {
     await page.goto('/dashboard');
-    await expect(page.getByTestId('current-month-page')).toBeVisible();
+    await expect(page.getByTestId('dashboard-page')).toBeVisible();
 
     // Wait for user menu to be visible then perform logout
     await expect(page.getByTestId('user-menu-trigger')).toBeVisible();
