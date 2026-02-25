@@ -2,6 +2,45 @@
 
 Documents the authentication state machine in `AppState.swift` and its supporting components.
 
+## Component Ownership Map
+
+After the SRP-Lite refactoring, auth logic is distributed across specialized coordinators.
+AppState remains the `@Observable @MainActor` facade that views interact with.
+
+### AppState (Facade)
+- **Owns**: `authState`, `currentUser`, navigation state (`budgetPath`, `templatePath`, `selectedTab`), maintenance state, `hasReturningUser`
+- **Role**: Public API for views, delegates to coordinators, maps results to state transitions
+- **File**: `App/AppState.swift`
+
+### AuthenticatedEntryCoordinator
+- **Owns**: Post-auth pipeline (biometric credential sync + enrollment policy execution)
+- **Called by**: `AppState.enterAuthenticated(context:)` via `transitionToAuthenticated()` and `runEnrollmentPipeline()`
+- **Key methods**: `syncCredentials()`, `runEnrollmentPipeline(context:hasActiveModal:)`
+- **File**: `App/Auth/AuthenticatedEntryCoordinator.swift`
+
+### RecoveryFlowCoordinator (`@Observable`)
+- **Owns**: `RecoveryFlowState` state machine, `pendingRecoveryConsent`, computed UI bindings (`isRecoveryConsentVisible`, `isRecoveryKeySheetVisible`, `recoveryKeyForPresentation`)
+- **Called by**: AppState recovery methods (`acceptRecoveryKeyRepairConsent`, `declineRecoveryKeyRepairConsent`, `completePostAuthRecoveryKeyPresentation`), `resolvePostAuth`, `completePinEntry`
+- **Key methods**: `showConsentPromptIfPending()`, `acceptConsent()`, `declineConsent()`, `completePresentationDismissal()`, `reset()`
+- **File**: `App/Auth/RecoveryFlowCoordinator.swift`
+
+### OnboardingBootstrapper
+- **Owns**: `pendingOnboardingData`, template + budget creation from onboarding data
+- **Called by**: `AppState.completePinSetup()`, `AppState.completeOnboarding()`
+- **Key methods**: `setPendingData(_:)`, `clearPendingData()`, `bootstrapIfNeeded()`
+- **File**: `App/Auth/OnboardingBootstrapper.swift`
+
+### SessionLifecycleCoordinator
+- **Owns**: Cold start biometric/regular session validation, background lock state (`backgroundDate`), foreground session restoration (`isRestoringSession`)
+- **Called by**: `AppState.checkAuthState()`, `AppState.handleEnterBackground()`, `AppState.handleEnterForeground()`, `AppState.loginWithBiometric()`
+- **Key methods**: `attemptBiometricSessionValidation()`, `attemptRegularSessionValidation()`, `handleEnterBackground()`, `handleEnterForeground(authState:)`
+- **Returns**: Typed result enums (`ColdStartResult`, `ForegroundResult`) for AppState to map into state transitions
+- **File**: `App/Auth/SessionLifecycleCoordinator.swift`
+
+### AppStateDependencies (Struct)
+- **Role**: Groups all 14 injected services/closures for AppState construction, provides `.default` factory for production use
+- **File**: `App/AppStateDependencies.swift`
+
 ## AuthStatus Transitions
 
 `AuthStatus` is the primary navigation state. Views switch their root content based on this value.
@@ -49,10 +88,9 @@ This prevents stale or duplicate calls from triggering unexpected transitions.
 
 ### Entry points into `authenticated`
 
-All transitions into `authenticated` go through `enterAuthenticated(context:)`, which:
-1. Calls `transitionToAuthenticated()` — sets `authState = .authenticated` and syncs biometric tokens
-2. Resets `BiometricAutomaticEnrollmentPolicy` for the new transition
-3. Evaluates the policy to decide whether to show the Face ID enrollment prompt
+All transitions into `authenticated` go through `enterAuthenticated(context:)`, which delegates to `AuthenticatedEntryCoordinator`:
+1. Calls `transitionToAuthenticated()` — sets `authState = .authenticated`, then calls `authenticatedEntryCoordinator.syncCredentials()` (biometric token sync)
+2. Calls `authenticatedEntryCoordinator.runEnrollmentPipeline(context:hasActiveModal:)` — resets the enrollment policy, evaluates it, and executes enrollment if `.proceed`
 
 ## AuthCompletionContext
 
@@ -105,23 +143,23 @@ idle
 
 ### Computed bindings on AppState
 
-Views use these computed `Bool` bindings rather than accessing `recoveryFlowState` directly:
+Views use these computed `Bool` bindings on AppState, which delegate to `RecoveryFlowCoordinator`:
 
-| Property | Reads | Writes |
-|----------|-------|--------|
-| `isRecoveryConsentVisible` | `recoveryFlowState == .consentPrompt` | `false` → sets `.idle` |
-| `isRecoveryKeySheetVisible` | `recoveryFlowState == .presentingKey` | `false` → sets `.idle` |
-| `recoveryKeyForPresentation` | key string from `.presentingKey(key)` | read-only |
+| Property | Reads (via coordinator) | Writes |
+|----------|-------------------------|--------|
+| `isRecoveryConsentVisible` | `recoveryFlowCoordinator.isRecoveryConsentVisible` | `false` → `recoveryFlowCoordinator.setIdle()` |
+| `isRecoveryKeySheetVisible` | `recoveryFlowCoordinator.isRecoveryKeySheetVisible` | `false` → `recoveryFlowCoordinator.setIdle()` |
+| `recoveryKeyForPresentation` | `recoveryFlowCoordinator.recoveryKeyForPresentation` | read-only |
 
 ### `pendingRecoveryConsent`
 
-A private boolean on `AppState` used to defer the consent alert until PIN entry succeeds.
+A private boolean on `RecoveryFlowCoordinator` used to defer the consent alert until PIN entry succeeds.
 
 Flow:
-1. `resolvePostAuth` receives `.needsPinEntry(needsRecoveryKeyConsent: true)` → sets `pendingRecoveryConsent = true` (does NOT set `recoveryFlowState` yet)
+1. `resolvePostAuth` receives `.needsPinEntry(needsRecoveryKeyConsent: true)` → calls `recoveryFlowCoordinator.setPendingConsent(true)` (does NOT set `recoveryFlowState` yet)
 2. `completePinEntry()` is called by the view after the user enters the correct PIN
-3. `completePinEntry()` checks `pendingRecoveryConsent`, and if `true`, synchronously sets `recoveryFlowState = .consentPrompt` and returns early (skipping `enterAuthenticated`)
-4. The consent alert is now visible; auto-enrollment is deferred because `recoveryFlowState.isModalActive == true`
+3. `completePinEntry()` calls `recoveryFlowCoordinator.showConsentPromptIfPending()` — if pending, the coordinator sets `recoveryFlowState = .consentPrompt` and returns `true`, causing AppState to return early (skipping `enterAuthenticated`)
+4. The consent alert is now visible; auto-enrollment is deferred because `recoveryFlowCoordinator.isModalActive == true`
 5. When the user responds to the alert, `declineRecoveryKeyRepairConsent()` or `acceptRecoveryKeyRepairConsent()` calls `enterAuthenticated` to complete the transition
 
 ## BiometricAutomaticEnrollmentPolicy
@@ -183,28 +221,30 @@ Previously a `UserDefaults` flag (`pulpe-biometric-enrollment-dismissed`) made e
 
 **Ordering guarantee:** `transitionToAuthenticated()` sets `authState = .authenticated` **before** the policy evaluation. The `isAuthenticated` check in `shouldAttempt` is therefore defensive — it is guaranteed to be `true` at that point but guards against hypothetical future call sites that might invoke the policy outside the normal pipeline.
 
+After the SRP-Lite refactoring, the pipeline delegates to `AuthenticatedEntryCoordinator`:
+
 ```
-completePinEntry()
-completeRecovery()
-declineRecoveryKeyRepairConsent()
-completeRecoveryKeyPresentation()
-resolvePostAuth(.authenticated)
+completePinEntry()                          ← AppState (delegates to RecoveryFlowCoordinator for consent check)
+completeRecovery()                          ← AppState
+declineRecoveryKeyRepairConsent()           ← AppState (delegates to RecoveryFlowCoordinator)
+completePostAuthRecoveryKeyPresentation()   ← AppState (delegates to RecoveryFlowCoordinator)
+resolvePostAuth(.authenticated)             ← AppState
 ... (all auth completion paths)
         │
         ▼
-enterAuthenticated(context: AuthCompletionContext)
+enterAuthenticated(context: AuthCompletionContext)    ← AppState (private)
         │
-        ├─▶ transitionToAuthenticated()
+        ├─▶ transitionToAuthenticated()               ← AppState (private)
         │       authState = .authenticated
-        │       biometric.syncAfterAuth()
+        │       authenticatedEntryCoordinator.syncCredentials()
         │
-        ├─▶ enrollmentPolicy.resetForNewTransition()
-        │
-        ├─▶ enrollmentPolicy.shouldAttempt(context: ...)
-        │       .proceed  ──▶  markInFlight(context:)
-        │                      biometric.enable(source: .automatic, reason: context.reason)
-        │                      markComplete(context:outcome:)
-        │       .skip(r)  ──▶  policy logs reason
+        ├─▶ authenticatedEntryCoordinator.runEnrollmentPipeline(context:hasActiveModal:)
+        │       enrollmentPolicy.resetForNewTransition()
+        │       enrollmentPolicy.shouldAttempt(context: ...)
+        │           .proceed  ──▶  markInFlight(context:)
+        │                          biometric.enable(source: .automatic, reason: context.reason)
+        │                          markComplete(context:outcome:)
+        │           .skip(r)  ──▶  policy logs reason
         │
         └─▶ (done)
 ```

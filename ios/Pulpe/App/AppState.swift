@@ -86,12 +86,19 @@ final class AppState {
 
     private(set) var hasReturningUser: Bool = false
 
-    var pendingOnboardingData: BudgetTemplateCreateFromOnboarding?
+    var pendingOnboardingData: BudgetTemplateCreateFromOnboarding? {
+        get { onboardingBootstrapper.pendingOnboardingData }
+        set { onboardingBootstrapper.setPendingData(newValue) }
+    }
 
     // MARK: - Biometric (delegated to BiometricManager)
 
     let biometric: BiometricManager
     let enrollmentPolicy: BiometricAutomaticEnrollmentPolicy
+
+    @ObservationIgnored private let authenticatedEntryCoordinator: AuthenticatedEntryCoordinator
+    let recoveryFlowCoordinator: RecoveryFlowCoordinator
+    @ObservationIgnored private let onboardingBootstrapper: OnboardingBootstrapper
 
     /// `biometricError` stays on AppState — used for session expiry messages, not just biometric.
     var biometricError: String?
@@ -106,35 +113,32 @@ final class AppState {
         set { biometric.credentialsAvailable = newValue }
     }
 
-    // MARK: - Recovery Key UI
+    // MARK: - Recovery Key UI (delegated to RecoveryFlowCoordinator)
 
-    private(set) var recoveryFlowState: RecoveryFlowState = .idle
+    var recoveryFlowState: RecoveryFlowState {
+        recoveryFlowCoordinator.recoveryFlowState
+    }
 
     var isRecoveryConsentVisible: Bool {
-        get { recoveryFlowState == .consentPrompt }
-        set { if !newValue { recoveryFlowState = .idle } }
+        get { recoveryFlowCoordinator.isRecoveryConsentVisible }
+        set { if !newValue { recoveryFlowCoordinator.setIdle() } }
     }
 
     var isRecoveryKeySheetVisible: Bool {
-        get {
-            if case .presentingKey = recoveryFlowState { return true }
-            return false
-        }
-        set { if !newValue { recoveryFlowState = .idle } }
+        get { recoveryFlowCoordinator.isRecoveryKeySheetVisible }
+        set { if !newValue { recoveryFlowCoordinator.setIdle() } }
     }
 
     var recoveryKeyForPresentation: String? {
-        if case .presentingKey(let key) = recoveryFlowState { return key }
-        return nil
+        recoveryFlowCoordinator.recoveryKeyForPresentation
     }
 
-    // MARK: Pending recovery consent (set during PIN entry, shown on completion)
-    private var pendingRecoveryConsent = false
+    // MARK: - Session Lifecycle (delegated to SessionLifecycleCoordinator)
 
-    // MARK: - Background Grace Period
+    @ObservationIgnored private let sessionLifecycleCoordinator: SessionLifecycleCoordinator
 
-    private(set) var isRestoringSession = false
-    private var backgroundDate: Date?
+    var isRestoringSession: Bool { sessionLifecycleCoordinator.isRestoringSession }
+
     private var backgroundRefreshTask: Task<Void, Never>?
     private var isLoggingOut = false
     private var returningUserFlagLoaded = false
@@ -147,14 +151,87 @@ final class AppState {
     private let encryptionAPI: EncryptionAPI
     private let postAuthResolver: any PostAuthResolving
     private let validateRegularSession: @Sendable () async throws -> UserInfo?
-    private let validateBiometricSession: @Sendable () async throws -> BiometricSessionResult?
-    private let nowProvider: () -> Date
 
     // MARK: - Toast
 
     let toastManager = ToastManager()
 
-    init(
+    init(dependencies: AppStateDependencies = .default) {
+        let deps = dependencies
+        self.authService = deps.authService
+        self.clientKeyManager = deps.clientKeyManager
+        self.keychainManager = deps.keychainManager
+        self.encryptionAPI = deps.encryptionAPI
+        self.postAuthResolver =
+            deps.postAuthResolver ??
+            PostAuthResolver(
+                vaultStatusProvider: deps.encryptionAPI,
+                sessionRefresher: deps.authService,
+                clientKeyResolver: deps.clientKeyManager
+            )
+        self.validateRegularSession =
+            deps.validateRegularSession ?? Self.defaultValidateRegularSession(deps.authService)
+
+        self.biometric = BiometricManager(
+            preferenceStore: deps.biometricPreferenceStore,
+            authService: deps.authService,
+            clientKeyManager: deps.clientKeyManager,
+            capability: deps.biometricCapability ?? { deps.biometricService.canUseBiometrics() },
+            authenticate: deps.biometricAuthenticate ?? { try await deps.biometricService.authenticate() },
+            syncCredentials: deps.syncBiometricCredentials
+                ?? BiometricManager.defaultSyncCredentials(deps.authService),
+            resolveKey: deps.resolveBiometricKey
+                ?? BiometricManager.defaultResolveKey(deps.clientKeyManager),
+            validateKey: deps.validateBiometricKey
+                ?? BiometricManager.defaultValidateKey(deps.encryptionAPI)
+        )
+        self.enrollmentPolicy = BiometricAutomaticEnrollmentPolicy()
+        setupCoordinators(deps)
+
+        Task { @MainActor in
+            if !returningUserFlagLoaded {
+                hasReturningUser = await keychainManager.getLastUsedEmail() != nil
+                returningUserFlagLoaded = true
+            }
+            await biometric.loadPreference()
+        }
+    }
+
+    private func setupCoordinators(_ deps: AppStateDependencies) {
+        self.authenticatedEntryCoordinator = AuthenticatedEntryCoordinator(
+            biometric: self.biometric,
+            enrollmentPolicy: self.enrollmentPolicy,
+            toastManager: toastManager
+        )
+        if let setupRecoveryKey = deps.setupRecoveryKey {
+            self.recoveryFlowCoordinator = RecoveryFlowCoordinator(
+                setupRecoveryKey: setupRecoveryKey,
+                toastManager: toastManager
+            )
+        } else {
+            self.recoveryFlowCoordinator = RecoveryFlowCoordinator(
+                encryptionAPI: deps.encryptionAPI,
+                toastManager: toastManager
+            )
+        }
+        self.onboardingBootstrapper = OnboardingBootstrapper(
+            createTemplate: { data in try await TemplateService.shared.createTemplateFromOnboarding(data) },
+            createBudget: { data in try await BudgetService.shared.createBudget(data) },
+            toastManager: toastManager
+        )
+        self.sessionLifecycleCoordinator = SessionLifecycleCoordinator(
+            biometric: self.biometric,
+            clientKeyManager: deps.clientKeyManager,
+            validateRegularSession: self.validateRegularSession,
+            validateBiometricSession: deps.validateBiometricSession
+                ?? Self.defaultValidateBiometricSession(deps.authService),
+            nowProvider: deps.nowProvider
+        )
+    }
+
+    /// Backward-compatible convenience init — delegates to `init(dependencies:)`.
+    /// Preserves the existing call-site API used by all tests.
+    convenience init(
         authService: AuthService = .shared,
         biometricService: BiometricService = .shared,
         clientKeyManager: ClientKeyManager = .shared,
@@ -171,47 +248,23 @@ final class AppState {
         validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)? = nil,
         nowProvider: @escaping () -> Date = Date.init
     ) {
-        self.authService = authService
-        self.clientKeyManager = clientKeyManager
-        self.keychainManager = keychainManager
-        self.encryptionAPI = encryptionAPI
-        self.postAuthResolver =
-            postAuthResolver ??
-            PostAuthResolver(
-                vaultStatusProvider: encryptionAPI,
-                sessionRefresher: authService,
-                clientKeyResolver: clientKeyManager
-            )
-        self.nowProvider = nowProvider
-        self.validateRegularSession =
-            validateRegularSession ?? Self.defaultValidateRegularSession(authService)
-        self.validateBiometricSession =
-            validateBiometricSession ?? Self.defaultValidateBiometricSession(authService)
-
-        self.biometric = BiometricManager(
-            preferenceStore: biometricPreferenceStore,
+        self.init(dependencies: AppStateDependencies(
             authService: authService,
             clientKeyManager: clientKeyManager,
-            capability: biometricCapability ?? { biometricService.canUseBiometrics() },
-            authenticate: biometricAuthenticate ?? { try await biometricService.authenticate() },
-            syncCredentials: syncBiometricCredentials ?? BiometricManager.defaultSyncCredentials(authService),
-            resolveKey: resolveBiometricKey ?? BiometricManager.defaultResolveKey(clientKeyManager),
-            validateKey: validateBiometricKey ?? BiometricManager.defaultValidateKey(encryptionAPI)
-        )
-        self.enrollmentPolicy = BiometricAutomaticEnrollmentPolicy()
-
-        // Eagerly start loading persisted values so they may be ready before checkAuthState() runs.
-        // SAFETY: No race with checkAuthState() — both paths use idempotent "ensure" methods
-        // guarded by `returningUserFlagLoaded` and `biometricPreferenceLoaded` flags.
-        // If this Task completes first, checkAuthState() skips the loads; if checkAuthState()
-        // runs first, this Task's loads become no-ops.
-        Task { @MainActor in
-            if !returningUserFlagLoaded {
-                hasReturningUser = await keychainManager.getLastUsedEmail() != nil
-                returningUserFlagLoaded = true
-            }
-            await biometric.loadPreference()
-        }
+            keychainManager: keychainManager,
+            encryptionAPI: encryptionAPI,
+            postAuthResolver: postAuthResolver,
+            biometricService: biometricService,
+            biometricPreferenceStore: biometricPreferenceStore,
+            biometricCapability: biometricCapability,
+            biometricAuthenticate: biometricAuthenticate,
+            syncBiometricCredentials: syncBiometricCredentials,
+            resolveBiometricKey: resolveBiometricKey,
+            validateBiometricKey: validateBiometricKey,
+            validateRegularSession: validateRegularSession,
+            validateBiometricSession: validateBiometricSession,
+            nowProvider: nowProvider
+        ))
     }
 
     // MARK: - Default Closure Factories
@@ -274,28 +327,9 @@ final class AppState {
         #endif
     }
 
-    private func fallbackToRegularSessionAfterBiometricFailure(reason: String) async {
-        authDebug("AUTH_COLD_START_REGULAR_FALLBACK", "reason=\(reason)")
-        do {
-            if let user = try await validateRegularSession() {
-                authDebug("AUTH_COLD_START_REGULAR_VALID", "reason=\(reason)")
-                await resolvePostAuth(user: user)
-            } else {
-                authDebug("AUTH_COLD_START_REGULAR_MISSING", "reason=\(reason)")
-                await ensureReturningUserFlagLoaded()
-                authState = .unauthenticated
-            }
-        } catch {
-            Logger.auth.warning("checkAuthState: regular session fallback failed - \(error)")
-            authDebug("AUTH_COLD_START_REGULAR_ERROR", "reason=\(reason)")
-            await ensureReturningUserFlagLoaded()
-            authState = .unauthenticated
-        }
-    }
-
     func enterSignupFlow() {
         OnboardingState.clearPersistedData()
-        pendingOnboardingData = nil
+        onboardingBootstrapper.clearPendingData()
         hasReturningUser = false
         returningUserFlagLoaded = true
     }
@@ -326,85 +360,41 @@ final class AppState {
             return
         }
 
-        // 1. Biometric: Face ID → PIN/dashboard (skip if user explicitly logged out)
+        // 1. Biometric: Face ID -> PIN/dashboard (skip if user explicitly logged out)
         let didExplicitLogout = UserDefaults.standard.bool(forKey: UserDefaultsKey.didExplicitLogout)
 
         if biometric.isEnabled && !didExplicitLogout {
             authDebug("AUTH_COLD_START_BRANCH", "biometric")
-            await attemptBiometricSessionValidation()
+            await applyColdStartResult(
+                sessionLifecycleCoordinator.attemptBiometricSessionValidation()
+            )
             return
         }
 
         authDebug("AUTH_COLD_START_BRANCH", "regular")
 
-        // 2. Session valid → PIN entry (keeps user logged in without biometric)
-        do {
-            if let user = try await validateRegularSession() {
-                authDebug("AUTH_COLD_START_REGULAR_VALID", "source=checkAuthState")
-                await resolvePostAuth(user: user)
-                return
-            }
-        } catch {
-            Logger.auth.warning("checkAuthState: regular session validation failed - \(error)")
-            authDebug("AUTH_COLD_START_REGULAR_ERROR", "source=checkAuthState")
-        }
-
-        // 3. No valid session → login or onboarding
-        authDebug("AUTH_COLD_START_REGULAR_MISSING", "source=checkAuthState")
-        await ensureReturningUserFlagLoaded()
-        authState = .unauthenticated
+        // 2. Session valid -> PIN entry (keeps user logged in without biometric)
+        let result = await sessionLifecycleCoordinator.attemptRegularSessionValidation()
+        await applyColdStartResult(result)
     }
 
-    private func attemptBiometricSessionValidation() async {
-        authDebug("AUTH_BIO_VALIDATE_START", "attemptBiometricSessionValidation")
-        do {
-            if let result = try await validateBiometricSession() {
-                currentUser = result.user
-                if let clientKeyHex = result.clientKeyHex {
-                    if await biometric.validateKey(clientKeyHex) {
-                        await clientKeyManager.store(clientKeyHex, enableBiometric: false)
-                    } else {
-                        Logger.auth.warning("attemptBiometricSessionValidation: stale biometric key, clearing")
-                        await biometric.handleStaleKey()
-                    }
-                }
-                authDebug("AUTH_BIO_VALIDATE_RESULT", "success")
-                await resolvePostAuth(user: result.user)
-            } else {
-                // No tokens found
-                authDebug("AUTH_BIO_VALIDATE_RESULT", "no_tokens")
-                await fallbackToRegularSessionAfterBiometricFailure(reason: "no_tokens")
-            }
-        } catch let error as KeychainError {
-            switch error {
-            case .userCanceled:
-                authDebug("AUTH_BIO_VALIDATE_RESULT", "user_cancel")
-            case .authFailed:
-                authDebug("AUTH_BIO_VALIDATE_RESULT", "auth_failed")
-            default:
-                authDebug("AUTH_BIO_VALIDATE_RESULT", "auth_failed")
-            }
-            await fallbackToRegularSessionAfterBiometricFailure(reason: "keychain_error")
-        } catch let error as URLError {
-            // Network error — keep tokens and biometric enabled for retry
-            Logger.auth.warning("checkAuthState: network error during biometric login - \(error)")
-            authDebug("AUTH_BIO_VALIDATE_RESULT", "network")
-            biometricError = "Connexion impossible, réessaie"
+    private func applyColdStartResult(_ result: SessionLifecycleCoordinator.ColdStartResult) async {
+        switch result {
+        case .biometricAuthenticated(let user, _):
+            currentUser = user
+            await resolvePostAuth(user: user)
+        case .regularSession(let user):
+            await resolvePostAuth(user: user)
+        case .unauthenticated:
+            await ensureReturningUserFlagLoaded()
             authState = .unauthenticated
-        } catch let error as AuthServiceError {
-            Logger.auth.error("checkAuthState: biometric session refresh failed - \(error)")
-            await handleBiometricSessionExpired()
-        } catch {
-            Logger.auth.error("checkAuthState: unknown error during biometric login - \(error)")
-            await handleBiometricSessionExpired()
+        case .networkError(let message):
+            biometricError = message
+            authState = .unauthenticated
+        case .biometricSessionExpired:
+            biometricError = "Ta session a expir\u{00E9}, connecte-toi avec ton mot de passe"
+            authState = .unauthenticated
         }
-    }
-
-    private func handleBiometricSessionExpired() async {
-        await biometric.handleSessionExpired()
-        authDebug("AUTH_BIO_VALIDATE_RESULT", "session_expired")
-        biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
-        authState = .unauthenticated
     }
 
     /// After Supabase session is valid, route deterministically to setup/entry/app.
@@ -417,86 +407,55 @@ final class AppState {
         switch destination {
         case .needsPinSetup:
             authDebug("AUTH_POST_AUTH_DEST", "needsPinSetup")
-            recoveryFlowState = .idle
-            pendingRecoveryConsent = false
+            recoveryFlowCoordinator.reset()
             authState = .needsPinSetup
         case .needsPinEntry(let needsRecoveryConsent):
             authDebug("AUTH_POST_AUTH_DEST", "needsPinEntry")
-            pendingRecoveryConsent = needsRecoveryConsent
+            recoveryFlowCoordinator.setPendingConsent(needsRecoveryConsent)
             authState = .needsPinEntry
         case .authenticated(let needsRecoveryConsent):
             authDebug("AUTH_POST_AUTH_DEST", "authenticated")
-            pendingRecoveryConsent = false
+            recoveryFlowCoordinator.setPendingConsent(false)
             if needsRecoveryConsent {
-                recoveryFlowState = .consentPrompt
+                recoveryFlowCoordinator.setConsentPrompt()
             } else {
-                recoveryFlowState = .idle
+                recoveryFlowCoordinator.setIdle()
             }
             await enterAuthenticated(context: .directAuthenticated)
         case .unauthenticatedSessionExpired:
             authDebug("AUTH_POST_AUTH_DEST", "unauthenticatedSessionExpired")
-            recoveryFlowState = .idle
-            pendingRecoveryConsent = false
+            recoveryFlowCoordinator.reset()
             biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
             authState = .unauthenticated
         case .vaultCheckFailed:
             authDebug("AUTH_POST_AUTH_DEST", "vaultCheckFailed")
             // Safe fallback for existing users: assume PIN entry.
-            recoveryFlowState = .idle
-            pendingRecoveryConsent = false
+            recoveryFlowCoordinator.reset()
             authState = .needsPinEntry
         }
     }
 
     private func transitionToAuthenticated() async {
         authState = .authenticated
-
-        let syncOK = await biometric.syncAfterAuth()
-        if !syncOK {
-            toastManager.show(
-                "La reconnaissance biométrique n'a pas pu être activée",
-                type: .error
-            )
-        }
+        await authenticatedEntryCoordinator.syncCredentials()
     }
 
     private func enterAuthenticated(context: AuthCompletionContext) async {
         await transitionToAuthenticated()
-        enrollmentPolicy.resetForNewTransition()
-        let decision = enrollmentPolicy.shouldAttempt(
-            biometricEnabled: biometric.isEnabled,
-            biometricCapable: biometric.canEnroll(),
-            isAuthenticated: authState == .authenticated,
-            sourceEligible: context.allowsAutomaticEnrollment,
-            hasActiveModal: recoveryFlowState.isModalActive,
-            context: context.reason
+        await authenticatedEntryCoordinator.runEnrollmentPipeline(
+            context: context,
+            hasActiveModal: recoveryFlowCoordinator.isModalActive
         )
-        switch decision {
-        case .proceed:
-            enrollmentPolicy.markInFlight(context: context.reason)
-            let enabled = await biometric.enable(source: .automatic, reason: context.reason)
-            enrollmentPolicy.markComplete(context: context.reason, outcome: enabled ? .success : .deniedOrFailed)
-        case .skip:
-            break
-        }
     }
 
     // MARK: - Background Lock
 
-    private var isBackgroundLockRequired: Bool {
-        guard let bgDate = backgroundDate else { return false }
-        let elapsed = Duration.seconds(nowProvider().timeIntervalSince(bgDate))
-        return elapsed >= AppConfiguration.backgroundGracePeriod
-            && authState == .authenticated
-    }
-
     func handleEnterBackground() {
-        backgroundDate = nowProvider()
+        sessionLifecycleCoordinator.handleEnterBackground()
     }
 
     func prepareForForeground() {
-        guard isBackgroundLockRequired else { return }
-        isRestoringSession = true
+        sessionLifecycleCoordinator.prepareForForeground(authState: authState)
     }
 
     func resetTips() {
@@ -540,41 +499,34 @@ final class AppState {
 
 extension AppState {
     func handleEnterForeground() async {
-        defer { isRestoringSession = false }
+        defer { sessionLifecycleCoordinator.clearRestoringSession() }
 
-        guard isBackgroundLockRequired else { return }
-        backgroundDate = nil
+        let result = await sessionLifecycleCoordinator.handleEnterForeground(authState: authState)
 
-        await clientKeyManager.clearCache()
-
-        // Try biometric before routing to PIN entry — avoids PinEntryView flash
-        if biometric.isEnabled, let clientKeyHex = await biometric.resolveKey() {
-            if await biometric.validateKey(clientKeyHex) {
-                // Refresh Supabase session in background — token may have expired
-                // during long background periods. Non-blocking: user sees the app
-                // immediately, session refresh happens concurrently.
-                backgroundRefreshTask?.cancel()
-                let validate = validateRegularSession
-                backgroundRefreshTask = Task { [weak self] in
-                    defer { Task { @MainActor [weak self] in self?.backgroundRefreshTask = nil } }
-                    do {
-                        _ = try await validate()
-                    } catch {
-                        guard !Task.isCancelled else { return }
-                        Logger.auth.warning(
-                            "handleEnterForeground: session refresh failed - \(error)"
-                        )
-                        await self?.logout(source: .system)
-                    }
+        switch result {
+        case .noLockNeeded:
+            break
+        case .biometricUnlockSuccess:
+            // Refresh Supabase session in background — token may have expired
+            // during long background periods. Non-blocking: user sees the app
+            // immediately, session refresh happens concurrently.
+            backgroundRefreshTask?.cancel()
+            let validate = validateRegularSession
+            backgroundRefreshTask = Task { [weak self] in
+                defer { Task { @MainActor [weak self] in self?.backgroundRefreshTask = nil } }
+                do {
+                    _ = try await validate()
+                } catch {
+                    guard !Task.isCancelled else { return }
+                    Logger.auth.warning(
+                        "handleEnterForeground: session refresh failed - \(error)"
+                    )
+                    await self?.logout(source: .system)
                 }
-                return
             }
-            Logger.auth.warning("handleEnterForeground: stale biometric key, requiring PIN")
-            await biometric.handleStaleKey()
+        case .lockRequired, .staleKeyLockRequired:
+            authState = .needsPinEntry
         }
-
-        // Biometric unavailable/failed/cancelled — require PIN
-        authState = .needsPinEntry
     }
 }
 
@@ -599,7 +551,9 @@ extension AppState {
     func loginWithBiometric() async {
         clearExplicitLogoutFlag()
         clearManualBiometricRetryRequiredFlag()
-        await attemptBiometricSessionValidation()
+        await applyColdStartResult(
+            sessionLifecycleCoordinator.attemptBiometricSessionValidation()
+        )
     }
 
     func logout(source: LogoutSource = .userInitiated) async {
@@ -679,7 +633,7 @@ extension AppState {
         hasReturningUser = false
         returningUserFlagLoaded = true
         OnboardingState.clearPersistedData()
-        pendingOnboardingData = nil
+        onboardingBootstrapper.clearPendingData()
         clearManualBiometricRetryRequiredFlag()
         await logout(source: .system)
     }
@@ -730,8 +684,7 @@ extension AppState {
         biometricError = scope.errorMessage
 
         if scope.clearsUIState {
-            recoveryFlowState = .idle
-            pendingRecoveryConsent = false
+            recoveryFlowCoordinator.reset()
             enrollmentPolicy.resetForNewTransition()
         }
         if scope.clearsPostAuthError { showPostAuthError = false }
@@ -800,7 +753,7 @@ extension AppState {
         await keychainManager.saveLastUsedEmail(user.email)
         hasReturningUser = true
         returningUserFlagLoaded = true
-        pendingOnboardingData = onboardingData
+        onboardingBootstrapper.setPendingData(onboardingData)
         authState = .loading
 
         // Route based on actual vault status.
@@ -820,7 +773,7 @@ extension AppState {
         case .needsPinSetup:
             authState = .needsPinSetup
         case .needsPinEntry(let needsRecoveryConsent):
-            pendingRecoveryConsent = needsRecoveryConsent
+            recoveryFlowCoordinator.setPendingConsent(needsRecoveryConsent)
             authState = .needsPinEntry
         case .authenticated:
             // Vault fully configured — verify existing PIN
@@ -833,38 +786,14 @@ extension AppState {
     func completePinSetup() async {
         guard authState == .needsPinSetup else { return }
 
-        // If we have pending onboarding data, create template and budget
-        if let onboardingData = pendingOnboardingData {
-            do {
-                // Create template from onboarding data
-                let template = try await TemplateService.shared.createTemplateFromOnboarding(onboardingData)
-
-                // Create initial budget for current month
-                let now = Date()
-                let budgetData = BudgetCreate(
-                    month: now.month,
-                    year: now.year,
-                    description: now.monthYearFormatted,
-                    templateId: template.id
-                )
-                _ = try await BudgetService.shared.createBudget(budgetData)
-
-                // Clear pending data
-                pendingOnboardingData = nil
-            } catch {
-                Logger.auth.error("completePinSetup: failed to create template/budget - \(error)")
-                toastManager.show("Erreur lors de la création du budget", type: .error)
-            }
-        }
-
+        await onboardingBootstrapper.bootstrapIfNeeded()
         await enterAuthenticated(context: .pinSetup)
     }
 
     func completePinEntry() async {
         guard authState == .needsPinEntry else { return }
 
-        if pendingRecoveryConsent {
-            recoveryFlowState = .consentPrompt
+        if recoveryFlowCoordinator.showConsentPromptIfPending() {
             return
         }
 
@@ -894,41 +823,24 @@ extension AppState {
     }
 
     func acceptRecoveryKeyRepairConsent() async {
-        recoveryFlowState = .generatingKey
-        pendingRecoveryConsent = false
-
-        do {
-            let recoveryKey = try await encryptionAPI.setupRecoveryKey()
-            recoveryFlowState = .presentingKey(recoveryKey)
-        } catch let error as APIError {
-            if case .conflict = error {
-                Logger.auth.info("acceptRecoveryKeyRepairConsent: recovery key already exists, continue")
-                recoveryFlowState = .idle
-                await enterAuthenticated(context: .recoveryKeyConflict)
-                return
-            }
-
-            Logger.auth.error("acceptRecoveryKeyRepairConsent: setup-recovery failed - \(error)")
-            toastManager.show("Impossible de générer la clé de récupération", type: .error)
-            recoveryFlowState = .idle
-            await enterAuthenticated(context: .recoveryKeyError)
-        } catch {
-            Logger.auth.error("acceptRecoveryKeyRepairConsent: unexpected setup-recovery error - \(error)")
-            toastManager.show("Impossible de générer la clé de récupération", type: .error)
-            recoveryFlowState = .idle
+        let result = await recoveryFlowCoordinator.acceptConsent()
+        switch result {
+        case .keyGenerated:
+            break
+        case .conflict:
+            await enterAuthenticated(context: .recoveryKeyConflict)
+        case .error:
             await enterAuthenticated(context: .recoveryKeyError)
         }
     }
 
     func declineRecoveryKeyRepairConsent() async {
-        recoveryFlowState = .idle
-        pendingRecoveryConsent = false
+        recoveryFlowCoordinator.declineConsent()
         await enterAuthenticated(context: .recoveryKeyDeclined)
     }
 
     func completePostAuthRecoveryKeyPresentation() async {
-        recoveryFlowState = .idle
-        pendingRecoveryConsent = false
+        recoveryFlowCoordinator.completePresentationDismissal()
         await enterAuthenticated(context: .recoveryKeyPresented)
     }
 }
