@@ -186,7 +186,17 @@ final class AppState {
                 ?? BiometricManager.defaultValidateKey(deps.encryptionAPI)
         )
         self.enrollmentPolicy = BiometricAutomaticEnrollmentPolicy()
-        setupCoordinators(deps)
+
+        let coordinators = Self.makeCoordinators(
+            deps: deps, biometric: self.biometric,
+            enrollmentPolicy: self.enrollmentPolicy,
+            validateRegularSession: self.validateRegularSession,
+            toastManager: toastManager
+        )
+        self.authenticatedEntryCoordinator = coordinators.entry
+        self.recoveryFlowCoordinator = coordinators.recovery
+        self.onboardingBootstrapper = coordinators.onboarding
+        self.sessionLifecycleCoordinator = coordinators.session
 
         Task { @MainActor in
             if !returningUserFlagLoaded {
@@ -197,36 +207,51 @@ final class AppState {
         }
     }
 
-    private func setupCoordinators(_ deps: AppStateDependencies) {
-        self.authenticatedEntryCoordinator = AuthenticatedEntryCoordinator(
-            biometric: self.biometric,
-            enrollmentPolicy: self.enrollmentPolicy,
+    private struct Coordinators {
+        let entry: AuthenticatedEntryCoordinator
+        let recovery: RecoveryFlowCoordinator
+        let onboarding: OnboardingBootstrapper
+        let session: SessionLifecycleCoordinator
+    }
+
+    private static func makeCoordinators(
+        deps: AppStateDependencies,
+        biometric: BiometricManager,
+        enrollmentPolicy: BiometricAutomaticEnrollmentPolicy,
+        validateRegularSession: @escaping @Sendable () async throws -> UserInfo?,
+        toastManager: ToastManager
+    ) -> Coordinators {
+        let entry = AuthenticatedEntryCoordinator(
+            biometric: biometric,
+            enrollmentPolicy: enrollmentPolicy,
             toastManager: toastManager
         )
+        let recovery: RecoveryFlowCoordinator
         if let setupRecoveryKey = deps.setupRecoveryKey {
-            self.recoveryFlowCoordinator = RecoveryFlowCoordinator(
+            recovery = RecoveryFlowCoordinator(
                 setupRecoveryKey: setupRecoveryKey,
                 toastManager: toastManager
             )
         } else {
-            self.recoveryFlowCoordinator = RecoveryFlowCoordinator(
+            recovery = RecoveryFlowCoordinator(
                 encryptionAPI: deps.encryptionAPI,
                 toastManager: toastManager
             )
         }
-        self.onboardingBootstrapper = OnboardingBootstrapper(
+        let onboarding = OnboardingBootstrapper(
             createTemplate: { data in try await TemplateService.shared.createTemplateFromOnboarding(data) },
             createBudget: { data in try await BudgetService.shared.createBudget(data) },
             toastManager: toastManager
         )
-        self.sessionLifecycleCoordinator = SessionLifecycleCoordinator(
-            biometric: self.biometric,
+        let session = SessionLifecycleCoordinator(
+            biometric: biometric,
             clientKeyManager: deps.clientKeyManager,
-            validateRegularSession: self.validateRegularSession,
+            validateRegularSession: validateRegularSession,
             validateBiometricSession: deps.validateBiometricSession
-                ?? Self.defaultValidateBiometricSession(deps.authService),
+                ?? defaultValidateBiometricSession(deps.authService),
             nowProvider: deps.nowProvider
         )
+        return Coordinators(entry: entry, recovery: recovery, onboarding: onboarding, session: session)
     }
 
     /// Backward-compatible convenience init — delegates to `init(dependencies:)`.

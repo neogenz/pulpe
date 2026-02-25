@@ -52,21 +52,21 @@ struct AuthenticatedEntryCoordinatorTests {
 
     @Test("syncCredentials when biometric disabled is a no-op (no toast)")
     func syncCredentials_biometricDisabled_noToast() async {
-        let (coordinator, _, _, toast) = makeCoordinator(biometricEnabled: false)
+        let result = makeCoordinator(biometricEnabled: false)
 
-        await coordinator.syncCredentials()
+        await result.coordinator.syncCredentials()
 
-        #expect(toast.currentToast == nil)
+        #expect(result.toast.currentToast == nil)
     }
 
     @Test("syncCredentials with failed sync shows error toast")
     func syncCredentials_failure_showsToast() async {
-        let (coordinator, biometric, _, toast) = makeCoordinator(biometricEnabled: true, syncResult: false)
-        await biometric.loadPreference()
+        let result = makeCoordinator(biometricEnabled: true, syncResult: false)
+        await result.biometric.loadPreference()
 
-        await coordinator.syncCredentials()
+        await result.coordinator.syncCredentials()
 
-        #expect(toast.currentToast != nil)
+        #expect(result.toast.currentToast != nil)
     }
 
     // MARK: - runEnrollmentPipeline
@@ -74,95 +74,95 @@ struct AuthenticatedEntryCoordinatorTests {
     @Test("runEnrollmentPipeline with pinSetup context attempts enrollment")
     func runEnrollmentPipeline_pinSetup_attemptsEnrollment() async {
         let spy = CoordinatorAuthSpy()
-        let (coordinator, _, policy, _) = makeCoordinator(onAuthenticate: { await spy.record() })
+        let result = makeCoordinator(onAuthenticate: { await spy.record() })
 
-        await coordinator.runEnrollmentPipeline(
+        await result.coordinator.runEnrollmentPipeline(
             context: AppState.AuthCompletionContext.pinSetup,
             hasActiveModal: false
         )
 
         #expect(await spy.callCount() == 1)
-        #expect(policy.lastDecision == .proceed)
+        #expect(result.policy.lastDecision == .proceed)
     }
 
     @Test("runEnrollmentPipeline with directAuthenticated context skips enrollment")
     func runEnrollmentPipeline_directAuthenticated_skipsEnrollment() async {
         let spy = CoordinatorAuthSpy()
-        let (coordinator, _, policy, _) = makeCoordinator(onAuthenticate: { await spy.record() })
+        let result = makeCoordinator(onAuthenticate: { await spy.record() })
 
-        await coordinator.runEnrollmentPipeline(
+        await result.coordinator.runEnrollmentPipeline(
             context: AppState.AuthCompletionContext.directAuthenticated,
             hasActiveModal: false
         )
 
         #expect(await spy.callCount() == 0)
-        #expect(policy.lastDecision == .skip(.sourceNotEligible))
+        #expect(result.policy.lastDecision == .skip(.sourceNotEligible))
     }
 
     @Test("runEnrollmentPipeline with active modal skips enrollment")
     func runEnrollmentPipeline_activeModal_skipsEnrollment() async {
         let spy = CoordinatorAuthSpy()
-        let (coordinator, _, policy, _) = makeCoordinator(onAuthenticate: { await spy.record() })
+        let result = makeCoordinator(onAuthenticate: { await spy.record() })
 
-        await coordinator.runEnrollmentPipeline(
+        await result.coordinator.runEnrollmentPipeline(
             context: AppState.AuthCompletionContext.pinEntry,
             hasActiveModal: true
         )
 
         #expect(await spy.callCount() == 0)
-        #expect(policy.lastDecision == .skip(.modalActive))
+        #expect(result.policy.lastDecision == .skip(.modalActive))
     }
 
     @Test("runEnrollmentPipeline with biometric already enabled skips enrollment")
     func runEnrollmentPipeline_alreadyEnabled_skipsEnrollment() async {
         let spy = CoordinatorAuthSpy()
-        let (coordinator, biometric, policy, _) = makeCoordinator(
+        let result = makeCoordinator(
             biometricEnabled: true,
             onAuthenticate: { await spy.record() }
         )
-        await biometric.loadPreference()
+        await result.biometric.loadPreference()
 
-        await coordinator.runEnrollmentPipeline(
+        await result.coordinator.runEnrollmentPipeline(
             context: AppState.AuthCompletionContext.pinEntry,
             hasActiveModal: false
         )
 
         #expect(await spy.callCount() == 0)
-        #expect(policy.lastDecision == .skip(.alreadyEnabled))
+        #expect(result.policy.lastDecision == .skip(.alreadyEnabled))
     }
 
     @Test("runEnrollmentPipeline without capability skips enrollment")
     func runEnrollmentPipeline_noCapability_skipsEnrollment() async {
         let spy = CoordinatorAuthSpy()
-        let (coordinator, _, policy, _) = makeCoordinator(
+        let result = makeCoordinator(
             capability: false,
             onAuthenticate: { await spy.record() }
         )
 
-        await coordinator.runEnrollmentPipeline(
+        await result.coordinator.runEnrollmentPipeline(
             context: AppState.AuthCompletionContext.pinEntry,
             hasActiveModal: false
         )
 
         #expect(await spy.callCount() == 0)
-        #expect(policy.lastDecision == .skip(.capabilityUnavailable))
+        #expect(result.policy.lastDecision == .skip(.capabilityUnavailable))
     }
 
     @Test("runEnrollmentPipeline resets policy on each call")
     func runEnrollmentPipeline_resetsPolicy() async {
         struct DenialError: Error {}
         let spy = CoordinatorAuthSpy()
-        let (coordinator, _, policy, _) = makeCoordinator(onAuthenticate: {
+        let result = makeCoordinator(onAuthenticate: {
             await spy.record()
             throw DenialError()
         })
 
         // First call: enrollment attempted and denied
-        await coordinator.runEnrollmentPipeline(context: .pinEntry, hasActiveModal: false)
+        await result.coordinator.runEnrollmentPipeline(context: .pinEntry, hasActiveModal: false)
         #expect(await spy.callCount() == 1)
 
         // Second call: policy resets so enrollment is retried
-        await coordinator.runEnrollmentPipeline(context: .pinEntry, hasActiveModal: false)
+        await result.coordinator.runEnrollmentPipeline(context: .pinEntry, hasActiveModal: false)
         #expect(await spy.callCount() == 2, "Policy must reset between calls allowing retry")
     }
 
