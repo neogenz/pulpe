@@ -8,11 +8,13 @@ import {
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { type BudgetLine, type Transaction } from 'pulpe-shared';
-import { BudgetCalculator, calculateAllConsumptions } from '@core/budget';
+import {
+  BudgetCalculator,
+  BUDGET_WARNING_THRESHOLD_PERCENT,
+  calculateAllConsumptions,
+} from '@core/budget';
 import { RealizedBalanceProgressBar } from '@ui/realized-balance-progress-bar/realized-balance-progress-bar';
 import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-balance-tooltip';
-
-const COMFORT_THRESHOLD = 0.2;
 
 /**
  * BudgetFinancialOverview - "Financial Pulse" design
@@ -240,9 +242,12 @@ export class BudgetFinancialOverview {
 
   readonly isPositive = computed(() => this.totals().remaining >= 0);
 
-  readonly isComfortable = computed(
-    () => this.totals().remaining > this.totals().income * COMFORT_THRESHOLD,
-  );
+  readonly isComfortable = computed(() => {
+    const { remaining, income } = this.totals();
+    if (income <= 0) return remaining >= 0;
+    const consumedPercent = ((income - remaining) / income) * 100;
+    return consumedPercent <= BUDGET_WARNING_THRESHOLD_PERCENT;
+  });
 
   readonly budgetState = computed<'comfortable' | 'warning' | 'deficit'>(() => {
     if (!this.isPositive()) return 'deficit';

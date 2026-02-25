@@ -54,11 +54,11 @@ describe('DashboardHero', () => {
     expect(component.budgetStatus()).toBe('over-budget');
   });
 
-  it('should determine isWarning (>80% consumed)', () => {
+  it('should determine isWarning (>90% consumed)', () => {
     setTestInput(component.available, 1000);
-    setTestInput(component.expenses, 850);
-    setTestInput(component.remaining, 150);
-    setTestInput(component.budgetConsumedPercentage, 85);
+    setTestInput(component.expenses, 950);
+    setTestInput(component.remaining, 50);
+    setTestInput(component.budgetConsumedPercentage, 95);
     setTestInput(component.periodDates, {
       startDate: new Date(),
       endDate: new Date(),
@@ -66,7 +66,7 @@ describe('DashboardHero', () => {
 
     expect(component.isOverBudget()).toBe(false);
     expect(component.isWarning()).toBe(true);
-    expect(component.budgetConsumedPercentage()).toBe(85);
+    expect(component.budgetConsumedPercentage()).toBe(95);
   });
 
   it('should expose budgetConsumedPercentage from input', () => {

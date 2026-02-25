@@ -59,6 +59,13 @@ export const STORAGE_SCHEMAS = {
     scope: 'app',
     storageType: 'local',
   },
+
+  // What's New - tracks last dismissed version (device-level, preserved across sessions)
+  [STORAGE_KEYS.WHATS_NEW_DISMISSED]: {
+    version: 1,
+    schema: z.string(),
+    scope: 'app',
+  },
 } as const satisfies Record<string, StorageSchemaConfig>;
 
 /**

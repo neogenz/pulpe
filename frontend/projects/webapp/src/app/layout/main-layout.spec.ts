@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { Router, type NavigationEnd, ActivatedRoute } from '@angular/router';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { ScrollDispatcher } from '@angular/cdk/scrolling';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Component, output, input, NO_ERRORS_SCHEMA } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -19,6 +20,12 @@ import { HttpClient } from '@angular/common/http';
 import MainLayout from './main-layout';
 import { AuthStateService } from '../core/auth/auth-state.service';
 import { AuthSessionService } from '../core/auth/auth-session.service';
+import { ApplicationConfiguration } from '../core/config/application-configuration';
+import { DemoModeService } from '../core/demo/demo-mode.service';
+import { DemoInitializerService } from '../core/demo/demo-initializer.service';
+import { LoadingIndicator } from '../core/loading/loading-indicator';
+import { Logger } from '../core/logging/logger';
+import { ProductTourService } from '../core/product-tour/product-tour.service';
 import { BreadcrumbState } from '../core/routing/breadcrumb-state';
 import { ROUTES } from '../core/routing/routes-constants';
 
@@ -123,9 +130,18 @@ describe('MainLayout', () => {
   let mockHttpClient: {
     get: ReturnType<typeof vi.fn>;
   };
+  let mockDialog: {
+    open: ReturnType<typeof vi.fn>;
+  };
   let breakpointSubject: Subject<{ matches: boolean }>;
 
+  afterEach(() => {
+    fixture?.destroy();
+  });
+
   beforeEach(async () => {
+    TestBed.resetTestingModule();
+
     // Create observables for breakpoint changes
     breakpointSubject = new Subject<{ matches: boolean }>();
 
@@ -164,6 +180,9 @@ describe('MainLayout', () => {
     mockHttpClient = {
       get: vi.fn().mockReturnValue(EMPTY),
     };
+    mockDialog = {
+      open: vi.fn().mockReturnValue({ afterClosed: () => EMPTY }),
+    };
 
     // Configure TestBed
     TestBed.configureTestingModule({
@@ -191,11 +210,41 @@ describe('MainLayout', () => {
         { provide: BreadcrumbState, useValue: mockBreadcrumbState },
         { provide: ScrollDispatcher, useValue: mockScrollDispatcher },
         { provide: HttpClient, useValue: mockHttpClient },
+        { provide: MatDialog, useValue: mockDialog },
+        {
+          provide: ApplicationConfiguration,
+          useValue: { isProduction: vi.fn().mockReturnValue(false) },
+        },
+        {
+          provide: DemoModeService,
+          useValue: { isDemoMode: signal(false) },
+        },
+        {
+          provide: DemoInitializerService,
+          useValue: { exitDemoMode: vi.fn().mockResolvedValue(undefined) },
+        },
+        {
+          provide: Logger,
+          useValue: {
+            info: vi.fn(),
+            warn: vi.fn(),
+            error: vi.fn(),
+            debug: vi.fn(),
+          },
+        },
+        {
+          provide: ProductTourService,
+          useValue: { startPageTour: vi.fn() },
+        },
+        {
+          provide: LoadingIndicator,
+          useValue: { isLoading: signal(false) },
+        },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     });
 
-    // Override the main layout component to use mock components
+    // Override component: mock imports + empty styles (jsdom cannot parse modern CSS)
     TestBed.overrideComponent(MainLayout, {
       set: {
         imports: [
@@ -210,6 +259,8 @@ describe('MainLayout', () => {
           MockNavigationMenuComponent,
           MockPulpeBreadcrumbComponent,
         ],
+        styles: [],
+        schemas: [NO_ERRORS_SCHEMA],
       },
     });
 
@@ -312,7 +363,7 @@ describe('MainLayout', () => {
     });
 
     afterEach(() => {
-      restoreLocation();
+      restoreLocation?.();
     });
 
     it('should not allow multiple logout attempts', async () => {

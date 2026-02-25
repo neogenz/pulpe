@@ -194,6 +194,36 @@ Each entry: `{ "title": "Bold title from Step 5", "description": "Description fr
 Deduplicate: if both frontend and backend changed, `"web"` appears once.
 Empty sections stay as `[]` (never omit the key).
 
+### Step 5c: Update webapp "What's New" toast
+
+Update `frontend/projects/webapp/src/app/layout/whats-new/whats-new-releases.ts` so the in-app toast displays the new release features.
+
+**Procedure:**
+
+1. Read the file (use Read tool)
+2. Replace `LATEST_RELEASE` with the new version and features from the approved "Nouveautes" entries
+3. Write back using Edit tool
+
+**Template:**
+
+```typescript
+export const LATEST_RELEASE: WhatsNewRelease = {
+  version: 'X.Y.Z',
+  features: [
+    'Titre court de la nouveaute 1',
+    'Titre court de la nouveaute 2',
+  ],
+};
+```
+
+**Rules:**
+- `version`: Same as Step 4 (without `v` prefix) — must match the bumped `package.json` version so `buildInfo.version === LATEST_RELEASE.version`
+- `features`: Short titles only (from "Nouveautes" bold titles in Step 5), no descriptions — max ~50 chars per line
+- **Frontend-only, user-facing only**: Only include features visible to webapp users (UI changes, new pages, UX improvements). Exclude backend-only, infra, landing page, iOS-only, or purely technical changes
+- If no user-facing "Nouveautes" entries (patch with fixes only), use the most impactful fix titles instead
+- Max 3-4 features to keep the toast concise
+- Keep the `WhatsNewRelease` interface import unchanged
+
 ### Step 6: Apply versions
 
 Execute ONLY after user confirms.
@@ -226,7 +256,7 @@ Fix issues before proceeding.
 Stage only release files:
 
 ```bash
-git add package.json CHANGELOG.md */CHANGELOG.md */package.json .changeset/ ios/project.yml ios/Pulpe.xcodeproj/project.pbxproj landing/data/releases.json
+git add package.json CHANGELOG.md */CHANGELOG.md */package.json .changeset/ ios/project.yml ios/Pulpe.xcodeproj/project.pbxproj landing/data/releases.json frontend/projects/webapp/src/app/layout/whats-new/whats-new-releases.ts
 git commit -m "chore(release): vX.Y.Z"
 git tag "vX.Y.Z" -m "Release vX.Y.Z"
 ```

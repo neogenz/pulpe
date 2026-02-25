@@ -21,4 +21,7 @@ export const STORAGE_KEYS = {
   // Vault/Client key - stores encrypted client key for vault access
   VAULT_CLIENT_KEY_SESSION: 'pulpe-vault-client-key-session',
   VAULT_CLIENT_KEY_LOCAL: 'pulpe-vault-client-key-local',
+
+  // What's New dismissal
+  WHATS_NEW_DISMISSED: 'pulpe-whats-new-dismissed',
 } as const satisfies Record<string, StorageKey>;

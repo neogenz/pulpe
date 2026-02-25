@@ -49,6 +49,7 @@ import { of } from 'rxjs';
 import { delay, filter, map, shareReplay, switchMap } from 'rxjs/operators';
 import { AboutDialog } from './about-dialog';
 import { LogoutDialog } from '@ui/dialogs/logout-dialog';
+import { WhatsNewToast } from './whats-new/whats-new-toast';
 
 interface NavigationItem {
   readonly route: string;
@@ -73,6 +74,7 @@ interface NavigationItem {
     RouterOutlet,
     PulpeBreadcrumb,
     MatProgressBarModule,
+    WhatsNewToast,
   ],
   template: `
     <mat-sidenav-container
@@ -377,6 +379,7 @@ interface NavigationItem {
         </div>
       </mat-sidenav-content>
     </mat-sidenav-container>
+    <pulpe-whats-new-toast />
   `,
   styles: [
     `
@@ -443,7 +446,6 @@ interface NavigationItem {
         /* Coupe tout ce qui dépasse en HAUT (0), mais laisse passer le reste (-20px) */
         /* Ordre : Top, Right, Bottom, Left */
         clip-path: inset(0px -20px -20px -20px);
-        z-index: 10;
       }
 
       .toolbar-desktop {
@@ -499,7 +501,7 @@ export default class MainLayout {
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #demoModeService = inject(DemoModeService);
   readonly #demoInitializer = inject(DemoInitializerService);
-  readonly breadcrumbState = inject(BreadcrumbState);
+  protected readonly breadcrumbState = inject(BreadcrumbState);
   protected readonly hasBreadcrumb = computed(
     () => this.breadcrumbState.breadcrumbs().length > 1,
   );
@@ -511,7 +513,7 @@ export default class MainLayout {
   readonly #productTourService = inject(ProductTourService);
   protected readonly loadingIndicator = inject(LoadingIndicator);
   // Display "Mode Démo" for demo users, otherwise show email
-  readonly userEmail = computed(() => {
+  protected readonly userEmail = computed(() => {
     if (this.#demoModeService.isDemoMode()) {
       return 'demo@gmail.com';
     }
