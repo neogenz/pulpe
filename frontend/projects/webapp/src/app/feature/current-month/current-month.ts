@@ -38,7 +38,6 @@ import { DashboardHistoryChart } from './components/dashboard-history-chart';
 import { DashboardFutureProjectionChart } from './components/dashboard-future-projection-chart';
 import { DashboardRecentTransactions } from './components/dashboard-recent-transactions';
 import { DashboardSavingsSummary } from './components/dashboard-savings-summary';
-import { DashboardMonthInsight } from './components/dashboard-month-insight';
 import { DashboardNextMonth } from './components/dashboard-next-month';
 
 type TransactionFormData = Pick<
@@ -63,14 +62,13 @@ type TransactionFormData = Pick<
     DashboardFutureProjectionChart,
     DashboardRecentTransactions,
     DashboardSavingsSummary,
-    DashboardMonthInsight,
     DashboardNextMonth,
   ],
   template: `
     <div class="flex flex-col gap-4 min-w-0" data-testid="dashboard-page">
       <header class="pulpe-page-header" data-testid="page-header">
         <h1
-          class="text-headline-medium md:text-display-small truncate min-w-0 shrink"
+          class="text-headline-medium md:text-display-small truncate min-w-0 shrink pb-0"
           data-testid="page-title"
         >
           Tableau de bord
@@ -102,13 +100,6 @@ type TransactionFormData = Pick<
         />
       } @else if (store.dashboardData()?.budget) {
         <div class="flex flex-col gap-8">
-          <!-- Month closing insight (only visible last 10% of month) -->
-          <pulpe-dashboard-month-insight
-            [timeElapsedPercentage]="store.timeElapsedPercentage()"
-            [remaining]="store.remaining()"
-            data-testid="dashboard-block-month-insight"
-          />
-
           <!-- Hero "Disponible à dépenser" -->
           <pulpe-dashboard-hero
             [expenses]="store.totalExpenses()"
