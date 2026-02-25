@@ -370,7 +370,9 @@ interface NavigationItem {
             data-tour="page-content"
           >
             <div #scrollSentinel class="h-0" aria-hidden="true"></div>
-            <router-outlet />
+            <div class="container mx-auto">
+              <router-outlet />
+            </div>
           </main>
         </div>
       </mat-sidenav-content>
@@ -523,9 +525,9 @@ export default class MainLayout {
   protected readonly navigationItems: readonly NavigationItem[] = [
     {
       route: ROUTES.DASHBOARD,
-      label: 'Ce mois-ci',
-      icon: 'today',
-      tooltip: 'Suivez vos dépenses du mois',
+      label: 'Tableau de bord',
+      icon: 'space_dashboard',
+      tooltip: "Ta vue d'ensemble du mois",
     },
     {
       route: ROUTES.BUDGET,
@@ -553,8 +555,8 @@ export default class MainLayout {
   // Current route tracking
   readonly #currentRoute = toSignal(
     this.#router.events.pipe(
-      filter((event) => event instanceof NavigationEnd),
-      map((event) => (event as NavigationEnd).urlAfterRedirects),
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      map((event) => event.urlAfterRedirects),
     ),
     { initialValue: this.#router.url },
   );
@@ -574,7 +576,7 @@ export default class MainLayout {
   // Current tour page ID based on route
   protected readonly currentTourPageId = computed((): TourPageId | null => {
     const url = this.#currentRoute();
-    if (url.includes(`/${ROUTES.DASHBOARD}`)) return 'current-month';
+    if (url.includes(`/${ROUTES.DASHBOARD}`)) return 'dashboard';
     if (url.match(/\/budget\/[^/]+$/)) return 'budget-details';
     if (url.includes(`/${ROUTES.BUDGET}`)) return 'budget-list';
     if (url.includes(`/${ROUTES.BUDGET_TEMPLATES}`)) return 'templates-list';

@@ -72,7 +72,7 @@ describe('ProductTourService', () => {
 
   describe('hasSeenPageTour', () => {
     const testCases: TourPageId[] = [
-      'current-month',
+      'dashboard',
       'budget-list',
       'budget-details',
       'templates-list',
@@ -96,7 +96,7 @@ describe('ProductTourService', () => {
       // GIVEN: All tours have been seen
       const tourIds = [
         'intro',
-        'current-month',
+        'dashboard',
         'budget-list',
         'budget-details',
         'templates-list',
@@ -106,14 +106,14 @@ describe('ProductTourService', () => {
       });
 
       expect(service.hasSeenIntro()).toBe(true);
-      expect(service.hasSeenPageTour('current-month')).toBe(true);
+      expect(service.hasSeenPageTour('dashboard')).toBe(true);
 
       // WHEN: Reset all tours
       service.resetAllTours();
 
       // THEN: All tour states are cleared
       expect(service.hasSeenIntro()).toBe(false);
-      expect(service.hasSeenPageTour('current-month')).toBe(false);
+      expect(service.hasSeenPageTour('dashboard')).toBe(false);
       expect(service.hasSeenPageTour('budget-list')).toBe(false);
       expect(service.hasSeenPageTour('budget-details')).toBe(false);
       expect(service.hasSeenPageTour('templates-list')).toBe(false);
@@ -168,18 +168,18 @@ describe('ProductTourService', () => {
       mockCurrentUser = null;
 
       // Tours don't start when not authenticated (isReady check)
-      expect(() => service.startPageTour('current-month')).not.toThrow();
+      expect(() => service.startPageTour('dashboard')).not.toThrow();
     });
   });
 
   describe('startPageTour', () => {
     it('should not throw when called with valid pageId', () => {
-      expect(() => service.startPageTour('current-month')).not.toThrow();
+      expect(() => service.startPageTour('dashboard')).not.toThrow();
     });
 
     it('should prevent concurrent tours (second call is ignored)', () => {
       // GIVEN: A tour is already running
-      service.startPageTour('current-month');
+      service.startPageTour('dashboard');
 
       // WHEN: Another tour is started
       // THEN: No error occurs (call is silently ignored)
@@ -193,7 +193,7 @@ describe('ProductTourService', () => {
     });
 
     it('should not throw when a tour is active', () => {
-      service.startPageTour('current-month');
+      service.startPageTour('dashboard');
 
       expect(() => service.cancelActiveTour()).not.toThrow();
     });

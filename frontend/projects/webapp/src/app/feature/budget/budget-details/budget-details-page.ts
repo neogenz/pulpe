@@ -63,6 +63,83 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
   styles: `
     :host {
       display: block;
+      position: relative;
+      padding-bottom: 100px;
+    }
+
+    .fab-button {
+      position: fixed;
+      bottom: calc(24px + env(safe-area-inset-bottom));
+      right: 24px;
+      z-index: 100;
+
+      width: 56px;
+      height: 56px;
+      --mat-fab-container-shape: 50%;
+
+      background: linear-gradient(
+        145deg,
+        var(--mat-sys-primary) 0%,
+        color-mix(in srgb, var(--mat-sys-primary) 75%, black) 100%
+      );
+      color: var(--mat-sys-on-primary);
+
+      box-shadow: var(--mat-sys-level3);
+
+      transition:
+        transform 200ms var(--pulpe-ease-emphasized),
+        box-shadow 200ms var(--pulpe-ease-emphasized);
+
+      animation: fab-scale-in var(--pulpe-motion-base)
+        var(--pulpe-ease-emphasized) both;
+
+      &:hover {
+        transform: scale(1.05);
+        box-shadow: var(--mat-sys-level4);
+      }
+
+      &:active {
+        transform: scale(0.95);
+        box-shadow: var(--mat-sys-level3);
+        transition-duration: 100ms;
+      }
+
+      &:hover .fab-icon {
+        transform: rotate(90deg);
+      }
+    }
+
+    .fab-icon {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+      transition: transform 300ms var(--pulpe-ease-emphasized);
+    }
+
+    @keyframes fab-scale-in {
+      0% {
+        transform: scale(0);
+        opacity: 0;
+      }
+      70% {
+        transform: scale(1.08);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .fab-button {
+        animation: none;
+        transition: none;
+      }
+
+      .fab-icon {
+        transition: none;
+      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

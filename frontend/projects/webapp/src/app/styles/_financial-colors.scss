@@ -1,52 +1,106 @@
-// Financial Summary Colors
-// Used by the pulpe-financial-summary component
+// ═══════════════════════════════════════════════════════════════════════
+// Pulpe — Financial Color Tokens
+//
+// Architecture: Primitives → Semantic tokens → Tailwind utilities
+//
+// TO CHANGE THE EXPENSE COLOR:
+//   Update ONLY the --pulpe-amber-* primitives below.
+//   Everything else (semantic tokens, Tailwind, components) cascades.
+// ═══════════════════════════════════════════════════════════════════════
+
+// ─── Layer 1: Primitive palette ─────────────────────────────────────
+// Raw hex values. Single source of truth for custom (non-Material) colors.
+// Income, savings, and critical use Material tokens — no primitives needed.
 
 :root {
-  // Primary financial colors (text) - semantic mappings to Material system
-  --pulpe-financial-income: var(--mat-sys-tertiary);
-  --pulpe-financial-expense: var(--mat-sys-error);
-  --pulpe-financial-savings: var(--mat-sys-primary);
-  --pulpe-financial-negative: var(--mat-sys-error);
-
-  // Background variants
-  --pulpe-financial-income-light: var(--mat-sys-tertiary-container);
-  --pulpe-financial-expense-light: var(--mat-sys-error-container);
-  --pulpe-financial-savings-light: var(--mat-sys-primary-container);
-  --pulpe-financial-negative-light: var(--mat-sys-error-container);
-
-  // Text on financial backgrounds
-  --pulpe-on-financial-light: var(--mat-sys-on-surface);
-
-  // Dark variants for text/borders
-  --pulpe-financial-income-dark: var(--mat-sys-on-tertiary-container);
-  --pulpe-financial-expense-dark: var(--mat-sys-on-error-container);
-  --pulpe-financial-savings-dark: var(--mat-sys-on-primary-container);
-  --pulpe-financial-negative-dark: var(--mat-sys-on-error-container);
+  --pulpe-amber: #b35800;
+  --pulpe-amber-container: #fff3e0;
+  --pulpe-amber-on-container: #3e2723;
 }
 
-// Dark theme overrides
+.dark-theme {
+  --pulpe-amber: #f0a050;
+  --pulpe-amber-container: #2a1f10;
+  --pulpe-amber-on-container: #fff3e0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --pulpe-amber: #f0a050;
+    --pulpe-amber-container: #2a1f10;
+    --pulpe-amber-on-container: #fff3e0;
+  }
+}
+
+// ─── Layer 2: Semantic financial tokens ─────────────────────────────
+// What colors MEAN in Pulpe's financial context.
+// Consumed by Tailwind utilities (text-financial-*) and component styles.
+//
+// Semantic model — expense (category) vs deficit (state):
+//
+//   CATEGORY tokens (normal, planned):
+//     income   → green/primary   (--pulpe-financial-income)
+//     expense  → amber           (--pulpe-financial-expense)
+//     savings  → blue/tertiary   (--pulpe-financial-savings)
+//
+//   STATE tokens (critical, overrun):
+//     critical → red/error       (--pulpe-financial-critical)
+//
+//   Rule: amber = a category (expense is planned, normal)
+//         red   = a state (deficit is a critical consequence)
+//
+//   Where to use red (--pulpe-financial-critical):
+//     - Hero section showing a deficit
+//     - Budget envelope overrun (>100%)
+//
+//   Where to use amber (--pulpe-financial-expense):
+//     - Individual transactions
+//     - Budget line amounts
+//     - Category pills and labels
+
+:root {
+  // Text colors per financial category
+  --pulpe-financial-income: var(--mat-sys-tertiary);
+  --pulpe-financial-expense: var(--pulpe-amber);
+  --pulpe-financial-savings: var(--mat-sys-primary);
+  --pulpe-financial-negative: var(--pulpe-amber);
+
+  // Container backgrounds (pills, hero, cards)
+  --pulpe-financial-income-light: var(--mat-sys-tertiary-container);
+  --pulpe-financial-expense-light: var(--pulpe-amber-container);
+  --pulpe-financial-savings-light: var(--mat-sys-primary-container);
+  --pulpe-financial-negative-light: var(--pulpe-amber-container);
+
+  // Text on financial containers
+  --pulpe-on-financial-light: var(--mat-sys-on-surface);
+
+  // Border/accent variants
+  --pulpe-financial-income-dark: var(--mat-sys-on-tertiary-container);
+  --pulpe-financial-expense-dark: var(--pulpe-amber-on-container);
+  --pulpe-financial-savings-dark: var(--mat-sys-on-primary-container);
+  --pulpe-financial-negative-dark: var(--pulpe-amber-on-container);
+
+  // Critical: budget overrun (red preserved for danger)
+  --pulpe-financial-critical: var(--mat-sys-error);
+  --pulpe-financial-critical-light: var(--mat-sys-error-container);
+
+  // Hero card budget-state gradient (cascades from primitives above)
+}
+
+// ─── Dark mode: Material reference swaps ────────────────────────────
+// Only tokens that switch to a DIFFERENT Material reference in dark mode.
+// Amber tokens cascade from the primitives above — no override needed.
+
 .dark-theme {
   --pulpe-financial-income: var(--mat-sys-on-tertiary-container);
-  --pulpe-financial-expense: var(--mat-sys-on-error-container);
   --pulpe-financial-savings: var(--mat-sys-on-primary-container);
-  --pulpe-financial-negative: var(--mat-sys-on-error-container);
-  --pulpe-financial-income-light: var(--mat-sys-tertiary-container);
-  --pulpe-financial-expense-light: var(--mat-sys-error-container);
-  --pulpe-financial-savings-light: var(--mat-sys-primary-container);
-  --pulpe-financial-negative-light: var(--mat-sys-error-container);
-  --pulpe-on-financial-light: var(--mat-sys-on-surface);
+  --pulpe-financial-critical: var(--mat-sys-on-error-container);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --pulpe-financial-income: var(--mat-sys-on-tertiary-container);
-    --pulpe-financial-expense: var(--mat-sys-on-error-container);
     --pulpe-financial-savings: var(--mat-sys-on-primary-container);
-    --pulpe-financial-negative: var(--mat-sys-on-error-container);
-    --pulpe-financial-income-light: var(--mat-sys-tertiary-container);
-    --pulpe-financial-expense-light: var(--mat-sys-error-container);
-    --pulpe-financial-savings-light: var(--mat-sys-primary-container);
-    --pulpe-financial-negative-light: var(--mat-sys-error-container);
-    --pulpe-on-financial-light: var(--mat-sys-on-surface);
+    --pulpe-financial-critical: var(--mat-sys-on-error-container);
   }
 }

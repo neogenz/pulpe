@@ -11,7 +11,7 @@ const VISIBILITY_TIMEOUT = 10_000;
 
 async function expectDashboardLoaded(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/dashboard/, { timeout: NAVIGATION_TIMEOUT });
-  await expect(page.getByTestId('dashboard-content')).toBeVisible({
+  await expect(page.getByTestId('dashboard-page')).toBeVisible({
     timeout: VISIBILITY_TIMEOUT,
   });
 }

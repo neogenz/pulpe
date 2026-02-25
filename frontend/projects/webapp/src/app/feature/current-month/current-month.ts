@@ -8,7 +8,6 @@ import {
   DestroyRef,
   effect,
   inject,
-  signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -16,43 +15,31 @@ import {
   MatBottomSheetModule,
 } from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatDialog } from '@angular/material/dialog';
-import {
-  MAT_FORM_FIELD_DEFAULT_OPTIONS,
-  MatFormFieldModule,
-} from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Router } from '@angular/router';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { Logger } from '@core/logging/logger';
+import { ROUTES } from '@core/routing/routes-constants';
 import {
   ProductTourService,
   TOUR_START_DELAY,
 } from '@core/product-tour/product-tour.service';
 import { type TransactionCreate } from 'pulpe-shared';
-import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
-import { firstValueFrom } from 'rxjs';
 import { AddTransactionBottomSheet } from './components/add-transaction-bottom-sheet';
-import { MonthBudgetProgress } from './components/month-budget-progress';
 import { DashboardError } from './components/dashboard-error';
-import {
-  EditTransactionDialog,
-  type EditTransactionFormData,
-} from '@pattern/edit-transaction-form';
-import { OneTimeExpensesList } from './components/one-time-expenses-list';
-import { RecurringExpensesList } from './components/recurring-expenses-list';
-import { type FinancialEntryModel } from './models/financial-entry.model';
-import { CurrentMonthStore } from './services/current-month-store';
-import {
-  mapBudgetLineToFinancialEntry,
-  mapTransactionToFinancialEntry,
-} from './utils/financial-entry-mapper';
+import { DashboardStore } from './services/dashboard-store';
+
+import { DashboardHero } from './components/dashboard-hero';
+import { DashboardUncheckedForecasts } from './components/dashboard-unchecked-forecasts';
+import { DashboardHistoryChart } from './components/dashboard-history-chart';
+import { DashboardFutureProjectionChart } from './components/dashboard-future-projection-chart';
+import { DashboardRecentTransactions } from './components/dashboard-recent-transactions';
+import { DashboardSavingsSummary } from './components/dashboard-savings-summary';
+import { DashboardNextMonth } from './components/dashboard-next-month';
 
 type TransactionFormData = Pick<
   TransactionCreate,
@@ -60,41 +47,34 @@ type TransactionFormData = Pick<
 >;
 
 @Component({
-  selector: 'pulpe-current-month',
-  providers: [
-    {
-      provide: MAT_FORM_FIELD_DEFAULT_OPTIONS,
-      useValue: {
-        appearance: 'outline',
-      },
-    },
-  ],
+  selector: 'pulpe-dashboard',
   imports: [
-    MonthBudgetProgress,
-    MatCardModule,
     MatButtonModule,
     MatBottomSheetModule,
     MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
+    MatSnackBarModule,
     MatTooltipModule,
-    RecurringExpensesList,
     DashboardError,
     BaseLoading,
     StateCard,
-    OneTimeExpensesList,
+    DashboardHero,
+    DashboardUncheckedForecasts,
+    DashboardHistoryChart,
+    DashboardFutureProjectionChart,
+    DashboardRecentTransactions,
+    DashboardSavingsSummary,
+    DashboardNextMonth,
   ],
   template: `
-    <div class="flex flex-col gap-4 min-w-0" data-testid="current-month-page">
+    <div class="flex flex-col gap-4 min-w-0" data-testid="dashboard-page">
       <header class="pulpe-page-header" data-testid="page-header">
         <h1
-          class="text-headline-medium md:text-display-small truncate min-w-0 flex-shrink"
+          class="text-headline-medium md:text-display-small truncate min-w-0 shrink pb-0"
           data-testid="page-title"
         >
-          {{ budgetPeriodDisplayName() }}
+          Tableau de bord
         </h1>
-        <div class="flex gap-2 items-center flex-shrink-0 ml-auto">
+        <div class="flex gap-2 items-center shrink-0 ml-auto">
           <button
             matIconButton
             (click)="store.refreshData()"
@@ -103,112 +83,116 @@ type TransactionFormData = Pick<
             aria-label="Actualiser"
             data-testid="refresh-button"
           >
-            <mat-icon>refresh</mat-icon>
+            <mat-icon aria-hidden="true">refresh</mat-icon>
           </button>
         </div>
       </header>
 
-      @switch (true) {
-        @case (store.isInitialLoading()) {
-          <pulpe-base-loading
-            message="Préparation de ton tableau de bord..."
-            size="large"
-            testId="dashboard-loading"
+      @if (store.isInitialLoading()) {
+        <pulpe-base-loading
+          message="Préparation de ton tableau de bord..."
+          size="large"
+          testId="dashboard-loading"
+        />
+      } @else if (store.status() === 'error') {
+        <pulpe-dashboard-error
+          (reload)="store.refreshData()"
+          data-testid="dashboard-error"
+        />
+      } @else if (store.dashboardData()?.budget) {
+        <div class="flex flex-col gap-8">
+          <!-- Hero "Disponible à dépenser" -->
+          <pulpe-dashboard-hero
+            [expenses]="store.totalExpenses()"
+            [available]="store.totalAvailable()"
+            [remaining]="store.remaining()"
+            [budgetConsumedPercentage]="store.budgetConsumedPercentage()"
+            [periodDates]="store.periodDates()"
+            [totalIncome]="store.totalIncome()"
+            [rolloverAmount]="store.rolloverAmount()"
+            [timeElapsedPercentage]="store.timeElapsedPercentage()"
+            [paceStatus]="store.paceStatus()"
+            (heroClick)="navigateToBudgetDetails()"
+            data-testid="dashboard-block-hero"
+            data-tour="dashboard-hero"
           />
-        }
-        @case (store.status() === 'error') {
-          <pulpe-dashboard-error
-            (reload)="store.refreshData()"
-            data-testid="dashboard-error"
-          />
-        }
-        @case (
-          store.status() === 'resolved' ||
-          store.status() === 'local' ||
-          store.status() === 'reloading'
-        ) {
-          @if (store.dashboardData()?.budget) {
-            <pulpe-month-budget-progress
-              [expenses]="store.totalExpenses()"
-              [available]="store.totalAvailable()"
-              data-tour="progress-bar"
-            />
-            <div
-              class="flex flex-col gap-4"
-              data-testid="dashboard-content"
-              data-tour="expense-lists"
-            >
-              <!--<pulpe-transaction-chip-filter
-                  data-testid="transaction-chip-filter"
-                />-->
-              <h3 class="text-title-medium md:text-title-large">
-                Liste des dépenses
-              </h3>
-              @if (selectedTransactions().length > 1) {
-                <div class="flex gap-4" data-testid="bulk-actions">
-                  <!--<button
-                      matButton="tonal"
-                      (click)="deleteSelectedTransactions()"
-                      data-testid="delete-selected-button"
-                    >
-                      <mat-icon>delete_sweep</mat-icon>
-                      Supprimer ({{ selectedTransactions().length }})
-                    </button>-->
-                  <button
-                    matButton="tonal"
-                    class="icon-text-btn"
-                    data-testid="merge-selected-button"
-                  >
-                    <mat-icon>call_merge</mat-icon>
-                    Fusionner ({{ selectedTransactions().length }})
-                  </button>
-                </div>
-              }
 
-              <pulpe-recurring-expenses-list
-                [financialEntries]="recurringFinancialItems()"
-                (toggleCheckFinancialEntry)="
-                  handleToggleBudgetLineCheck($event)
-                "
-                data-testid="recurring-expenses-list"
-              />
-              <pulpe-one-time-expenses-list
-                [financialEntries]="oneTimeFinancialItems()"
-                [(selectedFinancialEntries)]="selectedTransactions"
-                (deleteFinancialEntry)="deleteTransaction($event)"
-                (editFinancialEntry)="
-                  openEditTransactionDialogAndUpdate($event)
-                "
-                (toggleCheckFinancialEntry)="
-                  handleToggleTransactionCheck($event)
-                "
-                data-testid="one-time-expenses-list"
-              />
-            </div>
-          } @else {
-            <pulpe-state-card
-              variant="empty"
-              testId="empty-state"
-              [title]="'Pas encore de budget pour ' + budgetPeriodDisplayName()"
-              message="Crée-le depuis tes modèles pour commencer à suivre ton mois."
+          <!-- Paired lists: Recent Transactions + Unchecked Forecasts -->
+          <div
+            class="grid grid-cols-1 lg:grid-cols-2 gap-8"
+            data-tour="dashboard-lists"
+          >
+            <pulpe-dashboard-recent-transactions
+              class="order-2 lg:order-1"
+              [transactions]="store.recentTransactions()"
+              (viewBudget)="navigateToBudgetDetails()"
+              data-testid="dashboard-block-recent-transactions"
             />
-          }
-        }
+
+            <pulpe-dashboard-unchecked-forecasts
+              class="order-1 lg:order-2"
+              [forecasts]="store.uncheckedForecasts()"
+              (toggleCheck)="toggleBudgetLineCheck($event)"
+              (viewBudget)="navigateToBudgetDetails()"
+              data-testid="dashboard-block-forecasts"
+            />
+          </div>
+
+          <!-- Future Projection Chart -->
+          <pulpe-dashboard-future-projection-chart
+            [forecasts]="store.upcomingBudgetsData()"
+            data-testid="dashboard-block-projection"
+          />
+
+          <!-- Paired metrics: Savings Summary + Next Month -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <pulpe-dashboard-savings-summary
+              [totalPlanned]="store.totalSavingsPlanned()"
+              [totalRealized]="store.totalSavingsRealized()"
+              [checkedCount]="store.savingsCheckedCount()"
+              [totalCount]="store.savingsTotalCount()"
+              data-testid="dashboard-block-savings"
+            />
+
+            @if (store.upcomingBudgetsData().length > 0) {
+              <pulpe-dashboard-next-month
+                [forecast]="store.upcomingBudgetsData()[0]"
+                [estimatedRollover]="store.remaining()"
+                (navigateToBudgets)="navigateToBudgetTemplates()"
+                data-testid="dashboard-block-next-month"
+              />
+            }
+          </div>
+
+          <!-- History Chart -->
+          <pulpe-dashboard-history-chart
+            [history]="store.historyData()"
+            data-testid="dashboard-block-history"
+          />
+        </div>
+
+        <!-- FAB: only visible when budget data is loaded -->
+        <button
+          matFab
+          (click)="openAddTransactionBottomSheet()"
+          class="fab-button"
+          aria-label="Ajouter une transaction"
+          data-testid="add-transaction-fab"
+          data-tour="add-transaction-fab"
+        >
+          <mat-icon aria-hidden="true" class="fab-icon">add</mat-icon>
+        </button>
+      } @else {
+        <pulpe-state-card
+          variant="empty"
+          testId="empty-state"
+          [title]="'Pas encore de budget pour ' + budgetPeriodDisplayName()"
+          message="Crée-le depuis tes modèles pour commencer à suivre ton mois."
+          actionLabel="Voir mes modèles"
+          (action)="navigateToBudgetTemplates()"
+        />
       }
     </div>
-
-    <!-- FAB pour ajouter une transaction -->
-    <button
-      matFab
-      [disabled]="!store.dashboardData()?.budget"
-      (click)="openAddTransactionBottomSheet()"
-      class="fab-button"
-      aria-label="Ajouter une transaction"
-      data-testid="add-transaction-fab"
-      data-tour="add-transaction-fab"
-    >
-      <mat-icon>add</mat-icon>
-    </button>
   `,
   styles: `
     :host {
@@ -221,40 +205,90 @@ type TransactionFormData = Pick<
       position: fixed;
       bottom: calc(24px + env(safe-area-inset-bottom));
       right: 24px;
-      z-index: 1000;
+      z-index: 100;
+
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+
+      --mat-fab-container-color: var(--mat-sys-primary);
+      background: linear-gradient(
+        145deg,
+        var(--mat-sys-primary) 0%,
+        color-mix(in srgb, var(--mat-sys-primary) 75%, black) 100%
+      );
+      color: var(--mat-sys-on-primary);
+
+      box-shadow: var(--mat-sys-level3);
+
+      transition:
+        transform 200ms var(--pulpe-ease-emphasized),
+        box-shadow 200ms var(--pulpe-ease-emphasized);
+
       animation: fab-scale-in var(--pulpe-motion-base)
-        var(--pulpe-ease-emphasized);
+        var(--pulpe-ease-emphasized) both;
+
+      &:hover {
+        transform: scale(1.05);
+        box-shadow: var(--mat-sys-level4);
+      }
+
+      &:active {
+        transform: scale(0.95);
+        box-shadow: var(--mat-sys-level1);
+        transition-duration: 100ms;
+      }
+
+      &:hover .fab-icon {
+        transform: rotate(90deg);
+      }
+    }
+
+    .fab-icon {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+      transition: transform 300ms var(--pulpe-ease-emphasized);
     }
 
     @keyframes fab-scale-in {
-      from {
+      0% {
         transform: scale(0);
         opacity: 0;
       }
-      to {
+      70% {
+        transform: scale(1.08);
+        opacity: 1;
+      }
+      100% {
         transform: scale(1);
         opacity: 1;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .fab-button {
+        animation: none;
+        transition: none;
+      }
+
+      .fab-icon {
+        transition: none;
       }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export default class CurrentMonth {
-  readonly isCreatingTransaction = signal(false);
-  readonly selectedTransactions = signal<string[]>([]);
-  protected readonly store = inject(CurrentMonthStore);
+export default class Dashboard {
+  protected readonly store = inject(DashboardStore);
   readonly #productTourService = inject(ProductTourService);
   readonly #destroyRef = inject(DestroyRef);
   readonly #loadingIndicator = inject(LoadingIndicator);
   readonly #bottomSheet = inject(MatBottomSheet);
-  readonly #dialog = inject(MatDialog);
-  readonly #snackBar = inject(MatSnackBar);
+  readonly #router = inject(Router);
   readonly #logger = inject(Logger);
+  readonly #snackBar = inject(MatSnackBar);
 
-  /**
-   * Display name for the current budget period (e.g., "janvier 2025")
-   * Uses currentBudgetPeriod which accounts for the user's payday setting
-   */
   protected readonly budgetPeriodDisplayName = computed(() => {
     const period = this.store.currentBudgetPeriod();
     return format(new Date(period.year, period.month - 1, 1), 'MMMM yyyy', {
@@ -263,8 +297,6 @@ export default class CurrentMonth {
   });
 
   constructor() {
-    this.store.refreshData();
-
     effect(() => {
       const status = this.store.status();
       this.#loadingIndicator.setLoading(status === 'reloading');
@@ -275,38 +307,40 @@ export default class CurrentMonth {
     });
 
     afterNextRender(() => {
-      if (!this.#productTourService.hasSeenPageTour('current-month')) {
+      if (!this.#productTourService.hasSeenPageTour('dashboard')) {
         setTimeout(
-          () => this.#productTourService.startPageTour('current-month'),
+          () => this.#productTourService.startPageTour('dashboard'),
           TOUR_START_DELAY,
         );
       }
     });
   }
 
-  readonly recurringFinancialItems = computed<FinancialEntryModel[]>(() => {
-    const budgetLines = this.store.displayBudgetLines();
-    const budget = this.store.dashboardData()?.budget;
+  protected navigateToBudgetDetails(): void {
+    const budgetId = this.store.dashboardData()?.budget?.id;
+    if (budgetId) {
+      this.#router.navigate(['/budget', budgetId]);
+    }
+  }
 
-    if (!budget?.id) return [];
+  protected navigateToBudgetTemplates(): void {
+    this.#router.navigate(['/', ROUTES.BUDGET_TEMPLATES]);
+  }
 
-    // Filter budget lines with 'fixed' or 'one_off' recurrence (Fixed Block) and map them to Transaction-like objects
-    return budgetLines
-      .filter(
-        (line) => line.recurrence === 'fixed' || line.recurrence === 'one_off',
-      )
-      .map((line) => mapBudgetLineToFinancialEntry(line, budget.id));
-  });
+  protected async toggleBudgetLineCheck(budgetLineId: string): Promise<void> {
+    try {
+      await this.store.toggleBudgetLineCheck(budgetLineId);
+    } catch (error) {
+      this.#logger.error('Error toggling budget line check:', error);
+      this.#snackBar.open(
+        'La mise à jour a échoué — vérifie ta connexion et réessaie',
+        'Fermer',
+        { duration: 5000 },
+      );
+    }
+  }
 
-  readonly oneTimeFinancialItems = computed<FinancialEntryModel[]>(() => {
-    // For now, show all transactions as variable expenses
-    const transactions = this.store.dashboardData()?.transactions ?? [];
-    return transactions.map((transaction) =>
-      mapTransactionToFinancialEntry(transaction),
-    );
-  });
-
-  openAddTransactionBottomSheet(): void {
+  protected openAddTransactionBottomSheet(): void {
     const bottomSheetRef = this.#bottomSheet.open(AddTransactionBottomSheet, {
       disableClose: false,
       panelClass: 'add-transaction-bottom-sheet',
@@ -317,14 +351,13 @@ export default class CurrentMonth {
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe((transaction: TransactionFormData | undefined) => {
         if (transaction) {
-          this.onAddTransaction(transaction);
+          this.#addTransaction(transaction);
         }
       });
   }
 
-  async onAddTransaction(transaction: TransactionFormData) {
+  async #addTransaction(transaction: TransactionFormData): Promise<void> {
     try {
-      this.isCreatingTransaction.set(true);
       const budgetId = this.store.dashboardData()?.budget?.id;
       if (!budgetId) {
         throw new Error('Budget ID not found');
@@ -339,139 +372,8 @@ export default class CurrentMonth {
       });
     } catch (error) {
       this.#logger.error('Error adding transaction:', error);
-    } finally {
-      this.isCreatingTransaction.set(false);
-    }
-  }
-
-  async deleteTransaction(transactionId: string): Promise<void> {
-    // Find transaction for the confirmation dialog
-    const transaction = this.oneTimeFinancialItems().find(
-      (t: FinancialEntryModel) => t.id === transactionId,
-    );
-
-    if (!transaction) {
-      this.#snackBar.open('Transaction introuvable', 'Fermer', {
-        duration: 3000,
-      });
-      return;
-    }
-
-    // Open confirmation dialog
-    const dialogRef = this.#dialog.open(ConfirmationDialog, {
-      data: {
-        title: 'Supprimer cette transaction ?',
-        message: `Tu vas supprimer « ${transaction.name} ». Cette action est irréversible.`,
-        confirmText: 'Supprimer',
-        cancelText: 'Annuler',
-        confirmColor: 'warn' as const,
-      },
-      width: '400px',
-    });
-
-    const confirmed = await firstValueFrom(dialogRef.afterClosed());
-
-    if (confirmed) {
-      try {
-        // Delete transaction
-        await this.store.deleteTransaction(transactionId);
-
-        // Show success message
-        this.#snackBar.open('Transaction supprimée', undefined, {
-          duration: 3000,
-        });
-      } catch (error) {
-        this.#logger.error('Error deleting transaction:', error);
-
-        // Show specific error message
-        this.#snackBar.open(
-          'La suppression a échoué — vérifie ta connexion et réessaie',
-          'Fermer',
-          {
-            duration: 5000,
-          },
-        );
-      }
-    }
-  }
-
-  async openEditTransactionDialogAndUpdate(
-    transactionId: string,
-  ): Promise<void> {
-    // Find transaction to edit
-    const transaction = this.store
-      .dashboardData()
-      ?.transactions.find((transaction) => transaction.id === transactionId);
-
-    if (!transaction) return;
-
-    // Open edit dialog
-    const dialogRef = this.#dialog.open(EditTransactionDialog, {
-      data: {
-        transaction,
-      },
-      width: '500px',
-      maxWidth: '90vw',
-    });
-
-    const updatedData = await firstValueFrom<
-      EditTransactionFormData | undefined
-    >(dialogRef.afterClosed());
-
-    if (!updatedData) {
-      return;
-    }
-
-    try {
-      // Update transaction
-      await this.store.updateTransaction(transactionId, {
-        name: updatedData.name,
-        amount: updatedData.amount ?? undefined,
-        kind: updatedData.kind,
-        transactionDate: updatedData.transactionDate,
-        category: updatedData.category,
-      });
-
-      // Show success message
-      this.#snackBar.open('Transaction modifiée', undefined, {
-        duration: 3000,
-      });
-    } catch (error) {
-      this.#logger.error('Error updating transaction:', error);
-
-      // Show specific error message
       this.#snackBar.open(
-        'La modification a échoué — vérifie ta connexion et réessaie',
-        'Fermer',
-        {
-          duration: 5000,
-        },
-      );
-    }
-  }
-
-  async handleToggleBudgetLineCheck(budgetLineId: string): Promise<void> {
-    try {
-      await this.store.toggleBudgetLineCheck(budgetLineId);
-    } catch (error) {
-      this.#logger.error('Error toggling budget line check:', error);
-      this.#snackBar.open(
-        "Le statut n'a pas pu être mis à jour — on réessaie ?",
-        'Fermer',
-        {
-          duration: 5000,
-        },
-      );
-    }
-  }
-
-  async handleToggleTransactionCheck(transactionId: string): Promise<void> {
-    try {
-      await this.store.toggleTransactionCheck(transactionId);
-    } catch (error) {
-      this.#logger.error('Error toggling transaction check:', error);
-      this.#snackBar.open(
-        "Le statut n'a pas pu être mis à jour — on réessaie ?",
+        "L'ajout a échoué — vérifie ta connexion et réessaie",
         'Fermer',
         {
           duration: 5000,

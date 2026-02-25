@@ -31,7 +31,7 @@ const DRIVER_BODY_CLASSES = [
 ] as const;
 
 export type TourPageId =
-  | 'current-month'
+  | 'dashboard'
   | 'budget-list'
   | 'budget-details'
   | 'templates-list';
@@ -50,7 +50,7 @@ export const TOUR_START_DELAY = 500;
  */
 const TOUR_IDS = {
   intro: 'intro',
-  'current-month': 'current-month',
+  dashboard: 'dashboard',
   'budget-list': 'budget-list',
   'budget-details': 'budget-details',
   'templates-list': 'templates-list',
@@ -124,7 +124,7 @@ export class ProductTourService {
    */
   resetAllTours(): void {
     this.#storageService.remove(this.#getTourKey(TOUR_IDS.intro));
-    this.#storageService.remove(this.#getTourKey(TOUR_IDS['current-month']));
+    this.#storageService.remove(this.#getTourKey(TOUR_IDS.dashboard));
     this.#storageService.remove(this.#getTourKey(TOUR_IDS['budget-list']));
     this.#storageService.remove(this.#getTourKey(TOUR_IDS['budget-details']));
     this.#storageService.remove(this.#getTourKey(TOUR_IDS['templates-list']));
@@ -231,8 +231,8 @@ export class ProductTourService {
    */
   #getPageSteps(pageId: TourPageId): DriveStep[] {
     switch (pageId) {
-      case 'current-month':
-        return this.#currentMonthSteps;
+      case 'dashboard':
+        return this.#dashboardSteps;
       case 'budget-list':
         return this.#budgetListSteps;
       case 'budget-details':
@@ -266,7 +266,7 @@ export class ProductTourService {
         title: 'Trois espaces, un objectif',
         description: `
           <ul>
-            <li><strong>Ce mois-ci</strong> : ici, tu suis tes dépenses en temps réel, sans surprise.</li>
+            <li><strong>Tableau de bord</strong> : ici, tu suis tes dépenses en temps réel, sans surprise.</li>
             <li><strong>Budgets</strong> : prépare tes prochains mois en 2 clics, et vois loin.</li>
             <li><strong>Modèles</strong> : ta recette mensuelle, à réutiliser sans effort.</li>
           </ul>
@@ -277,9 +277,9 @@ export class ProductTourService {
     },
   ];
 
-  readonly #currentMonthSteps: DriveStep[] = [
+  readonly #dashboardSteps: DriveStep[] = [
     {
-      element: '[data-tour="progress-bar"]',
+      element: '[data-tour="dashboard-hero"]',
       popover: {
         title: 'Ton reste à dépenser',
         description: `
@@ -291,9 +291,9 @@ export class ProductTourService {
       },
     },
     {
-      element: '[data-tour="expense-lists"]',
+      element: '[data-tour="dashboard-lists"]',
       popover: {
-        title: 'Tes dépenses triées',
+        title: 'Tes prévisions et transactions',
         description: `
           <p>Tes frais fixes sont déjà pris en compte. Le reste, c'est toi qui décides.</p>
           <p>Un coup d'œil, et tu sais où tu en es.</p>

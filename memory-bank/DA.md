@@ -138,6 +138,36 @@ L'icône actuelle (tranche d'agrume neumorphique) :
 - Pas d'animations stressantes ou rapides
 - Confirmations visuelles subtiles (pas de confettis excessifs)
 
+### 3.6 Couleurs Financières — Modèle Sémantique
+
+Pulpe distingue deux concepts différents avec des couleurs distinctes :
+
+| Concept | Couleur | Tokens | Usage |
+|---------|---------|--------|-------|
+| **Revenu** (catégorie) | Vert / Primary | `--pulpe-financial-income` | Lignes budget, pills, montants |
+| **Dépense** (catégorie) | Ambre | `--pulpe-financial-expense` | Lignes budget, pills, montants |
+| **Épargne** (catégorie) | Bleu / Tertiary | `--pulpe-financial-savings` | Lignes budget, pills, montants |
+| **Déficit** (état critique) | Rouge / Error | `--pulpe-financial-critical` | Hero section, états de dépassement |
+
+**Principe :** L'ambre signale une catégorie (dépense), le rouge signale un état (déficit).
+- Une dépense est planifiée, normale — ambre (neutre)
+- Un déficit est une conséquence critique — rouge (alerte)
+
+**Pourquoi le rouge n'est pas anxiogène ici :**
+- Le hero est le seul endroit où l'émotion doit frapper
+- Le microcopy désactive l'anxiété ("tu le sais, et c'est déjà ça")
+- Le rouge est factuel et contextuel, pas punitif
+- Les apps "calm" (YNAB, Goodbudget) font pareil
+
+**La règle "Pas de rouge agressif" s'applique :**
+- Aux transactions individuelles → ambre
+- Aux messages d'erreur → ton neutre + suggestion
+- Aux états d'alerte dans les tables → ambre
+
+**Le rouge est réservé à :**
+- Hero section en déficit
+- États de dépassement critiques (>100% d'une enveloppe)
+
 ---
 
 ## 4. Ton de Voix & Rédaction UX

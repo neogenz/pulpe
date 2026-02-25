@@ -64,9 +64,7 @@ import { type TemplateViewModel } from './template-view-model';
         >
           <mat-icon class="text-display-small mb-2">error_outline</mat-icon>
           <p class="text-label-large">Erreur lors du chargement des modèles</p>
-          <button matButton color="primary" (click)="retryRequested.emit()">
-            Réessayer
-          </button>
+          <button matButton (click)="retryRequested.emit()">Réessayer</button>
         </div>
       } @else if (filteredTemplates().length === 0) {
         <div
@@ -123,15 +121,15 @@ import { type TemplateViewModel } from './template-view-model';
 })
 export class TemplatesList {
   // Inputs
-  templates = input<TemplateViewModel[]>([]);
-  selectedTemplateId = input<string | null>(null);
-  isLoading = input<boolean>(false);
-  hasError = input<boolean>(false);
+  readonly templates = input<TemplateViewModel[]>([]);
+  readonly selectedTemplateId = input<string | null>(null);
+  readonly isLoading = input<boolean>(false);
+  readonly hasError = input<boolean>(false);
 
   // Outputs
-  templateSelected = output<string>();
-  templateDetailsRequested = output<TemplateViewModel>();
-  retryRequested = output<void>();
+  readonly templateSelected = output<string>();
+  readonly templateDetailsRequested = output<TemplateViewModel>();
+  readonly retryRequested = output<void>();
 
   // Local search state
   readonly searchControl = new FormControl('', { nonNullable: true });

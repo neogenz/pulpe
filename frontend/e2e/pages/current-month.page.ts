@@ -27,23 +27,23 @@ export class CurrentMonthPage {
   }
 
   async expectPageLoaded() {
-    await expect(this.page.getByTestId('current-month-page')).toBeVisible();
+    await expect(this.page.getByTestId('dashboard-page')).toBeVisible();
   }
 
   async getRemainingAmount(): Promise<string> {
-    const element = this.page.getByTestId('remaining-amount');
+    const element = this.page.getByTestId('hero-remaining-amount');
     await expect(element).toBeVisible();
     return (await element.textContent()) ?? '';
   }
 
   async getExpensesAmount(): Promise<string> {
-    const element = this.page.getByTestId('expenses-amount');
+    const element = this.page.getByTestId('hero-expenses-amount');
     await expect(element).toBeVisible();
     return (await element.textContent()) ?? '';
   }
 
   async expectRemainingAmount(expectedAmount: string) {
-    const element = this.page.getByTestId('remaining-amount');
+    const element = this.page.getByTestId('hero-remaining-amount');
     const normalizedExpected = this.normalizeSwissNumber(expectedAmount);
     await expect
       .poll(async () => this.normalizeSwissNumber((await element.textContent()) ?? ''))
@@ -51,7 +51,7 @@ export class CurrentMonthPage {
   }
 
   async expectExpensesAmount(expectedAmount: string) {
-    const element = this.page.getByTestId('expenses-amount');
+    const element = this.page.getByTestId('hero-expenses-amount');
     const normalizedExpected = this.normalizeSwissNumber(expectedAmount);
     await expect
       .poll(async () => this.normalizeSwissNumber((await element.textContent()) ?? ''))

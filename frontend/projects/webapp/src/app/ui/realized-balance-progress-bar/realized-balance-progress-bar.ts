@@ -39,7 +39,7 @@ import {
           <div
             class="text-headline-small md:text-headline-medium font-semibold ph-no-capture"
             [class.text-primary]="realizedBalance() >= 0"
-            [class.text-error]="realizedBalance() < 0"
+            [class.text-financial-negative]="realizedBalance() < 0"
           >
             {{ realizedBalance() | number: '1.0-0' : 'de-CH' }} CHF
           </div>
@@ -47,7 +47,16 @@ import {
       </div>
 
       <!-- Segmented Progress: Visual representation of checked items -->
-      <div class="flex gap-1 h-2.5 mb-3">
+      <div
+        role="progressbar"
+        [attr.aria-valuenow]="progressPercentage()"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        [attr.aria-label]="
+          checkedCount() + ' sur ' + totalCount() + ' éléments comptabilisés'
+        "
+        class="flex gap-1 h-2.5 mb-3"
+      >
         @for (segment of progressSegments(); track $index) {
           <div
             class="flex-1 rounded-full transition-all duration-300 ease-out"

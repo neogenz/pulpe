@@ -126,6 +126,16 @@
     data-tour="budget-table"
   />
 
+  <button
+    matFab
+    (click)="openAddBudgetLineDialog()"
+    class="fab-button"
+    aria-label="Ajouter une prévision"
+    data-testid="add-budget-line-fab"
+  >
+    <mat-icon aria-hidden="true" class="fab-icon">add</mat-icon>
+  </button>
+
   @if (isDevMode) {
   <!-- Budget Info Card -->
   <mat-card appearance="outlined">

@@ -112,7 +112,7 @@ import { BudgetGridSection } from './budget-grid-section';
         <div
           class="w-16 h-16 mx-auto mb-4 rounded-full bg-primary-container/30 flex items-center justify-center"
         >
-          <mat-icon class="text-primary text-3xl! shrink-0"
+          <mat-icon class="text-primary shrink-0"
             >account_balance_wallet</mat-icon
           >
         </div>
@@ -157,9 +157,7 @@ import { BudgetGridSection } from './budget-grid-section';
                 <div
                   class="flex items-center text-label-small text-on-surface-variant"
                 >
-                  <mat-icon class="text-sm! leading-none! w-4! h-4!"
-                    >folder</mat-icon
-                  >
+                  <mat-icon [inline]="true" class="text-sm">folder</mat-icon>
                   <span>{{ item.metadata.envelopeName }}</span>
                 </div>
               }
@@ -167,7 +165,7 @@ import { BudgetGridSection } from './budget-grid-section';
             <div
               class="text-title-medium font-bold"
               [class.text-financial-income]="item.data.amount > 0"
-              [class.text-error]="item.data.amount < 0"
+              [class.text-financial-negative]="item.data.amount < 0"
             >
               {{ item.data.amount }}
             </div>

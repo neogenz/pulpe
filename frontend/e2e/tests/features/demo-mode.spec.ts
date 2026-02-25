@@ -54,7 +54,7 @@ test.describe('Demo Mode', () => {
     });
 
     // Verify page has loaded content (Playwright will auto-wait)
-    await expect(authenticatedPage.getByTestId('current-month-page')).toBeVisible();
+    await expect(authenticatedPage.getByTestId('dashboard-page')).toBeVisible();
   });
 
   test('should work with authenticatedPage fixture', async ({ authenticatedPage }) => {
@@ -68,7 +68,7 @@ test.describe('Demo Mode', () => {
     await authenticatedPage.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 15000 });
 
     // Verify page loads successfully
-    await expect(authenticatedPage.getByTestId('current-month-page')).toBeVisible();
+    await expect(authenticatedPage.getByTestId('dashboard-page')).toBeVisible();
 
     // Verify demo flags are accessible
     const hasDemoBypass = await authenticatedPage.evaluate(() => {

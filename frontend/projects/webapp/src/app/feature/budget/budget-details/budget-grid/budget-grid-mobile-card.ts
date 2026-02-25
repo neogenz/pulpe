@@ -203,6 +203,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                 class="text-primary"
                 (click)="addTransaction.emit(item().data)"
                 matTooltip="Saisir une transaction"
+                aria-label="Saisir une transaction"
                 [attr.data-testid]="'add-transaction-' + item().data.id"
               >
                 <mat-icon>add</mat-icon>
@@ -213,6 +214,11 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                 (change)="toggleCheck.emit(item().data.id)"
                 (click)="$event.stopPropagation()"
                 [attr.data-testid]="'toggle-check-' + item().data.id"
+                [attr.aria-label]="
+                  item().data.checkedAt
+                    ? 'Marquer ' + item().data.name + ' comme non vérifié'
+                    : 'Marquer ' + item().data.name + ' comme vérifié'
+                "
               />
             </div>
           </div>
