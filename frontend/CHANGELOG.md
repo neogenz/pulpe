@@ -1,5 +1,11 @@
 # pulpe-frontend
 
+## 0.25.0
+
+### Minor Changes
+
+- Toast nouveautes et seuil d'alerte budget unifie a 90%.
+
 ## 0.22.1
 
 ### Patch Changes

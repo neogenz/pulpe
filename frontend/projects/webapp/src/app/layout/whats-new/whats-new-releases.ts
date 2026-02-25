@@ -4,9 +4,9 @@ export interface WhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.24.0',
+  version: '0.25.0',
   features: [
-    'Tableau de bord repensé avec actions rapides',
-    'Blocs épargne et aperçu du mois suivant',
+    'Toast nouveautés à chaque version',
+    "Seuil d'alerte budget unifié à 90%",
   ],
 };
