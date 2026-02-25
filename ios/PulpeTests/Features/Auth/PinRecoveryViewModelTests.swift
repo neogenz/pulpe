@@ -320,24 +320,24 @@ struct PinRecoveryFlowTests {
         #expect(result.sut.step == .enterRecoveryKey)
     }
 
-    @Test("network error resets to recovery key step")
-    func networkError_resetsToRecoveryKeyStep() async {
+    @Test("network error stays on confirm pin step for retry")
+    func networkError_staysOnConfirmPinStep() async {
         let result = makeSUT(recoverError: .networkError(URLError(.notConnectedToInternet)))
 
         await enterRecoveryKeyAndMatchingPins(result.sut)
 
         #expect(result.sut.errorMessage == "Erreur de connexion, réessaie")
-        #expect(result.sut.step == .enterRecoveryKey)
+        #expect(result.sut.step == .confirmPin)
         #expect(result.sut.digits.isEmpty)
     }
 
-    @Test("getSalt failure resets to recovery key with connection error")
+    @Test("getSalt failure stays on confirm pin with connection error")
     func getSaltFails_showsConnectionError() async {
         let result = makeSUT(getSaltError: APIError.networkError(URLError(.notConnectedToInternet)))
 
         await enterRecoveryKeyAndMatchingPins(result.sut)
 
-        #expect(result.sut.step == .enterRecoveryKey)
+        #expect(result.sut.step == .confirmPin)
         #expect(result.sut.errorMessage == "Erreur de connexion, réessaie")
         #expect(result.sut.isProcessing == false)
     }

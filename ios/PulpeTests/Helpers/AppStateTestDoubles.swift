@@ -72,6 +72,23 @@ extension AtomicFlag {
 
 // MARK: - BiometricPreferenceStore Factory
 
+// MARK: - Mock KeychainEmailStoring
+
+actor MockKeychainStore: KeychainEmailStoring {
+    private var lastUsedEmail: String?
+
+    init(lastUsedEmail: String? = nil) {
+        self.lastUsedEmail = lastUsedEmail
+    }
+
+    func getLastUsedEmail() -> String? { lastUsedEmail }
+    func saveLastUsedEmail(_ email: String) { lastUsedEmail = email }
+    func clearLastUsedEmail() { lastUsedEmail = nil }
+    func clearAllData() { lastUsedEmail = nil }
+}
+
+// MARK: - BiometricPreferenceStore Factory
+
 enum AppStateTestFactory {
     static func biometricEnabledStore() -> BiometricPreferenceStore {
         BiometricPreferenceStore(
@@ -85,5 +102,9 @@ enum AppStateTestFactory {
             keychain: MockBiometricPreferenceStore(enabled: false),
             defaults: MockBiometricPreferenceStore(enabled: false)
         )
+    }
+
+    static func keychainStore(lastUsedEmail: String? = nil) -> MockKeychainStore {
+        MockKeychainStore(lastUsedEmail: lastUsedEmail)
     }
 }

@@ -68,7 +68,7 @@ extension RegistrationStep {
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             AuthTextField(
-                placeholder: "ton@email.com",
+                prompt: "ton@email.com",
                 text: Binding(
                     get: { state.email },
                     set: { state.email = $0 }
@@ -90,7 +90,7 @@ extension RegistrationStep {
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             AuthSecureField(
-                placeholder: "••••••••",
+                prompt: "••••••••",
                 text: $password,
                 isVisible: $showPassword,
                 isFocused: focusedField == .password
@@ -118,7 +118,7 @@ extension RegistrationStep {
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             AuthSecureField(
-                placeholder: "••••••••",
+                prompt: "••••••••",
                 text: $passwordConfirmation,
                 isVisible: $showPasswordConfirmation,
                 isFocused: focusedField == .passwordConfirmation,

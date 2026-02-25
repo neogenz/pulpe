@@ -5,13 +5,13 @@ import SwiftUI
 /// Provides the standard auth input appearance: rounded background, focus-reactive
 /// border, shadow, and subtle scale animation.
 struct AuthTextField: View {
-    let placeholder: String
+    let prompt: String
     @Binding var text: String
     var isFocused: Bool = false
     var hasError: Bool = false
 
     var body: some View {
-        TextField(placeholder, text: $text)
+        TextField(prompt, text: $text)
             .font(PulpeTypography.body)
             .foregroundStyle(Color.authInputText)
             .padding(.horizontal, DesignTokens.Spacing.lg)
@@ -43,7 +43,7 @@ struct AuthTextField: View {
 
 /// Password variant with show/hide toggle.
 struct AuthSecureField: View {
-    let placeholder: String
+    let prompt: String
     @Binding var text: String
     @Binding var isVisible: Bool
     var isFocused: Bool = false
@@ -53,9 +53,9 @@ struct AuthSecureField: View {
         HStack(spacing: DesignTokens.Spacing.md) {
             Group {
                 if isVisible {
-                    TextField(placeholder, text: $text)
+                    TextField(prompt, text: $text)
                 } else {
-                    SecureField(placeholder, text: $text)
+                    SecureField(prompt, text: $text)
                 }
             }
             .font(PulpeTypography.body)

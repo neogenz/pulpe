@@ -405,6 +405,10 @@ actor KeychainManager {
 }
 // swiftlint:enable type_body_length
 
+// MARK: - Protocol Conformance
+
+extension KeychainManager: KeychainEmailStoring {}
+
 // MARK: - Keychain Errors
 
 enum KeychainError: LocalizedError {

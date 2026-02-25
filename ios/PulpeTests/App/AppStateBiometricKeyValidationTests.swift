@@ -83,9 +83,7 @@ struct AppStateBiometricKeyValidationTests {
     // MARK: - attemptBiometricSessionValidation Tests
 
     @Test("attemptBiometricSessionValidation stores key when valid during cold start")
-    func attemptBiometricSessionValidation_validKey_storesKey() async throws {
-        try #require(KeychainManager.checkAvailability(), "Keychain unavailable")
-
+    func attemptBiometricSessionValidation_validKey_storesKey() async {
         let testUser = UserInfo(
             id: "test-user-id",
             email: "test@example.com",
@@ -101,6 +99,7 @@ struct AppStateBiometricKeyValidationTests {
         }
 
         let sut = AppState(
+            keychainManager: MockKeychainStore(),
             postAuthResolver: MockPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: false)),
             biometricPreferenceStore: BiometricPreferenceStore(
                 keychain: MockBiometricPreferenceStore(enabled: true),
@@ -123,9 +122,7 @@ struct AppStateBiometricKeyValidationTests {
     }
 
     @Test("attemptBiometricSessionValidation clears biometric state when key is stale")
-    func attemptBiometricSessionValidation_staleKey_clearsState() async throws {
-        try #require(KeychainManager.checkAvailability(), "Keychain unavailable")
-
+    func attemptBiometricSessionValidation_staleKey_clearsState() async {
         let testUser = UserInfo(
             id: "test-user-id",
             email: "test@example.com",
@@ -141,6 +138,7 @@ struct AppStateBiometricKeyValidationTests {
         }
 
         let sut = AppState(
+            keychainManager: MockKeychainStore(),
             postAuthResolver: MockPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: false)),
             biometricPreferenceStore: BiometricPreferenceStore(
                 keychain: MockBiometricPreferenceStore(enabled: true),
@@ -162,14 +160,14 @@ struct AppStateBiometricKeyValidationTests {
     // MARK: - Key Validation Error Paths
 
     @Test("stale key in attemptBiometricUnlock clears clientKeyManager")
-    func attemptBiometricUnlock_staleKey_clearsClientKeyManager() async throws {
-        try #require(KeychainManager.checkAvailability(), "Keychain unavailable")
-
+    func attemptBiometricUnlock_staleKey_clearsClientKeyManager() async {
         let clientKeyManager = ClientKeyManager.shared
 
         let sut = AppState(
             clientKeyManager: clientKeyManager,
+            keychainManager: MockKeychainStore(),
             postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false)),
+
             biometricPreferenceStore: BiometricPreferenceStore(
                 keychain: MockBiometricPreferenceStore(enabled: true),
                 defaults: MockBiometricPreferenceStore(enabled: false)

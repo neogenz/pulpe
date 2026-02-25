@@ -91,7 +91,7 @@ final class AppState {
 
     private let authService: AuthService
     private let clientKeyManager: ClientKeyManager
-    private let keychainManager: KeychainManager
+    private let keychainManager: any KeychainEmailStoring
     private let encryptionAPI: EncryptionAPI
     private let postAuthResolver: any PostAuthResolving
     private let validateRegularSession: @Sendable () async throws -> UserInfo?
@@ -106,7 +106,7 @@ final class AppState {
         authService: AuthService = .shared,
         biometricService: BiometricService = .shared,
         clientKeyManager: ClientKeyManager = .shared,
-        keychainManager: KeychainManager = .shared,
+        keychainManager: any KeychainEmailStoring = KeychainManager.shared,
         encryptionAPI: EncryptionAPI = .shared,
         postAuthResolver: (any PostAuthResolving)? = nil,
         biometricPreferenceStore: BiometricPreferenceStore = BiometricPreferenceStore(),
