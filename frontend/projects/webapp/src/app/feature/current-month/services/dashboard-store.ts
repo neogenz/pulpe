@@ -258,9 +258,20 @@ export class DashboardStore {
   );
 
   readonly totalSavingsRealized = computed<number>(() =>
-    this.transactions()
-      .filter((tx) => tx.kind === 'saving')
-      .reduce((sum, tx) => sum + tx.amount, 0),
+    this.budgetLines()
+      .filter((line) => line.kind === 'saving' && line.checkedAt !== null)
+      .reduce((sum, line) => sum + line.amount, 0),
+  );
+
+  readonly savingsCheckedCount = computed<number>(
+    () =>
+      this.budgetLines().filter(
+        (line) => line.kind === 'saving' && line.checkedAt !== null,
+      ).length,
+  );
+
+  readonly savingsTotalCount = computed<number>(
+    () => this.budgetLines().filter((line) => line.kind === 'saving').length,
   );
 
   // ── 5. Mutations ──

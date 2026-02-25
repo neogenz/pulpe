@@ -668,14 +668,35 @@ describe('DashboardStore - Savings', () => {
     expect(store.totalSavingsPlanned()).toBe(800);
   });
 
-  it('should compute totalSavingsRealized from transactions with kind=saving', async () => {
+  it('should compute totalSavingsRealized from checked budget lines with kind=saving', async () => {
     const budget = createMockBudget();
-    const txs = [
-      createMockTransaction({ id: 'tx-sav-1', kind: 'saving', amount: 200 }),
-      createMockTransaction({ id: 'tx-sav-2', kind: 'saving', amount: 100 }),
-      createMockTransaction({ id: 'tx-exp-1', kind: 'expense', amount: 50 }),
+    const lines = [
+      createMockBudgetLine({
+        id: 'sav-checked-1',
+        kind: 'saving',
+        amount: 200,
+        checkedAt: '2025-06-10T00:00:00Z',
+      }),
+      createMockBudgetLine({
+        id: 'sav-checked-2',
+        kind: 'saving',
+        amount: 100,
+        checkedAt: '2025-06-12T00:00:00Z',
+      }),
+      createMockBudgetLine({
+        id: 'sav-unchecked',
+        kind: 'saving',
+        amount: 300,
+        checkedAt: null,
+      }),
+      createMockBudgetLine({
+        id: 'exp-checked',
+        kind: 'expense',
+        amount: 500,
+        checkedAt: '2025-06-01T00:00:00Z',
+      }),
     ];
-    const { store } = await setupWithBudgetAndWait(budget, [], txs);
+    const { store } = await setupWithBudgetAndWait(budget, lines, []);
 
     expect(store.totalSavingsRealized()).toBe(300);
   });
@@ -693,6 +714,63 @@ describe('DashboardStore - Savings', () => {
 
     expect(store.totalSavingsPlanned()).toBe(0);
     expect(store.totalSavingsRealized()).toBe(0);
+  });
+
+  it('should compute savingsCheckedCount from checked saving lines', async () => {
+    const budget = createMockBudget();
+    const lines = [
+      createMockBudgetLine({
+        id: 'sav-1',
+        kind: 'saving',
+        amount: 200,
+        checkedAt: '2025-06-10T00:00:00Z',
+      }),
+      createMockBudgetLine({
+        id: 'sav-2',
+        kind: 'saving',
+        amount: 100,
+        checkedAt: null,
+      }),
+      createMockBudgetLine({
+        id: 'sav-3',
+        kind: 'saving',
+        amount: 300,
+        checkedAt: '2025-06-12T00:00:00Z',
+      }),
+      createMockBudgetLine({
+        id: 'exp-1',
+        kind: 'expense',
+        amount: 500,
+        checkedAt: '2025-06-01T00:00:00Z',
+      }),
+    ];
+    const { store } = await setupWithBudgetAndWait(budget, lines, []);
+
+    expect(store.savingsCheckedCount()).toBe(2);
+  });
+
+  it('should compute savingsTotalCount from all saving lines', async () => {
+    const budget = createMockBudget();
+    const lines = [
+      createMockBudgetLine({
+        id: 'sav-1',
+        kind: 'saving',
+        amount: 200,
+      }),
+      createMockBudgetLine({
+        id: 'sav-2',
+        kind: 'saving',
+        amount: 100,
+      }),
+      createMockBudgetLine({
+        id: 'exp-1',
+        kind: 'expense',
+        amount: 500,
+      }),
+    ];
+    const { store } = await setupWithBudgetAndWait(budget, lines, []);
+
+    expect(store.savingsTotalCount()).toBe(2);
   });
 });
 

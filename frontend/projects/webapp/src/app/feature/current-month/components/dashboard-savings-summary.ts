@@ -24,8 +24,10 @@ import { MatIconModule } from '@angular/material/icon';
             Épargne du mois
           </h2>
           <p class="text-body-small text-on-surface-variant font-medium mt-0.5">
-            @if (hasSavings()) {
-              {{ progressPercentage() }}% réalisé
+            @if (isComplete()) {
+              Tout est en place
+            } @else if (hasSavings()) {
+              {{ checkedCount() }} sur {{ totalCount() }} mises de côté
             } @else {
               Aucune prévision
             }
@@ -36,7 +38,22 @@ import { MatIconModule } from '@angular/material/icon';
       <div
         class="bg-surface-container-low rounded-3xl p-5 flex-1 flex flex-col justify-center"
       >
-        @if (hasSavings()) {
+        @if (isComplete()) {
+          <div class="flex flex-col items-center justify-center py-6 gap-2">
+            <mat-icon
+              class="text-financial-savings large-icon"
+              aria-hidden="true"
+            >
+              check_circle
+            </mat-icon>
+            <p class="text-body-medium font-bold text-on-surface text-center">
+              C'est fait pour ce mois
+            </p>
+            <p class="text-body-small text-on-surface-variant text-center">
+              Toute ton épargne est en place. Tu peux souffler.
+            </p>
+          </div>
+        } @else if (hasSavings()) {
           <div
             class="w-full h-2.5 bg-financial-savings/10 rounded-full overflow-hidden mb-4"
             role="progressbar"
@@ -64,7 +81,7 @@ import { MatIconModule } from '@angular/material/icon';
         } @else {
           <div class="flex flex-col items-center justify-center py-6 gap-2">
             <mat-icon
-              class="text-on-surface-variant opacity-40 empty-icon"
+              class="text-on-surface-variant opacity-40 large-icon"
               aria-hidden="true"
             >
               savings
@@ -82,7 +99,7 @@ import { MatIconModule } from '@angular/material/icon';
       display: block;
     }
 
-    .empty-icon {
+    .large-icon {
       font-size: 36px;
       width: 36px;
       height: 36px;
@@ -92,6 +109,8 @@ import { MatIconModule } from '@angular/material/icon';
 export class DashboardSavingsSummary {
   readonly totalPlanned = input.required<number>();
   readonly totalRealized = input.required<number>();
+  readonly checkedCount = input.required<number>();
+  readonly totalCount = input.required<number>();
 
   protected readonly progressPercentage = computed(() => {
     const planned = this.totalPlanned();
@@ -101,5 +120,9 @@ export class DashboardSavingsSummary {
 
   protected readonly hasSavings = computed(
     () => this.totalPlanned() > 0 || this.totalRealized() > 0,
+  );
+
+  protected readonly isComplete = computed(
+    () => this.hasSavings() && this.progressPercentage() === 100,
   );
 }

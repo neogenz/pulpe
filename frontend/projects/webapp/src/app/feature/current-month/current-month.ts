@@ -149,6 +149,8 @@ type TransactionFormData = Pick<
             <pulpe-dashboard-savings-summary
               [totalPlanned]="store.totalSavingsPlanned()"
               [totalRealized]="store.totalSavingsRealized()"
+              [checkedCount]="store.savingsCheckedCount()"
+              [totalCount]="store.savingsTotalCount()"
               data-testid="dashboard-block-savings"
             />
 
