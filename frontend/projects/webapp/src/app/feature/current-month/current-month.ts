@@ -21,6 +21,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { Logger } from '@core/logging/logger';
+import { ROUTES } from '@core/routing/routes-constants';
 import {
   ProductTourService,
   TOUR_START_DELAY,
@@ -131,7 +132,7 @@ type TransactionFormData = Pick<
             <pulpe-dashboard-unchecked-forecasts
               class="order-1 lg:order-2"
               [forecasts]="store.uncheckedForecasts()"
-              (toggleCheck)="store.toggleBudgetLineCheck($event)"
+              (toggleCheck)="toggleBudgetLineCheck($event)"
               data-testid="dashboard-block-forecasts"
             />
           </div>
@@ -320,7 +321,20 @@ export default class Dashboard {
   }
 
   protected navigateToBudgetTemplates(): void {
-    this.#router.navigate(['/budgets']);
+    this.#router.navigate(['/', ROUTES.BUDGET_TEMPLATES]);
+  }
+
+  protected async toggleBudgetLineCheck(budgetLineId: string): Promise<void> {
+    try {
+      await this.store.toggleBudgetLineCheck(budgetLineId);
+    } catch (error) {
+      this.#logger.error('Error toggling budget line check:', error);
+      this.#snackBar.open(
+        'La mise à jour a échoué — vérifie ta connexion et réessaie',
+        'Fermer',
+        { duration: 5000 },
+      );
+    }
   }
 
   protected openAddTransactionBottomSheet(): void {
