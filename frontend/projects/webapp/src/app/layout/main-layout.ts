@@ -501,7 +501,7 @@ export default class MainLayout {
   protected readonly hasBreadcrumb = computed(
     () => this.breadcrumbState.breadcrumbs().length > 1,
   );
-  private readonly scrollSentinel =
+  readonly #scrollSentinel =
     viewChild<ElementRef<HTMLElement>>('scrollSentinel');
   readonly #destroyRef = inject(DestroyRef);
   readonly #logger = inject(Logger);
@@ -553,8 +553,8 @@ export default class MainLayout {
   // Current route tracking
   readonly #currentRoute = toSignal(
     this.#router.events.pipe(
-      filter((event) => event instanceof NavigationEnd),
-      map((event) => (event as NavigationEnd).urlAfterRedirects),
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      map((event) => event.urlAfterRedirects),
     ),
     { initialValue: this.#router.url },
   );
@@ -595,7 +595,7 @@ export default class MainLayout {
 
   constructor() {
     afterNextRender(() => {
-      const sentinel = this.scrollSentinel()?.nativeElement;
+      const sentinel = this.#scrollSentinel()?.nativeElement;
       if (!sentinel) return;
 
       const observer = new IntersectionObserver(
