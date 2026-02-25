@@ -62,11 +62,6 @@ final class AppState {
         set { biometric.isEnabled = newValue }
     }
 
-    var showBiometricEnrollment: Bool {
-        get { biometric.showEnrollmentPrompt }
-        set { biometric.showEnrollmentPrompt = newValue }
-    }
-
     var biometricCredentialsAvailable: Bool {
         get { biometric.credentialsAvailable }
         set { biometric.credentialsAvailable = newValue }
@@ -183,7 +178,7 @@ final class AppState {
 
     @discardableResult
     func enableBiometric() async -> Bool {
-        await biometric.enable()
+        await biometric.enable(source: .manual, reason: "account_settings")
     }
 
     func disableBiometric() async {
@@ -192,14 +187,6 @@ final class AppState {
 
     func attemptBiometricUnlock() async -> Bool {
         await biometric.attemptUnlock()
-    }
-
-    func shouldPromptBiometricEnrollment() -> Bool {
-        biometric.shouldPromptEnrollment(authState: authState)
-    }
-
-    func dismissBiometricEnrollment() {
-        biometric.dismissEnrollment()
     }
 
     // MARK: - Reinstall Detection
@@ -382,8 +369,7 @@ final class AppState {
             authDebug("AUTH_POST_AUTH_DEST", "authenticated")
             needsRecoveryKeyRepairConsent = needsRecoveryConsent
             if needsRecoveryConsent {
-                await transitionToAuthenticated(allowBiometricPrompt: false)
-                biometric.showEnrollmentPrompt = false
+                await transitionToAuthenticated()
                 showRecoveryKeyRepairConsent = true
             } else {
                 await transitionToAuthenticated()
@@ -401,7 +387,7 @@ final class AppState {
         }
     }
 
-    private func transitionToAuthenticated(allowBiometricPrompt: Bool = true) async {
+    private func transitionToAuthenticated() async {
         authState = .authenticated
 
         let syncOK = await biometric.syncAfterAuth()
@@ -411,10 +397,15 @@ final class AppState {
                 type: .error
             )
         }
+    }
 
-        if allowBiometricPrompt, shouldPromptBiometricEnrollment() {
-            biometric.showEnrollmentPrompt = true
+    private func attemptAutomaticBiometricEnrollment(reason: String) async {
+        guard biometric.shouldAttemptAutomaticEnrollment(authState: authState) else {
+            authDebug("AUTH_BIO_ENROLL_AUTO_SKIP", "reason=\(reason)")
+            return
         }
+        let enabled = await biometric.enable(source: .automatic, reason: reason)
+        authDebug("AUTH_BIO_ENROLL_AUTO_END", "reason=\(reason), enabled=\(enabled)")
     }
 
     // MARK: - Background Lock
@@ -666,7 +657,6 @@ extension AppState {
         biometricError = scope.errorMessage
 
         if scope.clearsUIState {
-            biometric.showEnrollmentPrompt = false
             showRecoveryKeyRepairConsent = false
             showPostAuthRecoveryKeySheet = false
             needsRecoveryKeyRepairConsent = false
@@ -794,16 +784,17 @@ extension AppState {
         }
 
         await transitionToAuthenticated()
+        await attemptAutomaticBiometricEnrollment(reason: "pin_setup")
     }
 
     func completePinEntry() async {
         if needsRecoveryKeyRepairConsent {
-            biometric.showEnrollmentPrompt = false
             showRecoveryKeyRepairConsent = true
             return
         }
 
         await transitionToAuthenticated()
+        await attemptAutomaticBiometricEnrollment(reason: "pin_entry")
     }
 
     func startRecovery() {
@@ -814,6 +805,7 @@ extension AppState {
     func completeRecovery() async {
         clearManualBiometricRetryRequiredFlag()
         await transitionToAuthenticated()
+        await attemptAutomaticBiometricEnrollment(reason: "pin_recovery")
     }
 
     func cancelRecovery() {
@@ -839,6 +831,7 @@ extension AppState {
                 Logger.auth.info("acceptRecoveryKeyRepairConsent: recovery key already exists, continue")
                 needsRecoveryKeyRepairConsent = false
                 await transitionToAuthenticated()
+                await attemptAutomaticBiometricEnrollment(reason: "recovery_key_conflict")
                 return
             }
 
@@ -846,11 +839,13 @@ extension AppState {
             toastManager.show("Impossible de générer la clé de récupération", type: .error)
             needsRecoveryKeyRepairConsent = false
             await transitionToAuthenticated()
+            await attemptAutomaticBiometricEnrollment(reason: "recovery_key_error")
         } catch {
             Logger.auth.error("acceptRecoveryKeyRepairConsent: unexpected setup-recovery error - \(error)")
             toastManager.show("Impossible de générer la clé de récupération", type: .error)
             needsRecoveryKeyRepairConsent = false
             await transitionToAuthenticated()
+            await attemptAutomaticBiometricEnrollment(reason: "recovery_key_error")
         }
     }
 
@@ -858,6 +853,7 @@ extension AppState {
         showRecoveryKeyRepairConsent = false
         needsRecoveryKeyRepairConsent = false
         await transitionToAuthenticated()
+        await attemptAutomaticBiometricEnrollment(reason: "recovery_key_declined")
     }
 
     func completePostAuthRecoveryKeyPresentation() async {
@@ -865,6 +861,7 @@ extension AppState {
         postAuthRecoveryKey = nil
         needsRecoveryKeyRepairConsent = false
         await transitionToAuthenticated()
+        await attemptAutomaticBiometricEnrollment(reason: "recovery_key_presented")
     }
 }
 

@@ -311,6 +311,60 @@ struct PostAuthResolutionRouterTests {
         #expect(await authSpy.callCount() == 1)
     }
 
+    @Test("automatic biometric denial still allows manual activation from account")
+    func automaticBiometricEnrollment_denied_manualActivationStillPrompts() async {
+        clearBiometricAutoEnrollmentAttemptFlag()
+        defer { clearBiometricAutoEnrollmentAttemptFlag() }
+
+        struct DenialError: Error {}
+
+        let resolver = StubPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false))
+        let authSpy = BiometricAuthenticateSpy()
+        let sut = AppState(
+            postAuthResolver: resolver,
+            biometricPreferenceStore: makeBiometricPreferenceStore(initial: false),
+            biometricCapability: { true },
+            biometricAuthenticate: {
+                await authSpy.recordCall()
+                throw DenialError()
+            }
+        )
+
+        await waitForBiometricPreferenceLoad(sut, expected: false)
+        await sut.resolvePostAuth(user: user)
+        await sut.completePinEntry()
+
+        #expect(await authSpy.callCount() == 1, "Automatic enrollment should attempt once and fail")
+
+        _ = await sut.enableBiometric()
+
+        #expect(await authSpy.callCount() == 2, "Manual enrollment must still be allowed after auto denial")
+    }
+
+    @Test("PIN success without biometric capability skips automatic enrollment")
+    func pinSuccess_withoutBiometricCapability_skipsAutomaticEnrollment() async {
+        clearBiometricAutoEnrollmentAttemptFlag()
+        defer { clearBiometricAutoEnrollmentAttemptFlag() }
+
+        let resolver = StubPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false))
+        let authSpy = BiometricAuthenticateSpy()
+        let sut = AppState(
+            postAuthResolver: resolver,
+            biometricPreferenceStore: makeBiometricPreferenceStore(initial: false),
+            biometricCapability: { false },
+            biometricAuthenticate: {
+                await authSpy.recordCall()
+            }
+        )
+
+        await waitForBiometricPreferenceLoad(sut, expected: false)
+        await sut.resolvePostAuth(user: user)
+        await sut.completePinEntry()
+
+        #expect(sut.authState == .authenticated)
+        #expect(await authSpy.callCount() == 0)
+    }
+
     @Test("existing biometric preference silently refreshes credentials after PIN entry")
     func biometricPreferenceEnabled_silentRefreshAfterPinEntry() async {
         let resolver = StubPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false))
@@ -348,6 +402,38 @@ struct PostAuthResolutionRouterTests {
 
         #expect(sut.authState == .authenticated)
         #expect(sut.showRecoveryKeyRepairConsent == true)
+    }
+
+    @Test("recovery key consent completion triggers automatic biometric enrollment once")
+    func recoveryKeyConsentCompletion_triggersAutomaticBiometricEnrollment() async {
+        clearBiometricAutoEnrollmentAttemptFlag()
+        defer { clearBiometricAutoEnrollmentAttemptFlag() }
+
+        let resolver = StubPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: true))
+        let authSpy = BiometricAuthenticateSpy()
+        let sut = AppState(
+            postAuthResolver: resolver,
+            biometricPreferenceStore: makeBiometricPreferenceStore(initial: false),
+            biometricCapability: { true },
+            biometricAuthenticate: {
+                await authSpy.recordCall()
+            }
+        )
+
+        await waitForBiometricPreferenceLoad(sut, expected: false)
+        await sut.resolvePostAuth(user: user)
+
+        #expect(sut.authState == .authenticated)
+        #expect(sut.showRecoveryKeyRepairConsent == true)
+        #expect(await authSpy.callCount() == 0, "No biometric prompt while recovery consent modal is visible")
+
+        await sut.declineRecoveryKeyRepairConsent()
+
+        #expect(sut.showRecoveryKeyRepairConsent == false)
+        #expect(
+            await authSpy.callCount() == 1,
+            "Biometric prompt should run once after recovery consent flow completes"
+        )
     }
 
     @Test("checkAuthState waits for biometric preference hydration before decision")

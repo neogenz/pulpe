@@ -160,6 +160,38 @@ struct AppStateBiometricEnableDisableTests {
         #expect(sut.authState == .authenticated)
         #expect(await authSpy.callCount() == 1, "Concurrent auto-enrollment triggers must coalesce to one prompt")
     }
+
+    @Test("recovery key consent completion triggers automatic biometric enrollment once")
+    func recoveryConsentCompletion_triggersAutomaticEnrollment() async throws {
+        UserDefaults.standard.removeObject(forKey: Self.biometricAutoEnrollmentAttemptedKey)
+        defer { UserDefaults.standard.removeObject(forKey: Self.biometricAutoEnrollmentAttemptedKey) }
+
+        let authSpy = ConcurrentBiometricAuthSpy()
+        let sut = AppState(
+            postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: true)),
+            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            biometricCapability: { true },
+            biometricAuthenticate: {
+                await authSpy.recordCallAndDelay()
+            }
+        )
+
+        let user = UserInfo(id: "recovery-consent-user", email: "recovery-consent@pulpe.app", firstName: "Recovery")
+        await sut.resolvePostAuth(user: user)
+        try #require(sut.authState == .needsPinEntry, "Setup: expected PIN entry state")
+
+        await sut.completePinEntry()
+        #expect(sut.showRecoveryKeyRepairConsent == true, "Recovery key consent should appear before dashboard")
+        #expect(await authSpy.callCount() == 0, "No biometric prompt while recovery consent is visible")
+
+        await sut.declineRecoveryKeyRepairConsent()
+
+        #expect(sut.authState == .authenticated)
+        #expect(
+            await authSpy.callCount() == 1,
+            "Automatic biometric prompt should run after recovery consent flow completes"
+        )
+    }
 }
 
 private actor ConcurrentBiometricAuthSpy {

@@ -93,7 +93,6 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var appState = appState
-        @Bindable var biometric = appState.biometric
 
         Group {
             if appState.isNetworkUnavailable {
@@ -233,19 +232,6 @@ struct RootView: View {
                     }
                 }
             }
-        }
-        .alert(
-            "Activer \(BiometricService.shared.biometryDisplayName) ?",
-            isPresented: $biometric.showEnrollmentPrompt
-        ) {
-            Button("Activer") {
-                Task { await appState.enableBiometric() }
-            }
-            Button("Plus tard", role: .cancel) {
-                appState.dismissBiometricEnrollment()
-            }
-        } message: {
-            Text("Utilise la reconnaissance biométrique pour te connecter plus rapidement")
         }
         .alert(
             "Générer une clé de récupération ?",

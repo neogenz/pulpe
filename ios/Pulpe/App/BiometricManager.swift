@@ -2,6 +2,15 @@ import OSLog
 
 @Observable @MainActor
 final class BiometricManager {
+    enum EnrollmentSource: String, Sendable {
+        case automatic
+        case manual
+    }
+
+    private enum UserDefaultsKey {
+        static let automaticEnrollmentAttempted = "pulpe-biometric-enrollment-dismissed"
+    }
+
     // MARK: - Public State
 
     var isEnabled: Bool = false {
@@ -14,17 +23,41 @@ final class BiometricManager {
         }
     }
 
-    var showEnrollmentPrompt = false
     var credentialsAvailable = true
 
     // MARK: - Private State
 
     private var preferenceLoaded = false
     private var isHydrating = false
+    private var isEnrollmentInFlight = false
     private var saveTask: Task<Void, Never>?
 
-    private var enrollmentDismissed: Bool {
-        UserDefaults.standard.bool(forKey: "pulpe-biometric-enrollment-dismissed")
+    private var automaticEnrollmentAttempted: Bool {
+        UserDefaults.standard.bool(forKey: UserDefaultsKey.automaticEnrollmentAttempted)
+    }
+
+    private func setAutomaticEnrollmentAttempted(_ attempted: Bool) {
+        if attempted {
+            UserDefaults.standard.set(true, forKey: UserDefaultsKey.automaticEnrollmentAttempted)
+        } else {
+            UserDefaults.standard.removeObject(forKey: UserDefaultsKey.automaticEnrollmentAttempted)
+        }
+    }
+
+    private func enrollmentDebug(
+        _ code: String,
+        source: EnrollmentSource,
+        reason: String,
+        outcome: String
+    ) {
+        #if DEBUG
+        let message = "[AUTH_BIO_ENROLL_\(code)] " +
+            "source=\(source.rawValue) " +
+            "reason=\(reason) " +
+            "outcome=\(outcome) " +
+            "inFlight=\(isEnrollmentInFlight)"
+        Logger.auth.debug("\(message, privacy: .public)")
+        #endif
     }
 
     // MARK: - Dependencies
@@ -82,13 +115,42 @@ final class BiometricManager {
     // MARK: - Enable / Disable
 
     @discardableResult
-    func enable() async -> Bool {
-        guard capability() else { return false }
+    func enable(
+        source: EnrollmentSource = .manual,
+        reason: String = "unspecified"
+    ) async -> Bool {
+        if source == .automatic, automaticEnrollmentAttempted {
+            enrollmentDebug("SKIP", source: source, reason: reason, outcome: "already_attempted")
+            return false
+        }
+        guard capability() else {
+            enrollmentDebug("SKIP", source: source, reason: reason, outcome: "capability_unavailable")
+            return false
+        }
+        guard !isEnabled else {
+            enrollmentDebug("SKIP", source: source, reason: reason, outcome: "already_enabled")
+            return true
+        }
+        guard !isEnrollmentInFlight else {
+            enrollmentDebug("SKIP", source: source, reason: reason, outcome: "enrollment_in_flight")
+            return false
+        }
+
+        if source == .automatic {
+            // One-shot policy: automatic enrollment is attempted only once, even on denial/failure.
+            setAutomaticEnrollmentAttempted(true)
+        }
+        isEnrollmentInFlight = true
+        enrollmentDebug("START", source: source, reason: reason, outcome: "attempting")
+        defer {
+            isEnrollmentInFlight = false
+        }
 
         do {
             try await _authenticate()
         } catch {
             Logger.auth.info("enableBiometric: user denied biometric prompt")
+            enrollmentDebug("END", source: source, reason: reason, outcome: "authenticate_failed")
             return false
         }
 
@@ -96,15 +158,21 @@ final class BiometricManager {
             try await authService.saveBiometricTokens()
         } catch {
             Logger.auth.error("enableBiometric: failed to save biometric tokens - \(error)")
+            enrollmentDebug("END", source: source, reason: reason, outcome: "token_save_failed")
             return false
         }
 
         let clientKeyStored = await clientKeyManager.enableBiometric()
-        guard clientKeyStored else { return false }
+        guard clientKeyStored else {
+            enrollmentDebug("END", source: source, reason: reason, outcome: "client_key_save_failed")
+            return false
+        }
 
         isEnabled = true
         credentialsAvailable = true
-        UserDefaults.standard.removeObject(forKey: "pulpe-biometric-enrollment-dismissed")
+        // Persist one-shot automatic policy after successful enrollment too.
+        setAutomaticEnrollmentAttempted(true)
+        enrollmentDebug("END", source: source, reason: reason, outcome: "success")
         return true
     }
 
@@ -145,13 +213,8 @@ final class BiometricManager {
 
     // MARK: - Enrollment Prompt
 
-    func shouldPromptEnrollment(authState: AppState.AuthStatus) -> Bool {
-        capability() && !isEnabled && authState == .authenticated && !enrollmentDismissed
-    }
-
-    func dismissEnrollment() {
-        UserDefaults.standard.set(true, forKey: "pulpe-biometric-enrollment-dismissed")
-        showEnrollmentPrompt = false
+    func shouldAttemptAutomaticEnrollment(authState: AppState.AuthStatus) -> Bool {
+        capability() && !isEnabled && authState == .authenticated && !automaticEnrollmentAttempted
     }
 
     // MARK: - Post-Auth Sync

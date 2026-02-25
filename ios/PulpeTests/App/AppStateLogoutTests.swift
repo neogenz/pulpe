@@ -91,29 +91,6 @@ struct AppStateLogoutTests {
         )
     }
 
-    @Test("logout clears biometric enrollment flag")
-    func logout_clearsBiometricEnrollmentFlag() async throws {
-        let user = UserInfo(id: "user-bio", email: "bio@pulpe.app", firstName: "Bio")
-        let sut = Self.makeAuthenticatedSUT(
-            biometricEnabled: true,
-            biometricCapability: { true },
-            syncBiometricCredentials: { true }
-        )
-
-        await sut.resolvePostAuth(user: user)
-        await sut.completePinEntry()
-
-        sut.showBiometricEnrollment = true
-        try #require(sut.showBiometricEnrollment == true, "Setup: enrollment flag should be set")
-
-        await sut.logout()
-
-        #expect(
-            sut.showBiometricEnrollment == false,
-            "showBiometricEnrollment must be cleared after logout"
-        )
-    }
-
     @Test("logout clears recovery key repair consent flags")
     func logout_clearsRecoveryKeyRepairConsent() async throws {
         let user = UserInfo(id: "user-recovery", email: "recovery@pulpe.app", firstName: "Recovery")
@@ -171,7 +148,6 @@ struct AppStateLogoutTests {
         await sut.completePinEntry()
 
         sut.selectedTab = .budgets
-        sut.showBiometricEnrollment = false
 
         try #require(sut.biometricEnabled == false, "Setup: biometric should be disabled")
 
