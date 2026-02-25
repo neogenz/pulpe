@@ -87,6 +87,26 @@ actor MockKeychainStore: KeychainEmailStoring {
     func clearAllData() { lastUsedEmail = nil }
 }
 
+// MARK: - Shared BiometricPreference Stubs
+
+final actor StubBiometricKeychain: BiometricPreferenceKeychainStoring {
+    private var value: Bool?
+
+    init(initial: Bool?) { value = initial }
+
+    func getBiometricEnabledPreference() async -> Bool? { value }
+    func saveBiometricEnabledPreference(_ enabled: Bool) async { value = enabled }
+}
+
+final actor StubBiometricDefaults: BiometricPreferenceDefaultsStoring {
+    private var value: Bool
+
+    init(initial: Bool) { value = initial }
+
+    func getLegacyBiometricEnabled() async -> Bool { value }
+    func removeLegacyBiometricEnabled() async { value = false }
+}
+
 // MARK: - BiometricPreferenceStore Factory
 
 enum AppStateTestFactory {

@@ -7,10 +7,6 @@ final class BiometricManager {
         case manual
     }
 
-    private enum UserDefaultsKey {
-        static let automaticEnrollmentAttempted = "pulpe-biometric-enrollment-dismissed"
-    }
-
     // MARK: - Public State
 
     var isEnabled: Bool = false {
@@ -31,18 +27,6 @@ final class BiometricManager {
     private var isHydrating = false
     private var isEnrollmentInFlight = false
     private var saveTask: Task<Void, Never>?
-
-    private var automaticEnrollmentAttempted: Bool {
-        UserDefaults.standard.bool(forKey: UserDefaultsKey.automaticEnrollmentAttempted)
-    }
-
-    private func setAutomaticEnrollmentAttempted(_ attempted: Bool) {
-        if attempted {
-            UserDefaults.standard.set(true, forKey: UserDefaultsKey.automaticEnrollmentAttempted)
-        } else {
-            UserDefaults.standard.removeObject(forKey: UserDefaultsKey.automaticEnrollmentAttempted)
-        }
-    }
 
     private func enrollmentDebug(
         _ code: String,
@@ -119,10 +103,6 @@ final class BiometricManager {
         source: EnrollmentSource = .manual,
         reason: String = "unspecified"
     ) async -> Bool {
-        if source == .automatic, automaticEnrollmentAttempted {
-            enrollmentDebug("SKIP", source: source, reason: reason, outcome: "already_attempted")
-            return false
-        }
         guard capability() else {
             enrollmentDebug("SKIP", source: source, reason: reason, outcome: "capability_unavailable")
             return false
@@ -136,10 +116,6 @@ final class BiometricManager {
             return false
         }
 
-        if source == .automatic {
-            // One-shot policy: automatic enrollment is attempted only once, even on denial/failure.
-            setAutomaticEnrollmentAttempted(true)
-        }
         isEnrollmentInFlight = true
         enrollmentDebug("START", source: source, reason: reason, outcome: "attempting")
         defer {
@@ -170,8 +146,6 @@ final class BiometricManager {
 
         isEnabled = true
         credentialsAvailable = true
-        // Persist one-shot automatic policy after successful enrollment too.
-        setAutomaticEnrollmentAttempted(true)
         enrollmentDebug("END", source: source, reason: reason, outcome: "success")
         return true
     }
@@ -211,10 +185,10 @@ final class BiometricManager {
         await _syncCredentials()
     }
 
-    // MARK: - Enrollment Prompt
+    // MARK: - Capability
 
-    func shouldAttemptAutomaticEnrollment(authState: AppState.AuthStatus) -> Bool {
-        capability() && !isEnabled && authState == .authenticated && !automaticEnrollmentAttempted
+    func canEnroll() -> Bool {
+        capability()
     }
 
     // MARK: - Post-Auth Sync

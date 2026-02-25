@@ -908,9 +908,13 @@ Après inscription :
 **Workflow** : Après le setup PIN (12.2) > Une alerte "Activer Face ID ?" apparaît
 
 **Détail technique** :
-- `transitionToAuthenticated()` → `shouldPromptBiometricEnrollment()` vérifie :
-  `biometricCapability() == true && biometricEnabled == false && authState == .authenticated`
-- "Activer" → `enableBiometric()` :
+- `enterAuthenticated(context: .pinSetup)` → `BiometricAutomaticEnrollmentPolicy.shouldAttempt(...)` vérifie (par ordre) :
+  1. `attemptedThisTransition == false` (politique par transition, pas globale)
+  2. `inFlight == false` (pas d'enrollment concurrent en cours)
+  3. `biometricCapable == true` (appareil compatible Face ID / Touch ID)
+  4. `biometricEnabled == false` (pas déjà activé)
+  5. `recoveryFlowState.isModalActive == false` (pas de modale recovery visible)
+- "Activer" → `biometric.enable(source: .automatic, reason: "pin_setup")` :
   1. Prompt Face ID via `BiometricService.authenticate()`
   2. Sauvegarde des tokens biométriques (access + refresh) dans le Keychain biométrique
   3. Sauvegarde de la clé client biométrique dans le Keychain biométrique
@@ -920,7 +924,7 @@ Après inscription :
 **Critères** :
 - L'alerte est présentée automatiquement si Face ID est disponible et pas encore activé
 - "Activer" : Face ID est configuré, 3 éléments sauvés dans le Keychain biométrique (tokens + clé client)
-- "Plus tard" : pas d'activation, PIN requis à chaque retour
+- "Plus tard" : pas d'activation, PIN requis à chaque retour ; la proposition réapparaît à la prochaine session (politique par transition)
 - Stockage biométrique protégé par `SecAccessControl(.biometryCurrentSet)` + `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`
 
 ### 12.4 Connexion email/mot de passe
@@ -969,10 +973,17 @@ Après inscription :
 
 **Workflow** : Saisie du PIN réussie (12.5) > L'alerte "Activer Face ID ?" apparaît
 
+**Détail technique** :
+- `enterAuthenticated(context: .pinEntry)` déclenche `BiometricAutomaticEnrollmentPolicy.shouldAttempt(...)` (mêmes règles que 12.3)
+- Politique par transition (in-memory) : la proposition réapparaît à chaque nouvelle session d'authentification
+- Si une modale recovery key est visible au moment de la transition, l'enrollment est différé jusqu'à la fermeture de la modale
+
 **Critères** :
 - L'alerte n'apparaît que si la biométrie n'est pas encore activée et que l'appareil est compatible
 - Si la biométrie est déjà activée, pas d'alerte
-- Comportement identique à 12.3 (même flow `enableBiometric()`)
+- Si l'utilisateur refuse, la proposition réapparaît à la prochaine connexion (pas de blocage global permanent)
+- Si un flow recovery key est en cours au moment du PIN, l'alerte attend la fin du flow (voir `RecoveryFlowState.isModalActive`)
+- Même flow `biometric.enable(source: .automatic)` qu'en 12.3
 
 ### 12.7 Connexion avec Face ID — lancement à froid
 

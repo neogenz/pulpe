@@ -178,13 +178,13 @@ struct RootView: View {
         .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: appState.isInMaintenance)
         .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: appState.isNetworkUnavailable)
         .onReceive(NotificationCenter.default.publisher(for: .maintenanceModeDetected)) { _ in
-            appState.setMaintenanceMode(true)
+            handleMaintenanceDetected()
         }
         .onReceive(NotificationCenter.default.publisher(for: .clientKeyCheckFailed)) { _ in
-            Task { await appState.handleStaleClientKey() }
+            handleClientKeyCheckFailed()
         }
         .onReceive(NotificationCenter.default.publisher(for: .sessionExpired)) { _ in
-            Task { await appState.handleSessionExpired() }
+            handleSessionExpired()
         }
         .task {
             await appState.checkMaintenanceStatus()
@@ -201,41 +201,11 @@ struct RootView: View {
             }
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
-            // Activate shield only when leaving .active while in a secured state
-            if newPhase != .active, oldPhase == .active {
-                let isSecured = appState.authState == .authenticated || appState.authState == .needsPinEntry
-                if isSecured {
-                    privacyShieldActive = true
-                }
-            }
-            if newPhase == .active {
-                privacyShieldActive = false
-            }
-
-            if newPhase == .background {
-                appState.handleEnterBackground()
-                if appState.authState == .authenticated {
-                    Task { await widgetSyncViewModel.syncWidgetData() }
-                    BackgroundTaskService.shared.scheduleWidgetRefresh()
-                }
-            }
-
-            if newPhase == .active, oldPhase != .active {
-                appState.prepareForForeground()
-                Task {
-                    await appState.handleEnterForeground()
-                    if appState.authState == .authenticated {
-                        async let refreshCurrent: Void = currentMonthStore.forceRefresh()
-                        async let refreshBudgets: Void = budgetListStore.forceRefresh()
-                        async let refreshDashboard: Void = dashboardStore.loadIfNeeded()
-                        _ = await (refreshCurrent, refreshBudgets, refreshDashboard)
-                    }
-                }
-            }
+            handleScenePhaseChange(from: oldPhase, to: newPhase)
         }
         .alert(
             "Générer une clé de récupération ?",
-            isPresented: $appState.showRecoveryKeyRepairConsent
+            isPresented: $appState.isRecoveryConsentVisible
         ) {
             Button("Générer maintenant") {
                 Task { await appState.acceptRecoveryKeyRepairConsent() }
@@ -275,8 +245,8 @@ struct RootView: View {
                 }
             )
         }
-        .sheet(isPresented: $appState.showPostAuthRecoveryKeySheet) {
-            if let recoveryKey = appState.postAuthRecoveryKey {
+        .sheet(isPresented: $appState.isRecoveryKeySheetVisible) {
+            if let recoveryKey = appState.recoveryKeyForPresentation {
                 RecoveryKeySheet(recoveryKey: recoveryKey) {
                     Task { await appState.completePostAuthRecoveryKeyPresentation() }
                 }
@@ -300,6 +270,52 @@ struct RootView: View {
 
     private var shouldShowPrivacyShield: Bool {
         privacyShieldActive || appState.isRestoringSession
+    }
+
+    private func handleMaintenanceDetected() {
+        appState.setMaintenanceMode(true)
+    }
+
+    private func handleClientKeyCheckFailed() {
+        Task { await appState.handleStaleClientKey() }
+    }
+
+    private func handleSessionExpired() {
+        Task { await appState.handleSessionExpired() }
+    }
+
+    private func handleScenePhaseChange(from oldPhase: ScenePhase, to newPhase: ScenePhase) {
+        // Activate shield only when leaving .active while in a secured state
+        if newPhase != .active, oldPhase == .active {
+            let isSecured = appState.authState == .authenticated || appState.authState == .needsPinEntry
+            if isSecured {
+                privacyShieldActive = true
+            }
+        }
+        if newPhase == .active {
+            privacyShieldActive = false
+        }
+
+        if newPhase == .background {
+            appState.handleEnterBackground()
+            if appState.authState == .authenticated {
+                Task { await widgetSyncViewModel.syncWidgetData() }
+                BackgroundTaskService.shared.scheduleWidgetRefresh()
+            }
+        }
+
+        if newPhase == .active, oldPhase != .active {
+            appState.prepareForForeground()
+            Task {
+                await appState.handleEnterForeground()
+                if appState.authState == .authenticated {
+                    async let refreshCurrent: Void = currentMonthStore.forceRefresh()
+                    async let refreshBudgets: Void = budgetListStore.forceRefresh()
+                    async let refreshDashboard: Void = dashboardStore.loadIfNeeded()
+                    _ = await (refreshCurrent, refreshBudgets, refreshDashboard)
+                }
+            }
+        }
     }
 
     private func handlePendingDeepLink() {

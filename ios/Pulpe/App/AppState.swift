@@ -24,6 +24,44 @@ final class AppState {
         case authenticated
     }
 
+    enum RecoveryFlowState: Equatable, Sendable {
+        case idle
+        case consentPrompt
+        case generatingKey
+        case presentingKey(String)
+
+        var isModalActive: Bool {
+            switch self {
+            case .idle: return false
+            case .consentPrompt, .generatingKey, .presentingKey: return true
+            }
+        }
+    }
+
+    enum AuthCompletionContext: String, Sendable {
+        case pinSetup = "pin_setup"
+        case pinEntry = "pin_entry"
+        case pinRecovery = "pin_recovery"
+        case recoveryKeyConflict = "recovery_key_conflict"
+        case recoveryKeyError = "recovery_key_error"
+        case recoveryKeyDeclined = "recovery_key_declined"
+        case recoveryKeyPresented = "recovery_key_presented"
+        case directAuthenticated = "direct_authenticated"
+
+        var reason: String { rawValue }
+
+        var allowsAutomaticEnrollment: Bool {
+            switch self {
+            case .pinSetup, .pinEntry, .pinRecovery,
+                 .recoveryKeyConflict, .recoveryKeyError,
+                 .recoveryKeyDeclined, .recoveryKeyPresented:
+                return true
+            case .directAuthenticated:
+                return false
+            }
+        }
+    }
+
     enum LogoutSource {
         case userInitiated
         case system
@@ -53,6 +91,7 @@ final class AppState {
     // MARK: - Biometric (delegated to BiometricManager)
 
     let biometric: BiometricManager
+    let enrollmentPolicy: BiometricAutomaticEnrollmentPolicy
 
     /// `biometricError` stays on AppState — used for session expiry messages, not just biometric.
     var biometricError: String?
@@ -69,10 +108,28 @@ final class AppState {
 
     // MARK: - Recovery Key UI
 
-    var showRecoveryKeyRepairConsent = false
-    var showPostAuthRecoveryKeySheet = false
-    private(set) var needsRecoveryKeyRepairConsent = false
-    private(set) var postAuthRecoveryKey: String?
+    private(set) var recoveryFlowState: RecoveryFlowState = .idle
+
+    var isRecoveryConsentVisible: Bool {
+        get { recoveryFlowState == .consentPrompt }
+        set { if !newValue { recoveryFlowState = .idle } }
+    }
+
+    var isRecoveryKeySheetVisible: Bool {
+        get {
+            if case .presentingKey = recoveryFlowState { return true }
+            return false
+        }
+        set { if !newValue { recoveryFlowState = .idle } }
+    }
+
+    var recoveryKeyForPresentation: String? {
+        if case .presentingKey(let key) = recoveryFlowState { return key }
+        return nil
+    }
+
+    // MARK: Pending recovery consent (set during PIN entry, shown on completion)
+    private var pendingRecoveryConsent = false
 
     // MARK: - Background Grace Period
 
@@ -141,6 +198,7 @@ final class AppState {
             resolveKey: resolveBiometricKey ?? BiometricManager.defaultResolveKey(clientKeyManager),
             validateKey: validateBiometricKey ?? BiometricManager.defaultValidateKey(encryptionAPI)
         )
+        self.enrollmentPolicy = BiometricAutomaticEnrollmentPolicy()
 
         // Eagerly start loading persisted values so they may be ready before checkAuthState() runs.
         // SAFETY: No race with checkAuthState() — both paths use idempotent "ensure" methods
@@ -359,30 +417,33 @@ final class AppState {
         switch destination {
         case .needsPinSetup:
             authDebug("AUTH_POST_AUTH_DEST", "needsPinSetup")
-            needsRecoveryKeyRepairConsent = false
+            recoveryFlowState = .idle
+            pendingRecoveryConsent = false
             authState = .needsPinSetup
         case .needsPinEntry(let needsRecoveryConsent):
             authDebug("AUTH_POST_AUTH_DEST", "needsPinEntry")
-            needsRecoveryKeyRepairConsent = needsRecoveryConsent
+            pendingRecoveryConsent = needsRecoveryConsent
             authState = .needsPinEntry
         case .authenticated(let needsRecoveryConsent):
             authDebug("AUTH_POST_AUTH_DEST", "authenticated")
-            needsRecoveryKeyRepairConsent = needsRecoveryConsent
+            pendingRecoveryConsent = false
             if needsRecoveryConsent {
-                await transitionToAuthenticated()
-                showRecoveryKeyRepairConsent = true
+                recoveryFlowState = .consentPrompt
             } else {
-                await transitionToAuthenticated()
+                recoveryFlowState = .idle
             }
+            await enterAuthenticated(context: .directAuthenticated)
         case .unauthenticatedSessionExpired:
             authDebug("AUTH_POST_AUTH_DEST", "unauthenticatedSessionExpired")
-            needsRecoveryKeyRepairConsent = false
+            recoveryFlowState = .idle
+            pendingRecoveryConsent = false
             biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
             authState = .unauthenticated
         case .vaultCheckFailed:
             authDebug("AUTH_POST_AUTH_DEST", "vaultCheckFailed")
             // Safe fallback for existing users: assume PIN entry.
-            needsRecoveryKeyRepairConsent = false
+            recoveryFlowState = .idle
+            pendingRecoveryConsent = false
             authState = .needsPinEntry
         }
     }
@@ -399,13 +460,25 @@ final class AppState {
         }
     }
 
-    private func attemptAutomaticBiometricEnrollment(reason: String) async {
-        guard biometric.shouldAttemptAutomaticEnrollment(authState: authState) else {
-            authDebug("AUTH_BIO_ENROLL_AUTO_SKIP", "reason=\(reason)")
-            return
+    private func enterAuthenticated(context: AuthCompletionContext) async {
+        await transitionToAuthenticated()
+        enrollmentPolicy.resetForNewTransition()
+        let decision = enrollmentPolicy.shouldAttempt(
+            biometricEnabled: biometric.isEnabled,
+            biometricCapable: biometric.canEnroll(),
+            isAuthenticated: authState == .authenticated,
+            sourceEligible: context.allowsAutomaticEnrollment,
+            hasActiveModal: recoveryFlowState.isModalActive,
+            context: context.reason
+        )
+        switch decision {
+        case .proceed:
+            enrollmentPolicy.markInFlight(context: context.reason)
+            let enabled = await biometric.enable(source: .automatic, reason: context.reason)
+            enrollmentPolicy.markComplete(context: context.reason, outcome: enabled ? "success" : "denied_or_failed")
+        case .skip:
+            break
         }
-        let enabled = await biometric.enable(source: .automatic, reason: reason)
-        authDebug("AUTH_BIO_ENROLL_AUTO_END", "reason=\(reason), enabled=\(enabled)")
     }
 
     // MARK: - Background Lock
@@ -657,10 +730,9 @@ extension AppState {
         biometricError = scope.errorMessage
 
         if scope.clearsUIState {
-            showRecoveryKeyRepairConsent = false
-            showPostAuthRecoveryKeySheet = false
-            needsRecoveryKeyRepairConsent = false
-            postAuthRecoveryKey = nil
+            recoveryFlowState = .idle
+            pendingRecoveryConsent = false
+            enrollmentPolicy.resetForNewTransition()
         }
         if scope.clearsPostAuthError { showPostAuthError = false }
         if scope.clearsNavigation {
@@ -748,7 +820,7 @@ extension AppState {
         case .needsPinSetup:
             authState = .needsPinSetup
         case .needsPinEntry(let needsRecoveryConsent):
-            needsRecoveryKeyRepairConsent = needsRecoveryConsent
+            pendingRecoveryConsent = needsRecoveryConsent
             authState = .needsPinEntry
         case .authenticated:
             // Vault fully configured — verify existing PIN
@@ -783,18 +855,18 @@ extension AppState {
             }
         }
 
-        await transitionToAuthenticated()
-        await attemptAutomaticBiometricEnrollment(reason: "pin_setup")
+        await enterAuthenticated(context: .pinSetup)
     }
 
     func completePinEntry() async {
-        if needsRecoveryKeyRepairConsent {
-            showRecoveryKeyRepairConsent = true
+        guard authState != .authenticated else { return }
+
+        if pendingRecoveryConsent {
+            recoveryFlowState = .consentPrompt
             return
         }
 
-        await transitionToAuthenticated()
-        await attemptAutomaticBiometricEnrollment(reason: "pin_entry")
+        await enterAuthenticated(context: .pinEntry)
     }
 
     func startRecovery() {
@@ -804,8 +876,7 @@ extension AppState {
 
     func completeRecovery() async {
         clearManualBiometricRetryRequiredFlag()
-        await transitionToAuthenticated()
-        await attemptAutomaticBiometricEnrollment(reason: "pin_recovery")
+        await enterAuthenticated(context: .pinRecovery)
     }
 
     func cancelRecovery() {
@@ -820,48 +891,42 @@ extension AppState {
     }
 
     func acceptRecoveryKeyRepairConsent() async {
-        showRecoveryKeyRepairConsent = false
+        recoveryFlowState = .generatingKey
+        pendingRecoveryConsent = false
 
         do {
             let recoveryKey = try await encryptionAPI.setupRecoveryKey()
-            postAuthRecoveryKey = recoveryKey
-            showPostAuthRecoveryKeySheet = true
+            recoveryFlowState = .presentingKey(recoveryKey)
         } catch let error as APIError {
             if case .conflict = error {
                 Logger.auth.info("acceptRecoveryKeyRepairConsent: recovery key already exists, continue")
-                needsRecoveryKeyRepairConsent = false
-                await transitionToAuthenticated()
-                await attemptAutomaticBiometricEnrollment(reason: "recovery_key_conflict")
+                recoveryFlowState = .idle
+                await enterAuthenticated(context: .recoveryKeyConflict)
                 return
             }
 
             Logger.auth.error("acceptRecoveryKeyRepairConsent: setup-recovery failed - \(error)")
             toastManager.show("Impossible de générer la clé de récupération", type: .error)
-            needsRecoveryKeyRepairConsent = false
-            await transitionToAuthenticated()
-            await attemptAutomaticBiometricEnrollment(reason: "recovery_key_error")
+            recoveryFlowState = .idle
+            await enterAuthenticated(context: .recoveryKeyError)
         } catch {
             Logger.auth.error("acceptRecoveryKeyRepairConsent: unexpected setup-recovery error - \(error)")
             toastManager.show("Impossible de générer la clé de récupération", type: .error)
-            needsRecoveryKeyRepairConsent = false
-            await transitionToAuthenticated()
-            await attemptAutomaticBiometricEnrollment(reason: "recovery_key_error")
+            recoveryFlowState = .idle
+            await enterAuthenticated(context: .recoveryKeyError)
         }
     }
 
     func declineRecoveryKeyRepairConsent() async {
-        showRecoveryKeyRepairConsent = false
-        needsRecoveryKeyRepairConsent = false
-        await transitionToAuthenticated()
-        await attemptAutomaticBiometricEnrollment(reason: "recovery_key_declined")
+        recoveryFlowState = .idle
+        pendingRecoveryConsent = false
+        await enterAuthenticated(context: .recoveryKeyDeclined)
     }
 
     func completePostAuthRecoveryKeyPresentation() async {
-        showPostAuthRecoveryKeySheet = false
-        postAuthRecoveryKey = nil
-        needsRecoveryKeyRepairConsent = false
-        await transitionToAuthenticated()
-        await attemptAutomaticBiometricEnrollment(reason: "recovery_key_presented")
+        recoveryFlowState = .idle
+        pendingRecoveryConsent = false
+        await enterAuthenticated(context: .recoveryKeyPresented)
     }
 }
 

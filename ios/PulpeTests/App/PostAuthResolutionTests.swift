@@ -8,7 +8,6 @@ import Testing
 // swiftlint:disable:next type_body_length
 struct PostAuthResolutionRouterTests {
     private let user = UserInfo(id: "user-1", email: "test@pulpe.app", firstName: "Max")
-    private let biometricAutoEnrollmentAttemptedKey = "pulpe-biometric-enrollment-dismissed"
 
     private func makeBiometricPreferenceStore(initial: Bool) -> BiometricPreferenceStore {
         BiometricPreferenceStore(
@@ -38,10 +37,6 @@ struct PostAuthResolutionRouterTests {
         }
     }
 
-    private func clearBiometricAutoEnrollmentAttemptFlag() {
-        UserDefaults.standard.removeObject(forKey: biometricAutoEnrollmentAttemptedKey)
-    }
-
     @Test("existing user routes to PIN entry")
     func existingUser_routesToPinEntry() async {
         let realResolver = PostAuthResolver(
@@ -64,7 +59,7 @@ struct PostAuthResolutionRouterTests {
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .needsPinEntry)
-        #expect(sut.showRecoveryKeyRepairConsent == false)
+        #expect(sut.recoveryFlowState == .idle)
     }
 
     @Test("new or incomplete user routes to PIN setup")
@@ -113,7 +108,8 @@ struct PostAuthResolutionRouterTests {
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .needsPinEntry)
-        #expect(sut.needsRecoveryKeyRepairConsent == true)
+        // After resolvePostAuth with recovery consent needed, the state is pending (consentPrompt shows after PIN entry)
+        #expect(sut.recoveryFlowState == .idle, "Recovery consent is pending but not yet active before PIN entry")
     }
 
     @Test("inconsistent legacy user with cached key still requires PIN entry first")
@@ -252,9 +248,6 @@ struct PostAuthResolutionRouterTests {
 
     @Test("PIN success auto-triggers biometric enrollment once without custom enrollment prompt")
     func pinSuccess_autoTriggersBiometricEnrollmentOnce() async {
-        clearBiometricAutoEnrollmentAttemptFlag()
-        defer { clearBiometricAutoEnrollmentAttemptFlag() }
-
         let resolver = StubPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false))
         let authSpy = BiometricAuthenticateSpy()
         let sut = AppState(
@@ -276,11 +269,8 @@ struct PostAuthResolutionRouterTests {
         #expect(await authSpy.callCount() == 1)
     }
 
-    @Test("automatic biometric enrollment denial does not retry on next PIN auth session")
-    func automaticBiometricEnrollment_denied_doesNotRetryOnNextPinAuthSession() async {
-        clearBiometricAutoEnrollmentAttemptFlag()
-        defer { clearBiometricAutoEnrollmentAttemptFlag() }
-
+    @Test("automatic biometric enrollment denial retries on next PIN auth session")
+    func automaticBiometricEnrollment_denied_retriesOnNextPinAuthSession() async {
         struct DenialError: Error {}
 
         let resolver = StubPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false))
@@ -308,14 +298,11 @@ struct PostAuthResolutionRouterTests {
         await sut.completePinEntry()
 
         #expect(sut.authState == .authenticated)
-        #expect(await authSpy.callCount() == 1)
+        #expect(await authSpy.callCount() == 2, "Per-transition policy resets on new session, allowing retry")
     }
 
     @Test("automatic biometric denial still allows manual activation from account")
     func automaticBiometricEnrollment_denied_manualActivationStillPrompts() async {
-        clearBiometricAutoEnrollmentAttemptFlag()
-        defer { clearBiometricAutoEnrollmentAttemptFlag() }
-
         struct DenialError: Error {}
 
         let resolver = StubPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false))
@@ -343,9 +330,6 @@ struct PostAuthResolutionRouterTests {
 
     @Test("PIN success without biometric capability skips automatic enrollment")
     func pinSuccess_withoutBiometricCapability_skipsAutomaticEnrollment() async {
-        clearBiometricAutoEnrollmentAttemptFlag()
-        defer { clearBiometricAutoEnrollmentAttemptFlag() }
-
         let resolver = StubPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false))
         let authSpy = BiometricAuthenticateSpy()
         let sut = AppState(
@@ -401,14 +385,11 @@ struct PostAuthResolutionRouterTests {
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .authenticated)
-        #expect(sut.showRecoveryKeyRepairConsent == true)
+        #expect(sut.recoveryFlowState == .consentPrompt)
     }
 
     @Test("recovery key consent completion triggers automatic biometric enrollment once")
     func recoveryKeyConsentCompletion_triggersAutomaticBiometricEnrollment() async {
-        clearBiometricAutoEnrollmentAttemptFlag()
-        defer { clearBiometricAutoEnrollmentAttemptFlag() }
-
         let resolver = StubPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: true))
         let authSpy = BiometricAuthenticateSpy()
         let sut = AppState(
@@ -424,12 +405,12 @@ struct PostAuthResolutionRouterTests {
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .authenticated)
-        #expect(sut.showRecoveryKeyRepairConsent == true)
+        #expect(sut.recoveryFlowState == .consentPrompt)
         #expect(await authSpy.callCount() == 0, "No biometric prompt while recovery consent modal is visible")
 
         await sut.declineRecoveryKeyRepairConsent()
 
-        #expect(sut.showRecoveryKeyRepairConsent == false)
+        #expect(sut.recoveryFlowState == .idle)
         #expect(
             await authSpy.callCount() == 1,
             "Biometric prompt should run once after recovery consent flow completes"

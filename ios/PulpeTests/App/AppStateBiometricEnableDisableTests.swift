@@ -7,7 +7,6 @@ import Testing
 @MainActor
 @Suite(.serialized)
 struct AppStateBiometricEnableDisableTests {
-    private static let biometricAutoEnrollmentAttemptedKey = "pulpe-biometric-enrollment-dismissed"
     // MARK: - enableBiometric() Tests
 
     @Test("enableBiometric with no biometric capability returns false")
@@ -135,9 +134,6 @@ struct AppStateBiometricEnableDisableTests {
 
     @Test("automatic biometric enrollment concurrency triggers only one OS prompt")
     func automaticEnrollmentConcurrency_triggersSinglePrompt() async throws {
-        UserDefaults.standard.removeObject(forKey: Self.biometricAutoEnrollmentAttemptedKey)
-        defer { UserDefaults.standard.removeObject(forKey: Self.biometricAutoEnrollmentAttemptedKey) }
-
         let authSpy = ConcurrentBiometricAuthSpy()
         let sut = AppState(
             postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false)),
@@ -163,9 +159,6 @@ struct AppStateBiometricEnableDisableTests {
 
     @Test("recovery key consent completion triggers automatic biometric enrollment once")
     func recoveryConsentCompletion_triggersAutomaticEnrollment() async throws {
-        UserDefaults.standard.removeObject(forKey: Self.biometricAutoEnrollmentAttemptedKey)
-        defer { UserDefaults.standard.removeObject(forKey: Self.biometricAutoEnrollmentAttemptedKey) }
-
         let authSpy = ConcurrentBiometricAuthSpy()
         let sut = AppState(
             postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: true)),
@@ -181,7 +174,7 @@ struct AppStateBiometricEnableDisableTests {
         try #require(sut.authState == .needsPinEntry, "Setup: expected PIN entry state")
 
         await sut.completePinEntry()
-        #expect(sut.showRecoveryKeyRepairConsent == true, "Recovery key consent should appear before dashboard")
+        #expect(sut.recoveryFlowState == .consentPrompt, "Recovery key consent should appear before dashboard")
         #expect(await authSpy.callCount() == 0, "No biometric prompt while recovery consent is visible")
 
         await sut.declineRecoveryKeyRepairConsent()
