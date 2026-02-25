@@ -12,6 +12,11 @@ final class BiometricAutomaticEnrollmentPolicy {
         case notAuthenticated = "not_authenticated"
     }
 
+    enum Outcome: String, Equatable {
+        case success = "success"
+        case deniedOrFailed = "denied_or_failed"
+    }
+
     enum PolicyDecision: Equatable {
         case proceed
         case skip(SkipReason)
@@ -23,6 +28,7 @@ final class BiometricAutomaticEnrollmentPolicy {
 
     func resetForNewTransition() {
         attemptedThisTransition = false
+        policyDebug("RESET", context: "new_transition")
     }
 
     // swiftlint:disable:next function_parameter_count
@@ -42,6 +48,8 @@ final class BiometricAutomaticEnrollmentPolicy {
         } else if attemptedThisTransition {
             decision = .skip(.alreadyAttempted)
         } else if inFlight {
+            // Reachable when a new transition calls resetForNewTransition() (clears attemptedThisTransition)
+            // while a previous enrollment is still awaiting biometric.enable().
             decision = .skip(.inFlight)
         } else if !biometricCapable {
             decision = .skip(.capabilityUnavailable)
@@ -68,9 +76,9 @@ final class BiometricAutomaticEnrollmentPolicy {
         policyDebug("START", context: context)
     }
 
-    func markComplete(context: String, outcome: String) {
+    func markComplete(context: String, outcome: Outcome) {
         inFlight = false
-        policyDebug("END", context: context, outcome: outcome)
+        policyDebug("END", context: context, outcome: outcome.rawValue)
     }
 
     private func policyDebug(_ action: String, context: String, reason: String? = nil, outcome: String? = nil) {

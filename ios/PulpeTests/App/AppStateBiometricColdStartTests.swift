@@ -8,6 +8,17 @@ import Testing
 @MainActor
 @Suite(.serialized)
 struct AppStateBiometricColdStartTests {
+    private let pinResolver = MockPostAuthResolver(
+        destination: .needsPinEntry(needsRecoveryKeyConsent: false)
+    )
+    private let testUser = UserInfo(id: "cold-start-user", email: "coldstart@pulpe.app", firstName: "Cold")
+
+    /// Transition SUT through the state machine to `.authenticated` via PIN entry.
+    private func authenticateViaPinEntry(_ sut: AppState) async {
+        await sut.resolvePostAuth(user: testUser)
+        await sut.completePinEntry()
+    }
+
     // MARK: - Cold Start with Biometric Enabled
 
     @Test("Cold start with biometric enabled attempts Face ID before PIN")
@@ -134,6 +145,7 @@ struct AppStateBiometricColdStartTests {
         var now = Date(timeIntervalSince1970: 0)
 
         let sut = AppState(
+            postAuthResolver: pinResolver,
             biometricPreferenceStore: BiometricPreferenceStore(
                 keychain: MockBiometricPreferenceStore(enabled: true),
                 defaults: MockBiometricPreferenceStore(enabled: false)
@@ -148,7 +160,7 @@ struct AppStateBiometricColdStartTests {
         )
 
         sut.biometricEnabled = true
-        await sut.completePinEntry() // Start authenticated
+        await authenticateViaPinEntry(sut)
 
         sut.handleEnterBackground()
         now = Date(timeIntervalSince1970: 31) // Exceed grace period
@@ -165,6 +177,7 @@ struct AppStateBiometricColdStartTests {
         var now = Date(timeIntervalSince1970: 0)
 
         let sut = AppState(
+            postAuthResolver: pinResolver,
             biometricPreferenceStore: BiometricPreferenceStore(
                 keychain: MockBiometricPreferenceStore(enabled: true),
                 defaults: MockBiometricPreferenceStore(enabled: false)
@@ -175,7 +188,7 @@ struct AppStateBiometricColdStartTests {
         )
 
         sut.biometricEnabled = true
-        await sut.completePinEntry() // Start authenticated
+        await authenticateViaPinEntry(sut)
 
         sut.handleEnterBackground()
         now = Date(timeIntervalSince1970: 31) // Exceed grace period
@@ -194,6 +207,7 @@ struct AppStateBiometricColdStartTests {
         var now = Date(timeIntervalSince1970: 0)
 
         let sut = AppState(
+            postAuthResolver: pinResolver,
             biometricPreferenceStore: BiometricPreferenceStore(
                 keychain: MockBiometricPreferenceStore(enabled: true),
                 defaults: MockBiometricPreferenceStore(enabled: false)
@@ -204,7 +218,7 @@ struct AppStateBiometricColdStartTests {
         )
 
         sut.biometricEnabled = true
-        await sut.completePinEntry() // Start authenticated
+        await authenticateViaPinEntry(sut)
 
         sut.handleEnterBackground()
         now = Date(timeIntervalSince1970: 31) // Exceed grace period
@@ -222,6 +236,7 @@ struct AppStateBiometricColdStartTests {
         var now = Date(timeIntervalSince1970: 0)
 
         let sut = AppState(
+            postAuthResolver: pinResolver,
             resolveBiometricKey: {
                 faceIDAttempted.set()
                 return "mock-client-key"
@@ -230,7 +245,7 @@ struct AppStateBiometricColdStartTests {
         )
 
         sut.biometricEnabled = false
-        await sut.completePinEntry() // Start authenticated
+        await authenticateViaPinEntry(sut)
 
         sut.handleEnterBackground()
         now = Date(timeIntervalSince1970: 31) // Exceed grace period
@@ -583,7 +598,8 @@ struct AppStateBiometricColdStartTests {
         // Simulate post-session-expiry state
         sut.biometricCredentialsAvailable = false
 
-        // User enters PIN → completePinEntry → transitionToAuthenticated → biometric sync
+        // Route through state machine: .loading → .needsPinEntry → .authenticated
+        await sut.resolvePostAuth(user: testUser)
         await sut.completePinEntry()
 
         #expect(sut.authState == .authenticated)

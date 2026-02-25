@@ -341,8 +341,11 @@ struct AppStateBiometricKeyValidationTests {
     @Test("foreground biometric unlock validates key before staying authenticated")
     func handleEnterForeground_validKey_staysAuthenticated() async {
         var now = Date(timeIntervalSince1970: 0)
+        let pinResolver = MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false))
+        let user = UserInfo(id: "key-val-user", email: "keyval@pulpe.app", firstName: "Key")
 
         let sut = AppState(
+            postAuthResolver: pinResolver,
             biometricPreferenceStore: BiometricPreferenceStore(
                 keychain: MockBiometricPreferenceStore(enabled: true),
                 defaults: MockBiometricPreferenceStore(enabled: false)
@@ -354,6 +357,7 @@ struct AppStateBiometricKeyValidationTests {
         )
 
         sut.biometricEnabled = true
+        await sut.resolvePostAuth(user: user)
         await sut.completePinEntry()
 
         sut.handleEnterBackground()
@@ -369,8 +373,11 @@ struct AppStateBiometricKeyValidationTests {
     @Test("foreground biometric unlock with stale key falls back to PIN")
     func handleEnterForeground_staleKey_fallsToPIN() async {
         var now = Date(timeIntervalSince1970: 0)
+        let pinResolver = MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false))
+        let user = UserInfo(id: "key-val-user", email: "keyval@pulpe.app", firstName: "Key")
 
         let sut = AppState(
+            postAuthResolver: pinResolver,
             biometricPreferenceStore: BiometricPreferenceStore(
                 keychain: MockBiometricPreferenceStore(enabled: true),
                 defaults: MockBiometricPreferenceStore(enabled: false)
@@ -382,6 +389,7 @@ struct AppStateBiometricKeyValidationTests {
         )
 
         sut.biometricEnabled = true
+        await sut.resolvePostAuth(user: user)
         await sut.completePinEntry()
 
         sut.handleEnterBackground()

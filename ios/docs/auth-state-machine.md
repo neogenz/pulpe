@@ -17,7 +17,7 @@ unauthenticated
   └─▶ loading                 (app restart / checkAuthState)
   └─▶ needsPinSetup           (after email/password login, first time)
   └─▶ needsPinEntry           (after email/password login, returning user)
-  └─▶ authenticated           (after biometric login)
+  └─▶ authenticated           (after biometric login, via resolvePostAuth(.authenticated) → enterAuthenticated(.directAuthenticated))
 
 needsPinSetup
   └─▶ authenticated           (via enterAuthenticated(.pinSetup))
@@ -34,6 +34,18 @@ authenticated
   └─▶ unauthenticated         (logout)
   └─▶ loading                 (session expiry / maintenance)
 ```
+
+### Strict precondition guards
+
+Each transition method requires the exact source state before proceeding. If the current state does not match, the call is a silent no-op (returns immediately):
+
+| Method | Required `authState` |
+|--------|---------------------|
+| `completePinSetup()` | `.needsPinSetup` |
+| `completePinEntry()` | `.needsPinEntry` |
+| `completeRecovery()` | `.needsPinRecovery` |
+
+This prevents stale or duplicate calls from triggering unexpected transitions.
 
 ### Entry points into `authenticated`
 
@@ -61,7 +73,20 @@ Each call site that transitions to `authenticated` passes a typed context. This 
 
 ### `allowsAutomaticEnrollment` property
 
-Contexts from PIN/recovery flows (`.pinSetup`, `.pinEntry`, `.pinRecovery`) return `true`, allowing the enrollment policy to potentially show the Face ID prompt. The `.directAuthenticated` context returns `false`, blocking automatic enrollment for direct auth routes.
+Each context declares whether it is eligible to trigger the automatic Face ID enrollment prompt:
+
+| Case | `allowsAutomaticEnrollment` |
+|------|---------------------------|
+| `.pinSetup` | `true` |
+| `.pinEntry` | `true` |
+| `.pinRecovery` | `true` |
+| `.recoveryKeyConflict` | `true` |
+| `.recoveryKeyError` | `true` |
+| `.recoveryKeyDeclined` | `true` |
+| `.recoveryKeyPresented` | `true` |
+| `.directAuthenticated` | `false` |
+
+Only `.directAuthenticated` returns `false`, blocking automatic enrollment for the direct biometric login path (where the user just authenticated via Face ID, so prompting again would be redundant).
 
 ## RecoveryFlowState
 
@@ -155,6 +180,8 @@ Previously a `UserDefaults` flag (`pulpe-biometric-enrollment-dismissed`) made e
 - Within a single session transition, duplicates are blocked by `attemptedThisTransition` and `inFlight`
 
 ## enterAuthenticated pipeline
+
+**Ordering guarantee:** `transitionToAuthenticated()` sets `authState = .authenticated` **before** the policy evaluation. The `isAuthenticated` check in `shouldAttempt` is therefore defensive — it is guaranteed to be `true` at that point but guards against hypothetical future call sites that might invoke the policy outside the normal pipeline.
 
 ```
 completePinEntry()

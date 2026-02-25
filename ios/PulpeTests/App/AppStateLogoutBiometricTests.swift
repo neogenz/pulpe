@@ -280,10 +280,15 @@ struct AppStateLogoutBiometricTests {
 
     @Test("completeRecovery clears manual biometric retry flag")
     func completeRecovery_clearsManualRetryFlag() async {
+        let user = UserInfo(id: "recovery-user", email: "recovery@pulpe.app", firstName: "Recovery")
         let sut = AppState(
-            postAuthResolver: MockPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: false)),
+            postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false)),
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore()
         )
+
+        // Route through state machine: .loading → .needsPinEntry → .needsPinRecovery
+        await sut.resolvePostAuth(user: user)
+        sut.startRecovery()
 
         UserDefaults.standard.set(true, forKey: Self.manualBiometricRetryRequiredKey)
         await sut.completeRecovery()

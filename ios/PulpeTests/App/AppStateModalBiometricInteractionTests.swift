@@ -106,7 +106,7 @@ struct AppStateModalBiometricInteractionTests {
 
     // MARK: - Test 5: Double trigger coalesced by inFlight guard
 
-    @Test("Double rapid enterAuthenticated calls produce at most one biometric authenticate call")
+    @Test("Double rapid enterAuthenticated calls produce exactly one biometric authenticate call")
     func doubleTrigger_coalescedByInflightGuard() async throws {
         let spy = SlowModalAuthSpy()
         let sut = AppState(
@@ -150,7 +150,7 @@ struct AppStateModalBiometricInteractionTests {
         #expect(firstDecision == .proceed, "First attempt should proceed")
 
         policy.markInFlight(context: "test_transition_n")
-        policy.markComplete(context: "test_transition_n", outcome: "denied")
+        policy.markComplete(context: "test_transition_n", outcome: .deniedOrFailed)
 
         // Without reset: should skip (already attempted this transition)
         let sameTransitionDecision = policy.shouldAttempt(

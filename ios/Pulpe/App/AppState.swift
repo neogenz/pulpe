@@ -475,7 +475,7 @@ final class AppState {
         case .proceed:
             enrollmentPolicy.markInFlight(context: context.reason)
             let enabled = await biometric.enable(source: .automatic, reason: context.reason)
-            enrollmentPolicy.markComplete(context: context.reason, outcome: enabled ? "success" : "denied_or_failed")
+            enrollmentPolicy.markComplete(context: context.reason, outcome: enabled ? .success : .deniedOrFailed)
         case .skip:
             break
         }
@@ -831,6 +831,8 @@ extension AppState {
     }
 
     func completePinSetup() async {
+        guard authState == .needsPinSetup else { return }
+
         // If we have pending onboarding data, create template and budget
         if let onboardingData = pendingOnboardingData {
             do {
@@ -859,7 +861,7 @@ extension AppState {
     }
 
     func completePinEntry() async {
-        guard authState != .authenticated else { return }
+        guard authState == .needsPinEntry else { return }
 
         if pendingRecoveryConsent {
             recoveryFlowState = .consentPrompt
@@ -875,6 +877,7 @@ extension AppState {
     }
 
     func completeRecovery() async {
+        guard authState == .needsPinRecovery else { return }
         clearManualBiometricRetryRequiredFlag()
         await enterAuthenticated(context: .pinRecovery)
     }
