@@ -137,7 +137,7 @@ struct RootView: View {
                 Task { await appState.retryOnboardingPostAuth() }
             }
             Button("Se déconnecter", role: .destructive) {
-                Task { await appState.logout() }
+                appState.send(.logoutRequested(source: .userInitiated))
             }
         } message: {
             Text("La configuration de ton compte n'a pas abouti — vérifie ta connexion et réessaie.")
@@ -146,13 +146,13 @@ struct RootView: View {
         .environment(appState.toastManager)
         .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: appState.currentRoute)
         .onReceive(NotificationCenter.default.publisher(for: .maintenanceModeDetected)) { _ in
-            handleMaintenanceDetected()
+            appState.send(.maintenanceChecked(isInMaintenance: true))
         }
         .onReceive(NotificationCenter.default.publisher(for: .clientKeyCheckFailed)) { _ in
             handleClientKeyCheckFailed()
         }
         .onReceive(NotificationCenter.default.publisher(for: .sessionExpired)) { _ in
-            handleSessionExpired()
+            appState.send(.sessionExpired)
         }
         .task {
             await appState.start()
@@ -208,7 +208,7 @@ struct RootView: View {
         }
         .sheet(item: recoveryKeySheetItemBinding) { sheet in
             RecoveryKeySheet(recoveryKey: sheet.recoveryKey) {
-                Task { await appState.completePostAuthRecoveryKeyPresentation() }
+                appState.send(.recoveryKeyPresentationDismissed)
             }
         }
         .onShake {
@@ -293,11 +293,9 @@ struct RootView: View {
 
         case .pinRecovery:
             PinRecoveryView(
-                onComplete: { Task { await appState.completeRecovery() } },
-                onCancel: { appState.cancelRecovery() },
-                onSessionExpired: {
-                    Task { await appState.handleRecoverySessionExpired() }
-                }
+                onComplete: { appState.send(.recoveryCompleted) },
+                onCancel: { appState.send(.recoveryCancelled) },
+                onSessionExpired: { appState.send(.recoverySessionExpired) }
             )
 
         case .main:
@@ -319,11 +317,9 @@ struct RootView: View {
             )
         case .needsPinRecovery:
             PinRecoveryView(
-                onComplete: { Task { await appState.completeRecovery() } },
-                onCancel: { appState.cancelRecovery() },
-                onSessionExpired: {
-                    Task { await appState.handleRecoverySessionExpired() }
-                }
+                onComplete: { appState.send(.recoveryCompleted) },
+                onCancel: { appState.send(.recoveryCancelled) },
+                onSessionExpired: { appState.send(.recoverySessionExpired) }
             )
         case .loading, .unauthenticated:
             LoadingView(message: "Chargement...")
@@ -333,28 +329,20 @@ struct RootView: View {
     private func pinEntryContent(canUseBiometric: Bool) -> some View {
         PinEntryView(
             firstName: appState.currentUser?.firstName ?? "",
-            onSuccess: { Task { await appState.completePinEntry() } },
+            onSuccess: { appState.send(.pinEntrySucceeded) },
             onBiometric: canUseBiometric && appState.biometricCredentialsAvailable ? {
                 Task {
                     guard await appState.attemptBiometricUnlock() else { return }
                     await appState.completePinEntry()
                 }
             } : nil,
-            onForgotPin: { appState.startRecovery() },
+            onForgotPin: { appState.send(.recoveryInitiated) },
             onLogout: { await appState.logout() }
         )
     }
 
-    private func handleMaintenanceDetected() {
-        appState.setMaintenanceMode(true)
-    }
-
     private func handleClientKeyCheckFailed() {
         Task { await appState.handleStaleClientKey() }
-    }
-
-    private func handleSessionExpired() {
-        Task { await appState.handleSessionExpired() }
     }
 
     private func handlePendingDeepLink() {

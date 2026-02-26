@@ -180,6 +180,83 @@ struct AppFlowEventRoutingTests {
         #expect(sut.authState == .authenticated)
     }
 
+    // MARK: - Async-Tier Events (via eventQueue)
+
+    @Test("send(.logoutRequested) from authenticated transitions to unauthenticated")
+    func logoutRequested_fromAuthenticated_transitionsToUnauthenticated() async {
+        let sut = await makeAuthenticatedSUT()
+        #expect(sut.authState == .authenticated)
+
+        sut.send(.logoutRequested(source: .userInitiated))
+
+        await waitForCondition("authState should become unauthenticated") {
+            sut.authState == .unauthenticated
+        }
+    }
+
+    @Test("send(.sessionExpired) from authenticated transitions to unauthenticated")
+    func sessionExpired_fromAuthenticated_transitionsToUnauthenticated() async {
+        let sut = await makeAuthenticatedSUT()
+        #expect(sut.authState == .authenticated)
+
+        sut.send(.sessionExpired)
+
+        await waitForCondition("authState should become unauthenticated") {
+            sut.authState == .unauthenticated
+        }
+    }
+
+    @Test("send(.pinEntrySucceeded) from locked transitions to authenticated")
+    func pinEntrySucceeded_fromLocked_transitionsToAuthenticated() async {
+        let sut = await makeLockedSUT()
+        #expect(sut.authState == .needsPinEntry)
+
+        sut.send(.pinEntrySucceeded)
+
+        await waitForCondition("authState should become authenticated") {
+            sut.authState == .authenticated
+        }
+    }
+
+    @Test("send(.recoveryCompleted) from needsPinRecovery transitions to authenticated")
+    func recoveryCompleted_fromRecovery_transitionsToAuthenticated() async {
+        let sut = await makeLockedSUT()
+        sut.send(.recoveryInitiated)
+        #expect(sut.authState == .needsPinRecovery)
+
+        sut.send(.recoveryCompleted)
+
+        await waitForCondition("authState should become authenticated") {
+            sut.authState == .authenticated
+        }
+    }
+
+    @Test("send(.recoveryKeyPresentationDismissed) from authenticated stays authenticated")
+    func recoveryKeyDismissed_fromAuthenticated_staysAuthenticated() async {
+        let sut = await makeAuthenticatedSUT()
+        #expect(sut.authState == .authenticated)
+
+        sut.send(.recoveryKeyPresentationDismissed)
+
+        // Allow async processing to complete
+        try? await Task.sleep(for: .milliseconds(100))
+
+        #expect(sut.authState == .authenticated)
+    }
+
+    @Test("send(.recoverySessionExpired) from needsPinRecovery transitions to unauthenticated")
+    func recoverySessionExpired_fromRecovery_transitionsToUnauthenticated() async {
+        let sut = await makeLockedSUT()
+        sut.send(.recoveryInitiated)
+        #expect(sut.authState == .needsPinRecovery)
+
+        sut.send(.recoverySessionExpired)
+
+        await waitForCondition("authState should become unauthenticated") {
+            sut.authState == .unauthenticated
+        }
+    }
+
     // MARK: - Reducer-Tier Prevents Async Processing
 
     @Test("reducer-tier events are synchronous and do not hit async queue")
