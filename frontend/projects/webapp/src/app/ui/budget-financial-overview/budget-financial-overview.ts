@@ -6,8 +6,6 @@ import {
   input,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { BudgetVerificationBlock } from '@ui/budget-verification-block/budget-verification-block';
-import { VerificationTooltip } from '@ui/verification-tooltip/verification-tooltip';
 
 export interface FinancialTotals {
   income: number;
@@ -24,12 +22,7 @@ export interface FinancialTotals {
  */
 @Component({
   selector: 'pulpe-budget-financial-overview',
-  imports: [
-    MatIconModule,
-    DecimalPipe,
-    BudgetVerificationBlock,
-    VerificationTooltip,
-  ],
+  imports: [MatIconModule, DecimalPipe],
   template: `
     <div class="space-y-6">
       <!-- Hero Section: What matters most -->
@@ -172,18 +165,6 @@ export interface FinancialTotals {
           </div>
         </div>
       </div>
-
-      <!-- Budget Verification: Estimated balance check -->
-      <pulpe-budget-verification-block
-        [checkedExpenses]="realizedExpenses()"
-        [estimatedBalance]="realizedBalance()"
-        [checkedCount]="checkedCount()"
-        [totalCount]="totalCount()"
-        [plannedRemaining]="totals().remaining"
-        data-testid="budget-verification-block"
-      >
-        <pulpe-verification-tooltip slot="title-info" />
-      </pulpe-budget-verification-block>
     </div>
   `,
   styles: `
@@ -243,10 +224,6 @@ export interface FinancialTotals {
 })
 export class BudgetFinancialOverview {
   readonly totals = input.required<FinancialTotals>();
-  readonly realizedBalance = input.required<number>();
-  readonly realizedExpenses = input.required<number>();
-  readonly checkedCount = input.required<number>();
-  readonly totalCount = input.required<number>();
   readonly warningThreshold = input(90);
 
   readonly isPositive = computed(() => this.totals().remaining >= 0);

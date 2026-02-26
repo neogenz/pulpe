@@ -6,7 +6,7 @@ import {
   TEST_UUIDS,
 } from '../../helpers/api-mocks';
 
-test.describe('Budget Verification Block (Solde estimé)', () => {
+test.describe('Checking Summary (Solde estimé)', () => {
   const budgetId = TEST_UUIDS.BUDGET_1;
 
   // All tests need to show checked items (default filter hides them)
@@ -65,13 +65,13 @@ test.describe('Budget Verification Block (Solde estimé)', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const progressBar = authenticatedPage.getByTestId('budget-verification-block');
-    await expect(progressBar).toBeVisible();
+    const summary = authenticatedPage.getByTestId('checking-summary');
+    await expect(summary).toBeVisible();
 
-    // Realized expenses = max(2000, 1000) = 2000
-    await expect(progressBar).toContainText("2\u2019000 CHF");
-    // Realized balance = 5000 - 2000 = 3000
-    await expect(progressBar).toContainText("3\u2019000 CHF");
+    // All items checked → "Tout pointé"
+    await expect(summary).toContainText('Tout pointé');
+    // Realized balance = 5000 - max(2000, 1000) = 3000
+    await expect(summary).toContainText("3\u2019000 CHF");
   });
 
   test('(7.6) envelope checked with overage uses transaction sum', async ({
@@ -129,13 +129,13 @@ test.describe('Budget Verification Block (Solde estimé)', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const progressBar = authenticatedPage.getByTestId('budget-verification-block');
-    await expect(progressBar).toBeVisible();
+    const summary = authenticatedPage.getByTestId('checking-summary');
+    await expect(summary).toBeVisible();
 
-    // Realized expenses = max(2000, 3000) = 3000
-    await expect(progressBar).toContainText("3\u2019000 CHF");
-    // Realized balance = 5000 - 3000 = 2000
-    await expect(progressBar).toContainText("2\u2019000 CHF");
+    // All items checked → "Tout pointé"
+    await expect(summary).toContainText('Tout pointé');
+    // Realized balance = 5000 - max(2000, 3000) = 2000
+    await expect(summary).toContainText("2\u2019000 CHF");
   });
 
   test('(7.7) no double counting when envelope and transactions are checked', async ({
@@ -194,13 +194,13 @@ test.describe('Budget Verification Block (Solde estimé)', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const progressBar = authenticatedPage.getByTestId('budget-verification-block');
-    await expect(progressBar).toBeVisible();
+    const summary = authenticatedPage.getByTestId('checking-summary');
+    await expect(summary).toBeVisible();
 
-    // Realized expenses = max(500, 450) = 500 (NOT 950)
-    await expect(progressBar).toContainText('500 CHF');
-    // Realized balance = 5000 - 500 = 4500
-    await expect(progressBar).toContainText("4\u2019500 CHF");
+    // All items checked → "Tout pointé"
+    await expect(summary).toContainText('Tout pointé');
+    // Realized balance = 5000 - max(500, 450) = 4500
+    await expect(summary).toContainText("4\u2019500 CHF");
   });
 
   test('(7.8) envelope not checked — only checked transactions count', async ({
@@ -259,12 +259,12 @@ test.describe('Budget Verification Block (Solde estimé)', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const progressBar = authenticatedPage.getByTestId('budget-verification-block');
-    await expect(progressBar).toBeVisible();
+    const summary = authenticatedPage.getByTestId('checking-summary');
+    await expect(summary).toBeVisible();
 
-    // Realized expenses = 450 (only checked transactions, envelope not checked)
-    await expect(progressBar).toContainText('450 CHF');
+    // Envelope not checked → "X/Y pointés" (not "Tout pointé")
+    await expect(summary).toContainText('pointés');
     // Realized balance = 5000 - 450 = 4550
-    await expect(progressBar).toContainText("4\u2019550 CHF");
+    await expect(summary).toContainText("4\u2019550 CHF");
   });
 });

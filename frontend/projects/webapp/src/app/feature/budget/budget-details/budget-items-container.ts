@@ -1,3 +1,4 @@
+import { DecimalPipe } from '@angular/common';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
   ChangeDetectionStrategy,
@@ -12,6 +13,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { SearchBar } from '@ui/index';
 import {
   calculateAllEnrichedConsumptions,
@@ -45,8 +47,10 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
 @Component({
   selector: 'pulpe-budget-items',
   imports: [
+    DecimalPipe,
     MatButtonModule,
     MatIconModule,
+    MatTooltipModule,
     SearchBar,
     BudgetGrid,
     BudgetTable,
@@ -83,6 +87,32 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
           isShowingOnlyUncheckedChange.emit($event)
         "
       />
+
+      <!-- Checking summary — progressive disclosure -->
+      @if (checkedCount() > 0) {
+        <p
+          class="text-body-medium text-on-surface-variant flex items-center gap-1.5 -mt-1"
+          data-testid="checking-summary"
+        >
+          @if (isAllChecked()) {
+            <mat-icon class="text-primary text-base!">check_circle</mat-icon>
+            <span>Tout pointé</span>
+          } @else {
+            <span>{{ checkedCount() }}/{{ totalCount() }} pointés</span>
+          }
+          <span class="text-on-surface-variant/50">·</span>
+          <span class="ph-no-capture">
+            Ton compte ≈
+            {{ estimatedBalance() | number: '1.0-0' : 'de-CH' }} CHF
+          </span>
+          <mat-icon
+            matTooltip="Au fur et à mesure que tu pointes tes éléments, ce montant te dit combien il devrait rester sur ton compte. Compare avec ton app bancaire !"
+            matTooltipPosition="above"
+            class="text-on-surface-variant/50 text-base! cursor-help"
+            >info</mat-icon
+          >
+        </p>
+      }
 
       <!-- Content -->
       @if (budgetTableData().length === 0 && searchText()) {
@@ -158,6 +188,13 @@ export class BudgetItemsContainer {
   readonly transactions = input.required<TransactionViewModel[]>();
   readonly isShowingOnlyUnchecked = input<boolean>(true);
   readonly searchText = input('');
+  readonly checkedCount = input(0);
+  readonly totalCount = input(0);
+  readonly estimatedBalance = input(0);
+
+  readonly isAllChecked = computed(
+    () => this.totalCount() > 0 && this.checkedCount() === this.totalCount(),
+  );
 
   // Outputs
   readonly searchTextChange = output<string>();
