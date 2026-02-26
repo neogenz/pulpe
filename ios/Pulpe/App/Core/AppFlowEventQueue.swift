@@ -31,7 +31,8 @@ final class AppFlowEventQueue {
     /// Events are processed in FIFO order, one at a time.
     func enqueue(_ event: AppFlowEvent) {
         pendingEvents.append(event)
-        Logger.auth.debug("[EVENT_QUEUE] Enqueued event: \(String(describing: event)), queue size: \(self.pendingEvents.count)")
+        let count = self.pendingEvents.count
+        Logger.auth.debug("[EVENT_QUEUE] Enqueued: \(String(describing: event)), size: \(count)")
 
         if !isProcessing {
             Task { @MainActor in

@@ -2,6 +2,7 @@ import OSLog
 import SwiftUI
 
 @Observable @MainActor
+// swiftlint:disable:next type_body_length
 final class AppState {
     // MARK: - Auth State
 

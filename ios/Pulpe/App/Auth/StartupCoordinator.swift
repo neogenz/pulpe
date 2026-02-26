@@ -100,7 +100,9 @@ actor StartupCoordinator {
             }
 
             // Return whichever finishes first
-            let firstResult = await group.next()!
+            guard let firstResult = await group.next() else {
+                return .cancelled
+            }
             group.cancelAll()
 
             // If timeout won, cancel the startup task
