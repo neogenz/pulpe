@@ -9,7 +9,6 @@ import { DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import type { BudgetPeriodDates } from 'pulpe-shared';
-import { BUDGET_WARNING_THRESHOLD_PERCENT } from '@core/budget';
 
 @Component({
   selector: 'pulpe-dashboard-hero',
@@ -198,6 +197,7 @@ export class DashboardHero {
   readonly rolloverAmount = input(0);
   readonly timeElapsedPercentage = input(0);
   readonly paceStatus = input<'on-track' | 'tight'>('on-track');
+  readonly warningThreshold = input(90);
 
   readonly remaining = input.required<number>();
   readonly budgetConsumedPercentage = input.required<number>();
@@ -211,7 +211,7 @@ export class DashboardHero {
   readonly isWarning = computed(
     () =>
       !this.isOverBudget() &&
-      this.budgetConsumedPercentage() > BUDGET_WARNING_THRESHOLD_PERCENT,
+      this.budgetConsumedPercentage() > this.warningThreshold(),
   );
   readonly budgetStatus = computed<'on-track' | 'warning' | 'over-budget'>(
     () => {

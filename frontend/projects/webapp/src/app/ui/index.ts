@@ -2,6 +2,7 @@ export * from './breadcrumb/breadcrumb';
 export * from './breadcrumb/breadcrumb-item.directive';
 export * from './breadcrumb/breadcrumb-separator.directive';
 export * from './currency-input';
+export * from './dashboard-hero/dashboard-hero';
 export * from './dialogs/confirmation-dialog';
 export * from './error-alert';
 export * from './error-card';

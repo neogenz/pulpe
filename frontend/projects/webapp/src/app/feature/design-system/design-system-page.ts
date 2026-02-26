@@ -7,7 +7,7 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { type BudgetLine, type Transaction } from 'pulpe-shared';
-import { DashboardHero } from '@features/current-month/components/dashboard-hero';
+import { DashboardHero } from '@ui/dashboard-hero/dashboard-hero';
 import { BudgetFinancialOverview } from '@features/budget/budget-details/budget-financial-overview';
 import { createMockBudgetLine } from '@app/testing/mock-factories';
 import { ThemeService } from '@core/theme';
