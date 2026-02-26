@@ -158,6 +158,7 @@ actor StartupCoordinator {
         Logger.auth.debug("[STARTUP] Beginning startup sequence (id: \(runId.uuidString.prefix(8)))")
 
         if let maintenanceResult = await performMaintenanceCheck() {
+            guard isCurrentRun(runId) && !Task.isCancelled else { return .cancelled }
             return maintenanceResult
         }
 

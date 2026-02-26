@@ -174,10 +174,10 @@ struct RootView: View {
             isPresented: $appState.isRecoveryConsentVisible
         ) {
             Button("Générer maintenant") {
-                Task { await appState.acceptRecoveryKeyRepairConsent() }
+                appState.send(.recoveryKeyConsentAccepted)
             }
             Button("Plus tard", role: .cancel) {
-                Task { await appState.declineRecoveryKeyRepairConsent() }
+                appState.send(.recoveryKeyConsentDeclined)
             }
         } message: {
             Text(
@@ -333,7 +333,7 @@ struct RootView: View {
             onBiometric: canUseBiometric && appState.biometricCredentialsAvailable ? {
                 Task {
                     guard await appState.attemptBiometricUnlock() else { return }
-                    await appState.completePinEntry()
+                    appState.send(.biometricUnlockSucceeded)
                 }
             } : nil,
             onForgotPin: { appState.send(.recoveryInitiated) },
@@ -352,11 +352,11 @@ struct RootView: View {
                 deepLinkHandler.setPending(destination)
                 deepLinkDestination = nil
             case .addExpense:
-                guard appState.authState == .authenticated else { return }
+                guard appState.authState == .authenticated else { break }
                 deepLinkDestination = nil
                 showAddExpenseSheet = true
             case .viewBudget(let budgetId):
-                guard appState.authState == .authenticated else { return }
+                guard appState.authState == .authenticated else { break }
                 deepLinkDestination = nil
                 appState.budgetPath = NavigationPath()
                 Task { @MainActor in
