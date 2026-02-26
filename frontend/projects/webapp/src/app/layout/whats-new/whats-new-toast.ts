@@ -70,10 +70,11 @@ import { LATEST_RELEASE } from './whats-new-releases';
         z-index: 1000;
         max-width: 360px;
         width: calc(100vw - 32px);
-        pointer-events: auto;
+        pointer-events: none;
       }
 
       .toast {
+        pointer-events: auto;
         background: var(--mat-sys-surface-container-high);
         border-radius: var(--pulpe-surface-radius-panel);
         box-shadow: var(--mat-sys-level2);

@@ -7,6 +7,7 @@ import {
   DestroyRef,
   type ElementRef,
   inject,
+  isDevMode,
   signal,
   viewChild,
 } from '@angular/core';
@@ -46,10 +47,12 @@ import { BreadcrumbState } from '@core/routing/breadcrumb-state';
 import { ROUTES } from '@core/routing/routes-constants';
 import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
 import { of } from 'rxjs';
-import { delay, filter, map, shareReplay, switchMap } from 'rxjs/operators';
+import { delay, filter, map, switchMap } from 'rxjs/operators';
 import { AboutDialog } from './about-dialog';
 import { LogoutDialog } from '@ui/dialogs/logout-dialog';
 import { WhatsNewToast } from './whats-new/whats-new-toast';
+
+const NAVIGATION_LOADER_DELAY_MS = 100;
 
 interface NavigationItem {
   readonly route: string;
@@ -543,14 +546,23 @@ export default class MainLayout {
       icon: 'description',
       tooltip: 'Préparez vos bases mensuelles',
     },
-  ] as const;
+    ...(isDevMode()
+      ? [
+          {
+            route: ROUTES.DESIGN_SYSTEM,
+            label: 'Design System',
+            icon: 'palette',
+            tooltip: 'Tokens et composants',
+          },
+        ]
+      : []),
+  ];
 
   // Responsive breakpoint detection
   protected readonly isHandset = toSignal(
-    this.#breakpointObserver.observe(Breakpoints.Handset).pipe(
-      map((result) => result.matches),
-      shareReplay({ bufferSize: 1, refCount: true }),
-    ),
+    this.#breakpointObserver
+      .observe(Breakpoints.Handset)
+      .pipe(map((result) => result.matches)),
     { initialValue: false },
   );
 
@@ -625,7 +637,7 @@ export default class MainLayout {
       switchMap(
         (e) =>
           e instanceof NavigationStart
-            ? of(true).pipe(delay(100)) // Show loader only if navigation > 100ms
+            ? of(true).pipe(delay(NAVIGATION_LOADER_DELAY_MS))
             : of(false), // Hide immediately
       ),
     ),

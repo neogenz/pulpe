@@ -10,6 +10,7 @@ export const ROUTES = {
   BUDGET: 'budget',
   BUDGET_TEMPLATES: 'budget-templates',
   SETTINGS: 'settings',
+  DESIGN_SYSTEM: 'design-system',
   LEGAL: 'legal',
   MAINTENANCE: 'maintenance',
   SETUP_VAULT_CODE: 'setup-vault-code',
@@ -45,5 +46,6 @@ export const PAGE_TITLES = {
   LEGAL_TERMS: "Conditions Générales d'Utilisation",
   LEGAL_PRIVACY: 'Politique de Confidentialité',
   SETTINGS: 'Paramètres',
+  DESIGN_SYSTEM: 'Design System',
   MAINTENANCE: 'Maintenance',
 } as const;

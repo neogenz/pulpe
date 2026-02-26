@@ -18,8 +18,6 @@
     </mat-card-content>
   </mat-card>
   } @else if (store.budgetDetails()) { @let budget = store.budgetDetails()!;
-  @let budgetLines = store.displayBudgetLines(); @let transactions =
-  budget.transactions;
 
   <!-- Header: Month navigation with chevrons -->
   <header class="relative">
@@ -94,8 +92,7 @@
 
   <!-- Financial Overview -->
   <pulpe-budget-financial-overview
-    [budgetLines]="budgetLines"
-    [transactions]="transactions"
+    [totals]="financialTotals()"
     [realizedBalance]="store.realizedBalance()"
     [realizedExpenses]="store.realizedExpenses()"
     [checkedCount]="store.checkedItemsCount()"

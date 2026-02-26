@@ -3,18 +3,18 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  inject,
   input,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { type BudgetLine, type Transaction } from 'pulpe-shared';
-import {
-  BudgetCalculator,
-  BUDGET_WARNING_THRESHOLD_PERCENT,
-  calculateAllConsumptions,
-} from '@core/budget';
 import { RealizedBalanceProgressBar } from '@ui/realized-balance-progress-bar/realized-balance-progress-bar';
 import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-balance-tooltip';
+
+export interface FinancialTotals {
+  income: number;
+  expenses: number;
+  savings: number;
+  remaining: number;
+}
 
 /**
  * BudgetFinancialOverview - "Financial Pulse" design
@@ -42,7 +42,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
         <p
           class="text-body-large mb-3"
           [class.text-on-primary-container]="budgetState() === 'comfortable'"
-          [class.text-warning]="budgetState() === 'warning'"
+          [class.text-warning-on-container]="budgetState() === 'warning'"
           [class.text-on-error-container]="budgetState() === 'deficit'"
         >
           @switch (budgetState()) {
@@ -69,7 +69,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
         <p
           class="text-body-medium mt-3"
           [class.text-on-primary-container]="budgetState() === 'comfortable'"
-          [class.text-warning]="budgetState() === 'warning'"
+          [class.text-warning-on-container]="budgetState() === 'warning'"
           [class.text-on-error-container]="budgetState() === 'deficit'"
         >
           @switch (budgetState()) {
@@ -91,68 +91,73 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
       </div>
 
       <!-- Supporting Metrics: Pill-style, horizontal scroll on mobile -->
-      <div
-        role="list"
-        aria-label="Résumé financier"
-        class="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:justify-center scrollbar-hide"
-      >
-        <!-- Income Pill -->
+      <div class="pills-scroll-fade -mx-4 md:mx-0">
         <div
-          role="listitem"
-          class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-income-light)]"
+          role="list"
+          aria-label="Résumé financier"
+          class="flex gap-3 overflow-x-auto px-4 md:px-0 md:justify-center scrollbar-hide"
         >
-          <mat-icon class="text-financial-income mat-icon-sm"
-            >trending_up</mat-icon
+          <!-- Income Pill -->
+          <div
+            role="listitem"
+            class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-(--pulpe-financial-income-light)"
           >
-          <div class="flex flex-col">
-            <span class="text-label-small leading-tight text-on-financial-light"
-              >Revenus</span
+            <mat-icon class="text-financial-income mat-icon-sm"
+              >trending_up</mat-icon
             >
-            <span
-              class="text-label-large font-semibold text-financial-income ph-no-capture"
-            >
-              {{ totals().income | number: '1.0-0' : 'de-CH' }} CHF
-            </span>
+            <div class="flex flex-col">
+              <span
+                class="text-label-small leading-tight text-on-financial-light"
+                >Revenus</span
+              >
+              <span
+                class="text-label-large font-semibold text-financial-income ph-no-capture"
+              >
+                {{ totals().income | number: '1.0-0' : 'de-CH' }} CHF
+              </span>
+            </div>
           </div>
-        </div>
 
-        <!-- Expenses Pill -->
-        <div
-          role="listitem"
-          class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-expense-light)]"
-        >
-          <mat-icon class="text-financial-expense mat-icon-sm"
-            >trending_down</mat-icon
+          <!-- Expenses Pill -->
+          <div
+            role="listitem"
+            class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-(--pulpe-financial-expense-light)"
           >
-          <div class="flex flex-col">
-            <span class="text-label-small leading-tight text-on-financial-light"
-              >Dépenses</span
+            <mat-icon class="text-financial-expense mat-icon-sm"
+              >trending_down</mat-icon
             >
-            <span
-              class="text-label-large font-semibold text-financial-expense ph-no-capture"
-            >
-              {{ totals().expenses | number: '1.0-0' : 'de-CH' }} CHF
-            </span>
+            <div class="flex flex-col">
+              <span
+                class="text-label-small leading-tight text-on-financial-light"
+                >Dépenses</span
+              >
+              <span
+                class="text-label-large font-semibold text-financial-expense ph-no-capture"
+              >
+                {{ totals().expenses | number: '1.0-0' : 'de-CH' }} CHF
+              </span>
+            </div>
           </div>
-        </div>
 
-        <!-- Savings Pill -->
-        <div
-          role="listitem"
-          class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-savings-light)]"
-        >
-          <mat-icon class="text-financial-savings mat-icon-sm"
-            >savings</mat-icon
+          <!-- Savings Pill -->
+          <div
+            role="listitem"
+            class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-(--pulpe-financial-savings-light)"
           >
-          <div class="flex flex-col">
-            <span class="text-label-small leading-tight text-on-financial-light"
-              >Épargne</span
+            <mat-icon class="text-financial-savings mat-icon-sm"
+              >savings</mat-icon
             >
-            <span
-              class="text-label-large font-semibold text-financial-savings ph-no-capture"
-            >
-              {{ totals().savings | number: '1.0-0' : 'de-CH' }} CHF
-            </span>
+            <div class="flex flex-col">
+              <span
+                class="text-label-small leading-tight text-on-financial-light"
+                >Épargne</span
+              >
+              <span
+                class="text-label-large font-semibold text-financial-savings ph-no-capture"
+              >
+                {{ totals().savings | number: '1.0-0' : 'de-CH' }} CHF
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -182,63 +187,55 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
       color: var(--pulpe-amber);
     }
 
-    /* Hide scrollbar but keep functionality */
-    .scrollbar-hide {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-    .scrollbar-hide::-webkit-scrollbar {
-      display: none;
+    .pills-scroll-fade {
+      position: relative;
+
+      &::before,
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 24px;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      &::before {
+        left: 0;
+        background: linear-gradient(
+          to right,
+          var(--mat-sys-surface),
+          transparent
+        );
+      }
+
+      &::after {
+        right: 0;
+        background: linear-gradient(
+          to left,
+          var(--mat-sys-surface),
+          transparent
+        );
+      }
+
+      @media (min-width: 768px) {
+        &::before,
+        &::after {
+          display: none;
+        }
+      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetFinancialOverview {
-  readonly #budgetCalculator = inject(BudgetCalculator);
-
-  readonly budgetLines = input.required<BudgetLine[]>();
-  readonly transactions = input.required<Transaction[]>();
+  readonly totals = input.required<FinancialTotals>();
   readonly realizedBalance = input.required<number>();
   readonly realizedExpenses = input.required<number>();
   readonly checkedCount = input.required<number>();
   readonly totalCount = input.required<number>();
-
-  readonly totals = computed(() => {
-    const lines = this.budgetLines();
-    const transactions = this.transactions();
-
-    const consumptionMap = calculateAllConsumptions(lines, transactions);
-
-    const income = this.#budgetCalculator.calculatePlannedIncome(lines);
-    let expenses = 0;
-    let savings = 0;
-
-    lines.forEach((line) => {
-      const consumption = consumptionMap.get(line.id);
-      const effectiveAmount = consumption
-        ? Math.max(line.amount, consumption.consumed)
-        : line.amount;
-
-      switch (line.kind) {
-        case 'expense':
-          expenses += effectiveAmount;
-          break;
-        case 'saving':
-          savings += effectiveAmount;
-          break;
-      }
-    });
-
-    const freeTransactions = transactions.filter((tx) => !tx.budgetLineId);
-    const initialLivingAllowance = income - expenses - savings;
-    const transactionImpact =
-      this.#budgetCalculator.calculateActualTransactionsAmount(
-        freeTransactions,
-      );
-    const remaining = initialLivingAllowance + transactionImpact;
-
-    return { income, expenses, savings, remaining };
-  });
+  readonly warningThreshold = input(90);
 
   readonly isPositive = computed(() => this.totals().remaining >= 0);
 
@@ -246,7 +243,7 @@ export class BudgetFinancialOverview {
     const { remaining, income } = this.totals();
     if (income <= 0) return remaining >= 0;
     const consumedPercent = ((income - remaining) / income) * 100;
-    return consumedPercent <= BUDGET_WARNING_THRESHOLD_PERCENT;
+    return consumedPercent <= this.warningThreshold();
   });
 
   readonly budgetState = computed<'comfortable' | 'warning' | 'deficit'>(() => {

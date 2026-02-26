@@ -33,7 +33,7 @@ import { AddTransactionBottomSheet } from './components/add-transaction-bottom-s
 import { DashboardError } from './components/dashboard-error';
 import { DashboardStore } from './services/dashboard-store';
 
-import { DashboardHero } from './components/dashboard-hero';
+import { DashboardHero } from '@ui/dashboard-hero/dashboard-hero';
 import { DashboardUncheckedForecasts } from './components/dashboard-unchecked-forecasts';
 import { DashboardHistoryChart } from './components/dashboard-history-chart';
 import { DashboardFutureProjectionChart } from './components/dashboard-future-projection-chart';
