@@ -580,17 +580,7 @@ jobs:
             -scheme PulpeTests \
             -destination 'id=${{ steps.sim.outputs.udid }}' \
             CODE_SIGNING_ALLOWED=NO \
-            -resultBundlePath TestResults \
-            2>&1 | tee test-output.log | grep -E '(Test Case|passed|failed|error:|FAIL|TEST)'
-
-      - name: 📋 Show failed tests (if any)
-        if: failure()
-        working-directory: ios
-        run: |
-          echo "=== FAILED TESTS ==="
-          grep -E "(Test Case.*failed|error:)" test-output.log || echo "No explicit failures found"
-          echo "=== LAST 100 LINES ==="
-          tail -100 test-output.log
+            -quiet
 
   # 🗄️ MIGRATION DRY-RUN (PRs only — détecte les problèmes avant merge)
   migrate-dryrun:
