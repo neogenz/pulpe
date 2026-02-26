@@ -105,8 +105,8 @@ struct AppStateFlowBridgeTests {
         #expect(sut.authState == .needsPinEntry)
         // isRestoringSession is cleared after handleEnterForeground completes
         #expect(sut.isRestoringSession == false)
-        // flowState should now be locked with coldStart since isRestoringSession is false
-        #expect(sut.flowState == .locked(.coldStart))
+        // lastLockReason persists .backgroundTimeout even after isRestoringSession is cleared
+        #expect(sut.flowState == .locked(.backgroundTimeout))
     }
 
     @Test func flowState_needsPinRecovery_mapsToRecovering() {

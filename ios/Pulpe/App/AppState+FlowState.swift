@@ -38,8 +38,7 @@ extension AppState {
             // Keep PIN entry route even when recovery overlays are visible.
             // The consent alert/sheet are layered modifiers and should not remap
             // a returning user to the PIN setup route.
-            let lockReason: AppFlowState.LockReason = isRestoringSession ? .backgroundTimeout : .coldStart
-            return .locked(lockReason)
+            return .locked(lastLockReason)
 
         case .needsPinRecovery:
             return .recovering
@@ -93,6 +92,7 @@ extension AppState {
         switch event {
         case .maintenanceChecked,
              .networkBecameUnavailable,
+             .startupTimedOut,
              .foregroundLockRequired,
              .foregroundNoLockNeeded,
              .biometricUnlockFailed:

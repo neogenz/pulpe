@@ -17,6 +17,10 @@ extension AppState {
     func handleEnterForeground() async {
         defer { sessionLifecycleCoordinator.clearRestoringSession() }
 
+        if sessionLifecycleCoordinator.isRestoringSession {
+            lastLockReason = .backgroundTimeout
+        }
+
         let result = await sessionLifecycleCoordinator.handleEnterForeground(authState: authState)
 
         switch result {

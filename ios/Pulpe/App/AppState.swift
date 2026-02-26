@@ -130,6 +130,8 @@ final class AppState {
 
     var isRestoringSession: Bool { sessionLifecycleCoordinator.isRestoringSession }
 
+    var lastLockReason: AppFlowState.LockReason = .coldStart
+
     var backgroundRefreshTask: Task<Void, Never>?
     var isLoggingOut = false
     var isBootstrapped = false

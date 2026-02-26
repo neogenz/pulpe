@@ -37,6 +37,7 @@ extension AppState {
         isInMaintenance = false
         isNetworkUnavailable = false
         authState = .loading
+        lastLockReason = .coldStart
         biometricError = nil
         await biometric.loadPreference()
         authDebug("AUTH_COLD_START_PREF", "biometricEnabled=\(biometric.isEnabled)")

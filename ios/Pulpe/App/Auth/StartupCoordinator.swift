@@ -32,6 +32,7 @@ actor StartupCoordinator {
 
     private(set) var state: State = .idle
     private var currentTask: Task<StartupResult, Never>?
+    private var currentRunId: UUID?
     private let timeout: Duration
 
     // MARK: - Dependencies
@@ -77,6 +78,7 @@ actor StartupCoordinator {
         cancelCurrentRun()
 
         let runId = UUID()
+        currentRunId = runId
         state = .running(id: runId)
 
         let startupTask = Task<StartupResult, Never> {
@@ -101,12 +103,13 @@ actor StartupCoordinator {
 
             // Return whichever finishes first
             guard let firstResult = await group.next() else {
-                return .cancelled
+                return StartupResult.cancelled
             }
             group.cancelAll()
 
-            // If timeout won, cancel the startup task
+            // If timeout won, invalidate the run and cancel the startup task
             if firstResult == .timeout {
+                self.currentRunId = nil
                 startupTask.cancel()
                 Logger.auth.warning("[STARTUP] Startup timed out after \(self.timeout)")
             }
@@ -144,6 +147,11 @@ actor StartupCoordinator {
     private func cancelCurrentRun() {
         currentTask?.cancel()
         currentTask = nil
+        currentRunId = nil
+    }
+
+    private func isCurrentRun(_ id: UUID) -> Bool {
+        currentRunId == id
     }
 
     private func executeStartupSequence(runId: UUID, context: StartupContext) async -> StartupResult {
@@ -153,19 +161,19 @@ actor StartupCoordinator {
             return maintenanceResult
         }
 
-        guard !Task.isCancelled else { return .cancelled }
+        guard isCurrentRun(runId) && !Task.isCancelled else { return .cancelled }
 
         if context.manualBiometricRetryRequired {
             Logger.auth.debug("[STARTUP] Manual biometric retry required - going to unauthenticated")
             return .unauthenticated
         }
 
-        if let biometricResult = await performBiometricValidationIfNeeded(context: context) {
+        if let biometricResult = await performBiometricValidationIfNeeded(runId: runId, context: context) {
             return biometricResult
         }
 
-        guard !Task.isCancelled else { return .cancelled }
-        return await performRegularValidation()
+        guard isCurrentRun(runId) && !Task.isCancelled else { return .cancelled }
+        return await performRegularValidation(runId: runId)
     }
 
     private func performMaintenanceCheck() async -> StartupResult? {
@@ -190,7 +198,7 @@ actor StartupCoordinator {
         return nil
     }
 
-    private func performBiometricValidationIfNeeded(context: StartupContext) async -> StartupResult? {
+    private func performBiometricValidationIfNeeded(runId: UUID, context: StartupContext) async -> StartupResult? {
         guard context.biometricEnabled, !context.didExplicitLogout else { return nil }
         Logger.auth.debug("[STARTUP] Attempting biometric session validation")
 
@@ -198,34 +206,36 @@ actor StartupCoordinator {
             guard let biometricResult = try await validateBiometricSession() else {
                 return nil
             }
-
+            guard isCurrentRun(runId) else { return .cancelled }
             if let clientKeyHex = biometricResult.clientKeyHex {
-                if await validateBiometricKey(clientKeyHex) {
-                    await storeSessionClientKey(clientKeyHex)
-                } else {
-                    Logger.auth.warning("[STARTUP] Stale biometric key detected, clearing biometric state")
-                    await clearStaleBiometricState()
-                }
+                guard isCurrentRun(runId) else { return .cancelled }
+                await handleBiometricClientKey(runId: runId, hex: clientKeyHex)
             }
-            return await makeAuthenticatedResult(user: biometricResult.user, source: "Biometric")
+            return await makeAuthenticatedResult(runId: runId, user: biometricResult.user, source: "Biometric")
         } catch is CancellationError {
-            Logger.auth.debug("[STARTUP] Biometric validation cancelled")
             return .cancelled
-        } catch let error as URLError {
-            Logger.auth.warning("[STARTUP] Network error during biometric validation: \(error)")
+        } catch is URLError {
             return .networkError("Connexion impossible, réessaie")
-        } catch let error as AuthServiceError {
-            Logger.auth.warning("[STARTUP] Biometric session expired: \(error)")
-            await clearExpiredBiometricState()
-            return .biometricSessionExpired
         } catch {
             Logger.auth.warning("[STARTUP] Biometric validation failed: \(error)")
+            guard isCurrentRun(runId) else { return .cancelled }
             await clearExpiredBiometricState()
             return .biometricSessionExpired
         }
     }
 
-    private func performRegularValidation() async -> StartupResult {
+    private func handleBiometricClientKey(runId: UUID, hex: String) async {
+        if await validateBiometricKey(hex) {
+            guard isCurrentRun(runId) else { return }
+            await storeSessionClientKey(hex)
+        } else {
+            Logger.auth.warning("[STARTUP] Stale biometric key, clearing state")
+            guard isCurrentRun(runId) else { return }
+            await clearStaleBiometricState()
+        }
+    }
+
+    private func performRegularValidation(runId: UUID) async -> StartupResult {
         Logger.auth.debug("[STARTUP] Attempting regular session validation")
 
         do {
@@ -233,7 +243,7 @@ actor StartupCoordinator {
                 Logger.auth.info("[STARTUP] No valid session found - unauthenticated")
                 return .unauthenticated
             }
-            return await makeAuthenticatedResult(user: user, source: "Regular")
+            return await makeAuthenticatedResult(runId: runId, user: user, source: "Regular")
         } catch is CancellationError {
             Logger.auth.debug("[STARTUP] Regular session validation cancelled")
             return .cancelled
@@ -244,10 +254,10 @@ actor StartupCoordinator {
         }
     }
 
-    private func makeAuthenticatedResult(user: UserInfo, source: String) async -> StartupResult {
-        guard !Task.isCancelled else { return .cancelled }
+    private func makeAuthenticatedResult(runId: UUID, user: UserInfo, source: String) async -> StartupResult {
+        guard isCurrentRun(runId) && !Task.isCancelled else { return .cancelled }
         let destination = await resolvePostAuth()
-        guard !Task.isCancelled else { return .cancelled }
+        guard isCurrentRun(runId) && !Task.isCancelled else { return .cancelled }
         Logger.auth.info("[STARTUP] \(source) session valid, destination: \(String(describing: destination))")
         return .authenticated(user: user, destination: destination)
     }

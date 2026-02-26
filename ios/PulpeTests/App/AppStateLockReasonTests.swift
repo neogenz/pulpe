@@ -2,13 +2,10 @@ import Foundation
 @testable import Pulpe
 import Testing
 
-/// Characterization tests for lock reason derivation and recovery consent race conditions.
+/// Tests for lock reason derivation and recovery consent race conditions.
 ///
-/// Gap 3: `LockReason.backgroundTimeout` is functionally unreachable in `flowState`.
-/// `isRestoringSession` is set by `prepareForForeground()`, but `handleEnterForeground()`
-/// has `defer { sessionLifecycleCoordinator.clearRestoringSession() }` which clears it
-/// before any external code can observe it. The `.backgroundTimeout` branch in `flowState`
-/// is never observable outside of `handleEnterForeground`.
+/// Gap 3 (fixed): `lastLockReason` is now stored explicitly on `AppState`, set to
+/// `.backgroundTimeout` in `handleEnterForeground` before the defer clears `isRestoringSession`.
 ///
 /// Gap 4: Recovery late-callback not robust against mid-startup race.
 /// The guard in `acceptRecoveryKeyRepairConsent` is
@@ -59,13 +56,9 @@ struct AppStateLockReasonTests {
 
         #expect(sut.authState == .needsPinEntry)
 
-        // Gap 3: isRestoringSession cleared by defer before observation
-        withKnownIssue("backgroundTimeout unreachable via flowState (Wave 1 fix)") {
-            #expect(
-                sut.flowState == .locked(.backgroundTimeout),
-                "Got \(sut.flowState) — isRestoringSession already cleared"
-            )
-        }
+        // After the fix, lastLockReason persists .backgroundTimeout even after
+        // isRestoringSession is cleared by the defer in handleEnterForeground.
+        #expect(sut.flowState == .locked(.backgroundTimeout))
     }
 
     @Test("Cold start should produce flowState .locked(.coldStart) (baseline)")
@@ -116,11 +109,8 @@ struct AppStateLockReasonTests {
         // making .backgroundTimeout permanently unreachable via flowState
         #expect(sut.isRestoringSession == false)
 
-        // Gap 3: backgroundTimeout permanently unreachable via flowState
-        withKnownIssue("backgroundTimeout unreachable (Wave 1 fix)") {
-            // After background timeout lock, flowState should reflect .backgroundTimeout
-            #expect(sut.flowState == .locked(.backgroundTimeout))
-        }
+        // After the fix, lastLockReason persists .backgroundTimeout.
+        #expect(sut.flowState == .locked(.backgroundTimeout))
     }
 
     // MARK: - Gap 4: Recovery Consent Late-Callback Race Condition

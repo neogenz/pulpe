@@ -2,15 +2,13 @@ import Foundation
 @testable import Pulpe
 import Testing
 
-/// Characterization tests for startup timeout and cancellation gaps.
+/// Tests for startup timeout wiring and cancellation safety.
 ///
-/// Gap 1: `AppFlowEvent.startupTimedOut` is defined and handled by `AppFlowReducer`,
-/// but `applyReducerTransitionIfPossible` in `AppState+FlowState.swift` does NOT include
-/// `.startupTimedOut` in its switch cases. Calling `send(.startupTimedOut)` silently drops the event.
+/// Gap 1 (fixed): `.startupTimedOut` is now wired through `applyReducerTransitionIfPossible`.
 ///
-/// Gap 2: `StartupCoordinator.cancelCurrentRun()` calls `currentTask?.cancel()` but does NOT await
-/// completion. After cancellation, old run's `@Sendable` closures can still execute across the
-/// actor boundary. The `runId` guard only protects `state` mutation, not the side-effect closures.
+/// Gap 2 (fixed): `StartupCoordinator` uses a `currentRunId` guard before each side-effect
+/// closure. After timeout or cancel, `currentRunId` is cleared so subsequent closures from the
+/// invalidated run are blocked even though the in-flight closure may complete.
 @Suite(.serialized)
 @MainActor
 struct AppStateStartupTimeoutIsolationTests {
@@ -31,10 +29,8 @@ struct AppStateStartupTimeoutIsolationTests {
         sut.isNetworkUnavailable = false
         #expect(sut.flowState == .initializing)
 
-        withKnownIssue("startupTimedOut is not wired through applyReducerTransitionIfPossible (Gap 1, Wave 1 fix)") {
-            sut.send(.startupTimedOut)
-            #expect(sut.flowState == .networkUnavailable(retryable: true))
-        }
+        sut.send(.startupTimedOut)
+        #expect(sut.flowState == .networkUnavailable(retryable: true))
     }
 
     @Test("startupTimedOut from authenticated state should be a no-op")
@@ -60,35 +56,30 @@ struct AppStateStartupTimeoutIsolationTests {
 
     // MARK: - Gap 2: Late Side Effects After StartupCoordinator Timeout/Cancel
 
-    @Test("StartupCoordinator side-effect closure already in-flight survives timeout")
+    @Test("After timeout, subsequent side-effect closures are blocked by runId guard")
     func startupCoordinator_afterTimeout_inFlightSideEffectStillFires() async {
-        // The gap: cancelCurrentRun() calls cancel() but does not await the task.
-        // If a side-effect closure (storeSessionClientKey) is already executing
-        // when timeout fires, it runs to completion across the actor boundary.
-        //
-        // Scenario: biometric validation succeeds fast, then storeSessionClientKey
-        // hangs (simulating slow keychain write). Timeout fires while the closure
-        // is already in-flight.
-        let storeKeyStarted = AtomicFlag()
-        let storeKeyCompleted = AtomicFlag()
+        // Scenario: validateBiometricKey hangs long enough for timeout to fire.
+        // After timeout, storeSessionClientKey should NOT be called because the
+        // runId guard before it detects the invalidated run.
+        let storeKeyCalled = AtomicFlag()
 
         let sut = StartupCoordinator(
             checkMaintenance: { false },
             validateBiometricSession: {
-                // Returns immediately -- biometric validation succeeds fast
-                return BiometricSessionResult(
+                BiometricSessionResult(
                     user: UserInfo(id: "bio-user", email: "bio@pulpe.app", firstName: "Bio"),
                     clientKeyHex: "valid-key"
                 )
             },
             validateRegularSession: { nil },
             resolvePostAuth: { .authenticated(needsRecoveryKeyConsent: false) },
-            validateBiometricKey: { _ in true },
+            validateBiometricKey: { _ in
+                // Hang long enough for timeout to fire and invalidate the runId
+                try? await Task.sleep(for: .milliseconds(200))
+                return true
+            },
             storeSessionClientKey: { _ in
-                storeKeyStarted.set()
-                // Simulate slow keychain write that outlasts the timeout
-                try? await Task.sleep(for: .milliseconds(500))
-                storeKeyCompleted.set()
+                storeKeyCalled.set()
             },
             timeout: .milliseconds(50)
         )
@@ -101,50 +92,35 @@ struct AppStateStartupTimeoutIsolationTests {
 
         let result = await sut.start(context: context)
 
-        // Wait for any in-flight closures to complete
-        try? await Task.sleep(for: .milliseconds(700))
+        // Wait for any in-flight closures to settle
+        try? await Task.sleep(for: .milliseconds(300))
 
-        // If we timed out, the in-flight closure should ideally not complete
-        if result == .timeout {
-            // Gap 2: cancelCurrentRun() does not await task completion
-            withKnownIssue("In-flight closures survive timeout (Wave 1 fix)") {
-                #expect(
-                    storeKeyCompleted.value == false,
-                    "storeSessionClientKey completed after timeout"
-                )
-            }
-        } else {
-            // If the startup completed before timeout, the test scenario didn't
-            // reproduce the race. This is acceptable -- the test documents the gap.
-            // Mark the assertions as passing since the startup succeeded normally.
-            #expect(storeKeyCompleted.value == true)
-        }
+        #expect(result == .timeout)
+        #expect(
+            storeKeyCalled.value == false,
+            "storeSessionClientKey must not be called after timeout invalidates runId"
+        )
     }
 
-    @Test("StartupCoordinator after cancel: side-effect closure already past cancellation check still runs")
+    @Test("After cancel, subsequent side-effect closures are blocked by runId guard")
     func startupCoordinator_afterCancel_inFlightSideEffectStillRuns() async {
-        // The gap: once execution passes a Task.isCancelled check, subsequent
-        // side-effect closures run even if cancel() was called in the meantime.
-        // cancelCurrentRun() only sets the cancellation flag -- it does not
-        // await the task's completion.
-        let resolveStarted = AtomicFlag()
-        let resolveCompleted = AtomicFlag()
-        let validationPassed = AtomicFlag()
+        // Scenario: validateRegularSession hangs, cancel fires during it.
+        // After cancel, resolvePostAuth should NOT be called because the
+        // runId guard in makeAuthenticatedResult detects the invalidated run.
+        let validationStarted = AtomicFlag()
+        let resolvePostAuthCalled = AtomicFlag()
 
         let sut = StartupCoordinator(
             checkMaintenance: { false },
             validateBiometricSession: { nil },
             validateRegularSession: {
-                // Return quickly so we reach resolvePostAuth
-                let user = UserInfo(id: "fast-user", email: "fast@pulpe.app", firstName: "Fast")
-                validationPassed.set()
-                return user
+                validationStarted.set()
+                // Hang to give cancel time to fire
+                try? await Task.sleep(for: .milliseconds(300))
+                return UserInfo(id: "fast-user", email: "fast@pulpe.app", firstName: "Fast")
             },
             resolvePostAuth: {
-                resolveStarted.set()
-                // Simulate slow post-auth resolution
-                try? await Task.sleep(for: .milliseconds(300))
-                resolveCompleted.set()
+                resolvePostAuthCalled.set()
                 return .authenticated(needsRecoveryKeyConsent: false)
             }
         )
@@ -160,26 +136,25 @@ struct AppStateStartupTimeoutIsolationTests {
             await sut.start(context: context)
         }
 
-        // Wait for resolvePostAuth to start executing
-        await waitForCondition(timeout: .seconds(1), "resolvePostAuth must start") {
-            resolveStarted.value
+        // Wait for validation to start executing
+        await waitForCondition(timeout: .seconds(1), "validateRegularSession must start") {
+            validationStarted.value
         }
 
-        // Cancel while resolvePostAuth is in-flight
+        // Cancel while validateRegularSession is in-flight
         await sut.cancel()
 
-        // Wait for any in-flight closures to potentially complete
+        // Wait for any in-flight closures to settle
         try? await Task.sleep(for: .milliseconds(500))
 
         _ = await task.value
 
-        // Gap 2: cancelCurrentRun() does not await task
-        withKnownIssue("In-flight resolvePostAuth survives cancel (Wave 1 fix)") {
-            #expect(
-                resolveCompleted.value == false,
-                "resolvePostAuth completed after cancel"
-            )
-        }
+        // After cancel, runId is invalidated. When validateRegularSession returns,
+        // makeAuthenticatedResult's isCurrentRun guard blocks resolvePostAuth.
+        #expect(
+            resolvePostAuthCalled.value == false,
+            "resolvePostAuth must not be called after cancel invalidates runId"
+        )
     }
 
     @Test("Concurrent starts: last start wins with no interleaving of side effects")
