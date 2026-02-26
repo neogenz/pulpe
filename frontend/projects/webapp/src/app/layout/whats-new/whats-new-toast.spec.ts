@@ -59,7 +59,7 @@ describe('WhatsNewToast', () => {
     });
 
     it('should show toast when dismissed version differs from current', () => {
-      setup('0.23.0');
+      setup('0.24.0');
       expect(queryToast()).toBeTruthy();
     });
   });
