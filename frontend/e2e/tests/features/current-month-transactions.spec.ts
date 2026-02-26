@@ -104,7 +104,11 @@ test.describe('Current Month Transactions', () => {
     const form = authenticatedPage.getByTestId('transaction-form');
     await expect(form).toBeVisible();
 
-    await authenticatedPage.getByTestId('transaction-amount-input').fill('15');
+    // Wait for auto-focus setTimeout(200ms) to settle before filling (CI timing)
+    const amountInput = authenticatedPage.getByTestId('transaction-amount-input');
+    await expect(amountInput).toBeFocused();
+
+    await amountInput.fill('15');
     await authenticatedPage.getByTestId('transaction-description-input').clear();
     await authenticatedPage.getByTestId('transaction-description-input').fill('Cafe');
 
