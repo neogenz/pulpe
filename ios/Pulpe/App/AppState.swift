@@ -157,6 +157,10 @@ final class AppState {
     @ObservationIgnored let widgetSyncing: any WidgetSyncing
     @ObservationIgnored let maintenanceChecking: @Sendable () async throws -> Bool
 
+    // MARK: - Session Data Reset
+
+    var sessionDataResetter: (any SessionDataResetting)?
+
     // MARK: - Toast
 
     let toastManager = ToastManager()

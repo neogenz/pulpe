@@ -132,63 +132,6 @@ struct AppRuntimeCoordinatorTests {
         #expect(appState.isRestoringSession == true)
     }
 
-    // MARK: - Auth State Change: Store Resets
-
-    @Test func authStateChange_toUnauthenticated_resetsStores() async {
-        let appState = AppState(postAuthResolver: pinResolver)
-        await authenticateViaPinEntry(appState)
-
-        let currentMonthStore = CurrentMonthStore()
-        let budgetListStore = BudgetListStore()
-        let dashboardStore = DashboardStore()
-
-        let sut = AppRuntimeCoordinator(
-            appState: appState,
-            currentMonthStore: currentMonthStore,
-            budgetListStore: budgetListStore,
-            dashboardStore: dashboardStore
-        )
-
-        // Simulate that stores have some data by checking hasLoadedOnce on budget list
-        // (we just verify reset() clears the state)
-        sut.handleAuthStateChange(.unauthenticated)
-
-        // After reset, stores should be in their initial state
-        #expect(currentMonthStore.budget == nil)
-        #expect(currentMonthStore.budgetLines.isEmpty)
-        #expect(currentMonthStore.transactions.isEmpty)
-        #expect(budgetListStore.budgets.isEmpty)
-        #expect(budgetListStore.hasLoadedOnce == false)
-        #expect(dashboardStore.sparseBudgets.isEmpty)
-    }
-
-    @Test func authStateChange_toAuthenticated_doesNotResetStores() async {
-        let appState = AppState(postAuthResolver: pinResolver)
-        await authenticateViaPinEntry(appState)
-
-        let budgetListStore = BudgetListStore()
-        let sut = AppRuntimeCoordinator(
-            appState: appState,
-            currentMonthStore: CurrentMonthStore(),
-            budgetListStore: budgetListStore,
-            dashboardStore: DashboardStore()
-        )
-
-        // The handleAuthStateChange for .authenticated should be a no-op
-        sut.handleAuthStateChange(.authenticated)
-
-        // hasLoadedOnce default is false, but more importantly we prove no crash and
-        // that authenticated does not trigger reset.
-        // If reset were called, budgets would be empty AND hasLoadedOnce would be false.
-        // Since we never loaded, both are already in initial state. The point is that
-        // reset() is NOT called, so if we manually set hasLoadedOnce, it should survive.
-        // Let's verify via a different approach: ensure no side-effect on needsPinEntry.
-        sut.handleAuthStateChange(.needsPinEntry)
-        sut.handleAuthStateChange(.needsPinSetup)
-        sut.handleAuthStateChange(.loading)
-        // None of these should reset stores - no assertion needed beyond no crash
-    }
-
     // MARK: - shouldShowPrivacyShield Computed Property
 
     @Test func shouldShowPrivacyShield_trueWhenPrivacyShieldActive() async {

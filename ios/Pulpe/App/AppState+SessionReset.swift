@@ -219,6 +219,9 @@ extension AppState {
         authState = .unauthenticated
         biometricError = scope.errorMessage
 
+        // Reset feature stores atomically with session state
+        sessionDataResetter?.resetStores()
+
         if scope.clearsUIState {
             recoveryFlowCoordinator.reset()
             enrollmentPolicy.resetForNewTransition()

@@ -28,6 +28,12 @@ struct PulpeApp: App {
         let budgetListStore = BudgetListStore()
         let dashboardStore = DashboardStore()
 
+        appState.sessionDataResetter = LiveSessionDataResetter(
+            currentMonthStore: currentMonthStore,
+            budgetListStore: budgetListStore,
+            dashboardStore: dashboardStore
+        )
+
         _appState = State(initialValue: appState)
         _currentMonthStore = State(initialValue: currentMonthStore)
         _budgetListStore = State(initialValue: budgetListStore)
@@ -182,9 +188,8 @@ struct RootView: View {
         .onChange(of: deepLinkDestination) { _, _ in
             handlePendingDeepLink()
         }
-        .onChange(of: appState.authState) { _, newState in
+        .onChange(of: appState.authState) { _, _ in
             handlePendingDeepLink()
-            runtimeCoordinator.handleAuthStateChange(newState)
         }
         .sheet(isPresented: $showAddExpenseSheet) {
             DeepLinkAddExpenseSheet()

@@ -62,14 +62,6 @@ final class AppRuntimeCoordinator {
         }
     }
 
-    func handleAuthStateChange(_ newState: AppState.AuthStatus) {
-        if newState == .unauthenticated {
-            currentMonthStore.reset()
-            budgetListStore.reset()
-            dashboardStore.reset()
-        }
-    }
-
     var shouldShowPrivacyShield: Bool {
         privacyShieldActive || appState.isRestoringSession
     }
