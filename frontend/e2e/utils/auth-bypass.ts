@@ -2,6 +2,7 @@ import type { Page, Route } from '@playwright/test';
 import type { E2ETestWindow } from '../types/e2e.types';
 import { TEST_CONFIG } from '../config/test-config';
 import { MOCK_API_RESPONSES } from '../mocks/api-responses';
+import { LATEST_RELEASE } from '../../projects/webapp/src/app/layout/whats-new/whats-new-releases';
 
 /**
  * Tour IDs that match the ProductTourService.
@@ -81,7 +82,15 @@ export async function setupAuthBypass(page: Page, options: {
       };
       localStorage.setItem(`pulpe-tour-${tourId}`, JSON.stringify(entry));
     }
-  }, { ...TEST_CONFIG, setLocalStorage, tourIds: TOUR_IDS, provider, vaultCodeConfigured });
+
+    // Dismiss "What's New" toast to prevent it from blocking E2E interactions
+    // Uses versioned storage format matching StorageService
+    localStorage.setItem('pulpe-whats-new-dismissed', JSON.stringify({
+      version: 1,
+      data: config.appVersion,
+      updatedAt: new Date().toISOString(),
+    }));
+  }, { ...TEST_CONFIG, setLocalStorage, tourIds: TOUR_IDS, provider, vaultCodeConfigured, appVersion: LATEST_RELEASE.version });
 
   // Setup API mocks if requested
   if (includeApiMocks) {

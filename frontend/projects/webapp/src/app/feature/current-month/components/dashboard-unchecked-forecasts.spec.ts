@@ -3,6 +3,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { DashboardUncheckedForecasts } from './dashboard-unchecked-forecasts';
 import type { BudgetLine } from 'pulpe-shared';
+import type { BudgetLineConsumption } from '@core/budget/budget-line-consumption';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { setTestInput } from '../../../testing/signal-test-utils';
 import { StubFinancialKindDirective } from '../../../testing/stub-directives';
@@ -79,15 +80,66 @@ describe('DashboardUncheckedForecasts', () => {
     expect(itemNames[0].nativeElement.textContent).toContain('Test Forecast');
   });
 
-  it('should emit toggleCheck event when checkbox is clicked', () => {
+  it('should emit toggleCheck when the row div is clicked', () => {
     setTestInput(component.forecasts, mockForecasts);
     fixture.detectChanges();
 
     let emittedId: string | undefined;
     component.toggleCheck.subscribe((id) => (emittedId = id));
 
-    // Simulating child event
-    fixture.componentInstance.toggleCheck.emit(mockForecasts[0].id);
-    expect(emittedId).toBe(mockForecasts[0].id);
+    const row = fixture.debugElement.query(By.css('[role="checkbox"]'));
+    row.nativeElement.click();
+
+    expect(emittedId).toBe('1');
+  });
+
+  it('should emit toggleCheck when mat-checkbox is clicked without double-firing', () => {
+    setTestInput(component.forecasts, mockForecasts);
+    fixture.detectChanges();
+
+    const emittedIds: string[] = [];
+    component.toggleCheck.subscribe((id) => emittedIds.push(id));
+
+    const checkbox = fixture.debugElement.query(By.css('mat-checkbox'));
+    checkbox.nativeElement.querySelector('input')?.click();
+
+    expect(emittedIds.length).toBe(1);
+    expect(emittedIds[0]).toBe('1');
+  });
+
+  it('should display forecast amount when no consumptions provided', () => {
+    setTestInput(component.forecasts, mockForecasts);
+    fixture.detectChanges();
+
+    const amountEl = fixture.debugElement.query(
+      By.css('.text-label-large.tabular-nums'),
+    );
+    expect(amountEl.nativeElement.textContent).toContain('100');
+    expect(amountEl.nativeElement.textContent).toContain('CHF');
+  });
+
+  it('should display remaining from consumptions map when provided', () => {
+    setTestInput(component.forecasts, mockForecasts);
+
+    const consumptionsMap = new Map<string, BudgetLineConsumption>([
+      [
+        '1',
+        {
+          budgetLine: mockForecasts[0],
+          consumed: 30,
+          remaining: 70,
+          allocatedTransactions: [],
+          transactionCount: 1,
+        },
+      ],
+    ]);
+    setTestInput(component.consumptions, consumptionsMap);
+    fixture.detectChanges();
+
+    const amountEl = fixture.debugElement.query(
+      By.css('.text-label-large.tabular-nums'),
+    );
+    expect(amountEl.nativeElement.textContent).toContain('70');
+    expect(amountEl.nativeElement.textContent).toContain('CHF');
   });
 });

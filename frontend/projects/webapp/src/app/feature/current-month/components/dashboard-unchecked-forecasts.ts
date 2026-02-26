@@ -11,6 +11,7 @@ import { MatRipple } from '@angular/material/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { FinancialKindDirective } from '@ui/financial-kind';
+import type { BudgetLineConsumption } from '@core/budget/budget-line-consumption';
 import type { BudgetLine } from 'pulpe-shared';
 
 const MAX_VISIBLE_FORECASTS = 5;
@@ -57,6 +58,8 @@ const MAX_VISIBLE_FORECASTS = 5;
         @if (forecasts().length > 0) {
           <div class="flex flex-col gap-1">
             @for (forecast of displayedForecasts(); track forecast.id) {
+              @let displayAmount =
+                consumptions().get(forecast.id)?.remaining ?? forecast.amount;
               <div
                 class="relative overflow-hidden flex items-center justify-between p-3 rounded-2xl hover:bg-on-surface/8 motion-safe:transition-colors cursor-pointer"
                 matRipple
@@ -69,13 +72,15 @@ const MAX_VISIBLE_FORECASTS = 5;
                 role="checkbox"
                 [attr.aria-checked]="false"
                 [attr.aria-label]="
-                  forecast.name + ' — ' + forecast.amount + ' CHF'
+                  forecast.name + ' — ' + displayAmount + ' CHF'
                 "
               >
                 <mat-checkbox
                   [checked]="false"
-                  class="pointer-events-none flex-1 min-w-0"
+                  class="flex-1 min-w-0"
                   color="primary"
+                  (click)="$event.stopPropagation()"
+                  (change)="toggleCheck.emit(forecast.id)"
                 >
                   <span
                     class="text-body-medium font-bold text-on-surface truncate block ml-1 ph-no-capture"
@@ -87,7 +92,8 @@ const MAX_VISIBLE_FORECASTS = 5;
                   class="text-label-large whitespace-nowrap ml-4 font-semibold tabular-nums ph-no-capture"
                   [pulpeFinancialKind]="forecast.kind"
                 >
-                  {{ forecast.amount | number: '1.2-2' : 'de-CH' }} CHF
+                  {{ displayAmount | number: '1.2-2' : 'de-CH' }}
+                  CHF
                 </span>
               </div>
             }
@@ -120,6 +126,7 @@ const MAX_VISIBLE_FORECASTS = 5;
 })
 export class DashboardUncheckedForecasts {
   readonly forecasts = input.required<BudgetLine[]>();
+  readonly consumptions = input(new Map<string, BudgetLineConsumption>());
   readonly toggleCheck = output<string>();
   readonly viewBudget = output<void>();
 

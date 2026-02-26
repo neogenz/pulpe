@@ -106,7 +106,7 @@ describe('DashboardHero', () => {
       expect(compiled.textContent).not.toContain('Report');
     });
 
-    it('should show negative rollover with minus sign', () => {
+    it('should show negative rollover with minus sign attached to number', () => {
       setTestInput(component.available, 4500);
       setTestInput(component.expenses, 1000);
       setTestInput(component.totalIncome, 5000);
@@ -114,7 +114,22 @@ describe('DashboardHero', () => {
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
-      expect(compiled.textContent).toContain('- Report');
+      const text = compiled.textContent!;
+      expect(text).toContain('Report');
+      expect(text).not.toContain('- Report');
+      expect(text).toMatch(/Report\s*[−-]500/);
+    });
+
+    it('should show positive rollover with plus sign', () => {
+      setTestInput(component.available, 5500);
+      setTestInput(component.expenses, 1000);
+      setTestInput(component.totalIncome, 5000);
+      setTestInput(component.rolloverAmount, 500);
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      const text = compiled.textContent!;
+      expect(text).toMatch(/Report\s*\+/);
     });
   });
 
