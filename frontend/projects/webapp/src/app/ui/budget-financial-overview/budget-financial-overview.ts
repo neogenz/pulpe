@@ -182,10 +182,6 @@ export interface FinancialTotals {
       color: var(--pulpe-amber);
     }
 
-    .text-warning-on-container {
-      color: var(--pulpe-amber-on-container);
-    }
-
     /* Hide scrollbar but keep functionality */
     .scrollbar-hide {
       -ms-overflow-style: none;
