@@ -12,15 +12,15 @@ const MAX_SEGMENTS = 12;
   selector: 'pulpe-budget-verification-block',
   imports: [DecimalPipe],
   template: `
-    <div class="bg-surface-container-low rounded-2xl p-5">
+    <div class="bg-surface-container-low rounded-2xl p-4">
       <!-- Section title -->
-      <div class="flex items-center gap-2 mb-4">
-        <p class="text-title-medium text-on-surface">Vérifie ton solde</p>
+      <div class="flex items-center gap-2 mb-3">
+        <p class="text-title-small text-on-surface">Vérifie ton solde</p>
         <ng-content select="[slot=title-info]" />
       </div>
 
       <!-- Progress label -->
-      <p class="text-label-medium text-on-surface-variant text-center">
+      <p class="text-label-small text-on-surface-variant text-center">
         {{ checkedCount() }} / {{ totalCount() }} éléments pointés
         @if (totalCount() > 0) {
           <span class="text-on-surface-variant/70">
@@ -50,7 +50,7 @@ const MAX_SEGMENTS = 12;
         [attr.aria-label]="
           checkedCount() + ' sur ' + totalCount() + ' éléments pointés'
         "
-        class="flex gap-1 h-2.5 my-3"
+        class="flex gap-1 h-2 my-3"
       >
         @for (segment of progressSegments(); track $index) {
           <div
@@ -62,14 +62,9 @@ const MAX_SEGMENTS = 12;
         }
       </div>
 
-      <!-- Narrative text -->
-      <p class="text-body-large text-on-surface-variant text-center mt-4">
-        Sur ton compte, il devrait te rester :
-      </p>
-
-      <!-- Estimated balance (hero) -->
+      <!-- Estimated balance -->
       <div
-        class="text-headline-medium md:text-display-small font-semibold text-center ph-no-capture mt-2"
+        class="text-headline-small md:text-headline-medium font-semibold text-center ph-no-capture mt-4"
         [class.text-primary]="estimatedBalance() >= 0"
         [class.text-financial-negative]="estimatedBalance() < 0"
       >
