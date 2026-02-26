@@ -127,6 +127,7 @@ struct PinEntryViewModelTests {
     }
 }
 
+@MainActor
 struct PinEntryCopyTests {
     @Test func existingUserTitle_usesEntryWording() {
         #expect(PinEntryView.pinEntryTitle == "Saisis ton code PIN")

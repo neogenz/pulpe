@@ -204,7 +204,7 @@ export async function setupApiMocks(page: Page) {
         }),
       });
     }
-    if (url.includes('encryption/setup-recovery')) {
+    if (url.includes('encryption/setup-recovery') || url.includes('encryption/regenerate-recovery')) {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',

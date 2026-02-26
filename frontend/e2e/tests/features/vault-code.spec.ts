@@ -355,7 +355,7 @@ test.describe('Vault Code', () => {
       }
 
       await expect(page.locator('[role="alert"]')).toContainText(
-        "Quelque chose n'a pas fonctionné — réessaie plus tard",
+        'Trop de tentatives, patiente quelques minutes',
       );
     });
 
