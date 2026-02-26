@@ -109,6 +109,8 @@ extension AppState {
     private func applyFlowState(_ state: AppFlowState) {
         switch state {
         case .initializing:
+            isInMaintenance = false
+            isNetworkUnavailable = false
             authState = .loading
         case .maintenance:
             isInMaintenance = true
@@ -160,12 +162,6 @@ extension AppState {
         case .startupInitiated, .retryRequested:
             await checkAuthState()
             return true
-        case .maintenanceChecked(let isInMaintenance):
-            setMaintenanceMode(isInMaintenance)
-            return true
-        case .networkBecameUnavailable:
-            isNetworkUnavailable = true
-            return true
         case .logoutRequested(let source):
             let mappedSource: LogoutSource = source == .userInitiated ? .userInitiated : .system
             await logout(source: mappedSource)
@@ -198,9 +194,6 @@ extension AppState {
         case .pinSetupCompleted:
             await completePinSetup()
             return true
-        case .biometricUnlockFailed:
-            authState = .needsPinEntry
-            return true
         default:
             return false
         }
@@ -232,17 +225,8 @@ extension AppState {
     }
 
     private func handleForegroundLifecycleEvent(_ event: AppFlowEvent) {
-        switch event {
-        case .enteredBackground:
+        if case .enteredBackground = event {
             handleEnterBackground()
-        case .foregroundLockRequired:
-            authState = .needsPinEntry
-        case .foregroundNoLockNeeded,
-             .recoveryInitiated,
-             .recoveryCancelled:
-            break
-        default:
-            break
         }
     }
 
