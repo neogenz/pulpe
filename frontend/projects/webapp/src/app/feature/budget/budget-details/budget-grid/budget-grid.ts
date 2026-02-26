@@ -1,4 +1,4 @@
-import { NgTemplateOutlet } from '@angular/common';
+import { CurrencyPipe, NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -31,6 +31,7 @@ import { BudgetGridSection } from './budget-grid-section';
 @Component({
   selector: 'pulpe-budget-grid',
   imports: [
+    CurrencyPipe,
     NgTemplateOutlet,
     MatButtonModule,
     MatCardModule,
@@ -163,11 +164,11 @@ import { BudgetGridSection } from './budget-grid-section';
               }
             </div>
             <div
-              class="text-title-medium font-bold"
+              class="ph-no-capture text-title-medium font-bold"
               [class.text-financial-income]="item.data.amount > 0"
               [class.text-financial-negative]="item.data.amount < 0"
             >
-              {{ item.data.amount }}
+              {{ item.data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
             </div>
             <div class="flex items-center">
               <mat-slide-toggle
