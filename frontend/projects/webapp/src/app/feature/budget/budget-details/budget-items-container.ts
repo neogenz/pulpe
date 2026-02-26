@@ -95,7 +95,9 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
           data-testid="checking-summary"
         >
           @if (isAllChecked()) {
-            <mat-icon class="text-primary text-base!">check_circle</mat-icon>
+            <mat-icon aria-hidden="true" class="text-primary text-base!"
+              >check_circle</mat-icon
+            >
             <span>Tout pointé</span>
           } @else {
             <span>{{ checkedCount() }}/{{ totalCount() }} pointés</span>
@@ -108,6 +110,10 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
           <mat-icon
             matTooltip="Au fur et à mesure que tu pointes tes éléments, ce montant te dit combien il devrait rester sur ton compte. Compare avec ton app bancaire !"
             matTooltipPosition="above"
+            matTooltipTouchGestures="auto"
+            aria-label="Information sur le solde estimé"
+            role="button"
+            tabindex="0"
             class="text-on-surface-variant/50 text-base! cursor-help"
             >info</mat-icon
           >
