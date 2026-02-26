@@ -25,8 +25,10 @@ extension AppState {
 
     func acceptRecoveryKeyRepairConsent() async {
         let result = await recoveryFlowCoordinator.acceptConsent()
-        // Guard: session may have expired during the async operation
-        guard authState != .unauthenticated else { return }
+        // Guard: abort if session was disrupted during the async operation.
+        // Valid states: .authenticated (direct auth path) or .needsPinEntry (PIN + consent path).
+        // Blocked: .loading (retry startup) or .unauthenticated (session expired).
+        guard authState == .authenticated || authState == .needsPinEntry else { return }
         switch result {
         case .keyGenerated:
             break
@@ -39,15 +41,15 @@ extension AppState {
 
     func declineRecoveryKeyRepairConsent() async {
         recoveryFlowCoordinator.declineConsent()
-        // Guard: session may have expired during UI interaction
-        guard authState != .unauthenticated else { return }
+        // Guard: abort if session was disrupted (same logic as accept)
+        guard authState == .authenticated || authState == .needsPinEntry else { return }
         await enterAuthenticated(context: .recoveryKeyDeclined)
     }
 
     func completePostAuthRecoveryKeyPresentation() async {
         recoveryFlowCoordinator.completePresentationDismissal()
-        // Guard: session may have expired during UI interaction
-        guard authState != .unauthenticated else { return }
+        // Guard: abort if session was disrupted (same logic as accept)
+        guard authState == .authenticated || authState == .needsPinEntry else { return }
         await enterAuthenticated(context: .recoveryKeyPresented)
     }
 }

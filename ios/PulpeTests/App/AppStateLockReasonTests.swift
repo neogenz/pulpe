@@ -7,12 +7,8 @@ import Testing
 /// Gap 3 (fixed): `lastLockReason` is now stored explicitly on `AppState`, set to
 /// `.backgroundTimeout` in `handleEnterForeground` before the defer clears `isRestoringSession`.
 ///
-/// Gap 4: Recovery late-callback not robust against mid-startup race.
-/// The guard in `acceptRecoveryKeyRepairConsent` is
-/// `guard authState != .unauthenticated else { return }`.
-/// If session expires (authState -> .unauthenticated) and then retry starts
-/// (authState -> .loading), the guard passes because authState == .loading,
-/// allowing a late callback to fire against mid-startup state.
+/// Gap 4 (fixed): Recovery consent guards now require `authState == .authenticated`,
+/// so a late callback that fires after session expiry + retry startup is a no-op.
 @Suite(.serialized)
 @MainActor
 struct AppStateLockReasonTests {
@@ -174,14 +170,12 @@ struct AppStateLockReasonTests {
         continueOperation.set()
         await acceptTask.value
 
-        // Gap 4: guard only checks != .unauthenticated; .loading passes
-        withKnownIssue("Late callback corrupts mid-startup state (Wave 3 fix)") {
-            // Late callback from acceptConsent should be a no-op since
-            // the session context that initiated it is no longer valid.
-            #expect(
-                sut.authState == .loading,
-                "authState should stay .loading, got \(sut.authState)"
-            )
-        }
+        // Gap 4 fixed: guard now checks == .authenticated || == .needsPinEntry; .loading is rejected
+        // Late callback from acceptConsent is a no-op since
+        // the session context that initiated it is no longer valid.
+        #expect(
+            sut.authState == .loading,
+            "authState should stay .loading, got \(sut.authState)"
+        )
     }
 }
