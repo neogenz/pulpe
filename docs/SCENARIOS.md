@@ -1001,10 +1001,10 @@ Après inscription :
 **Critères** :
 - Face ID est proposé automatiquement au lancement (un seul prompt, pas de double prompt)
 - Si Face ID réussit, l'utilisateur arrive sur le dashboard sans saisir de code PIN
-- Si Face ID échoue/annulé : fallback vers l'écran de saisie du PIN (pas le login) si une session régulière existe, sinon écran de login
+- Si Face ID échoue/annulé (`KeychainError.userCanceled`/`.authFailed`) : fallback vers l'écran de login sans effacer l'état biométrique (`biometricEnabled` reste `true`, credentials préservés pour retry via bouton Face ID)
 - Si erreur réseau : message "Connexion impossible, réessaie", `biometricEnabled` reste `true` pour retry
 - Si la clé client biométrique est périmée (validation serveur échoue) : `clearAll()` + `biometricEnabled = false`, l'utilisateur est renvoyé au PIN ou au login
-- Si session biométrique expirée : efface tout, `biometricEnabled = false`, message "Ta session a expiré", écran de login
+- Si session biométrique expirée : efface tokens + clés, `credentialsAvailable = false` mais `biometricEnabled` reste `true` (la préférence survit), message "Ta session a expiré", écran de login. Au prochain login + PIN, la biométrie pourra être ré-enrollée automatiquement
 
 ### 12.8 Verrouillage après grace period en arrière-plan (RG-006)
 
@@ -1091,7 +1091,8 @@ Après inscription :
 **Critères** :
 - `biometricEnabled == true` est chargé depuis le Keychain
 - Les tokens biométriques existent (préservés lors du logout)
-- Face ID est proposé automatiquement
+- `didExplicitLogout == true` empêche le prompt Face ID automatique au cold start (choix de design : après un logout explicite, l'utilisateur doit initier la reconnexion)
+- L'écran de login affiche un bouton "Continuer avec Face ID" que l'utilisateur doit taper manuellement
 - Si Face ID réussit : la session est rafraîchie → `resolvePostAuth()` → écran de saisie du PIN (la clé client session a été effacée au logout)
 - Si Face ID annulé : la session régulière est invalide (tokens effacés) → PIN entry si vault configuré, sinon login
 - L'écran PIN affiche le bouton Face ID (possibilité de réessayer sans saisir le PIN)
