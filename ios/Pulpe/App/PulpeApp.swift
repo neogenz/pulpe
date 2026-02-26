@@ -1,7 +1,6 @@
 import OSLog
 import SwiftUI
 import TipKit
-import WidgetKit
 
 struct ResetPasswordDeepLink: Identifiable {
     let id = UUID()
@@ -15,14 +14,31 @@ struct RecoveryKeySheetItem: Identifiable, Equatable {
 
 @main
 struct PulpeApp: App {
-    @State private var appState = AppState()
+    @State private var appState: AppState
     @State private var uiPreferences = UIPreferencesState()
-    @State private var currentMonthStore = CurrentMonthStore()
-    @State private var budgetListStore = BudgetListStore()
-    @State private var dashboardStore = DashboardStore()
+    @State private var currentMonthStore: CurrentMonthStore
+    @State private var budgetListStore: BudgetListStore
+    @State private var dashboardStore: DashboardStore
+    @State private var runtimeCoordinator: AppRuntimeCoordinator
     @State private var deepLinkDestination: DeepLinkDestination?
 
     init() {
+        let appState = AppState()
+        let currentMonthStore = CurrentMonthStore()
+        let budgetListStore = BudgetListStore()
+        let dashboardStore = DashboardStore()
+
+        _appState = State(initialValue: appState)
+        _currentMonthStore = State(initialValue: currentMonthStore)
+        _budgetListStore = State(initialValue: budgetListStore)
+        _dashboardStore = State(initialValue: dashboardStore)
+        _runtimeCoordinator = State(initialValue: AppRuntimeCoordinator(
+            appState: appState,
+            currentMonthStore: currentMonthStore,
+            budgetListStore: budgetListStore,
+            dashboardStore: dashboardStore
+        ))
+
         try? Tips.configure([
             .datastoreLocation(.applicationDefault)
         ])
@@ -40,7 +56,10 @@ struct PulpeApp: App {
             if let uiTestScenario = UITestLaunchScenario.current {
                 BudgetLongPressUITestHarness(scenario: uiTestScenario)
             } else {
-                RootView(deepLinkDestination: $deepLinkDestination)
+                RootView(
+                    runtimeCoordinator: runtimeCoordinator,
+                    deepLinkDestination: $deepLinkDestination
+                )
                     .environment(appState)
                     .environment(uiPreferences)
                     .environment(currentMonthStore)
@@ -85,16 +104,13 @@ struct RootView: View {
     @Environment(AppState.self) private var appState
     @Environment(UIPreferencesState.self) private var uiPreferences
     @Environment(CurrentMonthStore.self) private var currentMonthStore
-    @Environment(BudgetListStore.self) private var budgetListStore
-    @Environment(DashboardStore.self) private var dashboardStore
     @Environment(\.scenePhase) private var scenePhase
+    var runtimeCoordinator: AppRuntimeCoordinator
     @Binding var deepLinkDestination: DeepLinkDestination?
     @State private var showAddExpenseSheet = false
     @State private var resetPasswordDeepLink: ResetPasswordDeepLink?
     @State private var deepLinkHandler = DeepLinkHandler()
     @State private var showAmountsToggleAlert = false
-    @State private var widgetSyncViewModel = WidgetSyncViewModel()
-    @State private var privacyShieldActive = false
 
     var body: some View {
         @Bindable var appState = appState
@@ -103,7 +119,7 @@ struct RootView: View {
             routeContent
         }
         .overlay {
-            if shouldShowPrivacyShield {
+            if runtimeCoordinator.shouldShowPrivacyShield {
                 PrivacyShieldOverlay()
             }
         }
@@ -145,7 +161,7 @@ struct RootView: View {
             }
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
-            handleScenePhaseChange(from: oldPhase, to: newPhase)
+            runtimeCoordinator.handleScenePhaseChange(from: oldPhase, to: newPhase)
         }
         .alert(
             "Générer une clé de récupération ?",
@@ -168,11 +184,7 @@ struct RootView: View {
         }
         .onChange(of: appState.authState) { _, newState in
             handlePendingDeepLink()
-            if newState == .unauthenticated {
-                currentMonthStore.reset()
-                budgetListStore.reset()
-                dashboardStore.reset()
-            }
+            runtimeCoordinator.handleAuthStateChange(newState)
         }
         .sheet(isPresented: $showAddExpenseSheet) {
             DeepLinkAddExpenseSheet()
@@ -208,10 +220,6 @@ struct RootView: View {
             Button("Annuler", role: .cancel) {}
         }
         .environment(\.amountsHidden, uiPreferences.amountsHidden)
-    }
-
-    private var shouldShowPrivacyShield: Bool {
-        privacyShieldActive || appState.isRestoringSession
     }
 
     private var recoveryKeySheetItemBinding: Binding<RecoveryKeySheetItem?> {
@@ -342,40 +350,6 @@ struct RootView: View {
 
     private func handleSessionExpired() {
         Task { await appState.handleSessionExpired() }
-    }
-
-    private func handleScenePhaseChange(from oldPhase: ScenePhase, to newPhase: ScenePhase) {
-        // Activate shield only when leaving .active while in a secured state
-        if newPhase != .active, oldPhase == .active {
-            let isSecured = appState.authState == .authenticated || appState.authState == .needsPinEntry
-            if isSecured {
-                privacyShieldActive = true
-            }
-        }
-        if newPhase == .active {
-            privacyShieldActive = false
-        }
-
-        if newPhase == .background {
-            appState.handleEnterBackground()
-            if appState.authState == .authenticated {
-                Task { await widgetSyncViewModel.syncWidgetData() }
-                BackgroundTaskService.shared.scheduleWidgetRefresh()
-            }
-        }
-
-        if newPhase == .active, oldPhase != .active {
-            appState.prepareForForeground()
-            Task {
-                await appState.handleEnterForeground()
-                if appState.authState == .authenticated {
-                    async let refreshCurrent: Void = currentMonthStore.forceRefresh()
-                    async let refreshBudgets: Void = budgetListStore.forceRefresh()
-                    async let refreshDashboard: Void = dashboardStore.loadIfNeeded()
-                    _ = await (refreshCurrent, refreshBudgets, refreshDashboard)
-                }
-            }
-        }
     }
 
     private func handlePendingDeepLink() {
