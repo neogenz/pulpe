@@ -784,7 +784,7 @@ export class BudgetDetailsStore {
       this.#clearError();
     } catch (error) {
       this.reloadBudgetDetails();
-      this.#setError('Erreur lors de la comptabilisation des transactions');
+      this.#setError('Erreur lors du pointage des transactions');
       this.#logger.error('Error checking all allocated transactions', error);
     } finally {
       this.#mutatingIds.delete(budgetLineId);

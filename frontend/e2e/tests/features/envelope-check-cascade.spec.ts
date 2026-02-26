@@ -76,7 +76,7 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
 
     // Verify no dialog appeared
     await expect(
-      authenticatedPage.getByText('Comptabiliser les transactions ?'),
+      authenticatedPage.getByText('Pointer les transactions ?'),
     ).not.toBeVisible();
   });
 
@@ -239,13 +239,10 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    // Wait for the progress bar component to render before asserting text
-    await expect(authenticatedPage.getByTestId('budget-verification-block')).toBeVisible();
-
     // Verify initial pointés count: 2/5 (Salaire + Supermarché checked)
-    await expect(
-      authenticatedPage.getByText('2/5 éléments pointés'),
-    ).toBeVisible();
+    const summary = authenticatedPage.getByTestId('checking-summary');
+    await expect(summary).toBeVisible();
+    await expect(summary).toContainText('2/5 pointés');
 
     // Check the "Courses" envelope
     const toggle = authenticatedPage.getByTestId(
@@ -254,9 +251,7 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
     await toggle.click();
 
     // Verify updated count: 3/5
-    await expect(
-      authenticatedPage.getByText('3/5 éléments pointés'),
-    ).toBeVisible();
+    await expect(summary).toContainText('3/5 pointés');
   });
 
   test('should show cascade confirmation when checking envelope with unchecked transactions', async ({
@@ -378,7 +373,7 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
 
     // Confirmation dialog should appear
     await expect(
-      authenticatedPage.getByText('Comptabiliser les transactions ?'),
+      authenticatedPage.getByText('Pointer les transactions ?'),
     ).toBeVisible();
 
     // Confirm cascade
@@ -474,7 +469,7 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
 
     // Confirmation dialog should appear
     await expect(
-      authenticatedPage.getByText('Comptabiliser les transactions ?'),
+      authenticatedPage.getByText('Pointer les transactions ?'),
     ).toBeVisible();
 
     // Decline cascade - click "Non, juste l'enveloppe"

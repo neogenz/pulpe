@@ -171,7 +171,7 @@ describe('AllocatedTransactionsBottomSheet', () => {
         transactions: [
           buildTransaction({
             id: 'tx-checked',
-            name: 'Déjà comptabilisé',
+            name: 'Déjà pointé',
             checkedAt: '2025-01-20T10:00:00+01:00',
           }),
         ],
@@ -181,7 +181,7 @@ describe('AllocatedTransactionsBottomSheet', () => {
         '[data-testid="deleted-amount"]',
       );
       expect(nameSpan).not.toBeNull();
-      expect(nameSpan.textContent).toContain('Déjà comptabilisé');
+      expect(nameSpan.textContent).toContain('Déjà pointé');
     });
   });
 

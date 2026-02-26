@@ -17,7 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
     <span class="sr-only" role="status" aria-live="polite">
       {{
         isShowingOnlyUnchecked()
-          ? 'Affichage des éléments non comptabilisés'
+          ? 'Affichage des éléments à pointer'
           : 'Affichage de tous les éléments'
       }}
     </span>
@@ -32,7 +32,7 @@ import { MatIconModule } from '@angular/material/icon';
         data-testid="unchecked-filter-chip"
       >
         <mat-icon matChipAvatar>check_box_outline_blank</mat-icon>
-        Non comptabilisées
+        À pointer
       </mat-chip-option>
       <mat-chip-option
         [selected]="!isShowingOnlyUnchecked()"

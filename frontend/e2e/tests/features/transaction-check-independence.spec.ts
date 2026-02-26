@@ -105,13 +105,9 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    // Wait for the progress bar component to render before asserting text
-    await expect(authenticatedPage.getByTestId('budget-verification-block')).toBeVisible();
-
-    // Verify initial pointés count: 0/5 (2 lines + 3 transactions, all unchecked)
-    await expect(
-      authenticatedPage.getByText('0/5 éléments pointés'),
-    ).toBeVisible();
+    // Verify summary is NOT visible when 0 items are checked (progressive disclosure)
+    const summary = authenticatedPage.getByTestId('checking-summary');
+    await expect(summary).not.toBeVisible();
 
     // Open the envelope detail panel by clicking the envelope card
     const envelopeCard = authenticatedPage.getByTestId(
@@ -134,9 +130,8 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
     await toggleTx1Promise;
 
     // Verify pointés count: 1/5
-    await expect(
-      authenticatedPage.getByText('1/5 éléments pointés'),
-    ).toBeVisible();
+    await expect(summary).toBeVisible();
+    await expect(summary).toContainText('1/5 pointés');
 
     // Check transaction 2
     const toggleTx2Promise = authenticatedPage.waitForRequest(
@@ -152,9 +147,7 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
     await toggleTx2Promise;
 
     // Verify pointés count: 2/5
-    await expect(
-      authenticatedPage.getByText('2/5 éléments pointés'),
-    ).toBeVisible();
+    await expect(summary).toContainText('2/5 pointés');
 
     // Check transaction 3
     const toggleTx3Promise = authenticatedPage.waitForRequest(
@@ -170,9 +163,7 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
     await toggleTx3Promise;
 
     // Verify pointés count: 3/5 (all 3 transactions checked, but envelope + income still unchecked)
-    await expect(
-      authenticatedPage.getByText('3/5 éléments pointés'),
-    ).toBeVisible();
+    await expect(summary).toContainText('3/5 pointés');
 
     // Close the detail panel to verify the envelope toggle state
     await authenticatedPage.keyboard.press('Escape');
