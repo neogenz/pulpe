@@ -1,4 +1,11 @@
-import { Injectable, computed, effect, signal } from '@angular/core';
+import {
+  DestroyRef,
+  Injectable,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 
 const DARK_THEME_CLASS = 'dark-theme';
 const OS_DARK_QUERY = '(prefers-color-scheme: dark)';
@@ -22,9 +29,13 @@ export class ThemeService {
   });
 
   constructor() {
-    matchMedia(OS_DARK_QUERY).addEventListener('change', (e) => {
+    const mql = matchMedia(OS_DARK_QUERY);
+    const listener = (e: MediaQueryListEvent) =>
       this.#osPrefersDark.set(e.matches);
-    });
+    mql.addEventListener('change', listener);
+    inject(DestroyRef).onDestroy(() =>
+      mql.removeEventListener('change', listener),
+    );
 
     effect(() => {
       document.documentElement.classList.toggle(

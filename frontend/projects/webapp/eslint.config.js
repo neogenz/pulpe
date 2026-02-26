@@ -34,7 +34,7 @@ module.exports = tseslint.config(
     rules: {},
   },
   {
-    files: ["**/feature/design-system/**/*.ts"],
+    files: ["**/feature/design-system/design-system-page.ts"],
     rules: {
       "boundaries/element-types": "off",
     },
