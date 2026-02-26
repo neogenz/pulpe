@@ -53,7 +53,7 @@ export interface FinancialTotals {
               Ce qu'il te reste ce mois
             }
             @case ('deficit') {
-              Deficit ce mois
+              Déficit ce mois
             }
           }
         </p>
@@ -78,13 +78,13 @@ export interface FinancialTotals {
             }
             @case ('warning') {
               @if (totals().remaining > 0) {
-                Tu geres bien
+                Tu gères bien
               } @else {
-                Pile a l'equilibre
+                Pile à l'équilibre
               }
             }
             @case ('deficit') {
-              Ce mois sera serre — mais tu le sais
+              Ce mois sera serré — mais tu le sais
             }
           }
         </p>
@@ -93,13 +93,13 @@ export interface FinancialTotals {
       <!-- Supporting Metrics: Pill-style, horizontal scroll on mobile -->
       <div
         role="list"
-        aria-label="Resume financier"
+        aria-label="Résumé financier"
         class="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:justify-center scrollbar-hide"
       >
         <!-- Income Pill -->
         <div
           role="listitem"
-          class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-income-light)]"
+          class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-(--pulpe-financial-income-light)"
         >
           <mat-icon class="text-financial-income mat-icon-sm"
             >trending_up</mat-icon
@@ -119,14 +119,14 @@ export interface FinancialTotals {
         <!-- Expenses Pill -->
         <div
           role="listitem"
-          class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-expense-light)]"
+          class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-(--pulpe-financial-expense-light)"
         >
           <mat-icon class="text-financial-expense mat-icon-sm"
             >trending_down</mat-icon
           >
           <div class="flex flex-col">
             <span class="text-label-small leading-tight text-on-financial-light"
-              >Depenses</span
+              >Dépenses</span
             >
             <span
               class="text-label-large font-semibold text-financial-expense ph-no-capture"
@@ -139,14 +139,14 @@ export interface FinancialTotals {
         <!-- Savings Pill -->
         <div
           role="listitem"
-          class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--pulpe-financial-savings-light)]"
+          class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-(--pulpe-financial-savings-light)"
         >
           <mat-icon class="text-financial-savings mat-icon-sm"
             >savings</mat-icon
           >
           <div class="flex flex-col">
             <span class="text-label-small leading-tight text-on-financial-light"
-              >Epargne</span
+              >Épargne</span
             >
             <span
               class="text-label-large font-semibold text-financial-savings ph-no-capture"
