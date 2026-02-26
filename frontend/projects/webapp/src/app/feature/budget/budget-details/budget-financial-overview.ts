@@ -42,7 +42,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
         <p
           class="text-body-large mb-3"
           [class.text-on-primary-container]="budgetState() === 'comfortable'"
-          [class.text-warning]="budgetState() === 'warning'"
+          [class.text-warning-on-container]="budgetState() === 'warning'"
           [class.text-on-error-container]="budgetState() === 'deficit'"
         >
           @switch (budgetState()) {
@@ -69,7 +69,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
         <p
           class="text-body-medium mt-3"
           [class.text-on-primary-container]="budgetState() === 'comfortable'"
-          [class.text-warning]="budgetState() === 'warning'"
+          [class.text-warning-on-container]="budgetState() === 'warning'"
           [class.text-on-error-container]="budgetState() === 'deficit'"
         >
           @switch (budgetState()) {
@@ -180,6 +180,10 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
 
     .text-warning {
       color: var(--pulpe-amber);
+    }
+
+    .text-warning-on-container {
+      color: var(--pulpe-amber-on-container);
     }
 
     /* Hide scrollbar but keep functionality */

@@ -16,7 +16,7 @@ import { BUDGET_WARNING_THRESHOLD_PERCENT } from '@core/budget';
   imports: [MatIconModule, DecimalPipe, MatTooltipModule],
   template: `
     <div
-      class="hero-container rounded-[32px] p-6 pb-5 relative overflow-hidden cursor-pointer motion-safe:transition-transform motion-safe:hover:scale-[0.99]"
+      class="hero-container rounded-[32px] p-6 pb-5 relative overflow-hidden cursor-pointer motion-safe:transition-transform motion-safe:hover:scale-[0.99] dark:border dark:border-white/5"
       [class.budget-over]="isOverBudget()"
       [class.budget-warning]="isWarning()"
       (click)="heroClick.emit()"
@@ -101,7 +101,7 @@ import { BUDGET_WARNING_THRESHOLD_PERCENT } from '@core/budget';
 
       <!-- Progress Bar -->
       <div
-        class="space-y-2.5 relative z-10 bg-white/15 backdrop-blur-sm p-4 rounded-2xl border border-white/15"
+        class="space-y-2.5 relative z-10 bg-white/15 dark:bg-white/20 backdrop-blur-sm p-4 rounded-2xl border border-white/15 dark:border-white/20"
       >
         <div class="flex justify-between text-label-small font-bold">
           <span>
@@ -144,29 +144,29 @@ import { BUDGET_WARNING_THRESHOLD_PERCENT } from '@core/budget';
       .hero-container {
         background: linear-gradient(
           145deg,
-          var(--mat-sys-primary) 0%,
-          color-mix(in srgb, var(--mat-sys-primary) 75%, black) 100%
+          var(--pulpe-hero-primary) 0%,
+          color-mix(in srgb, var(--pulpe-hero-primary) 75%, black) 100%
         );
-        color: var(--mat-sys-on-primary);
+        color: var(--pulpe-hero-primary-text);
         box-shadow: var(--mat-sys-level2);
       }
 
       .hero-container.budget-warning {
         background: linear-gradient(
           145deg,
-          var(--pulpe-amber) 0%,
-          color-mix(in srgb, var(--pulpe-amber) 75%, black) 100%
+          var(--pulpe-hero-warning) 0%,
+          color-mix(in srgb, var(--pulpe-hero-warning) 75%, black) 100%
         );
-        color: white;
+        color: var(--pulpe-hero-warning-text);
       }
 
       .hero-container.budget-over {
         background: linear-gradient(
           145deg,
-          var(--mat-sys-error) 0%,
-          color-mix(in srgb, var(--mat-sys-error) 75%, black) 100%
+          var(--pulpe-hero-error) 0%,
+          color-mix(in srgb, var(--pulpe-hero-error) 75%, black) 100%
         );
-        color: var(--mat-sys-on-error);
+        color: var(--pulpe-hero-error-text);
       }
 
       .indicator-dot {

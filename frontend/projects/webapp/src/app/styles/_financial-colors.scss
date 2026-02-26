@@ -104,3 +104,37 @@
     --pulpe-financial-critical: var(--mat-sys-on-error-container);
   }
 }
+
+// ─── Layer 3: Hero gradient tokens ───────────────────────────────────
+// Hero cards use bold gradients that need dark backgrounds in BOTH themes.
+// M3 primary/error are tone 80 in dark mode (too light for gradients).
+// These tokens enforce the correct tone mapping for immersive hero surfaces.
+
+:root {
+  --pulpe-hero-primary: var(--mat-sys-primary);
+  --pulpe-hero-primary-text: var(--mat-sys-on-primary);
+  --pulpe-hero-warning: var(--pulpe-amber);
+  --pulpe-hero-warning-text: #fff3e0; // warm amber-tinted white (matches dark-mode counterpart)
+  --pulpe-hero-error: var(--mat-sys-error);
+  --pulpe-hero-error-text: var(--mat-sys-on-error);
+}
+
+.dark-theme {
+  --pulpe-hero-primary: #00390f; // primary tone 20 — rich dark green
+  --pulpe-hero-primary-text: #99f89d; // primary tone 90 — bright green text
+  --pulpe-hero-warning: #3d2200; // amber tone ~20 — deep amber-brown
+  --pulpe-hero-warning-text: #fff3e0; // amber tone ~95 — light amber text
+  --pulpe-hero-error: #930009; // error tone 30 — deep saturated red
+  --pulpe-hero-error-text: #ffdad5; // error tone 90 — light pink text
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --pulpe-hero-primary: #00390f;
+    --pulpe-hero-primary-text: #99f89d;
+    --pulpe-hero-warning: #3d2200;
+    --pulpe-hero-warning-text: #fff3e0;
+    --pulpe-hero-error: #930009;
+    --pulpe-hero-error-text: #ffdad5;
+  }
+}
