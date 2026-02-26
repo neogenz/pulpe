@@ -90,8 +90,9 @@ import { BUDGET_WARNING_THRESHOLD_PERCENT } from '@core/budget';
           Revenus {{ totalIncome() | number: '1.2-2' : 'de-CH' }}
           @if (rolloverAmount() !== 0) {
             <span class="opacity-80">
-              {{ rolloverAmount() > 0 ? '+' : '-' }} Report
-              {{ absRolloverAmount() | number: '1.2-2' : 'de-CH' }}
+              Report
+              {{ rolloverAmount() > 0 ? '+' : ''
+              }}{{ rolloverAmount() | number: '1.2-2' : 'de-CH' }}
             </span>
           }
         </p>
@@ -202,7 +203,6 @@ export class DashboardHero {
 
   readonly heroClick = output<void>();
 
-  readonly absRolloverAmount = computed(() => Math.abs(this.rolloverAmount()));
   readonly absExpenses = computed(() => Math.abs(this.expenses()));
 
   readonly isOverBudget = computed(() => this.remaining() < 0);

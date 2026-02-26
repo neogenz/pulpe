@@ -5,7 +5,11 @@ import {
   InjectionToken,
   resource,
 } from '@angular/core';
-import { BudgetApi } from '@core/budget';
+import {
+  BudgetApi,
+  calculateAllConsumptions,
+  type BudgetLineConsumption,
+} from '@core/budget';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { UserSettingsApi } from '@core/user-settings';
 import {
@@ -204,6 +208,10 @@ export class DashboardStore {
         (line.recurrence === 'fixed' || line.recurrence === 'one_off') &&
         line.checkedAt === null,
     ),
+  );
+
+  readonly consumptions = computed<Map<string, BudgetLineConsumption>>(() =>
+    calculateAllConsumptions(this.budgetLines(), this.transactions()),
   );
 
   readonly historyData = computed<HistoryDataPoint[]>(() => {

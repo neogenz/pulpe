@@ -132,6 +132,7 @@ type TransactionFormData = Pick<
             <pulpe-dashboard-unchecked-forecasts
               class="order-1 lg:order-2"
               [forecasts]="store.uncheckedForecasts()"
+              [consumptions]="store.consumptions()"
               (toggleCheck)="toggleBudgetLineCheck($event)"
               (viewBudget)="navigateToBudgetDetails()"
               data-testid="dashboard-block-forecasts"
