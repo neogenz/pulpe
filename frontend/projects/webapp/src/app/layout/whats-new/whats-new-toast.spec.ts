@@ -7,7 +7,7 @@ import { WhatsNewToast } from './whats-new-toast';
 import { LATEST_RELEASE } from './whats-new-releases';
 
 vi.mock('@env/build-info', () => ({
-  buildInfo: { version: '0.24.0' },
+  buildInfo: { version: '0.25.0' },
 }));
 
 describe('WhatsNewToast', () => {
@@ -54,7 +54,7 @@ describe('WhatsNewToast', () => {
     });
 
     it('should hide toast when already dismissed for current version', () => {
-      setup('0.24.0');
+      setup('0.25.0');
       expect(queryToast()).toBeNull();
     });
 
@@ -72,7 +72,7 @@ describe('WhatsNewToast', () => {
         '.text-title-small',
       ) as HTMLElement;
 
-      expect(title.textContent).toContain('v0.24.0');
+      expect(title.textContent).toContain('v0.25.0');
     });
 
     it('should display all release features', () => {
@@ -106,7 +106,7 @@ describe('WhatsNewToast', () => {
       expect(queryToast()).toBeNull();
       expect(mockStorageService.set).toHaveBeenCalledWith(
         STORAGE_KEYS.WHATS_NEW_DISMISSED,
-        '0.24.0',
+        '0.25.0',
       );
     });
   });
