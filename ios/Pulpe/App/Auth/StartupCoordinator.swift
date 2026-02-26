@@ -209,7 +209,6 @@ actor StartupCoordinator {
             }
             guard isCurrentRun(runId) else { return .cancelled }
             if let clientKeyHex = biometricResult.clientKeyHex {
-                guard isCurrentRun(runId) else { return .cancelled }
                 await handleBiometricClientKey(runId: runId, hex: clientKeyHex)
             }
             return await makeAuthenticatedResult(runId: runId, user: biometricResult.user, source: "Biometric")
@@ -217,6 +216,12 @@ actor StartupCoordinator {
             return .cancelled
         } catch is URLError {
             return .networkError("Connexion impossible, réessaie")
+        } catch KeychainError.userCanceled {
+            Logger.auth.info("[STARTUP] Biometric auth cancelled by user")
+            return .unauthenticated
+        } catch KeychainError.authFailed {
+            Logger.auth.info("[STARTUP] Biometric auth failed")
+            return .unauthenticated
         } catch {
             Logger.auth.warning("[STARTUP] Biometric validation failed: \(error)")
             guard isCurrentRun(runId) else { return .cancelled }

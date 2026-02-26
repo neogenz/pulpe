@@ -133,6 +133,51 @@ struct OnboardingBootstrapperTests {
 
     // MARK: - Error Handling
 
+    @Test("bootstrapIfNeeded returns true on success")
+    func bootstrapIfNeeded_returnsTrue_onSuccess() async {
+        let sut = makeSUT()
+        sut.setPendingData(BudgetTemplateCreateFromOnboarding())
+
+        let result = await sut.bootstrapIfNeeded()
+
+        #expect(result == true)
+    }
+
+    @Test("bootstrapIfNeeded returns true when no pending data")
+    func bootstrapIfNeeded_returnsTrue_whenNoPendingData() async {
+        let sut = makeSUT()
+
+        let result = await sut.bootstrapIfNeeded()
+
+        #expect(result == true)
+    }
+
+    @Test("bootstrapIfNeeded returns false on error")
+    func bootstrapIfNeeded_returnsFalse_onError() async {
+        struct BootstrapError: Error {}
+        let sut = makeSUT(
+            createTemplate: { _ in throw BootstrapError() }
+        )
+        sut.setPendingData(BudgetTemplateCreateFromOnboarding())
+
+        let result = await sut.bootstrapIfNeeded()
+
+        #expect(result == false)
+    }
+
+    @Test("bootstrapIfNeeded retains pending data on failure for retry")
+    func bootstrapIfNeeded_retainsPendingData_onFailure() async {
+        struct BootstrapError: Error {}
+        let sut = makeSUT(
+            createTemplate: { _ in throw BootstrapError() }
+        )
+        sut.setPendingData(BudgetTemplateCreateFromOnboarding())
+
+        _ = await sut.bootstrapIfNeeded()
+
+        #expect(sut.pendingOnboardingData != nil, "Pending data must be retained for retry")
+    }
+
     @Test("template creation error shows toast and does not create budget")
     func templateError_showsToast_noBudget() async {
         struct TemplateError: Error {}

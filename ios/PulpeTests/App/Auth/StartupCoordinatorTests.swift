@@ -584,3 +584,53 @@ struct StartupCoordinatorTimeoutTests {
         }
     }
 }
+
+// MARK: - Biometric Dismiss Tests
+
+@Suite(.serialized)
+struct StartupCoordinatorBiometricDismissTests {
+    private func makeCoordinator(
+        validateBiometricSession: @escaping @Sendable () async throws -> BiometricSessionResult?,
+        clearExpiredBiometricState: @escaping @Sendable () async -> Void
+    ) -> StartupCoordinator {
+        StartupCoordinator(
+            checkMaintenance: { false },
+            validateBiometricSession: validateBiometricSession,
+            validateRegularSession: { nil },
+            resolvePostAuth: { .authenticated(needsRecoveryKeyConsent: false) },
+            clearExpiredBiometricState: clearExpiredBiometricState
+        )
+    }
+
+    @Test func start_biometricUserCanceled_returnsUnauthenticated_preservesBiometricState() async {
+        let expiredHandled = AtomicFlag()
+        let sut = makeCoordinator(
+            validateBiometricSession: { throw KeychainError.userCanceled },
+            clearExpiredBiometricState: { expiredHandled.set() }
+        )
+
+        let context = StartupCoordinator.StartupContext(
+            biometricEnabled: true, didExplicitLogout: false, manualBiometricRetryRequired: false
+        )
+        let result = await sut.start(context: context)
+
+        #expect(result == .unauthenticated)
+        #expect(expiredHandled.value == false, "Biometric state must NOT be cleared on user cancel")
+    }
+
+    @Test func start_biometricAuthFailed_returnsUnauthenticated_preservesBiometricState() async {
+        let expiredHandled = AtomicFlag()
+        let sut = makeCoordinator(
+            validateBiometricSession: { throw KeychainError.authFailed },
+            clearExpiredBiometricState: { expiredHandled.set() }
+        )
+
+        let context = StartupCoordinator.StartupContext(
+            biometricEnabled: true, didExplicitLogout: false, manualBiometricRetryRequired: false
+        )
+        let result = await sut.start(context: context)
+
+        #expect(result == .unauthenticated)
+        #expect(expiredHandled.value == false, "Biometric state must NOT be cleared on auth failure")
+    }
+}

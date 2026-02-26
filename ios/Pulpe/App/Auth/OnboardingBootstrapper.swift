@@ -35,8 +35,10 @@ final class OnboardingBootstrapper {
 
     /// Creates template + budget from pending onboarding data if present.
     /// No-op if no pending data. Consumes the data on success; retains it on error for retry.
-    func bootstrapIfNeeded() async {
-        guard let onboardingData = pendingOnboardingData else { return }
+    /// - Returns: `true` if no pending data or bootstrap succeeded, `false` on error.
+    @discardableResult
+    func bootstrapIfNeeded() async -> Bool {
+        guard let onboardingData = pendingOnboardingData else { return true }
 
         do {
             let template = try await createTemplate(onboardingData)
@@ -51,9 +53,11 @@ final class OnboardingBootstrapper {
             _ = try await createBudget(budgetData)
 
             pendingOnboardingData = nil
+            return true
         } catch {
             Logger.auth.error("OnboardingBootstrapper: failed to create template/budget - \(error)")
             toastManager.show("Erreur lors de la création du budget", type: .error)
+            return false
         }
     }
 }

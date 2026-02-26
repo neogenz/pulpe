@@ -157,7 +157,11 @@ extension AppState {
     func completePinSetup() async {
         guard authState == .needsPinSetup else { return }
 
-        await onboardingBootstrapper.bootstrapIfNeeded()
+        let success = await onboardingBootstrapper.bootstrapIfNeeded()
+        if !success {
+            // Retry once on transient failure (pending data is retained)
+            _ = await onboardingBootstrapper.bootstrapIfNeeded()
+        }
         await enterAuthenticated(context: .pinSetup)
     }
 
