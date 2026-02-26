@@ -3,63 +3,6 @@ import SwiftUI
 import TipKit
 import WidgetKit
 
-enum DeepLinkDestination: Hashable {
-    case addExpense(budgetId: String?)
-    case viewBudget(budgetId: String)
-    case resetPassword(url: URL)
-}
-
-enum ResetPasswordDeepLinkDisposition: Equatable {
-    case `defer`
-    case present
-    case drop
-}
-
-enum ResetPasswordDeepLinkPolicy {
-    static func disposition(for authState: AppState.AuthStatus) -> ResetPasswordDeepLinkDisposition {
-        switch authState {
-        case .loading: return .defer
-        case .unauthenticated: return .present
-        case .needsPinSetup, .needsPinEntry, .needsPinRecovery, .authenticated: return .drop
-        }
-    }
-}
-
-enum ResetPasswordProcessResult: Equatable {
-    case deferred
-    case present(URL)
-    case dropped
-    case noPending
-}
-
-@MainActor
-final class DeepLinkHandler {
-    private var pending: DeepLinkDestination?
-
-    var hasPendingResetPassword: Bool {
-        if case .resetPassword = pending { return true }
-        return false
-    }
-
-    func setPending(_ destination: DeepLinkDestination) {
-        pending = destination
-    }
-
-    func processResetPassword(authState: AppState.AuthStatus) -> ResetPasswordProcessResult {
-        guard case .resetPassword(let url) = pending else { return .noPending }
-        switch ResetPasswordDeepLinkPolicy.disposition(for: authState) {
-        case .defer:
-            return .deferred
-        case .present:
-            pending = nil
-            return .present(url)
-        case .drop:
-            pending = nil
-            return .dropped
-        }
-    }
-}
-
 struct ResetPasswordDeepLink: Identifiable {
     let id = UUID()
     let url: URL

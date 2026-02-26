@@ -134,6 +134,13 @@ final class AppState {
     var isBootstrapped = false
     var returningUserFlagLoaded = false
 
+    /// Serialized event queue for async events to prevent race conditions.
+    @ObservationIgnored private(set) lazy var eventQueue: AppFlowEventQueue = {
+        AppFlowEventQueue { [weak self] event in
+            await self?.handleAsyncEvent(event)
+        }
+    }()
+
     // MARK: - Services
 
     let authService: AuthService

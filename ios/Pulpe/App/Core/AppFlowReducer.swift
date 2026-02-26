@@ -49,6 +49,8 @@ enum AppFlowReducer {
             return isInMaintenance ? .maintenance : nil
         case .networkBecameUnavailable:
             return .networkUnavailable(retryable: true)
+        case .startupTimedOut:
+            return .networkUnavailable(retryable: true)
         case .sessionValidated(let result):
             return handleSessionValidation(result)
         default:
@@ -157,12 +159,5 @@ extension AppFlowReducer {
     /// Checks if an event is valid for the current state.
     static func isValidTransition(from state: AppFlowState, event: AppFlowEvent) -> Bool {
         reduce(state: state, event: event) != nil
-    }
-
-    /// Returns all valid events for a given state.
-    static func validEvents(for state: AppFlowState) -> [AppFlowEvent] {
-        // This would be used for debugging/documentation
-        // Implementation omitted for brevity - would enumerate all events
-        []
     }
 }

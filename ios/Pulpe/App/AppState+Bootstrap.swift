@@ -127,6 +127,11 @@ extension AppState {
         case .cancelled:
             // No-op: a superseding startup run is in progress.
             break
+        case .timeout:
+            isNetworkUnavailable = true
+            isInMaintenance = false
+            biometricError = "Le chargement a pris trop de temps, réessaie"
+            authState = .loading
         }
     }
 }

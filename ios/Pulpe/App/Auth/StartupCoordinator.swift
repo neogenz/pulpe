@@ -18,6 +18,7 @@ actor StartupCoordinator {
         case networkError(String)
         case biometricSessionExpired
         case cancelled
+        case timeout
     }
 
     struct StartupContext: Equatable, Sendable {
@@ -26,8 +27,12 @@ actor StartupCoordinator {
         let manualBiometricRetryRequired: Bool
     }
 
+    /// Default startup timeout duration (30 seconds).
+    static let defaultTimeout: Duration = .seconds(30)
+
     private(set) var state: State = .idle
     private var currentTask: Task<StartupResult, Never>?
+    private let timeout: Duration
 
     // MARK: - Dependencies
 
@@ -48,7 +53,8 @@ actor StartupCoordinator {
         validateBiometricKey: @escaping @Sendable (String) async -> Bool = { _ in true },
         storeSessionClientKey: @escaping @Sendable (String) async -> Void = { _ in },
         clearStaleBiometricState: @escaping @Sendable () async -> Void = {},
-        clearExpiredBiometricState: @escaping @Sendable () async -> Void = {}
+        clearExpiredBiometricState: @escaping @Sendable () async -> Void = {},
+        timeout: Duration = StartupCoordinator.defaultTimeout
     ) {
         self.checkMaintenance = checkMaintenance
         self.validateBiometricSession = validateBiometricSession
@@ -58,12 +64,14 @@ actor StartupCoordinator {
         self.clearStaleBiometricState = clearStaleBiometricState
         self.clearExpiredBiometricState = clearExpiredBiometricState
         self.resolvePostAuth = resolvePostAuth
+        self.timeout = timeout
     }
 
     // MARK: - Public API
 
     /// Starts the startup sequence. If already running, cancels the previous run.
     /// Returns the result of the startup sequence.
+    /// Applies a timeout to prevent indefinite blocking on slow/hanging operations.
     func start(context: StartupContext) async -> StartupResult {
         // Cancel any existing run
         cancelCurrentRun()
@@ -71,12 +79,38 @@ actor StartupCoordinator {
         let runId = UUID()
         state = .running(id: runId)
 
-        let task = Task<StartupResult, Never> {
+        let startupTask = Task<StartupResult, Never> {
             await executeStartupSequence(runId: runId, context: context)
         }
-        currentTask = task
+        currentTask = startupTask
 
-        let result = await task.value
+        // Race startup against timeout
+        let result = await withTaskGroup(of: StartupResult.self) { group in
+            group.addTask {
+                await startupTask.value
+            }
+            group.addTask { [timeout] in
+                do {
+                    try await Task.sleep(for: timeout)
+                    return .timeout
+                } catch {
+                    // Cancelled - startup finished first
+                    return .cancelled
+                }
+            }
+
+            // Return whichever finishes first
+            let firstResult = await group.next()!
+            group.cancelAll()
+
+            // If timeout won, cancel the startup task
+            if firstResult == .timeout {
+                startupTask.cancel()
+                Logger.auth.warning("[STARTUP] Startup timed out after \(self.timeout)")
+            }
+
+            return firstResult
+        }
 
         // Only update state if this run wasn't superseded
         if case .running(let currentId) = state, currentId == runId {
@@ -240,6 +274,8 @@ extension StartupCoordinator.StartupResult {
             return .unauthenticated
         case .maintenance:
             return .loading // Maintenance is handled separately
+        case .timeout:
+            return .loading // Timeout triggers network error UI
         }
     }
 

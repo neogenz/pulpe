@@ -486,3 +486,38 @@ enum GracePeriodOption: Int, CaseIterable {
 | Tests | Adapter | ±100 |
 
 **Net** : ~-80 lignes de code, meilleure organisation.
+
+---
+
+## Session de travail (Février 2026)
+
+### Travail effectué
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 0 | Tests de caractérisation (baseline) | ✅ Complété |
+| Phase 1 | Race condition bridge events → `AppFlowEventQueue` | ✅ Complété |
+| Phase 2 | Timeout startup 30s + fallback `networkUnavailable` | ✅ Complété |
+| Phase 3 | Tests complets bridge AppState + FlowState | ✅ Complété |
+| Phase 4 | Extraction `DeepLinkHandler` vers `App/Navigation/` | ✅ Complété |
+| Phase 5 | Suppression code mort reducer (`validEvents(for:)`) | ✅ Complété |
+| Phase 6 | Mise à jour documentation | ✅ Complété |
+
+### Nouveaux fichiers créés
+
+| Fichier | Rôle |
+|---------|------|
+| `App/Core/AppFlowEventQueue.swift` | File FIFO sérialisée pour événements async |
+| `App/Navigation/DeepLinkDestination.swift` | Enum des destinations deep link |
+| `App/Navigation/ResetPasswordDeepLinkPolicy.swift` | Policy de disposition pour reset password |
+| `App/Navigation/DeepLinkHandler.swift` | Gestionnaire de deep links différés |
+| `PulpeTests/App/AppStateFlowBridgeTests.swift` | Tests du bridge FlowState |
+| `PulpeTests/App/ResetPasswordDeepLinkRoutingTests.swift` | Tests routing deep link |
+
+### Modifications clés
+
+1. **`StartupCoordinator`** : Ajout timeout 30s avec `TaskGroup` race
+2. **`AppFlowEvent`** : Ajout case `.startupTimedOut`
+3. **`AppFlowReducer`** : Gestion timeout → `networkUnavailable`, suppression `validEvents(for:)`
+4. **`AppState+FlowState.swift`** : `send(event:)` utilise `eventQueue.enqueue()` au lieu de `Task { ... }`
+5. **`PulpeApp.swift`** : Types deep link extraits vers `App/Navigation/`

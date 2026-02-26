@@ -16,7 +16,8 @@ struct StartupCoordinatorTests {
         validateBiometricKey: (@Sendable (String) async -> Bool)? = nil,
         storeSessionClientKey: (@Sendable (String) async -> Void)? = nil,
         clearStaleBiometricState: (@Sendable () async -> Void)? = nil,
-        clearExpiredBiometricState: (@Sendable () async -> Void)? = nil
+        clearExpiredBiometricState: (@Sendable () async -> Void)? = nil,
+        timeout: Duration = StartupCoordinator.defaultTimeout
     ) -> StartupCoordinator {
         StartupCoordinator(
             checkMaintenance: checkMaintenance ?? { false },
@@ -26,7 +27,8 @@ struct StartupCoordinatorTests {
             validateBiometricKey: validateBiometricKey ?? { _ in true },
             storeSessionClientKey: storeSessionClientKey ?? { _ in },
             clearStaleBiometricState: clearStaleBiometricState ?? {},
-            clearExpiredBiometricState: clearExpiredBiometricState ?? {}
+            clearExpiredBiometricState: clearExpiredBiometricState ?? {},
+            timeout: timeout
         )
     }
 
@@ -427,5 +429,157 @@ struct StartupResultMappingTests {
     @Test func authState_maintenance() {
         let result = StartupCoordinator.StartupResult.maintenance
         #expect(result.authState == .loading)
+    }
+
+    @Test func authState_timeout() {
+        let result = StartupCoordinator.StartupResult.timeout
+        #expect(result.authState == .loading)
+    }
+}
+
+// MARK: - Timeout Tests
+
+@Suite(.serialized)
+struct StartupCoordinatorTimeoutTests {
+    private let testUser = UserInfo(id: "timeout-user", email: "timeout@pulpe.app", firstName: "Timeout")
+
+    private func makeCoordinator(
+        checkMaintenance: (@Sendable () async throws -> Bool)? = nil,
+        validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)? = nil,
+        validateRegularSession: (@Sendable () async throws -> UserInfo?)? = nil,
+        resolvePostAuth: (@Sendable () async -> PostAuthDestination)? = nil,
+        timeout: Duration
+    ) -> StartupCoordinator {
+        StartupCoordinator(
+            checkMaintenance: checkMaintenance ?? { false },
+            validateBiometricSession: validateBiometricSession ?? { nil },
+            validateRegularSession: validateRegularSession ?? { nil },
+            resolvePostAuth: resolvePostAuth ?? { .authenticated(needsRecoveryKeyConsent: false) },
+            timeout: timeout
+        )
+    }
+
+    private func makeContext(
+        biometricEnabled: Bool = false,
+        didExplicitLogout: Bool = false,
+        manualBiometricRetryRequired: Bool = false
+    ) -> StartupCoordinator.StartupContext {
+        StartupCoordinator.StartupContext(
+            biometricEnabled: biometricEnabled,
+            didExplicitLogout: didExplicitLogout,
+            manualBiometricRetryRequired: manualBiometricRetryRequired
+        )
+    }
+
+    @Test func start_exceedsTimeout_returnsTimeout() async {
+        let sut = makeCoordinator(
+            validateRegularSession: {
+                // Hang longer than the timeout
+                try await Task.sleep(for: .seconds(10))
+                return nil
+            },
+            timeout: .milliseconds(100)
+        )
+
+        let result = await sut.start(context: makeContext())
+
+        #expect(result == .timeout)
+    }
+
+    @Test func start_completesBeforeTimeout_returnsNormalResult() async {
+        let sut = makeCoordinator(
+            validateRegularSession: { [testUser] in
+                // Complete quickly
+                try await Task.sleep(for: .milliseconds(10))
+                return testUser
+            },
+            timeout: .seconds(5)
+        )
+
+        let result = await sut.start(context: makeContext())
+
+        if case .authenticated(let user, _) = result {
+            #expect(user.id == testUser.id)
+        } else {
+            Issue.record("Expected authenticated result, got \(result)")
+        }
+    }
+
+    @Test func start_timeout_cancelsHangingOperation() async {
+        let operationCancelled = AtomicFlag()
+
+        let sut = makeCoordinator(
+            validateRegularSession: {
+                do {
+                    try await Task.sleep(for: .seconds(10))
+                    return nil
+                } catch is CancellationError {
+                    operationCancelled.set()
+                    throw CancellationError()
+                }
+            },
+            timeout: .milliseconds(100)
+        )
+
+        let result = await sut.start(context: makeContext())
+
+        #expect(result == .timeout)
+        // Give the cancellation a moment to propagate
+        await waitForCondition(timeout: .milliseconds(200), "operation should be cancelled") {
+            operationCancelled.value
+        }
+    }
+
+    @Test func retry_afterTimeout_runsCleanStartup() async {
+        let callCount = AtomicProperty<Int>(0)
+
+        let sut = makeCoordinator(
+            validateRegularSession: { [testUser] in
+                callCount.increment()
+                if callCount.value == 1 {
+                    // First call hangs
+                    try await Task.sleep(for: .seconds(10))
+                    return nil
+                }
+                // Second call succeeds quickly
+                return testUser
+            },
+            timeout: .milliseconds(100)
+        )
+
+        // First attempt times out
+        let firstResult = await sut.start(context: makeContext())
+        #expect(firstResult == .timeout)
+
+        // Retry with longer timeout succeeds
+        let retryCoordinator = makeCoordinator(
+            validateRegularSession: { [testUser] in testUser },
+            timeout: .seconds(5)
+        )
+        let retryResult = await retryCoordinator.start(context: makeContext())
+        if case .authenticated = retryResult {
+            // Success
+        } else {
+            Issue.record("Expected authenticated on retry, got \(retryResult)")
+        }
+    }
+
+    @Test func state_completedTimeout_afterTimeout() async {
+        let sut = makeCoordinator(
+            validateRegularSession: {
+                try await Task.sleep(for: .seconds(10))
+                return nil
+            },
+            timeout: .milliseconds(100)
+        )
+
+        _ = await sut.start(context: makeContext())
+
+        let state = await sut.state
+        if case .completed(.timeout) = state {
+            // Success
+        } else {
+            Issue.record("Expected completed timeout state, got \(state)")
+        }
     }
 }

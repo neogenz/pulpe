@@ -19,10 +19,25 @@ AppState remains the `@Observable @MainActor` facade that views interact with.
 - **Key types**: `AppFlowState`, `AppFlowEvent`, `AppFlowReducer`, `AppRoute`
 - **Files**: `App/Core/AppFlowState.swift`, `App/Core/AppFlowEvent.swift`, `App/Core/AppFlowReducer.swift`, `App/Core/AppRoute.swift`
 
+### AppFlowEventQueue (@MainActor)
+- **Owns**: Serialized FIFO processing of async events
+- **Purpose**: Prevents race conditions when multiple events fire in quick succession (e.g., logout during recovery)
+- **Key methods**: `enqueue(_:)`, `pendingCount` (for testing)
+- **File**: `App/Core/AppFlowEventQueue.swift`
+- **Integration**: `AppState.send(event:)` enqueues async events instead of spawning fire-and-forget Tasks
+
+### DeepLinkHandler (@MainActor)
+- **Owns**: Pending deep link state, reset password disposition policy
+- **Purpose**: Defers deep link processing until app is in correct auth state
+- **Key types**: `DeepLinkDestination`, `ResetPasswordDeepLinkPolicy`, `ResetPasswordProcessResult`
+- **Files**: `App/Navigation/DeepLinkHandler.swift`, `App/Navigation/DeepLinkDestination.swift`, `App/Navigation/ResetPasswordDeepLinkPolicy.swift`
+
 ### StartupCoordinator (Actor)
-- **Owns**: Single-flight auth resolution with cancellation support
+- **Owns**: Single-flight auth resolution with cancellation support, startup timeout
 - **Purpose**: Prevents race conditions during cold-start authentication
-- **Key methods**: `start()`, `retry()`, `cancel()`
+- **Key methods**: `start(context:)`, `retry()`, `cancel()`
+- **Timeout**: 30 seconds default (`defaultTimeout`), configurable via init for testing
+- **Returns**: `StartupResult` enum (`.authenticated`, `.needsPinSetup`, `.needsPinEntry`, `.unauthenticated`, `.maintenance`, `.networkError`, `.biometricSessionExpired`, `.timeout`, `.cancelled`)
 - **File**: `App/Auth/StartupCoordinator.swift`
 - **Status**: Active runtime path for `AppState.checkAuthState()`.
 
@@ -48,6 +63,85 @@ AppState remains the `@Observable @MainActor` facade that views interact with.
 ### AppStateDependencies (Struct)
 - **Role**: Groups all injected services/closures for AppState construction, provides `.default` factory for production use
 - **File**: `App/AppStateDependencies.swift`
+
+## Event Dispatch System
+
+Events are processed through `AppState.send(event:)` in three tiers:
+
+### Tier 1: Immediate Events (Synchronous)
+Handled by `handleImmediateEvent(_:)` — no async work, direct state mutation:
+- `.recoveryInitiated` → `startRecovery()`
+- `.recoveryCancelled` → `cancelRecovery()`
+
+### Tier 2: Reducer Events (Pure State Transitions)
+Handled by `applyReducerTransitionIfPossible(_:)` — pure `AppFlowReducer.reduce()` calls:
+- `.maintenanceChecked(Bool)`
+- `.networkBecameUnavailable`
+- `.foregroundLockRequired`
+- `.foregroundNoLockNeeded`
+- `.biometricUnlockFailed`
+
+### Tier 3: Async Events (Serialized Queue)
+All other events are enqueued in `AppFlowEventQueue` for FIFO processing:
+- `.startupInitiated`, `.retryRequested`
+- `.logoutRequested(LogoutSource)`
+- `.sessionValidated(SessionValidationResult)`
+- `.sessionExpired`, `.sessionRefreshFailed`
+- `.authenticationSucceeded(UserInfo)`
+- `.pinEntrySucceeded`, `.biometricUnlockSucceeded`
+- `.pinSetupCompleted`
+- `.recoveryCompleted`, `.recoveryKeyConsentAccepted`, `.recoveryKeyConsentDeclined`, `.recoveryKeyPresentationDismissed`
+- `.startupTimedOut`
+
+### Race Condition Prevention
+Before the event queue, concurrent events could cause state inconsistencies:
+```
+// BEFORE (fire-and-forget Tasks)
+Task { await handleAsyncEvent(.logoutRequested) }  // starts logout
+Task { await handleAsyncEvent(.recoveryCompleted) }  // starts recovery completion
+// Both run concurrently → undefined final state
+```
+
+With the event queue:
+```
+// AFTER (serialized queue)
+eventQueue.enqueue(.logoutRequested)    // queued first
+eventQueue.enqueue(.recoveryCompleted)  // queued second, waits for logout
+// Logout completes, then recovery completes → deterministic final state
+```
+
+## Startup Timeout
+
+The `StartupCoordinator` enforces a 30-second timeout on cold-start authentication to prevent the app from hanging indefinitely on network issues.
+
+### Timeout Flow
+```
+start(context:)
+    │
+    ├─▶ TaskGroup races startup vs timeout
+    │       ├─▶ startupTask (maintenance check + session validation)
+    │       └─▶ timeout task (30s sleep, returns .timeout)
+    │
+    ├─▶ First result wins
+    │       └─▶ .timeout → cancels startup, returns .timeout
+    │       └─▶ other → returns that result
+    │
+    └─▶ AppState.handleStartupResult(.timeout)
+            └─▶ isNetworkUnavailable = true
+            └─▶ biometricError = "Le chargement a pris trop de temps, réessaie"
+```
+
+### User Experience
+When timeout occurs:
+1. User sees network error screen with retry button
+2. User can tap "Réessayer" to trigger `retryStartup()`
+3. Startup coordinator runs again with fresh timeout
+
+### Testing
+Timeout is configurable via `StartupCoordinator.init(timeout:)`:
+```swift
+let coordinator = StartupCoordinator(timeout: .milliseconds(100))  // Fast timeout for tests
+```
 
 ## AuthStatus Transitions
 

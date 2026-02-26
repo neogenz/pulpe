@@ -1,3 +1,5 @@
+import OSLog
+
 // MARK: - Flow State Integration
 
 extension AppState {
@@ -63,6 +65,11 @@ extension AppState {
 
     /// Sends an event to the state machine.
     /// This is the unified API for state transitions.
+    ///
+    /// Events are processed in three tiers:
+    /// 1. Immediate events (synchronous, no side effects beyond state mutation)
+    /// 2. Reducer events (pure state transitions via AppFlowReducer)
+    /// 3. Async events (serialized via eventQueue to prevent race conditions)
     func send(event: AppFlowEvent) {
         // Bridge implementation: map events to existing methods
         // This allows gradual migration without breaking existing code
@@ -72,7 +79,8 @@ extension AppState {
         if applyReducerTransitionIfPossible(event) {
             return
         }
-        Task { await handleAsyncEvent(event) }
+        // Enqueue async events to ensure FIFO processing and prevent races
+        eventQueue.enqueue(event)
     }
 
     /// Backward-compatible shorthand.
@@ -140,7 +148,7 @@ extension AppState {
         }
     }
 
-    private func handleAsyncEvent(_ event: AppFlowEvent) async {
+    func handleAsyncEvent(_ event: AppFlowEvent) async {
         if await handleAuthLifecycleEvent(event) { return }
         if await handlePinEvent(event) { return }
         if await handleRecoveryEvent(event) { return }

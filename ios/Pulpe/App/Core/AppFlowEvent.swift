@@ -19,6 +19,9 @@ enum AppFlowEvent: Equatable, Sendable {
     /// User tapped retry after network error
     case retryRequested
 
+    /// Startup timed out (exceeded maximum wait duration)
+    case startupTimedOut
+
     // MARK: - Session Events
 
     /// Session validation completed
