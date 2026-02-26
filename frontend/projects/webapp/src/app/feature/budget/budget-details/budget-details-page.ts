@@ -172,10 +172,7 @@ export default class BudgetDetailsPage {
 
   constructor() {
     effect(() => {
-      const budgetId = this.id();
-      if (budgetId) {
-        this.store.setBudgetId(budgetId);
-      }
+      this.store.setBudgetId(this.id());
     });
 
     effect((onCleanup) => {

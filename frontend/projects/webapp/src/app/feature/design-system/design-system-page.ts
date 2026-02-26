@@ -238,9 +238,10 @@ import { ThemeService } from '@core/theme';
 })
 export default class DesignSystemPage {
   protected readonly themeService = inject(ThemeService);
+  readonly #destroyRef = inject(DestroyRef);
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => this.themeService.forceTheme(null));
+    this.#destroyRef.onDestroy(() => this.themeService.forceTheme(null));
   }
 
   protected onThemeChange(value: 'light' | 'dark'): void {
