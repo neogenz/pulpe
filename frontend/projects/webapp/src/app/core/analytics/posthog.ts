@@ -55,6 +55,7 @@ export class PostHogService {
 
       posthog.init(config.apiKey, {
         api_host: config.host,
+        ui_host: 'https://eu.posthog.com',
         debug: config.debug,
 
         // Privacy-first: anonymous events flow immediately, person profiles

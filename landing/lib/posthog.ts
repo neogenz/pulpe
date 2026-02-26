@@ -1,7 +1,8 @@
 import posthog from 'posthog-js';
 
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY ?? '';
-const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? 'https://eu.i.posthog.com';
+const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? '/ph';
+const POSTHOG_UI_HOST = 'https://eu.posthog.com';
 const POSTHOG_ENABLED = process.env.NEXT_PUBLIC_POSTHOG_ENABLED === 'true';
 
 const VERCEL_ENV_MAP: Record<string, string> = {
@@ -23,6 +24,7 @@ export function initPostHog(): void {
   try {
     posthog.init(POSTHOG_KEY, {
       api_host: POSTHOG_HOST,
+      ui_host: POSTHOG_UI_HOST,
       capture_pageview: true,
       capture_pageleave: true,
       person_profiles: 'identified_only',
@@ -41,6 +43,6 @@ export function initPostHog(): void {
 }
 
 export function trackCTAClick(ctaName: string, ctaLocation: string, destination: string): void {
-  if (!initialized) return;
+  if (!POSTHOG_ENABLED) return;
   posthog.capture('cta_clicked', { cta_name: ctaName, cta_location: ctaLocation, destination });
 }

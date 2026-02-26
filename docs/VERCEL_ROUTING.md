@@ -84,6 +84,8 @@ Les rewrites routent les requêtes sans changer l'URL visible.
   { "source": "/sitemap.xml", "destination": "/landing/sitemap.xml" },
   { "source": "/support", "destination": "/landing/support.html" },
   { "source": "/changelog", "destination": "/landing/changelog.html" },
+  { "source": "/ph/static/:path*", "destination": "https://eu-assets.i.posthog.com/static/:path*" },
+  { "source": "/ph/:path*", "destination": "https://eu.i.posthog.com/:path*" },
   { "source": "/:path*", "destination": "/_app.html" }
 ]
 ```
@@ -98,7 +100,8 @@ Les rewrites routent les requêtes sans changer l'URL visible.
 | 7-8 | `/landing/_next/*`, `/_next/*` | Assets Next.js |
 | 9-10 | `/robots.txt`, `/sitemap.xml` | SEO files |
 | 11-12 | `/support`, `/changelog` | Pages Next.js |
-| 13 | `/:path*` (catch-all) | Angular SPA |
+| 13-14 | `/ph/static/*`, `/ph/*` | PostHog reverse proxy |
+| 15 | `/:path*` (catch-all) | Angular SPA |
 
 **Note importante sur `/_next/*` :** La règle 6 est essentielle pour éviter que les assets statiques (CSS/JS) de la landing page soient interceptés par la règle catch-all (règle 7). Sans elle, les requêtes vers `/_next/static/css/...` retourneraient du HTML (`_app.html`) au lieu des fichiers CSS/JS, causant des erreurs MIME type et un rendu cassé.
 
@@ -206,8 +209,27 @@ Pour ajouter un nouveau dossier d'assets à la landing :
    ```
 3. Placer ce rewrite **avant** le catch-all `/:path*`
 
+## PostHog Reverse Proxy
+
+Les requêtes PostHog sont proxifiées via Vercel pour contourner les ad-blockers :
+
+```json
+{ "source": "/ph/static/:path*", "destination": "https://eu-assets.i.posthog.com/static/:path*" },
+{ "source": "/ph/:path*", "destination": "https://eu.i.posthog.com/:path*" }
+```
+
+| Rewrite | Destination | Usage |
+|---------|-------------|-------|
+| `/ph/static/*` | `eu-assets.i.posthog.com` | SDK JS (fichiers statiques) |
+| `/ph/*` | `eu.i.posthog.com` | API (events, decide, feature flags) |
+
+**Utilisation :** Les deux apps (landing + Angular) utilisent `api_host: '/ph'` en production. En local, `PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com` pointe directement vers PostHog.
+
+Les deux SDKs ajoutent aussi `ui_host: 'https://eu.posthog.com'` pour que la toolbar PostHog fonctionne avec le proxy.
+
 ## Références
 
 - [Vercel Rewrites](https://vercel.com/docs/rewrites)
 - [Vercel Redirects](https://vercel.com/docs/redirects)
 - [Next.js Static Export](https://nextjs.org/docs/app/building-your-application/deploying/static-exports)
+- [PostHog Vercel Reverse Proxy](https://posthog.com/docs/advanced/proxy/vercel)

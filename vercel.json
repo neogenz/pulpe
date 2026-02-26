@@ -86,6 +86,14 @@
       "destination": "/landing/changelog.html"
     },
     {
+      "source": "/ph/static/:path*",
+      "destination": "https://eu-assets.i.posthog.com/static/:path*"
+    },
+    {
+      "source": "/ph/:path*",
+      "destination": "https://eu.i.posthog.com/:path*"
+    },
+    {
       "source": "/:path*",
       "destination": "/_app.html"
     }
