@@ -242,10 +242,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - name: Install Claude Code CLI v2.1.52
+        run: npm install -g @anthropic-ai/claude-code@2.1.52
+
       - name: Claude Code Review
         uses: anthropics/claude-code-action@v1.0.60
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          path_to_claude_code_executable: claude
           prompt: ${{ steps.prompt.outputs.review_prompt }}
           claude_args: |
             --max-turns 25
