@@ -265,4 +265,131 @@ struct RecoveryFlowCoordinatorTests {
         _ = await sut.acceptConsent()
         #expect(sut.isRecoveryKeySheetVisible == true) // presentingKey
     }
+
+    // MARK: - Operation ID Invalidation
+
+    @Test("acceptConsent no-ops if reset() invalidates during generation")
+    func acceptConsent_resetDuringGeneration_noOps() async {
+        let operationStarted = AtomicFlag()
+        let continueOperation = AtomicFlag()
+
+        let (sut, _) = makeCoordinator(
+            setupRecoveryKey: {
+                operationStarted.set()
+                while !continueOperation.value {
+                    try await Task.sleep(for: .milliseconds(10))
+                }
+                return "test-key"
+            }
+        )
+        sut.setConsentPrompt()
+
+        let task = Task { await sut.acceptConsent() }
+        await waitForCondition(
+            timeout: .milliseconds(500),
+            "operation must start"
+        ) {
+            operationStarted.value
+        }
+
+        // Reset invalidates the in-flight operation
+        sut.reset()
+        #expect(sut.recoveryFlowState == .idle)
+
+        // Allow the blocked closure to complete
+        continueOperation.set()
+        let result = await task.value
+
+        // Stale callback must be discarded
+        #expect(result == .error)
+        #expect(sut.recoveryFlowState == .idle)
+    }
+
+    @Test("second acceptConsent invalidates first in-flight operation")
+    func acceptConsent_doubleCall_secondInvalidatesFirst() async {
+        let firstStarted = AtomicFlag()
+        let continueFirst = AtomicFlag()
+        let callCount = AtomicProperty<Int>(0)
+
+        let (sut, _) = makeCoordinator(
+            setupRecoveryKey: {
+                let call = callCount.value
+                callCount.increment()
+                if call == 0 {
+                    firstStarted.set()
+                    while !continueFirst.value {
+                        try await Task.sleep(for: .milliseconds(10))
+                    }
+                    return "first-key"
+                }
+                return "second-key"
+            }
+        )
+        sut.setConsentPrompt()
+
+        // Launch first call — blocks inside setupRecoveryKey
+        let firstTask = Task { await sut.acceptConsent() }
+        await waitForCondition(
+            timeout: .milliseconds(500),
+            "first operation must start"
+        ) {
+            firstStarted.value
+        }
+
+        // Second call creates a new operationId, invalidating the first
+        let secondTask = Task { await sut.acceptConsent() }
+        let secondResult = await secondTask.value
+
+        // Unblock the first call so it can return
+        continueFirst.set()
+        let firstResult = await firstTask.value
+
+        // Second call wins; first is invalidated
+        #expect(firstResult == .error)
+        #expect(secondResult == .keyGenerated)
+        if case .presentingKey(let key) = sut.recoveryFlowState {
+            #expect(key == "second-key")
+        } else {
+            Issue.record(
+                "Expected .presentingKey, got \(sut.recoveryFlowState)"
+            )
+        }
+    }
+
+    @Test("declineConsent during generation invalidates in-flight operation")
+    func declineConsent_duringGeneration_invalidatesOperation() async {
+        let operationStarted = AtomicFlag()
+        let continueOperation = AtomicFlag()
+
+        let (sut, _) = makeCoordinator(
+            setupRecoveryKey: {
+                operationStarted.set()
+                while !continueOperation.value {
+                    try await Task.sleep(for: .milliseconds(10))
+                }
+                return "test-key"
+            }
+        )
+        sut.setConsentPrompt()
+
+        let task = Task { await sut.acceptConsent() }
+        await waitForCondition(
+            timeout: .milliseconds(500),
+            "operation must start"
+        ) {
+            operationStarted.value
+        }
+
+        // Decline invalidates the in-flight operation
+        sut.declineConsent()
+        #expect(sut.recoveryFlowState == .idle)
+
+        // Allow the blocked closure to complete
+        continueOperation.set()
+        let result = await task.value
+
+        // Stale callback must be discarded
+        #expect(result == .error)
+        #expect(sut.recoveryFlowState == .idle)
+    }
 }

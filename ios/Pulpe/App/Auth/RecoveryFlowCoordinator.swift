@@ -37,6 +37,10 @@ final class RecoveryFlowCoordinator {
         recoveryFlowState.isModalActive
     }
 
+    // MARK: - Operation Tracking
+
+    @ObservationIgnored private var currentOperationId: UUID?
+
     // MARK: - Dependencies
 
     @ObservationIgnored private let setupRecoveryKey: @Sendable () async throws -> String
@@ -77,14 +81,18 @@ final class RecoveryFlowCoordinator {
     // MARK: - Consent Actions
 
     func acceptConsent() async -> ConsentResult {
+        let operationId = UUID()
+        currentOperationId = operationId
         recoveryFlowState = .generatingKey
         pendingRecoveryConsent = false
 
         do {
             let recoveryKey = try await setupRecoveryKey()
+            guard currentOperationId == operationId else { return .error }
             recoveryFlowState = .presentingKey(recoveryKey)
             return .keyGenerated
         } catch let error as APIError {
+            guard currentOperationId == operationId else { return .error }
             if case .conflict = error {
                 Logger.auth.info("acceptConsent: recovery key already exists, continue")
                 recoveryFlowState = .idle
@@ -96,6 +104,7 @@ final class RecoveryFlowCoordinator {
             recoveryFlowState = .idle
             return .error
         } catch {
+            guard currentOperationId == operationId else { return .error }
             Logger.auth.error("acceptConsent: unexpected setup-recovery error - \(error)")
             toastManager.show("Impossible de générer la clé de récupération", type: .error)
             recoveryFlowState = .idle
@@ -104,6 +113,7 @@ final class RecoveryFlowCoordinator {
     }
 
     func declineConsent() {
+        currentOperationId = nil
         recoveryFlowState = .idle
         pendingRecoveryConsent = false
     }
@@ -116,6 +126,7 @@ final class RecoveryFlowCoordinator {
     // MARK: - Reset
 
     func reset() {
+        currentOperationId = nil
         recoveryFlowState = .idle
         pendingRecoveryConsent = false
     }
