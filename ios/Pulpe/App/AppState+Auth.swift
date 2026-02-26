@@ -26,10 +26,15 @@ extension AppState {
 
     /// After Supabase session is valid, route deterministically to setup/entry/app.
     func resolvePostAuth(user: UserInfo) async {
-        currentUser = user
-        authState = .loading
-
         let destination = await postAuthResolver.resolve()
+        await applyPostAuthDestination(destination, user: user)
+    }
+
+    func applyPostAuthDestination(_ destination: PostAuthDestination, user: UserInfo? = nil) async {
+        if let user {
+            currentUser = user
+        }
+        authState = .loading
 
         switch destination {
         case .needsPinSetup:

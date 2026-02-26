@@ -2,13 +2,13 @@ import Foundation
 @testable import Pulpe
 import Testing
 
-// swiftlint:disable type_body_length
-/// Characterization tests pinning current AppState behavior before SRP extraction.
-/// These tests serve as regression guards during incremental refactoring:
-/// - enterAuthenticated pipeline (future AuthenticatedEntryCoordinator)
-/// - Recovery flow state machine (future RecoveryFlowCoordinator)
-/// - Onboarding bootstrap via completePinSetup (future OnboardingBootstrapper)
-/// - Session lifecycle: background/foreground + checkAuthState (future SessionLifecycleCoordinator)
+// swiftlint:disable type_body_length file_length line_length
+/// Characterization tests pinning current AppState behavior.
+/// These tests serve as regression guards during refactoring:
+/// - enterAuthenticated pipeline (uses StartupCoordinator)
+/// - Recovery flow state machine (uses RecoveryFlowCoordinator)
+/// - Onboarding bootstrap via completePinSetup (uses OnboardingBootstrapper)
+/// - Session lifecycle: background/foreground + checkAuthState (SessionLifecycleCoordinator)
 ///
 /// All tests use ONLY public API methods — no direct state mutation via private(set) setters.
 @MainActor
@@ -29,7 +29,8 @@ struct AppStateCharacterizationTests {
         setupRecoveryKey: (@Sendable () async throws -> String)? = nil,
         validateRegularSession: (@Sendable () async throws -> UserInfo?)? = nil,
         validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)? = nil,
-        nowProvider: @escaping () -> Date = Date.init
+        maintenanceChecking: (@Sendable () async throws -> Bool)? = nil,
+        nowProvider: @escaping @Sendable () -> Date = { Date() }
     ) -> AppState {
         let store = BiometricPreferenceStore(
             keychain: StubBiometricKeychain(initial: biometricEnabled),
@@ -51,6 +52,7 @@ struct AppStateCharacterizationTests {
             setupRecoveryKey: setupRecoveryKey,
             validateRegularSession: validateRegularSession,
             validateBiometricSession: validateBiometricSession,
+            maintenanceChecking: maintenanceChecking ?? { false },
             nowProvider: nowProvider
         )
         return AppState(dependencies: deps)
@@ -310,10 +312,10 @@ struct AppStateCharacterizationTests {
     // MARK: - Section 4: Session Lifecycle Characterization
     @Test("handleEnterBackground then handleEnterForeground within grace keeps authenticated")
     func backgroundForeground_withinGrace_staysAuthenticated() async {
-        var now = Date(timeIntervalSince1970: 0)
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
         let sut = makeSUT(
             destination: .needsPinEntry(needsRecoveryKeyConsent: false),
-            nowProvider: { now }
+            nowProvider: { now.value }
         )
         sut.biometricEnabled = false
         await sut.resolvePostAuth(user: user)
@@ -321,17 +323,17 @@ struct AppStateCharacterizationTests {
         #expect(sut.authState == .authenticated)
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 15) // 15s < 30s grace period
+        now.set(Date(timeIntervalSince1970: 15)) // 15s < 30s grace period
         await sut.handleEnterForeground()
 
         #expect(sut.authState == .authenticated)
     }
     @Test("handleEnterBackground then handleEnterForeground after grace transitions to needsPinEntry")
     func backgroundForeground_afterGrace_requiresPinEntry() async {
-        var now = Date(timeIntervalSince1970: 0)
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
         let sut = makeSUT(
             destination: .needsPinEntry(needsRecoveryKeyConsent: false),
-            nowProvider: { now }
+            nowProvider: { now.value }
         )
         sut.biometricEnabled = false
         await sut.resolvePostAuth(user: user)
@@ -339,7 +341,7 @@ struct AppStateCharacterizationTests {
         #expect(sut.authState == .authenticated)
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 31) // 31s > 30s grace period
+        now.set(Date(timeIntervalSince1970: 31)) // 31s > 30s grace period
         await sut.handleEnterForeground()
 
         #expect(sut.authState == .needsPinEntry)
@@ -384,34 +386,34 @@ struct AppStateCharacterizationTests {
     }
     @Test("prepareForForeground after grace period sets isRestoringSession")
     func prepareForForeground_afterGrace_setsRestoringSession() async {
-        var now = Date(timeIntervalSince1970: 0)
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
         let sut = makeSUT(
             destination: .needsPinEntry(needsRecoveryKeyConsent: false),
-            nowProvider: { now }
+            nowProvider: { now.value }
         )
         sut.biometricEnabled = false
         await sut.resolvePostAuth(user: user)
         await sut.completePinEntry()
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 31)
+        now.set(Date(timeIntervalSince1970: 31))
         sut.prepareForForeground()
 
         #expect(sut.isRestoringSession == true)
     }
     @Test("handleEnterForeground clears isRestoringSession regardless of outcome")
     func handleEnterForeground_clearsRestoringSession() async {
-        var now = Date(timeIntervalSince1970: 0)
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
         let sut = makeSUT(
             destination: .needsPinEntry(needsRecoveryKeyConsent: false),
-            nowProvider: { now }
+            nowProvider: { now.value }
         )
         sut.biometricEnabled = false
         await sut.resolvePostAuth(user: user)
         await sut.completePinEntry()
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 31)
+        now.set(Date(timeIntervalSince1970: 31))
         sut.prepareForForeground()
         #expect(sut.isRestoringSession == true)
 
@@ -479,6 +481,52 @@ struct AppStateCharacterizationTests {
 
         #expect(spy.value == true, "checkMaintenanceStatus must call injected maintenanceChecking closure")
         #expect(sut.isInMaintenance == false)
+    }
+
+    @Test("start routes to network unavailable when maintenance check has URLError")
+    func start_networkMaintenanceError_showsNetworkUnavailable() async {
+        let sut = makeSUT(
+            destination: .authenticated(needsRecoveryKeyConsent: false),
+            validateRegularSession: { nil },
+            maintenanceChecking: { throw URLError(.notConnectedToInternet) }
+        )
+
+        await sut.start()
+
+        #expect(sut.isNetworkUnavailable == true)
+        #expect(sut.isInMaintenance == false)
+        #expect(sut.currentRoute == .networkError)
+    }
+
+    @Test("retryStartup clears network unavailable flag after health check recovers")
+    func retryStartup_afterNetworkRecovery_clearsNetworkUnavailable() async {
+        enum MaintenanceMode { case networkError, healthy }
+        let mode = AtomicProperty(MaintenanceMode.networkError)
+
+        let sut = makeSUT(
+            destination: .unauthenticatedSessionExpired,
+            validateRegularSession: { nil },
+            maintenanceChecking: {
+                switch mode.value {
+                case .networkError:
+                    throw URLError(.notConnectedToInternet)
+                case .healthy:
+                    return false
+                }
+            }
+        )
+
+        await sut.start()
+        #expect(sut.isNetworkUnavailable == true)
+        #expect(sut.currentRoute == .networkError)
+
+        mode.set(.healthy)
+        await sut.retryStartup()
+
+        #expect(sut.isNetworkUnavailable == false)
+        #expect(sut.isInMaintenance == false)
+        #expect(sut.authState == .unauthenticated)
+        #expect(sut.currentRoute == .login)
     }
 
     @Test("logout uses injected widgetSyncing, not WidgetDataCoordinator directly")

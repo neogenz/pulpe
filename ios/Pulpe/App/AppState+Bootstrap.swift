@@ -16,12 +16,26 @@ extension AppState {
         await biometric.loadPreference()
     }
 
+    /// Public startup entrypoint.
+    func start() async {
+        await checkAuthState()
+    }
+
+    /// Public retry entrypoint for startup failures (network/maintenance transitions).
+    func retryStartup() async {
+        await checkAuthState()
+    }
+
     func checkAuthState() async {
         authDebug("AUTH_COLD_START_BEGIN", "checkAuthState")
 
         // Ensure bootstrap ran (idempotent safety net)
         await bootstrap()
 
+        // Reset transitional route flags for a fresh startup resolution.
+        // Final route (maintenance/network/login/pin/main) is set from startup result.
+        isInMaintenance = false
+        isNetworkUnavailable = false
         authState = .loading
         biometricError = nil
         await biometric.loadPreference()
@@ -31,27 +45,13 @@ extension AppState {
         // can't bypass FaceID/PIN. Biometric keychain is preserved.
         await clientKeyManager.clearSession()
 
-        if flagsStore.manualBiometricRetryRequired {
-            authDebug("AUTH_COLD_START_BRANCH", "manual_retry_required")
-            await ensureReturningUserFlagLoaded()
-            authState = .unauthenticated
-            return
-        }
-
-        // 1. Biometric: Face ID -> PIN/dashboard (skip if user explicitly logged out)
-        if biometric.isEnabled && !flagsStore.didExplicitLogout {
-            authDebug("AUTH_COLD_START_BRANCH", "biometric")
-            await applyColdStartResult(
-                sessionLifecycleCoordinator.attemptBiometricSessionValidation()
-            )
-            return
-        }
-
-        authDebug("AUTH_COLD_START_BRANCH", "regular")
-
-        // 2. Session valid -> PIN entry (keeps user logged in without biometric)
-        let result = await sessionLifecycleCoordinator.attemptRegularSessionValidation()
-        await applyColdStartResult(result)
+        let startupContext = StartupCoordinator.StartupContext(
+            biometricEnabled: biometric.isEnabled,
+            didExplicitLogout: flagsStore.didExplicitLogout,
+            manualBiometricRetryRequired: flagsStore.manualBiometricRetryRequired
+        )
+        let startupResult = await startupCoordinator.start(context: startupContext)
+        await applyStartupResult(startupResult)
     }
 
     func applyColdStartResult(_ result: SessionLifecycleCoordinator.ColdStartResult) async {
@@ -95,5 +95,38 @@ extension AppState {
         guard !returningUserFlagLoaded else { return }
         hasReturningUser = await keychainManager.getLastUsedEmail() != nil
         returningUserFlagLoaded = true
+    }
+
+    private func applyStartupResult(_ result: StartupCoordinator.StartupResult) async {
+        switch result {
+        case .authenticated(let user, let destination):
+            isNetworkUnavailable = false
+            isInMaintenance = false
+            currentUser = user
+            await applyPostAuthDestination(destination, user: user)
+        case .unauthenticated:
+            isNetworkUnavailable = false
+            isInMaintenance = false
+            await ensureReturningUserFlagLoaded()
+            authState = .unauthenticated
+        case .maintenance:
+            isNetworkUnavailable = false
+            isInMaintenance = true
+            authState = .loading
+        case .networkError(let message):
+            isNetworkUnavailable = true
+            isInMaintenance = false
+            biometricError = message
+            authState = .loading
+        case .biometricSessionExpired:
+            isNetworkUnavailable = false
+            isInMaintenance = false
+            biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
+            await ensureReturningUserFlagLoaded()
+            authState = .unauthenticated
+        case .cancelled:
+            // No-op: a superseding startup run is in progress.
+            break
+        }
     }
 }

@@ -29,6 +29,7 @@ struct AppStateDependencies {
 
     var validateRegularSession: (@Sendable () async throws -> UserInfo?)?
     var validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)?
+    var deleteAccountRequest: (@Sendable () async throws -> DeleteAccountResponse)?
 
     // MARK: - Auth Flags & Widget
 
@@ -65,18 +66,21 @@ struct AppStateDependencies {
         setupRecoveryKey: (@Sendable () async throws -> String)? = nil,
         validateRegularSession: (@Sendable () async throws -> UserInfo?)? = nil,
         validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)? = nil,
+        deleteAccountRequest: (@Sendable () async throws -> DeleteAccountResponse)? = nil,
         flagsStore: any AppAuthFlagsStoring = AppAuthFlagsStore(),
         widgetSyncing: any WidgetSyncing = WidgetSyncAdapter(),
         maintenanceChecking: @escaping @Sendable () async throws -> Bool = {
             try await MaintenanceService.shared.checkStatus()
         },
-        createTemplate: @escaping @MainActor (BudgetTemplateCreateFromOnboarding) async throws -> BudgetTemplate = {
-            data in try await TemplateService.shared.createTemplateFromOnboarding(data)
+        createTemplate: @escaping @MainActor
+            (BudgetTemplateCreateFromOnboarding) async throws -> BudgetTemplate = { data in
+            try await TemplateService.shared.createTemplateFromOnboarding(data)
         },
-        createBudget: @escaping @MainActor (BudgetCreate) async throws -> Budget = {
-            data in try await BudgetService.shared.createBudget(data)
+        createBudget: @escaping @MainActor
+            (BudgetCreate) async throws -> Budget = { data in
+            try await BudgetService.shared.createBudget(data)
         },
-        nowProvider: @escaping @Sendable () -> Date = Date.init
+        nowProvider: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.authService = authService
         self.clientKeyManager = clientKeyManager
@@ -93,6 +97,7 @@ struct AppStateDependencies {
         self.setupRecoveryKey = setupRecoveryKey
         self.validateRegularSession = validateRegularSession
         self.validateBiometricSession = validateBiometricSession
+        self.deleteAccountRequest = deleteAccountRequest
         self.flagsStore = flagsStore
         self.widgetSyncing = widgetSyncing
         self.maintenanceChecking = maintenanceChecking

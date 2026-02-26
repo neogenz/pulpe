@@ -80,6 +80,26 @@ struct AppStateLogoutBiometricTests {
         )
     }
 
+    @Test("logout(source: .system) with biometric enabled performs full cleanup")
+    func logout_systemSource_withBiometricEnabled_disablesBiometric() async throws {
+        let user = UserInfo(id: "user-system-bio", email: "sysbio@pulpe.app", firstName: "SysBio")
+        let sut = Self.makeAuthenticatedSUT(
+            biometricEnabled: true,
+            syncBiometricCredentials: { true }
+        )
+
+        await sut.bootstrap()
+        await sut.resolvePostAuth(user: user)
+        await sut.completePinEntry()
+        try #require(sut.biometricEnabled == true, "Setup: biometric should start enabled")
+
+        await sut.logout(source: .system)
+
+        #expect(sut.biometricEnabled == false, "System logout must disable biometric preference")
+        #expect(sut.biometricCredentialsAvailable == false, "System logout must clear biometric credentials")
+        #expect(sut.authState == .unauthenticated)
+    }
+
     // MARK: - Bug 3: checkAuthState Skips Biometric When didExplicitLogout
 
     @Test("checkAuthState skips biometric auto-trigger when didExplicitLogout is true")
@@ -304,30 +324,39 @@ struct AppStateLogoutBiometricTests {
 
     // MARK: - Bug 2: deleteAccount Clears Onboarding State
 
-    @Test("deleteAccount() sets hasReturningUser to false")
-    func deleteAccount_setsHasReturningUserFalse() async {
+    @Test("deleteAccount() success clears returning-user markers and logs out fully")
+    func deleteAccount_success_resetsStateAndCredentials() async {
         let user = UserInfo(id: "user-del", email: "delete@pulpe.app", firstName: "Del")
+        let deleteCalled = AtomicFlag()
+        let keychain = AppStateTestFactory.keychainStore(lastUsedEmail: user.email)
         let sut = AppState(
+            keychainManager: keychain,
             postAuthResolver: MockPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: false)),
-            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
-            biometricCapability: { false }
+            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
+            syncBiometricCredentials: { true },
+            deleteAccountRequest: {
+                deleteCalled.set()
+                return DeleteAccountResponse(
+                    success: true,
+                    message: "scheduled",
+                    scheduledDeletionAt: "2026-03-01T00:00:00Z"
+                )
+            }
         )
 
+        await sut.bootstrap()
         await sut.resolvePostAuth(user: user)
-        try? await Task.sleep(for: .milliseconds(100))
+        await sut.completePinEntry()
+        #expect(sut.authState == AppState.AuthStatus.authenticated, "Setup: should be authenticated")
+        #expect(sut.biometricEnabled == true, "Setup: biometric should be enabled")
 
-        // deleteAccount calls authService.deleteAccount() which will fail without real auth,
-        // but we can verify the state is set correctly via enterSignupFlow which has the same
-        // hasReturningUser = false logic, or via directly observing the deleteAccount flow.
-        // Since deleteAccount requires network, test the state transitions that are observable.
+        await sut.deleteAccount()
 
-        // Verify the method enterSignupFlow (called by deleteAccount path) clears state
-        sut.enterSignupFlow()
-
-        #expect(
-            sut.hasReturningUser == false,
-            "hasReturningUser must be false after entering signup flow (same as deleteAccount)"
-        )
+        #expect(deleteCalled.value == true, "deleteAccount request must be executed")
+        #expect(sut.authState == .unauthenticated)
+        #expect(sut.hasReturningUser == false)
+        #expect(sut.biometricEnabled == false)
+        #expect(await keychain.getLastUsedEmail() == nil, "last_used_email must be cleared")
     }
 
     @Test("deleteAccount clears onboarding persisted data via OnboardingState.clearPersistedData()")

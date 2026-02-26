@@ -2,6 +2,7 @@ import Foundation
 @testable import Pulpe
 import Testing
 
+// swiftlint:disable type_body_length
 @Suite(.serialized)
 @MainActor
 struct AppStateBackgroundLockTests {
@@ -330,6 +331,47 @@ struct AppStateBackgroundLockTests {
         }
     }
 
+    @Test func foregroundBiometricUnlock_sessionRefreshReturnsNil_logsOut() async {
+        let sessionRefreshAttempted = AtomicFlag()
+        var now = Date(timeIntervalSince1970: 0)
+
+        let sut = AppState(
+            postAuthResolver: pinResolver,
+            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
+            syncBiometricCredentials: { true },
+            resolveBiometricKey: { "restored-key" },
+            validateBiometricKey: { _ in true },
+            validateRegularSession: {
+                sessionRefreshAttempted.set()
+                return nil // No active session - should trigger logout
+            },
+            nowProvider: { now }
+        )
+        sut.biometricEnabled = true
+        await authenticateViaPinEntry(sut)
+
+        sut.handleEnterBackground()
+        now = Date(timeIntervalSince1970: 7200) // 2 hours
+        sut.prepareForForeground()
+
+        await sut.handleEnterForeground()
+
+        // Session refresh was attempted
+        await waitForCondition(
+            timeout: .milliseconds(500),
+            "validateRegularSession must be attempted"
+        ) {
+            sessionRefreshAttempted.value
+        }
+        // When session refresh returns nil (no session), user should be logged out
+        await waitForCondition(
+            timeout: .milliseconds(500),
+            "authState should be unauthenticated when session refresh returns nil"
+        ) {
+            sut.authState == .unauthenticated
+        }
+    }
+
     @Test func foregroundAfterGracePeriod_biometricDisabled_requiresPinEntry() async {
         var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now })
@@ -393,7 +435,6 @@ struct AppStateBackgroundLockTests {
 
         // The explicit logout flag must survive — if the background task's system logout
         // clears it, FaceID would auto-trigger on next cold start instead of showing login.
-        // NOTE: This assertion will fail until Step 2 adds task cancellation + isLoggingOut guard.
         let didExplicitLogout = UserDefaults.standard.bool(forKey: "pulpe-did-explicit-logout")
         #expect(didExplicitLogout == true, "Background task must not clear explicit logout flag")
 

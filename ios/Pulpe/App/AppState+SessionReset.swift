@@ -31,7 +31,14 @@ extension AppState {
             backgroundRefreshTask = Task { [weak self] in
                 defer { Task { @MainActor [weak self] in self?.backgroundRefreshTask = nil } }
                 do {
-                    _ = try await validate()
+                    let user = try await validate()
+                    if user == nil {
+                        guard !Task.isCancelled else { return }
+                        Logger.auth.warning(
+                            "handleEnterForeground: session refresh returned nil (no active session)"
+                        )
+                        await self?.logout(source: .system)
+                    }
                 } catch {
                     guard !Task.isCancelled else { return }
                     Logger.auth.warning(
@@ -69,7 +76,10 @@ extension AppState {
 
     // MARK: - Logout
 
-    func logout(source: LogoutSource = .userInitiated) async {
+    func logout(
+        source: LogoutSource = .userInitiated,
+        preserveBiometricSession: Bool? = nil
+    ) async {
         guard !isLoggingOut else { return }
         isLoggingOut = true
         defer { isLoggingOut = false }
@@ -83,8 +93,10 @@ extension AppState {
         case .system:
             clearExplicitLogoutFlag()
         }
+        clearManualBiometricRetryRequiredFlag()
 
-        if biometric.isEnabled {
+        let shouldPreserveBiometric = preserveBiometricSession ?? (source == .userInitiated)
+        if shouldPreserveBiometric && biometric.isEnabled {
             // Refresh biometric tokens with the latest session before clearing
             var biometricTokensSaved = false
             do {
@@ -103,10 +115,13 @@ extension AppState {
                 // Do a full logout instead of silently losing Face ID.
                 Logger.auth.error("logout: biometric token preservation failed, doing full logout")
                 await authService.logout()
+                await biometric.handleSessionExpired()
                 biometric.isEnabled = false
             }
         } else {
             await authService.logout()
+            await biometric.handleSessionExpired()
+            biometric.isEnabled = false
         }
 
         await clientKeyManager.clearSession()
@@ -140,7 +155,7 @@ extension AppState {
 
     func deleteAccount() async {
         do {
-            _ = try await authService.deleteAccount()
+            _ = try await deleteAccountRequest()
         } catch {
             toastManager.show("La suppression du compte a échoué", type: .error)
             return
@@ -152,7 +167,7 @@ extension AppState {
         OnboardingState.clearPersistedData()
         onboardingBootstrapper.clearPendingData()
         clearManualBiometricRetryRequiredFlag()
-        await logout(source: .system)
+        await logout(source: .system, preserveBiometricSession: false)
     }
 
     // MARK: - Session Reset
@@ -166,7 +181,7 @@ extension AppState {
 
         var clearsUIState: Bool {
             switch self {
-            case .sessionExpiry: false
+            case .sessionExpiry: true
             default: true
             }
         }

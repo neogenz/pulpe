@@ -13,6 +13,11 @@ enum RecoveryStep: Equatable {
 // MARK: - View
 
 struct PinRecoveryView: View {
+    private struct RecoveryKeySheetItem: Identifiable {
+        let key: String
+        var id: String { key }
+    }
+
     let onComplete: () -> Void
     let onCancel: () -> Void
     let onSessionExpired: () -> Void
@@ -23,11 +28,9 @@ struct PinRecoveryView: View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .pulpeBackground()
-            .sheet(isPresented: $viewModel.showRecoverySheet) {
-                if let key = viewModel.newRecoveryKey {
-                    RecoveryKeySheet(recoveryKey: key) {
-                        onComplete()
-                    }
+            .sheet(item: recoveryKeySheetItemBinding) { item in
+                RecoveryKeySheet(recoveryKey: item.key) {
+                    onComplete()
                 }
             }
             .alert("Clé de récupération", isPresented: $viewModel.showRecoveryKeyWarning) {
@@ -230,6 +233,19 @@ struct PinRecoveryView: View {
                 .foregroundStyle(Color.textSecondaryOnboarding)
         }
     }
+
+    private var recoveryKeySheetItemBinding: Binding<RecoveryKeySheetItem?> {
+        Binding<RecoveryKeySheetItem?>(
+            get: {
+                guard viewModel.showRecoverySheet, let key = viewModel.newRecoveryKey else { return nil }
+                return RecoveryKeySheetItem(key: key)
+            },
+            set: { item in
+                guard item == nil else { return }
+                viewModel.showRecoverySheet = false
+            }
+        )
+    }
 }
 
 // MARK: - ViewModel
@@ -252,13 +268,8 @@ final class PinRecoveryViewModel {
     let maxDigits = 6
     let minDigits = 4
 
-    var isRecoveryKeyValid: Bool {
-        RecoveryKeyFormatter.strip(recoveryKey).count == 52
-    }
-
-    var canConfirm: Bool {
-        digits.count >= minDigits && !isProcessing
-    }
+    var isRecoveryKeyValid: Bool { RecoveryKeyFormatter.strip(recoveryKey).count == 52 }
+    var canConfirm: Bool { digits.count >= minDigits && !isProcessing }
 
     // MARK: - Private
 
@@ -360,9 +371,7 @@ final class PinRecoveryViewModel {
         }
     }
 
-    private var pinString: String {
-        digits.map(String.init).joined()
-    }
+    private var pinString: String { digits.map(String.init).joined() }
 
     // MARK: - Recovery Execution
 

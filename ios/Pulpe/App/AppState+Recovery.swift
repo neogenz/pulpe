@@ -25,6 +25,8 @@ extension AppState {
 
     func acceptRecoveryKeyRepairConsent() async {
         let result = await recoveryFlowCoordinator.acceptConsent()
+        // Guard: session may have expired during the async operation
+        guard authState != .unauthenticated else { return }
         switch result {
         case .keyGenerated:
             break
@@ -37,11 +39,15 @@ extension AppState {
 
     func declineRecoveryKeyRepairConsent() async {
         recoveryFlowCoordinator.declineConsent()
+        // Guard: session may have expired during UI interaction
+        guard authState != .unauthenticated else { return }
         await enterAuthenticated(context: .recoveryKeyDeclined)
     }
 
     func completePostAuthRecoveryKeyPresentation() async {
         recoveryFlowCoordinator.completePresentationDismissal()
+        // Guard: session may have expired during UI interaction
+        guard authState != .unauthenticated else { return }
         await enterAuthenticated(context: .recoveryKeyPresented)
     }
 }

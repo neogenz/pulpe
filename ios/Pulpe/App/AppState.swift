@@ -125,6 +125,7 @@ final class AppState {
     // MARK: - Session Lifecycle (delegated to SessionLifecycleCoordinator)
 
     @ObservationIgnored let sessionLifecycleCoordinator: SessionLifecycleCoordinator
+    @ObservationIgnored let startupCoordinator: StartupCoordinator
 
     var isRestoringSession: Bool { sessionLifecycleCoordinator.isRestoringSession }
 
@@ -141,6 +142,7 @@ final class AppState {
     let encryptionAPI: EncryptionAPI
     let postAuthResolver: any PostAuthResolving
     let validateRegularSession: @Sendable () async throws -> UserInfo?
+    let deleteAccountRequest: @Sendable () async throws -> DeleteAccountResponse
     @ObservationIgnored let flagsStore: any AppAuthFlagsStoring
     @ObservationIgnored let widgetSyncing: any WidgetSyncing
     @ObservationIgnored let maintenanceChecking: @Sendable () async throws -> Bool
@@ -151,19 +153,21 @@ final class AppState {
 
     init(dependencies: AppStateDependencies = .default) {
         let deps = dependencies
+        let biometricService = deps.biometricService
+        let biometricCapability = deps.biometricCapability ?? { [biometricService] in
+            biometricService.canUseBiometrics()
+        }
+        let biometricAuthenticate = deps.biometricAuthenticate ?? { [biometricService] in
+            try await biometricService.authenticate()
+        }
         self.authService = deps.authService
         self.clientKeyManager = deps.clientKeyManager
         self.keychainManager = deps.keychainManager
         self.encryptionAPI = deps.encryptionAPI
-        self.postAuthResolver =
-            deps.postAuthResolver ??
-            PostAuthResolver(
-                vaultStatusProvider: deps.encryptionAPI,
-                sessionRefresher: deps.authService,
-                clientKeyResolver: deps.clientKeyManager
-            )
+        self.postAuthResolver = Self.makePostAuthResolver(deps)
         self.validateRegularSession =
             deps.validateRegularSession ?? Self.defaultValidateRegularSession(deps.authService)
+        self.deleteAccountRequest = Self.makeDeleteAccountRequest(deps)
         self.flagsStore = deps.flagsStore
         self.widgetSyncing = deps.widgetSyncing
         self.maintenanceChecking = deps.maintenanceChecking
@@ -172,8 +176,8 @@ final class AppState {
             preferenceStore: deps.biometricPreferenceStore,
             authService: deps.authService,
             clientKeyManager: deps.clientKeyManager,
-            capability: deps.biometricCapability ?? { deps.biometricService.canUseBiometrics() },
-            authenticate: deps.biometricAuthenticate ?? { try await deps.biometricService.authenticate() },
+            capability: biometricCapability,
+            authenticate: biometricAuthenticate,
             syncCredentials: deps.syncBiometricCredentials
                 ?? BiometricManager.defaultSyncCredentials(deps.authService),
             resolveKey: deps.resolveBiometricKey
@@ -186,23 +190,27 @@ final class AppState {
         let coordinators = Self.makeCoordinators(
             deps: deps, biometric: self.biometric,
             validateRegularSession: self.validateRegularSession,
+            postAuthResolver: self.postAuthResolver,
             toastManager: toastManager
         )
         self.recoveryFlowCoordinator = coordinators.recovery
         self.onboardingBootstrapper = coordinators.onboarding
         self.sessionLifecycleCoordinator = coordinators.session
+        self.startupCoordinator = coordinators.startup
     }
 
     private struct Coordinators {
         let recovery: RecoveryFlowCoordinator
         let onboarding: OnboardingBootstrapper
         let session: SessionLifecycleCoordinator
+        let startup: StartupCoordinator
     }
 
     private static func makeCoordinators(
         deps: AppStateDependencies,
         biometric: BiometricManager,
         validateRegularSession: @escaping @Sendable () async throws -> UserInfo?,
+        postAuthResolver: any PostAuthResolving,
         toastManager: ToastManager
     ) -> Coordinators {
         let recovery: RecoveryFlowCoordinator
@@ -230,7 +238,31 @@ final class AppState {
                 ?? defaultValidateBiometricSession(deps.authService),
             nowProvider: deps.nowProvider
         )
-        return Coordinators(recovery: recovery, onboarding: onboarding, session: session)
+        let startup = StartupCoordinator(
+            checkMaintenance: deps.maintenanceChecking,
+            validateBiometricSession: deps.validateBiometricSession
+                ?? defaultValidateBiometricSession(deps.authService),
+            validateRegularSession: validateRegularSession,
+            resolvePostAuth: { await postAuthResolver.resolve() },
+            validateBiometricKey: { [biometric] clientKeyHex in
+                await biometric.validateKey(clientKeyHex)
+            },
+            storeSessionClientKey: { [clientKeyManager = deps.clientKeyManager] clientKeyHex in
+                await clientKeyManager.store(clientKeyHex, enableBiometric: false)
+            },
+            clearStaleBiometricState: { [biometric] in
+                await biometric.handleStaleKey()
+            },
+            clearExpiredBiometricState: { [biometric] in
+                await biometric.handleSessionExpired()
+            }
+        )
+        return Coordinators(
+            recovery: recovery,
+            onboarding: onboarding,
+            session: session,
+            startup: startup
+        )
     }
 
     /// Backward-compatible convenience init — delegates to `init(dependencies:)`.
@@ -248,9 +280,11 @@ final class AppState {
         syncBiometricCredentials: (@Sendable () async -> Bool)? = nil,
         resolveBiometricKey: (@Sendable () async -> String?)? = nil,
         validateBiometricKey: (@Sendable (String) async -> Bool)? = nil,
+        setupRecoveryKey: (@Sendable () async throws -> String)? = nil,
         validateRegularSession: (@Sendable () async throws -> UserInfo?)? = nil,
         validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)? = nil,
-        nowProvider: @escaping () -> Date = Date.init
+        deleteAccountRequest: (@Sendable () async throws -> DeleteAccountResponse)? = nil,
+        nowProvider: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.init(dependencies: AppStateDependencies(
             authService: authService,
@@ -265,8 +299,10 @@ final class AppState {
             syncBiometricCredentials: syncBiometricCredentials,
             resolveBiometricKey: resolveBiometricKey,
             validateBiometricKey: validateBiometricKey,
+            setupRecoveryKey: setupRecoveryKey,
             validateRegularSession: validateRegularSession,
             validateBiometricSession: validateBiometricSession,
+            deleteAccountRequest: deleteAccountRequest,
             nowProvider: nowProvider
         ))
     }
@@ -287,6 +323,26 @@ final class AppState {
         {
             try await authService.validateBiometricSession()
         }
+    }
+
+    private static func makePostAuthResolver(
+        _ deps: AppStateDependencies
+    ) -> any PostAuthResolving {
+        deps.postAuthResolver
+            ?? PostAuthResolver(
+                vaultStatusProvider: deps.encryptionAPI,
+                sessionRefresher: deps.authService,
+                clientKeyResolver: deps.clientKeyManager
+            )
+    }
+
+    private static func makeDeleteAccountRequest(
+        _ deps: AppStateDependencies
+    ) -> @Sendable () async throws -> DeleteAccountResponse {
+        deps.deleteAccountRequest
+            ?? { [authService = deps.authService] in
+                try await authService.deleteAccount()
+            }
     }
 
     // MARK: - Biometric Proxy Methods

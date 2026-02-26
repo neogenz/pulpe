@@ -125,6 +125,42 @@ struct AppStateResetMatrixTests {
 
     // MARK: - Manual Biometric Retry Flag
 
+    @Test func sessionExpiry_resetsRecoveryFlowCoordinator() async {
+        let sut = AppState(
+            postAuthResolver: MockPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: true)),
+            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            biometricCapability: { false }
+        )
+
+        let user = UserInfo(id: "session-expiry", email: "session@pulpe.app", firstName: "Session")
+        await sut.resolvePostAuth(user: user)
+
+        #expect(sut.isRecoveryConsentVisible == true, "Recovery consent should be visible before session expiry")
+
+        await sut.handleSessionExpired()
+
+        #expect(sut.isRecoveryConsentVisible == false, "Recovery consent must be dismissed after session expiry")
+    }
+
+    @Test func recoverySessionExpiry_resetsRecoveryFlowCoordinator() async {
+        let sut = AppState(
+            postAuthResolver: MockPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: true)),
+            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            biometricCapability: { false }
+        )
+
+        let user = UserInfo(id: "recovery-user", email: "recovery@pulpe.app", firstName: "Recovery")
+        await sut.resolvePostAuth(user: user)
+
+        // Verify consent modal is visible before expiry
+        #expect(sut.isRecoveryConsentVisible == true, "Recovery consent should be visible before expiry")
+
+        await sut.handleRecoverySessionExpired()
+
+        // Recovery flow coordinator must be reset - consent modal dismissed
+        #expect(sut.isRecoveryConsentVisible == false, "Recovery consent must be dismissed after recoverySessionExpiry")
+    }
+
     @Test func recoverySessionExpiry_setsManualBiometricRetry() async {
         let sut = AppState(
             postAuthResolver: MockPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: false)),
@@ -187,5 +223,54 @@ struct AppStateResetMatrixTests {
         await executeReset(sut, scenario: scenario)
 
         #expect(sut.biometricError != nil, "\(scenario): biometricError must be set with expiry message")
+    }
+
+    // MARK: - Late Callback Guard (Race Condition)
+
+    @Test func acceptRecoveryConsent_sessionExpiryDuringOperation_doesNotTransitionToAuthenticated() async {
+        let operationStarted = AtomicFlag()
+        let continueOperation = AtomicFlag()
+
+        let sut = AppState(
+            postAuthResolver: MockPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: true)),
+            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            biometricCapability: { false },
+            setupRecoveryKey: {
+                operationStarted.set()
+                // Wait for session expiry to occur mid-operation
+                while !continueOperation.value {
+                    try await Task.sleep(for: .milliseconds(10))
+                }
+                return "GENERATED-KEY"
+            }
+        )
+
+        let user = UserInfo(id: "late-callback", email: "late@pulpe.app", firstName: "Late")
+        await sut.resolvePostAuth(user: user)
+        #expect(sut.isRecoveryConsentVisible == true)
+
+        // Start the consent acceptance in background
+        let acceptTask = Task {
+            await sut.acceptRecoveryKeyRepairConsent()
+        }
+
+        // Wait for operation to start
+        await waitForCondition(timeout: .milliseconds(500), "operation must start") {
+            operationStarted.value
+        }
+
+        // Session expires mid-operation
+        await sut.handleSessionExpired()
+        #expect(sut.authState == .unauthenticated)
+
+        // Allow operation to complete
+        continueOperation.set()
+        await acceptTask.value
+
+        // Critical: auth state must remain unauthenticated, not transition back to authenticated
+        #expect(
+            sut.authState == .unauthenticated,
+            "Late callback must NOT transition to authenticated after session expiry"
+        )
     }
 }

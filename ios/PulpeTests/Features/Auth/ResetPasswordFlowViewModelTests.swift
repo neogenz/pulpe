@@ -2,6 +2,13 @@ import Foundation
 @testable import Pulpe
 import Testing
 
+private let resetPasswordTestContext = PasswordRecoveryContext(
+    userId: "user-1",
+    email: "test@example.com",
+    firstName: nil,
+    hasVaultCodeConfigured: true
+)
+
 @MainActor
 struct ResetPasswordFlowViewModelTests {
     private let callbackURL = {
@@ -46,12 +53,12 @@ struct ResetPasswordFlowViewModelTests {
 
     @Test func submit_updatesPasswordAndCompletes() async {
         // Given
-        var updateCallCount = 0
+        let updateCallCount = AtomicProperty<Int>(0)
 
         let viewModel = ResetPasswordFlowViewModel(
             dependencies: ResetPasswordDependencies(
-                beginPasswordRecovery: { _ in Self.testContext },
-                updatePassword: { _ in updateCallCount += 1 }
+                beginPasswordRecovery: { _ in resetPasswordTestContext },
+                updatePassword: { _ in updateCallCount.increment() }
             )
         )
 
@@ -63,7 +70,7 @@ struct ResetPasswordFlowViewModelTests {
         await viewModel.submit()
 
         // Then
-        #expect(updateCallCount == 1)
+        #expect(updateCallCount.value == 1)
         #expect(viewModel.isCompleted)
         #expect(!viewModel.shouldCleanupOnDismiss)
     }
@@ -72,7 +79,7 @@ struct ResetPasswordFlowViewModelTests {
         // Given
         let viewModel = ResetPasswordFlowViewModel(
             dependencies: ResetPasswordDependencies(
-                beginPasswordRecovery: { _ in Self.testContext },
+                beginPasswordRecovery: { _ in resetPasswordTestContext },
                 updatePassword: { _ in Issue.record("updatePassword should not be called") }
             )
         )
@@ -109,7 +116,7 @@ struct ResetPasswordFlowViewModelTests {
         // Given
         let viewModel = ResetPasswordFlowViewModel(
             dependencies: ResetPasswordDependencies(
-                beginPasswordRecovery: { _ in Self.testContext },
+                beginPasswordRecovery: { _ in resetPasswordTestContext },
                 updatePassword: { _ in throw APIError.networkError(URLError(.notConnectedToInternet)) }
             )
         )
@@ -130,7 +137,7 @@ struct ResetPasswordFlowViewModelTests {
         // Given
         let viewModel = ResetPasswordFlowViewModel(
             dependencies: ResetPasswordDependencies(
-                beginPasswordRecovery: { _ in Self.testContext },
+                beginPasswordRecovery: { _ in resetPasswordTestContext },
                 updatePassword: { _ in throw APIError.rateLimited }
             )
         )
@@ -204,18 +211,10 @@ struct ResetPasswordFlowViewModelTests {
 
     // MARK: - Helpers
 
-    private static let testContext = PasswordRecoveryContext(
-        userId: "user-1",
-        email: "test@example.com",
-        firstName: nil,
-        hasVaultCodeConfigured: true
-    )
-
     private func makeViewModel() -> ResetPasswordFlowViewModel {
-        let context = Self.testContext
         return ResetPasswordFlowViewModel(
             dependencies: ResetPasswordDependencies(
-                beginPasswordRecovery: { _ in context },
+                beginPasswordRecovery: { _ in resetPasswordTestContext },
                 updatePassword: { _ in }
             )
         )

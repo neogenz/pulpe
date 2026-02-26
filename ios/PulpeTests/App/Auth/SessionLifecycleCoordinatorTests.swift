@@ -424,25 +424,3 @@ struct SessionLifecycleCoordinatorTests {
         #expect(sut.isBackgroundLockRequired == false)
     }
 }
-
-// MARK: - ColdStartResult Equatable Conformance (for test assertions)
-
-extension SessionLifecycleCoordinator.ColdStartResult: @retroactive Equatable {
-    public static func == (lhs: Self, rhs: Self) -> Bool {
-        switch (lhs, rhs) {
-        case (.unauthenticated, .unauthenticated),
-             (.biometricSessionExpired, .biometricSessionExpired):
-            return true
-        case (.biometricAuthenticated(let lUser, let lKey), .biometricAuthenticated(let rUser, let rKey)):
-            return lUser == rUser && lKey == rKey
-        case (.regularSession(let lUser), .regularSession(let rUser)):
-            return lUser == rUser
-        case (.networkError(let lMsg), .networkError(let rMsg)):
-            return lMsg == rMsg
-        default:
-            return false
-        }
-    }
-}
-
-extension SessionLifecycleCoordinator.ForegroundResult: @retroactive Equatable {}

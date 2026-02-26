@@ -21,10 +21,7 @@ extension AppState {
     }
 
     func retryNetworkCheck() async {
-        await checkMaintenanceStatus()
-        if !isInMaintenance, !isNetworkUnavailable {
-            await checkAuthState()
-        }
+        await retryStartup()
     }
 
     func setMaintenanceMode(_ active: Bool) {

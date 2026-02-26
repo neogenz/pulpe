@@ -130,7 +130,7 @@ struct AppStateBiometricColdStartTests {
     @Test("Foreground after grace period with biometric enabled attempts Face ID")
     func foregroundAfterGrace_biometricEnabled_attemptsFaceID() async {
         let faceIDAttempted = AtomicFlag()
-        var now = Date(timeIntervalSince1970: 0)
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
 
         let sut = AppState(
             postAuthResolver: pinResolver,
@@ -144,14 +144,14 @@ struct AppStateBiometricColdStartTests {
                 return "mock-client-key"
             },
             validateBiometricKey: { _ in true },
-            nowProvider: { now }
+            nowProvider: { now.value }
         )
 
         sut.biometricEnabled = true
         await authenticateViaPinEntry(sut)
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 31) // Exceed grace period
+        now.set(Date(timeIntervalSince1970: 31)) // Exceed grace period
         sut.prepareForForeground()
 
         await sut.handleEnterForeground()
@@ -162,7 +162,7 @@ struct AppStateBiometricColdStartTests {
 
     @Test("Foreground after grace period with Face ID cancel falls back to PIN")
     func foregroundAfterGrace_faceIDCancel_fallsToPIN() async {
-        var now = Date(timeIntervalSince1970: 0)
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
 
         let sut = AppState(
             postAuthResolver: pinResolver,
@@ -172,14 +172,14 @@ struct AppStateBiometricColdStartTests {
             ),
             syncBiometricCredentials: { true },
             resolveBiometricKey: { nil }, // Simulate Face ID cancel/fail
-            nowProvider: { now }
+            nowProvider: { now.value }
         )
 
         sut.biometricEnabled = true
         await authenticateViaPinEntry(sut)
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 31) // Exceed grace period
+        now.set(Date(timeIntervalSince1970: 31)) // Exceed grace period
         sut.prepareForForeground()
 
         await sut.handleEnterForeground()
@@ -192,7 +192,7 @@ struct AppStateBiometricColdStartTests {
         // Biometry lockout (LAError.biometryLockout) causes resolveBiometricKey to return nil,
         // same as cancel/failure. Cold start path fix is in AuthService.validateBiometricSession()
         // where all LAError codes are now mapped to KeychainError.authFailed (caught by AppState).
-        var now = Date(timeIntervalSince1970: 0)
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
 
         let sut = AppState(
             postAuthResolver: pinResolver,
@@ -202,14 +202,14 @@ struct AppStateBiometricColdStartTests {
             ),
             syncBiometricCredentials: { true },
             resolveBiometricKey: { nil }, // Lockout: LAContext fails, wrapper returns nil
-            nowProvider: { now }
+            nowProvider: { now.value }
         )
 
         sut.biometricEnabled = true
         await authenticateViaPinEntry(sut)
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 31) // Exceed grace period
+        now.set(Date(timeIntervalSince1970: 31)) // Exceed grace period
         sut.prepareForForeground()
 
         await sut.handleEnterForeground()
@@ -221,7 +221,7 @@ struct AppStateBiometricColdStartTests {
     @Test("Foreground after grace period with biometric disabled goes to PIN")
     func foregroundAfterGrace_biometricDisabled_goesToPIN() async {
         let faceIDAttempted = AtomicFlag()
-        var now = Date(timeIntervalSince1970: 0)
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
 
         let sut = AppState(
             postAuthResolver: pinResolver,
@@ -229,14 +229,14 @@ struct AppStateBiometricColdStartTests {
                 faceIDAttempted.set()
                 return "mock-client-key"
             },
-            nowProvider: { now }
+            nowProvider: { now.value }
         )
 
         sut.biometricEnabled = false
         await authenticateViaPinEntry(sut)
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 31) // Exceed grace period
+        now.set(Date(timeIntervalSince1970: 31)) // Exceed grace period
         sut.prepareForForeground()
 
         await sut.handleEnterForeground()
@@ -581,8 +581,8 @@ struct AppStateBiometricColdStartTests {
 
     // MARK: - hasReturningUser Loaded Before .unauthenticated (Error Paths)
 
-    @Test("checkAuthState with network error loads hasReturningUser before unauthenticated")
-    func checkAuthState_networkError_loadsReturningUserBeforeUnauthenticated() async {
+    @Test("checkAuthState with network error routes to network screen and preserves returning-user marker")
+    func checkAuthState_networkError_routesToNetworkScreen() async {
         let keychain = MockKeychainStore(lastUsedEmail: "returning@pulpe.app")
 
         UserDefaults.standard.set(true, forKey: "pulpe-has-launched-before")
@@ -600,12 +600,20 @@ struct AppStateBiometricColdStartTests {
         await sut.checkAuthState()
 
         #expect(
-            sut.authState == .unauthenticated,
-            "State should be unauthenticated on network error"
+            sut.isNetworkUnavailable == true,
+            "Network errors at startup should route to NetworkUnavailableView"
+        )
+        #expect(
+            sut.currentRoute == .networkError,
+            "Route should be network error when startup health check fails with URLError"
+        )
+        #expect(
+            sut.authState == .loading,
+            "Auth state should remain transitional while network unavailable screen is shown"
         )
         #expect(
             sut.hasReturningUser == true,
-            "Returning user flag must be loaded even on network error path so LoginView shows instead of OnboardingFlow"
+            "Returning-user marker should be preserved while network is unavailable"
         )
     }
 
@@ -633,7 +641,10 @@ struct AppStateBiometricColdStartTests {
         )
         #expect(
             sut.hasReturningUser == true,
-            "Returning user flag must be loaded even on biometric session expiry path so LoginView shows instead of OnboardingFlow"
+            """
+            Returning user flag must be loaded even on biometric session expiry path
+            so LoginView shows instead of OnboardingFlow
+            """
         )
     }
 }

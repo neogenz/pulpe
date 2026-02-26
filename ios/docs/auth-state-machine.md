@@ -4,19 +4,27 @@ Documents the authentication state machine in `AppState.swift` and its supportin
 
 ## Component Ownership Map
 
-After the SRP-Lite refactoring, auth logic is distributed across specialized coordinators.
+Auth logic is distributed across specialized coordinators following SRP (Single Responsibility Principle).
 AppState remains the `@Observable @MainActor` facade that views interact with.
 
 ### AppState (Facade)
 - **Owns**: `authState`, `currentUser`, navigation state (`budgetPath`, `templatePath`, `selectedTab`), maintenance state, `hasReturningUser`
-- **Role**: Public API for views, delegates to coordinators, maps results to state transitions
+- **Role**: Public API for views (`start()`, `retryStartup()`, `send(event:)`, `logout(...)`), delegates to coordinators, maps results to state transitions
 - **File**: `App/AppState.swift`
+- **Extensions**: `AppState+Auth.swift`, `AppState+Bootstrap.swift`, `AppState+Maintenance.swift`, `AppState+Recovery.swift`, `AppState+SessionReset.swift`, `AppState+FlowState.swift`
 
-### AuthenticatedEntryCoordinator
-- **Owns**: Post-auth pipeline (biometric credential sync + enrollment policy execution)
-- **Called by**: `AppState.enterAuthenticated(context:)` via `transitionToAuthenticated()` and `runEnrollmentPipeline()`
-- **Key methods**: `syncCredentials()`, `runEnrollmentPipeline(context:hasActiveModal:)`
-- **File**: `App/Auth/AuthenticatedEntryCoordinator.swift`
+### AppFlowState & AppFlowReducer (Deterministic State Core)
+- **Owns**: High-level app state enumeration and pure state transitions
+- **Purpose**: Provides a deterministic, testable state machine for the app lifecycle
+- **Key types**: `AppFlowState`, `AppFlowEvent`, `AppFlowReducer`, `AppRoute`
+- **Files**: `App/Core/AppFlowState.swift`, `App/Core/AppFlowEvent.swift`, `App/Core/AppFlowReducer.swift`, `App/Core/AppRoute.swift`
+
+### StartupCoordinator (Actor)
+- **Owns**: Single-flight auth resolution with cancellation support
+- **Purpose**: Prevents race conditions during cold-start authentication
+- **Key methods**: `start()`, `retry()`, `cancel()`
+- **File**: `App/Auth/StartupCoordinator.swift`
+- **Status**: Active runtime path for `AppState.checkAuthState()`.
 
 ### RecoveryFlowCoordinator (`@Observable`)
 - **Owns**: `RecoveryFlowState` state machine, `pendingRecoveryConsent`, computed UI bindings (`isRecoveryConsentVisible`, `isRecoveryKeySheetVisible`, `recoveryKeyForPresentation`)
@@ -38,7 +46,7 @@ AppState remains the `@Observable @MainActor` facade that views interact with.
 - **File**: `App/Auth/SessionLifecycleCoordinator.swift`
 
 ### AppStateDependencies (Struct)
-- **Role**: Groups all 14 injected services/closures for AppState construction, provides `.default` factory for production use
+- **Role**: Groups all injected services/closures for AppState construction, provides `.default` factory for production use
 - **File**: `App/AppStateDependencies.swift`
 
 ## AuthStatus Transitions
@@ -88,9 +96,9 @@ This prevents stale or duplicate calls from triggering unexpected transitions.
 
 ### Entry points into `authenticated`
 
-All transitions into `authenticated` go through `enterAuthenticated(context:)`, which delegates to `AuthenticatedEntryCoordinator`:
-1. Calls `transitionToAuthenticated()` — sets `authState = .authenticated`, then calls `authenticatedEntryCoordinator.syncCredentials()` (biometric token sync)
-2. Calls `authenticatedEntryCoordinator.runEnrollmentPipeline(context:hasActiveModal:)` — resets the enrollment policy, evaluates it, and executes enrollment if `.proceed`
+All transitions into `authenticated` go through `enterAuthenticated(context:)`:
+1. Calls `transitionToAuthenticated()` — sets `authState = .authenticated`, syncs biometric credentials
+2. Runs enrollment pipeline — resets the enrollment policy, evaluates it, and executes enrollment if `.proceed`
 
 ## AuthCompletionContext
 
@@ -221,8 +229,6 @@ Previously a `UserDefaults` flag (`pulpe-biometric-enrollment-dismissed`) made e
 
 **Ordering guarantee:** `transitionToAuthenticated()` sets `authState = .authenticated` **before** the policy evaluation. The `isAuthenticated` check in `shouldAttempt` is therefore defensive — it is guaranteed to be `true` at that point but guards against hypothetical future call sites that might invoke the policy outside the normal pipeline.
 
-After the SRP-Lite refactoring, the pipeline delegates to `AuthenticatedEntryCoordinator`:
-
 ```
 completePinEntry()                          ← AppState (delegates to RecoveryFlowCoordinator for consent check)
 completeRecovery()                          ← AppState
@@ -236,9 +242,9 @@ enterAuthenticated(context: AuthCompletionContext)    ← AppState (private)
         │
         ├─▶ transitionToAuthenticated()               ← AppState (private)
         │       authState = .authenticated
-        │       authenticatedEntryCoordinator.syncCredentials()
+        │       biometric.syncAfterAuth()
         │
-        ├─▶ authenticatedEntryCoordinator.runEnrollmentPipeline(context:hasActiveModal:)
+        ├─▶ runEnrollmentPipeline(context:hasActiveModal:)
         │       enrollmentPolicy.resetForNewTransition()
         │       enrollmentPolicy.shouldAttempt(context: ...)
         │           .proceed  ──▶  markInFlight(context:)

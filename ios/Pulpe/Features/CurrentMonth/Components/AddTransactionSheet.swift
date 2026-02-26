@@ -229,3 +229,69 @@ struct AddTransactionSheet: View {
         print("Added: \(transaction)")
     }
 }
+
+// MARK: - Deep Link Wrapper
+
+struct DeepLinkAddExpenseSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var viewModel = DeepLinkAddExpenseViewModel()
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if viewModel.isLoading {
+                    LoadingView(message: "Chargement...")
+                } else if let error = viewModel.error {
+                    ContentUnavailableView {
+                        Label("Erreur de connexion", systemImage: "wifi.exclamationmark")
+                    } description: {
+                        Text(DomainErrorLocalizer.localize(error))
+                    } actions: {
+                        Button("Réessayer") {
+                            Task { await viewModel.loadCurrentBudget() }
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                } else if let budgetId = viewModel.currentBudgetId {
+                    AddTransactionSheet(budgetId: budgetId) { _ in
+                        dismiss()
+                    }
+                } else {
+                    ContentUnavailableView(
+                        "Pas encore de budget",
+                        systemImage: "calendar.badge.exclamationmark",
+                        description: Text("Crée d'abord un budget pour ce mois")
+                    )
+                }
+            }
+            .task {
+                await viewModel.loadCurrentBudget()
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Fermer") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+@Observable @MainActor
+final class DeepLinkAddExpenseViewModel {
+    private(set) var currentBudgetId: String?
+    private(set) var isLoading = true
+    private(set) var error: Error?
+
+    func loadCurrentBudget() async {
+        isLoading = true
+        error = nil
+        do {
+            let budget = try await BudgetService.shared.getCurrentMonthBudget()
+            currentBudgetId = budget?.id
+        } catch {
+            self.error = error
+            currentBudgetId = nil
+        }
+        isLoading = false
+    }
+}

@@ -8,7 +8,7 @@ import OSLog
 @MainActor
 final class SessionLifecycleCoordinator {
     // MARK: - Result Types
-    enum ColdStartResult {
+    enum ColdStartResult: Equatable {
         case biometricAuthenticated(user: UserInfo, clientKeyHex: String?)
         case regularSession(user: UserInfo)
         case unauthenticated
@@ -16,7 +16,7 @@ final class SessionLifecycleCoordinator {
         case biometricSessionExpired
     }
 
-    enum ForegroundResult {
+    enum ForegroundResult: Equatable {
         case noLockNeeded
         case biometricUnlockSuccess
         case lockRequired

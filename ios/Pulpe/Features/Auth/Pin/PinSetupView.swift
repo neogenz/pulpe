@@ -27,6 +27,11 @@ enum PinSetupStep {
 // MARK: - View
 
 struct PinSetupView: View {
+    private struct RecoveryKeySheetItem: Identifiable {
+        let key: String
+        var id: String { key }
+    }
+
     let mode: PinSetupMode
     let onComplete: () async -> Void
     let onLogout: (() async -> Void)?
@@ -50,11 +55,9 @@ struct PinSetupView: View {
             .pulpeBackground()
             .sensoryFeedback(.error, trigger: viewModel.hapticError)
             .sensoryFeedback(.success, trigger: viewModel.hapticSuccess)
-            .sheet(isPresented: $viewModel.showRecoverySheet) {
-                if let key = viewModel.recoveryKey {
-                    RecoveryKeySheet(recoveryKey: key) {
-                        Task { await onComplete() }
-                    }
+            .sheet(item: recoveryKeySheetItemBinding) { item in
+                RecoveryKeySheet(recoveryKey: item.key) {
+                    Task { await onComplete() }
                 }
             }
             .onChange(of: viewModel.completedWithoutRecovery) { _, completed in
@@ -139,6 +142,19 @@ struct PinSetupView: View {
             }
         }
         .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: viewModel.errorMessage)
+    }
+
+    private var recoveryKeySheetItemBinding: Binding<RecoveryKeySheetItem?> {
+        Binding<RecoveryKeySheetItem?>(
+            get: {
+                guard viewModel.showRecoverySheet, let key = viewModel.recoveryKey else { return nil }
+                return RecoveryKeySheetItem(key: key)
+            },
+            set: { item in
+                guard item == nil else { return }
+                viewModel.showRecoverySheet = false
+            }
+        )
     }
 }
 

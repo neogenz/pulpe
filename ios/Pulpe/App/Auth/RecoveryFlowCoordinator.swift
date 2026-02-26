@@ -6,7 +6,7 @@ import OSLog
 @MainActor
 final class RecoveryFlowCoordinator {
     // MARK: - Result type for consent acceptance
-    enum ConsentResult {
+    enum ConsentResult: Equatable {
         case keyGenerated
         case conflict
         case error

@@ -266,7 +266,3 @@ struct RecoveryFlowCoordinatorTests {
         #expect(sut.isRecoveryKeySheetVisible == true) // presentingKey
     }
 }
-
-// MARK: - ConsentResult Equatable (for test assertions)
-
-extension RecoveryFlowCoordinator.ConsentResult: Equatable {}
