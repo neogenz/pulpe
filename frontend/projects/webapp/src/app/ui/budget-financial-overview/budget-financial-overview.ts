@@ -3,18 +3,18 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  inject,
   input,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { type BudgetLine, type Transaction } from 'pulpe-shared';
-import {
-  BudgetCalculator,
-  BUDGET_WARNING_THRESHOLD_PERCENT,
-  calculateAllConsumptions,
-} from '@core/budget';
 import { RealizedBalanceProgressBar } from '@ui/realized-balance-progress-bar/realized-balance-progress-bar';
 import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-balance-tooltip';
+
+export interface FinancialTotals {
+  income: number;
+  expenses: number;
+  savings: number;
+  remaining: number;
+}
 
 /**
  * BudgetFinancialOverview - "Financial Pulse" design
@@ -53,7 +53,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
               Ce qu'il te reste ce mois
             }
             @case ('deficit') {
-              Déficit ce mois
+              Deficit ce mois
             }
           }
         </p>
@@ -78,13 +78,13 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
             }
             @case ('warning') {
               @if (totals().remaining > 0) {
-                Tu gères bien
+                Tu geres bien
               } @else {
-                Pile à l'équilibre
+                Pile a l'equilibre
               }
             }
             @case ('deficit') {
-              Ce mois sera serré — mais tu le sais
+              Ce mois sera serre — mais tu le sais
             }
           }
         </p>
@@ -93,7 +93,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
       <!-- Supporting Metrics: Pill-style, horizontal scroll on mobile -->
       <div
         role="list"
-        aria-label="Résumé financier"
+        aria-label="Resume financier"
         class="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:justify-center scrollbar-hide"
       >
         <!-- Income Pill -->
@@ -126,7 +126,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
           >
           <div class="flex flex-col">
             <span class="text-label-small leading-tight text-on-financial-light"
-              >Dépenses</span
+              >Depenses</span
             >
             <span
               class="text-label-large font-semibold text-financial-expense ph-no-capture"
@@ -146,7 +146,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
           >
           <div class="flex flex-col">
             <span class="text-label-small leading-tight text-on-financial-light"
-              >Épargne</span
+              >Epargne</span
             >
             <span
               class="text-label-large font-semibold text-financial-savings ph-no-capture"
@@ -198,51 +198,12 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetFinancialOverview {
-  readonly #budgetCalculator = inject(BudgetCalculator);
-
-  readonly budgetLines = input.required<BudgetLine[]>();
-  readonly transactions = input.required<Transaction[]>();
+  readonly totals = input.required<FinancialTotals>();
   readonly realizedBalance = input.required<number>();
   readonly realizedExpenses = input.required<number>();
   readonly checkedCount = input.required<number>();
   readonly totalCount = input.required<number>();
-
-  readonly totals = computed(() => {
-    const lines = this.budgetLines();
-    const transactions = this.transactions();
-
-    const consumptionMap = calculateAllConsumptions(lines, transactions);
-
-    const income = this.#budgetCalculator.calculatePlannedIncome(lines);
-    let expenses = 0;
-    let savings = 0;
-
-    lines.forEach((line) => {
-      const consumption = consumptionMap.get(line.id);
-      const effectiveAmount = consumption
-        ? Math.max(line.amount, consumption.consumed)
-        : line.amount;
-
-      switch (line.kind) {
-        case 'expense':
-          expenses += effectiveAmount;
-          break;
-        case 'saving':
-          savings += effectiveAmount;
-          break;
-      }
-    });
-
-    const freeTransactions = transactions.filter((tx) => !tx.budgetLineId);
-    const initialLivingAllowance = income - expenses - savings;
-    const transactionImpact =
-      this.#budgetCalculator.calculateActualTransactionsAmount(
-        freeTransactions,
-      );
-    const remaining = initialLivingAllowance + transactionImpact;
-
-    return { income, expenses, savings, remaining };
-  });
+  readonly warningThreshold = input(90);
 
   readonly isPositive = computed(() => this.totals().remaining >= 0);
 
@@ -250,7 +211,7 @@ export class BudgetFinancialOverview {
     const { remaining, income } = this.totals();
     if (income <= 0) return remaining >= 0;
     const consumedPercent = ((income - remaining) / income) * 100;
-    return consumedPercent <= BUDGET_WARNING_THRESHOLD_PERCENT;
+    return consumedPercent <= this.warningThreshold();
   });
 
   readonly budgetState = computed<'comfortable' | 'warning' | 'deficit'>(() => {

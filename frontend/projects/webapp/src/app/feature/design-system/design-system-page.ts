@@ -6,10 +6,11 @@ import {
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { type BudgetLine, type Transaction } from 'pulpe-shared';
 import { DashboardHero } from '@ui/dashboard-hero/dashboard-hero';
-import { BudgetFinancialOverview } from '@features/budget/budget-details/budget-financial-overview';
-import { createMockBudgetLine } from '@app/testing/mock-factories';
+import {
+  BudgetFinancialOverview,
+  type FinancialTotals,
+} from '@ui/budget-financial-overview/budget-financial-overview';
 import { ThemeService } from '@core/theme';
 
 @Component({
@@ -109,8 +110,7 @@ import { ThemeService } from '@core/theme';
           <div class="space-y-2">
             <p class="text-label-large text-on-surface-variant">Comfortable</p>
             <pulpe-budget-financial-overview
-              [budgetLines]="comfortableBudgetLines"
-              [transactions]="emptyTransactions"
+              [totals]="comfortableTotals"
               [realizedBalance]="0"
               [realizedExpenses]="0"
               [checkedCount]="0"
@@ -120,8 +120,7 @@ import { ThemeService } from '@core/theme';
           <div class="space-y-2">
             <p class="text-label-large text-on-surface-variant">Warning</p>
             <pulpe-budget-financial-overview
-              [budgetLines]="warningBudgetLines"
-              [transactions]="emptyTransactions"
+              [totals]="warningTotals"
               [realizedBalance]="0"
               [realizedExpenses]="0"
               [checkedCount]="0"
@@ -131,8 +130,7 @@ import { ThemeService } from '@core/theme';
           <div class="space-y-2">
             <p class="text-label-large text-on-surface-variant">Deficit</p>
             <pulpe-budget-financial-overview
-              [budgetLines]="deficitBudgetLines"
-              [transactions]="emptyTransactions"
+              [totals]="deficitTotals"
               [realizedBalance]="0"
               [realizedExpenses]="0"
               [checkedCount]="0"
@@ -254,117 +252,29 @@ export default class DesignSystemPage {
     endDate: new Date(2026, 0, 31),
   };
 
-  readonly emptyTransactions: Transaction[] = [];
+  // Comfortable: income 5000, expenses 2000, savings 500 -> remaining 2500
+  readonly comfortableTotals: FinancialTotals = {
+    income: 5000,
+    expenses: 2000,
+    savings: 500,
+    remaining: 2500,
+  };
 
-  // Comfortable: income 5000, expenses 2000, savings 500
-  readonly comfortableBudgetLines: BudgetLine[] = [
-    createMockBudgetLine({
-      id: 'c-1',
-      name: 'Salaire',
-      amount: 5000,
-      kind: 'income',
-      recurrence: 'fixed',
-    }),
-    createMockBudgetLine({
-      id: 'c-2',
-      name: 'Loyer',
-      amount: 1200,
-      kind: 'expense',
-      recurrence: 'fixed',
-    }),
-    createMockBudgetLine({
-      id: 'c-3',
-      name: 'Courses',
-      amount: 800,
-      kind: 'expense',
-      recurrence: 'fixed',
-    }),
-    createMockBudgetLine({
-      id: 'c-4',
-      name: 'Epargne',
-      amount: 500,
-      kind: 'saving',
-      recurrence: 'fixed',
-    }),
-  ];
-
-  // Warning: income 5000, expenses 4200, savings 500 -> remaining ~300
-  readonly warningBudgetLines: BudgetLine[] = [
-    createMockBudgetLine({
-      id: 'w-1',
-      name: 'Salaire',
-      amount: 5000,
-      kind: 'income',
-      recurrence: 'fixed',
-    }),
-    createMockBudgetLine({
-      id: 'w-2',
-      name: 'Loyer',
-      amount: 1800,
-      kind: 'expense',
-      recurrence: 'fixed',
-    }),
-    createMockBudgetLine({
-      id: 'w-3',
-      name: 'Courses',
-      amount: 1200,
-      kind: 'expense',
-      recurrence: 'fixed',
-    }),
-    createMockBudgetLine({
-      id: 'w-4',
-      name: 'Assurances',
-      amount: 1200,
-      kind: 'expense',
-      recurrence: 'fixed',
-    }),
-    createMockBudgetLine({
-      id: 'w-5',
-      name: 'Epargne',
-      amount: 500,
-      kind: 'saving',
-      recurrence: 'fixed',
-    }),
-  ];
+  // Warning: income 5000, expenses 4200, savings 500 -> remaining 300
+  readonly warningTotals: FinancialTotals = {
+    income: 5000,
+    expenses: 4200,
+    savings: 500,
+    remaining: 300,
+  };
 
   // Deficit: income 5000, expenses 5200, savings 500 -> remaining -700
-  readonly deficitBudgetLines: BudgetLine[] = [
-    createMockBudgetLine({
-      id: 'd-1',
-      name: 'Salaire',
-      amount: 5000,
-      kind: 'income',
-      recurrence: 'fixed',
-    }),
-    createMockBudgetLine({
-      id: 'd-2',
-      name: 'Loyer',
-      amount: 2000,
-      kind: 'expense',
-      recurrence: 'fixed',
-    }),
-    createMockBudgetLine({
-      id: 'd-3',
-      name: 'Courses',
-      amount: 1500,
-      kind: 'expense',
-      recurrence: 'fixed',
-    }),
-    createMockBudgetLine({
-      id: 'd-4',
-      name: 'Assurances',
-      amount: 1700,
-      kind: 'expense',
-      recurrence: 'fixed',
-    }),
-    createMockBudgetLine({
-      id: 'd-5',
-      name: 'Epargne',
-      amount: 500,
-      kind: 'saving',
-      recurrence: 'fixed',
-    }),
-  ];
+  readonly deficitTotals: FinancialTotals = {
+    income: 5000,
+    expenses: 5200,
+    savings: 500,
+    remaining: -700,
+  };
 
   readonly financialColors = [
     { token: '--pulpe-financial-income', label: 'Income' },

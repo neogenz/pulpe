@@ -94,8 +94,7 @@
 
   <!-- Financial Overview -->
   <pulpe-budget-financial-overview
-    [budgetLines]="budgetLines"
-    [transactions]="transactions"
+    [totals]="financialTotals()"
     [realizedBalance]="store.realizedBalance()"
     [realizedExpenses]="store.realizedExpenses()"
     [checkedCount]="store.checkedItemsCount()"

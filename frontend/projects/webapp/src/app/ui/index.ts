@@ -1,6 +1,7 @@
 export * from './breadcrumb/breadcrumb';
 export * from './breadcrumb/breadcrumb-item.directive';
 export * from './breadcrumb/breadcrumb-separator.directive';
+export * from './budget-financial-overview/budget-financial-overview';
 export * from './currency-input';
 export * from './dashboard-hero/dashboard-hero';
 export * from './dialogs/confirmation-dialog';
