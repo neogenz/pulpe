@@ -58,6 +58,8 @@ const MAX_VISIBLE_FORECASTS = 5;
         @if (forecasts().length > 0) {
           <div class="flex flex-col gap-1">
             @for (forecast of displayedForecasts(); track forecast.id) {
+              @let displayAmount =
+                consumptions().get(forecast.id)?.remaining ?? forecast.amount;
               <div
                 class="relative overflow-hidden flex items-center justify-between p-3 rounded-2xl hover:bg-on-surface/8 motion-safe:transition-colors cursor-pointer"
                 matRipple
@@ -70,11 +72,7 @@ const MAX_VISIBLE_FORECASTS = 5;
                 role="checkbox"
                 [attr.aria-checked]="false"
                 [attr.aria-label]="
-                  forecast.name +
-                  ' — ' +
-                  (consumptions().get(forecast.id)?.remaining ??
-                    forecast.amount) +
-                  ' CHF'
+                  forecast.name + ' — ' + displayAmount + ' CHF'
                 "
               >
                 <mat-checkbox
@@ -94,10 +92,7 @@ const MAX_VISIBLE_FORECASTS = 5;
                   class="text-label-large whitespace-nowrap ml-4 font-semibold tabular-nums ph-no-capture"
                   [pulpeFinancialKind]="forecast.kind"
                 >
-                  {{
-                    consumptions().get(forecast.id)?.remaining ??
-                      forecast.amount | number: '1.2-2' : 'de-CH'
-                  }}
+                  {{ displayAmount | number: '1.2-2' : 'de-CH' }}
                   CHF
                 </span>
               </div>

@@ -88,11 +88,12 @@ import { BUDGET_WARNING_THRESHOLD_PERCENT } from '@core/budget';
         </div>
         <p class="text-body-small opacity-60 mt-1">
           Revenus {{ totalIncome() | number: '1.2-2' : 'de-CH' }}
-          @if (rolloverAmount() !== 0) {
+          @let rollover = rolloverAmount();
+          @if (rollover !== 0) {
             <span class="opacity-80">
               Report
-              {{ rolloverAmount() > 0 ? '+' : ''
-              }}{{ rolloverAmount() | number: '1.2-2' : 'de-CH' }}
+              {{ rollover > 0 ? '+' : ''
+              }}{{ rollover | number: '1.2-2' : 'de-CH' }}
             </span>
           }
         </p>
