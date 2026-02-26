@@ -24,9 +24,15 @@ captureEvent('click');              // Too vague
 ## Conversion Funnel
 
 ```
-$pageview (landing) → cta_clicked → signup_completed → vault_code_setup_completed
-→ onboarding_started → profile_step1_completed → profile_step2_completed → first_budget_created
+$pageview (landing) → cta_clicked → signup_started → signup_completed
+→ vault_code_setup_completed → onboarding_started → profile_step1_completed
+→ profile_step2_completed → first_budget_created
 ```
+
+**Tracking approach:**
+- Pre-auth events (`signup_started`) are captured as anonymous events (`person_profiles: 'identified_only'`)
+- Full auto-capture (pageviews, autocapture) enabled after authentication
+- Google OAuth uses sessionStorage `pulpe_pending_signup_method` to fire `signup_completed` after redirect
 
 ## Events Catalog
 
@@ -41,8 +47,8 @@ $pageview (landing) → cta_clicked → signup_completed → vault_code_setup_co
 
 | Event | When | Properties |
 |-------|------|------------|
-| `signup_started` | User clicks signup button | `method` |
-| `signup_completed` | Email signup succeeds | `method` |
+| `signup_started` | User clicks signup button | `method` (`email` \| `google`) |
+| `signup_completed` | Signup succeeds (email direct, Google via pending method) | `method` (`email` \| `google`) |
 | `vault_code_setup_completed` | New user creates vault code | — |
 | `vault_code_entered` | Returning user enters vault code | — |
 | `demo_started` | Demo session created | — |

@@ -242,6 +242,7 @@ export default class WelcomePage {
   onGoogleLoadingChange(isLoading: boolean): void {
     this.isGoogleLoading.set(isLoading);
     if (isLoading) {
+      sessionStorage.setItem('pulpe_pending_signup_method', 'google');
       this.#postHogService.captureEvent('signup_started', { method: 'google' });
     }
   }
