@@ -25,6 +25,7 @@ export class PostHogService {
   readonly #platformId = inject(PLATFORM_ID);
 
   readonly #isInitialized = signal<boolean>(false);
+  #isTrackingEnabled = false;
 
   readonly isInitialized = this.#isInitialized.asReadonly();
   readonly isEnabled = computed(() => {
@@ -90,7 +91,7 @@ export class PostHogService {
    * Enable tracking after user consent
    */
   enableTracking(): void {
-    if (!this.#canCapture()) return;
+    if (!this.#canCapture() || this.#isTrackingEnabled) return;
 
     try {
       posthog.opt_in_capturing();
@@ -103,6 +104,7 @@ export class PostHogService {
 
       // Capture the initial pageview (subsequent navigations are auto-tracked)
       posthog.capture('$pageview');
+      this.#isTrackingEnabled = true;
       this.#logger.info('PostHog tracking enabled with SPA navigation support');
     } catch (error) {
       this.#logger.error('Failed to enable tracking', error);
@@ -182,6 +184,7 @@ export class PostHogService {
 
     try {
       posthog.reset();
+      this.#isTrackingEnabled = false;
       this.#logger.debug('PostHog state reset');
     } catch (error) {
       this.#logger.error('Failed to reset PostHog', error);

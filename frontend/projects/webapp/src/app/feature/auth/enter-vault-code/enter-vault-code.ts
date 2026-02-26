@@ -30,6 +30,7 @@ import { Logger } from '@core/logging/logger';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
 import { LogoutDialog } from '@ui/dialogs/logout-dialog';
+import { PostHogService } from '@core/analytics';
 
 @Component({
   selector: 'pulpe-enter-vault-code',
@@ -168,6 +169,7 @@ export default class EnterVaultCode {
   readonly #formBuilder = inject(FormBuilder);
   readonly #router = inject(Router);
   readonly #logger = inject(Logger);
+  readonly #postHogService = inject(PostHogService);
 
   protected readonly ROUTES = ROUTES;
   protected readonly isSubmitting = signal(false);
@@ -226,6 +228,7 @@ export default class EnterVaultCode {
       const rememberDevice = this.form.getRawValue().rememberDevice;
       this.#clientKeyService.setDirectKey(clientKeyHex, rememberDevice);
 
+      this.#postHogService.captureEvent('vault_code_entered');
       this.#router.navigate(['/', ROUTES.DASHBOARD]);
     } catch (error) {
       this.#logger.error('Enter vault code failed:', error);

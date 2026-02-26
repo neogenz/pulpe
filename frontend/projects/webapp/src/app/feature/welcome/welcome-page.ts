@@ -263,6 +263,7 @@ export default class WelcomePage {
   async #startDemoWithToken(token: string): Promise<void> {
     try {
       await this.#demoInitializer.startDemoSession(token);
+      this.#postHogService.captureEvent('demo_started');
     } catch (error) {
       this.#logger.error('Failed to start demo mode', { error });
       this.errorMessage.set(this.#ERROR_MESSAGES.DEMO_INIT_FAILED);
