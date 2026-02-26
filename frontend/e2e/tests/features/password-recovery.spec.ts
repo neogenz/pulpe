@@ -122,6 +122,16 @@ test.describe('Password Recovery', () => {
       vaultCodeConfigured: true,
     });
 
+    // Inject client key so encryptionSetupGuard allows navigation to dashboard
+    await page.addInitScript(() => {
+      const validKeyHex = 'aa'.repeat(32);
+      sessionStorage.setItem('pulpe-vault-client-key-session', JSON.stringify({
+        version: 1,
+        data: validKeyHex,
+        updatedAt: new Date().toISOString(),
+      }));
+    });
+
     await mockSupabaseUpdateUser(page);
 
     await page.goto('/reset-password', { waitUntil: 'domcontentloaded' });
