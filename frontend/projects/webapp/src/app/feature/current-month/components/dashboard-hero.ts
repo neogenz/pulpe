@@ -116,7 +116,7 @@ import { BUDGET_WARNING_THRESHOLD_PERCENT } from '@core/budget';
           </span>
         </div>
         <div
-          class="relative w-full h-3 bg-black/10 rounded-full"
+          class="relative w-full h-3 bg-black/10 rounded-full overflow-hidden"
           [matTooltip]="'Mois écoulé : ' + timeElapsedPercentage() + '%'"
         >
           <div

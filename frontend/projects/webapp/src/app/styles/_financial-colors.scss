@@ -24,14 +24,6 @@
   --pulpe-amber-on-container: #fff3e0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --pulpe-amber: #f0a050;
-    --pulpe-amber-container: #2a1f10;
-    --pulpe-amber-on-container: #fff3e0;
-  }
-}
-
 // ─── Layer 2: Semantic financial tokens ─────────────────────────────
 // What colors MEAN in Pulpe's financial context.
 // Consumed by Tailwind utilities (text-financial-*) and component styles.
@@ -97,14 +89,6 @@
   --pulpe-financial-critical: var(--mat-sys-on-error-container);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --pulpe-financial-income: var(--mat-sys-on-tertiary-container);
-    --pulpe-financial-savings: var(--mat-sys-on-primary-container);
-    --pulpe-financial-critical: var(--mat-sys-on-error-container);
-  }
-}
-
 // ─── Layer 3: Hero gradient tokens ───────────────────────────────────
 // Hero cards use bold gradients that need dark backgrounds in BOTH themes.
 // M3 primary/error are tone 80 in dark mode (too light for gradients).
@@ -126,15 +110,4 @@
   --pulpe-hero-warning-text: #fff3e0; // amber tone ~95 — light amber text
   --pulpe-hero-error: #930009; // error tone 30 — deep saturated red
   --pulpe-hero-error-text: #ffdad5; // error tone 90 — light pink text
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --pulpe-hero-primary: #00390f;
-    --pulpe-hero-primary-text: #99f89d;
-    --pulpe-hero-warning: #3d2200;
-    --pulpe-hero-warning-text: #fff3e0;
-    --pulpe-hero-error: #930009;
-    --pulpe-hero-error-text: #ffdad5;
-  }
 }

@@ -1,3 +1,4 @@
+import { isDevMode } from '@angular/core';
 import { type Routes } from '@angular/router';
 import { publicGuard, hasBudgetGuard } from '@core/auth';
 import { authGuard } from '@core/auth/auth-guard';
@@ -121,6 +122,17 @@ export const routes: Routes = [
         data: { breadcrumb: 'Paramètres', icon: 'settings' },
         loadChildren: () => import('./feature/settings/settings.routes'),
       },
+      ...(isDevMode()
+        ? [
+            {
+              path: ROUTES.DESIGN_SYSTEM,
+              title: PAGE_TITLES.DESIGN_SYSTEM,
+              data: { breadcrumb: 'Design System', icon: 'palette' },
+              loadChildren: () =>
+                import('./feature/design-system/design-system.routes'),
+            },
+          ]
+        : []),
     ],
   },
   {

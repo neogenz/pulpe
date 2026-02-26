@@ -33,4 +33,10 @@ module.exports = tseslint.config(
     files: ["**/*.html"],
     rules: {},
   },
+  {
+    files: ["**/feature/design-system/**/*.ts"],
+    rules: {
+      "boundaries/element-types": "off",
+    },
+  },
 );
