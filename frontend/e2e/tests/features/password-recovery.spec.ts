@@ -119,7 +119,7 @@ test.describe('Password Recovery', () => {
     await setupAuthBypass(page, {
       includeApiMocks: true,
       setLocalStorage: true,
-      vaultCodeConfigured: false,
+      vaultCodeConfigured: true,
     });
 
     await mockSupabaseUpdateUser(page);
