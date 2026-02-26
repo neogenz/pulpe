@@ -45,6 +45,7 @@ AppState remains the `@Observable @MainActor` facade that views interact with.
 - **Owns**: `RecoveryFlowState` state machine, `pendingRecoveryConsent`, computed UI bindings (`isRecoveryConsentVisible`, `isRecoveryKeySheetVisible`, `recoveryKeyForPresentation`)
 - **Called by**: AppState recovery methods (`acceptRecoveryKeyRepairConsent`, `declineRecoveryKeyRepairConsent`, `completePostAuthRecoveryKeyPresentation`), `resolvePostAuth`, `completePinEntry`
 - **Key methods**: `showConsentPromptIfPending()`, `acceptConsent()`, `declineConsent()`, `completePresentationDismissal()`, `reset()`
+- **Operation ID**: `acceptConsent()` uses a UUID-based `currentOperationId` to invalidate stale callbacks. If `reset()` or `declineConsent()` is called during the async `setupRecoveryKey()`, the returning closure checks the ID and no-ops.
 - **File**: `App/Auth/RecoveryFlowCoordinator.swift`
 
 ### OnboardingBootstrapper
@@ -59,6 +60,19 @@ AppState remains the `@Observable @MainActor` facade that views interact with.
 - **Key methods**: `attemptBiometricSessionValidation()`, `attemptRegularSessionValidation()`, `handleEnterBackground()`, `handleEnterForeground(authState:)`
 - **Returns**: Typed result enums (`ColdStartResult`, `ForegroundResult`) for AppState to map into state transitions
 - **File**: `App/Auth/SessionLifecycleCoordinator.swift`
+
+### AppRuntimeCoordinator (`@Observable @MainActor`)
+- **Owns**: Scene phase handling, privacy shield, foreground store refresh, widget sync
+- **Purpose**: Extracts runtime orchestration from RootView so it stays purely declarative
+- **Key methods**: `handleScenePhaseChange(from:to:)`, `shouldShowPrivacyShield`
+- **File**: `App/Runtime/AppRuntimeCoordinator.swift`
+
+### SessionDataResetting (Protocol)
+- **Owns**: Atomic reset of feature stores during session teardown
+- **Purpose**: Makes `resetSession()` transactional — stores reset inside AppState, not reactively from the view
+- **Production impl**: `LiveSessionDataResetter` (resets `CurrentMonthStore`, `BudgetListStore`, `DashboardStore`)
+- **File**: `App/SessionDataResetting.swift`
+- **Injected**: Set on `AppState.sessionDataResetter` in `PulpeApp.init()` after store creation
 
 ### AppStateDependencies (Struct)
 - **Role**: Groups all injected services/closures for AppState construction, provides `.default` factory for production use
@@ -77,6 +91,7 @@ Handled by `handleImmediateEvent(_:)` — no async work, direct state mutation:
 Handled by `applyReducerTransitionIfPossible(_:)` — pure `AppFlowReducer.reduce()` calls:
 - `.maintenanceChecked(Bool)`
 - `.networkBecameUnavailable`
+- `.startupTimedOut`
 - `.foregroundLockRequired`
 - `.foregroundNoLockNeeded`
 - `.biometricUnlockFailed`
@@ -91,7 +106,6 @@ All other events are enqueued in `AppFlowEventQueue` for FIFO processing:
 - `.pinEntrySucceeded`, `.biometricUnlockSucceeded`
 - `.pinSetupCompleted`
 - `.recoveryCompleted`, `.recoveryKeyConsentAccepted`, `.recoveryKeyConsentDeclined`, `.recoveryKeyPresentationDismissed`
-- `.startupTimedOut`
 
 ### Race Condition Prevention
 Before the event queue, concurrent events could cause state inconsistencies:

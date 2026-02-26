@@ -1015,11 +1015,13 @@ Après inscription :
 2. Au retour : `isBackgroundLockRequired` vérifie `elapsed >= 30s && authState == .authenticated`
 3. `prepareForForeground()` active `isRestoringSession = true` (affiche le PrivacyShield, empêche le flash de contenu)
 4. `handleEnterForeground()` :
-   a. `clearCache()` efface la clé client en mémoire
-   b. Si biométrique activée → tente `resolveBiometricKey()` (Face ID)
-   c. Si Face ID réussit → reprise transparente
-   d. Si Face ID échoue/annulé → `authState = .needsPinEntry`
-5. Dans tous les cas : `forceRefresh()` sur les stores (données fraîches)
+   a. `lastLockReason = .backgroundTimeout` est stocké explicitement **avant** le defer qui efface `isRestoringSession`
+   b. `clearCache()` efface la clé client en mémoire
+   c. Si biométrique activée → tente `resolveBiometricKey()` (Face ID)
+   d. Si Face ID réussit → reprise transparente
+   e. Si Face ID échoue/annulé → `authState = .needsPinEntry`
+5. `flowState` retourne `.locked(.backgroundTimeout)` grâce à `lastLockReason` (déterministe, ne dépend pas du flag transitoire `isRestoringSession`)
+6. `AppRuntimeCoordinator.handleScenePhaseChange()` orchestre le cycle foreground/background et déclenche `forceRefresh()` sur les stores
 
 **Critères** :
 - L'écran de saisie du code PIN est affiché (pas le login)
@@ -1214,7 +1216,7 @@ Ce qui est **perdu** :
 **Détail technique** :
 - **Rafraîchissement automatique** : le SDK Supabase rafraîchit les tokens à chaque accès à `supabase.auth.session`
 - **Clé client périmée** : notification `.clientKeyCheckFailed` → `handleStaleClientKey()` → efface toutes les clés → `authState = .needsPinEntry`
-- **401 non-récupérable en cours de session** : `APIClient.refreshTokenAndRetry()` échoue → `AuthService.shared.logout()` + notification `.sessionExpired` → `PulpeApp` écoute → `appState.handleSessionExpired()` → `clearSession()`, `currentUser = nil`, `authState = .unauthenticated`, `biometricError = "Ta session a expiré, reconnecte-toi"`
+- **401 non-récupérable en cours de session** : `APIClient.refreshTokenAndRetry()` échoue → `AuthService.shared.logout()` + notification `.sessionExpired` → `RootView.onReceive` → `appState.send(.sessionExpired)` → `resetSession(.sessionExpiry)` → `clearSession()`, `currentUser = nil`, `authState = .unauthenticated`, stores reset atomiquement via `SessionDataResetting`, `biometricError = "Ta session a expiré, reconnecte-toi"`
 - **Refresh token invalide au cold start** : `PostAuthResolver` détecte un 401 sur vault-status → tente un refresh → si échec → `.unauthenticatedSessionExpired`
 
 **Critères** :
@@ -1232,6 +1234,8 @@ Ce qui est **perdu** :
 2. Si `URLError` → `isNetworkUnavailable = true` → `NetworkUnavailableView`
 3. Si erreur serveur → `isInMaintenance = true` → `MaintenanceView`
 4. Si OK → poursuit avec `checkAuthState()`
+5. `StartupCoordinator` enforce un timeout de 30 secondes. Si le startup ne termine pas à temps : `send(.startupTimedOut)` → transition reducer → `NetworkUnavailableView`
+6. Le `currentRunId` (UUID) garantit que les side-effects (stockage clé, biométrie) d'un startup annulé/timeout sont bloqués — seul le dernier `start()` peut écrire
 
 **Critères** :
 - Un écran dédié "Réseau indisponible" est affiché (pas un écran de login)
@@ -1239,6 +1243,7 @@ Ce qui est **perdu** :
 - `retryNetworkCheck()` re-vérifie la maintenance puis l'auth
 - Si le réseau revient et que la maintenance est OK : l'auth check reprend normalement
 - Aucune donnée locale n'est accessible hors-ligne (API-first)
+- Après timeout (30s), les closures du startup précédent sont invalidées par le `runId` (pas de side-effects fantômes)
 
 ### 12.22 Mode maintenance
 
@@ -1260,7 +1265,44 @@ Ce qui est **perdu** :
 - Les données du widget sont mises à jour quand l'app passe en arrière-plan
 - Au logout, les données du widget sont effacées et le widget se rafraîchit
 
-### 12.24 Suppression de compte
+### 12.24 Course condition : consent recovery key pendant expiration de session
+
+**Workflow** : Avoir accepte le consent recovery key > La generation de cle est en cours (`setupRecoveryKey()`) > La session expire pendant la generation > La generation termine (succes ou erreur)
+
+**Detail technique** :
+1. `acceptRecoveryKeyRepairConsent()` lance `recoveryFlowCoordinator.acceptConsent()`
+2. `acceptConsent()` cree un `currentOperationId` (UUID) et passe en `.generatingKey`
+3. Si `reset()` est appele pendant l'await (session expiry → `resetSession()` → `coordinator.reset()`), le `currentOperationId` est mis a `nil`
+4. Quand `setupRecoveryKey()` termine, `guard currentOperationId == operationId` echoue → retourne `.error` sans modifier l'etat
+5. Cote AppState : le guard `authState == .authenticated || authState == .needsPinEntry` bloque aussi les late callbacks (Wave 3)
+
+**Criteres** :
+- La generation de cle en cours est invalidee quand la session expire
+- Pas de corruption d'etat : `authState` reste `.unauthenticated` apres expiry, pas de retour a `.authenticated`
+- Double protection : operation ID dans `RecoveryFlowCoordinator` + guard `authState` dans `AppState+Recovery.swift`
+- Un second `acceptConsent()` invalide le premier (last-writer-wins)
+- `declineConsent()` pendant la generation invalide aussi l'operation en cours
+
+### 12.25 Reset session transactionnel
+
+**Workflow** : Toute deconnexion (logout, session expiry, password reset, suppression de compte) > Les stores de donnees et l'etat AppState sont reinitialises atomiquement
+
+**Detail technique** :
+1. `resetSession(_:scope)` dans `AppState+SessionReset.swift` :
+   a. `currentUser = nil`, `authState = .unauthenticated`
+   b. `sessionDataResetter?.resetStores()` — reset atomique des 3 feature stores (`CurrentMonthStore`, `BudgetListStore`, `DashboardStore`) via le protocole `SessionDataResetting`
+   c. Reset coordinators (`RecoveryFlowCoordinator.reset()`, `BiometricAutomaticEnrollmentPolicy.resetForNewTransition()`)
+   d. Reset navigation (`budgetPath`, `templatePath`, `selectedTab`) selon le scope
+   e. Widget data cleared selon le scope
+2. `LiveSessionDataResetter` est injecte dans `AppState` dans `PulpeApp.init()` apres creation des stores
+
+**Criteres** :
+- Le reset des stores se fait dans `resetSession()`, pas dans la couche UI (pas de `.onChange` reactif)
+- Pas de timing gap entre le reset de `authState` et le reset des stores
+- Si `sessionDataResetter` est nil (tests), le reset AppState fonctionne quand meme
+- Fonctionne pour tous les scopes : `userLogout`, `systemLogout`, `sessionExpiry`, `recoverySessionExpiry`, `passwordReset`
+
+### 12.26 Suppression de compte (ex 12.24)
 
 **Workflow** : Réglages > Supprimer le compte > Confirmer
 
