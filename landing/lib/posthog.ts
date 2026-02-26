@@ -4,6 +4,17 @@ const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY ?? '';
 const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? 'https://eu.i.posthog.com';
 const POSTHOG_ENABLED = process.env.NEXT_PUBLIC_POSTHOG_ENABLED === 'true';
 
+const VERCEL_ENV_MAP: Record<string, string> = {
+  production: 'production',
+  preview: 'development',
+  development: 'development',
+};
+
+function resolveEnvironment(): string {
+  const vercelEnv = process.env.NEXT_PUBLIC_VERCEL_ENV;
+  return vercelEnv ? (VERCEL_ENV_MAP[vercelEnv] ?? vercelEnv) : 'local';
+}
+
 let initialized = false;
 
 export function initPostHog(): void {
@@ -16,6 +27,11 @@ export function initPostHog(): void {
       capture_pageleave: true,
       person_profiles: 'identified_only',
       persistence: 'localStorage+cookie',
+    });
+
+    posthog.register({
+      environment: resolveEnvironment(),
+      platform: 'landing',
     });
 
     initialized = true;
