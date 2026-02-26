@@ -3,18 +3,16 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 @Component({
-  selector: 'pulpe-realized-balance-tooltip',
+  selector: 'pulpe-verification-tooltip',
   imports: [MatIconModule, MatTooltipModule],
   template: `
     <mat-icon
-      matTooltip="Ce solde est calculé à partir des éléments cochés, report compris. Compare-le à ton solde bancaire pour vérifier que tout colle."
+      matTooltip="Au fur et à mesure que tu pointes tes éléments, ce montant te dit combien il devrait rester sur ton compte. Compare avec ton app bancaire !"
       matTooltipPosition="above"
       matTooltipTouchGestures="auto"
       matTooltipClass="text-center"
       aria-hidden="false"
-      aria-label="Information sur le solde actuel"
-      role="button"
-      tabindex="0"
+      aria-label="Information sur le solde estimé"
       class="text-financial-income cursor-help text-base! text-center"
       >info</mat-icon
     >
@@ -26,4 +24,4 @@ import { MatTooltipModule } from '@angular/material/tooltip';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class RealizedBalanceTooltip {}
+export class VerificationTooltip {}

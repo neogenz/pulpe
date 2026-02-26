@@ -6,7 +6,7 @@ import {
   TEST_UUIDS,
 } from '../../helpers/api-mocks';
 
-test.describe('Solde Realise (Realized Balance)', () => {
+test.describe('Budget Verification Block (Solde estimé)', () => {
   const budgetId = TEST_UUIDS.BUDGET_1;
 
   // All tests need to show checked items (default filter hides them)
@@ -65,7 +65,7 @@ test.describe('Solde Realise (Realized Balance)', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const progressBar = authenticatedPage.getByTestId('realized-balance-progress');
+    const progressBar = authenticatedPage.getByTestId('budget-verification-block');
     await expect(progressBar).toBeVisible();
 
     // Realized expenses = max(2000, 1000) = 2000
@@ -129,7 +129,7 @@ test.describe('Solde Realise (Realized Balance)', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const progressBar = authenticatedPage.getByTestId('realized-balance-progress');
+    const progressBar = authenticatedPage.getByTestId('budget-verification-block');
     await expect(progressBar).toBeVisible();
 
     // Realized expenses = max(2000, 3000) = 3000
@@ -194,7 +194,7 @@ test.describe('Solde Realise (Realized Balance)', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const progressBar = authenticatedPage.getByTestId('realized-balance-progress');
+    const progressBar = authenticatedPage.getByTestId('budget-verification-block');
     await expect(progressBar).toBeVisible();
 
     // Realized expenses = max(500, 450) = 500 (NOT 950)
@@ -259,7 +259,7 @@ test.describe('Solde Realise (Realized Balance)', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const progressBar = authenticatedPage.getByTestId('realized-balance-progress');
+    const progressBar = authenticatedPage.getByTestId('budget-verification-block');
     await expect(progressBar).toBeVisible();
 
     // Realized expenses = 450 (only checked transactions, envelope not checked)

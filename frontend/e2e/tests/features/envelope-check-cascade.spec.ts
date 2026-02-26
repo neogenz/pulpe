@@ -240,11 +240,11 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
     await budgetDetailsPage.goto(budgetId);
 
     // Wait for the progress bar component to render before asserting text
-    await expect(authenticatedPage.getByTestId('realized-balance-progress')).toBeVisible();
+    await expect(authenticatedPage.getByTestId('budget-verification-block')).toBeVisible();
 
     // Verify initial pointés count: 2/5 (Salaire + Supermarché checked)
     await expect(
-      authenticatedPage.getByText('2/5 éléments comptabilisés'),
+      authenticatedPage.getByText('2/5 éléments pointés'),
     ).toBeVisible();
 
     // Check the "Courses" envelope
@@ -255,7 +255,7 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
 
     // Verify updated count: 3/5
     await expect(
-      authenticatedPage.getByText('3/5 éléments comptabilisés'),
+      authenticatedPage.getByText('3/5 éléments pointés'),
     ).toBeVisible();
   });
 

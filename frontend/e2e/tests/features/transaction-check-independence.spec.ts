@@ -106,11 +106,11 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
     await budgetDetailsPage.goto(budgetId);
 
     // Wait for the progress bar component to render before asserting text
-    await expect(authenticatedPage.getByTestId('realized-balance-progress')).toBeVisible();
+    await expect(authenticatedPage.getByTestId('budget-verification-block')).toBeVisible();
 
     // Verify initial pointés count: 0/5 (2 lines + 3 transactions, all unchecked)
     await expect(
-      authenticatedPage.getByText('0/5 éléments comptabilisés'),
+      authenticatedPage.getByText('0/5 éléments pointés'),
     ).toBeVisible();
 
     // Open the envelope detail panel by clicking the envelope card
@@ -135,7 +135,7 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
 
     // Verify pointés count: 1/5
     await expect(
-      authenticatedPage.getByText('1/5 éléments comptabilisés'),
+      authenticatedPage.getByText('1/5 éléments pointés'),
     ).toBeVisible();
 
     // Check transaction 2
@@ -153,7 +153,7 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
 
     // Verify pointés count: 2/5
     await expect(
-      authenticatedPage.getByText('2/5 éléments comptabilisés'),
+      authenticatedPage.getByText('2/5 éléments pointés'),
     ).toBeVisible();
 
     // Check transaction 3
@@ -171,7 +171,7 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
 
     // Verify pointés count: 3/5 (all 3 transactions checked, but envelope + income still unchecked)
     await expect(
-      authenticatedPage.getByText('3/5 éléments comptabilisés'),
+      authenticatedPage.getByText('3/5 éléments pointés'),
     ).toBeVisible();
 
     // Close the detail panel to verify the envelope toggle state

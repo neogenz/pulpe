@@ -6,8 +6,8 @@ import {
   input,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { RealizedBalanceProgressBar } from '@ui/realized-balance-progress-bar/realized-balance-progress-bar';
-import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-balance-tooltip';
+import { BudgetVerificationBlock } from '@ui/budget-verification-block/budget-verification-block';
+import { VerificationTooltip } from '@ui/verification-tooltip/verification-tooltip';
 
 export interface FinancialTotals {
   income: number;
@@ -27,8 +27,8 @@ export interface FinancialTotals {
   imports: [
     MatIconModule,
     DecimalPipe,
-    RealizedBalanceProgressBar,
-    RealizedBalanceTooltip,
+    BudgetVerificationBlock,
+    VerificationTooltip,
   ],
   template: `
     <div class="space-y-6">
@@ -48,12 +48,23 @@ export interface FinancialTotals {
           @switch (budgetState()) {
             @case ('comfortable') {
               Ce qu'il te reste ce mois
+              <span
+                class="text-body-small text-on-primary-container/70 block mt-0.5"
+                >selon tes prévisions</span
+              >
             }
             @case ('warning') {
               Ce qu'il te reste ce mois
+              <span class="text-body-small text-warning/70 block mt-0.5"
+                >selon tes prévisions</span
+              >
             }
             @case ('deficit') {
               Déficit ce mois
+              <span
+                class="text-body-small text-on-error-container/70 block mt-0.5"
+                >selon tes prévisions</span
+              >
             }
           }
         </p>
@@ -162,16 +173,17 @@ export interface FinancialTotals {
         </div>
       </div>
 
-      <!-- Journey Tracker: Realized balance progress -->
-      <pulpe-realized-balance-progress-bar
-        [realizedExpenses]="realizedExpenses()"
-        [realizedBalance]="realizedBalance()"
+      <!-- Budget Verification: Estimated balance check -->
+      <pulpe-budget-verification-block
+        [checkedExpenses]="realizedExpenses()"
+        [estimatedBalance]="realizedBalance()"
         [checkedCount]="checkedCount()"
         [totalCount]="totalCount()"
-        data-testid="realized-balance-progress"
+        [plannedRemaining]="totals().remaining"
+        data-testid="budget-verification-block"
       >
-        <pulpe-realized-balance-tooltip slot="title-info" />
-      </pulpe-realized-balance-progress-bar>
+        <pulpe-verification-tooltip slot="title-info" />
+      </pulpe-budget-verification-block>
     </div>
   `,
   styles: `
