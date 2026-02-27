@@ -75,7 +75,7 @@ interface EditTransactionsDialogResult {
     <h2 mat-dialog-title class="flex gap-2 items-center">
       <mat-icon class="text-primary">edit</mat-icon>
       <span
-        >Éditer les transactions -
+        >Modifier les transactions -
         <span class="ph-no-capture">{{ data.templateName }}</span></span
       >
     </h2>

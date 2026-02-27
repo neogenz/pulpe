@@ -66,7 +66,7 @@ import type { BudgetLineTableItem } from '../data-core';
         [attr.data-testid]="'edit-' + item().data.id"
       >
         <mat-icon matMenuItemIcon>edit</mat-icon>
-        <span>Éditer</span>
+        <span>Modifier</span>
       </button>
       @if (item().metadata.canResetFromTemplate) {
         <button
