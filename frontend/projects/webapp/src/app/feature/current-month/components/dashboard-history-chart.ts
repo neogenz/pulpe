@@ -59,16 +59,18 @@ import {
           <div
             class="flex flex-col items-center justify-center text-center h-full gap-2 p-6"
           >
-            <mat-icon
-              class="text-on-surface-variant/50 mb-2 empty-state-icon"
-              aria-hidden="true"
-              >bar_chart</mat-icon
+            <div
+              class="w-16 h-16 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center mb-2"
             >
+              <mat-icon class="scale-150" aria-hidden="true"
+                >bar_chart</mat-icon
+              >
+            </div>
+            <h3 class="text-title-medium font-medium text-on-surface-variant">
+              Pas encore d'historique
+            </h3>
             <p class="text-body-medium text-on-surface-variant">
-              Pas assez de données pour afficher l'historique.
-            </p>
-            <p class="text-body-small text-on-surface-variant/70">
-              L'historique apparaitra avec tes prochains budgets.
+              L'historique apparaîtra avec tes prochains budgets.
             </p>
           </div>
         }
@@ -78,12 +80,6 @@ import {
   styles: `
     :host {
       display: block;
-    }
-
-    .empty-state-icon {
-      font-size: 36px;
-      width: 36px;
-      height: 36px;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

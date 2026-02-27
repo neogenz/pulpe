@@ -94,11 +94,11 @@ const KIND_ICONS: Record<TransactionKind, string> = {
             <div
               class="w-16 h-16 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center mb-4"
             >
-              <mat-icon class="scale-150" aria-hidden="true"
+              <mat-icon class="scale-150 flex! shrink-0!" aria-hidden="true"
                 >receipt_long</mat-icon
               >
             </div>
-            <h3 class="text-title-medium font-bold text-on-surface mb-1">
+            <h3 class="text-title-medium font-medium text-on-surface-variant">
               Aucune transaction
             </h3>
             <p class="text-body-medium text-on-surface-variant">

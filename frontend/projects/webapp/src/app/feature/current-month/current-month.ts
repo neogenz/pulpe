@@ -159,7 +159,7 @@ type TransactionFormData = Pick<
               <pulpe-dashboard-next-month
                 [forecast]="store.upcomingBudgetsData()[0]"
                 [estimatedRollover]="store.remaining()"
-                (navigateToBudgets)="navigateToBudgetTemplates()"
+                (navigateToBudgets)="navigateToBudgetList()"
                 data-testid="dashboard-block-next-month"
               />
             }
@@ -189,8 +189,8 @@ type TransactionFormData = Pick<
           testId="empty-state"
           [title]="'Pas encore de budget pour ' + budgetPeriodDisplayName()"
           message="Crée-le depuis tes modèles pour commencer à suivre ton mois."
-          actionLabel="Voir mes modèles"
-          (action)="navigateToBudgetTemplates()"
+          actionLabel="Voir mes budgets"
+          (action)="navigateToBudgetList()"
         />
       }
     </div>
@@ -324,8 +324,8 @@ export default class Dashboard {
     }
   }
 
-  protected navigateToBudgetTemplates(): void {
-    this.#router.navigate(['/', ROUTES.BUDGET_TEMPLATES]);
+  protected navigateToBudgetList(): void {
+    this.#router.navigate(['/', ROUTES.BUDGET]);
   }
 
   protected async toggleBudgetLineCheck(budgetLineId: string): Promise<void> {

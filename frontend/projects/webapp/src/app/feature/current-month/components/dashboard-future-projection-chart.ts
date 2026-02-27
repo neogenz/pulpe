@@ -79,15 +79,17 @@ import {
           <div
             class="flex flex-col items-center justify-center text-center h-full gap-2 p-6"
           >
-            <mat-icon
-              class="text-on-surface-variant/50 mb-2 empty-state-icon"
-              aria-hidden="true"
-              >show_chart</mat-icon
+            <div
+              class="w-16 h-16 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center mb-2"
             >
+              <mat-icon class="scale-150 flex! shrink-0!" aria-hidden="true"
+                >show_chart</mat-icon
+              >
+            </div>
+            <h3 class="text-title-medium font-medium text-on-surface-variant">
+              Aucun budget futur défini
+            </h3>
             <p class="text-body-medium text-on-surface-variant">
-              Aucun budget futur défini pour le moment.
-            </p>
-            <p class="text-body-small text-on-surface-variant/70">
               Crée tes prochains budgets pour voir ta projection ici.
             </p>
           </div>
@@ -95,20 +97,12 @@ import {
       </div>
     </div>
   `,
-  styles: [
-    `
-      :host {
-        display: block;
-        height: 100%;
-      }
-
-      .empty-state-icon {
-        font-size: 36px;
-        width: 36px;
-        height: 36px;
-      }
-    `,
-  ],
+  styles: `
+    :host {
+      display: block;
+      height: 100%;
+    }
+  `,
 })
 export class DashboardFutureProjectionChart {
   readonly #doc = inject(DOCUMENT);

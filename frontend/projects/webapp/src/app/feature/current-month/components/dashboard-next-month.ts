@@ -24,7 +24,7 @@ const ROLLOVER_FORMATTER = new Intl.NumberFormat('de-CH', {
     <div class="flex flex-col w-full h-full">
       <div class="mb-4 px-1 flex items-center gap-3">
         <div
-          class="w-10 h-10 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center flex-shrink-0"
+          class="w-10 h-10 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center shrink-0!"
         >
           <mat-icon aria-hidden="true">event_upcoming</mat-icon>
         </div>
@@ -59,15 +59,18 @@ const ROLLOVER_FORMATTER = new Intl.NumberFormat('de-CH', {
           </p>
         } @else {
           <div class="flex flex-col items-center justify-center gap-3 py-4">
-            <mat-icon
-              class="text-on-surface-variant opacity-40 empty-icon"
-              aria-hidden="true"
+            <div
+              class="w-16 h-16 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center"
             >
-              event_busy
-            </mat-icon>
-            <p class="text-body-medium text-on-surface-variant text-center">
+              <mat-icon class="scale-150 flex! shrink-0!" aria-hidden="true"
+                >event_busy</mat-icon
+              >
+            </div>
+            <h3
+              class="text-title-medium font-medium text-on-surface-variant text-center"
+            >
               Pas encore de budget pour {{ monthName() }}
-            </p>
+            </h3>
             <button matButton="outlined" (click)="navigateToBudgets.emit()">
               <mat-icon aria-hidden="true">add</mat-icon>
               Anticiper le mois prochain
@@ -80,12 +83,6 @@ const ROLLOVER_FORMATTER = new Intl.NumberFormat('de-CH', {
   styles: `
     :host {
       display: block;
-    }
-
-    .empty-icon {
-      font-size: 36px;
-      width: 36px;
-      height: 36px;
     }
   `,
 })

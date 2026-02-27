@@ -105,9 +105,11 @@ const MAX_VISIBLE_FORECASTS = 5;
             <div
               class="w-16 h-16 rounded-full bg-financial-income/10 text-financial-income flex items-center justify-center mb-4"
             >
-              <mat-icon class="scale-150" aria-hidden="true">done_all</mat-icon>
+              <mat-icon class="scale-150 flex! shrink-0!" aria-hidden="true"
+                >done_all</mat-icon
+              >
             </div>
-            <h3 class="text-title-medium font-bold text-on-surface mb-1">
+            <h3 class="text-title-medium font-medium text-on-surface-variant">
               Tout est à jour !
             </h3>
             <p class="text-body-medium text-on-surface-variant">

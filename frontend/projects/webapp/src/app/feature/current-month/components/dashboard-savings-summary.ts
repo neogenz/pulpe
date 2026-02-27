@@ -40,16 +40,19 @@ import { MatIconModule } from '@angular/material/icon';
       >
         @if (isComplete()) {
           <div class="flex flex-col items-center justify-center py-6 gap-2">
-            <mat-icon
-              class="text-financial-savings large-icon"
-              aria-hidden="true"
+            <div
+              class="w-16 h-16 rounded-full bg-financial-savings/10 text-financial-savings flex items-center justify-center mb-2"
             >
-              check_circle
-            </mat-icon>
-            <p class="text-body-medium font-bold text-on-surface text-center">
+              <mat-icon class="scale-150" aria-hidden="true"
+                >check_circle</mat-icon
+              >
+            </div>
+            <h3
+              class="text-title-medium font-medium text-on-surface-variant text-center"
+            >
               C'est fait pour ce mois
-            </p>
-            <p class="text-body-small text-on-surface-variant text-center">
+            </h3>
+            <p class="text-body-medium text-on-surface-variant text-center">
               Toute ton épargne est en place. Tu peux souffler.
             </p>
           </div>
@@ -80,15 +83,18 @@ import { MatIconModule } from '@angular/material/icon';
           </div>
         } @else {
           <div class="flex flex-col items-center justify-center py-6 gap-2">
-            <mat-icon
-              class="text-on-surface-variant opacity-40 large-icon"
-              aria-hidden="true"
+            <div
+              class="w-16 h-16 rounded-full bg-financial-savings/10 text-financial-savings flex items-center justify-center mb-2"
             >
-              savings
-            </mat-icon>
-            <p class="text-body-medium text-on-surface-variant text-center">
+              <mat-icon class="scale-150 flex! shrink-0!" aria-hidden="true"
+                >savings</mat-icon
+              >
+            </div>
+            <h3
+              class="text-title-medium font-medium text-on-surface-variant text-center"
+            >
               Pas d'épargne prévue ce mois
-            </p>
+            </h3>
           </div>
         }
       </div>
@@ -97,12 +103,6 @@ import { MatIconModule } from '@angular/material/icon';
   styles: `
     :host {
       display: block;
-    }
-
-    .large-icon {
-      font-size: 36px;
-      width: 36px;
-      height: 36px;
     }
   `,
 })
