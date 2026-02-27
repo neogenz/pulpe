@@ -41,217 +41,212 @@ import { createFieldsMatchValidator } from '@core/validators';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="pulpe-entry-shell pulpe-gradient">
-      <div class="pulpe-entry-card w-full max-w-md">
-        <button
-          matButton
-          [routerLink]="['/', ROUTES.WELCOME]"
-          class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
+    <div class="pulpe-entry-card w-full max-w-md">
+      <button
+        matButton
+        [routerLink]="['/', ROUTES.WELCOME]"
+        class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
+      >
+        <mat-icon class="text-lg">arrow_back</mat-icon>
+        <span>Retour à l'accueil</span>
+      </button>
+
+      <div class="text-center mb-8 mt-4">
+        <h1
+          class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
         >
-          <mat-icon class="text-lg">arrow_back</mat-icon>
-          <span>Retour à l'accueil</span>
-        </button>
+          Prêt en 3 minutes
+        </h1>
+        <p class="text-body-large text-on-surface-variant">
+          Crée ton espace et vois clair dans tes finances
+        </p>
+      </div>
 
-        <div class="text-center mb-8 mt-4">
-          <h1
-            class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
+      <form
+        [formGroup]="signupForm"
+        (ngSubmit)="signUp()"
+        class="space-y-4"
+        data-testid="signup-form"
+      >
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Email</mat-label>
+          <input
+            matInput
+            type="email"
+            formControlName="email"
+            data-testid="email-input"
+            (input)="clearMessages()"
+            placeholder="ton@email.com"
+            [disabled]="isSubmitting()"
+          />
+          <mat-icon matPrefix>email</mat-icon>
+          @if (
+            signupForm.get('email')?.invalid && signupForm.get('email')?.touched
+          ) {
+            <mat-error>
+              @if (signupForm.get('email')?.hasError('required')) {
+                Ton email est nécessaire pour continuer
+              } @else if (signupForm.get('email')?.hasError('email')) {
+                Cette adresse email ne semble pas valide
+              }
+            </mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Mot de passe</mat-label>
+          <input
+            matInput
+            [type]="isPasswordHidden() ? 'password' : 'text'"
+            formControlName="password"
+            data-testid="password-input"
+            (input)="clearMessages()"
+            placeholder="Mot de passe"
+            [disabled]="isSubmitting()"
+          />
+          <mat-icon matPrefix>lock</mat-icon>
+          <button
+            type="button"
+            matIconButton
+            matSuffix
+            (click)="togglePasswordVisibility()"
+            [attr.aria-label]="'Afficher le mot de passe'"
+            [attr.aria-pressed]="!isPasswordHidden()"
           >
-            Prêt en 3 minutes
-          </h1>
-          <p class="text-body-large text-on-surface-variant">
-            Crée ton espace et vois clair dans tes finances
-          </p>
+            <mat-icon>{{
+              isPasswordHidden() ? 'visibility_off' : 'visibility'
+            }}</mat-icon>
+          </button>
+          <mat-hint>8 caractères minimum pour sécuriser ton compte</mat-hint>
+          @if (
+            signupForm.get('password')?.invalid &&
+            signupForm.get('password')?.touched
+          ) {
+            <mat-error>
+              @if (signupForm.get('password')?.hasError('required')) {
+                Ton mot de passe est nécessaire
+              } @else if (signupForm.get('password')?.hasError('minlength')) {
+                8 caractères minimum
+              }
+            </mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Confirmer le mot de passe</mat-label>
+          <input
+            matInput
+            [type]="isConfirmPasswordHidden() ? 'password' : 'text'"
+            formControlName="confirmPassword"
+            data-testid="confirm-password-input"
+            (input)="clearMessages()"
+            placeholder="Confirmer le mot de passe"
+            [disabled]="isSubmitting()"
+          />
+          <mat-icon matPrefix>lock</mat-icon>
+          <button
+            type="button"
+            matIconButton
+            matSuffix
+            (click)="toggleConfirmPasswordVisibility()"
+            [attr.aria-label]="'Afficher le mot de passe'"
+            [attr.aria-pressed]="!isConfirmPasswordHidden()"
+          >
+            <mat-icon>{{
+              isConfirmPasswordHidden() ? 'visibility_off' : 'visibility'
+            }}</mat-icon>
+          </button>
+          @if (
+            signupForm.get('confirmPassword')?.invalid &&
+            signupForm.get('confirmPassword')?.touched
+          ) {
+            <mat-error>
+              @if (signupForm.get('confirmPassword')?.hasError('required')) {
+                Confirme ton mot de passe
+              } @else if (
+                signupForm.get('confirmPassword')?.hasError('passwordsMismatch')
+              ) {
+                Les mots de passe ne correspondent pas
+              }
+            </mat-error>
+          }
+        </mat-form-field>
+
+        <div class="pt-2">
+          <mat-checkbox
+            formControlName="acceptTerms"
+            [disabled]="isSubmitting()"
+            data-testid="accept-terms-checkbox"
+          >
+            <span class="text-body-medium">
+              J'accepte les
+              <a
+                [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
+                target="_blank"
+                class="text-primary underline"
+                (click)="$event.stopPropagation()"
+              >
+                Conditions d'Utilisation
+              </a>
+              et la
+              <a
+                [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
+                target="_blank"
+                class="text-primary underline"
+                (click)="$event.stopPropagation()"
+              >
+                Politique de Confidentialité
+              </a>
+            </span>
+          </mat-checkbox>
+          @if (
+            signupForm.get('acceptTerms')?.invalid &&
+            signupForm.get('acceptTerms')?.touched
+          ) {
+            <p class="text-error text-body-small mt-1">
+              Accepte les conditions pour continuer
+            </p>
+          }
         </div>
 
-        <form
-          [formGroup]="signupForm"
-          (ngSubmit)="signUp()"
-          class="space-y-4"
-          data-testid="signup-form"
+        <pulpe-error-alert [message]="errorMessage()" />
+
+        <pulpe-loading-button
+          [loading]="isSubmitting()"
+          [disabled]="!canSubmit()"
+          loadingText="Création en cours..."
+          icon="person_add"
+          testId="signup-submit-button"
+          class="mt-4"
         >
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Email</mat-label>
-            <input
-              matInput
-              type="email"
-              formControlName="email"
-              data-testid="email-input"
-              (input)="clearMessages()"
-              placeholder="ton@email.com"
-              [disabled]="isSubmitting()"
-            />
-            <mat-icon matPrefix>email</mat-icon>
-            @if (
-              signupForm.get('email')?.invalid &&
-              signupForm.get('email')?.touched
-            ) {
-              <mat-error>
-                @if (signupForm.get('email')?.hasError('required')) {
-                  Ton email est nécessaire pour continuer
-                } @else if (signupForm.get('email')?.hasError('email')) {
-                  Cette adresse email ne semble pas valide
-                }
-              </mat-error>
-            }
-          </mat-form-field>
+          <span class="ml-2">Créer mon compte</span>
+        </pulpe-loading-button>
+      </form>
 
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Mot de passe</mat-label>
-            <input
-              matInput
-              [type]="isPasswordHidden() ? 'password' : 'text'"
-              formControlName="password"
-              data-testid="password-input"
-              (input)="clearMessages()"
-              placeholder="Mot de passe"
-              [disabled]="isSubmitting()"
-            />
-            <mat-icon matPrefix>lock</mat-icon>
-            <button
-              type="button"
-              matIconButton
-              matSuffix
-              (click)="togglePasswordVisibility()"
-              [attr.aria-label]="'Afficher le mot de passe'"
-              [attr.aria-pressed]="!isPasswordHidden()"
-            >
-              <mat-icon>{{
-                isPasswordHidden() ? 'visibility_off' : 'visibility'
-              }}</mat-icon>
-            </button>
-            <mat-hint>8 caractères minimum pour sécuriser ton compte</mat-hint>
-            @if (
-              signupForm.get('password')?.invalid &&
-              signupForm.get('password')?.touched
-            ) {
-              <mat-error>
-                @if (signupForm.get('password')?.hasError('required')) {
-                  Ton mot de passe est nécessaire
-                } @else if (signupForm.get('password')?.hasError('minlength')) {
-                  8 caractères minimum
-                }
-              </mat-error>
-            }
-          </mat-form-field>
+      <div class="flex items-center gap-4 my-6">
+        <mat-divider class="flex-1" />
+        <span class="text-body-medium text-on-surface-variant">ou</span>
+        <mat-divider class="flex-1" />
+      </div>
 
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Confirmer le mot de passe</mat-label>
-            <input
-              matInput
-              [type]="isConfirmPasswordHidden() ? 'password' : 'text'"
-              formControlName="confirmPassword"
-              data-testid="confirm-password-input"
-              (input)="clearMessages()"
-              placeholder="Confirmer le mot de passe"
-              [disabled]="isSubmitting()"
-            />
-            <mat-icon matPrefix>lock</mat-icon>
-            <button
-              type="button"
-              matIconButton
-              matSuffix
-              (click)="toggleConfirmPasswordVisibility()"
-              [attr.aria-label]="'Afficher le mot de passe'"
-              [attr.aria-pressed]="!isConfirmPasswordHidden()"
-            >
-              <mat-icon>{{
-                isConfirmPasswordHidden() ? 'visibility_off' : 'visibility'
-              }}</mat-icon>
-            </button>
-            @if (
-              signupForm.get('confirmPassword')?.invalid &&
-              signupForm.get('confirmPassword')?.touched
-            ) {
-              <mat-error>
-                @if (signupForm.get('confirmPassword')?.hasError('required')) {
-                  Confirme ton mot de passe
-                } @else if (
-                  signupForm
-                    .get('confirmPassword')
-                    ?.hasError('passwordsMismatch')
-                ) {
-                  Les mots de passe ne correspondent pas
-                }
-              </mat-error>
-            }
-          </mat-form-field>
+      <pulpe-google-oauth-button
+        testId="google-signup-button"
+        (authError)="errorMessage.set($event)"
+        (loadingChange)="isSubmitting.set($event)"
+      />
 
-          <div class="pt-2">
-            <mat-checkbox
-              formControlName="acceptTerms"
-              [disabled]="isSubmitting()"
-              data-testid="accept-terms-checkbox"
-            >
-              <span class="text-body-medium">
-                J'accepte les
-                <a
-                  [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
-                  target="_blank"
-                  class="text-primary underline"
-                  (click)="$event.stopPropagation()"
-                >
-                  Conditions d'Utilisation
-                </a>
-                et la
-                <a
-                  [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
-                  target="_blank"
-                  class="text-primary underline"
-                  (click)="$event.stopPropagation()"
-                >
-                  Politique de Confidentialité
-                </a>
-              </span>
-            </mat-checkbox>
-            @if (
-              signupForm.get('acceptTerms')?.invalid &&
-              signupForm.get('acceptTerms')?.touched
-            ) {
-              <p class="text-error text-body-small mt-1">
-                Accepte les conditions pour continuer
-              </p>
-            }
-          </div>
-
-          <pulpe-error-alert [message]="errorMessage()" />
-
-          <pulpe-loading-button
-            [loading]="isSubmitting()"
-            [disabled]="!canSubmit()"
-            loadingText="Création en cours..."
-            icon="person_add"
-            testId="signup-submit-button"
-            class="mt-4"
+      <div class="text-center mt-6">
+        <p class="text-body-medium text-on-surface-variant">
+          Déjà un compte ?
+          <button
+            matButton
+            color="primary"
+            class="ml-1"
+            [routerLink]="['/', ROUTES.LOGIN]"
           >
-            <span class="ml-2">Créer mon compte</span>
-          </pulpe-loading-button>
-        </form>
-
-        <div class="flex items-center gap-4 my-6">
-          <mat-divider class="flex-1" />
-          <span class="text-body-medium text-on-surface-variant">ou</span>
-          <mat-divider class="flex-1" />
-        </div>
-
-        <pulpe-google-oauth-button
-          testId="google-signup-button"
-          (authError)="errorMessage.set($event)"
-          (loadingChange)="isSubmitting.set($event)"
-        />
-
-        <div class="text-center mt-6">
-          <p class="text-body-medium text-on-surface-variant">
-            Déjà un compte ?
-            <button
-              matButton
-              color="primary"
-              class="ml-1"
-              [routerLink]="['/', ROUTES.LOGIN]"
-            >
-              Se connecter
-            </button>
-          </p>
-        </div>
+            Se connecter
+          </button>
+        </p>
       </div>
     </div>
   `,
@@ -265,12 +260,12 @@ export default class Signup {
 
   protected readonly ROUTES = ROUTES;
 
-  protected isPasswordHidden = signal<boolean>(true);
-  protected isConfirmPasswordHidden = signal<boolean>(true);
-  protected isSubmitting = signal<boolean>(false);
-  protected errorMessage = signal<string>('');
+  protected readonly isPasswordHidden = signal(true);
+  protected readonly isConfirmPasswordHidden = signal(true);
+  protected readonly isSubmitting = signal(false);
+  protected readonly errorMessage = signal('');
 
-  protected signupForm = this.#formBuilder.nonNullable.group(
+  protected readonly signupForm = this.#formBuilder.nonNullable.group(
     {
       email: ['', [Validators.required, Validators.email]],
       password: [
@@ -289,14 +284,12 @@ export default class Signup {
     },
   );
 
-  protected readonly formStatus = toSignal(this.signupForm.statusChanges, {
+  readonly #formStatus = toSignal(this.signupForm.statusChanges, {
     initialValue: this.signupForm.status,
   });
 
   protected readonly canSubmit = computed(() => {
-    const isValid = this.formStatus() === 'VALID';
-    const isNotSubmitting = !this.isSubmitting();
-    return isValid && isNotSubmitting;
+    return this.#formStatus() === 'VALID' && !this.isSubmitting();
   });
 
   protected togglePasswordVisibility(): void {

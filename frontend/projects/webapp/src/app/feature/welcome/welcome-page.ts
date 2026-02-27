@@ -34,171 +34,169 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="pulpe-entry-shell pulpe-gradient">
-      <div
-        class="pulpe-entry-card w-full max-w-lg items-center"
-        data-testid="welcome-page"
+    <div
+      class="pulpe-entry-card w-full max-w-lg items-center"
+      data-testid="welcome-page"
+    >
+      <!-- Branding -->
+      <img src="/logo.svg" alt="Pulpe" class="h-14 md:h-16 mb-6" />
+
+      <!-- Eyebrow -->
+      <p
+        class="text-xs font-semibold tracking-widest uppercase text-primary mb-3"
       >
-        <!-- Branding -->
-        <img src="/logo.svg" alt="Pulpe" class="h-14 md:h-16 mb-6" />
+        Budget annuel en 3 minutes
+      </p>
 
-        <!-- Eyebrow -->
-        <p
-          class="text-xs font-semibold tracking-widest uppercase text-primary mb-3"
-        >
-          Budget annuel en 3 minutes
-        </p>
+      <!-- Title -->
+      <h1
+        class="text-headline-large md:text-display-small font-bold text-on-surface leading-tight text-center mb-2"
+        data-testid="welcome-title"
+      >
+        Vois clair dans tes finances
+      </h1>
 
-        <!-- Title -->
-        <h1
-          class="text-headline-large md:text-display-small font-bold text-on-surface leading-tight text-center mb-2"
-          data-testid="welcome-title"
-        >
-          Vois clair dans tes finances
-        </h1>
+      <!-- Subtitle -->
+      <p
+        class="text-body-large text-on-surface-variant text-center leading-relaxed mb-4"
+        data-testid="welcome-subtitle"
+      >
+        Planifie ton année, sache toujours ce que tu peux dépenser.
+      </p>
 
-        <!-- Subtitle -->
-        <p
-          class="text-body-large text-on-surface-variant text-center leading-relaxed mb-4"
-          data-testid="welcome-subtitle"
-        >
-          Planifie ton année, sache toujours ce que tu peux dépenser.
-        </p>
-
-        <!-- Lottie animation -->
-        @defer (on idle) {
-          <div class="flex justify-center mb-6">
-            <ng-lottie
-              [options]="lottieOptions"
-              class="hidden md:block w-60 h-44 md:w-120 md:h-80 -mt-10 md:-mt-20 bg-transparent"
-            />
-          </div>
-        } @placeholder {
-          <div class="flex justify-center mb-6">
-            <div
-              class="w-56 h-40 md:w-72 md:h-48 flex items-center justify-center"
-            >
-              <div
-                class="w-16 h-16 bg-primary/10 rounded-full animate-pulse"
-              ></div>
-            </div>
-          </div>
-        } @loading {
-          <div class="flex justify-center mb-6">
-            <div
-              class="w-56 h-40 md:w-72 md:h-48 flex items-center justify-center"
-            >
-              <div
-                class="w-16 h-16 bg-primary/20 rounded-full animate-pulse"
-              ></div>
-            </div>
-          </div>
-        } @error {
-          <div class="flex justify-center mb-6">
-            <div class="w-56 h-40 md:w-72 md:h-48"></div>
-          </div>
-        }
-
-        <!-- CTAs -->
-        <div class="flex flex-col gap-3 w-full">
-          <pulpe-google-oauth-button
-            class="w-full"
-            buttonType="outlined"
-            testId="google-oauth-button"
-            (authError)="errorMessage.set($event)"
-            (loadingChange)="onGoogleLoadingChange($event)"
+      <!-- Lottie animation -->
+      @defer (on idle) {
+        <div class="flex justify-center mb-6">
+          <ng-lottie
+            [options]="lottieOptions"
+            class="hidden md:block w-60 h-44 md:w-120 md:h-80 -mt-10 md:-mt-20 bg-transparent"
           />
-
-          <!-- Separator -->
-          <div class="flex items-center gap-4 my-1">
-            <div class="flex-1 h-px bg-outline-variant/30"></div>
-            <span
-              class="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest"
-              >OU</span
-            >
-            <div class="flex-1 h-px bg-outline-variant/30"></div>
+        </div>
+      } @placeholder {
+        <div class="flex justify-center mb-6">
+          <div
+            class="w-56 h-40 md:w-72 md:h-48 flex items-center justify-center"
+          >
+            <div
+              class="w-16 h-16 bg-primary/10 rounded-full animate-pulse"
+            ></div>
           </div>
-
-          <button
-            matButton="filled"
-            class="w-full h-12"
-            data-testid="email-signup-button"
-            [disabled]="isLoading()"
-            [routerLink]="['/', ROUTES.SIGNUP]"
-            (click)="onEmailSignupClick()"
+        </div>
+      } @loading {
+        <div class="flex justify-center mb-6">
+          <div
+            class="w-56 h-40 md:w-72 md:h-48 flex items-center justify-center"
           >
-            <div class="flex items-center justify-center gap-2">
-              <mat-icon>email</mat-icon>
-              <span>S'inscrire par e-mail</span>
-            </div>
-          </button>
+            <div
+              class="w-16 h-16 bg-primary/20 rounded-full animate-pulse"
+            ></div>
+          </div>
+        </div>
+      } @error {
+        <div class="flex justify-center mb-6">
+          <div class="w-56 h-40 md:w-72 md:h-48"></div>
+        </div>
+      }
 
-          @if (
-            turnstileService.shouldRender() &&
-            turnstileService.shouldUseTurnstile()
-          ) {
-            <ngx-turnstile
-              #turnstileWidget
-              [siteKey]="turnstileService.siteKey()"
-              [appearance]="'interaction-only'"
-              [theme]="'light'"
-              (resolved)="turnstileService.handleResolved($event)"
-              (errored)="turnstileService.handleError()"
-              class="hidden"
-            />
-          }
+      <!-- CTAs -->
+      <div class="flex flex-col gap-3 w-full">
+        <pulpe-google-oauth-button
+          class="w-full"
+          buttonType="outlined"
+          testId="google-oauth-button"
+          (authError)="errorMessage.set($event)"
+          (loadingChange)="onGoogleLoadingChange($event)"
+        />
 
-          <pulpe-loading-button
-            [loading]="isDemoLoading()"
-            [disabled]="isLoading()"
-            variant=""
-            type="button"
-            loadingText="Préparation..."
-            icon="play_arrow"
-            testId="demo-mode-button"
-            data-testid="demo-link"
-            class="w-full"
-            (click)="startDemoMode()"
+        <!-- Separator -->
+        <div class="flex items-center gap-4 my-1">
+          <div class="flex-1 h-px bg-outline-variant/30"></div>
+          <span
+            class="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest"
+            >OU</span
           >
-            Essayer sans compte
-          </pulpe-loading-button>
-
-          <pulpe-error-alert [message]="errorMessage()" class="w-full" />
+          <div class="flex-1 h-px bg-outline-variant/30"></div>
         </div>
 
-        <!-- Legal -->
-        <p
-          class="text-xs text-on-surface-variant text-center mt-5"
-          data-testid="app-version"
+        <button
+          matButton="filled"
+          class="w-full h-12"
+          data-testid="email-signup-button"
+          [disabled]="isLoading()"
+          [routerLink]="['/', ROUTES.SIGNUP]"
+          (click)="onEmailSignupClick()"
         >
-          En continuant, tu acceptes les
-          <a
-            [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
-            target="_blank"
-            class="text-primary underline"
-            >CGU</a
-          >
-          et la
-          <a
-            [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
-            target="_blank"
-            class="text-primary underline"
-            >Politique de Confidentialité</a
-          >
-        </p>
+          <div class="flex items-center justify-center gap-2">
+            <mat-icon>email</mat-icon>
+            <span>S'inscrire par e-mail</span>
+          </div>
+        </button>
 
-        <!-- Login link -->
-        <p class="text-sm text-on-surface-variant mt-4">
-          Déjà un compte ?
-          <button
-            matButton
-            [routerLink]="['/', ROUTES.LOGIN]"
-            class="text-primary font-semibold"
-          >
-            Se connecter
-          </button>
-        </p>
+        @if (
+          turnstileService.shouldRender() &&
+          turnstileService.shouldUseTurnstile()
+        ) {
+          <ngx-turnstile
+            #turnstileWidget
+            [siteKey]="turnstileService.siteKey()"
+            [appearance]="'interaction-only'"
+            [theme]="'light'"
+            (resolved)="turnstileService.handleResolved($event)"
+            (errored)="turnstileService.handleError()"
+            class="hidden"
+          />
+        }
+
+        <pulpe-loading-button
+          [loading]="isDemoLoading()"
+          [disabled]="isLoading()"
+          variant=""
+          type="button"
+          loadingText="Préparation..."
+          icon="play_arrow"
+          testId="demo-mode-button"
+          data-testid="demo-link"
+          class="w-full"
+          (click)="startDemoMode()"
+        >
+          Essayer sans compte
+        </pulpe-loading-button>
+
+        <pulpe-error-alert [message]="errorMessage()" class="w-full" />
       </div>
+
+      <!-- Legal -->
+      <p
+        class="text-xs text-on-surface-variant text-center mt-5"
+        data-testid="app-version"
+      >
+        En continuant, tu acceptes les
+        <a
+          [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
+          target="_blank"
+          class="text-primary underline"
+          >CGU</a
+        >
+        et la
+        <a
+          [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
+          target="_blank"
+          class="text-primary underline"
+          >Politique de Confidentialité</a
+        >
+      </p>
+
+      <!-- Login link -->
+      <p class="text-sm text-on-surface-variant mt-4">
+        Déjà un compte ?
+        <button
+          matButton
+          [routerLink]="['/', ROUTES.LOGIN]"
+          class="text-primary font-semibold"
+        >
+          Se connecter
+        </button>
+      </p>
     </div>
   `,
 })

@@ -33,100 +33,98 @@ import { LoadingButton } from '@ui/loading-button';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="pulpe-entry-shell pulpe-gradient">
-      <div
-        class="pulpe-entry-card w-full max-w-md"
-        data-testid="forgot-password-page"
+    <div
+      class="pulpe-entry-card w-full max-w-md"
+      data-testid="forgot-password-page"
+    >
+      <button
+        matButton
+        [routerLink]="['/', ROUTES.LOGIN]"
+        class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
       >
-        <button
-          matButton
-          [routerLink]="['/', ROUTES.LOGIN]"
-          class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
+        <mat-icon class="text-lg">arrow_back</mat-icon>
+        <span>Retour à la connexion</span>
+      </button>
+
+      <div class="text-center mb-8 mt-4">
+        <h1
+          class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
         >
-          <mat-icon class="text-lg">arrow_back</mat-icon>
-          <span>Retour à la connexion</span>
-        </button>
-
-        <div class="text-center mb-8 mt-4">
-          <h1
-            class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
-          >
-            Mot de passe oublié
-          </h1>
-          @if (!isSuccess()) {
-            <p class="text-body-large text-on-surface-variant">
-              Entre ton email pour recevoir un lien de réinitialisation
-            </p>
-          }
-        </div>
-
+          Mot de passe oublié
+        </h1>
         @if (!isSuccess()) {
-          <form
-            [formGroup]="form"
-            (ngSubmit)="onSubmit()"
-            class="space-y-6"
-            data-testid="forgot-password-form"
-          >
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Email</mat-label>
-              <input
-                matInput
-                type="email"
-                formControlName="email"
-                data-testid="email-input"
-                (input)="clearError()"
-                placeholder="ton@email.com"
-                [disabled]="isSubmitting()"
-              />
-              <mat-icon matPrefix>email</mat-icon>
-              @if (form.get('email')?.invalid && form.get('email')?.touched) {
-                <mat-error>
-                  @if (form.get('email')?.hasError('required')) {
-                    Ton email est nécessaire pour continuer
-                  } @else if (form.get('email')?.hasError('email')) {
-                    Cette adresse email ne semble pas valide
-                  }
-                </mat-error>
-              }
-            </mat-form-field>
-
-            <pulpe-error-alert [message]="errorMessage()" />
-
-            <pulpe-loading-button
-              [loading]="isSubmitting()"
-              [disabled]="!canSubmit()"
-              loadingText="Envoi en cours..."
-              icon="send"
-              testId="forgot-password-submit-button"
-            >
-              <span class="ml-2">Envoyer le lien</span>
-            </pulpe-loading-button>
-          </form>
-        } @else {
-          <div
-            class="text-center space-y-6"
-            data-testid="forgot-password-success"
-          >
-            <mat-icon class="text-6xl text-primary">mark_email_read</mat-icon>
-            <p class="text-body-large text-on-surface">
-              Si un compte existe avec cette adresse, tu recevras un email avec
-              un lien de réinitialisation.
-            </p>
-            <p class="text-body-medium text-on-surface-variant">
-              Pense à vérifier tes spams si tu ne le vois pas.
-            </p>
-            <button
-              [routerLink]="['/', ROUTES.LOGIN]"
-              matButton
-              color="primary"
-              class="w-full"
-              data-testid="back-to-login-button"
-            >
-              Retour à la connexion
-            </button>
-          </div>
+          <p class="text-body-large text-on-surface-variant">
+            Entre ton email pour recevoir un lien de réinitialisation
+          </p>
         }
       </div>
+
+      @if (!isSuccess()) {
+        <form
+          [formGroup]="form"
+          (ngSubmit)="onSubmit()"
+          class="space-y-6"
+          data-testid="forgot-password-form"
+        >
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Email</mat-label>
+            <input
+              matInput
+              type="email"
+              formControlName="email"
+              data-testid="email-input"
+              (input)="clearError()"
+              placeholder="ton@email.com"
+              [disabled]="isSubmitting()"
+            />
+            <mat-icon matPrefix>email</mat-icon>
+            @if (form.get('email')?.invalid && form.get('email')?.touched) {
+              <mat-error>
+                @if (form.get('email')?.hasError('required')) {
+                  Ton email est nécessaire pour continuer
+                } @else if (form.get('email')?.hasError('email')) {
+                  Cette adresse email ne semble pas valide
+                }
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <pulpe-error-alert [message]="errorMessage()" />
+
+          <pulpe-loading-button
+            [loading]="isSubmitting()"
+            [disabled]="!canSubmit()"
+            loadingText="Envoi en cours..."
+            icon="send"
+            testId="forgot-password-submit-button"
+          >
+            <span class="ml-2">Envoyer le lien</span>
+          </pulpe-loading-button>
+        </form>
+      } @else {
+        <div
+          class="text-center space-y-6"
+          data-testid="forgot-password-success"
+        >
+          <mat-icon class="text-6xl text-primary">mark_email_read</mat-icon>
+          <p class="text-body-large text-on-surface">
+            Si un compte existe avec cette adresse, tu recevras un email avec un
+            lien de réinitialisation.
+          </p>
+          <p class="text-body-medium text-on-surface-variant">
+            Pense à vérifier tes spams si tu ne le vois pas.
+          </p>
+          <button
+            [routerLink]="['/', ROUTES.LOGIN]"
+            matButton
+            color="primary"
+            class="w-full"
+            data-testid="back-to-login-button"
+          >
+            Retour à la connexion
+          </button>
+        </div>
+      }
     </div>
   `,
 })

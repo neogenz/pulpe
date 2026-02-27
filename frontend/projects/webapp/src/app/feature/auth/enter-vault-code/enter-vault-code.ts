@@ -47,116 +47,114 @@ import { PostHogService } from '@core/analytics';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="pulpe-entry-shell pulpe-gradient">
-      <div
-        class="pulpe-entry-card w-full max-w-md"
-        data-testid="enter-vault-code-page"
-      >
-        <div class="text-center mb-8">
-          <mat-icon class="text-6xl! w-auto! h-auto! text-primary"
-            >lock_open</mat-icon
-          >
-          <h1
-            class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
-          >
-            Saisis ton code PIN
-          </h1>
-          <p class="text-body-large text-on-surface-variant">
-            Entre ton code pour accéder à tes données.
-          </p>
-        </div>
-
-        <form
-          [formGroup]="form"
-          (ngSubmit)="onSubmit()"
-          class="space-y-4"
-          data-testid="enter-vault-code-form"
+    <div
+      class="pulpe-entry-card w-full max-w-md"
+      data-testid="enter-vault-code-page"
+    >
+      <div class="text-center mb-8">
+        <mat-icon class="text-6xl! w-auto! h-auto! text-primary"
+          >lock_open</mat-icon
         >
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Code PIN</mat-label>
-            <input
-              matInput
-              [type]="isCodeHidden() ? 'password' : 'text'"
-              inputmode="numeric"
-              formControlName="vaultCode"
-              data-testid="vault-code-input"
-              (input)="clearError()"
-              placeholder="Code PIN"
-            />
-            <mat-icon matPrefix>lock</mat-icon>
-            <button
-              type="button"
-              matIconButton
-              matSuffix
-              (click)="isCodeHidden.set(!isCodeHidden())"
-              [attr.aria-label]="'Afficher le code'"
-              [attr.aria-pressed]="!isCodeHidden()"
-            >
-              <mat-icon>{{
-                isCodeHidden() ? 'visibility_off' : 'visibility'
-              }}</mat-icon>
-            </button>
-            @if (
-              form.get('vaultCode')?.invalid && form.get('vaultCode')?.touched
-            ) {
-              <mat-error>
-                @if (form.get('vaultCode')?.hasError('required')) {
-                  Ton code PIN est nécessaire
-                } @else if (form.get('vaultCode')?.hasError('minlength')) {
-                  4 chiffres minimum
-                } @else if (form.get('vaultCode')?.hasError('pattern')) {
-                  Le code PIN ne doit contenir que des chiffres
-                }
-              </mat-error>
-            }
-          </mat-form-field>
+        <h1
+          class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
+        >
+          Saisis ton code PIN
+        </h1>
+        <p class="text-body-large text-on-surface-variant">
+          Entre ton code pour accéder à tes données.
+        </p>
+      </div>
 
-          <div class="flex items-center">
-            <mat-checkbox
-              formControlName="rememberDevice"
-              data-testid="remember-device-checkbox"
-            >
-              <span class="text-body-medium text-on-surface">
-                Ne plus me demander sur cet appareil
-              </span>
-            </mat-checkbox>
-          </div>
-
-          <pulpe-error-alert [message]="errorMessage()" />
-
-          <pulpe-loading-button
-            [loading]="isSubmitting()"
-            [disabled]="!canSubmit()"
-            loadingText="Vérification..."
-            icon="arrow_forward"
-            testId="enter-vault-code-submit-button"
-          >
-            <span class="ml-2">Continuer</span>
-          </pulpe-loading-button>
-
-          <div class="text-center mt-2">
-            <a
-              [routerLink]="['/', ROUTES.RECOVER_VAULT_CODE]"
-              class="text-body-small text-primary hover:underline"
-              data-testid="lost-code-link"
-            >
-              Code perdu ?
-            </a>
-          </div>
-        </form>
-
-        <div class="text-center mt-4 pt-4 border-t border-outline-variant">
+      <form
+        [formGroup]="form"
+        (ngSubmit)="onSubmit()"
+        class="space-y-4"
+        data-testid="enter-vault-code-form"
+      >
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Code PIN</mat-label>
+          <input
+            matInput
+            [type]="isCodeHidden() ? 'password' : 'text'"
+            inputmode="numeric"
+            formControlName="vaultCode"
+            data-testid="vault-code-input"
+            (input)="clearError()"
+            placeholder="Code PIN"
+          />
+          <mat-icon matPrefix>lock</mat-icon>
           <button
-            matButton
             type="button"
-            (click)="onLogout()"
-            [disabled]="isLoggingOut()"
-            data-testid="vault-code-logout-button"
+            matIconButton
+            matSuffix
+            (click)="isCodeHidden.set(!isCodeHidden())"
+            [attr.aria-label]="'Afficher le code'"
+            [attr.aria-pressed]="!isCodeHidden()"
           >
-            <mat-icon>logout</mat-icon>
-            Se déconnecter
+            <mat-icon>{{
+              isCodeHidden() ? 'visibility_off' : 'visibility'
+            }}</mat-icon>
           </button>
+          @if (
+            form.get('vaultCode')?.invalid && form.get('vaultCode')?.touched
+          ) {
+            <mat-error>
+              @if (form.get('vaultCode')?.hasError('required')) {
+                Ton code PIN est nécessaire
+              } @else if (form.get('vaultCode')?.hasError('minlength')) {
+                4 chiffres minimum
+              } @else if (form.get('vaultCode')?.hasError('pattern')) {
+                Le code PIN ne doit contenir que des chiffres
+              }
+            </mat-error>
+          }
+        </mat-form-field>
+
+        <div class="flex items-center">
+          <mat-checkbox
+            formControlName="rememberDevice"
+            data-testid="remember-device-checkbox"
+          >
+            <span class="text-body-medium text-on-surface">
+              Ne plus me demander sur cet appareil
+            </span>
+          </mat-checkbox>
         </div>
+
+        <pulpe-error-alert [message]="errorMessage()" />
+
+        <pulpe-loading-button
+          [loading]="isSubmitting()"
+          [disabled]="!canSubmit()"
+          loadingText="Vérification..."
+          icon="arrow_forward"
+          testId="enter-vault-code-submit-button"
+        >
+          <span class="ml-2">Continuer</span>
+        </pulpe-loading-button>
+
+        <div class="text-center mt-2">
+          <a
+            [routerLink]="['/', ROUTES.RECOVER_VAULT_CODE]"
+            class="text-body-small text-primary hover:underline"
+            data-testid="lost-code-link"
+          >
+            Code perdu ?
+          </a>
+        </div>
+      </form>
+
+      <div class="text-center mt-4 pt-4 border-t border-outline-variant">
+        <button
+          matButton
+          type="button"
+          (click)="onLogout()"
+          [disabled]="isLoggingOut()"
+          data-testid="vault-code-logout-button"
+        >
+          <mat-icon>logout</mat-icon>
+          Se déconnecter
+        </button>
       </div>
     </div>
   `,

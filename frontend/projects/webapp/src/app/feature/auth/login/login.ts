@@ -42,145 +42,143 @@ import { LoadingButton } from '@ui/loading-button';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="pulpe-entry-shell pulpe-gradient">
-      <div class="pulpe-entry-card w-full max-w-md">
-        <button
-          matButton
-          [routerLink]="['/', ROUTES.WELCOME]"
-          class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
+    <div class="pulpe-entry-card w-full max-w-md">
+      <button
+        matButton
+        [routerLink]="['/', ROUTES.WELCOME]"
+        class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
+      >
+        <mat-icon class="text-lg">arrow_back</mat-icon>
+        <span>Retour à l'accueil</span>
+      </button>
+
+      <div class="text-center mb-8 mt-4">
+        <h1
+          class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
         >
-          <mat-icon class="text-lg">arrow_back</mat-icon>
-          <span>Retour à l'accueil</span>
-        </button>
+          Content de te revoir
+        </h1>
+        <p class="text-body-large text-on-surface-variant">
+          Retrouve ton budget là où tu l'as laissé
+        </p>
+      </div>
 
-        <div class="text-center mb-8 mt-4">
-          <h1
-            class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
+      <form
+        [formGroup]="loginForm"
+        (ngSubmit)="signIn()"
+        class="space-y-6"
+        data-testid="login-form"
+      >
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Email</mat-label>
+          <input
+            matInput
+            type="email"
+            formControlName="email"
+            data-testid="email-input"
+            (input)="clearMessages()"
+            placeholder="ton@email.com"
+            [disabled]="isSubmitting()"
+          />
+          <mat-icon matPrefix>email</mat-icon>
+          @if (
+            loginForm.get('email')?.invalid && loginForm.get('email')?.touched
+          ) {
+            <mat-error>
+              @if (loginForm.get('email')?.hasError('required')) {
+                Ton email est nécessaire pour continuer
+              } @else if (loginForm.get('email')?.hasError('email')) {
+                Cette adresse email ne semble pas valide
+              }
+            </mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Mot de passe</mat-label>
+          <input
+            matInput
+            [type]="isPasswordHidden() ? 'password' : 'text'"
+            formControlName="password"
+            data-testid="password-input"
+            (input)="clearMessages()"
+            placeholder="Mot de passe"
+            [disabled]="isSubmitting()"
+          />
+          <mat-icon matPrefix>lock</mat-icon>
+          <button
+            type="button"
+            matIconButton
+            matSuffix
+            (click)="togglePasswordVisibility()"
+            [attr.aria-label]="'Afficher le mot de passe'"
+            [attr.aria-pressed]="!isPasswordHidden()"
           >
-            Content de te revoir
-          </h1>
-          <p class="text-body-large text-on-surface-variant">
-            Retrouve ton budget là où tu l'as laissé
-          </p>
+            <mat-icon>{{
+              isPasswordHidden() ? 'visibility_off' : 'visibility'
+            }}</mat-icon>
+          </button>
+          @if (
+            loginForm.get('password')?.invalid &&
+            loginForm.get('password')?.touched
+          ) {
+            <mat-error>
+              @if (loginForm.get('password')?.hasError('required')) {
+                Ton mot de passe est nécessaire
+              } @else if (loginForm.get('password')?.hasError('minlength')) {
+                8 caractères minimum
+              }
+            </mat-error>
+          }
+        </mat-form-field>
+
+        <div class="flex justify-end -mt-2">
+          <a
+            [routerLink]="['/', ROUTES.FORGOT_PASSWORD]"
+            class="text-body-small text-primary hover:underline"
+            data-testid="forgot-password-link"
+          >
+            Mot de passe oublié ?
+          </a>
         </div>
 
-        <form
-          [formGroup]="loginForm"
-          (ngSubmit)="signIn()"
-          class="space-y-6"
-          data-testid="login-form"
+        <pulpe-error-alert [message]="errorMessage()" />
+
+        <pulpe-loading-button
+          [loading]="isSubmitting()"
+          [disabled]="!canSubmit()"
+          loadingText="Connexion..."
+          icon="login"
+          testId="login-submit-button"
         >
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Email</mat-label>
-            <input
-              matInput
-              type="email"
-              formControlName="email"
-              data-testid="email-input"
-              (input)="clearMessages()"
-              placeholder="ton@email.com"
-              [disabled]="isSubmitting()"
-            />
-            <mat-icon matPrefix>email</mat-icon>
-            @if (
-              loginForm.get('email')?.invalid && loginForm.get('email')?.touched
-            ) {
-              <mat-error>
-                @if (loginForm.get('email')?.hasError('required')) {
-                  Ton email est nécessaire pour continuer
-                } @else if (loginForm.get('email')?.hasError('email')) {
-                  Cette adresse email ne semble pas valide
-                }
-              </mat-error>
-            }
-          </mat-form-field>
+          <span class="ml-2">Se connecter</span>
+        </pulpe-loading-button>
+      </form>
 
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Mot de passe</mat-label>
-            <input
-              matInput
-              [type]="isPasswordHidden() ? 'password' : 'text'"
-              formControlName="password"
-              data-testid="password-input"
-              (input)="clearMessages()"
-              placeholder="Mot de passe"
-              [disabled]="isSubmitting()"
-            />
-            <mat-icon matPrefix>lock</mat-icon>
-            <button
-              type="button"
-              matIconButton
-              matSuffix
-              (click)="togglePasswordVisibility()"
-              [attr.aria-label]="'Afficher le mot de passe'"
-              [attr.aria-pressed]="!isPasswordHidden()"
-            >
-              <mat-icon>{{
-                isPasswordHidden() ? 'visibility_off' : 'visibility'
-              }}</mat-icon>
-            </button>
-            @if (
-              loginForm.get('password')?.invalid &&
-              loginForm.get('password')?.touched
-            ) {
-              <mat-error>
-                @if (loginForm.get('password')?.hasError('required')) {
-                  Ton mot de passe est nécessaire
-                } @else if (loginForm.get('password')?.hasError('minlength')) {
-                  8 caractères minimum
-                }
-              </mat-error>
-            }
-          </mat-form-field>
+      <div class="flex items-center gap-4 my-6">
+        <mat-divider class="flex-1" />
+        <span class="text-body-medium text-on-surface-variant">ou</span>
+        <mat-divider class="flex-1" />
+      </div>
 
-          <div class="flex justify-end -mt-2">
-            <a
-              [routerLink]="['/', ROUTES.FORGOT_PASSWORD]"
-              class="text-body-small text-primary hover:underline"
-              data-testid="forgot-password-link"
-            >
-              Mot de passe oublié ?
-            </a>
-          </div>
+      <pulpe-google-oauth-button
+        testId="google-login-button"
+        (authError)="errorMessage.set($event)"
+        (loadingChange)="isSubmitting.set($event)"
+      />
 
-          <pulpe-error-alert [message]="errorMessage()" />
-
-          <pulpe-loading-button
-            [loading]="isSubmitting()"
-            [disabled]="!canSubmit()"
-            loadingText="Connexion..."
-            icon="login"
-            testId="login-submit-button"
+      <div class="text-center mt-6">
+        <p class="text-body-medium text-on-surface-variant">
+          Nouveau sur Pulpe ?
+          <button
+            matButton
+            color="primary"
+            class="ml-1"
+            [routerLink]="['/', ROUTES.SIGNUP]"
           >
-            <span class="ml-2">Se connecter</span>
-          </pulpe-loading-button>
-        </form>
-
-        <div class="flex items-center gap-4 my-6">
-          <mat-divider class="flex-1" />
-          <span class="text-body-medium text-on-surface-variant">ou</span>
-          <mat-divider class="flex-1" />
-        </div>
-
-        <pulpe-google-oauth-button
-          testId="google-login-button"
-          (authError)="errorMessage.set($event)"
-          (loadingChange)="isSubmitting.set($event)"
-        />
-
-        <div class="text-center mt-6">
-          <p class="text-body-medium text-on-surface-variant">
-            Nouveau sur Pulpe ?
-            <button
-              matButton
-              color="primary"
-              class="ml-1"
-              [routerLink]="['/', ROUTES.SIGNUP]"
-            >
-              Créer un compte
-            </button>
-          </p>
-        </div>
+            Créer un compte
+          </button>
+        </p>
       </div>
     </div>
   `,
@@ -209,7 +207,7 @@ export default class Login {
     }
   }
 
-  protected loginForm = this.#formBuilder.nonNullable.group({
+  protected readonly loginForm = this.#formBuilder.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: [
       '',
@@ -217,14 +215,12 @@ export default class Login {
     ],
   });
 
-  protected readonly formStatus = toSignal(this.loginForm.statusChanges, {
+  readonly #formStatus = toSignal(this.loginForm.statusChanges, {
     initialValue: this.loginForm.status,
   });
 
   protected readonly canSubmit = computed(() => {
-    const isValid = this.formStatus() === 'VALID';
-    const isNotSubmitting = !this.isSubmitting();
-    return isValid && isNotSubmitting;
+    return this.#formStatus() === 'VALID' && !this.isSubmitting();
   });
 
   protected togglePasswordVisibility(): void {

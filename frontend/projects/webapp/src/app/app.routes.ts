@@ -9,60 +9,67 @@ import { PAGE_TITLES, ROUTES } from '@core/routing';
 export const routes: Routes = [
   {
     path: '',
-    pathMatch: 'full',
-    redirectTo: ROUTES.WELCOME,
-  },
-  {
-    path: ROUTES.WELCOME,
-    title: PAGE_TITLES.WELCOME,
-    canActivate: [maintenanceGuard, publicGuard],
-    loadChildren: () => import('./feature/welcome'),
-  },
-  {
-    path: ROUTES.LOGIN,
-    title: PAGE_TITLES.LOGIN,
-    canActivate: [maintenanceGuard, publicGuard],
-    loadComponent: () => import('./feature/auth/login/login'),
-  },
-  {
-    path: ROUTES.SIGNUP,
-    title: PAGE_TITLES.SIGNUP,
-    canActivate: [maintenanceGuard, publicGuard],
-    loadComponent: () => import('./feature/auth/signup/signup'),
-  },
-  {
-    path: ROUTES.FORGOT_PASSWORD,
-    title: PAGE_TITLES.FORGOT_PASSWORD,
-    canActivate: [maintenanceGuard, publicGuard],
-    loadComponent: () =>
-      import('./feature/auth/forgot-password/forgot-password'),
-  },
-  {
-    path: ROUTES.RESET_PASSWORD,
-    title: PAGE_TITLES.RESET_PASSWORD,
-    canActivate: [maintenanceGuard],
-    loadComponent: () => import('./feature/auth/reset-password/reset-password'),
-  },
-  {
-    path: ROUTES.SETUP_VAULT_CODE,
-    title: PAGE_TITLES.SETUP_VAULT_CODE,
-    canActivate: [maintenanceGuard, authGuard],
-    loadComponent: () =>
-      import('./feature/auth/setup-vault-code/setup-vault-code'),
-  },
-  {
-    path: ROUTES.ENTER_VAULT_CODE,
-    title: PAGE_TITLES.ENTER_VAULT_CODE,
-    canActivate: [maintenanceGuard, authGuard],
-    loadComponent: () =>
-      import('./feature/auth/enter-vault-code/enter-vault-code'),
-  },
-  {
-    path: ROUTES.RECOVER_VAULT_CODE,
-    title: PAGE_TITLES.RECOVER_VAULT_CODE,
-    canActivate: [maintenanceGuard, authGuard],
-    loadComponent: () =>
-      import('./feature/auth/recover-vault-code/recover-vault-code'),
+    loadComponent: () => import('@layout/auth-layout'),
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        redirectTo: ROUTES.WELCOME,
+      },
+      {
+        path: ROUTES.WELCOME,
+        title: PAGE_TITLES.WELCOME,
+        canActivate: [maintenanceGuard, publicGuard],
+        loadChildren: () => import('./feature/welcome'),
+      },
+      {
+        path: ROUTES.LOGIN,
+        title: PAGE_TITLES.LOGIN,
+        canActivate: [maintenanceGuard, publicGuard],
+        loadComponent: () => import('./feature/auth/login/login'),
+      },
+      {
+        path: ROUTES.SIGNUP,
+        title: PAGE_TITLES.SIGNUP,
+        canActivate: [maintenanceGuard, publicGuard],
+        loadComponent: () => import('./feature/auth/signup/signup'),
+      },
+      {
+        path: ROUTES.FORGOT_PASSWORD,
+        title: PAGE_TITLES.FORGOT_PASSWORD,
+        canActivate: [maintenanceGuard, publicGuard],
+        loadComponent: () =>
+          import('./feature/auth/forgot-password/forgot-password'),
+      },
+      {
+        path: ROUTES.RESET_PASSWORD,
+        title: PAGE_TITLES.RESET_PASSWORD,
+        canActivate: [maintenanceGuard],
+        loadComponent: () =>
+          import('./feature/auth/reset-password/reset-password'),
+      },
+      {
+        path: ROUTES.SETUP_VAULT_CODE,
+        title: PAGE_TITLES.SETUP_VAULT_CODE,
+        canActivate: [maintenanceGuard, authGuard],
+        loadComponent: () =>
+          import('./feature/auth/setup-vault-code/setup-vault-code'),
+      },
+      {
+        path: ROUTES.ENTER_VAULT_CODE,
+        title: PAGE_TITLES.ENTER_VAULT_CODE,
+        canActivate: [maintenanceGuard, authGuard],
+        loadComponent: () =>
+          import('./feature/auth/enter-vault-code/enter-vault-code'),
+      },
+      {
+        path: ROUTES.RECOVER_VAULT_CODE,
+        title: PAGE_TITLES.RECOVER_VAULT_CODE,
+        canActivate: [maintenanceGuard, authGuard],
+        loadComponent: () =>
+          import('./feature/auth/recover-vault-code/recover-vault-code'),
+      },
+    ],
   },
   {
     path: ROUTES.MAINTENANCE,

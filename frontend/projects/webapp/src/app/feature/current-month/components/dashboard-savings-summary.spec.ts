@@ -161,7 +161,7 @@ describe('DashboardSavingsSummary', () => {
     });
 
     it('should show check_circle icon', () => {
-      const icon = fixture.debugElement.query(By.css('.large-icon'));
+      const icon = fixture.debugElement.query(By.css('mat-icon.scale-150'));
       expect(icon).toBeTruthy();
       expect(icon.nativeElement.textContent.trim()).toBe('check_circle');
     });
