@@ -28,6 +28,36 @@ import { BudgetGridCard } from './budget-grid-card';
 import { BudgetGridMobileCard } from './budget-grid-mobile-card';
 import { BudgetGridSection } from './budget-grid-section';
 
+/** Filters transactions not allocated to any budget line. */
+export function filterFreeTransactionItems<
+  T extends { data: { budgetLineId: string | null } },
+>(items: T[]): T[] {
+  return items.filter((item) => !item.data.budgetLineId);
+}
+
+/** Groups items by financial kind into labeled categories. */
+export function groupByKind<T extends { data: { kind: string } }>(
+  items: T[],
+): { title: string; icon: string; items: T[] }[] {
+  return [
+    {
+      title: 'Revenus',
+      icon: 'trending_up',
+      items: items.filter((i) => i.data.kind === 'income'),
+    },
+    {
+      title: 'Épargnes',
+      icon: 'savings',
+      items: items.filter((i) => i.data.kind === 'saving'),
+    },
+    {
+      title: 'Dépenses',
+      icon: 'shopping_cart',
+      items: items.filter((i) => i.data.kind === 'expense'),
+    },
+  ];
+}
+
 /**
  * Grid view component displaying budget lines as cards.
  * Handles both desktop grid layout and mobile card list.
@@ -332,28 +362,12 @@ export class BudgetGrid {
   readonly toggleTransactionCheck = output<string>();
 
   protected readonly freeTransactionItems = computed(() =>
-    this.transactionItems().filter((item) => !item.data.budgetLineId),
+    filterFreeTransactionItems(this.transactionItems()),
   );
 
-  protected readonly categories = computed(() => {
-    const items = this.budgetLineItems();
-    const income = {
-      title: 'Revenus',
-      icon: 'trending_up',
-      items: items.filter((item) => item.data.kind === 'income'),
-    };
-    const saving = {
-      title: 'Épargnes',
-      icon: 'savings',
-      items: items.filter((item) => item.data.kind === 'saving'),
-    };
-    const expense = {
-      title: 'Dépenses',
-      icon: 'shopping_cart',
-      items: items.filter((item) => item.data.kind === 'expense'),
-    };
-    return [income, saving, expense];
-  });
+  protected readonly categories = computed(() =>
+    groupByKind(this.budgetLineItems()),
+  );
 
   protected openDetailPanel(item: BudgetLineTableItem): void {
     const dialogData: BudgetDetailPanelData = {

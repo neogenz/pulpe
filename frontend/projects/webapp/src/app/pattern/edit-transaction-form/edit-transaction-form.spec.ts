@@ -174,15 +174,50 @@ describe('EditTransactionForm', () => {
       expect(dateControl?.hasError('dateOutOfRange')).toBe(true);
     });
 
-    it('should derive min/max from signal inputs with fallback to current month', () => {
+    it('should validate against custom min/max when signal inputs are provided', () => {
       const dateControl = component.transactionForm.get('transactionDate');
+      const customMin = new Date(2024, 0, 1);
+      const customMax = new Date(2024, 0, 31);
 
-      // A date in the current month should be valid
-      dateControl?.setValue(new Date());
+      // Initialize change detection first
+      fixture.detectChanges();
+
+      fixture.componentRef.setInput('minDateInput', customMin);
+      fixture.componentRef.setInput('maxDateInput', customMax);
+      console.log('After setInput - minDateInput:', component.minDateInput());
+      fixture.detectChanges();
+      console.log(
+        'After detectChanges - minDateInput:',
+        component.minDateInput(),
+      );
+      TestBed.flushEffects();
+      console.log(
+        'After flushEffects - minDateInput:',
+        component.minDateInput(),
+      );
+
+      dateControl?.setValue(new Date(2024, 0, 15));
+      console.log('errors after in-range date:', dateControl?.errors);
       expect(dateControl?.hasError('dateOutOfRange')).toBe(false);
 
-      // A date far outside current month should trigger the validator
-      dateControl?.setValue(new Date(2020, 0, 1));
+      dateControl?.setValue(new Date(2024, 5, 15));
+      expect(dateControl?.hasError('dateOutOfRange')).toBe(true);
+    });
+
+    it('should re-validate when bounds change via effect()', async () => {
+      const dateControl = component.transactionForm.get('transactionDate');
+
+      fixture.componentRef.setInput('minDateInput', new Date(2024, 0, 1));
+      fixture.componentRef.setInput('maxDateInput', new Date(2024, 0, 31));
+      TestBed.flushEffects();
+
+      dateControl?.setValue(new Date(2024, 0, 15));
+      expect(dateControl?.hasError('dateOutOfRange')).toBe(false);
+
+      fixture.componentRef.setInput('minDateInput', new Date(2024, 1, 1));
+      fixture.componentRef.setInput('maxDateInput', new Date(2024, 1, 29));
+      TestBed.flushEffects();
+
       expect(dateControl?.hasError('dateOutOfRange')).toBe(true);
     });
   });

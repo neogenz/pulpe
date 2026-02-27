@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
+import { filterFreeTransactionItems, groupByKind } from './budget-grid';
 import { createMockTransaction } from '../../../../testing/mock-factories';
 import type { Transaction } from 'pulpe-shared';
 
 /**
- * BudgetGrid — unit tests for computed signal logic.
+ * BudgetGrid — unit tests for extracted pure logic functions.
  *
- * Due to Angular 21 JIT compilation issues with signal-based input.required()
- * (see budget-details-page.spec.ts, test-setup.ts errorOnUnknownProperties: false),
- * DOM-level assertions (template rendering, data-testid queries) are validated
- * through E2E tests. These unit tests cover the component's pure logic.
+ * Due to Angular 21 JIT compilation issues with signal-based input.required(),
+ * DOM-level assertions are validated through E2E tests. These unit tests cover
+ * the component's pure logic via exported utility functions.
  */
 
 interface TransactionItem {
@@ -21,34 +21,6 @@ function createTransactionItem(
   metadata: { isLoading?: boolean; envelopeName?: string | null } = {},
 ): TransactionItem {
   return { data: createMockTransaction(overrides), metadata };
-}
-
-// Mirrors BudgetGrid.freeTransactionItems computed logic
-function filterFreeTransactions(items: TransactionItem[]): TransactionItem[] {
-  return items.filter((item) => !item.data.budgetLineId);
-}
-
-// Mirrors BudgetGrid.categories computed logic
-function groupByKind(
-  items: { data: { kind: string } }[],
-): { title: string; icon: string; items: typeof items }[] {
-  return [
-    {
-      title: 'Revenus',
-      icon: 'trending_up',
-      items: items.filter((i) => i.data.kind === 'income'),
-    },
-    {
-      title: 'Épargnes',
-      icon: 'savings',
-      items: items.filter((i) => i.data.kind === 'saving'),
-    },
-    {
-      title: 'Dépenses',
-      icon: 'shopping_cart',
-      items: items.filter((i) => i.data.kind === 'expense'),
-    },
-  ];
 }
 
 describe('BudgetGrid', () => {
@@ -71,7 +43,7 @@ describe('BudgetGrid', () => {
         }),
       ];
 
-      const result = filterFreeTransactions(items);
+      const result = filterFreeTransactionItems(items);
 
       expect(result).toHaveLength(1);
       expect(result[0].data.id).toBe('free-tx-1');
@@ -84,11 +56,11 @@ describe('BudgetGrid', () => {
         createTransactionItem({ id: 'a2', budgetLineId: 'line-2' }),
       ];
 
-      expect(filterFreeTransactions(items)).toHaveLength(0);
+      expect(filterFreeTransactionItems(items)).toHaveLength(0);
     });
 
     it('should return empty when no transactions exist', () => {
-      expect(filterFreeTransactions([])).toHaveLength(0);
+      expect(filterFreeTransactionItems([])).toHaveLength(0);
     });
   });
 
