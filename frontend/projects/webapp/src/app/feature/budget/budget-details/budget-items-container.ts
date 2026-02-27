@@ -112,7 +112,7 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
             matTooltipPosition="above"
             matTooltipTouchGestures="auto"
             aria-label="Information sur le solde estimé"
-            role="button"
+            role="img"
             tabindex="0"
             class="text-on-surface-variant/50 text-base! cursor-help"
             >info</mat-icon
