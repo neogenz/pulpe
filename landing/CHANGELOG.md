@@ -1,5 +1,11 @@
 # pulpe-landing
 
+## 0.5.0
+
+### Minor Changes
+
+- Bloc de vérification du budget, indicateurs de défilement, tokens de couleurs mode sombre, intégration PostHog.
+
 ## 0.4.0
 
 ### Minor Changes

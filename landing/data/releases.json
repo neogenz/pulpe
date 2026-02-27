@@ -1,5 +1,43 @@
 [
   {
+    "version": "0.26.0",
+    "date": "2026-02-27",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.26.0",
+    "platforms": ["web"],
+    "changes": {
+      "features": [
+        {
+          "title": "Bloc de vérification du budget",
+          "description": "Résumé inline du pointage des lignes budgétaires directement dans la page budget"
+        },
+        {
+          "title": "Indicateurs de défilement",
+          "description": "Fondus visuels signalant le défilement horizontal sur les pilules de catégories"
+        },
+        {
+          "title": "Tokens de couleurs et mode sombre",
+          "description": "Ajustement des couleurs financières et du gradient hero pour le mode sombre"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Bugs du tableau de bord",
+          "description": "Correction de la zone de clic des cases à cocher, de l'affichage du reste d'enveloppe et du rollover négatif"
+        },
+        {
+          "title": "Accessibilité des tooltips",
+          "description": "Utilisation du rôle correct sur les icônes d'information"
+        }
+      ],
+      "technical": [
+        {
+          "title": "Intégration PostHog",
+          "description": "Suivi du funnel de conversion avec proxy inverse et sanitisation des données financières"
+        }
+      ]
+    }
+  },
+  {
     "version": "0.25.0",
     "date": "2026-02-25",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.25.0",
