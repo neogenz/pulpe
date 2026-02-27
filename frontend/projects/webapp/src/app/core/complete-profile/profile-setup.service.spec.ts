@@ -1,15 +1,16 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { of } from 'rxjs';
 import { ProfileSetupService } from './profile-setup.service';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
+import { ApiClient } from '@core/api/api-client';
 import { BudgetApi } from '@core/budget';
 import { PostHogService } from '@core/analytics/posthog';
 import { Logger } from '@core/logging/logger';
 
 describe('ProfileSetupService', () => {
   let service: ProfileSetupService;
+  let mockApiClient: { post$: ReturnType<typeof vi.fn> };
   let mockBudgetApi: { createBudget$: ReturnType<typeof vi.fn> };
   let mockPostHogService: { enableTracking: ReturnType<typeof vi.fn> };
   let mockLogger: {
@@ -18,6 +19,14 @@ describe('ProfileSetupService', () => {
   };
 
   beforeEach(() => {
+    mockApiClient = {
+      post$: vi.fn().mockReturnValue(
+        of({
+          data: { template: { id: 'template-123' } },
+        }),
+      ),
+    };
+
     mockBudgetApi = {
       createBudget$: vi
         .fn()
@@ -34,13 +43,13 @@ describe('ProfileSetupService', () => {
     };
 
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
       providers: [
         ProfileSetupService,
         {
           provide: ApplicationConfiguration,
           useValue: { backendApiUrl: () => 'http://localhost:3000/api/v1' },
         },
+        { provide: ApiClient, useValue: mockApiClient },
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: PostHogService, useValue: mockPostHogService },
         { provide: Logger, useValue: mockLogger },
@@ -83,6 +92,63 @@ describe('ProfileSetupService', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('Données obligatoires manquantes');
+    });
+  });
+
+  describe('budget period computation', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('should pass payDayOfMonth to getBudgetPeriodForDate and use result', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-02-02'));
+
+      const result = await service.createInitialBudget({
+        firstName: 'Test',
+        monthlyIncome: 3000,
+        payDayOfMonth: 4,
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockBudgetApi.createBudget$).toHaveBeenCalledWith(
+        expect.objectContaining({ month: 1, year: 2026 }),
+      );
+    });
+
+    it('should use calendar month when payDayOfMonth is undefined', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-02-15'));
+
+      const result = await service.createInitialBudget({
+        firstName: 'Test',
+        monthlyIncome: 3000,
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockBudgetApi.createBudget$).toHaveBeenCalledWith(
+        expect.objectContaining({ month: 2, year: 2026 }),
+      );
+    });
+
+    it('should handle year boundary and use period year in description', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-02'));
+
+      const result = await service.createInitialBudget({
+        firstName: 'Test',
+        monthlyIncome: 3000,
+        payDayOfMonth: 4,
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockBudgetApi.createBudget$).toHaveBeenCalledWith(
+        expect.objectContaining({
+          month: 12,
+          year: 2025,
+          description: 'Budget initial de Test pour 2025',
+        }),
+      );
     });
   });
 });

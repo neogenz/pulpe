@@ -7,6 +7,7 @@ export interface ProfileData {
   internetPlan?: number;
   transportCosts?: number;
   leasingCredit?: number;
+  payDayOfMonth?: number;
 }
 
 export interface ProfileSetupResult {

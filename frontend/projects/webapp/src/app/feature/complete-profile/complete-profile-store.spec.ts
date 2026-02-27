@@ -321,7 +321,24 @@ describe('CompleteProfileStore', () => {
         internetPlan: undefined,
         transportCosts: undefined,
         leasingCredit: undefined,
+        payDayOfMonth: undefined,
       });
+    });
+
+    it('should pass payDayOfMonth to createInitialBudget when set', async () => {
+      mockProfileSetupService.createInitialBudget.mockResolvedValue({
+        success: true,
+      });
+
+      store.updateFirstName('John');
+      store.updateMonthlyIncome(5000);
+      store.updatePayDayOfMonth(4);
+
+      await store.submitProfile();
+
+      expect(mockProfileSetupService.createInitialBudget).toHaveBeenCalledWith(
+        expect.objectContaining({ payDayOfMonth: 4 }),
+      );
     });
 
     it('should return false when profileSetupService fails', async () => {

@@ -4,6 +4,7 @@ import {
   type BudgetCreate,
   type BudgetTemplateCreateFromOnboarding,
   budgetTemplateCreateResponseSchema,
+  getBudgetPeriodForDate,
 } from 'pulpe-shared';
 import { ApiClient } from '@core/api/api-client';
 import { BudgetApi } from '@core/budget';
@@ -59,11 +60,15 @@ export class ProfileSetupService {
 
       // 2. Create budget
       const currentDate = new Date();
+      const { month, year } = getBudgetPeriodForDate(
+        currentDate,
+        profileData.payDayOfMonth,
+      );
       const budgetRequest: BudgetCreate = {
         templateId: templateResponse.data.template.id,
-        month: currentDate.getMonth() + 1,
-        year: currentDate.getFullYear(),
-        description: `Budget initial de ${profileData.firstName} pour ${currentDate.getFullYear()}`,
+        month,
+        year,
+        description: `Budget initial de ${profileData.firstName} pour ${year}`,
       };
 
       await firstValueFrom(this.#budgetApi.createBudget$(budgetRequest));
