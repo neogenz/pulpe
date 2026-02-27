@@ -37,7 +37,8 @@ struct KindToggle: View {
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
             }
         }
-        .sensoryFeedback(.selection, trigger: selection)
+        .accessibilityElement(children: .contain)
         .accessibilityLabel("Type de transaction")
+        .sensoryFeedback(.selection, trigger: selection)
     }
 }

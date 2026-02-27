@@ -13,3 +13,14 @@ struct SheetCloseButton: View {
         .accessibilityLabel("Fermer")
     }
 }
+
+#Preview {
+    NavigationStack {
+        Text("Sheet content")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton()
+                }
+            }
+    }
+}

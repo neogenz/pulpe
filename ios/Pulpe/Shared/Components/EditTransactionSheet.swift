@@ -97,7 +97,6 @@ struct EditTransactionSheet: View {
                     }
                     .disabled(!canSubmit)
                     .primaryButtonStyle(isEnabled: canSubmit)
-                    .buttonStyle(.plain)
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
                 }
@@ -107,16 +106,13 @@ struct EditTransactionSheet: View {
             .navigationTitle("Modifier la transaction")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
+                ToolbarItem(placement: .cancellationAction) {
                     SheetCloseButton()
                 }
             }
             .loadingOverlay(isLoading)
         }
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
-        .presentationCornerRadius(DesignTokens.CornerRadius.xl)
-        .presentationBackground(Color.surfacePrimary)
+        .standardSheetPresentation()
     }
 
     private func updateTransaction() async {

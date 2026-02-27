@@ -39,19 +39,17 @@ struct AddTransactionSheet: View {
         return nil
     }
 
-    private var displayAmount: String {
-        if let amount, amount > 0 {
-            return Formatters.amountInput.string(from: amount as NSDecimalNumber) ?? "0"
-        }
-        return "0.00"
-    }
-
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: DesignTokens.Spacing.xxl) {
                     KindToggle(selection: $kind)
-                    heroAmountSection
+                    HeroAmountField(
+                        amount: $amount,
+                        amountText: $amountText,
+                        isFocused: $isAmountFocused,
+                        hint: "Quel montant ?"
+                    )
                     quickAmountChips
                     descriptionField
                     dateSelector
@@ -72,7 +70,7 @@ struct AddTransactionSheet: View {
             .navigationTitle(kind.newTransactionTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
+                ToolbarItem(placement: .cancellationAction) {
                     SheetCloseButton()
                 }
             }
@@ -90,59 +88,7 @@ struct AddTransactionSheet: View {
                 }
             }
         }
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
-        .presentationCornerRadius(DesignTokens.CornerRadius.xl)
-        .presentationBackground(Color.surfacePrimary)
-    }
-
-    // MARK: - Hero Amount
-
-    private var heroAmountSection: some View {
-        VStack(spacing: DesignTokens.Spacing.sm) {
-            Text(DesignTokens.AmountInput.currencyCode)
-                .font(PulpeTypography.labelLarge)
-                .foregroundStyle(Color.textTertiary)
-
-            ZStack {
-                // Hidden input field
-                TextField("", text: $amountText)
-                    .keyboardType(.decimalPad)
-                    .focused($isAmountFocused)
-                    .opacity(0)
-                    .frame(width: 0, height: 0)
-                    .onChange(of: amountText) { _, newValue in
-                        parseAmount(newValue)
-                    }
-
-                // Visible display
-                Text(displayAmount)
-                    .font(PulpeTypography.amountHero)
-                    .foregroundStyle((amount ?? 0) > 0 ? Color.textPrimary : Color.textTertiary)
-                    .contentTransition(.numericText())
-                    .animation(.snappy(duration: DesignTokens.Animation.fast), value: amount)
-            }
-
-            // Subtle underline
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
-                .fill(isAmountFocused ? Color.pulpePrimary : Color.textTertiary.opacity(DesignTokens.Opacity.strong))
-                .frame(width: 120, height: 2)
-                .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isAmountFocused)
-
-            if (amount ?? 0) == 0 {
-                Text("Quel montant ?")
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textTertiary)
-                    .transition(.opacity)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, DesignTokens.Spacing.lg)
-        .contentShape(Rectangle())
-        .onTapGesture { isAmountFocused = true }
-        .accessibilityAddTraits(.isButton)
-        .accessibilityLabel("Montant")
-        .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: amount)
+        .standardSheetPresentation()
     }
 
     // MARK: - Quick Amounts
@@ -239,14 +185,6 @@ struct AddTransactionSheet: View {
 
     // MARK: - Logic
 
-    private func parseAmount(_ text: String) {
-        if let value = text.parsedAsAmount {
-            amount = value
-        } else {
-            amount = nil
-        }
-    }
-
     private func addTransaction() async {
         guard let amount else { return }
 
@@ -318,7 +256,7 @@ struct DeepLinkAddExpenseSheet: View {
                     }
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
-                            Button("Fermer") { dismiss() }
+                            SheetCloseButton()
                         }
                     }
                 }
