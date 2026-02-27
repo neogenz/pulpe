@@ -47,7 +47,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
   template: `
     <mat-card
       appearance="outlined"
-      class="!rounded-2xl min-h-[188px]"
+      class="!rounded-corner-large min-h-[188px]"
       [class.ring-2]="isSelected()"
       [class.ring-primary]="isSelected()"
       [class.opacity-60]="item().metadata.isLoading"

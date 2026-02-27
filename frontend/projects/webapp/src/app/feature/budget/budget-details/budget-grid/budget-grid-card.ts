@@ -49,7 +49,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
   ],
   template: `
     <div
-      class="bg-surface rounded-corner-large border border-outline-variant/50 p-5 cursor-pointer
+      class="bg-surface rounded-corner-large border border-outline-variant p-5 cursor-pointer
              transition-all duration-200 hover:shadow-md hover:border-outline-variant
              min-h-[188px] h-full flex flex-col"
       [class.ring-2]="isSelected()"
