@@ -10,7 +10,7 @@ struct CheckedFilterPickerTests {
         let option = CheckedFilterOption.unchecked
 
         // Assert
-        #expect(option.label == "Non comptabilisées")
+        #expect(option.label == "À pointer")
     }
 
     @Test func allOptionHasCorrectLabel() {
@@ -44,7 +44,7 @@ struct CheckedFilterPickerTests {
         let option = CheckedFilterOption.unchecked
 
         // Assert
-        #expect(option.accessibilityLabel == "Afficher uniquement les éléments non comptabilisés")
+        #expect(option.accessibilityLabel == "Afficher uniquement les éléments à pointer")
     }
 
     @Test func allOptionHasAccessibilityLabel() {

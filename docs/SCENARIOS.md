@@ -266,7 +266,7 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
    - Critère : "Dépensé" de l'enveloppe = 90 (30 + 60)
    - Critère : le reste global reflète le changement (-15 supplémentaires)
 
-6. **Dépointer la transaction** : Dépointer "Migros"
+6. **Retirer le pointage** : Retirer le pointage de "Migros"
    - Critère : retour à l'état non pointé, compteur décrémenté
 
 7. **Supprimer une transaction** : Supprimer "Coop" > Confirmer
@@ -277,24 +277,24 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
    - Critère : "Dépensé" de l'enveloppe = 0
    - Critère : le reste global revient à la valeur initiale
 
-### 5.8 Comptabiliser une enveloppe — Dialog de cascade
+### 5.8 Pointer une enveloppe — Dialog de cascade
 
 **Pré-requis** : Une enveloppe avec au moins une transaction allouée NON pointée.
 
 **Workflow** :
 
-1. **pointer l'enveloppe parent** (la ligne de prévision, pas la transaction) > Un dialog apparaît : "Comptabiliser les transactions ?"
-2. **Choisir "Oui, tout comptabiliser"** > L'enveloppe ET toutes ses transactions passent à pointées
+1. **pointer l'enveloppe parent** (la ligne de prévision, pas la transaction) > Un dialog apparaît : "Pointer les transactions ?"
+2. **Choisir "Oui, tout pointer"** > L'enveloppe ET toutes ses transactions passent à pointées
    - Critère : toutes les transactions de l'enveloppe sont pointées
    - Critère : l'enveloppe elle-même est pointée
 
-3. **Dépointer l'enveloppe** > Pas de dialog
-   - Critère : seule l'enveloppe est dépointée, les transactions restent pointées
+3. **Retirer le pointage de l'enveloppe** > Pas de dialog
+   - Critère : seule l'enveloppe repasse à non pointée, les transactions restent pointées
 
 4. **Re-pointer l'enveloppe** > Le dialog réapparaît (car il n'y a pas de transactions non pointées cette fois) OU ne réapparaît pas si toutes sont déjà pointées
    - Critère : si toutes les transactions sont déjà pointées, pas de dialog, l'enveloppe se coche directement
 
-5. **Dépointer manuellement les transactions** > Puis repointer l'enveloppe > Le dialog réapparaît
+5. **Retirer manuellement le pointage des transactions** > Puis pointer à nouveau l'enveloppe > Le dialog réapparaît
 
 **Variante : refuser la cascade** :
 
@@ -303,14 +303,14 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
    - Critère : les transactions allouées restent non pointées
    - Critère : l'enveloppe est pointée
 
-### 5.9 pointer/dépointer une enveloppe sans transactions
+### 5.9 pointer / retirer le pointage d'une enveloppe sans transactions
 
 **Workflow** : Détails du budget > pointer une enveloppe qui n'a aucune transaction allouée
 
 **Critères** :
 - Pas de dialog de cascade (rien à cascader)
 - L'enveloppe passe à pointée directement
-- Dépointer fonctionne sans dialog également
+- Retirer le pointage fonctionne sans dialog également
 
 ### 5.10 pointer une transaction n'affecte pas le parent
 
@@ -365,7 +365,7 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
 - Les transactions libres sont filtrées par leur propre nom et montant
 - La recherche est insensible aux accents ("epargne" trouve "Épargne") et à la casse
 - Vider le champ restaure l'affichage complet
-- Le filtre de recherche se combine avec le filtre "Non comptabilisées" / "Toutes"
+- Le filtre de recherche se combine avec le filtre "À pointer" / "Toutes"
 
 ### 5.15 Rechercher des transactions à travers tous les budgets (recherche globale)
 
@@ -419,7 +419,7 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
 - La transaction disparaît
 - Les totaux sont recalculés
 
-### 6.5 pointer/dépointer une entrée financière
+### 6.5 pointer / retirer le pointage d'une entrée financière
 
 **Workflow** : Mois courant > Cliquer sur la case à pointer d'une entrée (prévision ou transaction)
 
@@ -505,7 +505,7 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
 4. **Supprimer la 3ème transaction** (retour à 160)
    - Critère : le Reste global revient à sa valeur d'avant (plus de dépassement)
 
-### 7.5 Solde réalisé — enveloppe comptabilisée sans dépassement
+### 7.5 Solde réalisé — enveloppe pointée sans dépassement
 
 > Règle : quand une enveloppe est pointée, le solde réalisé compte `max(montant_enveloppe, total_transactions_pointées)`.
 > Le `consumed` ne prend en compte que les transactions **pointées**.
@@ -517,14 +517,14 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
 1. **Ajouter une transaction** de 100 CHF dans l'enveloppe
 2. **Ajouter une deuxième transaction** de 900 CHF dans l'enveloppe
    - Critère : "Dépensé" de l'enveloppe = 1000 / 2000
-3. **pointer l'enveloppe** via le dialog "Comptabiliser les transactions ?" > **Choisir "Oui, tout comptabiliser"**
+3. **pointer l'enveloppe** via le dialog "Pointer les transactions ?" > **Choisir "Oui, tout pointer"**
    - Critère : le solde réalisé compte **2000** (pas 1000, ni 2000 + 1000)
    - Explication : `max(2000, 1000) = 2000`, l'enveloppe couvre
 
 **Variante** : pointer l'enveloppe **sans cascader** (choisir "Non, juste l'enveloppe")
    - Critère : le solde réalisé compte **2000** aussi (`max(2000, 0) = 2000` car aucune transaction n'est pointée)
 
-### 7.6 Solde réalisé — enveloppe comptabilisée avec dépassement
+### 7.6 Solde réalisé — enveloppe pointée avec dépassement
 
 > Règle : quand les transactions pointées dépassent l'enveloppe, c'est le total pointé qui est compté.
 
@@ -534,7 +534,7 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
 
 1. **Ajouter une troisième transaction** de 2000 CHF dans l'enveloppe
    - Critère : "Dépensé" de l'enveloppe = 3000 / 2000 (dépassement de 1000)
-2. **pointer l'enveloppe** via le dialog > **"Oui, tout comptabiliser"** (les 3 transactions + l'enveloppe sont pointées)
+2. **pointer l'enveloppe** via le dialog > **"Oui, tout pointer"** (les 3 transactions + l'enveloppe sont pointées)
    - Critère : le solde réalisé compte **3000** (pas 2000)
    - Explication : `max(2000, 3000) = 3000`, le réel dépasse la prévision
 
@@ -827,7 +827,7 @@ Si l'enveloppe à 2000 CHF n'avait aucune transaction :
 | 1.2 Créer compte Google | Non | — |
 | 5.4 Ajouter prévision | Non | — |
 | 5.7 Cycle de vie transaction allouée | Non | — |
-| 5.8 Dialog cascade comptabilisation | Non | — |
+| 5.8 Dialog cascade pointage | Non | — |
 | 5.9 pointer enveloppe sans transactions | Non | — |
 | 5.10 pointer transaction n'affecte pas parent | Non | — |
 | 5.11 Badge et dépensé enveloppe | Non | — |

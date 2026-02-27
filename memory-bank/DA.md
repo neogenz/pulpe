@@ -218,6 +218,8 @@ Termes techniques vs termes utilisateur (FR) :
 | `available` | Disponible à dépenser |
 | `remaining` | Reste |
 | `rollover` | Report |
+| `checked` | Pointé |
+| `unchecked` | À pointer |
 
 ---
 

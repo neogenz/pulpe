@@ -9,7 +9,7 @@ enum CheckedFilterOption: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .unchecked: "Non comptabilisées"
+        case .unchecked: "À pointer"
         case .all: "Toutes"
         }
     }
@@ -23,7 +23,7 @@ enum CheckedFilterOption: String, CaseIterable, Identifiable {
 
     var accessibilityLabel: String {
         switch self {
-        case .unchecked: "Afficher uniquement les éléments non comptabilisés"
+        case .unchecked: "Afficher uniquement les éléments à pointer"
         case .all: "Afficher tous les éléments"
         }
     }
@@ -48,7 +48,7 @@ struct CheckedFilterPicker: View {
         .onChange(of: selection) { _, newValue in
             // Announce filter change to VoiceOver users
             let announcement = newValue == .unchecked
-                ? "Affichage des éléments non comptabilisés"
+                ? "Affichage des éléments à pointer"
                 : "Affichage de tous les éléments"
             UIAccessibility.post(notification: .announcement, argument: announcement)
         }

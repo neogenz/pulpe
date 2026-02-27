@@ -123,7 +123,7 @@
   - Export Excel des budgets avec formatage monétaire natif et totaux SUM
   - Navigation entre les mois avec flèches précédent/suivant
   - Refonte UI des détails de budget avec grille et décomposition des composants
-  - Amélioration du filtre "non comptabilisé" pour une interface plus intuitive
+  - Amélioration du filtre "à pointer" pour une interface plus intuitive
 
   **Corrections**
   - Déconnexion du tour produit de l'ID utilisateur

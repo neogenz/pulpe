@@ -73,7 +73,7 @@ struct RealizedBalanceSheet: View {
 
             // Completion info
             Text(
-                "Basé sur \(realizedMetrics.checkedItemsCount) éléments comptabilisés sur " +
+                "Basé sur \(realizedMetrics.checkedItemsCount) éléments pointés sur " +
                 "\(realizedMetrics.totalItemsCount)"
             )
                 .font(PulpeTypography.caption)

@@ -187,6 +187,8 @@ Mar: income=5100, expenses=5200, rollover=900  → ending=800
 | `available` | Disponible à dépenser |
 | `remaining` | Reste |
 | `rollover` | Report |
+| `checked` | Pointé |
+| `unchecked` | À pointer |
 
 ### Domain Terms
 

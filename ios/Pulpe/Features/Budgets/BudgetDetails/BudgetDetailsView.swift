@@ -104,7 +104,7 @@ struct BudgetDetailsView: View {
             }
         }
         .alert(
-            "Comptabiliser les transactions ?",
+            "Pointer les transactions ?",
             isPresented: $viewModel.showCheckAllTransactionsAlert,
             presenting: viewModel.budgetLineToCheckAll
         ) { line in
@@ -116,7 +116,7 @@ struct BudgetDetailsView: View {
                     }
                 }
             }
-            Button("Oui, tout comptabiliser") {
+            Button("Oui, tout pointer") {
                 Task {
                     let succeeded = await viewModel.confirmToggle(for: line, checkAll: true)
                     if succeeded {
@@ -125,7 +125,7 @@ struct BudgetDetailsView: View {
                 }
             }
         } message: { _ in
-            Text("Des transactions non comptabilisées sont liées à cette enveloppe.")
+            Text("Des transactions non pointées sont liées à cette enveloppe.")
         }
     }
 
