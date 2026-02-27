@@ -108,16 +108,28 @@ struct AddTransactionSheet: View {
                         amountText = "\(quickAmount)"
                     }
                 } label: {
+                    let isSelectedOpacity = isSelected
+                        ? DesignTokens.Opacity.secondary
+                        : DesignTokens.Opacity.badgeBackground
+                    let borderOpacity = isSelected
+                        ? DesignTokens.Opacity.strong
+                        : DesignTokens.Opacity.secondary
+
                     Text("\(quickAmount) \(DesignTokens.AmountInput.currencyCode)")
                         .font(PulpeTypography.labelLarge)
                         .fixedSize()
                         .padding(.horizontal, DesignTokens.Spacing.md)
                         .padding(.vertical, DesignTokens.Spacing.sm)
                         .frame(maxWidth: .infinity)
-                        .background(kind.color.opacity(isSelected ? DesignTokens.Opacity.secondary : DesignTokens.Opacity.badgeBackground))
+                        .background(kind.color.opacity(isSelectedOpacity))
                         .foregroundStyle(kind.color)
                         .clipShape(Capsule())
-                        .overlay(Capsule().strokeBorder(kind.color.opacity(isSelected ? DesignTokens.Opacity.strong : DesignTokens.Opacity.secondary), lineWidth: 1))
+                        .overlay(
+                            Capsule().strokeBorder(
+                                kind.color.opacity(borderOpacity),
+                                lineWidth: 1
+                            )
+                        )
                 }
                 .buttonStyle(.plain)
                 .accessibilityHint("Définir le montant à \(quickAmount) CHF")
@@ -244,7 +256,11 @@ struct DeepLinkAddExpenseSheet: View {
                                 Text(DomainErrorLocalizer.localize(error))
                             } actions: {
                                 Button("Réessayer") {
-                                    Task { await viewModel.loadCurrentBudget(payDayOfMonth: userSettingsStore.payDayOfMonth) }
+                                    Task {
+                                        await viewModel.loadCurrentBudget(
+                                            payDayOfMonth: userSettingsStore.payDayOfMonth
+                                        )
+                                    }
                                 }
                                 .buttonStyle(.bordered)
                             }

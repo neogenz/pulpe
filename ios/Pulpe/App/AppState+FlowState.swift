@@ -139,6 +139,8 @@ extension AppState {
         case .recovering:
             authState = .needsPinRecovery
         case .authenticated:
+            isInMaintenance = false
+            isNetworkUnavailable = false
             authState = .authenticated
         }
         authDebug("AUTH_FLOW_APPLY", "flowState=\(state) authState: \(oldAuth) → \(authState)")
