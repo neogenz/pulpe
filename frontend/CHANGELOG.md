@@ -1,5 +1,16 @@
 # pulpe-frontend
 
+## 0.27.0
+
+### Minor Changes
+
+- Code PIN, Face ID, cle de recuperation et refonte visuelle iOS. Consolidation du flux de reinitialisation de mot de passe et corrections de securite du chiffrement.
+
+### Patch Changes
+
+- Updated dependencies
+  - pulpe-shared@0.8.2
+
 ## 0.26.0
 
 ### Minor Changes

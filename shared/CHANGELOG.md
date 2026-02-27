@@ -1,5 +1,11 @@
 # pulpe-shared
 
+## 0.8.2
+
+### Patch Changes
+
+- Code PIN, Face ID, cle de recuperation et refonte visuelle iOS. Consolidation du flux de reinitialisation de mot de passe et corrections de securite du chiffrement.
+
 ## 0.8.1
 
 ### Patch Changes

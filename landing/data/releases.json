@@ -1,5 +1,58 @@
 [
   {
+    "version": "0.27.0",
+    "date": "2026-02-27",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.27.0",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "Code PIN et chiffrement sur iOS",
+          "description": "Securisation de l'acces a l'application par un code PIN lie au chiffrement de bout en bout des donnees"
+        },
+        {
+          "title": "Deverrouillage Face ID",
+          "description": "Deverrouillage rapide par reconnaissance faciale avec inscription automatique apres configuration du PIN"
+        },
+        {
+          "title": "Cle de recuperation",
+          "description": "Generation et regeneration d'une cle de recuperation pour retrouver l'acces en cas d'oubli du code PIN"
+        },
+        {
+          "title": "Reinitialisation de mot de passe sur iOS",
+          "description": "Parcours complet de mot de passe oublie et changement de mot de passe depuis les reglages"
+        },
+        {
+          "title": "Refonte visuelle iOS",
+          "description": "Nouvelles polices (Manrope, DM Sans), design tokens unifies, sheets modernes et effet Liquid Glass"
+        },
+        {
+          "title": "Cache intelligent sur iOS",
+          "description": "Navigation plus fluide grace au cache SWR avec revalidation en arriere-plan"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Stabilite de l'authentification iOS",
+          "description": "Correction de race conditions, timeouts et transitions d'etat dans le flux d'authentification"
+        },
+        {
+          "title": "Appui long sur les previsions",
+          "description": "Correction du geste appui long sur les lignes de budget iOS"
+        },
+        {
+          "title": "Fuite de donnees a la deconnexion",
+          "description": "Nettoyage complet de l'etat en memoire lors de la deconnexion douce"
+        },
+        {
+          "title": "Securite du chiffrement",
+          "description": "Elimination d'une race condition (TOCTOU) dans la verification des cles de chiffrement"
+        }
+      ],
+      "technical": []
+    }
+  },
+  {
     "version": "0.26.0",
     "date": "2026-02-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.26.0",
