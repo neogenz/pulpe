@@ -64,7 +64,6 @@ enum BudgetPeriodCalculator {
         }
 
         let calendar = Calendar.current
-
         let startMonth: Int
         let startYear: Int
 
@@ -85,27 +84,23 @@ enum BudgetPeriodCalculator {
         guard let startDate = calendar.date(
             from: DateComponents(year: startYear, month: startMonth, day: actualStartDay)
         ) else {
+            let msg = "BudgetPeriodCalculator: invalid date component"
+            assertionFailure(msg)
             return BudgetPeriodDates(startDate: Date(), endDate: Date())
         }
 
         let endDate: Date
-
         if payDay == 1 {
             let dayCount = lastDay(of: month, year: year, calendar: calendar)
-            endDate = calendar.date(
-                from: DateComponents(year: year, month: month, day: dayCount)
-            ) ?? startDate
+            endDate = calendar.date(from: DateComponents(year: year, month: month, day: dayCount)) ?? startDate
         } else {
             let endMonth = startMonth == 12 ? 1 : startMonth + 1
             let endYear = startMonth == 12 ? startYear + 1 : startYear
             let lastDayOfEndMonth = lastDay(of: endMonth, year: endYear, calendar: calendar)
             let actualEndDay = min(payDay - 1, lastDayOfEndMonth)
-
             if actualEndDay <= 0 {
                 endDate = calendar.date(
-                    from: DateComponents(
-                        year: startYear, month: startMonth, day: lastDayOfStartMonth
-                    )
+                    from: DateComponents(year: startYear, month: startMonth, day: lastDayOfStartMonth)
                 ) ?? startDate
             } else {
                 endDate = calendar.date(
@@ -119,6 +114,13 @@ enum BudgetPeriodCalculator {
 
     // MARK: - Format Period
 
+    private static let periodFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "fr_CH")
+        formatter.dateFormat = "d MMM"
+        return formatter
+    }()
+
     static func formatPeriod(month: Int, year: Int, payDayOfMonth: Int? = nil) -> String? {
         guard let payDay = payDayOfMonth, payDay != 0, payDay != 1 else {
             return nil
@@ -126,12 +128,8 @@ enum BudgetPeriodCalculator {
 
         let dates = periodDates(month: month, year: year, payDayOfMonth: payDay)
 
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "fr_CH")
-        formatter.dateFormat = "d MMM"
-
-        let startStr = formatter.string(from: dates.startDate)
-        let endStr = formatter.string(from: dates.endDate)
+        let startStr = periodFormatter.string(from: dates.startDate)
+        let endStr = periodFormatter.string(from: dates.endDate)
 
         return "\(startStr) - \(endStr)"
     }
@@ -167,7 +165,7 @@ enum BudgetPeriodCalculator {
     // MARK: - Private Helpers
 
     private static func clampPayDay(_ payDay: Int) -> Int {
-        max(payDayMin, min(payDayMax, Int(floor(Double(payDay)))))
+        max(payDayMin, min(payDayMax, payDay))
     }
 
     private static func lastDay(of month: Int, year: Int, calendar: Calendar) -> Int {

@@ -9,7 +9,7 @@ final class DashboardStore: StoreProtocol {
     private(set) var sparseBudgets: [BudgetSparse] = []
     private(set) var isLoading = false
     private(set) var error: APIError?
-    var payDayOfMonth: Int?
+    private(set) var payDayOfMonth: Int?
 
     /// Returns true if the store has an error and no data to display
     var hasError: Bool {
@@ -51,6 +51,10 @@ final class DashboardStore: StoreProtocol {
     func loadIfNeeded() async {
         guard !isCacheValid else { return }
         await forceRefresh()
+    }
+
+    func setPayDay(_ payDay: Int?) {
+        payDayOfMonth = payDay
     }
 
     func reset() {

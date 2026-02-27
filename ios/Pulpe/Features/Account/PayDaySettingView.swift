@@ -85,11 +85,20 @@ struct PayDaySettingView: View {
     // MARK: - Hint Text
 
     private var hintText: String {
-        guard let day = viewModel?.selectedDay, day > 1,
-              let period = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: day) else {
+        guard let day = viewModel?.selectedDay, day > 1 else {
             return "Le budget suit le calendrier mensuel standard."
         }
-        return "Ton budget \u{00AB} Mars \u{00BB} couvrira du \(period)."
+        let calendar = Calendar.current
+        let now = Date()
+        let exampleMonth = calendar.component(.month, from: now)
+        let exampleYear = calendar.component(.year, from: now)
+        guard let period = BudgetPeriodCalculator.formatPeriod(
+            month: exampleMonth, year: exampleYear, payDayOfMonth: day
+        ) else {
+            return "Le budget suit le calendrier mensuel standard."
+        }
+        let monthName = Formatters.monthYear.monthSymbols[exampleMonth - 1].capitalized
+        return "Ton budget \u{00AB} \(monthName) \u{00BB} couvrira du \(period)."
     }
 }
 
@@ -97,7 +106,7 @@ struct PayDaySettingView: View {
 
 @Observable @MainActor
 final class PayDaySettingViewModel {
-    var selectedDay: Int?
+    private(set) var selectedDay: Int?
     private(set) var isSaving = false
     private(set) var hasChanges = false
 

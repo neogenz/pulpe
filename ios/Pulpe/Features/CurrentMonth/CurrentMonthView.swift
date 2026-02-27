@@ -78,7 +78,7 @@ struct CurrentMonthView: View {
             }
         }
         .task {
-            dashboardStore.payDayOfMonth = userSettingsStore.payDayOfMonth
+            dashboardStore.setPayDay(userSettingsStore.payDayOfMonth)
             async let loadDetails: Void = store.loadDetailsIfNeeded()
             async let loadDashboard: Void = dashboardStore.loadIfNeeded()
             _ = await (loadDetails, loadDashboard)

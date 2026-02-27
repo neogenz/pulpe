@@ -276,7 +276,7 @@ final class CurrentMonthStore: StoreProtocol {
 
 extension CurrentMonthStore {
     /// Days remaining in the current budget period
-    func daysRemaining(payDayOfMonth: Int? = nil) -> Int {
+    func daysRemaining() -> Int {
         let calendar = Calendar.current
         let today = Date()
 
@@ -301,8 +301,8 @@ extension CurrentMonthStore {
     }
 
     /// Daily budget available (remaining / days left)
-    func dailyBudget(payDayOfMonth: Int? = nil) -> Decimal {
-        let days = daysRemaining(payDayOfMonth: payDayOfMonth)
+    func dailyBudget() -> Decimal {
+        let days = daysRemaining()
         guard days > 0, metrics.remaining > 0 else { return 0 }
         return metrics.remaining / Decimal(days)
     }
