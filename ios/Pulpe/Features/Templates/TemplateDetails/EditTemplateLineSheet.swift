@@ -74,7 +74,7 @@ struct EditTemplateLineSheet: View {
     // MARK: - Description
 
     private var descriptionField: some View {
-        TextField("Description", text: $name)
+        TextField(kind.descriptionPlaceholder, text: $name)
             .font(PulpeTypography.bodyLarge)
             .padding(DesignTokens.Spacing.lg)
             .background(Color.inputBackgroundSoft)

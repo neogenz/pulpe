@@ -75,6 +75,7 @@ struct AddTransactionSheet: View {
                 }
             }
             .loadingOverlay(isLoading)
+            .dismissKeyboardOnTap()
             .sensoryFeedback(.success, trigger: submitSuccessTrigger)
             .task {
                 try? await Task.sleep(for: .milliseconds(200))
@@ -113,10 +114,10 @@ struct AddTransactionSheet: View {
                         .padding(.horizontal, DesignTokens.Spacing.md)
                         .padding(.vertical, DesignTokens.Spacing.sm)
                         .frame(maxWidth: .infinity)
-                        .background(kind.color.opacity(isSelected ? 0.20 : 0.12))
+                        .background(kind.color.opacity(isSelected ? DesignTokens.Opacity.secondary : DesignTokens.Opacity.badgeBackground))
                         .foregroundStyle(kind.color)
                         .clipShape(Capsule())
-                        .overlay(Capsule().strokeBorder(kind.color.opacity(isSelected ? 0.40 : 0.20), lineWidth: 1))
+                        .overlay(Capsule().strokeBorder(kind.color.opacity(isSelected ? DesignTokens.Opacity.strong : DesignTokens.Opacity.secondary), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
                 .accessibilityHint("Définir le montant à \(quickAmount) CHF")

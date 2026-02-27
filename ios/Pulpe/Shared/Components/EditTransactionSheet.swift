@@ -38,7 +38,7 @@ struct EditTransactionSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Description", text: $name)
+                    TextField(kind.descriptionPlaceholder, text: $name)
                         .font(PulpeTypography.bodyLarge)
                         .listRowBackground(Color.surfaceCard)
                 } header: {

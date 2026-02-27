@@ -91,9 +91,15 @@ struct AddAllocatedTransactionSheet: View {
                         .padding(.horizontal, DesignTokens.Spacing.md)
                         .padding(.vertical, DesignTokens.Spacing.sm)
                         .frame(maxWidth: .infinity)
-                        .background(Color.pulpePrimary.opacity(DesignTokens.Opacity.accent))
+                        .background(Color.pulpePrimary.opacity(DesignTokens.Opacity.badgeBackground))
                         .foregroundStyle(Color.pulpePrimary)
                         .clipShape(Capsule())
+                        .overlay(
+                            Capsule().strokeBorder(
+                                Color.pulpePrimary.opacity(DesignTokens.Opacity.secondary),
+                                lineWidth: 1
+                            )
+                        )
                 }
                 .buttonStyle(.plain)
             }

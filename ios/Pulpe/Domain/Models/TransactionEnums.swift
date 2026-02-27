@@ -14,8 +14,6 @@ enum TransactionKind: String, Codable, CaseIterable, Sendable {
         }
     }
 
-    var shortLabel: String { label }
-
     /// SF Symbol name for savings (bank icon, used everywhere)
     static let savingsIcon = "building.columns"
 

@@ -70,6 +70,10 @@ struct EditBudgetLineSheet: View {
             }
             .loadingOverlay(isLoading)
             .dismissKeyboardOnTap()
+            .task {
+                try? await Task.sleep(for: .milliseconds(200))
+                isAmountFocused = true
+            }
         }
         .standardSheetPresentation()
     }
@@ -77,7 +81,7 @@ struct EditBudgetLineSheet: View {
     // MARK: - Description
 
     private var descriptionField: some View {
-        TextField("Description", text: $name)
+        TextField(kind.descriptionPlaceholder, text: $name)
             .font(PulpeTypography.bodyLarge)
             .padding(DesignTokens.Spacing.lg)
             .background(Color.inputBackgroundSoft)
