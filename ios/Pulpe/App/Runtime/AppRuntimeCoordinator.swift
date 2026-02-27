@@ -36,8 +36,8 @@ final class AppRuntimeCoordinator {
             "[AUTH_SCENE] \(oldDesc, privacy: .public) → \(newDesc, privacy: .public) \(authDesc, privacy: .public)"
         )
         #endif
-        // Activate shield only when leaving .active while in a secured state
-        if newPhase != .active, oldPhase == .active {
+        // Activate shield only when truly entering background (not on notification/control center)
+        if newPhase == .background, oldPhase != .background {
             let isSecured = appState.authState == .authenticated
                 || appState.authState == .needsPinEntry
             if isSecured {
@@ -48,7 +48,9 @@ final class AppRuntimeCoordinator {
             }
         }
         if newPhase == .active {
-            privacyShieldActive = false
+            withAnimation(.easeInOut(duration: 0.25)) {
+                privacyShieldActive = false
+            }
         }
 
         if newPhase == .background {

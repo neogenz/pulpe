@@ -43,6 +43,12 @@ struct Budget: Codable, Identifiable, Hashable, Sendable {
         return month == calendar.component(.month, from: now) &&
                year == calendar.component(.year, from: now)
     }
+
+    /// Payday-aware check: uses BudgetPeriodCalculator when payDay > 1
+    func isCurrentPeriod(payDayOfMonth: Int?) -> Bool {
+        let currentPeriod = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
+        return month == currentPeriod.month && year == currentPeriod.year
+    }
 }
 
 // MARK: - Create/Update DTOs
@@ -119,6 +125,13 @@ struct BudgetSparse: Decodable, Identifiable, Sendable, Hashable {
         let calendar = Calendar.current
         return month == calendar.component(.month, from: now) &&
                year == calendar.component(.year, from: now)
+    }
+
+    /// Payday-aware check: uses BudgetPeriodCalculator when payDay > 1
+    func isCurrentPeriod(payDayOfMonth: Int?) -> Bool {
+        guard let month, let year else { return false }
+        let currentPeriod = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
+        return month == currentPeriod.month && year == currentPeriod.year
     }
 
     init(

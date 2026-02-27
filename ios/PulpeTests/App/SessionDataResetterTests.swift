@@ -70,16 +70,18 @@ struct SessionDataResetterTests {
 
     // MARK: - LiveSessionDataResetter
 
-    @Test("LiveSessionDataResetter resets all three stores")
+    @Test("LiveSessionDataResetter resets all stores")
     func liveResetter_resetsAllStores() {
         let currentMonthStore = CurrentMonthStore()
         let budgetListStore = BudgetListStore()
         let dashboardStore = DashboardStore()
+        let userSettingsStore = UserSettingsStore()
 
         let sut = LiveSessionDataResetter(
             currentMonthStore: currentMonthStore,
             budgetListStore: budgetListStore,
-            dashboardStore: dashboardStore
+            dashboardStore: dashboardStore,
+            userSettingsStore: userSettingsStore
         )
 
         sut.resetStores()
@@ -91,6 +93,7 @@ struct SessionDataResetterTests {
         #expect(budgetListStore.budgets.isEmpty)
         #expect(budgetListStore.hasLoadedOnce == false)
         #expect(dashboardStore.sparseBudgets.isEmpty)
+        #expect(userSettingsStore.payDayOfMonth == nil)
     }
 }
 

@@ -61,8 +61,8 @@ struct DashboardStoreLogicTests {
         #expect(result[0].total == 100)
         #expect(result[1].total == 200)
         #expect(result[2].total == 300)
-        #expect(result[2].isCurrentMonth)
-        #expect(!result[0].isCurrentMonth)
+        #expect(result[2].isCurrentPeriod)
+        #expect(!result[0].isCurrentPeriod)
     }
 
     @Test func historicalExpenses_withMissingBudget_skipsMonth() {

@@ -13,6 +13,11 @@ enum Endpoint {
     case updateProfile
     case deleteAccount
 
+    // MARK: - User Settings
+
+    case userSettings
+    case updateUserSettings
+
     // MARK: - Budgets
 
     case budgets
@@ -70,6 +75,10 @@ enum Endpoint {
         case .updateProfile: return "/users/me"
         case .deleteAccount: return "/users/account"
 
+        // User Settings
+        case .userSettings: return "/users/settings"
+        case .updateUserSettings: return "/users/settings"
+
         // Budgets
         case .budgets: return "/budgets"
         case .budget(let id): return "/budgets/\(id)"
@@ -124,8 +133,12 @@ enum Endpoint {
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetsExport,
              .budgetLine, .transaction, .template, .templateUsage, .templateLine,
              .transactionsByBudget, .budgetsSparse,
-             .encryptionVaultStatus, .encryptionSalt:
+             .encryptionVaultStatus, .encryptionSalt,
+             .userSettings:
             return .get
+
+        case .updateUserSettings:
+            return .put
 
         case .updateProfile:
             return .patch

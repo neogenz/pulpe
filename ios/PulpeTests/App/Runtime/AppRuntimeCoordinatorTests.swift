@@ -38,14 +38,14 @@ struct AppRuntimeCoordinatorTests {
         #expect(sut.privacyShieldActive == true)
     }
 
-    @Test func scenePhaseActive_thenInactive_activatesPrivacyShield_whenAuthenticated() async {
+    @Test func scenePhaseActive_thenInactive_doesNotActivatePrivacyShield_whenAuthenticated() async {
         let appState = AppState(postAuthResolver: pinResolver)
         await authenticateViaPinEntry(appState)
         let sut = makeCoordinator(appState: appState)
 
         sut.handleScenePhaseChange(from: .active, to: .inactive)
 
-        #expect(sut.privacyShieldActive == true)
+        #expect(sut.privacyShieldActive == false)
     }
 
     @Test func scenePhaseActive_thenBackground_activatesPrivacyShield_whenNeedsPinEntry() async {
@@ -56,6 +56,19 @@ struct AppRuntimeCoordinatorTests {
 
         sut.handleScenePhaseChange(from: .active, to: .background)
 
+        #expect(sut.privacyShieldActive == true)
+    }
+
+    @Test func scenePhaseInactive_thenBackground_activatesPrivacyShield_whenAuthenticated() async {
+        let appState = AppState(postAuthResolver: pinResolver)
+        await authenticateViaPinEntry(appState)
+        let sut = makeCoordinator(appState: appState)
+
+        // Simulate the real iOS lifecycle: active → inactive → background
+        sut.handleScenePhaseChange(from: .active, to: .inactive)
+        #expect(sut.privacyShieldActive == false)
+
+        sut.handleScenePhaseChange(from: .inactive, to: .background)
         #expect(sut.privacyShieldActive == true)
     }
 

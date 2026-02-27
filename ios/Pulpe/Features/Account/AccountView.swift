@@ -16,6 +16,7 @@ struct AccountView: View {
         NavigationStack {
             List {
                 personalInfoSection
+                PayDaySettingView()
                 securitySection
                 applicationSection
                 logoutSection
@@ -327,4 +328,5 @@ struct AccountSecurityDependencies: Sendable {
 #Preview {
     AccountView()
         .environment(AppState())
+        .environment(UserSettingsStore())
 }

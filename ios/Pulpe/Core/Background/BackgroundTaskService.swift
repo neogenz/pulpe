@@ -9,6 +9,7 @@ actor BackgroundTaskService {
     private static let minimumBackgroundFetchInterval: TimeInterval = 3600
 
     private let budgetService = BudgetService.shared
+    private let userSettingsService = UserSettingsService.shared
 
     nonisolated func registerTasks() {
         BGTaskScheduler.shared.register(
@@ -52,8 +53,14 @@ actor BackgroundTaskService {
     private func refreshWidgetData() async throws {
         guard await AuthService.shared.hasBiometricTokens() else { return }
 
-        guard let currentBudget = try await budgetService.getCurrentMonthBudget() else {
-            await WidgetDataSyncService.shared.sync(budgetsWithDetails: [], currentBudgetDetails: nil)
+        let payDay = try? await userSettingsService.getSettings().payDayOfMonth
+
+        guard let currentBudget = try await budgetService.getCurrentMonthBudget(payDayOfMonth: payDay) else {
+            await WidgetDataSyncService.shared.sync(
+                budgetsWithDetails: [],
+                currentBudgetDetails: nil,
+                payDayOfMonth: payDay
+            )
             return
         }
 
@@ -63,13 +70,15 @@ actor BackgroundTaskService {
             let exportData = try await budgetService.exportAllBudgets()
             await WidgetDataSyncService.shared.sync(
                 budgetsWithDetails: exportData.budgets,
-                currentBudgetDetails: details
+                currentBudgetDetails: details,
+                payDayOfMonth: payDay
             )
         } catch {
             Logger.sync.error("BackgroundTaskService: exportAllBudgets failed - \(error)")
             await WidgetDataSyncService.shared.sync(
                 budgetsWithDetails: [],
-                currentBudgetDetails: details
+                currentBudgetDetails: details,
+                payDayOfMonth: payDay
             )
         }
     }

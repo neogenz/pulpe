@@ -9,6 +9,7 @@ final class DashboardStore: StoreProtocol {
     private(set) var sparseBudgets: [BudgetSparse] = []
     private(set) var isLoading = false
     private(set) var error: APIError?
+    private(set) var payDayOfMonth: Int?
 
     /// Returns true if the store has an error and no data to display
     var hasError: Bool {
@@ -50,6 +51,10 @@ final class DashboardStore: StoreProtocol {
     func loadIfNeeded() async {
         guard !isCacheValid else { return }
         await forceRefresh()
+    }
+
+    func setPayDay(_ payDay: Int?) {
+        payDayOfMonth = payDay
     }
 
     func reset() {
@@ -102,17 +107,14 @@ final class DashboardStore: StoreProtocol {
 
     /// Expenses for the last 3 months (including current), sorted oldest to newest
     var historicalExpenses: [MonthlyExpense] {
-        let calendar = Calendar.current
-        let now = Date()
-        let currentMonth = calendar.component(.month, from: now)
-        let currentYear = calendar.component(.year, from: now)
+        let currentPeriod = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
 
-        // Get last 3 months (including current)
+        // Build last 3 months from budget period (not calendar), so payday shifts are respected
         var months: [(month: Int, year: Int)] = []
         for offset in (-(Self.historicalMonthsCount - 1)...0) {
-            guard let date = calendar.date(byAdding: .month, value: offset, to: now) else { continue }
-            let month = calendar.component(.month, from: date)
-            let year = calendar.component(.year, from: date)
+            var month = currentPeriod.month + offset
+            var year = currentPeriod.year
+            while month < 1 { month += 12; year -= 1 }
             months.append((month, year))
         }
 
@@ -128,7 +130,7 @@ final class DashboardStore: StoreProtocol {
                 month: month,
                 year: year,
                 total: totalExpenses,
-                isCurrentMonth: month == currentMonth && year == currentYear
+                isCurrentPeriod: month == currentPeriod.month && year == currentPeriod.year
             )
         }
     }
@@ -169,15 +171,12 @@ final class DashboardStore: StoreProtocol {
             }
     }
 
-    /// Current rollover (from current month budget)
+    /// Current rollover (from current period budget)
     var currentRollover: Decimal {
-        let calendar = Calendar.current
-        let now = Date()
-        let currentMonth = calendar.component(.month, from: now)
-        let currentYear = calendar.component(.year, from: now)
+        let currentPeriod = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
 
         return sparseBudgets
-            .first { $0.month == currentMonth && $0.year == currentYear }?
+            .first { $0.month == currentPeriod.month && $0.year == currentPeriod.year }?
             .rollover ?? 0
     }
 
@@ -193,7 +192,7 @@ struct MonthlyExpense: Identifiable {
     let month: Int
     let year: Int
     let total: Decimal
-    let isCurrentMonth: Bool
+    let isCurrentPeriod: Bool
 
     var id: String { "\(year)-\(month)" }
 

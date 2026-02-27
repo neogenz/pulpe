@@ -13,6 +13,7 @@ struct CurrentMonthView: View {
     @Environment(AppState.self) private var appState
     @Environment(CurrentMonthStore.self) private var store
     @Environment(DashboardStore.self) private var dashboardStore
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var activeSheet: SheetDestination?
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
@@ -77,6 +78,7 @@ struct CurrentMonthView: View {
             }
         }
         .task {
+            dashboardStore.setPayDay(userSettingsStore.payDayOfMonth)
             async let loadDetails: Void = store.loadDetailsIfNeeded()
             async let loadDashboard: Void = dashboardStore.loadIfNeeded()
             _ = await (loadDetails, loadDashboard)
@@ -113,6 +115,13 @@ struct CurrentMonthView: View {
                 // Hero card with available balance and circular progress
                 HeroBalanceCard(
                     metrics: store.metrics,
+                    periodLabel: store.budget.flatMap { budget in
+                        BudgetPeriodCalculator.formatPeriod(
+                            month: budget.month,
+                            year: budget.year,
+                            payDayOfMonth: userSettingsStore.payDayOfMonth
+                        )
+                    },
                     onTapProgress: { activeSheet = .realizedBalance }
                 )
                 .opacity(hasAppeared ? 1 : 0)
@@ -206,4 +215,5 @@ struct CurrentMonthView: View {
     .environment(CurrentMonthStore())
     .environment(BudgetListStore())
     .environment(DashboardStore())
+    .environment(UserSettingsStore())
 }

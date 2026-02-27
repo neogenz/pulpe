@@ -16,13 +16,13 @@ actor WidgetDataSyncService {
     }
 
     /// Centralized widget sync - fetches all data and syncs widgets
-    func syncAll() async {
+    func syncAll(payDayOfMonth: Int? = nil) async {
         do {
             let exportData = try await budgetService.exportAllBudgets()
 
             // Also get current budget details if it exists
             let currentDetails: BudgetDetails?
-            if let currentBudget = try? await budgetService.getCurrentMonthBudget() {
+            if let currentBudget = try? await budgetService.getCurrentMonthBudget(payDayOfMonth: payDayOfMonth) {
                 currentDetails = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
             } else {
                 currentDetails = nil
@@ -30,25 +30,26 @@ actor WidgetDataSyncService {
 
             await sync(
                 budgetsWithDetails: exportData.budgets,
-                currentBudgetDetails: currentDetails
+                currentBudgetDetails: currentDetails,
+                payDayOfMonth: payDayOfMonth
             )
         } catch {
             Logger.sync.error("syncAll failed - \(error)")
             await sync(
                 budgetsWithDetails: [],
-                currentBudgetDetails: nil
+                currentBudgetDetails: nil,
+                payDayOfMonth: payDayOfMonth
             )
         }
     }
 
     func sync(
         budgetsWithDetails: [BudgetWithDetails],
-        currentBudgetDetails: BudgetDetails?
+        currentBudgetDetails: BudgetDetails?,
+        payDayOfMonth: Int? = nil
     ) async {
         let calendar = Calendar.current
-        let now = Date()
-        let currentMonth = calendar.component(.month, from: now)
-        let currentYear = calendar.component(.year, from: now)
+        let currentPeriod = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
 
         var currentMonthData: BudgetWidgetData?
 
@@ -73,14 +74,13 @@ actor WidgetDataSyncService {
                 available: metrics.remaining,
                 monthName: details.budget.monthYear,
                 shortMonthName: shortMonthName,
-                isCurrentMonth: details.budget.isCurrentMonth
+                isCurrentMonth: details.budget.isCurrentPeriod(payDayOfMonth: payDayOfMonth)
             )
         }
 
         let yearBudgets = buildYearBudgets(
             from: budgetsWithDetails,
-            forYear: currentYear,
-            currentMonth: currentMonth
+            currentPeriod: currentPeriod
         )
 
         let cache = WidgetDataCache(
@@ -102,10 +102,10 @@ actor WidgetDataSyncService {
 
     nonisolated private func buildYearBudgets(
         from budgets: [BudgetWithDetails],
-        forYear year: Int,
-        currentMonth: Int
+        currentPeriod: BudgetPeriod
     ) -> [BudgetWidgetData] {
         let calendar = Calendar.current
+        let year = currentPeriod.year
         return (1...12).map { month in
             let budget = budgets.first { $0.month == month && $0.year == year }
 
@@ -124,7 +124,7 @@ actor WidgetDataSyncService {
                 available: budget?.remaining,
                 monthName: monthName,
                 shortMonthName: shortMonthName,
-                isCurrentMonth: month == currentMonth
+                isCurrentMonth: month == currentPeriod.month
             )
         }
     }

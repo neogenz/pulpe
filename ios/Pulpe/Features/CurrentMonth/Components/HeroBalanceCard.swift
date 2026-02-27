@@ -4,6 +4,7 @@ import SwiftUI
 /// The gradient card contains balance + progress, pills sit outside for readability.
 struct HeroBalanceCard: View {
     let metrics: BudgetFormulas.Metrics
+    var periodLabel: String?
     let onTapProgress: () -> Void
 
     // MARK: - Constants
@@ -96,6 +97,15 @@ struct HeroBalanceCard: View {
                 Text(motivationalMessage)
                     .font(PulpeTypography.caption)
                     .foregroundStyle(.white.opacity(0.75))
+
+                if let periodLabel {
+                    Text(periodLabel)
+                        .font(PulpeTypography.labelMedium)
+                        .foregroundStyle(.white.opacity(0.85))
+                        .padding(.horizontal, DesignTokens.Spacing.sm)
+                        .padding(.vertical, DesignTokens.Spacing.xs)
+                        .background(.white.opacity(0.15), in: Capsule())
+                }
             }
 
             Spacer()
@@ -217,6 +227,7 @@ private extension View {
                     remaining: 2500,
                     rollover: 500
                 ),
+                periodLabel: "27 f\u{00E9}v. - 26 mars",
                 onTapProgress: {}
             )
 
