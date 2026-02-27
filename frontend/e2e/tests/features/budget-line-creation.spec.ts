@@ -399,7 +399,11 @@ test.describe('Budget Line Creation', () => {
 
     await authenticatedPage.locator('[data-testid="new-line-name"]').fill('Courses');
     await authenticatedPage.locator('[data-testid="new-line-amount"]').fill('500');
-    await authenticatedPage.getByTestId('add-new-line').click();
+    // Blur triggers Angular form control finalization (CI timing)
+    await authenticatedPage.locator('[data-testid="new-line-amount"]').blur();
+    const submitButton = authenticatedPage.getByTestId('add-new-line');
+    await expect(submitButton).toBeEnabled();
+    await submitButton.click();
     await expect(dialog).not.toBeVisible();
 
     // After creation: income=5000, expenses=1500+500=2000, remaining=3000
