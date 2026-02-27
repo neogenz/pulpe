@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   input,
   output,
@@ -172,8 +173,8 @@ export type EditTransactionFormData = Pick<
         <input
           matInput
           [matDatepicker]="picker"
-          [min]="minDate"
-          [max]="maxDate"
+          [min]="minDate()"
+          [max]="maxDate()"
           formControlName="transactionDate"
           placeholder="jj.mm.aaaa"
           aria-describedby="date-hint"
@@ -263,9 +264,13 @@ export class EditTransactionForm implements OnInit {
   readonly cancelEdit = output<void>();
   readonly isUpdating = signal(false);
 
-  // Date constraints — defaults to current month, overridden in ngOnInit if inputs provided
-  protected minDate = startOfMonth(new Date());
-  protected maxDate = endOfMonth(new Date());
+  // Date constraints — derived from inputs, falling back to current month
+  readonly minDate = computed(
+    () => this.minDateInput() ?? startOfMonth(new Date()),
+  );
+  readonly maxDate = computed(
+    () => this.maxDateInput() ?? endOfMonth(new Date()),
+  );
 
   // Custom validator for date range
   readonly #dateRangeValidator = (
@@ -274,8 +279,8 @@ export class EditTransactionForm implements OnInit {
     if (!control.value) return null;
 
     const date = new Date(control.value);
-    const min = this.minDate;
-    const max = this.maxDate;
+    const min = this.minDate();
+    const max = this.maxDate();
 
     if (date < min || date > max) {
       return {
@@ -308,10 +313,6 @@ export class EditTransactionForm implements OnInit {
   }
 
   ngOnInit(): void {
-    const minInput = this.minDateInput();
-    const maxInput = this.maxDateInput();
-    if (minInput) this.minDate = minInput;
-    if (maxInput) this.maxDate = maxInput;
     this.#initializeForm();
     this.transactionForm
       .get('transactionDate')
