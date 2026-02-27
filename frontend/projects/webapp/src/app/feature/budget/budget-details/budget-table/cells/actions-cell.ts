@@ -78,7 +78,7 @@ import type {
               [attr.data-testid]="'edit-' + line().data.id"
             >
               <mat-icon matMenuItemIcon>edit</mat-icon>
-              <span>Éditer</span>
+              <span>Modifier</span>
             </button>
           }
           @if (line().metadata.canResetFromTemplate) {

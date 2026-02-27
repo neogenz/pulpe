@@ -1,4 +1,4 @@
-import { CurrencyPipe, NgTemplateOutlet } from '@angular/common';
+import { CurrencyPipe, DatePipe, NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -13,9 +13,13 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { FinancialKindDirective } from '@ui/financial-kind';
+import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
 import type { TransactionViewModel } from '../models/transaction-view-model';
 import type { BudgetLineTableItem } from '../data-core';
+import { BudgetKindIndicator } from '../components/budget-kind-indicator';
+import { TransactionActionMenu } from '../components/transaction-action-menu';
 import {
   BudgetDetailPanel,
   type BudgetDetailPanelData,
@@ -23,6 +27,36 @@ import {
 import { BudgetGridCard } from './budget-grid-card';
 import { BudgetGridMobileCard } from './budget-grid-mobile-card';
 import { BudgetGridSection } from './budget-grid-section';
+
+/** Filters transactions not allocated to any budget line. */
+export function filterFreeTransactionItems<
+  T extends { data: { budgetLineId: string | null } },
+>(items: T[]): T[] {
+  return items.filter((item) => !item.data.budgetLineId);
+}
+
+/** Groups items by financial kind into labeled categories. */
+export function groupByKind<T extends { data: { kind: string } }>(
+  items: T[],
+): { title: string; icon: string; items: T[] }[] {
+  return [
+    {
+      title: 'Revenus',
+      icon: 'trending_up',
+      items: items.filter((i) => i.data.kind === 'income'),
+    },
+    {
+      title: 'Épargnes',
+      icon: 'savings',
+      items: items.filter((i) => i.data.kind === 'saving'),
+    },
+    {
+      title: 'Dépenses',
+      icon: 'shopping_cart',
+      items: items.filter((i) => i.data.kind === 'expense'),
+    },
+  ];
+}
 
 /**
  * Grid view component displaying budget lines as cards.
@@ -32,14 +66,19 @@ import { BudgetGridSection } from './budget-grid-section';
   selector: 'pulpe-budget-grid',
   imports: [
     CurrencyPipe,
+    DatePipe,
     NgTemplateOutlet,
     MatButtonModule,
     MatCardModule,
     MatIconModule,
+    MatSlideToggleModule,
     BudgetGridCard,
     BudgetGridMobileCard,
     BudgetGridSection,
-    MatSlideToggleModule,
+    BudgetKindIndicator,
+    FinancialKindDirective,
+    TransactionActionMenu,
+    TransactionLabelPipe,
   ],
   template: `
     @if (isMobile()) {
@@ -56,7 +95,9 @@ import { BudgetGridSection } from './budget-grid-section';
             (toggleCheck)="toggleCheck.emit($event)"
           />
         } @empty {
-          <ng-container *ngTemplateOutlet="emptyState" />
+          @if (transactionItems().length === 0) {
+            <ng-container *ngTemplateOutlet="emptyState" />
+          }
         }
 
         <!-- Transactions section -->
@@ -78,7 +119,9 @@ import { BudgetGridSection } from './budget-grid-section';
       </div>
     } @else {
       <!-- Desktop Card Grid View -->
-      @if (budgetLineItems().length === 0) {
+      @if (
+        budgetLineItems().length === 0 && freeTransactionItems().length === 0
+      ) {
         <ng-container *ngTemplateOutlet="emptyState" />
       } @else {
         <div class="space-y-4">
@@ -102,6 +145,24 @@ import { BudgetGridSection } from './budget-grid-section';
                 }
               </pulpe-budget-grid-section>
             }
+          }
+
+          @if (freeTransactionItems().length > 0) {
+            <pulpe-budget-grid-section
+              title="Hors enveloppes"
+              icon="receipt_long"
+              [itemCount]="freeTransactionItems().length"
+              data-testid="free-transactions-section"
+            >
+              @for (item of freeTransactionItems(); track item.data.id) {
+                <ng-container
+                  *ngTemplateOutlet="
+                    desktopFreeTransactionCard;
+                    context: { $implicit: item }
+                  "
+                />
+              }
+            </pulpe-budget-grid-section>
           }
         </div>
       }
@@ -139,61 +200,131 @@ import { BudgetGridSection } from './budget-grid-section';
     <ng-template #mobileTransactionCard let-item>
       <mat-card
         appearance="outlined"
-        class="mb-3"
-        [class.opacity-50]="item.metadata.isLoading"
+        class="mb-3 min-h-[120px] border-dashed bg-surface"
+        [class.opacity-60]="item.metadata.isLoading"
         [attr.data-testid]="'transaction-card-' + item.data.id"
       >
-        <mat-card-content>
-          <div
-            class="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-1 items-center"
-          >
-            <div class="min-w-0 space-y-0.5">
-              <span class="text-body-medium font-medium block truncate">
+        <mat-card-content class="p-4">
+          <!-- Row 1: Kind dot + name + menu -->
+          <div class="flex items-start justify-between gap-2 mb-3">
+            <div class="flex items-center gap-2 min-w-0 flex-1">
+              <pulpe-budget-kind-indicator [kind]="item.data.kind" />
+              <span class="text-title-small font-medium truncate">
                 {{ item.data.name }}
               </span>
-              <div class="text-label-small text-on-surface-variant">
-                {{ item.data.kind }}
-              </div>
-              @if (item.metadata.envelopeName) {
-                <div
-                  class="flex items-center text-label-small text-on-surface-variant"
-                >
-                  <mat-icon [inline]="true" class="text-sm">folder</mat-icon>
-                  <span>{{ item.metadata.envelopeName }}</span>
-                </div>
-              }
             </div>
+            <pulpe-transaction-action-menu
+              [transaction]="item.data"
+              menuIcon="more_horiz"
+              buttonClass="!-mr-2 !-mt-1"
+              (edit)="editTransaction.emit($event)"
+              (delete)="deleteTransaction.emit($event)"
+            />
+          </div>
+
+          <!-- Row 2: Amount + date chip -->
+          <div class="flex items-center justify-between mb-3">
             <div
-              class="ph-no-capture text-title-medium font-bold"
-              [class.text-financial-income]="item.data.amount > 0"
-              [class.text-financial-negative]="item.data.amount < 0"
+              class="ph-no-capture text-headline-small font-bold"
+              [pulpeFinancialKind]="item.data.kind"
+              [attr.data-testid]="'transaction-amount-' + item.data.id"
             >
               {{ item.data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
             </div>
-            <div class="flex items-center">
-              <mat-slide-toggle
-                [checked]="!!item.data.checkedAt"
-                (change)="toggleTransactionCheck.emit(item.data.id)"
-                (click)="$event.stopPropagation()"
-                [attr.data-testid]="'toggle-check-tx-' + item.data.id"
-                [attr.aria-label]="
-                  item.data.checkedAt
-                    ? 'Marquer comme non vérifié'
-                    : 'Marquer comme vérifié'
-                "
-              />
-              <button
-                matIconButton
-                (click)="deleteTransaction.emit(item.data.id)"
-                [attr.data-testid]="'delete-tx-' + item.data.id"
-                aria-label="Supprimer la transaction"
+            @if (item.data.transactionDate) {
+              <span
+                class="text-label-small text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-full"
               >
-                <mat-icon>delete</mat-icon>
-              </button>
-            </div>
+                {{
+                  item.data.transactionDate | date: 'dd.MM.yyyy' : '' : 'fr-CH'
+                }}
+              </span>
+            }
+          </div>
+
+          <!-- Footer: Kind label + toggle -->
+          <div
+            class="flex items-center justify-between pt-2 border-t border-outline-variant/30"
+          >
+            <span class="text-label-small text-on-surface-variant">
+              {{ item.data.kind | transactionLabel }}
+            </span>
+            <mat-slide-toggle
+              [checked]="!!item.data.checkedAt"
+              (change)="toggleTransactionCheck.emit(item.data.id)"
+              (click)="$event.stopPropagation()"
+              [attr.data-testid]="'toggle-check-tx-' + item.data.id"
+              [attr.aria-label]="
+                item.data.checkedAt ? 'Retirer le pointage' : 'Pointer'
+              "
+            />
           </div>
         </mat-card-content>
       </mat-card>
+    </ng-template>
+
+    <!-- Desktop Free Transaction Card Template -->
+    <ng-template #desktopFreeTransactionCard let-item>
+      <div
+        class="rounded-corner-large border border-dashed border-outline-variant p-5
+               min-h-[120px] h-full flex flex-col bg-surface
+               transition-all duration-200"
+        [class.opacity-60]="item.metadata.isLoading"
+        [attr.data-testid]="'transaction-card-' + item.data.id"
+      >
+        <!-- Header: Kind dot + name + menu -->
+        <div class="flex items-start justify-between gap-2 mb-4 flex-1">
+          <div class="flex items-center gap-2 min-w-0 flex-1">
+            <pulpe-budget-kind-indicator [kind]="item.data.kind" />
+            <span class="text-title-small font-medium truncate">{{
+              item.data.name
+            }}</span>
+          </div>
+          <pulpe-transaction-action-menu
+            [transaction]="item.data"
+            buttonClass="!-mr-2 !-mt-1"
+            (edit)="editTransaction.emit($event)"
+            (delete)="deleteTransaction.emit($event)"
+          />
+        </div>
+
+        <div
+          class="ph-no-capture text-headline-small font-bold mb-2"
+          [pulpeFinancialKind]="item.data.kind"
+          [attr.data-testid]="'transaction-amount-' + item.data.id"
+        >
+          {{ item.data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+        </div>
+
+        <!-- Footer: Kind label + date + toggle -->
+        <div
+          class="flex items-center justify-between pt-3 border-t border-outline-variant/30"
+        >
+          <div class="flex items-center gap-2">
+            <span class="text-label-small text-on-surface-variant">
+              {{ item.data.kind | transactionLabel }}
+            </span>
+            @if (item.data.transactionDate) {
+              <span
+                class="text-label-small text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-full"
+              >
+                {{
+                  item.data.transactionDate | date: 'dd.MM.yyyy' : '' : 'fr-CH'
+                }}
+              </span>
+            }
+          </div>
+          <mat-slide-toggle
+            [checked]="!!item.data.checkedAt"
+            (change)="toggleTransactionCheck.emit(item.data.id)"
+            (click)="$event.stopPropagation()"
+            [attr.data-testid]="'toggle-check-tx-' + item.data.id"
+            [attr.aria-label]="
+              item.data.checkedAt ? 'Retirer le pointage' : 'Pointer'
+            "
+          />
+        </div>
+      </div>
     </ng-template>
   `,
   styles: `
@@ -230,25 +361,13 @@ export class BudgetGrid {
   readonly toggleCheck = output<string>();
   readonly toggleTransactionCheck = output<string>();
 
-  protected readonly categories = computed(() => {
-    const items = this.budgetLineItems();
-    const income = {
-      title: 'Revenus',
-      icon: 'trending_up',
-      items: items.filter((item) => item.data.kind === 'income'),
-    };
-    const saving = {
-      title: 'Épargnes',
-      icon: 'savings',
-      items: items.filter((item) => item.data.kind === 'saving'),
-    };
-    const expense = {
-      title: 'Dépenses',
-      icon: 'shopping_cart',
-      items: items.filter((item) => item.data.kind === 'expense'),
-    };
-    return [income, saving, expense];
-  });
+  protected readonly freeTransactionItems = computed(() =>
+    filterFreeTransactionItems(this.transactionItems()),
+  );
+
+  protected readonly categories = computed(() =>
+    groupByKind(this.budgetLineItems()),
+  );
 
   protected openDetailPanel(item: BudgetLineTableItem): void {
     const dialogData: BudgetDetailPanelData = {

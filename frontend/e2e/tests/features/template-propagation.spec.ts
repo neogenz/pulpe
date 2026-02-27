@@ -19,7 +19,7 @@ test.describe('Template propagation choices', () => {
     // Ensure dialog is visible
     await expect(
       page.getByRole('heading', {
-        name: /Éditer les transactions/i,
+        name: /Modifier les transactions/i,
       }),
     ).toBeVisible();
   }

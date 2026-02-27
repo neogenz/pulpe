@@ -7,7 +7,7 @@ import {
   MAT_DIALOG_DATA,
 } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 
 import EditTransactionsDialog from './edit-transactions-dialog';
 import { TemplateLineStore } from '../services/template-line-store';
@@ -118,18 +118,18 @@ describe('EditTransactionsDialog - Component Tests', () => {
   describe('Component Initialization', () => {
     it('should create component and initialize state', () => {
       expect(component).toBeTruthy();
-      expect(component.data).toEqual(mockDialogData);
+      expect(component['data']).toEqual(mockDialogData);
     });
 
     it('should expose state signals correctly', () => {
-      expect(component.isLoading()).toBe(false);
-      expect(component.errorMessage()).toBe(null);
-      expect(component.hasUnsavedChanges()).toBe(false);
-      expect(component.canRemoveTransaction()).toBe(true);
+      expect(component['isLoading']()).toBe(false);
+      expect(component['errorMessage']()).toBe(null);
+      expect(component['hasUnsavedChanges']()).toBe(false);
+      expect(component['canRemoveTransaction']()).toBe(true);
     });
 
     it('should display transactions correctly', () => {
-      const transactions = component.transactions();
+      const transactions = component['transactions']();
       expect(transactions).toHaveLength(2);
 
       expect(transactions[0].formData.description).toBe('Loyer');
@@ -144,50 +144,50 @@ describe('EditTransactionsDialog - Component Tests', () => {
 
   describe('User Actions', () => {
     it('should add new transaction when addNewTransaction is called', () => {
-      const initialCount = component.transactions().length;
+      const initialCount = component['transactions']().length;
 
-      component.addNewTransaction();
+      component['addNewTransaction']();
 
-      const newCount = component.transactions().length;
+      const newCount = component['transactions']().length;
       expect(newCount).toBe(initialCount + 1);
-      expect(component.hasUnsavedChanges()).toBe(true);
+      expect(component['hasUnsavedChanges']()).toBe(true);
     });
 
     it('should handle remove transaction logic correctly', () => {
       // Test the state service directly since dialog mocking is complex
-      expect(component.canRemoveTransaction()).toBe(true);
+      expect(component['canRemoveTransaction']()).toBe(true);
 
       // Add a transaction so we have more than 2
-      component.addNewTransaction();
-      expect(component.transactions()).toHaveLength(3);
-      expect(component.canRemoveTransaction()).toBe(true);
+      component['addNewTransaction']();
+      expect(component['transactions']()).toHaveLength(3);
+      expect(component['canRemoveTransaction']()).toBe(true);
     });
 
-    it('should prevent removing when only one transaction remains', () => {
+    it('should prevent removing when only one transaction remains', async () => {
       // Start with 2 transactions
-      expect(component.transactions()).toHaveLength(2);
-      expect(component.canRemoveTransaction()).toBe(true);
+      expect(component['transactions']()).toHaveLength(2);
+      expect(component['canRemoveTransaction']()).toBe(true);
 
-      // Add one transaction to have 3 total
-      component.addNewTransaction();
-      expect(component.transactions()).toHaveLength(3);
-      expect(component.canRemoveTransaction()).toBe(true);
+      // Remove one transaction (confirmation dialog mock returns true)
+      const firstId = component['transactions']()[0].id;
+      await component['removeTransaction'](firstId);
 
-      // The component should track this state correctly through its computed signal
-      // We test the logic by checking that canRemoveTransaction changes appropriately
+      // Only 1 transaction remains — removal should be prevented
+      expect(component['transactions']()).toHaveLength(1);
+      expect(component['canRemoveTransaction']()).toBe(false);
     });
   });
 
   describe('Save Functionality', () => {
     it('should save successfully and close dialog', async () => {
-      component.addNewTransaction();
-      const newTransaction = component.transactions().at(-1);
+      component['addNewTransaction']();
+      const newTransaction = component['transactions']().at(-1);
       if (!newTransaction) throw new Error('Expected a new transaction');
 
-      component.updateDescription(newTransaction.id, {
+      component['updateDescription'](newTransaction.id, {
         target: { value: 'Nouvelle ligne' },
       } as unknown as Event);
-      component.updateAmount(newTransaction.id, {
+      component['updateAmount'](newTransaction.id, {
         target: { value: '150' },
       } as unknown as Event);
 
@@ -207,7 +207,7 @@ describe('EditTransactionsDialog - Component Tests', () => {
         }),
       );
 
-      await component.save();
+      await component['save']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith({
         saved: true,
@@ -231,14 +231,14 @@ describe('EditTransactionsDialog - Component Tests', () => {
 
     it('should handle save errors gracefully', async () => {
       // Add a transaction to trigger changes
-      component.addNewTransaction();
-      const newTransaction = component.transactions().at(-1);
+      component['addNewTransaction']();
+      const newTransaction = component['transactions']().at(-1);
       if (!newTransaction) throw new Error('Expected a new transaction');
 
-      component.updateDescription(newTransaction.id, {
+      component['updateDescription'](newTransaction.id, {
         target: { value: 'Nouvelle ligne' },
       } as unknown as Event);
-      component.updateAmount(newTransaction.id, {
+      component['updateAmount'](newTransaction.id, {
         target: { value: '150' },
       } as unknown as Event);
 
@@ -260,7 +260,7 @@ describe('EditTransactionsDialog - Component Tests', () => {
         };
       });
 
-      await component.save();
+      await component['save']();
 
       // Dialog should not be closed on error
       expect(mockDialogRef.close).not.toHaveBeenCalled();
@@ -268,14 +268,14 @@ describe('EditTransactionsDialog - Component Tests', () => {
     });
 
     it('should propagate changes when user selects propagate option', async () => {
-      component.addNewTransaction();
-      const newTransaction = component.transactions().at(-1);
+      component['addNewTransaction']();
+      const newTransaction = component['transactions']().at(-1);
       if (!newTransaction) throw new Error('Expected a new transaction');
 
-      component.updateDescription(newTransaction.id, {
+      component['updateDescription'](newTransaction.id, {
         target: { value: 'Nouvelle ligne' },
       } as unknown as Event);
-      component.updateAmount(newTransaction.id, {
+      component['updateAmount'](newTransaction.id, {
         target: { value: '150' },
       } as unknown as Event);
 
@@ -305,7 +305,7 @@ describe('EditTransactionsDialog - Component Tests', () => {
         }),
       );
 
-      await component.save();
+      await component['save']();
 
       expect(
         mockBudgetTemplatesApi.bulkOperationsTemplateLines$,
@@ -328,26 +328,53 @@ describe('EditTransactionsDialog - Component Tests', () => {
 
   describe('Form Validation', () => {
     it('should validate forms correctly', () => {
-      const isValid = component.isValid();
+      const isValid = component['isValid']();
       expect(isValid).toBe(true); // Initial data should be valid
     });
   });
 
   describe('Cancel Functionality', () => {
     it('should close dialog with saved: false when cancelled', () => {
-      component.cancel();
+      component['cancel']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith({
         saved: false,
       });
     });
 
-    it('should not close dialog when loading', () => {
-      // We can't easily set loading state directly, so this is a basic test
-      // In a real scenario, loading would be set during save operation
-      component.cancel();
+    it('should not close dialog when a save is in flight', async () => {
+      // Simulate a save that never resolves, keeping isLoading true
+      const neverResolve$ = new Subject();
+      mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
+        neverResolve$.asObservable(),
+      );
 
-      expect(mockDialogRef.close).toHaveBeenCalled();
+      // Trigger a change so save has something to persist
+      component['addNewTransaction']();
+      const newTx = component['transactions']().at(-1)!;
+      component['updateDescription'](newTx.id, {
+        target: { value: 'Test' },
+      } as unknown as Event);
+      component['updateAmount'](newTx.id, {
+        target: { value: '100' },
+      } as unknown as Event);
+
+      // Start save (will stay in-flight because the observable never emits)
+      const savePromise = component['save']();
+
+      // Flush microtasks so save() progresses past the propagation dialog
+      // and into saveChanges() where isLoading is set to true
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // While save is in-flight, attempt to cancel
+      component['cancel']();
+
+      // Dialog should NOT have been closed because isLoading is true
+      expect(mockDialogRef.close).not.toHaveBeenCalled();
+
+      // Clean up: complete the subject so the save promise settles
+      neverResolve$.complete();
+      await savePromise;
     });
   });
 

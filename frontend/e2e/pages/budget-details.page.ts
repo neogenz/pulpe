@@ -56,7 +56,7 @@ export class BudgetDetailsPage {
     await menuButton.click();
 
     // Then click the edit menu item
-    const editMenuItem = this.page.locator('button[mat-menu-item]').filter({ hasText: 'Éditer' });
+    const editMenuItem = this.page.locator('button[mat-menu-item]').filter({ hasText: 'Modifier' });
     await editMenuItem.click();
   }
 

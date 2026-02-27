@@ -7,6 +7,7 @@ import {
   EditTransactionForm,
   type EditTransactionFormData,
 } from './edit-transaction-form';
+import { setTestInput } from '@app/testing/signal-test-utils';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 describe('EditTransactionForm', () => {
@@ -138,13 +139,12 @@ describe('EditTransactionForm', () => {
         category: 'Test',
       });
 
-      // Set updating state
-      component.isUpdating.set(true);
-
-      // Try to submit
+      // First submit sets isUpdating to true
       component.onSubmit();
+      expect(component.isUpdating()).toBe(true);
 
-      // Verify still in updating state (no change)
+      // Second submit should be a no-op (guard against double submit)
+      component.onSubmit();
       expect(component.isUpdating()).toBe(true);
     });
   });
@@ -174,37 +174,36 @@ describe('EditTransactionForm', () => {
       expect(dateControl?.hasError('dateOutOfRange')).toBe(true);
     });
 
-    it('should validate against custom date bounds when overridden', () => {
-      // Arrange — override protected date bounds for validator testing
-      const customMin = new Date(2025, 5, 1);
-      const customMax = new Date(2025, 5, 30);
-      const bounds = component as unknown as { minDate: Date; maxDate: Date };
-      bounds.minDate = customMin;
-      bounds.maxDate = customMax;
-
+    it('should validate against custom min/max when signal inputs are provided', () => {
       const dateControl = component.transactionForm.get('transactionDate');
+      const customMin = new Date(2024, 0, 1);
+      const customMax = new Date(2024, 0, 31);
 
-      // Act — set a date within custom bounds
-      dateControl?.setValue(new Date(2025, 5, 15));
+      setTestInput(component.minDateInput, customMin);
+      setTestInput(component.maxDateInput, customMax);
+      TestBed.flushEffects();
 
-      // Assert — date in custom range is valid
+      dateControl?.setValue(new Date(2024, 0, 15));
       expect(dateControl?.hasError('dateOutOfRange')).toBe(false);
+
+      dateControl?.setValue(new Date(2024, 5, 15));
+      expect(dateControl?.hasError('dateOutOfRange')).toBe(true);
     });
 
-    it('should reject dates outside custom date bounds', () => {
-      // Arrange — override protected date bounds for validator testing
-      const customMin = new Date(2025, 5, 1);
-      const customMax = new Date(2025, 5, 30);
-      const bounds = component as unknown as { minDate: Date; maxDate: Date };
-      bounds.minDate = customMin;
-      bounds.maxDate = customMax;
-
+    it('should re-validate when bounds change via effect()', () => {
       const dateControl = component.transactionForm.get('transactionDate');
 
-      // Act — set a date outside custom bounds
-      dateControl?.setValue(new Date(2025, 0, 15));
+      setTestInput(component.minDateInput, new Date(2024, 0, 1));
+      setTestInput(component.maxDateInput, new Date(2024, 0, 31));
+      TestBed.flushEffects();
 
-      // Assert — date outside range is invalid
+      dateControl?.setValue(new Date(2024, 0, 15));
+      expect(dateControl?.hasError('dateOutOfRange')).toBe(false);
+
+      setTestInput(component.minDateInput, new Date(2024, 1, 1));
+      setTestInput(component.maxDateInput, new Date(2024, 1, 29));
+      TestBed.flushEffects();
+
       expect(dateControl?.hasError('dateOutOfRange')).toBe(true);
     });
   });

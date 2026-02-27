@@ -75,7 +75,7 @@ interface EditTransactionsDialogResult {
     <h2 mat-dialog-title class="flex gap-2 items-center">
       <mat-icon class="text-primary">edit</mat-icon>
       <span
-        >Éditer les transactions -
+        >Modifier les transactions -
         <span class="ph-no-capture">{{ data.templateName }}</span></span
       >
     </h2>
@@ -362,17 +362,17 @@ export default class EditTransactionsDialog {
   readonly #dialogRef = inject(MatDialogRef<EditTransactionsDialog>);
   readonly #dialog = inject(MatDialog);
   readonly #store = inject(TemplateLineStore);
-  readonly data = inject<EditTransactionsDialogData>(MAT_DIALOG_DATA);
+  protected readonly data = inject<EditTransactionsDialogData>(MAT_DIALOG_DATA);
 
   // Expose store signals directly
-  readonly isLoading = this.#store.isLoading;
-  readonly errorMessage = this.#store.error;
-  readonly hasUnsavedChanges = this.#store.hasUnsavedChanges;
-  readonly canRemoveTransaction = this.#store.canRemoveTransaction;
-  readonly isValid = this.#store.isValid;
+  protected readonly isLoading = this.#store.isLoading;
+  protected readonly errorMessage = this.#store.error;
+  protected readonly hasUnsavedChanges = this.#store.hasUnsavedChanges;
+  protected readonly canRemoveTransaction = this.#store.canRemoveTransaction;
+  protected readonly isValid = this.#store.isValid;
 
   // Get active lines from store
-  readonly transactions = this.#store.activeLines;
+  protected readonly transactions = this.#store.activeLines;
 
   protected readonly displayedColumns: readonly string[] = [
     'description',
@@ -394,7 +394,7 @@ export default class EditTransactionsDialog {
     this.#dialogRef.disableClose = true;
   }
 
-  async removeTransaction(id: string): Promise<void> {
+  protected async removeTransaction(id: string): Promise<void> {
     if (!this.canRemoveTransaction()) {
       return;
     }
@@ -409,7 +409,7 @@ export default class EditTransactionsDialog {
     this.#store.removeTransaction(id);
   }
 
-  addNewTransaction(): void {
+  protected addNewTransaction(): void {
     this.#store.addTransaction({
       description: '',
       amount: 0,
@@ -417,7 +417,7 @@ export default class EditTransactionsDialog {
     });
   }
 
-  async save(): Promise<void> {
+  protected async save(): Promise<void> {
     if (this.isLoading() || !this.isValid()) return;
 
     if (!this.hasUnsavedChanges()) {
@@ -461,7 +461,7 @@ export default class EditTransactionsDialog {
     } as EditTransactionsDialogResult);
   }
 
-  cancel(): void {
+  protected cancel(): void {
     if (this.isLoading()) return;
 
     this.#dialogRef.close({ saved: false } as EditTransactionsDialogResult);
@@ -487,19 +487,19 @@ export default class EditTransactionsDialog {
     });
   });
 
-  updateDescription(id: string, event: Event): void {
+  protected updateDescription(id: string, event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     this.#store.updateTransaction(id, {
       description: value,
     });
   }
 
-  updateAmount(id: string, event: Event): void {
+  protected updateAmount(id: string, event: Event): void {
     const value = Number((event.target as HTMLInputElement).value);
     this.#store.updateTransaction(id, { amount: value });
   }
 
-  updateType(id: string, value: TransactionFormData['type']): void {
+  protected updateType(id: string, value: TransactionFormData['type']): void {
     this.#store.updateTransaction(id, { type: value });
   }
 

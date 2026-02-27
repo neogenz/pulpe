@@ -11,6 +11,7 @@ import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { Logger } from '@core/logging/logger';
 import { createRolloverLine } from '@core/budget/rollover/rollover-types';
+import { formatLocalDate } from '@core/date/format-local-date';
 import { StorageService } from '@core/storage/storage.service';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import {
@@ -178,7 +179,7 @@ export class BudgetDetailsStore {
     const budgets = this.#allBudgetsResource.error()
       ? []
       : (this.#allBudgetsResource.value() ?? []);
-    return [...budgets].sort((a, b) => {
+    return budgets.toSorted((a, b) => {
       if (a.year !== b.year) return a.year - b.year;
       return a.month - b.month;
     });
@@ -545,7 +546,7 @@ export class BudgetDetailsStore {
       amount: transactionData.amount,
       kind: transactionData.kind,
       transactionDate:
-        transactionData.transactionDate ?? new Date().toISOString(),
+        transactionData.transactionDate ?? formatLocalDate(new Date()),
       category: transactionData.category ?? null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

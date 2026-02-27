@@ -102,7 +102,7 @@ test.describe('Budget Line Editing', () => {
     // Click the edit menu item
     const editMenuItem = authenticatedPage
       .locator('button[mat-menu-item]')
-      .filter({ hasText: 'Éditer' });
+      .filter({ hasText: 'Modifier' });
     await editMenuItem.click();
 
     // Wait for the edit dialog to open
@@ -201,7 +201,7 @@ test.describe('Budget Line Editing', () => {
     // Click the edit menu item
     const editMenuItem = authenticatedPage
       .locator('button[mat-menu-item]')
-      .filter({ hasText: 'Éditer' });
+      .filter({ hasText: 'Modifier' });
     await editMenuItem.click();
 
     // Wait for the edit dialog to open
@@ -329,7 +329,7 @@ test.describe('Budget Line Editing', () => {
 
     const editMenuItem = authenticatedPage
       .locator('button[mat-menu-item]')
-      .filter({ hasText: 'Éditer' });
+      .filter({ hasText: 'Modifier' });
     await editMenuItem.click();
 
     // Wait for dialog and update name

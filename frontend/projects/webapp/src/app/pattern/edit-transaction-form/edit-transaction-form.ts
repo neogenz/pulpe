@@ -1,10 +1,13 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
+  effect,
   inject,
   input,
   output,
   signal,
+  untracked,
   type OnInit,
 } from '@angular/core';
 import {
@@ -172,8 +175,8 @@ export type EditTransactionFormData = Pick<
         <input
           matInput
           [matDatepicker]="picker"
-          [min]="minDate"
-          [max]="maxDate"
+          [min]="minDate()"
+          [max]="maxDate()"
           formControlName="transactionDate"
           placeholder="jj.mm.aaaa"
           aria-describedby="date-hint"
@@ -261,11 +264,16 @@ export class EditTransactionForm implements OnInit {
   readonly maxDateInput = input<Date>();
   readonly updateTransaction = output<EditTransactionFormData>();
   readonly cancelEdit = output<void>();
-  readonly isUpdating = signal(false);
+  readonly #isUpdating = signal(false);
+  readonly isUpdating = this.#isUpdating.asReadonly();
 
-  // Date constraints — defaults to current month, overridden in ngOnInit if inputs provided
-  protected minDate = startOfMonth(new Date());
-  protected maxDate = endOfMonth(new Date());
+  // Date constraints — derived from inputs, falling back to current month
+  protected readonly minDate = computed(
+    () => this.minDateInput() ?? startOfMonth(new Date()),
+  );
+  protected readonly maxDate = computed(
+    () => this.maxDateInput() ?? endOfMonth(new Date()),
+  );
 
   // Custom validator for date range
   readonly #dateRangeValidator = (
@@ -274,8 +282,8 @@ export class EditTransactionForm implements OnInit {
     if (!control.value) return null;
 
     const date = new Date(control.value);
-    const min = this.minDate;
-    const max = this.maxDate;
+    const min = this.minDate();
+    const max = this.maxDate();
 
     if (date < min || date > max) {
       return {
@@ -303,15 +311,25 @@ export class EditTransactionForm implements OnInit {
     category: ['', TransactionValidators.category],
   });
 
+  constructor() {
+    // Re-validate the date control when the budget period boundaries change,
+    // since Angular validators don't re-run on external signal changes.
+    effect(() => {
+      this.minDate();
+      this.maxDate();
+      untracked(() =>
+        this.transactionForm
+          .get('transactionDate')
+          ?.updateValueAndValidity({ emitEvent: false }),
+      );
+    });
+  }
+
   protected isFieldHidden(field: HideableField): boolean {
     return this.hiddenFields().includes(field);
   }
 
   ngOnInit(): void {
-    const minInput = this.minDateInput();
-    const maxInput = this.maxDateInput();
-    if (minInput) this.minDate = minInput;
-    if (maxInput) this.maxDate = maxInput;
     this.#initializeForm();
     this.transactionForm
       .get('transactionDate')
@@ -359,7 +377,7 @@ export class EditTransactionForm implements OnInit {
     // Form is valid so all required fields are guaranteed non-null
     if (!name || !amount || !kind || !transactionDate) return;
 
-    this.isUpdating.set(true);
+    this.#isUpdating.set(true);
 
     this.updateTransaction.emit({
       name,
