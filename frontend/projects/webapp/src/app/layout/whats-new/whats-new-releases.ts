@@ -4,9 +4,10 @@ export interface WhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.25.0',
+  version: '0.26.0',
   features: [
-    'Toast nouveautés à chaque version',
-    "Seuil d'alerte budget unifié à 90%",
+    'Bloc de vérification du pointage budget',
+    'Indicateurs de défilement sur les pilules',
+    'Couleurs financières et mode sombre',
   ],
 };

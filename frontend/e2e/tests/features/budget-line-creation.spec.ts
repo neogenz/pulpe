@@ -169,6 +169,8 @@ test.describe('Budget Line Creation', () => {
     // Change kind to income via mat-select
     await authenticatedPage.locator('[data-testid="new-line-kind"]').click();
     await authenticatedPage.locator('mat-option[value="income"]').click();
+    // Wait for mat-select panel to close and form to re-validate (CI timing)
+    await expect(authenticatedPage.locator('.mat-mdc-select-panel')).not.toBeAttached();
 
     // Submit
     await authenticatedPage.getByTestId('add-new-line').click();
@@ -236,6 +238,8 @@ test.describe('Budget Line Creation', () => {
     // Change kind to saving
     await authenticatedPage.locator('[data-testid="new-line-kind"]').click();
     await authenticatedPage.locator('mat-option[value="saving"]').click();
+    // Wait for mat-select panel to close and form to re-validate (CI timing)
+    await expect(authenticatedPage.locator('.mat-mdc-select-panel')).not.toBeAttached();
 
     await authenticatedPage.getByTestId('add-new-line').click();
     await expect(dialog).not.toBeVisible();

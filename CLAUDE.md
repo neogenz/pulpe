@@ -76,6 +76,7 @@ paths: "**/*.ts"
 
 - `budget_lines` → "prévisions" | `fixed` → "Récurrent" | `one_off` → "Prévu" | `transaction` → "Réel"
 - `income` → "Revenu" | `expense` → "Dépense" | `saving` → "Épargne"
+- `checked` → "Pointé" | `unchecked` → "À pointer"
 - Labels: "Disponible à dépenser", "Épargne prévue", "Fréquence"
 
 ## Further Reading

@@ -1,5 +1,11 @@
 # pulpe-frontend
 
+## 0.26.0
+
+### Minor Changes
+
+- Bloc de vérification du budget, indicateurs de défilement, tokens de couleurs mode sombre, intégration PostHog.
+
 ## 0.25.0
 
 ### Minor Changes

@@ -1,0 +1,56 @@
+---
+description: Storage access must go through StorageService
+paths: "frontend/**/feature/**/*.ts, frontend/**/pattern/**/*.ts, frontend/**/core/storage/**"
+---
+
+# Storage Access
+
+## Rule
+
+**ALWAYS** use `StorageService` for `localStorage` and `sessionStorage` access.
+
+**NEVER** call `localStorage.*` or `sessionStorage.*` directly in production code.
+
+## Why
+
+`StorageService` provides:
+- Type-safe keys via `STORAGE_KEYS`
+- Versioned entries with migration support
+- Zod schema validation
+- Scope-based cleanup on logout (`user` vs `app`)
+- Error handling and logging
+
+## How
+
+### 1. Register the key
+
+```typescript
+// core/storage/storage-keys.ts
+export const STORAGE_KEYS = {
+  MY_KEY: 'pulpe-my-key',
+} as const satisfies Record<string, StorageKey>;
+```
+
+### 2. Use StorageService
+
+```typescript
+readonly #storageService = inject(StorageService);
+
+// Read
+this.#storageService.getString(STORAGE_KEYS.MY_KEY, 'session');
+
+// Write
+this.#storageService.setString(STORAGE_KEYS.MY_KEY, value, 'session');
+
+// Remove
+this.#storageService.remove(STORAGE_KEYS.MY_KEY, 'session');
+```
+
+### 3. For feature components
+
+If a feature needs storage access for a `core/` concern (e.g., analytics), delegate to the core service instead of accessing storage directly.
+
+## Exceptions
+
+- `StorageMigrationRunnerService` (bootstrap-level migration processing)
+- E2E/unit test setup code

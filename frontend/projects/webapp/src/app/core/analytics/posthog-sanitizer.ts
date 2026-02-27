@@ -29,6 +29,83 @@ const FINANCIAL_PROPERTY_NAMES = new Set(
     'expenses',
     'saving',
     'savings',
+    'target_amount',
+    'targetamount',
+    'ending_balance',
+    'endingbalance',
+    'consumed',
+    'remaining',
+    'spent',
+    'earned',
+    'saved',
+
+    // Total variants
+    'total_amount',
+    'total_income',
+    'total_expenses',
+    'total_balance',
+    'total_savings',
+    'totalamount',
+    'totalincome',
+    'totalexpenses',
+    'totalbalance',
+    'totalsavings',
+
+    // Monthly variants
+    'monthly_amount',
+    'monthly_income',
+    'monthly_expenses',
+    'monthly_balance',
+    'monthly_savings',
+    'monthlyamount',
+    'monthlyincome',
+    'monthlyexpenses',
+    'monthlybalance',
+    'monthlysavings',
+
+    // Annual variants
+    'annual_amount',
+    'annual_income',
+    'annual_expenses',
+    'annual_savings',
+    'annualamount',
+    'annualincome',
+    'annualexpenses',
+    'annualsavings',
+
+    // Available/Planned variants
+    'available_balance',
+    'availablebalance',
+
+    // Balance variants
+    'opening_balance',
+    'openingbalance',
+    'closing_balance',
+    'closingbalance',
+    'initial_balance',
+    'initialbalance',
+
+    // Amount suffixes
+    'signup_amount',
+    'signupamount',
+
+    // Balance with amount suffix
+    'balance_available',
+    'balanceavailable',
+  ].map((key) => key.toLowerCase()),
+);
+
+// Resource IDs that should not be sent to PostHog (they expose user's specific entities)
+// Note: We DO keep some IDs like budget_id, goal_id for analytics grouping/funnels
+// but remove IDs that would expose internal transaction/line details
+const SENSITIVE_ID_FIELDS = new Set(
+  [
+    'transaction_id',
+    'transactionid',
+    'line_id',
+    'lineid',
+    'budget_line_id',
+    'budgetlineid',
   ].map((key) => key.toLowerCase()),
 );
 
@@ -46,6 +123,7 @@ const SENSITIVE_KEYWORDS = [
 // Specific property names to filter (exact match)
 const SENSITIVE_EXACT_KEYS = new Set([
   'apikey', // Generic API key fields - note: PostHog uses 'api_key' and 'token' which are different
+  'token',
 ]);
 
 const PROTECTED_QUERY_PARAMETERS = new Set(
@@ -71,6 +149,11 @@ const isSensitiveProperty = (normalizedKey: string): boolean => {
     return true;
   }
 
+  // Check if it's a sensitive ID field
+  if (SENSITIVE_ID_FIELDS.has(normalizedKey)) {
+    return true;
+  }
+
   // Check exact match for sensitive keys
   if (SENSITIVE_EXACT_KEYS.has(normalizedKey)) {
     return true;
@@ -81,7 +164,9 @@ const isSensitiveProperty = (normalizedKey: string): boolean => {
 };
 
 const isUrlKey = (normalizedKey: string): boolean =>
-  normalizedKey.includes('url') || normalizedKey.includes('href');
+  normalizedKey.includes('url') ||
+  normalizedKey.includes('href') ||
+  normalizedKey.includes('link');
 
 const applyDynamicSegmentMasks = (pathname: string): string =>
   DYNAMIC_SEGMENT_MASKS.reduce(
@@ -234,6 +319,9 @@ export const sanitizeEventPayload = (
   if (!event) return null;
 
   if (event.properties) {
+    // PostHog SDK injects 'token' into properties — preserve it through sanitization
+    const sdkToken = event.properties['token'];
+
     // Sanitize the current URL if present
     const currentUrl = event.properties['$current_url'];
     if (typeof currentUrl === 'string') {
@@ -243,6 +331,11 @@ export const sanitizeEventPayload = (
     event.properties = sanitizeRecord(
       event.properties as Record<string, unknown>,
     );
+
+    // Restore PostHog SDK field
+    if (sdkToken !== undefined) {
+      event.properties['token'] = sdkToken;
+    }
   }
 
   if (event.$set) {

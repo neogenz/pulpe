@@ -111,10 +111,13 @@ Le build Vercel exécute `frontend/scripts/generate-config.ts` (via `pnpm genera
 Variables additionnelles pour PostHog (Production) :
 
 ```env
-POSTHOG_PERSONAL_API_KEY=phc_...
-POSTHOG_CLI_ENV_ID=12345
-POSTHOG_HOST=https://eu.i.posthog.com
+PUBLIC_POSTHOG_HOST=/ph                          # Reverse proxy (voir vercel.json)
+POSTHOG_PERSONAL_API_KEY=phc_...                 # Sourcemaps upload (CI)
+POSTHOG_CLI_ENV_ID=12345                         # Sourcemaps upload (CI)
+POSTHOG_HOST=https://eu.i.posthog.com            # Sourcemaps upload (CI, accès direct)
 ```
+
+> **Note** : `PUBLIC_POSTHOG_HOST=/ph` route le trafic analytics via le reverse proxy Vercel (`/ph/*` → `eu.i.posthog.com`), contournant les ad-blockers. Voir `docs/VERCEL_ROUTING.md`.
 
 Déployer :
 

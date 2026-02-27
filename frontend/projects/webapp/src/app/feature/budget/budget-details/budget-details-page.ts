@@ -17,7 +17,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DatePipe } from '@angular/common';
-import type { BudgetLineConsumption } from '@core/budget';
+import {
+  type BudgetLineConsumption,
+  BudgetCalculator,
+  calculateAllConsumptions,
+} from '@core/budget';
 import { Logger } from '@core/logging/logger';
 import { BreadcrumbState } from '@core/routing';
 import {
@@ -27,9 +31,9 @@ import {
 import { formatDate } from 'date-fns';
 import { frCH } from 'date-fns/locale';
 import { BaseLoading } from '@ui/loading';
+import { BudgetFinancialOverview } from '@ui/budget-financial-overview/budget-financial-overview';
 import { BudgetDetailsStore } from './store/budget-details-store';
 import { BudgetItemsContainer } from './budget-items-container';
-import { BudgetFinancialOverview } from './budget-financial-overview';
 import { BudgetDetailsDialogService } from './budget-details-dialog.service';
 import { determineCheckBehavior } from './store/budget-details-check.utils';
 import {
@@ -147,6 +151,7 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
 export default class BudgetDetailsPage {
   protected readonly isDevMode = isDevMode();
   protected readonly store = inject(BudgetDetailsStore);
+  readonly #budgetCalculator = inject(BudgetCalculator);
   readonly #dialogService = inject(BudgetDetailsDialogService);
   readonly #router = inject(Router);
   readonly #breadcrumbState = inject(BreadcrumbState);
@@ -167,10 +172,7 @@ export default class BudgetDetailsPage {
 
   constructor() {
     effect(() => {
-      const budgetId = this.id();
-      if (budgetId) {
-        this.store.setBudgetId(budgetId);
-      }
+      this.store.setBudgetId(this.id());
     });
 
     effect((onCleanup) => {
@@ -225,6 +227,42 @@ export default class BudgetDetailsPage {
     const payDayOfMonth = this.#userSettingsApi.payDayOfMonth();
     if (!budget || !payDayOfMonth || payDayOfMonth === 1) return null;
     return formatBudgetPeriod(budget.month, budget.year, payDayOfMonth);
+  });
+
+  protected readonly financialTotals = computed(() => {
+    const lines = this.store.displayBudgetLines();
+    const transactions = this.store.budgetDetails()?.transactions ?? [];
+    const consumptionMap = calculateAllConsumptions(lines, transactions);
+
+    const income = this.#budgetCalculator.calculatePlannedIncome(lines);
+    let expenses = 0;
+    let savings = 0;
+
+    lines.forEach((line) => {
+      const consumption = consumptionMap.get(line.id);
+      const effectiveAmount = consumption
+        ? Math.max(line.amount, consumption.consumed)
+        : line.amount;
+
+      switch (line.kind) {
+        case 'expense':
+          expenses += effectiveAmount;
+          break;
+        case 'saving':
+          savings += effectiveAmount;
+          break;
+      }
+    });
+
+    const freeTransactions = transactions.filter((tx) => !tx.budgetLineId);
+    const initialLivingAllowance = income - expenses - savings;
+    const transactionImpact =
+      this.#budgetCalculator.calculateActualTransactionsAmount(
+        freeTransactions,
+      );
+    const remaining = initialLivingAllowance + transactionImpact;
+
+    return { income, expenses, savings, remaining };
   });
 
   async openAddBudgetLineDialog(): Promise<void> {

@@ -39,6 +39,7 @@ import { provideSplashRemoval } from './splash-removal';
 import { ClientKeyService } from './encryption/client-key.service';
 import { PreloadService } from './preload/preload.service';
 import { PageLifecycleRecoveryService } from './lifecycle/page-lifecycle-recovery.service';
+import { ThemeService } from './theme/theme.service';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -143,6 +144,7 @@ export function provideCore({ routes }: CoreOptions) {
       // Force instantiation — effect() inside will preload data when authenticated
       // Must be called before any await to stay in injection context
       inject(PreloadService);
+      inject(ThemeService);
       pageLifecycleRecovery.initialize();
 
       // 0. Run storage migrations first (before any data is read)

@@ -67,6 +67,7 @@ export class AnalyticsService implements OnDestroy {
           const identifyProperties = isDemoMode ? { is_demo: true } : undefined;
 
           this.#postHogService.identify(authState.user.id, identifyProperties);
+          this.#postHogService.capturePendingSignupCompleted();
           this.#logger.debug('User identified for analytics', {
             userId: authState.user.id,
             isDemoMode,

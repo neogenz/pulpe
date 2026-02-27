@@ -105,7 +105,7 @@ describe('PostHogService', () => {
       expect.objectContaining({
         api_host: defaultConfig.host,
         capture_pageview: false,
-        opt_out_capturing_by_default: true,
+        autocapture: false,
       }),
     );
     expect(service.isInitialized()).toBe(true);
@@ -124,10 +124,10 @@ describe('PostHogService', () => {
     await service.initialize();
     service.enableTracking();
 
-    expect(posthog.opt_in_capturing).toHaveBeenCalledTimes(1);
     expect(posthog.set_config).toHaveBeenCalledWith({
       capture_pageview: 'history_change',
       capture_pageleave: 'if_capture_pageview',
+      autocapture: true,
     });
     expect(posthog.capture).toHaveBeenCalledWith('$pageview');
   });

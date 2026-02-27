@@ -5,6 +5,7 @@ import { provideRouter, Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { AuthCredentialsService, PASSWORD_MIN_LENGTH } from '@core/auth';
+import { PostHogService } from '@core/analytics/posthog';
 import { Logger } from '@core/logging/logger';
 
 import Signup from './signup';
@@ -15,6 +16,11 @@ describe('Signup', () => {
   let mockLogger: {
     error: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
+  };
+  let mockPostHogService: {
+    captureEvent: ReturnType<typeof vi.fn>;
+    enableTracking: ReturnType<typeof vi.fn>;
+    clearPendingSignupMethod: ReturnType<typeof vi.fn>;
   };
   let navigateSpy: ReturnType<typeof vi.fn>;
 
@@ -28,6 +34,12 @@ describe('Signup', () => {
       warn: vi.fn(),
     };
 
+    mockPostHogService = {
+      captureEvent: vi.fn(),
+      enableTracking: vi.fn(),
+      clearPendingSignupMethod: vi.fn(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [Signup],
       providers: [
@@ -36,6 +48,7 @@ describe('Signup', () => {
         provideRouter([]),
         { provide: AuthCredentialsService, useValue: mockAuthCredentials },
         { provide: Logger, useValue: mockLogger },
+        { provide: PostHogService, useValue: mockPostHogService },
       ],
     }).compileComponents();
 
@@ -408,6 +421,53 @@ describe('Signup', () => {
       await component['signUp']();
 
       expect(navigateSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('signUp - PostHog tracking', () => {
+    beforeEach(() => {
+      fillValidForm();
+    });
+
+    it('should call enableTracking on successful signup', async () => {
+      mockAuthCredentials.signUpWithEmail.mockResolvedValue({ success: true });
+
+      await component['signUp']();
+
+      expect(mockPostHogService.enableTracking).toHaveBeenCalled();
+    });
+
+    it('should call captureEvent with signup_completed on successful signup', async () => {
+      mockAuthCredentials.signUpWithEmail.mockResolvedValue({ success: true });
+
+      await component['signUp']();
+
+      expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
+        'signup_completed',
+        { method: 'email' },
+      );
+    });
+
+    it('should not call enableTracking when signup fails', async () => {
+      mockAuthCredentials.signUpWithEmail.mockResolvedValue({
+        success: false,
+        error: 'Email déjà utilisé',
+      });
+
+      await component['signUp']();
+
+      expect(mockPostHogService.enableTracking).not.toHaveBeenCalled();
+    });
+
+    it('should not call captureEvent when signup fails', async () => {
+      mockAuthCredentials.signUpWithEmail.mockResolvedValue({
+        success: false,
+        error: 'Email déjà utilisé',
+      });
+
+      await component['signUp']();
+
+      expect(mockPostHogService.captureEvent).not.toHaveBeenCalled();
     });
   });
 });

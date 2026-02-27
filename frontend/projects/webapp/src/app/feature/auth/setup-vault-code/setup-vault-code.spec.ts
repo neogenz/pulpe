@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { of, throwError } from 'rxjs';
 
 import { AuthSessionService } from '@core/auth';
+import { PostHogService } from '@core/analytics/posthog';
 import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import * as cryptoUtils from '@core/encryption/crypto.utils';
 import { Logger } from '@core/logging/logger';
@@ -31,6 +32,7 @@ describe('SetupVaultCode', () => {
   };
   let mockDialog: { open: ReturnType<typeof vi.fn> };
   let mockLogger: { error: ReturnType<typeof vi.fn> };
+  let mockPostHogService: { captureEvent: ReturnType<typeof vi.fn> };
   let mockDialogRef: { afterClosed: ReturnType<typeof vi.fn> };
   let navigateSpy: ReturnType<typeof vi.fn>;
   let deriveClientKeySpy: ReturnType<typeof vi.spyOn>;
@@ -74,6 +76,10 @@ describe('SetupVaultCode', () => {
       error: vi.fn(),
     };
 
+    mockPostHogService = {
+      captureEvent: vi.fn(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [SetupVaultCode],
       providers: [
@@ -85,6 +91,7 @@ describe('SetupVaultCode', () => {
         { provide: EncryptionApi, useValue: mockEncryptionApi },
         { provide: MatDialog, useValue: mockDialog },
         { provide: Logger, useValue: mockLogger },
+        { provide: PostHogService, useValue: mockPostHogService },
       ],
     }).compileComponents();
 
@@ -239,6 +246,13 @@ describe('SetupVaultCode', () => {
         true,
       );
     });
+
+    it('should call captureEvent with vault_code_setup_completed on success', async () => {
+      await component['onSubmit']();
+      expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
+        'vault_code_setup_completed',
+      );
+    });
   });
 
   describe('onSubmit - Error Handling', () => {
@@ -268,6 +282,14 @@ describe('SetupVaultCode', () => {
       );
       await component['onSubmit']();
       expect(component['isSubmitting']()).toBe(false);
+    });
+
+    it('should not call captureEvent when setup fails', async () => {
+      vi.spyOn(mockEncryptionApi, 'getSalt$').mockReturnValue(
+        throwError(() => new Error('Network error')),
+      );
+      await component['onSubmit']();
+      expect(mockPostHogService.captureEvent).not.toHaveBeenCalled();
     });
   });
 

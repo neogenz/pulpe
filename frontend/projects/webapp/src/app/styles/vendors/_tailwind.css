@@ -185,6 +185,9 @@
 @utility text-financial-critical {
   color: var(--pulpe-financial-critical) !important;
 }
+@utility text-warning-on-container {
+  color: var(--pulpe-amber-on-container) !important;
+}
 
 /* `.dark-theme` is the class name to enable dark mode in our application */
 @custom-variant dark (&:where(.dark-theme, .dark-theme *));

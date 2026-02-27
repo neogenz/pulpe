@@ -1,7 +1,7 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { DashboardHero } from './dashboard-hero';
-import { setTestInput } from '../../../testing/signal-test-utils';
+import { setTestInput } from '@app/testing/signal-test-utils';
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
 

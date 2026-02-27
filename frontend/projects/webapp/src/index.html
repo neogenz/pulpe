@@ -25,6 +25,15 @@
         rel="stylesheet"
       />
     </noscript>
+    <script>
+      // Apply .dark-theme class before first paint to prevent FOUC.
+      // The ThemeService takes over once Angular bootstraps.
+      (function () {
+        if (matchMedia("(prefers-color-scheme: dark)").matches) {
+          document.documentElement.classList.add("dark-theme");
+        }
+      })();
+    </script>
   </head>
   <body class="mat-typography">
     <style>

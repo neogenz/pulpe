@@ -330,6 +330,8 @@ export default class Signup {
       );
 
       if (result.success) {
+        this.#postHogService.clearPendingSignupMethod();
+        this.#postHogService.enableTracking();
         this.#postHogService.captureEvent('signup_completed', {
           method: 'email',
         });

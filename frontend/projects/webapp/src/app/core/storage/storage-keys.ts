@@ -24,4 +24,7 @@ export const STORAGE_KEYS = {
 
   // What's New dismissal
   WHATS_NEW_DISMISSED: 'pulpe-whats-new-dismissed',
+
+  // Analytics: pending OAuth signup method (sessionStorage)
+  PENDING_SIGNUP_METHOD: 'pulpe_pending_signup_method',
 } as const satisfies Record<string, StorageKey>;

@@ -103,21 +103,22 @@ export const EnvSchema = z.object({
   PUBLIC_POSTHOG_API_KEY: z.string().regex(POSTHOG_KEY_PATTERN, {
     error: 'PostHog API key must match format phc_[A-Za-z0-9_-]+',
   }),
-  PUBLIC_POSTHOG_HOST: z
-    .url({ error: 'PostHog host must be a valid URL' })
-    .refine(
-      (url) => {
-        // Allow common PostHog hosts
-        return (
-          url.includes('posthog.com') ||
-          url.includes('posthog.dev') ||
-          url.includes('localhost')
-        );
-      },
-      {
-        error: 'PostHog host must be a valid PostHog instance URL',
-      },
-    ),
+  PUBLIC_POSTHOG_HOST: z.string().refine(
+    (val) => {
+      // Allow relative proxy path (e.g., /ph via Vercel reverse proxy)
+      if (val.startsWith('/')) return true;
+      // Allow common PostHog hosts
+      return (
+        val.includes('posthog.com') ||
+        val.includes('posthog.dev') ||
+        val.includes('localhost')
+      );
+    },
+    {
+      error:
+        'PostHog host must be a PostHog URL or a relative proxy path (e.g., /ph)',
+    },
+  ),
   PUBLIC_POSTHOG_ENABLED: z
     .string()
     .refine((val) => val === 'true' || val === 'false', {
@@ -313,18 +314,21 @@ export const ConfigSchema = z.object({
           },
         ),
       host: z
-        .url({ error: 'PostHog host must be a valid URL' })
+        .string()
         .refine(
-          (url) => {
+          (val) => {
+            // Allow relative proxy path (e.g., /ph via Vercel reverse proxy)
+            if (val.startsWith('/')) return true;
             // Allow common PostHog hosts
             return (
-              url.includes('posthog.com') ||
-              url.includes('posthog.dev') ||
-              url.includes('localhost')
+              val.includes('posthog.com') ||
+              val.includes('posthog.dev') ||
+              val.includes('localhost')
             );
           },
           {
-            error: 'PostHog host must be a valid PostHog instance URL',
+            error:
+              'PostHog host must be a PostHog URL or a relative proxy path (e.g., /ph)',
           },
         )
         .default('https://eu.i.posthog.com'),
