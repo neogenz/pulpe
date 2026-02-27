@@ -265,10 +265,10 @@ export class EditTransactionForm implements OnInit {
   readonly isUpdating = signal(false);
 
   // Date constraints — derived from inputs, falling back to current month
-  readonly minDate = computed(
+  protected readonly minDate = computed(
     () => this.minDateInput() ?? startOfMonth(new Date()),
   );
-  readonly maxDate = computed(
+  protected readonly maxDate = computed(
     () => this.maxDateInput() ?? endOfMonth(new Date()),
   );
 

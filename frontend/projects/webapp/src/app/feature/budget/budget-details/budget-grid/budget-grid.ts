@@ -87,7 +87,9 @@ import { BudgetGridSection } from './budget-grid-section';
       </div>
     } @else {
       <!-- Desktop Card Grid View -->
-      @if (budgetLineItems().length === 0) {
+      @if (
+        budgetLineItems().length === 0 && freeTransactionItems().length === 0
+      ) {
         <ng-container *ngTemplateOutlet="emptyState" />
       } @else {
         <div class="space-y-4">

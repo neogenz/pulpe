@@ -175,10 +175,15 @@ describe('EditTransactionForm', () => {
     });
 
     it('should derive min/max from signal inputs with fallback to current month', () => {
-      // Without inputs, defaults to current month
-      const now = new Date();
-      expect(component.minDate().getMonth()).toBe(now.getMonth());
-      expect(component.minDate().getDate()).toBe(1);
+      const dateControl = component.transactionForm.get('transactionDate');
+
+      // A date in the current month should be valid
+      dateControl?.setValue(new Date());
+      expect(dateControl?.hasError('dateOutOfRange')).toBe(false);
+
+      // A date far outside current month should trigger the validator
+      dateControl?.setValue(new Date(2020, 0, 1));
+      expect(dateControl?.hasError('dateOutOfRange')).toBe(true);
     });
   });
 
