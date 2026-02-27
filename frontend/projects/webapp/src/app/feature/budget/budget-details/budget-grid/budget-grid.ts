@@ -19,6 +19,7 @@ import type { BudgetLine, Transaction } from 'pulpe-shared';
 import type { TransactionViewModel } from '../models/transaction-view-model';
 import type { BudgetLineTableItem } from '../data-core';
 import { BudgetKindIndicator } from '../components/budget-kind-indicator';
+import { TransactionActionMenu } from '../components/transaction-action-menu';
 import {
   BudgetDetailPanel,
   type BudgetDetailPanelData,
@@ -46,6 +47,7 @@ import { BudgetGridSection } from './budget-grid-section';
     BudgetGridSection,
     BudgetKindIndicator,
     FinancialKindDirective,
+    TransactionActionMenu,
     TransactionLabelPipe,
   ],
   template: `
@@ -165,11 +167,11 @@ import { BudgetGridSection } from './budget-grid-section';
       <mat-card
         appearance="outlined"
         class="mb-3 min-h-[120px] border-dashed bg-surface"
-        [class.opacity-50]="item.metadata.isLoading"
+        [class.opacity-60]="item.metadata.isLoading"
         [attr.data-testid]="'transaction-card-' + item.data.id"
       >
         <mat-card-content class="p-4">
-          <!-- Row 1: Kind dot + name + kind label -->
+          <!-- Row 1: Kind dot + name + menu -->
           <div class="flex items-start justify-between gap-2 mb-3">
             <div class="flex items-center gap-2 min-w-0 flex-1">
               <pulpe-budget-kind-indicator [kind]="item.data.kind" />
@@ -177,11 +179,13 @@ import { BudgetGridSection } from './budget-grid-section';
                 {{ item.data.name }}
               </span>
             </div>
-            <span
-              class="text-label-small text-on-surface-variant shrink-0 mt-0.5"
-            >
-              {{ item.data.kind | transactionLabel }}
-            </span>
+            <pulpe-transaction-action-menu
+              [transaction]="item.data"
+              menuIcon="more_horiz"
+              buttonClass="!-mr-2 !-mt-1"
+              (edit)="editTransaction.emit($event)"
+              (delete)="deleteTransaction.emit($event)"
+            />
           </div>
 
           <!-- Row 2: Amount + date chip -->
@@ -204,10 +208,13 @@ import { BudgetGridSection } from './budget-grid-section';
             }
           </div>
 
-          <!-- Row 3: Actions -->
+          <!-- Footer: Kind label + toggle -->
           <div
-            class="flex items-center justify-end gap-1 pt-2 border-t border-outline-variant/30"
+            class="flex items-center justify-between pt-2 border-t border-outline-variant/30"
           >
+            <span class="text-label-small text-on-surface-variant">
+              {{ item.data.kind | transactionLabel }}
+            </span>
             <mat-slide-toggle
               [checked]="!!item.data.checkedAt"
               (change)="toggleTransactionCheck.emit(item.data.id)"
@@ -217,22 +224,6 @@ import { BudgetGridSection } from './budget-grid-section';
                 item.data.checkedAt ? 'Retirer le pointage' : 'Pointer'
               "
             />
-            <button
-              matIconButton
-              (click)="editTransaction.emit(item.data)"
-              [attr.data-testid]="'edit-tx-' + item.data.id"
-              aria-label="Modifier la transaction"
-            >
-              <mat-icon>edit</mat-icon>
-            </button>
-            <button
-              matIconButton
-              (click)="deleteTransaction.emit(item.data.id)"
-              [attr.data-testid]="'delete-tx-' + item.data.id"
-              aria-label="Supprimer la transaction"
-            >
-              <mat-icon>delete</mat-icon>
-            </button>
           </div>
         </mat-card-content>
       </mat-card>
@@ -247,6 +238,7 @@ import { BudgetGridSection } from './budget-grid-section';
         [class.opacity-60]="item.metadata.isLoading"
         [attr.data-testid]="'transaction-card-' + item.data.id"
       >
+        <!-- Header: Kind dot + name + menu -->
         <div class="flex items-start justify-between gap-2 mb-4 flex-1">
           <div class="flex items-center gap-2 min-w-0 flex-1">
             <pulpe-budget-kind-indicator [kind]="item.data.kind" />
@@ -254,11 +246,12 @@ import { BudgetGridSection } from './budget-grid-section';
               item.data.name
             }}</span>
           </div>
-          <span
-            class="text-label-small text-on-surface-variant shrink-0 mt-0.5"
-          >
-            {{ item.data.kind | transactionLabel }}
-          </span>
+          <pulpe-transaction-action-menu
+            [transaction]="item.data"
+            buttonClass="!-mr-2 !-mt-1"
+            (edit)="editTransaction.emit($event)"
+            (delete)="deleteTransaction.emit($event)"
+          />
         </div>
 
         <div
@@ -269,47 +262,33 @@ import { BudgetGridSection } from './budget-grid-section';
           {{ item.data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
         </div>
 
+        <!-- Footer: Kind label + date + toggle -->
         <div
           class="flex items-center justify-between pt-3 border-t border-outline-variant/30"
         >
-          @if (item.data.transactionDate) {
-            <span
-              class="text-label-small text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-full"
-            >
-              {{
-                item.data.transactionDate | date: 'dd.MM.yyyy' : '' : 'fr-CH'
-              }}
+          <div class="flex items-center gap-2">
+            <span class="text-label-small text-on-surface-variant">
+              {{ item.data.kind | transactionLabel }}
             </span>
-          } @else {
-            <span></span>
-          }
-          <div class="flex items-center gap-1 -mr-2">
-            <mat-slide-toggle
-              [checked]="!!item.data.checkedAt"
-              (change)="toggleTransactionCheck.emit(item.data.id)"
-              (click)="$event.stopPropagation()"
-              [attr.data-testid]="'toggle-check-tx-' + item.data.id"
-              [attr.aria-label]="
-                item.data.checkedAt ? 'Retirer le pointage' : 'Pointer'
-              "
-            />
-            <button
-              matIconButton
-              (click)="editTransaction.emit(item.data)"
-              [attr.data-testid]="'edit-tx-' + item.data.id"
-              aria-label="Modifier la transaction"
-            >
-              <mat-icon>edit</mat-icon>
-            </button>
-            <button
-              matIconButton
-              (click)="deleteTransaction.emit(item.data.id)"
-              [attr.data-testid]="'delete-tx-' + item.data.id"
-              aria-label="Supprimer la transaction"
-            >
-              <mat-icon>delete</mat-icon>
-            </button>
+            @if (item.data.transactionDate) {
+              <span
+                class="text-label-small text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-full"
+              >
+                {{
+                  item.data.transactionDate | date: 'dd.MM.yyyy' : '' : 'fr-CH'
+                }}
+              </span>
+            }
           </div>
+          <mat-slide-toggle
+            [checked]="!!item.data.checkedAt"
+            (change)="toggleTransactionCheck.emit(item.data.id)"
+            (click)="$event.stopPropagation()"
+            [attr.data-testid]="'toggle-check-tx-' + item.data.id"
+            [attr.aria-label]="
+              item.data.checkedAt ? 'Retirer le pointage' : 'Pointer'
+            "
+          />
         </div>
       </div>
     </ng-template>
