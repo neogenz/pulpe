@@ -242,11 +242,10 @@ export default class WelcomePage {
   onGoogleLoadingChange(isLoading: boolean): void {
     this.isGoogleLoading.set(isLoading);
     if (isLoading) {
-      sessionStorage.setItem('pulpe_pending_signup_method', 'google');
+      this.#postHogService.setPendingSignupMethod('google');
       this.#postHogService.captureEvent('signup_started', { method: 'google' });
     } else {
-      // Clean stale key if OAuth was cancelled/failed before redirect
-      sessionStorage.removeItem('pulpe_pending_signup_method');
+      this.#postHogService.clearPendingSignupMethod();
     }
   }
 

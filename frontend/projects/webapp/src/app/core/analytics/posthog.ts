@@ -9,6 +9,8 @@ import { isPlatformBrowser } from '@angular/common';
 import posthog, { type Properties, type CaptureResult } from 'posthog-js';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
+import { StorageService } from '../storage/storage.service';
+import { STORAGE_KEYS } from '../storage/storage-keys';
 import { buildInfo } from '@env/build-info';
 import { sanitizeEventPayload } from './posthog-sanitizer';
 
@@ -23,6 +25,7 @@ export class PostHogService {
   readonly #applicationConfiguration = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);
   readonly #platformId = inject(PLATFORM_ID);
+  readonly #storageService = inject(StorageService);
 
   readonly #isInitialized = signal<boolean>(false);
   #isTrackingEnabled = false;
@@ -178,17 +181,37 @@ export class PostHogService {
   }
 
   /**
+   * Store the pending OAuth signup method for cross-redirect tracking.
+   */
+  setPendingSignupMethod(method: string): void {
+    this.#storageService.setString(
+      STORAGE_KEYS.PENDING_SIGNUP_METHOD,
+      method,
+      'session',
+    );
+  }
+
+  /**
+   * Clear the pending OAuth signup method (cancelled/failed flow or email signup).
+   */
+  clearPendingSignupMethod(): void {
+    this.#storageService.remove(STORAGE_KEYS.PENDING_SIGNUP_METHOD, 'session');
+  }
+
+  /**
    * Capture pending signup_completed event stored by OAuth redirect flow.
    * Called after user identification to link the event to the person profile.
    */
   capturePendingSignupCompleted(): void {
     if (!this.#canCapture()) return;
 
-    const STORAGE_KEY = 'pulpe_pending_signup_method';
-    const method = sessionStorage.getItem(STORAGE_KEY);
+    const method = this.#storageService.getString(
+      STORAGE_KEYS.PENDING_SIGNUP_METHOD,
+      'session',
+    );
     if (!method) return;
 
-    sessionStorage.removeItem(STORAGE_KEY);
+    this.clearPendingSignupMethod();
     this.captureEvent('signup_completed', { method });
     this.#logger.debug('Pending signup_completed captured', { method });
   }

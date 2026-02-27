@@ -330,7 +330,7 @@ export default class Signup {
       );
 
       if (result.success) {
-        sessionStorage.removeItem('pulpe_pending_signup_method');
+        this.#postHogService.clearPendingSignupMethod();
         this.#postHogService.enableTracking();
         this.#postHogService.captureEvent('signup_completed', {
           method: 'email',

@@ -20,6 +20,7 @@ describe('Signup', () => {
   let mockPostHogService: {
     captureEvent: ReturnType<typeof vi.fn>;
     enableTracking: ReturnType<typeof vi.fn>;
+    clearPendingSignupMethod: ReturnType<typeof vi.fn>;
   };
   let navigateSpy: ReturnType<typeof vi.fn>;
 
@@ -36,6 +37,7 @@ describe('Signup', () => {
     mockPostHogService = {
       captureEvent: vi.fn(),
       enableTracking: vi.fn(),
+      clearPendingSignupMethod: vi.fn(),
     };
 
     await TestBed.configureTestingModule({

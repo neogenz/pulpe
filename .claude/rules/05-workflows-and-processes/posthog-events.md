@@ -32,7 +32,7 @@ $pageview (landing) → cta_clicked → signup_started → signup_completed
 **Tracking approach:**
 - Pre-auth events (`signup_started`) are captured as anonymous events (`person_profiles: 'identified_only'`)
 - Full auto-capture (pageviews, autocapture) enabled after authentication
-- Google OAuth uses sessionStorage `pulpe_pending_signup_method` to fire `signup_completed` after redirect
+- Google OAuth uses `PostHogService.setPendingSignupMethod()` to store the method via `StorageService`, then `capturePendingSignupCompleted()` fires `signup_completed` after redirect
 
 ## Events Catalog
 
