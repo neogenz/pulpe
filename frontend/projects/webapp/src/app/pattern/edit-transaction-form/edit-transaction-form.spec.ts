@@ -7,6 +7,7 @@ import {
   EditTransactionForm,
   type EditTransactionFormData,
 } from './edit-transaction-form';
+import { setTestInput } from '@app/testing/signal-test-utils';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 describe('EditTransactionForm', () => {
@@ -138,13 +139,12 @@ describe('EditTransactionForm', () => {
         category: 'Test',
       });
 
-      // Set updating state
-      component.isUpdating.set(true);
-
-      // Try to submit
+      // First submit sets isUpdating to true
       component.onSubmit();
+      expect(component.isUpdating()).toBe(true);
 
-      // Verify still in updating state (no change)
+      // Second submit should be a no-op (guard against double submit)
+      component.onSubmit();
       expect(component.isUpdating()).toBe(true);
     });
   });
@@ -179,43 +179,29 @@ describe('EditTransactionForm', () => {
       const customMin = new Date(2024, 0, 1);
       const customMax = new Date(2024, 0, 31);
 
-      // Initialize change detection first
-      fixture.detectChanges();
-
-      fixture.componentRef.setInput('minDateInput', customMin);
-      fixture.componentRef.setInput('maxDateInput', customMax);
-      console.log('After setInput - minDateInput:', component.minDateInput());
-      fixture.detectChanges();
-      console.log(
-        'After detectChanges - minDateInput:',
-        component.minDateInput(),
-      );
+      setTestInput(component.minDateInput, customMin);
+      setTestInput(component.maxDateInput, customMax);
       TestBed.flushEffects();
-      console.log(
-        'After flushEffects - minDateInput:',
-        component.minDateInput(),
-      );
 
       dateControl?.setValue(new Date(2024, 0, 15));
-      console.log('errors after in-range date:', dateControl?.errors);
       expect(dateControl?.hasError('dateOutOfRange')).toBe(false);
 
       dateControl?.setValue(new Date(2024, 5, 15));
       expect(dateControl?.hasError('dateOutOfRange')).toBe(true);
     });
 
-    it('should re-validate when bounds change via effect()', async () => {
+    it('should re-validate when bounds change via effect()', () => {
       const dateControl = component.transactionForm.get('transactionDate');
 
-      fixture.componentRef.setInput('minDateInput', new Date(2024, 0, 1));
-      fixture.componentRef.setInput('maxDateInput', new Date(2024, 0, 31));
+      setTestInput(component.minDateInput, new Date(2024, 0, 1));
+      setTestInput(component.maxDateInput, new Date(2024, 0, 31));
       TestBed.flushEffects();
 
       dateControl?.setValue(new Date(2024, 0, 15));
       expect(dateControl?.hasError('dateOutOfRange')).toBe(false);
 
-      fixture.componentRef.setInput('minDateInput', new Date(2024, 1, 1));
-      fixture.componentRef.setInput('maxDateInput', new Date(2024, 1, 29));
+      setTestInput(component.minDateInput, new Date(2024, 1, 1));
+      setTestInput(component.maxDateInput, new Date(2024, 1, 29));
       TestBed.flushEffects();
 
       expect(dateControl?.hasError('dateOutOfRange')).toBe(true);

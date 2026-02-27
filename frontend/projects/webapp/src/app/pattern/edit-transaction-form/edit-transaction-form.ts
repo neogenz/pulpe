@@ -264,7 +264,8 @@ export class EditTransactionForm implements OnInit {
   readonly maxDateInput = input<Date>();
   readonly updateTransaction = output<EditTransactionFormData>();
   readonly cancelEdit = output<void>();
-  readonly isUpdating = signal(false);
+  readonly #isUpdating = signal(false);
+  readonly isUpdating = this.#isUpdating.asReadonly();
 
   // Date constraints — derived from inputs, falling back to current month
   protected readonly minDate = computed(
@@ -376,7 +377,7 @@ export class EditTransactionForm implements OnInit {
     // Form is valid so all required fields are guaranteed non-null
     if (!name || !amount || !kind || !transactionDate) return;
 
-    this.isUpdating.set(true);
+    this.#isUpdating.set(true);
 
     this.updateTransaction.emit({
       name,
