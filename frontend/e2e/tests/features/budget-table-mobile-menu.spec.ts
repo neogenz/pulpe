@@ -81,8 +81,8 @@ test.describe('Budget Table Mobile Menu', () => {
       const menuButton = page.locator('[data-testid^="card-menu-"]').first();
       await menuButton.click();
 
-      // Check for "Éditer" menu item
-      const editMenuItem = page.locator('button[mat-menu-item]').filter({ hasText: 'Éditer' });
+      // Check for "Modifier" menu item
+      const editMenuItem = page.locator('button[mat-menu-item]').filter({ hasText: 'Modifier' });
       await expect(editMenuItem).toBeVisible();
 
       // Check for "Supprimer" menu item
@@ -95,7 +95,7 @@ test.describe('Budget Table Mobile Menu', () => {
       await menuButton.click();
 
       // Click edit menu item
-      const editMenuItem = page.locator('button[mat-menu-item]').filter({ hasText: 'Éditer' });
+      const editMenuItem = page.locator('button[mat-menu-item]').filter({ hasText: 'Modifier' });
       await editMenuItem.click();
 
       // Verify that edit dialog opens (mobile uses dialog)
@@ -235,7 +235,7 @@ test.describe('Budget Table Mobile Menu', () => {
       await expect(menu).toBeVisible();
 
       // Check edit option exists
-      const editMenuItem = page.locator('button[mat-menu-item]').filter({ hasText: 'Éditer' });
+      const editMenuItem = page.locator('button[mat-menu-item]').filter({ hasText: 'Modifier' });
       await expect(editMenuItem).toBeVisible();
     });
 
@@ -244,7 +244,7 @@ test.describe('Budget Table Mobile Menu', () => {
       await menuButton.click();
 
       // Click edit menu item
-      const editMenuItem = page.locator('button[mat-menu-item]').filter({ hasText: 'Éditer' });
+      const editMenuItem = page.locator('button[mat-menu-item]').filter({ hasText: 'Modifier' });
       await editMenuItem.click();
 
       // On desktop, edit dialog should open
