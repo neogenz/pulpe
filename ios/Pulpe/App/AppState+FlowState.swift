@@ -70,14 +70,18 @@ extension AppState {
     /// 2. Reducer events (pure state transitions via AppFlowReducer)
     /// 3. Async events (serialized via eventQueue to prevent race conditions)
     func send(event: AppFlowEvent) {
+        authDebug("AUTH_FLOW_SEND", "event=\(event) currentAuth=\(authState) currentFlow=\(flowState)")
         // Bridge implementation: map events to existing methods
         // This allows gradual migration without breaking existing code
         if handleImmediateEvent(event) {
+            authDebug("AUTH_FLOW_SEND", "handled=immediate event=\(event)")
             return
         }
         if applyReducerTransitionIfPossible(event) {
+            authDebug("AUTH_FLOW_SEND", "handled=reducer event=\(event)")
             return
         }
+        authDebug("AUTH_FLOW_SEND", "handled=async_queue event=\(event)")
         // Enqueue async events to ensure FIFO processing and prevent races
         eventQueue.enqueue(event)
     }
@@ -99,6 +103,7 @@ extension AppState {
             guard let nextState = AppFlowReducer.reduce(state: flowState, event: event) else {
                 return false
             }
+            authDebug("AUTH_FLOW_REDUCER", "event=\(event) before=\(flowState) after=\(nextState)")
             applyFlowState(nextState)
             return true
         default:
@@ -107,6 +112,7 @@ extension AppState {
     }
 
     private func applyFlowState(_ state: AppFlowState) {
+        let oldAuth = authState
         switch state {
         case .initializing:
             isInMaintenance = false
@@ -135,6 +141,7 @@ extension AppState {
         case .authenticated:
             authState = .authenticated
         }
+        authDebug("AUTH_FLOW_APPLY", "flowState=\(state) authState: \(oldAuth) → \(authState)")
     }
 
     private func handleImmediateEvent(_ event: AppFlowEvent) -> Bool {
@@ -151,9 +158,20 @@ extension AppState {
     }
 
     func handleAsyncEvent(_ event: AppFlowEvent) async {
-        if await handleAuthLifecycleEvent(event) { return }
-        if await handlePinEvent(event) { return }
-        if await handleRecoveryEvent(event) { return }
+        authDebug("AUTH_FLOW_ASYNC", "begin event=\(event)")
+        if await handleAuthLifecycleEvent(event) {
+            authDebug("AUTH_FLOW_ASYNC", "handled=authLifecycle event=\(event)")
+            return
+        }
+        if await handlePinEvent(event) {
+            authDebug("AUTH_FLOW_ASYNC", "handled=pin event=\(event)")
+            return
+        }
+        if await handleRecoveryEvent(event) {
+            authDebug("AUTH_FLOW_ASYNC", "handled=recovery event=\(event)")
+            return
+        }
+        authDebug("AUTH_FLOW_ASYNC", "handled=foregroundLifecycle event=\(event)")
         handleForegroundLifecycleEvent(event)
     }
 

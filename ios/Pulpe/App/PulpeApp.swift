@@ -155,7 +155,17 @@ struct RootView: View {
             appState.send(.sessionExpired)
         }
         .task {
+            #if DEBUG
+            Logger.auth.debug("[AUTH_ROOT_TASK] starting app")
+            #endif
             await appState.start()
+            #if DEBUG
+            let authDesc = String(describing: appState.authState)
+            let routeDesc = String(describing: appState.currentRoute)
+            Logger.auth.debug(
+                "[AUTH_ROOT_TASK] done, auth=\(authDesc, privacy: .public) route=\(routeDesc, privacy: .public)"
+            )
+            #endif
             if appState.authState == .authenticated {
                 await currentMonthStore.loadBudgetSummary()
             }
@@ -168,6 +178,20 @@ struct RootView: View {
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
             runtimeCoordinator.handleScenePhaseChange(from: oldPhase, to: newPhase)
+        }
+        .onChange(of: appState.currentRoute) { oldRoute, newRoute in
+            #if DEBUG
+            let old = String(describing: oldRoute)
+            let new = String(describing: newRoute)
+            Logger.auth.debug("[AUTH_ROUTE] \(old, privacy: .public) → \(new, privacy: .public)")
+            #endif
+        }
+        .onChange(of: appState.authState) { oldAuth, newAuth in
+            #if DEBUG
+            let old = String(describing: oldAuth)
+            let new = String(describing: newAuth)
+            Logger.auth.debug("[AUTH_STATE_UI] \(old, privacy: .public) → \(new, privacy: .public)")
+            #endif
         }
         .alert(
             "Générer une clé de récupération ?",

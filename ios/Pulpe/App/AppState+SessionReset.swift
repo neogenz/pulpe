@@ -7,21 +7,25 @@ extension AppState {
     // MARK: - Background & Foreground
 
     func handleEnterBackground() {
+        authDebug("AUTH_BG", "entering background")
         sessionLifecycleCoordinator.handleEnterBackground()
     }
 
     func prepareForForeground() {
+        authDebug("AUTH_FG_PREPARE", "authState=\(authState)")
         sessionLifecycleCoordinator.prepareForForeground(authState: authState)
     }
 
     func handleEnterForeground() async {
         defer { sessionLifecycleCoordinator.clearRestoringSession() }
+        authDebug("AUTH_FG", "begin isRestoring=\(sessionLifecycleCoordinator.isRestoringSession)")
 
         if sessionLifecycleCoordinator.isRestoringSession {
             lastLockReason = .backgroundTimeout
         }
 
         let result = await sessionLifecycleCoordinator.handleEnterForeground(authState: authState)
+        authDebug("AUTH_FG", "result=\(result)")
 
         switch result {
         case .noLockNeeded:
@@ -51,7 +55,9 @@ extension AppState {
                     await self?.logout(source: .system)
                 }
             }
+            authDebug("AUTH_FG", "biometric unlock success, background refresh started")
         case .lockRequired, .staleKeyLockRequired:
+            authDebug("AUTH_FG", "lock required, setting needsPinEntry")
             authState = .needsPinEntry
         }
     }
@@ -63,6 +69,7 @@ extension AppState {
     // MARK: - Stale Client Key
 
     func handleStaleClientKey() async {
+        authDebug("AUTH_STALE_KEY", "triggered isLoggingOut=\(isLoggingOut) authState=\(authState)")
         guard !isLoggingOut, authState == .authenticated else { return }
         await clientKeyManager.clearAll()
         authState = .needsPinEntry
@@ -73,6 +80,7 @@ extension AppState {
     /// Called when APIClient detects an unrecoverable 401. AuthService.logout() was already
     /// called by APIClient — this method only resets local UI state.
     func handleSessionExpired() async {
+        authDebug("AUTH_SESSION_EXPIRED", "triggered isLoggingOut=\(isLoggingOut)")
         guard !isLoggingOut else { return }
         await clientKeyManager.clearSession()
         resetSession(.sessionExpiry)
@@ -87,6 +95,7 @@ extension AppState {
         guard !isLoggingOut else { return }
         isLoggingOut = true
         defer { isLoggingOut = false }
+        authDebug("AUTH_LOGOUT", "begin source=\(source) biometricEnabled=\(biometric.isEnabled)")
 
         backgroundRefreshTask?.cancel()
         backgroundRefreshTask = nil
@@ -100,6 +109,7 @@ extension AppState {
         clearManualBiometricRetryRequiredFlag()
 
         let shouldPreserveBiometric = preserveBiometricSession ?? (source == .userInitiated)
+        authDebug("AUTH_LOGOUT", "preserveBiometric=\(shouldPreserveBiometric)")
         if shouldPreserveBiometric && biometric.isEnabled {
             // Refresh biometric tokens with the latest session before clearing
             var biometricTokensSaved = false
@@ -129,6 +139,7 @@ extension AppState {
         }
 
         await clientKeyManager.clearSession()
+        authDebug("AUTH_LOGOUT", "session cleared, resetting")
         resetSession(source == .userInitiated ? .userLogout : .systemLogout)
     }
 
@@ -137,6 +148,7 @@ extension AppState {
     /// Complete password recovery flow by clearing temporary auth/encryption state
     /// and returning the app to the regular login screen.
     func completePasswordResetFlow() async {
+        authDebug("AUTH_PASSWORD_RESET", "complete")
         await authService.logout()
         await authService.clearBiometricTokens()
         await clientKeyManager.clearAll()
@@ -148,6 +160,7 @@ extension AppState {
     /// Cancel password recovery flow by clearing temporary auth/encryption state
     /// and returning the app to the regular login screen without success feedback.
     func cancelPasswordResetFlow() async {
+        authDebug("AUTH_PASSWORD_RESET", "cancel")
         await authService.logout()
         await authService.clearBiometricTokens()
         await clientKeyManager.clearAll()
@@ -215,6 +228,10 @@ extension AppState {
     }
 
     func resetSession(_ scope: SessionResetScope) {
+        authDebug(
+            "AUTH_RESET_SESSION",
+            "scope=\(scope) clearsNav=\(scope.clearsNavigation) clearsUI=\(scope.clearsUIState)"
+        )
         currentUser = nil
         authState = .unauthenticated
         biometricError = scope.errorMessage

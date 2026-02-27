@@ -141,10 +141,13 @@ final class SessionLifecycleCoordinator {
 
     func handleEnterBackground() {
         backgroundDate = nowProvider()
+        authDebug("AUTH_BG_DATE", "recorded=\(String(describing: backgroundDate))")
     }
 
     func prepareForForeground(authState: AppState.AuthStatus) {
-        guard backgroundLockApplies(authState: authState) else { return }
+        let applies = backgroundLockApplies(authState: authState)
+        authDebug("AUTH_FG_PREPARE", "lockApplies=\(applies) authState=\(authState)")
+        guard applies else { return }
         isRestoringSession = true
     }
 
@@ -161,29 +164,44 @@ final class SessionLifecycleCoordinator {
         guard backgroundLockApplies(authState: authState) else {
             return .noLockNeeded
         }
+        let bgDesc = String(describing: backgroundDate)
+        authDebug("AUTH_FG_LOCK", "bgDate=\(bgDesc) bio=\(biometric.isEnabled)")
         backgroundDate = nil
 
         await clientKeyManager.clearCache()
+        authDebug("AUTH_FG_LOCK", "cache cleared, checking biometric key")
 
         if biometric.isEnabled, let clientKeyHex = await biometric.resolveKey() {
+            authDebug("AUTH_FG_LOCK", "key resolved, validating")
             if await biometric.validateKey(clientKeyHex) {
+                authDebug("AUTH_FG_LOCK", "key valid, biometric unlock success")
                 return .biometricUnlockSuccess
             }
+            authDebug("AUTH_FG_LOCK", "key stale, requiring PIN")
             Logger.auth.warning("handleEnterForeground: stale biometric key, requiring PIN")
             await biometric.handleStaleKey()
             return .staleKeyLockRequired
         }
 
+        authDebug("AUTH_FG_LOCK", "no biometric key, lock required")
         return .lockRequired
     }
 
     // MARK: - Private
 
     private func backgroundLockApplies(authState: AppState.AuthStatus) -> Bool {
-        guard let bgDate = backgroundDate else { return false }
+        guard let bgDate = backgroundDate else {
+            authDebug("AUTH_BG_CHECK", "no backgroundDate, skip lock")
+            return false
+        }
         let elapsed = Duration.seconds(nowProvider().timeIntervalSince(bgDate))
-        return elapsed >= AppConfiguration.backgroundGracePeriod
-            && authState == .authenticated
+        let threshold = AppConfiguration.backgroundGracePeriod
+        let applies = elapsed >= threshold && authState == .authenticated
+        authDebug(
+            "AUTH_BG_CHECK",
+            "elapsed=\(elapsed) threshold=\(threshold) authState=\(authState) applies=\(applies)"
+        )
+        return applies
     }
 
     private func authDebug(_ code: String, _ message: String) {

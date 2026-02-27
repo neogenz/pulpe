@@ -28,12 +28,23 @@ final class AppRuntimeCoordinator {
     }
 
     func handleScenePhaseChange(from oldPhase: ScenePhase, to newPhase: ScenePhase) {
+        #if DEBUG
+        let oldDesc = String(describing: oldPhase)
+        let newDesc = String(describing: newPhase)
+        let authDesc = String(describing: self.appState.authState)
+        Logger.auth.debug(
+            "[AUTH_SCENE] \(oldDesc, privacy: .public) → \(newDesc, privacy: .public) \(authDesc, privacy: .public)"
+        )
+        #endif
         // Activate shield only when leaving .active while in a secured state
         if newPhase != .active, oldPhase == .active {
             let isSecured = appState.authState == .authenticated
                 || appState.authState == .needsPinEntry
             if isSecured {
                 privacyShieldActive = true
+                #if DEBUG
+                Logger.auth.debug("[AUTH_SCENE] privacy shield activated (secured=\(isSecured))")
+                #endif
             }
         }
         if newPhase == .active {
@@ -52,6 +63,13 @@ final class AppRuntimeCoordinator {
             appState.prepareForForeground()
             Task {
                 await appState.handleEnterForeground()
+                #if DEBUG
+                let fgAuth = String(describing: self.appState.authState)
+                let refreshing = self.appState.authState == .authenticated
+                Logger.auth.debug(
+                    "[AUTH_SCENE] foreground handled, auth=\(fgAuth, privacy: .public) refreshing=\(refreshing)"
+                )
+                #endif
                 if appState.authState == .authenticated {
                     async let r1: Void = currentMonthStore.forceRefresh()
                     async let r2: Void = budgetListStore.forceRefresh()

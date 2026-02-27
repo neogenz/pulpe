@@ -51,11 +51,17 @@ extension AppState {
             didExplicitLogout: flagsStore.didExplicitLogout,
             manualBiometricRetryRequired: flagsStore.manualBiometricRetryRequired
         )
+        let bio = startupContext.biometricEnabled
+        let logout = startupContext.didExplicitLogout
+        let retry = startupContext.manualBiometricRetryRequired
+        authDebug("AUTH_STARTUP_CONTEXT", "bio=\(bio) logout=\(logout) retry=\(retry)")
         let startupResult = await startupCoordinator.start(context: startupContext)
+        authDebug("AUTH_STARTUP_DONE", "result=\(startupResult)")
         await applyStartupResult(startupResult)
     }
 
     func applyColdStartResult(_ result: SessionLifecycleCoordinator.ColdStartResult) async {
+        authDebug("AUTH_COLD_START_RESULT", "result=\(result)")
         switch result {
         case .biometricAuthenticated(let user, _):
             currentUser = user
@@ -99,6 +105,7 @@ extension AppState {
     }
 
     private func applyStartupResult(_ result: StartupCoordinator.StartupResult) async {
+        authDebug("AUTH_STARTUP_RESULT", "result=\(result)")
         switch result {
         case .authenticated(let user, let destination):
             isNetworkUnavailable = false
