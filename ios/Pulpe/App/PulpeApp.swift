@@ -414,7 +414,7 @@ struct RootView: View {
 struct PrivacyShieldOverlay: View {
     var body: some View {
         Rectangle()
-            .fill(.regularMaterial)
+            .fill(.ultraThinMaterial)
             .ignoresSafeArea()
             .allowsHitTesting(false)
             .accessibilityHidden(true)
