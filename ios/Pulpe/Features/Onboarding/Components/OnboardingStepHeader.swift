@@ -7,7 +7,7 @@ struct OnboardingStepHeader: View {
     @State private var iconOpacity: Double = 0
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: DesignTokens.Spacing.lg) {
             // Animated icon in colored circle
             ZStack {
                 Circle()
@@ -15,7 +15,7 @@ struct OnboardingStepHeader: View {
                     .frame(width: 80, height: 80)
 
                 Image(systemName: step.iconName)
-                    .font(.system(size: 36, weight: .medium))
+                    .font(PulpeTypography.brandTitle)
                     .foregroundStyle(step.iconColor)
                     .scaleEffect(iconScale)
                     .opacity(iconOpacity)
@@ -31,7 +31,7 @@ struct OnboardingStepHeader: View {
                 .font(PulpeTypography.stepSubtitle)
                 .foregroundStyle(Color.textSecondaryOnboarding)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
+                .padding(.horizontal, DesignTokens.Spacing.xxxl)
 
             // Optional badge
             if step.isOptional {
@@ -50,11 +50,11 @@ struct OnboardingStepHeader: View {
 /// Badge indicating a step is optional
 struct OptionalBadge: View {
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: DesignTokens.Spacing.xs) {
             Image(systemName: "arrow.right.circle")
-                .font(.caption2)
+                .font(PulpeTypography.caption2)
             Text("Optionnel — tu peux passer")
-                .font(.caption)
+                .font(PulpeTypography.caption)
                 .fontWeight(.medium)
         }
         .foregroundStyle(Color.textTertiaryOnboarding)

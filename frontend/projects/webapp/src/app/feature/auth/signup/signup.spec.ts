@@ -348,7 +348,7 @@ describe('Signup', () => {
       await component['signUp']();
 
       expect(component['errorMessage']()).toBe(
-        'La création du compte a échoué — on réessaie ?',
+        'La création du compte a échoué — réessaie',
       );
     });
 
@@ -374,7 +374,7 @@ describe('Signup', () => {
       await component['signUp']();
 
       expect(component['errorMessage']()).toBe(
-        "Quelque chose n'a pas fonctionné — réessayons",
+        "Quelque chose n'a pas fonctionné — réessaie",
       );
     });
 

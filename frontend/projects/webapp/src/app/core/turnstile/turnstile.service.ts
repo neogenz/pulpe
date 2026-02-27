@@ -7,7 +7,7 @@ import type { NgxTurnstileComponent } from 'ngx-turnstile';
 const TURNSTILE_TIMEOUT_MS = 5000;
 
 const ERROR_MESSAGES = {
-  TURNSTILE_FAILED: 'Échec de la vérification de sécurité. Veuillez réessayer.',
+  TURNSTILE_FAILED: 'La vérification de sécurité a échoué — réessaie',
 } as const;
 
 @Injectable({ providedIn: 'root' })

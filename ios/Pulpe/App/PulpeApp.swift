@@ -1,38 +1,80 @@
 import OSLog
 import SwiftUI
 import TipKit
-import WidgetKit
 
-enum DeepLinkDestination: Hashable {
-    case addExpense(budgetId: String?)
-    case viewBudget(budgetId: String)
+struct ResetPasswordDeepLink: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
+struct RecoveryKeySheetItem: Identifiable, Equatable {
+    let recoveryKey: String
+    var id: String { recoveryKey }
 }
 
 @main
 struct PulpeApp: App {
-    @State private var appState = AppState()
-    @State private var currentMonthStore = CurrentMonthStore()
-    @State private var budgetListStore = BudgetListStore()
-    @State private var dashboardStore = DashboardStore()
+    @State private var appState: AppState
+    @State private var uiPreferences = UIPreferencesState()
+    @State private var currentMonthStore: CurrentMonthStore
+    @State private var budgetListStore: BudgetListStore
+    @State private var dashboardStore: DashboardStore
+    @State private var runtimeCoordinator: AppRuntimeCoordinator
     @State private var deepLinkDestination: DeepLinkDestination?
 
     init() {
+        let appState = AppState()
+        let currentMonthStore = CurrentMonthStore()
+        let budgetListStore = BudgetListStore()
+        let dashboardStore = DashboardStore()
+
+        appState.sessionDataResetter = LiveSessionDataResetter(
+            currentMonthStore: currentMonthStore,
+            budgetListStore: budgetListStore,
+            dashboardStore: dashboardStore
+        )
+
+        _appState = State(initialValue: appState)
+        _currentMonthStore = State(initialValue: currentMonthStore)
+        _budgetListStore = State(initialValue: budgetListStore)
+        _dashboardStore = State(initialValue: dashboardStore)
+        _runtimeCoordinator = State(initialValue: AppRuntimeCoordinator(
+            appState: appState,
+            currentMonthStore: currentMonthStore,
+            budgetListStore: budgetListStore,
+            dashboardStore: dashboardStore
+        ))
+
         try? Tips.configure([
             .datastoreLocation(.applicationDefault)
         ])
         BackgroundTaskService.shared.registerTasks()
+
+        UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(.pulpePrimary)
+        UISegmentedControl.appearance().setTitleTextAttributes(
+            [.foregroundColor: UIColor(.textOnPrimary)],
+            for: .selected
+        )
     }
 
     var body: some Scene {
         WindowGroup {
-            RootView(deepLinkDestination: $deepLinkDestination)
-                .environment(appState)
-                .environment(currentMonthStore)
-                .environment(budgetListStore)
-                .environment(dashboardStore)
-                .onOpenURL { url in
-                    handleDeepLink(url)
-                }
+            if let uiTestScenario = UITestLaunchScenario.current {
+                BudgetLongPressUITestHarness(scenario: uiTestScenario)
+            } else {
+                RootView(
+                    runtimeCoordinator: runtimeCoordinator,
+                    deepLinkDestination: $deepLinkDestination
+                )
+                    .environment(appState)
+                    .environment(uiPreferences)
+                    .environment(currentMonthStore)
+                    .environment(budgetListStore)
+                    .environment(dashboardStore)
+                    .onOpenURL { url in
+                        handleDeepLink(url)
+                    }
+            }
         }
     }
 
@@ -42,6 +84,8 @@ struct PulpeApp: App {
         let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
 
         switch url.host {
+        case "reset-password":
+            deepLinkDestination = .resetPassword(url: url)
         case "add-expense":
             let budgetId = components?.queryItems?.first { $0.name == "budgetId" }?.value
             if let budgetId, UUID(uuidString: budgetId) == nil {
@@ -64,57 +108,64 @@ struct PulpeApp: App {
 
 struct RootView: View {
     @Environment(AppState.self) private var appState
+    @Environment(UIPreferencesState.self) private var uiPreferences
     @Environment(CurrentMonthStore.self) private var currentMonthStore
-    @Environment(BudgetListStore.self) private var budgetListStore
-    @Environment(DashboardStore.self) private var dashboardStore
     @Environment(\.scenePhase) private var scenePhase
+    var runtimeCoordinator: AppRuntimeCoordinator
     @Binding var deepLinkDestination: DeepLinkDestination?
     @State private var showAddExpenseSheet = false
+    @State private var resetPasswordDeepLink: ResetPasswordDeepLink?
+    @State private var deepLinkHandler = DeepLinkHandler()
     @State private var showAmountsToggleAlert = false
-    @State private var widgetSyncViewModel = WidgetSyncViewModel()
 
     var body: some View {
         @Bindable var appState = appState
 
         Group {
-            if appState.isNetworkUnavailable {
-                NetworkUnavailableView {
-                    await appState.retryNetworkCheck()
-                    if appState.authState == .authenticated {
-                        await currentMonthStore.loadBudgetSummary()
-                    }
-                }
-            } else if appState.isInMaintenance {
-                MaintenanceView()
-            } else {
-                switch appState.authState {
-                case .loading:
-                    LoadingView(message: "Chargement...")
-
-                case .unauthenticated:
-                    if appState.hasCompletedOnboarding {
-                        LoginView()
-                    } else {
-                        OnboardingFlow()
-                    }
-
-                case .authenticated:
-                    MainTabView()
-                }
+            routeContent
+        }
+        .overlay {
+            if runtimeCoordinator.shouldShowPrivacyShield {
+                PrivacyShieldOverlay()
             }
+        }
+        .alert(
+            "Petit souci de connexion",
+            isPresented: $appState.showPostAuthError
+        ) {
+            Button("Réessayer") {
+                Task { await appState.retryOnboardingPostAuth() }
+            }
+            Button("Se déconnecter", role: .destructive) {
+                appState.send(.logoutRequested(source: .userInitiated))
+            }
+        } message: {
+            Text("La configuration de ton compte n'a pas abouti — vérifie ta connexion et réessaie.")
         }
         .toastOverlay(appState.toastManager)
         .environment(appState.toastManager)
-        .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: appState.authState)
-        .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: appState.isInMaintenance)
-        .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: appState.isNetworkUnavailable)
+        .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: appState.currentRoute)
         .onReceive(NotificationCenter.default.publisher(for: .maintenanceModeDetected)) { _ in
-            appState.setMaintenanceMode(true)
+            appState.send(.maintenanceChecked(isInMaintenance: true))
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .clientKeyCheckFailed)) { _ in
+            handleClientKeyCheckFailed()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .sessionExpired)) { _ in
+            appState.send(.sessionExpired)
         }
         .task {
-            await appState.checkMaintenanceStatus()
-            guard !appState.isInMaintenance, !appState.isNetworkUnavailable else { return }
-            await appState.checkAuthState()
+            #if DEBUG
+            Logger.auth.debug("[AUTH_ROOT_TASK] starting app")
+            #endif
+            await appState.start()
+            #if DEBUG
+            let authDesc = String(describing: appState.authState)
+            let routeDesc = String(describing: appState.currentRoute)
+            Logger.auth.debug(
+                "[AUTH_ROOT_TASK] done, auth=\(authDesc, privacy: .public) route=\(routeDesc, privacy: .public)"
+            )
+            #endif
             if appState.authState == .authenticated {
                 await currentMonthStore.loadBudgetSummary()
             }
@@ -122,36 +173,41 @@ struct RootView: View {
         .onChange(of: appState.isInMaintenance) { oldValue, newValue in
             // Exiting maintenance mode: trigger auth check
             if oldValue && !newValue {
-                Task { await appState.checkAuthState() }
+                Task { await appState.retryStartup() }
             }
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
-            if newPhase == .background, appState.authState == .authenticated {
-                Task { await widgetSyncViewModel.syncWidgetData() }
-                BackgroundTaskService.shared.scheduleWidgetRefresh()
-            }
-
-            // CRITICAL: Always refresh when app comes to foreground
-            // This guarantees fresh data if user edited from web
-            if newPhase == .active, oldPhase == .background, appState.authState == .authenticated {
-                Task {
-                    async let refreshCurrent: Void = currentMonthStore.forceRefresh()
-                    async let refreshBudgets: Void = budgetListStore.forceRefresh()
-                    async let refreshDashboard: Void = dashboardStore.loadIfNeeded()
-                    _ = await (refreshCurrent, refreshBudgets, refreshDashboard)
-                }
-            }
+            runtimeCoordinator.handleScenePhaseChange(from: oldPhase, to: newPhase)
+        }
+        .onChange(of: appState.currentRoute) { oldRoute, newRoute in
+            #if DEBUG
+            let old = String(describing: oldRoute)
+            let new = String(describing: newRoute)
+            Logger.auth.debug("[AUTH_ROUTE] \(old, privacy: .public) → \(new, privacy: .public)")
+            #endif
+        }
+        .onChange(of: appState.authState) { oldAuth, newAuth in
+            #if DEBUG
+            let old = String(describing: oldAuth)
+            let new = String(describing: newAuth)
+            Logger.auth.debug("[AUTH_STATE_UI] \(old, privacy: .public) → \(new, privacy: .public)")
+            #endif
         }
         .alert(
-            "Activer \(BiometricService.shared.biometryDisplayName) ?",
-            isPresented: $appState.showBiometricEnrollment
+            "Générer une clé de récupération ?",
+            isPresented: $appState.isRecoveryConsentVisible
         ) {
-            Button("Activer") {
-                Task { await appState.enableBiometric() }
+            Button("Générer maintenant") {
+                appState.send(.recoveryKeyConsentAccepted)
             }
-            Button("Plus tard", role: .cancel) {}
+            Button("Plus tard", role: .cancel) {
+                appState.send(.recoveryKeyConsentDeclined)
+            }
         } message: {
-            Text("Utilise la reconnaissance biométrique pour te connecter plus rapidement")
+            Text(
+                "Ton coffre est configuré sans clé de récupération. " +
+                "Génère-la maintenant pour éviter de perdre l'accès à tes données chiffrées."
+            )
         }
         .onChange(of: deepLinkDestination) { _, _ in
             handlePendingDeepLink()
@@ -163,128 +219,196 @@ struct RootView: View {
             DeepLinkAddExpenseSheet()
                 .environment(appState.toastManager)
         }
+        .sheet(item: $resetPasswordDeepLink) { deepLink in
+            ResetPasswordFlowView(
+                callbackURL: deepLink.url,
+                onComplete: {
+                    await appState.completePasswordResetFlow()
+                },
+                onCancel: {
+                    await appState.cancelPasswordResetFlow()
+                }
+            )
+        }
+        .sheet(item: recoveryKeySheetItemBinding) { sheet in
+            RecoveryKeySheet(recoveryKey: sheet.recoveryKey) {
+                appState.send(.recoveryKeyPresentationDismissed)
+            }
+        }
         .onShake {
             guard appState.authState == .authenticated else { return }
             showAmountsToggleAlert = true
         }
         .alert(
-            appState.amountsHidden ? "Afficher les montants ?" : "Masquer les montants ?",
+            uiPreferences.amountsHidden ? "Afficher les montants ?" : "Masquer les montants ?",
             isPresented: $showAmountsToggleAlert
         ) {
             Button("Confirmer") {
-                appState.toggleAmountsVisibility()
+                uiPreferences.toggleAmountsVisibility()
             }
             Button("Annuler", role: .cancel) {}
         }
-        .environment(\.amountsHidden, appState.amountsHidden)
+        .environment(\.amountsHidden, uiPreferences.amountsHidden)
+    }
+
+    private var recoveryKeySheetItemBinding: Binding<RecoveryKeySheetItem?> {
+        Binding(
+            get: {
+                guard appState.isRecoveryKeySheetVisible,
+                      let recoveryKey = appState.recoveryKeyForPresentation else {
+                    return nil
+                }
+                return RecoveryKeySheetItem(recoveryKey: recoveryKey)
+            },
+            set: { newValue in
+                if newValue == nil {
+                    appState.isRecoveryKeySheetVisible = false
+                }
+            }
+        )
+    }
+
+    // MARK: - Route Content
+
+    /// Main content view driven by AppRoute.
+    /// This is a pure function of state - no imperative logic.
+    @ViewBuilder
+    private var routeContent: some View {
+        switch appState.currentRoute {
+        case .loading:
+            LoadingView(message: "Chargement...")
+
+        case .maintenance:
+            MaintenanceView()
+
+        case .networkError:
+            NetworkUnavailableView {
+                await appState.retryStartup()
+                if appState.authState == .authenticated {
+                    await currentMonthStore.loadBudgetSummary()
+                }
+            }
+
+        case .login:
+            if appState.hasReturningUser {
+                LoginView(
+                    onBiometric: appState.biometricEnabled && appState.biometricCredentialsAvailable ? {
+                        Task { await appState.loginWithBiometric() }
+                    } : nil
+                )
+            } else {
+                OnboardingFlow()
+            }
+
+        case .pinSetup:
+            PinSetupView(
+                onComplete: { await appState.completePinSetup() },
+                onLogout: { await appState.logout() }
+            )
+
+        case .recoveryKeyConsent:
+            recoveryOverlayBaseContent
+
+        case .recoveryKeyPresentation:
+            recoveryOverlayBaseContent
+
+        case .pinEntry(let canUseBiometric):
+            pinEntryContent(canUseBiometric: canUseBiometric)
+
+        case .pinRecovery:
+            PinRecoveryView(
+                onComplete: { appState.send(.recoveryCompleted) },
+                onCancel: { appState.send(.recoveryCancelled) },
+                onSessionExpired: { appState.send(.recoverySessionExpired) }
+            )
+
+        case .main:
+            MainTabView()
+        }
+    }
+
+    @ViewBuilder
+    private var recoveryOverlayBaseContent: some View {
+        switch appState.authState {
+        case .authenticated:
+            MainTabView()
+        case .needsPinEntry:
+            pinEntryContent(canUseBiometric: appState.biometricEnabled && appState.biometricCredentialsAvailable)
+        case .needsPinSetup:
+            PinSetupView(
+                onComplete: { await appState.completePinSetup() },
+                onLogout: { await appState.logout() }
+            )
+        case .needsPinRecovery:
+            PinRecoveryView(
+                onComplete: { appState.send(.recoveryCompleted) },
+                onCancel: { appState.send(.recoveryCancelled) },
+                onSessionExpired: { appState.send(.recoverySessionExpired) }
+            )
+        case .loading, .unauthenticated:
+            LoadingView(message: "Chargement...")
+        }
+    }
+
+    private func pinEntryContent(canUseBiometric: Bool) -> some View {
+        PinEntryView(
+            firstName: appState.currentUser?.firstName ?? "",
+            onSuccess: { appState.send(.pinEntrySucceeded) },
+            onBiometric: canUseBiometric && appState.biometricCredentialsAvailable ? {
+                Task {
+                    guard await appState.attemptBiometricUnlock() else { return }
+                    appState.send(.biometricUnlockSucceeded)
+                }
+            } : nil,
+            onForgotPin: { appState.send(.recoveryInitiated) },
+            onLogout: { await appState.logout() }
+        )
+    }
+
+    private func handleClientKeyCheckFailed() {
+        Task { await appState.handleStaleClientKey() }
     }
 
     private func handlePendingDeepLink() {
-        guard appState.authState == .authenticated,
-              let destination = deepLinkDestination else { return }
-
-        deepLinkDestination = nil
-
-        switch destination {
-        case .addExpense:
-            showAddExpenseSheet = true
-        case .viewBudget(let budgetId):
-            appState.budgetPath = NavigationPath()
-            Task { @MainActor in
-                appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
-                appState.selectedTab = .budgets
+        if let destination = deepLinkDestination {
+            switch destination {
+            case .resetPassword:
+                deepLinkHandler.setPending(destination)
+                deepLinkDestination = nil
+            case .addExpense:
+                guard appState.authState == .authenticated else { break }
+                deepLinkDestination = nil
+                showAddExpenseSheet = true
+            case .viewBudget(let budgetId):
+                guard appState.authState == .authenticated else { break }
+                deepLinkDestination = nil
+                appState.budgetPath = NavigationPath()
+                Task { @MainActor in
+                    appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
+                    appState.selectedTab = .budgets
+                }
             }
         }
-    }
-}
 
-@Observable @MainActor
-final class WidgetSyncViewModel {
-    private let budgetService = BudgetService.shared
-
-    func syncWidgetData() async {
-        guard let currentBudget = try? await budgetService.getCurrentMonthBudget(),
-              let details = try? await budgetService.getBudgetWithDetails(id: currentBudget.id) else {
-            await WidgetDataSyncService.shared.sync(budgetsWithDetails: [], currentBudgetDetails: nil)
-            return
-        }
-
-        do {
-            let exportData = try await budgetService.exportAllBudgets()
-            await WidgetDataSyncService.shared.sync(
-                budgetsWithDetails: exportData.budgets,
-                currentBudgetDetails: details
-            )
-        } catch {
-            Logger.sync.error("WidgetSyncViewModel: exportAllBudgets failed - \(error)")
-            await WidgetDataSyncService.shared.sync(
-                budgetsWithDetails: [],
-                currentBudgetDetails: details
-            )
+        switch deepLinkHandler.processResetPassword(authState: appState.authState) {
+        case .present(let url):
+            resetPasswordDeepLink = ResetPasswordDeepLink(url: url)
+        case .deferred, .dropped, .noPending:
+            break
         }
     }
 }
 
-struct DeepLinkAddExpenseSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @State private var viewModel = DeepLinkAddExpenseViewModel()
-
+struct PrivacyShieldOverlay: View {
     var body: some View {
-        NavigationStack {
-            Group {
-                if viewModel.isLoading {
-                    LoadingView(message: "Chargement...")
-                } else if let error = viewModel.error {
-                    ContentUnavailableView {
-                        Label("Erreur de connexion", systemImage: "wifi.exclamationmark")
-                    } description: {
-                        Text(error.localizedDescription)
-                    } actions: {
-                        Button("Réessayer") {
-                            Task { await viewModel.loadCurrentBudget() }
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                } else if let budgetId = viewModel.currentBudgetId {
-                    AddTransactionSheet(budgetId: budgetId) { _ in
-                        dismiss()
-                    }
-                } else {
-                    ContentUnavailableView(
-                        "Pas encore de budget",
-                        systemImage: "calendar.badge.exclamationmark",
-                        description: Text("Crée d'abord un budget pour ce mois")
-                    )
-                }
-            }
-            .task {
-                await viewModel.loadCurrentBudget()
-            }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Fermer") { dismiss() }
-                }
-            }
-        }
-    }
-}
+        ZStack {
+            Color(.systemBackground)
+                .ignoresSafeArea()
 
-@Observable @MainActor
-final class DeepLinkAddExpenseViewModel {
-    private(set) var currentBudgetId: String?
-    private(set) var isLoading = true
-    private(set) var error: Error?
-
-    func loadCurrentBudget() async {
-        isLoading = true
-        error = nil
-        do {
-            let budget = try await BudgetService.shared.getCurrentMonthBudget()
-            currentBudgetId = budget?.id
-        } catch {
-            self.error = error
-            currentBudgetId = nil
+            PulpeIcon(size: 44)
+                .opacity(0.55)
         }
-        isLoading = false
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }

@@ -4,11 +4,12 @@ struct LoginView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel = LoginViewModel()
-    @State private var canRetryBiometric = false
     @State private var isAppeared = false
+    @State private var forgotPasswordPresentation: ForgotPasswordPresentation?
     @FocusState private var focusedField: Field?
 
     var isPresented: Binding<Bool>?
+    var onBiometric: (() -> Void)?
 
     private enum Field: Hashable {
         case email, password
@@ -16,29 +17,39 @@ struct LoginView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 0) {
-                    headerSection
-                    formCard
-                    createAccountSection
-                    Spacer(minLength: 40)
+            ZStack {
+                Color.authGradientBackground
+
+                ScrollView {
+                    VStack(spacing: DesignTokens.Spacing.xxl) {
+                        headerSection
+                        formSection
+                        createAccountSection
+                    }
+                    .padding(.horizontal, DesignTokens.Spacing.xxl)
+                    .padding(.bottom, DesignTokens.Spacing.xxxl)
                 }
+                .scrollBounceBehavior(.basedOnSize)
             }
-            .scrollBounceBehavior(.basedOnSize)
-            .pulpeBackground()
             .toolbar {
                 if let isPresented {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Annuler") {
                             isPresented.wrappedValue = false
                         }
-                        .foregroundStyle(Color.pulpePrimary)
+                        .foregroundStyle(Color.textPrimaryOnboarding)
+                        .fontWeight(.medium)
                     }
                 }
             }
             .dismissKeyboardOnTap()
+            .sheet(item: $forgotPasswordPresentation) { _ in
+                ForgotPasswordSheet {
+                    forgotPasswordPresentation = nil
+                }
+            }
             .task {
-                canRetryBiometric = await appState.canRetryBiometric()
+                await viewModel.loadLastUsedEmail()
                 if !reduceMotion {
                     try? await Task.sleep(for: .milliseconds(100))
                 }
@@ -48,62 +59,57 @@ struct LoginView: View {
             }
         }
     }
+}
 
-    // MARK: - Header
+// MARK: - Computed Properties
 
+extension LoginView {
     private var headerSection: some View {
-        VStack(spacing: DesignTokens.Spacing.xl) {
-            PulpeIcon(size: 88)
+        VStack(spacing: DesignTokens.Spacing.lg) {
+            PulpeIcon(size: 64)
                 .scaleEffect(isAppeared ? 1 : 0.8)
                 .opacity(isAppeared ? 1 : 0)
 
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                Text("Pulpe")
-                    .font(PulpeTypography.brandTitle)
-                    .tracking(1)
-                    .foregroundStyle(Color.pulpePrimary)
-
+            VStack(spacing: DesignTokens.Spacing.xs) {
                 Text("Content de te revoir")
-                    .font(PulpeTypography.onboardingSubtitle)
+                    .font(PulpeTypography.onboardingTitle)
+                    .foregroundStyle(Color.textPrimaryOnboarding)
+
+                Text("Connecte-toi pour accéder à ton budget")
+                    .font(PulpeTypography.subheadline)
                     .foregroundStyle(Color.textSecondaryOnboarding)
             }
+            .multilineTextAlignment(.center)
             .opacity(isAppeared ? 1 : 0)
             .offset(y: isAppeared ? 0 : 10)
         }
-        .padding(.top, 56)
-        .padding(.bottom, 44)
+        .padding(.top, DesignTokens.Spacing.xxxl)
         .animation(reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 0.8), value: isAppeared)
     }
 
-    // MARK: - Form Card
-
-    private var formCard: some View {
+    private var formSection: some View {
         VStack(spacing: DesignTokens.Spacing.xl) {
             errorBanner
-            biometricSection
             emailField
             passwordField
+            forgotPasswordButton
             loginButton
+            faceIDButton
         }
-        .padding(DesignTokens.Spacing.xxl)
-        .pulpeCardBackground(cornerRadius: 24)
-        .padding(.horizontal, DesignTokens.Spacing.xl)
         .opacity(isAppeared ? 1 : 0)
         .offset(y: isAppeared ? 0 : 20)
         .animation(reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: isAppeared)
     }
-
-    // MARK: - Error Banner
 
     @ViewBuilder
     private var errorBanner: some View {
         if let errorMessage = viewModel.errorMessage ?? appState.biometricError {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.body)
+                    .font(PulpeTypography.body)
                     .foregroundStyle(Color.errorPrimary)
                 Text(errorMessage)
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
                     .multilineTextAlignment(.leading)
                     .foregroundStyle(Color.textPrimary)
             }
@@ -113,139 +119,59 @@ struct LoginView: View {
         }
     }
 
-    // MARK: - Biometric Section
-
-    @ViewBuilder
-    private var biometricSection: some View {
-        if canRetryBiometric && appState.biometricError == nil {
-            Button {
-                Task {
-                    await appState.retryBiometricLogin()
-                    canRetryBiometric = await appState.canRetryBiometric()
-                }
-            } label: {
-                HStack(spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: biometricIcon)
-                        .font(.title3)
-                    Text("Continuer avec \(BiometricService.shared.biometryDisplayName)")
-                        .fontWeight(.medium)
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: DesignTokens.FrameHeight.button)
-                .background(Color.onboardingGradient)
-                .foregroundStyle(Color.textOnPrimary)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
-                .shadow(color: Color.pulpePrimary.opacity(DesignTokens.Opacity.glow), radius: 8, y: 4)
-            }
-
-            HStack(spacing: DesignTokens.Spacing.lg) {
-                Rectangle()
-                    .fill(Color.secondary.opacity(DesignTokens.Opacity.secondary))
-                    .frame(height: DesignTokens.FrameHeight.separator)
-                Text("ou")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                Rectangle()
-                    .fill(Color.secondary.opacity(DesignTokens.Opacity.secondary))
-                    .frame(height: DesignTokens.FrameHeight.separator)
-            }
-            .padding(.vertical, DesignTokens.Spacing.xs)
-        }
-    }
-
-    // MARK: - Email Field
-
     private var emailField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Adresse e-mail")
-                .font(PulpeTypography.inputLabel)
-                .foregroundStyle(Color.textSecondaryOnboarding)
+            Text("E-mail")
+                .font(PulpeTypography.buttonSecondary)
+                .foregroundStyle(Color.textPrimaryOnboarding)
 
-            TextField(
-                "",
+            AuthTextField(
+                prompt: "Adresse e-mail",
                 text: $viewModel.email,
-                prompt: Text("exemple@email.com")
-                    .foregroundStyle(Color.textTertiaryOnboarding)
+                isFocused: focusedField == .email
             )
             .textContentType(.emailAddress)
             .keyboardType(.emailAddress)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
             .focused($focusedField, equals: .email)
-            .font(PulpeTypography.bodyLarge)
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .frame(height: DesignTokens.FrameHeight.button)
-            .background(Color.inputBackgroundSoft)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
-            .shadow(
-                color: focusedField == .email ? Color.inputFocusGlow : Color.black.opacity(DesignTokens.Opacity.faint),
-                radius: focusedField == .email ? 8 : 4,
-                y: focusedField == .email ? 2 : 1
-            )
-            .scaleEffect(focusedField == .email ? 1.01 : 1)
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
             .accessibilityIdentifier("email")
+            .accessibilityLabel("Adresse e-mail")
+            .accessibilityHint("Saisis ton adresse e-mail")
         }
     }
-
-    // MARK: - Password Field
 
     private var passwordField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text("Mot de passe")
-                .font(PulpeTypography.inputLabel)
-                .foregroundStyle(Color.textSecondaryOnboarding)
+                .font(PulpeTypography.buttonSecondary)
+                .foregroundStyle(Color.textPrimaryOnboarding)
 
-            HStack(spacing: DesignTokens.Spacing.md) {
-                Group {
-                    if viewModel.showPassword {
-                        TextField(
-                            "",
-                            text: $viewModel.password,
-                            prompt: Text("Votre mot de passe")
-                                .foregroundStyle(Color.textTertiaryOnboarding)
-                        )
-                    } else {
-                        SecureField(
-                            "",
-                            text: $viewModel.password,
-                            prompt: Text("Votre mot de passe")
-                                .foregroundStyle(Color.textTertiaryOnboarding)
-                        )
-                    }
-                }
-                .textContentType(.password)
-                .focused($focusedField, equals: .password)
-                .font(PulpeTypography.bodyLarge)
-                .accessibilityIdentifier("password")
-
-                Button {
-                    withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
-                        viewModel.showPassword.toggle()
-                    }
-                } label: {
-                    Image(systemName: viewModel.showPassword ? "eye.slash.fill" : "eye.fill")
-                        .font(PulpeTypography.bodyLarge)
-                        .foregroundStyle(Color.textTertiaryOnboarding)
-                        .contentTransition(.symbolEffect(.replace))
-                }
-                .accessibilityLabel(viewModel.showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe")
-            }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .frame(height: DesignTokens.FrameHeight.button)
-            .background(Color.inputBackgroundSoft)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
-            .shadow(
-                color: focusedField == .password ? Color.inputFocusGlow : Color.black.opacity(DesignTokens.Opacity.faint),
-                radius: focusedField == .password ? 8 : 4,
-                y: focusedField == .password ? 2 : 1
+            AuthSecureField(
+                prompt: "Ton mot de passe",
+                text: $viewModel.password,
+                isVisible: $viewModel.showPassword,
+                isFocused: focusedField == .password
             )
-            .scaleEffect(focusedField == .password ? 1.01 : 1)
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
+            .textContentType(.password)
+            .focused($focusedField, equals: .password)
+            .accessibilityIdentifier("password")
+            .accessibilityLabel("Mot de passe")
+            .accessibilityHint("Saisis ton mot de passe")
         }
     }
 
-    // MARK: - Login Button
+    private var forgotPasswordButton: some View {
+        HStack {
+            Spacer()
+            Button("Mot de passe oublié ?") {
+                forgotPasswordPresentation = ForgotPasswordPresentation()
+            }
+            .font(PulpeTypography.labelMedium)
+            .foregroundStyle(Color.textPrimaryOnboarding.opacity(0.9))
+            .accessibilityIdentifier("forgotPasswordButton")
+        }
+    }
 
     private var loginButton: some View {
         Button {
@@ -253,29 +179,21 @@ struct LoginView: View {
                 await login()
             }
         } label: {
-            HStack(spacing: DesignTokens.Spacing.sm) {
+            Group {
                 if viewModel.isLoading {
                     ProgressView()
-                        .tint(Color.textOnPrimary)
+                        .tint(.white)
                         .accessibilityLabel("Connexion en cours")
                 } else {
                     Text("Se connecter")
-                        .fontWeight(.semibold)
-                    Image(systemName: "arrow.right")
-                        .font(PulpeTypography.inputLabel)
+                        .font(PulpeTypography.buttonPrimary)
                 }
             }
             .frame(maxWidth: .infinity)
             .frame(height: DesignTokens.FrameHeight.button)
-            .background(viewModel.canSubmit ? Color.onboardingGradient : nil)
-            .background(viewModel.canSubmit ? nil : Color.surfaceSecondary)
-            .foregroundStyle(viewModel.canSubmit ? Color.textOnPrimary : .secondary)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
-            .shadow(
-                color: viewModel.canSubmit ? Color.pulpePrimary.opacity(DesignTokens.Opacity.glow) : .clear,
-                radius: 8,
-                y: 4
-            )
+            .background(viewModel.canSubmit ? Color.pulpePrimary : Color.pulpePrimary.opacity(0.4))
+            .foregroundStyle(.white)
+            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous))
         }
         .disabled(!viewModel.canSubmit)
         .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: viewModel.canSubmit)
@@ -283,43 +201,49 @@ struct LoginView: View {
         .padding(.top, DesignTokens.Spacing.sm)
     }
 
-    // MARK: - Create Account
+    @ViewBuilder
+    private var faceIDButton: some View {
+        if let onBiometric {
+            Button {
+                onBiometric()
+            } label: {
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    Image(systemName: "faceid")
+                        .font(PulpeTypography.body)
+                    Text("Face ID")
+                        .font(PulpeTypography.buttonSecondary)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: DesignTokens.FrameHeight.button)
+                .background(Color.textPrimaryOnboarding.opacity(0.1))
+                .foregroundStyle(Color.textPrimaryOnboarding)
+                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous))
+            }
+            .accessibilityIdentifier("faceIDButton")
+        }
+    }
 
     private var createAccountSection: some View {
-        VStack(spacing: DesignTokens.Spacing.sm) {
+        HStack(spacing: DesignTokens.Spacing.xs) {
             Text("Nouveau sur Pulpe ?")
-                .font(PulpeTypography.stepSubtitle)
+                .font(PulpeTypography.subheadline)
                 .foregroundStyle(Color.textSecondaryOnboarding)
 
             Button {
                 if let isPresented {
                     isPresented.wrappedValue = false
                 } else {
-                    OnboardingState.clearPersistedData()
-                    appState.hasCompletedOnboarding = false
+                    appState.enterSignupFlow()
                 }
             } label: {
                 Text("Créer un compte")
-                    .font(PulpeTypography.labelLarge)
+                    .font(PulpeTypography.subheadline.weight(.semibold))
                     .foregroundStyle(Color.pulpePrimary)
             }
         }
-        .padding(.top, DesignTokens.Spacing.xxxl)
+        .padding(.top, DesignTokens.Spacing.md)
         .opacity(isAppeared ? 1 : 0)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.4).delay(0.2), value: isAppeared)
-    }
-
-    private var biometricIcon: String {
-        switch BiometricService.shared.biometryType {
-        case .faceID:
-            return "faceid"
-        case .touchID:
-            return "touchid"
-        case .opticID:
-            return "opticid"
-        default:
-            return "lock.fill"
-        }
     }
 
     private func login() async {
@@ -338,26 +262,8 @@ struct LoginView: View {
     }
 }
 
-@Observable @MainActor
-final class LoginViewModel {
-    var email = ""
-    var password = ""
-    var showPassword = false
-    var isLoading = false
-    var errorMessage: String?
-
-    var isEmailValid: Bool {
-        let pattern = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/
-        return email.wholeMatch(of: pattern) != nil
-    }
-
-    var isPasswordValid: Bool {
-        password.count >= 8
-    }
-
-    var canSubmit: Bool {
-        isEmailValid && isPasswordValid && !isLoading
-    }
+struct ForgotPasswordPresentation: Identifiable {
+    let id = UUID()
 }
 
 #Preview {

@@ -24,6 +24,8 @@ enum APIError: LocalizedError {
     case weakPassword
     case rateLimited
     case maintenance
+    case clientKeyInvalid
+    case recoveryKeyInvalid
 
     var errorDescription: String? {
         switch self {
@@ -67,8 +69,27 @@ enum APIError: LocalizedError {
             return "Trop de tentatives — patiente quelques minutes"
         case .maintenance:
             return "Application en maintenance — réessaie dans quelques instants"
+        case .clientKeyInvalid:
+            return "Ton code d'accès a été modifié — saisis ton nouveau code"
+        case .recoveryKeyInvalid:
+            return "Clé de récupération invalide — vérifie que tu as bien copié la clé"
         }
     }
+
+    private static let codeMapping: [String: APIError] = [
+        "ERR_BUDGET_ALREADY_EXISTS": .budgetAlreadyExists,
+        "ERR_TEMPLATE_NOT_FOUND": .templateNotFound,
+        "ERR_TEMPLATE_LIMIT_REACHED": .templateLimitReached,
+        "invalid_credentials": .invalidCredentials,
+        "Invalid login credentials": .invalidCredentials,
+        "user_already_exists": .userAlreadyExists,
+        "User already registered": .userAlreadyExists,
+        "weak_password": .weakPassword,
+        "over_request_rate_limit": .rateLimited,
+        "MAINTENANCE": .maintenance,
+        "ERR_ENCRYPTION_KEY_CHECK_FAILED": .clientKeyInvalid,
+        "ERR_RECOVERY_KEY_INVALID": .recoveryKeyInvalid,
+    ]
 
     /// Create APIError from server error code
     static func from(code: String?, message: String?) -> APIError {
@@ -76,25 +97,10 @@ enum APIError: LocalizedError {
             return .serverError(message: message ?? "Quelque chose n'a pas fonctionné")
         }
 
-        switch code {
-        case "ERR_BUDGET_ALREADY_EXISTS":
-            return .budgetAlreadyExists
-        case "ERR_TEMPLATE_NOT_FOUND":
-            return .templateNotFound
-        case "ERR_TEMPLATE_LIMIT_REACHED":
-            return .templateLimitReached
-        case "invalid_credentials", "Invalid login credentials":
-            return .invalidCredentials
-        case "user_already_exists", "User already registered":
-            return .userAlreadyExists
-        case "weak_password":
-            return .weakPassword
-        case "over_request_rate_limit":
-            return .rateLimited
-        case "MAINTENANCE":
-            return .maintenance
-        default:
-            return .serverError(message: message ?? code)
+        if let error = codeMapping[code] {
+            return error
         }
+
+        return .serverError(message: message ?? code)
     }
 }

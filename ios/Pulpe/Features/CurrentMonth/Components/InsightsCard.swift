@@ -2,8 +2,8 @@ import SwiftUI
 
 /// Combined insights card merging top spending and budget alerts into one cohesive section
 struct InsightsCard: View {
-    let topSpending: (name: String, amount: Decimal, totalExpenses: Decimal)?
-    let alerts: [(line: BudgetLine, consumption: BudgetFormulas.Consumption)]
+    let topSpending: CurrentMonthStore.TopSpending?
+    let alerts: [BudgetAlert]
     var onTap: (() -> Void)?
 
     private let maxVisibleAlerts = 3
@@ -23,30 +23,33 @@ struct InsightsCard: View {
 
     var body: some View {
         if hasTopSpending || hasAlerts {
-            Button(action: { onTap?() }) {
-                VStack(alignment: .leading, spacing: 0) {
-                    if let topSpending {
-                        topSpendingSection(topSpending)
-                    }
+            Button(
+                action: { onTap?() },
+                label: {
+                    VStack(alignment: .leading, spacing: 0) {
+                        if let topSpending {
+                            topSpendingSection(topSpending)
+                        }
 
-                    if hasTopSpending && hasAlerts {
-                        Divider()
-                            .padding(.horizontal, DesignTokens.Spacing.lg)
-                    }
+                        if hasTopSpending && hasAlerts {
+                            Divider()
+                                .padding(.horizontal, DesignTokens.Spacing.lg)
+                        }
 
-                    if hasAlerts {
-                        alertsSection
+                        if hasAlerts {
+                            alertsSection
+                        }
                     }
+                    .pulpeCardBackground()
                 }
-                .pulpeCardBackground()
-            }
+            )
             .buttonStyle(.plain)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(accessibilityDescription)
             .accessibilityHint("Ouvre la vue détaillée du budget")
         } else {
             Text("Enregistre tes dépenses pour voir où part ton argent")
-                .font(.subheadline)
+                .font(PulpeTypography.subheadline)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .pulpeCard()
@@ -55,7 +58,7 @@ struct InsightsCard: View {
 
     // MARK: - Top Spending Section
 
-    private func topSpendingSection(_ spending: (name: String, amount: Decimal, totalExpenses: Decimal)) -> some View {
+    private func topSpendingSection(_ spending: CurrentMonthStore.TopSpending) -> some View {
         let percentage = Self.percentageOfTotal(spending.amount, of: spending.totalExpenses)
 
         return HStack(spacing: DesignTokens.Spacing.md) {
@@ -70,11 +73,10 @@ struct InsightsCard: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Où part ton argent")
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)
                 Text(spending.name)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(PulpeTypography.labelLarge)
                     .foregroundStyle(.primary)
                     .lineLimit(1)
             }
@@ -83,12 +85,11 @@ struct InsightsCard: View {
 
             VStack(alignment: .trailing, spacing: 2) {
                 Text(spending.amount.asCHF)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(PulpeTypography.labelLarge)
                     .foregroundStyle(.primary)
                     .sensitiveAmount()
                 Text("\(percentage)% de tes dépenses")
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)
             }
         }
@@ -102,10 +103,10 @@ struct InsightsCard: View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(Color.financialOverBudget)
-                .font(.subheadline)
+                .font(PulpeTypography.subheadline)
 
             alertText
-                .font(.subheadline)
+                .font(PulpeTypography.subheadline)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
@@ -132,7 +133,7 @@ struct InsightsCard: View {
 
         for (index, alert) in visibleAlerts.enumerated() {
             if index > 0 {
-                result = result + Text(" · ").foregroundStyle(.tertiary)
+                result = result + Text(" · ").foregroundStyle(.tertiary) // swiftlint:disable:this shorthand_operator
             }
 
             result = result + Text("\(alert.line.name) ")
@@ -159,7 +160,10 @@ struct InsightsCard: View {
 
         if let topSpending {
             let percentage = Self.percentageOfTotal(topSpending.amount, of: topSpending.totalExpenses)
-            parts.append("Où part ton argent: \(topSpending.name), \(topSpending.amount.asCHF), \(percentage) pourcent de tes dépenses")
+            parts.append(
+                "Où part ton argent: \(topSpending.name), \(topSpending.amount.asCHF), " +
+                "\(percentage) pourcent de tes dépenses"
+            )
         }
 
         if hasAlerts {
@@ -183,9 +187,9 @@ struct InsightsCard: View {
     VStack(spacing: 16) {
         // Both sections
         InsightsCard(
-            topSpending: (name: "Courses", amount: 200, totalExpenses: 2500),
+            topSpending: CurrentMonthStore.TopSpending(name: "Courses", amount: 200, totalExpenses: 2500),
             alerts: [
-                (
+                BudgetAlert(
                     line: BudgetLine(
                         id: "1", budgetId: "b1", templateLineId: nil, savingsGoalId: nil,
                         name: "Électricité", amount: 100, kind: .expense, recurrence: .fixed,
@@ -193,7 +197,7 @@ struct InsightsCard: View {
                     ),
                     consumption: BudgetFormulas.Consumption(allocated: 141, available: -41, percentage: 141)
                 ),
-                (
+                BudgetAlert(
                     line: BudgetLine(
                         id: "2", budgetId: "b1", templateLineId: nil, savingsGoalId: nil,
                         name: "Netflix", amount: 20, kind: .expense, recurrence: .fixed,
@@ -206,7 +210,7 @@ struct InsightsCard: View {
 
         // Top spending only
         InsightsCard(
-            topSpending: (name: "Restaurants", amount: 450, totalExpenses: 2500),
+            topSpending: CurrentMonthStore.TopSpending(name: "Restaurants", amount: 450, totalExpenses: 2500),
             alerts: []
         )
 
@@ -214,7 +218,7 @@ struct InsightsCard: View {
         InsightsCard(
             topSpending: nil,
             alerts: [
-                (
+                BudgetAlert(
                     line: BudgetLine(
                         id: "1", budgetId: "b1", templateLineId: nil, savingsGoalId: nil,
                         name: "Restaurant", amount: 200, kind: .expense, recurrence: .oneOff,
@@ -230,4 +234,9 @@ struct InsightsCard: View {
     }
     .padding()
     .pulpeBackground()
+}
+
+struct BudgetAlert: Sendable {
+    let line: BudgetLine
+    let consumption: BudgetFormulas.Consumption
 }

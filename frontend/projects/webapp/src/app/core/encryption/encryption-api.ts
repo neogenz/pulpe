@@ -2,11 +2,9 @@ import { Injectable, inject } from '@angular/core';
 import { type Observable } from 'rxjs';
 import {
   type EncryptionSaltResponse,
-  type EncryptionRekeyResponse,
   type EncryptionSetupRecoveryResponse,
   type EncryptionRecoverResponse,
   encryptionSaltResponseSchema,
-  encryptionRekeyResponseSchema,
   encryptionSetupRecoveryResponseSchema,
   encryptionRecoverResponseSchema,
 } from 'pulpe-shared';
@@ -22,25 +20,27 @@ export class EncryptionApi {
     return this.#api.get$('/encryption/salt', encryptionSaltResponseSchema);
   }
 
+  /**
+   * Validates the client key against the stored key_check.
+   * For new users (no key_check yet), generates and stores one as a side effect.
+   */
   validateKey$(clientKeyHex: string): Observable<void> {
     return this.#api.postVoid$('/encryption/validate-key', {
       clientKey: clientKeyHex,
     });
   }
 
-  rekeyEncryption$(
-    newClientKeyHex: string,
-  ): Observable<EncryptionRekeyResponse> {
-    return this.#api.post$(
-      '/encryption/rekey',
-      { newClientKey: newClientKeyHex },
-      encryptionRekeyResponseSchema,
-    );
-  }
-
   setupRecoveryKey$(): Observable<EncryptionSetupRecoveryResponse> {
     return this.#api.post$(
       '/encryption/setup-recovery',
+      {},
+      encryptionSetupRecoveryResponseSchema,
+    );
+  }
+
+  regenerateRecoveryKey$(): Observable<EncryptionSetupRecoveryResponse> {
+    return this.#api.post$(
+      '/encryption/regenerate-recovery',
       {},
       encryptionSetupRecoveryResponseSchema,
     );

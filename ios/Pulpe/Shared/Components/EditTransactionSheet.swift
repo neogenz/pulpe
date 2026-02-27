@@ -13,9 +13,14 @@ struct EditTransactionSheet: View {
     @State private var isLoading = false
     @State private var error: Error?
 
-    private let transactionService = TransactionService.shared
+    private let dependencies: EditTransactionDependencies
 
-    init(transaction: Transaction, onUpdate: @escaping (Transaction) -> Void) {
+    init(
+        transaction: Transaction,
+        dependencies: EditTransactionDependencies = .live,
+        onUpdate: @escaping (Transaction) -> Void
+    ) {
+        self.dependencies = dependencies
         self.transaction = transaction
         self.onUpdate = onUpdate
         _name = State(initialValue: transaction.name)
@@ -30,84 +35,83 @@ struct EditTransactionSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField("Description", text: $name)
-                        .font(PulpeTypography.bodyLarge)
-                        .listRowBackground(Color.surfaceCard)
-                } header: {
-                    Text("Description")
-                        .font(PulpeTypography.labelLarge)
-                }
+        Form {
+            Section {
+                TextField("Description", text: $name)
+                    .font(PulpeTypography.bodyLarge)
+                    .listRowBackground(Color.surfaceCard)
+            } header: {
+                Text("Description")
+                    .font(PulpeTypography.labelLarge)
+            }
 
-                Section {
-                    CurrencyField(value: $amount)
-                        .listRowBackground(Color.surfaceCard)
-                } header: {
-                    Text("Montant")
-                        .font(PulpeTypography.labelLarge)
-                }
+            Section {
+                CurrencyField(value: $amount)
+                    .listRowBackground(Color.surfaceCard)
+            } header: {
+                Text("Montant")
+                    .font(PulpeTypography.labelLarge)
+            }
 
-                Section {
-                    Picker("Type", selection: $kind) {
-                        ForEach(TransactionKind.allCases, id: \.self) { type in
-                            Label(type.label, systemImage: type.icon)
-                                .tag(type)
-                        }
+            Section {
+                Picker("Type", selection: $kind) {
+                    ForEach(TransactionKind.allCases, id: \.self) { type in
+                        Label(type.label, systemImage: type.icon)
+                            .tag(type)
                     }
-                    .pickerStyle(.segmented)
-                    .listRowBackground(Color.surfaceCard)
-                } header: {
-                    Text("Type")
-                        .font(PulpeTypography.labelLarge)
                 }
+                .pickerStyle(.segmented)
+                .listRowBackground(Color.surfaceCard)
+            } header: {
+                Text("Type")
+                    .font(PulpeTypography.labelLarge)
+            }
 
+            Section {
+                DatePicker(
+                    "Date",
+                    selection: $transactionDate,
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.graphical)
+                .listRowBackground(Color.surfaceCard)
+            } header: {
+                Text("Date")
+                    .font(PulpeTypography.labelLarge)
+            }
+
+            if let error {
                 Section {
-                    DatePicker(
-                        "Date",
-                        selection: $transactionDate,
-                        displayedComponents: .date
-                    )
-                    .datePickerStyle(.graphical)
-                    .listRowBackground(Color.surfaceCard)
-                } header: {
-                    Text("Date")
-                        .font(PulpeTypography.labelLarge)
-                }
-
-                if let error {
-                    Section {
-                        ErrorBanner(message: error.localizedDescription) {
-                            self.error = nil
-                        }
+                    ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                        self.error = nil
                     }
                 }
             }
-            .navigationTitle("Modifier la transaction")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") {
-                        dismiss()
-                    }
-                }
 
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Enregistrer") {
-                        Task { await updateTransaction() }
-                    }
-                    .disabled(!canSubmit)
+            Section {
+                Button {
+                    Task { await updateTransaction() }
+                } label: {
+                    Text("Enregistrer")
                 }
+                .disabled(!canSubmit)
+                .primaryButtonStyle(isEnabled: canSubmit)
+                .buttonStyle(.plain)
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
             }
-            .loadingOverlay(isLoading)
         }
+        .scrollContentBackground(.hidden)
+        .background(Color.surfacePrimary)
+        .modernSheet(title: "Modifier la transaction")
+        .loadingOverlay(isLoading)
     }
 
     private func updateTransaction() async {
         guard let amount else { return }
 
         isLoading = true
+        defer { isLoading = false }
         error = nil
 
         let data = TransactionUpdate(
@@ -118,14 +122,23 @@ struct EditTransactionSheet: View {
         )
 
         do {
-            let updatedTransaction = try await transactionService.updateTransaction(id: transaction.id, data: data)
+            let updatedTransaction = try await dependencies.updateTransaction(transaction.id, data)
             onUpdate(updatedTransaction)
             dismiss()
         } catch {
             self.error = error
-            isLoading = false
         }
     }
+}
+
+struct EditTransactionDependencies: Sendable {
+    var updateTransaction: @Sendable (String, TransactionUpdate) async throws -> Transaction
+
+    static let live = EditTransactionDependencies(
+        updateTransaction: { id, data in
+            try await TransactionService.shared.updateTransaction(id: id, data: data)
+        }
+    )
 }
 
 #Preview {

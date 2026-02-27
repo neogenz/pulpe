@@ -27,19 +27,6 @@ const mockSupabaseResetEmail = async (page: Page) => {
   });
 };
 
-const mockSalt = async (page: Page, hasRecoveryKey: boolean) => {
-  await page.route('**/api/v1/encryption/salt', (route: Route) => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        salt: '00000000000000000000000000000000',
-        kdfIterations: 1,
-        hasRecoveryKey,
-      }),
-    });
-  });
-};
 
 test.describe('Password Recovery', () => {
   test.describe.configure({ mode: 'parallel' });
@@ -82,7 +69,7 @@ test.describe('Password Recovery', () => {
     ).toBeVisible();
   });
 
-  test('reset password with recovery key shows required error when input contains only invalid chars', async ({
+  test('reset password shows validation errors for empty fields', async ({
     page,
   }) => {
     await setupAuthBypass(page, {
@@ -91,22 +78,20 @@ test.describe('Password Recovery', () => {
       vaultCodeConfigured: false,
     });
 
-    await mockSalt(page, true);
     await mockSupabaseUpdateUser(page);
 
     await page.goto('/reset-password', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('reset-password-page')).toBeVisible();
-    await expect(page.getByTestId('recovery-key-input')).toBeVisible();
 
-    await page.getByTestId('recovery-key-input').fill('@@@');
-    await page.getByTestId('recovery-key-input').blur();
+    await page.getByTestId('new-password-input').focus();
+    await page.getByTestId('new-password-input').blur();
 
     await expect(page.locator('mat-error')).toContainText(
-      'Ta clé de récupération est nécessaire',
+      'Ton nouveau mot de passe est nécessaire',
     );
   });
 
-  test('reset password with recovery key shows error on invalid key response', async ({
+  test('reset password shows minlength error for short password', async ({
     page,
   }) => {
     await setupAuthBypass(page, {
@@ -115,70 +100,47 @@ test.describe('Password Recovery', () => {
       vaultCodeConfigured: false,
     });
 
-    await mockSalt(page, true);
     await mockSupabaseUpdateUser(page);
-
-    await page.route('**/api/v1/encryption/recover', (route: Route) => {
-      return route.fulfill({
-        status: 400,
-        contentType: 'application/json',
-        body: JSON.stringify({ message: 'Invalid recovery key' }),
-      });
-    });
 
     await page.goto('/reset-password', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('reset-password-page')).toBeVisible();
-    await expect(page.getByTestId('recovery-key-input')).toBeVisible();
 
-    await page.getByTestId('recovery-key-input').fill('AAAA-BBBB-CCCC-DDDD');
-    await page.getByTestId('new-password-input').fill('new-password-123');
-    await page.getByTestId('confirm-password-input').fill('new-password-123');
+    await page.getByTestId('new-password-input').fill('short');
+    await page.getByTestId('new-password-input').blur();
 
-    await page.getByTestId('reset-password-submit-button').click();
-
-    await expect(page.locator('[role="alert"]')).toContainText(
-      'Clé de récupération invalide',
+    await expect(page.locator('mat-error')).toContainText(
+      '8 caractères minimum',
     );
   });
 
-  test('reset password with recovery key completes, shows new key dialog, and redirects to setup vault code', async ({
+  test('reset password completes and redirects to dashboard', async ({
     page,
   }) => {
     await setupAuthBypass(page, {
       includeApiMocks: true,
       setLocalStorage: true,
-      vaultCodeConfigured: false,
+      vaultCodeConfigured: true,
     });
 
-    await mockSalt(page, true);
+    // Inject client key so encryptionSetupGuard allows navigation to dashboard
+    await page.addInitScript(() => {
+      const validKeyHex = 'aa'.repeat(32);
+      sessionStorage.setItem('pulpe-vault-client-key-session', JSON.stringify({
+        version: 1,
+        data: validKeyHex,
+        updatedAt: new Date().toISOString(),
+      }));
+    });
+
     await mockSupabaseUpdateUser(page);
-
-    await page.route('**/api/v1/encryption/recover', (route: Route) => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: true }),
-      });
-    });
 
     await page.goto('/reset-password', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('reset-password-page')).toBeVisible();
-    await expect(page.getByTestId('recovery-key-input')).toBeVisible();
-
-    await page.getByTestId('recovery-key-input').fill('aaaa-bbbb-cccc-dddd');
-    await expect(page.getByTestId('recovery-key-input')).toHaveValue(
-      'AAAA-BBBB-CCCC-DDDD',
-    );
 
     await page.getByTestId('new-password-input').fill('new-password-123');
     await page.getByTestId('confirm-password-input').fill('new-password-123');
     await page.getByTestId('reset-password-submit-button').click();
 
-    await expect(page.getByTestId('recovery-key-dialog')).toBeVisible();
-    await page
-      .getByTestId('recovery-key-confirm-input')
-      .fill('AAAA-BBBB-CCCC-DDDD');
-    await page.getByTestId('recovery-key-confirm-button').click();
-    await expect(page).toHaveURL(/\/setup-vault-code/);
+    await expect(page).toHaveURL(/\/dashboard/);
   });
 });

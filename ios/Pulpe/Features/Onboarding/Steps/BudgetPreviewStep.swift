@@ -14,28 +14,29 @@ struct BudgetPreviewStep: View {
             step: .budgetPreview,
             state: state,
             canProceed: true,
-            onNext: { state.nextStep() }
-        ) {
-            VStack(spacing: DesignTokens.Spacing.xxxl) {
-                heroSection
-                breakdownCard
-                encouragingMessage
+            onNext: { state.nextStep() },
+            content: {
+                VStack(spacing: DesignTokens.Spacing.xxxl) {
+                    heroSection
+                    breakdownCard
+                    encouragingMessage
+                }
+                .task {
+                    try? await Task.sleep(for: .milliseconds(300))
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.75)) {
+                        showHero = true
+                    }
+                    try? await Task.sleep(for: .milliseconds(250))
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                        showCard = true
+                    }
+                    try? await Task.sleep(for: .milliseconds(200))
+                    withAnimation(.easeOut(duration: 0.4)) {
+                        showMessage = true
+                    }
+                }
             }
-            .task {
-                try? await Task.sleep(for: .milliseconds(300))
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.75)) {
-                    showHero = true
-                }
-                try? await Task.sleep(for: .milliseconds(250))
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                    showCard = true
-                }
-                try? await Task.sleep(for: .milliseconds(200))
-                withAnimation(.easeOut(duration: 0.4)) {
-                    showMessage = true
-                }
-            }
-        }
+        )
     }
 
     // MARK: - Hero Section
@@ -43,7 +44,7 @@ struct BudgetPreviewStep: View {
     private var heroSection: some View {
         VStack(spacing: DesignTokens.Spacing.xs) {
             Text(state.availableToSpend.asCHF)
-                .font(.system(size: heroFontSize, weight: .bold, design: .rounded))
+                .font(.custom("Manrope-Bold", size: heroFontSize, relativeTo: .largeTitle))
                 .monospacedDigit()
                 .foregroundStyle(Color.pulpePrimary)
                 .contentTransition(.numericText())
@@ -84,7 +85,7 @@ struct BudgetPreviewStep: View {
                     .font(PulpeTypography.labelLarge)
                 Spacer()
                 Text(state.availableToSpend.asCHF)
-                    .font(.system(.body, design: .rounded).weight(.bold))
+                    .font(.custom("Manrope-Bold", size: 17, relativeTo: .body))
                     .monospacedDigit()
                     .foregroundStyle(Color.pulpePrimary)
             }
@@ -118,7 +119,7 @@ struct BudgetPreviewStep: View {
                 .font(PulpeTypography.bodyLarge)
             Spacer()
             Text(value)
-                .font(.system(.body, design: .rounded).weight(.medium))
+                .font(.custom("Manrope-Medium", size: 17, relativeTo: .body))
                 .monospacedDigit()
                 .foregroundStyle(color)
         }
@@ -127,11 +128,11 @@ struct BudgetPreviewStep: View {
 
 #Preview {
     BudgetPreviewStep(state: {
-        let s = OnboardingState()
-        s.monthlyIncome = 5000
-        s.housingCosts = 1500
-        s.healthInsurance = 350
-        s.phonePlan = 50
-        return s
+        let step = OnboardingState()
+        step.monthlyIncome = 5000
+        step.housingCosts = 1500
+        step.healthInsurance = 350
+        step.phonePlan = 50
+        return step
     }())
 }

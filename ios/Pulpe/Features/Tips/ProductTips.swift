@@ -4,7 +4,6 @@ import TipKit
 /// Product tips for contextual user education
 /// Uses @Parameter pattern for state management
 enum ProductTips {
-
     // MARK: - Global State
 
     /// When true, all tips are permanently hidden

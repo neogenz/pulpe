@@ -38,8 +38,8 @@
                             </stackView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
-                        <!-- Soft mint/cream background -->
-                        <color key="backgroundColor" red="0.97254901960784312" green="0.98039215686274506" blue="0.97647058823529409" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <!-- Adaptive background color (light: mint #A8E6CF, dark: deep green #0A0F0C) -->
+                        <color key="backgroundColor" name="LaunchScreenBackground"/>
                         <constraints>
                             <constraint firstItem="content-stack" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="stack-centerX"/>
                             <constraint firstItem="content-stack" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="stack-centerY"/>
@@ -52,6 +52,9 @@
         </scene>
     </scenes>
     <resources>
+        <namedColor name="LaunchScreenBackground">
+            <color red="0.973" green="0.980" blue="0.976" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
         <image name="PulpeIcon" width="1024" height="1024"/>
         <image name="PulpeWordmark" width="724" height="253"/>
     </resources>

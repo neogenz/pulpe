@@ -122,7 +122,7 @@ describe('ChangePasswordDialog', () => {
   it('should display specific error message when old password is wrong', async () => {
     mockAuthSession.verifyPassword.mockResolvedValue({
       success: false,
-      error: 'Email ou mot de passe incorrect — on réessaie ?',
+      error: 'Email ou mot de passe incorrect — réessaie',
     });
 
     component['passwordForm'].patchValue({
@@ -134,7 +134,7 @@ describe('ChangePasswordDialog', () => {
     await component['onSubmit']();
 
     expect(component['errorMessage']()).toBe(
-      'Email ou mot de passe incorrect — on réessaie ?',
+      'Email ou mot de passe incorrect — réessaie',
     );
     expect(mockDialogRef.close).not.toHaveBeenCalled();
   });

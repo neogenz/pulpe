@@ -65,7 +65,7 @@ jobs:
       - name: Build
         run: |
           xcodebuild build \
-            -scheme Pulpe \
+            -scheme PulpeLocal \
             -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.2' \
             -derivedDataPath build/DerivedData \
             CODE_SIGNING_ALLOWED=NO \

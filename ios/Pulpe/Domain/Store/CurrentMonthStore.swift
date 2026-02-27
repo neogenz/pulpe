@@ -1,15 +1,29 @@
+// swiftlint:disable file_length
 import Foundation
 import OSLog
 
 @Observable @MainActor
 final class CurrentMonthStore: StoreProtocol {
+    // MARK: - Types
+
+    struct TopSpending: Sendable {
+        let name: String
+        let amount: Decimal
+        let totalExpenses: Decimal
+    }
+
     // MARK: - State
 
     private(set) var budget: Budget?
     private(set) var budgetLines: [BudgetLine] = []
     private(set) var transactions: [Transaction] = []
     private(set) var isLoading = false
-    private(set) var error: Error?
+    private(set) var error: APIError?
+
+    /// Returns true if the store has an error and no budget data to display
+    var hasError: Bool {
+        error != nil && budget == nil
+    }
 
     // Track IDs of items currently syncing for visual feedback
     private(set) var syncingTransactionIds: Set<String> = []
@@ -18,11 +32,22 @@ final class CurrentMonthStore: StoreProtocol {
     // MARK: - Cache Metadata
 
     private var lastLoadTime: Date?
-    private static let cacheValidityDuration: TimeInterval = 30 // 30 seconds (short for multi-device sync)
+
+    // Cache for expensive computed properties
+    private var cachedMetrics: BudgetFormulas.Metrics?
+    private var cachedRealizedMetrics: BudgetFormulas.RealizedMetrics?
+
+    // Widget sync debouncing
+    private var widgetSyncTask: Task<Void, Never>?
+
+    /// Coalescing task to prevent concurrent API loads
+    private var loadTask: Task<Void, Never>?
+    /// Generation counter to safely nil loadTask after completion
+    private var loadGeneration = 0
 
     private var isCacheValid: Bool {
         guard let lastLoad = lastLoadTime else { return false }
-        return Date().timeIntervalSince(lastLoad) < Self.cacheValidityDuration
+        return Date().timeIntervalSince(lastLoad) < AppConfiguration.shortCacheValidity
     }
 
     // MARK: - Services
@@ -52,10 +77,9 @@ final class CurrentMonthStore: StoreProtocol {
     /// Use this at app startup to quickly enable the "+" button
     func loadBudgetSummary() async {
         guard budget == nil else { return }
-
         isLoading = true
-        defer { isLoading = false }
         error = nil
+        defer { isLoading = false }
 
         do {
             let sparseBudgets = try await budgetService.getBudgetsSparse(
@@ -71,9 +95,13 @@ final class CurrentMonthStore: StoreProtocol {
                 $0.month == currentMonth && $0.year == currentYear
             }) else { return }
 
-            budget = try await budgetService.getBudget(id: match.id)
+            let fetchedBudget = try await budgetService.getBudget(id: match.id)
+            budget = fetchedBudget
+            invalidateMetricsCache()
+        } catch let apiError as APIError {
+            self.error = apiError
         } catch {
-            self.error = error
+            self.error = .networkError(error)
         }
     }
 
@@ -92,17 +120,20 @@ final class CurrentMonthStore: StoreProtocol {
         }
 
         isLoading = true
-        defer { isLoading = false }
         error = nil
+        defer { isLoading = false }
 
         do {
             let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
             budget = details.budget
             budgetLines = details.budgetLines
             transactions = details.transactions
+            invalidateMetricsCache()
             lastLoadTime = Date()
+        } catch let apiError as APIError {
+            self.error = apiError
         } catch {
-            self.error = error
+            self.error = .networkError(error)
         }
     }
 
@@ -111,64 +142,100 @@ final class CurrentMonthStore: StoreProtocol {
         await forceRefresh()
     }
 
-    func forceRefresh() async {
-        isLoading = true
-        defer { isLoading = false }
+    func reset() {
+        loadTask?.cancel()
+        loadTask = nil
+        loadGeneration = 0
+        widgetSyncTask?.cancel()
+        widgetSyncTask = nil
+        budget = nil
+        budgetLines = []
+        transactions = []
+        syncingTransactionIds = []
+        syncingBudgetLineIds = []
+        lastLoadTime = nil
+        cachedMetrics = nil
+        cachedRealizedMetrics = nil
         error = nil
+    }
 
-        do {
-            guard let currentBudget = try await budgetService.getCurrentMonthBudget() else {
-                budget = nil
-                budgetLines = []
-                transactions = []
+    func forceRefresh() async {
+        // Cancel any existing load task to avoid duplicate requests
+        loadTask?.cancel()
+
+        loadGeneration += 1
+        let currentGeneration = loadGeneration
+
+        let task = Task {
+            isLoading = true
+            error = nil
+            defer { isLoading = false }
+
+            do {
+                guard let currentBudget = try await budgetService.getCurrentMonthBudget() else {
+                    budget = nil
+                    budgetLines = []
+                    transactions = []
+                    invalidateMetricsCache()
+                    lastLoadTime = Date()
+                    return
+                }
+
+                // Check for cancellation before expensive network call
+                try Task.checkCancellation()
+
+                let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
+                budget = details.budget
+                budgetLines = details.budgetLines
+                transactions = details.transactions
+                invalidateMetricsCache()
                 lastLoadTime = Date()
-                return
+            } catch is CancellationError {
+                // Task was cancelled, don't update error state
+            } catch let apiError as APIError {
+                self.error = apiError
+            } catch {
+                self.error = .networkError(error)
             }
-
-            let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
-            budget = details.budget
-            budgetLines = details.budgetLines
-            transactions = details.transactions
-            lastLoadTime = Date()
-        } catch {
-            self.error = error
         }
+
+        loadTask = task
+        await task.value
+        if loadGeneration == currentGeneration { loadTask = nil }
     }
 
     // MARK: - Widget Sync
 
     private func syncWidgetData(details: BudgetDetails?) async {
-        do {
-            let exportData = try await budgetService.exportAllBudgets()
-            await widgetSyncService.sync(
-                budgetsWithDetails: exportData.budgets,
-                currentBudgetDetails: details
-            )
-        } catch {
-            Logger.sync.error("syncWidgetData: exportAllBudgets failed - \(error)")
-            await widgetSyncService.sync(
-                budgetsWithDetails: [],
-                currentBudgetDetails: details
-            )
-        }
+        // Use centralized sync for consistency
+        await widgetSyncService.syncAll()
     }
 
     private func syncWidgetAfterChange() async {
-        guard let budget else { return }
+        // Cancel any pending sync task
+        widgetSyncTask?.cancel()
 
-        let details = BudgetDetails(
-            budget: budget,
-            transactions: transactions,
-            budgetLines: budgetLines
-        )
+        // Debounce widget sync to avoid excessive reloads
+        widgetSyncTask = Task {
+            try? await Task.sleep(for: .seconds(AppConfiguration.widgetSyncDebounceDelay))
 
-        await syncWidgetData(details: details)
+            guard !Task.isCancelled else { return }
+            guard let currentBudget = budget else { return }
+
+            let details = BudgetDetails(
+                budget: currentBudget,
+                transactions: transactions,
+                budgetLines: budgetLines
+            )
+
+            await syncWidgetData(details: details)
+        }
     }
 
-    // MARK: - Computed Properties
+    // MARK: - Computed Properties (cached to avoid recalculation)
 
     var metrics: BudgetFormulas.Metrics {
-        BudgetFormulas.calculateAllMetrics(
+        cachedMetrics ?? BudgetFormulas.calculateAllMetrics(
             budgetLines: budgetLines,
             transactions: transactions,
             rollover: budget?.rollover.orZero ?? 0
@@ -176,14 +243,29 @@ final class CurrentMonthStore: StoreProtocol {
     }
 
     var realizedMetrics: BudgetFormulas.RealizedMetrics {
-        BudgetFormulas.calculateRealizedMetrics(
+        cachedRealizedMetrics ?? BudgetFormulas.calculateRealizedMetrics(
             budgetLines: budgetLines,
             transactions: transactions
         )
     }
 
-    // MARK: - Dashboard Computed Properties
+    /// Recompute and cache metrics - call after data changes
+    private func invalidateMetricsCache() {
+        cachedMetrics = BudgetFormulas.calculateAllMetrics(
+            budgetLines: budgetLines,
+            transactions: transactions,
+            rollover: budget?.rollover.orZero ?? 0
+        )
+        cachedRealizedMetrics = BudgetFormulas.calculateRealizedMetrics(
+            budgetLines: budgetLines,
+            transactions: transactions
+        )
+    }
+}
 
+// MARK: - Computed Properties
+
+extension CurrentMonthStore {
     /// Days remaining in current month
     var daysRemaining: Int {
         let calendar = Calendar.current
@@ -218,11 +300,11 @@ final class CurrentMonthStore: StoreProtocol {
     }
 
     /// Top expense transaction by amount (linked or free)
-    var topSpending: (name: String, amount: Decimal, totalExpenses: Decimal)? {
+    var topSpending: TopSpending? {
         guard let top = transactions.filter({ $0.kind == .expense }).max(by: { $0.amount < $1.amount }) else {
             return nil
         }
-        return (name: top.name, amount: top.amount, totalExpenses: metrics.totalExpenses)
+        return TopSpending(name: top.name, amount: top.amount, totalExpenses: metrics.totalExpenses)
     }
 
     /// 5 most recent transactions (all types)
@@ -244,7 +326,17 @@ final class CurrentMonthStore: StoreProtocol {
         )
     }
 
-    // MARK: - Legacy Computed (kept for compatibility during transition)
+    /// Forward-looking projection based on current spending rate
+    var projection: BudgetFormulas.Projection? {
+        guard let budget else { return nil }
+        return BudgetFormulas.calculateProjection(
+            realizedExpenses: realizedMetrics.realizedExpenses,
+            totalBudgetedExpenses: metrics.totalExpenses,
+            available: metrics.available,
+            month: budget.month,
+            year: budget.year
+        )
+    }
 
     var displayBudgetLines: [BudgetLine] {
         guard let budget, let rollover = budget.rollover, rollover != 0 else {
@@ -276,9 +368,11 @@ final class CurrentMonthStore: StoreProtocol {
             .filter { $0.budgetLineId == nil }
             .sorted { $0.transactionDate > $1.transactionDate }
     }
+}
 
-    // MARK: - Mutations
+// MARK: - Mutations
 
+extension CurrentMonthStore {
     func toggleBudgetLine(_ line: BudgetLine) async {
         // Skip virtual rollover lines
         guard !(line.isRollover ?? false) else { return }
@@ -287,23 +381,33 @@ final class CurrentMonthStore: StoreProtocol {
         guard !syncingBudgetLineIds.contains(line.id) else { return }
 
         // Mark as syncing
-        syncingBudgetLineIds.insert(line.id)
+        _ = syncingBudgetLineIds.insert(line.id)
 
         // Optimistic update
         let originalLines = budgetLines
         if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
             budgetLines[index] = line.toggled()
+            invalidateMetricsCache()
         }
 
         do {
             _ = try await budgetLineService.toggleCheck(id: line.id)
-            await forceRefresh() // Force fresh data after mutation
+            // Trust optimistic update - only mark cache as fresh
+            lastLoadTime = Date()
+        } catch let apiError as APIError {
+            // Only refresh on error to rollback
+            budgetLines = originalLines
+            self.error = apiError
+            invalidateMetricsCache()
+            await forceRefresh()
         } catch {
             budgetLines = originalLines
-            self.error = error
+            self.error = .networkError(error)
+            invalidateMetricsCache()
+            await forceRefresh()
         }
 
-        syncingBudgetLineIds.remove(line.id)
+        _ = syncingBudgetLineIds.remove(line.id)
     }
 
     func toggleTransaction(_ transaction: Transaction) async {
@@ -311,27 +415,38 @@ final class CurrentMonthStore: StoreProtocol {
         guard !syncingTransactionIds.contains(transaction.id) else { return }
 
         // Mark as syncing
-        syncingTransactionIds.insert(transaction.id)
+        _ = syncingTransactionIds.insert(transaction.id)
 
         // Optimistic update
         let originalTransactions = transactions
         if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
             transactions[index] = transaction.toggled()
+            invalidateMetricsCache()
         }
 
         do {
             _ = try await transactionService.toggleCheck(id: transaction.id)
-            await forceRefresh() // Force fresh data after mutation
+            // Trust optimistic update - only mark cache as fresh
+            lastLoadTime = Date()
+        } catch let apiError as APIError {
+            // Only refresh on error to rollback
+            transactions = originalTransactions
+            self.error = apiError
+            invalidateMetricsCache()
+            await forceRefresh()
         } catch {
             transactions = originalTransactions
-            self.error = error
+            self.error = .networkError(error)
+            invalidateMetricsCache()
+            await forceRefresh()
         }
 
-        syncingTransactionIds.remove(transaction.id)
+        _ = syncingTransactionIds.remove(transaction.id)
     }
 
     func addTransaction(_ transaction: Transaction) {
         transactions.append(transaction)
+        invalidateMetricsCache()
         Task {
             await syncWidgetAfterChange()
         }
@@ -341,12 +456,18 @@ final class CurrentMonthStore: StoreProtocol {
         // Optimistic update
         let originalTransactions = transactions
         transactions.removeAll { $0.id == transaction.id }
+        invalidateMetricsCache()
 
         do {
             try await transactionService.deleteTransaction(id: transaction.id)
+        } catch let apiError as APIError {
+            transactions = originalTransactions
+            self.error = apiError
+            invalidateMetricsCache()
         } catch {
             transactions = originalTransactions
-            self.error = error
+            self.error = .networkError(error)
+            invalidateMetricsCache()
         }
     }
 
@@ -357,30 +478,40 @@ final class CurrentMonthStore: StoreProtocol {
         // Optimistic update
         let originalLines = budgetLines
         budgetLines.removeAll { $0.id == line.id }
+        invalidateMetricsCache()
 
         do {
             try await budgetLineService.deleteBudgetLine(id: line.id)
+        } catch let apiError as APIError {
+            budgetLines = originalLines
+            self.error = apiError
+            invalidateMetricsCache()
         } catch {
             budgetLines = originalLines
-            self.error = error
+            self.error = .networkError(error)
+            invalidateMetricsCache()
         }
     }
 
     func updateBudgetLine(_ line: BudgetLine) async {
         guard !(line.isRollover ?? false) else { return }
 
+        // Optimistic update
         if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
             budgetLines[index] = line
+            invalidateMetricsCache()
         }
 
+        // Refresh to get server state (needed for recalculations)
         await forceRefresh()
     }
 
     func updateTransaction(_ transaction: Transaction) async {
+        // Optimistic update
         if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
             transactions[index] = transaction
+            invalidateMetricsCache()
         }
-
         await forceRefresh()
     }
 }

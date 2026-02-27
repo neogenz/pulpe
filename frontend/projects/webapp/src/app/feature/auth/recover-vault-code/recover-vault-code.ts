@@ -16,6 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialog } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
 
 import {
@@ -49,6 +50,7 @@ import {
     MatIconModule,
     MatCheckboxModule,
     MatProgressSpinnerModule,
+    MatSnackBarModule,
     RouterLink,
     ErrorAlert,
     LoadingButton,
@@ -254,6 +256,7 @@ export default class RecoverVaultCode {
   readonly #formBuilder = inject(FormBuilder);
   readonly #router = inject(Router);
   readonly #dialog = inject(MatDialog);
+  readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
 
   protected readonly ROUTES = ROUTES;
@@ -357,6 +360,11 @@ export default class RecoverVaultCode {
       this.#logger.error('Recover vault code failed:', error);
 
       if (
+        (error instanceof HttpErrorResponse && error.status === 429) ||
+        (isApiError(error) && error.status === 429)
+      ) {
+        this.errorMessage.set('Trop de tentatives, patiente quelques minutes');
+      } else if (
         (error instanceof HttpErrorResponse && error.status === 400) ||
         (isApiError(error) && error.status === 400)
       ) {
@@ -364,7 +372,7 @@ export default class RecoverVaultCode {
           'Clé de récupération invalide — vérifie que tu as bien copié la clé',
         );
       } else {
-        this.errorMessage.set("Quelque chose n'a pas fonctionné — réessayons");
+        this.errorMessage.set("Quelque chose n'a pas fonctionné — réessaie");
       }
     } finally {
       this.isRedirecting.set(false);
@@ -376,7 +384,7 @@ export default class RecoverVaultCode {
   async #showNewRecoveryKey(): Promise<void> {
     try {
       const { recoveryKey } = await firstValueFrom(
-        this.#encryptionApi.setupRecoveryKey$(),
+        this.#encryptionApi.regenerateRecoveryKey$(),
       );
 
       const dialogData: RecoveryKeyDialogData = { recoveryKey };
@@ -391,6 +399,11 @@ export default class RecoverVaultCode {
       this.#logger.warn(
         'Recovery key setup failed after vault code recovery — user can generate later from settings',
         error,
+      );
+      this.#snackBar.open(
+        "La clé de récupération n'a pas pu être générée — pense à en créer une dans les paramètres",
+        'OK',
+        { duration: 8000, horizontalPosition: 'center' },
       );
     }
   }

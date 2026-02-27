@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -21,9 +22,10 @@ describe('RecoverVaultCode', () => {
   let mockEncryptionApi: {
     getSalt$: ReturnType<typeof vi.fn>;
     recover$: ReturnType<typeof vi.fn>;
-    setupRecoveryKey$: ReturnType<typeof vi.fn>;
+    regenerateRecoveryKey$: ReturnType<typeof vi.fn>;
   };
   let mockDialog: { open: ReturnType<typeof vi.fn> };
+  let mockSnackBar: { open: ReturnType<typeof vi.fn> };
   let mockLogger: {
     error: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
@@ -49,13 +51,17 @@ describe('RecoverVaultCode', () => {
         .fn()
         .mockReturnValue(of({ salt: 'salt-value', kdfIterations: 100000 })),
       recover$: vi.fn().mockReturnValue(of({ success: true })),
-      setupRecoveryKey$: vi
+      regenerateRecoveryKey$: vi
         .fn()
         .mockReturnValue(of({ recoveryKey: 'ABCD-EFGH-IJKL-MNOP' })),
     };
 
     mockDialog = {
       open: vi.fn().mockReturnValue(mockDialogRef),
+    };
+
+    mockSnackBar = {
+      open: vi.fn(),
     };
 
     mockLogger = {
@@ -72,9 +78,16 @@ describe('RecoverVaultCode', () => {
         { provide: ClientKeyService, useValue: mockClientKeyService },
         { provide: EncryptionApi, useValue: mockEncryptionApi },
         { provide: MatDialog, useValue: mockDialog },
+        { provide: MatSnackBar, useValue: mockSnackBar },
         { provide: Logger, useValue: mockLogger },
       ],
-    }).compileComponents();
+    })
+      .overrideComponent(RecoverVaultCode, {
+        set: {
+          providers: [{ provide: MatSnackBar, useValue: mockSnackBar }],
+        },
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(RecoverVaultCode);
     component = fixture.componentInstance;
@@ -235,10 +248,10 @@ describe('RecoverVaultCode', () => {
       );
     });
 
-    it('should call setupRecoveryKey$ after successful recovery', async () => {
+    it('should call regenerateRecoveryKey$ after successful recovery', async () => {
       await submitFormViaDom();
       await vi.waitFor(() =>
-        expect(mockEncryptionApi.setupRecoveryKey$).toHaveBeenCalled(),
+        expect(mockEncryptionApi.regenerateRecoveryKey$).toHaveBeenCalled(),
       );
     });
 
@@ -365,15 +378,15 @@ describe('RecoverVaultCode', () => {
 
       await vi.waitFor(() => {
         expect(mockEncryptionApi.recover$).toHaveBeenCalled();
-        expect(mockEncryptionApi.setupRecoveryKey$).not.toHaveBeenCalled();
+        expect(mockEncryptionApi.regenerateRecoveryKey$).not.toHaveBeenCalled();
         expect(component['errorMessage']()).toContain(
           "Quelque chose n'a pas fonctionné",
         );
       });
     });
 
-    it('should handle setupRecoveryKey$ failure gracefully after successful recovery', async () => {
-      mockEncryptionApi.setupRecoveryKey$.mockReturnValue(
+    it('should handle regenerateRecoveryKey$ failure gracefully after successful recovery', async () => {
+      mockEncryptionApi.regenerateRecoveryKey$.mockReturnValue(
         throwError(() => new Error('Recovery key setup failed')),
       );
 
@@ -383,6 +396,22 @@ describe('RecoverVaultCode', () => {
         expect(mockClientKeyService.setDirectKey).toHaveBeenCalled();
         expect(mockLogger.warn).toHaveBeenCalled();
         expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']);
+      });
+    });
+
+    it('should show snackbar warning when regenerateRecoveryKey$ fails', async () => {
+      mockEncryptionApi.regenerateRecoveryKey$.mockReturnValue(
+        throwError(() => new Error('Recovery key setup failed')),
+      );
+
+      await submitFormViaDom();
+
+      await vi.waitFor(() => {
+        expect(mockSnackBar.open).toHaveBeenCalledWith(
+          expect.stringContaining('clé de récupération'),
+          'OK',
+          expect.objectContaining({ duration: 8000 }),
+        );
       });
     });
   });

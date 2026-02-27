@@ -96,14 +96,13 @@ extension Date {
         }
 
         // Check if within this week (show day name)
-        guard let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)) else {
+        guard let startOfWeek = calendar.date(
+            from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
+        ) else {
             return dayMonthFormatted
         }
         if self >= startOfWeek {
-            let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "fr_FR")
-            formatter.dateFormat = "EEEE"
-            return formatter.string(from: self).capitalized
+            return Formatters.weekday.string(from: self).capitalized
         }
 
         // Otherwise show day month

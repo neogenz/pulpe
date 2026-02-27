@@ -1,87 +1,358 @@
-import XCTest
+import Foundation
 @testable import Pulpe
+import Testing
 
+@Suite(.serialized)
 @MainActor
-final class OnboardingStateTests: XCTestCase {
-
-    private var state: OnboardingState!
-
-    override func setUp() {
-        super.setUp()
-        state = OnboardingState()
+struct OnboardingStateTests {
+    /// Creates a clean OnboardingState for testing.
+    /// Clears persisted data to ensure test isolation, then sets initial step to .welcome.
+    private func makeSUT() -> OnboardingState {
         OnboardingState.clearPersistedData()
+        let state = OnboardingState()
         state.currentStep = .welcome
+        return state
     }
 
     // MARK: - canProceed: Required Steps
 
-    func testCanProceed_welcomeStep_alwaysTrue() {
-        XCTAssertTrue(state.canProceed(from: .welcome))
+    @Test
+    func canProceed_welcomeStep_alwaysTrue() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        #expect(state.canProceed(from: .welcome))
     }
 
-    func testCanProceed_personalInfo_falseWhenEmpty() {
+    @Test
+    func canProceed_personalInfo_falseWhenEmpty() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.firstName = ""
-        XCTAssertFalse(state.canProceed(from: .personalInfo))
+        #expect(!state.canProceed(from: .personalInfo))
     }
 
-    func testCanProceed_personalInfo_falseWhenWhitespaceOnly() {
+    @Test
+    func canProceed_personalInfo_falseWhenWhitespaceOnly() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.firstName = "   "
-        XCTAssertFalse(state.canProceed(from: .personalInfo))
+        #expect(!state.canProceed(from: .personalInfo))
     }
 
-    func testCanProceed_personalInfo_trueWhenValid() {
+    @Test
+    func canProceed_personalInfo_trueWhenValid() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.firstName = "Max"
         state.monthlyIncome = 3000
-        XCTAssertTrue(state.canProceed(from: .personalInfo))
+        #expect(state.canProceed(from: .personalInfo))
     }
 
-    func testCanProceed_personalInfo_falseWhenIncomeNil() {
+    @Test
+    func canProceed_personalInfo_falseWhenIncomeNil() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.firstName = "Max"
         state.monthlyIncome = nil
-        XCTAssertFalse(state.canProceed(from: .personalInfo))
+        #expect(!state.canProceed(from: .personalInfo))
     }
 
-    func testCanProceed_personalInfo_falseWhenIncomeZero() {
+    @Test
+    func canProceed_personalInfo_falseWhenIncomeZero() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.firstName = "Max"
         state.monthlyIncome = 0
-        XCTAssertFalse(state.canProceed(from: .personalInfo))
+        #expect(!state.canProceed(from: .personalInfo))
     }
 
-    func testCanProceed_personalInfo_trueWhenIncomePositive() {
+    @Test
+    func canProceed_personalInfo_trueWhenIncomePositive() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.firstName = "Max"
         state.monthlyIncome = 3000
-        XCTAssertTrue(state.canProceed(from: .personalInfo))
+        #expect(state.canProceed(from: .personalInfo))
     }
 
     // MARK: - canProceed: Optional Steps
 
-    func testCanProceed_optionalSteps_alwaysTrue() {
-        XCTAssertTrue(state.canProceed(from: .expenses), "Expected canProceed to be true for optional step expenses")
+    @Test
+    func canProceed_optionalSteps_alwaysTrue() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        #expect(state.canProceed(from: .expenses))
     }
 
     // MARK: - Navigation: Forward Blocked When Invalid
 
-    func testNextStep_advancesWhenValid() {
+    @Test
+    func nextStep_advancesWhenValid() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.currentStep = .welcome
         state.nextStep()
-        XCTAssertEqual(state.currentStep, .personalInfo)
+        #expect(state.currentStep == .personalInfo)
     }
 
-    func testPreviousStep_goesBackFromSecondStep() {
+    @Test
+    func previousStep_goesBackFromSecondStep() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.currentStep = .personalInfo
         state.previousStep()
-        XCTAssertEqual(state.currentStep, .welcome)
+        #expect(state.currentStep == .welcome)
     }
 
-    func testPreviousStep_doesNothingAtWelcome() {
+    @Test
+    func previousStep_doesNothingAtWelcome() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.currentStep = .welcome
         state.previousStep()
-        XCTAssertEqual(state.currentStep, .welcome)
+        #expect(state.currentStep == .welcome)
     }
 
-    func testNextStep_doesNothingAtLastStep() {
+    @Test
+    func nextStep_doesNothingAtLastStep() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
         state.currentStep = .registration
         state.nextStep()
-        XCTAssertEqual(state.currentStep, .registration)
+        #expect(state.currentStep == .registration)
+    }
+
+    // MARK: - Email Validation
+
+    @Test(arguments: ["user@example.com", "test.user@domain.org", "a@b.co", "user+tag@gmail.com"])
+    func isEmailValid_validEmails(email: String) {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.email = email
+        #expect(state.isEmailValid)
+    }
+
+    @Test(arguments: ["", "not-an-email", "@domain.com", "user@", "user@domain", "user @example.com"])
+    func isEmailValid_invalidEmails(email: String) {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.email = email
+        #expect(!state.isEmailValid)
+    }
+
+    // MARK: - canSubmitRegistration
+
+    @Test
+    func canSubmitRegistration_allValid_returnsTrue() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.firstName = "Max"
+        state.monthlyIncome = 5000
+        state.email = "max@example.com"
+        state.acceptTerms = true
+        #expect(state.canSubmitRegistration)
+    }
+
+    @Test
+    func canSubmitRegistration_missingFirstName_returnsFalse() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.monthlyIncome = 5000
+        state.email = "max@example.com"
+        state.acceptTerms = true
+        #expect(!state.canSubmitRegistration)
+    }
+
+    @Test
+    func canSubmitRegistration_missingIncome_returnsFalse() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.firstName = "Max"
+        state.email = "max@example.com"
+        state.acceptTerms = true
+        #expect(!state.canSubmitRegistration)
+    }
+
+    @Test
+    func canSubmitRegistration_invalidEmail_returnsFalse() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.firstName = "Max"
+        state.monthlyIncome = 5000
+        state.email = "not-valid"
+        state.acceptTerms = true
+        #expect(!state.canSubmitRegistration)
+    }
+
+    @Test
+    func canSubmitRegistration_termsNotAccepted_returnsFalse() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.firstName = "Max"
+        state.monthlyIncome = 5000
+        state.email = "max@example.com"
+        state.acceptTerms = false
+        #expect(!state.canSubmitRegistration)
+    }
+
+    @Test
+    func canSubmitRegistration_isLoading_returnsFalse() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.firstName = "Max"
+        state.monthlyIncome = 5000
+        state.email = "max@example.com"
+        state.acceptTerms = true
+        state.isLoading = true
+        #expect(!state.canSubmitRegistration)
+    }
+
+    // MARK: - Expenses Calculations
+
+    @Test
+    func totalExpenses_allNil_returnsZero() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        #expect(state.totalExpenses == 0)
+    }
+
+    @Test
+    func totalExpenses_mixedValues_returnsSumOfNonNil() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.housingCosts = 1500
+        state.healthInsurance = 400
+        state.transportCosts = 100
+        #expect(state.totalExpenses == 2000)
+    }
+
+    @Test
+    func availableToSpend_incomeMinusExpenses() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.monthlyIncome = 5000
+        state.housingCosts = 1500
+        state.healthInsurance = 400
+        #expect(state.availableToSpend == 3100)
+    }
+
+    @Test
+    func availableToSpend_noIncome_returnsNegativeExpenses() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.housingCosts = 1500
+        #expect(state.availableToSpend == -1500)
+    }
+
+    // MARK: - Progress
+
+    @Test
+    func progressPercentage_welcomeIsZero() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.currentStep = .welcome
+        #expect(state.progressPercentage == 0)
+    }
+
+    @Test
+    func progressPercentage_registrationIsMax() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.currentStep = .registration
+        // 5 steps, welcome excluded → registration is index 3 of 4 = 75%
+        #expect(state.progressPercentage == 75)
+    }
+
+    @Test
+    func progressPercentage_increasesMonotonically() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        var previousPercentage: Double = -1
+        for step in OnboardingStep.allCases {
+            state.currentStep = step
+            #expect(state.progressPercentage >= previousPercentage)
+            previousPercentage = state.progressPercentage
+        }
+    }
+
+    // MARK: - Persistence
+
+    @Test
+    func saveAndLoad_roundTrips() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.firstName = "Marie"
+        state.currentStep = .expenses
+        state.saveToStorage()
+
+        let restored = OnboardingState()
+        #expect(restored.firstName == "Marie")
+        #expect(restored.currentStep == .expenses)
+    }
+
+    @Test
+    func clearStorage_removesPersistedData() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.firstName = "Marie"
+        state.currentStep = .expenses
+        state.saveToStorage()
+        state.clearStorage()
+
+        let restored = OnboardingState()
+        #expect(restored.firstName.isEmpty)
+        #expect(restored.currentStep == .welcome)
+    }
+
+    // MARK: - Template Creation
+
+    @Test
+    func createTemplateData_mapsFieldsCorrectly() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.monthlyIncome = 5000
+        state.housingCosts = 1500
+        state.healthInsurance = 400
+        state.phonePlan = 50
+        state.transportCosts = 100
+        state.leasingCredit = 300
+
+        let template = state.createTemplateData()
+        #expect(template.name == "Mois Standard")
+        #expect(template.description == "Créé pendant l'inscription")
+        #expect(template.isDefault == true)
+        #expect(template.monthlyIncome == 5000)
+        #expect(template.housingCosts == 1500)
+        #expect(template.healthInsurance == 400)
+        #expect(template.phonePlan == 50)
+        #expect(template.transportCosts == 100)
+        #expect(template.leasingCredit == 300)
+    }
+
+    @Test
+    func createTemplateData_nilExpensesRemainNil() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.monthlyIncome = 5000
+
+        let template = state.createTemplateData()
+        #expect(template.monthlyIncome == 5000)
+        #expect(template.housingCosts == nil)
+        #expect(template.healthInsurance == nil)
+        #expect(template.phonePlan == nil)
+        #expect(template.transportCosts == nil)
+        #expect(template.leasingCredit == nil)
     }
 }

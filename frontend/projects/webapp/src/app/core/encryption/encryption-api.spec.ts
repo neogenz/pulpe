@@ -6,7 +6,6 @@ import { EncryptionApi } from './encryption-api';
 import { ApiClient } from '@core/api/api-client';
 import {
   encryptionSaltResponseSchema,
-  encryptionRekeyResponseSchema,
   encryptionSetupRecoveryResponseSchema,
   encryptionRecoverResponseSchema,
 } from 'pulpe-shared';
@@ -66,24 +65,6 @@ describe('EncryptionApi', () => {
     });
   });
 
-  describe('rekeyEncryption$()', () => {
-    it('should call api.post$ with correct path, body and schema', async () => {
-      const response = { success: true as const };
-      mockApi.post$.mockReturnValue(of(response));
-
-      const result = await firstValueFrom(
-        service.rekeyEncryption$('new-key-hex'),
-      );
-
-      expect(mockApi.post$).toHaveBeenCalledWith(
-        '/encryption/rekey',
-        { newClientKey: 'new-key-hex' },
-        encryptionRekeyResponseSchema,
-      );
-      expect(result.success).toBe(true);
-    });
-  });
-
   describe('setupRecoveryKey$()', () => {
     it('should call api.post$ with correct path and schema', async () => {
       const response = { recoveryKey: 'ABCD-EFGH-IJKL-MNOP' };
@@ -93,6 +74,22 @@ describe('EncryptionApi', () => {
 
       expect(mockApi.post$).toHaveBeenCalledWith(
         '/encryption/setup-recovery',
+        {},
+        encryptionSetupRecoveryResponseSchema,
+      );
+      expect(result.recoveryKey).toBe('ABCD-EFGH-IJKL-MNOP');
+    });
+  });
+
+  describe('regenerateRecoveryKey$()', () => {
+    it('should call api.post$ with correct path and schema', async () => {
+      const response = { recoveryKey: 'ABCD-EFGH-IJKL-MNOP' };
+      mockApi.post$.mockReturnValue(of(response));
+
+      const result = await firstValueFrom(service.regenerateRecoveryKey$());
+
+      expect(mockApi.post$).toHaveBeenCalledWith(
+        '/encryption/regenerate-recovery',
         {},
         encryptionSetupRecoveryResponseSchema,
       );

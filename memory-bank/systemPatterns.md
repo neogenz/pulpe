@@ -175,6 +175,41 @@ Each domain in `src/modules/[domain]/`:
 - RLS policies enforce data isolation at DB level
 - Zero Trust: All endpoints protected by default
 
+### iOS Auth State Machine
+
+```
+                 ┌──────────┐
+                 │ loading  │ ← app launch / checkAuthState()
+                 └────┬─────┘
+        ┌─────────────┼───────────────┐
+        ▼             ▼               ▼
+┌───────────────┐ ┌──────────┐ ┌─────────────┐
+│unauthenticated│ │needsPin  │ │needsPinEntry│ ← grace period lock (30s)
+│               │ │  Setup   │ │             │   or cold start/first login
+└───────┬───────┘ └────┬─────┘ └──────┬──────┘
+        │ login()      │ complete     │ PIN or Face ID
+        │              │ PinSetup()   │ completePinEntry()
+        ▼              ▼              ▼
+                ┌──────────────┐
+                │authenticated │ → background >= 30s → needsPinEntry
+                └──────────────┘
+                       │
+           startRecovery() ↓
+                ┌──────────────────┐
+                │needsPinRecovery  │ → completeRecovery() → authenticated
+                └──────────────────┘
+```
+
+**Key transitions:**
+
+| Event | From | To | ClientKey impact |
+|-------|------|----|-----------------|
+| Grace period (>= 30s) | `authenticated` | `needsPinEntry` | `clearCache()` — in-memory only, biometric keychain preserved |
+| Stale client key | `authenticated` | `needsPinEntry` | `clearAll()` — everything wiped |
+| Logout (biometric on) | `authenticated` | `unauthenticated` | `clearSession()` — biometric keychain preserved for next Face ID login |
+| Logout (biometric off) | `authenticated` | `unauthenticated` | Full clear via logout flow |
+| Password reset | any | `unauthenticated` | `clearAll()` + biometric disabled |
+
 ### Error Handling Pattern
 
 - `BusinessException` for domain errors

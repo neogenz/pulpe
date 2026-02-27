@@ -33,46 +33,38 @@ struct AddAllocatedTransactionSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: DesignTokens.Spacing.xxl) {
-                    heroAmountSection
-                    quickAmountChips
-                    descriptionField
-                    dateSelector
+        ScrollView {
+            VStack(spacing: DesignTokens.Spacing.xxl) {
+                heroAmountSection
+                quickAmountChips
+                descriptionField
+                dateSelector
 
-                    if let error {
-                        ErrorBanner(message: error.localizedDescription) {
-                            self.error = nil
-                        }
+                if let error {
+                    ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                        self.error = nil
                     }
+                }
 
-                    addButton
-                }
-                .padding(.horizontal, DesignTokens.Spacing.xl)
-                .padding(.top, DesignTokens.Spacing.xxxl)
-                .padding(.bottom, DesignTokens.Spacing.xl)
+                addButton
             }
-            .background(Color.surfacePrimary)
-            .navigationTitle(budgetLine.name)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
-                }
-            }
-            .loadingOverlay(isLoading)
-            .dismissKeyboardOnTap()
-            .task {
-                try? await Task.sleep(for: .milliseconds(200))
-                isAmountFocused = true
-            }
-            .onChange(of: isAmountFocused) { _, isFocused in
-                if !isFocused, let quickAmount = pendingQuickAmount {
-                    amount = Decimal(quickAmount)
-                    amountText = "\(quickAmount)"
-                    pendingQuickAmount = nil
-                }
+            .padding(.horizontal, DesignTokens.Spacing.xl)
+            .padding(.top, DesignTokens.Spacing.lg)
+            .padding(.bottom, DesignTokens.Spacing.xl)
+        }
+        .background(Color.surfacePrimary)
+        .modernSheet(title: budgetLine.name)
+        .loadingOverlay(isLoading)
+        .dismissKeyboardOnTap()
+        .task {
+            try? await Task.sleep(for: .milliseconds(200))
+            isAmountFocused = true
+        }
+        .onChange(of: isAmountFocused) { _, isFocused in
+            if !isFocused, let quickAmount = pendingQuickAmount {
+                amount = Decimal(quickAmount)
+                amountText = "\(quickAmount)"
+                pendingQuickAmount = nil
             }
         }
     }
@@ -105,7 +97,7 @@ struct AddAllocatedTransactionSheet: View {
             .accessibilityLabel("Montant")
             .onTapGesture { isAmountFocused = true }
 
-            RoundedRectangle(cornerRadius: 1)
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
                 .fill(isAmountFocused ? Color.pulpePrimary : Color.textTertiary.opacity(DesignTokens.Opacity.strong))
                 .frame(width: 120, height: 2)
                 .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isAmountFocused)
@@ -183,16 +175,9 @@ struct AddAllocatedTransactionSheet: View {
             Task { await addTransaction() }
         } label: {
             Text("Ajouter")
-                .font(PulpeTypography.buttonPrimary)
-                .foregroundStyle(Color.textOnPrimary)
-                .frame(maxWidth: .infinity)
-                .frame(height: DesignTokens.FrameHeight.button)
-                .background(Color.pulpePrimary)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
-                .opacity(canSubmit ? 1 : 0.4)
         }
         .disabled(!canSubmit)
-        .buttonStyle(.plain)
+        .primaryButtonStyle(isEnabled: canSubmit)
     }
 
     // MARK: - Logic

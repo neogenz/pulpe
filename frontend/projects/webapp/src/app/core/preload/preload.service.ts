@@ -28,6 +28,10 @@ export class PreloadService {
 
   readonly #hasPreloaded = signal(false);
 
+  reset(): void {
+    this.#hasPreloaded.set(false);
+  }
+
   constructor() {
     effect(() => {
       const isReady =

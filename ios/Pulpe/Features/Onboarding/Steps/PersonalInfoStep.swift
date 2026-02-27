@@ -9,24 +9,33 @@ struct PersonalInfoStep: View {
             step: .personalInfo,
             state: state,
             canProceed: state.isFirstNameValid && state.isIncomeValid,
-            onNext: { state.nextStep() }
-        ) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            onNext: { state.nextStep() },
+            content: {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     Text("Prénom")
-                        .font(PulpeTypography.inputLabel)
-                        .foregroundStyle(.secondary)
+                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
+                        .foregroundStyle(Color.textPrimaryOnboarding)
 
                     TextField("Ton prénom", text: Binding(
                         get: { state.firstName },
                         set: { state.firstName = $0 }
                     ))
                     .textContentType(.givenName)
-                    .autocapitalization(.words)
+                    .textInputAutocapitalization(.words)
                     .focused($isFocused)
+                    .font(PulpeTypography.body)
+                    .foregroundStyle(Color.authInputText)
                     .padding(DesignTokens.Spacing.lg)
-                    .background(Color.inputBackgroundSoft)
-                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+                    .background {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.authInputBackground)
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .strokeBorder(Color.authInputBorder, lineWidth: 1)
+                            }
+                    }
+                    .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
                 }
 
                 CurrencyField(
@@ -37,11 +46,12 @@ struct PersonalInfoStep: View {
                     hint: "5000",
                     label: "Revenu mensuel net"
                 )
+                }
+                .onAppear {
+                    isFocused = true
+                }
             }
-            .onAppear {
-                isFocused = true
-            }
-        }
+        )
     }
 }
 

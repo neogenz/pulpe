@@ -27,7 +27,11 @@ struct CustomTabBar: UIViewRepresentable {
         }
 
         control.selectedSegmentTintColor = UIColor(barTint)
-        control.addTarget(context.coordinator, action: #selector(context.coordinator.tabSelected(_:)), for: .valueChanged)
+        control.addTarget(
+            context.coordinator,
+            action: #selector(context.coordinator.tabSelected(_:)),
+            for: .valueChanged
+        )
         return control
     }
 
@@ -49,6 +53,7 @@ struct CustomTabBar: UIViewRepresentable {
         return size
     }
 
+    @MainActor
     class Coordinator: NSObject {
         var parent: CustomTabBar
         init(parent: CustomTabBar) {

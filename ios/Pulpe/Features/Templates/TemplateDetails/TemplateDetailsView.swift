@@ -49,36 +49,7 @@ struct TemplateDetailsView: View {
                 Text("Informations")
             }
 
-            // Totals
-            Section {
-                HStack {
-                    Label("Revenus", systemImage: "arrow.down.circle")
-                        .foregroundStyle(Color.financialIncome)
-                    Spacer()
-                    Text(viewModel.totals.totalIncome.asCHF)
-                        .sensitiveAmount()
-                }
-
-                HStack {
-                    Label("Dépenses", systemImage: "arrow.up.circle")
-                        .foregroundStyle(Color.financialExpense)
-                    Spacer()
-                    Text(viewModel.totals.totalExpenses.asCHF)
-                        .sensitiveAmount()
-                }
-
-                HStack {
-                    Label("Solde", systemImage: "banknote")
-                        .fontWeight(.semibold)
-                    Spacer()
-                    Text(viewModel.totals.balance.asCHF)
-                        .foregroundStyle(viewModel.totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
-                        .fontWeight(.semibold)
-                        .sensitiveAmount()
-                }
-            } header: {
-                Text("Récapitulatif")
-            }
+            totalsSection
 
             // Lines by kind
             if !viewModel.incomeLines.isEmpty {
@@ -98,6 +69,40 @@ struct TemplateDetailsView: View {
         }
     }
 
+    private var totalsSection: some View {
+        Section {
+            HStack {
+                Label("Revenus", systemImage: "arrow.down.circle")
+                    .foregroundStyle(Color.financialIncome)
+                Spacer()
+                Text(viewModel.totals.totalIncome.asCHF)
+                    .sensitiveAmount()
+            }
+
+            HStack {
+                Label("Dépenses", systemImage: "arrow.up.circle")
+                    .foregroundStyle(Color.financialExpense)
+                Spacer()
+                Text(viewModel.totals.totalExpenses.asCHF)
+                    .sensitiveAmount()
+            }
+
+            HStack {
+                Label("Solde", systemImage: "banknote")
+                    .fontWeight(.semibold)
+                Spacer()
+                Text(viewModel.totals.balance.asCHF)
+                    .foregroundStyle(
+                        viewModel.totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget
+                    )
+                    .fontWeight(.semibold)
+                    .sensitiveAmount()
+            }
+        } header: {
+            Text("Récapitulatif")
+        }
+    }
+
     private func templateLineSection(title: String, lines: [TemplateLine]) -> some View {
         Section {
             ForEach(lines) { line in
@@ -110,7 +115,7 @@ struct TemplateDetailsView: View {
                 Text(title)
                 Spacer()
                 Text(lines.reduce(Decimal.zero) { $0 + $1.amount }.asCHF)
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .sensitiveAmount()
             }
         }
@@ -126,9 +131,9 @@ struct TemplateLineRow: View {
     var body: some View {
         Button(action: onEdit) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(line.name)
-                        .font(.subheadline)
+                        .font(PulpeTypography.subheadline)
 
                     RecurrenceBadge(line.recurrence, style: .compact)
                 }

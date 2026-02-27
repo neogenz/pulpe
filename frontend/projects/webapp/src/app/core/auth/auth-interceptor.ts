@@ -6,11 +6,29 @@ import {
   type HttpErrorResponse,
 } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { type Observable, throwError, from, switchMap, catchError } from 'rxjs';
+import {
+  type Observable,
+  throwError,
+  from,
+  switchMap,
+  catchError,
+  BehaviorSubject,
+  filter,
+  take,
+} from 'rxjs';
 import { AuthSessionService } from './auth-session.service';
 import { AuthStateService } from './auth-state.service';
+import { ClientKeyService } from '../encryption';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { ROUTES } from '../routing/routes-constants';
+
+let isRefreshing = false;
+const refreshResult$ = new BehaviorSubject<boolean | null>(null);
+
+export function resetRefreshState(): void {
+  isRefreshing = false;
+  refreshResult$.next(null);
+}
 
 export const authInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
@@ -18,6 +36,7 @@ export const authInterceptor: HttpInterceptorFn = (
 ): Observable<HttpEvent<unknown>> => {
   const authSession = inject(AuthSessionService);
   const authState = inject(AuthStateService);
+  const clientKeyService = inject(ClientKeyService);
   const applicationConfig = inject(ApplicationConfiguration);
   const router = inject(Router);
 
@@ -30,7 +49,15 @@ export const authInterceptor: HttpInterceptorFn = (
   return from(addAuthToken(req, authSession)).pipe(
     switchMap((authReq) => next(authReq)),
     catchError((error) =>
-      handleAuthError(error, req, next, authSession, authState, router),
+      handleAuthError(
+        error,
+        req,
+        next,
+        authSession,
+        authState,
+        clientKeyService,
+        router,
+      ),
     ),
   );
 };
@@ -68,15 +95,41 @@ function handleAuthError(
   next: (req: HttpRequest<unknown>) => Observable<HttpEvent<unknown>>,
   authSession: AuthSessionService,
   authState: AuthStateService,
+  clientKeyService: ClientKeyService,
   router: Router,
 ): Observable<HttpEvent<unknown>> {
   // Only attempt refresh if it's a 401 and user is authenticated
   if (error.status === 401 && authState.isAuthenticated()) {
+    if (isRefreshing) {
+      // A refresh is already in progress - wait for its result
+      return refreshResult$.pipe(
+        filter((result): result is boolean => result !== null),
+        take(1),
+        switchMap((success) => {
+          if (!success) {
+            return throwError(
+              () => new Error('Session expirée, veuillez vous reconnecter'),
+            );
+          }
+          return from(addAuthToken(originalReq, authSession)).pipe(
+            switchMap((authReq) => next(authReq)),
+          );
+        }),
+      );
+    }
+
+    // First 401 triggers the refresh
+    isRefreshing = true;
+    refreshResult$.next(null);
+
     return from(authSession.refreshSession()).pipe(
       switchMap((refreshSuccess) => {
+        isRefreshing = false;
+        refreshResult$.next(refreshSuccess);
+
         if (!refreshSuccess) {
           authSession.signOut();
-          window.location.href = '/' + ROUTES.LOGIN;
+          router.navigate(['/', ROUTES.LOGIN]);
           return throwError(
             () => new Error('Session expirée, veuillez vous reconnecter'),
           );
@@ -88,8 +141,10 @@ function handleAuthError(
         );
       }),
       catchError((refreshError) => {
+        isRefreshing = false;
+        refreshResult$.next(false);
         authSession.signOut();
-        window.location.href = '/' + ROUTES.LOGIN;
+        router.navigate(['/', ROUTES.LOGIN]);
         return throwError(() => refreshError);
       }),
     );
@@ -106,6 +161,18 @@ function handleAuthError(
     return throwError(() => new Error('Client encryption key missing'));
   }
 
+  // The original request is not retried after re-entering the vault code.
+  if (
+    error.status === 400 &&
+    error.error?.code === 'ERR_ENCRYPTION_KEY_CHECK_FAILED'
+  ) {
+    clientKeyService.clear();
+    router.navigate(['/', ROUTES.ENTER_VAULT_CODE]);
+    return throwError(
+      () => new Error('Client encryption key verification failed'),
+    );
+  }
+
   // Handle account blocked (scheduled for deletion)
   if (
     error.status === 403 &&
@@ -113,7 +180,7 @@ function handleAuthError(
       error.error?.error === 'ERR_USER_ACCOUNT_BLOCKED')
   ) {
     authSession.signOut();
-    window.location.href = '/' + ROUTES.LOGIN;
+    router.navigate(['/', ROUTES.LOGIN]);
     return throwError(
       () => new Error('Ton compte est en cours de suppression.'),
     );

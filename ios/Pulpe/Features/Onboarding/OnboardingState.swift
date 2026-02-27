@@ -17,8 +17,6 @@ final class OnboardingState {
     // MARK: - Registration
 
     var email: String = ""
-    var password: String = ""
-    var passwordConfirmation: String = ""
     var acceptTerms: Bool = false
 
     // MARK: - UI State
@@ -27,8 +25,6 @@ final class OnboardingState {
     var isLoading: Bool = false
     var error: Error?
     var isMovingForward: Bool = true
-    var signupProgress: SignupProgress = .notStarted
-    var createdTemplateId: String?
 
     // MARK: - Persistence Keys
 
@@ -56,18 +52,8 @@ final class OnboardingState {
         return email.wholeMatch(of: pattern) != nil
     }
 
-    var isPasswordValid: Bool {
-        password.count >= 8 &&
-        password.contains { $0.isUppercase } &&
-        password.contains { $0.isNumber }
-    }
-
-    var isPasswordConfirmed: Bool {
-        !passwordConfirmation.isEmpty && password == passwordConfirmation
-    }
-
     var canSubmitRegistration: Bool {
-        isFirstNameValid && isIncomeValid && isEmailValid && isPasswordValid && isPasswordConfirmed && acceptTerms && !isLoading
+        isFirstNameValid && isIncomeValid && isEmailValid && acceptTerms && !isLoading
     }
 
     var progressPercentage: Double {
@@ -136,12 +122,6 @@ final class OnboardingState {
     func saveToStorage() {
         let data = OnboardingStorageData(
             firstName: firstName,
-            monthlyIncome: monthlyIncome,
-            housingCosts: housingCosts,
-            healthInsurance: healthInsurance,
-            phonePlan: phonePlan,
-            transportCosts: transportCosts,
-            leasingCredit: leasingCredit,
             currentStep: currentStep.rawValue
         )
 
@@ -157,12 +137,6 @@ final class OnboardingState {
         }
 
         firstName = decoded.firstName
-        monthlyIncome = decoded.monthlyIncome
-        housingCosts = decoded.housingCosts
-        healthInsurance = decoded.healthInsurance
-        phonePlan = decoded.phonePlan
-        transportCosts = decoded.transportCosts
-        leasingCredit = decoded.leasingCredit
 
         if let step = OnboardingStep(rawValue: decoded.currentStep) {
             currentStep = step
@@ -259,23 +233,9 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
     }
 }
 
-// MARK: - Signup Progress
-
-enum SignupProgress {
-    case notStarted
-    case userCreated
-    case templateCreated(templateId: String)
-}
-
 // MARK: - Storage Data
 
 private struct OnboardingStorageData: Codable {
     let firstName: String
-    let monthlyIncome: Decimal?
-    let housingCosts: Decimal?
-    let healthInsurance: Decimal?
-    let phonePlan: Decimal?
-    let transportCosts: Decimal?
-    let leasingCredit: Decimal?
     let currentStep: String
 }

@@ -27,8 +27,9 @@ import { Logger } from '@core/logging/logger';
 import { UserSettingsApi } from '@core/user-settings';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth';
-import { EncryptionApi } from '@core/encryption';
+import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import { DemoModeService } from '@core/demo/demo-mode.service';
+import { ROUTES } from '@core/routing/routes-constants';
 import {
   RecoveryKeyDialog,
   type RecoveryKeyDialogData,
@@ -254,6 +255,7 @@ export default class SettingsPage {
   readonly #dialog = inject(MatDialog);
   readonly #router = inject(Router);
   readonly #authSession = inject(AuthSessionService);
+  readonly #clientKeyService = inject(ClientKeyService);
   readonly #demoMode = inject(DemoModeService);
   readonly #encryptionApi = inject(EncryptionApi);
   readonly #authState = inject(AuthStateService);
@@ -296,7 +298,7 @@ export default class SettingsPage {
       });
     } catch (error) {
       this.#logger.error('Failed to save settings', error);
-      this.#snackBar.open("L'enregistrement a échoué — on réessaie ?", 'OK', {
+      this.#snackBar.open("L'enregistrement a échoué — réessaie", 'OK', {
         duration: 5000,
         horizontalPosition: 'center',
         verticalPosition: 'bottom',
@@ -361,6 +363,8 @@ export default class SettingsPage {
       return;
     }
 
+    this.#clientKeyService.clear();
+
     try {
       await this.#authSession.signOut();
     } catch (error) {
@@ -369,7 +373,7 @@ export default class SettingsPage {
         error,
       );
     }
-    await this.#router.navigate(['/login']);
+    await this.#router.navigate(['/', ROUTES.LOGIN]);
   }
 
   async #generateAndShowRecoveryKey(): Promise<void> {
@@ -379,7 +383,7 @@ export default class SettingsPage {
       this.isGeneratingRecoveryKey.set(true);
 
       const { recoveryKey } = await firstValueFrom(
-        this.#encryptionApi.setupRecoveryKey$(),
+        this.#encryptionApi.regenerateRecoveryKey$(),
       );
 
       const dialogData: RecoveryKeyDialogData = { recoveryKey };

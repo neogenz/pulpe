@@ -1,11 +1,62 @@
 # CLAUDE.md - Pulpe iOS
 
+## Project Configuration (XcodeGen)
+
+**`project.yml` is the single source of truth.** The `.xcodeproj` is generated and gitignored.
+
+| File | Role | Versioned |
+|------|------|-----------|
+| `project.yml` | Project configuration (targets, settings, dependencies) | Yes |
+| `Pulpe.xcodeproj/` | Generated Xcode project | No (gitignored) |
+
+### Workflow
+
+```bash
+# After git pull or clone
+xcodegen generate                        # Regenerate .xcodeproj
+open Pulpe.xcodeproj                     # Open in Xcode
+```
+
+### Modifying Project Settings
+
+**Never edit settings in Xcode UI** - changes will be lost on next `xcodegen generate`.
+
+| To change... | Edit in `project.yml` |
+|--------------|----------------------|
+| Deployment target | `options.deploymentTarget.iOS` |
+| Swift version | `settings.base.SWIFT_VERSION` |
+| Bundle ID | `targets.Pulpe.settings.base.PRODUCT_BUNDLE_IDENTIFIER` |
+| Info.plist values | `targets.Pulpe.info.properties` |
+| Environment values | `targets.Pulpe.configFiles` + `Config/*.xcconfig` |
+| Add SPM dependency | `packages` + `targets.Pulpe.dependencies` |
+| Build settings | `settings.base` or `targets.X.settings.base` |
+
+### Adding New Files
+
+1. Create the `.swift` file in the correct folder
+2. Run `xcodegen generate` - file is auto-detected
+3. No manual "Add to target" needed
+
 ## Commands
 
 ```bash
-xcodegen generate                        # Regenerate Xcode project
-xcodebuild build -scheme Pulpe -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' CODE_SIGNING_ALLOWED=NO
+xcodegen generate                        # Regenerate Xcode project (required after git pull)
+xcodebuild build -scheme PulpeLocal -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' CODE_SIGNING_ALLOWED=NO
+xcodebuild build -scheme PulpePreview -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' CODE_SIGNING_ALLOWED=NO
+xcodebuild build -scheme PulpeProd -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' CODE_SIGNING_ALLOWED=NO
 cd .. && pnpm dev:backend                # Run backend
+```
+
+### Testing (schemes matter!)
+
+- **Unit tests** → scheme `PulpeLocal` → target `PulpeTests`
+- **UI tests** → scheme `PulpeUITests` → target `PulpeUITests`
+
+```bash
+# Unit tests
+xcodebuild test -scheme PulpeLocal -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=26.2' -only-testing:PulpeTests/SomeTest CODE_SIGNING_ALLOWED=NO
+# UI tests (NEVER use PulpeLocal for UI tests)
+xcodebuild test -scheme PulpeUITests -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=26.2' -only-testing:PulpeUITests/SomeTest CODE_SIGNING_ALLOWED=NO
 ```
 
 ## Versioning

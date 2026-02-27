@@ -12,21 +12,19 @@ struct AlertsSection: View {
                     ForEach(alerts.prefix(3), id: \.line.id) { alert in
                         AlertRow(
                             name: alert.line.name,
-                            percentage: Int(alert.consumption.percentage),
-                            isOverBudget: alert.consumption.isOverBudget
+                            percentage: Int(alert.consumption.percentage)
                         )
                     }
 
                     if alerts.count > 3 {
                         Text("+\(alerts.count - 3) autres")
-                            .font(.caption)
+                            .font(PulpeTypography.caption)
                             .foregroundStyle(.secondary)
                     }
 
                     Button(action: onTapViewBudget) {
                         Text("Voir le budget")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
+                            .font(PulpeTypography.buttonSecondary)
                     }
                     .padding(.top, DesignTokens.Spacing.xs)
                 }
@@ -36,8 +34,7 @@ struct AlertsSection: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(Color.financialOverBudget)
                     Text("Dépenses à surveiller")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                        .font(PulpeTypography.labelLarge)
                 }
                 .textCase(nil)
             }
@@ -49,28 +46,26 @@ struct AlertsSection: View {
 private struct AlertRow: View {
     let name: String
     let percentage: Int
-    let isOverBudget: Bool
 
-    private var color: Color {
-        Color.financialOverBudget
+    private var severityColor: Color {
+        percentage >= 90 ? .financialOverBudget : .orange
     }
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             Circle()
-                .fill(color)
+                .fill(severityColor)
                 .frame(width: 8, height: 8)
 
             Text(name)
-                .font(.subheadline)
+                .font(PulpeTypography.subheadline)
                 .lineLimit(1)
 
             Spacer()
 
             Text("\(percentage)%")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(color)
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(severityColor)
         }
     }
 }

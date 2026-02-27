@@ -46,7 +46,7 @@ struct RealizedBalanceSheet: View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             // Label
             Text("Solde à date")
-                .font(.subheadline)
+                .font(PulpeTypography.subheadline)
                 .foregroundStyle(.secondary)
 
             // Amount
@@ -58,20 +58,25 @@ struct RealizedBalanceSheet: View {
             // Status badge
             HStack(spacing: 6) {
                 Image(systemName: isPositiveBalance ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                 Text(isPositiveBalance ? "Tout va bien" : "Solde négatif — on y remédie ?")
-                    .font(.caption)
-                    .fontWeight(.medium)
+                    .font(PulpeTypography.inputHelper)
             }
             .foregroundStyle(isPositiveBalance ? Color.financialSavings : Color.financialOverBudget)
             .padding(.horizontal, DesignTokens.Spacing.md)
             .padding(.vertical, 6)
-            .background((isPositiveBalance ? Color.financialSavings : Color.financialOverBudget).opacity(DesignTokens.Opacity.badgeBackground))
+            .background(
+                (isPositiveBalance ? Color.financialSavings : Color.financialOverBudget)
+                    .opacity(DesignTokens.Opacity.badgeBackground)
+            )
             .clipShape(Capsule())
 
             // Completion info
-            Text("Basé sur \(realizedMetrics.checkedItemsCount) éléments comptabilisés sur \(realizedMetrics.totalItemsCount)")
-                .font(.caption)
+            Text(
+                "Basé sur \(realizedMetrics.checkedItemsCount) éléments comptabilisés sur " +
+                "\(realizedMetrics.totalItemsCount)"
+            )
+                .font(PulpeTypography.caption)
                 .foregroundStyle(Color.textTertiary)
         }
         .frame(maxWidth: .infinity)
@@ -85,7 +90,7 @@ struct RealizedBalanceSheet: View {
     private var progressSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
             Text("Prévu vs Réalisé")
-                .font(.headline)
+                .font(PulpeTypography.headline)
 
             // Income row
             ProgressRow(
@@ -119,14 +124,8 @@ struct RealizedBalanceSheet: View {
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
     }
 
-    /// Calculate realized savings from realized metrics
     private var realizedSavings: Decimal {
-        // Savings are part of realized expenses in the formula
-        // For simplicity, show proportion based on completion
-        let completionRatio = realizedMetrics.totalItemsCount > 0
-            ? Decimal(realizedMetrics.checkedItemsCount) / Decimal(realizedMetrics.totalItemsCount)
-            : 0
-        return metrics.totalSavings * completionRatio
+        realizedMetrics.checkedSavingsAmount
     }
 
     // MARK: - Tip Section
@@ -134,16 +133,18 @@ struct RealizedBalanceSheet: View {
     private var tipSection: some View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
             Image(systemName: "lightbulb.fill")
-                .font(.body)
+                .font(PulpeTypography.body)
                 .foregroundStyle(Color.warningPrimary)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Astuce")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(PulpeTypography.labelLarge)
 
-                Text("Compare ce solde avec ton compte bancaire. S'il y a un écart, vérifie que toutes tes dépenses sont bien cochées.")
-                    .font(.caption)
+                Text(
+                    "Compare ce solde avec ton compte bancaire. S'il y a un écart, " +
+                    "vérifie que toutes tes dépenses sont bien cochées."
+                )
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)
             }
         }
@@ -182,13 +183,12 @@ private struct ProgressRow: View {
                     .foregroundStyle(iconColor)
 
                 Text(label)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    .font(PulpeTypography.buttonSecondary)
 
                 Spacer()
 
                 Text("\(realized.asCompactCHF) / \(planned.asCompactCHF)")
-                    .font(.subheadline)
+                    .font(PulpeTypography.subheadline)
                     .foregroundStyle(.secondary)
                     .sensitiveAmount()
             }
@@ -204,11 +204,11 @@ private struct ProgressRow: View {
                         .frame(width: geometry.size.width * CGFloat(percentage))
                 }
             }
-            .frame(height: 8)
+            .frame(height: DesignTokens.Spacing.sm)
 
             // Percentage label
             Text("\(percentageText) réalisé")
-                .font(.caption)
+                .font(PulpeTypography.caption)
                 .foregroundStyle(Color.textTertiary)
         }
     }
@@ -234,7 +234,8 @@ private struct ProgressRow: View {
                     realizedExpenses: 2500,
                     realizedBalance: 5456,
                     checkedItemsCount: 12,
-                    totalItemsCount: 25
+                    totalItemsCount: 25,
+                    checkedSavingsAmount: 250
                 )
             )
         }
@@ -258,7 +259,8 @@ private struct ProgressRow: View {
                     realizedExpenses: 5200,
                     realizedBalance: -200,
                     checkedItemsCount: 18,
-                    totalItemsCount: 20
+                    totalItemsCount: 20,
+                    checkedSavingsAmount: 200
                 )
             )
         }
@@ -282,7 +284,8 @@ private struct ProgressRow: View {
                     realizedExpenses: 4000,
                     realizedBalance: 2000,
                     checkedItemsCount: 15,
-                    totalItemsCount: 15
+                    totalItemsCount: 15,
+                    checkedSavingsAmount: 800
                 )
             )
         }

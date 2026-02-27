@@ -6,86 +6,79 @@ enum Formatters {
     // MARK: - Currency
 
     static let chfCompact: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .currency
-        f.currencyCode = "CHF"
-        f.locale = Locale(identifier: "de_CH")
-        f.maximumFractionDigits = 2
-        return f
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "CHF"
+        formatter.locale = Locale(identifier: "de_CH")
+        formatter.maximumFractionDigits = 2
+        return formatter
     }()
 
     static let chfWholeNumber: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .currency
-        f.currencyCode = "CHF"
-        f.locale = Locale(identifier: "de_CH")
-        f.maximumFractionDigits = 0
-        return f
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "CHF"
+        formatter.locale = Locale(identifier: "de_CH")
+        formatter.maximumFractionDigits = 0
+        return formatter
     }()
 
     static let amountInput: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        f.minimumFractionDigits = 0
-        f.maximumFractionDigits = 2
-        f.groupingSeparator = "'"
-        return f
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 2
+        formatter.groupingSeparator = "'"
+        return formatter
     }()
 
     static let percentage: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .percent
-        return f
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .percent
+        return formatter
     }()
 
     // MARK: - Dates
 
     static let monthYear: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "fr_FR")
-        f.dateFormat = "MMMM yyyy"
-        return f
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "fr_FR")
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter
     }()
 
     static let shortMonthYear: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "fr_FR")
-        f.dateFormat = "MMM yyyy"
-        return f
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "fr_FR")
+        formatter.dateFormat = "MMM yyyy"
+        return formatter
     }()
 
     static let dayMonth: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "fr_FR")
-        f.dateFormat = "d MMMM"
-        return f
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "fr_FR")
+        formatter.dateFormat = "d MMMM"
+        return formatter
     }()
 
     static let shortMonth: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "fr_FR")
-        f.dateFormat = "MMM"
-        return f
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "fr_FR")
+        formatter.dateFormat = "MMM"
+        return formatter
     }()
 
     static let month: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "fr_FR")
-        f.dateFormat = "MMMM"
-        return f
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "fr_FR")
+        formatter.dateFormat = "MMMM"
+        return formatter
     }()
 
-    // MARK: - ISO8601
-
-    static let iso8601WithFractional: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f
-    }()
-
-    static let iso8601: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime]
-        return f
+    static let weekday: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "fr_FR")
+        formatter.dateFormat = "EEEE"
+        return formatter
     }()
 }

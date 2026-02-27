@@ -9,8 +9,7 @@ export type AuthErrorTranslations = Record<string, string>;
 })
 export class AuthErrorLocalizer {
   readonly #errorTranslations: AuthErrorTranslations = {
-    'Invalid login credentials':
-      'Email ou mot de passe incorrect — on réessaie ?',
+    'Invalid login credentials': 'Email ou mot de passe incorrect — réessaie',
     'Email not confirmed':
       'Confirme ton email pour continuer — vérifie ta boîte mail',
     'Too many requests': 'Trop de tentatives — patiente quelques minutes',
@@ -45,16 +44,16 @@ export class AuthErrorLocalizer {
     'Unable to validate email address: invalid format':
       'Cette adresse email ne semble pas valide',
     'Database error saving new user':
-      'La création du compte a échoué — réessayons',
+      'La création du compte a échoué — réessaie',
     'A user with this email address has already been registered':
       'Cet email est déjà utilisé — tu as peut-être déjà un compte ?',
-    'OAuth error': 'La connexion avec Google a échoué — réessayons',
-    'Provider error': 'La connexion a échoué — réessayons',
+    'OAuth error': 'La connexion avec Google a échoué — réessaie',
+    'Provider error': 'La connexion a échoué — réessaie',
     'Popup closed': 'Tu as fermé la fenêtre de connexion',
     'Access denied': 'Connexion annulée',
     access_denied: 'Connexion annulée',
     user_cancelled_login: 'Connexion annulée',
-    'OAuth callback error': 'La connexion avec Google a échoué — réessayons',
+    'OAuth callback error': 'La connexion avec Google a échoué — réessaie',
     'Provider not enabled': "Cette méthode de connexion n'est pas disponible",
     ERR_USER_ACCOUNT_BLOCKED: 'Ton compte est en cours de suppression.',
   };
@@ -63,7 +62,7 @@ export class AuthErrorLocalizer {
     same_password: "Le nouveau mot de passe doit être différent de l'ancien",
     weak_password:
       'Choisis un mot de passe plus sécurisé — 8 caractères avec lettres et chiffres',
-    invalid_credentials: 'Email ou mot de passe incorrect — on réessaie ?',
+    invalid_credentials: 'Email ou mot de passe incorrect — réessaie',
     user_already_exists:
       'Cet email est déjà utilisé — tu as peut-être déjà un compte ?',
     email_exists:
@@ -102,7 +101,7 @@ export class AuthErrorLocalizer {
 
   localizeError(originalErrorMessage: string): string {
     if (!originalErrorMessage) {
-      return "Quelque chose n'a pas fonctionné — réessayons";
+      return "Quelque chose n'a pas fonctionné — réessaie";
     }
 
     const trimmedMessage = originalErrorMessage.trim();
@@ -124,7 +123,7 @@ export class AuthErrorLocalizer {
       return 'Problème de connexion — vérifie ton réseau';
     }
 
-    return "Quelque chose n'a pas fonctionné — réessayons";
+    return "Quelque chose n'a pas fonctionné — réessaie";
   }
 
   #containsWeakPasswordError(message: string): boolean {

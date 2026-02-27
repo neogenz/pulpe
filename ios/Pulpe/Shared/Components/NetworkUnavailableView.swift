@@ -15,11 +15,11 @@ struct NetworkUnavailableView: View {
 
             VStack(spacing: DesignTokens.Spacing.sm) {
                 Text("Connexion impossible")
-                    .font(.title2)
+                    .font(PulpeTypography.title2)
                     .fontWeight(.bold)
 
                 Text("Impossible de joindre le serveur — vérifie ta connexion internet et réessaie.")
-                    .font(.body)
+                    .font(PulpeTypography.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, DesignTokens.Spacing.xxl)

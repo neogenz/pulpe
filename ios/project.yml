@@ -1,11 +1,17 @@
 name: Pulpe
 options:
   bundleIdPrefix: app.pulpe
+  developmentLanguage: fr
   deploymentTarget:
     iOS: "18.0"
   xcodeVersion: "15.0"
   generateEmptyDirectories: true
   groupSortPosition: top
+
+configs:
+  Local: debug
+  Preview: debug
+  Prod: release
 
 packages:
   supabase-swift:
@@ -18,18 +24,19 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    MARKETING_VERSION: "0.22.0"
-    CURRENT_PROJECT_VERSION: "1"
-    DEVELOPMENT_TEAM: ""
+    SWIFT_STRICT_CONCURRENCY: complete
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "2"
+    DEVELOPMENT_TEAM: AJ37X7C82G
     CODE_SIGN_STYLE: Automatic
-    INFOPLIST_FILE: Pulpe/Resources/Info.plist
-    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-    ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
   configs:
-    Debug:
+    Local:
       SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
       SWIFT_OPTIMIZATION_LEVEL: "-Onone"
-    Release:
+    Preview:
+      SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+      SWIFT_OPTIMIZATION_LEVEL: "-Onone"
+    Prod:
       SWIFT_OPTIMIZATION_LEVEL: "-O"
 
 targets:
@@ -60,13 +67,18 @@ targets:
       properties:
         com.apple.security.application-groups:
           - group.app.pulpe.ios
+    configFiles:
+      Local: Config/Local.xcconfig
+      Preview: Config/Preview.xcconfig
+      Prod: Config/Prod.xcconfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios
-        INFOPLIST_FILE: Pulpe/Resources/Info.plist
+        PRODUCT_NAME: Pulpe
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: true
-        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+        INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.finance"
+        INFOPLIST_KEY_CFBundleDisplayName: Pulpe
     info:
       path: Pulpe/Resources/Info.plist
       properties:
@@ -94,10 +106,21 @@ targets:
           - CFBundleURLSchemes:
               - pulpe
             CFBundleURLName: app.pulpe.ios
+        UIAppFonts:
+          - Manrope-Bold.ttf
+          - Manrope-SemiBold.ttf
+          - Manrope-Medium.ttf
+          - DMSans-Regular.ttf
+          - DMSans-Medium.ttf
+          - DMSans-SemiBold.ttf
         UIBackgroundModes:
           - fetch
         BGTaskSchedulerPermittedIdentifiers:
           - app.pulpe.ios.widget-refresh
+        API_BASE_URL: $(API_BASE_URL)
+        SUPABASE_URL: $(SUPABASE_URL)
+        SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
+        APP_ENV: $(APP_ENV)
 
   PulpeWidget:
     type: app-extension
@@ -126,6 +149,9 @@ targets:
       - path: Pulpe/Shared/Design
         excludes:
           - "**/.DS_Store"
+      - path: Pulpe/Shared/Styles
+        excludes:
+          - "**/.DS_Store"
     entitlements:
       path: PulpeWidget/PulpeWidget.entitlements
       properties:
@@ -134,12 +160,10 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios.widget
-        INFOPLIST_FILE: PulpeWidget/Info.plist
+        PRODUCT_NAME: "Pulpe Widget"
         SKIP_INSTALL: true
-        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
         TARGETED_DEVICE_FAMILY: "1,2"
-        ASSETCATALOG_COMPILER_APPICON_NAME: ""
-        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: ""
+        INFOPLIST_KEY_CFBundleDisplayName: "Pulpe Widget"
     info:
       path: PulpeWidget/Info.plist
       properties:
@@ -162,6 +186,15 @@ targets:
           - "**/.DS_Store"
     dependencies:
       - target: Pulpe
+    info:
+      path: PulpeTests/Info.plist
+      properties:
+        CFBundleName: $(PRODUCT_NAME)
+        CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundlePackageType: BNDL
+        CFBundleExecutable: $(EXECUTABLE_NAME)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios.tests
@@ -184,40 +217,72 @@ targets:
         TARGETED_DEVICE_FAMILY: "1,2"
 
 schemes:
-  Pulpe:
+  PulpeLocal:
+    build:
+      targets:
+        Pulpe: all
+        PulpeWidget: all
+    test:
+      config: Local
+      targets:
+        - name: PulpeTests
+    run:
+      config: Local
+    profile:
+      config: Prod
+    analyze:
+      config: Local
+    archive:
+      config: Prod
+
+  PulpePreview:
     build:
       targets:
         Pulpe: all
         PulpeWidget: all
     run:
-      config: Debug
+      config: Preview
     profile:
-      config: Release
+      config: Preview
     analyze:
-      config: Debug
+      config: Preview
     archive:
-      config: Release
+      config: Preview
+
+  PulpeProd:
+    build:
+      targets:
+        Pulpe: all
+        PulpeWidget: all
+    run:
+      config: Prod
+    profile:
+      config: Prod
+    analyze:
+      config: Prod
+    archive:
+      config: Prod
 
   PulpeWidget:
     build:
       targets:
         PulpeWidget: all
     run:
-      config: Debug
+      config: Local
       askForAppToLaunch: true
     profile:
-      config: Release
+      config: Prod
     analyze:
-      config: Debug
+      config: Local
     archive:
-      config: Release
+      config: Prod
 
   PulpeTests:
     build:
       targets:
         PulpeTests: all
     test:
-      config: Debug
+      config: Local
       targets:
         - name: PulpeTests
 
@@ -226,6 +291,6 @@ schemes:
       targets:
         PulpeUITests: all
     test:
-      config: Debug
+      config: Local
       targets:
         - name: PulpeUITests

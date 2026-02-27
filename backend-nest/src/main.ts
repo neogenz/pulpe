@@ -164,7 +164,7 @@ function setupHealthEndpoints(
     res.json({
       maintenanceMode,
       message: maintenanceMode
-        ? 'Application en maintenance. Veuillez réessayer plus tard.'
+        ? 'Application en maintenance — réessaie plus tard'
         : null,
     });
   });

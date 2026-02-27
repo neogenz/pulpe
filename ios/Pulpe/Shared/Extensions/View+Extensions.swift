@@ -77,7 +77,9 @@ private class ShakeDetectorViewController: UIViewController {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.claimFirstResponderIfNeeded()
+            MainActor.assumeIsolated {
+                self?.claimFirstResponderIfNeeded()
+            }
         }
     }
 
@@ -144,13 +146,15 @@ extension View {
         }
     }
 
-    /// Apply toast overlay
+    /// Apply toast overlay with optional undo support
     func toastOverlay(_ manager: ToastManager) -> some View {
         overlay(alignment: .top) {
             if let toast = manager.currentToast {
-                ToastView(toast: toast) {
-                    manager.dismiss()
-                }
+                ToastView(
+                    toast: toast,
+                    onDismiss: { manager.dismiss() },
+                    onUndo: toast.hasUndo ? { manager.executeUndo() } : nil
+                )
                 .safeAreaPadding(.top)
                 .padding(.top, 8)
                 .transition(.move(edge: .top).combined(with: .opacity))
@@ -169,7 +173,7 @@ extension View {
     /// DA-compliant section header styling
     func pulpeSectionHeader() -> some View {
         self
-            .font(.headline)
+            .font(PulpeTypography.headline)
             .foregroundStyle(Color.textPrimary)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -236,35 +240,33 @@ private struct PulpeStatusBackgroundModifier: ViewModifier {
     }
 }
 
-// MARK: - Alert Extensions
-
-extension View {
-    /// Show error alert
-    func errorAlert(_ error: Binding<Error?>) -> some View {
-        alert(
-            "Erreur",
-            isPresented: .init(
-                get: { error.wrappedValue != nil },
-                set: { if !$0 { error.wrappedValue = nil } }
-            ),
-            actions: {
-                Button("OK", role: .cancel) {}
-            },
-            message: {
-                if let err = error.wrappedValue {
-                    Text(err.localizedDescription)
-                }
-            }
-        )
-    }
-}
-
 // MARK: - Keyboard Extensions
 
 extension View {
-    /// Dismiss keyboard on tap
+    /// Dismiss keyboard when tapping outside text fields.
+    /// Uses a UIKit gesture recognizer that does not cancel touches in the view,
+    /// avoiding gesture disambiguation delays with TextFields.
     func dismissKeyboardOnTap() -> some View {
-        onTapGesture {
+        background(KeyboardDismissView())
+    }
+}
+
+private struct KeyboardDismissView: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.backgroundColor = .clear
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.dismiss))
+        tap.cancelsTouchesInView = false
+        view.addGestureRecognizer(tap)
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    final class Coordinator {
+        @objc func dismiss() {
             UIApplication.shared.sendAction(
                 #selector(UIResponder.resignFirstResponder),
                 to: nil,
@@ -292,7 +294,7 @@ extension View {
 
 // MARK: - Card Modifiers
 
-/// Card surface with subtle border for definition (no shadows — Liquid Glass era)
+/// Card surface with subtle shadow for definition against the background
 private struct CardBackgroundModifier: ViewModifier {
     let cornerRadius: CGFloat
 
@@ -301,10 +303,7 @@ private struct CardBackgroundModifier: ViewModifier {
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .fill(Color.surfaceCard)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: cornerRadius)
-                            .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
-                    )
+                    .shadow(DesignTokens.Shadow.subtle)
             )
     }
 }

@@ -1,8 +1,7 @@
 import XCTest
 
 final class PulpeUITests: XCTestCase {
-
-    private var app: XCUIApplication!
+    private var app = XCUIApplication()
 
     override func setUp() {
         super.setUp()
@@ -12,7 +11,7 @@ final class PulpeUITests: XCTestCase {
     }
 
     override func tearDown() {
-        app = nil
+        app = XCUIApplication()
         super.tearDown()
     }
 

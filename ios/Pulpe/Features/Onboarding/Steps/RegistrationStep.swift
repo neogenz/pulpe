@@ -4,6 +4,8 @@ struct RegistrationStep: View {
     let state: OnboardingState
     let onComplete: (UserInfo) -> Void
 
+    @State private var password = ""
+    @State private var passwordConfirmation = ""
     @State private var showPassword = false
     @State private var showPasswordConfirmation = false
     @FocusState private var focusedField: Field?
@@ -12,172 +14,174 @@ struct RegistrationStep: View {
         case email, password, passwordConfirmation
     }
 
+    private var isPasswordValid: Bool {
+        password.count >= 8 &&
+        password.contains { $0.isNumber }
+    }
+
+    private var hasMinLength: Bool { password.count >= 8 }
+    private var hasNumber: Bool { password.contains(where: { $0.isNumber }) }
+
+    private var isPasswordConfirmed: Bool {
+        !passwordConfirmation.isEmpty && password == passwordConfirmation
+    }
+
+    private var canSubmit: Bool {
+        state.canSubmitRegistration && isPasswordValid && isPasswordConfirmed
+    }
+
     private var passwordMismatch: Bool {
-        !state.passwordConfirmation.isEmpty && state.password != state.passwordConfirmation
+        !passwordConfirmation.isEmpty && password != passwordConfirmation
     }
 
     var body: some View {
         OnboardingStepView(
             step: .registration,
             state: state,
-            canProceed: state.canSubmitRegistration,
-            onNext: { Task { await submitRegistration() } }
-        ) {
-            VStack(spacing: DesignTokens.Spacing.xl) {
-                Text("Crée ton compte pour sauvegarder ton budget")
-                    .font(PulpeTypography.bodyLarge)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
-                    .multilineTextAlignment(.center)
+            canProceed: canSubmit,
+            onNext: { Task { await submitRegistration() } },
+            content: {
+                VStack(spacing: DesignTokens.Spacing.xxl) {
+                    Text("Crée ton compte pour sauvegarder ton budget")
+                        .font(PulpeTypography.body.weight(.medium))
+                        .foregroundStyle(Color.textPrimaryOnboarding)
+                        .multilineTextAlignment(.center)
+                        .padding(.bottom, DesignTokens.Spacing.sm)
 
-                // Email
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text("Email")
-                        .font(PulpeTypography.inputLabel)
-                        .foregroundStyle(Color.textSecondaryOnboarding)
-
-                    TextField("ton@email.com", text: Binding(
-                        get: { state.email },
-                        set: { state.email = $0 }
-                    ))
-                    .textContentType(.emailAddress)
-                    .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .focused($focusedField, equals: .email)
-                    .font(PulpeTypography.bodyLarge)
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .frame(height: DesignTokens.FrameHeight.button)
-                    .background(Color.inputBackgroundSoft)
-                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
-                    .shadow(
-                        color: focusedField == .email ? Color.inputFocusGlow : Color.black.opacity(0.04),
-                        radius: focusedField == .email ? 8 : 4,
-                        y: focusedField == .email ? 2 : 1
-                    )
-                    .scaleEffect(focusedField == .email ? 1.01 : 1)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
+                    emailSection
+                    passwordSection
+                    confirmPasswordSection
+                    termsCheckbox
                 }
-
-                // Password
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text("Mot de passe")
-                        .font(PulpeTypography.inputLabel)
-                        .foregroundStyle(Color.textSecondaryOnboarding)
-
-                    HStack(spacing: DesignTokens.Spacing.md) {
-                        Group {
-                            if showPassword {
-                                TextField("••••••••", text: Binding(
-                                    get: { state.password },
-                                    set: { state.password = $0 }
-                                ))
-                            } else {
-                                SecureField("••••••••", text: Binding(
-                                    get: { state.password },
-                                    set: { state.password = $0 }
-                                ))
-                            }
-                        }
-                        .textContentType(.newPassword)
-                        .focused($focusedField, equals: .password)
-                        .font(PulpeTypography.bodyLarge)
-
-                        Button {
-                            withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
-                                showPassword.toggle()
-                            }
-                        } label: {
-                            Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
-                                .font(PulpeTypography.bodyLarge)
-                                .foregroundStyle(Color.textTertiaryOnboarding)
-                                .contentTransition(.symbolEffect(.replace))
-                        }
-                        .accessibilityLabel(showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe")
-                    }
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .frame(height: DesignTokens.FrameHeight.button)
-                    .background(Color.inputBackgroundSoft)
-                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
-                    .shadow(
-                        color: focusedField == .password ? Color.inputFocusGlow : Color.black.opacity(0.04),
-                        radius: focusedField == .password ? 8 : 4,
-                        y: focusedField == .password ? 2 : 1
-                    )
-                    .scaleEffect(focusedField == .password ? 1.01 : 1)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
-
-                    Text("8 caractères minimum, dont une majuscule et un chiffre")
-                        .font(.caption)
-                        .foregroundStyle(Color.textTertiaryOnboarding)
-                }
-
-                // Password confirmation
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text("Confirmer le mot de passe")
-                        .font(PulpeTypography.inputLabel)
-                        .foregroundStyle(Color.textSecondaryOnboarding)
-
-                    HStack(spacing: DesignTokens.Spacing.md) {
-                        Group {
-                            if showPasswordConfirmation {
-                                TextField("••••••••", text: Binding(
-                                    get: { state.passwordConfirmation },
-                                    set: { state.passwordConfirmation = $0 }
-                                ))
-                            } else {
-                                SecureField("••••••••", text: Binding(
-                                    get: { state.passwordConfirmation },
-                                    set: { state.passwordConfirmation = $0 }
-                                ))
-                            }
-                        }
-                        .textContentType(.newPassword)
-                        .focused($focusedField, equals: .passwordConfirmation)
-                        .font(PulpeTypography.bodyLarge)
-
-                        Button {
-                            withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
-                                showPasswordConfirmation.toggle()
-                            }
-                        } label: {
-                            Image(systemName: showPasswordConfirmation ? "eye.slash.fill" : "eye.fill")
-                                .font(PulpeTypography.bodyLarge)
-                                .foregroundStyle(Color.textTertiaryOnboarding)
-                                .contentTransition(.symbolEffect(.replace))
-                        }
-                        .accessibilityLabel(showPasswordConfirmation ? "Masquer le mot de passe" : "Afficher le mot de passe")
-                    }
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .frame(height: DesignTokens.FrameHeight.button)
-                    .background(passwordMismatch ? Color.errorBackground : Color.inputBackgroundSoft)
-                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
-                    .shadow(
-                        color: focusedField == .passwordConfirmation ? Color.inputFocusGlow : Color.black.opacity(0.04),
-                        radius: focusedField == .passwordConfirmation ? 8 : 4,
-                        y: focusedField == .passwordConfirmation ? 2 : 1
-                    )
-                    .scaleEffect(focusedField == .passwordConfirmation ? 1.01 : 1)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField)
-
-                    if passwordMismatch {
-                        Text("Les mots de passe ne correspondent pas")
-                            .font(.caption)
-                            .foregroundStyle(Color.errorPrimary)
-                    }
-                }
-
-                // Terms acceptance
-                Toggle(isOn: Binding(
-                    get: { state.acceptTerms },
-                    set: { state.acceptTerms = $0 }
-                )) {
-                    Text("J'accepte les [conditions d'utilisation](https://pulpe.app/terms) et la [politique de confidentialité](https://pulpe.app/privacy)")
-                        .font(.caption)
-                }
-                .toggleStyle(.pulpeCheckbox)
             }
-            .padding(DesignTokens.Spacing.xxl)
-            .pulpeCardBackground(cornerRadius: 24)
+        )
+    }
+}
+
+// MARK: - Sections
+
+extension RegistrationStep {
+    private var emailSection: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text("Email")
+                .font(PulpeTypography.buttonSecondary)
+                .foregroundStyle(Color.textPrimaryOnboarding)
+
+            AuthTextField(
+                prompt: "ton@email.com",
+                text: Binding(
+                    get: { state.email },
+                    set: { state.email = $0 }
+                ),
+                isFocused: focusedField == .email
+            )
+            .textContentType(.emailAddress)
+            .keyboardType(.emailAddress)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .focused($focusedField, equals: .email)
+        }
+    }
+
+    private var passwordSection: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text("Mot de passe")
+                .font(PulpeTypography.buttonSecondary)
+                .foregroundStyle(Color.textPrimaryOnboarding)
+
+            AuthSecureField(
+                prompt: "••••••••",
+                text: $password,
+                isVisible: $showPassword,
+                isFocused: focusedField == .password
+            )
+            .textContentType(.newPassword)
+            .focused($focusedField, equals: .password)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                passwordCriteriaRow(
+                    met: hasMinLength,
+                    text: "8 caractères minimum"
+                )
+                passwordCriteriaRow(
+                    met: hasNumber,
+                    text: "Au moins un chiffre"
+                )
+            }
+        }
+    }
+
+    private var confirmPasswordSection: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text("Confirmer le mot de passe")
+                .font(PulpeTypography.buttonSecondary)
+                .foregroundStyle(Color.textPrimaryOnboarding)
+
+            AuthSecureField(
+                prompt: "••••••••",
+                text: $passwordConfirmation,
+                isVisible: $showPasswordConfirmation,
+                isFocused: focusedField == .passwordConfirmation,
+                hasError: passwordMismatch
+            )
+            .textContentType(.newPassword)
+            .focused($focusedField, equals: .passwordConfirmation)
+
+            if passwordMismatch {
+                Text("Les mots de passe ne correspondent pas")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.errorPrimary)
+            }
+        }
+    }
+
+    private var termsCheckbox: some View {
+        Button {
+            state.acceptTerms.toggle()
+        } label: {
+            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm, style: .continuous)
+                        .strokeBorder(
+                            state.acceptTerms ? Color.pulpePrimary :
+                                Color.textPrimaryOnboarding.opacity(0.4),
+                            lineWidth: 2
+                        )
+                        .frame(width: 24, height: 24)
+                        .background {
+                            if !state.acceptTerms {
+                                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm, style: .continuous)
+                                    .fill(Color.authInputBackground)
+                            }
+                        }
+
+                    if state.acceptTerms {
+                        Image(systemName: "checkmark")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Color.pulpePrimary)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: state.acceptTerms)
+
+                Text("J'accepte les [conditions d'utilisation](https://pulpe.app/terms) et la [politique de confidentialité](https://pulpe.app/privacy)")
+                    .font(PulpeTypography.footnote)
+                    .foregroundStyle(Color.textPrimaryOnboarding)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func passwordCriteriaRow(met: Bool, text: String) -> some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            Image(systemName: met ? "checkmark.circle.fill" : "circle")
+                .font(PulpeTypography.caption)
+                .foregroundStyle(met ? .green : Color.textSecondaryOnboarding.opacity(0.5))
+            Text(text)
+                .font(PulpeTypography.caption)
+                .foregroundStyle(met ? Color.textPrimaryOnboarding : Color.textSecondaryOnboarding)
         }
     }
 
@@ -186,51 +190,11 @@ struct RegistrationStep: View {
         state.error = nil
 
         do {
-            // Step 1: Create user account (if not already created)
             let authService = AuthService.shared
-            var user: UserInfo
+            let user = try await authService.signup(email: state.email, password: password)
 
-            switch state.signupProgress {
-            case .notStarted:
-                user = try await authService.signup(email: state.email, password: state.password)
-                state.signupProgress = .userCreated
-            case .userCreated, .templateCreated:
-                guard let existingUser = try await authService.validateSession() else {
-                    throw APIError.unauthorized
-                }
-                user = existingUser
-            }
-
-            // Step 2: Create template (if not already created)
-            let templateId: String
-            if case .templateCreated(let existingId) = state.signupProgress {
-                templateId = existingId
-            } else {
-                let templateService = TemplateService.shared
-                let template = try await templateService.createTemplateFromOnboarding(state.createTemplateData())
-                templateId = template.id
-                state.signupProgress = .templateCreated(templateId: templateId)
-            }
-
-            // Step 3: Create initial budget for current month
-            let budgetService = BudgetService.shared
-            let now = Date()
-            let budgetData = BudgetCreate(
-                month: now.month,
-                year: now.year,
-                description: now.monthYearFormatted,
-                templateId: templateId
-            )
-            _ = try await budgetService.createBudget(budgetData)
-
-            // Clear sensitive data and storage
-            state.password = ""
-            state.passwordConfirmation = ""
-            state.clearStorage()
             state.isLoading = false
-
             onComplete(user)
-
         } catch let apiError as APIError {
             state.error = apiError
             state.isLoading = false
@@ -240,27 +204,6 @@ struct RegistrationStep: View {
             state.isLoading = false
         }
     }
-}
-
-// MARK: - Checkbox Toggle Style
-
-struct CheckboxToggleStyle: ToggleStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-            Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
-                .font(.title3)
-                .foregroundStyle(configuration.isOn ? Color.accentColor : Color.secondary)
-                .onTapGesture {
-                    configuration.isOn.toggle()
-                }
-
-            configuration.label
-        }
-    }
-}
-
-extension ToggleStyle where Self == CheckboxToggleStyle {
-    static var pulpeCheckbox: CheckboxToggleStyle { CheckboxToggleStyle() }
 }
 
 #Preview {

@@ -15,11 +15,10 @@ struct UncheckedTransactionsSection: View {
                 Button(action: onTapViewBudget) {
                     HStack {
                         Text("Comptabiliser dans le budget")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
+                            .font(PulpeTypography.buttonSecondary)
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.caption)
+                            .font(PulpeTypography.caption)
                             .foregroundStyle(Color.textTertiary)
                     }
                 }
@@ -28,8 +27,7 @@ struct UncheckedTransactionsSection: View {
                     Image(systemName: "clock.arrow.circlepath")
                         .foregroundStyle(Color.financialOverBudget)
                     Text("À comptabiliser")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                        .font(PulpeTypography.labelLarge)
                 }
                 .textCase(nil)
             }
@@ -42,7 +40,7 @@ private struct UncheckedTransactionRow: View {
     let transaction: Transaction
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DesignTokens.Spacing.md) {
             // Unchecked indicator
             ZStack {
                 Circle()
@@ -57,12 +55,11 @@ private struct UncheckedTransactionRow: View {
             // Name and date
             VStack(alignment: .leading, spacing: 2) {
                 Text(transaction.name)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    .font(PulpeTypography.buttonSecondary)
                     .lineLimit(1)
 
                 Text(transaction.transactionDate.relativeFormatted)
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textTertiary)
             }
 
@@ -70,12 +67,11 @@ private struct UncheckedTransactionRow: View {
 
             // Amount
             Text(transaction.signedAmount.asCHF)
-                .font(.subheadline)
-                .fontWeight(.semibold)
+                .font(PulpeTypography.labelLarge)
                 .foregroundStyle(transaction.kind.color)
                 .sensitiveAmount()
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, DesignTokens.Spacing.xs)
     }
 }
 

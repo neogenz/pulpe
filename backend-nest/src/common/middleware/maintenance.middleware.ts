@@ -18,7 +18,7 @@ export class MaintenanceMiddleware implements NestMiddleware {
       return res.status(503).json({
         statusCode: 503,
         code: 'MAINTENANCE',
-        message: 'Application en maintenance. Veuillez réessayer plus tard.',
+        message: 'Application en maintenance — réessaie plus tard',
       });
     }
 
