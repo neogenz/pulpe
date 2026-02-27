@@ -22,6 +22,7 @@ import {
 } from '@core/auth';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
+import { AppVersionLabel } from '@ui/app-version-label';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
 import { createFieldsMatchValidator } from '@core/validators';
@@ -36,6 +37,7 @@ import { createFieldsMatchValidator } from '@core/validators';
     MatIconModule,
     MatProgressSpinnerModule,
     RouterLink,
+    AppVersionLabel,
     ErrorAlert,
     LoadingButton,
   ],
@@ -215,6 +217,7 @@ import { createFieldsMatchValidator } from '@core/validators';
           </form>
         }
       </div>
+      <pulpe-app-version-label />
     </div>
   `,
 })

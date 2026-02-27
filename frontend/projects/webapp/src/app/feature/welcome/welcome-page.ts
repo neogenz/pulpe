@@ -17,6 +17,7 @@ import { ROUTES } from '@core/routing';
 import { TurnstileService } from '@core/turnstile';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
+import { AppVersionLabel } from '@ui/app-version-label';
 import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
 import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
 
@@ -31,6 +32,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
     GoogleOAuthButton,
     ErrorAlert,
     LoadingButton,
+    AppVersionLabel,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -199,6 +201,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
           </button>
         </p>
       </div>
+      <pulpe-app-version-label />
     </div>
   `,
 })

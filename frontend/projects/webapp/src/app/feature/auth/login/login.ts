@@ -24,6 +24,7 @@ import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
+import { AppVersionLabel } from '@ui/app-version-label';
 
 @Component({
   selector: 'pulpe-login',
@@ -39,6 +40,7 @@ import { LoadingButton } from '@ui/loading-button';
     GoogleOAuthButton,
     ErrorAlert,
     LoadingButton,
+    AppVersionLabel,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -182,6 +184,7 @@ import { LoadingButton } from '@ui/loading-button';
           </p>
         </div>
       </div>
+      <pulpe-app-version-label />
     </div>
   `,
 })

@@ -16,6 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { AuthSessionService } from '@core/auth';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
+import { AppVersionLabel } from '@ui/app-version-label';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
 
@@ -28,6 +29,7 @@ import { LoadingButton } from '@ui/loading-button';
     MatButtonModule,
     MatIconModule,
     RouterLink,
+    AppVersionLabel,
     ErrorAlert,
     LoadingButton,
   ],
@@ -127,6 +129,7 @@ import { LoadingButton } from '@ui/loading-button';
           </div>
         }
       </div>
+      <pulpe-app-version-label />
     </div>
   `,
 })

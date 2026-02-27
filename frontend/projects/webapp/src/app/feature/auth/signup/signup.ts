@@ -22,6 +22,7 @@ import { ROUTES } from '@core/routing/routes-constants';
 import { GoogleOAuthButton } from '@app/pattern/google-oauth';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
+import { AppVersionLabel } from '@ui/app-version-label';
 import { createFieldsMatchValidator } from '@core/validators';
 
 @Component({
@@ -38,6 +39,7 @@ import { createFieldsMatchValidator } from '@core/validators';
     GoogleOAuthButton,
     ErrorAlert,
     LoadingButton,
+    AppVersionLabel,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -253,6 +255,7 @@ import { createFieldsMatchValidator } from '@core/validators';
           </p>
         </div>
       </div>
+      <pulpe-app-version-label />
     </div>
   `,
 })
