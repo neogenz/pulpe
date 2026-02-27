@@ -88,6 +88,7 @@ final class UserSettingsStore: StoreProtocol {
         guard day == nil || (day.map { (2...31).contains($0) } ?? false) else { return }
 
         let previousValue = payDayOfMonth
+        error = nil
 
         // Optimistic update
         payDayOfMonth = day

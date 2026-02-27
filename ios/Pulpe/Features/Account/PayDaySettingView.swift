@@ -5,6 +5,7 @@ struct PayDaySettingView: View {
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(BudgetListStore.self) private var budgetListStore
+    @Environment(DashboardStore.self) private var dashboardStore
     @State private var viewModel: PayDaySettingViewModel?
 
     var body: some View {
@@ -67,9 +68,11 @@ struct PayDaySettingView: View {
                         viewModel?.commitSave()
                         appState.toastManager.show("Jour de paie enregistr\u{00E9}", type: .success)
                         currentMonthStore.setPayDay(userSettingsStore.payDayOfMonth)
+                        dashboardStore.setPayDay(userSettingsStore.payDayOfMonth)
                         async let refreshMonth: Void = currentMonthStore.forceRefresh()
                         async let refreshList: Void = budgetListStore.forceRefresh()
-                        _ = await (refreshMonth, refreshList)
+                        async let refreshDashboard: Void = dashboardStore.forceRefresh()
+                        _ = await (refreshMonth, refreshList, refreshDashboard)
                     } else {
                         appState.toastManager.show("Erreur lors de la sauvegarde", type: .error)
                     }
@@ -151,4 +154,5 @@ final class PayDaySettingViewModel {
     .environment(UserSettingsStore())
     .environment(CurrentMonthStore())
     .environment(BudgetListStore())
+    .environment(DashboardStore())
 }

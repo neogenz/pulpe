@@ -108,15 +108,13 @@ final class DashboardStore: StoreProtocol {
     /// Expenses for the last 3 months (including current), sorted oldest to newest
     var historicalExpenses: [MonthlyExpense] {
         let currentPeriod = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
-        let calendar = Calendar.current
-        let now = Date()
 
-        // Get last 3 months (including current)
+        // Build last 3 months from budget period (not calendar), so payday shifts are respected
         var months: [(month: Int, year: Int)] = []
         for offset in (-(Self.historicalMonthsCount - 1)...0) {
-            guard let date = calendar.date(byAdding: .month, value: offset, to: now) else { continue }
-            let month = calendar.component(.month, from: date)
-            let year = calendar.component(.year, from: date)
+            var month = currentPeriod.month + offset
+            var year = currentPeriod.year
+            while month < 1 { month += 12; year -= 1 }
             months.append((month, year))
         }
 

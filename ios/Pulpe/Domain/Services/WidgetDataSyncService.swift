@@ -124,7 +124,7 @@ actor WidgetDataSyncService {
                 available: budget?.remaining,
                 monthName: monthName,
                 shortMonthName: shortMonthName,
-                isCurrentMonth: month == currentPeriod.month && year == currentPeriod.year
+                isCurrentMonth: month == currentPeriod.month
             )
         }
     }
