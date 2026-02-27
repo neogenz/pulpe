@@ -59,13 +59,10 @@ actor BudgetService {
         return budgets.first { $0.month == month && $0.year == year }
     }
 
-    /// Get the current month's budget
-    func getCurrentMonthBudget() async throws -> Budget? {
-        let now = Date()
-        let calendar = Calendar.current
-        let month = calendar.component(.month, from: now)
-        let year = calendar.component(.year, from: now)
-        return try await getBudgetForMonth(month: month, year: year)
+    /// Get the current period's budget, accounting for custom pay day
+    func getCurrentMonthBudget(payDayOfMonth: Int? = nil) async throws -> Budget? {
+        let period = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
+        return try await getBudgetForMonth(month: period.month, year: period.year)
     }
 
     /// Export all budgets (heavy endpoint - use for full data export only)

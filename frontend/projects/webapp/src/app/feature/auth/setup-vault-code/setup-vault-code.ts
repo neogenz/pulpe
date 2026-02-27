@@ -48,149 +48,142 @@ import { PostHogService } from '@core/analytics';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="pulpe-entry-shell pulpe-gradient">
-      <div
-        class="pulpe-entry-card w-full max-w-md"
-        data-testid="setup-vault-code-page"
-      >
-        <div class="text-center mb-8">
-          <mat-icon class="text-6xl! w-auto! h-auto! text-primary"
-            >lock</mat-icon
-          >
-          <h1
-            class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
-          >
-            Crée ton code PIN
-          </h1>
-          <p class="text-body-large text-on-surface-variant">
-            Ce code protège tes données chiffrées. Garde-le précieusement :
-            personne d'autre ne peut y accéder à ta place, et on ne pourra pas
-            le retrouver si tu l'oublies.
-          </p>
-        </div>
-
-        <form
-          [formGroup]="form"
-          (ngSubmit)="onSubmit()"
-          class="space-y-4"
-          data-testid="setup-vault-code-form"
+    <div
+      class="pulpe-entry-card w-full max-w-md"
+      data-testid="setup-vault-code-page"
+    >
+      <div class="text-center mb-8">
+        <mat-icon class="text-6xl! w-auto! h-auto! text-primary">lock</mat-icon>
+        <h1
+          class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
         >
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Ton code PIN</mat-label>
-            <input
-              matInput
-              [type]="isCodeHidden() ? 'password' : 'text'"
-              inputmode="numeric"
-              formControlName="vaultCode"
-              data-testid="vault-code-input"
-              (input)="clearError()"
-              placeholder="Ton code PIN"
-            />
-            <mat-icon matPrefix>lock</mat-icon>
-            <button
-              type="button"
-              matIconButton
-              matSuffix
-              (click)="isCodeHidden.set(!isCodeHidden())"
-              [attr.aria-label]="'Afficher le code PIN'"
-              [attr.aria-pressed]="!isCodeHidden()"
-            >
-              <mat-icon>{{
-                isCodeHidden() ? 'visibility_off' : 'visibility'
-              }}</mat-icon>
-            </button>
-            <mat-hint>4 chiffres minimum (6+ recommandé)</mat-hint>
-            @if (
-              form.get('vaultCode')?.invalid && form.get('vaultCode')?.touched
-            ) {
-              <mat-error>
-                @if (form.get('vaultCode')?.hasError('required')) {
-                  Ton code PIN est nécessaire
-                } @else if (form.get('vaultCode')?.hasError('minlength')) {
-                  4 chiffres minimum
-                } @else if (form.get('vaultCode')?.hasError('pattern')) {
-                  Le code PIN ne doit contenir que des chiffres
-                }
-              </mat-error>
-            }
-          </mat-form-field>
+          Crée ton code PIN
+        </h1>
+        <p class="text-body-large text-on-surface-variant">
+          Ce code protège tes données chiffrées. Garde-le précieusement :
+          personne d'autre ne peut y accéder à ta place, et on ne pourra pas le
+          retrouver si tu l'oublies.
+        </p>
+      </div>
 
-          <mat-form-field appearance="outline" class="w-full mt-4">
-            <mat-label>Confirmer le code</mat-label>
-            <input
-              matInput
-              [type]="isConfirmCodeHidden() ? 'password' : 'text'"
-              inputmode="numeric"
-              formControlName="confirmCode"
-              data-testid="confirm-vault-code-input"
-              (input)="clearError()"
-              placeholder="Confirme ton code"
-            />
-            <mat-icon matPrefix>lock</mat-icon>
-            <button
-              type="button"
-              matIconButton
-              matSuffix
-              (click)="isConfirmCodeHidden.set(!isConfirmCodeHidden())"
-              [attr.aria-label]="'Afficher le code'"
-              [attr.aria-pressed]="!isConfirmCodeHidden()"
-            >
-              <mat-icon>{{
-                isConfirmCodeHidden() ? 'visibility_off' : 'visibility'
-              }}</mat-icon>
-            </button>
-            @if (
-              form.get('confirmCode')?.invalid &&
-              form.get('confirmCode')?.touched
-            ) {
-              <mat-error>
-                @if (form.get('confirmCode')?.hasError('required')) {
-                  Confirme ton code
-                } @else if (
-                  form.get('confirmCode')?.hasError('fieldsMismatch')
-                ) {
-                  Les deux codes ne sont pas identiques — réessaie
-                }
-              </mat-error>
-            }
-          </mat-form-field>
-
-          <div class="flex items-center">
-            <mat-checkbox
-              formControlName="rememberDevice"
-              data-testid="remember-device-checkbox"
-            >
-              <span class="text-body-medium text-on-surface">
-                Ne plus me demander sur cet appareil
-              </span>
-            </mat-checkbox>
-          </div>
-
-          <pulpe-error-alert [message]="errorMessage()" />
-
-          <pulpe-loading-button
-            [loading]="isSubmitting()"
-            [disabled]="!canSubmit()"
-            loadingText="On prépare ton espace..."
-            icon="arrow_forward"
-            testId="setup-vault-code-submit-button"
-          >
-            <span class="ml-2">Créer mon code PIN</span>
-          </pulpe-loading-button>
-        </form>
-
-        <div class="text-center mt-4 pt-4 border-t border-outline-variant">
+      <form
+        [formGroup]="form"
+        (ngSubmit)="onSubmit()"
+        class="space-y-4"
+        data-testid="setup-vault-code-form"
+      >
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Ton code PIN</mat-label>
+          <input
+            matInput
+            [type]="isCodeHidden() ? 'password' : 'text'"
+            inputmode="numeric"
+            formControlName="vaultCode"
+            data-testid="vault-code-input"
+            (input)="clearError()"
+            placeholder="Ton code PIN"
+          />
+          <mat-icon matPrefix>lock</mat-icon>
           <button
-            matButton
             type="button"
-            (click)="onLogout()"
-            [disabled]="isLoggingOut()"
-            data-testid="setup-vault-code-logout-button"
+            matIconButton
+            matSuffix
+            (click)="isCodeHidden.set(!isCodeHidden())"
+            [attr.aria-label]="'Afficher le code PIN'"
+            [attr.aria-pressed]="!isCodeHidden()"
           >
-            <mat-icon>logout</mat-icon>
-            Se déconnecter
+            <mat-icon>{{
+              isCodeHidden() ? 'visibility_off' : 'visibility'
+            }}</mat-icon>
           </button>
+          <mat-hint>4 chiffres minimum (6+ recommandé)</mat-hint>
+          @if (
+            form.get('vaultCode')?.invalid && form.get('vaultCode')?.touched
+          ) {
+            <mat-error>
+              @if (form.get('vaultCode')?.hasError('required')) {
+                Ton code PIN est nécessaire
+              } @else if (form.get('vaultCode')?.hasError('minlength')) {
+                4 chiffres minimum
+              } @else if (form.get('vaultCode')?.hasError('pattern')) {
+                Le code PIN ne doit contenir que des chiffres
+              }
+            </mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full mt-4">
+          <mat-label>Confirmer le code</mat-label>
+          <input
+            matInput
+            [type]="isConfirmCodeHidden() ? 'password' : 'text'"
+            inputmode="numeric"
+            formControlName="confirmCode"
+            data-testid="confirm-vault-code-input"
+            (input)="clearError()"
+            placeholder="Confirme ton code"
+          />
+          <mat-icon matPrefix>lock</mat-icon>
+          <button
+            type="button"
+            matIconButton
+            matSuffix
+            (click)="isConfirmCodeHidden.set(!isConfirmCodeHidden())"
+            [attr.aria-label]="'Afficher le code'"
+            [attr.aria-pressed]="!isConfirmCodeHidden()"
+          >
+            <mat-icon>{{
+              isConfirmCodeHidden() ? 'visibility_off' : 'visibility'
+            }}</mat-icon>
+          </button>
+          @if (
+            form.get('confirmCode')?.invalid && form.get('confirmCode')?.touched
+          ) {
+            <mat-error>
+              @if (form.get('confirmCode')?.hasError('required')) {
+                Confirme ton code
+              } @else if (form.get('confirmCode')?.hasError('fieldsMismatch')) {
+                Les deux codes ne sont pas identiques — réessaie
+              }
+            </mat-error>
+          }
+        </mat-form-field>
+
+        <div class="flex items-center">
+          <mat-checkbox
+            formControlName="rememberDevice"
+            data-testid="remember-device-checkbox"
+          >
+            <span class="text-body-medium text-on-surface">
+              Ne plus me demander sur cet appareil
+            </span>
+          </mat-checkbox>
         </div>
+
+        <pulpe-error-alert [message]="errorMessage()" />
+
+        <pulpe-loading-button
+          [loading]="isSubmitting()"
+          [disabled]="!canSubmit()"
+          loadingText="On prépare ton espace..."
+          icon="arrow_forward"
+          testId="setup-vault-code-submit-button"
+        >
+          <span class="ml-2">Créer mon code PIN</span>
+        </pulpe-loading-button>
+      </form>
+
+      <div class="text-center mt-4 pt-4 border-t border-outline-variant">
+        <button
+          matButton
+          type="button"
+          (click)="onLogout()"
+          [disabled]="isLoggingOut()"
+          data-testid="setup-vault-code-logout-button"
+        >
+          <mat-icon>logout</mat-icon>
+          Se déconnecter
+        </button>
       </div>
     </div>
   `,

@@ -7,6 +7,7 @@ import SwiftUI
     .environment(AppState())
     .environment(CurrentMonthStore())
     .environment(BudgetListStore())
+    .environment(UserSettingsStore())
 }
 
 #Preview("Current Month Hero Card") {

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CurrentMonthHeroCard: View {
     let budget: BudgetSparse
+    var periodLabel: String?
     let onTap: () -> Void
 
     @State private var isPressed = false
@@ -39,13 +40,21 @@ struct CurrentMonthHeroCard: View {
 
                     pulseDot
                 }
-                Text(monthName)
-                    .font(.custom(
-                        "Manrope-Bold",
-                        size: dynamicTypeSize.isAccessibilitySize ? 22 : 34,
-                        relativeTo: dynamicTypeSize.isAccessibilitySize ? .title2 : .largeTitle
-                    ))
-                    .foregroundStyle(.primary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(monthName)
+                        .font(.custom(
+                            "Manrope-Bold",
+                            size: dynamicTypeSize.isAccessibilitySize ? 22 : 34,
+                            relativeTo: dynamicTypeSize.isAccessibilitySize ? .title2 : .largeTitle
+                        ))
+                        .foregroundStyle(.primary)
+
+                    if let periodLabel {
+                        Text(periodLabel)
+                            .font(PulpeTypography.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
 
                 Spacer().frame(height: DesignTokens.Spacing.sm)
                 HStack(alignment: .bottom) {
@@ -144,6 +153,8 @@ struct CurrentMonthHeroCard: View {
 
 struct BudgetMonthRow: View {
     let budget: BudgetSparse
+    var periodLabel: String?
+    var payDayOfMonth: Int?
     let onTap: () -> Void
 
     @State private var tapTrigger = false
@@ -161,15 +172,14 @@ struct BudgetMonthRow: View {
 
     private var isPastMonth: Bool {
         guard let month = budget.month, let year = budget.year else { return false }
-        return Date.isPast(month: month, year: year)
+        let current = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
+        return year < current.year || (year == current.year && month < current.month)
     }
 
     private var isFutureMonth: Bool {
         guard let month = budget.month, let year = budget.year else { return false }
-        let now = Date()
-        let currentMonth = Calendar.current.component(.month, from: now)
-        let currentYear = now.year
-        return year > currentYear || (year == currentYear && month > currentMonth)
+        let current = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
+        return year > current.year || (year == current.year && month > current.month)
     }
 
     private var amountColor: Color {
@@ -197,6 +207,12 @@ struct BudgetMonthRow: View {
                             .font(isPastMonth ? PulpeTypography.body : PulpeTypography.onboardingSubtitle)
                             .foregroundStyle(isPastMonth ? .secondary : .primary)
 
+                        if let periodLabel {
+                            Text(periodLabel)
+                                .font(PulpeTypography.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+
                         if let remaining = budget.remaining {
                             Text(remaining.asCompactCHF)
                                 .font(PulpeTypography.amountMedium)
@@ -208,9 +224,16 @@ struct BudgetMonthRow: View {
 
                     Spacer()
                 } else {
-                    Text(monthName)
-                        .font(isPastMonth ? PulpeTypography.body : PulpeTypography.onboardingSubtitle)
-                        .foregroundStyle(isPastMonth ? .secondary : .primary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(monthName)
+                            .font(isPastMonth ? PulpeTypography.body : PulpeTypography.onboardingSubtitle)
+                            .foregroundStyle(isPastMonth ? .secondary : .primary)
+                        if let periodLabel {
+                            Text(periodLabel)
+                                .font(PulpeTypography.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
                     if isFutureMonth {
                         Text("À venir")
                             .font(PulpeTypography.progressUnit)

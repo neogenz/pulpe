@@ -72,7 +72,9 @@ describe('DashboardHistoryChart', () => {
 
   it('should display empty message when no data is provided', () => {
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Pas assez de données');
+    expect(fixture.nativeElement.textContent).toContain(
+      "Pas encore d'historique",
+    );
   });
 
   it('should report hasData false when history is empty', () => {
