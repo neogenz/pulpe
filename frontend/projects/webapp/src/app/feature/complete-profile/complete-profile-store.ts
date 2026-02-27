@@ -180,6 +180,7 @@ export class CompleteProfileStore {
       internetPlan: state.internetPlan ?? undefined,
       transportCosts: state.transportCosts ?? undefined,
       leasingCredit: state.leasingCredit ?? undefined,
+      payDayOfMonth: state.payDayOfMonth ?? undefined,
     };
 
     try {
