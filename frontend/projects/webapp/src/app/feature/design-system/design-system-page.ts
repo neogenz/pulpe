@@ -109,33 +109,15 @@ import { ThemeService } from '@core/theme';
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div class="space-y-2">
             <p class="text-label-large text-on-surface-variant">Comfortable</p>
-            <pulpe-budget-financial-overview
-              [totals]="comfortableTotals"
-              [realizedBalance]="0"
-              [realizedExpenses]="0"
-              [checkedCount]="0"
-              [totalCount]="4"
-            />
+            <pulpe-budget-financial-overview [totals]="comfortableTotals" />
           </div>
           <div class="space-y-2">
             <p class="text-label-large text-on-surface-variant">Warning</p>
-            <pulpe-budget-financial-overview
-              [totals]="warningTotals"
-              [realizedBalance]="0"
-              [realizedExpenses]="0"
-              [checkedCount]="0"
-              [totalCount]="5"
-            />
+            <pulpe-budget-financial-overview [totals]="warningTotals" />
           </div>
           <div class="space-y-2">
             <p class="text-label-large text-on-surface-variant">Deficit</p>
-            <pulpe-budget-financial-overview
-              [totals]="deficitTotals"
-              [realizedBalance]="0"
-              [realizedExpenses]="0"
-              [checkedCount]="0"
-              [totalCount]="5"
-            />
+            <pulpe-budget-financial-overview [totals]="deficitTotals" />
           </div>
         </div>
       </section>

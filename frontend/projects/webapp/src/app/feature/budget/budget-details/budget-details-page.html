@@ -93,10 +93,6 @@
   <!-- Financial Overview -->
   <pulpe-budget-financial-overview
     [totals]="financialTotals()"
-    [realizedBalance]="store.realizedBalance()"
-    [realizedExpenses]="store.realizedExpenses()"
-    [checkedCount]="store.checkedItemsCount()"
-    [totalCount]="store.totalItemsCount()"
     data-tour="financial-overview"
   />
 
@@ -104,6 +100,9 @@
   <pulpe-budget-items
     [budgetLines]="store.filteredBudgetLines()"
     [transactions]="store.filteredTransactions()"
+    [checkedCount]="store.checkedItemsCount()"
+    [totalCount]="store.totalItemsCount()"
+    [estimatedBalance]="store.realizedBalance()"
     [isShowingOnlyUnchecked]="store.isShowingOnlyUnchecked()"
     (isShowingOnlyUncheckedChange)="store.setIsShowingOnlyUnchecked($event)"
     [searchText]="store.searchText()"

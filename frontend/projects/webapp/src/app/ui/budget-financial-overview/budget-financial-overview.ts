@@ -6,8 +6,6 @@ import {
   input,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { RealizedBalanceProgressBar } from '@ui/realized-balance-progress-bar/realized-balance-progress-bar';
-import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-balance-tooltip';
 
 export interface FinancialTotals {
   income: number;
@@ -24,12 +22,7 @@ export interface FinancialTotals {
  */
 @Component({
   selector: 'pulpe-budget-financial-overview',
-  imports: [
-    MatIconModule,
-    DecimalPipe,
-    RealizedBalanceProgressBar,
-    RealizedBalanceTooltip,
-  ],
+  imports: [MatIconModule, DecimalPipe],
   template: `
     <div class="space-y-6">
       <!-- Hero Section: What matters most -->
@@ -48,12 +41,23 @@ export interface FinancialTotals {
           @switch (budgetState()) {
             @case ('comfortable') {
               Ce qu'il te reste ce mois
+              <span
+                class="text-body-small text-on-primary-container/70 block mt-0.5"
+                >selon tes prévisions</span
+              >
             }
             @case ('warning') {
               Ce qu'il te reste ce mois
+              <span class="text-body-small text-warning/70 block mt-0.5"
+                >selon tes prévisions</span
+              >
             }
             @case ('deficit') {
               Déficit ce mois
+              <span
+                class="text-body-small text-on-error-container/70 block mt-0.5"
+                >selon tes prévisions</span
+              >
             }
           }
         </p>
@@ -161,17 +165,6 @@ export interface FinancialTotals {
           </div>
         </div>
       </div>
-
-      <!-- Journey Tracker: Realized balance progress -->
-      <pulpe-realized-balance-progress-bar
-        [realizedExpenses]="realizedExpenses()"
-        [realizedBalance]="realizedBalance()"
-        [checkedCount]="checkedCount()"
-        [totalCount]="totalCount()"
-        data-testid="realized-balance-progress"
-      >
-        <pulpe-realized-balance-tooltip slot="title-info" />
-      </pulpe-realized-balance-progress-bar>
     </div>
   `,
   styles: `
@@ -231,10 +224,6 @@ export interface FinancialTotals {
 })
 export class BudgetFinancialOverview {
   readonly totals = input.required<FinancialTotals>();
-  readonly realizedBalance = input.required<number>();
-  readonly realizedExpenses = input.required<number>();
-  readonly checkedCount = input.required<number>();
-  readonly totalCount = input.required<number>();
   readonly warningThreshold = input(90);
 
   readonly isPositive = computed(() => this.totals().remaining >= 0);

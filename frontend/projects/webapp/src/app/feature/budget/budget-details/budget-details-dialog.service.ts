@@ -191,10 +191,10 @@ export class BudgetDetailsDialogService {
   async confirmCheckAllocatedTransactions(): Promise<boolean> {
     const dialogRef = this.#dialog.open(ConfirmationDialog, {
       data: {
-        title: 'Comptabiliser les transactions ?',
+        title: 'Pointer les transactions ?',
         message:
-          'Des transactions non comptabilisées sont liées à cette enveloppe. Voulez-vous toutes les comptabiliser ?',
-        confirmText: 'Oui, tout comptabiliser',
+          'Des transactions non pointées sont liées à cette enveloppe. Voulez-vous toutes les pointer ?',
+        confirmText: 'Oui, tout pointer',
         cancelText: "Non, juste l'enveloppe",
       } satisfies ConfirmationDialogData,
       width: '500px',
