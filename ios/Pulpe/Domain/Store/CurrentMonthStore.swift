@@ -25,6 +25,9 @@ final class CurrentMonthStore: StoreProtocol {
         error != nil && budget == nil
     }
 
+    /// Custom pay day used for period resolution (set via loadBudgetSummary)
+    private(set) var payDayOfMonth: Int?
+
     // Track IDs of items currently syncing for visual feedback
     private(set) var syncingTransactionIds: Set<String> = []
     private(set) var syncingBudgetLineIds: Set<String> = []
@@ -75,7 +78,8 @@ final class CurrentMonthStore: StoreProtocol {
 
     /// Lightweight loading: only fetches budget summary via GET /budgets
     /// Use this at app startup to quickly enable the "+" button
-    func loadBudgetSummary() async {
+    func loadBudgetSummary(payDayOfMonth: Int? = nil) async {
+        self.payDayOfMonth = payDayOfMonth
         guard budget == nil else { return }
         isLoading = true
         error = nil
@@ -86,13 +90,10 @@ final class CurrentMonthStore: StoreProtocol {
                 fields: "month,year",
                 limit: 13
             )
-            let calendar = Calendar.current
-            let now = Date()
-            let currentMonth = calendar.component(.month, from: now)
-            let currentYear = calendar.component(.year, from: now)
+            let period = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
 
             guard let match = sparseBudgets.first(where: {
-                $0.month == currentMonth && $0.year == currentYear
+                $0.month == period.month && $0.year == period.year
             }) else { return }
 
             let fetchedBudget = try await budgetService.getBudget(id: match.id)
@@ -137,6 +138,11 @@ final class CurrentMonthStore: StoreProtocol {
         }
     }
 
+    /// Update the stored payDayOfMonth so subsequent forceRefresh() calls use the correct period
+    func setPayDay(_ payDay: Int?) {
+        payDayOfMonth = payDay
+    }
+
     func loadIfNeeded() async {
         guard !isCacheValid else { return }
         await forceRefresh()
@@ -151,6 +157,7 @@ final class CurrentMonthStore: StoreProtocol {
         budget = nil
         budgetLines = []
         transactions = []
+        payDayOfMonth = nil
         syncingTransactionIds = []
         syncingBudgetLineIds = []
         lastLoadTime = nil
@@ -172,7 +179,9 @@ final class CurrentMonthStore: StoreProtocol {
             defer { isLoading = false }
 
             do {
-                guard let currentBudget = try await budgetService.getCurrentMonthBudget() else {
+                guard let currentBudget = try await budgetService.getCurrentMonthBudget(
+                    payDayOfMonth: self.payDayOfMonth
+                ) else {
                     budget = nil
                     budgetLines = []
                     transactions = []
@@ -208,7 +217,7 @@ final class CurrentMonthStore: StoreProtocol {
 
     private func syncWidgetData(details: BudgetDetails?) async {
         // Use centralized sync for consistency
-        await widgetSyncService.syncAll()
+        await widgetSyncService.syncAll(payDayOfMonth: payDayOfMonth)
     }
 
     private func syncWidgetAfterChange() async {
@@ -266,10 +275,20 @@ final class CurrentMonthStore: StoreProtocol {
 // MARK: - Computed Properties
 
 extension CurrentMonthStore {
-    /// Days remaining in current month
-    var daysRemaining: Int {
+    /// Days remaining in the current budget period
+    func daysRemaining(payDayOfMonth: Int? = nil) -> Int {
         let calendar = Calendar.current
         let today = Date()
+
+        if let payDay = payDayOfMonth, payDay > 1, let budget {
+            let periodDates = BudgetPeriodCalculator.periodDates(
+                month: budget.month, year: budget.year, payDayOfMonth: payDay
+            )
+            let remaining = calendar.dateComponents([.day], from: today, to: periodDates.endDate).day ?? 0
+            return max(remaining + 1, 1)
+        }
+
+        // Standard calendar month
         guard let range = calendar.range(of: .day, in: .month, for: today),
               let lastDay = calendar.date(from: DateComponents(
                 year: calendar.component(.year, from: today),
@@ -282,9 +301,10 @@ extension CurrentMonthStore {
     }
 
     /// Daily budget available (remaining / days left)
-    var dailyBudget: Decimal {
-        guard daysRemaining > 0, metrics.remaining > 0 else { return 0 }
-        return metrics.remaining / Decimal(daysRemaining)
+    func dailyBudget(payDayOfMonth: Int? = nil) -> Decimal {
+        let days = daysRemaining(payDayOfMonth: payDayOfMonth)
+        guard days > 0, metrics.remaining > 0 else { return 0 }
+        return metrics.remaining / Decimal(days)
     }
 
     /// Budget lines that are at or above 80% consumption (alerts)

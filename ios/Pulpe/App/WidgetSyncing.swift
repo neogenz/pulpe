@@ -20,11 +20,17 @@ struct WidgetSyncAdapter: WidgetSyncing {
 @Observable @MainActor
 final class WidgetSyncViewModel {
     private let budgetService = BudgetService.shared
+    private let userSettingsService = UserSettingsService.shared
 
     func syncWidgetData() async {
-        guard let currentBudget = try? await budgetService.getCurrentMonthBudget(),
+        let payDay = try? await userSettingsService.getSettings().payDayOfMonth
+        guard let currentBudget = try? await budgetService.getCurrentMonthBudget(payDayOfMonth: payDay),
               let details = try? await budgetService.getBudgetWithDetails(id: currentBudget.id) else {
-            await WidgetDataSyncService.shared.sync(budgetsWithDetails: [], currentBudgetDetails: nil)
+            await WidgetDataSyncService.shared.sync(
+                budgetsWithDetails: [],
+                currentBudgetDetails: nil,
+                payDayOfMonth: payDay
+            )
             return
         }
 
@@ -32,13 +38,15 @@ final class WidgetSyncViewModel {
             let exportData = try await budgetService.exportAllBudgets()
             await WidgetDataSyncService.shared.sync(
                 budgetsWithDetails: exportData.budgets,
-                currentBudgetDetails: details
+                currentBudgetDetails: details,
+                payDayOfMonth: payDay
             )
         } catch {
             Logger.sync.error("WidgetSyncViewModel: exportAllBudgets failed - \(error)")
             await WidgetDataSyncService.shared.sync(
                 budgetsWithDetails: [],
-                currentBudgetDetails: details
+                currentBudgetDetails: details,
+                payDayOfMonth: payDay
             )
         }
     }

@@ -234,6 +234,7 @@ struct AddTransactionSheet: View {
 
 struct DeepLinkAddExpenseSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var viewModel = DeepLinkAddExpenseViewModel()
 
     var body: some View {
@@ -248,7 +249,7 @@ struct DeepLinkAddExpenseSheet: View {
                         Text(DomainErrorLocalizer.localize(error))
                     } actions: {
                         Button("Réessayer") {
-                            Task { await viewModel.loadCurrentBudget() }
+                            Task { await viewModel.loadCurrentBudget(payDayOfMonth: userSettingsStore.payDayOfMonth) }
                         }
                         .buttonStyle(.bordered)
                     }
@@ -265,7 +266,7 @@ struct DeepLinkAddExpenseSheet: View {
                 }
             }
             .task {
-                await viewModel.loadCurrentBudget()
+                await viewModel.loadCurrentBudget(payDayOfMonth: userSettingsStore.payDayOfMonth)
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -282,11 +283,11 @@ final class DeepLinkAddExpenseViewModel {
     private(set) var isLoading = true
     private(set) var error: Error?
 
-    func loadCurrentBudget() async {
+    func loadCurrentBudget(payDayOfMonth: Int? = nil) async {
         isLoading = true
         error = nil
         do {
-            let budget = try await BudgetService.shared.getCurrentMonthBudget()
+            let budget = try await BudgetService.shared.getCurrentMonthBudget(payDayOfMonth: payDayOfMonth)
             currentBudgetId = budget?.id
         } catch {
             self.error = error

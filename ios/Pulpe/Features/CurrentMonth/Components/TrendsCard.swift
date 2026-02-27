@@ -32,8 +32,8 @@ struct TrendsCard: View {
                         ForEach(expenses) { expense in
                             Text(expense.shortMonthName)
                                 .font(PulpeTypography.caption)
-                                .foregroundStyle(expense.isCurrentMonth ? .primary : .secondary)
-                                .fontWeight(expense.isCurrentMonth ? .semibold : .regular)
+                                .foregroundStyle(expense.isCurrentPeriod ? .primary : .secondary)
+                                .fontWeight(expense.isCurrentPeriod ? .semibold : .regular)
                         }
                     }
 
@@ -136,9 +136,9 @@ struct TrendsEmptyState: View {
         // With data
         TrendsCard(
             expenses: [
-                MonthlyExpense(month: 12, year: 2025, total: 3800, isCurrentMonth: false),
-                MonthlyExpense(month: 1, year: 2026, total: 3500, isCurrentMonth: false),
-                MonthlyExpense(month: 2, year: 2026, total: 4200, isCurrentMonth: true)
+                MonthlyExpense(month: 12, year: 2025, total: 3800, isCurrentPeriod: false),
+                MonthlyExpense(month: 1, year: 2026, total: 3500, isCurrentPeriod: false),
+                MonthlyExpense(month: 2, year: 2026, total: 4200, isCurrentPeriod: true)
             ],
             variation: ExpenseVariation(
                 amount: 700,
@@ -152,9 +152,9 @@ struct TrendsEmptyState: View {
         // Decrease
         TrendsCard(
             expenses: [
-                MonthlyExpense(month: 12, year: 2025, total: 4500, isCurrentMonth: false),
-                MonthlyExpense(month: 1, year: 2026, total: 4200, isCurrentMonth: false),
-                MonthlyExpense(month: 2, year: 2026, total: 3800, isCurrentMonth: true)
+                MonthlyExpense(month: 12, year: 2025, total: 4500, isCurrentPeriod: false),
+                MonthlyExpense(month: 1, year: 2026, total: 4200, isCurrentPeriod: false),
+                MonthlyExpense(month: 2, year: 2026, total: 3800, isCurrentPeriod: true)
             ],
             variation: ExpenseVariation(
                 amount: -400,

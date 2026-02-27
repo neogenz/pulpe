@@ -3,6 +3,7 @@ import SwiftUI
 struct BudgetListView: View {
     @Environment(AppState.self) private var appState
     @Environment(BudgetListStore.self) private var store
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showCreateBudget = false
     @State private var createBudgetTarget: (month: Int, year: Int)?
@@ -75,7 +76,10 @@ struct BudgetListView: View {
         }
         .task {
             await store.loadIfNeeded()
-            expandedYears = [Date().year]
+            let currentPeriod = BudgetPeriodCalculator.periodForDate(
+                Date(), payDayOfMonth: userSettingsStore.payDayOfMonth
+            )
+            expandedYears = [currentPeriod.year]
             if reduceMotion {
                 hasAppeared = true
             } else {
@@ -104,6 +108,7 @@ struct BudgetListView: View {
                         YearSection(
                             year: group.year,
                             budgets: group.budgets,
+                            payDayOfMonth: userSettingsStore.payDayOfMonth,
                             isExpanded: expandedYears.contains(group.year),
                             onToggle: {
                                 withAnimation(.easeInOut(duration: 0.25)) {
@@ -152,6 +157,7 @@ struct BudgetListView: View {
 struct YearSection: View {
     let year: Int
     let budgets: [BudgetSparse]
+    var payDayOfMonth: Int?
     let isExpanded: Bool
     let onToggle: () -> Void
     let onSelect: (BudgetSparse) -> Void
@@ -160,7 +166,7 @@ struct YearSection: View {
     @State private var expandTrigger = false
 
     private var layoutData: YearSectionLayoutData {
-        YearSectionLayoutData(year: year, budgets: budgets)
+        YearSectionLayoutData(year: year, budgets: budgets, payDayOfMonth: payDayOfMonth)
     }
 
     private var yearEndRemaining: Decimal? {
@@ -191,7 +197,16 @@ struct YearSection: View {
                     monthListCard(months: data.monthsBefore)
                 }
                 if let current = data.currentMonthBudget {
-                    CurrentMonthHeroCard(budget: current) {
+                    CurrentMonthHeroCard(
+                        budget: current,
+                        periodLabel: current.month.flatMap { month in
+                            current.year.flatMap { year in
+                                BudgetPeriodCalculator.formatPeriod(
+                                    month: month, year: year, payDayOfMonth: payDayOfMonth
+                                )
+                            }
+                        }
+                    ) {
                         onSelect(current)
                     }
                     .id("currentMonthHero")
@@ -255,7 +270,17 @@ struct YearSection: View {
         VStack(spacing: 0) {
             ForEach(Array(months.enumerated()), id: \.element.month) { index, slot in
                 if let budget = slot.budget {
-                    BudgetMonthRow(budget: budget) {
+                    BudgetMonthRow(
+                        budget: budget,
+                        periodLabel: budget.month.flatMap { month in
+                            budget.year.flatMap { year in
+                                BudgetPeriodCalculator.formatPeriod(
+                                    month: month, year: year, payDayOfMonth: payDayOfMonth
+                                )
+                            }
+                        },
+                        payDayOfMonth: payDayOfMonth
+                    ) {
                         onSelect(budget)
                     }
                 } else {
@@ -287,20 +312,17 @@ private struct YearSectionLayoutData {
     let monthsAfter: [MonthSlot]
     let allMonths: [MonthSlot]
 
-    init(year: Int, budgets: [BudgetSparse]) {
-        let now = Date()
-        let calendar = Calendar.current
-        let currentMonth = calendar.component(.month, from: now)
-        let currentYear = now.year
+    init(year: Int, budgets: [BudgetSparse], payDayOfMonth: Int? = nil) {
+        let currentPeriod = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
 
-        self.isCurrentYear = year == currentYear
-        self.isPastYear = year < currentYear
+        self.isCurrentYear = year == currentPeriod.year
+        self.isPastYear = year < currentPeriod.year
         var slots: [MonthSlot] = budgets.compactMap { budget in
             guard let month = budget.month else { return nil }
             return MonthSlot(month: month, budget: budget)
         }
-        if year >= currentYear {
-            let startMonth = (year == currentYear) ? currentMonth : 1
+        if year >= currentPeriod.year {
+            let startMonth = (year == currentPeriod.year) ? currentPeriod.month : 1
             for month in startMonth ... 12 where !budgets.contains { $0.month == month } {
                 slots.append(MonthSlot(month: month, budget: nil))
                 break
@@ -308,18 +330,18 @@ private struct YearSectionLayoutData {
         }
 
         let visibleMonths = slots.sorted { $0.month < $1.month }
-        self.currentMonthBudget = budgets.first { $0.isCurrentMonth }
+        self.currentMonthBudget = budgets.first { $0.isCurrentPeriod(payDayOfMonth: payDayOfMonth) }
         var before: [MonthSlot] = []
         var after: [MonthSlot] = []
         var all: [MonthSlot] = []
 
         for slot in visibleMonths {
-            let isCurrent = slot.budget?.isCurrentMonth == true
+            let isCurrent = slot.budget?.isCurrentPeriod(payDayOfMonth: payDayOfMonth) == true
             if !isCurrent {
                 all.append(slot)
-                if slot.month < currentMonth {
+                if slot.month < currentPeriod.month {
                     before.append(slot)
-                } else if slot.month > currentMonth {
+                } else if slot.month > currentPeriod.month {
                     after.append(slot)
                 }
             }

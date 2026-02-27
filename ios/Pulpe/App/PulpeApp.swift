@@ -19,6 +19,7 @@ struct PulpeApp: App {
     @State private var currentMonthStore: CurrentMonthStore
     @State private var budgetListStore: BudgetListStore
     @State private var dashboardStore: DashboardStore
+    @State private var userSettingsStore: UserSettingsStore
     @State private var runtimeCoordinator: AppRuntimeCoordinator
     @State private var deepLinkDestination: DeepLinkDestination?
 
@@ -27,17 +28,20 @@ struct PulpeApp: App {
         let currentMonthStore = CurrentMonthStore()
         let budgetListStore = BudgetListStore()
         let dashboardStore = DashboardStore()
+        let userSettingsStore = UserSettingsStore()
 
         appState.sessionDataResetter = LiveSessionDataResetter(
             currentMonthStore: currentMonthStore,
             budgetListStore: budgetListStore,
-            dashboardStore: dashboardStore
+            dashboardStore: dashboardStore,
+            userSettingsStore: userSettingsStore
         )
 
         _appState = State(initialValue: appState)
         _currentMonthStore = State(initialValue: currentMonthStore)
         _budgetListStore = State(initialValue: budgetListStore)
         _dashboardStore = State(initialValue: dashboardStore)
+        _userSettingsStore = State(initialValue: userSettingsStore)
         _runtimeCoordinator = State(initialValue: AppRuntimeCoordinator(
             appState: appState,
             currentMonthStore: currentMonthStore,
@@ -71,6 +75,7 @@ struct PulpeApp: App {
                     .environment(currentMonthStore)
                     .environment(budgetListStore)
                     .environment(dashboardStore)
+                    .environment(userSettingsStore)
                     .onOpenURL { url in
                         handleDeepLink(url)
                     }
@@ -110,6 +115,7 @@ struct RootView: View {
     @Environment(AppState.self) private var appState
     @Environment(UIPreferencesState.self) private var uiPreferences
     @Environment(CurrentMonthStore.self) private var currentMonthStore
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.scenePhase) private var scenePhase
     var runtimeCoordinator: AppRuntimeCoordinator
     @Binding var deepLinkDestination: DeepLinkDestination?
@@ -167,7 +173,10 @@ struct RootView: View {
             )
             #endif
             if appState.authState == .authenticated {
-                await currentMonthStore.loadBudgetSummary()
+                await userSettingsStore.loadIfNeeded()
+                await currentMonthStore.loadBudgetSummary(
+                    payDayOfMonth: userSettingsStore.payDayOfMonth
+                )
             }
         }
         .onChange(of: appState.isInMaintenance) { oldValue, newValue in
@@ -285,7 +294,10 @@ struct RootView: View {
             NetworkUnavailableView {
                 await appState.retryStartup()
                 if appState.authState == .authenticated {
-                    await currentMonthStore.loadBudgetSummary()
+                    await userSettingsStore.loadIfNeeded()
+                    await currentMonthStore.loadBudgetSummary(
+                        payDayOfMonth: userSettingsStore.payDayOfMonth
+                    )
                 }
             }
 
@@ -401,14 +413,10 @@ struct RootView: View {
 
 struct PrivacyShieldOverlay: View {
     var body: some View {
-        ZStack {
-            Color(.systemBackground)
-                .ignoresSafeArea()
-
-            PulpeIcon(size: 44)
-                .opacity(0.55)
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
+        Rectangle()
+            .fill(.regularMaterial)
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 }
