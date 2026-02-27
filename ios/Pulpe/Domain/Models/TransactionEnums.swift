@@ -41,6 +41,14 @@ enum TransactionKind: String, Codable, CaseIterable, Sendable {
         }
     }
 
+    var descriptionPlaceholder: String {
+        switch self {
+        case .expense: "Ex : Courses, Restaurant..."
+        case .income: "Ex : Salaire, Remboursement..."
+        case .saving: "Ex : Vacances, Fonds d'urgence..."
+        }
+    }
+
     var newTransactionTitle: String {
         switch self {
         case .expense: "Nouvelle dépense"

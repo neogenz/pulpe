@@ -48,28 +48,40 @@ struct EditBudgetLineSheet: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: DesignTokens.Spacing.xxl) {
-                KindToggle(selection: $kind)
-                heroAmountSection
-                descriptionField
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: DesignTokens.Spacing.xxl) {
+                    KindToggle(selection: $kind)
+                    heroAmountSection
+                    descriptionField
 
-                if let error {
-                    ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
-                        self.error = nil
+                    if let error {
+                        ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                            self.error = nil
+                        }
                     }
-                }
 
-                saveButton
+                    saveButton
+                }
+                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.xl)
             }
-            .padding(.horizontal, DesignTokens.Spacing.xl)
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.xl)
+            .background(Color.surfacePrimary)
+            .navigationTitle(kind.editBudgetLineTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    SheetCloseButton()
+                }
+            }
+            .loadingOverlay(isLoading)
+            .dismissKeyboardOnTap()
         }
-        .background(Color.surfacePrimary)
-        .modernSheet(title: kind.editBudgetLineTitle)
-        .loadingOverlay(isLoading)
-        .dismissKeyboardOnTap()
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        .presentationCornerRadius(DesignTokens.CornerRadius.xl)
+        .presentationBackground(Color.surfacePrimary)
     }
 
     // MARK: - Hero Amount

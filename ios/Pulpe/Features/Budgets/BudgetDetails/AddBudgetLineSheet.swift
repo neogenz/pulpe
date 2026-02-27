@@ -32,40 +32,52 @@ struct AddBudgetLineSheet: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: DesignTokens.Spacing.xxl) {
-                KindToggle(selection: $kind)
-                heroAmountSection
-                quickAmountChips
-                descriptionField
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: DesignTokens.Spacing.xxl) {
+                    KindToggle(selection: $kind)
+                    heroAmountSection
+                    quickAmountChips
+                    descriptionField
 
-                if let error {
-                    ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
-                        self.error = nil
+                    if let error {
+                        ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                            self.error = nil
+                        }
                     }
-                }
 
-                addButton
+                    addButton
+                }
+                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.xl)
             }
-            .padding(.horizontal, DesignTokens.Spacing.xl)
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.xl)
-        }
-        .background(Color.surfacePrimary)
-        .modernSheet(title: kind.newBudgetLineTitle)
-        .loadingOverlay(isLoading)
-        .dismissKeyboardOnTap()
-        .task {
-            try? await Task.sleep(for: .milliseconds(200))
-            isAmountFocused = true
-        }
-        .onChange(of: isAmountFocused) { _, isFocused in
-            if !isFocused, let quickAmount = pendingQuickAmount {
-                amount = Decimal(quickAmount)
-                amountText = "\(quickAmount)"
-                pendingQuickAmount = nil
+            .background(Color.surfacePrimary)
+            .navigationTitle(kind.newBudgetLineTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    SheetCloseButton()
+                }
+            }
+            .loadingOverlay(isLoading)
+            .dismissKeyboardOnTap()
+            .task {
+                try? await Task.sleep(for: .milliseconds(200))
+                isAmountFocused = true
+            }
+            .onChange(of: isAmountFocused) { _, isFocused in
+                if !isFocused, let quickAmount = pendingQuickAmount {
+                    amount = Decimal(quickAmount)
+                    amountText = "\(quickAmount)"
+                    pendingQuickAmount = nil
+                }
             }
         }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        .presentationCornerRadius(DesignTokens.CornerRadius.xl)
+        .presentationBackground(Color.surfacePrimary)
     }
 
     // MARK: - Hero Amount

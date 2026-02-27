@@ -35,76 +35,88 @@ struct EditTransactionSheet: View {
     }
 
     var body: some View {
-        Form {
-            Section {
-                TextField("Description", text: $name)
-                    .font(PulpeTypography.bodyLarge)
-                    .listRowBackground(Color.surfaceCard)
-            } header: {
-                Text("Description")
-                    .font(PulpeTypography.labelLarge)
-            }
-
-            Section {
-                CurrencyField(value: $amount)
-                    .listRowBackground(Color.surfaceCard)
-            } header: {
-                Text("Montant")
-                    .font(PulpeTypography.labelLarge)
-            }
-
-            Section {
-                Picker("Type", selection: $kind) {
-                    ForEach(TransactionKind.allCases, id: \.self) { type in
-                        Label(type.label, systemImage: type.icon)
-                            .tag(type)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .listRowBackground(Color.surfaceCard)
-            } header: {
-                Text("Type")
-                    .font(PulpeTypography.labelLarge)
-            }
-
-            Section {
-                DatePicker(
-                    "Date",
-                    selection: $transactionDate,
-                    displayedComponents: .date
-                )
-                .datePickerStyle(.graphical)
-                .listRowBackground(Color.surfaceCard)
-            } header: {
-                Text("Date")
-                    .font(PulpeTypography.labelLarge)
-            }
-
-            if let error {
+        NavigationStack {
+            Form {
                 Section {
-                    ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
-                        self.error = nil
+                    TextField("Description", text: $name)
+                        .font(PulpeTypography.bodyLarge)
+                        .listRowBackground(Color.surfaceCard)
+                } header: {
+                    Text("Description")
+                        .font(PulpeTypography.labelLarge)
+                }
+
+                Section {
+                    CurrencyField(value: $amount)
+                        .listRowBackground(Color.surfaceCard)
+                } header: {
+                    Text("Montant")
+                        .font(PulpeTypography.labelLarge)
+                }
+
+                Section {
+                    Picker("Type", selection: $kind) {
+                        ForEach(TransactionKind.allCases, id: \.self) { type in
+                            Label(type.label, systemImage: type.icon)
+                                .tag(type)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .listRowBackground(Color.surfaceCard)
+                } header: {
+                    Text("Type")
+                        .font(PulpeTypography.labelLarge)
+                }
+
+                Section {
+                    DatePicker(
+                        "Date",
+                        selection: $transactionDate,
+                        displayedComponents: .date
+                    )
+                    .datePickerStyle(.graphical)
+                    .listRowBackground(Color.surfaceCard)
+                } header: {
+                    Text("Date")
+                        .font(PulpeTypography.labelLarge)
+                }
+
+                if let error {
+                    Section {
+                        ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                            self.error = nil
+                        }
                     }
                 }
-            }
 
-            Section {
-                Button {
-                    Task { await updateTransaction() }
-                } label: {
-                    Text("Enregistrer")
+                Section {
+                    Button {
+                        Task { await updateTransaction() }
+                    } label: {
+                        Text("Enregistrer")
+                    }
+                    .disabled(!canSubmit)
+                    .primaryButtonStyle(isEnabled: canSubmit)
+                    .buttonStyle(.plain)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
                 }
-                .disabled(!canSubmit)
-                .primaryButtonStyle(isEnabled: canSubmit)
-                .buttonStyle(.plain)
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.surfacePrimary)
+            .navigationTitle("Modifier la transaction")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    SheetCloseButton()
+                }
+            }
+            .loadingOverlay(isLoading)
         }
-        .scrollContentBackground(.hidden)
-        .background(Color.surfacePrimary)
-        .modernSheet(title: "Modifier la transaction")
-        .loadingOverlay(isLoading)
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        .presentationCornerRadius(DesignTokens.CornerRadius.xl)
+        .presentationBackground(Color.surfacePrimary)
     }
 
     private func updateTransaction() async {
