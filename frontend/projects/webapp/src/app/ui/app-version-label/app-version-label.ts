@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { buildInfo } from '@env/build-info';
 
 @Component({
@@ -7,8 +7,8 @@ import { buildInfo } from '@env/build-info';
   host: {
     class: 'block py-3 text-label-small text-on-surface-variant/50',
   },
-  template: `v{{ version }}`,
+  template: `v{{ version() }}`,
 })
 export class AppVersionLabel {
-  protected readonly version = buildInfo.version;
+  readonly version = input(buildInfo.version);
 }
