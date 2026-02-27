@@ -65,7 +65,9 @@ import { BudgetGridSection } from './budget-grid-section';
             (toggleCheck)="toggleCheck.emit($event)"
           />
         } @empty {
-          <ng-container *ngTemplateOutlet="emptyState" />
+          @if (transactionItems().length === 0) {
+            <ng-container *ngTemplateOutlet="emptyState" />
+          }
         }
 
         <!-- Transactions section -->

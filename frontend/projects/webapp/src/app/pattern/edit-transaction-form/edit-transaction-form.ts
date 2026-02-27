@@ -2,10 +2,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   input,
   output,
   signal,
+  untracked,
   type OnInit,
 } from '@angular/core';
 import {
@@ -307,6 +309,20 @@ export class EditTransactionForm implements OnInit {
     ],
     category: ['', TransactionValidators.category],
   });
+
+  constructor() {
+    // Re-validate the date control when the budget period boundaries change,
+    // since Angular validators don't re-run on external signal changes.
+    effect(() => {
+      this.minDate();
+      this.maxDate();
+      untracked(() =>
+        this.transactionForm
+          .get('transactionDate')
+          ?.updateValueAndValidity({ emitEvent: false }),
+      );
+    });
+  }
 
   protected isFieldHidden(field: HideableField): boolean {
     return this.hiddenFields().includes(field);
