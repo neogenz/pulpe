@@ -24,7 +24,7 @@ struct KindBadge: View {
             }
 
             if style != .compact {
-                Text(kind.shortLabel)
+                Text(kind.label)
                     .font(PulpeTypography.caption2)
                     .fontWeight(.medium)
             }

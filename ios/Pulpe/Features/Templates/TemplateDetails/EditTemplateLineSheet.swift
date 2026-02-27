@@ -32,112 +32,53 @@ struct EditTemplateLineSheet: View {
         return !name.trimmingCharacters(in: .whitespaces).isEmpty && !isLoading
     }
 
-    private var displayAmount: String {
-        if let amount, amount > 0 {
-            return Formatters.amountInput.string(from: amount as NSDecimalNumber) ?? "0"
-        }
-        return "0.00"
-    }
-
     var body: some View {
-        ScrollView {
-            VStack(spacing: DesignTokens.Spacing.xxl) {
-                heroAmountSection
-                descriptionField
-                kindSelector
-                recurrenceSelector
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: DesignTokens.Spacing.xxl) {
+                    HeroAmountField(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused)
+                    descriptionField
+                    KindToggle(selection: $kind)
+                    recurrenceSelector
 
-                if let error {
-                    ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
-                        self.error = nil
+                    if let error {
+                        ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                            self.error = nil
+                        }
                     }
+
+                    saveButton
                 }
-
-                saveButton
+                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.xl)
             }
-            .padding(.horizontal, DesignTokens.Spacing.xl)
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.xl)
-        }
-        .background(Color.surfacePrimary)
-        .modernSheet(title: "Modifier la ligne")
-        .loadingOverlay(isLoading)
-        .dismissKeyboardOnTap()
-        .task {
-            try? await Task.sleep(for: .milliseconds(200))
-            isAmountFocused = true
-        }
-    }
-
-    // MARK: - Hero Amount
-
-    private var heroAmountSection: some View {
-        VStack(spacing: DesignTokens.Spacing.sm) {
-            Text(DesignTokens.AmountInput.currencyCode)
-                .font(PulpeTypography.labelLarge)
-                .foregroundStyle(Color.textTertiary)
-
-            ZStack {
-                TextField("", text: $amountText)
-                    .keyboardType(.decimalPad)
-                    .focused($isAmountFocused)
-                    .opacity(0)
-                    .frame(width: 0, height: 0)
-                    .onChange(of: amountText) { _, newValue in
-                        parseAmount(newValue)
-                    }
-
-                Text(displayAmount)
-                    .font(PulpeTypography.amountHero)
-                    .foregroundStyle((amount ?? 0) > 0 ? Color.textPrimary : Color.textTertiary)
-                    .contentTransition(.numericText())
-                    .animation(.snappy(duration: DesignTokens.Animation.fast), value: amount)
+            .background(Color.surfacePrimary)
+            .navigationTitle("Modifier la ligne")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton()
+                }
             }
-            .accessibilityAddTraits(.isButton)
-            .accessibilityLabel("Montant")
-            .onTapGesture { isAmountFocused = true }
-
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
-                .fill(isAmountFocused ? Color.pulpePrimary : Color.textTertiary.opacity(DesignTokens.Opacity.strong))
-                .frame(width: 120, height: 2)
-                .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isAmountFocused)
+            .loadingOverlay(isLoading)
+            .dismissKeyboardOnTap()
+            .task {
+                try? await Task.sleep(for: .milliseconds(200))
+                isAmountFocused = true
+            }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, DesignTokens.Spacing.lg)
+        .standardSheetPresentation()
     }
 
     // MARK: - Description
 
     private var descriptionField: some View {
-        TextField("Description", text: $name)
+        TextField(kind.descriptionPlaceholder, text: $name)
             .font(PulpeTypography.bodyLarge)
             .padding(DesignTokens.Spacing.lg)
             .background(Color.inputBackgroundSoft)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-    }
-
-    // MARK: - Kind Selector
-
-    private var kindSelector: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            ForEach(TransactionKind.allCases, id: \.self) { type in
-                Button {
-                    withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
-                        kind = type
-                    }
-                } label: {
-                    Label(type.label, systemImage: type.icon)
-                        .font(PulpeTypography.buttonSecondary)
-                        .padding(.horizontal, DesignTokens.Spacing.md)
-                        .padding(.vertical, DesignTokens.Spacing.sm + 2)
-                        .frame(maxWidth: .infinity)
-                        .background(kind == type ? Color.pulpePrimary : Color.surfaceSecondary)
-                        .foregroundStyle(kind == type ? Color.textOnPrimary : Color.textPrimary)
-                        .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-            }
-        }
     }
 
     // MARK: - Recurrence Selector
@@ -158,7 +99,7 @@ struct EditTemplateLineSheet: View {
                         Text(type.label)
                             .font(PulpeTypography.buttonSecondary)
                             .padding(.horizontal, DesignTokens.Spacing.md)
-                            .padding(.vertical, DesignTokens.Spacing.sm + 2)
+                            .padding(.vertical, DesignTokens.Spacing.sm)
                             .frame(maxWidth: .infinity)
                             .background(recurrence == type ? Color.pulpePrimary : Color.surfaceSecondary)
                             .foregroundStyle(recurrence == type ? Color.textOnPrimary : Color.textPrimary)
@@ -177,27 +118,12 @@ struct EditTemplateLineSheet: View {
             Task { await updateTemplateLine() }
         } label: {
             Text("Enregistrer")
-                .font(PulpeTypography.buttonPrimary)
-                .foregroundStyle(Color.textOnPrimary)
-                .frame(maxWidth: .infinity)
-                .frame(height: DesignTokens.FrameHeight.button)
-                .background(Color.pulpePrimary)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
-                .opacity(canSubmit ? 1 : 0.4)
         }
         .disabled(!canSubmit)
-        .buttonStyle(.plain)
+        .primaryButtonStyle(isEnabled: canSubmit)
     }
 
     // MARK: - Logic
-
-    private func parseAmount(_ text: String) {
-        if let value = text.parsedAsAmount {
-            amount = value
-        } else {
-            amount = nil
-        }
-    }
 
     private func updateTemplateLine() async {
         guard let amount else { return }

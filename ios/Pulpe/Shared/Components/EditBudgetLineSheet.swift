@@ -40,79 +40,48 @@ struct EditBudgetLineSheet: View {
         return !name.trimmingCharacters(in: .whitespaces).isEmpty && !isLoading
     }
 
-    private var displayAmount: String {
-        if let amount, amount > 0 {
-            return Formatters.amountInput.string(from: amount as NSDecimalNumber) ?? "0"
-        }
-        return "0.00"
-    }
-
     var body: some View {
-        ScrollView {
-            VStack(spacing: DesignTokens.Spacing.xxl) {
-                KindToggle(selection: $kind)
-                heroAmountSection
-                descriptionField
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: DesignTokens.Spacing.xxl) {
+                    KindToggle(selection: $kind)
+                    HeroAmountField(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused)
+                    descriptionField
 
-                if let error {
-                    ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
-                        self.error = nil
+                    if let error {
+                        ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                            self.error = nil
+                        }
                     }
+
+                    saveButton
                 }
-
-                saveButton
+                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.xl)
             }
-            .padding(.horizontal, DesignTokens.Spacing.xl)
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.xl)
-        }
-        .background(Color.surfacePrimary)
-        .modernSheet(title: kind.editBudgetLineTitle)
-        .loadingOverlay(isLoading)
-        .dismissKeyboardOnTap()
-    }
-
-    // MARK: - Hero Amount
-
-    private var heroAmountSection: some View {
-        VStack(spacing: DesignTokens.Spacing.sm) {
-            Text(DesignTokens.AmountInput.currencyCode)
-                .font(PulpeTypography.labelLarge)
-                .foregroundStyle(Color.textTertiary)
-
-            ZStack {
-                TextField("", text: $amountText)
-                    .keyboardType(.decimalPad)
-                    .focused($isAmountFocused)
-                    .opacity(0)
-                    .frame(width: 0, height: 0)
-                    .onChange(of: amountText) { _, newValue in
-                        parseAmount(newValue)
-                    }
-
-                Text(displayAmount)
-                    .font(PulpeTypography.amountHero)
-                    .foregroundStyle((amount ?? 0) > 0 ? Color.textPrimary : Color.textTertiary)
-                    .contentTransition(.numericText())
-                    .animation(.snappy(duration: DesignTokens.Animation.fast), value: amount)
+            .background(Color.surfacePrimary)
+            .navigationTitle(kind.editBudgetLineTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton()
+                }
             }
-            .accessibilityAddTraits(.isButton)
-            .accessibilityLabel("Montant")
-            .onTapGesture { isAmountFocused = true }
-
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
-                .fill(isAmountFocused ? Color.pulpePrimary : Color.textTertiary.opacity(DesignTokens.Opacity.strong))
-                .frame(width: 120, height: 2)
-                .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isAmountFocused)
+            .loadingOverlay(isLoading)
+            .dismissKeyboardOnTap()
+            .task {
+                try? await Task.sleep(for: .milliseconds(200))
+                isAmountFocused = true
+            }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, DesignTokens.Spacing.lg)
+        .standardSheetPresentation()
     }
 
     // MARK: - Description
 
     private var descriptionField: some View {
-        TextField("Description", text: $name)
+        TextField(kind.descriptionPlaceholder, text: $name)
             .font(PulpeTypography.bodyLarge)
             .padding(DesignTokens.Spacing.lg)
             .background(Color.inputBackgroundSoft)
@@ -132,14 +101,6 @@ struct EditBudgetLineSheet: View {
     }
 
     // MARK: - Logic
-
-    private func parseAmount(_ text: String) {
-        if let value = text.parsedAsAmount {
-            amount = value
-        } else {
-            amount = nil
-        }
-    }
 
     private func updateBudgetLine() async {
         guard let amount else { return }

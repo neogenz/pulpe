@@ -14,14 +14,6 @@ enum TransactionKind: String, Codable, CaseIterable, Sendable {
         }
     }
 
-    var shortLabel: String {
-        switch self {
-        case .income: "Revenu"
-        case .expense: "Dépense"
-        case .saving: "Épargne"
-        }
-    }
-
     /// SF Symbol name for savings (bank icon, used everywhere)
     static let savingsIcon = "building.columns"
 
@@ -41,6 +33,14 @@ enum TransactionKind: String, Codable, CaseIterable, Sendable {
         }
     }
 
+    var descriptionPlaceholder: String {
+        switch self {
+        case .expense: "Ex : Courses, Restaurant..."
+        case .income: "Ex : Salaire, Remboursement..."
+        case .saving: "Ex : Vacances, Fonds d'urgence..."
+        }
+    }
+
     var newTransactionTitle: String {
         switch self {
         case .expense: "Nouvelle dépense"
@@ -49,13 +49,7 @@ enum TransactionKind: String, Codable, CaseIterable, Sendable {
         }
     }
 
-    var newBudgetLineTitle: String {
-        switch self {
-        case .expense: "Nouvelle prévision"
-        case .income: "Nouvelle prévision"
-        case .saving: "Nouvelle prévision"
-        }
-    }
+    var newBudgetLineTitle: String { "Nouvelle prévision" }
 
     var editBudgetLineTitle: String {
         switch self {

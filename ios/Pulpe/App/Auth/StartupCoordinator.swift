@@ -189,8 +189,13 @@ actor StartupCoordinator {
             Logger.auth.debug("[STARTUP] Maintenance check cancelled")
             return .cancelled
         } catch let error as URLError {
-            Logger.auth.warning("[STARTUP] Maintenance network error: \(error)")
-            return .networkError("Connexion impossible, réessaie")
+            if error.code == .cancelled {
+                Logger.auth.debug("[STARTUP] Maintenance check URL request cancelled")
+                return .cancelled
+            } else {
+                Logger.auth.warning("[STARTUP] Maintenance network error: \(error)")
+                return .networkError("Connexion impossible, réessaie")
+            }
         } catch {
             Logger.auth.warning("[STARTUP] Maintenance check failed: \(error)")
             // Fail-closed on non-network maintenance check failures.
@@ -212,17 +217,46 @@ actor StartupCoordinator {
                 await handleBiometricClientKey(runId: runId, hex: clientKeyHex)
             }
             return await makeAuthenticatedResult(runId: runId, user: biometricResult.user, source: "Biometric")
-        } catch is CancellationError {
+        } catch {
+            return await handleBiometricValidationError(error, runId: runId)
+        }
+    }
+
+    private func handleBiometricValidationError(_ error: Error, runId: UUID) async -> StartupResult {
+        if error is CancellationError {
             return .cancelled
-        } catch is URLError {
+        }
+        if let urlError = error as? URLError {
+            return handleBiometricURLError(urlError)
+        }
+        if let keychainError = error as? KeychainError {
+            return await handleBiometricKeychainError(keychainError, runId: runId)
+        }
+        Logger.auth.warning("[STARTUP] Biometric validation failed: \(error)")
+        guard isCurrentRun(runId) else { return .cancelled }
+        await clearExpiredBiometricState()
+        return .biometricSessionExpired
+    }
+
+    private func handleBiometricURLError(_ error: URLError) -> StartupResult {
+        if error.code == .cancelled {
+            Logger.auth.debug("[STARTUP] Biometric validation URL request cancelled")
+            return .cancelled
+        } else {
+            Logger.auth.warning("[STARTUP] Biometric validation network error: \(error)")
             return .networkError("Connexion impossible, réessaie")
-        } catch KeychainError.userCanceled {
+        }
+    }
+
+    private func handleBiometricKeychainError(_ error: KeychainError, runId: UUID) async -> StartupResult {
+        switch error {
+        case .userCanceled:
             Logger.auth.info("[STARTUP] Biometric auth cancelled by user")
             return .unauthenticated
-        } catch KeychainError.authFailed {
+        case .authFailed:
             Logger.auth.info("[STARTUP] Biometric auth failed")
             return .unauthenticated
-        } catch {
+        default:
             Logger.auth.warning("[STARTUP] Biometric validation failed: \(error)")
             guard isCurrentRun(runId) else { return .cancelled }
             await clearExpiredBiometricState()

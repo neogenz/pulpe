@@ -25,85 +25,50 @@ struct AddAllocatedTransactionSheet: View {
         !isLoading
     }
 
-    private var displayAmount: String {
-        if let amount, amount > 0 {
-            return Formatters.amountInput.string(from: amount as NSDecimalNumber) ?? "0"
-        }
-        return "0.00"
-    }
-
     var body: some View {
-        ScrollView {
-            VStack(spacing: DesignTokens.Spacing.xxl) {
-                heroAmountSection
-                quickAmountChips
-                descriptionField
-                dateSelector
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: DesignTokens.Spacing.xxl) {
+                    HeroAmountField(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused)
+                    quickAmountChips
+                    descriptionField
+                    dateSelector
 
-                if let error {
-                    ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
-                        self.error = nil
+                    if let error {
+                        ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                            self.error = nil
+                        }
                     }
+
+                    addButton
                 }
-
-                addButton
+                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.xl)
             }
-            .padding(.horizontal, DesignTokens.Spacing.xl)
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.xl)
-        }
-        .background(Color.surfacePrimary)
-        .modernSheet(title: budgetLine.name)
-        .loadingOverlay(isLoading)
-        .dismissKeyboardOnTap()
-        .task {
-            try? await Task.sleep(for: .milliseconds(200))
-            isAmountFocused = true
-        }
-        .onChange(of: isAmountFocused) { _, isFocused in
-            if !isFocused, let quickAmount = pendingQuickAmount {
-                amount = Decimal(quickAmount)
-                amountText = "\(quickAmount)"
-                pendingQuickAmount = nil
+            .background(Color.surfacePrimary)
+            .navigationTitle(budgetLine.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton()
+                }
+            }
+            .loadingOverlay(isLoading)
+            .dismissKeyboardOnTap()
+            .task {
+                try? await Task.sleep(for: .milliseconds(200))
+                isAmountFocused = true
+            }
+            .onChange(of: isAmountFocused) { _, isFocused in
+                if !isFocused, let quickAmount = pendingQuickAmount {
+                    amount = Decimal(quickAmount)
+                    amountText = "\(quickAmount)"
+                    pendingQuickAmount = nil
+                }
             }
         }
-    }
-
-    // MARK: - Hero Amount
-
-    private var heroAmountSection: some View {
-        VStack(spacing: DesignTokens.Spacing.sm) {
-            Text(DesignTokens.AmountInput.currencyCode)
-                .font(PulpeTypography.labelLarge)
-                .foregroundStyle(Color.textTertiary)
-
-            ZStack {
-                TextField("", text: $amountText)
-                    .keyboardType(.decimalPad)
-                    .focused($isAmountFocused)
-                    .opacity(0)
-                    .frame(width: 0, height: 0)
-                    .onChange(of: amountText) { _, newValue in
-                        parseAmount(newValue)
-                    }
-
-                Text(displayAmount)
-                    .font(PulpeTypography.amountHero)
-                    .foregroundStyle((amount ?? 0) > 0 ? Color.textPrimary : Color.textTertiary)
-                    .contentTransition(.numericText())
-                    .animation(.snappy(duration: DesignTokens.Animation.fast), value: amount)
-            }
-            .accessibilityAddTraits(.isButton)
-            .accessibilityLabel("Montant")
-            .onTapGesture { isAmountFocused = true }
-
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
-                .fill(isAmountFocused ? Color.pulpePrimary : Color.textTertiary.opacity(DesignTokens.Opacity.strong))
-                .frame(width: 120, height: 2)
-                .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isAmountFocused)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, DesignTokens.Spacing.lg)
+        .standardSheetPresentation()
     }
 
     // MARK: - Quick Amounts
@@ -126,9 +91,15 @@ struct AddAllocatedTransactionSheet: View {
                         .padding(.horizontal, DesignTokens.Spacing.md)
                         .padding(.vertical, DesignTokens.Spacing.sm)
                         .frame(maxWidth: .infinity)
-                        .background(Color.pulpePrimary.opacity(DesignTokens.Opacity.accent))
+                        .background(Color.pulpePrimary.opacity(DesignTokens.Opacity.badgeBackground))
                         .foregroundStyle(Color.pulpePrimary)
                         .clipShape(Capsule())
+                        .overlay(
+                            Capsule().strokeBorder(
+                                Color.pulpePrimary.opacity(DesignTokens.Opacity.secondary),
+                                lineWidth: 1
+                            )
+                        )
                 }
                 .buttonStyle(.plain)
             }
@@ -138,7 +109,7 @@ struct AddAllocatedTransactionSheet: View {
     // MARK: - Description
 
     private var descriptionField: some View {
-        TextField("Ex: Restaurant, Courses...", text: $name)
+        TextField(budgetLine.kind.descriptionPlaceholder, text: $name)
             .font(PulpeTypography.bodyLarge)
             .padding(DesignTokens.Spacing.lg)
             .background(Color.inputBackgroundSoft)
@@ -181,14 +152,6 @@ struct AddAllocatedTransactionSheet: View {
     }
 
     // MARK: - Logic
-
-    private func parseAmount(_ text: String) {
-        if let value = text.parsedAsAmount {
-            amount = value
-        } else {
-            amount = nil
-        }
-    }
 
     private func addTransaction() async {
         guard let amount else { return }

@@ -277,6 +277,19 @@ private struct KeyboardDismissView: UIViewRepresentable {
     }
 }
 
+// MARK: - Sheet Presentation
+
+extension View {
+    /// Standard sheet presentation used across all form sheets
+    func standardSheetPresentation() -> some View {
+        self
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(DesignTokens.CornerRadius.xl)
+            .presentationBackground(Color.surfacePrimary)
+    }
+}
+
 // MARK: - List Row Styling
 
 extension View {
