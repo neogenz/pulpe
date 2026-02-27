@@ -1,7 +1,7 @@
 ---
 name: update-changelog
 description: Unified release command - analyzes git changes and bumps all packages with a single product version. Use when user says "update changelog", "release", "bump versions", or "preparer une release".
-argument-hint: [depuis le dernier tag | depuis main]
+argument-hint: [depuis le dernier tag | depuis main] [--skip-whats-new]
 allowed-tools: Read, Glob, Grep, Bash(git *), Bash(pnpm changeset*), Bash(pnpm quality*), Bash(cd ios && *), Bash(gh release*), Bash(node -e*), Write, AskUserQuestion
 model: opus
 ---
@@ -27,6 +27,9 @@ User argument: `$ARGUMENTS`
 | `depuis le dernier tag` | Analyze since last git tag |
 | `depuis main` | Analyze since divergence from main |
 | _(empty)_ | Default to "depuis le dernier tag" |
+| `--skip-whats-new` | Skip the "What's New" toast update (Step 5c). Can be combined with other arguments. |
+
+**Flag detection:** If `$ARGUMENTS` contains `--skip-whats-new` (or user says "sans what's new", "skip what's new", "pas de what's new"), set `SKIP_WHATS_NEW=true` and strip the flag from the base reference argument.
 
 ## Workflow
 
@@ -196,13 +199,18 @@ Empty sections stay as `[]` (never omit the key).
 
 ### Step 5c: Update webapp "What's New" toast
 
+**Skip condition:** If `SKIP_WHATS_NEW=true` (user passed `--skip-whats-new` or equivalent), skip this entire step. Do NOT update the file — the toast will not appear for this release because the version won't match.
+
+**Auto-skip condition:** If, after filtering for webapp-relevant entries (see rules below), there are ZERO items to display, ask the user: "Aucune nouveaute pertinente pour la webapp. Souhaites-tu mettre a jour le toast What's New quand meme ?" → "Oui" / "Non, sauter". If "Non", skip this step.
+
 Update `frontend/projects/webapp/src/app/layout/whats-new/whats-new-releases.ts` so the in-app toast displays the new release features.
 
 **Procedure:**
 
 1. Read the file (use Read tool)
-2. Replace `LATEST_RELEASE` with the new version and features from the approved "Nouveautes" entries
-3. Write back using Edit tool
+2. Filter the approved "Nouveautes" and "Corrections" entries to keep ONLY webapp-relevant items (see rules below)
+3. Replace `LATEST_RELEASE` with the filtered entries
+4. Write back using Edit tool
 
 **Template:**
 
@@ -216,11 +224,15 @@ export const LATEST_RELEASE: WhatsNewRelease = {
 };
 ```
 
-**Rules:**
+**Scope rules — webapp users only:**
+- **Include**: Changes visible to Angular webapp users — UI changes, new pages, UX improvements, behavior changes triggered by backend modifications that affect the webapp experience
+- **Exclude**: iOS-only features, landing page changes, purely technical/infra changes, backend-only changes invisible to users
+- If only "Corrections" are relevant (no "Nouveautes" for the webapp), use the most impactful fix titles instead
+
+**Writing rules — pas d'anglicismes:**
+- Ecrire en francais courant, sans anglicismes (ex: "libelles" au lieu de "wording", "modele" au lieu de "template", "mise en cache" au lieu de "cache")
 - `version`: Same as Step 4 (without `v` prefix) — must match the bumped `package.json` version so `buildInfo.version === LATEST_RELEASE.version`
-- `features`: Short titles only (from "Nouveautes" bold titles in Step 5), no descriptions — max ~50 chars per line
-- **Frontend-only, user-facing only**: Only include features visible to webapp users (UI changes, new pages, UX improvements). Exclude backend-only, infra, landing page, iOS-only, or purely technical changes
-- If no user-facing "Nouveautes" entries (patch with fixes only), use the most impactful fix titles instead
+- `features`: Short titles only, no descriptions — max ~50 chars per line
 - Max 3-4 features to keep the toast concise
 - Keep the `WhatsNewRelease` interface import unchanged
 
@@ -256,7 +268,9 @@ Fix issues before proceeding.
 Stage only release files:
 
 ```bash
-git add package.json CHANGELOG.md */CHANGELOG.md */package.json .changeset/ ios/project.yml ios/Pulpe.xcodeproj/project.pbxproj landing/data/releases.json frontend/projects/webapp/src/app/layout/whats-new/whats-new-releases.ts
+git add package.json CHANGELOG.md */CHANGELOG.md */package.json .changeset/ ios/project.yml ios/Pulpe.xcodeproj/project.pbxproj landing/data/releases.json
+# Only if Step 5c was NOT skipped:
+git add frontend/projects/webapp/src/app/layout/whats-new/whats-new-releases.ts
 git commit -m "chore(release): vX.Y.Z"
 git tag "vX.Y.Z" -m "Release vX.Y.Z"
 ```
