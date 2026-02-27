@@ -40,7 +40,7 @@ const MAX_VISIBLE_FORECASTS = 5;
             <h2
               class="text-title-medium font-bold text-on-surface leading-tight"
             >
-              Prévisions non cochées
+              Prévisions non pointées
             </h2>
             <p
               class="text-body-small text-on-surface-variant font-medium mt-0.5"

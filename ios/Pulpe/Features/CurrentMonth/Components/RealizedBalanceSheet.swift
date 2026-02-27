@@ -142,7 +142,7 @@ struct RealizedBalanceSheet: View {
 
                 Text(
                     "Compare ce solde avec ton compte bancaire. S'il y a un écart, " +
-                    "vérifie que toutes tes dépenses sont bien cochées."
+                    "vérifie que toutes tes dépenses sont bien pointées."
                 )
                     .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)

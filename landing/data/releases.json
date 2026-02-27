@@ -22,7 +22,7 @@
       "fixes": [
         {
           "title": "Bugs du tableau de bord",
-          "description": "Correction de la zone de clic des cases à cocher, de l'affichage du reste d'enveloppe et du rollover négatif"
+          "description": "Correction de la zone de clic des cases à pointer, de l'affichage du reste d'enveloppe et du rollover négatif"
         },
         {
           "title": "Accessibilité des tooltips",

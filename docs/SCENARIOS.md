@@ -32,11 +32,11 @@
 
 ### 1.5 Se souvenir de l'appareil
 
-**Workflow** : Écran de saisie du code PIN > Cocher "Se souvenir de cet appareil" > Saisir le code > Valider > Se déconnecter > Se reconnecter > Le code PIN n'est pas redemandé
+**Workflow** : Écran de saisie du code PIN > pointer "Se souvenir de cet appareil" > Saisir le code > Valider > Se déconnecter > Se reconnecter > Le code PIN n'est pas redemandé
 
 **Critères** :
 - La clé est stockée en `localStorage` (persiste entre sessions)
-- Sans la case cochée, la clé est en `sessionStorage` (perdue à la fermeture)
+- Sans la case pointée, la clé est en `sessionStorage` (perdue à la fermeture)
 
 ### 1.6 Mot de passe oublié
 
@@ -64,7 +64,7 @@
 **Critères** :
 - La session est nettoyée (vault key supprimée de sessionStorage)
 - Les routes protégées ne sont plus accessibles
-- Si "Se souvenir" était coché, la clé localStorage est conservée
+- Si "Se souvenir" était pointé, la clé localStorage est conservée
 
 ### 1.9 Déconnexion multi-onglets
 
@@ -131,7 +131,7 @@
 
 ### 4.2 Créer un modèle
 
-**Workflow** : Page des modèles > Cliquer "Créer un modèle" > Saisir un nom > Ajouter des lignes de revenus > Ajouter des lignes de dépenses (récurrentes) > Ajouter des lignes d'épargne > Optionnellement cocher "Modèle par défaut" > Valider
+**Workflow** : Page des modèles > Cliquer "Créer un modèle" > Saisir un nom > Ajouter des lignes de revenus > Ajouter des lignes de dépenses (récurrentes) > Ajouter des lignes d'épargne > Optionnellement pointer "Modèle par défaut" > Valider
 
 **Critères** :
 - Le modèle apparaît dans la liste
@@ -197,7 +197,7 @@
 - L'en-tête affiche la période (ex: "janvier 2026")
 - Les totaux sont affichés : revenus, dépenses (récurrentes + prévues), épargne, disponible à dépenser
 - Les lignes de prévisions sont regroupées par catégorie : revenus, dépenses récurrentes, dépenses prévues, épargne
-- Pour chaque ligne : nom, montant, consommation (dépensé/restant), statut coché/non coché
+- Pour chaque ligne : nom, montant, consommation (dépensé/restant), statut pointé/non pointé
 - La navigation vers le budget précédent/suivant est possible
 
 ### 5.4 Ajouter une ligne de prévision (dépense)
@@ -258,16 +258,16 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
    - Critère : "Dépensé" de l'enveloppe = 75 (30 + 45)
    - Critère : le reste global a diminué de 75 au total par rapport à l'initial
 
-4. **Cocher une transaction** : Cocher "Migros"
-   - Critère : la transaction apparaît cochée visuellement
-   - Critère : le compteur de transactions cochées s'incrémente
+4. **pointer une transaction** : pointer "Migros"
+   - Critère : la transaction apparaît pointée visuellement
+   - Critère : le compteur de transactions pointées s'incrémente
 
 5. **Modifier une transaction** : Éditer "Coop", changer le montant de 45 à 60 > Valider
    - Critère : "Dépensé" de l'enveloppe = 90 (30 + 60)
    - Critère : le reste global reflète le changement (-15 supplémentaires)
 
-6. **Décocher la transaction** : Décocher "Migros"
-   - Critère : retour à l'état non coché, compteur décrémenté
+6. **Dépointer la transaction** : Dépointer "Migros"
+   - Critère : retour à l'état non pointé, compteur décrémenté
 
 7. **Supprimer une transaction** : Supprimer "Coop" > Confirmer
    - Critère : "Dépensé" de l'enveloppe = 30 (seule "Migros" reste)
@@ -279,45 +279,45 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
 
 ### 5.8 Comptabiliser une enveloppe — Dialog de cascade
 
-**Pré-requis** : Une enveloppe avec au moins une transaction allouée NON cochée.
+**Pré-requis** : Une enveloppe avec au moins une transaction allouée NON pointée.
 
 **Workflow** :
 
-1. **Cocher l'enveloppe parent** (la ligne de prévision, pas la transaction) > Un dialog apparaît : "Comptabiliser les transactions ?"
-2. **Choisir "Oui, tout comptabiliser"** > L'enveloppe ET toutes ses transactions passent à cochées
-   - Critère : toutes les transactions de l'enveloppe sont cochées
-   - Critère : l'enveloppe elle-même est cochée
+1. **pointer l'enveloppe parent** (la ligne de prévision, pas la transaction) > Un dialog apparaît : "Comptabiliser les transactions ?"
+2. **Choisir "Oui, tout comptabiliser"** > L'enveloppe ET toutes ses transactions passent à pointées
+   - Critère : toutes les transactions de l'enveloppe sont pointées
+   - Critère : l'enveloppe elle-même est pointée
 
-3. **Décocher l'enveloppe** > Pas de dialog
-   - Critère : seule l'enveloppe est décochée, les transactions restent cochées
+3. **Dépointer l'enveloppe** > Pas de dialog
+   - Critère : seule l'enveloppe est dépointée, les transactions restent pointées
 
-4. **Re-cocher l'enveloppe** > Le dialog réapparaît (car il n'y a pas de transactions non cochées cette fois) OU ne réapparaît pas si toutes sont déjà cochées
-   - Critère : si toutes les transactions sont déjà cochées, pas de dialog, l'enveloppe se coche directement
+4. **Re-pointer l'enveloppe** > Le dialog réapparaît (car il n'y a pas de transactions non pointées cette fois) OU ne réapparaît pas si toutes sont déjà pointées
+   - Critère : si toutes les transactions sont déjà pointées, pas de dialog, l'enveloppe se coche directement
 
-5. **Décocher manuellement les transactions** > Puis recocher l'enveloppe > Le dialog réapparaît
+5. **Dépointer manuellement les transactions** > Puis repointer l'enveloppe > Le dialog réapparaît
 
 **Variante : refuser la cascade** :
 
-1. **Cocher l'enveloppe parent** > Dialog apparaît
-2. **Choisir "Non, juste l'enveloppe"** > Seule l'enveloppe est cochée
-   - Critère : les transactions allouées restent non cochées
-   - Critère : l'enveloppe est cochée
+1. **pointer l'enveloppe parent** > Dialog apparaît
+2. **Choisir "Non, juste l'enveloppe"** > Seule l'enveloppe est pointée
+   - Critère : les transactions allouées restent non pointées
+   - Critère : l'enveloppe est pointée
 
-### 5.9 Cocher/décocher une enveloppe sans transactions
+### 5.9 pointer/dépointer une enveloppe sans transactions
 
-**Workflow** : Détails du budget > Cocher une enveloppe qui n'a aucune transaction allouée
+**Workflow** : Détails du budget > pointer une enveloppe qui n'a aucune transaction allouée
 
 **Critères** :
 - Pas de dialog de cascade (rien à cascader)
-- L'enveloppe passe à cochée directement
-- Décocher fonctionne sans dialog également
+- L'enveloppe passe à pointée directement
+- Dépointer fonctionne sans dialog également
 
-### 5.10 Cocher une transaction n'affecte pas le parent
+### 5.10 pointer une transaction n'affecte pas le parent
 
-**Workflow** : Ouvrir une enveloppe avec plusieurs transactions > Cocher toutes les transactions une par une
+**Workflow** : Ouvrir une enveloppe avec plusieurs transactions > pointer toutes les transactions une par une
 
 **Critères** :
-- Même quand toutes les transactions sont cochées, l'enveloppe parent ne se coche PAS automatiquement
+- Même quand toutes les transactions sont pointées, l'enveloppe parent ne se coche PAS automatiquement
 - Le cochage est toujours un choix explicite de l'utilisateur
 
 ### 5.11 Affichage des enveloppes — badge et montant dépensé
@@ -419,9 +419,9 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
 - La transaction disparaît
 - Les totaux sont recalculés
 
-### 6.5 Cocher/décocher une entrée financière
+### 6.5 pointer/dépointer une entrée financière
 
-**Workflow** : Mois courant > Cliquer sur la case à cocher d'une entrée (prévision ou transaction)
+**Workflow** : Mois courant > Cliquer sur la case à pointer d'une entrée (prévision ou transaction)
 
 **Critères** :
 - Le statut visuel change
@@ -435,8 +435,8 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
 >
 > | Métrique | Calcul | Items pris en compte |
 > |----------|--------|---------------------|
-> | **Reste / Solde final** | `Disponible - totalDépenses` | Toutes les lignes et transactions (cochées ou non) |
-> | **Solde réalisé** | `RevenusCoché - DépensesCochées` | Uniquement les items cochés |
+> | **Reste / Solde final** | `Disponible - totalDépenses` | Toutes les lignes et transactions (pointées ou non) |
+> | **Solde réalisé** | `RevenusPointés - DépensesPointées` | Uniquement les items pointés |
 >
 > Formules de référence :
 > ```
@@ -449,9 +449,9 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
 > totalDépenses (enveloppe) = pour chaque enveloppe: max(montant_enveloppe, somme_transactions_allouées)
 >                           + somme des transactions libres
 >
-> Solde réalisé = pour chaque enveloppe cochée: max(montant_enveloppe, somme_transactions_cochées)
->               + pour chaque enveloppe non cochée: somme_transactions_cochées seulement
->               + transactions libres cochées
+> Solde réalisé = pour chaque enveloppe pointée: max(montant_enveloppe, somme_transactions_pointées)
+>               + pour chaque enveloppe non pointée: somme_transactions_pointées seulement
+>               + transactions libres pointées
 > ```
 
 ### 7.1 Vérification du calcul "Disponible à dépenser"
@@ -487,7 +487,7 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
 
 ### 7.4 Calcul des enveloppes — impact sur le Reste global
 
-> Le Reste utilise `max(montant_enveloppe, total_toutes_transactions)` — indépendamment du statut coché.
+> Le Reste utilise `max(montant_enveloppe, total_toutes_transactions)` — indépendamment du statut pointé.
 
 **Pré-requis** : Une enveloppe de dépense à 200 CHF. Noter le Reste global.
 
@@ -507,8 +507,8 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
 
 ### 7.5 Solde réalisé — enveloppe comptabilisée sans dépassement
 
-> Règle : quand une enveloppe est cochée, le solde réalisé compte `max(montant_enveloppe, total_transactions_cochées)`.
-> Le `consumed` ne prend en compte que les transactions **cochées**.
+> Règle : quand une enveloppe est pointée, le solde réalisé compte `max(montant_enveloppe, total_transactions_pointées)`.
+> Le `consumed` ne prend en compte que les transactions **pointées**.
 
 **Pré-requis** : Une enveloppe de dépense à 2000 CHF, sans transactions. Noter le solde réalisé initial.
 
@@ -517,16 +517,16 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
 1. **Ajouter une transaction** de 100 CHF dans l'enveloppe
 2. **Ajouter une deuxième transaction** de 900 CHF dans l'enveloppe
    - Critère : "Dépensé" de l'enveloppe = 1000 / 2000
-3. **Cocher l'enveloppe** via le dialog "Comptabiliser les transactions ?" > **Choisir "Oui, tout comptabiliser"**
+3. **pointer l'enveloppe** via le dialog "Comptabiliser les transactions ?" > **Choisir "Oui, tout comptabiliser"**
    - Critère : le solde réalisé compte **2000** (pas 1000, ni 2000 + 1000)
    - Explication : `max(2000, 1000) = 2000`, l'enveloppe couvre
 
-**Variante** : Cocher l'enveloppe **sans cascader** (choisir "Non, juste l'enveloppe")
-   - Critère : le solde réalisé compte **2000** aussi (`max(2000, 0) = 2000` car aucune transaction n'est cochée)
+**Variante** : pointer l'enveloppe **sans cascader** (choisir "Non, juste l'enveloppe")
+   - Critère : le solde réalisé compte **2000** aussi (`max(2000, 0) = 2000` car aucune transaction n'est pointée)
 
 ### 7.6 Solde réalisé — enveloppe comptabilisée avec dépassement
 
-> Règle : quand les transactions cochées dépassent l'enveloppe, c'est le total coché qui est compté.
+> Règle : quand les transactions pointées dépassent l'enveloppe, c'est le total pointé qui est compté.
 
 **Pré-requis** : Continuer depuis 7.5 (enveloppe 2000 CHF, transactions 100 + 900).
 
@@ -534,42 +534,42 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
 
 1. **Ajouter une troisième transaction** de 2000 CHF dans l'enveloppe
    - Critère : "Dépensé" de l'enveloppe = 3000 / 2000 (dépassement de 1000)
-2. **Cocher l'enveloppe** via le dialog > **"Oui, tout comptabiliser"** (les 3 transactions + l'enveloppe sont cochées)
+2. **pointer l'enveloppe** via le dialog > **"Oui, tout comptabiliser"** (les 3 transactions + l'enveloppe sont pointées)
    - Critère : le solde réalisé compte **3000** (pas 2000)
    - Explication : `max(2000, 3000) = 3000`, le réel dépasse la prévision
 
-**Attention** : Si on coche l'enveloppe **sans cascader les transactions** (elles restent non cochées), le solde réalisé compte **2000** (`max(2000, 0) = 2000`). Il faut que les transactions soient cochées pour que le dépassement apparaisse dans le solde réalisé.
+**Attention** : Si on coche l'enveloppe **sans cascader les transactions** (elles restent non pointées), le solde réalisé compte **2000** (`max(2000, 0) = 2000`). Il faut que les transactions soient pointées pour que le dépassement apparaisse dans le solde réalisé.
 
-### 7.7 Solde réalisé — pas de double comptage (transactions cochées + enveloppe cochée)
+### 7.7 Solde réalisé — pas de double comptage (transactions pointées + enveloppe pointée)
 
-> Scénario de non-régression. Vérifie que cocher individuellement toutes les transactions
-> PUIS cocher l'enveloppe ne crée pas de double comptage dans le solde réalisé.
+> Scénario de non-régression. Vérifie que pointer individuellement toutes les transactions
+> PUIS pointer l'enveloppe ne crée pas de double comptage dans le solde réalisé.
 
-**Pré-requis** : Une enveloppe de dépense à 500 CHF avec 3 transactions allouées (ex: 100, 150, 200 = total 450). Aucun élément coché. Noter le solde réalisé initial.
+**Pré-requis** : Une enveloppe de dépense à 500 CHF avec 3 transactions allouées (ex: 100, 150, 200 = total 450). Aucun élément pointé. Noter le solde réalisé initial.
 
 **Workflow** :
 
-1. **Cocher la transaction 1** (100 CHF)
-   - Critère : le solde réalisé augmente de 100 (enveloppe non cochée → seules les transactions cochées comptent)
-2. **Cocher la transaction 2** (150 CHF)
+1. **pointer la transaction 1** (100 CHF)
+   - Critère : le solde réalisé augmente de 100 (enveloppe non pointée → seules les transactions pointées comptent)
+2. **pointer la transaction 2** (150 CHF)
    - Critère : le solde réalisé = +250 par rapport à l'initial
-3. **Cocher la transaction 3** (200 CHF)
+3. **pointer la transaction 3** (200 CHF)
    - Critère : le solde réalisé = +450 par rapport à l'initial
-4. **Cocher l'enveloppe** (pas de dialog car toutes les transactions sont déjà cochées)
+4. **pointer l'enveloppe** (pas de dialog car toutes les transactions sont déjà pointées)
    - Critère : le solde réalisé passe à **+500** par rapport à l'initial (montant de l'enveloppe)
    - Critère : le solde réalisé ne doit PAS être à +950 (double comptage : 450 + 500)
    - Explication : `max(500, 450) = 500`
 
-### 7.8 Solde réalisé — enveloppe non cochée, seules les transactions comptent
+### 7.8 Solde réalisé — enveloppe non pointée, seules les transactions comptent
 
 **Pré-requis** : Une enveloppe de dépense à 500 CHF avec des transactions allouées.
 
 **Workflow** :
 
-1. **Cocher uniquement les transactions** (sans cocher l'enveloppe)
-   - Critère : le solde réalisé compte uniquement la somme des transactions cochées
+1. **pointer uniquement les transactions** (sans pointer l'enveloppe)
+   - Critère : le solde réalisé compte uniquement la somme des transactions pointées
    - Critère : le montant de l'enveloppe (500) n'est PAS compté
-   - Explication : enveloppe non cochée → `consumed_checked` seulement, pas `max(enveloppe, consumed)`
+   - Explication : enveloppe non pointée → `consumed_checked` seulement, pas `max(enveloppe, consumed)`
 
 ### 7.9 Suppression d'une enveloppe avec transactions allouées — impact complet
 
@@ -577,7 +577,7 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
 > (`budget_line_id` passe à NULL via `ON DELETE SET NULL`). Le solde est recalculé.
 > Les transactions libres impactent directement le Reste (pas de couverture par enveloppe).
 
-**Pré-requis** : Deux budgets consécutifs (mois M et M+1). Sur le mois M : une enveloppe de dépense à 2000 CHF avec 2 transactions allouées (500 + 300 = 800 CHF). L'enveloppe est cochée, les transactions aussi.
+**Pré-requis** : Deux budgets consécutifs (mois M et M+1). Sur le mois M : une enveloppe de dépense à 2000 CHF avec 2 transactions allouées (500 + 300 = 800 CHF). L'enveloppe est pointée, les transactions aussi.
 
 **Workflow** :
 
@@ -595,8 +595,8 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
    - Critère : le Reste augmente de **1200** (2000 - 800)
 
 4. **Vérifier le solde réalisé** :
-   - Avant : enveloppe cochée → `max(2000, 800) = 2000` comptés
-   - Après : les transactions sont libres et cochées → seuls `800` comptés
+   - Avant : enveloppe pointée → `max(2000, 800) = 2000` comptés
+   - Après : les transactions sont libres et pointées → seuls `800` comptés
    - Critère : le solde réalisé diminue de **1200** en dépenses (donc augmente de 1200)
 
 5. **Vérifier le solde final** :
@@ -828,8 +828,8 @@ Si l'enveloppe à 2000 CHF n'avait aucune transaction :
 | 5.4 Ajouter prévision | Non | — |
 | 5.7 Cycle de vie transaction allouée | Non | — |
 | 5.8 Dialog cascade comptabilisation | Non | — |
-| 5.9 Cocher enveloppe sans transactions | Non | — |
-| 5.10 Cocher transaction n'affecte pas parent | Non | — |
+| 5.9 pointer enveloppe sans transactions | Non | — |
+| 5.10 pointer transaction n'affecte pas parent | Non | — |
 | 5.11 Badge et dépensé enveloppe | Non | — |
 | 5.12 Export JSON | Non | — |
 | 5.13 Export Excel | Non | — |
@@ -841,7 +841,7 @@ Si l'enveloppe à 2000 CHF n'avait aucune transaction :
 | 7.5 Solde réalisé — sans dépassement | Non | — |
 | 7.6 Solde réalisé — avec dépassement | Non | — |
 | 7.7 Solde réalisé — pas de double comptage | Non | — |
-| 7.8 Solde réalisé — enveloppe non cochée | Non | — |
+| 7.8 Solde réalisé — enveloppe non pointée | Non | — |
 | 7.9 Suppression enveloppe avec transactions | Non | — |
 | 7.10 Dépassement d'enveloppe | Non | — |
 | 7.11 Alertes dépassement | Non | — |

@@ -142,12 +142,12 @@ export class BudgetFormulas {
   }
 
   /**
-   * Calcule le revenu réalisé (uniquement les éléments cochés)
+   * Calcule le revenu réalisé (uniquement les éléments pointés)
    * Formule: Σ(items WHERE kind = 'income' AND checkedAt != null)
    *
    * @param budgetLines - Lignes budgétaires planifiées
    * @param transactions - Transactions réelles
-   * @returns Montant total des revenus cochés
+   * @returns Montant total des revenus pointés
    */
   static calculateRealizedIncome(
     budgetLines: FinancialItemWithId[],
@@ -165,16 +165,16 @@ export class BudgetFormulas {
   }
 
   /**
-   * Calcule les dépenses réalisées (uniquement les éléments cochés) avec logique d'enveloppe
+   * Calcule les dépenses réalisées (uniquement les éléments pointés) avec logique d'enveloppe
    *
    * Règle métier:
-   * - Pour une prévision cochée, on utilise max(montant_enveloppe, montant_consommé_par_transactions)
-   * - Les transactions allouées à une prévision cochée ne sont pas comptées une deuxième fois
-   * - Les transactions libres (sans budgetLineId) cochées sont comptées directement
+   * - Pour une prévision pointée, on utilise max(montant_enveloppe, montant_consommé_par_transactions)
+   * - Les transactions allouées à une prévision pointée ne sont pas comptées une deuxième fois
+   * - Les transactions libres (sans budgetLineId) pointées sont comptées directement
    *
    * @param budgetLines - Lignes budgétaires planifiées avec IDs
    * @param transactions - Transactions réelles avec budgetLineId optionnel
-   * @returns Montant total des dépenses + épargnes cochées (sans double comptage)
+   * @returns Montant total des dépenses + épargnes pointées (sans double comptage)
    */
   static calculateRealizedExpenses(
     budgetLines: FinancialItemWithId[],
@@ -201,7 +201,7 @@ export class BudgetFormulas {
       }
     });
 
-    // Ajouter les transactions libres (sans budgetLineId) qui sont cochées
+    // Ajouter les transactions libres (sans budgetLineId) qui sont pointées
     transactions.forEach((tx) => {
       if (
         !tx.budgetLineId &&
@@ -216,12 +216,12 @@ export class BudgetFormulas {
   }
 
   /**
-   * Calcule le solde réalisé (basé uniquement sur les éléments cochés)
-   * Formule: solde_réalisé = Σ(revenus cochés) - Σ(dépenses + épargnes cochées)
+   * Calcule le solde réalisé (basé uniquement sur les éléments pointés)
+   * Formule: solde_réalisé = Σ(revenus pointés) - Σ(dépenses + épargnes pointées)
    *
    * @param budgetLines - Lignes budgétaires planifiées
    * @param transactions - Transactions réelles
-   * @returns Solde calculé depuis les éléments cochés uniquement
+   * @returns Solde calculé depuis les éléments pointés uniquement
    */
   static calculateRealizedBalance(
     budgetLines: FinancialItemWithId[],

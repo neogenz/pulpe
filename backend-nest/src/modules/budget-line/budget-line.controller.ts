@@ -185,9 +185,9 @@ export class BudgetLineController {
 
   @Post(':id/toggle-check')
   @ApiOperation({
-    summary: "Bascule l'état coché d'une ligne budgétaire",
+    summary: "Bascule l'état pointé d'une ligne budgétaire",
     description:
-      "Si la ligne n'est pas cochée (checked_at = null), la marque comme cochée avec la date actuelle. Si déjà cochée, la décoche (checked_at = null).",
+      "Si la ligne n'est pas pointée (checked_at = null), la marque comme pointée avec la date actuelle. Si déjà pointée, la décoche (checked_at = null).",
   })
   @ApiParam({
     name: 'id',
@@ -222,7 +222,7 @@ export class BudgetLineController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Transactions cochées avec succès',
+    description: 'Transactions pointées avec succès',
     type: TransactionListResponseDto,
   })
   @ApiNotFoundResponse({
