@@ -19,6 +19,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
+import { formatLocalDate } from '@core/date/format-local-date';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { Logger } from '@core/logging/logger';
 import { ROUTES } from '@core/routing/routes-constants';
@@ -368,7 +369,7 @@ export default class Dashboard {
         amount: transaction.amount ?? 0,
         name: transaction.name,
         kind: transaction.kind,
-        transactionDate: new Date().toISOString(),
+        transactionDate: formatLocalDate(new Date()),
         category: transaction.category ?? null,
       });
     } catch (error) {

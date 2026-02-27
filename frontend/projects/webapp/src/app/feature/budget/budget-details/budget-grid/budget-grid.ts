@@ -164,7 +164,7 @@ import { BudgetGridSection } from './budget-grid-section';
     <ng-template #mobileTransactionCard let-item>
       <mat-card
         appearance="outlined"
-        class="mb-3 min-h-[120px] border-dashed bg-surface-container-low"
+        class="mb-3 min-h-[120px] border-dashed bg-surface"
         [class.opacity-50]="item.metadata.isLoading"
         [attr.data-testid]="'transaction-card-' + item.data.id"
       >
@@ -241,8 +241,8 @@ import { BudgetGridSection } from './budget-grid-section';
     <!-- Desktop Free Transaction Card Template -->
     <ng-template #desktopFreeTransactionCard let-item>
       <div
-        class="rounded-2xl border border-dashed border-outline-variant/50 p-5
-               min-h-[120px] h-full flex flex-col bg-surface-container-low
+        class="rounded-corner-large border border-dashed border-outline-variant p-5
+               min-h-[120px] h-full flex flex-col bg-surface
                transition-all duration-200"
         [class.opacity-60]="item.metadata.isLoading"
         [attr.data-testid]="'transaction-card-' + item.data.id"

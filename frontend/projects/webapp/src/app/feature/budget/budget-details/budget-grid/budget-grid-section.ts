@@ -20,10 +20,10 @@ import { MatIconModule } from '@angular/material/icon';
   template: `
     <mat-expansion-panel
       [expanded]="true"
-      class="!bg-transparent !shadow-none !rounded-2xl"
+      class="!bg-transparent !shadow-none !rounded-corner-large"
     >
       <mat-expansion-panel-header
-        class="!bg-surface-container-low !rounded-2xl hover:!bg-surface-container"
+        class="!bg-surface-container !rounded-corner-large hover:!bg-surface-container-high"
       >
         <mat-panel-title>
           <div class="flex items-center gap-2">
