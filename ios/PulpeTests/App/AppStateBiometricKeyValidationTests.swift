@@ -109,7 +109,8 @@ struct AppStateBiometricKeyValidationTests {
             biometricAuthenticate: { },
             syncBiometricCredentials: { true },
             validateBiometricKey: { _ in true },
-            validateBiometricSession: { sessionResult }
+            validateBiometricSession: { sessionResult },
+            maintenanceChecking: { false }
         )
 
         UserDefaults.standard.set(true, forKey: "pulpe-has-launched-before")
@@ -147,7 +148,8 @@ struct AppStateBiometricKeyValidationTests {
             biometricCapability: { true },
             syncBiometricCredentials: { true },
             validateBiometricKey: { _ in false },
-            validateBiometricSession: { sessionResult }
+            validateBiometricSession: { sessionResult },
+            maintenanceChecking: { false }
         )
 
         UserDefaults.standard.set(true, forKey: "pulpe-has-launched-before")

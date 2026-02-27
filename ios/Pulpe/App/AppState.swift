@@ -298,6 +298,9 @@ final class AppState {
         validateRegularSession: (@Sendable () async throws -> UserInfo?)? = nil,
         validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)? = nil,
         deleteAccountRequest: (@Sendable () async throws -> DeleteAccountResponse)? = nil,
+        maintenanceChecking: @escaping @Sendable () async throws -> Bool = {
+            try await MaintenanceService.shared.checkStatus()
+        },
         nowProvider: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.init(dependencies: AppStateDependencies(
@@ -317,6 +320,7 @@ final class AppState {
             validateRegularSession: validateRegularSession,
             validateBiometricSession: validateBiometricSession,
             deleteAccountRequest: deleteAccountRequest,
+            maintenanceChecking: maintenanceChecking,
             nowProvider: nowProvider
         ))
     }

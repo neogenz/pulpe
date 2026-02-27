@@ -119,7 +119,8 @@ struct AppStateLogoutBiometricTests {
             validateBiometricSession: {
                 biometricAttempted.set()
                 return nil
-            }
+            },
+            maintenanceChecking: { false }
         )
 
         await sut.bootstrap()
@@ -150,7 +151,8 @@ struct AppStateLogoutBiometricTests {
             validateBiometricSession: {
                 biometricAttempted.set()
                 return nil
-            }
+            },
+            maintenanceChecking: { false }
         )
 
         await sut.bootstrap()
@@ -180,7 +182,8 @@ struct AppStateLogoutBiometricTests {
             validateBiometricSession: {
                 biometricAttempted.set()
                 return nil
-            }
+            },
+            maintenanceChecking: { false }
         )
 
         await sut.bootstrap()

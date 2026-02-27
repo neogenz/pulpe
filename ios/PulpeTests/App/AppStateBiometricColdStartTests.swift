@@ -256,7 +256,8 @@ struct AppStateBiometricColdStartTests {
             biometricPreferenceStore: BiometricPreferenceStore(
                 keychain: MockBiometricPreferenceStore(enabled: false),
                 defaults: MockBiometricPreferenceStore(enabled: false)
-            )
+            ),
+            maintenanceChecking: { false }
         )
 
         // With biometric disabled and no valid session, checkAuthState transitions to .unauthenticated
@@ -308,7 +309,8 @@ struct AppStateBiometricColdStartTests {
             biometricPreferenceStore: BiometricPreferenceStore(
                 keychain: MockBiometricPreferenceStore(enabled: true),
                 defaults: MockBiometricPreferenceStore(enabled: false)
-            )
+            ),
+            maintenanceChecking: { false }
         )
 
         await sut.bootstrap()
@@ -336,7 +338,8 @@ struct AppStateBiometricColdStartTests {
                 defaults: MockBiometricPreferenceStore(enabled: false)
             ),
             validateRegularSession: { user },
-            validateBiometricSession: { nil }
+            validateBiometricSession: { nil },
+            maintenanceChecking: { false }
         )
 
         await sut.bootstrap()
@@ -355,7 +358,8 @@ struct AppStateBiometricColdStartTests {
                 defaults: MockBiometricPreferenceStore(enabled: false)
             ),
             validateRegularSession: { nil },
-            validateBiometricSession: { nil }
+            validateBiometricSession: { nil },
+            maintenanceChecking: { false }
         )
 
         await sut.bootstrap()
@@ -436,7 +440,8 @@ struct AppStateBiometricColdStartTests {
 
         let sut = AppState(
             keychainManager: keychain,
-            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore()
+            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            maintenanceChecking: { false }
         )
 
         await sut.checkAuthState()
@@ -451,7 +456,8 @@ struct AppStateBiometricColdStartTests {
 
         let sut = AppState(
             keychainManager: keychain,
-            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore()
+            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            maintenanceChecking: { false }
         )
 
         await sut.checkAuthState()
@@ -470,7 +476,8 @@ struct AppStateBiometricColdStartTests {
         let sut = AppState(
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
             validateRegularSession: { nil },
-            validateBiometricSession: { throw AuthServiceError.biometricSessionExpired }
+            validateBiometricSession: { throw AuthServiceError.biometricSessionExpired },
+            maintenanceChecking: { false }
         )
 
         await sut.bootstrap()
@@ -495,7 +502,8 @@ struct AppStateBiometricColdStartTests {
         let sut = AppState(
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
             validateRegularSession: { nil },
-            validateBiometricSession: { throw SimulatedUnknownError() }
+            validateBiometricSession: { throw SimulatedUnknownError() },
+            maintenanceChecking: { false }
         )
 
         await sut.bootstrap()
@@ -526,7 +534,8 @@ struct AppStateBiometricColdStartTests {
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
             resolveBiometricKey: { nil },
             validateRegularSession: { nil },
-            validateBiometricSession: { throw AuthServiceError.biometricSessionExpired }
+            validateBiometricSession: { throw AuthServiceError.biometricSessionExpired },
+            maintenanceChecking: { false }
         )
 
         await sut.bootstrap()
@@ -592,7 +601,8 @@ struct AppStateBiometricColdStartTests {
             keychainManager: keychain,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
             validateRegularSession: { throw URLError(.notConnectedToInternet) },
-            validateBiometricSession: { throw URLError(.notConnectedToInternet) }
+            validateBiometricSession: { throw URLError(.notConnectedToInternet) },
+            maintenanceChecking: { false }
         )
 
         await sut.bootstrap()
@@ -628,7 +638,8 @@ struct AppStateBiometricColdStartTests {
             keychainManager: keychain,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
             validateRegularSession: { nil },
-            validateBiometricSession: { throw AuthServiceError.biometricSessionExpired }
+            validateBiometricSession: { throw AuthServiceError.biometricSessionExpired },
+            maintenanceChecking: { false }
         )
 
         await sut.bootstrap()
