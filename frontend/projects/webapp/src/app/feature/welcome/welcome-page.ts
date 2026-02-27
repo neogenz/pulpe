@@ -242,7 +242,10 @@ export default class WelcomePage {
   onGoogleLoadingChange(isLoading: boolean): void {
     this.isGoogleLoading.set(isLoading);
     if (isLoading) {
+      this.#postHogService.setPendingSignupMethod('google');
       this.#postHogService.captureEvent('signup_started', { method: 'google' });
+    } else {
+      this.#postHogService.clearPendingSignupMethod();
     }
   }
 
@@ -263,6 +266,7 @@ export default class WelcomePage {
   async #startDemoWithToken(token: string): Promise<void> {
     try {
       await this.#demoInitializer.startDemoSession(token);
+      this.#postHogService.captureEvent('demo_started');
     } catch (error) {
       this.#logger.error('Failed to start demo mode', { error });
       this.errorMessage.set(this.#ERROR_MESSAGES.DEMO_INIT_FAILED);

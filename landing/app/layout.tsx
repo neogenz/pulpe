@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Poppins } from 'next/font/google'
 import { PreloadLCPImage } from '@/components/ui'
+import { PostHogProvider } from '../components/PostHogProvider'
 import './globals.css'
 
 const poppins = Poppins({
@@ -126,7 +127,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           mobileSrc="/screenshots/mobile/dashboard.webp"
           desktopSrc="/screenshots/webapp/dashboard.webp"
         />
-        {children}
+        <PostHogProvider>{children}</PostHogProvider>
         <div id="lightbox-root" />
       </body>
     </html>

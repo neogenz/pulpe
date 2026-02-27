@@ -32,6 +32,7 @@ import {
   type RecoveryKeyDialogData,
 } from '@ui/dialogs/recovery-key-dialog';
 import { LogoutDialog } from '@ui/dialogs/logout-dialog';
+import { PostHogService } from '@core/analytics';
 
 @Component({
   selector: 'pulpe-setup-vault-code',
@@ -202,6 +203,7 @@ export default class SetupVaultCode {
   readonly #router = inject(Router);
   readonly #dialog = inject(MatDialog);
   readonly #logger = inject(Logger);
+  readonly #postHogService = inject(PostHogService);
 
   protected readonly ROUTES = ROUTES;
   protected readonly isSubmitting = signal(false);
@@ -277,6 +279,8 @@ export default class SetupVaultCode {
       await this.#authSession
         .getClient()
         .auth.updateUser({ data: { vaultCodeConfigured: true } });
+
+      this.#postHogService.captureEvent('vault_code_setup_completed');
 
       // 5. Redirect to dashboard
       this.#router.navigate(['/', ROUTES.DASHBOARD]);

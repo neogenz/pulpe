@@ -34,6 +34,8 @@ describe('WelcomePage', () => {
   };
   let mockPostHogService: {
     captureEvent: Mock;
+    setPendingSignupMethod: Mock;
+    clearPendingSignupMethod: Mock;
   };
 
   beforeEach(async () => {
@@ -62,6 +64,8 @@ describe('WelcomePage', () => {
 
     mockPostHogService = {
       captureEvent: vi.fn(),
+      setPendingSignupMethod: vi.fn(),
+      clearPendingSignupMethod: vi.fn(),
     };
 
     await TestBed.configureTestingModule({

@@ -364,7 +364,9 @@ export default class CompleteProfilePage {
     const hasExisting = await this.store.checkExistingBudgets();
     if (hasExisting) {
       this.#router.navigate(['/', ROUTES.DASHBOARD]);
+      return;
     }
+    this.#postHogService.captureEvent('onboarding_started');
   }
 
   protected nextStep(): void {

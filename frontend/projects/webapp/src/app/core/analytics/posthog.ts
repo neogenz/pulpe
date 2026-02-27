@@ -9,6 +9,8 @@ import { isPlatformBrowser } from '@angular/common';
 import posthog, { type Properties, type CaptureResult } from 'posthog-js';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
+import { StorageService } from '../storage/storage.service';
+import { STORAGE_KEYS } from '../storage/storage-keys';
 import { buildInfo } from '@env/build-info';
 import { sanitizeEventPayload } from './posthog-sanitizer';
 
@@ -23,8 +25,10 @@ export class PostHogService {
   readonly #applicationConfiguration = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);
   readonly #platformId = inject(PLATFORM_ID);
+  readonly #storageService = inject(StorageService);
 
   readonly #isInitialized = signal<boolean>(false);
+  #isTrackingEnabled = false;
 
   readonly isInitialized = this.#isInitialized.asReadonly();
   readonly isEnabled = computed(() => {
@@ -54,12 +58,14 @@ export class PostHogService {
 
       posthog.init(config.apiKey, {
         api_host: config.host,
+        ui_host: 'https://eu.posthog.com',
         debug: config.debug,
 
-        // Privacy-first configuration
-        capture_pageview: false, // Enable after user consent
+        // Privacy-first: anonymous events flow immediately, person profiles
+        // only created after identify(). Full auto-capture enabled after auth.
+        capture_pageview: false,
         capture_pageleave: false,
-        opt_out_capturing_by_default: true,
+        autocapture: false,
 
         // Session recording with built-in privacy
         session_recording: {
@@ -90,19 +96,19 @@ export class PostHogService {
    * Enable tracking after user consent
    */
   enableTracking(): void {
-    if (!this.#canCapture()) return;
+    if (!this.#canCapture() || this.#isTrackingEnabled) return;
 
     try {
-      posthog.opt_in_capturing();
-
-      // Enable SPA navigation tracking via History API (pushState/popstate)
+      // Enable full tracking: SPA navigation, page leaves, and autocapture
       posthog.set_config({
         capture_pageview: 'history_change',
         capture_pageleave: 'if_capture_pageview',
+        autocapture: true,
       });
 
       // Capture the initial pageview (subsequent navigations are auto-tracked)
       posthog.capture('$pageview');
+      this.#isTrackingEnabled = true;
       this.#logger.info('PostHog tracking enabled with SPA navigation support');
     } catch (error) {
       this.#logger.error('Failed to enable tracking', error);
@@ -175,6 +181,42 @@ export class PostHogService {
   }
 
   /**
+   * Store the pending OAuth signup method for cross-redirect tracking.
+   */
+  setPendingSignupMethod(method: string): void {
+    this.#storageService.setString(
+      STORAGE_KEYS.PENDING_SIGNUP_METHOD,
+      method,
+      'session',
+    );
+  }
+
+  /**
+   * Clear the pending OAuth signup method (cancelled/failed flow or email signup).
+   */
+  clearPendingSignupMethod(): void {
+    this.#storageService.remove(STORAGE_KEYS.PENDING_SIGNUP_METHOD, 'session');
+  }
+
+  /**
+   * Capture pending signup_completed event stored by OAuth redirect flow.
+   * Called after user identification to link the event to the person profile.
+   */
+  capturePendingSignupCompleted(): void {
+    if (!this.#canCapture()) return;
+
+    const method = this.#storageService.getString(
+      STORAGE_KEYS.PENDING_SIGNUP_METHOD,
+      'session',
+    );
+    if (!method) return;
+
+    this.clearPendingSignupMethod();
+    this.captureEvent('signup_completed', { method });
+    this.#logger.debug('Pending signup_completed captured', { method });
+  }
+
+  /**
    * Reset state (e.g., on logout)
    */
   reset(): void {
@@ -182,6 +224,7 @@ export class PostHogService {
 
     try {
       posthog.reset();
+      this.#isTrackingEnabled = false;
       this.#logger.debug('PostHog state reset');
     } catch (error) {
       this.#logger.error('Failed to reset PostHog', error);
