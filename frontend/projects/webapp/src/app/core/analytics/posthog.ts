@@ -189,7 +189,7 @@ export class PostHogService {
     if (!method) return;
 
     sessionStorage.removeItem(STORAGE_KEY);
-    posthog.capture('signup_completed', { method });
+    this.captureEvent('signup_completed', { method });
     this.#logger.debug('Pending signup_completed captured', { method });
   }
 

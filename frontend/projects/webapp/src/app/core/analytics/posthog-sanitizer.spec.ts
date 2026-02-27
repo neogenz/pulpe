@@ -246,6 +246,23 @@ describe('posthog-sanitizer', () => {
 
       expect(sanitized).toBeNull();
     });
+
+    it('preserves PostHog SDK token through sanitization', () => {
+      const event = {
+        event: 'test_event',
+        properties: {
+          token: 'phc_sdk_project_token',
+          planned_amount: 5000,
+          safe_property: 'keep',
+        },
+      } as unknown as CaptureResult;
+
+      const sanitized = sanitizeEventPayload(event);
+
+      expect(sanitized?.properties?.['token']).toBe('phc_sdk_project_token');
+      expect(sanitized?.properties?.['planned_amount']).toBeUndefined();
+      expect(sanitized?.properties?.['safe_property']).toBe('keep');
+    });
   });
 
   describe('Real component data flow scenarios', () => {

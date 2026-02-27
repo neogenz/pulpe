@@ -244,6 +244,9 @@ export default class WelcomePage {
     if (isLoading) {
       sessionStorage.setItem('pulpe_pending_signup_method', 'google');
       this.#postHogService.captureEvent('signup_started', { method: 'google' });
+    } else {
+      // Clean stale key if OAuth was cancelled/failed before redirect
+      sessionStorage.removeItem('pulpe_pending_signup_method');
     }
   }
 
