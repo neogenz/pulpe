@@ -23,7 +23,13 @@ final class WidgetSyncViewModel {
     private let userSettingsService = UserSettingsService.shared
 
     func syncWidgetData() async {
-        let payDay = try? await userSettingsService.getSettings().payDayOfMonth
+        let payDay: Int?
+        do {
+            payDay = try await userSettingsService.getSettings().payDayOfMonth
+        } catch {
+            Logger.sync.warning("WidgetSyncViewModel: settings fetch failed - \(error)")
+            payDay = nil
+        }
         guard let currentBudget = try? await budgetService.getCurrentMonthBudget(payDayOfMonth: payDay),
               let details = try? await budgetService.getBudgetWithDetails(id: currentBudget.id) else {
             await WidgetDataSyncService.shared.sync(

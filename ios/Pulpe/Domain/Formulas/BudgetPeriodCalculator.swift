@@ -134,15 +134,6 @@ enum BudgetPeriodCalculator {
         return "\(startStr) - \(endStr)"
     }
 
-    // MARK: - Is In Current Period
-
-    static func isInCurrentPeriod(_ date: Date, payDayOfMonth: Int? = nil) -> Bool {
-        let currentPeriod = periodForDate(Date(), payDayOfMonth: payDayOfMonth)
-        let datePeriod = periodForDate(date, payDayOfMonth: payDayOfMonth)
-
-        return currentPeriod == datePeriod
-    }
-
     // MARK: - Compare Periods
 
     static func comparePeriods(_ lhs: BudgetPeriod, _ rhs: BudgetPeriod) -> Int {
@@ -153,13 +144,6 @@ enum BudgetPeriodCalculator {
             return lhs.month < rhs.month ? -1 : 1
         }
         return 0
-    }
-
-    // MARK: - Is Past Period
-
-    static func isPastPeriod(_ period: BudgetPeriod, payDayOfMonth: Int? = nil) -> Bool {
-        let currentPeriod = periodForDate(Date(), payDayOfMonth: payDayOfMonth)
-        return comparePeriods(period, currentPeriod) < 0
     }
 
     // MARK: - Private Helpers

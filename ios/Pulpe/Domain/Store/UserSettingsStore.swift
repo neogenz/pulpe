@@ -85,7 +85,7 @@ final class UserSettingsStore: StoreProtocol {
     // MARK: - Mutations
 
     func updatePayDay(_ day: Int?) async {
-        guard day == nil || (day.map { (2...31).contains($0) } ?? false) else { return }
+        if let day, !(2...31).contains(day) { return }
 
         let previousValue = payDayOfMonth
         error = nil

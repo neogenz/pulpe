@@ -53,7 +53,13 @@ actor BackgroundTaskService {
     private func refreshWidgetData() async throws {
         guard await AuthService.shared.hasBiometricTokens() else { return }
 
-        let payDay = try? await userSettingsService.getSettings().payDayOfMonth
+        let payDay: Int?
+        do {
+            payDay = try await userSettingsService.getSettings().payDayOfMonth
+        } catch {
+            Logger.sync.warning("BackgroundTaskService: settings fetch failed - \(error)")
+            payDay = nil
+        }
 
         guard let currentBudget = try await budgetService.getCurrentMonthBudget(payDayOfMonth: payDay) else {
             await WidgetDataSyncService.shared.sync(

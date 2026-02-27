@@ -25,6 +25,8 @@ struct PayDaySettingView: View {
         .onChange(of: userSettingsStore.payDayOfMonth) { _, newValue in
             if viewModel == nil {
                 viewModel = PayDaySettingViewModel(currentPayDay: newValue)
+            } else {
+                viewModel?.syncInitialDay(newValue)
             }
         }
         .onAppear {
@@ -140,6 +142,14 @@ final class PayDaySettingViewModel {
     func reset() {
         selectedDay = initialDay
         hasChanges = false
+    }
+
+    /// Update baseline when the store changes externally (e.g., async load completing)
+    /// and the user hasn't started editing yet.
+    func syncInitialDay(_ day: Int?) {
+        guard !hasChanges else { return }
+        initialDay = day
+        selectedDay = day
     }
 }
 
