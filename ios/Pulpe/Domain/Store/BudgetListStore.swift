@@ -58,8 +58,10 @@ final class BudgetListStore: StoreProtocol {
         let currentGeneration = loadGeneration
 
         let task = Task {
+            let showsSkeleton = budgets.isEmpty
             isLoading = true
             error = nil
+            let loadStart = ContinuousClock.now
             defer { isLoading = false }
 
             do {
@@ -67,6 +69,10 @@ final class BudgetListStore: StoreProtocol {
 
                 // Check for cancellation before updating state
                 try Task.checkCancellation()
+
+                if showsSkeleton {
+                    await ensureMinimumSkeletonTime(since: loadStart)
+                }
 
                 budgets = fetchedBudgets
                 lastLoadTime = Date()

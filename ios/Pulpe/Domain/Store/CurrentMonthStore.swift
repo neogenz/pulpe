@@ -83,6 +83,7 @@ final class CurrentMonthStore: StoreProtocol {
         guard budget == nil else { return }
         isLoading = true
         error = nil
+        let loadStart = ContinuousClock.now
         defer { isLoading = false }
 
         do {
@@ -94,9 +95,13 @@ final class CurrentMonthStore: StoreProtocol {
 
             guard let match = sparseBudgets.first(where: {
                 $0.month == period.month && $0.year == period.year
-            }) else { return }
+            }) else {
+                await ensureMinimumSkeletonTime(since: loadStart)
+                return
+            }
 
             let fetchedBudget = try await budgetService.getBudget(id: match.id)
+            await ensureMinimumSkeletonTime(since: loadStart)
             budget = fetchedBudget
             invalidateMetricsCache()
         } catch let apiError as APIError {
@@ -174,14 +179,19 @@ final class CurrentMonthStore: StoreProtocol {
         let currentGeneration = loadGeneration
 
         let task = Task {
+            let showsSkeleton = budget == nil
             isLoading = true
             error = nil
+            let loadStart = ContinuousClock.now
             defer { isLoading = false }
 
             do {
                 guard let currentBudget = try await budgetService.getCurrentMonthBudget(
                     payDayOfMonth: self.payDayOfMonth
                 ) else {
+                    if showsSkeleton {
+                        await ensureMinimumSkeletonTime(since: loadStart)
+                    }
                     budget = nil
                     budgetLines = []
                     transactions = []
@@ -194,6 +204,11 @@ final class CurrentMonthStore: StoreProtocol {
                 try Task.checkCancellation()
 
                 let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
+
+                if showsSkeleton {
+                    await ensureMinimumSkeletonTime(since: loadStart)
+                }
+
                 budget = details.budget
                 budgetLines = details.budgetLines
                 transactions = details.transactions

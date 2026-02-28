@@ -346,7 +346,7 @@ struct YearSection: View {
 
                 if slot.month != months.last?.month {
                     Divider()
-                        .padding(.leading, 34)
+                        .padding(.leading, dividerLeadingInset)
                 }
             }
         }
