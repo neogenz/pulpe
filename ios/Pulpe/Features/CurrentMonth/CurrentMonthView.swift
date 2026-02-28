@@ -27,10 +27,12 @@ struct CurrentMonthView: View {
         ZStack {
             if store.isLoading && store.budget == nil {
                 CurrentMonthSkeletonView()
+                    .transition(.opacity)
             } else if let error = store.error, store.budget == nil {
                 ErrorView(error: error) {
                     await store.forceRefresh()
                 }
+                .transition(.opacity)
             } else if store.budget == nil {
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Image(systemName: "calendar.badge.plus")
@@ -45,11 +47,14 @@ struct CurrentMonthView: View {
                         .multilineTextAlignment(.center)
                 }
                 .padding(DesignTokens.Spacing.xxxl)
+                .transition(.opacity)
             } else {
                 dashboardContent
+                    .transition(.opacity)
             }
         }
         .trackScreen("Dashboard")
+        .animation(.easeOut(duration: DesignTokens.Animation.normal), value: store.isLoading)
         .navigationTitle("Accueil")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

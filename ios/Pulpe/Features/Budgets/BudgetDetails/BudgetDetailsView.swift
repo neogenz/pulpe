@@ -35,15 +35,19 @@ struct BudgetDetailsView: View {
         Group {
             if viewModel.isLoading && viewModel.budget == nil {
                 BudgetDetailsSkeletonView()
+                    .transition(.opacity)
             } else if let error = viewModel.error, viewModel.budget == nil {
                 ErrorView(error: error) {
                     await viewModel.loadDetails()
                 }
+                .transition(.opacity)
             } else if viewModel.budget != nil {
                 content
+                    .transition(.opacity)
             }
         }
         .trackScreen("BudgetDetails")
+        .animation(.easeOut(duration: DesignTokens.Animation.normal), value: viewModel.isLoading)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {

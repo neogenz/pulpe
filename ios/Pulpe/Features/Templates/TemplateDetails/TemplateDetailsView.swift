@@ -14,14 +14,18 @@ struct TemplateDetailsView: View {
         Group {
             if viewModel.isLoading && viewModel.template == nil {
                 TemplateDetailsSkeletonView()
+                    .transition(.opacity)
             } else if let error = viewModel.error, viewModel.template == nil {
                 ErrorView(error: error) {
                     await viewModel.loadDetails()
                 }
+                .transition(.opacity)
             } else if let template = viewModel.template {
                 content(template: template)
+                    .transition(.opacity)
             }
         }
+        .animation(.easeOut(duration: DesignTokens.Animation.normal), value: viewModel.isLoading)
         .navigationTitle(viewModel.template?.name ?? "Modèle")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -184,15 +188,26 @@ final class TemplateDetailsViewModel {
     }
 
     func loadDetails() async {
+        let showsSkeleton = template == nil
         isLoading = true
         error = nil
+        let loadStart = ContinuousClock.now
 
         do {
             async let templateTask = templateService.getTemplate(id: templateId)
             async let linesTask = templateService.getTemplateLines(templateId: templateId)
 
-            template = try await templateTask
-            lines = try await linesTask
+            let (fetchedTemplate, fetchedLines) = try await (templateTask, linesTask)
+
+            if showsSkeleton {
+                let elapsed = ContinuousClock.now - loadStart
+                if elapsed < .milliseconds(400) {
+                    try? await Task.sleep(for: .milliseconds(400) - elapsed)
+                }
+            }
+
+            template = fetchedTemplate
+            lines = fetchedLines
         } catch {
             self.error = error
         }

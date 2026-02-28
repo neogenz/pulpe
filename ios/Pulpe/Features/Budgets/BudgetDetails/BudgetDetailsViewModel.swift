@@ -194,8 +194,10 @@ final class BudgetDetailsViewModel {
     /// Full load: fetches budget details AND all budgets list (for month navigation)
     /// Use for: initial load, pull-to-refresh
     func loadDetails() async {
+        let showsSkeleton = budget == nil
         isLoading = true
         error = nil
+        let loadStart = ContinuousClock.now
 
         do {
             async let detailsTask = budgetService.getBudgetWithDetails(id: budgetId)
@@ -203,12 +205,19 @@ final class BudgetDetailsViewModel {
 
             let (details, budgets) = try await (detailsTask, budgetsTask)
 
+            // Minimum skeleton display time to prevent jarring flash
+            if showsSkeleton {
+                let elapsed = ContinuousClock.now - loadStart
+                if elapsed < .milliseconds(400) {
+                    try? await Task.sleep(for: .milliseconds(400) - elapsed)
+                }
+            }
+
             budget = details.budget
             budgetLines = details.budgetLines
             transactions = details.transactions
             allBudgets = budgets
             invalidateMetricsCache()
-
             updateAdjacentBudgets()
         } catch {
             self.error = error

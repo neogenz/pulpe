@@ -14,10 +14,12 @@ struct BudgetListView: View {
         Group {
             if !store.hasLoadedOnce && store.budgets.isEmpty {
                 BudgetListSkeletonView()
+                    .transition(.opacity)
             } else if let error = store.error, store.budgets.isEmpty {
                 ErrorView(error: error) {
                     await store.forceRefresh()
                 }
+                .transition(.opacity)
             } else if store.budgets.isEmpty {
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Image(systemName: "chart.bar.doc.horizontal")
@@ -36,11 +38,14 @@ struct BudgetListView: View {
                     .primaryButtonStyle()
                 }
                 .padding(DesignTokens.Spacing.xxxl)
+                .transition(.opacity)
             } else {
                 budgetList
+                    .transition(.opacity)
             }
         }
         .trackScreen("BudgetList")
+        .animation(.easeOut(duration: DesignTokens.Animation.normal), value: store.hasLoadedOnce)
         .navigationTitle("Budgets")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

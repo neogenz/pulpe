@@ -12,10 +12,12 @@ struct TemplateListView: View {
         Group {
             if viewModel.isLoading && viewModel.templates.isEmpty {
                 TemplateListSkeletonView()
+                    .transition(.opacity)
             } else if let error = viewModel.error, viewModel.templates.isEmpty {
                 ErrorView(error: error) {
                     await viewModel.loadTemplates()
                 }
+                .transition(.opacity)
             } else if viewModel.templates.isEmpty {
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Image(systemName: "doc.on.doc")
@@ -34,11 +36,14 @@ struct TemplateListView: View {
                     .primaryButtonStyle()
                 }
                 .padding(DesignTokens.Spacing.xxxl)
+                .transition(.opacity)
             } else {
                 templateList
+                    .transition(.opacity)
             }
         }
         .trackScreen("TemplateList")
+        .animation(.easeOut(duration: DesignTokens.Animation.normal), value: viewModel.isLoading)
         .navigationTitle("Modèles")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -190,11 +195,22 @@ final class TemplateListViewModel {
     }
 
     func loadTemplates() async {
+        let showsSkeleton = templates.isEmpty
         isLoading = true
         error = nil
+        let loadStart = ContinuousClock.now
 
         do {
-            templates = try await templateService.getAllTemplates()
+            let fetched = try await templateService.getAllTemplates()
+
+            if showsSkeleton {
+                let elapsed = ContinuousClock.now - loadStart
+                if elapsed < .milliseconds(400) {
+                    try? await Task.sleep(for: .milliseconds(400) - elapsed)
+                }
+            }
+
+            templates = fetched
         } catch {
             self.error = error
         }
