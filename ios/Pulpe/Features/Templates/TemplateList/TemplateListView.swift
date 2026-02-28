@@ -130,6 +130,7 @@ private struct TemplateListSkeletonView: View {
                 SkeletonShape(width: 100, height: 12)
             }
         }
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .shimmering()
         .pulpeBackground()

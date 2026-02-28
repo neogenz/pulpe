@@ -382,5 +382,8 @@ private struct ShimmerModifier: ViewModifier {
                 guard !reduceMotion else { return }
                 isAnimating = true
             }
+            .onChange(of: reduceMotion) { _, reduced in
+                if reduced { isAnimating = false }
+            }
     }
 }

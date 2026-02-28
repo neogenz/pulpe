@@ -237,6 +237,8 @@ final class BudgetDetailsViewModel {
             transactions = details.transactions
             invalidateMetricsCache()
             updateAdjacentBudgets()
+        } catch is CancellationError {
+            // Task was cancelled, don't update error state
         } catch {
             self.error = error
         }
