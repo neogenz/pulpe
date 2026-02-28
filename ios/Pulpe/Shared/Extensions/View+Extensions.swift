@@ -221,7 +221,9 @@ private struct PulpeStatusBackgroundModifier: ViewModifier {
     let emotionState: BudgetFormulas.EmotionState
 
     /// Height of the emotion zone gradient (DA: ~30-35% of screen)
-    private let emotionZoneHeight: CGFloat = 340
+    private var emotionZoneHeight: CGFloat {
+        UIScreen.main.bounds.height * 0.33
+    }
 
     private var emotionColor: Color {
         switch emotionState {

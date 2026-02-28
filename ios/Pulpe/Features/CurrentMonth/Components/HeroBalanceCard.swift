@@ -61,8 +61,11 @@ struct HeroBalanceCard: View {
         case .tight:
             return "Serré — mais tu le sais"
         case .comfortable:
-            break
+            return comfortableMessage
         }
+    }
+
+    private var comfortableMessage: String {
         if metrics.totalIncome > 0, metrics.remaining > metrics.totalIncome * Self.twentyPercent {
             return "Belle marge ce mois"
         }
