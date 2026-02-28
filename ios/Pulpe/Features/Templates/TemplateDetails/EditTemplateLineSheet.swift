@@ -33,42 +33,20 @@ struct EditTemplateLineSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: DesignTokens.Spacing.xxl) {
-                    HeroAmountField(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused)
-                    descriptionField
-                    KindToggle(selection: $kind)
-                    recurrenceSelector
+        SheetFormContainer(title: "Modifier la ligne", isLoading: isLoading, autoFocus: $isAmountFocused) {
+            HeroAmountField(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused)
+            descriptionField
+            KindToggle(selection: $kind)
+            recurrenceSelector
 
-                    if let error {
-                        ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
-                            self.error = nil
-                        }
-                    }
-
-                    saveButton
-                }
-                .padding(.horizontal, DesignTokens.Spacing.xl)
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.xl)
-            }
-            .background(Color.surfacePrimary)
-            .navigationTitle("Modifier la ligne")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    SheetCloseButton()
+            if let error {
+                ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                    self.error = nil
                 }
             }
-            .loadingOverlay(isLoading)
-            .dismissKeyboardOnTap()
-            .task {
-                try? await Task.sleep(for: .milliseconds(200))
-                isAmountFocused = true
-            }
+
+            saveButton
         }
-        .standardSheetPresentation()
     }
 
     // MARK: - Description

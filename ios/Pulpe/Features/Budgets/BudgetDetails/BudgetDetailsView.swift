@@ -1,4 +1,5 @@
 import SwiftUI
+import TipKit
 
 struct BudgetDetailsView: View {
     let budgetId: String
@@ -182,15 +183,17 @@ struct BudgetDetailsView: View {
                     .listRowSeparator(.hidden)
             }
 
-            // Budget line sections
+            // Budget line sections (tip appears in the first visible section)
             if !filteredIncome.isEmpty {
-                budgetSection(title: "Revenus", items: filteredIncome)
+                budgetSection(title: "Revenus", items: filteredIncome, tip: ProductTips.gestures)
             }
             if !filteredExpenses.isEmpty {
-                budgetSection(title: "Dépenses", items: filteredExpenses)
+                budgetSection(title: "Dépenses", items: filteredExpenses,
+                              tip: filteredIncome.isEmpty ? ProductTips.gestures : nil)
             }
             if !filteredSavings.isEmpty {
-                budgetSection(title: "Épargne", items: filteredSavings)
+                budgetSection(title: "Épargne", items: filteredSavings,
+                              tip: filteredIncome.isEmpty && filteredExpenses.isEmpty ? ProductTips.gestures : nil)
             }
 
             // Free transactions
@@ -223,7 +226,7 @@ struct BudgetDetailsView: View {
 
     // MARK: - Section Builders
 
-    private func budgetSection(title: String, items: [BudgetLine]) -> some View {
+    private func budgetSection(title: String, items: [BudgetLine], tip: (any Tip)? = nil) -> some View {
         BudgetSection(
             title: title,
             items: items,
@@ -258,7 +261,8 @@ struct BudgetDetailsView: View {
                     return
                 }
                 selectedBudgetLineForEdit = line
-            }
+            },
+            tip: tip
         )
     }
 }
@@ -267,4 +271,17 @@ struct BudgetDetailsView: View {
     NavigationStack {
         BudgetDetailsView(budgetId: "test")
     }
+    .environment(AppState())
+}
+#Preview("Gestures Tip") {
+    List {
+        Section("Dépenses") {
+            TipView(ProductTips.gestures)
+            Text("Budget line row placeholder")
+        }
+    }
+    .listStyle(.insetGrouped)
+    .scrollContentBackground(.hidden)
+    .background(Color.appNegativeBackground.ignoresSafeArea())
+    .task { try? Tips.resetDatastore() }
 }

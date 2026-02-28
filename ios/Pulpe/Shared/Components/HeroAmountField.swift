@@ -10,7 +10,7 @@ struct HeroAmountField: View {
 
     private var displayAmount: String {
         if let amount, amount > 0 {
-            return Formatters.amountInput.string(from: amount as NSDecimalNumber) ?? "0"
+            return Formatters.amountInput.string(from: amount as NSDecimalNumber) ?? "0.00"
         }
         return "0.00"
     }
@@ -51,7 +51,7 @@ struct HeroAmountField: View {
                 .frame(width: 120, height: 2)
                 .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isFocused.wrappedValue)
 
-            if let hint, (amount ?? 0) == 0 {
+            if let hint, (amount ?? 0) <= 0 {
                 Text(hint)
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textTertiary)

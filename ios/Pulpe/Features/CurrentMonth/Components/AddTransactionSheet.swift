@@ -14,13 +14,10 @@ struct AddTransactionSheet: View {
     @State private var isLoading = false
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
-    @State private var pendingQuickAmount: Int?
     @State private var amountText = ""
     @State private var submitSuccessTrigger = false
-    @State private var quickAmountTrigger = false
 
     private let transactionService = TransactionService.shared
-    private let quickAmounts = DesignTokens.AmountInput.quickAmounts
 
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
@@ -40,104 +37,28 @@ struct AddTransactionSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: DesignTokens.Spacing.xxl) {
-                    KindToggle(selection: $kind)
-                    HeroAmountField(
-                        amount: $amount,
-                        amountText: $amountText,
-                        isFocused: $isAmountFocused,
-                        hint: "Quel montant ?"
-                    )
-                    quickAmountChips
-                    descriptionField
-                    dateSelector
+        SheetFormContainer(title: kind.newTransactionTitle, isLoading: isLoading, autoFocus: $isAmountFocused) {
+            KindToggle(selection: $kind)
+            HeroAmountField(
+                amount: $amount,
+                amountText: $amountText,
+                isFocused: $isAmountFocused,
+                hint: "Quel montant ?"
+            )
+            QuickAmountChips(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused, color: kind.color)
+                .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
+            descriptionField
+            dateSelector
 
-                    if let error {
-                        ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
-                            self.error = nil
-                        }
-                    }
+            if let error {
+                ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                    self.error = nil
+                }
+            }
 
-                    addButton
-                }
-                .padding(.horizontal, DesignTokens.Spacing.xl)
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.xl)
-            }
-            .background(Color.surfacePrimary)
-            .navigationTitle(kind.newTransactionTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    SheetCloseButton()
-                }
-            }
-            .loadingOverlay(isLoading)
-            .dismissKeyboardOnTap()
-            .sensoryFeedback(.success, trigger: submitSuccessTrigger)
-            .task {
-                try? await Task.sleep(for: .milliseconds(200))
-                isAmountFocused = true
-            }
-            .onChange(of: isAmountFocused) { _, isFocused in
-                if !isFocused, let quickAmount = pendingQuickAmount {
-                    amount = Decimal(quickAmount)
-                    amountText = "\(quickAmount)"
-                    pendingQuickAmount = nil
-                }
-            }
+            addButton
         }
-        .standardSheetPresentation()
-    }
-
-    // MARK: - Quick Amounts
-
-    private var quickAmountChips: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            ForEach(quickAmounts, id: \.self) { quickAmount in
-                let isSelected = amount == Decimal(quickAmount)
-                Button {
-                    quickAmountTrigger.toggle()
-                    if isAmountFocused {
-                        pendingQuickAmount = quickAmount
-                        isAmountFocused = false
-                    } else {
-                        amount = Decimal(quickAmount)
-                        amountText = "\(quickAmount)"
-                    }
-                } label: {
-                    let isSelectedOpacity = isSelected
-                        ? DesignTokens.Opacity.secondary
-                        : DesignTokens.Opacity.badgeBackground
-                    let borderOpacity = isSelected
-                        ? DesignTokens.Opacity.strong
-                        : DesignTokens.Opacity.secondary
-
-                    Text("\(quickAmount) \(DesignTokens.AmountInput.currencyCode)")
-                        .font(PulpeTypography.labelLarge)
-                        .fixedSize()
-                        .padding(.horizontal, DesignTokens.Spacing.md)
-                        .padding(.vertical, DesignTokens.Spacing.sm)
-                        .frame(maxWidth: .infinity)
-                        .background(kind.color.opacity(isSelectedOpacity))
-                        .foregroundStyle(kind.color)
-                        .clipShape(Capsule())
-                        .overlay(
-                            Capsule().strokeBorder(
-                                kind.color.opacity(borderOpacity),
-                                lineWidth: 1
-                            )
-                        )
-                }
-                .buttonStyle(.plain)
-                .accessibilityHint("Définir le montant à \(quickAmount) CHF")
-            }
-        }
-        .sensoryFeedback(.selection, trigger: quickAmountTrigger)
-        .animation(.snappy(duration: DesignTokens.Animation.fast), value: amount)
-        .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
+        .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
 
     // MARK: - Description
@@ -229,6 +150,7 @@ struct AddTransactionSheet: View {
     AddTransactionSheet(budgetId: "test") { transaction in
         print("Added: \(transaction)")
     }
+    .environment(ToastManager())
 }
 
 // MARK: - Deep Link Wrapper
@@ -294,6 +216,7 @@ final class DeepLinkAddExpenseViewModel {
 
     func loadCurrentBudget(payDayOfMonth: Int? = nil) async {
         isLoading = true
+        defer { isLoading = false }
         error = nil
         do {
             let budget = try await BudgetService.shared.getCurrentMonthBudget(payDayOfMonth: payDayOfMonth)
@@ -302,6 +225,5 @@ final class DeepLinkAddExpenseViewModel {
             self.error = error
             currentBudgetId = nil
         }
-        isLoading = false
     }
 }

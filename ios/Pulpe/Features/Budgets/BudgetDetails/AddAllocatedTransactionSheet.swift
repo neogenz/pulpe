@@ -13,11 +13,9 @@ struct AddAllocatedTransactionSheet: View {
     @State private var isLoading = false
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
-    @State private var pendingQuickAmount: Int?
     @State private var amountText = ""
 
     private let transactionService = TransactionService.shared
-    private let quickAmounts = DesignTokens.AmountInput.quickAmounts
 
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
@@ -26,83 +24,24 @@ struct AddAllocatedTransactionSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: DesignTokens.Spacing.xxl) {
-                    HeroAmountField(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused)
-                    quickAmountChips
-                    descriptionField
-                    dateSelector
+        SheetFormContainer(title: budgetLine.name, isLoading: isLoading, autoFocus: $isAmountFocused) {
+            HeroAmountField(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused)
+            QuickAmountChips(
+                amount: $amount,
+                amountText: $amountText,
+                isFocused: $isAmountFocused,
+                color: budgetLine.kind.color
+            )
+            descriptionField
+            dateSelector
 
-                    if let error {
-                        ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
-                            self.error = nil
-                        }
-                    }
-
-                    addButton
-                }
-                .padding(.horizontal, DesignTokens.Spacing.xl)
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.xl)
-            }
-            .background(Color.surfacePrimary)
-            .navigationTitle(budgetLine.name)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    SheetCloseButton()
+            if let error {
+                ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                    self.error = nil
                 }
             }
-            .loadingOverlay(isLoading)
-            .dismissKeyboardOnTap()
-            .task {
-                try? await Task.sleep(for: .milliseconds(200))
-                isAmountFocused = true
-            }
-            .onChange(of: isAmountFocused) { _, isFocused in
-                if !isFocused, let quickAmount = pendingQuickAmount {
-                    amount = Decimal(quickAmount)
-                    amountText = "\(quickAmount)"
-                    pendingQuickAmount = nil
-                }
-            }
-        }
-        .standardSheetPresentation()
-    }
 
-    // MARK: - Quick Amounts
-
-    private var quickAmountChips: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            ForEach(quickAmounts, id: \.self) { quickAmount in
-                Button {
-                    if isAmountFocused {
-                        pendingQuickAmount = quickAmount
-                        isAmountFocused = false
-                    } else {
-                        amount = Decimal(quickAmount)
-                        amountText = "\(quickAmount)"
-                    }
-                } label: {
-                    Text("\(quickAmount) \(DesignTokens.AmountInput.currencyCode)")
-                        .font(PulpeTypography.buttonSecondary)
-                        .fixedSize()
-                        .padding(.horizontal, DesignTokens.Spacing.md)
-                        .padding(.vertical, DesignTokens.Spacing.sm)
-                        .frame(maxWidth: .infinity)
-                        .background(Color.pulpePrimary.opacity(DesignTokens.Opacity.badgeBackground))
-                        .foregroundStyle(Color.pulpePrimary)
-                        .clipShape(Capsule())
-                        .overlay(
-                            Capsule().strokeBorder(
-                                Color.pulpePrimary.opacity(DesignTokens.Opacity.secondary),
-                                lineWidth: 1
-                            )
-                        )
-                }
-                .buttonStyle(.plain)
-            }
+            addButton
         }
     }
 
