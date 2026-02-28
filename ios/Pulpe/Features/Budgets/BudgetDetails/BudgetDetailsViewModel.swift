@@ -206,7 +206,7 @@ final class BudgetDetailsViewModel {
             let (details, budgets) = try await (detailsTask, budgetsTask)
 
             if showsSkeleton {
-                await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
+                await ensureMinimumSkeletonTime(since: loadStart)
             }
 
             budget = details.budget

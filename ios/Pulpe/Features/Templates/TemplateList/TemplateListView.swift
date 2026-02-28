@@ -204,7 +204,7 @@ final class TemplateListViewModel {
             let fetched = try await templateService.getAllTemplates()
 
             if showsSkeleton {
-                await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
+                await ensureMinimumSkeletonTime(since: loadStart)
             }
 
             templates = fetched

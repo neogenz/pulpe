@@ -350,6 +350,17 @@ extension View {
     }
 }
 
+// MARK: - Skeleton Timing
+
+/// Waits until at least the minimum skeleton duration has elapsed since `start`.
+/// Call after an async fetch that was preceded by showing a skeleton.
+func ensureMinimumSkeletonTime(since start: ContinuousClock.Instant) async {
+    let elapsed = ContinuousClock.now - start
+    if elapsed < DesignTokens.Animation.skeletonMinimumDuration {
+        try? await Task.sleep(for: DesignTokens.Animation.skeletonMinimumDuration - elapsed)
+    }
+}
+
 // MARK: - Shimmer Effect
 
 extension View {
