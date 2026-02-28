@@ -39,10 +39,6 @@ struct BudgetSection: View {
         self.tip = tip
     }
 
-    private var isReadOnly: Bool {
-        onToggle == nil && onDelete == nil && onAddTransaction == nil && onLongPress == nil && onEdit == nil
-    }
-
     @State private var isExpanded = false
 
     private let collapsedItemCount = 3
