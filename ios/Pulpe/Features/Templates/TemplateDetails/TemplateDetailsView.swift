@@ -277,7 +277,10 @@ private struct TemplateDetailsSkeletonView: View {
                 }
             }
         }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
         .shimmering()
+        .pulpeBackground()
         .accessibilityLabel("Chargement du modèle")
     }
 }
