@@ -64,10 +64,10 @@ final class PreviousBudgetSheetViewModel {
 
         do {
             let details = try await budgetService.getBudgetWithDetails(id: budgetId)
+            cachedMetrics = nil
             budget = details.budget
             budgetLines = details.budgetLines
             transactions = details.transactions
-            cachedMetrics = nil
         } catch {
             self.error = error
         }
