@@ -27,25 +27,18 @@ struct QuickAmountChips: View {
                         amountText = "\(quickAmount)"
                     }
                 } label: {
-                    let bgOpacity = isSelected
-                        ? DesignTokens.Opacity.secondary
-                        : DesignTokens.Opacity.badgeBackground
-                    let borderOpacity = isSelected
-                        ? DesignTokens.Opacity.strong
-                        : DesignTokens.Opacity.secondary
-
                     Text("\(quickAmount) \(DesignTokens.AmountInput.currencyCode)")
                         .font(PulpeTypography.labelLarge)
                         .fixedSize()
                         .padding(.horizontal, DesignTokens.Spacing.md)
                         .padding(.vertical, DesignTokens.Spacing.sm)
                         .frame(maxWidth: .infinity)
-                        .background(color.opacity(bgOpacity))
-                        .foregroundStyle(color)
+                        .background(Color.surfaceSecondary)
+                        .foregroundStyle(isSelected ? color : Color.textTertiary)
                         .clipShape(Capsule())
                         .overlay(
                             Capsule().strokeBorder(
-                                color.opacity(borderOpacity),
+                                isSelected ? color.opacity(DesignTokens.Opacity.strong) : Color.clear,
                                 lineWidth: 1
                             )
                         )

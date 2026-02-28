@@ -92,6 +92,7 @@ struct BudgetDetailsView: View {
                     Task { await viewModel.toggleTransaction(transaction) }
                 },
                 onEdit: { transaction in
+                    linkedTransactionsContext = nil
                     selectedTransactionForEdit = transaction
                 },
                 onDelete: { transaction in
@@ -227,9 +228,12 @@ struct BudgetDetailsView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .listSectionSpacing(DesignTokens.Spacing.lg)
+        .listSectionSpacing(DesignTokens.Spacing.xxl)
         .scrollContentBackground(.hidden)
-        .pulpeStatusBackground(isDeficit: viewModel.metrics.isDeficit)
+        .pulpeStatusBackground(
+            isDeficit: viewModel.metrics.isDeficit,
+            usagePercentage: viewModel.metrics.usagePercentage
+        )
         .refreshable {
             await viewModel.loadDetails(force: true)
         }
@@ -342,6 +346,6 @@ private struct BudgetDetailsSkeletonView: View {
     }
     .listStyle(.insetGrouped)
     .scrollContentBackground(.hidden)
-    .background(Color.appNegativeBackground.ignoresSafeArea())
+    .pulpeStatusBackground(isDeficit: true)
     .task { try? Tips.resetDatastore() }
 }

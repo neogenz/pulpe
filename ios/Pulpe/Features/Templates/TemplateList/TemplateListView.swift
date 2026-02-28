@@ -84,7 +84,7 @@ struct TemplateListView: View {
                         } label: {
                             Label("Supprimer", systemImage: "trash")
                         }
-                        .tint(Color.errorPrimary)
+                        .tint(Color.destructivePrimary)
                     }
                 }
             } footer: {

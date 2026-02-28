@@ -195,10 +195,9 @@ struct HeroBalanceCard: View {
                     .sensitiveAmount()
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(color.opacity(0.12), in: Capsule())
-        .overlay(Capsule().strokeBorder(color.opacity(0.15), lineWidth: 0.5))
+        .padding(.horizontal, DesignTokens.Spacing.md)
+        .padding(.vertical, DesignTokens.Spacing.sm)
+        .background(color.opacity(DesignTokens.Opacity.highlightBackground), in: Capsule())
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(label) \(value.asCHF)")
     }

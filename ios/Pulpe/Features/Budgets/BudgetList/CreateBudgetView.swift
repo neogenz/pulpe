@@ -69,10 +69,7 @@ struct CreateBudgetView: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
-        .presentationCornerRadius(24)
-        .presentationBackground(Color(.systemGroupedBackground))
+        .standardSheetPresentation()
     }
 
     // MARK: - Create Button

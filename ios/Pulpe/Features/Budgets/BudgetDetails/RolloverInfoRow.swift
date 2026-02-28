@@ -16,36 +16,35 @@ struct RolloverInfoRow: View {
         }
     }
 
+    private var tintColor: Color {
+        isPositive ? .financialSavings : .financialOverBudget
+    }
+
     private var content: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "arrow.uturn.backward.circle.fill")
-                .font(PulpeTypography.title2)
-                .foregroundStyle(isPositive ? Color.financialSavings : Color.financialOverBudget)
+                .font(.system(size: 20))
+                .foregroundStyle(tintColor)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Report du mois précédent")
-                    .font(PulpeTypography.buttonSecondary)
-                    .foregroundStyle(.primary)
-                Text(isPositive ? "Excédent reporté" : "Déficit reporté")
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
-            }
+            Text("Report")
+                .font(PulpeTypography.subheadline)
+                .foregroundStyle(.secondary)
 
             Spacer()
 
             Text(amount.asCHF)
-                .font(PulpeTypography.headline)
-                .foregroundStyle(isPositive ? Color.financialSavings : Color.financialOverBudget)
+                .font(PulpeTypography.callout.weight(.semibold))
+                .foregroundStyle(tintColor)
                 .sensitiveAmount()
+
+            if onTap != nil {
+                Image(systemName: "chevron.right")
+                    .font(PulpeTypography.caption2)
+                    .foregroundStyle(.quaternary)
+            }
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                .fill(
-                    (isPositive ? Color.financialSavings : Color.financialOverBudget)
-                        .opacity(DesignTokens.Opacity.highlightBackground)
-                )
-        )
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.vertical, DesignTokens.Spacing.md)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Report du mois précédent")
         .accessibilityValue("\(isPositive ? "Excédent" : "Déficit") de \(amount.asCHF)")

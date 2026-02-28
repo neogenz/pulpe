@@ -67,6 +67,8 @@ struct LinkedTransactionsSheet: View {
         .accessibilityIdentifier("linkedTransactionsSheetRoot")
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .presentationCornerRadius(DesignTokens.CornerRadius.xl)
+        .presentationBackground(Color.surfacePrimary)
     }
 
     // MARK: - Metrics Cards
@@ -188,12 +190,8 @@ struct LinkedTransactionsSheet: View {
             onAddTransaction()
         } label: {
             Label("Nouvelle transaction", systemImage: "plus")
-                .font(PulpeTypography.headline)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, DesignTokens.Spacing.lg)
         }
-        .buttonStyle(.borderedProminent)
-        .tint(.pulpePrimary)
+        .primaryButtonStyle()
         .padding(.horizontal)
         .padding(.vertical, DesignTokens.Spacing.md)
         .background(.ultraThinMaterial)

@@ -22,8 +22,8 @@ extension Color {
 
     // MARK: - Surface Colors (green-tinted for brand identity, dark mode uses system for comfort)
 
-    /// Primary background — sage green matching mesh gradient center (#EEF5EF), system dark in dark mode
-    static let surfacePrimary = Color(light: Color(hex: 0xEEF5EF), dark: Color(uiColor: .systemGroupedBackground))
+    /// Primary background — DA neutral warm (#F7F6F3), system dark in dark mode
+    static let surfacePrimary = Color(light: Color(hex: 0xF7F6F3), dark: Color(uiColor: .systemGroupedBackground))
 
     /// Card/modal surfaces — white in light mode for maximum contrast, elevated dark in dark mode
     static let surfaceCard = Color(light: .white, dark: Color(uiColor: .secondarySystemGroupedBackground))
@@ -107,13 +107,13 @@ extension Color {
 
     // MARK: - App Background Gradient
 
-    // Semantic gradient colors for premium background (neutral dark, green accents in light)
-    private static let gradientBaseTop = Color(light: Color(hex: 0xE4F3E0), dark: Color(hex: 0x141414))
-    private static let gradientBaseMid = Color(light: Color(hex: 0xD8EDD8), dark: Color(hex: 0x1A1A1C))
-    private static let gradientBaseBottom = Color(light: Color(hex: 0xCEE5D0), dark: Color(hex: 0x1C1C1E))
-    private static let gradientAccentMint = Color(light: Color(hex: 0xA8E0B0), dark: Color(hex: 0x1E2020))
-    private static let gradientAccentSage = Color(light: Color(hex: 0xC5E0C8), dark: Color(hex: 0x1D1E1D))
-    private static let gradientCenterGlow = Color(light: Color(hex: 0xD8EDD8), dark: Color(hex: 0x1E1F1E))
+    // Semantic gradient colors for premium background (warm neutral in light, dark in dark)
+    private static let gradientBaseTop = Color(light: Color(hex: 0xFAF9F6), dark: Color(hex: 0x141414))
+    private static let gradientBaseMid = Color(light: Color(hex: 0xF7F6F3), dark: Color(hex: 0x1A1A1C))
+    private static let gradientBaseBottom = Color(light: Color(hex: 0xF4F2EE), dark: Color(hex: 0x1C1C1E))
+    private static let gradientAccentWarm = Color(light: Color(hex: 0xF0EDE7), dark: Color(hex: 0x1E2020))
+    private static let gradientAccentCream = Color(light: Color(hex: 0xF5F3EF), dark: Color(hex: 0x1D1E1D))
+    private static let gradientCenterGlow = Color(light: Color(hex: 0xF8F7F4), dark: Color(hex: 0x1E1F1E))
 
     // MARK: - Mesh Gradient Data (light mode only — dark mode uses system background)
 
@@ -125,21 +125,21 @@ extension Color {
 
     @available(iOS 18.0, *)
     static let lightMeshColors: [Color] = [
-        Color(hex: 0xC2EDCA).opacity(0.70),
-        Color(hex: 0xDFF0DF).opacity(0.55),
-        Color(hex: 0xECF2E8).opacity(0.45),
-        Color(hex: 0xD0E8D2).opacity(0.50),
-        Color(hex: 0xEEF5EF),
-        Color(hex: 0xC8E6CE).opacity(0.55),
-        Color(hex: 0xD8ECDA).opacity(0.50),
-        Color(hex: 0xBDE4C4).opacity(0.60),
-        Color(hex: 0xD5EDD8).opacity(0.45)
+        Color(hex: 0xFAF9F6),
+        Color(hex: 0xF7F5F1).opacity(0.90),
+        Color(hex: 0xF5F3EF).opacity(0.85),
+        Color(hex: 0xF3F1EC).opacity(0.90),
+        Color(hex: 0xF7F6F3),
+        Color(hex: 0xF5F3EF).opacity(0.90),
+        Color(hex: 0xF2F0EC).opacity(0.85),
+        Color(hex: 0xF0EDE7).opacity(0.90),
+        Color(hex: 0xF4F2EE).opacity(0.85)
     ]
 
     @ViewBuilder
     static var appFallbackBackground: some View {
         ZStack {
-            Color(uiColor: .systemGroupedBackground)
+            Color(hex: 0xF7F6F3)
             LinearGradient(
                 colors: [
                     gradientBaseTop.opacity(0.50),
@@ -150,13 +150,13 @@ extension Color {
                 endPoint: .bottom
             )
             RadialGradient(
-                colors: [gradientAccentMint.opacity(0.40), .clear],
+                colors: [gradientAccentWarm.opacity(0.40), .clear],
                 center: .topTrailing,
                 startRadius: 0,
                 endRadius: 400
             )
             RadialGradient(
-                colors: [gradientAccentSage.opacity(0.35), .clear],
+                colors: [gradientAccentCream.opacity(0.35), .clear],
                 center: .bottomLeading,
                 startRadius: 0,
                 endRadius: 350
@@ -187,7 +187,7 @@ extension Color {
     @ViewBuilder
     private static var mintAccentLayer: some View {
         RadialGradient(
-            colors: [gradientAccentMint.opacity(0.85), .clear],
+            colors: [gradientAccentWarm.opacity(0.85), .clear],
             center: .topTrailing,
             startRadius: 0,
             endRadius: 400
@@ -197,7 +197,7 @@ extension Color {
     @ViewBuilder
     private static var sageAccentLayer: some View {
         RadialGradient(
-            colors: [gradientAccentSage.opacity(0.75), .clear],
+            colors: [gradientAccentCream.opacity(0.75), .clear],
             center: .bottomLeading,
             startRadius: 0,
             endRadius: 350
@@ -214,55 +214,27 @@ extension Color {
         )
     }
 
-    // MARK: - Status-Tinted Backgrounds (for budget details)
+    // MARK: - Emotion Zone Colors (DA §3.1 — top 30-35% of screen)
+    // The emotion zone is a soft tint that fades into neutral warm.
+    // These colors are used in a gradient from top → transparent over ~300pt.
 
-    /// Positive status background (green tint in light, near-black in dark)
-    @ViewBuilder
-    static var appPositiveBackground: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color(light: Color(hex: 0xD0EDCF), dark: Color(hex: 0x0D0E0D)),
-                    Color(light: Color(hex: 0xE4F3E0), dark: Color(hex: 0x0C0C0E))
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            RadialGradient(
-                colors: [Color(light: Color(hex: 0xA8E0B0), dark: Color(hex: 0x10120F)).opacity(0.60), .clear],
-                center: .topTrailing,
-                startRadius: 0,
-                endRadius: 400
-            )
-        }
-    }
+    /// Comfortable state (<80% budget used) — soft green tint
+    static let emotionZoneComfortable = Color(light: Color(hex: 0xD4EDDA), dark: Color(hex: 0x1A2E1D))
 
-    /// Negative status background (amber tint in light, near-black in dark)
-    @ViewBuilder
-    static var appNegativeBackground: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color(light: Color(hex: 0xFDE8D8), dark: Color(hex: 0x0E0D0C)),
-                    Color(light: Color(hex: 0xFDF4EC), dark: Color(hex: 0x0C0C0E))
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            RadialGradient(
-                colors: [Color(light: Color(hex: 0xF0C8A0), dark: Color(hex: 0x12100E)).opacity(0.50), .clear],
-                center: .topTrailing,
-                startRadius: 0,
-                endRadius: 400
-            )
-        }
-    }
+    /// Tight state (80-100% used) — soft amber tint
+    static let emotionZoneTight = Color(light: Color(hex: 0xFEF0D4), dark: Color(hex: 0x2E2518))
+
+    /// Deficit state (>100% used) — soft rosé tint
+    static let emotionZoneDeficit = Color(light: Color(hex: 0xFDE2E2), dark: Color(hex: 0x2E1A1A))
+
+    /// Neutral warm target for gradient fade-out
+    static let emotionZoneNeutral = Color(light: Color(hex: 0xF7F6F3), dark: Color(uiColor: .systemGroupedBackground))
 
     /// Legacy gradient (kept for compatibility)
     static let appBackgroundGradient = LinearGradient(
         colors: [
-            Color(light: Color(hex: 0xF8F9F8), dark: Color(hex: 0x1A1A1A)),
-            Color(light: Color(hex: 0xEBF5ED), dark: Color(hex: 0x1A1A1C))
+            Color(light: Color(hex: 0xFAF9F6), dark: Color(hex: 0x1A1A1A)),
+            Color(light: Color(hex: 0xF4F2EE), dark: Color(hex: 0x1A1A1C))
         ],
         startPoint: .top,
         endPoint: .bottom

@@ -183,9 +183,11 @@ extension View {
         modifier(PulpeBackgroundModifier())
     }
 
-    /// Status-tinted background for budget details: green (positive) or amber (negative)
-    func pulpeStatusBackground(isDeficit: Bool) -> some View {
-        modifier(PulpeStatusBackgroundModifier(isDeficit: isDeficit))
+    /// Status-tinted background for budget details: emotion zone (top) + neutral (bottom)
+    /// - Parameter isDeficit: Whether the budget is in deficit (remaining < 0)
+    /// - Parameter usagePercentage: Budget usage percentage (0-100+) for tight state detection
+    func pulpeStatusBackground(isDeficit: Bool, usagePercentage: Double = 0) -> some View {
+        modifier(PulpeStatusBackgroundModifier(isDeficit: isDeficit, usagePercentage: usagePercentage))
     }
 }
 
@@ -219,23 +221,33 @@ private struct PulpeBackgroundModifier: ViewModifier {
 
 private struct PulpeStatusBackgroundModifier: ViewModifier {
     let isDeficit: Bool
-    @Environment(\.colorScheme) private var colorScheme
+    let usagePercentage: Double
+
+    /// Height of the emotion zone gradient (DA: ~30-35% of screen)
+    private let emotionZoneHeight: CGFloat = 340
+
+    /// DA §3.1: comfortable (<80%), tight (80-100%), deficit (>100%)
+    private var emotionColor: Color {
+        if isDeficit { return .emotionZoneDeficit }
+        if usagePercentage >= 80 { return .emotionZoneTight }
+        return .emotionZoneComfortable
+    }
 
     func body(content: Content) -> some View {
         content.background {
-            statusBackground.ignoresSafeArea()
-        }
-    }
+            ZStack(alignment: .top) {
+                // Base: neutral warm (content zone)
+                Color.emotionZoneNeutral
 
-    @ViewBuilder
-    private var statusBackground: some View {
-        if colorScheme == .dark {
-            // Dark mode: system background for consistent card contrast
-            Color(uiColor: .systemGroupedBackground)
-        } else if isDeficit {
-            Color.appNegativeBackground
-        } else {
-            Color.appPositiveBackground
+                // Emotion zone: colored tint fading into neutral
+                LinearGradient(
+                    colors: [emotionColor, emotionColor.opacity(0.4), .clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: emotionZoneHeight)
+            }
+            .ignoresSafeArea()
         }
     }
 }
