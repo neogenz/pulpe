@@ -205,12 +205,8 @@ final class BudgetDetailsViewModel {
 
             let (details, budgets) = try await (detailsTask, budgetsTask)
 
-            // Minimum skeleton display time to prevent jarring flash
             if showsSkeleton {
-                let elapsed = ContinuousClock.now - loadStart
-                if elapsed < .milliseconds(400) {
-                    try? await Task.sleep(for: .milliseconds(400) - elapsed)
-                }
+                await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
             }
 
             budget = details.budget

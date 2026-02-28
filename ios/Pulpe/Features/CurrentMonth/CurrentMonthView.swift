@@ -54,7 +54,7 @@ struct CurrentMonthView: View {
             }
         }
         .trackScreen("Dashboard")
-        .animation(.easeOut(duration: DesignTokens.Animation.normal), value: store.isLoading)
+        .animation(DesignTokens.Animation.smoothEaseOut, value: store.isLoading)
         .navigationTitle("Accueil")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

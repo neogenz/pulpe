@@ -25,7 +25,7 @@ struct TemplateDetailsView: View {
                     .transition(.opacity)
             }
         }
-        .animation(.easeOut(duration: DesignTokens.Animation.normal), value: viewModel.isLoading)
+        .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.isLoading)
         .navigationTitle(viewModel.template?.name ?? "Modèle")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -200,10 +200,7 @@ final class TemplateDetailsViewModel {
             let (fetchedTemplate, fetchedLines) = try await (templateTask, linesTask)
 
             if showsSkeleton {
-                let elapsed = ContinuousClock.now - loadStart
-                if elapsed < .milliseconds(400) {
-                    try? await Task.sleep(for: .milliseconds(400) - elapsed)
-                }
+                await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
             }
 
             template = fetchedTemplate

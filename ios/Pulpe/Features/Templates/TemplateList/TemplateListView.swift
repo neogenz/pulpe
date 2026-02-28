@@ -43,7 +43,7 @@ struct TemplateListView: View {
             }
         }
         .trackScreen("TemplateList")
-        .animation(.easeOut(duration: DesignTokens.Animation.normal), value: viewModel.isLoading)
+        .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.isLoading)
         .navigationTitle("Modèles")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -204,10 +204,7 @@ final class TemplateListViewModel {
             let fetched = try await templateService.getAllTemplates()
 
             if showsSkeleton {
-                let elapsed = ContinuousClock.now - loadStart
-                if elapsed < .milliseconds(400) {
-                    try? await Task.sleep(for: .milliseconds(400) - elapsed)
-                }
+                await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
             }
 
             templates = fetched

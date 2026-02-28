@@ -157,6 +157,20 @@ enum DesignTokens {
         static var pulse: SwiftUI.Animation {
             .easeInOut(duration: 0.6).repeatForever(autoreverses: true)
         }
+
+        // MARK: - Skeleton
+
+        /// Minimum skeleton display time to prevent jarring flash on fast loads
+        static let skeletonMinimumDuration: Duration = .milliseconds(400)
+
+        /// Waits until at least `skeletonMinimumDuration` has elapsed since `start`.
+        /// Call after an async fetch that was preceded by showing a skeleton.
+        static func ensureMinimumSkeletonTime(since start: ContinuousClock.Instant) async {
+            let elapsed = ContinuousClock.now - start
+            if elapsed < skeletonMinimumDuration {
+                try? await Task.sleep(for: skeletonMinimumDuration - elapsed)
+            }
+        }
     }
 
     // MARK: - Frame Heights

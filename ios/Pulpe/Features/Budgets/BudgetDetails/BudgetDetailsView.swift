@@ -47,7 +47,7 @@ struct BudgetDetailsView: View {
             }
         }
         .trackScreen("BudgetDetails")
-        .animation(.easeOut(duration: DesignTokens.Animation.normal), value: viewModel.isLoading)
+        .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.isLoading)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {

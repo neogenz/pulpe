@@ -10,7 +10,7 @@ struct SkeletonShape: View {
 
     var body: some View {
         RoundedRectangle(cornerRadius: cornerRadius)
-            .fill(Color(.systemGray5))
+            .fill(Color.skeletonPlaceholder)
             .frame(width: width, height: height)
             .accessibilityHidden(true)
     }
@@ -22,7 +22,7 @@ struct SkeletonCircle: View {
 
     var body: some View {
         Circle()
-            .fill(Color(.systemGray5))
+            .fill(Color.skeletonPlaceholder)
             .frame(width: size, height: size)
             .accessibilityHidden(true)
     }

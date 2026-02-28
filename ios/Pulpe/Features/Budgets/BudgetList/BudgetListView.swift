@@ -45,7 +45,7 @@ struct BudgetListView: View {
             }
         }
         .trackScreen("BudgetList")
-        .animation(.easeOut(duration: DesignTokens.Animation.normal), value: store.hasLoadedOnce)
+        .animation(DesignTokens.Animation.smoothEaseOut, value: store.hasLoadedOnce)
         .navigationTitle("Budgets")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
