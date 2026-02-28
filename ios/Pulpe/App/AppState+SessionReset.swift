@@ -97,6 +97,9 @@ extension AppState {
         defer { isLoggingOut = false }
         authDebug("AUTH_LOGOUT", "begin source=\(source) biometricEnabled=\(biometric.isEnabled)")
 
+        AnalyticsService.shared.capture(.logoutCompleted)
+        AnalyticsService.shared.reset()
+
         backgroundRefreshTask?.cancel()
         backgroundRefreshTask = nil
 

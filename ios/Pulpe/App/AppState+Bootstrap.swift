@@ -66,6 +66,7 @@ extension AppState {
         case .biometricAuthenticated(let user, _):
             currentUser = user
             await resolvePostAuth(user: user)
+            AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "biometric"])
         case .regularSession(let user):
             await resolvePostAuth(user: user)
         case .unauthenticated:

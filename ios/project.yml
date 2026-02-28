@@ -20,6 +20,9 @@ packages:
   lottie-spm:
     url: https://github.com/airbnb/lottie-spm
     from: "4.0.0"
+  posthog-ios:
+    url: https://github.com/PostHog/posthog-ios
+    from: "3.0.0"
 
 settings:
   base:
@@ -60,6 +63,8 @@ targets:
         product: Supabase
       - package: lottie-spm
         product: Lottie
+      - package: posthog-ios
+        product: PostHog
       - target: PulpeWidget
         embed: true
     entitlements:
@@ -121,6 +126,9 @@ targets:
         SUPABASE_URL: $(SUPABASE_URL)
         SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
         APP_ENV: $(APP_ENV)
+        POSTHOG_API_KEY: $(POSTHOG_API_KEY)
+        POSTHOG_HOST: $(POSTHOG_HOST)
+        POSTHOG_ENABLED: $(POSTHOG_ENABLED)
 
   PulpeWidget:
     type: app-extension

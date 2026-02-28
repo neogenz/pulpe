@@ -38,6 +38,7 @@ struct TemplateListView: View {
                 templateList
             }
         }
+        .trackScreen("TemplateList")
         .navigationTitle("Modèles")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

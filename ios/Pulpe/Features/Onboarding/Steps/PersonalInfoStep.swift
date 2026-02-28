@@ -9,7 +9,11 @@ struct PersonalInfoStep: View {
             step: .personalInfo,
             state: state,
             canProceed: state.isFirstNameValid && state.isIncomeValid,
-            onNext: { state.nextStep() },
+            onNext: {
+                let step = OnboardingStep.personalInfo.analyticsName
+                AnalyticsService.shared.capture(.onboardingStepCompleted, properties: ["step": step])
+                state.nextStep()
+            },
             content: {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
@@ -52,6 +56,7 @@ struct PersonalInfoStep: View {
                 }
             }
         )
+        .trackScreen("Onboarding_PersonalInfo")
     }
 }
 

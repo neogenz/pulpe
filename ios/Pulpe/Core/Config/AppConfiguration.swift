@@ -52,6 +52,23 @@ enum AppConfiguration {
         environment != .prod
     }
 
+    // MARK: - PostHog Analytics
+
+    static var postHogApiKey: String? {
+        guard let value = optionalValue(for: "POSTHOG_API_KEY"), !value.isEmpty else {
+            return nil
+        }
+        return value
+    }
+
+    static var postHogHost: String {
+        optionalValue(for: "POSTHOG_HOST") ?? "https://eu.i.posthog.com"
+    }
+
+    static var isPostHogEnabled: Bool {
+        optionalValue(for: "POSTHOG_ENABLED") == "true"
+    }
+
     // MARK: - App Info
 
     static var appVersion: String {
@@ -100,24 +117,27 @@ enum AppConfiguration {
     // MARK: - Private
 
     private static func requiredValue(for key: String) -> String {
+        guard let value = optionalValue(for: key) else {
+            if let raw = Bundle.main.object(forInfoDictionaryKey: key) as? String, raw.contains("$(") {
+                fatalError("\(key) is unresolved. Check your build configuration and xcconfig mapping.")
+            }
+            fatalError("\(key) not configured in Info.plist")
+        }
+        return value
+    }
+
+    private static func optionalValue(for key: String) -> String? {
         if let value = ProcessInfo.processInfo.environment[key], !value.isEmpty {
             return value
         }
-
         if let value = Bundle.main.object(forInfoDictionaryKey: key) as? String,
-           !value.isEmpty {
-            guard !value.contains("$(") else {
-                fatalError("\(key) is unresolved. Check your build configuration and xcconfig mapping.")
-            }
-
+           !value.isEmpty, !value.contains("$(") {
             return value
         }
-
-        if isRunningTests, let fallback = testFallbackValue(for: key) {
-            return fallback
+        if isRunningTests {
+            return testFallbackValue(for: key)
         }
-
-        fatalError("\(key) not configured in Info.plist")
+        return nil
     }
 
     private static var isRunningTests: Bool {
@@ -134,6 +154,12 @@ enum AppConfiguration {
             return "sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH"
         case "APP_ENV":
             return "local"
+        case "POSTHOG_API_KEY":
+            return "phc_test_key"
+        case "POSTHOG_HOST":
+            return "https://eu.i.posthog.com"
+        case "POSTHOG_ENABLED":
+            return "false"
         default:
             return nil
         }

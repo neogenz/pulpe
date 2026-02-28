@@ -282,26 +282,20 @@ final class PinSetupViewModel {
 
             // For existing PIN mode, skip recovery key setup
             if mode == .enterExistingPin {
-                digits = []
-                hapticSuccess.toggle()
-                completedWithoutRecovery = true
+                completeWithSuccess(showRecovery: false)
                 return
             }
 
             // Skip recovery setup if user already has one (edge case: vault-status 404)
             guard !result.saltResponse.hasRecoveryKey else {
                 Logger.encryption.info("Skipping recovery key setup — user already has one")
-                digits = []
-                hapticSuccess.toggle()
-                completedWithoutRecovery = true
+                completeWithSuccess(showRecovery: false)
                 return
             }
 
             let key = try await encryptionAPI.setupRecoveryKey()
             recoveryKey = key
-            digits = []
-            hapticSuccess.toggle()
-            showRecoverySheet = true
+            completeWithSuccess(showRecovery: true)
         } catch let apiError as APIError {
             handleAPIError(apiError)
         } catch {
@@ -334,6 +328,17 @@ final class PinSetupViewModel {
             try? await Task.sleep(for: .seconds(1))
             guard !Task.isCancelled else { return }
             isError = false
+        }
+    }
+
+    private func completeWithSuccess(showRecovery: Bool) {
+        digits = []
+        hapticSuccess.toggle()
+        AnalyticsService.shared.capture(.pinSetupCompleted)
+        if showRecovery {
+            showRecoverySheet = true
+        } else {
+            completedWithoutRecovery = true
         }
     }
 

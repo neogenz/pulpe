@@ -136,6 +136,7 @@ struct AddTransactionSheet: View {
 
         do {
             let transaction = try await transactionService.createTransaction(data)
+            AnalyticsService.shared.capture(.transactionCreated, properties: ["type": kind.rawValue])
             submitSuccessTrigger.toggle()
             onAdd(transaction)
             toastManager.show("Transaction ajoutée")

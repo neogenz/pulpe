@@ -40,6 +40,7 @@ struct BudgetListView: View {
                 budgetList
             }
         }
+        .trackScreen("BudgetList")
         .navigationTitle("Budgets")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
