@@ -4,10 +4,10 @@ export interface WhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.27.0',
+  version: '0.28.0',
   features: [
-    'Libelles du pointage clarifies',
-    'Stabilite du mot de passe oublie',
-    'Corrections de securite',
+    "Menu d'actions sur les transactions",
+    'Section des transactions libres',
+    'Limites du sélecteur de date corrigées',
   ],
 };

@@ -1,5 +1,11 @@
 # pulpe-frontend
 
+## 0.28.0
+
+### Minor Changes
+
+- Menu d'actions sur les transactions, section des transactions libres, affichage de la version, et corrections de dates.
+
 ## 0.27.0
 
 ### Minor Changes

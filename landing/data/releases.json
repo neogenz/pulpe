@@ -1,5 +1,46 @@
 [
   {
+    "version": "0.28.0",
+    "date": "2026-02-28",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.28.0",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "Menu d'actions sur les transactions",
+          "description": "Un menu contextuel permet désormais de modifier ou supprimer une transaction directement depuis le budget"
+        },
+        {
+          "title": "Support du jour de paie sur iOS",
+          "description": "Configuration du jour de paie dans les réglages, avec calcul automatique des périodes budgétaires"
+        },
+        {
+          "title": "Affichage de la version",
+          "description": "Le numéro de version de l'application est visible sur les écrans d'authentification"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Budget initial à l'inscription",
+          "description": "Le premier budget couvre désormais la bonne période budgétaire au lieu du mois calendaire"
+        },
+        {
+          "title": "Transactions libres dans le budget",
+          "description": "Les transactions non affectées à une prévision sont regroupées dans une section dédiée"
+        },
+        {
+          "title": "Limites du sélecteur de date",
+          "description": "Le sélecteur de date respecte les bornes de la période budgétaire en cours"
+        },
+        {
+          "title": "Démarrage à froid sur iOS",
+          "description": "Correction d'un faux état réseau indisponible lors de l'ouverture de l'app"
+        }
+      ],
+      "technical": []
+    }
+  },
+  {
     "version": "0.27.0",
     "date": "2026-02-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.27.0",
