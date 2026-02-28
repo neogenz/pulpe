@@ -100,7 +100,8 @@ enum TestDataFactory {
         id: String = "test-budget-1",
         month: Int = 1,
         year: Int = 2025,
-        rollover: Decimal = 0
+        rollover: Decimal = 0,
+        previousBudgetId: String? = nil
     ) -> Budget {
         Budget(
             id: id,
@@ -112,7 +113,7 @@ enum TestDataFactory {
             endingBalance: nil,
             rollover: rollover,
             remaining: nil,
-            previousBudgetId: nil,
+            previousBudgetId: previousBudgetId,
             createdAt: fixedDate,
             updatedAt: fixedDate
         )

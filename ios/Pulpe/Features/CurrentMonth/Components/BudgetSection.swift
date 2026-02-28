@@ -8,12 +8,36 @@ struct BudgetSection: View {
     let items: [BudgetLine]
     let transactions: [Transaction]
     let syncingIds: Set<String>
-    let onToggle: (BudgetLine) -> Void
-    let onDelete: (BudgetLine) -> Void
-    let onAddTransaction: (BudgetLine) -> Void
-    let onLongPress: (BudgetLine, [Transaction]) -> Void
-    let onEdit: (BudgetLine) -> Void
+    let onToggle: ((BudgetLine) -> Void)?
+    let onDelete: ((BudgetLine) -> Void)?
+    let onAddTransaction: ((BudgetLine) -> Void)?
+    let onLongPress: ((BudgetLine, [Transaction]) -> Void)?
+    let onEdit: ((BudgetLine) -> Void)?
     var tip: (any Tip)?
+
+    init(
+        title: String,
+        items: [BudgetLine],
+        transactions: [Transaction],
+        syncingIds: Set<String>,
+        onToggle: ((BudgetLine) -> Void)? = nil,
+        onDelete: ((BudgetLine) -> Void)? = nil,
+        onAddTransaction: ((BudgetLine) -> Void)? = nil,
+        onLongPress: ((BudgetLine, [Transaction]) -> Void)? = nil,
+        onEdit: ((BudgetLine) -> Void)? = nil,
+        tip: (any Tip)? = nil
+    ) {
+        self.title = title
+        self.items = items
+        self.transactions = transactions
+        self.syncingIds = syncingIds
+        self.onToggle = onToggle
+        self.onDelete = onDelete
+        self.onAddTransaction = onAddTransaction
+        self.onLongPress = onLongPress
+        self.onEdit = onEdit
+        self.tip = tip
+    }
 
     @State private var isExpanded = false
 
@@ -60,7 +84,9 @@ struct BudgetSection: View {
                 budgetLineRow(for: item)
                     .listRowSeparator(.hidden)
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        swipeActions(for: item)
+                        if onToggle != nil || onDelete != nil {
+                            swipeActions(for: item)
+                        }
                     }
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
                     .animation(
@@ -85,46 +111,49 @@ struct BudgetSection: View {
     @ViewBuilder
     private func swipeActions(for item: BudgetLine) -> some View {
         if !item.isVirtualRollover {
-            Button {
-                onDelete(item)
-                ProductTips.gestures.invalidate(reason: .actionPerformed)
-            } label: {
-                Label("Supprimer", systemImage: "trash")
+            if let onDelete {
+                Button {
+                    onDelete(item)
+                    ProductTips.gestures.invalidate(reason: .actionPerformed)
+                } label: {
+                    Label("Supprimer", systemImage: "trash")
+                }
+                .tint(Color.errorPrimary)
             }
-            .tint(Color.errorPrimary)
 
-            Button {
-                onToggle(item)
-                ProductTips.gestures.invalidate(reason: .actionPerformed)
-            } label: {
-                Label(
-                    item.isChecked ? "Annuler" : "Comptabiliser",
-                    systemImage: item.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
-                )
+            if let onToggle {
+                Button {
+                    onToggle(item)
+                    ProductTips.gestures.invalidate(reason: .actionPerformed)
+                } label: {
+                    Label(
+                        item.isChecked ? "Annuler" : "Comptabiliser",
+                        systemImage: item.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
+                    )
+                }
+                .tint(item.isChecked ? Color.financialOverBudget : .pulpePrimary)
             }
-            .tint(item.isChecked ? Color.financialOverBudget : .pulpePrimary)
         }
     }
 
+    @ViewBuilder
     private var expandCollapseButton: some View {
-        Group {
-            if hasMoreItems {
-                Button {
-                    withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
-                        isExpanded.toggle()
-                    }
-                } label: {
-                    HStack {
-                        Text(isExpanded ? "Voir moins" : "Voir plus (+\(hiddenItemsCount))")
-                            .font(PulpeTypography.subheadline)
-                        Spacer()
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .font(PulpeTypography.caption)
-                            .foregroundStyle(.secondary)
-                    }
+        if hasMoreItems {
+            Button {
+                withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
+                    isExpanded.toggle()
                 }
-                .listRowSeparator(.hidden)
+            } label: {
+                HStack {
+                    Text(isExpanded ? "Voir moins" : "Voir plus (+\(hiddenItemsCount))")
+                        .font(PulpeTypography.subheadline)
+                    Spacer()
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
+            .listRowSeparator(.hidden)
         }
     }
 
@@ -134,12 +163,10 @@ struct BudgetSection: View {
             consumption: BudgetFormulas.calculateConsumption(for: item, transactions: transactions),
             allTransactions: transactions,
             isSyncing: syncingIds.contains(item.id),
-            onToggle: { onToggle(item) },
-            onAddTransaction: { onAddTransaction(item) },
-            onLongPress: { linkedTransactions in
-                onLongPress(item, linkedTransactions)
-            },
-            onEdit: { onEdit(item) }
+            onToggle: onToggle.map { callback in { callback(item) } },
+            onAddTransaction: onAddTransaction.map { callback in { callback(item) } },
+            onLongPress: onLongPress.map { callback in { linkedTransactions in callback(item, linkedTransactions) } },
+            onEdit: onEdit.map { callback in { callback(item) } }
         )
     }
 }
@@ -150,10 +177,30 @@ struct BudgetLineRow: View {
     let consumption: BudgetFormulas.Consumption
     let allTransactions: [Transaction]
     let isSyncing: Bool
-    let onToggle: () -> Void
-    let onAddTransaction: () -> Void
-    let onLongPress: ([Transaction]) -> Void
-    let onEdit: () -> Void
+    let onToggle: (() -> Void)?
+    let onAddTransaction: (() -> Void)?
+    let onLongPress: (([Transaction]) -> Void)?
+    let onEdit: (() -> Void)?
+
+    init(
+        line: BudgetLine,
+        consumption: BudgetFormulas.Consumption,
+        allTransactions: [Transaction],
+        isSyncing: Bool,
+        onToggle: (() -> Void)? = nil,
+        onAddTransaction: (() -> Void)? = nil,
+        onLongPress: (([Transaction]) -> Void)? = nil,
+        onEdit: (() -> Void)? = nil
+    ) {
+        self.line = line
+        self.consumption = consumption
+        self.allTransactions = allTransactions
+        self.isSyncing = isSyncing
+        self.onToggle = onToggle
+        self.onAddTransaction = onAddTransaction
+        self.onLongPress = onLongPress
+        self.onEdit = onEdit
+    }
 
     @State private var isPressed = false
     @State private var triggerSuccessFeedback = false
@@ -236,8 +283,8 @@ struct BudgetLineRow: View {
                 }
             }
 
-            // Add button (only for non-rollover lines)
-            if !line.isVirtualRollover {
+            // Add button (only for non-rollover lines with callback)
+            if let onAddTransaction, !line.isVirtualRollover {
                 Button(action: onAddTransaction) {
                     Image(systemName: "plus")
                         .font(.system(size: 12, weight: .bold))
@@ -261,6 +308,7 @@ struct BudgetLineRow: View {
             minimumDuration: 0.4,
             maximumDistance: 10,
             pressing: { pressing in
+                guard onLongPress != nil else { return }
                 withAnimation(.spring(duration: DesignTokens.Animation.fast)) {
                     isPressed = pressing
                 }
@@ -268,7 +316,7 @@ struct BudgetLineRow: View {
             perform: handleLongPress
         )
         .onTapGesture {
-            guard !line.isVirtualRollover else { return }
+            guard let onEdit, !line.isVirtualRollover else { return }
             ProductTips.gestures.invalidate(reason: .actionPerformed)
             onEdit()
         }
@@ -277,14 +325,17 @@ struct BudgetLineRow: View {
         .sensoryFeedback(.success, trigger: triggerSuccessFeedback)
         .sensoryFeedback(.error, trigger: triggerWarningFeedback)
         .accessibilityIdentifier("budgetLineRow-\(line.id)")
-        .accessibilityAddTraits(.isButton)
-        .accessibilityAction { onEdit() }
-        .accessibilityHint(
-            hasConsumption
-                ? "Montant restant: \(consumption.available.asCHF). " +
-                  "Touche pour modifier, maintiens pour voir les transactions"
-                : "Touche pour modifier, maintiens pour voir les transactions"
-        )
+        .ifLet(onEdit) { view, onEdit in
+            view
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction { onEdit() }
+                .accessibilityHint(
+                    hasConsumption
+                        ? "Montant restant: \(consumption.available.asCHF). " +
+                          "Touche pour modifier, maintiens pour voir les transactions"
+                        : "Touche pour modifier, maintiens pour voir les transactions"
+                )
+        }
     }
 
     // MARK: - Kind Icon Circle (Revolut-style)
@@ -331,7 +382,7 @@ struct BudgetLineRow: View {
     }
 
     private func handleLongPress() {
-        guard !line.isVirtualRollover else { return }
+        guard let onLongPress, !line.isVirtualRollover else { return }
 
         ProductTips.gestures.invalidate(reason: .actionPerformed)
 
