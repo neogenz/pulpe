@@ -237,29 +237,14 @@ final class CurrentMonthStore: StoreProtocol {
 
     // MARK: - Widget Sync
 
-    private func syncWidgetData(details: BudgetDetails?) async {
-        // Use centralized sync for consistency
-        await widgetSyncService.syncAll(payDayOfMonth: payDayOfMonth)
-    }
-
-    private func syncWidgetAfterChange() async {
-        // Cancel any pending sync task
+    private func syncWidgetAfterChange() {
         widgetSyncTask?.cancel()
 
-        // Debounce widget sync to avoid excessive reloads
         widgetSyncTask = Task {
             try? await Task.sleep(for: .seconds(AppConfiguration.widgetSyncDebounceDelay))
-
             guard !Task.isCancelled else { return }
-            guard let currentBudget = budget else { return }
-
-            let details = BudgetDetails(
-                budget: currentBudget,
-                transactions: transactions,
-                budgetLines: budgetLines
-            )
-
-            await syncWidgetData(details: details)
+            guard budget != nil else { return }
+            await widgetSyncService.syncAll(payDayOfMonth: payDayOfMonth)
         }
     }
 
@@ -489,9 +474,7 @@ extension CurrentMonthStore {
     func addTransaction(_ transaction: Transaction) {
         transactions.append(transaction)
         invalidateMetricsCache()
-        Task {
-            await syncWidgetAfterChange()
-        }
+        syncWidgetAfterChange()
     }
 
     func deleteTransaction(_ transaction: Transaction) async {

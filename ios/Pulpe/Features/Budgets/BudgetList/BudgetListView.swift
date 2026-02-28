@@ -173,7 +173,7 @@ struct BudgetListView: View {
 private struct BudgetListSkeletonView: View {
     var body: some View {
         ScrollView {
-            LazyVStack(spacing: DesignTokens.Spacing.xl) {
+            VStack(spacing: DesignTokens.Spacing.xl) {
                 // Year section placeholder
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                     // Year header (chevron + year number)

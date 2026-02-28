@@ -92,6 +92,7 @@ struct TemplateListView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .pulpeBackground()
         .sensoryFeedback(.warning, trigger: deleteWarningTrigger)

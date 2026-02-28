@@ -120,12 +120,6 @@ final class BudgetDetailsViewModel {
         return lines.filter { $0.checkedAt == nil }
     }
 
-    /// Filters free transactions based on the checked filter preference
-    private func applyCheckedFilterToFreeTransactions(_ transactions: [Transaction]) -> [Transaction] {
-        guard isShowingOnlyUnchecked else { return transactions }
-        return transactions.filter { $0.checkedAt == nil }
-    }
-
     var filteredIncomeLines: [BudgetLine] {
         applyCheckedFilter(incomeLines)
     }
@@ -179,15 +173,6 @@ final class BudgetDetailsViewModel {
                     $0.name.localizedStandardContains(searchText) ||
                         "\($0.amount)".contains(searchText)
                 } ?? false)
-        }
-    }
-
-    /// Filters free transactions by name (accent and case insensitive)
-    func filteredFreeTransactions(searchText: String) -> [Transaction] {
-        guard !searchText.isEmpty else { return freeTransactions }
-        return freeTransactions.filter {
-            $0.name.localizedStandardContains(searchText) ||
-                "\($0.amount)".contains(searchText)
         }
     }
 
