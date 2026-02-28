@@ -15,7 +15,7 @@ struct BudgetListView: View {
 
     var body: some View {
         Group {
-            if !store.hasLoadedOnce && store.budgets.isEmpty {
+            if store.isLoading && store.budgets.isEmpty {
                 BudgetListSkeletonView()
                     .transition(.opacity)
             } else if let error = store.error, store.budgets.isEmpty {
@@ -48,7 +48,7 @@ struct BudgetListView: View {
             }
         }
         .trackScreen("BudgetList")
-        .animation(DesignTokens.Animation.smoothEaseOut, value: store.hasLoadedOnce)
+        .animation(DesignTokens.Animation.smoothEaseOut, value: store.isLoading)
         .navigationTitle("Budgets")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
