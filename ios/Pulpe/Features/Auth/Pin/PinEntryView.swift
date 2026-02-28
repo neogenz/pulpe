@@ -207,6 +207,7 @@ final class PinEntryViewModel {
 
             digits = []
             hapticSuccess.toggle()
+            AnalyticsService.shared.capture(.pinEntered)
             authenticated = true
         } catch let error as APIError {
             handleAPIError(error)

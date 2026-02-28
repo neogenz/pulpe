@@ -234,6 +234,7 @@ struct CreateBudgetView: View {
 
     private func createBudget() async {
         if let budget = await viewModel.createBudget() {
+            AnalyticsService.shared.capture(.budgetCreated)
             onCreate(budget)
             dismiss()
         }

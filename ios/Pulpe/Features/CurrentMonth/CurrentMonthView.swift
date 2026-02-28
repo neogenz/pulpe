@@ -49,6 +49,7 @@ struct CurrentMonthView: View {
                 dashboardContent
             }
         }
+        .trackScreen("Dashboard")
         .navigationTitle("Accueil")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

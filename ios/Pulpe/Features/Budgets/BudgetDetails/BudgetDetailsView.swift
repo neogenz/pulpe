@@ -38,6 +38,7 @@ struct BudgetDetailsView: View {
                 content
             }
         }
+        .trackScreen("BudgetDetails")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {

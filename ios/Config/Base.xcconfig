@@ -1,2 +1,3 @@
 // Helper for URL escaping in xcconfig (// is interpreted as comment)
 SLASH = /
+POSTHOG_HOST = https:$(SLASH)$(SLASH)eu.i.posthog.com

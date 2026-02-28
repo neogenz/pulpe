@@ -284,6 +284,7 @@ final class PinSetupViewModel {
             if mode == .enterExistingPin {
                 digits = []
                 hapticSuccess.toggle()
+                AnalyticsService.shared.capture(.pinSetupCompleted)
                 completedWithoutRecovery = true
                 return
             }
@@ -293,6 +294,7 @@ final class PinSetupViewModel {
                 Logger.encryption.info("Skipping recovery key setup — user already has one")
                 digits = []
                 hapticSuccess.toggle()
+                AnalyticsService.shared.capture(.pinSetupCompleted)
                 completedWithoutRecovery = true
                 return
             }
@@ -301,6 +303,7 @@ final class PinSetupViewModel {
             recoveryKey = key
             digits = []
             hapticSuccess.toggle()
+            AnalyticsService.shared.capture(.pinSetupCompleted)
             showRecoverySheet = true
         } catch let apiError as APIError {
             handleAPIError(apiError)

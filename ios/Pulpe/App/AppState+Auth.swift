@@ -37,6 +37,7 @@ extension AppState {
     func applyPostAuthDestination(_ destination: PostAuthDestination, user: UserInfo? = nil) async {
         if let user {
             currentUser = user
+            AnalyticsService.shared.identify(userId: user.id)
         }
         authState = .loading
 

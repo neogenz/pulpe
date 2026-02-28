@@ -42,6 +42,7 @@ struct LoginView: View {
                     }
                 }
             }
+            .trackScreen("Login")
             .dismissKeyboardOnTap()
             .sheet(item: $forgotPasswordPresentation) { _ in
                 ForgotPasswordSheet {
@@ -253,6 +254,7 @@ extension LoginView {
 
         do {
             try await appState.login(email: viewModel.email, password: viewModel.password)
+            AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "email"])
             appState.biometricError = nil
             isPresented?.wrappedValue = false
         } catch {

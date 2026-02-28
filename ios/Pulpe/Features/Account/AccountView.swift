@@ -72,6 +72,7 @@ struct AccountView: View {
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .background(Color.surfacePrimary)
+            .trackScreen("Account")
             .navigationTitle("Compte")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

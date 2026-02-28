@@ -55,6 +55,7 @@ struct RegistrationStep: View {
                 }
             }
         )
+        .trackScreen("Onboarding_Registration")
     }
 }
 
@@ -193,6 +194,7 @@ extension RegistrationStep {
             let authService = AuthService.shared
             let user = try await authService.signup(email: state.email, password: password)
 
+            AnalyticsService.shared.capture(.signupCompleted, properties: ["method": "email"])
             state.isLoading = false
             onComplete(user)
         } catch let apiError as APIError {

@@ -53,6 +53,7 @@ struct PulpeApp: App {
             .datastoreLocation(.applicationDefault)
         ])
         BackgroundTaskService.shared.registerTasks()
+        AnalyticsService.shared.initialize()
 
         UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(.pulpePrimary)
         UISegmentedControl.appearance().setTitleTextAttributes(

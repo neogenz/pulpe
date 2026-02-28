@@ -57,6 +57,7 @@ struct WelcomeStep: View {
                 VStack(spacing: DesignTokens.Spacing.md) {
                     // Primary CTA - vibrant and eye-catching
                     Button {
+                        AnalyticsService.shared.capture(.signupStarted, properties: ["method": "email"])
                         state.nextStep()
                     } label: {
                         HStack(spacing: DesignTokens.Spacing.sm) {
@@ -99,6 +100,8 @@ struct WelcomeStep: View {
                 .offset(y: isAppeared ? 0 : 10)
             }
         }
+        .trackScreen("Welcome")
+        .task { AnalyticsService.shared.capture(.welcomeScreenViewed) }
         .sheet(isPresented: $showLogin) {
             LoginView(isPresented: $showLogin)
         }

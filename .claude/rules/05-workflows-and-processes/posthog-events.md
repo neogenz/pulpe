@@ -23,16 +23,27 @@ captureEvent('click');              // Too vague
 
 ## Conversion Funnel
 
+**Web:**
 ```
 $pageview (landing) → cta_clicked → signup_started → signup_completed
 → vault_code_setup_completed → onboarding_started → profile_step1_completed
 → profile_step2_completed → first_budget_created
 ```
 
+**iOS:**
+```
+app_opened → welcome_screen_viewed → signup_started → onboarding_step_completed (×3)
+→ signup_completed → pin_setup_completed → budget_created → transaction_created
+```
+
 **Tracking approach:**
 - Pre-auth events (`signup_started`) are captured as anonymous events (`person_profiles: 'identified_only'`)
 - Full auto-capture (pageviews, autocapture) enabled after authentication
 - Google OAuth uses `PostHogService.setPendingSignupMethod()` to store the method via `StorageService`, then `capturePendingSignupCompleted()` fires `signup_completed` after redirect
+- **iOS:** Uses `AnalyticsService.shared` actor (not PostHogSDK directly)
+- **iOS:** Manual screen tracking via `.trackScreen()` view modifier
+- **iOS:** PostHog disabled in local environment (`POSTHOG_ENABLED = false` in xcconfig)
+- **iOS:** Financial data sanitized — amounts and balances are never included in event properties
 
 ## Events Catalog
 
@@ -71,7 +82,29 @@ $pageview (landing) → cta_clicked → signup_started → signup_completed
 | `tutorial_completed` | Tutorial finished | — |
 | `tutorial_cancelled` | User skips tutorial | — |
 
+### iOS App Events
+
+| Event | When | Properties |
+|-------|------|------------|
+| `app_opened` | App enters foreground | — |
+| `welcome_screen_viewed` | Welcome screen appears (new user) | — |
+| `signup_started` | "Commencer" tapped on welcome | `method` (`email`) |
+| `onboarding_step_completed` | User completes onboarding step | `step` (`personal_info` \| `expenses` \| `budget_preview`) |
+| `signup_completed` | Registration succeeds | `method` (`email`) |
+| `login_completed` | Login succeeds | `method` (`email` \| `biometric`) |
+| `pin_setup_completed` | PIN created successfully | — |
+| `pin_entered` | PIN entered on return visit | — |
+| `budget_created` | Budget created | — |
+| `transaction_created` | Transaction added | `type` (`expense` \| `income` \| `saving`) |
+| `tab_switched` | User switches tab | `tab` (`currentMonth` \| `budgets` \| `templates`) |
+| `logout_completed` | User logs out | — |
+
 ## Properties
+
+**Global properties** (sent with every event):
+```
+platform: 'web' | 'landing' | 'ios'
+```
 
 ```typescript
 // Use snake_case, be specific

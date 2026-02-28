@@ -8,7 +8,10 @@ struct ExpensesStep: View {
             step: .expenses,
             state: state,
             canProceed: true,
-            onNext: { state.nextStep() },
+            onNext: {
+                AnalyticsService.shared.capture(.onboardingStepCompleted, properties: ["step": "expenses"])
+                state.nextStep()
+            },
             content: {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 CurrencyField(
@@ -58,6 +61,7 @@ struct ExpensesStep: View {
                 }
             }
         )
+        .trackScreen("Onboarding_Expenses")
     }
 }
 

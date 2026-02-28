@@ -42,6 +42,9 @@ struct MainTabView: View {
                     .padding(.horizontal, DesignTokens.Spacing.lg)
             }
         }
+        .onChange(of: appState.selectedTab) { _, newTab in
+            AnalyticsService.shared.capture(.tabSwitched, properties: ["tab": newTab.rawValue])
+        }
         .sheet(item: $addTransactionBudgetId) { item in
             AddTransactionSheet(budgetId: item.budgetId) { transaction in
                 monthStore.addTransaction(transaction)
