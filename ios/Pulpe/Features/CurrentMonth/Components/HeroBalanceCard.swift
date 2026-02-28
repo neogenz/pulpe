@@ -41,8 +41,11 @@ struct HeroBalanceCard: View {
         Int(metrics.usagePercentage)
     }
 
+    /// DA §3.1: hero card tint follows the 3 emotion states
     private var heroTintColor: Color {
-        metrics.isDeficit ? .financialOverBudget : .pulpePrimary
+        if metrics.isDeficit { return .heroTintDeficit }
+        if metrics.usagePercentage >= 80 { return .financialOverBudget }
+        return .pulpePrimary
     }
 
     private var contextLabel: String {
@@ -51,7 +54,10 @@ struct HeroBalanceCard: View {
 
     private var motivationalMessage: String {
         if metrics.isDeficit {
-            return "Ce mois sera serré — mais tu le sais"
+            return "Ça arrive — on gère"
+        }
+        if metrics.usagePercentage >= 80 {
+            return "Serré — mais tu le sais"
         }
         if metrics.totalIncome > 0, metrics.remaining > metrics.totalIncome * Self.twentyPercent {
             return "Belle marge ce mois"
@@ -213,9 +219,10 @@ private extension View {
 
 // MARK: - Preview
 
-#Preview("Hero Balance Card") {
+#Preview("Hero Balance Card — 3 States") {
     ScrollView {
         VStack(spacing: 24) {
+            // Comfortable: <80% used → green card, green emotion zone
             HeroBalanceCard(
                 metrics: .init(
                     totalIncome: 5000,
@@ -230,6 +237,21 @@ private extension View {
                 onTapProgress: {}
             )
 
+            // Tight: 80-100% used → amber card, amber emotion zone
+            HeroBalanceCard(
+                metrics: .init(
+                    totalIncome: 5000,
+                    totalExpenses: 4200,
+                    totalSavings: 500,
+                    available: 5000,
+                    endingBalance: 300,
+                    remaining: 300,
+                    rollover: 0
+                ),
+                onTapProgress: {}
+            )
+
+            // Deficit: >100% used → terracotta card, rosé emotion zone
             HeroBalanceCard(
                 metrics: .init(
                     totalIncome: 8500,
@@ -238,19 +260,6 @@ private extension View {
                     available: 8500,
                     endingBalance: -119,
                     remaining: -119,
-                    rollover: 0
-                ),
-                onTapProgress: {}
-            )
-
-            HeroBalanceCard(
-                metrics: .init(
-                    totalIncome: 5000,
-                    totalExpenses: 5000,
-                    totalSavings: 0,
-                    available: 5000,
-                    endingBalance: 0,
-                    remaining: 0,
                     rollover: 0
                 ),
                 onTapProgress: {}

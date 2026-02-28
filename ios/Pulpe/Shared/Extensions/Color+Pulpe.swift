@@ -15,6 +15,9 @@ extension Color {
     /// Over-budget indicator - Warm amber, not aggressive red (#C27A00 light, #E5A33A dark)
     static let financialOverBudget = Color(light: Color(hex: 0xC27A00), dark: Color(hex: 0xE5A33A))
 
+    /// Hero card deficit tint — warm terracotta, empathetic not alarming (#B54545 light, #D06060 dark)
+    static let heroTintDeficit = Color(light: Color(hex: 0xB54545), dark: Color(hex: 0xD06060))
+
     // MARK: - Brand Colors
 
     /// Primary brand color - Dark green (#006820 light, #4AA070 dark)
