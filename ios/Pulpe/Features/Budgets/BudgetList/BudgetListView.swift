@@ -25,6 +25,11 @@ struct BudgetListView: View {
                     BudgetListSkeletonView()
                         .transition(.opacity)
                 }
+            } else if let error = store.error, store.budgets.isEmpty {
+                ErrorView(error: error) {
+                    await store.forceRefresh()
+                }
+                .transition(.opacity)
             } else if store.budgets.isEmpty {
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Image(systemName: "chart.bar.doc.horizontal")

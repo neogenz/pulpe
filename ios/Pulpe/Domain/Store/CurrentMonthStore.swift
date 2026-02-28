@@ -81,6 +81,7 @@ final class CurrentMonthStore: StoreProtocol {
     func loadBudgetSummary(payDayOfMonth: Int? = nil) async {
         self.payDayOfMonth = payDayOfMonth
         guard budget == nil else { return }
+        let showsSkeleton = budget == nil
         isLoading = true
         error = nil
         let loadStart = ContinuousClock.now
@@ -96,12 +97,20 @@ final class CurrentMonthStore: StoreProtocol {
             guard let match = sparseBudgets.first(where: {
                 $0.month == period.month && $0.year == period.year
             }) else {
-                try await ensureMinimumSkeletonTime(since: loadStart)
+                if showsSkeleton {
+                    try await ensureMinimumSkeletonTime(since: loadStart)
+                }
                 return
             }
 
+            try Task.checkCancellation()
+
             let fetchedBudget = try await budgetService.getBudget(id: match.id)
-            try await ensureMinimumSkeletonTime(since: loadStart)
+
+            if showsSkeleton {
+                try await ensureMinimumSkeletonTime(since: loadStart)
+            }
+
             budget = fetchedBudget
             invalidateMetricsCache()
         } catch is CancellationError {
