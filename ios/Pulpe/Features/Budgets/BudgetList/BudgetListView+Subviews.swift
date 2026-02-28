@@ -97,7 +97,6 @@ struct CurrentMonthHeroCard: View {
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
                     .strokeBorder(Color(.separator).opacity(0.15), lineWidth: 1)
             )
-            .shadow(DesignTokens.Shadow.elevated)
             .scaleEffect(isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
         }

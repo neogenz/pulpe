@@ -57,10 +57,8 @@ struct LinkedTransactionsSheet: View {
             .navigationTitle(budgetLine.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Fermer") {
-                        dismiss()
-                    }
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton()
                 }
             }
         }
@@ -194,7 +192,7 @@ struct LinkedTransactionsSheet: View {
         .primaryButtonStyle()
         .padding(.horizontal)
         .padding(.vertical, DesignTokens.Spacing.md)
-        .background(.ultraThinMaterial)
+        .pulpeFloatingGlass(cornerRadius: 0)
     }
 }
 

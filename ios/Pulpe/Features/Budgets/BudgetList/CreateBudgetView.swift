@@ -46,15 +46,12 @@ struct CreateBudgetView: View {
                 .padding(.bottom, DesignTokens.Spacing.xxxl)
             }
             .scrollIndicators(.hidden)
-            .background(Color(.systemGroupedBackground))
+            .background(Color.surfacePrimary)
             .navigationTitle("Nouveau budget")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") {
-                        dismiss()
-                    }
-                    .foregroundStyle(.secondary)
+                    SheetCloseButton()
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
@@ -126,9 +123,8 @@ struct CreateBudgetView: View {
                 .background(Color(.tertiarySystemGroupedBackground), in: Capsule())
         }
         .padding(DesignTokens.Spacing.lg)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Color.surfaceCard)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
-        .shadow(DesignTokens.Shadow.subtle)
     }
 
     // MARK: - Template Section
@@ -199,7 +195,7 @@ struct CreateBudgetView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.xxxl)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Color.surfaceCard)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
 
@@ -277,7 +273,6 @@ struct TemplateSelectionCard: View {
             .background(cardBackground)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
             .overlay(cardBorder)
-            .shadow(isSelected ? DesignTokens.Shadow.card : DesignTokens.Shadow.subtle)
             .scaleEffect(isPressed ? 0.98 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
         }
@@ -373,7 +368,7 @@ struct TemplateSelectionCard: View {
                 endPoint: .bottomTrailing
             )
         } else {
-            Color(.secondarySystemGroupedBackground)
+            Color.surfaceCard
         }
     }
 

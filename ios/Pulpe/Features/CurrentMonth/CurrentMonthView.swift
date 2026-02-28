@@ -214,7 +214,10 @@ struct CurrentMonthView: View {
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.lg)
         }
-        .pulpeBackground()
+        .pulpeStatusBackground(
+            isDeficit: store.metrics.isDeficit,
+            usagePercentage: store.metrics.usagePercentage
+        )
         .refreshable {
             async let refreshStore: Void = store.forceRefresh()
             async let refreshDashboard: Void = dashboardStore.forceRefresh()

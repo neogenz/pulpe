@@ -319,17 +319,13 @@ extension View {
 
 // MARK: - Card Modifiers
 
-/// Card surface with subtle shadow for definition against the background
+/// Flat card surface — depth via color contrast, not shadows (Liquid Glass era)
 private struct CardBackgroundModifier: ViewModifier {
     let cornerRadius: CGFloat
 
     func body(content: Content) -> some View {
         content
-            .background(
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(Color.surfaceCard)
-                    .shadow(DesignTokens.Shadow.subtle)
-            )
+            .background(Color.surfaceCard, in: .rect(cornerRadius: cornerRadius))
     }
 }
 
