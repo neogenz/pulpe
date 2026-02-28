@@ -265,7 +265,7 @@ private struct KeyboardDismissView: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
-    final class Coordinator {
+    @MainActor final class Coordinator {
         @objc func dismiss() {
             UIApplication.shared.sendAction(
                 #selector(UIResponder.resignFirstResponder),

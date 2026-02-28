@@ -20,7 +20,9 @@ actor BackgroundTaskService {
             // BGAppRefreshTask is not Sendable, but BGTaskScheduler guarantees
             // the handler runs on the main queue, so we can safely capture it.
             nonisolated(unsafe) let unsafeTask = refreshTask
-            Task { await BackgroundTaskService.shared.handleWidgetRefresh(task: unsafeTask) }
+            Task { @MainActor in
+                await BackgroundTaskService.shared.handleWidgetRefresh(task: unsafeTask)
+            }
         }
     }
 

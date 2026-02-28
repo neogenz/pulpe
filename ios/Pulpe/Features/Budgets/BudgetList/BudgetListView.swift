@@ -104,7 +104,7 @@ struct BudgetListView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: DesignTokens.Spacing.xl) {
-                    ForEach(Array(store.groupedByYear.enumerated()), id: \.element.year) { _, group in
+                    ForEach(store.groupedByYear, id: \.year) { group in
                         YearSection(
                             year: group.year,
                             budgets: group.budgets,
@@ -268,7 +268,7 @@ struct YearSection: View {
 
     private func monthListCard(months: [MonthSlot]) -> some View {
         VStack(spacing: 0) {
-            ForEach(Array(months.enumerated()), id: \.element.month) { index, slot in
+            ForEach(months, id: \.month) { slot in
                 if let budget = slot.budget {
                     BudgetMonthRow(
                         budget: budget,
@@ -289,7 +289,7 @@ struct YearSection: View {
                     }
                 }
 
-                if index < months.count - 1 {
+                if slot.month != months.last?.month {
                     Divider()
                         .padding(.leading, 34)
                 }
@@ -323,7 +323,7 @@ private struct YearSectionLayoutData {
         }
         if year >= currentPeriod.year {
             let startMonth = (year == currentPeriod.year) ? currentPeriod.month : 1
-            for month in startMonth ... 12 where !budgets.contains { $0.month == month } {
+            for month in startMonth ... 12 where !budgets.contains(where: { $0.month == month }) {
                 slots.append(MonthSlot(month: month, budget: nil))
                 break
             }
