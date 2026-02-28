@@ -1,6 +1,6 @@
 # Pulpe — Direction Artistique & Brand Guidelines
 
-> Document de référence pour l'ensemble de l'écosystème Pulpe : app web, app mobile (iOS/Android), landing page, emails, communication.
+> Document de référence unique pour l'ensemble de l'écosystème Pulpe : app web, app iOS, landing page, emails, communication. Les sections 1 à 7 sont universelles. La section 8 contient les déclinaisons par plateforme.
 
 ---
 
@@ -67,20 +67,68 @@ Le "calm technology" appliqué aux finances. Pas de jugement, pas de stress.
 
 ### 3.1 Palette de Couleurs
 
-| Rôle | Couleur | Code | Usage |
-|------|---------|------|-------|
-| **Primary** | Vert nature | #006E25 → #99F89D | Actions principales, succès, croissance |
-| **Secondary** | Vert olive | #406741 | Éléments secondaires (attention : peut paraître terne) |
-| **Tertiary** | Bleu info | #0061A6 | Actions secondaires, liens, information |
-| **Fond principal** | Blanc verdâtre | #F6FFF0 | Background général |
-| **Surfaces/cartes** | Vert très clair | #EBFFE6 | Cartes, modales (ou blanc pur selon contexte) |
-| **Texte principal** | Noir doux | #1A1C19 | Texte (éviter le noir pur #000) |
-| **Accent positif** | Vert moyen | #48A353 | Succès, économies atteintes |
+#### Couleurs de marque (seeds)
 
-**Principes :**
-- Le vert évoque croissance, stabilité, nature — parfait contre-pied au "rouge banque"
-- Éviter le gris pur qui fait "corporate" → préférer les tons verts-gris
-- Pas de rouge agressif pour les erreurs → utiliser des tons neutres avec du contexte
+| Rôle | Couleur | Seed | Usage |
+|------|---------|------|-------|
+| **Primary** | Vert nature | `#006E25` | Actions principales, épargne, accents positifs |
+| **Secondary** | Vert olive | `#406741` | Éléments secondaires, labels discrets |
+| **Tertiary** | Bleu info | `#0061A6` | Revenus, liens, information |
+| **Error** | Rouge | `#BA1A1A` | Déficit hero, dépassement critique (>100%) |
+| **Expense** | Ambre | `#B35800` | Dépenses (catégorie), dépassement modéré |
+
+#### Zones visuelles — le principe structurant
+
+L'écran Pulpe se divise en deux zones distinctes :
+
+| Zone | Rôle | Fond | Caractère |
+|------|------|------|-----------|
+| **Zone d'émotion** | Hero card, header (~30-35% haut) | Couleur vive selon état financier | Expressif, immersif — l'émotion frappe ici |
+| **Zone de contenu** | Listes, cartes, formulaires | Neutre chaud | Calme, lisible — l'information prime |
+
+**Le caractère vient du haut, la clarté vient du bas.**
+
+La transition entre les deux zones est un dégradé doux (40-60 points), pas une coupure nette. Le fond du header s'accorde avec la hero card et se dissout progressivement dans le neutre.
+
+| État financier | Teinte header | Transition vers |
+|----------------|--------------|-----------------|
+| **Confortable** (<80%) | Vert pâle | Neutre chaud |
+| **Serré** (80-100%) | Ambre pâle | Neutre chaud |
+| **Déficit** (>100%) | Rosé pâle | Neutre chaud |
+
+**Pourquoi le fond de contenu est neutre (pas vert) :**
+
+- Le vert sur fond vert = pas de contraste = pas de hiérarchie = contraire au pilier Clarté
+- Les apps "calm" (YNAB, Goodbudget) posent leur identité dans les accents, pas dans le fond
+- Un fond neutre rend les couleurs financières (vert, ambre, bleu) immédiatement lisibles
+- Quand le header passe au vert, ça veut dire que les finances vont bien — le vert redevient significatif
+
+**Écrans sans hero card** (modèles, paramètres, formulaires) : pas de zone d'émotion. Le fond neutre chaud occupe tout l'écran. Le header de navigation reste sobre (titre + actions). L'identité Pulpe passe par les accents (boutons, icônes, couleurs financières) et le ton de voix, pas par un fond teinté.
+
+#### Surfaces et fonds
+
+| Élément | Light mode | Dark mode |
+|---------|-----------|-----------|
+| **Fond de contenu** | Neutre chaud `#F7F6F3` | Fond système sombre |
+| **Cartes** | Blanc `#FFFFFF` ou surface élevée | Surface sombre secondaire |
+| **Hero card** | Couleur pleine (vert / ambre / rouge) | Ton sombre de la couleur d'état |
+
+Le neutre chaud `#F7F6F3` est le token de fond le plus important. Il est défini ici une seule fois — les sections plateforme (§8) ne font que préciser son implémentation technique (variable CSS, Color SwiftUI, etc.).
+
+#### Texte
+
+| Rôle | Code | Usage |
+|------|------|-------|
+| **Texte principal** | `#1A1C19` | Corps de texte — éviter le noir pur `#000` |
+| **Texte secondaire** | Opacité réduite du principal | Labels, dates, métadonnées |
+
+#### Principes couleurs
+
+- Le vert = actions, épargne, états positifs. **Il ne colore PAS les surfaces neutres.**
+- Les fonds de contenu sont neutres chauds — pas froids (pas de gris bleuté), pas verts.
+- L'identité Pulpe se manifeste par les accents et la zone d'émotion, pas par un bain de couleur uniforme.
+- L'ambre signale les dépenses (normal), le rouge signale un état critique (exceptionnel).
+- Pas de rouge agressif pour les erreurs → utiliser des tons neutres avec du contexte.
 
 ### 3.2 Logo & Icône
 
@@ -131,23 +179,62 @@ L'icône actuelle (tranche d'agrume neumorphique) :
 - Privilégier les checkmarks aux croix
 - Pas d'illustrations 3D complexes — rester dans le "flat soft"
 
-### 3.5 Micro-interactions
+### 3.5 Boutons
+
+| Variante | Style | Usage |
+|----------|-------|-------|
+| **Primaire** | Filled vert (primary) | CTA principal — une seule action dominante par écran |
+| **Secondaire** | Outlined | Actions alternatives, annuler, retour |
+| **Texte** | Text button (pas de fond) | Navigation inline, actions tertiaires |
+| **Destructif** | Text rouge ou filled rouge | Suppression, déconnexion — toujours avec confirmation |
+
+**Principes :**
+- Un seul bouton primaire par écran ou par dialog
+- Les boutons destructifs ne sont jamais la première option visuellement
+- Sur mobile, les boutons primaires font au minimum 48pt de hauteur (touch target)
+
+### 3.6 Micro-interactions
 
 - Feedback immédiat sur les actions
 - Transitions douces (200-300ms)
 - Pas d'animations stressantes ou rapides
 - Confirmations visuelles subtiles (pas de confettis excessifs)
 
-### 3.6 Couleurs Financières — Modèle Sémantique
+### 3.7 Couleurs Financières — Modèle Sémantique
 
-Pulpe distingue deux concepts différents avec des couleurs distinctes :
+#### Catégories vs états — deux concepts, deux systèmes
 
-| Concept | Couleur | Tokens | Usage |
-|---------|---------|--------|-------|
-| **Revenu** (catégorie) | Vert / Primary | `--pulpe-financial-income` | Lignes budget, pills, montants |
-| **Dépense** (catégorie) | Ambre | `--pulpe-financial-expense` | Lignes budget, pills, montants |
-| **Épargne** (catégorie) | Bleu / Tertiary | `--pulpe-financial-savings` | Lignes budget, pills, montants |
-| **Déficit** (état critique) | Rouge / Error | `--pulpe-financial-critical` | Hero section, états de dépassement |
+| Concept | Couleur | Token | Usage |
+|---------|---------|-------|-------|
+| **Revenu** (catégorie) | Bleu / Tertiary | `--pulpe-financial-income` | Montants, pills, icônes, lignes budget |
+| **Dépense** (catégorie) | Ambre | `--pulpe-financial-expense` | Montants, pills, icônes, lignes budget |
+| **Épargne** (catégorie) | Vert / Primary | `--pulpe-financial-savings` | Montants, pills, icônes, barres de progression |
+| **Déficit** (état critique) | Rouge / Error | `--pulpe-financial-critical` | Hero en déficit, dépassement >100% |
+| **Négatif** (état modéré) | Ambre | `--pulpe-financial-negative` | Rollover négatif, mois serré |
+
+#### Application par élément
+
+Chaque catégorie financière utilise sa couleur de manière cohérente :
+
+| Élément | Principe |
+|---------|----------|
+| **Montant texte** | Couleur pleine de la catégorie (bleu / ambre / vert) |
+| **Icône badge** | Fond = version transparente de la couleur ; texte = couleur pleine. Exception : dépense utilise un fond/texte neutre |
+| **Pills hero** | Fond et bordure = versions transparentes de la couleur de catégorie |
+| **Barre de progression** | Track = version transparente ; fill = couleur pleine |
+| **Section header badge** | Fond = version transparente de la couleur dominante de la section |
+
+Les valeurs d'opacité exactes vivent dans les DesignTokens du code, pas ici.
+
+#### Le hero card change de couleur selon l'état financier
+
+| État | Fond hero | Texte hero | Microcopy |
+|------|-----------|-----------|-----------|
+| **Confortable** (<80%) | Vert (gradient primaire) | Blanc | Encourageant |
+| **Serré** (80-100%) | Ambre (gradient warning) | Blanc chaud | Factuel, pas alarmiste |
+| **Déficit** (>100%) | Rouge (gradient error) | Blanc rosé | "Tu le sais, et c'est déjà ça" |
+
+#### Principes du rouge
 
 **Principe :** L'ambre signale une catégorie (dépense), le rouge signale un état (déficit).
 - Une dépense est planifiée, normale — ambre (neutre)
@@ -190,8 +277,8 @@ Pulpe distingue deux concepts différents avec des couleurs distinctes :
 
 ### 4.3 Transformations de Wording
 
-| Contexte | ❌ Éviter | ✅ Préférer |
-|----------|----------|-------------|
+| Contexte | Éviter | Préférer |
+|----------|--------|----------|
 | Action | "Gérer votre budget" | "Voir clair dans tes finances" |
 | Action | "Tracking des dépenses" | "Suivre tes projets" |
 | Action | "Analyser vos données" | "Comprendre ta situation" |
@@ -300,33 +387,161 @@ Avant de valider un écran, un email ou une communication :
 - [ ] **Légèreté** : Est-ce qu'il y a du jugement ou de la culpabilisation ?
 - [ ] **Tutoiement** : Est-ce qu'on utilise "tu" ?
 - [ ] **Vocabulaire** : Est-ce qu'on utilise les termes utilisateur (pas techniques) ?
-- [ ] **Visuel** : Est-ce que les couleurs et icônes respectent la charte ?
+- [ ] **Zones** : Est-ce que la zone d'émotion et la zone de contenu sont distinctes ?
+- [ ] **Couleurs** : Vert = accents/actions, fond = neutre chaud, financières = par catégorie ?
 
 ---
 
-## 8. Application par Canal
+## 8. Déclinaison par Plateforme
 
-### App Web & Mobile
+Les sections 1 à 7 sont le socle commun. Cette section documente les adaptations spécifiques à chaque plateforme.
 
-- Appliquer l'intégralité de cette DA
-- Priorité à la clarté et aux micro-interactions
+### 8.1 App iOS (SwiftUI)
 
-### Landing Page
+#### Zone d'émotion — Header dynamique
 
-- Mettre en avant les piliers émotionnels
-- Wording orienté bénéfices (soulagement, clarté)
-- Visuels aérés, pas de surcharge
+Le header (30-35% de l'écran) reflète l'état financier. Le fond du header est une teinte pâle de la couleur d'état, qui transite en dégradé doux vers le fond neutre chaud du contenu.
 
-### Emails
+| État | Teinte header | Transition vers | Hex indicatifs |
+|------|--------------|-----------------|----------------|
+| Confortable | Vert pâle | Neutre chaud | `#D4EDDA` → `#F7F6F3` |
+| Serré | Ambre pâle | Neutre chaud | `#FEF0D4` → `#F7F6F3` |
+| Déficit | Rosé pâle | Neutre chaud | `#FDE2E2` → `#F7F6F3` |
 
-- Ton chaleureux et direct
-- Tutoiement
-- Objet court et bénéfice-oriented
-- CTA clair et unique
+Le fond de contenu reste **toujours** le neutre chaud défini en §3.1, quel que soit l'état.
 
-### Communication / Réseaux
+#### Surfaces
 
-- Ton plus décontracté possible
-- Mettre en avant la légèreté
-- Éviter le jargon finance
-- Montrer l'humain derrière l'app
+| Élément | Light | Dark |
+|---------|-------|------|
+| Fond de contenu | Neutre chaud §3.1 (`Color.pulpeNeutralWarm`) | `systemGroupedBackground` |
+| Cartes | Blanc (`Color.surfaceCard`) | `secondarySystemGroupedBackground` |
+| Hero card | Couleur pleine (vert/ambre/rouge) | Ton sombre de la couleur d'état |
+
+#### Liquid Glass (iOS 26+)
+
+- **Réservé à la navigation** : tab bar, boutons flottants, toasts, modals
+- **Jamais sur le contenu** : cartes, listes, sections de texte
+- `.glassEffect(.regular.interactive())` pour les contrôles tactiles
+- `.glassEffect(.regular.tint(Color.pulpePrimary))` pour la proéminence visuelle
+- Fallback iOS 18-25 : `.ultraThinMaterial` + `.clipShape(Capsule())`
+
+#### Background premium (iOS 18+)
+
+Mesh gradient subtil avec accents verts très légers sur fond neutre.
+En dark mode : fond système avec accents minimaux.
+
+#### Typographie
+
+Polices : cf. section 3.3 (Manrope titres, DM Sans corps). Tailles spécifiques iOS :
+
+| Usage | Poids | Taille |
+|-------|-------|--------|
+| Titres hero | Bold | 34pt |
+| Titres de section | Bold | 22pt |
+| Boutons | SemiBold | 17pt |
+| Corps | Regular | 17pt |
+| Labels | SemiBold | 15pt |
+| Tab labels | Medium | 10pt |
+| Captions | Regular | 12pt |
+
+#### Tokens de spacing
+
+| Token | Valeur |
+|-------|--------|
+| xs | 4pt |
+| sm | 8pt |
+| md | 12pt |
+| lg | 16pt |
+| xl | 20pt |
+| xxl | 24pt |
+| xxxl | 32pt |
+
+#### Corner radius
+
+| Token | Valeur | Usage |
+|-------|--------|-------|
+| xs | 4pt | Progress bars, indicateurs fins |
+| sm | 8pt | Badges, chips |
+| md | 12pt | Cartes, inputs |
+| button | 14pt | Boutons primaires |
+| lg | 16pt | Sheets, modals |
+| xl | 20pt | Hero cards |
+
+#### Motion
+
+| Type | Paramètres |
+|------|-----------|
+| Fast | 0.2s |
+| Normal | 0.3s |
+| Slow | 0.5s |
+| Spring | response 0.5s, damping 0.8 |
+| Gentle spring | response 0.6s, damping 0.85 |
+
+### 8.2 App Web (Angular + Material 21 + Tailwind v4)
+
+#### Système de tokens (3 couches)
+
+| Couche | Préfixe | Usage |
+|--------|---------|-------|
+| Pulpe sémantique | `--pulpe-*` | Couleurs financières, surfaces, motion |
+| Tailwind | `--color-*`, classes utilitaires | Layout, couleurs, typographie en template |
+| Material System | `--mat-sys-*` | Fondation — thème uniquement, pas dans les composants |
+
+#### Fond de contenu
+
+Le body utilise `--mat-sys-surface` du thème Material. La palette neutral doit être générée avec un seed désaturé (pas dérivé du vert primaire) pour que les surfaces soient neutres chaudes.
+
+Commande : `ng generate @angular/material:theme-color --primaryColor=#006E25 --neutralColor=#8A8A82`
+
+#### Zone d'émotion (Hero dashboard)
+
+Le hero utilise un gradient dynamique :
+- Confortable : `--pulpe-hero-primary` (vert) + `color-mix(black 25%)`
+- Serré : `--pulpe-hero-warning` (ambre)
+- Déficit : `--pulpe-hero-error` (rouge)
+
+#### Typographie
+
+| Usage | Police | Variable Material |
+|-------|--------|-------------------|
+| Titres, hero | Manrope (`brand-family`) | `--mat-sys-display-*-font` |
+| Corps, UI | DM Sans (`plain-family`) | `--mat-sys-body-*-font` |
+| Montants | DM Sans tabular | Chiffres alignés |
+
+#### Overrides Material
+
+- Utiliser `mat.*-overrides()` — **jamais** `::ng-deep`
+- Dialogs : `surface-container-high`
+- Tabs : indicateur 3px (M3 spec)
+
+#### Motion
+
+| Token | Valeur | Usage |
+|-------|--------|-------|
+| `--pulpe-motion-fast` | 150ms | Micro-interactions, hover |
+| `--pulpe-motion-base` | 220ms | Transitions standard |
+| `--pulpe-motion-slow` | 320ms | Entrées de page, sheets |
+
+#### Dark mode
+
+- Classe `.dark-theme` sur `html`
+- Variante Tailwind `dark:` scopée à `.dark-theme`
+- Fallback `@media (prefers-color-scheme: dark)`
+
+### 8.3 Landing Page (Next.js + Tailwind v4)
+
+- Typographie : **Poppins** (pas Manrope/DM Sans)
+- Fond : blanc ou neutre très clair
+- Accents : vert Pulpe pour les CTA, bleu pour les liens
+- Wording orienté bénéfices émotionnels (soulagement, clarté)
+- Pas de surcharge visuelle — respiration maximale
+- Visuels aérés, illustrations "flat soft", pas de 3D complexe
+
+### 8.4 Emails & Communication
+
+- Ton chaleureux et direct, tutoiement systématique
+- Objet court et orienté bénéfice
+- Un seul CTA par email, clair et évident
+- Réseaux sociaux : ton décontracté, montrer l'humain derrière l'app
+- Éviter le jargon finance partout

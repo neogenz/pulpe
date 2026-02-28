@@ -121,9 +121,12 @@ Utility classes win thanks to `@layer utilities`.
 
 | Token | CSS Variable | Value |
 |-------|--------------|-------|
+| `neutral-warm` | `--pulpe-neutral-warm` | `#F7F6F3` (DA §3.1 reference) |
 | `surface-radius-card` | `--pulpe-surface-radius-card` | `24px` |
 | `surface-radius-panel` | `--pulpe-surface-radius-panel` | `16px` |
 | `surface-border-subtle` | `--pulpe-surface-border-subtle` | `1px solid var(--mat-sys-outline-variant)` |
+
+The content zone background must be neutral warm — never green-tinted. The Material neutral palette should be generated with a desaturated seed (see DA.md §8.2).
 
 ### Motion
 
@@ -145,15 +148,39 @@ Utility classes win thanks to `@layer utilities`.
 
 | Concept | Color | Token | When to use |
 |---------|-------|-------|-------------|
-| Income (category) | Green / Primary | `--pulpe-financial-income` | Budget lines, pills, amounts |
+| Income (category) | Blue / Tertiary | `--pulpe-financial-income` | Budget lines, pills, amounts |
 | Expense (category) | Amber | `--pulpe-financial-expense` | Budget lines, pills, amounts, individual transactions |
-| Savings (category) | Blue / Tertiary | `--pulpe-financial-savings` | Budget lines, pills, amounts |
+| Savings (category) | Green / Primary | `--pulpe-financial-savings` | Budget lines, pills, amounts |
+| Negative (moderate state) | Amber | `--pulpe-financial-negative` | Negative rollover, tight month |
 | Deficit (critical state) | Red / Error | `--pulpe-financial-critical` | Hero section in deficit, envelope overrun (>100%) |
 
 - Amber signals a **category** — an expense is planned and normal
 - Red signals a **state** — a deficit is a critical consequence
 - Do NOT use `text-error` / `bg-error-container` for individual expense amounts or transaction rows
 - Red is reserved for hero deficit display and critical overrun states only
+
+### Visual Zones
+
+The screen is divided into two distinct zones (see DA.md §3.1):
+
+- **Emotion zone** (hero, header ~30-35% top): colored background matching financial state
+- **Content zone** (lists, cards, forms): neutral warm background — never green-tinted
+- Transition between zones: soft gradient (40-60px), not a hard cut
+- Green = accents and actions only. It does NOT color neutral surfaces.
+- **Screens without hero** (templates, settings, forms): no emotion zone. Neutral warm background fills the entire screen. Identity comes from accents and tone of voice.
+
+### Buttons
+
+| Variant | Style | When |
+|---------|-------|------|
+| Primary | Filled green (primary) | Single dominant CTA per screen |
+| Secondary | Outlined | Alternative actions, cancel, back |
+| Text | Text button (no background) | Inline navigation, tertiary actions |
+| Destructive | Text red or filled red | Delete, logout — always with confirmation |
+
+- Only one primary button per screen or dialog
+- Destructive buttons are never the first visual option
+- Mobile: primary buttons min 48pt height (touch target)
 
 ## State Card Spec
 

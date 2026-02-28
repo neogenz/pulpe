@@ -45,14 +45,14 @@ pnpm dev:backend              # Backend + shared
 
 ## Stack
 
-| Layer | Tech |
-|-------|------|
-| Frontend | Angular 21+, Signals, Material 21, Tailwind v4 |
-| Backend | NestJS 11+, Bun, Supabase (PostgreSQL + Auth) |
-| iOS | SwiftUI, Xcode |
-| Landing | Next.js, Tailwind v4 |
-| Shared | TypeScript strict, Zod schemas |
-| Orchestration | pnpm workspaces + Turborepo |
+| Layer         | Tech                                           |
+| ------------- | ---------------------------------------------- |
+| Frontend      | Angular 21+, Signals, Material 21, Tailwind v4 |
+| Backend       | NestJS 11+, Bun, Supabase (PostgreSQL + Auth)  |
+| iOS           | SwiftUI, Xcode                                 |
+| Landing       | Next.js, Tailwind v4                           |
+| Shared        | TypeScript strict, Zod schemas                 |
+| Orchestration | pnpm workspaces + Turborepo                    |
 
 ## Rules Files
 
@@ -83,16 +83,41 @@ paths: "**/*.ts"
 
 **IMPORTANT:** Before starting any task, read the relevant docs below.
 
-| Purpose | Path |
-|---------|------|
-| DB types | `backend-nest/src/types/database.types.ts` |
-| Shared schemas | `shared/schemas.ts` |
-| Project overview | `memory-bank/projectbrief.md` |
-| Business rules | `memory-bank/productContext.md` |
-| Tech decisions | `memory-bank/techContext.md` |
-| Architecture | `memory-bank/systemPatterns.md` |
-| Encryption (AES-256-GCM) | `docs/ENCRYPTION.md` |
+| Purpose                  | Path                                       |
+| ------------------------ | ------------------------------------------ |
+| DB types                 | `backend-nest/src/types/database.types.ts` |
+| Shared schemas           | `shared/schemas.ts`                        |
+| Project overview         | `memory-bank/projectbrief.md`              |
+| Business rules           | `memory-bank/productContext.md`            |
+| Tech decisions           | `memory-bank/techContext.md`               |
+| Architecture             | `memory-bank/systemPatterns.md`            |
+| Encryption (AES-256-GCM) | `docs/ENCRYPTION.md`                       |
 
 ## Bug Reporting
 
 When I report a bug, don't start by trying to fix it. Instead, start by writing a test that reproduces the bug. Then, have subagents try to fix the bug and prove it with a passing test.
+
+## Workflow modification
+
+**CRITICAL RULE•- ALWAYS • FOLLOW• THIS**
+
+**BEFORE editing any files, you MUST Read at least 3 files** that will help you• to understand how to make a coherent and consistency.
+
+This is **NON-NEGOTIABLE**. Do not skip this step under any circumstances.
+
+Reading existing files ensures:
+
+- Code consistency with project patterns
+- Proper understanding of conventions
+- Following established architecture
+- Avoiding breaking changes
+
+**Types of files you MUST read:**
+
+**Similar files**: Read files that do similar functionality to understand patterns and conventions
+**Imported dependencies**: Read the definition/implementation of any imports you're not 100% sure how to use correctly - understand their API, types, and usage patterns
+**Steps to follow:**
+
+1. Read at least 3 relevant existing files (similar functionality + imported dependencies)
+2. Understand the patterns, conventions, and API usage
+3. Only then proceed with creating/editing files
