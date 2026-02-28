@@ -1,6 +1,10 @@
 import SwiftUI
 import TipKit
 
+private struct PreviousBudgetItem: Identifiable {
+    let id: String
+}
+
 struct BudgetDetailsView: View {
     let budgetId: String
     @Environment(AppState.self) private var appState
@@ -10,6 +14,7 @@ struct BudgetDetailsView: View {
     @State private var linkedTransactionsContext: LinkedTransactionsContext?
     @State private var selectedBudgetLineForEdit: BudgetLine?
     @State private var selectedTransactionForEdit: Transaction?
+    @State private var previousBudgetItem: PreviousBudgetItem?
 
     @State private var searchText = ""
 
@@ -104,6 +109,9 @@ struct BudgetDetailsView: View {
                 Task { await viewModel.updateTransaction(updatedTransaction) }
             }
         }
+        .sheet(item: $previousBudgetItem) { item in
+            PreviousBudgetSheet(budgetId: item.id)
+        }
         .alert(
             "Pointer les transactions ?",
             isPresented: $viewModel.showCheckAllTransactionsAlert,
@@ -138,7 +146,6 @@ struct BudgetDetailsView: View {
         let filteredFree = viewModel.combinedFilteredFreeTransactions(searchText: searchText)
 
         let fullWidthInsets = EdgeInsets()
-        let heroCardInsets = EdgeInsets()
 
         return List {
             // Filter picker
@@ -150,7 +157,7 @@ struct BudgetDetailsView: View {
             .listSectionSeparator(.hidden)
             .listRowInsets(fullWidthInsets)
 
-            // Hero balance card (with horizontal padding to prevent edge clipping)
+            // Hero balance card
             Section {
                 HeroBalanceCard(
                     metrics: viewModel.metrics,
@@ -160,14 +167,14 @@ struct BudgetDetailsView: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
             .listSectionSeparator(.hidden)
-            .listRowInsets(heroCardInsets)
+            .listRowInsets(fullWidthInsets)
 
             // Rollover section (toujours en premier)
             if let rolloverInfo = viewModel.rolloverInfo {
                 RolloverInfoRow(
                     amount: rolloverInfo.amount,
                     onTap: rolloverInfo.previousBudgetId.map { id in
-                        { appState.budgetPath.append(BudgetDestination.details(budgetId: id)) }
+                        { previousBudgetItem = PreviousBudgetItem(id: id) }
                     }
                 )
                 .listRowBackground(Color.clear)
