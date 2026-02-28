@@ -83,9 +83,9 @@ extension Color {
     /// Generic badge background
     static let badgeBackground = Color("BadgeBackground")
 
-    /// Input field background — green-tinted soft fill for brand consistency
+    /// Input field background — white in light mode for clear contrast against sage surfaces
     static let inputBackgroundSoft = Color(
-        light: Color(hex: 0xE8F5E9).opacity(0.6),
+        light: .white,
         dark: Color(uiColor: .tertiarySystemFill)
     )
 

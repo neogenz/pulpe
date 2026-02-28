@@ -13,6 +13,7 @@ struct BudgetSection: View {
     let onAddTransaction: (BudgetLine) -> Void
     let onLongPress: (BudgetLine, [Transaction]) -> Void
     let onEdit: (BudgetLine) -> Void
+    var tip: (any Tip)?
 
     @State private var isExpanded = false
 
@@ -50,10 +51,10 @@ struct BudgetSection: View {
 
     var body: some View {
         Section {
-            TipView(ProductTips.gestures)
-                .frame(maxWidth: .infinity)
-                .fixedSize(horizontal: false, vertical: true)
-                .listRowSeparator(.hidden)
+            if let tip {
+                TipView(tip)
+                    .listRowSeparator(.hidden)
+            }
 
             ForEach(Array(displayedItems.enumerated()), id: \.element.id) { index, item in
                 budgetLineRow(for: item)
