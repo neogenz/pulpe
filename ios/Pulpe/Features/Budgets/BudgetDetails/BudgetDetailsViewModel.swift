@@ -120,12 +120,6 @@ final class BudgetDetailsViewModel {
         return lines.filter { $0.checkedAt == nil }
     }
 
-    /// Filters free transactions based on the checked filter preference
-    private func applyCheckedFilterToFreeTransactions(_ transactions: [Transaction]) -> [Transaction] {
-        guard isShowingOnlyUnchecked else { return transactions }
-        return transactions.filter { $0.checkedAt == nil }
-    }
-
     var filteredIncomeLines: [BudgetLine] {
         applyCheckedFilter(incomeLines)
     }
@@ -182,20 +176,14 @@ final class BudgetDetailsViewModel {
         }
     }
 
-    /// Filters free transactions by name (accent and case insensitive)
-    func filteredFreeTransactions(searchText: String) -> [Transaction] {
-        guard !searchText.isEmpty else { return freeTransactions }
-        return freeTransactions.filter {
-            $0.name.localizedStandardContains(searchText) ||
-                "\($0.amount)".contains(searchText)
-        }
-    }
-
     /// Full load: fetches budget details AND all budgets list (for month navigation)
     /// Use for: initial load, pull-to-refresh
     func loadDetails() async {
+        let showsSkeleton = budget == nil
         isLoading = true
         error = nil
+        let loadStart = ContinuousClock.now
+        defer { isLoading = false }
 
         do {
             async let detailsTask = budgetService.getBudgetWithDetails(id: budgetId)
@@ -203,18 +191,21 @@ final class BudgetDetailsViewModel {
 
             let (details, budgets) = try await (detailsTask, budgetsTask)
 
+            if showsSkeleton {
+                try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
+            }
+
             budget = details.budget
             budgetLines = details.budgetLines
             transactions = details.transactions
             allBudgets = budgets
             invalidateMetricsCache()
-
             updateAdjacentBudgets()
+        } catch is CancellationError {
+            // Task was cancelled, don't update error state
         } catch {
             self.error = error
         }
-
-        isLoading = false
     }
 
     /// Light reload: fetches only current budget details (no allBudgets)
@@ -231,6 +222,8 @@ final class BudgetDetailsViewModel {
             transactions = details.transactions
             invalidateMetricsCache()
             updateAdjacentBudgets()
+        } catch is CancellationError {
+            // Task was cancelled, don't update error state
         } catch {
             self.error = error
         }

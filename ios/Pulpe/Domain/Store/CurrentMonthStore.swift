@@ -83,6 +83,7 @@ final class CurrentMonthStore: StoreProtocol {
         guard budget == nil else { return }
         isLoading = true
         error = nil
+        let loadStart = ContinuousClock.now
         defer { isLoading = false }
 
         do {
@@ -94,11 +95,20 @@ final class CurrentMonthStore: StoreProtocol {
 
             guard let match = sparseBudgets.first(where: {
                 $0.month == period.month && $0.year == period.year
-            }) else { return }
+            }) else {
+                try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
+                return
+            }
+
+            try Task.checkCancellation()
 
             let fetchedBudget = try await budgetService.getBudget(id: match.id)
+            try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
+
             budget = fetchedBudget
             invalidateMetricsCache()
+        } catch is CancellationError {
+            // Task was cancelled, don't update error state
         } catch let apiError as APIError {
             self.error = apiError
         } catch {
@@ -131,6 +141,8 @@ final class CurrentMonthStore: StoreProtocol {
             transactions = details.transactions
             invalidateMetricsCache()
             lastLoadTime = Date()
+        } catch is CancellationError {
+            // Task was cancelled, don't update error state
         } catch let apiError as APIError {
             self.error = apiError
         } catch {
@@ -174,14 +186,19 @@ final class CurrentMonthStore: StoreProtocol {
         let currentGeneration = loadGeneration
 
         let task = Task {
+            let showsSkeleton = budget == nil
             isLoading = true
             error = nil
+            let loadStart = ContinuousClock.now
             defer { isLoading = false }
 
             do {
                 guard let currentBudget = try await budgetService.getCurrentMonthBudget(
                     payDayOfMonth: self.payDayOfMonth
                 ) else {
+                    if showsSkeleton {
+                        try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
+                    }
                     budget = nil
                     budgetLines = []
                     transactions = []
@@ -194,6 +211,11 @@ final class CurrentMonthStore: StoreProtocol {
                 try Task.checkCancellation()
 
                 let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
+
+                if showsSkeleton {
+                    try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
+                }
+
                 budget = details.budget
                 budgetLines = details.budgetLines
                 transactions = details.transactions
@@ -215,29 +237,14 @@ final class CurrentMonthStore: StoreProtocol {
 
     // MARK: - Widget Sync
 
-    private func syncWidgetData(details: BudgetDetails?) async {
-        // Use centralized sync for consistency
-        await widgetSyncService.syncAll(payDayOfMonth: payDayOfMonth)
-    }
-
-    private func syncWidgetAfterChange() async {
-        // Cancel any pending sync task
+    private func syncWidgetAfterChange() {
         widgetSyncTask?.cancel()
 
-        // Debounce widget sync to avoid excessive reloads
         widgetSyncTask = Task {
             try? await Task.sleep(for: .seconds(AppConfiguration.widgetSyncDebounceDelay))
-
             guard !Task.isCancelled else { return }
-            guard let currentBudget = budget else { return }
-
-            let details = BudgetDetails(
-                budget: currentBudget,
-                transactions: transactions,
-                budgetLines: budgetLines
-            )
-
-            await syncWidgetData(details: details)
+            guard budget != nil else { return }
+            await widgetSyncService.syncAll(payDayOfMonth: payDayOfMonth)
         }
     }
 
@@ -467,9 +474,7 @@ extension CurrentMonthStore {
     func addTransaction(_ transaction: Transaction) {
         transactions.append(transaction)
         invalidateMetricsCache()
-        Task {
-            await syncWidgetAfterChange()
-        }
+        syncWidgetAfterChange()
     }
 
     func deleteTransaction(_ transaction: Transaction) async {

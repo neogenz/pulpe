@@ -26,11 +26,13 @@ struct CurrentMonthView: View {
     var body: some View {
         ZStack {
             if store.isLoading && store.budget == nil {
-                LoadingView(message: "Préparation de ton tableau de bord...")
+                CurrentMonthSkeletonView()
+                    .transition(.opacity)
             } else if let error = store.error, store.budget == nil {
                 ErrorView(error: error) {
                     await store.forceRefresh()
                 }
+                .transition(.opacity)
             } else if store.budget == nil {
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Image(systemName: "calendar.badge.plus")
@@ -45,11 +47,14 @@ struct CurrentMonthView: View {
                         .multilineTextAlignment(.center)
                 }
                 .padding(DesignTokens.Spacing.xxxl)
+                .transition(.opacity)
             } else {
                 dashboardContent
+                    .transition(.opacity)
             }
         }
         .trackScreen("Dashboard")
+        .animation(DesignTokens.Animation.smoothEaseOut, value: store.isLoading)
         .navigationTitle("Accueil")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -205,6 +210,51 @@ struct CurrentMonthView: View {
             async let refreshDashboard: Void = dashboardStore.forceRefresh()
             _ = await (refreshStore, refreshDashboard)
         }
+    }
+}
+
+// MARK: - Skeleton
+
+private struct CurrentMonthSkeletonView: View {
+    var body: some View {
+        ScrollView {
+            VStack(spacing: DesignTokens.Spacing.xxl) {
+                // Hero card placeholder
+                SkeletonShape(height: 200, cornerRadius: DesignTokens.CornerRadius.xl)
+
+                // Projection section
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    SkeletonShape(width: 80, height: 14)
+                    SkeletonShape(height: 80, cornerRadius: DesignTokens.CornerRadius.lg)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Insights section
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    SkeletonShape(width: 60, height: 14)
+                    SkeletonShape(height: 120, cornerRadius: DesignTokens.CornerRadius.lg)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Recent transactions section
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    SkeletonShape(width: 160, height: 14)
+                    VStack(spacing: DesignTokens.Spacing.sm) {
+                        ForEach(0..<3, id: \.self) { _ in
+                            SkeletonRow()
+                        }
+                    }
+                    .padding(DesignTokens.Spacing.lg)
+                    .pulpeCardBackground()
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.lg)
+        }
+        .shimmering()
+        .pulpeBackground()
+        .accessibilityLabel("Chargement du tableau de bord")
     }
 }
 

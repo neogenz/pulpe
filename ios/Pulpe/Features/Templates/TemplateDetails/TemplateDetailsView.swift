@@ -13,15 +13,19 @@ struct TemplateDetailsView: View {
     var body: some View {
         Group {
             if viewModel.isLoading && viewModel.template == nil {
-                LoadingView(message: "Chargement...")
+                TemplateDetailsSkeletonView()
+                    .transition(.opacity)
             } else if let error = viewModel.error, viewModel.template == nil {
                 ErrorView(error: error) {
                     await viewModel.loadDetails()
                 }
+                .transition(.opacity)
             } else if let template = viewModel.template {
                 content(template: template)
+                    .transition(.opacity)
             }
         }
+        .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.isLoading)
         .navigationTitle(viewModel.template?.name ?? "Modèle")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -184,20 +188,29 @@ final class TemplateDetailsViewModel {
     }
 
     func loadDetails() async {
+        let showsSkeleton = template == nil
         isLoading = true
         error = nil
+        let loadStart = ContinuousClock.now
+        defer { isLoading = false }
 
         do {
             async let templateTask = templateService.getTemplate(id: templateId)
             async let linesTask = templateService.getTemplateLines(templateId: templateId)
 
-            template = try await templateTask
-            lines = try await linesTask
+            let (fetchedTemplate, fetchedLines) = try await (templateTask, linesTask)
+
+            if showsSkeleton {
+                try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
+            }
+
+            template = fetchedTemplate
+            lines = fetchedLines
+        } catch is CancellationError {
+            // Task was cancelled, don't update error state
         } catch {
             self.error = error
         }
-
-        isLoading = false
     }
 
     func updateTemplateLine(_ line: TemplateLine) async {
@@ -208,6 +221,68 @@ final class TemplateDetailsViewModel {
 
         // Reload to sync with server
         await loadDetails()
+    }
+}
+
+// MARK: - Skeleton
+
+private struct TemplateDetailsSkeletonView: View {
+    var body: some View {
+        List {
+            // Info section
+            Section {
+                ForEach(0..<2, id: \.self) { _ in
+                    HStack {
+                        SkeletonShape(width: 60, height: 14)
+                        Spacer()
+                        SkeletonShape(width: 120, height: 14)
+                    }
+                }
+            } header: {
+                SkeletonShape(width: 100, height: 12)
+            }
+
+            // Totals section
+            Section {
+                ForEach(0..<3, id: \.self) { _ in
+                    HStack {
+                        SkeletonShape(width: 24, height: 24, cornerRadius: DesignTokens.CornerRadius.xs)
+                        SkeletonShape(width: 80, height: 14)
+                        Spacer()
+                        SkeletonShape(width: 80, height: 14)
+                    }
+                }
+            } header: {
+                SkeletonShape(width: 90, height: 12)
+            }
+
+            // Budget line sections (2 sections)
+            ForEach(0..<2, id: \.self) { _ in
+                Section {
+                    ForEach(0..<3, id: \.self) { _ in
+                        HStack {
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                                SkeletonShape(width: 120, height: 14)
+                                SkeletonShape(width: 70, height: 11)
+                            }
+                            Spacer()
+                            SkeletonShape(width: 70, height: 14)
+                        }
+                    }
+                } header: {
+                    HStack {
+                        SkeletonShape(width: 70, height: 12)
+                        Spacer()
+                        SkeletonShape(width: 80, height: 12)
+                    }
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .shimmering()
+        .pulpeBackground()
+        .accessibilityLabel("Chargement du modèle")
     }
 }
 

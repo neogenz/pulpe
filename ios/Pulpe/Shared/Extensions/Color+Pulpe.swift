@@ -393,6 +393,11 @@ extension Color {
     /// Recovery key input field border
     static let pinInputBorder = Color(light: Color(hex: 0x1A1F2B).opacity(0.12), dark: .white.opacity(0.15))
 
+    // MARK: - Skeleton
+
+    /// Placeholder fill for skeleton loading shapes
+    static let skeletonPlaceholder = Color(uiColor: .systemGray5)
+
     // MARK: - Initializers
 
     init(hex: UInt) {

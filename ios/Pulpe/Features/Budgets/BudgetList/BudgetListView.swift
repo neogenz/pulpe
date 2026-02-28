@@ -1,5 +1,8 @@
 import SwiftUI
 
+/// Leading inset for list dividers, aligned with row text past the status indicator.
+private let dividerLeadingInset: CGFloat = 34
+
 struct BudgetListView: View {
     @Environment(AppState.self) private var appState
     @Environment(BudgetListStore.self) private var store
@@ -13,11 +16,20 @@ struct BudgetListView: View {
     var body: some View {
         Group {
             if !store.hasLoadedOnce && store.budgets.isEmpty {
-                LoadingView(message: "Récupération de tes budgets...")
+                if let error = store.error {
+                    ErrorView(error: error) {
+                        await store.forceRefresh()
+                    }
+                    .transition(.opacity)
+                } else {
+                    BudgetListSkeletonView()
+                        .transition(.opacity)
+                }
             } else if let error = store.error, store.budgets.isEmpty {
                 ErrorView(error: error) {
                     await store.forceRefresh()
                 }
+                .transition(.opacity)
             } else if store.budgets.isEmpty {
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Image(systemName: "chart.bar.doc.horizontal")
@@ -36,11 +48,14 @@ struct BudgetListView: View {
                     .primaryButtonStyle()
                 }
                 .padding(DesignTokens.Spacing.xxxl)
+                .transition(.opacity)
             } else {
                 budgetList
+                    .transition(.opacity)
             }
         }
         .trackScreen("BudgetList")
+        .animation(DesignTokens.Animation.smoothEaseOut, value: store.isLoading)
         .navigationTitle("Budgets")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -155,6 +170,52 @@ struct BudgetListView: View {
     }
 }
 
+private struct BudgetListSkeletonView: View {
+    var body: some View {
+        ScrollView {
+            VStack(spacing: DesignTokens.Spacing.xl) {
+                // Year section placeholder
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                    // Year header (chevron + year number)
+                    HStack(spacing: DesignTokens.Spacing.md) {
+                        SkeletonShape(width: 14, height: 14, cornerRadius: DesignTokens.CornerRadius.xs)
+                        SkeletonShape(width: 50, height: 20)
+                        Spacer()
+                    }
+                    .padding(.vertical, DesignTokens.Spacing.md)
+
+                    // Month rows card
+                    VStack(spacing: 0) {
+                        ForEach(0..<4, id: \.self) { index in
+                            HStack(spacing: DesignTokens.Spacing.md) {
+                                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                                    SkeletonShape(width: 100, height: 14)
+                                    SkeletonShape(width: 140, height: 11)
+                                }
+                                Spacer()
+                                SkeletonShape(width: 70, height: 14)
+                            }
+                            .padding(.horizontal, DesignTokens.Spacing.lg)
+                            .padding(.vertical, DesignTokens.Spacing.md)
+
+                            if index < 3 {
+                                Divider().padding(.leading, dividerLeadingInset)
+                            }
+                        }
+                    }
+                    .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.lg)
+                }
+            }
+            .padding(.horizontal, DesignTokens.Spacing.xl)
+            .padding(.top, DesignTokens.Spacing.sm)
+            .padding(.bottom, DesignTokens.Spacing.xxxl)
+        }
+        .shimmering()
+        .pulpeBackground()
+        .accessibilityLabel("Chargement des budgets")
+    }
+}
+
 struct YearSection: View {
     let year: Int
     let budgets: [BudgetSparse]
@@ -176,7 +237,7 @@ struct YearSection: View {
 
     var body: some View {
         let data = layoutData
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
             yearHeaderView(data: data)
 
             if isExpanded {
@@ -248,7 +309,7 @@ struct YearSection: View {
                     .sensitiveAmount()
                 }
             }
-            .padding(.vertical, 10)
+            .padding(.vertical, DesignTokens.Spacing.md)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -292,7 +353,7 @@ struct YearSection: View {
 
                 if slot.month != months.last?.month {
                     Divider()
-                        .padding(.leading, 34)
+                        .padding(.leading, dividerLeadingInset)
                 }
             }
         }

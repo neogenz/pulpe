@@ -11,11 +11,13 @@ struct TemplateListView: View {
     var body: some View {
         Group {
             if viewModel.isLoading && viewModel.templates.isEmpty {
-                LoadingView(message: "Récupération de tes modèles...")
+                TemplateListSkeletonView()
+                    .transition(.opacity)
             } else if let error = viewModel.error, viewModel.templates.isEmpty {
                 ErrorView(error: error) {
                     await viewModel.loadTemplates()
                 }
+                .transition(.opacity)
             } else if viewModel.templates.isEmpty {
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Image(systemName: "doc.on.doc")
@@ -34,11 +36,14 @@ struct TemplateListView: View {
                     .primaryButtonStyle()
                 }
                 .padding(DesignTokens.Spacing.xxxl)
+                .transition(.opacity)
             } else {
                 templateList
+                    .transition(.opacity)
             }
         }
         .trackScreen("TemplateList")
+        .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.isLoading)
         .navigationTitle("Modèles")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -87,6 +92,7 @@ struct TemplateListView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .pulpeBackground()
         .sensoryFeedback(.warning, trigger: deleteWarningTrigger)
@@ -102,6 +108,34 @@ struct TemplateListView: View {
         } message: { _ in
             Text("Cette action est irréversible.")
         }
+    }
+}
+
+// MARK: - Skeleton
+
+private struct TemplateListSkeletonView: View {
+    var body: some View {
+        List {
+            Section {
+                ForEach(0..<3, id: \.self) { _ in
+                    HStack {
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                            SkeletonShape(width: 120, height: 16)
+                            SkeletonShape(width: 180, height: 12)
+                        }
+                        Spacer()
+                        SkeletonShape(width: 10, height: 14, cornerRadius: DesignTokens.CornerRadius.xs)
+                    }
+                }
+            } footer: {
+                SkeletonShape(width: 100, height: 12)
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .shimmering()
+        .pulpeBackground()
+        .accessibilityLabel("Chargement des modèles")
     }
 }
 
@@ -163,16 +197,25 @@ final class TemplateListViewModel {
     }
 
     func loadTemplates() async {
+        let showsSkeleton = templates.isEmpty
         isLoading = true
         error = nil
+        let loadStart = ContinuousClock.now
+        defer { isLoading = false }
 
         do {
-            templates = try await templateService.getAllTemplates()
+            let fetched = try await templateService.getAllTemplates()
+
+            if showsSkeleton {
+                try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
+            }
+
+            templates = fetched
+        } catch is CancellationError {
+            // Task was cancelled, don't update error state
         } catch {
             self.error = error
         }
-
-        isLoading = false
     }
 
     func addTemplate(_ template: BudgetTemplate) {
