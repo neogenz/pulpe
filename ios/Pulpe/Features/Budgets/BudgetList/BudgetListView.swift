@@ -1,5 +1,8 @@
 import SwiftUI
 
+/// Leading inset for list dividers, aligned with row text past the status indicator.
+private let dividerLeadingInset: CGFloat = 34
+
 struct BudgetListView: View {
     @Environment(AppState.self) private var appState
     @Environment(BudgetListStore.self) private var store
@@ -189,7 +192,7 @@ private struct BudgetListSkeletonView: View {
                             .padding(.vertical, DesignTokens.Spacing.md)
 
                             if index < 3 {
-                                Divider().padding(.leading, 34)
+                                Divider().padding(.leading, dividerLeadingInset)
                             }
                         }
                     }
