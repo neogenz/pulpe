@@ -165,14 +165,14 @@ private struct BudgetListSkeletonView: View {
         ScrollView {
             LazyVStack(spacing: DesignTokens.Spacing.xl) {
                 // Year section placeholder
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                     // Year header (chevron + year number)
                     HStack(spacing: DesignTokens.Spacing.md) {
                         SkeletonShape(width: 14, height: 14, cornerRadius: DesignTokens.CornerRadius.xs)
                         SkeletonShape(width: 50, height: 20)
                         Spacer()
                     }
-                    .padding(.vertical, 10)
+                    .padding(.vertical, DesignTokens.Spacing.md)
 
                     // Month rows card
                     VStack(spacing: 0) {
@@ -227,7 +227,7 @@ struct YearSection: View {
 
     var body: some View {
         let data = layoutData
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
             yearHeaderView(data: data)
 
             if isExpanded {
@@ -299,7 +299,7 @@ struct YearSection: View {
                     .sensitiveAmount()
                 }
             }
-            .padding(.vertical, 10)
+            .padding(.vertical, DesignTokens.Spacing.md)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
