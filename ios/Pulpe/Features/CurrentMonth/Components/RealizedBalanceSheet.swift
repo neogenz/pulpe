@@ -36,10 +36,7 @@ struct RealizedBalanceSheet: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
-        .presentationCornerRadius(DesignTokens.CornerRadius.xl)
-        .presentationBackground(Color.surfacePrimary)
+        .standardSheetPresentation(detents: [.medium, .large])
     }
 
     // MARK: - Balance Card

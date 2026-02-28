@@ -63,10 +63,7 @@ struct LinkedTransactionsSheet: View {
             }
         }
         .accessibilityIdentifier("linkedTransactionsSheetRoot")
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
-        .presentationCornerRadius(DesignTokens.CornerRadius.xl)
-        .presentationBackground(Color.surfacePrimary)
+        .standardSheetPresentation(detents: [.medium, .large])
     }
 
     // MARK: - Metrics Cards
@@ -273,7 +270,7 @@ private struct LinkedTransactionRow: View {
             } label: {
                 Image(systemName: "trash")
                     .font(.system(size: 15))
-                    .foregroundStyle(Color.errorPrimary)
+                    .foregroundStyle(Color.destructivePrimary)
                     .frame(minWidth: 44, minHeight: 44)
             }
             .buttonStyle(.plain)

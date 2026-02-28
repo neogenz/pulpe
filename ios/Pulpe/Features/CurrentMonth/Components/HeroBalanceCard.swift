@@ -43,9 +43,11 @@ struct HeroBalanceCard: View {
 
     /// DA §3.1: hero card tint follows the 3 emotion states
     private var heroTintColor: Color {
-        if metrics.isDeficit { return .heroTintDeficit }
-        if metrics.usagePercentage >= 80 { return .financialOverBudget }
-        return .pulpePrimary
+        switch metrics.emotionState {
+        case .comfortable: .pulpePrimary
+        case .tight: .financialOverBudget
+        case .deficit: .heroTintDeficit
+        }
     }
 
     private var contextLabel: String {
@@ -53,11 +55,13 @@ struct HeroBalanceCard: View {
     }
 
     private var motivationalMessage: String {
-        if metrics.isDeficit {
+        switch metrics.emotionState {
+        case .deficit:
             return "Ça arrive — on gère"
-        }
-        if metrics.usagePercentage >= 80 {
+        case .tight:
             return "Serré — mais tu le sais"
+        case .comfortable:
+            break
         }
         if metrics.totalIncome > 0, metrics.remaining > metrics.totalIncome * Self.twentyPercent {
             return "Belle marge ce mois"

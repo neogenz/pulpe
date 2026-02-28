@@ -25,6 +25,18 @@ enum BudgetFormulas {
         var isDeficit: Bool {
             remaining < 0
         }
+
+        /// DA §3.1: 3-state emotion zone — comfortable (<80%), tight (80-100%), deficit (>100%)
+        var emotionState: EmotionState {
+            if isDeficit { return .deficit }
+            if usagePercentage >= 80 { return .tight }
+            return .comfortable
+        }
+    }
+
+    /// Budget emotion states for UI tinting (hero card, background zones)
+    enum EmotionState: Sendable {
+        case comfortable, tight, deficit
     }
 
     // MARK: - Realized Metrics

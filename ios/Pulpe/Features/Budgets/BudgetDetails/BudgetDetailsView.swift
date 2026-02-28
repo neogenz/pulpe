@@ -230,10 +230,7 @@ struct BudgetDetailsView: View {
         .listStyle(.insetGrouped)
         .listSectionSpacing(DesignTokens.Spacing.xxl)
         .scrollContentBackground(.hidden)
-        .pulpeStatusBackground(
-            isDeficit: viewModel.metrics.isDeficit,
-            usagePercentage: viewModel.metrics.usagePercentage
-        )
+        .pulpeStatusBackground(emotionState: viewModel.metrics.emotionState)
         .refreshable {
             await viewModel.loadDetails(force: true)
         }
@@ -346,6 +343,6 @@ private struct BudgetDetailsSkeletonView: View {
     }
     .listStyle(.insetGrouped)
     .scrollContentBackground(.hidden)
-    .pulpeStatusBackground(isDeficit: true)
+    .pulpeStatusBackground(emotionState: .deficit)
     .task { try? Tips.resetDatastore() }
 }

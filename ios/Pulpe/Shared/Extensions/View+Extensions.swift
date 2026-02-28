@@ -184,10 +184,8 @@ extension View {
     }
 
     /// Status-tinted background for budget details: emotion zone (top) + neutral (bottom)
-    /// - Parameter isDeficit: Whether the budget is in deficit (remaining < 0)
-    /// - Parameter usagePercentage: Budget usage percentage (0-100+) for tight state detection
-    func pulpeStatusBackground(isDeficit: Bool, usagePercentage: Double = 0) -> some View {
-        modifier(PulpeStatusBackgroundModifier(isDeficit: isDeficit, usagePercentage: usagePercentage))
+    func pulpeStatusBackground(emotionState: BudgetFormulas.EmotionState) -> some View {
+        modifier(PulpeStatusBackgroundModifier(emotionState: emotionState))
     }
 }
 
@@ -220,17 +218,17 @@ private struct PulpeBackgroundModifier: ViewModifier {
 }
 
 private struct PulpeStatusBackgroundModifier: ViewModifier {
-    let isDeficit: Bool
-    let usagePercentage: Double
+    let emotionState: BudgetFormulas.EmotionState
 
     /// Height of the emotion zone gradient (DA: ~30-35% of screen)
     private let emotionZoneHeight: CGFloat = 340
 
-    /// DA §3.1: comfortable (<80%), tight (80-100%), deficit (>100%)
     private var emotionColor: Color {
-        if isDeficit { return .emotionZoneDeficit }
-        if usagePercentage >= 80 { return .emotionZoneTight }
-        return .emotionZoneComfortable
+        switch emotionState {
+        case .comfortable: .emotionZoneComfortable
+        case .tight: .emotionZoneTight
+        case .deficit: .emotionZoneDeficit
+        }
     }
 
     func body(content: Content) -> some View {
@@ -293,9 +291,11 @@ private struct KeyboardDismissView: UIViewRepresentable {
 
 extension View {
     /// Standard sheet presentation used across all form sheets
-    func standardSheetPresentation() -> some View {
+    func standardSheetPresentation(
+        detents: Set<PresentationDetent> = [.large]
+    ) -> some View {
         self
-            .presentationDetents([.large])
+            .presentationDetents(detents)
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(DesignTokens.CornerRadius.xl)
             .presentationBackground(Color.surfacePrimary)
