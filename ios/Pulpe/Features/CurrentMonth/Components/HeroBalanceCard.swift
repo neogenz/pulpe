@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// Hero card with colored gradient background + summary pills below.
-/// The gradient card contains balance + progress, pills sit outside for readability.
+/// Hero card with colored gradient background, decorative blur circles, and summary pills below.
+/// Inspired by the Angular dashboard-hero component.
 struct HeroBalanceCard: View {
     let metrics: BudgetFormulas.Metrics
     var periodLabel: String?
+    var timeElapsedPercentage: Double = 0
     let onTapProgress: () -> Void
 
     // MARK: - Constants
@@ -29,19 +30,26 @@ struct HeroBalanceCard: View {
         return formatter
     }()
 
+    private static let compactFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 0
+        formatter.locale = Locale(identifier: "fr_CH")
+        return formatter
+    }()
+
+    // MARK: - Environment
+
+    @Environment(\.colorScheme) private var colorScheme
     @ScaledMetric(relativeTo: .largeTitle) private var heroFontSize: CGFloat = 40
+
+    // MARK: - Pulsing Dot
+
+    @State private var isPulsing = false
 
     // MARK: - Computed Properties
 
-    private var progressPercentage: Double {
-        min(max(metrics.usagePercentage / 100, 0), 1)
-    }
-
-    private var displayPercentage: Int {
-        Int(metrics.usagePercentage)
-    }
-
-    /// DA §3.1: hero card tint follows the 3 emotion states
     private var heroTintColor: Color {
         switch metrics.emotionState {
         case .comfortable: .pulpePrimary
@@ -51,17 +59,14 @@ struct HeroBalanceCard: View {
     }
 
     private var contextLabel: String {
-        metrics.isDeficit ? "Déficit ce mois" : "Ce qu'il te reste ce mois"
+        metrics.isDeficit ? "D\u{00E9}ficit" : "Disponible"
     }
 
     private var motivationalMessage: String {
         switch metrics.emotionState {
-        case .deficit:
-            return "Ça arrive — on gère"
-        case .tight:
-            return "Serré — mais tu le sais"
-        case .comfortable:
-            return comfortableMessage
+        case .deficit: "\u{00C7}a arrive \u{2014} on g\u{00E8}re"
+        case .tight: "Serr\u{00E9} \u{2014} mais tu le sais"
+        case .comfortable: comfortableMessage
         }
     }
 
@@ -70,97 +75,210 @@ struct HeroBalanceCard: View {
             return "Belle marge ce mois"
         }
         if metrics.remaining > 0 {
-            return "Tu gères bien"
+            return "Tu g\u{00E8}res bien"
         }
-        return "Pile à l'équilibre"
+        return "Pile \u{00E0} l\u{2019}\u{00E9}quilibre"
+    }
+
+    private var statusIcon: String {
+        switch metrics.emotionState {
+        case .comfortable: "bolt.fill"
+        case .tight: "exclamationmark.triangle.fill"
+        case .deficit: "xmark.circle.fill"
+        }
+    }
+
+    private var fillPercentage: Double {
+        min(max(metrics.usagePercentage / 100, 0), 1)
+    }
+
+    private var pacePosition: Double {
+        min(max(timeElapsedPercentage / 100, 0), 1)
+    }
+
+    private var formattedBalance: String {
+        Self.balanceFormatter.string(from: abs(metrics.remaining) as NSDecimalNumber) ?? "0"
+    }
+
+    private var formattedExpenses: String {
+        Self.balanceFormatter.string(from: metrics.totalExpenses as NSDecimalNumber) ?? "0"
+    }
+
+    private var formattedAvailable: String {
+        Self.balanceFormatter.string(from: metrics.available as NSDecimalNumber) ?? "0"
+    }
+
+    private var formattedIncome: String {
+        Self.compactFormatter.string(from: metrics.totalIncome as NSDecimalNumber) ?? "0"
+    }
+
+    private var formattedRollover: String {
+        Self.compactFormatter.string(from: metrics.rollover as NSDecimalNumber) ?? "0"
     }
 
     // MARK: - Body
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.md) {
-            // Vibrant glass hero card
-            balanceRow
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.vertical, DesignTokens.Spacing.xl)
-                .heroCardBackground(tint: heroTintColor)
-
-            // Pills below the card
+            gradientCard
             pillChips
         }
+        .accessibilityElement(children: .contain)
     }
 
-    // MARK: - Balance Row
+    // MARK: - Gradient Card
 
-    private var balanceRow: some View {
-        HStack(alignment: .center, spacing: DesignTokens.Spacing.xl) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(contextLabel)
-                    .font(PulpeTypography.labelLarge)
-                    .foregroundStyle(.white)
+    private var gradientCard: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+            headerRow
+            amountSection
+            progressPanel
+        }
+        .padding(DesignTokens.Spacing.xxl)
+        .background {
+            ZStack {
+                heroTintColor
+                LinearGradient(
+                    colors: [.clear, .black.opacity(0.25)],
+                    startPoint: UnitPoint(x: 0.15, y: 0),
+                    endPoint: UnitPoint(x: 0.85, y: 1)
+                )
+                decorativeCircles
+            }
+        }
+        .clipShape(.rect(cornerRadius: 32))
+        .overlay {
+            if colorScheme == .dark {
+                RoundedRectangle(cornerRadius: 32)
+                    .stroke(.white.opacity(0.05), lineWidth: 1)
+            }
+        }
+        .shadow(DesignTokens.Shadow.elevated)
+    }
 
-                Text(Self.balanceFormatter.string(from: abs(metrics.remaining) as NSDecimalNumber) ?? "0")
-                .font(.custom("Manrope-Bold", size: heroFontSize, relativeTo: .largeTitle))
-                .monospacedDigit()
-                .foregroundStyle(.white)
-                .contentTransition(.numericText())
-                .sensitiveAmount()
-                .accessibilityLabel(metrics.remaining.asCHF)
+    // MARK: - Decorative Circles
 
-                Text(motivationalMessage)
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(.white.opacity(0.75))
+    private var decorativeCircles: some View {
+        ZStack {
+            Circle()
+                .fill(.white.opacity(0.15))
+                .frame(width: 224, height: 224)
+                .blur(radius: 48)
+                .offset(x: 100, y: 80)
+
+            Circle()
+                .fill(.white.opacity(0.10))
+                .frame(width: 144, height: 144)
+                .blur(radius: 32)
+                .offset(x: 80, y: -60)
+
+            Circle()
+                .fill(.white.opacity(0.05))
+                .frame(width: 96, height: 96)
+                .blur(radius: 32)
+                .offset(x: -60, y: 0)
+        }
+        .allowsHitTesting(false)
+    }
+
+    // MARK: - Header Row
+
+    private var headerRow: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    Circle()
+                        .fill(.white)
+                        .frame(width: 8, height: 8)
+                        .opacity(0.9)
+                        .animation(DesignTokens.Animation.pulse, value: isPulsing)
+                        .onAppear { isPulsing = true }
+
+                    Text("Mois en cours")
+                        .font(PulpeTypography.labelMedium)
+                        .foregroundStyle(.white)
+                        .textCase(.uppercase)
+                        .tracking(0.8)
+                }
 
                 if let periodLabel {
                     Text(periodLabel)
-                        .font(PulpeTypography.labelMedium)
-                        .foregroundStyle(.white.opacity(0.85))
-                        .padding(.horizontal, DesignTokens.Spacing.sm)
-                        .padding(.vertical, DesignTokens.Spacing.xs)
-                        .background(.white.opacity(0.15), in: Capsule())
+                        .font(PulpeTypography.stepTitle)
+                        .foregroundStyle(.white)
+                        .tracking(-0.5)
                 }
             }
 
             Spacer()
 
-            progressIndicator
+            ZStack {
+                Circle().fill(.white.opacity(0.2))
+                Image(systemName: statusIcon)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.white)
+            }
+            .frame(width: 44, height: 44)
         }
     }
 
-    // MARK: - Progress Indicator
+    // MARK: - Amount Section
 
-    private var progressIndicator: some View {
-        Button(action: onTapProgress) {
-            ZStack {
-                Circle()
-                    .stroke(Color.white.opacity(0.25), lineWidth: 10)
+    private var amountSection: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text(contextLabel)
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(.white.opacity(0.8))
+                .textCase(.uppercase)
 
-                Circle()
-                    .trim(from: 0, to: CGFloat(progressPercentage))
-                    .stroke(
-                        Color.white.gradient,
-                        style: StrokeStyle(lineWidth: 10, lineCap: .round)
-                    )
-                    .rotationEffect(.degrees(-90))
-                    .animation(.spring(duration: 0.6), value: progressPercentage)
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                Text(formattedBalance)
+                    .font(.custom("Manrope-Bold", size: heroFontSize, relativeTo: .largeTitle))
+                    .monospacedDigit()
+                    .foregroundStyle(.white)
+                    .contentTransition(.numericText())
+                    .sensitiveAmount()
 
-                VStack(spacing: 0) {
-                    Text("\(displayPercentage)")
-                        .font(PulpeTypography.stepTitle)
-                        .monospacedDigit()
-                        .foregroundStyle(.white)
-                        .contentTransition(.numericText())
-                    Text("%")
-                        .font(PulpeTypography.progressUnit)
-                        .foregroundStyle(.white.opacity(0.7))
-                }
-                .sensitiveAmount()
+                Text("CHF")
+                    .font(PulpeTypography.stepTitle)
+                    .foregroundStyle(.white.opacity(0.7))
             }
-            .frame(width: 88, height: 88)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(contextLabel) \(formattedBalance) CHF")
+
+            Text(motivationalMessage)
+                .font(PulpeTypography.caption)
+                .foregroundStyle(.white.opacity(0.75))
+
+            incomeSubtitle
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Voir le détail des dépenses")
-        .accessibilityValue("\(displayPercentage) pourcent du budget utilisé")
+    }
+
+    private var incomeSubtitle: some View {
+        HStack(spacing: DesignTokens.Spacing.xs) {
+            Text("Revenus \(formattedIncome)")
+
+            if metrics.rollover != 0 {
+                Text("Report \(metrics.rollover > 0 ? "+" : "")\(formattedRollover)")
+                    .opacity(0.8)
+            }
+        }
+        .font(PulpeTypography.caption)
+        .foregroundStyle(.white.opacity(0.6))
+        .sensitiveAmount()
+    }
+
+    // MARK: - Progress Panel
+
+    private var progressPanel: some View {
+        HeroProgressPanel(
+            formattedExpenses: formattedExpenses,
+            formattedAvailable: formattedAvailable,
+            fillPercentage: fillPercentage,
+            pacePosition: pacePosition,
+            timeElapsedPercentage: timeElapsedPercentage,
+            usagePercentage: metrics.usagePercentage,
+            onTap: onTapProgress
+        )
     }
 
     // MARK: - Pill Chips
@@ -176,14 +294,14 @@ struct HeroBalanceCard: View {
 
             pillChip(
                 icon: "arrow.down.right",
-                label: "Dépenses",
+                label: "D\u{00E9}penses",
                 value: metrics.totalExpenses,
                 color: .financialExpense
             )
 
             pillChip(
                 icon: TransactionKind.savingsIcon,
-                label: "Épargne",
+                label: "\u{00C9}pargne",
                 value: metrics.totalSavings,
                 color: .financialSavings
             )
@@ -216,20 +334,12 @@ struct HeroBalanceCard: View {
     }
 }
 
-// MARK: - Hero Card Background (solid fill — glass is for navigation layer only per HIG)
-
-private extension View {
-    func heroCardBackground(tint: Color) -> some View {
-        background(tint, in: .rect(cornerRadius: DesignTokens.CornerRadius.xl))
-    }
-}
-
 // MARK: - Preview
 
-#Preview("Hero Balance Card — 3 States") {
+#Preview("Hero Balance Card -- 3 States") {
     ScrollView {
         VStack(spacing: 24) {
-            // Comfortable: <80% used → green card, green emotion zone
+            // Comfortable: <80% used
             HeroBalanceCard(
                 metrics: .init(
                     totalIncome: 5000,
@@ -241,10 +351,11 @@ private extension View {
                     rollover: 500
                 ),
                 periodLabel: "27 f\u{00E9}v. - 26 mars",
+                timeElapsedPercentage: 50,
                 onTapProgress: {}
             )
 
-            // Tight: 80-100% used → amber card, amber emotion zone
+            // Tight: 80-100% used
             HeroBalanceCard(
                 metrics: .init(
                     totalIncome: 5000,
@@ -255,10 +366,11 @@ private extension View {
                     remaining: 300,
                     rollover: 0
                 ),
+                timeElapsedPercentage: 75,
                 onTapProgress: {}
             )
 
-            // Deficit: >100% used → terracotta card, rosé emotion zone
+            // Deficit: >100% used
             HeroBalanceCard(
                 metrics: .init(
                     totalIncome: 8500,
@@ -269,6 +381,7 @@ private extension View {
                     remaining: -119,
                     rollover: 0
                 ),
+                timeElapsedPercentage: 90,
                 onTapProgress: {}
             )
         }

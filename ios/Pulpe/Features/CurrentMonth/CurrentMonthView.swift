@@ -23,6 +23,19 @@ struct CurrentMonthView: View {
     @AppStorage("dashboard.trendsExpanded") private var trendsExpanded = false
     @AppStorage("dashboard.yearOverviewExpanded") private var yearOverviewExpanded = false
 
+    private var timeElapsedPercentage: Double {
+        guard let budget = store.budget else { return 0 }
+        let dates = BudgetPeriodCalculator.periodDates(
+            month: budget.month,
+            year: budget.year,
+            payDayOfMonth: userSettingsStore.payDayOfMonth
+        )
+        let totalDuration = dates.endDate.timeIntervalSince(dates.startDate)
+        guard totalDuration > 0 else { return 0 }
+        let elapsed = Date().timeIntervalSince(dates.startDate)
+        return min(max(elapsed / totalDuration * 100, 0), 100)
+    }
+
     var body: some View {
         ZStack {
             if store.isLoading && store.budget == nil {
@@ -138,6 +151,7 @@ struct CurrentMonthView: View {
                             payDayOfMonth: userSettingsStore.payDayOfMonth
                         )
                     },
+                    timeElapsedPercentage: timeElapsedPercentage,
                     onTapProgress: { activeSheet = .realizedBalance }
                 )
                 .opacity(hasAppeared ? 1 : 0)
