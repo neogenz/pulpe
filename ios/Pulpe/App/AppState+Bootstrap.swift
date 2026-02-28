@@ -65,7 +65,7 @@ extension AppState {
         switch result {
         case .biometricAuthenticated(let user, _):
             currentUser = user
-            AnalyticsService.shared.identify(userId: user.id)
+            // identify is handled by applyPostAuthDestination via resolvePostAuth
             AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "biometric"])
             await resolvePostAuth(user: user)
         case .regularSession(let user):
