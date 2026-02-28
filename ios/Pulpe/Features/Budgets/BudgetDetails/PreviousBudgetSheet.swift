@@ -13,7 +13,7 @@ final class PreviousBudgetSheetViewModel {
     let budgetId: String
     private let budgetService = BudgetService.shared
 
-    private var cachedMetrics: BudgetFormulas.Metrics?
+    @ObservationIgnored private var cachedMetrics: BudgetFormulas.Metrics?
 
     init(budgetId: String) {
         self.budgetId = budgetId
@@ -153,28 +153,32 @@ struct PreviousBudgetSheet: View {
 
     @ViewBuilder
     private var budgetLineSections: some View {
-        if !viewModel.incomeLines.isEmpty {
+        let income = viewModel.incomeLines
+        let expenses = viewModel.expenseLines
+        let savings = viewModel.savingLines
+
+        if !income.isEmpty {
             BudgetSection(
                 title: "Revenus",
-                items: viewModel.incomeLines,
+                items: income,
                 transactions: viewModel.transactions,
                 syncingIds: []
             )
         }
 
-        if !viewModel.expenseLines.isEmpty {
+        if !expenses.isEmpty {
             BudgetSection(
                 title: "Dépenses",
-                items: viewModel.expenseLines,
+                items: expenses,
                 transactions: viewModel.transactions,
                 syncingIds: []
             )
         }
 
-        if !viewModel.savingLines.isEmpty {
+        if !savings.isEmpty {
             BudgetSection(
                 title: "Épargne",
-                items: viewModel.savingLines,
+                items: savings,
                 transactions: viewModel.transactions,
                 syncingIds: []
             )
@@ -183,10 +187,11 @@ struct PreviousBudgetSheet: View {
 
     @ViewBuilder
     private var freeTransactionsSection: some View {
-        if !viewModel.freeTransactions.isEmpty {
+        let free = viewModel.freeTransactions
+        if !free.isEmpty {
             TransactionSection(
                 title: "Transactions libres",
-                transactions: viewModel.freeTransactions,
+                transactions: free,
                 syncingIds: []
             )
         }
