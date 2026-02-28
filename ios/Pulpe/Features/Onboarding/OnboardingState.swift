@@ -179,6 +179,16 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    var analyticsName: String {
+        switch self {
+        case .welcome: "welcome"
+        case .personalInfo: "personal_info"
+        case .expenses: "expenses"
+        case .budgetPreview: "budget_preview"
+        case .registration: "registration"
+        }
+    }
+
     var title: String {
         switch self {
         case .welcome: "Bienvenue"

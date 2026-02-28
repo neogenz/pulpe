@@ -38,7 +38,7 @@ final class AnalyticsService {
 
     func capture(_ event: AnalyticsEvent, properties: [String: Any] = [:]) {
         guard isInitialized else { return }
-        let sanitized = sanitizeProperties(properties)
+        let sanitized = Self.sanitizeProperties(properties)
         PostHogSDK.shared.capture(event.rawValue, properties: sanitized)
     }
 
@@ -46,7 +46,7 @@ final class AnalyticsService {
 
     func screen(_ name: String, properties: [String: Any] = [:]) {
         guard isInitialized else { return }
-        let sanitized = sanitizeProperties(properties)
+        let sanitized = Self.sanitizeProperties(properties)
         PostHogSDK.shared.screen(name, properties: sanitized)
     }
 
@@ -54,7 +54,7 @@ final class AnalyticsService {
 
     func identify(userId: String, properties: [String: Any] = [:]) {
         guard isInitialized else { return }
-        let sanitized = sanitizeProperties(properties)
+        let sanitized = Self.sanitizeProperties(properties)
         PostHogSDK.shared.identify(
             userId,
             userProperties: sanitized,
@@ -85,11 +85,11 @@ final class AnalyticsService {
 
     /// Strips properties containing financial keywords from event data.
     /// Uses word-component matching: splits keys by `_` and checks each component.
-    /// Nonisolated because it's a pure function with no side effects.
-    nonisolated func sanitizeProperties(_ properties: [String: Any]) -> [String: Any] {
-        properties.filter { key, _ in
+    static func sanitizeProperties(_ properties: [String: Any]) -> [String: Any] {
+        guard !properties.isEmpty else { return properties }
+        return properties.filter { key, _ in
             let components = key.split(separator: "_").map { String($0) }
-            return !components.contains(where: { Self.financialWords.contains($0) })
+            return !components.contains(where: { financialWords.contains($0) })
         }
     }
 }

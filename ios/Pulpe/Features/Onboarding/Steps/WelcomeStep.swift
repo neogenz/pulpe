@@ -100,7 +100,6 @@ struct WelcomeStep: View {
                 .offset(y: isAppeared ? 0 : 10)
             }
         }
-        .trackScreen("Welcome")
         .task { AnalyticsService.shared.capture(.welcomeScreenViewed) }
         .sheet(isPresented: $showLogin) {
             LoginView(isPresented: $showLogin)

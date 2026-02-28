@@ -10,7 +10,8 @@ struct PersonalInfoStep: View {
             state: state,
             canProceed: state.isFirstNameValid && state.isIncomeValid,
             onNext: {
-                AnalyticsService.shared.capture(.onboardingStepCompleted, properties: ["step": "personal_info"])
+                let step = OnboardingStep.personalInfo.analyticsName
+                AnalyticsService.shared.capture(.onboardingStepCompleted, properties: ["step": step])
                 state.nextStep()
             },
             content: {

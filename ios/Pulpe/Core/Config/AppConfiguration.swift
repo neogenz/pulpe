@@ -117,24 +117,10 @@ enum AppConfiguration {
     // MARK: - Private
 
     private static func requiredValue(for key: String) -> String {
-        if let value = ProcessInfo.processInfo.environment[key], !value.isEmpty {
-            return value
+        guard let value = optionalValue(for: key) else {
+            fatalError("\(key) not configured in Info.plist")
         }
-
-        if let value = Bundle.main.object(forInfoDictionaryKey: key) as? String,
-           !value.isEmpty {
-            guard !value.contains("$(") else {
-                fatalError("\(key) is unresolved. Check your build configuration and xcconfig mapping.")
-            }
-
-            return value
-        }
-
-        if isRunningTests, let fallback = testFallbackValue(for: key) {
-            return fallback
-        }
-
-        fatalError("\(key) not configured in Info.plist")
+        return value
     }
 
     private static func optionalValue(for key: String) -> String? {

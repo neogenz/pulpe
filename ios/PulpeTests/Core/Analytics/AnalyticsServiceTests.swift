@@ -54,7 +54,7 @@ struct AnalyticsServiceTests {
             "step": "2"
         ]
 
-        let sanitized = sut.sanitizeProperties(properties)
+        let sanitized = AnalyticsService.sanitizeProperties(properties)
 
         #expect(sanitized["amount"] == nil)
         #expect(sanitized["balance"] == nil)
@@ -83,7 +83,7 @@ struct AnalyticsServiceTests {
             "type": "expense"
         ]
 
-        let sanitized = sut.sanitizeProperties(properties)
+        let sanitized = AnalyticsService.sanitizeProperties(properties)
 
         #expect(sanitized["total_amount"] == nil)
         #expect(sanitized["current_balance"] == nil)
@@ -102,7 +102,7 @@ struct AnalyticsServiceTests {
             "screen_name": "dashboard"
         ]
 
-        let sanitized = sut.sanitizeProperties(properties)
+        let sanitized = AnalyticsService.sanitizeProperties(properties)
 
         #expect(sanitized["type"] as? String == "expense")
         #expect(sanitized["step"] as? String == "2")
@@ -112,7 +112,7 @@ struct AnalyticsServiceTests {
     }
 
     @Test func sanitizeProperties_emptyInput_returnsEmpty() {
-        let sanitized = sut.sanitizeProperties([:])
+        let sanitized = AnalyticsService.sanitizeProperties([:])
         #expect(sanitized.isEmpty)
     }
 

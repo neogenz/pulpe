@@ -15,7 +15,8 @@ struct BudgetPreviewStep: View {
             state: state,
             canProceed: true,
             onNext: {
-                AnalyticsService.shared.capture(.onboardingStepCompleted, properties: ["step": "budget_preview"])
+                let step = OnboardingStep.budgetPreview.analyticsName
+                AnalyticsService.shared.capture(.onboardingStepCompleted, properties: ["step": step])
                 state.nextStep()
             },
             content: {

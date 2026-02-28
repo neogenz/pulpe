@@ -9,7 +9,8 @@ struct ExpensesStep: View {
             state: state,
             canProceed: true,
             onNext: {
-                AnalyticsService.shared.capture(.onboardingStepCompleted, properties: ["step": "expenses"])
+                let step = OnboardingStep.expenses.analyticsName
+                AnalyticsService.shared.capture(.onboardingStepCompleted, properties: ["step": step])
                 state.nextStep()
             },
             content: {
