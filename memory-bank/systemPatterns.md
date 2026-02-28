@@ -210,6 +210,33 @@ Each domain in `src/modules/[domain]/`:
 | Logout (biometric off) | `authenticated` | `unauthenticated` | Full clear via logout flow |
 | Password reset | any | `unauthenticated` | `clearAll()` + biometric disabled |
 
+### Analytics (PostHog — Cross-Platform)
+
+Both frontend (Angular) and iOS (SwiftUI) share a PostHog project (EU region).
+
+| Aspect | Frontend (Angular) | iOS (SwiftUI) |
+|--------|-------------------|---------------|
+| Service | `PostHogService` (`core/analytics/`) | `AnalyticsService` (`Core/Analytics/`) |
+| Pattern | Injectable service | `@MainActor final class` singleton |
+| SDK | `posthog-js` | `posthog-ios` (SPM) |
+| Screen tracking | Auto-capture | Manual via `.trackScreen()` view modifier |
+| Sanitization | `posthog-sanitizer.ts` | `AnalyticsService.sanitizeProperties()` — word-component matching |
+| Config | `environment.ts` | `AppConfiguration` + xcconfig files |
+| Disabled in | — | Local env (`POSTHOG_ENABLED = false`) |
+
+**Event naming**: `snake_case`, `object_action` pattern — shared across platforms.
+
+**Onboarding funnel (iOS)**:
+```
+app_opened → welcome_screen_viewed → signup_started
+→ onboarding_step_completed (×3) → signup_completed
+→ pin_setup_completed → budget_created → transaction_created
+```
+
+**Financial data sanitization**: Properties split by `_`, each component checked against a word set (`amount`, `balance`, `income`, `savings`, `total`, `projection`, `rollover`, `expenses`, `available`). Catches compound keys like `total_amount`, `current_balance`.
+
+**User identification**: `identify(userId:)` called in `applyPostAuthDestination()` (covers both login and signup). Reset on logout.
+
 ### Error Handling Pattern
 
 - `BusinessException` for domain errors
