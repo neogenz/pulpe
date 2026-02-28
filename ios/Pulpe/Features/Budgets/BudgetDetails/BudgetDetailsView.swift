@@ -337,7 +337,7 @@ private struct BudgetDetailsSkeletonView: View {
     List {
         Section("Dépenses") {
             TipView(ProductTips.gestures)
-            Text("Budget line row placeholder")
+            Text("Courses alimentaires")
         }
     }
     .listStyle(.insetGrouped)
