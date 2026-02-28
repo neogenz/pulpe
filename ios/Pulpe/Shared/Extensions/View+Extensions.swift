@@ -349,3 +349,38 @@ extension View {
         modifier(GlassEffectModifier(cornerRadius: cornerRadius))
     }
 }
+
+// MARK: - Shimmer Effect
+
+extension View {
+    /// Apply subtle opacity pulse animation for skeleton loading states.
+    /// Mimics the standard iOS skeleton pattern (gentle fade in/out).
+    @ViewBuilder
+    func shimmering(active: Bool = true) -> some View {
+        if active {
+            self.modifier(ShimmerModifier())
+        } else {
+            self
+        }
+    }
+}
+
+private struct ShimmerModifier: ViewModifier {
+    @State private var isAnimating = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(isAnimating ? 0.4 : 1.0)
+            .animation(
+                reduceMotion
+                    ? nil
+                    : .easeInOut(duration: 1.0).repeatForever(autoreverses: true),
+                value: isAnimating
+            )
+            .onAppear {
+                guard !reduceMotion else { return }
+                isAnimating = true
+            }
+    }
+}

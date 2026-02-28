@@ -13,7 +13,7 @@ struct BudgetListView: View {
     var body: some View {
         Group {
             if !store.hasLoadedOnce && store.budgets.isEmpty {
-                LoadingView(message: "Récupération de tes budgets...")
+                BudgetListSkeletonView()
             } else if let error = store.error, store.budgets.isEmpty {
                 ErrorView(error: error) {
                     await store.forceRefresh()
@@ -152,6 +152,52 @@ struct BudgetListView: View {
                 proxy.scrollTo("currentMonthHero", anchor: .center)
             }
         }
+    }
+}
+
+private struct BudgetListSkeletonView: View {
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: DesignTokens.Spacing.xl) {
+                // Year section placeholder
+                VStack(alignment: .leading, spacing: 14) {
+                    // Year header (chevron + year number)
+                    HStack(spacing: DesignTokens.Spacing.md) {
+                        SkeletonShape(width: 14, height: 14, cornerRadius: DesignTokens.CornerRadius.xs)
+                        SkeletonShape(width: 50, height: 20)
+                        Spacer()
+                    }
+                    .padding(.vertical, 10)
+
+                    // Month rows card
+                    VStack(spacing: 0) {
+                        ForEach(0..<4, id: \.self) { index in
+                            HStack(spacing: DesignTokens.Spacing.md) {
+                                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                                    SkeletonShape(width: 100, height: 14)
+                                    SkeletonShape(width: 140, height: 11)
+                                }
+                                Spacer()
+                                SkeletonShape(width: 70, height: 14)
+                            }
+                            .padding(.horizontal, DesignTokens.Spacing.lg)
+                            .padding(.vertical, DesignTokens.Spacing.md)
+
+                            if index < 3 {
+                                Divider().padding(.leading, 34)
+                            }
+                        }
+                    }
+                    .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.lg)
+                }
+            }
+            .padding(.horizontal, DesignTokens.Spacing.xl)
+            .padding(.top, DesignTokens.Spacing.sm)
+            .padding(.bottom, DesignTokens.Spacing.xxxl)
+        }
+        .shimmering()
+        .pulpeBackground()
+        .accessibilityLabel("Chargement des budgets")
     }
 }
 

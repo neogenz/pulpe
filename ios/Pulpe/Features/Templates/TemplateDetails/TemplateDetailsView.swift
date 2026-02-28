@@ -13,7 +13,7 @@ struct TemplateDetailsView: View {
     var body: some View {
         Group {
             if viewModel.isLoading && viewModel.template == nil {
-                LoadingView(message: "Chargement...")
+                TemplateDetailsSkeletonView()
             } else if let error = viewModel.error, viewModel.template == nil {
                 ErrorView(error: error) {
                     await viewModel.loadDetails()
@@ -208,6 +208,65 @@ final class TemplateDetailsViewModel {
 
         // Reload to sync with server
         await loadDetails()
+    }
+}
+
+// MARK: - Skeleton
+
+private struct TemplateDetailsSkeletonView: View {
+    var body: some View {
+        List {
+            // Info section
+            Section {
+                ForEach(0..<2, id: \.self) { _ in
+                    HStack {
+                        SkeletonShape(width: 60, height: 14)
+                        Spacer()
+                        SkeletonShape(width: 120, height: 14)
+                    }
+                }
+            } header: {
+                SkeletonShape(width: 100, height: 12)
+            }
+
+            // Totals section
+            Section {
+                ForEach(0..<3, id: \.self) { _ in
+                    HStack {
+                        SkeletonShape(width: 24, height: 24, cornerRadius: DesignTokens.CornerRadius.xs)
+                        SkeletonShape(width: 80, height: 14)
+                        Spacer()
+                        SkeletonShape(width: 80, height: 14)
+                    }
+                }
+            } header: {
+                SkeletonShape(width: 90, height: 12)
+            }
+
+            // Budget line sections (2 sections)
+            ForEach(0..<2, id: \.self) { _ in
+                Section {
+                    ForEach(0..<3, id: \.self) { _ in
+                        HStack {
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                                SkeletonShape(width: 120, height: 14)
+                                SkeletonShape(width: 70, height: 11)
+                            }
+                            Spacer()
+                            SkeletonShape(width: 70, height: 14)
+                        }
+                    }
+                } header: {
+                    HStack {
+                        SkeletonShape(width: 70, height: 12)
+                        Spacer()
+                        SkeletonShape(width: 80, height: 12)
+                    }
+                }
+            }
+        }
+        .shimmering()
+        .accessibilityLabel("Chargement du modèle")
     }
 }
 

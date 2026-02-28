@@ -34,7 +34,7 @@ struct BudgetDetailsView: View {
     var body: some View {
         Group {
             if viewModel.isLoading && viewModel.budget == nil {
-                LoadingView(message: "Chargement...")
+                BudgetDetailsSkeletonView()
             } else if let error = viewModel.error, viewModel.budget == nil {
                 ErrorView(error: error) {
                     await viewModel.loadDetails()
@@ -272,6 +272,54 @@ struct BudgetDetailsView: View {
             },
             tip: tip
         )
+    }
+}
+
+private struct BudgetDetailsSkeletonView: View {
+    var body: some View {
+        List {
+            // Filter picker placeholder
+            Section {
+                SkeletonShape(height: 32, cornerRadius: DesignTokens.CornerRadius.sm)
+            }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            .listSectionSeparator(.hidden)
+            .listRowInsets(EdgeInsets())
+
+            // Hero card placeholder
+            Section {
+                SkeletonShape(height: 200, cornerRadius: DesignTokens.CornerRadius.xl)
+            }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            .listSectionSeparator(.hidden)
+            .listRowInsets(EdgeInsets())
+
+            // Budget line sections (Revenus + Dépenses)
+            ForEach(0..<2, id: \.self) { _ in
+                Section {
+                    ForEach(0..<3, id: \.self) { _ in
+                        HStack {
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                                SkeletonShape(width: 120, height: 14)
+                                SkeletonShape(width: 80, height: 11)
+                            }
+                            Spacer()
+                            SkeletonShape(width: 70, height: 14)
+                        }
+                    }
+                } header: {
+                    SkeletonShape(width: 80, height: 14)
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .listSectionSpacing(DesignTokens.Spacing.lg)
+        .scrollContentBackground(.hidden)
+        .shimmering()
+        .pulpeBackground()
+        .accessibilityLabel("Chargement du budget")
     }
 }
 

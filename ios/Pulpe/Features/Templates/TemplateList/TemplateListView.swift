@@ -11,7 +11,7 @@ struct TemplateListView: View {
     var body: some View {
         Group {
             if viewModel.isLoading && viewModel.templates.isEmpty {
-                LoadingView(message: "Récupération de tes modèles...")
+                TemplateListSkeletonView()
             } else if let error = viewModel.error, viewModel.templates.isEmpty {
                 ErrorView(error: error) {
                     await viewModel.loadTemplates()
@@ -102,6 +102,33 @@ struct TemplateListView: View {
         } message: { _ in
             Text("Cette action est irréversible.")
         }
+    }
+}
+
+// MARK: - Skeleton
+
+private struct TemplateListSkeletonView: View {
+    var body: some View {
+        List {
+            Section {
+                ForEach(0..<3, id: \.self) { _ in
+                    HStack {
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                            SkeletonShape(width: 120, height: 16)
+                            SkeletonShape(width: 180, height: 12)
+                        }
+                        Spacer()
+                        SkeletonShape(width: 10, height: 14, cornerRadius: DesignTokens.CornerRadius.xs)
+                    }
+                }
+            } footer: {
+                SkeletonShape(width: 100, height: 12)
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .shimmering()
+        .pulpeBackground()
+        .accessibilityLabel("Chargement des modèles")
     }
 }
 
