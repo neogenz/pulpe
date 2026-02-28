@@ -71,7 +71,7 @@ final class BudgetListStore: StoreProtocol {
                 try Task.checkCancellation()
 
                 if showsSkeleton {
-                    await ensureMinimumSkeletonTime(since: loadStart)
+                    try await ensureMinimumSkeletonTime(since: loadStart)
                 }
 
                 budgets = fetchedBudgets

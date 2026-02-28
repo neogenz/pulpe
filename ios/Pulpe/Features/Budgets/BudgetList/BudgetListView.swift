@@ -15,14 +15,16 @@ struct BudgetListView: View {
 
     var body: some View {
         Group {
-            if store.isLoading && store.budgets.isEmpty {
-                BudgetListSkeletonView()
+            if !store.hasLoadedOnce && store.budgets.isEmpty {
+                if let error = store.error {
+                    ErrorView(error: error) {
+                        await store.forceRefresh()
+                    }
                     .transition(.opacity)
-            } else if let error = store.error, store.budgets.isEmpty {
-                ErrorView(error: error) {
-                    await store.forceRefresh()
+                } else {
+                    BudgetListSkeletonView()
+                        .transition(.opacity)
                 }
-                .transition(.opacity)
             } else if store.budgets.isEmpty {
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Image(systemName: "chart.bar.doc.horizontal")

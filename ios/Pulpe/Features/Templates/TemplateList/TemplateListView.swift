@@ -204,10 +204,12 @@ final class TemplateListViewModel {
             let fetched = try await templateService.getAllTemplates()
 
             if showsSkeleton {
-                await ensureMinimumSkeletonTime(since: loadStart)
+                try await ensureMinimumSkeletonTime(since: loadStart)
             }
 
             templates = fetched
+        } catch is CancellationError {
+            // Task was cancelled, don't update error state
         } catch {
             self.error = error
         }

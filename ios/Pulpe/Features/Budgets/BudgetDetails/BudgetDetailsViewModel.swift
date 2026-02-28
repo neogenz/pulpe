@@ -206,7 +206,7 @@ final class BudgetDetailsViewModel {
             let (details, budgets) = try await (detailsTask, budgetsTask)
 
             if showsSkeleton {
-                await ensureMinimumSkeletonTime(since: loadStart)
+                try await ensureMinimumSkeletonTime(since: loadStart)
             }
 
             budget = details.budget
@@ -215,6 +215,8 @@ final class BudgetDetailsViewModel {
             allBudgets = budgets
             invalidateMetricsCache()
             updateAdjacentBudgets()
+        } catch is CancellationError {
+            // Task was cancelled, don't update error state
         } catch {
             self.error = error
         }

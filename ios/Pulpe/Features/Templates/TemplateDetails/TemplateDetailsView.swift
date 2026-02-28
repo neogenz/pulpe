@@ -200,11 +200,13 @@ final class TemplateDetailsViewModel {
             let (fetchedTemplate, fetchedLines) = try await (templateTask, linesTask)
 
             if showsSkeleton {
-                await ensureMinimumSkeletonTime(since: loadStart)
+                try await ensureMinimumSkeletonTime(since: loadStart)
             }
 
             template = fetchedTemplate
             lines = fetchedLines
+        } catch is CancellationError {
+            // Task was cancelled, don't update error state
         } catch {
             self.error = error
         }

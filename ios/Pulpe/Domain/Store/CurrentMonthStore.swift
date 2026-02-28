@@ -96,14 +96,16 @@ final class CurrentMonthStore: StoreProtocol {
             guard let match = sparseBudgets.first(where: {
                 $0.month == period.month && $0.year == period.year
             }) else {
-                await ensureMinimumSkeletonTime(since: loadStart)
+                try await ensureMinimumSkeletonTime(since: loadStart)
                 return
             }
 
             let fetchedBudget = try await budgetService.getBudget(id: match.id)
-            await ensureMinimumSkeletonTime(since: loadStart)
+            try await ensureMinimumSkeletonTime(since: loadStart)
             budget = fetchedBudget
             invalidateMetricsCache()
+        } catch is CancellationError {
+            // Task was cancelled, don't update error state
         } catch let apiError as APIError {
             self.error = apiError
         } catch {
@@ -190,7 +192,7 @@ final class CurrentMonthStore: StoreProtocol {
                     payDayOfMonth: self.payDayOfMonth
                 ) else {
                     if showsSkeleton {
-                        await ensureMinimumSkeletonTime(since: loadStart)
+                        try await ensureMinimumSkeletonTime(since: loadStart)
                     }
                     budget = nil
                     budgetLines = []
@@ -206,7 +208,7 @@ final class CurrentMonthStore: StoreProtocol {
                 let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
 
                 if showsSkeleton {
-                    await ensureMinimumSkeletonTime(since: loadStart)
+                    try await ensureMinimumSkeletonTime(since: loadStart)
                 }
 
                 budget = details.budget
