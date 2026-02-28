@@ -138,6 +138,8 @@ final class CurrentMonthStore: StoreProtocol {
             transactions = details.transactions
             invalidateMetricsCache()
             lastLoadTime = Date()
+        } catch is CancellationError {
+            // Task was cancelled, don't update error state
         } catch let apiError as APIError {
             self.error = apiError
         } catch {

@@ -199,6 +199,7 @@ final class TemplateListViewModel {
         isLoading = true
         error = nil
         let loadStart = ContinuousClock.now
+        defer { isLoading = false }
 
         do {
             let fetched = try await templateService.getAllTemplates()
@@ -213,8 +214,6 @@ final class TemplateListViewModel {
         } catch {
             self.error = error
         }
-
-        isLoading = false
     }
 
     func addTemplate(_ template: BudgetTemplate) {

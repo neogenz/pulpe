@@ -192,6 +192,7 @@ final class TemplateDetailsViewModel {
         isLoading = true
         error = nil
         let loadStart = ContinuousClock.now
+        defer { isLoading = false }
 
         do {
             async let templateTask = templateService.getTemplate(id: templateId)
@@ -210,8 +211,6 @@ final class TemplateDetailsViewModel {
         } catch {
             self.error = error
         }
-
-        isLoading = false
     }
 
     func updateTemplateLine(_ line: TemplateLine) async {

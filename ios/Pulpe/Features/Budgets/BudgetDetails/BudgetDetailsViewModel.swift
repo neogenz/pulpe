@@ -198,6 +198,7 @@ final class BudgetDetailsViewModel {
         isLoading = true
         error = nil
         let loadStart = ContinuousClock.now
+        defer { isLoading = false }
 
         do {
             async let detailsTask = budgetService.getBudgetWithDetails(id: budgetId)
@@ -220,8 +221,6 @@ final class BudgetDetailsViewModel {
         } catch {
             self.error = error
         }
-
-        isLoading = false
     }
 
     /// Light reload: fetches only current budget details (no allBudgets)
