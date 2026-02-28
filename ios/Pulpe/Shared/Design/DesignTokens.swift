@@ -162,6 +162,16 @@ enum DesignTokens {
 
         /// Minimum skeleton display time to prevent jarring flash on fast loads
         static let skeletonMinimumDuration: Duration = .milliseconds(400)
+
+        /// Waits until at least the minimum skeleton duration has elapsed since `start`.
+        /// Call after an async fetch that was preceded by showing a skeleton.
+        /// - Important: Throws `CancellationError` if the task is cancelled during the wait.
+        static func ensureMinimumSkeletonTime(since start: ContinuousClock.Instant) async throws {
+            let elapsed = ContinuousClock.now - start
+            if elapsed < skeletonMinimumDuration {
+                try await Task.sleep(for: skeletonMinimumDuration - elapsed)
+            }
+        }
     }
 
     // MARK: - Frame Heights

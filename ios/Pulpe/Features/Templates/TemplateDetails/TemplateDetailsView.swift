@@ -201,7 +201,7 @@ final class TemplateDetailsViewModel {
             let (fetchedTemplate, fetchedLines) = try await (templateTask, linesTask)
 
             if showsSkeleton {
-                try await ensureMinimumSkeletonTime(since: loadStart)
+                try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
             }
 
             template = fetchedTemplate
