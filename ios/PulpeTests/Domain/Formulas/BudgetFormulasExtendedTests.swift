@@ -260,4 +260,63 @@ struct BudgetFormulasExtendedTests {
         let metrics = BudgetFormulas.calculateAllMetrics(budgetLines: lines)
         #expect(!metrics.isDeficit)
     }
+
+    // MARK: - Emotion State (DA §3.1: 3-state system)
+
+    @Test func emotionState_comfortable_whenUsageBelow80Percent() {
+        // 79% usage → comfortable
+        let lines = [
+            TestDataFactory.createBudgetLine(id: "1", amount: 1000, kind: .income),
+            TestDataFactory.createBudgetLine(id: "2", amount: 790, kind: .expense)
+        ]
+        let metrics = BudgetFormulas.calculateAllMetrics(budgetLines: lines)
+        #expect(metrics.emotionState == .comfortable)
+    }
+
+    @Test func emotionState_tight_atExactly80Percent() {
+        // 80% usage → tight (boundary)
+        let lines = [
+            TestDataFactory.createBudgetLine(id: "1", amount: 1000, kind: .income),
+            TestDataFactory.createBudgetLine(id: "2", amount: 800, kind: .expense)
+        ]
+        let metrics = BudgetFormulas.calculateAllMetrics(budgetLines: lines)
+        #expect(metrics.emotionState == .tight)
+    }
+
+    @Test func emotionState_tight_between80And100Percent() {
+        // 90% usage → tight
+        let lines = [
+            TestDataFactory.createBudgetLine(id: "1", amount: 1000, kind: .income),
+            TestDataFactory.createBudgetLine(id: "2", amount: 900, kind: .expense)
+        ]
+        let metrics = BudgetFormulas.calculateAllMetrics(budgetLines: lines)
+        #expect(metrics.emotionState == .tight)
+    }
+
+    @Test func emotionState_tight_atExactly100Percent() {
+        // 100% usage, remaining = 0 → tight (not deficit)
+        let lines = [
+            TestDataFactory.createBudgetLine(id: "1", amount: 1000, kind: .income),
+            TestDataFactory.createBudgetLine(id: "2", amount: 1000, kind: .expense)
+        ]
+        let metrics = BudgetFormulas.calculateAllMetrics(budgetLines: lines)
+        #expect(metrics.emotionState == .tight)
+        #expect(!metrics.isDeficit)
+    }
+
+    @Test func emotionState_deficit_whenRemainingNegative() {
+        // 120% usage, remaining < 0 → deficit
+        let lines = [
+            TestDataFactory.createBudgetLine(id: "1", amount: 1000, kind: .income),
+            TestDataFactory.createBudgetLine(id: "2", amount: 1200, kind: .expense)
+        ]
+        let metrics = BudgetFormulas.calculateAllMetrics(budgetLines: lines)
+        #expect(metrics.emotionState == .deficit)
+    }
+
+    @Test func emotionState_comfortable_whenZeroAvailable() {
+        // No income, no expenses → available=0, usagePercentage=0 → comfortable
+        let metrics = BudgetFormulas.calculateAllMetrics(budgetLines: [])
+        #expect(metrics.emotionState == .comfortable)
+    }
 }

@@ -220,11 +220,6 @@ private struct PulpeBackgroundModifier: ViewModifier {
 private struct PulpeStatusBackgroundModifier: ViewModifier {
     let emotionState: BudgetFormulas.EmotionState
 
-    /// Height of the emotion zone gradient (DA: ~30-35% of screen)
-    private var emotionZoneHeight: CGFloat {
-        UIScreen.main.bounds.height * 0.33
-    }
-
     private var emotionColor: Color {
         switch emotionState {
         case .comfortable: .emotionZoneComfortable
@@ -235,17 +230,19 @@ private struct PulpeStatusBackgroundModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content.background {
-            ZStack(alignment: .top) {
-                // Base: neutral warm (content zone)
-                Color.emotionZoneNeutral
+            GeometryReader { proxy in
+                ZStack(alignment: .top) {
+                    // Base: neutral warm (content zone)
+                    Color.emotionZoneNeutral
 
-                // Emotion zone: colored tint fading into neutral
-                LinearGradient(
-                    colors: [emotionColor, emotionColor.opacity(0.4), .clear],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: emotionZoneHeight)
+                    // Emotion zone: colored tint fading into neutral (~33% of view height)
+                    LinearGradient(
+                        colors: [emotionColor, emotionColor.opacity(0.4), .clear],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: proxy.size.height * 0.33)
+                }
             }
             .ignoresSafeArea()
         }
