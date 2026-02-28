@@ -118,6 +118,9 @@ enum AppConfiguration {
 
     private static func requiredValue(for key: String) -> String {
         guard let value = optionalValue(for: key) else {
+            if let raw = Bundle.main.object(forInfoDictionaryKey: key) as? String, raw.contains("$(") {
+                fatalError("\(key) is unresolved. Check your build configuration and xcconfig mapping.")
+            }
             fatalError("\(key) not configured in Info.plist")
         }
         return value
