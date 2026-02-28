@@ -98,6 +98,8 @@ struct PreviousBudgetSheet: View {
                     }
                 } else if viewModel.budget != nil {
                     content
+                } else {
+                    LoadingView(message: "Chargement...")
                 }
             }
             .navigationTitle(viewModel.budget?.monthYear ?? "Budget")
