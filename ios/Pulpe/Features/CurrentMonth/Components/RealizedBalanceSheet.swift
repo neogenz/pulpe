@@ -4,8 +4,6 @@ struct RealizedBalanceSheet: View {
     let metrics: BudgetFormulas.Metrics
     let realizedMetrics: BudgetFormulas.RealizedMetrics
 
-    @Environment(\.dismiss) private var dismiss
-
     private var isPositiveBalance: Bool {
         realizedMetrics.realizedBalance >= 0
     }
@@ -29,10 +27,8 @@ struct RealizedBalanceSheet: View {
             .navigationTitle("Suivi du budget")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Fermer") {
-                        dismiss()
-                    }
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton()
                 }
             }
         }

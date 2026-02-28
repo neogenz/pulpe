@@ -23,7 +23,7 @@ extension Color {
     /// Primary brand color - Dark green (#006820 light, #4AA070 dark)
     static let pulpePrimary = Color("PulpePrimary")
 
-    // MARK: - Surface Colors (green-tinted for brand identity, dark mode uses system for comfort)
+    // MARK: - Surface Colors (neutral warm for brand identity, dark mode uses system for comfort)
 
     /// Primary background — DA neutral warm (#F7F6F3), system dark in dark mode
     static let surfacePrimary = Color(light: Color(hex: 0xF7F6F3), dark: Color(uiColor: .systemGroupedBackground))
@@ -172,8 +172,8 @@ extension Color {
     static var appPremiumBackground: some View {
         ZStack {
             baseGradientLayer
-            mintAccentLayer
-            sageAccentLayer
+            warmAccentLayer
+            creamAccentLayer
             centerGlowLayer
         }
     }
@@ -188,7 +188,7 @@ extension Color {
     }
 
     @ViewBuilder
-    private static var mintAccentLayer: some View {
+    private static var warmAccentLayer: some View {
         RadialGradient(
             colors: [gradientAccentWarm.opacity(0.85), .clear],
             center: .topTrailing,
@@ -198,7 +198,7 @@ extension Color {
     }
 
     @ViewBuilder
-    private static var sageAccentLayer: some View {
+    private static var creamAccentLayer: some View {
         RadialGradient(
             colors: [gradientAccentCream.opacity(0.75), .clear],
             center: .bottomLeading,
