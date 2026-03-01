@@ -163,7 +163,7 @@ extension View {
         .animation(DesignTokens.Animation.defaultSpring, value: manager.currentToast)
     }
 
-    /// Glass card styling with padding and Liquid Glass effect (iOS 26+) or material fallback
+    /// Standard content card styling: spacing + flat surface background.
     func pulpeCard() -> some View {
         self
             .padding(DesignTokens.Spacing.lg)

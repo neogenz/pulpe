@@ -205,7 +205,7 @@ Sur mobile, les utilisateurs scannent l'écran de haut en bas, avec une attentio
 
 ### Application Pulpe
 
-Le montant héro (~42pt, blanc sur fond coloré) est le premier élément que l'œil capte. Le label contextuel au-dessus (petit, opacité réduite) donne le cadre de lecture. Le message émotionnel en dessous guide l'interprétation. La barre en bas donne le contexte quantitatif. L'ordre de lecture est naturel : pas besoin de scanner la carte en Z ou de revenir en arrière.
+Le montant héro utilise `largeTitle` bold avec Dynamic Type (~34pt par défaut), en blanc sur fond coloré. Le label contextuel au-dessus donne le cadre de lecture. Le message émotionnel en dessous guide l'interprétation. La barre en bas donne le contexte quantitatif. L'ordre de lecture est naturel : pas besoin de scanner la carte en Z ou de revenir en arrière.
 
 ### Règle à retenir
 
@@ -274,7 +274,7 @@ Un dashboard financier n'est pas un tableur. Son rôle est de **répondre à une
 
 ### Application Pulpe
 
-La hero card répond à une seule question : "Combien je peux encore dépenser, et est-ce que je suis dans les temps ?" Tout le reste est de l'analyse, accessible ailleurs.
+La hero card répond à la question principale : "Combien je peux encore dépenser, et est-ce que je suis dans les temps ?" Le dashboard actuel ajoute seulement du contexte immédiat et actionnable : une projection de fin de mois, un aperçu des alertes / top dépense, puis les transactions récentes. Les vues plus analytiques ("Dépenses", "Cette année") sont repliées par défaut.
 
 ### Règle à retenir
 
@@ -300,11 +300,11 @@ iOS 26 introduit le Liquid Glass design system. Le principe fondamental : la pro
 
 ### Application Pulpe
 
-La hero card utilise un gradient opaque (pas du glass) mais sans ombre portée. La profondeur vient du contraste entre le gradient coloré et le fond ambiant. La tab bar utilise le Liquid Glass natif. Les cartes de contenu sous la hero sont en fond semi-transparent avec blur si nécessaire.
+Dans l'app authentifiée, la hero card utilise un gradient opaque (pas du glass) sans ombre portée. La profondeur vient du contraste entre le gradient coloré et le fond ambiant. La tab bar utilise le Liquid Glass natif. Les cartes de contenu sous la hero restent opaques et plates, avec un fond clair/sombre net, sans faux glass.
 
 ### Règle à retenir
 
-> **Sur iOS 26, ne jamais utiliser de `shadow()` comme mécanisme principal de profondeur. Utiliser le contraste de luminosité, le blur, et les bordures lumineuses.**
+> **Sur iOS 26, dans l'espace authentifié de Pulpe, ne jamais utiliser de `shadow()` comme mécanisme principal de profondeur pour les surfaces de contenu. Les ombres restent acceptables sur des illustrations ou CTA pré-auth tant qu'elles ne simulent pas du glass.**
 
 ---
 
@@ -357,7 +357,7 @@ Même si un nouveau design est hypothétiquement 10% meilleur que le standard, l
 
 ### Application Pulpe
 
-La navigation bottom tab (Accueil, Budgets, Paramètres) suit le pattern iOS standard. Les gestes (swipe pour naviguer entre mois, pull-to-refresh) respectent les conventions Apple. Le format CHF avec apostrophe (3'006) suit la convention suisse, pas le format international (3,006).
+La navigation bottom tab (Accueil, Budgets, Modèles) suit le pattern iOS standard. L'accès au compte passe par une action toolbar, pas par un quatrième onglet. Les interactions natives retenues sont `pull-to-refresh`, `swipe actions` sur les listes, et un menu de mois pour changer de période dans Budgets. Le format CHF avec apostrophe (3'006) suit la convention suisse, pas le format international (3,006).
 
 ### Règle à retenir
 
@@ -386,7 +386,7 @@ Sonderegger & Sauer (2010) ont montré que les utilisateurs d'un prototype esth�
 
 ### Application Pulpe
 
-Les orbes décoratives, les gradients soignés, les animations spring sur la hero card, le choix typographique (Poppins + JetBrains Mono) — tout cela n'est pas du "chartjunk" au sens de Tufte. C'est un investissement mesurable dans la perception de qualité et de fiabilité. Pour une app de finance, la confiance visuelle est critique : une app financière qui "a l'air cheap" ne sera pas utilisée, même si elle est fonctionnelle.
+Les orbes décoratives, les gradients soignés, les animations spring sur la hero card, et le duo typographique Manrope + SF Pro ne sont pas du "chartjunk" au sens de Tufte. C'est un investissement mesurable dans la perception de qualité et de fiabilité. Pour une app de finance, la confiance visuelle est critique : une app financière qui "a l'air cheap" ne sera pas utilisée, même si elle est fonctionnelle.
 
 ### Règle à retenir
 
@@ -416,11 +416,11 @@ Google Material Design 3 et Apple HIG suivent ces standards. Google utilise un s
 
 ### Application Pulpe
 
-Le montant héro (blanc sur gradient vert foncé) doit maintenir un ratio ≥ 3:1 (grand texte bold). Le label "DISPONIBLE" en blanc 55% d'opacité sur le même fond doit être vérifié — une opacité trop faible peut échouer en accessibilité. Les messages émotionnels (blanc 70%) doivent aussi être vérifiés. En état déficit (gradient rouge), le texte blanc doit maintenir le ratio.
+Le montant héro (blanc sur gradient coloré) doit maintenir un ratio ≥ 3:1 (grand texte bold). Les textes de soutien de la hero (label, message, "sur X") utilisent désormais un blanc quasi opaque pour conserver un ratio AA même dans l'état ambre, qui est le plus contraignant. La hiérarchie se fait par taille, poids et position, pas par une baisse agressive d'opacité.
 
 ### Règle à retenir
 
-> **Vérifie systématiquement le ratio de contraste de TOUT texte sur TOUT fond avec un outil (Stark, Colour Contrast Analyzer). Ce n'est pas un "nice to have" — c'est une obligation légale dans l'UE et un critère de rejet App Store.**
+> **Vérifie systématiquement le ratio de contraste de TOUT texte sur TOUT fond avec un outil (Stark, Colour Contrast Analyzer). Ce n'est pas un "nice to have" — c'est une exigence d'accessibilité et un risque produit majeur si elle n'est pas respectée.**
 
 ---
 
@@ -469,7 +469,7 @@ Ce principe est utilisé pour attirer l'attention sur les call-to-action, les al
 
 ### Application Pulpe
 
-Le montant héro (42pt, blanc, bold) sur la hero card est l'élément Von Restorff : il est massivement plus gros que tout le reste de l'écran. De même, quand l'état passe en déficit (fond rouge), le changement de couleur exploite l'effet d'isolation — le rouge parmi les verts/neutres du reste de l'interface attire immédiatement l'attention.
+Le montant héro (`largeTitle` bold, blanc, Dynamic Type) sur la hero card est l'élément Von Restorff : il est massivement plus gros que tout le reste de l'écran. De même, quand l'état passe en déficit (fond rouge), le changement de couleur exploite l'effet d'isolation — le rouge parmi les verts/neutres du reste de l'interface attire immédiatement l'attention.
 
 ### Règle à retenir
 
@@ -541,7 +541,7 @@ Apple l'utilise systématiquement : l'onboarding d'un iPhone présente une seule
 
 ### Application Pulpe
 
-L'onboarding de Pulpe en 9 étapes utilise exactement ce principe : chaque écran pose une seule question (revenus, logement, assurance, transport). L'écran d'accueil ne montre que la hero card + transactions récentes. Le détail des enveloppes budgétaires n'apparaît que dans l'écran Budgets. Les settings avancés (encryption vault, export) sont dans un niveau de profondeur supplémentaire.
+L'onboarding de Pulpe en 5 étapes utilise exactement ce principe : welcome, infos perso, charges fixes, aperçu budget, inscription. Chaque écran a un objectif clair. L'écran d'accueil montre d'abord la hero, puis un petit nombre de cartes de contexte immédiat. Les vues analytiques plus profondes restent soit dans Budgets, soit derrière des sections repliées.
 
 ### Règle à retenir
 
@@ -617,7 +617,7 @@ En UX, ça signifie que les actions les plus importantes doivent être placées 
 
 ### Application Pulpe
 
-Dans la bottom tab bar (3 onglets), "Accueil" est en première position et "Paramètres" en dernière. "Budgets" est au milieu — c'est normal car c'est un onglet d'analyse, pas d'action quotidienne. Dans les listes de transactions, les transactions les plus récentes sont en haut (effet de récence — l'utilisateur veut vérifier les dernières actions).
+Dans la bottom tab bar (3 onglets), "Accueil" est en première position et "Modèles" en dernière. "Budgets" reste au milieu comme espace d'analyse et d'édition. Les transactions les plus récentes apparaissent en haut des listes (effet de récence) et le compte est volontairement sorti de la tab bar pour ne pas concurrencer les usages quotidiens.
 
 ### Règle à retenir
 
@@ -640,7 +640,7 @@ Mais attention : dans le contexte d'une app "Calm Finance", l'effet Zeigarnik pe
 
 ### Application Pulpe
 
-L'onboarding en 9 étapes avec barre de progression utilise l'effet Zeigarnik positivement : l'utilisateur veut "fermer" la progression. Le pace indicator dans la hero card exploite subtilement cet effet : la barre de dépenses n'est "pas encore au trait" — l'utilisateur est motivé à garder ce statut. Mais Pulpe n'utilise PAS l'effet Zeigarnik négativement — pas de notifications "tu n'as pas vérifié tes comptes depuis 3 jours".
+L'onboarding en 5 étapes avec barre de progression utilise l'effet Zeigarnik positivement : l'utilisateur veut "fermer" la progression. Le pace indicator dans la hero card exploite subtilement cet effet : la barre de dépenses n'est "pas encore au trait" — l'utilisateur est motivé à garder ce statut. Mais Pulpe n'utilise PAS l'effet Zeigarnik négativement — pas de notifications culpabilisantes du type "tu n'as pas vérifié tes comptes depuis 3 jours".
 
 ### Règle à retenir
 

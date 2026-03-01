@@ -23,10 +23,10 @@ struct TemplateListView: View {
                     Image(systemName: "doc.on.doc")
                         .font(.system(size: 48))
                         .foregroundStyle(Color.textTertiary)
-                    Text("Aucun modèle")
+                    Text("Pas encore de modèle")
                         .font(PulpeTypography.stepTitle)
                         .foregroundStyle(Color.textPrimary)
-                    Text("Les modèles vous permettent de créer des budgets rapidement")
+                    Text("Crée-en un pour préparer tes prochains budgets plus vite")
                         .font(PulpeTypography.bodyLarge)
                         .foregroundStyle(Color.textTertiary)
                         .multilineTextAlignment(.center)
@@ -124,7 +124,11 @@ private struct TemplateListSkeletonView: View {
                             SkeletonShape(width: 180, height: 12)
                         }
                         Spacer()
-                        SkeletonShape(width: 10, height: 14, cornerRadius: DesignTokens.CornerRadius.xs)
+                        SkeletonShape(
+                            width: 10,
+                            height: 14,
+                            cornerRadius: DesignTokens.CornerRadius.xs
+                        )
                     }
                 }
             } footer: {

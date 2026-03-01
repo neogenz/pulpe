@@ -356,7 +356,7 @@ enum AuthServiceError: LocalizedError {
         case .biometricSaveFailed:
             return "Les identifiants biométriques n'ont pas pu être enregistrés"
         case .biometricSessionExpired:
-            return "La session biométrique a expiré, veuillez vous reconnecter"
+            return "La session biométrique a expiré — reconnecte-toi"
         }
     }
 }

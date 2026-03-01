@@ -51,10 +51,10 @@ struct CurrentMonthView: View {
                     Image(systemName: "calendar.badge.plus")
                         .font(.system(size: 48))
                         .foregroundStyle(Color.textTertiary)
-                    Text("Pas de budget actif")
+                    Text("Pas encore de budget ce mois-ci")
                         .font(PulpeTypography.stepTitle)
                         .foregroundStyle(Color.textPrimary)
-                    Text("Créez un budget pour ce mois pour voir votre tableau de bord")
+                    Text("Crée-le pour voir ton tableau de bord")
                         .font(PulpeTypography.bodyLarge)
                         .foregroundStyle(Color.textTertiary)
                         .multilineTextAlignment(.center)
@@ -141,7 +141,7 @@ struct CurrentMonthView: View {
     private var dashboardContent: some View {
         ScrollView {
             VStack(spacing: DesignTokens.Spacing.xxl) {
-                // Hero card with available balance and circular progress
+                // Hero card with available balance and spent progress
                 HeroBalanceCard(
                     metrics: store.metrics,
                     timeElapsedPercentage: timeElapsedPercentage,
@@ -271,7 +271,7 @@ private struct CurrentMonthSkeletonView: View {
         }
         .shimmering()
         .pulpeBackground()
-        .accessibilityLabel("Chargement du tableau de bord")
+        .accessibilityLabel("Préparation de ton tableau de bord")
     }
 }
 

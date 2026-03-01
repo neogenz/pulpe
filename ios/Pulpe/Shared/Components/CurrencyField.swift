@@ -2,6 +2,11 @@ import SwiftUI
 
 /// Text field for currency input with CHF formatting
 struct CurrencyField: View {
+    enum VisualStyle {
+        case onboarding
+        case flat
+    }
+
     private static let displayFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
@@ -14,6 +19,7 @@ struct CurrencyField: View {
     @Binding var value: Decimal?
     let hint: String
     let label: String?
+    let visualStyle: VisualStyle
 
     @FocusState private var internalFocus: Bool
     @State private var textValue: String
@@ -29,11 +35,13 @@ struct CurrencyField: View {
         value: Binding<Decimal?>,
         hint: String = "0.00",
         label: String? = nil,
+        visualStyle: VisualStyle = .onboarding,
         externalFocus: FocusState<Bool>.Binding? = nil
     ) {
         self._value = value
         self.hint = hint
         self.label = label
+        self.visualStyle = visualStyle
         self.externalFocus = externalFocus
 
         // Initialize text value from binding immediately (not in onAppear)
@@ -49,12 +57,12 @@ struct CurrencyField: View {
             if let label {
                 Text(label)
                     .font(PulpeTypography.inputLabel)
-                    .foregroundStyle(Color.textPrimaryOnboarding)
+                    .foregroundStyle(labelColor)
             }
 
             HStack {
                 Text("CHF")
-                    .foregroundStyle(Color.textSecondaryOnboarding)
+                    .foregroundStyle(prefixColor)
                     .font(PulpeTypography.bodyLarge)
 
                 TextField(hint, text: $textValue)
@@ -75,7 +83,7 @@ struct CurrencyField: View {
             .padding(DesignTokens.Spacing.lg)
             .background {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.authInputBackground)
+                    .fill(backgroundColor)
                     .overlay {
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
                             .strokeBorder(
@@ -84,11 +92,7 @@ struct CurrencyField: View {
                             )
                     }
             }
-            .shadow(
-                color: effectiveFocus ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05),
-                radius: effectiveFocus ? 12 : 4,
-                y: 4
-            )
+            .shadow(color: shadowColor, radius: shadowRadius, y: shadowYOffset)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: effectiveFocus)
         }
         .task {
@@ -130,6 +134,60 @@ struct CurrencyField: View {
         // Only update if not focused (avoid cursor jumping)
         if !effectiveFocus {
             textValue = Self.displayFormatter.string(from: decimal as NSDecimalNumber) ?? ""
+        }
+    }
+
+    private var labelColor: Color {
+        switch visualStyle {
+        case .onboarding:
+            return Color.textPrimaryOnboarding
+        case .flat:
+            return Color.textPrimary
+        }
+    }
+
+    private var prefixColor: Color {
+        switch visualStyle {
+        case .onboarding:
+            return Color.textSecondaryOnboarding
+        case .flat:
+            return Color.textTertiary
+        }
+    }
+
+    private var backgroundColor: Color {
+        switch visualStyle {
+        case .onboarding:
+            return Color.authInputBackground
+        case .flat:
+            return Color.surfaceSecondary
+        }
+    }
+
+    private var shadowColor: Color {
+        switch visualStyle {
+        case .onboarding:
+            return effectiveFocus ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05)
+        case .flat:
+            return .clear
+        }
+    }
+
+    private var shadowRadius: CGFloat {
+        switch visualStyle {
+        case .onboarding:
+            return effectiveFocus ? 12 : 4
+        case .flat:
+            return 0
+        }
+    }
+
+    private var shadowYOffset: CGFloat {
+        switch visualStyle {
+        case .onboarding:
+            return 4
+        case .flat:
+            return 0
         }
     }
 }

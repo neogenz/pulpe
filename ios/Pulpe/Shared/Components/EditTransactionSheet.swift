@@ -47,7 +47,7 @@ struct EditTransactionSheet: View {
                 }
 
                 Section {
-                    CurrencyField(value: $amount)
+                    CurrencyField(value: $amount, visualStyle: .flat)
                         .listRowBackground(Color.surfaceCard)
                 } header: {
                     Text("Montant")

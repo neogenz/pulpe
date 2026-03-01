@@ -64,7 +64,7 @@ struct AccountView: View {
                 }
             } message: {
                 Text(
-                    "Votre compte sera définitivement supprimé " +
+                    "Ton compte sera définitivement supprimé " +
                     "après un délai de 3 jours. Cette action est irréversible."
                 )
             }

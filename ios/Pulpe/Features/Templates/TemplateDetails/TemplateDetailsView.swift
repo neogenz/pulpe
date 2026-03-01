@@ -253,7 +253,11 @@ private struct TemplateDetailsSkeletonView: View {
             Section {
                 ForEach(0..<3, id: \.self) { _ in
                     HStack {
-                        SkeletonShape(width: 24, height: 24, cornerRadius: DesignTokens.CornerRadius.xs)
+                        SkeletonShape(
+                            width: 24,
+                            height: 24,
+                            cornerRadius: DesignTokens.CornerRadius.xs
+                        )
                         SkeletonShape(width: 80, height: 14)
                         Spacer()
                         SkeletonShape(width: 80, height: 14)

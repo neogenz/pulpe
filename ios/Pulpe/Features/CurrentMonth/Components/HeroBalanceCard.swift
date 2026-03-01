@@ -66,6 +66,24 @@ struct HeroBalanceCard: View {
         "\(Int(metrics.usagePercentage))%"
     }
 
+    private var supportingTextOpacity: Double {
+        switch metrics.emotionState {
+        case .tight:
+            0.96
+        case .comfortable, .deficit:
+            0.88
+        }
+    }
+
+    private var subduedTextOpacity: Double {
+        switch metrics.emotionState {
+        case .tight:
+            0.94
+        case .comfortable, .deficit:
+            0.82
+        }
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -90,7 +108,7 @@ struct HeroBalanceCard: View {
             // Chunk 1 — Contextual label
             Text(contextLabel)
                 .font(PulpeTypography.labelLargeBold)
-                .foregroundStyle(.white.opacity(0.8))
+                .foregroundStyle(.white.opacity(supportingTextOpacity))
 
             // Chunk 2 — Hero amount
             Text("\(formattedBalance) CHF")
@@ -105,7 +123,7 @@ struct HeroBalanceCard: View {
             // Chunk 3 — Motivational message
             Text(motivationalMessage)
                 .font(PulpeTypography.labelMedium)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.white.opacity(subduedTextOpacity))
 
             Spacer()
                 .frame(height: DesignTokens.Spacing.md)
@@ -116,9 +134,9 @@ struct HeroBalanceCard: View {
         .padding(DesignTokens.Spacing.xxl)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background { cardBackground }
-        .clipShape(.rect(cornerRadius: 28))
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.xl))
         .overlay(alignment: .top) {
-            // Highlight line (Liquid Glass effect)
+            // Subtle specular highlight to keep the hero vivid without using shadows.
             Capsule()
                 .fill(.white.opacity(0.15))
                 .frame(height: 1)
@@ -126,7 +144,7 @@ struct HeroBalanceCard: View {
         }
         .overlay {
             if colorScheme == .dark {
-                RoundedRectangle(cornerRadius: 28)
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
                     .stroke(.white.opacity(0.05), lineWidth: 1)
             }
         }
@@ -147,7 +165,7 @@ struct HeroBalanceCard: View {
 
                 Text("sur \(formattedAvailable)")
                     .font(PulpeTypography.labelMedium)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.white.opacity(subduedTextOpacity))
                     .sensitiveAmount()
             }
 
