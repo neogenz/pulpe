@@ -34,7 +34,10 @@ struct EditTemplateLineSheet: View {
 
     var body: some View {
         SheetFormContainer(title: "Modifier la ligne", isLoading: isLoading, autoFocus: $isAmountFocused) {
-            HeroAmountField(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused)
+            HeroAmountField(
+                amount: $amount, amountText: $amountText,
+                isFocused: $isAmountFocused, accentColor: kind.color
+            )
             descriptionField
             KindToggle(selection: $kind)
             recurrenceSelector
@@ -65,7 +68,7 @@ struct EditTemplateLineSheet: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text("Récurrence")
                 .font(PulpeTypography.inputLabel)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.pulpeTextTertiary)
 
             HStack(spacing: DesignTokens.Spacing.sm) {
                 ForEach(TransactionRecurrence.allCases, id: \.self) { type in

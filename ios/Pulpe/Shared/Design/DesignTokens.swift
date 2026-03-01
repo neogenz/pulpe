@@ -9,14 +9,14 @@ enum DesignTokens {
         static let xs: CGFloat = 4
         /// Small elements: badges, chips (8pt)
         static let sm: CGFloat = 8
-        /// Medium elements: cards, inputs (12pt)
-        static let md: CGFloat = 12
+        /// Medium elements: inputs, cards (24pt)
+        static let md: CGFloat = 24
         /// Primary buttons (14pt)
         static let button: CGFloat = 14
-        /// Large elements: sheets, modals (16pt)
-        static let lg: CGFloat = 16
-        /// Extra large: hero cards (20pt)
-        static let xl: CGFloat = 20
+        /// Large elements: sheets, modals (30pt)
+        static let lg: CGFloat = 30
+        /// Extra large: hero cards (32pt)
+        static let xl: CGFloat = 32
         /// Hairline: thin separators in Form (1pt)
         static let hairline: CGFloat = 1
     }
@@ -96,6 +96,13 @@ enum DesignTokens {
         static let badge: CGFloat = 36
         /// Small inline icons
         static let compact: CGFloat = 28
+    }
+
+    // MARK: - List Row
+
+    enum ListRow {
+        /// Vertical padding for all list/transaction/budget rows
+        static let verticalPadding: CGFloat = 4
     }
 
     // MARK: - Animation

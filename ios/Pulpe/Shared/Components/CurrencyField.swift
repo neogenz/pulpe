@@ -151,7 +151,7 @@ struct CurrencyField: View {
         case .onboarding:
             return Color.textSecondaryOnboarding
         case .flat:
-            return Color.textTertiary
+            return Color.pulpeTextTertiary
         }
     }
 

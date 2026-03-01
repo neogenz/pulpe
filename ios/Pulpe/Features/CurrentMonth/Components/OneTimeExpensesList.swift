@@ -173,7 +173,7 @@ struct TransactionRow: View {
                 // Date (relative formatting)
                 Text(transaction.transactionDate.relativeFormatted)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.pulpeTextTertiary)
             }
 
             Spacer(minLength: 8)
@@ -187,7 +187,7 @@ struct TransactionRow: View {
                 .foregroundStyle(transaction.isChecked ? .secondary : transaction.kind.color)
                 .sensitiveAmount()
         }
-        .padding(.vertical, DesignTokens.Spacing.sm)
+        .padding(.vertical, DesignTokens.ListRow.verticalPadding)
         .contentShape(Rectangle())
     }
 

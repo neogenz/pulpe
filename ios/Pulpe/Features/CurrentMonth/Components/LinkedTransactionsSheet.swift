@@ -143,7 +143,7 @@ struct LinkedTransactionsSheet: View {
 
                 Text("Ajoute une transaction pour suivre tes dépenses")
                     .font(PulpeTypography.subheadline)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.pulpeTextTertiary)
                     .multilineTextAlignment(.center)
             }
         }
@@ -277,7 +277,7 @@ private struct LinkedTransactionRow: View {
             .accessibilityLabel("Supprimer")
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, 14)
+        .padding(.vertical, DesignTokens.ListRow.verticalPadding)
         .background(Color.surfaceContainerHigh)
         .overlay(alignment: .bottom) {
             if !isLast {

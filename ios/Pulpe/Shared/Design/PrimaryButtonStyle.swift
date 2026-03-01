@@ -45,7 +45,7 @@ struct SecondaryButtonStyle: ButtonStyle {
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
             .overlay(
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button)
-                    .stroke(Color.textTertiary, lineWidth: 1.5)
+                    .stroke(Color.pulpeTextTertiary, lineWidth: 1.5)
             )
             .opacity(configuration.isPressed ? 0.8 : 1.0)
             .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)

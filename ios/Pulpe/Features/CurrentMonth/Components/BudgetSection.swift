@@ -245,7 +245,7 @@ struct BudgetLineRow: View {
             // Main content
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(line.name)
-                    .font(PulpeTypography.onboardingSubtitle)
+                    .font(.system(.body, weight: .semibold))
                     .foregroundStyle(line.isChecked ? .secondary : .primary)
                     .strikethrough(line.isChecked, color: .secondary)
                     .lineLimit(1)
@@ -260,7 +260,7 @@ struct BudgetLineRow: View {
                 } else {
                     Text(line.recurrence.label)
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -271,8 +271,8 @@ struct BudgetLineRow: View {
 
             // Amount (remaining when transactions exist, otherwise budgeted)
             VStack(alignment: .trailing, spacing: 2) {
-                Text(hasConsumption ? consumption.available.asCHF : line.amount.asCHF)
-                    .font(PulpeTypography.amountMedium)
+                Text(hasConsumption ? consumption.available.asAmount : line.amount.asAmount)
+                    .font(.system(.callout, weight: .regular))
                     .foregroundStyle(amountTextColor)
                     .sensitiveAmount()
 
@@ -296,7 +296,7 @@ struct BudgetLineRow: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.vertical, DesignTokens.Spacing.sm)
+        .padding(.vertical, DesignTokens.ListRow.verticalPadding)
 
             // Consumption progress bar
             if hasConsumption {

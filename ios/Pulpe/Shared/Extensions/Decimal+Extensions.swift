@@ -6,6 +6,16 @@ extension Decimal {
         formatted(.currency(code: "CHF").locale(Locale(identifier: "de_CH")))
     }
 
+    /// Format as amount only (no currency code) using Swiss locale — "1'234.56"
+    var asAmount: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.locale = Locale(identifier: "de_CH")
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        return formatter.string(from: self as NSDecimalNumber) ?? "0.00"
+    }
+
     /// Format as compact CHF (no decimals for whole numbers)
     var asCompactCHF: String {
         let formatter = isWholeNumber ? Formatters.chfWholeNumber : Formatters.chfCompact

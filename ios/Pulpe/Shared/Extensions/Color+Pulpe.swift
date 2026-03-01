@@ -71,10 +71,10 @@ extension Color {
     static let surface = Color(uiColor: .systemBackground)
     static let surfaceDim = Color(uiColor: .systemGray5)
     static let surfaceBright = Color(uiColor: .systemBackground)
-    static let surfaceContainerLowest = Color(uiColor: .systemBackground)
+    static let surfaceContainerLowest = Color(uiColor: .secondarySystemGroupedBackground)
     static let surfaceContainerLow = Color(uiColor: .secondarySystemBackground)
     static let surfaceContainer = Color(uiColor: .systemGray6)
-    static let surfaceContainerHigh = Color(uiColor: .systemGray5)
+    static let surfaceContainerHigh = Color(uiColor: .systemGray6)
     static let surfaceContainerHighest = Color(uiColor: .systemGray4)
     static let surfaceVariant = Color(uiColor: .systemGray5)
 
@@ -87,7 +87,7 @@ extension Color {
     static let textOnPrimary = Color(light: .white, dark: .white)
 
     /// Tertiary text — iOS system tertiary label
-    static let textTertiary = Color(.tertiaryLabel)
+    static let pulpeTextTertiary = Color(.tertiaryLabel)
 
     /// Secondary content on surface — iOS system secondary label
     static let onSurfaceVariant = Color(.secondaryLabel)

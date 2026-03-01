@@ -72,7 +72,7 @@ struct RealizedBalanceSheet: View {
                 "\(realizedMetrics.totalItemsCount)"
             )
                 .font(PulpeTypography.caption)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.pulpeTextTertiary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.xxl)
@@ -205,7 +205,7 @@ private struct ProgressRow: View {
             // Percentage label
             Text("\(percentageText) réalisé")
                 .font(PulpeTypography.caption)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.pulpeTextTertiary)
         }
     }
 }

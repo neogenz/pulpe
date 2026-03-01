@@ -22,13 +22,13 @@ struct TemplateListView: View {
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Image(systemName: "doc.on.doc")
                         .font(.system(size: 48))
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.pulpeTextTertiary)
                     Text("Pas encore de modèle")
                         .font(PulpeTypography.stepTitle)
                         .foregroundStyle(Color.textPrimary)
                     Text("Crée-en un pour préparer tes prochains budgets plus vite")
                         .font(PulpeTypography.bodyLarge)
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.pulpeTextTertiary)
                         .multilineTextAlignment(.center)
                     Button("Créer un modèle") {
                         showCreateTemplate = true

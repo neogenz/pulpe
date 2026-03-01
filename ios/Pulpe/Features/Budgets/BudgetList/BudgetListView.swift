@@ -34,13 +34,13 @@ struct BudgetListView: View {
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Image(systemName: "chart.bar.doc.horizontal")
                         .font(.system(size: 48))
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.pulpeTextTertiary)
                     Text("Pas encore de budget")
                         .font(PulpeTypography.stepTitle)
                         .foregroundStyle(Color.textPrimary)
                     Text("Crée-en un pour commencer à suivre tes dépenses")
                         .font(PulpeTypography.bodyLarge)
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.pulpeTextTertiary)
                         .multilineTextAlignment(.center)
                     Button("Créer un budget") {
                         showCreateBudget = true

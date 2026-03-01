@@ -167,10 +167,10 @@ struct ChangePasswordSheet: View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: met ? "checkmark.circle.fill" : "circle")
                 .font(PulpeTypography.footnote)
-                .foregroundStyle(met ? Color.financialSavings : Color.textTertiary)
+                .foregroundStyle(met ? Color.financialSavings : Color.pulpeTextTertiary)
             Text(text)
                 .font(PulpeTypography.caption)
-                .foregroundStyle(met ? Color.textSecondaryOnboarding : Color.textTertiary)
+                .foregroundStyle(met ? Color.textSecondaryOnboarding : Color.pulpeTextTertiary)
         }
     }
 
@@ -231,7 +231,7 @@ struct ChangePasswordSheet: View {
                 config.isVisible.wrappedValue.toggle()
             } label: {
                 Image(systemName: config.isVisible.wrappedValue ? "eye.slash.fill" : "eye.fill")
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.pulpeTextTertiary)
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
