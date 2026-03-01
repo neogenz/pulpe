@@ -147,8 +147,7 @@ struct CurrentMonthView: View {
                     timeElapsedPercentage: timeElapsedPercentage,
                     onTapProgress: { activeSheet = .realizedBalance }
                 )
-                .opacity(hasAppeared ? 1 : 0)
-                .animation(.easeOut(duration: DesignTokens.Animation.normal).delay(0.0), value: hasAppeared)
+                .staggeredEntrance(isVisible: hasAppeared, index: 0)
 
                 // Forward-looking projection
                 if let projection = store.projection {
@@ -158,8 +157,7 @@ struct CurrentMonthView: View {
 
                         ProjectionCard(projection: projection)
                     }
-                    .opacity(hasAppeared ? 1 : 0)
-                    .animation(.easeOut(duration: DesignTokens.Animation.normal).delay(0.05), value: hasAppeared)
+                    .staggeredEntrance(isVisible: hasAppeared, index: 1)
                 }
 
                 // Insights: top spending + budget alerts
@@ -175,8 +173,7 @@ struct CurrentMonthView: View {
                         onTap: { navigateToBudget = true }
                     )
                 }
-                .opacity(hasAppeared ? 1 : 0)
-                .animation(.easeOut(duration: DesignTokens.Animation.normal).delay(0.1), value: hasAppeared)
+                .staggeredEntrance(isVisible: hasAppeared, index: 2)
 
                 // Recent transactions with external section header
                 if !store.recentTransactions.isEmpty {
@@ -189,8 +186,7 @@ struct CurrentMonthView: View {
                             onViewAll: { navigateToBudget = true }
                         )
                     }
-                    .opacity(hasAppeared ? 1 : 0)
-                    .animation(.easeOut(duration: DesignTokens.Animation.normal).delay(0.15), value: hasAppeared)
+                    .staggeredEntrance(isVisible: hasAppeared, index: 3)
                 }
 
                 // Trends (expenses over last 3 months) - collapsible for progressive disclosure
@@ -205,8 +201,7 @@ struct CurrentMonthView: View {
                         TrendsEmptyState()
                     }
                 }
-                .opacity(hasAppeared ? 1 : 0)
-                .animation(.easeOut(duration: DesignTokens.Animation.normal).delay(0.2), value: hasAppeared)
+                .staggeredEntrance(isVisible: hasAppeared, index: 4)
 
                 // Year overview (savings YTD + rollover) - collapsible for progressive disclosure
                 CollapsibleSection(title: "Cette année", isExpanded: $yearOverviewExpanded) {
@@ -215,8 +210,7 @@ struct CurrentMonthView: View {
                         rollover: store.budget?.rollover ?? 0
                     )
                 }
-                .opacity(hasAppeared ? 1 : 0)
-                .animation(.easeOut(duration: DesignTokens.Animation.normal).delay(0.25), value: hasAppeared)
+                .staggeredEntrance(isVisible: hasAppeared, index: 5)
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.lg)
