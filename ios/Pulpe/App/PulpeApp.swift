@@ -55,11 +55,7 @@ struct PulpeApp: App {
         BackgroundTaskService.shared.registerTasks()
         AnalyticsService.shared.initialize()
 
-        UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(.pulpePrimary)
-        UISegmentedControl.appearance().setTitleTextAttributes(
-            [.foregroundColor: UIColor(.textOnPrimary)],
-            for: .selected
-        )
+
     }
 
     var body: some Scene {
