@@ -8,6 +8,7 @@ struct HeroProgressPanel: View {
     let pacePosition: Double
     let timeElapsedPercentage: Double
     let usagePercentage: Double
+    let glassTint: Color
     let onTap: () -> Void
 
     var body: some View {
@@ -25,17 +26,7 @@ struct HeroProgressPanel: View {
                 progressBar
             }
             .padding(DesignTokens.Spacing.lg)
-            .background(
-                Color(
-                    light: .white.opacity(0.15),
-                    dark: .white.opacity(0.20)
-                ),
-                in: .rect(cornerRadius: DesignTokens.CornerRadius.lg)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg)
-                    .stroke(.white.opacity(0.15), lineWidth: 1)
-            )
+            .progressPanelGlass(tint: glassTint)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Voir le d\u{00E9}tail des d\u{00E9}penses")
@@ -87,5 +78,29 @@ struct HeroProgressPanel: View {
             }
         }
         .frame(height: 12)
+    }
+}
+
+// MARK: - Liquid Glass Background
+
+private extension View {
+    @ViewBuilder
+    func progressPanelGlass(tint: Color) -> some View {
+        if #available(iOS 26, *) {
+            self.glassEffect(
+                .regular.tint(tint).interactive(),
+                in: .rect(cornerRadius: DesignTokens.CornerRadius.lg)
+            )
+        } else {
+            self
+                .background(
+                    Color(light: .white.opacity(0.15), dark: .white.opacity(0.20)),
+                    in: .rect(cornerRadius: DesignTokens.CornerRadius.lg)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg)
+                        .stroke(.white.opacity(0.15), lineWidth: 1)
+                )
+        }
     }
 }

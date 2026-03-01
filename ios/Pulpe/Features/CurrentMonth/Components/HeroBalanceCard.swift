@@ -129,7 +129,7 @@ struct HeroBalanceCard: View {
     // MARK: - Gradient Card
 
     private var gradientCard: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             headerRow
             amountSection
             progressPanel
@@ -139,7 +139,7 @@ struct HeroBalanceCard: View {
             ZStack {
                 heroTintColor
                 LinearGradient(
-                    colors: [.clear, .black.opacity(0.25)],
+                    colors: [.black.opacity(0.05), .black.opacity(0.4)],
                     startPoint: UnitPoint(x: 0.15, y: 0),
                     endPoint: UnitPoint(x: 0.85, y: 1)
                 )
@@ -161,19 +161,19 @@ struct HeroBalanceCard: View {
     private var decorativeCircles: some View {
         ZStack {
             Circle()
-                .fill(.white.opacity(0.15))
+                .fill(.white.opacity(0.07))
                 .frame(width: 224, height: 224)
                 .blur(radius: 48)
                 .offset(x: 100, y: 80)
 
             Circle()
-                .fill(.white.opacity(0.10))
+                .fill(.white.opacity(0.05))
                 .frame(width: 144, height: 144)
                 .blur(radius: 32)
                 .offset(x: 80, y: -60)
 
             Circle()
-                .fill(.white.opacity(0.05))
+                .fill(.white.opacity(0.03))
                 .frame(width: 96, height: 96)
                 .blur(radius: 32)
                 .offset(x: -60, y: 0)
@@ -277,6 +277,7 @@ struct HeroBalanceCard: View {
             pacePosition: pacePosition,
             timeElapsedPercentage: timeElapsedPercentage,
             usagePercentage: metrics.usagePercentage,
+            glassTint: heroTintColor,
             onTap: onTapProgress
         )
     }
