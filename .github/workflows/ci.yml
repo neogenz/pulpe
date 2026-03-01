@@ -575,13 +575,51 @@ jobs:
 
       - name: 🧪 Run Unit Tests
         working-directory: ios
+        env:
+          NSUnbufferedIO: "YES"
         run: |
+          # Workaround: xcodebuild hangs after tests on Xcode 26+ (actions/runner-images#13143)
+          touch test-output.log
           xcodebuild test \
             -scheme PulpeTests \
             -destination 'id=${{ steps.sim.outputs.udid }}' \
             CODE_SIGNING_ALLOWED=NO \
             -resultBundlePath TestResults \
-            2>&1 | tee test-output.log | grep -E '(Test Case|passed|failed|error:|FAIL|TEST)'
+            -parallel-testing-enabled NO \
+            -collect-test-diagnostics never \
+            >> test-output.log 2>&1 &
+          XCODE_PID=$!
+
+          # Live filtered output
+          tail -f test-output.log | grep --line-buffered -E '(✔|✘|Test Case|passed|failed|error:|Suite|TEST SUCCEEDED|TEST FAILED)' &
+          TAIL_PID=$!
+
+          # Wait for test completion or timeout (10 min)
+          ELAPSED=0
+          while kill -0 $XCODE_PID 2>/dev/null && [ $ELAPSED -lt 600 ]; do
+            if grep -q '\*\* TEST SUCCEEDED \*\*\|\*\* TEST FAILED \*\*' test-output.log 2>/dev/null; then
+              echo "📋 Tests finished, cleaning up xcodebuild..."
+              sleep 5
+              break
+            fi
+            sleep 10
+            ELAPSED=$((ELAPSED + 10))
+          done
+
+          kill $TAIL_PID 2>/dev/null || true
+          kill $XCODE_PID 2>/dev/null || true
+
+          if grep -q '\*\* TEST SUCCEEDED \*\*' test-output.log; then
+            echo "✅ All tests passed"
+            exit 0
+          elif grep -q '\*\* TEST FAILED \*\*' test-output.log; then
+            echo "❌ Tests failed"
+            exit 1
+          else
+            echo "⚠️ Could not determine test outcome"
+            tail -30 test-output.log
+            exit 1
+          fi
 
       - name: 📋 Show failed tests (if any)
         if: failure()
@@ -591,6 +629,10 @@ jobs:
           grep -E "(Test Case.*failed|✘|error:)" test-output.log || echo "No explicit failures found"
           echo "=== LAST 50 LINES ==="
           tail -50 test-output.log
+
+      - name: 🧹 Cleanup Simulator
+        if: always()
+        run: xcrun simctl shutdown all 2>/dev/null || true
 
   # 🗄️ MIGRATION DRY-RUN (PRs only — détecte les problèmes avant merge)
   migrate-dryrun:
