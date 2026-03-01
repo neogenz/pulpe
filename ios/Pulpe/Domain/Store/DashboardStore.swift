@@ -48,6 +48,11 @@ final class DashboardStore: StoreProtocol {
 
     // MARK: - Smart Loading (StoreProtocol)
 
+    /// Invalidates the cache so the next `loadIfNeeded()` will re-fetch.
+    func invalidateCache() {
+        lastLoadTime = nil
+    }
+
     func loadIfNeeded() async {
         guard !isCacheValid else { return }
         await forceRefresh()

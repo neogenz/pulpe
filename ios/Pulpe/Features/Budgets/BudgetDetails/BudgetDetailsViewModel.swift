@@ -78,7 +78,7 @@ final class BudgetDetailsViewModel {
     var hasNextBudget: Bool { nextBudgetId != nil }
 
     /// Prepare navigation by changing the budgetId (synchronous)
-    /// Pre-populates from cache if available, otherwise old data stays visible until reload
+    /// Pre-populates from cache if available, otherwise clears stale data so skeleton shows
     func prepareNavigation(to id: String) {
         budgetId = id
         if let cached = cache.get(budgetId: id) {
@@ -87,6 +87,12 @@ final class BudgetDetailsViewModel {
             transactions = cached.transactions
             recomputeMetrics()
             updateAdjacentBudgets()
+        } else {
+            // No cache — clear stale data so skeleton shows while loading
+            budget = nil
+            budgetLines = []
+            transactions = []
+            cachedMetrics = nil
         }
     }
 
@@ -127,6 +133,12 @@ final class BudgetDetailsViewModel {
     private func syncCache() {
         guard let budget else { return }
         cache.store(budgetId: budgetId, budget: budget, budgetLines: budgetLines, transactions: transactions)
+    }
+
+    /// Invalidate cached data for adjacent months so rollover values are re-fetched.
+    private func invalidateAdjacentCache() {
+        if let prevId = previousBudgetId { cache.invalidate(budgetId: prevId) }
+        if let nextId = nextBudgetId { cache.invalidate(budgetId: nextId) }
     }
 
     var incomeLines: [BudgetLine] { budgetLines.byKind(.income) }
@@ -324,6 +336,7 @@ final class BudgetDetailsViewModel {
             budgetLines[index] = line.toggled()
             recomputeMetrics()
             syncCache()
+            invalidateAdjacentCache()
         }
 
         do {
@@ -414,6 +427,7 @@ final class BudgetDetailsViewModel {
             transactions[index] = transaction.toggled()
             recomputeMetrics()
             syncCache()
+            invalidateAdjacentCache()
         }
 
         do {
@@ -438,6 +452,7 @@ final class BudgetDetailsViewModel {
         transactions.removeAll { $0.id == transaction.id }
         recomputeMetrics()
         syncCache()
+        invalidateAdjacentCache()
 
         // Show undo toast - actual deletion happens when toast dismisses
         toastManager.showWithUndo("Transaction supprimée") { [weak self] in
@@ -480,6 +495,7 @@ final class BudgetDetailsViewModel {
         transactions.removeAll { $0.id == transaction.id }
         recomputeMetrics()
         syncCache()
+        invalidateAdjacentCache()
 
         do {
             try await transactionService.deleteTransaction(id: transaction.id)
@@ -495,12 +511,14 @@ final class BudgetDetailsViewModel {
         transactions.append(transaction)
         recomputeMetrics()
         syncCache()
+        invalidateAdjacentCache()
     }
 
     func addBudgetLine(_ budgetLine: BudgetLine) {
         budgetLines.append(budgetLine)
         recomputeMetrics()
         syncCache()
+        invalidateAdjacentCache()
     }
 
     /// Soft delete with undo support - removes from UI immediately but delays API call
@@ -514,6 +532,7 @@ final class BudgetDetailsViewModel {
         budgetLines.removeAll { $0.id == line.id }
         recomputeMetrics()
         syncCache()
+        invalidateAdjacentCache()
 
         // Show undo toast
         toastManager.showWithUndo("Prévision supprimée") { [weak self] in
@@ -558,6 +577,7 @@ final class BudgetDetailsViewModel {
         budgetLines.removeAll { $0.id == line.id }
         recomputeMetrics()
         syncCache()
+        invalidateAdjacentCache()
 
         do {
             try await budgetLineService.deleteBudgetLine(id: line.id)
@@ -577,6 +597,7 @@ final class BudgetDetailsViewModel {
             budgetLines[index] = line
             recomputeMetrics()
             syncCache()
+            invalidateAdjacentCache()
         }
 
         // Reload to sync with server
@@ -589,6 +610,7 @@ final class BudgetDetailsViewModel {
             transactions[index] = transaction
             recomputeMetrics()
             syncCache()
+            invalidateAdjacentCache()
         }
 
         // Reload to sync with server

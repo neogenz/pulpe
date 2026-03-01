@@ -108,6 +108,16 @@ struct CurrentMonthView: View {
                 }
             }
         }
+        .onChange(of: appState.selectedTab) { oldTab, newTab in
+            guard newTab == .currentMonth, oldTab != .currentMonth else { return }
+            store.invalidateCache()
+            dashboardStore.invalidateCache()
+            Task {
+                async let storeLoad: Void = store.loadDetailsIfNeeded()
+                async let dashLoad: Void = dashboardStore.loadIfNeeded()
+                _ = await (storeLoad, dashLoad)
+            }
+        }
         .onChange(of: activeSheet) { _, sheet in
             ProductTips.isSheetPresented = sheet != nil
         }

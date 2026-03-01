@@ -157,6 +157,11 @@ final class CurrentMonthStore: StoreProtocol {
         payDayOfMonth = payDay
     }
 
+    /// Invalidates the cache so the next `loadDetailsIfNeeded()` / `loadIfNeeded()` will re-fetch.
+    func invalidateCache() {
+        lastLoadTime = nil
+    }
+
     func loadIfNeeded() async {
         guard !isCacheValid else { return }
         await forceRefresh()
