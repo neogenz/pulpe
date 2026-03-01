@@ -23,14 +23,14 @@ struct BudgetPreviewStep: View {
                     try? await Task.sleep(for: .milliseconds(300))
                     withAnimation(.spring(response: 0.6, dampingFraction: 0.75)) {
                         showHero = true
-                    }
-                    try? await Task.sleep(for: .milliseconds(250))
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                        showCard = true
-                    }
-                    try? await Task.sleep(for: .milliseconds(200))
-                    withAnimation(.easeOut(duration: 0.4)) {
-                        showMessage = true
+                    } completion: {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                            showCard = true
+                        } completion: {
+                            withAnimation(.easeOut(duration: 0.4)) {
+                                showMessage = true
+                            }
+                        }
                     }
                 }
             }

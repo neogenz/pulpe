@@ -9,7 +9,6 @@ struct ToastView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var offset: CGFloat = -100
     @State private var opacity: Double = 0
-    @State private var animationTask: Task<Void, Never>?
 
     init(toast: ToastManager.Toast, onDismiss: @escaping () -> Void, onUndo: (() -> Void)? = nil) {
         self.toast = toast
@@ -86,9 +85,6 @@ struct ToastView: View {
     }
 
     private func dismissWithAnimation() {
-        // Cancel any pending dismiss
-        animationTask?.cancel()
-
         if reduceMotion {
             offset = -100
             opacity = 0
@@ -97,15 +93,8 @@ struct ToastView: View {
             withAnimation(DesignTokens.Animation.toastDismiss) {
                 offset = -100
                 opacity = 0
-            }
-
-            animationTask = Task { @MainActor in
-                do {
-                    try await Task.sleep(for: .milliseconds(200))
-                    onDismiss()
-                } catch {
-                    // Task was cancelled, do nothing
-                }
+            } completion: {
+                onDismiss()
             }
         }
     }
