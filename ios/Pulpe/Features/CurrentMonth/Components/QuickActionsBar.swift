@@ -55,7 +55,7 @@ private struct QuickActionButton: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, DesignTokens.Spacing.md)
-            .background(Color(.secondarySystemGroupedBackground))
+            .background(Color.surfaceContainer)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
         }
         .buttonStyle(.plain)
@@ -72,5 +72,5 @@ private struct QuickActionButton: View {
         )
         .padding()
     }
-    .background(Color(.systemGroupedBackground))
+    .background(Color.surface)
 }

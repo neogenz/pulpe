@@ -86,35 +86,50 @@ actor StartupCoordinator {
         }
         currentTask = startupTask
 
-        // Race startup against timeout
-        let result = await withTaskGroup(of: StartupResult.self) { group in
-            group.addTask {
-                await startupTask.value
-            }
-            group.addTask { [timeout] in
-                do {
-                    try await Task.sleep(for: timeout)
-                    return .timeout
-                } catch {
-                    // Cancelled - startup finished first
-                    return .cancelled
+        // When biometric auth will run, FaceID blocks on user interaction which
+        // can take an arbitrary amount of time (phone on desk, etc.).
+        // Skip the startup timeout — individual network operations within the
+        // biometric flow have their own URLSession timeouts.
+        let biometricWillRun = context.biometricEnabled
+            && !context.didExplicitLogout
+            && !context.manualBiometricRetryRequired
+
+        let result: StartupResult
+
+        if biometricWillRun {
+            Logger.auth.debug("[STARTUP] Biometric path — no startup timeout")
+            result = await startupTask.value
+        } else {
+            // Race startup against timeout for non-biometric paths
+            result = await withTaskGroup(of: StartupResult.self) { group in
+                group.addTask {
+                    await startupTask.value
                 }
-            }
+                group.addTask { [timeout] in
+                    do {
+                        try await Task.sleep(for: timeout)
+                        return .timeout
+                    } catch {
+                        // Cancelled - startup finished first
+                        return .cancelled
+                    }
+                }
 
-            // Return whichever finishes first
-            guard let firstResult = await group.next() else {
-                return StartupResult.cancelled
-            }
-            group.cancelAll()
+                // Return whichever finishes first
+                guard let firstResult = await group.next() else {
+                    return StartupResult.cancelled
+                }
+                group.cancelAll()
 
-            // If timeout won, invalidate the run and cancel the startup task
-            if firstResult == .timeout {
-                self.currentRunId = nil
-                startupTask.cancel()
-                Logger.auth.warning("[STARTUP] Startup timed out after \(self.timeout)")
-            }
+                // If timeout won, invalidate the run and cancel the startup task
+                if firstResult == .timeout {
+                    self.currentRunId = nil
+                    startupTask.cancel()
+                    Logger.auth.warning("[STARTUP] Startup timed out after \(self.timeout)")
+                }
 
-            return firstResult
+                return firstResult
+            }
         }
 
         // Only update state if this run wasn't superseded

@@ -51,7 +51,7 @@ struct LinkedTransactionsSheet: View {
                 .padding(.top, DesignTokens.Spacing.sm)
                 .padding(.bottom, 100)
             }
-            .background(Color.surfacePrimary)
+            .background(Color.surface)
             .safeAreaInset(edge: .bottom) {
                 addTransactionButton
             }
@@ -123,7 +123,7 @@ struct LinkedTransactionsSheet: View {
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { progressBarWidth = $0 }
         }
         .padding(DesignTokens.Spacing.lg)
-        .background(Color.surfaceCard)
+        .background(Color.surfaceContainerHigh)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
         .padding(.horizontal)
     }
@@ -172,7 +172,7 @@ struct LinkedTransactionsSheet: View {
                     )
                 }
             }
-            .background(Color.surfaceCard)
+            .background(Color.surfaceContainerHigh)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
             .padding(.horizontal)
         }
@@ -220,7 +220,7 @@ private struct MetricCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.md)
-        .background(Color.surfaceCard)
+        .background(Color.surfaceContainerHigh)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
 }
@@ -278,7 +278,7 @@ private struct LinkedTransactionRow: View {
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, 14)
-        .background(Color.surfaceCard)
+        .background(Color.surfaceContainerHigh)
         .overlay(alignment: .bottom) {
             if !isLast {
                 Divider()

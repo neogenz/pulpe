@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 extension Color {
     // MARK: - Financial Colors (from Asset Catalog with light/dark/high-contrast variants)
@@ -47,33 +48,49 @@ extension Color {
 
     // MARK: - Brand Colors
 
-    /// Primary brand color - Dark green (#006E25 light, #4AA070 dark)
+    /// Primary brand color - Dark green (#006E25 light, #7EDB83 dark)
     static let pulpePrimary = Color("PulpePrimary")
 
-    // MARK: - Surface Colors (neutral warm for brand identity, dark mode uses system for comfort)
+    // MARK: - Primary Container
 
-    /// Primary background — DA neutral warm (#F7F6F3), system dark in dark mode
-    static let surfacePrimary = Color(light: Color(hex: 0xF7F6F3), dark: Color(uiColor: .systemGroupedBackground))
+    static let primaryContainer = Color(light: Color(hex: 0x99F89D), dark: Color(hex: 0x00531A))
+    static let onPrimaryContainer = Color(light: Color(hex: 0x00531A), dark: Color(hex: 0x99F89D))
 
-    /// Card/modal surfaces — white in light mode for maximum contrast, elevated dark in dark mode
-    static let surfaceCard = Color(light: .white, dark: Color(uiColor: .secondarySystemGroupedBackground))
+    // MARK: - Secondary
 
-    /// Secondary surface for form backgrounds, inactive pills — system grey in light mode
-    static let surfaceSecondary = Color(
-        light: Color(uiColor: .secondarySystemGroupedBackground),
-        dark: Color(uiColor: .secondarySystemGroupedBackground)
-    )
+    static let secondaryColor = Color(light: Color(hex: 0x406741), dark: Color(hex: 0xA6D2A3))
+    static let secondaryContainer = Color(light: Color(hex: 0xC1EEBE), dark: Color(hex: 0x294F2B))
+
+    // MARK: - Surface (M3 Tonal Hierarchy)
+
+    static let surface = Color(light: Color(hex: 0xF6FBF1), dark: Color(hex: 0x10150F))
+    static let surfaceDim = Color(light: Color(hex: 0xD6DCD2), dark: Color(hex: 0x10150F))
+    static let surfaceBright = Color(light: Color(hex: 0xF6FBF1), dark: Color(hex: 0x353B34))
+    static let surfaceContainerLowest = Color(light: Color(hex: 0xFFFFFF), dark: Color(hex: 0x0A0F0A))
+    static let surfaceContainerLow = Color(light: Color(hex: 0xF0F5EB), dark: Color(hex: 0x181D17))
+    static let surfaceContainer = Color(light: Color(hex: 0xEAF0E5), dark: Color(hex: 0x1C211B))
+    static let surfaceContainerHigh = Color(light: Color(hex: 0xE5EAE0), dark: Color(hex: 0x262B25))
+    static let surfaceContainerHighest = Color(light: Color(hex: 0xDFE4DA), dark: Color(hex: 0x31362F))
+    static let surfaceVariant = Color(light: Color(hex: 0xDBE6D6), dark: Color(hex: 0x3F493E))
 
     // MARK: - Semantic Text Colors
 
-    /// Primary text — DA noir doux (#1A1C19 light, #F5F5F5 dark)
-    static let textPrimary = Color(light: Color(hex: 0x1A1C19), dark: Color(hex: 0xF5F5F5))
+    /// Primary text — M3 onSurface (#181D17 light, #DFE4DA dark)
+    static let textPrimary = Color(light: Color(hex: 0x181D17), dark: Color(hex: 0xDFE4DA))
 
     /// Text on primary-colored backgrounds (white in both modes)
     static let textOnPrimary = Color(light: .white, dark: .white)
 
     /// Tertiary text with improved contrast (40% opacity light, 50% dark)
     static let textTertiary = Color("TextTertiary")
+
+    /// M3 onSurfaceVariant — secondary content on surface
+    static let onSurfaceVariant = Color(light: Color(hex: 0x3F493E), dark: Color(hex: 0xDBE6D6))
+
+    // MARK: - Outline
+
+    static let outline = Color(light: Color(hex: 0x6F7A6D), dark: Color(hex: 0x899486))
+    static let outlineVariant = Color(light: Color(hex: 0xBFCABA), dark: Color(hex: 0x3F493E))
 
     // MARK: - Error Colors
 
@@ -137,13 +154,13 @@ extension Color {
 
     // MARK: - App Background Gradient
 
-    // Semantic gradient colors for premium background (warm neutral in light, dark in dark)
-    private static let gradientBaseTop = Color(light: Color(hex: 0xFAF9F6), dark: Color(hex: 0x141414))
-    private static let gradientBaseMid = Color(light: Color(hex: 0xF7F6F3), dark: Color(hex: 0x1A1A1C))
-    private static let gradientBaseBottom = Color(light: Color(hex: 0xF4F2EE), dark: Color(hex: 0x1C1C1E))
-    private static let gradientAccentWarm = Color(light: Color(hex: 0xF0EDE7), dark: Color(hex: 0x1E2020))
-    private static let gradientAccentCream = Color(light: Color(hex: 0xF5F3EF), dark: Color(hex: 0x1D1E1D))
-    private static let gradientCenterGlow = Color(light: Color(hex: 0xF8F7F4), dark: Color(hex: 0x1E1F1E))
+    // Semantic gradient colors for premium background (green-tinted neutrals in light, dark in dark)
+    private static let gradientBaseTop = Color(light: Color(hex: 0xF6FBF1), dark: Color(hex: 0x10150F))
+    private static let gradientBaseMid = Color(light: Color(hex: 0xF0F5EB), dark: Color(hex: 0x181D17))
+    private static let gradientBaseBottom = Color(light: Color(hex: 0xEAF0E5), dark: Color(hex: 0x1C211B))
+    private static let gradientAccentWarm = Color(light: Color(hex: 0xE5EAE0), dark: Color(hex: 0x262B25))
+    private static let gradientAccentCream = Color(light: Color(hex: 0xEFF4EA), dark: Color(hex: 0x1C211B))
+    private static let gradientCenterGlow = Color(light: Color(hex: 0xF3F8EE), dark: Color(hex: 0x181D17))
 
     // MARK: - Mesh Gradient Data (light mode only — dark mode uses system background)
 
@@ -155,21 +172,21 @@ extension Color {
 
     @available(iOS 18.0, *)
     static let lightMeshColors: [Color] = [
-        Color(hex: 0xFAF9F6),
-        Color(hex: 0xF7F5F1).opacity(0.90),
-        Color(hex: 0xF5F3EF).opacity(0.85),
-        Color(hex: 0xF3F1EC).opacity(0.90),
-        Color(hex: 0xF7F6F3),
-        Color(hex: 0xF5F3EF).opacity(0.90),
-        Color(hex: 0xF2F0EC).opacity(0.85),
-        Color(hex: 0xF0EDE7).opacity(0.90),
-        Color(hex: 0xF4F2EE).opacity(0.85)
+        Color(hex: 0xF6FBF1),
+        Color(hex: 0xF5F9F0).opacity(0.90),
+        Color(hex: 0xF3F8EE).opacity(0.85),
+        Color(hex: 0xF2F7ED).opacity(0.90),
+        Color(hex: 0xF0F5EB),
+        Color(hex: 0xEFF4EA).opacity(0.90),
+        Color(hex: 0xEDF2E8).opacity(0.85),
+        Color(hex: 0xECF1E7).opacity(0.90),
+        Color(hex: 0xEAF0E5).opacity(0.85)
     ]
 
     @ViewBuilder
     static var appFallbackBackground: some View {
         ZStack {
-            Color(hex: 0xF7F6F3)
+            Color(hex: 0xF6FBF1)
             LinearGradient(
                 colors: [
                     gradientBaseTop.opacity(0.50),
@@ -258,13 +275,13 @@ extension Color {
     static let emotionZoneDeficit = Color(light: Color(hex: 0xFDE2E2), dark: Color(hex: 0x2E1A1A))
 
     /// Neutral warm target for gradient fade-out
-    static let emotionZoneNeutral = Color(light: Color(hex: 0xF7F6F3), dark: Color(uiColor: .systemGroupedBackground))
+    static let emotionZoneNeutral = Color(light: Color(hex: 0xF6FBF1), dark: Color(hex: 0x10150F))
 
     /// Legacy gradient (kept for compatibility)
     static let appBackgroundGradient = LinearGradient(
         colors: [
-            Color(light: Color(hex: 0xFAF9F6), dark: Color(hex: 0x1A1A1A)),
-            Color(light: Color(hex: 0xF4F2EE), dark: Color(hex: 0x1A1A1C))
+            Color(light: Color(hex: 0xF6FBF1), dark: Color(hex: 0x10150F)),
+            Color(light: Color(hex: 0xEAF0E5), dark: Color(hex: 0x1C211B))
         ],
         startPoint: .top,
         endPoint: .bottom

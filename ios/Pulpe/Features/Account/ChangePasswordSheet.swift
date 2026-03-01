@@ -82,7 +82,7 @@ struct ChangePasswordSheet: View {
                             if viewModel.canSubmit {
                                 Color.onboardingGradient
                             } else {
-                                Color.surfaceCard
+                                Color.surfaceContainerHigh
                             }
                         }
                         .foregroundStyle(viewModel.canSubmit ? Color.textOnPrimary : Color.textSecondaryOnboarding)
@@ -101,7 +101,7 @@ struct ChangePasswordSheet: View {
                     Button("Annuler") { dismiss() }
                 }
             }
-            .background(Color.surfacePrimary)
+            .background(Color.surface)
         }
     }
 
@@ -237,7 +237,7 @@ struct ChangePasswordSheet: View {
             .buttonStyle(.plain)
         }
         .padding(DesignTokens.Spacing.md)
-        .background(Color.surfaceCard)
+        .background(Color.surfaceContainerHigh)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
         .overlay {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)

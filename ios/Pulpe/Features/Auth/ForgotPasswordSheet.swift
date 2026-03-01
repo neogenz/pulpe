@@ -17,7 +17,7 @@ struct ForgotPasswordSheet: View {
                 }
             }
             .padding(DesignTokens.Spacing.xl)
-            .background(Color.surfacePrimary)
+            .background(Color.surface)
             .navigationTitle("Mot de passe oublié")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -53,7 +53,7 @@ struct ForgotPasswordSheet: View {
                     .autocorrectionDisabled()
                     .focused($isEmailFocused)
                     .padding()
-                    .background(Color.surfaceCard)
+                    .background(Color.surfaceContainerHigh)
                     .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
                     .overlay {
                         RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
@@ -91,7 +91,7 @@ struct ForgotPasswordSheet: View {
                     if viewModel.canSubmit {
                         Color.onboardingGradient
                     } else {
-                        Color.surfaceCard
+                        Color.surfaceContainerHigh
                     }
                 }
                 .foregroundStyle(viewModel.canSubmit ? Color.textOnPrimary : Color.textSecondaryOnboarding)

@@ -33,7 +33,7 @@ struct QuickAmountChips: View {
                         .padding(.horizontal, DesignTokens.Spacing.md)
                         .padding(.vertical, DesignTokens.Spacing.sm)
                         .frame(maxWidth: .infinity)
-                        .background(Color.surfaceSecondary)
+                        .background(Color.surfaceContainer)
                         .foregroundStyle(isSelected ? color : Color.textTertiary)
                         .clipShape(Capsule())
                         .overlay(

@@ -203,8 +203,8 @@ private struct PulpeBackgroundModifier: ViewModifier {
     @ViewBuilder
     private var backgroundView: some View {
         if colorScheme == .dark {
-            // Dark mode: use system background so elevated cards (#1C1C1E) stand out naturally
-            Color(uiColor: .systemGroupedBackground)
+            // Dark mode: M3 surface token — dark green-tinted base
+            Color.surface
         } else if #available(iOS 18.0, *) {
             MeshGradient(
                 width: 3, height: 3,
@@ -212,7 +212,7 @@ private struct PulpeBackgroundModifier: ViewModifier {
                 colors: Color.lightMeshColors
             )
         } else {
-            Color.appFallbackBackground
+            Color.surface
         }
     }
 }
@@ -297,7 +297,7 @@ extension View {
             .presentationDetents(detents)
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(DesignTokens.CornerRadius.xl)
-            .presentationBackground(Color.surfacePrimary)
+            .presentationBackground(Color.surface)
     }
 }
 
@@ -324,7 +324,7 @@ private struct CardBackgroundModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .background(Color.surfaceCard, in: .rect(cornerRadius: cornerRadius))
+            .background(Color.surfaceContainerLowest, in: .rect(cornerRadius: cornerRadius))
     }
 }
 

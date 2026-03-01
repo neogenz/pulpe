@@ -18,7 +18,7 @@ struct PrimaryButtonStyle: ButtonStyle {
                 if isEnabled {
                     Color.onboardingGradient
                 } else {
-                    Color.surfaceCard
+                    Color.surfaceContainerHigh
                 }
             }
             .foregroundStyle(isEnabled ? Color.textOnPrimary : Color.textSecondaryOnboarding)

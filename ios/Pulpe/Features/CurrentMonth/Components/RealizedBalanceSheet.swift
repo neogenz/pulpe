@@ -23,7 +23,7 @@ struct RealizedBalanceSheet: View {
                 }
                 .padding()
             }
-            .background(Color.surfacePrimary)
+            .background(Color.surface)
             .navigationTitle("Suivi du budget")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -76,7 +76,7 @@ struct RealizedBalanceSheet: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.xxl)
-        .background(Color.surfaceCard)
+        .background(Color.surfaceContainerHigh)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
     }
 
@@ -115,7 +115,7 @@ struct RealizedBalanceSheet: View {
             )
         }
         .padding()
-        .background(Color.surfaceCard)
+        .background(Color.surfaceContainerHigh)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
     }
 

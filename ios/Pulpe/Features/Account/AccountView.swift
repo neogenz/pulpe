@@ -71,7 +71,7 @@ struct AccountView: View {
             .sensoryFeedback(.impact, trigger: debugToggleTrigger)
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
-            .background(Color.surfacePrimary)
+            .background(Color.surface)
             .trackScreen("Account")
             .navigationTitle("Compte")
             .toolbar {
@@ -130,7 +130,7 @@ extension AccountView {
             Text("INFORMATIONS PERSONNELLES")
                 .font(PulpeTypography.labelLarge)
         }
-        .listRowBackground(Color.surfaceCard)
+        .listRowBackground(Color.surfaceContainerHigh)
     }
 
     private var securitySection: some View {
@@ -187,7 +187,7 @@ extension AccountView {
             Text("SÉCURITÉ")
                 .font(PulpeTypography.labelLarge)
         }
-        .listRowBackground(Color.surfaceCard)
+        .listRowBackground(Color.surfaceContainerHigh)
     }
 
     private var applicationSection: some View {
@@ -223,7 +223,7 @@ extension AccountView {
                     withAnimation(.easeInOut(duration: DesignTokens.Animation.normal)) { isDebugVisible.toggle() }
                 }
         }
-        .listRowBackground(Color.surfaceCard)
+        .listRowBackground(Color.surfaceContainerHigh)
     }
 
     private var logoutSection: some View {
@@ -235,7 +235,7 @@ extension AccountView {
                     .foregroundStyle(Color.errorPrimary)
             }
         }
-        .listRowBackground(Color.surfaceCard)
+        .listRowBackground(Color.surfaceContainerHigh)
     }
 
     private var dangerZoneSection: some View {

@@ -110,5 +110,5 @@ struct ToastView: View {
         Spacer()
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .background(Color(.systemGroupedBackground))
+    .background(Color.surface)
 }

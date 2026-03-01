@@ -212,7 +212,7 @@ struct AddTemplateLineSheet: View {
                 .padding(.top, DesignTokens.Spacing.xxxl)
                 .padding(.bottom, DesignTokens.Spacing.xl)
             }
-            .background(Color.surfacePrimary)
+            .background(Color.surface)
             .navigationTitle("Nouvelle ligne")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -295,7 +295,7 @@ struct AddTemplateLineSheet: View {
                             .padding(.horizontal, DesignTokens.Spacing.md)
                             .padding(.vertical, DesignTokens.Spacing.sm + 2)
                             .frame(maxWidth: .infinity)
-                            .background(kind == type ? Color.pulpePrimary : Color.surfaceSecondary)
+                            .background(kind == type ? Color.pulpePrimary : Color.surfaceContainer)
                             .foregroundStyle(kind == type ? Color.textOnPrimary : Color.textPrimary)
                             .clipShape(Capsule())
                     }
@@ -325,7 +325,7 @@ struct AddTemplateLineSheet: View {
                             .padding(.horizontal, DesignTokens.Spacing.md)
                             .padding(.vertical, DesignTokens.Spacing.sm + 2)
                             .frame(maxWidth: .infinity)
-                            .background(recurrence == type ? Color.pulpePrimary : Color.surfaceSecondary)
+                            .background(recurrence == type ? Color.pulpePrimary : Color.surfaceContainer)
                             .foregroundStyle(recurrence == type ? Color.textOnPrimary : Color.textPrimary)
                             .clipShape(Capsule())
                     }

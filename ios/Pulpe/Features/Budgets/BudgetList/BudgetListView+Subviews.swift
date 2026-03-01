@@ -87,7 +87,7 @@ struct CurrentMonthHeroCard: View {
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.xl))
             .overlay(
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
-                    .strokeBorder(Color(.separator).opacity(0.15), lineWidth: 1)
+                    .strokeBorder(Color.outlineVariant.opacity(0.15), lineWidth: 1)
             )
             .scaleEffect(isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
@@ -104,7 +104,7 @@ struct CurrentMonthHeroCard: View {
     @ViewBuilder
     private var heroGradientBackground: some View {
         ZStack {
-            Color.surfaceCard
+            Color.surfaceContainerHigh
             LinearGradient(
                 colors: [
                     Color.pulpePrimary.opacity(colorScheme == .dark ? 0.12 : 0.10),
@@ -231,7 +231,7 @@ struct BudgetMonthRow: View {
                             .foregroundStyle(.tertiary)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(Color(.tertiarySystemFill), in: Capsule())
+                            .background(Color.surfaceContainerLow, in: Capsule())
                     }
                     Spacer()
                     if let remaining = budget.remaining {
@@ -307,12 +307,12 @@ struct NextMonthPlaceholder: View {
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, 14)
             .background(
-                Color(.tertiarySystemFill).opacity(colorScheme == .dark ? 0.5 : 0.4)
+                Color.surfaceContainerLow.opacity(colorScheme == .dark ? 0.5 : 0.4)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg)
                     .strokeBorder(
-                        Color(.separator).opacity(0.3),
+                        Color.outlineVariant.opacity(0.3),
                         style: StrokeStyle(lineWidth: 1, dash: [8, 4])
                     )
             )

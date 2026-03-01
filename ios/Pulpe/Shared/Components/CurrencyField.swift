@@ -160,7 +160,7 @@ struct CurrencyField: View {
         case .onboarding:
             return Color.authInputBackground
         case .flat:
-            return Color.surfaceSecondary
+            return Color.surfaceContainer
         }
     }
 

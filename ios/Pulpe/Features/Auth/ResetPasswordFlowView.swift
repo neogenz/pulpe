@@ -27,7 +27,7 @@ struct ResetPasswordFlowView: View {
                 }
             }
             .padding(DesignTokens.Spacing.xl)
-            .background(Color.surfacePrimary)
+            .background(Color.surface)
             .navigationTitle("Réinitialiser le mot de passe")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -126,7 +126,7 @@ struct ResetPasswordFlowView: View {
                     if viewModel.canSubmit {
                         Color.onboardingGradient
                     } else {
-                        Color.surfaceCard
+                        Color.surfaceContainerHigh
                     }
                 }
                 .foregroundStyle(viewModel.canSubmit ? Color.textOnPrimary : Color.textSecondaryOnboarding)
@@ -145,7 +145,7 @@ struct ResetPasswordFlowView: View {
                 .focused($focusedField, equals: .newPassword)
                 .textContentType(.newPassword)
                 .padding()
-                .background(Color.surfaceCard)
+                .background(Color.surfaceContainerHigh)
                 .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
                 .overlay {
                     RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
@@ -163,7 +163,7 @@ struct ResetPasswordFlowView: View {
                 .focused($focusedField, equals: .confirmPassword)
                 .textContentType(.newPassword)
                 .padding()
-                .background(Color.surfaceCard)
+                .background(Color.surfaceContainerHigh)
                 .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
                 .overlay {
                     RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
