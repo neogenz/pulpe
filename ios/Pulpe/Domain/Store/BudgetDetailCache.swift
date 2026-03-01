@@ -54,13 +54,10 @@ final class BudgetDetailCache {
         )
 
         // Evict oldest entry if cache exceeds max size
-        if entries.count > maxEntries {
-            let oldest = entries
-                .filter { $0.key != budgetId }
-                .min { $0.value.fetchedAt < $1.value.fetchedAt }
-            if let key = oldest?.key {
-                entries[key] = nil
-            }
+        if entries.count > maxEntries,
+           let oldest = entries.min(by: { $0.value.fetchedAt < $1.value.fetchedAt }),
+           oldest.key != budgetId {
+            entries.removeValue(forKey: oldest.key)
         }
     }
 

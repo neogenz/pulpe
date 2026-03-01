@@ -411,11 +411,7 @@ extension CurrentMonthStore {
             .sorted { $0.createdAt > $1.createdAt }
     }
 
-    var freeTransactions: [Transaction] {
-        transactions
-            .filter { $0.budgetLineId == nil }
-            .sorted { $0.transactionDate > $1.transactionDate }
-    }
+    var freeTransactions: [Transaction] { transactions.unallocated }
 }
 
 // MARK: - Mutations

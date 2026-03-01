@@ -13,6 +13,7 @@ final class AppRuntimeCoordinator {
     private let dashboardStore: DashboardStore
     private let widgetSyncViewModel: WidgetSyncViewModel
     private var foregroundTask: Task<Void, Never>?
+    private var hasTrackedInitialOpen = false
 
     init(
         appState: AppState,
@@ -45,10 +46,11 @@ final class AppRuntimeCoordinator {
             withAnimation(.easeInOut(duration: 0.25)) {
                 privacyShieldActive = false
             }
-            // Only fire app_opened when returning from background (not notification center dismiss).
-            // Cold start is captured in AnalyticsService.initialize().
-            if oldPhase == .background {
+            // Fire app_opened on cold start (first activation) and warm returns from background.
+            // Skips notification center / control center dismissals (inactive → active after initial).
+            if !hasTrackedInitialOpen || oldPhase == .background {
                 AnalyticsService.shared.capture(.appOpened)
+                hasTrackedInitialOpen = true
             }
         }
 

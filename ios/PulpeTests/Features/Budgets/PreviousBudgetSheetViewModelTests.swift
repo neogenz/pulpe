@@ -15,10 +15,10 @@ struct PreviousBudgetSheetViewModelTests {
     }
 
     @Test
-    func init_startsInIdleState() {
+    func init_startsInLoadingState_whenNoCachedData() {
         let viewModel = PreviousBudgetSheetViewModel(budgetId: "test")
 
-        #expect(viewModel.isLoading == false)
+        #expect(viewModel.isLoading == true)
         #expect(viewModel.budget == nil)
         #expect(viewModel.budgetLines.isEmpty)
         #expect(viewModel.transactions.isEmpty)

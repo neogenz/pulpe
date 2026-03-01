@@ -14,11 +14,7 @@ struct BudgetPreviewStep: View {
             step: .budgetPreview,
             state: state,
             canProceed: true,
-            onNext: {
-                let step = OnboardingStep.budgetPreview.analyticsName
-                AnalyticsService.shared.capture(.onboardingStepCompleted, properties: ["step": step])
-                state.nextStep()
-            },
+            onNext: { state.nextStep() },
             content: {
                 VStack(spacing: DesignTokens.Spacing.xxxl) {
                     heroSection

@@ -9,3 +9,10 @@ extension Transaction {
         }
     }
 }
+
+extension Array where Element == Transaction {
+    /// Transactions not allocated to any budget line, sorted by date (newest first)
+    var unallocated: [Transaction] {
+        filter { $0.budgetLineId == nil }.sorted { $0.transactionDate > $1.transactionDate }
+    }
+}
