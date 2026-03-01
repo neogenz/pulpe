@@ -173,7 +173,31 @@ Checklist before creating the issue:
 
 Then create the issue via `create_issue` with the story as `description`.
 
-### 6. Issue Triage
+### 6. Estimation & Vélocité
+
+#### Estimer une issue
+
+Lors de la création ou du triage d'une issue, toujours attribuer des **story points** selon le barème défini dans `references/user-story-format.md`. Passer le champ `estimate` à Linear via `save_issue`.
+
+#### Calculer la vélocité d'un sprint
+
+1. Fetch les issues "Done" du sprint : `list_issues` avec `cycle: "Sprint N"`, `state: "Done"`, `team: "Pulpe"`
+2. Pour chaque issue, évaluer les story points selon le barème (2, 3, 5, 8, 13, 20) en analysant :
+   - Le nombre de couches touchées (packages)
+   - La complexité technique (crypto, architecture, business logic)
+   - Le type (bug vs feature vs refactoring)
+3. Présenter un tableau récapitulatif avec justification pour chaque issue
+4. Demander validation avant de mettre à jour les estimates sur Linear
+5. Mettre à jour toutes les issues en parallèle via `save_issue` avec le champ `estimate`
+6. Afficher le total : **Vélocité Sprint N = X points**
+
+#### Référence vélocité
+
+| Sprint | Points | Heures investies | Pts/heure | Période |
+|--------|--------|-----------------|-----------|---------|
+| Sprint 1 | 127 | 40h | ~3.2 | 13 fév — 1 mar 2026 |
+
+### 7. Issue Triage
 
 When asked to triage or review an issue:
 1. Fetch the issue: `get_issue` with the issue ID
@@ -181,7 +205,7 @@ When asked to triage or review an issue:
 3. Suggest: correct labels, project assignment, acceptance criteria, story points estimate, implementation hints
 4. Apply changes via `update_issue` if the user approves
 
-### 7. Update / Close Issues
+### 8. Update / Close Issues
 
 Update an issue:
 - `update_issue` with `id` and changed fields (state, labels, project, priority, assignee, etc.)
@@ -190,7 +214,7 @@ Close an issue:
 - `update_issue` with `state: "Done"` or `state: "Canceled"`
 - Add a comment via `create_comment` with the reason
 
-### 8. Search Issues
+### 9. Search Issues
 
 Search by keyword:
 - `list_issues` with `query: "keyword"`, `team: "Pulpe"`
