@@ -238,6 +238,7 @@ struct BudgetDetailsView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .listRowSpacing(0)
         .listSectionSpacing(DesignTokens.Spacing.xxl)
         .scrollContentBackground(.hidden)
         .pulpeBackground()
