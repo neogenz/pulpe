@@ -78,7 +78,13 @@ struct HeroBalanceCard: View {
     }
 
     private var formattedBalance: String {
-        Self.compactFormatter.string(from: abs(metrics.remaining) as NSDecimalNumber) ?? "0"
+        let prefix = metrics.isDeficit ? "-" : ""
+        let value = Self.compactFormatter.string(from: abs(metrics.remaining) as NSDecimalNumber) ?? "0"
+        return "\(prefix)\(value)"
+    }
+
+    private var formattedAvailable: String {
+        "sur \(Self.compactFormatter.string(from: metrics.available as NSDecimalNumber) ?? "0")"
     }
 
     private var metricBarMax: Decimal {
@@ -170,16 +176,15 @@ struct HeroBalanceCard: View {
                         .contentTransition(.numericText())
                         .sensitiveAmount()
 
-                    Text(contextLabel)
-                        .font(PulpeTypography.labelLarge)
+                    Text(formattedAvailable)
+                        .font(PulpeTypography.labelMedium)
                         .foregroundStyle(.white.opacity(0.6))
-                        .tracking(1.2)
                 }
             }
             .frame(width: ringSize, height: ringSize)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(contextLabel) \(formattedBalance) CHF")
+        .accessibilityLabel("\(formattedBalance) CHF \(formattedAvailable)")
         .accessibilityAddTraits(.isButton)
     }
 
