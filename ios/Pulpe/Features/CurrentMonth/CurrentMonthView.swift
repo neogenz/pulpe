@@ -112,8 +112,12 @@ struct CurrentMonthView: View {
         .onChange(of: navigateToBudget) { _, shouldNavigate in
             if shouldNavigate, let budgetId = store.budget?.id {
                 navigateToBudget = false
-                // Clear path while Budgets tab is offscreen (user sees nothing)
-                appState.budgetPath = NavigationPath()
+                // Clear path without animation while Budgets tab is offscreen
+                var transaction = SwiftUI.Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    appState.budgetPath = NavigationPath()
+                }
                 // Next run loop: old view is destroyed, push fresh + switch tab
                 Task { @MainActor in
                     appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
