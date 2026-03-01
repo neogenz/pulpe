@@ -99,6 +99,15 @@ struct BudgetLineUpdate: Encodable {
     var checkedAt: Date?
 }
 
+// MARK: - Collection Helpers
+
+extension Array where Element == BudgetLine {
+    /// Filter budget lines by kind, sorted by creation date (newest first)
+    func byKind(_ kind: TransactionKind) -> [BudgetLine] {
+        filter { $0.kind == kind }.sorted { $0.createdAt > $1.createdAt }
+    }
+}
+
 // MARK: - Virtual Rollover Line Factory
 
 extension BudgetLine {

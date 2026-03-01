@@ -65,7 +65,7 @@ struct TemplateListView: View {
             await viewModel.loadTemplates()
         }
         .task {
-            await viewModel.loadTemplates()
+            await viewModel.loadIfNeeded()
         }
     }
 
@@ -191,9 +191,20 @@ final class TemplateListViewModel {
     private(set) var error: Error?
 
     private let templateService = TemplateService.shared
+    private var lastLoadTime: Date?
 
     var isLimitReached: Bool {
         templates.count >= AppConfiguration.maxTemplates
+    }
+
+    func loadIfNeeded() async {
+        guard templates.isEmpty || !isCacheValid else { return }
+        await loadTemplates()
+    }
+
+    private var isCacheValid: Bool {
+        guard let lastLoad = lastLoadTime else { return false }
+        return Date().timeIntervalSince(lastLoad) < AppConfiguration.shortCacheValidity
     }
 
     func loadTemplates() async {
@@ -211,6 +222,7 @@ final class TemplateListViewModel {
             }
 
             templates = fetched
+            lastLoadTime = Date()
         } catch is CancellationError {
             // Task was cancelled, don't update error state
         } catch {

@@ -31,7 +31,6 @@ final class AnalyticsService {
         ])
 
         isInitialized = true
-        capture(.appOpened)
     }
 
     // MARK: - Event Capture
@@ -88,8 +87,7 @@ final class AnalyticsService {
     static func sanitizeProperties(_ properties: [String: Any]) -> [String: Any] {
         guard !properties.isEmpty else { return properties }
         return properties.filter { key, _ in
-            let components = key.split(separator: "_").map { String($0) }
-            return !components.contains(where: { financialWords.contains($0) })
+            return !key.split(separator: "_").contains { financialWords.contains(String($0)) }
         }
     }
 }

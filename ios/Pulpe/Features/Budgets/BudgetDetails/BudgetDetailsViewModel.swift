@@ -43,6 +43,7 @@ final class BudgetDetailsViewModel {
     private let budgetService = BudgetService.shared
     private let budgetLineService = BudgetLineService.shared
     private let transactionService = TransactionService.shared
+    private let cache = BudgetDetailCache.shared
 
     init(budgetId: String) {
         self.budgetId = budgetId
@@ -51,6 +52,18 @@ final class BudgetDetailsViewModel {
             forKey: BudgetDetailsUserDefaultsKey.showOnlyUnchecked
         ) as? Bool ?? true
         self.checkedFilter = showOnlyUnchecked ? .unchecked : .all
+
+        // Pre-populate from cache to avoid skeleton on revisit
+        if let cached = cache.get(budgetId: budgetId) {
+            self.budget = cached.budget
+            self.budgetLines = cached.budgetLines
+            self.transactions = cached.transactions
+            recomputeMetrics()
+        }
+        if let cachedBudgets = cache.getAllBudgets() {
+            self.allBudgets = cachedBudgets
+            updateAdjacentBudgets()
+        }
     }
 
     func setCheckedFilter(_ filter: CheckedFilterOption) {
@@ -65,52 +78,73 @@ final class BudgetDetailsViewModel {
     var hasNextBudget: Bool { nextBudgetId != nil }
 
     /// Prepare navigation by changing the budgetId (synchronous)
-    /// Old data stays visible until new data arrives via reloadCurrentBudget()
+    /// Pre-populates from cache if available, otherwise clears stale data so skeleton shows
     func prepareNavigation(to id: String) {
         budgetId = id
+        if let cached = cache.get(budgetId: id) {
+            budget = cached.budget
+            budgetLines = cached.budgetLines
+            transactions = cached.transactions
+            recomputeMetrics()
+            updateAdjacentBudgets()
+        } else {
+            // No cache — clear stale data so skeleton shows while loading
+            budget = nil
+            budgetLines = []
+            transactions = []
+            cachedMetrics = nil
+        }
     }
 
     var metrics: BudgetFormulas.Metrics {
-        if let cached = cachedMetrics {
-            return cached
-        }
-        let calculated = BudgetFormulas.calculateAllMetrics(
+        cachedMetrics ?? BudgetFormulas.calculateAllMetrics(
             budgetLines: budgetLines,
             transactions: transactions,
             rollover: budget?.rollover.orZero ?? 0
         )
-        cachedMetrics = calculated
-        return calculated
     }
 
-    /// Invalidate cached metrics when data changes
-    private func invalidateMetricsCache() {
-        cachedMetrics = nil
+    /// Recompute and cache metrics - call after data changes
+    private func recomputeMetrics() {
+        cachedMetrics = BudgetFormulas.calculateAllMetrics(
+            budgetLines: budgetLines,
+            transactions: transactions,
+            rollover: budget?.rollover.orZero ?? 0
+        )
     }
 
-    var incomeLines: [BudgetLine] {
-        budgetLines
-            .filter { $0.kind == .income }
-            .sorted { $0.createdAt > $1.createdAt }
+    /// Apply fetched details to local state, recompute metrics, and update cache.
+    private func applyDetails(_ details: BudgetDetails) {
+        budget = details.budget
+        budgetLines = details.budgetLines
+        transactions = details.transactions
+        recomputeMetrics()
+        updateAdjacentBudgets()
+        cache.store(
+            budgetId: budgetId,
+            budget: details.budget,
+            budgetLines: details.budgetLines,
+            transactions: details.transactions
+        )
     }
 
-    var expenseLines: [BudgetLine] {
-        budgetLines
-            .filter { $0.kind == .expense }
-            .sorted { $0.createdAt > $1.createdAt }
+    /// Sync current in-memory state to the detail cache so popping back and re-entering
+    /// doesn't flash stale data after an optimistic mutation.
+    private func syncCache() {
+        guard let budget else { return }
+        cache.store(budgetId: budgetId, budget: budget, budgetLines: budgetLines, transactions: transactions)
     }
 
-    var savingLines: [BudgetLine] {
-        budgetLines
-            .filter { $0.kind == .saving }
-            .sorted { $0.createdAt > $1.createdAt }
+    /// Invalidate cached data for adjacent months so rollover values are re-fetched.
+    private func invalidateAdjacentCache() {
+        if let prevId = previousBudgetId { cache.invalidate(budgetId: prevId) }
+        if let nextId = nextBudgetId { cache.invalidate(budgetId: nextId) }
     }
 
-    var freeTransactions: [Transaction] {
-        transactions
-            .filter { $0.budgetLineId == nil }
-            .sorted { $0.transactionDate > $1.transactionDate }
-    }
+    var incomeLines: [BudgetLine] { budgetLines.byKind(.income) }
+    var expenseLines: [BudgetLine] { budgetLines.byKind(.expense) }
+    var savingLines: [BudgetLine] { budgetLines.byKind(.saving) }
+    var freeTransactions: [Transaction] { transactions.unallocated }
 
     // MARK: - Filtered Lines (based on checked filter)
 
@@ -177,8 +211,13 @@ final class BudgetDetailsViewModel {
     }
 
     /// Full load: fetches budget details AND all budgets list (for month navigation)
-    /// Use for: initial load, pull-to-refresh
-    func loadDetails() async {
+    /// Use for: initial load (force=false), pull-to-refresh (force=true)
+    func loadDetails(force: Bool = false) async {
+        // If cache already pre-populated data, skip fetch (unless forced by pull-to-refresh)
+        if !force, budget != nil, !allBudgets.isEmpty, cache.get(budgetId: budgetId) != nil {
+            return
+        }
+
         let showsSkeleton = budget == nil
         isLoading = true
         error = nil
@@ -195,12 +234,9 @@ final class BudgetDetailsViewModel {
                 try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
             }
 
-            budget = details.budget
-            budgetLines = details.budgetLines
-            transactions = details.transactions
+            applyDetails(details)
             allBudgets = budgets
-            invalidateMetricsCache()
-            updateAdjacentBudgets()
+            cache.storeAllBudgets(budgets)
         } catch is CancellationError {
             // Task was cancelled, don't update error state
         } catch {
@@ -217,11 +253,7 @@ final class BudgetDetailsViewModel {
 
         do {
             let details = try await budgetService.getBudgetWithDetails(id: budgetId)
-            budget = details.budget
-            budgetLines = details.budgetLines
-            transactions = details.transactions
-            invalidateMetricsCache()
-            updateAdjacentBudgets()
+            applyDetails(details)
         } catch is CancellationError {
             // Task was cancelled, don't update error state
         } catch {
@@ -302,16 +334,18 @@ final class BudgetDetailsViewModel {
         let originalLines = budgetLines
         if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
             budgetLines[index] = line.toggled()
-            invalidateMetricsCache()
+            recomputeMetrics()
+            syncCache()
+            invalidateAdjacentCache()
         }
 
         do {
             _ = try await budgetLineService.toggleCheck(id: line.id)
-            await reloadCurrentBudget()
             return true
         } catch {
             budgetLines = originalLines
-            invalidateMetricsCache()
+            recomputeMetrics()
+            syncCache()
             self.error = error
             return false
         }
@@ -350,9 +384,10 @@ final class BudgetDetailsViewModel {
                 transactions[index] = tx.toggled()
             }
         }
-        invalidateMetricsCache()
+        recomputeMetrics()
 
-        // Parallel API calls
+        // Parallel API calls — track failures
+        var hadFailure = false
         await withTaskGroup(of: (String, Bool).self) { group in
             for tx in unchecked {
                 group.addTask {
@@ -365,14 +400,21 @@ final class BudgetDetailsViewModel {
                 }
             }
 
-            await group.waitForAll()
+            for await (_, success) in group where !success {
+                hadFailure = true
+            }
         }
 
-        // Clear syncing state and reload
+        // Clear syncing state
         for tx in unchecked {
             syncingTransactionIds.remove(tx.id)
         }
-        await reloadCurrentBudget()
+        syncCache()
+
+        // Only reload to reconcile if some calls failed
+        if hadFailure {
+            await reloadCurrentBudget()
+        }
     }
 
     func toggleTransaction(_ transaction: Transaction) async {
@@ -383,15 +425,17 @@ final class BudgetDetailsViewModel {
         let originalTransactions = transactions
         if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
             transactions[index] = transaction.toggled()
-            invalidateMetricsCache()
+            recomputeMetrics()
+            syncCache()
+            invalidateAdjacentCache()
         }
 
         do {
             _ = try await transactionService.toggleCheck(id: transaction.id)
-            await reloadCurrentBudget()
         } catch {
             transactions = originalTransactions
-            invalidateMetricsCache()
+            recomputeMetrics()
+            syncCache()
             self.error = error
         }
 
@@ -406,7 +450,9 @@ final class BudgetDetailsViewModel {
 
         // Remove from UI immediately (optimistic)
         transactions.removeAll { $0.id == transaction.id }
-        invalidateMetricsCache()
+        recomputeMetrics()
+        syncCache()
+        invalidateAdjacentCache()
 
         // Show undo toast - actual deletion happens when toast dismisses
         toastManager.showWithUndo("Transaction supprimée") { [weak self] in
@@ -415,7 +461,8 @@ final class BudgetDetailsViewModel {
             self.pendingDeleteTasks[transaction.id] = nil
             guard !self.transactions.contains(where: { $0.id == transaction.id }) else { return }
             self.transactions.append(transaction)
-            self.invalidateMetricsCache()
+            self.recomputeMetrics()
+            self.syncCache()
         }
 
         // Schedule actual deletion after toast timeout
@@ -433,11 +480,11 @@ final class BudgetDetailsViewModel {
     private func commitDeleteTransaction(_ transaction: Transaction) async {
         do {
             try await transactionService.deleteTransaction(id: transaction.id)
-            await reloadCurrentBudget()
         } catch {
             // Restore on error
             transactions.append(transaction)
-            invalidateMetricsCache()
+            recomputeMetrics()
+            syncCache()
             self.error = error
         }
     }
@@ -446,26 +493,32 @@ final class BudgetDetailsViewModel {
         // Optimistic update
         let originalTransactions = transactions
         transactions.removeAll { $0.id == transaction.id }
-        invalidateMetricsCache()
+        recomputeMetrics()
+        syncCache()
+        invalidateAdjacentCache()
 
         do {
             try await transactionService.deleteTransaction(id: transaction.id)
-            await reloadCurrentBudget()
         } catch {
             transactions = originalTransactions
-            invalidateMetricsCache()
+            recomputeMetrics()
+            syncCache()
             self.error = error
         }
     }
 
     func addTransaction(_ transaction: Transaction) {
         transactions.append(transaction)
-        invalidateMetricsCache()
+        recomputeMetrics()
+        syncCache()
+        invalidateAdjacentCache()
     }
 
     func addBudgetLine(_ budgetLine: BudgetLine) {
         budgetLines.append(budgetLine)
-        invalidateMetricsCache()
+        recomputeMetrics()
+        syncCache()
+        invalidateAdjacentCache()
     }
 
     /// Soft delete with undo support - removes from UI immediately but delays API call
@@ -477,7 +530,9 @@ final class BudgetDetailsViewModel {
 
         // Remove from UI immediately (optimistic)
         budgetLines.removeAll { $0.id == line.id }
-        invalidateMetricsCache()
+        recomputeMetrics()
+        syncCache()
+        invalidateAdjacentCache()
 
         // Show undo toast
         toastManager.showWithUndo("Prévision supprimée") { [weak self] in
@@ -486,7 +541,8 @@ final class BudgetDetailsViewModel {
             self.pendingDeleteTasks[line.id] = nil
             guard !self.budgetLines.contains(where: { $0.id == line.id }) else { return }
             self.budgetLines.append(line)
-            self.invalidateMetricsCache()
+            self.recomputeMetrics()
+            self.syncCache()
         }
 
         // Schedule actual deletion after toast timeout
@@ -504,11 +560,11 @@ final class BudgetDetailsViewModel {
     private func commitDeleteBudgetLine(_ line: BudgetLine) async {
         do {
             try await budgetLineService.deleteBudgetLine(id: line.id)
-            await reloadCurrentBudget()
         } catch {
             // Restore on error
             budgetLines.append(line)
-            invalidateMetricsCache()
+            recomputeMetrics()
+            syncCache()
             self.error = error
         }
     }
@@ -519,14 +575,16 @@ final class BudgetDetailsViewModel {
         // Optimistic update
         let originalLines = budgetLines
         budgetLines.removeAll { $0.id == line.id }
-        invalidateMetricsCache()
+        recomputeMetrics()
+        syncCache()
+        invalidateAdjacentCache()
 
         do {
             try await budgetLineService.deleteBudgetLine(id: line.id)
-            await reloadCurrentBudget()
         } catch {
             budgetLines = originalLines
-            invalidateMetricsCache()
+            recomputeMetrics()
+            syncCache()
             self.error = error
         }
     }
@@ -537,7 +595,9 @@ final class BudgetDetailsViewModel {
         // Optimistic update
         if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
             budgetLines[index] = line
-            invalidateMetricsCache()
+            recomputeMetrics()
+            syncCache()
+            invalidateAdjacentCache()
         }
 
         // Reload to sync with server
@@ -548,7 +608,9 @@ final class BudgetDetailsViewModel {
         // Optimistic update
         if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
             transactions[index] = transaction
-            invalidateMetricsCache()
+            recomputeMetrics()
+            syncCache()
+            invalidateAdjacentCache()
         }
 
         // Reload to sync with server

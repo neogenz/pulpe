@@ -106,7 +106,7 @@ final class CurrentMonthStore: StoreProtocol {
             try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
 
             budget = fetchedBudget
-            invalidateMetricsCache()
+            recomputeMetrics()
         } catch is CancellationError {
             // Task was cancelled, don't update error state
         } catch let apiError as APIError {
@@ -124,6 +124,12 @@ final class CurrentMonthStore: StoreProtocol {
 
     /// Full data loading - called when view needs transactions and budget lines
     private func loadDetails() async {
+        // If a forceRefresh is already in progress, piggyback on it
+        if let existingTask = loadTask {
+            await existingTask.value
+            return
+        }
+
         guard let currentBudget = budget else {
             // No budget summary loaded yet, load everything
             await forceRefresh()
@@ -136,11 +142,7 @@ final class CurrentMonthStore: StoreProtocol {
 
         do {
             let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
-            budget = details.budget
-            budgetLines = details.budgetLines
-            transactions = details.transactions
-            invalidateMetricsCache()
-            lastLoadTime = Date()
+            applyDetails(details)
         } catch is CancellationError {
             // Task was cancelled, don't update error state
         } catch let apiError as APIError {
@@ -153,6 +155,11 @@ final class CurrentMonthStore: StoreProtocol {
     /// Update the stored payDayOfMonth so subsequent forceRefresh() calls use the correct period
     func setPayDay(_ payDay: Int?) {
         payDayOfMonth = payDay
+    }
+
+    /// Invalidates the cache so the next `loadDetailsIfNeeded()` / `loadIfNeeded()` will re-fetch.
+    func invalidateCache() {
+        lastLoadTime = nil
     }
 
     func loadIfNeeded() async {
@@ -176,6 +183,7 @@ final class CurrentMonthStore: StoreProtocol {
         cachedMetrics = nil
         cachedRealizedMetrics = nil
         error = nil
+        BudgetDetailCache.shared.invalidateAll()
     }
 
     func forceRefresh() async {
@@ -202,7 +210,7 @@ final class CurrentMonthStore: StoreProtocol {
                     budget = nil
                     budgetLines = []
                     transactions = []
-                    invalidateMetricsCache()
+                    recomputeMetrics()
                     lastLoadTime = Date()
                     return
                 }
@@ -216,11 +224,7 @@ final class CurrentMonthStore: StoreProtocol {
                     try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
                 }
 
-                budget = details.budget
-                budgetLines = details.budgetLines
-                transactions = details.transactions
-                invalidateMetricsCache()
-                lastLoadTime = Date()
+                applyDetails(details)
             } catch is CancellationError {
                 // Task was cancelled, don't update error state
             } catch let apiError as APIError {
@@ -265,8 +269,23 @@ final class CurrentMonthStore: StoreProtocol {
         )
     }
 
+    /// Apply fetched details to local state, recompute metrics, and update cache.
+    private func applyDetails(_ details: BudgetDetails) {
+        budget = details.budget
+        budgetLines = details.budgetLines
+        transactions = details.transactions
+        recomputeMetrics()
+        lastLoadTime = Date()
+        BudgetDetailCache.shared.store(
+            budgetId: details.budget.id,
+            budget: details.budget,
+            budgetLines: details.budgetLines,
+            transactions: details.transactions
+        )
+    }
+
     /// Recompute and cache metrics - call after data changes
-    private func invalidateMetricsCache() {
+    private func recomputeMetrics() {
         cachedMetrics = BudgetFormulas.calculateAllMetrics(
             budgetLines: budgetLines,
             transactions: transactions,
@@ -390,11 +409,7 @@ extension CurrentMonthStore {
             .sorted { $0.createdAt > $1.createdAt }
     }
 
-    var freeTransactions: [Transaction] {
-        transactions
-            .filter { $0.budgetLineId == nil }
-            .sorted { $0.transactionDate > $1.transactionDate }
-    }
+    var freeTransactions: [Transaction] { transactions.unallocated }
 }
 
 // MARK: - Mutations
@@ -414,7 +429,7 @@ extension CurrentMonthStore {
         let originalLines = budgetLines
         if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
             budgetLines[index] = line.toggled()
-            invalidateMetricsCache()
+            recomputeMetrics()
         }
 
         do {
@@ -425,12 +440,12 @@ extension CurrentMonthStore {
             // Only refresh on error to rollback
             budgetLines = originalLines
             self.error = apiError
-            invalidateMetricsCache()
+            recomputeMetrics()
             await forceRefresh()
         } catch {
             budgetLines = originalLines
             self.error = .networkError(error)
-            invalidateMetricsCache()
+            recomputeMetrics()
             await forceRefresh()
         }
 
@@ -448,7 +463,7 @@ extension CurrentMonthStore {
         let originalTransactions = transactions
         if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
             transactions[index] = transaction.toggled()
-            invalidateMetricsCache()
+            recomputeMetrics()
         }
 
         do {
@@ -459,12 +474,12 @@ extension CurrentMonthStore {
             // Only refresh on error to rollback
             transactions = originalTransactions
             self.error = apiError
-            invalidateMetricsCache()
+            recomputeMetrics()
             await forceRefresh()
         } catch {
             transactions = originalTransactions
             self.error = .networkError(error)
-            invalidateMetricsCache()
+            recomputeMetrics()
             await forceRefresh()
         }
 
@@ -473,7 +488,7 @@ extension CurrentMonthStore {
 
     func addTransaction(_ transaction: Transaction) {
         transactions.append(transaction)
-        invalidateMetricsCache()
+        recomputeMetrics()
         syncWidgetAfterChange()
     }
 
@@ -481,18 +496,19 @@ extension CurrentMonthStore {
         // Optimistic update
         let originalTransactions = transactions
         transactions.removeAll { $0.id == transaction.id }
-        invalidateMetricsCache()
+        recomputeMetrics()
 
         do {
             try await transactionService.deleteTransaction(id: transaction.id)
+            syncWidgetAfterChange()
         } catch let apiError as APIError {
             transactions = originalTransactions
             self.error = apiError
-            invalidateMetricsCache()
+            recomputeMetrics()
         } catch {
             transactions = originalTransactions
             self.error = .networkError(error)
-            invalidateMetricsCache()
+            recomputeMetrics()
         }
     }
 
@@ -503,18 +519,18 @@ extension CurrentMonthStore {
         // Optimistic update
         let originalLines = budgetLines
         budgetLines.removeAll { $0.id == line.id }
-        invalidateMetricsCache()
+        recomputeMetrics()
 
         do {
             try await budgetLineService.deleteBudgetLine(id: line.id)
         } catch let apiError as APIError {
             budgetLines = originalLines
             self.error = apiError
-            invalidateMetricsCache()
+            recomputeMetrics()
         } catch {
             budgetLines = originalLines
             self.error = .networkError(error)
-            invalidateMetricsCache()
+            recomputeMetrics()
         }
     }
 
@@ -524,7 +540,7 @@ extension CurrentMonthStore {
         // Optimistic update
         if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
             budgetLines[index] = line
-            invalidateMetricsCache()
+            recomputeMetrics()
         }
 
         // Refresh to get server state (needed for recalculations)
@@ -535,7 +551,7 @@ extension CurrentMonthStore {
         // Optimistic update
         if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
             transactions[index] = transaction
-            invalidateMetricsCache()
+            recomputeMetrics()
         }
         await forceRefresh()
     }

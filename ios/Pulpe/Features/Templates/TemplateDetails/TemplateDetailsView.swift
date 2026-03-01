@@ -29,7 +29,7 @@ struct TemplateDetailsView: View {
         .navigationTitle(viewModel.template?.name ?? "Modèle")
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            await viewModel.loadDetails()
+            await viewModel.loadIfNeeded()
         }
         .sheet(item: $selectedLineForEdit) { line in
             EditTemplateLineSheet(templateLine: line) { updatedLine in
@@ -164,6 +164,7 @@ final class TemplateDetailsViewModel {
     private(set) var lines: [TemplateLine] = []
     private(set) var isLoading = false
     private(set) var error: Error?
+    private var hasLoadedOnce = false
 
     private let templateService = TemplateService.shared
 
@@ -187,6 +188,11 @@ final class TemplateDetailsViewModel {
         lines.filter { $0.kind == .saving }
     }
 
+    func loadIfNeeded() async {
+        guard !hasLoadedOnce else { return }
+        await loadDetails()
+    }
+
     func loadDetails() async {
         let showsSkeleton = template == nil
         isLoading = true
@@ -206,6 +212,7 @@ final class TemplateDetailsViewModel {
 
             template = fetchedTemplate
             lines = fetchedLines
+            hasLoadedOnce = true
         } catch is CancellationError {
             // Task was cancelled, don't update error state
         } catch {

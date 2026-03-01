@@ -15,14 +15,36 @@ struct PreviousBudgetSheetViewModelTests {
     }
 
     @Test
-    func init_startsInIdleState() {
+    func init_startsInLoadingState_whenNoCachedData() {
         let viewModel = PreviousBudgetSheetViewModel(budgetId: "test")
 
-        #expect(viewModel.isLoading == false)
+        #expect(viewModel.isLoading == true)
         #expect(viewModel.budget == nil)
         #expect(viewModel.budgetLines.isEmpty)
         #expect(viewModel.transactions.isEmpty)
         #expect(viewModel.error == nil)
+    }
+
+    @Test
+    func init_prePopulatesFromCache_whenCachedDataExists() {
+        let budget = TestDataFactory.createBudget(id: "cached-budget")
+        let line = TestDataFactory.createBudgetLine(id: "line-1", kind: .expense)
+        let tx = TestDataFactory.createTransaction(id: "tx-1")
+
+        BudgetDetailCache.shared.store(
+            budgetId: budget.id,
+            budget: budget,
+            budgetLines: [line],
+            transactions: [tx]
+        )
+        defer { BudgetDetailCache.shared.invalidate(budgetId: budget.id) }
+
+        let viewModel = PreviousBudgetSheetViewModel(budgetId: budget.id)
+
+        #expect(viewModel.isLoading == false)
+        #expect(viewModel.budget != nil)
+        #expect(viewModel.budgetLines.count == 1)
+        #expect(viewModel.transactions.count == 1)
     }
 
     // MARK: - Line Categorization

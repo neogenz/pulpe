@@ -98,6 +98,10 @@ final class OnboardingState {
               currentIndex < OnboardingStep.allCases.count - 1 else {
             return
         }
+        // Track onboarding step completions (skip welcome — it has its own event)
+        if currentStep != .welcome {
+            AnalyticsService.shared.capture(.onboardingStepCompleted, properties: ["step": currentStep.analyticsName])
+        }
         isMovingForward = true
         withAnimation(PulpeAnimations.stepTransition) {
             currentStep = OnboardingStep.allCases[currentIndex + 1]

@@ -12,6 +12,8 @@ final class AppRuntimeCoordinator {
     private let budgetListStore: BudgetListStore
     private let dashboardStore: DashboardStore
     private let widgetSyncViewModel: WidgetSyncViewModel
+    private var foregroundTask: Task<Void, Never>?
+    private var hasTrackedInitialOpen = false
 
     init(
         appState: AppState,
@@ -44,10 +46,11 @@ final class AppRuntimeCoordinator {
             withAnimation(.easeInOut(duration: 0.25)) {
                 privacyShieldActive = false
             }
-            // Only fire app_opened when returning from background (not notification center dismiss).
-            // Cold start is captured in AnalyticsService.initialize().
-            if oldPhase == .background {
+            // Fire app_opened on cold start (first activation) and warm returns from background.
+            // Skips notification center / control center dismissals (inactive → active after initial).
+            if !hasTrackedInitialOpen || oldPhase == .background {
                 AnalyticsService.shared.capture(.appOpened)
+                hasTrackedInitialOpen = true
             }
         }
 
@@ -82,7 +85,8 @@ final class AppRuntimeCoordinator {
 
     private func handleBecomeActive() {
         appState.prepareForForeground()
-        Task {
+        foregroundTask?.cancel()
+        foregroundTask = Task {
             await appState.handleEnterForeground()
             #if DEBUG
             let fgAuth = String(describing: self.appState.authState)
@@ -92,8 +96,8 @@ final class AppRuntimeCoordinator {
             )
             #endif
             if appState.authState == .authenticated {
-                async let r1: Void = currentMonthStore.forceRefresh()
-                async let r2: Void = budgetListStore.forceRefresh()
+                async let r1: Void = currentMonthStore.loadIfNeeded()
+                async let r2: Void = budgetListStore.loadIfNeeded()
                 async let r3: Void = dashboardStore.loadIfNeeded()
                 _ = await (r1, r2, r3)
             }

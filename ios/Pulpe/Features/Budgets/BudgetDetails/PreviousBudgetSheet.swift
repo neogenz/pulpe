@@ -7,7 +7,7 @@ final class PreviousBudgetSheetViewModel {
     private(set) var budget: Budget?
     private(set) var budgetLines: [BudgetLine] = []
     private(set) var transactions: [Transaction] = []
-    private(set) var isLoading = false
+    private(set) var isLoading: Bool
     private(set) var error: Error?
 
     let budgetId: String
@@ -17,41 +17,48 @@ final class PreviousBudgetSheetViewModel {
 
     init(budgetId: String) {
         self.budgetId = budgetId
+
+        // Pre-populate from cache to avoid unnecessary network call
+        if let cached = BudgetDetailCache.shared.get(budgetId: budgetId) {
+            self.budget = cached.budget
+            self.budgetLines = cached.budgetLines
+            self.transactions = cached.transactions
+            self.isLoading = false
+            recomputeMetrics()
+        } else {
+            self.isLoading = true
+        }
     }
 
+    /// Init with pre-loaded data (used for testing and direct injection)
     init(budgetId: String, budget: Budget, budgetLines: [BudgetLine], transactions: [Transaction]) {
         self.budgetId = budgetId
         self.budget = budget
         self.budgetLines = budgetLines
         self.transactions = transactions
+        self.isLoading = false
     }
 
     var metrics: BudgetFormulas.Metrics {
-        if let cached = cachedMetrics { return cached }
-        let calculated = BudgetFormulas.calculateAllMetrics(
+        cachedMetrics ?? BudgetFormulas.calculateAllMetrics(
             budgetLines: budgetLines,
             transactions: transactions,
             rollover: budget?.rollover.orZero ?? 0
         )
-        cachedMetrics = calculated
-        return calculated
     }
 
-    var incomeLines: [BudgetLine] {
-        budgetLines.filter { $0.kind == .income }.sorted { $0.createdAt > $1.createdAt }
+    private func recomputeMetrics() {
+        cachedMetrics = BudgetFormulas.calculateAllMetrics(
+            budgetLines: budgetLines,
+            transactions: transactions,
+            rollover: budget?.rollover.orZero ?? 0
+        )
     }
 
-    var expenseLines: [BudgetLine] {
-        budgetLines.filter { $0.kind == .expense }.sorted { $0.createdAt > $1.createdAt }
-    }
-
-    var savingLines: [BudgetLine] {
-        budgetLines.filter { $0.kind == .saving }.sorted { $0.createdAt > $1.createdAt }
-    }
-
-    var freeTransactions: [Transaction] {
-        transactions.filter { $0.budgetLineId == nil }.sorted { $0.transactionDate > $1.transactionDate }
-    }
+    var incomeLines: [BudgetLine] { budgetLines.byKind(.income) }
+    var expenseLines: [BudgetLine] { budgetLines.byKind(.expense) }
+    var savingLines: [BudgetLine] { budgetLines.byKind(.saving) }
+    var freeTransactions: [Transaction] { transactions.unallocated }
 
     var rolloverInfo: (amount: Decimal, previousBudgetId: String?)? {
         guard let budget, let rollover = budget.rollover, rollover != 0 else { return nil }
@@ -59,15 +66,18 @@ final class PreviousBudgetSheetViewModel {
     }
 
     func loadDetails() async {
+        // Skip fetch if cache already provided data
+        guard budget == nil else { return }
+
         isLoading = true
         error = nil
 
         do {
             let details = try await budgetService.getBudgetWithDetails(id: budgetId)
-            cachedMetrics = nil
             budget = details.budget
             budgetLines = details.budgetLines
             transactions = details.transactions
+            recomputeMetrics()
         } catch {
             self.error = error
         }
@@ -98,8 +108,6 @@ struct PreviousBudgetSheet: View {
                     }
                 } else if viewModel.budget != nil {
                     content
-                } else {
-                    LoadingView(message: "Chargement...")
                 }
             }
             .navigationTitle(viewModel.budget?.monthYear ?? "Budget")

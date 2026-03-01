@@ -80,7 +80,7 @@ struct BudgetDetailsView: View {
             }
         }
         .sheet(isPresented: $showAddBudgetLine) {
-            AddBudgetLineSheet(budgetId: budgetId) { budgetLine in
+            AddBudgetLineSheet(budgetId: viewModel.budgetId) { budgetLine in
                 viewModel.addBudgetLine(budgetLine)
             }
         }
@@ -231,7 +231,7 @@ struct BudgetDetailsView: View {
         .scrollContentBackground(.hidden)
         .pulpeStatusBackground(isDeficit: viewModel.metrics.isDeficit)
         .refreshable {
-            await viewModel.loadDetails()
+            await viewModel.loadDetails(force: true)
         }
         .searchable(text: $searchText, prompt: "Rechercher...")
     }

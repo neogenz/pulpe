@@ -8,11 +8,7 @@ struct ExpensesStep: View {
             step: .expenses,
             state: state,
             canProceed: true,
-            onNext: {
-                let step = OnboardingStep.expenses.analyticsName
-                AnalyticsService.shared.capture(.onboardingStepCompleted, properties: ["step": step])
-                state.nextStep()
-            },
+            onNext: { state.nextStep() },
             content: {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 CurrencyField(
