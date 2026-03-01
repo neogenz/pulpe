@@ -144,13 +144,6 @@ struct CurrentMonthView: View {
                 // Hero card with available balance and circular progress
                 HeroBalanceCard(
                     metrics: store.metrics,
-                    periodLabel: store.budget.flatMap { budget in
-                        BudgetPeriodCalculator.formatPeriod(
-                            month: budget.month,
-                            year: budget.year,
-                            payDayOfMonth: userSettingsStore.payDayOfMonth
-                        )
-                    },
                     timeElapsedPercentage: timeElapsedPercentage,
                     onTapProgress: { activeSheet = .realizedBalance }
                 )

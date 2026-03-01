@@ -1,30 +1,12 @@
 import SwiftUI
 
-/// Hero card with gauge-style progress ring, gradient background, and metric columns.
+/// Hero balance card — 4 chunks: contextual label, hero amount, emotional message, spent ratio + bar.
 struct HeroBalanceCard: View {
     let metrics: BudgetFormulas.Metrics
-    var periodLabel: String?
     var timeElapsedPercentage: Double = 0
     let onTapProgress: () -> Void
 
-    // MARK: - Constants
-
-    private static let twentyPercent: Decimal = 2 / 10
-    /// Arc spans 300° (0.83 of circle) with a 60° gap at the bottom.
-    private static let arcFraction: Double = 0.83
-    /// Rotation to center the 60° gap at 6 o'clock.
-    private static let arcRotation: Angle = .degrees(90 + (1 - arcFraction) * 360 / 2)
-
     // MARK: - Static Formatters (avoid recreation on every render)
-
-    private static let balanceFormatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = 2
-        formatter.locale = Locale(identifier: "fr_CH")
-        return formatter
-    }()
 
     private static let compactFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
@@ -38,21 +20,11 @@ struct HeroBalanceCard: View {
     // MARK: - Environment
 
     @Environment(\.colorScheme) private var colorScheme
-    @ScaledMetric(relativeTo: .largeTitle) private var ringSize: CGFloat = 170
-    @ScaledMetric(relativeTo: .body) private var ringStrokeWidth: CGFloat = 15
 
     // MARK: - Computed Properties
 
-    private var heroTintColor: Color {
-        switch metrics.emotionState {
-        case .comfortable: .pulpePrimary
-        case .tight: .financialOverBudget
-        case .deficit: .heroTintDeficit
-        }
-    }
-
     private var contextLabel: String {
-        metrics.isDeficit ? "Déficit" : "Disponible"
+        metrics.isDeficit ? "DÉFICIT" : "DISPONIBLE"
     }
 
     private var motivationalMessage: String {
@@ -64,7 +36,8 @@ struct HeroBalanceCard: View {
     }
 
     private var comfortableMessage: String {
-        if metrics.totalIncome > 0, metrics.remaining > metrics.totalIncome * Self.twentyPercent {
+        let twentyPercent: Decimal = 2 / 10
+        if metrics.totalIncome > 0, metrics.remaining > metrics.totalIncome * twentyPercent {
             return "Belle marge ce mois"
         }
         if metrics.remaining > 0 {
@@ -78,114 +51,176 @@ struct HeroBalanceCard: View {
     }
 
     private var formattedBalance: String {
-        let prefix = metrics.isDeficit ? "-" : ""
-        let value = Self.compactFormatter.string(from: abs(metrics.remaining) as NSDecimalNumber) ?? "0"
-        return "\(prefix)\(value)"
+        Self.compactFormatter.string(from: abs(metrics.remaining) as NSDecimalNumber) ?? "0"
+    }
+
+    private var formattedSpent: String {
+        Self.compactFormatter.string(from: metrics.totalExpenses as NSDecimalNumber) ?? "0"
     }
 
     private var formattedAvailable: String {
-        "sur \(Self.compactFormatter.string(from: metrics.available as NSDecimalNumber) ?? "0")"
+        Self.compactFormatter.string(from: metrics.available as NSDecimalNumber) ?? "0"
     }
 
-    private var metricBarMax: Decimal {
-        max(metrics.totalIncome, metrics.totalExpenses, metrics.totalSavings, 1)
+    private var usagePercentageText: String {
+        "\(Int(metrics.usagePercentage))%"
     }
 
     // MARK: - Body
 
     var body: some View {
-        gradientCard
-            .accessibilityElement(children: .contain)
+        Button(action: onTapProgress) {
+            cardContent
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(
+            """
+            \(contextLabel) \(formattedBalance) CHF. \
+            \(motivationalMessage). \
+            Dépensé \(formattedSpent) sur \(formattedAvailable)
+            """
+        )
     }
 
-    // MARK: - Gradient Card
+    // MARK: - Card Content
 
-    private var gradientCard: some View {
-        VStack(spacing: 0) {
-            // Ring section
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                if let periodLabel {
-                    Text(periodLabel)
-                        .font(PulpeTypography.caption)
-                        .foregroundStyle(.white.opacity(0.7))
-                        .padding(.bottom, DesignTokens.Spacing.md)
-                }
+    private var cardContent: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            // Chunk 1 — Contextual label
+            Text(contextLabel)
+                .font(PulpeTypography.labelLargeBold)
+                .foregroundStyle(.white.opacity(0.8))
 
-                progressRing
+            // Chunk 2 — Hero amount
+            Text("\(formattedBalance) CHF")
+                .font(PulpeTypography.amountHero)
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+                .monospacedDigit()
+                .foregroundStyle(.white)
+                .contentTransition(.numericText())
+                .sensitiveAmount()
 
-                // Metric columns
-                metricColumns
-            }
-            .padding(.top, DesignTokens.Spacing.xxl)
-            .padding(.horizontal, DesignTokens.Spacing.xxl)
-            .padding(.bottom, DesignTokens.Spacing.lg)
+            // Chunk 3 — Motivational message
+            Text(motivationalMessage)
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(.white.opacity(0.7))
+
+            Spacer()
+                .frame(height: DesignTokens.Spacing.md)
+
+            // Chunk 4 — Spent ratio + progress bar
+            spentRatio
         }
-        .frame(maxWidth: .infinity)
-        .background {
-            ZStack {
-                heroTintColor
-                decorativeCircles
-            }
+        .padding(DesignTokens.Spacing.xxl)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background { cardBackground }
+        .clipShape(.rect(cornerRadius: 28))
+        .overlay(alignment: .top) {
+            // Highlight line (Liquid Glass effect)
+            Capsule()
+                .fill(.white.opacity(0.15))
+                .frame(height: 1)
+                .padding(.horizontal, 28)
         }
-        .clipShape(.rect(cornerRadius: 32))
         .overlay {
             if colorScheme == .dark {
-                RoundedRectangle(cornerRadius: 32)
+                RoundedRectangle(cornerRadius: 28)
                     .stroke(.white.opacity(0.05), lineWidth: 1)
             }
         }
-        .shadow(DesignTokens.Shadow.elevated)
+        .animation(.spring(response: 0.7, dampingFraction: 0.8), value: metrics.emotionState)
     }
 
-    // MARK: - Progress Ring
+    // MARK: - Spent Ratio + Bar
 
-    private var progressRing: some View {
-        Button(action: onTapProgress) {
-            ZStack {
-                // Track (background arc)
-                Circle()
-                    .trim(from: 0, to: Self.arcFraction)
-                    .stroke(
-                        .white.opacity(0.2),
-                        style: StrokeStyle(lineWidth: ringStrokeWidth, lineCap: .round)
-                    )
-                    .rotationEffect(Self.arcRotation)
+    private var spentRatio: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            HStack {
+                Text("Dépensé \(formattedSpent)")
+                    .font(PulpeTypography.labelLargeBold)
+                    .foregroundStyle(.white)
+                    .sensitiveAmount()
 
-                // Fill arc (proportional to usage)
-                Circle()
-                    .trim(from: 0, to: Self.arcFraction * fillPercentage)
-                    .stroke(
-                        .white,
-                        style: StrokeStyle(lineWidth: ringStrokeWidth, lineCap: .round)
-                    )
-                    .rotationEffect(Self.arcRotation)
-                    .animation(.easeInOut(duration: 1.0), value: fillPercentage)
+                Spacer()
 
-                // Balance inside ring
-                VStack(spacing: 2) {
-                    Text("CHF")
-                        .font(PulpeTypography.labelLargeBold)
-                        .foregroundStyle(.white)
+                Text("sur \(formattedAvailable)")
+                    .font(PulpeTypography.labelMedium)
+                    .foregroundStyle(.white.opacity(0.6))
+                    .sensitiveAmount()
+            }
 
-                    Text(formattedBalance)
-                        .font(PulpeTypography.amountHero)
-                        .minimumScaleFactor(0.7)
-                        .lineLimit(1)
-                        .monospacedDigit()
-                        .foregroundStyle(.white)
-                        .contentTransition(.numericText())
-                        .sensitiveAmount()
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                Text(usagePercentageText)
+                    .font(PulpeTypography.progressValue)
+                    .foregroundStyle(.white)
+                    .monospacedDigit()
+                    .frame(minWidth: 36, alignment: .leading)
 
-                    Text(formattedAvailable)
-                        .font(PulpeTypography.labelMedium)
-                        .foregroundStyle(.white.opacity(0.6))
+                progressBar
+            }
+        }
+    }
+
+    // MARK: - Progress Bar with Pace Indicator
+
+    private var progressBar: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                // Track
+                Capsule()
+                    .fill(.white.opacity(0.2))
+
+                // Fill
+                Capsule()
+                    .fill(.white)
+                    .frame(width: geo.size.width * fillPercentage)
+                    .animation(.easeInOut(duration: 0.8), value: fillPercentage)
+
+                // Pace indicator (vertical white line)
+                if timeElapsedPercentage > 0 {
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(.white.opacity(0.4))
+                        .frame(width: 2, height: geo.size.height + 4)
+                        .offset(
+                            x: geo.size.width * min(timeElapsedPercentage / 100, 1) - 1,
+                            y: -2
+                        )
                 }
             }
-            .frame(width: ringSize, height: ringSize)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(formattedBalance) CHF \(formattedAvailable)")
-        .accessibilityAddTraits(.isButton)
+        .frame(height: 10)
+    }
+
+    // MARK: - Card Background
+
+    private var cardBackground: some View {
+        ZStack {
+            // Gradient crossfade for smooth state transitions
+            LinearGradient(
+                colors: Color.heroGradientComfortable,
+                startPoint: UnitPoint(x: 0.1, y: 0),
+                endPoint: UnitPoint(x: 0.9, y: 1)
+            )
+            .opacity(metrics.emotionState == .comfortable ? 1 : 0)
+
+            LinearGradient(
+                colors: Color.heroGradientTight,
+                startPoint: UnitPoint(x: 0.1, y: 0),
+                endPoint: UnitPoint(x: 0.9, y: 1)
+            )
+            .opacity(metrics.emotionState == .tight ? 1 : 0)
+
+            LinearGradient(
+                colors: Color.heroGradientDeficit,
+                startPoint: UnitPoint(x: 0.1, y: 0),
+                endPoint: UnitPoint(x: 0.9, y: 1)
+            )
+            .opacity(metrics.emotionState == .deficit ? 1 : 0)
+
+            decorativeCircles
+        }
     }
 
     // MARK: - Decorative Circles
@@ -212,86 +247,24 @@ struct HeroBalanceCard: View {
         }
         .allowsHitTesting(false)
     }
-
-    // MARK: - Metric Columns
-
-    private var metricColumns: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            metricColumn(
-                icon: "arrow.up.right",
-                label: "Revenus",
-                value: metrics.totalIncome
-            )
-
-            metricColumn(
-                icon: "arrow.down.right",
-                label: "Dépenses",
-                value: metrics.totalExpenses
-            )
-
-            metricColumn(
-                icon: TransactionKind.savingsIcon,
-                label: "Épargne",
-                value: metrics.totalSavings
-            )
-        }
-    }
-
-    private func metricColumn(icon: String, label: String, value: Decimal) -> some View {
-        let ratio = Double(truncating: (value / metricBarMax) as NSDecimalNumber)
-
-        return VStack(spacing: DesignTokens.Spacing.sm) {
-            Text(Self.compactFormatter.string(from: value as NSDecimalNumber) ?? "0")
-                .font(PulpeTypography.amountMedium)
-                .foregroundStyle(.white)
-                .contentTransition(.numericText())
-                .sensitiveAmount()
-
-            GeometryReader { geo in
-                Capsule()
-                    .fill(.white.opacity(0.25))
-                    .overlay(alignment: .leading) {
-                        Capsule()
-                            .fill(.white)
-                            .frame(width: geo.size.width * min(max(ratio, 0), 1))
-                            .animation(.easeInOut(duration: 0.8), value: ratio)
-                    }
-            }
-            .frame(height: 10)
-
-            HStack(spacing: DesignTokens.Spacing.xs) {
-                Image(systemName: icon)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.white)
-
-                Text(label)
-                    .font(PulpeTypography.labelMedium)
-                    .foregroundStyle(.white)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(label) \(value.asCHF)")
-    }
 }
 
 // MARK: - Preview
 
-#Preview("Hero Balance Card -- 3 States") {
+#Preview("Hero Balance Card — 3 States") {
     ScrollView {
         VStack(spacing: 24) {
             // Comfortable: <80% used
             HeroBalanceCard(
                 metrics: .init(
-                    totalIncome: 5000,
-                    totalExpenses: 2000,
+                    totalIncome: 5500,
+                    totalExpenses: 2200,
                     totalSavings: 500,
                     available: 5500,
-                    endingBalance: 3500,
-                    remaining: 100000,
-                    rollover: 500
+                    endingBalance: 3300,
+                    remaining: 3300,
+                    rollover: 0
                 ),
-                periodLabel: "27 fév. - 26 mars",
                 timeElapsedPercentage: 50,
                 onTapProgress: {}
             )
@@ -299,30 +272,30 @@ struct HeroBalanceCard: View {
             // Tight: 80-100% used
             HeroBalanceCard(
                 metrics: .init(
-                    totalIncome: 5000,
-                    totalExpenses: 4200,
-                    totalSavings: 500,
-                    available: 5000,
-                    endingBalance: 300,
-                    remaining: 48000,
+                    totalIncome: 4300,
+                    totalExpenses: 3800,
+                    totalSavings: 0,
+                    available: 4300,
+                    endingBalance: 500,
+                    remaining: 500,
                     rollover: 0
                 ),
-                timeElapsedPercentage: 75,
+                timeElapsedPercentage: 65,
                 onTapProgress: {}
             )
 
             // Deficit: >100% used
             HeroBalanceCard(
                 metrics: .init(
-                    totalIncome: 8500,
-                    totalExpenses: 58400,
+                    totalIncome: 4121,
+                    totalExpenses: 5351,
                     totalSavings: 0,
-                    available: 8500,
-                    endingBalance: -119,
-                    remaining: -4504,
+                    available: 4121,
+                    endingBalance: -1230,
+                    remaining: -1230,
                     rollover: 0
                 ),
-                timeElapsedPercentage: 90,
+                timeElapsedPercentage: 85,
                 onTapProgress: {}
             )
         }

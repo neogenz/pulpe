@@ -24,16 +24,6 @@ struct BudgetDetailsView: View {
         self._viewModel = State(initialValue: BudgetDetailsViewModel(budgetId: budgetId))
     }
 
-    private var periodLabel: String? {
-        viewModel.budget.flatMap { budget in
-            BudgetPeriodCalculator.formatPeriod(
-                month: budget.month,
-                year: budget.year,
-                payDayOfMonth: userSettingsStore.payDayOfMonth
-            )
-        }
-    }
-
     private var timeElapsedPercentage: Double {
         guard let budget = viewModel.budget else { return 0 }
         let dates = BudgetPeriodCalculator.periodDates(
@@ -191,7 +181,6 @@ struct BudgetDetailsView: View {
             Section {
                 HeroBalanceCard(
                     metrics: viewModel.metrics,
-                    periodLabel: periodLabel,
                     timeElapsedPercentage: timeElapsedPercentage,
                     onTapProgress: {}
                 )

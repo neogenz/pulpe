@@ -18,6 +18,33 @@ extension Color {
     /// Hero card deficit tint — warm terracotta, empathetic not alarming (#B54545 light, #D06060 dark)
     static let heroTintDeficit = Color(light: Color(hex: 0xB54545), dark: Color(hex: 0xD06060))
 
+    // MARK: - Hero Card Gradient Colors (4-stop, 150° linear)
+    // Aligned with frontend --pulpe-hero-* tokens (base → color-mix 75% black)
+
+    /// Comfortable state gradient stops — based on #006E25 (mat-sys-primary)
+    static let heroGradientComfortable: [Color] = [
+        Color(light: Color(hex: 0x006E25), dark: Color(hex: 0x00390F)),
+        Color(light: Color(hex: 0x005F20), dark: Color(hex: 0x00320D)),
+        Color(light: Color(hex: 0x00521B), dark: Color(hex: 0x002B0B)),
+        Color(light: Color(hex: 0x004516), dark: Color(hex: 0x002409))
+    ]
+
+    /// Tight state gradient stops — based on #B35800 (pulpe-amber)
+    static let heroGradientTight: [Color] = [
+        Color(light: Color(hex: 0xB35800), dark: Color(hex: 0x3D2200)),
+        Color(light: Color(hex: 0x9C4D00), dark: Color(hex: 0x351E00)),
+        Color(light: Color(hex: 0x864200), dark: Color(hex: 0x2E1A00)),
+        Color(light: Color(hex: 0x703800), dark: Color(hex: 0x261500))
+    ]
+
+    /// Deficit state gradient stops — based on #BA1A1A (mat-sys-error)
+    static let heroGradientDeficit: [Color] = [
+        Color(light: Color(hex: 0xBA1A1A), dark: Color(hex: 0x930009)),
+        Color(light: Color(hex: 0xA51717), dark: Color(hex: 0x830008)),
+        Color(light: Color(hex: 0x8F1313), dark: Color(hex: 0x6E0007)),
+        Color(light: Color(hex: 0x7A1010), dark: Color(hex: 0x5C0005))
+    ]
+
     // MARK: - Brand Colors
 
     /// Primary brand color - Dark green (#006820 light, #4AA070 dark)

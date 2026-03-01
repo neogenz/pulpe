@@ -9,7 +9,7 @@ enum PulpeTypography {
     // MARK: - Brand Titles (Manrope)
 
     static let brandTitle = Font.custom("Manrope-Bold", size: 34, relativeTo: .largeTitle)
-    static let amountHero = Font.custom("Manrope-Bold", size: 34, relativeTo: .largeTitle)
+    static let amountHero = Font.custom("Manrope-Bold", size: 42, relativeTo: .largeTitle)
     static let progressValue = Font.custom("Manrope-Bold", size: 16, relativeTo: .callout)
     static let onboardingTitle = Font.custom("Manrope-Bold", size: 28, relativeTo: .title)
     static let onboardingSubtitle = Font.custom("Manrope-Medium", size: 17, relativeTo: .body)
