@@ -64,17 +64,22 @@ struct MainTabView: View {
                         .overlay {
                             HStack(spacing: 0) {
                                 ForEach(Tab.allCases) { tab in
+                                    let isSelected = selectedTab.wrappedValue == tab
+
                                     VStack(spacing: 3) {
-                                        Image(systemName: tab.icon)
-                                            .font(.title3)
+                                        ZStack {
+                                            Image(systemName: tab.icon)
+                                                .opacity(isSelected ? 0 : 1)
+                                            Image(systemName: tab.icon)
+                                                .symbolVariant(.fill)
+                                                .opacity(isSelected ? 1 : 0)
+                                        }
+                                        .font(.title3)
 
                                         Text(tab.title)
                                             .font(PulpeTypography.tabLabel)
                                     }
-                                    .symbolVariant(selectedTab.wrappedValue == tab ? .fill : .none)
-                                    .foregroundStyle(
-                                        selectedTab.wrappedValue == tab ? Color.pulpePrimary : Color(.label)
-                                    )
+                                    .foregroundStyle(isSelected ? Color.pulpePrimary : Color(.label))
                                     .frame(maxWidth: .infinity)
                                 }
                             }
@@ -116,14 +121,21 @@ struct MainTabView: View {
                             selectedTab.wrappedValue = tab
                         }
                     } label: {
+                        let isSelected = selectedTab.wrappedValue == tab
+
                         VStack(spacing: 3) {
-                            Image(systemName: tab.icon)
-                                .font(.title3)
+                            ZStack {
+                                Image(systemName: tab.icon)
+                                    .opacity(isSelected ? 0 : 1)
+                                Image(systemName: tab.icon)
+                                    .symbolVariant(.fill)
+                                    .opacity(isSelected ? 1 : 0)
+                            }
+                            .font(.title3)
                             Text(tab.title)
                                 .font(PulpeTypography.tabLabel)
                         }
-                        .symbolVariant(selectedTab.wrappedValue == tab ? .fill : .none)
-                        .foregroundStyle(selectedTab.wrappedValue == tab ? Color.pulpePrimary : .primary)
+                        .foregroundStyle(isSelected ? Color.pulpePrimary : .primary)
                         .frame(maxWidth: .infinity)
                     }
                 }
