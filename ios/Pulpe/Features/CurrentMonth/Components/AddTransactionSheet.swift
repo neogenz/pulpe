@@ -43,7 +43,8 @@ struct AddTransactionSheet: View {
                 amount: $amount,
                 amountText: $amountText,
                 isFocused: $isAmountFocused,
-                hint: "Quel montant ?"
+                hint: "Quel montant ?",
+                accentColor: kind.color
             )
             QuickAmountChips(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused, color: kind.color)
                 .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
@@ -67,12 +68,16 @@ struct AddTransactionSheet: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Description")
                 .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.onSurfaceVariant)
             TextField(kind.descriptionPlaceholder, text: $name)
                 .font(PulpeTypography.bodyLarge)
                 .padding(DesignTokens.Spacing.lg)
                 .background(Color.inputBackgroundSoft)
                 .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+                .overlay(
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+                        .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: 1)
+                )
                 .accessibilityLabel("Description de la transaction")
         }
     }
@@ -83,7 +88,7 @@ struct AddTransactionSheet: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Date")
                 .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.onSurfaceVariant)
             HStack {
                 DatePicker("", selection: $transactionDate, displayedComponents: .date)
                     .labelsHidden()
@@ -94,6 +99,10 @@ struct AddTransactionSheet: View {
             .padding(DesignTokens.Spacing.lg)
             .background(Color.inputBackgroundSoft)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+            .overlay(
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+                    .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: 1)
+            )
         }
     }
 
@@ -110,7 +119,7 @@ struct AddTransactionSheet: View {
             if let hint = validationHint {
                 Text(hint)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.onSurfaceVariant)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }

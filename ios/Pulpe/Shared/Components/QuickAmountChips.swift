@@ -34,11 +34,13 @@ struct QuickAmountChips: View {
                         .padding(.vertical, DesignTokens.Spacing.sm)
                         .frame(maxWidth: .infinity)
                         .background(Color.surfaceContainer)
-                        .foregroundStyle(isSelected ? color : Color.textTertiary)
+                        .foregroundStyle(isSelected ? color : Color.onSurfaceVariant)
                         .clipShape(Capsule())
                         .overlay(
                             Capsule().strokeBorder(
-                                isSelected ? color.opacity(DesignTokens.Opacity.strong) : Color.clear,
+                                isSelected
+                                    ? color.opacity(DesignTokens.Opacity.strong)
+                                    : Color.outlineVariant.opacity(0.6),
                                 lineWidth: 1
                             )
                         )

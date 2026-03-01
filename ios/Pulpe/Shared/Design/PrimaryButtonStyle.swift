@@ -18,11 +18,17 @@ struct PrimaryButtonStyle: ButtonStyle {
                 if isEnabled {
                     Color.onboardingGradient
                 } else {
-                    Color.surfaceContainerHigh
+                    Color.pulpePrimary.opacity(0.08)
                 }
             }
-            .foregroundStyle(isEnabled ? Color.textOnPrimary : Color.textSecondaryOnboarding)
+            .foregroundStyle(isEnabled ? Color.textOnPrimary : Color.onSurfaceVariant)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+            .overlay {
+                if !isEnabled {
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button)
+                        .strokeBorder(Color.pulpePrimary.opacity(0.2), lineWidth: 1)
+                }
+            }
             .opacity(configuration.isPressed ? 0.8 : 1.0)
             .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
     }

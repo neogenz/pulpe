@@ -7,6 +7,7 @@ struct HeroAmountField: View {
     @Binding var amountText: String
     var isFocused: FocusState<Bool>.Binding
     var hint: String?
+    var accentColor: Color = .pulpePrimary
 
     private var displayAmount: String {
         if let amount, amount > 0 {
@@ -19,7 +20,7 @@ struct HeroAmountField: View {
         VStack(spacing: DesignTokens.Spacing.sm) {
             Text(DesignTokens.AmountInput.currencyCode)
                 .font(PulpeTypography.labelLarge)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.onSurfaceVariant)
 
             ZStack {
                 TextField("", text: $amountText)
@@ -45,8 +46,8 @@ struct HeroAmountField: View {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
                 .fill(
                     isFocused.wrappedValue
-                        ? Color.pulpePrimary
-                        : Color.textTertiary.opacity(DesignTokens.Opacity.strong)
+                        ? accentColor
+                        : Color.outline.opacity(0.4)
                 )
                 .frame(width: 120, height: 2)
                 .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isFocused.wrappedValue)
