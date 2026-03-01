@@ -308,4 +308,344 @@ La hero card utilise un gradient opaque (pas du glass) mais sans ombre portée. 
 
 ---
 
+---
+
+## 13. Loi de Fitts — Taille et distance des cibles tactiles 🔴
+
+### Le principe
+
+Le temps nécessaire pour atteindre une cible est une fonction de la **distance** jusqu'à la cible et de la **taille** de la cible. Plus c'est gros et proche, plus c'est rapide. Plus c'est petit et loin, plus c'est lent et source d'erreurs.
+
+C'est l'une des lois les plus robustes de l'interaction homme-machine, vérifiée sur des doigts, des souris, des pieds, des yeux, sous l'eau, avec des populations jeunes, âgées, et en situation de handicap.
+
+Sur mobile, les doigts sont plus épais et moins précis qu'un curseur. Apple impose un minimum de **44×44 pt** pour les zones tactiles. Google Material Design impose **48×48 dp**. Les recherches du MIT Touch Lab ont mesuré que la zone de sensibilité de la pulpe du doigt est de 8-10 mm, ce qui correspond à ces minimums.
+
+### Source
+
+- Fitts, P.M. (1954). "The information capacity of the human motor system in controlling the amplitude of movement." *Journal of Experimental Psychology*, 47(6), 381-391.
+- Apple Human Interface Guidelines — Touch targets minimum 44×44 pt.
+- Google Material Design 3 — Touch targets minimum 48×48 dp.
+- MIT Touch Lab — Fingertip sensitivity range 8-10 mm.
+- Nielsen Norman Group (2024). "Fitts's Law and Its Applications in UX."
+
+### Application Pulpe
+
+Les boutons d'action principaux (valider une transaction, naviguer entre mois) doivent respecter 44×44 pt minimum. Le bouton sur la hero card (si on en ajoute un, comme "voir détail") doit être facilement atteignable au pouce — idéalement dans la moitié basse de l'écran, dans la zone de confort du pouce.
+
+### Règle à retenir
+
+> **Toute zone interactive doit mesurer au minimum 44×44 pt (iOS) / 48×48 dp (Android). Les actions fréquentes doivent être dans la zone de confort du pouce (moitié basse de l'écran). C'est non négociable pour l'accessibilité.**
+
+---
+
+## 14. Loi de Jakob — Les utilisateurs préfèrent ce qu'ils connaissent 🔴
+
+### Le principe
+
+Les utilisateurs passent la majorité de leur temps sur **d'autres apps** que la tienne. Ils s'attendent donc à ce que ton app fonctionne comme celles qu'ils connaissent déjà. Quand tu dévies d'un pattern familier, l'utilisateur doit investir de l'énergie cognitive pour apprendre le nouveau pattern — et la plupart ne le feront pas.
+
+Les modèles mentaux des utilisateurs se construisent lentement, par répétition de patterns communs à travers des dizaines d'apps. Chaque app individuelle n'est qu'un grain de sable dans cette expérience globale.
+
+Même si un nouveau design est hypothétiquement 10% meilleur que le standard, les utilisateurs ne l'adopteront pas si ça leur coûte 20% d'effort d'apprentissage les premières fois.
+
+### Source
+
+- Nielsen, J. (2000). "End of Web Design." *Nielsen Norman Group*.
+- Laws of UX — Jakob's Law.
+- Nielsen Norman Group (2024). "Mental Models and User Experience Design."
+- Données citées : la cohérence de design entre plateformes peut améliorer la rétention de 20-30%.
+
+### Application Pulpe
+
+La navigation bottom tab (Accueil, Budgets, Paramètres) suit le pattern iOS standard. Les gestes (swipe pour naviguer entre mois, pull-to-refresh) respectent les conventions Apple. Le format CHF avec apostrophe (3'006) suit la convention suisse, pas le format international (3,006).
+
+### Règle à retenir
+
+> **Avant d'inventer un pattern custom, vérifie comment les 5 apps les plus utilisées par ta cible résolvent le même problème. Si un standard existe et fonctionne, utilise-le. L'innovation se fait dans la valeur du contenu, pas dans la réinvention des contrôles.**
+
+---
+
+## 15. Effet esthétique-utilisabilité (Aesthetic-Usability Effect) 🔴
+
+### Le principe
+
+Les utilisateurs perçoivent les interfaces visuellement belles comme **plus faciles à utiliser**, même quand elles ne le sont pas objectivement. C'est un effet de halo : le cerveau généralise une impression positive (c'est beau) vers d'autres attributs (c'est fiable, c'est bien conçu, c'est facile).
+
+Les interfaces esthétiques rendent les utilisateurs **plus tolérants** aux problèmes mineurs d'utilisabilité. Ils pardonnent plus facilement un bug ou un flow imparfait si l'app est belle. En revanche, cet effet a ses limites : il ne compense pas les problèmes graves (navigation cassée, données illisibles).
+
+Sonderegger & Sauer (2010) ont montré que les utilisateurs d'un prototype esthétique ont non seulement noté l'app comme plus utilisable, mais ont aussi **performé objectivement mieux** (tâches plus rapides, moins d'erreurs). L'esthétique crée une forme de flow state qui améliore réellement la performance.
+
+### Source
+
+- Kurosu, M. & Kashimura, K. (1995). "Apparent Usability vs. Inherent Usability." *Hitachi Design Center*. 252 participants, 26 variantes d'interface ATM.
+- Norman, D. (2004). *Emotional Design: Why We Love (or Hate) Everyday Things*. Basic Books.
+- Sonderegger, A. & Sauer, J. (2010). "The influence of design aesthetics in usability testing." Effet positif sur performance réelle, pas seulement perçue.
+- Tuch, A.N. et al. (2012). Effet esthétique confirmé mais réversible sous certaines conditions.
+- Nielsen Norman Group (2024). "The Aesthetic-Usability Effect."
+- Laws of UX — Aesthetic-Usability Effect.
+
+### Application Pulpe
+
+Les orbes décoratives, les gradients soignés, les animations spring sur la hero card, le choix typographique (Poppins + JetBrains Mono) — tout cela n'est pas du "chartjunk" au sens de Tufte. C'est un investissement mesurable dans la perception de qualité et de fiabilité. Pour une app de finance, la confiance visuelle est critique : une app financière qui "a l'air cheap" ne sera pas utilisée, même si elle est fonctionnelle.
+
+### Règle à retenir
+
+> **Investir dans l'esthétique n'est pas du luxe — c'est un multiplicateur d'utilisabilité perçue. Mais l'esthétique ne rattrape pas une UX cassée. Belle ET utilisable, pas belle OU utilisable.**
+
+---
+
+## 16. Ratio de contraste — Accessibilité universelle 🔴
+
+### Le principe
+
+Le contraste entre le texte et son fond doit atteindre un ratio minimum pour être lisible par tous, y compris les personnes malvoyantes, les écrans de mauvaise qualité, et l'utilisation en plein soleil.
+
+Les WCAG (Web Content Accessibility Guidelines) définissent deux niveaux :
+- **Texte normal** : ratio minimum **4.5:1** (niveau AA)
+- **Grand texte** (≥18pt regular ou ≥14pt bold) : ratio minimum **3:1**
+- **Éléments interactifs** (boutons, icônes) : ratio minimum **3:1** contre le fond adjacent
+
+Google Material Design 3 et Apple HIG suivent ces standards. Google utilise un système de tonalité (tonal palette) où les combinaisons de couleurs sont algorithmiquement garanties accessibles.
+
+### Source
+
+- W3C WCAG 2.1, Success Criterion 1.4.3 (niveau AA) et 1.4.6 (niveau AAA).
+- Google Material Design 3 — Color & Accessibility, contrast checking intégré.
+- Apple Human Interface Guidelines — Accessibility, Dynamic Type.
+- Google Design (2018). "Designing For Global Accessibility, Part III." — 4.5:1 pour le texte normal, 3:1 pour le grand texte.
+
+### Application Pulpe
+
+Le montant héro (blanc sur gradient vert foncé) doit maintenir un ratio ≥ 3:1 (grand texte bold). Le label "DISPONIBLE" en blanc 55% d'opacité sur le même fond doit être vérifié — une opacité trop faible peut échouer en accessibilité. Les messages émotionnels (blanc 70%) doivent aussi être vérifiés. En état déficit (gradient rouge), le texte blanc doit maintenir le ratio.
+
+### Règle à retenir
+
+> **Vérifie systématiquement le ratio de contraste de TOUT texte sur TOUT fond avec un outil (Stark, Colour Contrast Analyzer). Ce n'est pas un "nice to have" — c'est une obligation légale dans l'UE et un critère de rejet App Store.**
+
+---
+
+## 17. Seuil de Doherty — La réactivité crée l'engagement 🟡
+
+### Le principe
+
+Quand le système répond en **moins de 400 ms**, les utilisateurs perçoivent l'interaction comme fluide et maintiennent leur attention. Au-delà de 400 ms, l'attention commence à décrocher. Au-delà de 1 seconde, l'utilisateur perd le sentiment de contrôle direct.
+
+Ce seuil a été formalisé par Walter Doherty (IBM, 1982) qui a démontré que réduire le temps de réponse sous 400 ms augmentait la productivité de manière significative ET addictive — les utilisateurs devenaient plus engagés, pas seulement plus efficaces.
+
+Nielsen (1993) a raffiné en trois paliers :
+- **0.1s** : l'utilisateur perçoit une réponse instantanée
+- **1.0s** : limite pour maintenir le flux de pensée
+- **10s** : limite pour maintenir l'attention
+
+### Source
+
+- Doherty, W.J. & Kelisky, R.P. (1979). "Managing VM/CMS Systems for User Effectiveness." *IBM Systems Journal*, 18(1).
+- Nielsen, J. (1993). *Usability Engineering*. Academic Press. — Les trois paliers de temps de réponse.
+- Laws of UX — Doherty Threshold.
+- Nielsen Norman Group — "Every 100ms of interface lag can halve task success rates."
+
+### Application Pulpe
+
+Les transitions entre les 3 états de la hero card (vert → ambre → rouge) doivent se faire en spring animation ~0.7s — assez rapide pour sembler réactif, assez lent pour être perçu consciemment (pas instantané, ce qui serait brutal). Le changement de mois (swipe) doit recharger les données et mettre à jour l'affichage en moins de 400 ms.
+
+### Règle à retenir
+
+> **Toute interaction utilisateur doit produire un feedback visuel en moins de 100 ms (même si les données mettent plus longtemps à charger). Utilise des animations et des skeleton screens pour combler le vide.**
+
+---
+
+## 18. Effet Von Restorff — L'élément différent est mémorisé 🟢
+
+### Le principe
+
+Aussi appelé "effet d'isolation" : quand plusieurs éléments similaires sont présentés ensemble, celui qui **diffère** le plus des autres est le mieux mémorisé. Le cerveau accorde plus d'attention et de mémoire à l'exception qu'à la norme.
+
+Ce principe est utilisé pour attirer l'attention sur les call-to-action, les alertes, et les informations critiques en les rendant visuellement distincts de leur environnement.
+
+### Source
+
+- Von Restorff, H. (1933). "Über die Wirkung von Bereichsbildungen im Spurenfeld." *Psychologische Forschung*, 18, 299-342.
+- Laws of UX — Von Restorff Effect.
+
+### Application Pulpe
+
+Le montant héro (42pt, blanc, bold) sur la hero card est l'élément Von Restorff : il est massivement plus gros que tout le reste de l'écran. De même, quand l'état passe en déficit (fond rouge), le changement de couleur exploite l'effet d'isolation — le rouge parmi les verts/neutres du reste de l'interface attire immédiatement l'attention.
+
+### Règle à retenir
+
+> **Un seul élément par écran doit être visuellement "différent" des autres. Si tout est mis en avant, rien n'est mis en avant. Choisis UNE chose à rendre saillante.**
+
+---
+
+## 19. Loi de Tesler — La complexité incompressible 🟡
+
+### Le principe
+
+Chaque système a un niveau de complexité incompressible qui ne peut pas être éliminé. La seule question est : **qui la porte** — l'utilisateur ou le système ?
+
+Si tu simplifies trop l'interface en cachant des options nécessaires, l'utilisateur devra fournir un effort supplémentaire pour les trouver ou les contourner. Le bon design absorbe la complexité côté système pour que l'utilisateur n'ait pas à y penser.
+
+### Source
+
+- Tesler, L. (années 1980). Vice-président Apple, Xerox PARC. Formulé comme "Law of Conservation of Complexity."
+- Laws of UX — Tesler's Law.
+
+### Application Pulpe
+
+Le système de templates qui génère automatiquement les budgets mensuels absorbe la complexité de la planification (l'utilisateur ne crée pas chaque ligne chaque mois). Le calcul de l'available (revenus + report) est automatique — l'utilisateur voit le résultat, pas la formule. Le pace indicator se calcule automatiquement à partir de la date — l'utilisateur n'a rien à configurer.
+
+### Règle à retenir
+
+> **Quand tu veux "simplifier", demande-toi : est-ce que je supprime de la complexité ou est-ce que je la déplace vers l'utilisateur ? Si l'utilisateur doit maintenant faire un calcul mental ou chercher une option cachée, tu n'as rien simplifié.**
+
+---
+
+## 20. Peak-End Rule — L'expérience se juge sur le pic et la fin 🟢
+
+### Le principe
+
+Les gens jugent une expérience principalement sur ce qu'ils ont ressenti **au moment le plus intense** (pic) et **à la fin**, pas sur la moyenne de l'expérience. C'est contre-intuitif : une session longue et moyennement agréable sera moins bien notée qu'une session courte avec un moment fort positif et une fin agréable.
+
+### Source
+
+- Kahneman, D. et al. (1993). "When More Pain Is Preferred to Less: Adding a Better End." *Psychological Science*, 4(6), 401-405.
+- Kahneman, D. (2011). *Thinking, Fast and Slow*. Farrar, Straus and Giroux.
+- Laws of UX — Peak-End Rule.
+
+### Application Pulpe
+
+Le "pic" de Pulpe, c'est le message émotionnel de la hero card ("Belle marge ce mois" / "Serré — mais tu le sais"). C'est le moment de soulagement ou de prise de conscience en douceur. La "fin" de session, c'est quand l'utilisateur ferme l'app après avoir vérifié son budget — il doit partir avec un sentiment de contrôle, pas d'anxiété. Même en déficit, "Ça arrive — on gère" laisse une impression de maîtrise.
+
+### Règle à retenir
+
+> **Soigne les deux moments qui comptent le plus : le pic émotionnel (première info vue) et la dernière impression. Si l'utilisateur ferme l'app en se sentant en contrôle, l'expérience est réussie — même si des micro-frictions ont existé en cours de route.**
+
+---
+
+## 21. Progressive Disclosure — Révéler au bon moment 🔴
+
+### Le principe
+
+Ne jamais tout montrer d'un coup. Présenter d'abord l'essentiel, puis révéler la complexité au fur et à mesure que l'utilisateur progresse ou en a besoin. Les fonctionnalités avancées ou rarement utilisées sont déférées à des écrans secondaires.
+
+Jakob Nielsen a introduit ce pattern en 1995 pour réduire les erreurs dans les applications complexes. Le Baymard Institute a mesuré que **18% des utilisateurs abandonnent** un processus (commande, inscription) parce qu'il est trop long ou compliqué. La progressive disclosure combat directement ce problème.
+
+Apple l'utilise systématiquement : l'onboarding d'un iPhone présente une seule question par écran. Slack et Duolingo commencent avec une interface minimale et révèlent les fonctionnalités avancées au fil de l'usage.
+
+### Source
+
+- Nielsen, J. (2006). "Progressive Disclosure." *Nielsen Norman Group*.
+- Baymard Institute — 18% d'abandon dû à la complexité.
+- NN/g (2025). "4 Principles to Reduce Cognitive Load in Forms" — Pattern "one thing per page" (GOV.UK).
+- Apple Human Interface Guidelines — Onboarding step-by-step.
+
+### Application Pulpe
+
+L'onboarding de Pulpe en 9 étapes utilise exactement ce principe : chaque écran pose une seule question (revenus, logement, assurance, transport). L'écran d'accueil ne montre que la hero card + transactions récentes. Le détail des enveloppes budgétaires n'apparaît que dans l'écran Budgets. Les settings avancés (encryption vault, export) sont dans un niveau de profondeur supplémentaire.
+
+### Règle à retenir
+
+> **Montre le minimum nécessaire à chaque étape. Si un utilisateur doit scroller pour comprendre où commencer, tu montres trop. La complexité doit être accessible sur demande, pas imposée d'emblée.**
+
+---
+
+## 22. Micro-interactions — Le feedback invisible 🟢
+
+### Le principe
+
+Les micro-interactions sont de petites animations ou réponses visuelles qui confirment une action, guident l'utilisateur, ou ajoutent du plaisir à l'usage. Elles sont le mécanisme fondamental de **feedback** du système : sans elles, l'utilisateur ne sait pas si son action a été prise en compte.
+
+NN/g a montré que les micro-interactions améliorent l'engagement et le flow de navigation. Mais elles doivent être **invisibles** quand elles fonctionnent bien — si l'utilisateur les remarque consciemment, elles sont probablement trop flashy ou trop lentes.
+
+Types de micro-interactions essentielles : indicateurs de statut (loading, succès), feedback de toucher (bounce, highlight), guidance contextuelle (tooltip au bon moment), et renforcement d'action (checkmark après validation).
+
+### Source
+
+- Saffer, D. (2013). *Microinteractions: Designing with Details*. O'Reilly.
+- Nielsen Norman Group — Micro-interactions improve engagement and navigation flow.
+- Apple HIG — Haptic Feedback (UIImpactFeedbackGenerator). Le feedback tactile améliore la précision de complétion des tâches de ~18%.
+
+### Application Pulpe
+
+La transition de couleur de la hero card (vert → ambre → rouge) est une micro-interaction. L'animation spring de la barre de dépenses quand elle se met à jour est une micro-interaction. Le bounce subtil quand l'utilisateur valide une transaction est une micro-interaction. Aucune de ces animations ne doit être consciente — elles doivent juste rendre l'app "vivante".
+
+### Règle à retenir
+
+> **Chaque action utilisateur doit produire un feedback visuel ou tactile immédiat. Mais si l'utilisateur remarque l'animation, elle est trop présente. Les meilleures micro-interactions sont celles qu'on ne remarque que quand elles disparaissent.**
+
+---
+
+## 23. Écriture UX — Les mots sont du design 🟡
+
+### Le principe
+
+L'étude classique de NN/g a mesuré que les pages web réécrites de manière concise et formatées pour le scan améliorent l'utilisabilité de **58%**. Quand on combine la concision avec un langage objectif (neutre), l'utilisabilité monte à **+124%**.
+
+Les utilisateurs ne lisent pas — ils scannent. Le texte d'interface (microcopy) doit être chargé d'information en front-loading : le mot le plus important en premier. Les labels doivent être concrets et spécifiques, pas vagues et génériques. "Dépensé 3'006 sur 7'744" est meilleur que "Progression budgétaire : 39%".
+
+Le ton communique la personnalité et influence la confiance. NN/g identifie 4 dimensions : humour, formalité, respect, et enthousiasme.
+
+### Source
+
+- Nielsen, J. (1997). "How Users Read on the Web." *Nielsen Norman Group*. — +58% concis, +124% concis+neutre+scannable.
+- NN/g — 4 dimensions de ton (humour, formalité, respect, enthousiasme).
+- Wood, B. — "Microcopy is only the confetti sprinkled on a larger narrative."
+
+### Application Pulpe
+
+Les messages émotionnels de la hero card ("Belle marge ce mois", "Serré — mais tu le sais", "Ça arrive — on gère") sont du microcopy calibré sur le ton Pulpe : informel, respectueux, zéro jargon financier. Le label "Dépensé 3'006 sur 7'744" front-loade le verbe d'action (Dépensé) avant les chiffres. Le label "DISPONIBLE" est un seul mot sans ambiguïté.
+
+### Règle à retenir
+
+> **Chaque mot d'interface est un choix de design. Front-loade l'information clé (verbe ou chiffre en premier). Coupe tout mot qui n'aide pas l'utilisateur à agir ou comprendre. Teste le texte avec de vrais utilisateurs — le microcopy est la partie la plus souvent sous-estimée et la plus facile à améliorer.**
+
+---
+
+## 24. Serial Position Effect — Premier et dernier éléments mémorisés 🟢
+
+### Le principe
+
+Dans une liste d'éléments, les gens retiennent mieux le **premier** (effet de primauté) et le **dernier** (effet de récence). Les éléments au milieu sont oubliés. C'est mesuré depuis les travaux de Hermann Ebbinghaus (1885) et confirmé par des décennies de recherche en mémoire.
+
+En UX, ça signifie que les actions les plus importantes doivent être placées en premier ou en dernier dans une liste, un menu, ou une navigation.
+
+### Source
+
+- Ebbinghaus, H. (1885). *Über das Gedächtnis* (On Memory).
+- Murdock, B.B. (1962). "The serial position effect of free recall." *Journal of Experimental Psychology*, 64(5), 482-488.
+- Laws of UX — Serial Position Effect.
+
+### Application Pulpe
+
+Dans la bottom tab bar (3 onglets), "Accueil" est en première position et "Paramètres" en dernière. "Budgets" est au milieu — c'est normal car c'est un onglet d'analyse, pas d'action quotidienne. Dans les listes de transactions, les transactions les plus récentes sont en haut (effet de récence — l'utilisateur veut vérifier les dernières actions).
+
+### Règle à retenir
+
+> **Place l'action la plus importante en première ou dernière position d'une liste/navigation. Ne mets jamais l'élément critique au milieu — c'est la "zone morte" de la mémoire.**
+
+---
+
+## 25. Effet Zeigarnik — L'inachevé crée de l'engagement 🟢
+
+### Le principe
+
+Les tâches inachevées occupent plus d'espace mental que les tâches terminées. Le cerveau continue de "travailler" sur une tâche non terminée en arrière-plan, créant une tension qui motive la complétion. C'est pourquoi les barres de progression et les indicateurs "3 sur 5 étapes" sont si efficaces.
+
+Mais attention : dans le contexte d'une app "Calm Finance", l'effet Zeigarnik peut être anxiogène s'il est mal utilisé. Une barre de progression qui dit "tu n'as pas fini" peut stresser au lieu de motiver. L'astuce est de l'utiliser pour les actions positives (compléter l'onboarding, valider ses transactions) et jamais pour les métriques négatives (dépenses non contrôlées).
+
+### Source
+
+- Zeigarnik, B. (1927). "Über das Behalten von erledigten und unerledigten Handlungen." *Psychologische Forschung*, 9, 1-85.
+- Laws of UX — Zeigarnik Effect.
+
+### Application Pulpe
+
+L'onboarding en 9 étapes avec barre de progression utilise l'effet Zeigarnik positivement : l'utilisateur veut "fermer" la progression. Le pace indicator dans la hero card exploite subtilement cet effet : la barre de dépenses n'est "pas encore au trait" — l'utilisateur est motivé à garder ce statut. Mais Pulpe n'utilise PAS l'effet Zeigarnik négativement — pas de notifications "tu n'as pas vérifié tes comptes depuis 3 jours".
+
+### Règle à retenir
+
+> **Utilise l'inachevé pour motiver la complétion d'actions positives (onboarding, validation). Ne l'utilise jamais pour culpabiliser ou stresser. La différence entre gamification et manipulation est l'intention derrière l'effet.**
+
+---
+
 *Ce document sera enrichi au fil des découvertes UX/UI pendant le développement de Pulpe.*

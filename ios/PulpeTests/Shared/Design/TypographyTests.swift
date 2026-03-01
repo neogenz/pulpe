@@ -8,9 +8,7 @@ struct TypographyTests {
     /// All custom font PostScript names must resolve to a UIFont, proving the .ttf files
     /// are bundled correctly and registered via UIAppFonts in Info.plist.
     @Test(arguments: [
-        "Manrope-Bold",
-        "Manrope-SemiBold",
-        "Manrope-Medium"
+        "Manrope-Bold"
     ])
     func customFont_isRegisteredAndLoadable(postScriptName: String) {
         let font = UIFont(name: postScriptName, size: 17)
@@ -26,6 +24,10 @@ struct TypographyTests {
         // Brand & hero
         _ = PulpeTypography.brandTitle
         _ = PulpeTypography.amountHero
+        _ = PulpeTypography.amountLarge
+        _ = PulpeTypography.amountMedium
+        _ = PulpeTypography.progressValue
+        _ = PulpeTypography.progressUnit
 
         // Onboarding
         _ = PulpeTypography.onboardingTitle
@@ -34,6 +36,9 @@ struct TypographyTests {
         // Steps
         _ = PulpeTypography.stepTitle
         _ = PulpeTypography.stepSubtitle
+        _ = PulpeTypography.tutorialTitle
+        _ = PulpeTypography.tutorialBody
+        _ = PulpeTypography.tutorialStep
 
         // Body & labels
         _ = PulpeTypography.bodyLarge
@@ -49,6 +54,9 @@ struct TypographyTests {
         // Buttons
         _ = PulpeTypography.buttonPrimary
         _ = PulpeTypography.buttonSecondary
+
+        // Navigation
+        _ = PulpeTypography.tabLabel
 
         // Numpad
         _ = PulpeTypography.numpadKey

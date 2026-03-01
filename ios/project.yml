@@ -113,8 +113,6 @@ targets:
             CFBundleURLName: app.pulpe.ios
         UIAppFonts:
           - Manrope-Bold.ttf
-          - Manrope-SemiBold.ttf
-          - Manrope-Medium.ttf
         UIBackgroundModes:
           - fetch
         BGTaskSchedulerPermittedIdentifiers:

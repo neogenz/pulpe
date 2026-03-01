@@ -58,8 +58,6 @@
 	<key>UIAppFonts</key>
 	<array>
 		<string>Manrope-Bold.ttf</string>
-		<string>Manrope-SemiBold.ttf</string>
-		<string>Manrope-Medium.ttf</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>
