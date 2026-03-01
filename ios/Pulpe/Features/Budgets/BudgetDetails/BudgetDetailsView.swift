@@ -8,6 +8,7 @@ private struct PreviousBudgetItem: Identifiable {
 struct BudgetDetailsView: View {
     let budgetId: String
     @Environment(AppState.self) private var appState
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var viewModel: BudgetDetailsViewModel
     @State private var selectedLineForTransaction: BudgetLine?
     @State private var showAddBudgetLine = false
@@ -21,6 +22,29 @@ struct BudgetDetailsView: View {
     init(budgetId: String) {
         self.budgetId = budgetId
         self._viewModel = State(initialValue: BudgetDetailsViewModel(budgetId: budgetId))
+    }
+
+    private var periodLabel: String? {
+        viewModel.budget.flatMap { budget in
+            BudgetPeriodCalculator.formatPeriod(
+                month: budget.month,
+                year: budget.year,
+                payDayOfMonth: userSettingsStore.payDayOfMonth
+            )
+        }
+    }
+
+    private var timeElapsedPercentage: Double {
+        guard let budget = viewModel.budget else { return 0 }
+        let dates = BudgetPeriodCalculator.periodDates(
+            month: budget.month,
+            year: budget.year,
+            payDayOfMonth: userSettingsStore.payDayOfMonth
+        )
+        let totalDuration = dates.endDate.timeIntervalSince(dates.startDate)
+        guard totalDuration > 0 else { return 0 }
+        let elapsed = Date().timeIntervalSince(dates.startDate)
+        return min(max(elapsed / totalDuration * 100, 0), 100)
     }
 
     private var checkedFilterBinding: Binding<CheckedFilterOption> {
@@ -167,6 +191,8 @@ struct BudgetDetailsView: View {
             Section {
                 HeroBalanceCard(
                     metrics: viewModel.metrics,
+                    periodLabel: periodLabel,
+                    timeElapsedPercentage: timeElapsedPercentage,
                     onTapProgress: {}
                 )
             }
@@ -333,6 +359,7 @@ private struct BudgetDetailsSkeletonView: View {
         BudgetDetailsView(budgetId: "test")
     }
     .environment(AppState())
+    .environment(UserSettingsStore())
 }
 #Preview("Gestures Tip") {
     List {
