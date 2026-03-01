@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// Hero card with colored gradient background, decorative blur circles, and summary pills below.
-/// Inspired by the Angular dashboard-hero component.
+/// Hero card with gauge-style progress ring, gradient background, and metric columns.
 struct HeroBalanceCard: View {
     let metrics: BudgetFormulas.Metrics
     var periodLabel: String?
@@ -11,6 +10,10 @@ struct HeroBalanceCard: View {
     // MARK: - Constants
 
     private static let twentyPercent: Decimal = 2 / 10
+    /// Arc spans 300° (0.83 of circle) with a 60° gap at the bottom.
+    private static let arcFraction: Double = 0.83
+    /// Rotation to center the 60° gap at 6 o'clock.
+    private static let arcRotation: Angle = .degrees(90 + (1 - arcFraction) * 360 / 2)
 
     // MARK: - Static Formatters (avoid recreation on every render)
 
@@ -19,13 +22,6 @@ struct HeroBalanceCard: View {
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 0
         formatter.maximumFractionDigits = 2
-        formatter.locale = Locale(identifier: "fr_CH")
-        return formatter
-    }()
-
-    private static let pillFormatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
         formatter.locale = Locale(identifier: "fr_CH")
         return formatter
     }()
@@ -42,11 +38,9 @@ struct HeroBalanceCard: View {
     // MARK: - Environment
 
     @Environment(\.colorScheme) private var colorScheme
-    @ScaledMetric(relativeTo: .largeTitle) private var heroFontSize: CGFloat = 40
-
-    // MARK: - Pulsing Dot
-
-    @State private var isPulsing = false
+    @ScaledMetric(relativeTo: .largeTitle) private var heroFontSize: CGFloat = 34
+    @ScaledMetric(relativeTo: .largeTitle) private var ringSize: CGFloat = 170
+    @ScaledMetric(relativeTo: .body) private var ringStrokeWidth: CGFloat = 15
 
     // MARK: - Computed Properties
 
@@ -59,13 +53,13 @@ struct HeroBalanceCard: View {
     }
 
     private var contextLabel: String {
-        metrics.isDeficit ? "D\u{00E9}ficit" : "Disponible"
+        metrics.isDeficit ? "Déficit" : "Disponible"
     }
 
     private var motivationalMessage: String {
         switch metrics.emotionState {
-        case .deficit: "\u{00C7}a arrive \u{2014} on g\u{00E8}re"
-        case .tight: "Serr\u{00E9} \u{2014} mais tu le sais"
+        case .deficit: "Ça arrive — on gère"
+        case .tight: "Serré — mais tu le sais"
         case .comfortable: comfortableMessage
         }
     }
@@ -75,66 +69,53 @@ struct HeroBalanceCard: View {
             return "Belle marge ce mois"
         }
         if metrics.remaining > 0 {
-            return "Tu g\u{00E8}res bien"
+            return "Tu gères bien"
         }
-        return "Pile \u{00E0} l\u{2019}\u{00E9}quilibre"
-    }
-
-    private var statusIcon: String {
-        switch metrics.emotionState {
-        case .comfortable: "bolt.fill"
-        case .tight: "exclamationmark.triangle.fill"
-        case .deficit: "xmark.circle.fill"
-        }
+        return "Pile à l\u{2019}équilibre"
     }
 
     private var fillPercentage: Double {
         min(max(metrics.usagePercentage / 100, 0), 1)
     }
 
-    private var pacePosition: Double {
-        min(max(timeElapsedPercentage / 100, 0), 1)
-    }
-
     private var formattedBalance: String {
-        Self.balanceFormatter.string(from: abs(metrics.remaining) as NSDecimalNumber) ?? "0"
+        Self.compactFormatter.string(from: abs(metrics.remaining) as NSDecimalNumber) ?? "0"
     }
 
-    private var formattedExpenses: String {
-        Self.balanceFormatter.string(from: metrics.totalExpenses as NSDecimalNumber) ?? "0"
-    }
-
-    private var formattedAvailable: String {
-        Self.balanceFormatter.string(from: metrics.available as NSDecimalNumber) ?? "0"
-    }
-
-    private var formattedIncome: String {
-        Self.compactFormatter.string(from: metrics.totalIncome as NSDecimalNumber) ?? "0"
-    }
-
-    private var formattedRollover: String {
-        Self.compactFormatter.string(from: metrics.rollover as NSDecimalNumber) ?? "0"
+    private var metricBarMax: Decimal {
+        max(metrics.totalIncome, metrics.totalExpenses, metrics.totalSavings, 1)
     }
 
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
-            gradientCard
-            pillChips
-        }
-        .accessibilityElement(children: .contain)
+        gradientCard
+            .accessibilityElement(children: .contain)
     }
 
     // MARK: - Gradient Card
 
     private var gradientCard: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            headerRow
-            amountSection
-            progressPanel
+        VStack(spacing: 0) {
+            // Ring section
+            VStack(spacing: DesignTokens.Spacing.sm) {
+                if let periodLabel {
+                    Text(periodLabel)
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                        .padding(.bottom, DesignTokens.Spacing.md)
+                }
+
+                progressRing
+                
+                // Metric columns
+                metricColumns
+            }
+            .padding(.top, DesignTokens.Spacing.xxl)
+            .padding(.horizontal, DesignTokens.Spacing.xxl)
+            .padding(.bottom, DesignTokens.Spacing.lg)
         }
-        .padding(DesignTokens.Spacing.xxl)
+        .frame(maxWidth: .infinity)
         .background {
             ZStack {
                 heroTintColor
@@ -154,6 +135,53 @@ struct HeroBalanceCard: View {
             }
         }
         .shadow(DesignTokens.Shadow.elevated)
+    }
+
+    // MARK: - Progress Ring
+
+    private var progressRing: some View {
+        Button(action: onTapProgress) {
+            ZStack {
+                // Track (background arc)
+                Circle()
+                    .trim(from: 0, to: Self.arcFraction)
+                    .stroke(
+                        .white.opacity(0.2),
+                        style: StrokeStyle(lineWidth: ringStrokeWidth, lineCap: .round)
+                    )
+                    .rotationEffect(Self.arcRotation)
+
+                // Fill arc (proportional to usage)
+                Circle()
+                    .trim(from: 0, to: Self.arcFraction * fillPercentage)
+                    .stroke(
+                        .white,
+                        style: StrokeStyle(lineWidth: ringStrokeWidth, lineCap: .round)
+                    )
+                    .rotationEffect(Self.arcRotation)
+                    .animation(.easeInOut(duration: 1.0), value: fillPercentage)
+
+                // Balance inside ring
+                VStack(spacing: 2) {
+                    Text("CHF")
+                        .font(PulpeTypography.labelLarge)
+                        .foregroundStyle(.white)
+
+                    Text(formattedBalance)
+                        .font(.custom("Manrope-Bold", size: heroFontSize, relativeTo: .largeTitle))
+                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
+                        .monospacedDigit()
+                        .foregroundStyle(.white)
+                        .contentTransition(.numericText())
+                        .sensitiveAmount()
+                }
+            }
+            .frame(width: ringSize, height: ringSize)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(contextLabel) \(formattedBalance) CHF")
+        .accessibilityAddTraits(.isButton)
     }
 
     // MARK: - Decorative Circles
@@ -181,155 +209,63 @@ struct HeroBalanceCard: View {
         .allowsHitTesting(false)
     }
 
-    // MARK: - Header Row
+    // MARK: - Metric Columns
 
-    private var headerRow: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    Circle()
-                        .fill(.white)
-                        .frame(width: 8, height: 8)
-                        .opacity(0.9)
-                        .animation(DesignTokens.Animation.pulse, value: isPulsing)
-                        .onAppear { isPulsing = true }
-
-                    Text("Mois en cours")
-                        .font(PulpeTypography.labelMedium)
-                        .foregroundStyle(.white)
-                        .textCase(.uppercase)
-                        .tracking(0.8)
-                }
-
-                if let periodLabel {
-                    Text(periodLabel)
-                        .font(PulpeTypography.stepTitle)
-                        .foregroundStyle(.white)
-                        .tracking(-0.5)
-                }
-            }
-
-            Spacer()
-
-            ZStack {
-                Circle().fill(.white.opacity(0.2))
-                Image(systemName: statusIcon)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.white)
-            }
-            .frame(width: 44, height: 44)
-        }
-    }
-
-    // MARK: - Amount Section
-
-    private var amountSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text(contextLabel)
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(.white.opacity(0.8))
-                .textCase(.uppercase)
-
-            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-                Text(formattedBalance)
-                    .font(.custom("Manrope-Bold", size: heroFontSize, relativeTo: .largeTitle))
-                    .monospacedDigit()
-                    .foregroundStyle(.white)
-                    .contentTransition(.numericText())
-                    .sensitiveAmount()
-
-                Text("CHF")
-                    .font(PulpeTypography.stepTitle)
-                    .foregroundStyle(.white.opacity(0.7))
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("\(contextLabel) \(formattedBalance) CHF")
-
-            Text(motivationalMessage)
-                .font(PulpeTypography.caption)
-                .foregroundStyle(.white.opacity(0.75))
-
-            incomeSubtitle
-        }
-    }
-
-    private var incomeSubtitle: some View {
-        HStack(spacing: DesignTokens.Spacing.xs) {
-            Text("Revenus \(formattedIncome)")
-
-            if metrics.rollover != 0 {
-                Text("Report \(metrics.rollover > 0 ? "+" : "")\(formattedRollover)")
-                    .opacity(0.8)
-            }
-        }
-        .font(PulpeTypography.caption)
-        .foregroundStyle(.white.opacity(0.6))
-        .sensitiveAmount()
-    }
-
-    // MARK: - Progress Panel
-
-    private var progressPanel: some View {
-        HeroProgressPanel(
-            formattedExpenses: formattedExpenses,
-            formattedAvailable: formattedAvailable,
-            fillPercentage: fillPercentage,
-            pacePosition: pacePosition,
-            timeElapsedPercentage: timeElapsedPercentage,
-            usagePercentage: metrics.usagePercentage,
-            glassTint: heroTintColor,
-            onTap: onTapProgress
-        )
-    }
-
-    // MARK: - Pill Chips
-
-    private var pillChips: some View {
+    private var metricColumns: some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
-            pillChip(
+            metricColumn(
                 icon: "arrow.up.right",
                 label: "Revenus",
-                value: metrics.totalIncome,
-                color: .financialIncome
+                value: metrics.totalIncome
             )
 
-            pillChip(
+            metricColumn(
                 icon: "arrow.down.right",
-                label: "D\u{00E9}penses",
-                value: metrics.totalExpenses,
-                color: .financialExpense
+                label: "Dépenses",
+                value: metrics.totalExpenses
             )
 
-            pillChip(
+            metricColumn(
                 icon: TransactionKind.savingsIcon,
-                label: "\u{00C9}pargne",
-                value: metrics.totalSavings,
-                color: .financialSavings
+                label: "Épargne",
+                value: metrics.totalSavings
             )
         }
     }
 
-    private func pillChip(icon: String, label: String, value: Decimal, color: Color) -> some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: icon)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(color)
+    private func metricColumn(icon: String, label: String, value: Decimal) -> some View {
+        let ratio = Double(truncating: (value / metricBarMax) as NSDecimalNumber)
 
-            VStack(alignment: .leading, spacing: 1) {
+        return VStack(spacing: DesignTokens.Spacing.sm) {
+            Text(Self.compactFormatter.string(from: value as NSDecimalNumber) ?? "0")
+                .font(PulpeTypography.amountMedium)
+                .foregroundStyle(.white)
+                .contentTransition(.numericText())
+                .sensitiveAmount()
+
+            GeometryReader { geo in
+                Capsule()
+                    .fill(.white.opacity(0.25))
+                    .overlay(alignment: .leading) {
+                        Capsule()
+                            .fill(.white)
+                            .frame(width: geo.size.width * min(max(ratio, 0), 1))
+                            .animation(.easeInOut(duration: 0.8), value: ratio)
+                    }
+            }
+            .frame(height: 10)
+
+            HStack(spacing: DesignTokens.Spacing.xs) {
+                Image(systemName: icon)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.white)
+
                 Text(label)
-                    .font(PulpeTypography.inputHelper)
-                    .foregroundStyle(.primary)
-
-                Text(Self.pillFormatter.string(from: value as NSDecimalNumber) ?? "0")
-                    .font(PulpeTypography.amountMedium)
-                    .foregroundStyle(color)
-                    .contentTransition(.numericText())
-                    .sensitiveAmount()
+                    .font(PulpeTypography.labelMedium)
+                    .foregroundStyle(.white)
             }
         }
-        .padding(.horizontal, DesignTokens.Spacing.md)
-        .padding(.vertical, DesignTokens.Spacing.sm)
-        .background(color.opacity(DesignTokens.Opacity.highlightBackground), in: Capsule())
+        .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(label) \(value.asCHF)")
     }
@@ -348,10 +284,10 @@ struct HeroBalanceCard: View {
                     totalSavings: 500,
                     available: 5500,
                     endingBalance: 3500,
-                    remaining: 2500,
+                    remaining: 100000,
                     rollover: 500
                 ),
-                periodLabel: "27 f\u{00E9}v. - 26 mars",
+                periodLabel: "27 fév. - 26 mars",
                 timeElapsedPercentage: 50,
                 onTapProgress: {}
             )
@@ -364,7 +300,7 @@ struct HeroBalanceCard: View {
                     totalSavings: 500,
                     available: 5000,
                     endingBalance: 300,
-                    remaining: 300,
+                    remaining: 48000,
                     rollover: 0
                 ),
                 timeElapsedPercentage: 75,
@@ -375,11 +311,11 @@ struct HeroBalanceCard: View {
             HeroBalanceCard(
                 metrics: .init(
                     totalIncome: 8500,
-                    totalExpenses: 8619,
+                    totalExpenses: 58400,
                     totalSavings: 0,
                     available: 8500,
                     endingBalance: -119,
-                    remaining: -119,
+                    remaining: -4504,
                     rollover: 0
                 ),
                 timeElapsedPercentage: 90,
