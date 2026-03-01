@@ -54,8 +54,6 @@ struct PulpeApp: App {
         ])
         BackgroundTaskService.shared.registerTasks()
         AnalyticsService.shared.initialize()
-
-
     }
 
     var body: some Scene {

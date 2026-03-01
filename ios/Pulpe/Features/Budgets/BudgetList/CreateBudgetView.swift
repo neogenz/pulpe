@@ -307,7 +307,7 @@ struct TemplateSelectionCard: View {
 
     private var defaultBadge: some View {
         Text("Par défaut")
-            .font(.custom("Manrope-SemiBold", size: 10, relativeTo: .caption2))
+            .font(PulpeTypography.tabLabel)
             .foregroundStyle(Color.pulpePrimary)
             .padding(.horizontal, DesignTokens.Spacing.sm)
             .padding(.vertical, 3)

@@ -42,11 +42,7 @@ struct CurrentMonthHeroCard: View {
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     Text(monthName)
-                        .font(.custom(
-                            "Manrope-Bold",
-                            size: dynamicTypeSize.isAccessibilitySize ? 22 : 34,
-                            relativeTo: dynamicTypeSize.isAccessibilitySize ? .title2 : .largeTitle
-                        ))
+                        .font(PulpeTypography.brandTitle)
                         .foregroundStyle(.primary)
 
                     if let periodLabel {
@@ -60,18 +56,14 @@ struct CurrentMonthHeroCard: View {
                 HStack(alignment: .bottom) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Disponible")
-                            .font(.custom("Manrope-Medium", size: 12, relativeTo: .caption))
+                            .font(PulpeTypography.inputHelper)
                             .foregroundStyle(.tertiary)
                             .textCase(.uppercase)
                             .tracking(0.5)
 
                         if let remaining = budget.remaining {
                             Text(remaining.asCHF)
-                                .font(.custom(
-                                    "Manrope-Bold",
-                                    size: dynamicTypeSize.isAccessibilitySize ? 20 : 28,
-                                    relativeTo: dynamicTypeSize.isAccessibilitySize ? .title3 : .title
-                                ))
+                                .font(PulpeTypography.amountLarge)
                                 .monospacedDigit()
                                 .foregroundStyle(amountColor)
                                 .contentTransition(.numericText())

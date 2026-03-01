@@ -38,7 +38,6 @@ struct HeroBalanceCard: View {
     // MARK: - Environment
 
     @Environment(\.colorScheme) private var colorScheme
-    @ScaledMetric(relativeTo: .largeTitle) private var heroFontSize: CGFloat = 34
     @ScaledMetric(relativeTo: .largeTitle) private var ringSize: CGFloat = 170
     @ScaledMetric(relativeTo: .body) private var ringStrokeWidth: CGFloat = 15
 
@@ -107,7 +106,7 @@ struct HeroBalanceCard: View {
                 }
 
                 progressRing
-                
+
                 // Metric columns
                 metricColumns
             }
@@ -119,11 +118,6 @@ struct HeroBalanceCard: View {
         .background {
             ZStack {
                 heroTintColor
-                LinearGradient(
-                    colors: [.black.opacity(0.05), .black.opacity(0.4)],
-                    startPoint: UnitPoint(x: 0.15, y: 0),
-                    endPoint: UnitPoint(x: 0.85, y: 1)
-                )
                 decorativeCircles
             }
         }
@@ -164,17 +158,22 @@ struct HeroBalanceCard: View {
                 // Balance inside ring
                 VStack(spacing: 2) {
                     Text("CHF")
-                        .font(PulpeTypography.labelLarge)
+                        .font(PulpeTypography.labelLargeBold)
                         .foregroundStyle(.white)
 
                     Text(formattedBalance)
-                        .font(.custom("Manrope-Bold", size: heroFontSize, relativeTo: .largeTitle))
+                        .font(PulpeTypography.amountHero)
                         .minimumScaleFactor(0.7)
                         .lineLimit(1)
                         .monospacedDigit()
                         .foregroundStyle(.white)
                         .contentTransition(.numericText())
                         .sensitiveAmount()
+
+                    Text(contextLabel)
+                        .font(PulpeTypography.labelLarge)
+                        .foregroundStyle(.white.opacity(0.6))
+                        .tracking(1.2)
                 }
             }
             .frame(width: ringSize, height: ringSize)

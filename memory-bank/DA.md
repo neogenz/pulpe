@@ -155,14 +155,18 @@ L'icône actuelle (tranche d'agrume neumorphique) :
 | Usage | Police | Alternative |
 |-------|--------|-------------|
 | **Titres (app)** | Manrope | Plus Jakarta Sans |
-| **Corps (app)** | DM Sans | Nunito Sans |
+| **Corps (app web)** | DM Sans | Nunito Sans |
+| **Corps (app iOS)** | SF Pro (système) | — |
 | **Landing page** | Poppins | — |
-| **Chiffres/montants** | Police avec chiffres tabulaires (alignés) | — |
+| **Chiffres/montants** | Police système (chiffres tabulaires natifs) | — |
+
+**Stratégie iOS :** Manrope pour les titres et éléments de marque, SF Pro (système) pour tout le reste (corps, labels, captions, montants). Deux polices max — pas de DM Sans sur iOS. SF Pro offre des chiffres tabulaires natifs, un Dynamic Type parfait, et une sensation native.
 
 **Principes :**
 - Éviter les polices trop géométriques/tech (Roboto, Inter) → trop froid
 - Éviter les serif classiques → trop "banque"
 - Privilégier des polices modernes, friendly, lisibles
+- Maximum 2 familles de polices par plateforme
 
 ### 3.4 Iconographie
 
@@ -433,7 +437,7 @@ En dark mode : fond système avec accents minimaux.
 
 #### Typographie
 
-Polices : cf. section 3.3 (Manrope titres, DM Sans corps). Tailles spécifiques iOS :
+Polices : Manrope (titres/brand) + SF Pro système (corps, labels, captions, montants). Tailles spécifiques iOS :
 
 | Usage | Poids | Taille |
 |-------|-------|--------|

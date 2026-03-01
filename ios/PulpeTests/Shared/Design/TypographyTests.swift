@@ -10,10 +10,7 @@ struct TypographyTests {
     @Test(arguments: [
         "Manrope-Bold",
         "Manrope-SemiBold",
-        "Manrope-Medium",
-        "DMSans-Regular",
-        "DMSans-Medium",
-        "DMSans-SemiBold"
+        "Manrope-Medium"
     ])
     func customFont_isRegisteredAndLoadable(postScriptName: String) {
         let font = UIFont(name: postScriptName, size: 17)
@@ -41,6 +38,7 @@ struct TypographyTests {
         // Body & labels
         _ = PulpeTypography.bodyLarge
         _ = PulpeTypography.labelLarge
+        _ = PulpeTypography.labelLargeBold
         _ = PulpeTypography.labelMedium
 
         // Input
@@ -71,17 +69,5 @@ struct TypographyTests {
         _ = PulpeTypography.footnote
         _ = PulpeTypography.caption
         _ = PulpeTypography.caption2
-    }
-
-    // MARK: - No System Font Leaks
-
-    /// Verify that no bare .font(.textStyle) calls remain in the codebase by checking
-    /// that all PulpeTypography tokens return Font values (not nil or empty).
-    /// This is a compile-time guarantee — if a token is removed, this test won't compile.
-    @Test func newTypographyTokens_exist() {
-        _ = PulpeTypography.numpadKey
-        _ = PulpeTypography.numpadSubtext
-        _ = PulpeTypography.heroIcon
-        _ = PulpeTypography.welcomeEmoji
     }
 }
