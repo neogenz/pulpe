@@ -208,7 +208,7 @@ struct HeroBalanceCard: View {
                 }
             }
         }
-        .frame(height: 10)
+        .frame(height: DesignTokens.ProgressBar.heroHeight)
     }
 
     // MARK: - Card Background

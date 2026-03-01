@@ -3,7 +3,7 @@ import SwiftUI
 extension Color {
     // MARK: - Financial Colors (from Asset Catalog with light/dark/high-contrast variants)
 
-    /// Income indicator color - Blue (#0056A3 light, #5AA8E0 dark)
+    /// Income indicator color - Blue (#0061A6 light, #5AA8E0 dark)
     static let financialIncome = Color("FinancialIncome")
 
     /// Expense indicator color - Orange (#B35800 light, #F0A050 dark)
@@ -47,7 +47,7 @@ extension Color {
 
     // MARK: - Brand Colors
 
-    /// Primary brand color - Dark green (#006820 light, #4AA070 dark)
+    /// Primary brand color - Dark green (#006E25 light, #4AA070 dark)
     static let pulpePrimary = Color("PulpePrimary")
 
     // MARK: - Surface Colors (neutral warm for brand identity, dark mode uses system for comfort)
@@ -66,8 +66,8 @@ extension Color {
 
     // MARK: - Semantic Text Colors
 
-    /// Primary text — DA noir doux (#181D17 light, #F5F5F5 dark)
-    static let textPrimary = Color(light: Color(hex: 0x181D17), dark: Color(hex: 0xF5F5F5))
+    /// Primary text — DA noir doux (#1A1C19 light, #F5F5F5 dark)
+    static let textPrimary = Color(light: Color(hex: 0x1A1C19), dark: Color(hex: 0xF5F5F5))
 
     /// Text on primary-colored backgrounds (white in both modes)
     static let textOnPrimary = Color(light: .white, dark: .white)
@@ -121,7 +121,7 @@ extension Color {
 
     /// Input focus glow color
     static let inputFocusGlow = Color(
-        light: Color(hex: 0x006820).opacity(0.12),
+        light: Color(hex: 0x006E25).opacity(0.12),
         dark: Color(hex: 0x4AA070).opacity(0.15)
     )
 

@@ -201,6 +201,8 @@ enum DesignTokens {
         static let thickHeight: CGFloat = 8
         /// Circular progress stroke width
         static let circularLineWidth: CGFloat = 6
+        /// Hero card progress bar height (larger for visibility on colored backgrounds)
+        static let heroHeight: CGFloat = 10
     }
 }
 

@@ -274,7 +274,7 @@ Un dashboard financier n'est pas un tableur. Son rôle est de **répondre à une
 
 ### Application Pulpe
 
-La hero card répond à la question principale : "Combien je peux encore dépenser, et est-ce que je suis dans les temps ?" Le dashboard actuel ajoute seulement du contexte immédiat et actionnable : une projection de fin de mois, un aperçu des alertes / top dépense, puis les transactions récentes. Les vues plus analytiques ("Dépenses", "Cette année") sont repliées par défaut.
+La hero card répond à la question principale : « Combien je peux encore dépenser, et est-ce que je suis dans les temps ? » Le dashboard actuel ajoute seulement du contexte immédiat et actionnable : une projection de fin de mois (`ProjectionCard`), un aperçu fusionné alertes + top dépense (`InsightsCard`), puis les transactions récentes (`RecentTransactionsCard`). Les vues plus analytiques (« Dépenses » via `TrendsCard`, « Cette année » via `YearOverviewCard`) sont repliées par défaut dans des `CollapsibleSection` avec état persisté via `@AppStorage`.
 
 ### Règle à retenir
 
@@ -300,7 +300,7 @@ iOS 26 introduit le Liquid Glass design system. Le principe fondamental : la pro
 
 ### Application Pulpe
 
-Dans l'app authentifiée, la hero card utilise un gradient opaque (pas du glass) sans ombre portée. La profondeur vient du contraste entre le gradient coloré et le fond ambiant. La tab bar utilise le Liquid Glass natif. Les cartes de contenu sous la hero restent opaques et plates, avec un fond clair/sombre net, sans faux glass.
+Dans l'app authentifiée, la hero card utilise un gradient opaque (pas du glass) sans ombre portée. La profondeur vient du contraste entre le gradient coloré et le fond ambiant. La tab bar utilise `GlassEffectContainer` avec `.glassEffect(.regular.interactive(), in: .capsule)`. Le bouton d'action flottant utilise `.glassEffect(.regular.tint(Color.pulpePrimary).interactive(), in: .capsule)`. Le fallback iOS 18-25 utilise `.ultraThinMaterial` + `Capsule()`. Les cartes de contenu sous la hero restent opaques et plates via `.pulpeCardBackground()`, sans faux glass.
 
 ### Règle à retenir
 
@@ -357,7 +357,7 @@ Même si un nouveau design est hypothétiquement 10% meilleur que le standard, l
 
 ### Application Pulpe
 
-La navigation bottom tab (Accueil, Budgets, Modèles) suit le pattern iOS standard. L'accès au compte passe par une action toolbar, pas par un quatrième onglet. Les interactions natives retenues sont `pull-to-refresh`, `swipe actions` sur les listes, et un menu de mois pour changer de période dans Budgets. Le format CHF avec apostrophe (3'006) suit la convention suisse, pas le format international (3,006).
+La navigation bottom tab (Accueil, Budgets, Modèles) suit le pattern iOS standard. L'accès au compte passe par une action toolbar, pas par un quatrième onglet. Les interactions natives retenues sont `pull-to-refresh`, `swipe actions` sur les listes, et un menu de mois pour changer de période dans Budgets. Le format CHF avec apostrophe (3'006) suit la convention suisse via `Locale(identifier: "fr_CH")`, pas le format international (3,006).
 
 ### Règle à retenir
 
