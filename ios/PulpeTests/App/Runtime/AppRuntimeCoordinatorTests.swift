@@ -111,8 +111,8 @@ struct AppRuntimeCoordinatorTests {
     // MARK: - Scene Phase: Background Delegation
 
     @Test func scenePhaseBackground_callsHandleEnterBackground() async {
-        var now = Date(timeIntervalSince1970: 0)
-        let appState = AppState(postAuthResolver: pinResolver, nowProvider: { now })
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let appState = AppState(postAuthResolver: pinResolver, nowProvider: { now.value })
         appState.biometricEnabled = false
         await authenticateViaPinEntry(appState)
         let sut = makeCoordinator(appState: appState)
@@ -121,7 +121,7 @@ struct AppRuntimeCoordinatorTests {
 
         // Verify background was registered by checking that a subsequent foreground after
         // grace period triggers lock. This proves handleEnterBackground was called.
-        now = Date(timeIntervalSince1970: 31)
+        now.set(Date(timeIntervalSince1970: 31))
         await appState.handleEnterForeground()
         #expect(appState.authState == .needsPinEntry)
     }
@@ -129,15 +129,15 @@ struct AppRuntimeCoordinatorTests {
     // MARK: - Scene Phase: Foreground Delegation
 
     @Test func scenePhaseActive_callsPrepareForForeground() async {
-        var now = Date(timeIntervalSince1970: 0)
-        let appState = AppState(postAuthResolver: pinResolver, nowProvider: { now })
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let appState = AppState(postAuthResolver: pinResolver, nowProvider: { now.value })
         appState.biometricEnabled = false
         await authenticateViaPinEntry(appState)
         let sut = makeCoordinator(appState: appState)
 
         // Go to background
         sut.handleScenePhaseChange(from: .active, to: .background)
-        now = Date(timeIntervalSince1970: 31) // Exceed grace period
+        now.set(Date(timeIntervalSince1970: 31)) // Exceed grace period
 
         // prepareForForeground is called synchronously within handleScenePhaseChange
         // when transitioning to .active. Verify isRestoringSession is set.
@@ -158,15 +158,15 @@ struct AppRuntimeCoordinatorTests {
     }
 
     @Test func shouldShowPrivacyShield_trueWhenRestoringSession() async {
-        var now = Date(timeIntervalSince1970: 0)
-        let appState = AppState(postAuthResolver: pinResolver, nowProvider: { now })
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let appState = AppState(postAuthResolver: pinResolver, nowProvider: { now.value })
         appState.biometricEnabled = false
         await authenticateViaPinEntry(appState)
         let sut = makeCoordinator(appState: appState)
 
         // Go to background and exceed grace period
         appState.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 31)
+        now.set(Date(timeIntervalSince1970: 31))
         appState.prepareForForeground()
 
         #expect(appState.isRestoringSession == true)

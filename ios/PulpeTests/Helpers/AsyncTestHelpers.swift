@@ -13,6 +13,7 @@ import Testing
 /// - Note: This is a polling-based helper, not an event-driven one. The actual resolution
 ///   time depends on the polling interval. Keep `timeout` generous for CI runners where
 ///   CPU contention can cause scheduling delays.
+@MainActor
 func waitForCondition(
     timeout: Duration = .seconds(2),
     pollingInterval: Duration = .milliseconds(10),

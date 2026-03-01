@@ -18,59 +18,59 @@ struct AppStateBackgroundLockTests {
     }
 
     @Test func foregroundBeforeGracePeriod_keepsAuthenticated() async {
-        var now = Date(timeIntervalSince1970: 0)
-        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now })
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now.value })
         sut.biometricEnabled = false
         await authenticateViaPinEntry(sut)
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 29) // Just under 30s grace period
+        now.set(Date(timeIntervalSince1970: 29)) // Just under 30s grace period
         await sut.handleEnterForeground()
 
         #expect(sut.authState == .authenticated)
     }
 
     @Test func foregroundAtGracePeriod_requiresPinEntry() async {
-        var now = Date(timeIntervalSince1970: 0)
-        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now })
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now.value })
         sut.biometricEnabled = false
         await authenticateViaPinEntry(sut)
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 30) // Exactly 30s grace period
+        now.set(Date(timeIntervalSince1970: 30)) // Exactly 30s grace period
         await sut.handleEnterForeground()
 
         #expect(sut.authState == .needsPinEntry)
     }
 
     @Test func foregroundAfterGracePeriod_requiresPinEntry() async {
-        var now = Date(timeIntervalSince1970: 0)
-        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now })
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now.value })
         sut.biometricEnabled = false
         await authenticateViaPinEntry(sut)
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 31) // Just over 30s grace period
+        now.set(Date(timeIntervalSince1970: 31)) // Just over 30s grace period
         await sut.handleEnterForeground()
 
         #expect(sut.authState == .needsPinEntry)
     }
 
     @Test func foregroundAfterGracePeriodWhenNotAuthenticated_keepsState() async {
-        var now = Date(timeIntervalSince1970: 0)
-        let sut = AppState(nowProvider: { now })
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let sut = AppState(nowProvider: { now.value })
         let initialState = sut.authState
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 60) // Well over 30s grace period
+        now.set(Date(timeIntervalSince1970: 60)) // Well over 30s grace period
         await sut.handleEnterForeground()
 
         #expect(sut.authState == initialState)
     }
 
     @Test func foregroundAfterGracePeriod_clearsInMemoryClientKeyCache() async {
-        var now = Date(timeIntervalSince1970: 0)
-        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now })
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now.value })
         let clientKeyManager = ClientKeyManager.shared
 
         await clientKeyManager.clearAll()
@@ -80,7 +80,7 @@ struct AppStateBackgroundLockTests {
         sut.biometricEnabled = false
         await authenticateViaPinEntry(sut)
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 31) // Just over 30s grace period
+        now.set(Date(timeIntervalSince1970: 31)) // Just over 30s grace period
         await sut.handleEnterForeground()
 
         #expect(sut.authState == .needsPinEntry)
@@ -92,8 +92,8 @@ struct AppStateBackgroundLockTests {
     // MARK: - Rapid Transitions
 
     @Test func rapidForegroundBackgroundTransitions_maintainsConsistentState() async {
-        var now = Date(timeIntervalSince1970: 0)
-        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now })
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now.value })
         sut.biometricEnabled = false
         await authenticateViaPinEntry(sut)
 
@@ -101,7 +101,7 @@ struct AppStateBackgroundLockTests {
         // Each cycle: background -> foreground within grace period
         for cycle in 1...10 {
             sut.handleEnterBackground()
-            now = now.addingTimeInterval(5) // 5s between each transition (within 30s grace)
+            now.set(now.value.addingTimeInterval(5)) // 5s between each transition (within 30s grace)
             await sut.handleEnterForeground()
 
             #expect(
@@ -112,39 +112,39 @@ struct AppStateBackgroundLockTests {
     }
 
     @Test func rapidTransitions_thenExceedGracePeriod_requiresPinEntry() async {
-        var now = Date(timeIntervalSince1970: 0)
-        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now })
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now.value })
         sut.biometricEnabled = false
         await authenticateViaPinEntry(sut)
 
         // Several quick transitions within grace period
         for _ in 1...3 {
             sut.handleEnterBackground()
-            now = now.addingTimeInterval(5)
+            now.set(now.value.addingTimeInterval(5))
             await sut.handleEnterForeground()
         }
         #expect(sut.authState == .authenticated)
 
         // Final background -> exceed grace period -> foreground
         sut.handleEnterBackground()
-        now = now.addingTimeInterval(35) // Exceeds 30s grace period
+        now.set(now.value.addingTimeInterval(35)) // Exceeds 30s grace period
         await sut.handleEnterForeground()
 
         #expect(sut.authState == .needsPinEntry)
     }
 
     @Test func backgroundWithoutForeground_thenForegroundAfterGrace_requiresPinEntry() async {
-        var now = Date(timeIntervalSince1970: 0)
-        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now })
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now.value })
         sut.biometricEnabled = false
         await authenticateViaPinEntry(sut)
 
         // Multiple background calls without foreground (edge case - shouldn't happen normally)
         // Implementation uses the LAST background timestamp (resets the timer on each background event)
         sut.handleEnterBackground()
-        now = now.addingTimeInterval(10)
+        now.set(now.value.addingTimeInterval(10))
         sut.handleEnterBackground() // Second background call resets timer
-        now = now.addingTimeInterval(25) // Only 25s from LAST background (within grace period)
+        now.set(now.value.addingTimeInterval(25)) // Only 25s from LAST background (within grace period)
 
         await sut.handleEnterForeground()
 
@@ -155,40 +155,40 @@ struct AppStateBackgroundLockTests {
     // MARK: - Session Restoration Flag
 
     @Test func prepareForForeground_gracePeriodExpired_setsRestoringSession() async {
-        var now = Date(timeIntervalSince1970: 0)
-        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now })
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now.value })
         sut.biometricEnabled = false
         await authenticateViaPinEntry(sut)
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 31)
+        now.set(Date(timeIntervalSince1970: 31))
         sut.prepareForForeground()
 
         #expect(sut.isRestoringSession == true)
     }
 
     @Test func prepareForForeground_withinGracePeriod_doesNotSetRestoringSession() async {
-        var now = Date(timeIntervalSince1970: 0)
-        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now })
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now.value })
         sut.biometricEnabled = false
         await authenticateViaPinEntry(sut)
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 10)
+        now.set(Date(timeIntervalSince1970: 10))
         sut.prepareForForeground()
 
         #expect(sut.isRestoringSession == false)
     }
 
     @Test func handleEnterForeground_clearsRestoringSession_whenLockNoLongerRequired() async {
-        var now = Date(timeIntervalSince1970: 0)
-        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now })
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now.value })
         sut.biometricEnabled = false
         await authenticateViaPinEntry(sut)
 
         // Grace period expired → isRestoringSession = true
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 31)
+        now.set(Date(timeIntervalSince1970: 31))
         sut.prepareForForeground()
         #expect(sut.isRestoringSession == true)
 
@@ -205,20 +205,20 @@ struct AppStateBackgroundLockTests {
     // MARK: - Biometric Foreground Unlock
 
     @Test func foregroundAfterGracePeriod_biometricSucceeds_staysAuthenticated() async {
-        var now = Date(timeIntervalSince1970: 0)
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
             syncBiometricCredentials: { true },
             resolveBiometricKey: { "restored-key" },
             validateBiometricKey: { _ in true },
-            nowProvider: { now }
+            nowProvider: { now.value }
         )
         sut.biometricEnabled = true
         await authenticateViaPinEntry(sut)
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 31)
+        now.set(Date(timeIntervalSince1970: 31))
         sut.prepareForForeground()
         #expect(sut.isRestoringSession == true)
 
@@ -229,19 +229,19 @@ struct AppStateBackgroundLockTests {
     }
 
     @Test func foregroundAfterGracePeriod_biometricFails_requiresPinEntry() async {
-        var now = Date(timeIntervalSince1970: 0)
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
             syncBiometricCredentials: { true },
             resolveBiometricKey: { nil },
-            nowProvider: { now }
+            nowProvider: { now.value }
         )
         sut.biometricEnabled = true
         await authenticateViaPinEntry(sut)
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 31)
+        now.set(Date(timeIntervalSince1970: 31))
         sut.prepareForForeground()
         #expect(sut.isRestoringSession == true)
 
@@ -255,7 +255,7 @@ struct AppStateBackgroundLockTests {
 
     @Test func foregroundBiometricUnlock_refreshesSupabaseSession() async {
         let sessionRefreshed = AtomicFlag()
-        var now = Date(timeIntervalSince1970: 0)
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
         let user = UserInfo(id: "u1", email: "test@pulpe.app", firstName: "Max")
 
         let sut = AppState(
@@ -268,14 +268,14 @@ struct AppStateBackgroundLockTests {
                 sessionRefreshed.set()
                 return user
             },
-            nowProvider: { now }
+            nowProvider: { now.value }
         )
         sut.biometricEnabled = true
         await authenticateViaPinEntry(sut)
 
         // Simulate long background (token would be expired)
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 3600) // 1 hour
+        now.set(Date(timeIntervalSince1970: 3600)) // 1 hour
         sut.prepareForForeground()
 
         await sut.handleEnterForeground()
@@ -292,7 +292,7 @@ struct AppStateBackgroundLockTests {
 
     @Test func foregroundBiometricUnlock_sessionRefreshFailure_logsOut() async {
         let sessionRefreshAttempted = AtomicFlag()
-        var now = Date(timeIntervalSince1970: 0)
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
 
         let sut = AppState(
             postAuthResolver: pinResolver,
@@ -304,13 +304,13 @@ struct AppStateBackgroundLockTests {
                 sessionRefreshAttempted.set()
                 throw URLError(.userAuthenticationRequired)
             },
-            nowProvider: { now }
+            nowProvider: { now.value }
         )
         sut.biometricEnabled = true
         await authenticateViaPinEntry(sut)
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 7200) // 2 hours
+        now.set(Date(timeIntervalSince1970: 7200)) // 2 hours
         sut.prepareForForeground()
 
         await sut.handleEnterForeground()
@@ -333,7 +333,7 @@ struct AppStateBackgroundLockTests {
 
     @Test func foregroundBiometricUnlock_sessionRefreshReturnsNil_logsOut() async {
         let sessionRefreshAttempted = AtomicFlag()
-        var now = Date(timeIntervalSince1970: 0)
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
 
         let sut = AppState(
             postAuthResolver: pinResolver,
@@ -345,13 +345,13 @@ struct AppStateBackgroundLockTests {
                 sessionRefreshAttempted.set()
                 return nil // No active session - should trigger logout
             },
-            nowProvider: { now }
+            nowProvider: { now.value }
         )
         sut.biometricEnabled = true
         await authenticateViaPinEntry(sut)
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 7200) // 2 hours
+        now.set(Date(timeIntervalSince1970: 7200)) // 2 hours
         sut.prepareForForeground()
 
         await sut.handleEnterForeground()
@@ -373,13 +373,13 @@ struct AppStateBackgroundLockTests {
     }
 
     @Test func foregroundAfterGracePeriod_biometricDisabled_requiresPinEntry() async {
-        var now = Date(timeIntervalSince1970: 0)
-        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now })
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now.value })
         sut.biometricEnabled = false
         await authenticateViaPinEntry(sut)
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 31)
+        now.set(Date(timeIntervalSince1970: 31))
         sut.prepareForForeground()
         #expect(sut.isRestoringSession == true)
 
@@ -393,7 +393,7 @@ struct AppStateBackgroundLockTests {
 
     @Test func foregroundRefresh_logoutDuringRefresh_endsUnauthenticated() async {
         let refreshStarted = AtomicFlag()
-        var now = Date(timeIntervalSince1970: 0)
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
 
         let sut = AppState(
             postAuthResolver: pinResolver,
@@ -406,13 +406,13 @@ struct AppStateBackgroundLockTests {
                 try await Task.sleep(for: .milliseconds(200))
                 throw URLError(.userAuthenticationRequired)
             },
-            nowProvider: { now }
+            nowProvider: { now.value }
         )
         sut.biometricEnabled = true
         await authenticateViaPinEntry(sut)
 
         sut.handleEnterBackground()
-        now = Date(timeIntervalSince1970: 31)
+        now.set(Date(timeIntervalSince1970: 31))
         sut.prepareForForeground()
 
         // This triggers biometric unlock + fire-and-forget background refresh
