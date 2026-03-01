@@ -77,8 +77,4 @@ final class BudgetDetailCache {
         allBudgets = nil
         allBudgetsFetchedAt = nil
     }
-
-    func reset() {
-        invalidateAll()
-    }
 }

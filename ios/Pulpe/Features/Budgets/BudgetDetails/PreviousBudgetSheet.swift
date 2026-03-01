@@ -13,7 +13,7 @@ final class PreviousBudgetSheetViewModel {
     let budgetId: String
     private let budgetService = BudgetService.shared
 
-    @ObservationIgnored private var cachedMetrics: BudgetFormulas.Metrics?
+    private var cachedMetrics: BudgetFormulas.Metrics?
 
     init(budgetId: String) {
         self.budgetId = budgetId
@@ -39,14 +39,19 @@ final class PreviousBudgetSheetViewModel {
     }
 
     var metrics: BudgetFormulas.Metrics {
-        if let cached = cachedMetrics { return cached }
-        let calculated = BudgetFormulas.calculateAllMetrics(
+        cachedMetrics ?? BudgetFormulas.calculateAllMetrics(
             budgetLines: budgetLines,
             transactions: transactions,
             rollover: budget?.rollover.orZero ?? 0
         )
-        cachedMetrics = calculated
-        return calculated
+    }
+
+    private func recomputeMetrics() {
+        cachedMetrics = BudgetFormulas.calculateAllMetrics(
+            budgetLines: budgetLines,
+            transactions: transactions,
+            rollover: budget?.rollover.orZero ?? 0
+        )
     }
 
     var incomeLines: [BudgetLine] { budgetLines.byKind(.income) }
@@ -68,10 +73,10 @@ final class PreviousBudgetSheetViewModel {
 
         do {
             let details = try await budgetService.getBudgetWithDetails(id: budgetId)
-            cachedMetrics = nil
             budget = details.budget
             budgetLines = details.budgetLines
             transactions = details.transactions
+            recomputeMetrics()
         } catch {
             self.error = error
         }
