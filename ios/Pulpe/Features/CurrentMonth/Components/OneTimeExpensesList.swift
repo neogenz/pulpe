@@ -88,7 +88,7 @@ struct TransactionSection: View {
     private var expandCollapseButton: some View {
         if hasMoreItems {
             Button {
-                withAnimation(.easeInOut(duration: 0.25)) {
+                withAnimation(.easeInOut(duration: DesignTokens.Animation.quickSnap)) {
                     isExpanded.toggle()
                 }
             } label: {

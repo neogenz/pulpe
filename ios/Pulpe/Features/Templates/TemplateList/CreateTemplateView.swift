@@ -250,7 +250,7 @@ struct AddTemplateLineSheet: View {
                     .font(PulpeTypography.amountHero)
                     .foregroundStyle((amount ?? 0) > 0 ? Color.textPrimary : Color.textTertiary)
                     .contentTransition(.numericText())
-                    .animation(.snappy(duration: 0.2), value: amount)
+                    .animation(.snappy(duration: DesignTokens.Animation.fast), value: amount)
             }
             .accessibilityAddTraits(.isButton)
             .accessibilityLabel("Montant")
@@ -259,7 +259,7 @@ struct AddTemplateLineSheet: View {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
                 .fill(isAmountFocused ? Color.pulpePrimary : Color.textTertiary.opacity(0.3))
                 .frame(width: 120, height: 2)
-                .animation(.easeInOut(duration: 0.2), value: isAmountFocused)
+                .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isAmountFocused)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.lg)
@@ -286,7 +286,7 @@ struct AddTemplateLineSheet: View {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 ForEach(TransactionKind.allCases, id: \.self) { type in
                     Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
                             kind = type
                         }
                     } label: {
@@ -316,7 +316,7 @@ struct AddTemplateLineSheet: View {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 ForEach(TransactionRecurrence.allCases, id: \.self) { type in
                     Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
                             recurrence = type
                         }
                     } label: {

@@ -43,7 +43,7 @@ final class AppRuntimeCoordinator {
             activatePrivacyShieldIfNeeded()
         }
         if newPhase == .active {
-            withAnimation(.easeInOut(duration: 0.25)) {
+            withAnimation(.easeInOut(duration: DesignTokens.Animation.quickSnap)) {
                 privacyShieldActive = false
             }
             // Fire app_opened on cold start (first activation) and warm returns from background.

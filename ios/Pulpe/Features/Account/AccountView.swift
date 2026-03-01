@@ -220,7 +220,7 @@ extension AccountView {
                 .font(PulpeTypography.labelLarge)
                 .onLongPressGesture(minimumDuration: 5) {
                     debugToggleTrigger.toggle()
-                    withAnimation(.easeInOut(duration: 0.3)) { isDebugVisible.toggle() }
+                    withAnimation(.easeInOut(duration: DesignTokens.Animation.normal)) { isDebugVisible.toggle() }
                 }
         }
         .listRowBackground(Color.surfaceCard)

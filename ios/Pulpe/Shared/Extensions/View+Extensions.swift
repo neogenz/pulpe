@@ -23,7 +23,7 @@ private struct SensitiveAmountModifier: ViewModifier {
             .blur(radius: amountsHidden ? 8 : 0)
             .accessibilityLabel(amountsHidden ? "Montant masqué" : "")
             .accessibilityHidden(amountsHidden)
-            .animation(.easeInOut(duration: 0.2), value: amountsHidden)
+            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: amountsHidden)
     }
 }
 

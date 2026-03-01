@@ -104,8 +104,13 @@ enum DesignTokens {
         // MARK: - Duration
 
         static let fast: Double = 0.2
+        static let quickSnap: Double = 0.25
         static let normal: Double = 0.3
         static let slow: Double = 0.5
+
+        // MARK: - Stagger
+
+        static let staggerStep: Double = 0.05
 
         // MARK: - Spring Configurations
 

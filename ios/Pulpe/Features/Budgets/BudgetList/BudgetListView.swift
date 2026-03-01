@@ -99,7 +99,7 @@ struct BudgetListView: View {
             if reduceMotion {
                 hasAppeared = true
             } else {
-                withAnimation(.easeOut(duration: 0.25)) {
+                withAnimation(.easeOut(duration: DesignTokens.Animation.quickSnap)) {
                     hasAppeared = true
                 }
             }
@@ -127,7 +127,7 @@ struct BudgetListView: View {
                             payDayOfMonth: userSettingsStore.payDayOfMonth,
                             isExpanded: expandedYears.contains(group.year),
                             onToggle: {
-                                withAnimation(.easeInOut(duration: 0.25)) {
+                                withAnimation(.easeInOut(duration: DesignTokens.Animation.quickSnap)) {
                                     if expandedYears.contains(group.year) {
                                         expandedYears.remove(group.year)
                                     } else {
@@ -143,7 +143,7 @@ struct BudgetListView: View {
                             }
                         )
                         .opacity(hasAppeared ? 1 : 0)
-                        .animation(.easeOut(duration: 0.2), value: hasAppeared)
+                        .animation(.easeOut(duration: DesignTokens.Animation.fast), value: hasAppeared)
                     }
                 }
                 .padding(.horizontal, DesignTokens.Spacing.xl)
