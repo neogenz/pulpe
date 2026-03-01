@@ -261,22 +261,6 @@ extension Color {
         )
     }
 
-    // MARK: - Emotion Zone Colors (DA §3.1 — top 30-35% of screen)
-    // The emotion zone is a soft tint that fades into neutral warm.
-    // These colors are used in a gradient from top → transparent over ~300pt.
-
-    /// Comfortable state (<80% budget used) — soft green tint
-    static let emotionZoneComfortable = Color(light: Color(hex: 0xD4EDDA), dark: Color(hex: 0x1A2E1D))
-
-    /// Tight state (80-100% used) — soft amber tint
-    static let emotionZoneTight = Color(light: Color(hex: 0xFEF0D4), dark: Color(hex: 0x2E2518))
-
-    /// Deficit state (>100% used) — soft rosé tint
-    static let emotionZoneDeficit = Color(light: Color(hex: 0xFDE2E2), dark: Color(hex: 0x2E1A1A))
-
-    /// Neutral warm target for gradient fade-out
-    static let emotionZoneNeutral = Color(light: Color(hex: 0xF6FBF1), dark: Color(hex: 0x10150F))
-
     /// Legacy gradient (kept for compatibility)
     static let appBackgroundGradient = LinearGradient(
         colors: [

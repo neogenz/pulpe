@@ -182,69 +182,14 @@ extension View {
     func pulpeBackground() -> some View {
         modifier(PulpeBackgroundModifier())
     }
-
-    /// Status-tinted background for budget details: emotion zone (top) + neutral (bottom)
-    func pulpeStatusBackground(emotionState: BudgetFormulas.EmotionState) -> some View {
-        modifier(PulpeStatusBackgroundModifier(emotionState: emotionState))
-    }
 }
 
 // MARK: - Background Modifiers
 
 private struct PulpeBackgroundModifier: ViewModifier {
-    @Environment(\.colorScheme) private var colorScheme
-
     func body(content: Content) -> some View {
         content.background {
-            backgroundView.ignoresSafeArea()
-        }
-    }
-
-    @ViewBuilder
-    private var backgroundView: some View {
-        if colorScheme == .dark {
-            // Dark mode: M3 surface token — dark green-tinted base
-            Color.surface
-        } else if #available(iOS 18.0, *) {
-            MeshGradient(
-                width: 3, height: 3,
-                points: Color.meshPoints,
-                colors: Color.lightMeshColors
-            )
-        } else {
-            Color.surface
-        }
-    }
-}
-
-private struct PulpeStatusBackgroundModifier: ViewModifier {
-    let emotionState: BudgetFormulas.EmotionState
-
-    private var emotionColor: Color {
-        switch emotionState {
-        case .comfortable: .emotionZoneComfortable
-        case .tight: .emotionZoneTight
-        case .deficit: .emotionZoneDeficit
-        }
-    }
-
-    func body(content: Content) -> some View {
-        content.background {
-            GeometryReader { proxy in
-                ZStack(alignment: .top) {
-                    // Base: neutral warm (content zone)
-                    Color.emotionZoneNeutral
-
-                    // Emotion zone: colored tint fading into neutral (~33% of view height)
-                    LinearGradient(
-                        colors: [emotionColor, emotionColor.opacity(0.4), .clear],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(height: proxy.size.height * 0.33)
-                }
-            }
-            .ignoresSafeArea()
+            Color.appBackground.ignoresSafeArea()
         }
     }
 }
