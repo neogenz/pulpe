@@ -58,6 +58,7 @@ final class BudgetDetailsViewModel {
             self.budget = cached.budget
             self.budgetLines = cached.budgetLines
             self.transactions = cached.transactions
+            recomputeMetrics()
         }
         if let cachedBudgets = cache.getAllBudgets() {
             self.allBudgets = cachedBudgets
@@ -446,6 +447,7 @@ final class BudgetDetailsViewModel {
             guard !self.transactions.contains(where: { $0.id == transaction.id }) else { return }
             self.transactions.append(transaction)
             self.recomputeMetrics()
+            self.syncCache()
         }
 
         // Schedule actual deletion after toast timeout
@@ -521,6 +523,7 @@ final class BudgetDetailsViewModel {
             guard !self.budgetLines.contains(where: { $0.id == line.id }) else { return }
             self.budgetLines.append(line)
             self.recomputeMetrics()
+            self.syncCache()
         }
 
         // Schedule actual deletion after toast timeout

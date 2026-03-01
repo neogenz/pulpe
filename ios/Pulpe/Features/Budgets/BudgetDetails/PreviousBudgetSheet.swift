@@ -13,7 +13,7 @@ final class PreviousBudgetSheetViewModel {
     let budgetId: String
     private let budgetService = BudgetService.shared
 
-    private var cachedMetrics: BudgetFormulas.Metrics?
+    @ObservationIgnored private var cachedMetrics: BudgetFormulas.Metrics?
 
     init(budgetId: String) {
         self.budgetId = budgetId
