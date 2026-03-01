@@ -66,31 +66,31 @@ extension Color {
     // iOS default systemGroupedBackground is #F2F2F7 light / #000000 dark.
     static let appBackground = Color(uiColor: .systemGroupedBackground)
 
-    // MARK: - Surface (M3 Tonal Hierarchy)
+    // MARK: - Surface (iOS System Colors — neutral gray hierarchy)
 
-    static let surface = Color(light: Color(hex: 0xF6FBF1), dark: Color(hex: 0x10150F))
-    static let surfaceDim = Color(light: Color(hex: 0xD6DCD2), dark: Color(hex: 0x10150F))
-    static let surfaceBright = Color(light: Color(hex: 0xF6FBF1), dark: Color(hex: 0x353B34))
-    static let surfaceContainerLowest = Color(light: Color(hex: 0xFFFFFF), dark: Color(hex: 0x0A0F0A))
-    static let surfaceContainerLow = Color(light: Color(hex: 0xF0F5EB), dark: Color(hex: 0x181D17))
-    static let surfaceContainer = Color(light: Color(hex: 0xEAF0E5), dark: Color(hex: 0x1C211B))
-    static let surfaceContainerHigh = Color(light: Color(hex: 0xE5EAE0), dark: Color(hex: 0x262B25))
-    static let surfaceContainerHighest = Color(light: Color(hex: 0xDFE4DA), dark: Color(hex: 0x31362F))
-    static let surfaceVariant = Color(light: Color(hex: 0xDBE6D6), dark: Color(hex: 0x3F493E))
+    static let surface = Color(uiColor: .systemBackground)
+    static let surfaceDim = Color(uiColor: .systemGray5)
+    static let surfaceBright = Color(uiColor: .systemBackground)
+    static let surfaceContainerLowest = Color(uiColor: .systemBackground)
+    static let surfaceContainerLow = Color(uiColor: .secondarySystemBackground)
+    static let surfaceContainer = Color(uiColor: .systemGray6)
+    static let surfaceContainerHigh = Color(uiColor: .systemGray5)
+    static let surfaceContainerHighest = Color(uiColor: .systemGray4)
+    static let surfaceVariant = Color(uiColor: .systemGray5)
 
     // MARK: - Semantic Text Colors
 
-    /// Primary text — M3 onSurface (#181D17 light, #DFE4DA dark)
-    static let textPrimary = Color(light: Color(hex: 0x181D17), dark: Color(hex: 0xDFE4DA))
+    /// Primary text — iOS system label (pure black light, pure white dark)
+    static let textPrimary = Color(.label)
 
     /// Text on primary-colored backgrounds (white in both modes)
     static let textOnPrimary = Color(light: .white, dark: .white)
 
-    /// Tertiary text with improved contrast (40% opacity light, 50% dark)
-    static let textTertiary = Color("TextTertiary")
+    /// Tertiary text — iOS system tertiary label
+    static let textTertiary = Color(.tertiaryLabel)
 
-    /// M3 onSurfaceVariant — secondary content on surface
-    static let onSurfaceVariant = Color(light: Color(hex: 0x3F493E), dark: Color(hex: 0xDBE6D6))
+    /// Secondary content on surface — iOS system secondary label
+    static let onSurfaceVariant = Color(.secondaryLabel)
 
     // MARK: - Outline
 
@@ -135,11 +135,8 @@ extension Color {
     /// Generic badge background
     static let badgeBackground = Color("BadgeBackground")
 
-    /// Input field background — white in light mode for clear contrast against sage surfaces
-    static let inputBackgroundSoft = Color(
-        light: .white,
-        dark: Color(uiColor: .tertiarySystemFill)
-    )
+    /// Input field background — subtle gray fill for contrast on white sheets
+    static let inputBackgroundSoft = Color(uiColor: .tertiarySystemFill)
 
     /// Input focus glow color
     static let inputFocusGlow = Color(
@@ -156,125 +153,6 @@ extension Color {
         Color(light: Color(hex: 0x00FF55), dark: Color(hex: 0x00531A)),
         Color(light: Color(hex: 0x88FF44), dark: Color(hex: 0x2B883B))
     ]
-
-    // MARK: - App Background Gradient
-
-    // Semantic gradient colors for premium background (green-tinted neutrals in light, dark in dark)
-    private static let gradientBaseTop = Color(light: Color(hex: 0xF6FBF1), dark: Color(hex: 0x10150F))
-    private static let gradientBaseMid = Color(light: Color(hex: 0xF0F5EB), dark: Color(hex: 0x181D17))
-    private static let gradientBaseBottom = Color(light: Color(hex: 0xEAF0E5), dark: Color(hex: 0x1C211B))
-    private static let gradientAccentWarm = Color(light: Color(hex: 0xE5EAE0), dark: Color(hex: 0x262B25))
-    private static let gradientAccentCream = Color(light: Color(hex: 0xEFF4EA), dark: Color(hex: 0x1C211B))
-    private static let gradientCenterGlow = Color(light: Color(hex: 0xF3F8EE), dark: Color(hex: 0x181D17))
-
-    // MARK: - Mesh Gradient Data (light mode only — dark mode uses system background)
-
-    static let meshPoints: [SIMD2<Float>] = [
-        .init(x: 0, y: 0), .init(x: 0.5, y: 0), .init(x: 1, y: 0),
-        .init(x: 0, y: 0.5), .init(x: 0.55, y: 0.5), .init(x: 1, y: 0.5),
-        .init(x: 0, y: 1), .init(x: 0.5, y: 1), .init(x: 1, y: 1)
-    ]
-
-    @available(iOS 18.0, *)
-    static let lightMeshColors: [Color] = [
-        Color(hex: 0xF6FBF1),
-        Color(hex: 0xF5F9F0).opacity(0.90),
-        Color(hex: 0xF3F8EE).opacity(0.85),
-        Color(hex: 0xF2F7ED).opacity(0.90),
-        Color(hex: 0xF0F5EB),
-        Color(hex: 0xEFF4EA).opacity(0.90),
-        Color(hex: 0xEDF2E8).opacity(0.85),
-        Color(hex: 0xECF1E7).opacity(0.90),
-        Color(hex: 0xEAF0E5).opacity(0.85)
-    ]
-
-    @ViewBuilder
-    static var appFallbackBackground: some View {
-        ZStack {
-            Color(hex: 0xF6FBF1)
-            LinearGradient(
-                colors: [
-                    gradientBaseTop.opacity(0.50),
-                    gradientBaseMid.opacity(0.45),
-                    gradientBaseBottom.opacity(0.40)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            RadialGradient(
-                colors: [gradientAccentWarm.opacity(0.40), .clear],
-                center: .topTrailing,
-                startRadius: 0,
-                endRadius: 400
-            )
-            RadialGradient(
-                colors: [gradientAccentCream.opacity(0.35), .clear],
-                center: .bottomLeading,
-                startRadius: 0,
-                endRadius: 350
-            )
-        }
-    }
-
-    /// Premium multi-layered background with visible color for Liquid Glass refraction
-    @ViewBuilder
-    static var appPremiumBackground: some View {
-        ZStack {
-            baseGradientLayer
-            warmAccentLayer
-            creamAccentLayer
-            centerGlowLayer
-        }
-    }
-
-    @ViewBuilder
-    private static var baseGradientLayer: some View {
-        LinearGradient(
-            colors: [gradientBaseTop, gradientBaseMid, gradientBaseBottom],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-    }
-
-    @ViewBuilder
-    private static var warmAccentLayer: some View {
-        RadialGradient(
-            colors: [gradientAccentWarm.opacity(0.85), .clear],
-            center: .topTrailing,
-            startRadius: 0,
-            endRadius: 400
-        )
-    }
-
-    @ViewBuilder
-    private static var creamAccentLayer: some View {
-        RadialGradient(
-            colors: [gradientAccentCream.opacity(0.75), .clear],
-            center: .bottomLeading,
-            startRadius: 0,
-            endRadius: 350
-        )
-    }
-
-    @ViewBuilder
-    private static var centerGlowLayer: some View {
-        RadialGradient(
-            colors: [gradientCenterGlow.opacity(0.55), .clear],
-            center: .center,
-            startRadius: 50,
-            endRadius: 500
-        )
-    }
-
-    /// Legacy gradient (kept for compatibility)
-    static let appBackgroundGradient = LinearGradient(
-        colors: [
-            Color(light: Color(hex: 0xF6FBF1), dark: Color(hex: 0x10150F)),
-            Color(light: Color(hex: 0xEAF0E5), dark: Color(hex: 0x1C211B))
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-    )
 
     // MARK: - Onboarding & Tutorial Colors
 
