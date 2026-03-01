@@ -12,6 +12,7 @@ final class AppRuntimeCoordinator {
     private let budgetListStore: BudgetListStore
     private let dashboardStore: DashboardStore
     private let widgetSyncViewModel: WidgetSyncViewModel
+    private var foregroundTask: Task<Void, Never>?
 
     init(
         appState: AppState,
@@ -82,7 +83,8 @@ final class AppRuntimeCoordinator {
 
     private func handleBecomeActive() {
         appState.prepareForForeground()
-        Task {
+        foregroundTask?.cancel()
+        foregroundTask = Task {
             await appState.handleEnterForeground()
             #if DEBUG
             let fgAuth = String(describing: self.appState.authState)
@@ -92,8 +94,8 @@ final class AppRuntimeCoordinator {
             )
             #endif
             if appState.authState == .authenticated {
-                async let r1: Void = currentMonthStore.forceRefresh()
-                async let r2: Void = budgetListStore.forceRefresh()
+                async let r1: Void = currentMonthStore.loadIfNeeded()
+                async let r2: Void = budgetListStore.loadIfNeeded()
                 async let r3: Void = dashboardStore.loadIfNeeded()
                 _ = await (r1, r2, r3)
             }

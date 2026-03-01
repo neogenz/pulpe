@@ -43,6 +43,7 @@ final class BudgetDetailsViewModel {
     private let budgetService = BudgetService.shared
     private let budgetLineService = BudgetLineService.shared
     private let transactionService = TransactionService.shared
+    private let cache = BudgetDetailCache.shared
 
     init(budgetId: String) {
         self.budgetId = budgetId
@@ -51,6 +52,17 @@ final class BudgetDetailsViewModel {
             forKey: BudgetDetailsUserDefaultsKey.showOnlyUnchecked
         ) as? Bool ?? true
         self.checkedFilter = showOnlyUnchecked ? .unchecked : .all
+
+        // Pre-populate from cache to avoid skeleton on revisit
+        if let cached = cache.get(budgetId: budgetId) {
+            self.budget = cached.budget
+            self.budgetLines = cached.budgetLines
+            self.transactions = cached.transactions
+        }
+        if let cachedBudgets = cache.getAllBudgets() {
+            self.allBudgets = cachedBudgets
+            updateAdjacentBudgets()
+        }
     }
 
     func setCheckedFilter(_ filter: CheckedFilterOption) {
@@ -65,27 +77,40 @@ final class BudgetDetailsViewModel {
     var hasNextBudget: Bool { nextBudgetId != nil }
 
     /// Prepare navigation by changing the budgetId (synchronous)
-    /// Old data stays visible until new data arrives via reloadCurrentBudget()
+    /// Pre-populates from cache if available, otherwise old data stays visible until reload
     func prepareNavigation(to id: String) {
         budgetId = id
+        if let cached = cache.get(budgetId: id) {
+            budget = cached.budget
+            budgetLines = cached.budgetLines
+            transactions = cached.transactions
+            invalidateMetricsCache()
+            updateAdjacentBudgets()
+        }
     }
 
     var metrics: BudgetFormulas.Metrics {
-        if let cached = cachedMetrics {
-            return cached
-        }
-        let calculated = BudgetFormulas.calculateAllMetrics(
+        cachedMetrics ?? BudgetFormulas.calculateAllMetrics(
             budgetLines: budgetLines,
             transactions: transactions,
             rollover: budget?.rollover.orZero ?? 0
         )
-        cachedMetrics = calculated
-        return calculated
     }
 
-    /// Invalidate cached metrics when data changes
+    /// Recompute and cache metrics - call after data changes
     private func invalidateMetricsCache() {
-        cachedMetrics = nil
+        cachedMetrics = BudgetFormulas.calculateAllMetrics(
+            budgetLines: budgetLines,
+            transactions: transactions,
+            rollover: budget?.rollover.orZero ?? 0
+        )
+    }
+
+    /// Sync current in-memory state to the detail cache so popping back and re-entering
+    /// doesn't flash stale data after an optimistic mutation.
+    private func syncCache() {
+        guard let budget else { return }
+        cache.store(budgetId: budgetId, budget: budget, budgetLines: budgetLines, transactions: transactions)
     }
 
     var incomeLines: [BudgetLine] {
@@ -177,8 +202,13 @@ final class BudgetDetailsViewModel {
     }
 
     /// Full load: fetches budget details AND all budgets list (for month navigation)
-    /// Use for: initial load, pull-to-refresh
-    func loadDetails() async {
+    /// Use for: initial load (force=false), pull-to-refresh (force=true)
+    func loadDetails(force: Bool = false) async {
+        // If cache already pre-populated data, skip fetch (unless forced by pull-to-refresh)
+        if !force, budget != nil, !allBudgets.isEmpty, cache.get(budgetId: budgetId) != nil {
+            return
+        }
+
         let showsSkeleton = budget == nil
         isLoading = true
         error = nil
@@ -201,6 +231,14 @@ final class BudgetDetailsViewModel {
             allBudgets = budgets
             invalidateMetricsCache()
             updateAdjacentBudgets()
+
+            cache.store(
+                budgetId: budgetId,
+                budget: details.budget,
+                budgetLines: details.budgetLines,
+                transactions: details.transactions
+            )
+            cache.storeAllBudgets(budgets)
         } catch is CancellationError {
             // Task was cancelled, don't update error state
         } catch {
@@ -222,6 +260,13 @@ final class BudgetDetailsViewModel {
             transactions = details.transactions
             invalidateMetricsCache()
             updateAdjacentBudgets()
+
+            cache.store(
+                budgetId: budgetId,
+                budget: details.budget,
+                budgetLines: details.budgetLines,
+                transactions: details.transactions
+            )
         } catch is CancellationError {
             // Task was cancelled, don't update error state
         } catch {
@@ -303,6 +348,7 @@ final class BudgetDetailsViewModel {
         if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
             budgetLines[index] = line.toggled()
             invalidateMetricsCache()
+            syncCache()
         }
 
         do {
@@ -384,6 +430,7 @@ final class BudgetDetailsViewModel {
         if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
             transactions[index] = transaction.toggled()
             invalidateMetricsCache()
+            syncCache()
         }
 
         do {
@@ -407,6 +454,7 @@ final class BudgetDetailsViewModel {
         // Remove from UI immediately (optimistic)
         transactions.removeAll { $0.id == transaction.id }
         invalidateMetricsCache()
+        syncCache()
 
         // Show undo toast - actual deletion happens when toast dismisses
         toastManager.showWithUndo("Transaction supprimée") { [weak self] in
@@ -461,11 +509,13 @@ final class BudgetDetailsViewModel {
     func addTransaction(_ transaction: Transaction) {
         transactions.append(transaction)
         invalidateMetricsCache()
+        syncCache()
     }
 
     func addBudgetLine(_ budgetLine: BudgetLine) {
         budgetLines.append(budgetLine)
         invalidateMetricsCache()
+        syncCache()
     }
 
     /// Soft delete with undo support - removes from UI immediately but delays API call
@@ -478,6 +528,7 @@ final class BudgetDetailsViewModel {
         // Remove from UI immediately (optimistic)
         budgetLines.removeAll { $0.id == line.id }
         invalidateMetricsCache()
+        syncCache()
 
         // Show undo toast
         toastManager.showWithUndo("Prévision supprimée") { [weak self] in
@@ -538,6 +589,7 @@ final class BudgetDetailsViewModel {
         if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
             budgetLines[index] = line
             invalidateMetricsCache()
+            syncCache()
         }
 
         // Reload to sync with server
@@ -549,6 +601,7 @@ final class BudgetDetailsViewModel {
         if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
             transactions[index] = transaction
             invalidateMetricsCache()
+            syncCache()
         }
 
         // Reload to sync with server

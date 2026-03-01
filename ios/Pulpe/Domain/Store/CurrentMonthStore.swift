@@ -124,6 +124,12 @@ final class CurrentMonthStore: StoreProtocol {
 
     /// Full data loading - called when view needs transactions and budget lines
     private func loadDetails() async {
+        // If a forceRefresh is already in progress, piggyback on it
+        if let existingTask = loadTask {
+            await existingTask.value
+            return
+        }
+
         guard let currentBudget = budget else {
             // No budget summary loaded yet, load everything
             await forceRefresh()
@@ -141,6 +147,13 @@ final class CurrentMonthStore: StoreProtocol {
             transactions = details.transactions
             invalidateMetricsCache()
             lastLoadTime = Date()
+
+            BudgetDetailCache.shared.store(
+                budgetId: details.budget.id,
+                budget: details.budget,
+                budgetLines: details.budgetLines,
+                transactions: details.transactions
+            )
         } catch is CancellationError {
             // Task was cancelled, don't update error state
         } catch let apiError as APIError {
@@ -176,6 +189,7 @@ final class CurrentMonthStore: StoreProtocol {
         cachedMetrics = nil
         cachedRealizedMetrics = nil
         error = nil
+        BudgetDetailCache.shared.reset()
     }
 
     func forceRefresh() async {
@@ -221,6 +235,13 @@ final class CurrentMonthStore: StoreProtocol {
                 transactions = details.transactions
                 invalidateMetricsCache()
                 lastLoadTime = Date()
+
+                BudgetDetailCache.shared.store(
+                    budgetId: details.budget.id,
+                    budget: details.budget,
+                    budgetLines: details.budgetLines,
+                    transactions: details.transactions
+                )
             } catch is CancellationError {
                 // Task was cancelled, don't update error state
             } catch let apiError as APIError {
@@ -485,6 +506,7 @@ extension CurrentMonthStore {
 
         do {
             try await transactionService.deleteTransaction(id: transaction.id)
+            syncWidgetAfterChange()
         } catch let apiError as APIError {
             transactions = originalTransactions
             self.error = apiError
