@@ -26,15 +26,11 @@ struct BudgetDetailsView: View {
 
     private var timeElapsedPercentage: Double {
         guard let budget = viewModel.budget else { return 0 }
-        let dates = BudgetPeriodCalculator.periodDates(
+        return BudgetPeriodCalculator.timeElapsedPercentage(
             month: budget.month,
             year: budget.year,
             payDayOfMonth: userSettingsStore.payDayOfMonth
         )
-        let totalDuration = dates.endDate.timeIntervalSince(dates.startDate)
-        guard totalDuration > 0 else { return 0 }
-        let elapsed = Date().timeIntervalSince(dates.startDate)
-        return min(max(elapsed / totalDuration * 100, 0), 100)
     }
 
     private var checkedFilterBinding: Binding<CheckedFilterOption> {
@@ -181,8 +177,7 @@ struct BudgetDetailsView: View {
             Section {
                 HeroBalanceCard(
                     metrics: viewModel.metrics,
-                    timeElapsedPercentage: timeElapsedPercentage,
-                    onTapProgress: {}
+                    timeElapsedPercentage: timeElapsedPercentage
                 )
             }
             .listRowBackground(Color.clear)

@@ -4,7 +4,7 @@ import SwiftUI
 struct HeroBalanceCard: View {
     let metrics: BudgetFormulas.Metrics
     var timeElapsedPercentage: Double = 0
-    let onTapProgress: () -> Void
+    var onTapProgress: (() -> Void)?
 
     // MARK: - Static Formatters (avoid recreation on every render)
 
@@ -24,7 +24,7 @@ struct HeroBalanceCard: View {
     // MARK: - Computed Properties
 
     private var contextLabel: String {
-        metrics.isDeficit ? "DÉFICIT" : "DISPONIBLE"
+        metrics.isDeficit ? "Déficit" : "Disponible"
     }
 
     private var motivationalMessage: String {
@@ -87,10 +87,16 @@ struct HeroBalanceCard: View {
     // MARK: - Body
 
     var body: some View {
-        Button(action: onTapProgress) {
-            cardContent
+        Group {
+            if let onTapProgress {
+                Button(action: onTapProgress) {
+                    cardContent
+                }
+                .buttonStyle(.plain)
+            } else {
+                cardContent
+            }
         }
-        .buttonStyle(.plain)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(
             """
@@ -108,6 +114,7 @@ struct HeroBalanceCard: View {
             // Chunk 1 — Contextual label
             Text(contextLabel)
                 .font(PulpeTypography.labelLargeBold)
+                .textCase(.uppercase)
                 .foregroundStyle(.white.opacity(supportingTextOpacity))
 
             // Chunk 2 — Hero amount
@@ -284,8 +291,7 @@ struct HeroBalanceCard: View {
                     remaining: 3300,
                     rollover: 0
                 ),
-                timeElapsedPercentage: 50,
-                onTapProgress: {}
+                timeElapsedPercentage: 50
             )
 
             // Tight: 80-100% used
@@ -299,8 +305,7 @@ struct HeroBalanceCard: View {
                     remaining: 500,
                     rollover: 0
                 ),
-                timeElapsedPercentage: 65,
-                onTapProgress: {}
+                timeElapsedPercentage: 65
             )
 
             // Deficit: >100% used
@@ -314,8 +319,7 @@ struct HeroBalanceCard: View {
                     remaining: -1230,
                     rollover: 0
                 ),
-                timeElapsedPercentage: 85,
-                onTapProgress: {}
+                timeElapsedPercentage: 85
             )
         }
         .padding()

@@ -68,7 +68,7 @@ struct TransactionSection: View {
             } label: {
                 Label("Supprimer", systemImage: "trash")
             }
-            .tint(Color.errorPrimary)
+            .tint(Color.destructivePrimary)
         }
 
         if let onToggle {

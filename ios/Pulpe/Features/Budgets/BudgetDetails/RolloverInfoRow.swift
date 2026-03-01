@@ -23,10 +23,10 @@ struct RolloverInfoRow: View {
     private var content: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "arrow.uturn.backward.circle.fill")
-                .font(.system(size: 20))
+                .font(PulpeTypography.title2)
                 .foregroundStyle(tintColor)
 
-            Text("Report")
+            Text(isPositive ? "Report (excédent)" : "Report (déficit)")
                 .font(PulpeTypography.subheadline)
                 .foregroundStyle(.secondary)
 
