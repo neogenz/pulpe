@@ -365,20 +365,21 @@ struct BudgetLineRow: View {
         .opacity(line.isVirtualRollover ? 0.6 : 1)
     }
 
-    private var progressBar: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                Rectangle()
-                    .fill(Color.progressTrack)
+    @State private var barWidth: CGFloat = 0
 
-                Rectangle()
-                    .fill(consumptionColor)
-                    .frame(width: geometry.size.width * CGFloat(min(consumption.percentage / 100, 1)))
-                    .animation(.spring(duration: DesignTokens.Animation.slow), value: consumption.percentage)
-            }
+    private var progressBar: some View {
+        ZStack(alignment: .leading) {
+            Rectangle()
+                .fill(Color.progressTrack)
+
+            Rectangle()
+                .fill(consumptionColor)
+                .frame(width: barWidth * CGFloat(min(consumption.percentage / 100, 1)))
+                .animation(.spring(duration: DesignTokens.Animation.slow), value: consumption.percentage)
         }
         .frame(height: DesignTokens.ProgressBar.height)
         .clipShape(.rect(cornerRadius: 1.5))
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }
     }
 
     private func handleLongPress() {

@@ -9,6 +9,7 @@ struct LinkedTransactionsSheet: View {
     let onAddTransaction: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @State private var progressBarWidth: CGFloat = 0
 
     private var consumption: BudgetFormulas.Consumption {
         BudgetFormulas.calculateConsumption(for: budgetLine, transactions: transactions)
@@ -110,17 +111,16 @@ struct LinkedTransactionsSheet: View {
                     .foregroundStyle(progressColor)
             }
 
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.progressTrack)
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.progressTrack)
 
-                    Capsule()
-                        .fill(progressColor)
-                        .frame(width: geometry.size.width * CGFloat(min(consumption.percentage / 100, 1)))
-                }
+                Capsule()
+                    .fill(progressColor)
+                    .frame(width: progressBarWidth * CGFloat(min(consumption.percentage / 100, 1)))
             }
             .frame(height: DesignTokens.ProgressBar.thickHeight)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { progressBarWidth = $0 }
         }
         .padding(DesignTokens.Spacing.lg)
         .background(Color.surfaceCard)

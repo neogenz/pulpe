@@ -159,6 +159,8 @@ private struct ProgressRow: View {
     let realized: Decimal
     let planned: Decimal
 
+    @State private var barWidth: CGFloat = 0
+
     private var percentage: Double {
         guard planned > 0 else { return 0 }
         return min(Double(truncating: NSDecimalNumber(decimal: realized / planned)), 1.0)
@@ -189,17 +191,16 @@ private struct ProgressRow: View {
             }
 
             // Progress bar
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.progressTrack)
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.progressTrack)
 
-                    Capsule()
-                        .fill(iconColor)
-                        .frame(width: geometry.size.width * CGFloat(percentage))
-                }
+                Capsule()
+                    .fill(iconColor)
+                    .frame(width: barWidth * CGFloat(percentage))
             }
             .frame(height: DesignTokens.Spacing.sm)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }
 
             // Percentage label
             Text("\(percentageText) réalisé")

@@ -183,32 +183,33 @@ struct HeroBalanceCard: View {
 
     // MARK: - Progress Bar with Pace Indicator
 
+    @State private var barWidth: CGFloat = 0
+
     private var progressBar: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                // Track
-                Capsule()
-                    .fill(.white.opacity(0.2))
+        ZStack(alignment: .leading) {
+            // Track
+            Capsule()
+                .fill(.white.opacity(0.2))
 
-                // Fill
-                Capsule()
-                    .fill(.white)
-                    .frame(width: geo.size.width * fillPercentage)
-                    .animation(.easeInOut(duration: 0.8), value: fillPercentage)
+            // Fill
+            Capsule()
+                .fill(.white)
+                .frame(width: barWidth * fillPercentage)
+                .animation(.easeInOut(duration: 0.8), value: fillPercentage)
 
-                // Pace indicator (vertical white line)
-                if timeElapsedPercentage > 0 {
-                    RoundedRectangle(cornerRadius: 1)
-                        .fill(.white.opacity(0.4))
-                        .frame(width: 2, height: geo.size.height + 4)
-                        .offset(
-                            x: geo.size.width * min(timeElapsedPercentage / 100, 1) - 1,
-                            y: -2
-                        )
-                }
+            // Pace indicator (vertical white line)
+            if timeElapsedPercentage > 0 {
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(.white.opacity(0.4))
+                    .frame(width: 2, height: DesignTokens.ProgressBar.heroHeight + 4)
+                    .offset(
+                        x: barWidth * min(timeElapsedPercentage / 100, 1) - 1,
+                        y: -2
+                    )
             }
         }
         .frame(height: DesignTokens.ProgressBar.heroHeight)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }
     }
 
     // MARK: - Card Background
