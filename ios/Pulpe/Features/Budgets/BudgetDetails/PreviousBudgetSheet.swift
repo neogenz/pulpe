@@ -24,6 +24,7 @@ final class PreviousBudgetSheetViewModel {
             self.budgetLines = cached.budgetLines
             self.transactions = cached.transactions
             self.isLoading = false
+            recomputeMetrics()
         } else {
             self.isLoading = true
         }
