@@ -61,6 +61,11 @@ extension Color {
     static let secondaryColor = Color(light: Color(hex: 0x406741), dark: Color(hex: 0xA6D2A3))
     static let secondaryContainer = Color(light: Color(hex: 0xC1EEBE), dark: Color(hex: 0x294F2B))
 
+    // MARK: - App Background
+    // Single place to tweak the main screen background.
+    // iOS default systemGroupedBackground is #F2F2F7 light / #000000 dark.
+    static let appBackground = Color(uiColor: .systemGroupedBackground)
+
     // MARK: - Surface (M3 Tonal Hierarchy)
 
     static let surface = Color(light: Color(hex: 0xF6FBF1), dark: Color(hex: 0x10150F))
