@@ -14,7 +14,7 @@ struct KindToggle: View {
                 } label: {
                     Text(kind.label)
                         .font(isSelected ? PulpeTypography.labelLarge : PulpeTypography.labelMedium)
-                        .foregroundStyle(isSelected ? kind.color : Color.textTertiary)
+                        .foregroundStyle(isSelected ? kind.color : Color.onSurfaceVariant)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, DesignTokens.Spacing.sm)
                         .background(

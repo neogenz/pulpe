@@ -10,37 +10,49 @@ struct MainTabView: View {
     @Environment(CurrentMonthStore.self) private var monthStore
     @State private var addTransactionBudgetId: AddTransactionItem?
 
-    private let tabBarHeight: CGFloat = 55
+    private let tabBarHeight: CGFloat = 62
 
     var body: some View {
         @Bindable var state = appState
 
-        TabView(selection: $state.selectedTab) {
-            SwiftUI.Tab(value: Tab.currentMonth) {
-                CurrentMonthTab()
-                    .toolbarVisibility(.hidden, for: .tabBar)
-            }
+        GeometryReader { geometry in
+            let bottomInset = geometry.safeAreaInsets.bottom
+            // Position capsule just above the home indicator, like a standard tab bar
+            let tabBarBottom = bottomInset > 0 ? DesignTokens.Spacing.xl : DesignTokens.Spacing.xs
+            let scrollMargin = tabBarBottom + tabBarHeight + DesignTokens.Spacing.md - bottomInset
 
-            SwiftUI.Tab(value: Tab.budgets) {
-                BudgetsTab()
-                    .toolbarVisibility(.hidden, for: .tabBar)
-            }
+            ZStack(alignment: .bottom) {
+                TabView(selection: $state.selectedTab) {
+                    SwiftUI.Tab(value: Tab.currentMonth) {
+                        CurrentMonthTab()
+                            .toolbarVisibility(.hidden, for: .tabBar)
+                    }
 
-            SwiftUI.Tab(value: Tab.templates) {
-                TemplatesTab()
-                    .toolbarVisibility(.hidden, for: .tabBar)
+                    SwiftUI.Tab(value: Tab.budgets) {
+                        BudgetsTab()
+                            .toolbarVisibility(.hidden, for: .tabBar)
+                    }
+
+                    SwiftUI.Tab(value: Tab.templates) {
+                        TemplatesTab()
+                            .toolbarVisibility(.hidden, for: .tabBar)
+                    }
+                }
+                .pulpeBackground()
+                .contentMargins(.bottom, scrollMargin, for: .scrollContent)
+
+                Group {
+                    if #available(iOS 26.0, *) {
+                        customTabBarView(selectedTab: $state.selectedTab)
+                            .padding(.horizontal, DesignTokens.Spacing.lg)
+                    } else {
+                        customTabBarViewLegacy(selectedTab: $state.selectedTab)
+                            .padding(.horizontal, DesignTokens.Spacing.lg)
+                    }
+                }
+                .padding(.bottom, tabBarBottom)
             }
-        }
-        .pulpeBackground()
-        .contentMargins(.bottom, tabBarHeight + DesignTokens.Spacing.md, for: .scrollContent)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if #available(iOS 26.0, *) {
-                customTabBarView(selectedTab: $state.selectedTab)
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-            } else {
-                customTabBarViewLegacy(selectedTab: $state.selectedTab)
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-            }
+            .ignoresSafeArea(.container, edges: .bottom)
         }
         .onChange(of: appState.selectedTab) { _, newTab in
             AnalyticsService.shared.capture(.tabSwitched, properties: ["tab": newTab.rawValue])
@@ -60,48 +72,65 @@ struct MainTabView: View {
         GlassEffectContainer(spacing: 10) {
             HStack(spacing: 10) {
                 GeometryReader { geometry in
-                    CustomTabBar(size: geometry.size, barTint: .gray.opacity(0.3), activeTab: selectedTab)
-                        .overlay {
-                            HStack(spacing: 0) {
-                                ForEach(Tab.allCases) { tab in
-                                    VStack(spacing: 3) {
-                                        Image(systemName: tab.icon)
-                                            .font(.title3)
-
-                                        Text(tab.title)
-                                            .font(PulpeTypography.tabLabel)
-                                    }
-                                    .symbolVariant(.fill)
-                                    .foregroundStyle(
-                                        selectedTab.wrappedValue == tab ? Color.pulpePrimary : Color(.label)
-                                    )
-                                    .frame(maxWidth: .infinity)
-                                }
-                            }
-                            .animation(.easeInOut(duration: 0.25), value: selectedTab.wrappedValue)
-                        }
-                        .glassEffect(.regular.interactive(), in: .capsule)
+                    let segmentInset = DesignTokens.Spacing.xs
+                    CustomTabBar(
+                        size: CGSize(
+                            width: geometry.size.width - segmentInset * 2,
+                            height: geometry.size.height - segmentInset * 2
+                        ),
+                        barTint: .gray.opacity(0.3),
+                        activeTab: selectedTab
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .overlay { tabBarItems(selectedTab: selectedTab) }
+                    .glassEffect(.regular.interactive(), in: .capsule)
                 }
 
-                // Action button (only visible on current month tab)
-                if selectedTab.wrappedValue == .currentMonth, let budgetId = monthStore.budget?.id {
-                    Button {
-                        addTransactionBudgetId = AddTransactionItem(id: budgetId)
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 22, weight: .medium))
-                            .foregroundStyle(Color.white)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
-                    .frame(width: tabBarHeight, height: tabBarHeight)
-                    .contentShape(Circle())
-                    .glassEffect(.regular.tint(Color.pulpePrimary).interactive(), in: .capsule)
-                    .transition(.scale.combined(with: .opacity))
-                }
+                tabBarActionButton(selectedTab: selectedTab)
             }
         }
         .frame(height: tabBarHeight)
         .animation(.smooth(duration: 0.25), value: selectedTab.wrappedValue)
+    }
+
+    @available(iOS 26.0, *)
+    @ViewBuilder
+    private func tabBarItems(selectedTab: Binding<Tab>) -> some View {
+        HStack(spacing: 0) {
+            ForEach(Tab.allCases) { tab in
+                let isSelected = selectedTab.wrappedValue == tab
+                VStack(spacing: 3) {
+                    ZStack {
+                        Image(systemName: tab.icon).opacity(isSelected ? 0 : 1)
+                        Image(systemName: tab.icon).symbolVariant(.fill).opacity(isSelected ? 1 : 0)
+                    }
+                    .font(.title3)
+                    Text(tab.title).font(PulpeTypography.tabLabel)
+                }
+                .foregroundStyle(isSelected ? Color.pulpePrimary : Color(.label))
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: selectedTab.wrappedValue)
+    }
+
+    @available(iOS 26.0, *)
+    @ViewBuilder
+    private func tabBarActionButton(selectedTab: Binding<Tab>) -> some View {
+        if selectedTab.wrappedValue == .currentMonth, let budgetId = monthStore.budget?.id {
+            Button {
+                addTransactionBudgetId = AddTransactionItem(id: budgetId)
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(Color.white)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .frame(width: tabBarHeight, height: tabBarHeight)
+            .contentShape(Circle())
+            .glassEffect(.regular.tint(Color.pulpePrimary).interactive(), in: .capsule)
+            .transition(.scale.combined(with: .opacity))
+        }
     }
 
     // MARK: - Custom Tab Bar (iOS 18-25 Legacy)
@@ -116,14 +145,21 @@ struct MainTabView: View {
                             selectedTab.wrappedValue = tab
                         }
                     } label: {
+                        let isSelected = selectedTab.wrappedValue == tab
+
                         VStack(spacing: 3) {
-                            Image(systemName: tab.icon)
-                                .font(.title3)
+                            ZStack {
+                                Image(systemName: tab.icon)
+                                    .opacity(isSelected ? 0 : 1)
+                                Image(systemName: tab.icon)
+                                    .symbolVariant(.fill)
+                                    .opacity(isSelected ? 1 : 0)
+                            }
+                            .font(.title3)
                             Text(tab.title)
                                 .font(PulpeTypography.tabLabel)
                         }
-                        .symbolVariant(.fill)
-                        .foregroundStyle(selectedTab.wrappedValue == tab ? Color.pulpePrimary : .primary)
+                        .foregroundStyle(isSelected ? Color.pulpePrimary : .primary)
                         .frame(maxWidth: .infinity)
                     }
                 }

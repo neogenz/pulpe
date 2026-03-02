@@ -19,8 +19,8 @@ enum TransactionKind: String, Codable, CaseIterable, Sendable {
 
     var icon: String {
         switch self {
-        case .income: "arrow.down"
-        case .expense: "arrow.up"
+        case .income: "arrow.down.left"
+        case .expense: "arrow.up.right"
         case .saving: Self.savingsIcon
         }
     }

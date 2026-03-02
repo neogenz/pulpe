@@ -8,12 +8,7 @@ struct TypographyTests {
     /// All custom font PostScript names must resolve to a UIFont, proving the .ttf files
     /// are bundled correctly and registered via UIAppFonts in Info.plist.
     @Test(arguments: [
-        "Manrope-Bold",
-        "Manrope-SemiBold",
-        "Manrope-Medium",
-        "DMSans-Regular",
-        "DMSans-Medium",
-        "DMSans-SemiBold"
+        "Manrope-Bold"
     ])
     func customFont_isRegisteredAndLoadable(postScriptName: String) {
         let font = UIFont(name: postScriptName, size: 17)
@@ -29,6 +24,10 @@ struct TypographyTests {
         // Brand & hero
         _ = PulpeTypography.brandTitle
         _ = PulpeTypography.amountHero
+        _ = PulpeTypography.amountLarge
+        _ = PulpeTypography.amountMedium
+        _ = PulpeTypography.progressValue
+        _ = PulpeTypography.progressUnit
 
         // Onboarding
         _ = PulpeTypography.onboardingTitle
@@ -37,10 +36,14 @@ struct TypographyTests {
         // Steps
         _ = PulpeTypography.stepTitle
         _ = PulpeTypography.stepSubtitle
+        _ = PulpeTypography.tutorialTitle
+        _ = PulpeTypography.tutorialBody
+        _ = PulpeTypography.tutorialStep
 
         // Body & labels
         _ = PulpeTypography.bodyLarge
         _ = PulpeTypography.labelLarge
+        _ = PulpeTypography.labelLargeBold
         _ = PulpeTypography.labelMedium
 
         // Input
@@ -51,6 +54,9 @@ struct TypographyTests {
         // Buttons
         _ = PulpeTypography.buttonPrimary
         _ = PulpeTypography.buttonSecondary
+
+        // Navigation
+        _ = PulpeTypography.tabLabel
 
         // Numpad
         _ = PulpeTypography.numpadKey
@@ -71,17 +77,5 @@ struct TypographyTests {
         _ = PulpeTypography.footnote
         _ = PulpeTypography.caption
         _ = PulpeTypography.caption2
-    }
-
-    // MARK: - No System Font Leaks
-
-    /// Verify that no bare .font(.textStyle) calls remain in the codebase by checking
-    /// that all PulpeTypography tokens return Font values (not nil or empty).
-    /// This is a compile-time guarantee — if a token is removed, this test won't compile.
-    @Test func newTypographyTokens_exist() {
-        _ = PulpeTypography.numpadKey
-        _ = PulpeTypography.numpadSubtext
-        _ = PulpeTypography.heroIcon
-        _ = PulpeTypography.welcomeEmoji
     }
 }

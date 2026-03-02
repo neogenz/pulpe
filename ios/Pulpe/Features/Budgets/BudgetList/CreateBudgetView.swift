@@ -46,15 +46,12 @@ struct CreateBudgetView: View {
                 .padding(.bottom, DesignTokens.Spacing.xxxl)
             }
             .scrollIndicators(.hidden)
-            .background(Color(.systemGroupedBackground))
+            .background(Color.surface)
             .navigationTitle("Nouveau budget")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") {
-                        dismiss()
-                    }
-                    .foregroundStyle(.secondary)
+                    SheetCloseButton()
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
@@ -69,10 +66,7 @@ struct CreateBudgetView: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
-        .presentationCornerRadius(24)
-        .presentationBackground(Color(.systemGroupedBackground))
+        .standardSheetPresentation()
     }
 
     // MARK: - Create Button
@@ -126,12 +120,11 @@ struct CreateBudgetView: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .background(Color(.tertiarySystemGroupedBackground), in: Capsule())
+                .background(Color.surfaceContainerLow, in: Capsule())
         }
         .padding(DesignTokens.Spacing.lg)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Color.surfaceContainerHigh)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
-        .shadow(DesignTokens.Shadow.subtle)
     }
 
     // MARK: - Template Section
@@ -176,7 +169,7 @@ struct CreateBudgetView: View {
         VStack(spacing: DesignTokens.Spacing.md) {
             ForEach(0..<2, id: \.self) { _ in
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                    .fill(Color(.tertiarySystemGroupedBackground))
+                    .fill(Color.surfaceContainerLow)
                     .frame(height: 80)
                     .shimmering()
             }
@@ -202,7 +195,7 @@ struct CreateBudgetView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.xxxl)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Color.surfaceContainerHigh)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
 
@@ -280,7 +273,6 @@ struct TemplateSelectionCard: View {
             .background(cardBackground)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
             .overlay(cardBorder)
-            .shadow(isSelected ? DesignTokens.Shadow.card : DesignTokens.Shadow.subtle)
             .scaleEffect(isPressed ? 0.98 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
         }
@@ -298,7 +290,7 @@ struct TemplateSelectionCard: View {
     private var selectionIndicator: some View {
         ZStack {
             Circle()
-                .strokeBorder(isSelected ? Color.pulpePrimary : Color(.separator), lineWidth: 2)
+                .strokeBorder(isSelected ? Color.pulpePrimary : Color.outlineVariant, lineWidth: 2)
                 .frame(width: 24, height: 24)
 
             if isSelected {
@@ -315,7 +307,7 @@ struct TemplateSelectionCard: View {
 
     private var defaultBadge: some View {
         Text("Par défaut")
-            .font(.custom("Manrope-SemiBold", size: 10, relativeTo: .caption2))
+            .font(PulpeTypography.tabLabel)
             .foregroundStyle(Color.pulpePrimary)
             .padding(.horizontal, DesignTokens.Spacing.sm)
             .padding(.vertical, 3)
@@ -376,7 +368,7 @@ struct TemplateSelectionCard: View {
                 endPoint: .bottomTrailing
             )
         } else {
-            Color(.secondarySystemGroupedBackground)
+            Color.surfaceContainerHigh
         }
     }
 
@@ -385,7 +377,7 @@ struct TemplateSelectionCard: View {
     private var cardBorder: some View {
         RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
             .stroke(
-                isSelected ? Color.pulpePrimary.opacity(0.4) : Color(.separator).opacity(0.2),
+                isSelected ? Color.pulpePrimary.opacity(0.4) : Color.outlineVariant.opacity(0.2),
                 lineWidth: isSelected ? 1.5 : 0.5
             )
     }

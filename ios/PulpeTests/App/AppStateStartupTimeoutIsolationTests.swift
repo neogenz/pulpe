@@ -56,12 +56,18 @@ struct AppStateStartupTimeoutIsolationTests {
 
     // MARK: - Gap 2: Late Side Effects After StartupCoordinator Timeout/Cancel
 
-    @Test("After timeout, subsequent side-effect closures are blocked by runId guard")
-    func startupCoordinator_afterTimeout_inFlightSideEffectStillFires() async {
-        // Scenario: validateBiometricKey hangs long enough for timeout to fire.
-        // After timeout, storeSessionClientKey should NOT be called because the
+    @Test("After cancel, biometric key side-effect closures are blocked by runId guard")
+    func startupCoordinator_afterCancel_biometricKeySideEffectBlocked() async {
+        // Scenario: validateBiometricKey hangs, cancel fires during it.
+        // After cancel, storeSessionClientKey should NOT be called because the
         // runId guard before it detects the invalidated run.
+        //
+        // Note: biometric paths intentionally skip the startup timeout (FaceID
+        // can block indefinitely), so we use cancel() to invalidate the runId.
+        // The guard at handleBiometricClientKey doesn't care HOW currentRunId
+        // was cleared — it just checks isCurrentRun(runId).
         let storeKeyCalled = AtomicFlag()
+        let validateKeyStarted = AtomicFlag()
 
         let sut = StartupCoordinator(
             checkMaintenance: { false },
@@ -74,14 +80,14 @@ struct AppStateStartupTimeoutIsolationTests {
             validateRegularSession: { nil },
             resolvePostAuth: { .authenticated(needsRecoveryKeyConsent: false) },
             validateBiometricKey: { _ in
-                // Hang long enough for timeout to fire and invalidate the runId
-                try? await Task.sleep(for: .milliseconds(200))
+                validateKeyStarted.set()
+                // Hang to give cancel time to fire and invalidate the runId
+                try? await Task.sleep(for: .milliseconds(300))
                 return true
             },
             storeSessionClientKey: { _ in
                 storeKeyCalled.set()
-            },
-            timeout: .milliseconds(50)
+            }
         )
 
         let context = StartupCoordinator.StartupContext(
@@ -90,15 +96,26 @@ struct AppStateStartupTimeoutIsolationTests {
             manualBiometricRetryRequired: false
         )
 
-        let result = await sut.start(context: context)
+        let task = Task {
+            await sut.start(context: context)
+        }
+
+        // Wait for validateBiometricKey to start executing
+        await waitForCondition(timeout: .seconds(1), "validateBiometricKey must start") {
+            validateKeyStarted.value
+        }
+
+        // Cancel while validateBiometricKey is in-flight
+        await sut.cancel()
 
         // Wait for any in-flight closures to settle
-        try? await Task.sleep(for: .milliseconds(300))
+        try? await Task.sleep(for: .milliseconds(500))
 
-        #expect(result == .timeout)
+        _ = await task.value
+
         #expect(
             storeKeyCalled.value == false,
-            "storeSessionClientKey must not be called after timeout invalidates runId"
+            "storeSessionClientKey must not be called after cancel invalidates runId"
         )
     }
 

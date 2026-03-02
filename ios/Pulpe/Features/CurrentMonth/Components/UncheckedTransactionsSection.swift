@@ -19,7 +19,7 @@ struct UncheckedTransactionsSection: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(PulpeTypography.caption)
-                            .foregroundStyle(Color.textTertiary)
+                            .foregroundStyle(Color.pulpeTextTertiary)
                     }
                 }
             } header: {
@@ -45,33 +45,33 @@ private struct UncheckedTransactionRow: View {
             ZStack {
                 Circle()
                     .fill(Color.financialOverBudget.opacity(DesignTokens.Opacity.badgeBackground))
-                    .frame(width: 36, height: 36)
+                    .frame(width: 40, height: 40)
 
                 Image(systemName: transaction.kind.icon)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Color.financialOverBudget)
             }
 
             // Name and date
             VStack(alignment: .leading, spacing: 2) {
                 Text(transaction.name)
-                    .font(PulpeTypography.buttonSecondary)
+                    .font(.system(.body, weight: .semibold))
                     .lineLimit(1)
 
                 Text(transaction.transactionDate.relativeFormatted)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(.secondary)
             }
 
             Spacer()
 
             // Amount
-            Text(transaction.signedAmount.asCHF)
-                .font(PulpeTypography.labelLarge)
+            Text(transaction.signedAmount.asAmount)
+                .font(.system(.callout, weight: .regular))
                 .foregroundStyle(transaction.kind.color)
                 .sensitiveAmount()
         }
-        .padding(.vertical, DesignTokens.Spacing.xs)
+        .padding(.vertical, DesignTokens.ListRow.verticalPadding)
     }
 }
 

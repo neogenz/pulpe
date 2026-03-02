@@ -40,15 +40,15 @@ struct EditTransactionSheet: View {
                 Section {
                     TextField(kind.descriptionPlaceholder, text: $name)
                         .font(PulpeTypography.bodyLarge)
-                        .listRowBackground(Color.surfaceCard)
+                        .listRowBackground(Color.surfaceContainerHigh)
                 } header: {
                     Text("Description")
                         .font(PulpeTypography.labelLarge)
                 }
 
                 Section {
-                    CurrencyField(value: $amount)
-                        .listRowBackground(Color.surfaceCard)
+                    CurrencyField(value: $amount, visualStyle: .flat)
+                        .listRowBackground(Color.surfaceContainerHigh)
                 } header: {
                     Text("Montant")
                         .font(PulpeTypography.labelLarge)
@@ -62,7 +62,7 @@ struct EditTransactionSheet: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                    .listRowBackground(Color.surfaceCard)
+                    .listRowBackground(Color.surfaceContainerHigh)
                 } header: {
                     Text("Type")
                         .font(PulpeTypography.labelLarge)
@@ -75,7 +75,7 @@ struct EditTransactionSheet: View {
                         displayedComponents: .date
                     )
                     .datePickerStyle(.graphical)
-                    .listRowBackground(Color.surfaceCard)
+                    .listRowBackground(Color.surfaceContainerHigh)
                 } header: {
                     Text("Date")
                         .font(PulpeTypography.labelLarge)
@@ -102,7 +102,7 @@ struct EditTransactionSheet: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .background(Color.surfacePrimary)
+            .background(Color.surface)
             .navigationTitle("Modifier la transaction")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

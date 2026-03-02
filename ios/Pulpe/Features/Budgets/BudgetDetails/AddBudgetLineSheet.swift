@@ -25,7 +25,10 @@ struct AddBudgetLineSheet: View {
     var body: some View {
         SheetFormContainer(title: kind.newBudgetLineTitle, isLoading: isLoading, autoFocus: $isAmountFocused) {
             KindToggle(selection: $kind)
-            HeroAmountField(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused)
+            HeroAmountField(
+                amount: $amount, amountText: $amountText,
+                isFocused: $isAmountFocused, accentColor: kind.color
+            )
             QuickAmountChips(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused, color: kind.color)
                 .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
             descriptionField

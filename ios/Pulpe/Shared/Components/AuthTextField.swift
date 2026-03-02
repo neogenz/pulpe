@@ -10,6 +10,31 @@ struct AuthTextField: View {
     var isFocused: Bool = false
     var hasError: Bool = false
 
+    private var shadowColor: Color {
+        isFocused ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05)
+    }
+
+    private var shadowRadius: CGFloat {
+        isFocused ? 12 : 4
+    }
+
+    private var scale: CGFloat {
+        isFocused ? 1.01 : 1
+    }
+
+    private var fillColor: Color {
+        hasError ? Color.errorBackground : Color.authInputBackground
+    }
+
+    private var borderColor: Color {
+        if hasError { return Color.errorPrimary.opacity(0.5) }
+        return isFocused ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder
+    }
+
+    private var strokeWidth: CGFloat {
+        (isFocused || hasError) ? 2 : 1
+    }
+
     var body: some View {
         TextField(prompt, text: $text)
             .font(PulpeTypography.body)
@@ -18,26 +43,15 @@ struct AuthTextField: View {
             .frame(height: DesignTokens.FrameHeight.button)
             .background {
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                    .fill(hasError ? Color.errorBackground : Color.authInputBackground)
+                    .fill(fillColor)
                     .overlay {
                         RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                            .strokeBorder(borderColor, lineWidth: (isFocused || hasError) ? 2 : 1)
+                            .strokeBorder(borderColor, lineWidth: strokeWidth)
                     }
             }
-            .shadow(
-                color: isFocused ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05),
-                radius: isFocused ? 12 : 4,
-                y: 4
-            )
-            .scaleEffect(isFocused ? 1.01 : 1)
+            .shadow(color: shadowColor, radius: shadowRadius, y: 4)
+            .scaleEffect(scale)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFocused)
-    }
-
-    private var borderColor: Color {
-        if hasError {
-            return Color.errorPrimary.opacity(0.5)
-        }
-        return isFocused ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder
     }
 }
 
@@ -48,6 +62,31 @@ struct AuthSecureField: View {
     @Binding var isVisible: Bool
     var isFocused: Bool = false
     var hasError: Bool = false
+
+    private var shadowColor: Color {
+        isFocused ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05)
+    }
+
+    private var shadowRadius: CGFloat {
+        isFocused ? 12 : 4
+    }
+
+    private var scale: CGFloat {
+        isFocused ? 1.01 : 1
+    }
+
+    private var fillColor: Color {
+        hasError ? Color.errorBackground : Color.authInputBackground
+    }
+
+    private var borderColor: Color {
+        if hasError { return Color.errorPrimary.opacity(0.5) }
+        return isFocused ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder
+    }
+
+    private var strokeWidth: CGFloat {
+        (isFocused || hasError) ? 2 : 1
+    }
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
@@ -77,25 +116,14 @@ struct AuthSecureField: View {
         .frame(height: DesignTokens.FrameHeight.button)
         .background {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                .fill(hasError ? Color.errorBackground : Color.authInputBackground)
+                .fill(fillColor)
                 .overlay {
                     RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                        .strokeBorder(borderColor, lineWidth: (isFocused || hasError) ? 2 : 1)
+                        .strokeBorder(borderColor, lineWidth: strokeWidth)
                 }
         }
-        .shadow(
-            color: isFocused ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05),
-            radius: isFocused ? 12 : 4,
-            y: 4
-        )
-        .scaleEffect(isFocused ? 1.01 : 1)
+        .shadow(color: shadowColor, radius: shadowRadius, y: 4)
+        .scaleEffect(scale)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFocused)
-    }
-
-    private var borderColor: Color {
-        if hasError {
-            return Color.errorPrimary.opacity(0.5)
-        }
-        return isFocused ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder
     }
 }

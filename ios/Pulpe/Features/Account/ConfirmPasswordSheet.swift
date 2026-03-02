@@ -23,7 +23,7 @@ struct ConfirmPasswordSheet: View {
                     SecureField("Mot de passe", text: $password)
                         .textFieldStyle(.plain)
                         .padding()
-                        .background(Color.surfaceCard)
+                        .background(Color.surfaceContainerHigh)
                         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
                         .overlay(
                             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
@@ -72,7 +72,7 @@ struct ConfirmPasswordSheet: View {
                     Button("Annuler") { dismiss() }
                 }
             }
-            .background(Color.surfacePrimary)
+            .background(Color.surface)
             .interactiveDismissDisabled(isVerifying)
             .onDisappear { verifyTask?.cancel() }
         }

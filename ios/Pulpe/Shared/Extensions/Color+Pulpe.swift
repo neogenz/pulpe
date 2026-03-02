@@ -1,9 +1,10 @@
 import SwiftUI
+import UIKit
 
 extension Color {
     // MARK: - Financial Colors (from Asset Catalog with light/dark/high-contrast variants)
 
-    /// Income indicator color - Blue (#0056A3 light, #5AA8E0 dark)
+    /// Income indicator color - Blue (#0061A6 light, #5AA8E0 dark)
     static let financialIncome = Color("FinancialIncome")
 
     /// Expense indicator color - Orange (#B35800 light, #F0A050 dark)
@@ -15,35 +16,83 @@ extension Color {
     /// Over-budget indicator - Warm amber, not aggressive red (#C27A00 light, #E5A33A dark)
     static let financialOverBudget = Color(light: Color(hex: 0xC27A00), dark: Color(hex: 0xE5A33A))
 
+    // MARK: - Hero Card Gradient Colors (4-stop, 150° linear)
+    // Aligned with frontend --pulpe-hero-* tokens (base → color-mix 75% black)
+
+    /// Comfortable state gradient stops — based on #006E25 (mat-sys-primary)
+    static let heroGradientComfortable: [Color] = [
+        Color(light: Color(hex: 0x006E25), dark: Color(hex: 0x00390F)),
+        Color(light: Color(hex: 0x005F20), dark: Color(hex: 0x00320D)),
+        Color(light: Color(hex: 0x00521B), dark: Color(hex: 0x002B0B)),
+        Color(light: Color(hex: 0x004516), dark: Color(hex: 0x002409))
+    ]
+
+    /// Tight state gradient stops — based on #B35800 (pulpe-amber)
+    static let heroGradientTight: [Color] = [
+        Color(light: Color(hex: 0xB35800), dark: Color(hex: 0x3D2200)),
+        Color(light: Color(hex: 0x9C4D00), dark: Color(hex: 0x351E00)),
+        Color(light: Color(hex: 0x864200), dark: Color(hex: 0x2E1A00)),
+        Color(light: Color(hex: 0x703800), dark: Color(hex: 0x261500))
+    ]
+
+    /// Deficit state gradient stops — based on #BA1A1A (mat-sys-error)
+    static let heroGradientDeficit: [Color] = [
+        Color(light: Color(hex: 0xBA1A1A), dark: Color(hex: 0x930009)),
+        Color(light: Color(hex: 0xA51717), dark: Color(hex: 0x830008)),
+        Color(light: Color(hex: 0x8F1313), dark: Color(hex: 0x6E0007)),
+        Color(light: Color(hex: 0x7A1010), dark: Color(hex: 0x5C0005))
+    ]
+
     // MARK: - Brand Colors
 
-    /// Primary brand color - Dark green (#006820 light, #4AA070 dark)
+    /// Primary brand color - Dark green (#006E25 light, #7EDB83 dark)
     static let pulpePrimary = Color("PulpePrimary")
 
-    // MARK: - Surface Colors (green-tinted for brand identity, dark mode uses system for comfort)
+    // MARK: - Primary Container
 
-    /// Primary background — sage green matching mesh gradient center (#EEF5EF), system dark in dark mode
-    static let surfacePrimary = Color(light: Color(hex: 0xEEF5EF), dark: Color(uiColor: .systemGroupedBackground))
+    static let primaryContainer = Color(light: Color(hex: 0x99F89D), dark: Color(hex: 0x00531A))
+    static let onPrimaryContainer = Color(light: Color(hex: 0x00531A), dark: Color(hex: 0x99F89D))
 
-    /// Card/modal surfaces — white in light mode for maximum contrast, elevated dark in dark mode
-    static let surfaceCard = Color(light: .white, dark: Color(uiColor: .secondarySystemGroupedBackground))
+    // MARK: - Secondary
 
-    /// Secondary surface for form backgrounds, inactive pills — system grey in light mode
-    static let surfaceSecondary = Color(
-        light: Color(uiColor: .secondarySystemGroupedBackground),
-        dark: Color(uiColor: .secondarySystemGroupedBackground)
-    )
+    static let secondaryColor = Color(light: Color(hex: 0x406741), dark: Color(hex: 0xA6D2A3))
+    static let secondaryContainer = Color(light: Color(hex: 0xC1EEBE), dark: Color(hex: 0x294F2B))
+
+    // MARK: - App Background
+    // Single place to tweak the main screen background.
+    // iOS default systemGroupedBackground is #F2F2F7 light / #000000 dark.
+    static let appBackground = Color(uiColor: .systemGroupedBackground)
+
+    // MARK: - Surface (iOS System Colors — neutral gray hierarchy)
+
+    static let surface = Color(uiColor: .systemBackground)
+    static let surfaceDim = Color(uiColor: .systemGray5)
+    static let surfaceBright = Color(uiColor: .systemBackground)
+    static let surfaceContainerLowest = Color(uiColor: .secondarySystemGroupedBackground)
+    static let surfaceContainerLow = Color(uiColor: .secondarySystemBackground)
+    static let surfaceContainer = Color(uiColor: .systemGray6)
+    static let surfaceContainerHigh = Color(uiColor: .systemGray6)
+    static let surfaceContainerHighest = Color(uiColor: .systemGray4)
+    static let surfaceVariant = Color(uiColor: .systemGray5)
 
     // MARK: - Semantic Text Colors
 
-    /// Primary text — DA noir doux (#181D17 light, #F5F5F5 dark)
-    static let textPrimary = Color(light: Color(hex: 0x181D17), dark: Color(hex: 0xF5F5F5))
+    /// Primary text — iOS system label (pure black light, pure white dark)
+    static let textPrimary = Color(.label)
 
     /// Text on primary-colored backgrounds (white in both modes)
     static let textOnPrimary = Color(light: .white, dark: .white)
 
-    /// Tertiary text with improved contrast (40% opacity light, 50% dark)
-    static let textTertiary = Color("TextTertiary")
+    /// Tertiary text — iOS system tertiary label
+    static let pulpeTextTertiary = Color(.tertiaryLabel)
+
+    /// Secondary content on surface — iOS system secondary label
+    static let onSurfaceVariant = Color(.secondaryLabel)
+
+    // MARK: - Outline
+
+    static let outline = Color(light: Color(hex: 0x6F7A6D), dark: Color(hex: 0x899486))
+    static let outlineVariant = Color(light: Color(hex: 0xBFCABA), dark: Color(hex: 0x3F493E))
 
     // MARK: - Error Colors
 
@@ -83,15 +132,12 @@ extension Color {
     /// Generic badge background
     static let badgeBackground = Color("BadgeBackground")
 
-    /// Input field background — white in light mode for clear contrast against sage surfaces
-    static let inputBackgroundSoft = Color(
-        light: .white,
-        dark: Color(uiColor: .tertiarySystemFill)
-    )
+    /// Input field background — subtle gray fill for contrast on white sheets
+    static let inputBackgroundSoft = Color(uiColor: .tertiarySystemFill)
 
     /// Input focus glow color
     static let inputFocusGlow = Color(
-        light: Color(hex: 0x006820).opacity(0.12),
+        light: Color(hex: 0x006E25).opacity(0.12),
         dark: Color(hex: 0x4AA070).opacity(0.15)
     )
 
@@ -104,169 +150,6 @@ extension Color {
         Color(light: Color(hex: 0x00FF55), dark: Color(hex: 0x00531A)),
         Color(light: Color(hex: 0x88FF44), dark: Color(hex: 0x2B883B))
     ]
-
-    // MARK: - App Background Gradient
-
-    // Semantic gradient colors for premium background (neutral dark, green accents in light)
-    private static let gradientBaseTop = Color(light: Color(hex: 0xE4F3E0), dark: Color(hex: 0x141414))
-    private static let gradientBaseMid = Color(light: Color(hex: 0xD8EDD8), dark: Color(hex: 0x1A1A1C))
-    private static let gradientBaseBottom = Color(light: Color(hex: 0xCEE5D0), dark: Color(hex: 0x1C1C1E))
-    private static let gradientAccentMint = Color(light: Color(hex: 0xA8E0B0), dark: Color(hex: 0x1E2020))
-    private static let gradientAccentSage = Color(light: Color(hex: 0xC5E0C8), dark: Color(hex: 0x1D1E1D))
-    private static let gradientCenterGlow = Color(light: Color(hex: 0xD8EDD8), dark: Color(hex: 0x1E1F1E))
-
-    // MARK: - Mesh Gradient Data (light mode only — dark mode uses system background)
-
-    static let meshPoints: [SIMD2<Float>] = [
-        .init(x: 0, y: 0), .init(x: 0.5, y: 0), .init(x: 1, y: 0),
-        .init(x: 0, y: 0.5), .init(x: 0.55, y: 0.5), .init(x: 1, y: 0.5),
-        .init(x: 0, y: 1), .init(x: 0.5, y: 1), .init(x: 1, y: 1)
-    ]
-
-    @available(iOS 18.0, *)
-    static let lightMeshColors: [Color] = [
-        Color(hex: 0xC2EDCA).opacity(0.70),
-        Color(hex: 0xDFF0DF).opacity(0.55),
-        Color(hex: 0xECF2E8).opacity(0.45),
-        Color(hex: 0xD0E8D2).opacity(0.50),
-        Color(hex: 0xEEF5EF),
-        Color(hex: 0xC8E6CE).opacity(0.55),
-        Color(hex: 0xD8ECDA).opacity(0.50),
-        Color(hex: 0xBDE4C4).opacity(0.60),
-        Color(hex: 0xD5EDD8).opacity(0.45)
-    ]
-
-    @ViewBuilder
-    static var appFallbackBackground: some View {
-        ZStack {
-            Color(uiColor: .systemGroupedBackground)
-            LinearGradient(
-                colors: [
-                    gradientBaseTop.opacity(0.50),
-                    gradientBaseMid.opacity(0.45),
-                    gradientBaseBottom.opacity(0.40)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            RadialGradient(
-                colors: [gradientAccentMint.opacity(0.40), .clear],
-                center: .topTrailing,
-                startRadius: 0,
-                endRadius: 400
-            )
-            RadialGradient(
-                colors: [gradientAccentSage.opacity(0.35), .clear],
-                center: .bottomLeading,
-                startRadius: 0,
-                endRadius: 350
-            )
-        }
-    }
-
-    /// Premium multi-layered background with visible color for Liquid Glass refraction
-    @ViewBuilder
-    static var appPremiumBackground: some View {
-        ZStack {
-            baseGradientLayer
-            mintAccentLayer
-            sageAccentLayer
-            centerGlowLayer
-        }
-    }
-
-    @ViewBuilder
-    private static var baseGradientLayer: some View {
-        LinearGradient(
-            colors: [gradientBaseTop, gradientBaseMid, gradientBaseBottom],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-    }
-
-    @ViewBuilder
-    private static var mintAccentLayer: some View {
-        RadialGradient(
-            colors: [gradientAccentMint.opacity(0.85), .clear],
-            center: .topTrailing,
-            startRadius: 0,
-            endRadius: 400
-        )
-    }
-
-    @ViewBuilder
-    private static var sageAccentLayer: some View {
-        RadialGradient(
-            colors: [gradientAccentSage.opacity(0.75), .clear],
-            center: .bottomLeading,
-            startRadius: 0,
-            endRadius: 350
-        )
-    }
-
-    @ViewBuilder
-    private static var centerGlowLayer: some View {
-        RadialGradient(
-            colors: [gradientCenterGlow.opacity(0.55), .clear],
-            center: .center,
-            startRadius: 50,
-            endRadius: 500
-        )
-    }
-
-    // MARK: - Status-Tinted Backgrounds (for budget details)
-
-    /// Positive status background (green tint in light, near-black in dark)
-    @ViewBuilder
-    static var appPositiveBackground: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color(light: Color(hex: 0xD0EDCF), dark: Color(hex: 0x0D0E0D)),
-                    Color(light: Color(hex: 0xE4F3E0), dark: Color(hex: 0x0C0C0E))
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            RadialGradient(
-                colors: [Color(light: Color(hex: 0xA8E0B0), dark: Color(hex: 0x10120F)).opacity(0.60), .clear],
-                center: .topTrailing,
-                startRadius: 0,
-                endRadius: 400
-            )
-        }
-    }
-
-    /// Negative status background (amber tint in light, near-black in dark)
-    @ViewBuilder
-    static var appNegativeBackground: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color(light: Color(hex: 0xFDE8D8), dark: Color(hex: 0x0E0D0C)),
-                    Color(light: Color(hex: 0xFDF4EC), dark: Color(hex: 0x0C0C0E))
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            RadialGradient(
-                colors: [Color(light: Color(hex: 0xF0C8A0), dark: Color(hex: 0x12100E)).opacity(0.50), .clear],
-                center: .topTrailing,
-                startRadius: 0,
-                endRadius: 400
-            )
-        }
-    }
-
-    /// Legacy gradient (kept for compatibility)
-    static let appBackgroundGradient = LinearGradient(
-        colors: [
-            Color(light: Color(hex: 0xF8F9F8), dark: Color(hex: 0x1A1A1A)),
-            Color(light: Color(hex: 0xEBF5ED), dark: Color(hex: 0x1A1A1C))
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-    )
 
     // MARK: - Onboarding & Tutorial Colors
 

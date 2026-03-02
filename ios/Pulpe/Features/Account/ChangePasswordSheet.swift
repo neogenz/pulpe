@@ -82,7 +82,7 @@ struct ChangePasswordSheet: View {
                             if viewModel.canSubmit {
                                 Color.onboardingGradient
                             } else {
-                                Color.surfaceCard
+                                Color.surfaceContainerHigh
                             }
                         }
                         .foregroundStyle(viewModel.canSubmit ? Color.textOnPrimary : Color.textSecondaryOnboarding)
@@ -101,7 +101,7 @@ struct ChangePasswordSheet: View {
                     Button("Annuler") { dismiss() }
                 }
             }
-            .background(Color.surfacePrimary)
+            .background(Color.surface)
         }
     }
 
@@ -167,10 +167,10 @@ struct ChangePasswordSheet: View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: met ? "checkmark.circle.fill" : "circle")
                 .font(PulpeTypography.footnote)
-                .foregroundStyle(met ? Color.financialSavings : Color.textTertiary)
+                .foregroundStyle(met ? Color.financialSavings : Color.pulpeTextTertiary)
             Text(text)
                 .font(PulpeTypography.caption)
-                .foregroundStyle(met ? Color.textSecondaryOnboarding : Color.textTertiary)
+                .foregroundStyle(met ? Color.textSecondaryOnboarding : Color.pulpeTextTertiary)
         }
     }
 
@@ -231,13 +231,13 @@ struct ChangePasswordSheet: View {
                 config.isVisible.wrappedValue.toggle()
             } label: {
                 Image(systemName: config.isVisible.wrappedValue ? "eye.slash.fill" : "eye.fill")
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.pulpeTextTertiary)
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
         }
         .padding(DesignTokens.Spacing.md)
-        .background(Color.surfaceCard)
+        .background(Color.surfaceContainerHigh)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
         .overlay {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)

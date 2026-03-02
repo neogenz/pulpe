@@ -7,8 +7,6 @@ struct BudgetPreviewStep: View {
     @State private var showCard = false
     @State private var showMessage = false
 
-    @ScaledMetric(relativeTo: .largeTitle) private var heroFontSize: CGFloat = 42
-
     var body: some View {
         OnboardingStepView(
             step: .budgetPreview,
@@ -25,14 +23,14 @@ struct BudgetPreviewStep: View {
                     try? await Task.sleep(for: .milliseconds(300))
                     withAnimation(.spring(response: 0.6, dampingFraction: 0.75)) {
                         showHero = true
-                    }
-                    try? await Task.sleep(for: .milliseconds(250))
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                        showCard = true
-                    }
-                    try? await Task.sleep(for: .milliseconds(200))
-                    withAnimation(.easeOut(duration: 0.4)) {
-                        showMessage = true
+                    } completion: {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                            showCard = true
+                        } completion: {
+                            withAnimation(.easeOut(duration: 0.4)) {
+                                showMessage = true
+                            }
+                        }
                     }
                 }
             }
@@ -45,7 +43,7 @@ struct BudgetPreviewStep: View {
     private var heroSection: some View {
         VStack(spacing: DesignTokens.Spacing.xs) {
             Text(state.availableToSpend.asCHF)
-                .font(.custom("Manrope-Bold", size: heroFontSize, relativeTo: .largeTitle))
+                .font(PulpeTypography.amountHero)
                 .monospacedDigit()
                 .foregroundStyle(Color.pulpePrimary)
                 .contentTransition(.numericText())
@@ -86,7 +84,7 @@ struct BudgetPreviewStep: View {
                     .font(PulpeTypography.labelLarge)
                 Spacer()
                 Text(state.availableToSpend.asCHF)
-                    .font(.custom("Manrope-Bold", size: 17, relativeTo: .body))
+                    .font(PulpeTypography.buttonPrimary)
                     .monospacedDigit()
                     .foregroundStyle(Color.pulpePrimary)
             }
@@ -120,7 +118,7 @@ struct BudgetPreviewStep: View {
                 .font(PulpeTypography.bodyLarge)
             Spacer()
             Text(value)
-                .font(.custom("Manrope-Medium", size: 17, relativeTo: .body))
+                .font(PulpeTypography.onboardingSubtitle)
                 .monospacedDigit()
                 .foregroundStyle(color)
         }

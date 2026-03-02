@@ -21,7 +21,7 @@ struct PayDaySettingView: View {
             Text(hintText)
                 .font(PulpeTypography.caption)
         }
-        .listRowBackground(Color.surfaceCard)
+        .listRowBackground(Color.surfaceContainerHigh)
         .onChange(of: userSettingsStore.payDayOfMonth) { _, newValue in
             if viewModel == nil {
                 viewModel = PayDaySettingViewModel(currentPayDay: newValue)
@@ -159,7 +159,7 @@ final class PayDaySettingViewModel {
     }
     .listStyle(.insetGrouped)
     .scrollContentBackground(.hidden)
-    .background(Color.surfacePrimary)
+    .background(Color.surface)
     .environment(AppState())
     .environment(UserSettingsStore())
     .environment(CurrentMonthStore())

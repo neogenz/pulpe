@@ -34,13 +34,13 @@ struct BudgetListView: View {
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Image(systemName: "chart.bar.doc.horizontal")
                         .font(.system(size: 48))
-                        .foregroundStyle(Color.textTertiary)
-                    Text("Aucun budget")
+                        .foregroundStyle(Color.pulpeTextTertiary)
+                    Text("Pas encore de budget")
                         .font(PulpeTypography.stepTitle)
                         .foregroundStyle(Color.textPrimary)
-                    Text("Créez votre premier budget pour commencer à suivre vos dépenses")
+                    Text("Crée-en un pour commencer à suivre tes dépenses")
                         .font(PulpeTypography.bodyLarge)
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.pulpeTextTertiary)
                         .multilineTextAlignment(.center)
                     Button("Créer un budget") {
                         showCreateBudget = true
@@ -99,7 +99,7 @@ struct BudgetListView: View {
             if reduceMotion {
                 hasAppeared = true
             } else {
-                withAnimation(.easeOut(duration: 0.25)) {
+                withAnimation(.easeOut(duration: DesignTokens.Animation.quickSnap)) {
                     hasAppeared = true
                 }
             }
@@ -127,7 +127,7 @@ struct BudgetListView: View {
                             payDayOfMonth: userSettingsStore.payDayOfMonth,
                             isExpanded: expandedYears.contains(group.year),
                             onToggle: {
-                                withAnimation(.easeInOut(duration: 0.25)) {
+                                withAnimation(.easeInOut(duration: DesignTokens.Animation.quickSnap)) {
                                     if expandedYears.contains(group.year) {
                                         expandedYears.remove(group.year)
                                     } else {
@@ -143,7 +143,7 @@ struct BudgetListView: View {
                             }
                         )
                         .opacity(hasAppeared ? 1 : 0)
-                        .animation(.easeOut(duration: 0.2), value: hasAppeared)
+                        .animation(.easeOut(duration: DesignTokens.Animation.fast), value: hasAppeared)
                     }
                 }
                 .padding(.horizontal, DesignTokens.Spacing.xl)

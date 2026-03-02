@@ -43,7 +43,10 @@ struct EditBudgetLineSheet: View {
     var body: some View {
         SheetFormContainer(title: kind.editBudgetLineTitle, isLoading: isLoading, autoFocus: $isAmountFocused) {
             KindToggle(selection: $kind)
-            HeroAmountField(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused)
+            HeroAmountField(
+                amount: $amount, amountText: $amountText,
+                isFocused: $isAmountFocused, accentColor: kind.color
+            )
             descriptionField
 
             if let error {

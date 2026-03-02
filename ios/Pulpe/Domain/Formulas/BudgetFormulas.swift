@@ -3,6 +3,9 @@ import Foundation
 /// Budget calculation formulas - Single Source of Truth
 /// Port of shared/src/calculators/budget-formulas.ts
 enum BudgetFormulas {
+    /// DA section 3.1: threshold separating "comfortable" from "tight"
+    static let tightBudgetThreshold: Double = 80
+
     // MARK: - Metrics Result
 
     struct Metrics: Equatable, Sendable {
@@ -25,6 +28,18 @@ enum BudgetFormulas {
         var isDeficit: Bool {
             remaining < 0
         }
+
+        /// DA §3.1: 3-state emotion zone — comfortable (<80%), tight (80-100%), deficit (>100%)
+        var emotionState: EmotionState {
+            if isDeficit { return .deficit }
+            if usagePercentage >= BudgetFormulas.tightBudgetThreshold { return .tight }
+            return .comfortable
+        }
+    }
+
+    /// Budget emotion states for UI tinting (hero card, background zones)
+    enum EmotionState: Equatable, Sendable {
+        case comfortable, tight, deficit
     }
 
     // MARK: - Realized Metrics
@@ -287,7 +302,7 @@ enum BudgetFormulas {
         let percentage: Double
 
         var isOverBudget: Bool { percentage > 100 }
-        var isNearLimit: Bool { percentage >= 80 && percentage <= 100 }
+        var isNearLimit: Bool { percentage >= BudgetFormulas.tightBudgetThreshold && percentage <= 100 }
     }
 
     /// Calculate consumption for a budget line based on allocated transactions

@@ -104,7 +104,7 @@ struct RecoveryKeySheet: View {
         .frame(maxWidth: .infinity)
         .background {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous)
-                .fill(Color.surfaceCard)
+                .fill(Color.surfaceContainerHigh)
                 .overlay {
                     RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous)
                         .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)

@@ -9,6 +9,7 @@ struct LinkedTransactionsSheet: View {
     let onAddTransaction: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @State private var progressBarWidth: CGFloat = 0
 
     private var consumption: BudgetFormulas.Consumption {
         BudgetFormulas.calculateConsumption(for: budgetLine, transactions: transactions)
@@ -50,23 +51,20 @@ struct LinkedTransactionsSheet: View {
                 .padding(.top, DesignTokens.Spacing.sm)
                 .padding(.bottom, 100)
             }
-            .background(Color.surfacePrimary)
+            .background(Color.surface)
             .safeAreaInset(edge: .bottom) {
                 addTransactionButton
             }
             .navigationTitle(budgetLine.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Fermer") {
-                        dismiss()
-                    }
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton()
                 }
             }
         }
         .accessibilityIdentifier("linkedTransactionsSheetRoot")
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
+        .standardSheetPresentation(detents: [.medium, .large])
     }
 
     // MARK: - Metrics Cards
@@ -113,20 +111,19 @@ struct LinkedTransactionsSheet: View {
                     .foregroundStyle(progressColor)
             }
 
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.progressTrack)
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.progressTrack)
 
-                    Capsule()
-                        .fill(progressColor)
-                        .frame(width: geometry.size.width * CGFloat(min(consumption.percentage / 100, 1)))
-                }
+                Capsule()
+                    .fill(progressColor)
+                    .frame(width: progressBarWidth * CGFloat(min(consumption.percentage / 100, 1)))
             }
             .frame(height: DesignTokens.ProgressBar.thickHeight)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { progressBarWidth = $0 }
         }
         .padding(DesignTokens.Spacing.lg)
-        .background(Color.surfaceCard)
+        .background(Color.surfaceContainerHigh)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
         .padding(.horizontal)
     }
@@ -146,7 +143,7 @@ struct LinkedTransactionsSheet: View {
 
                 Text("Ajoute une transaction pour suivre tes dépenses")
                     .font(PulpeTypography.subheadline)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.pulpeTextTertiary)
                     .multilineTextAlignment(.center)
             }
         }
@@ -175,7 +172,7 @@ struct LinkedTransactionsSheet: View {
                     )
                 }
             }
-            .background(Color.surfaceCard)
+            .background(Color.surfaceContainerHigh)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
             .padding(.horizontal)
         }
@@ -188,15 +185,11 @@ struct LinkedTransactionsSheet: View {
             onAddTransaction()
         } label: {
             Label("Nouvelle transaction", systemImage: "plus")
-                .font(PulpeTypography.headline)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, DesignTokens.Spacing.lg)
         }
-        .buttonStyle(.borderedProminent)
-        .tint(.pulpePrimary)
+        .primaryButtonStyle()
         .padding(.horizontal)
         .padding(.vertical, DesignTokens.Spacing.md)
-        .background(.ultraThinMaterial)
+        .pulpeFloatingGlass(cornerRadius: 0)
     }
 }
 
@@ -227,7 +220,7 @@ private struct MetricCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.md)
-        .background(Color.surfaceCard)
+        .background(Color.surfaceContainerHigh)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
 }
@@ -277,15 +270,15 @@ private struct LinkedTransactionRow: View {
             } label: {
                 Image(systemName: "trash")
                     .font(.system(size: 15))
-                    .foregroundStyle(Color.errorPrimary)
+                    .foregroundStyle(Color.destructivePrimary)
                     .frame(minWidth: 44, minHeight: 44)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Supprimer")
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, 14)
-        .background(Color.surfaceCard)
+        .padding(.vertical, DesignTokens.ListRow.verticalPadding)
+        .background(Color.surfaceContainerHigh)
         .overlay(alignment: .bottom) {
             if !isLast {
                 Divider()

@@ -212,7 +212,7 @@ struct AddTemplateLineSheet: View {
                 .padding(.top, DesignTokens.Spacing.xxxl)
                 .padding(.bottom, DesignTokens.Spacing.xl)
             }
-            .background(Color.surfacePrimary)
+            .background(Color.surface)
             .navigationTitle("Nouvelle ligne")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -234,7 +234,7 @@ struct AddTemplateLineSheet: View {
         VStack(spacing: DesignTokens.Spacing.sm) {
             Text(DesignTokens.AmountInput.currencyCode)
                 .font(PulpeTypography.labelLarge)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.pulpeTextTertiary)
 
             ZStack {
                 TextField("", text: $amountText)
@@ -248,18 +248,18 @@ struct AddTemplateLineSheet: View {
 
                 Text(displayAmount)
                     .font(PulpeTypography.amountHero)
-                    .foregroundStyle((amount ?? 0) > 0 ? Color.textPrimary : Color.textTertiary)
+                    .foregroundStyle((amount ?? 0) > 0 ? Color.textPrimary : Color.pulpeTextTertiary)
                     .contentTransition(.numericText())
-                    .animation(.snappy(duration: 0.2), value: amount)
+                    .animation(.snappy(duration: DesignTokens.Animation.fast), value: amount)
             }
             .accessibilityAddTraits(.isButton)
             .accessibilityLabel("Montant")
             .onTapGesture { isAmountFocused = true }
 
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
-                .fill(isAmountFocused ? Color.pulpePrimary : Color.textTertiary.opacity(0.3))
+                .fill(isAmountFocused ? Color.pulpePrimary : Color.pulpeTextTertiary.opacity(0.3))
                 .frame(width: 120, height: 2)
-                .animation(.easeInOut(duration: 0.2), value: isAmountFocused)
+                .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isAmountFocused)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.lg)
@@ -281,12 +281,12 @@ struct AddTemplateLineSheet: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text("Type")
                 .font(PulpeTypography.inputLabel)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.pulpeTextTertiary)
 
             HStack(spacing: DesignTokens.Spacing.sm) {
                 ForEach(TransactionKind.allCases, id: \.self) { type in
                     Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
                             kind = type
                         }
                     } label: {
@@ -295,7 +295,7 @@ struct AddTemplateLineSheet: View {
                             .padding(.horizontal, DesignTokens.Spacing.md)
                             .padding(.vertical, DesignTokens.Spacing.sm + 2)
                             .frame(maxWidth: .infinity)
-                            .background(kind == type ? Color.pulpePrimary : Color.surfaceSecondary)
+                            .background(kind == type ? Color.pulpePrimary : Color.surfaceContainer)
                             .foregroundStyle(kind == type ? Color.textOnPrimary : Color.textPrimary)
                             .clipShape(Capsule())
                     }
@@ -311,12 +311,12 @@ struct AddTemplateLineSheet: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text("Récurrence")
                 .font(PulpeTypography.inputLabel)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.pulpeTextTertiary)
 
             HStack(spacing: DesignTokens.Spacing.sm) {
                 ForEach(TransactionRecurrence.allCases, id: \.self) { type in
                     Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
                             recurrence = type
                         }
                     } label: {
@@ -325,7 +325,7 @@ struct AddTemplateLineSheet: View {
                             .padding(.horizontal, DesignTokens.Spacing.md)
                             .padding(.vertical, DesignTokens.Spacing.sm + 2)
                             .frame(maxWidth: .infinity)
-                            .background(recurrence == type ? Color.pulpePrimary : Color.surfaceSecondary)
+                            .background(recurrence == type ? Color.pulpePrimary : Color.surfaceContainer)
                             .foregroundStyle(recurrence == type ? Color.textOnPrimary : Color.textPrimary)
                             .clipShape(Capsule())
                     }

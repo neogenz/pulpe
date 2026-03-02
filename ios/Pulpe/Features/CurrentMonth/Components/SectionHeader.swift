@@ -62,5 +62,5 @@ struct SectionHeader: View {
         )
     }
     .padding(.vertical)
-    .background(Color(.systemGroupedBackground))
+    .background(Color.surface)
 }

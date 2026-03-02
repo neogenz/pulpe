@@ -55,8 +55,12 @@ final class ToastManager {
         // Cancel any pending dismiss
         dismissTask?.cancel()
 
-        // Show new toast
-        currentToast = toast
+        // Replace toast without animation to avoid cross-fade between toasts
+        var transaction = SwiftUI.Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            currentToast = toast
+        }
 
         // Auto-dismiss after 3 seconds
         dismissTask = Task {

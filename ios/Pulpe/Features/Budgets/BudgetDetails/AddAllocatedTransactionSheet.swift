@@ -25,7 +25,12 @@ struct AddAllocatedTransactionSheet: View {
 
     var body: some View {
         SheetFormContainer(title: budgetLine.name, isLoading: isLoading, autoFocus: $isAmountFocused) {
-            HeroAmountField(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused)
+            HeroAmountField(
+                amount: $amount,
+                amountText: $amountText,
+                isFocused: $isAmountFocused,
+                accentColor: budgetLine.kind.color
+            )
             QuickAmountChips(
                 amount: $amount,
                 amountText: $amountText,

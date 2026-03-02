@@ -155,14 +155,18 @@ L'icône actuelle (tranche d'agrume neumorphique) :
 | Usage | Police | Alternative |
 |-------|--------|-------------|
 | **Titres (app)** | Manrope | Plus Jakarta Sans |
-| **Corps (app)** | DM Sans | Nunito Sans |
+| **Corps (app web)** | DM Sans | Nunito Sans |
+| **Corps (app iOS)** | SF Pro (système) | — |
 | **Landing page** | Poppins | — |
-| **Chiffres/montants** | Police avec chiffres tabulaires (alignés) | — |
+| **Chiffres/montants** | Police système (chiffres tabulaires natifs) | — |
+
+**Stratégie iOS :** Manrope pour les titres et éléments de marque, SF Pro (système) pour tout le reste (corps, labels, captions, montants). Deux polices max — pas de DM Sans sur iOS. SF Pro offre des chiffres tabulaires natifs, un Dynamic Type parfait, et une sensation native.
 
 **Principes :**
 - Éviter les polices trop géométriques/tech (Roboto, Inter) → trop froid
 - Éviter les serif classiques → trop "banque"
 - Privilégier des polices modernes, friendly, lisibles
+- Maximum 2 familles de polices par plateforme
 
 ### 3.4 Iconographie
 
@@ -420,20 +424,34 @@ Le fond de contenu reste **toujours** le neutre chaud défini en §3.1, quel que
 
 #### Liquid Glass (iOS 26+)
 
-- **Réservé à la navigation** : tab bar, boutons flottants, toasts, modals
-- **Jamais sur le contenu** : cartes, listes, sections de texte
+- **Réservé à la navigation et aux contrôles flottants de l'app authentifiée** : tab bar, boutons flottants, toasts, modals
+- **Jamais sur le contenu métier** : cartes, listes, sections de texte
 - `.glassEffect(.regular.interactive())` pour les contrôles tactiles
 - `.glassEffect(.regular.tint(Color.pulpePrimary))` pour la proéminence visuelle
 - Fallback iOS 18-25 : `.ultraThinMaterial` + `.clipShape(Capsule())`
+- Exception assumée : les flows pré-auth (welcome, login, onboarding) peuvent utiliser glow et shadow pour soutenir l'expressivité de marque, tant qu'ils n'imitent pas des cartes glass dans le contenu.
+
+#### Shell & navigation (état actuel)
+
+- Bottom tabs : **Accueil**, **Budgets**, **Modèles**
+- **Mon compte** n'est pas un onglet : accès via action toolbar depuis Accueil, en sheet
+- Le détail d'un mois se fait depuis **Budgets** ; la navigation entre mois utilise un menu de mois (`MonthDropdownMenu`), pas un swipe horizontal personnalisé
+- `pull-to-refresh` et `swipe actions` suivent les conventions natives iOS
+
+#### Dashboard actuel (mars 2026)
+
+- Ordre : **Hero** → **Projection** → **Aperçu** → **Transactions récentes**
+- **Dépenses** et **Cette année** sont en progressive disclosure (repliées par défaut)
+- Le hero reste l'élément dominant visuel et cognitif ; les cartes suivantes apportent du contexte court terme, pas une couche d'analyse dense
 
 #### Background premium (iOS 18+)
 
-Mesh gradient subtil avec accents verts très légers sur fond neutre.
+Mesh gradient subtil et chaud sur fond neutre, avec des accents crème très doux.
 En dark mode : fond système avec accents minimaux.
 
 #### Typographie
 
-Polices : cf. section 3.3 (Manrope titres, DM Sans corps). Tailles spécifiques iOS :
+Polices : Manrope (titres/brand) + SF Pro système (corps, labels, captions, montants). Tailles spécifiques iOS :
 
 | Usage | Poids | Taille |
 |-------|-------|--------|

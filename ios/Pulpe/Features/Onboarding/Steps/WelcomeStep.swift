@@ -105,8 +105,7 @@ struct WelcomeStep: View {
             LoginView(isPresented: $showLogin)
         }
         .task {
-            try? await Task.sleep(for: .milliseconds(100))
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
                 isAppeared = true
             }
         }

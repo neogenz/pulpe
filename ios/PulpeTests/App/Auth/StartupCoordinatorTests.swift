@@ -583,6 +583,49 @@ struct StartupCoordinatorTimeoutTests {
             Issue.record("Expected completed timeout state, got \(state)")
         }
     }
+
+    @Test func start_biometricEnabled_doesNotTimeout() async {
+        let testUser = UserInfo(id: "bio-timeout", email: "bio@pulpe.app", firstName: "Bio")
+        let biometricResult = BiometricSessionResult(user: testUser, clientKeyHex: "key123")
+
+        let sut = makeCoordinator(
+            validateBiometricSession: {
+                // Simulate slow FaceID (user not holding phone)
+                try await Task.sleep(for: .milliseconds(300))
+                return biometricResult
+            },
+            timeout: .milliseconds(100) // Timeout shorter than biometric
+        )
+
+        let result = await sut.start(
+            context: makeContext(biometricEnabled: true)
+        )
+
+        // Should NOT timeout — biometric path skips the startup timeout
+        if case .authenticated(let user, _) = result {
+            #expect(user.id == testUser.id)
+        } else {
+            Issue.record("Expected authenticated (biometric should bypass timeout), got \(result)")
+        }
+    }
+
+    @Test func start_biometricEnabled_explicitLogout_stillTimesOut() async {
+        let sut = makeCoordinator(
+            validateRegularSession: {
+                // Hang longer than the timeout
+                try await Task.sleep(for: .seconds(10))
+                return nil
+            },
+            timeout: .milliseconds(100)
+        )
+
+        // biometricEnabled but didExplicitLogout → FaceID won't run → timeout applies
+        let result = await sut.start(
+            context: makeContext(biometricEnabled: true, didExplicitLogout: true)
+        )
+
+        #expect(result == .timeout)
+    }
 }
 
 // MARK: - Biometric Dismiss Tests

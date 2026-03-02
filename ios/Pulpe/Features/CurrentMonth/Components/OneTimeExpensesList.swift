@@ -68,7 +68,7 @@ struct TransactionSection: View {
             } label: {
                 Label("Supprimer", systemImage: "trash")
             }
-            .tint(Color.errorPrimary)
+            .tint(Color.destructivePrimary)
         }
 
         if let onToggle {
@@ -88,7 +88,7 @@ struct TransactionSection: View {
     private var expandCollapseButton: some View {
         if hasMoreItems {
             Button {
-                withAnimation(.easeInOut(duration: 0.25)) {
+                withAnimation(.easeInOut(duration: DesignTokens.Animation.quickSnap)) {
                     isExpanded.toggle()
                 }
             } label: {
@@ -173,7 +173,7 @@ struct TransactionRow: View {
                 // Date (relative formatting)
                 Text(transaction.transactionDate.relativeFormatted)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.pulpeTextTertiary)
             }
 
             Spacer(minLength: 8)
@@ -187,7 +187,7 @@ struct TransactionRow: View {
                 .foregroundStyle(transaction.isChecked ? .secondary : transaction.kind.color)
                 .sensitiveAmount()
         }
-        .padding(.vertical, DesignTokens.Spacing.sm)
+        .padding(.vertical, DesignTokens.ListRow.verticalPadding)
         .contentShape(Rectangle())
     }
 

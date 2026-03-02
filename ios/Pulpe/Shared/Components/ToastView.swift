@@ -9,7 +9,6 @@ struct ToastView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var offset: CGFloat = -100
     @State private var opacity: Double = 0
-    @State private var animationTask: Task<Void, Never>?
 
     init(toast: ToastManager.Toast, onDismiss: @escaping () -> Void, onUndo: (() -> Void)? = nil) {
         self.toast = toast
@@ -55,7 +54,6 @@ struct ToastView: View {
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, 14)
         .pulpeFloatingGlass(cornerRadius: DesignTokens.CornerRadius.md)
-        .shadow(DesignTokens.Shadow.toast)
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .offset(y: offset)
         .opacity(opacity)
@@ -87,9 +85,6 @@ struct ToastView: View {
     }
 
     private func dismissWithAnimation() {
-        // Cancel any pending dismiss
-        animationTask?.cancel()
-
         if reduceMotion {
             offset = -100
             opacity = 0
@@ -98,15 +93,8 @@ struct ToastView: View {
             withAnimation(DesignTokens.Animation.toastDismiss) {
                 offset = -100
                 opacity = 0
-            }
-
-            animationTask = Task { @MainActor in
-                do {
-                    try await Task.sleep(for: .milliseconds(200))
-                    onDismiss()
-                } catch {
-                    // Task was cancelled, do nothing
-                }
+            } completion: {
+                onDismiss()
             }
         }
     }
@@ -122,5 +110,5 @@ struct ToastView: View {
         Spacer()
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .background(Color(.systemGroupedBackground))
+    .background(Color.surface)
 }

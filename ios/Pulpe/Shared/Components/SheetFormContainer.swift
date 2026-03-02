@@ -21,7 +21,7 @@ struct SheetFormContainer<Content: View>: View {
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.xl)
             }
-            .background(Color.surfacePrimary)
+            .background(Color.surface)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

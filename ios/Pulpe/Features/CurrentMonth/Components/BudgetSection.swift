@@ -88,6 +88,17 @@ struct BudgetSection: View {
                             swipeActions(for: item)
                         }
                     }
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        if let onEdit, !item.isVirtualRollover {
+                            Button {
+                                onEdit(item)
+                                ProductTips.gestures.invalidate(reason: .actionPerformed)
+                            } label: {
+                                Label("Modifier", systemImage: "pencil")
+                            }
+                            .tint(.pulpePrimary)
+                        }
+                    }
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
                     .animation(
                         .easeOut(duration: DesignTokens.Animation.normal)
@@ -118,7 +129,7 @@ struct BudgetSection: View {
                 } label: {
                     Label("Supprimer", systemImage: "trash")
                 }
-                .tint(Color.errorPrimary)
+                .tint(Color.destructivePrimary)
             }
 
             if let onToggle {
@@ -212,18 +223,29 @@ struct BudgetLineRow: View {
 
     private var consumptionColor: Color {
         if consumption.isOverBudget { return .financialOverBudget }
-        if consumption.isNearLimit { return .financialOverBudget }
-        return .pulpePrimary
-    }
-
-    private var remainingColor: Color {
-        consumption.available < 0 ? .financialOverBudget : line.kind.color
+        if consumption.isNearLimit { return .warningPrimary }
+        return .secondary
     }
 
     private var amountTextColor: Color {
         if line.isChecked { return .secondary }
-        if hasConsumption { return remainingColor }
+        if hasConsumption {
+            if consumption.isOverBudget { return .financialOverBudget }
+            if consumption.isNearLimit { return .warningPrimary }
+            return .secondary
+        }
         return line.kind.color
+    }
+
+    private var remainingAmountText: String {
+        guard hasConsumption else {
+            return line.amount.asSignedAmount(for: line.kind)
+        }
+        if consumption.available >= 0 {
+            return consumption.available.asAmount
+        } else {
+            return "-\(consumption.available.absoluteValue.asAmount)"
+        }
     }
 
     private var linkedTransactions: [Transaction] {
@@ -245,7 +267,7 @@ struct BudgetLineRow: View {
             // Main content
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(line.name)
-                    .font(PulpeTypography.onboardingSubtitle)
+                    .font(.system(.body, weight: .semibold))
                     .foregroundStyle(line.isChecked ? .secondary : .primary)
                     .strikethrough(line.isChecked, color: .secondary)
                     .lineLimit(1)
@@ -257,10 +279,11 @@ struct BudgetLineRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .sensitiveAmount()
+                    progressBar
                 } else {
                     Text(line.recurrence.label)
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -270,38 +293,12 @@ struct BudgetLineRow: View {
             SyncIndicator(isSyncing: isSyncing)
 
             // Amount (remaining when transactions exist, otherwise budgeted)
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(hasConsumption ? consumption.available.asCHF : line.amount.asCHF)
-                    .font(PulpeTypography.amountMedium)
-                    .foregroundStyle(amountTextColor)
-                    .sensitiveAmount()
-
-                if hasConsumption {
-                    Text("reste")
-                        .font(PulpeTypography.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            // Add button (only for non-rollover lines with callback)
-            if let onAddTransaction, !line.isVirtualRollover {
-                Button(action: onAddTransaction) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Color.accentColor)
-                        .frame(width: 28, height: 28)
-                        .background(Color.accentColor.opacity(DesignTokens.Opacity.shadow))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-            }
+            Text(remainingAmountText)
+                .font(.system(.callout, weight: .regular))
+                .foregroundStyle(amountTextColor)
+                .sensitiveAmount()
         }
-        .padding(.vertical, DesignTokens.Spacing.sm)
-
-            // Consumption progress bar
-            if hasConsumption {
-                progressBar
-            }
+        .padding(.vertical, DesignTokens.ListRow.verticalPadding)
         }
         .contentShape(Rectangle())
         .onLongPressGesture(
@@ -316,24 +313,24 @@ struct BudgetLineRow: View {
             perform: handleLongPress
         )
         .onTapGesture {
-            guard let onEdit, !line.isVirtualRollover else { return }
+            guard let onAddTransaction, !line.isVirtualRollover else { return }
             ProductTips.gestures.invalidate(reason: .actionPerformed)
-            onEdit()
+            onAddTransaction()
         }
         .scaleEffect(isPressed ? 0.97 : 1.0)
         .animation(.spring(duration: DesignTokens.Animation.fast), value: isPressed)
         .sensoryFeedback(.success, trigger: triggerSuccessFeedback)
         .sensoryFeedback(.error, trigger: triggerWarningFeedback)
         .accessibilityIdentifier("budgetLineRow-\(line.id)")
-        .ifLet(onEdit) { view, onEdit in
+        .ifLet(onAddTransaction) { view, onAdd in
             view
                 .accessibilityAddTraits(.isButton)
-                .accessibilityAction { onEdit() }
+                .accessibilityAction { onAdd() }
                 .accessibilityHint(
                     hasConsumption
                         ? "Montant restant: \(consumption.available.asCHF). " +
-                          "Touche pour modifier, maintiens pour voir les transactions"
-                        : "Touche pour modifier, maintiens pour voir les transactions"
+                          "Touche pour ajouter une transaction, maintiens pour voir les transactions"
+                        : "Touche pour ajouter une transaction, maintiens pour voir les transactions"
                 )
         }
     }
@@ -365,20 +362,21 @@ struct BudgetLineRow: View {
         .opacity(line.isVirtualRollover ? 0.6 : 1)
     }
 
-    private var progressBar: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                Rectangle()
-                    .fill(Color.progressTrack)
+    @State private var barWidth: CGFloat = 0
 
-                Rectangle()
-                    .fill(consumptionColor)
-                    .frame(width: geometry.size.width * CGFloat(min(consumption.percentage / 100, 1)))
-                    .animation(.spring(duration: DesignTokens.Animation.slow), value: consumption.percentage)
-            }
+    private var progressBar: some View {
+        ZStack(alignment: .leading) {
+            Rectangle()
+                .fill(Color.progressTrack)
+
+            Rectangle()
+                .fill(consumptionColor)
+                .frame(width: barWidth * CGFloat(min(consumption.percentage / 100, 1)))
+                .animation(.spring(duration: DesignTokens.Animation.slow), value: consumption.percentage)
         }
         .frame(height: DesignTokens.ProgressBar.height)
-        .clipShape(.rect(cornerRadius: 1.5))
+        .clipShape(.rect(cornerRadius: 10))
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }
     }
 
     private func handleLongPress() {
@@ -427,7 +425,7 @@ struct BudgetLineRow: View {
                     kind: .income,
                     recurrence: .fixed,
                     isManuallyAdjusted: false,
-                    checkedAt: Date(),
+                    checkedAt: nil,
                     createdAt: Date(),
                     updatedAt: Date()
                 ),
@@ -452,7 +450,7 @@ struct BudgetLineRow: View {
                     budgetId: "b1",
                     budgetLineId: "1",
                     name: "Loyer janvier",
-                    amount: 1500,
+                    amount: 850,
                     kind: .expense,
                     transactionDate: Date(),
                     category: nil,

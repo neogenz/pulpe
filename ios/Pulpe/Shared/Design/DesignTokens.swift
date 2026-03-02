@@ -9,14 +9,14 @@ enum DesignTokens {
         static let xs: CGFloat = 4
         /// Small elements: badges, chips (8pt)
         static let sm: CGFloat = 8
-        /// Medium elements: cards, inputs (12pt)
-        static let md: CGFloat = 12
+        /// Medium elements: inputs, cards (24pt)
+        static let md: CGFloat = 24
         /// Primary buttons (14pt)
         static let button: CGFloat = 14
-        /// Large elements: sheets, modals (16pt)
-        static let lg: CGFloat = 16
-        /// Extra large: hero cards (20pt)
-        static let xl: CGFloat = 20
+        /// Large elements: sheets, modals (30pt)
+        static let lg: CGFloat = 30
+        /// Extra large: hero cards (32pt)
+        static let xl: CGFloat = 32
         /// Hairline: thin separators in Form (1pt)
         static let hairline: CGFloat = 1
     }
@@ -98,14 +98,26 @@ enum DesignTokens {
         static let compact: CGFloat = 28
     }
 
+    // MARK: - List Row
+
+    enum ListRow {
+        /// Vertical padding for all list/transaction/budget rows
+        static let verticalPadding: CGFloat = 4
+    }
+
     // MARK: - Animation
 
     enum Animation {
         // MARK: - Duration
 
         static let fast: Double = 0.2
+        static let quickSnap: Double = 0.25
         static let normal: Double = 0.3
         static let slow: Double = 0.5
+
+        // MARK: - Stagger
+
+        static let staggerStep: Double = 0.05
 
         // MARK: - Spring Configurations
 
@@ -196,11 +208,13 @@ enum DesignTokens {
 
     enum ProgressBar {
         /// Standard thin progress bar height
-        static let height: CGFloat = 3
+        static let height: CGFloat = 5
         /// Thick progress bar height
         static let thickHeight: CGFloat = 8
         /// Circular progress stroke width
         static let circularLineWidth: CGFloat = 6
+        /// Hero card progress bar height (larger for visibility on colored backgrounds)
+        static let heroHeight: CGFloat = 10
     }
 }
 

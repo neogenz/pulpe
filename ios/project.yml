@@ -28,6 +28,7 @@ settings:
   base:
     SWIFT_VERSION: "5.9"
     SWIFT_STRICT_CONCURRENCY: complete
+    ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: NO
     MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "4"
     DEVELOPMENT_TEAM: AJ37X7C82G
@@ -113,11 +114,6 @@ targets:
             CFBundleURLName: app.pulpe.ios
         UIAppFonts:
           - Manrope-Bold.ttf
-          - Manrope-SemiBold.ttf
-          - Manrope-Medium.ttf
-          - DMSans-Regular.ttf
-          - DMSans-Medium.ttf
-          - DMSans-SemiBold.ttf
         UIBackgroundModes:
           - fetch
         BGTaskSchedulerPermittedIdentifiers:

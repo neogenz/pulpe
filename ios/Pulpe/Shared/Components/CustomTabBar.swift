@@ -65,3 +65,38 @@ struct CustomTabBar: UIViewRepresentable {
         }
     }
 }
+
+// MARK: - Preview
+
+#Preview {
+    @Previewable @State var selectedTab: Tab = .currentMonth
+    let tabBarHeight: CGFloat = 55
+
+    VStack {
+        Spacer()
+
+        HStack(spacing: 0) {
+            GeometryReader { geometry in
+                CustomTabBar(size: geometry.size, barTint: .gray.opacity(0.3), activeTab: $selectedTab)
+                    .overlay {
+                        HStack(spacing: 0) {
+                            ForEach(Tab.allCases) { tab in
+                                VStack(spacing: 3) {
+                                    Image(systemName: tab.icon)
+                                        .font(.title3)
+                                    Text(tab.title)
+                                        .font(PulpeTypography.tabLabel)
+                                }
+                                .symbolVariant(selectedTab == tab ? .fill : .none)
+                                .foregroundStyle(selectedTab == tab ? Color.pulpePrimary : Color(.label))
+                                .frame(maxWidth: .infinity)
+                            }
+                        }
+                        .animation(.easeInOut(duration: 0.25), value: selectedTab)
+                    }
+            }
+        }
+        .frame(height: tabBarHeight)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+    }
+}

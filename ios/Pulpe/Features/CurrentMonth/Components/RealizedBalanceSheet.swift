@@ -4,8 +4,6 @@ struct RealizedBalanceSheet: View {
     let metrics: BudgetFormulas.Metrics
     let realizedMetrics: BudgetFormulas.RealizedMetrics
 
-    @Environment(\.dismiss) private var dismiss
-
     private var isPositiveBalance: Bool {
         realizedMetrics.realizedBalance >= 0
     }
@@ -25,19 +23,16 @@ struct RealizedBalanceSheet: View {
                 }
                 .padding()
             }
-            .background(Color.surfacePrimary)
+            .background(Color.surface)
             .navigationTitle("Suivi du budget")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Fermer") {
-                        dismiss()
-                    }
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton()
                 }
             }
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
+        .standardSheetPresentation(detents: [.medium, .large])
     }
 
     // MARK: - Balance Card
@@ -77,11 +72,11 @@ struct RealizedBalanceSheet: View {
                 "\(realizedMetrics.totalItemsCount)"
             )
                 .font(PulpeTypography.caption)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.pulpeTextTertiary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.xxl)
-        .background(Color.surfaceCard)
+        .background(Color.surfaceContainerHigh)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
     }
 
@@ -120,7 +115,7 @@ struct RealizedBalanceSheet: View {
             )
         }
         .padding()
-        .background(Color.surfaceCard)
+        .background(Color.surfaceContainerHigh)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
     }
 
@@ -164,6 +159,8 @@ private struct ProgressRow: View {
     let realized: Decimal
     let planned: Decimal
 
+    @State private var barWidth: CGFloat = 0
+
     private var percentage: Double {
         guard planned > 0 else { return 0 }
         return min(Double(truncating: NSDecimalNumber(decimal: realized / planned)), 1.0)
@@ -194,22 +191,21 @@ private struct ProgressRow: View {
             }
 
             // Progress bar
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.progressTrack)
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.progressTrack)
 
-                    Capsule()
-                        .fill(iconColor)
-                        .frame(width: geometry.size.width * CGFloat(percentage))
-                }
+                Capsule()
+                    .fill(iconColor)
+                    .frame(width: barWidth * CGFloat(percentage))
             }
             .frame(height: DesignTokens.Spacing.sm)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }
 
             // Percentage label
             Text("\(percentageText) réalisé")
                 .font(PulpeTypography.caption)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.pulpeTextTertiary)
         }
     }
 }

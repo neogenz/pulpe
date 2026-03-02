@@ -52,23 +52,23 @@ private struct RecentTransactionCardRow: View {
             // Name and date
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(transaction.name)
-                    .font(PulpeTypography.onboardingSubtitle)
+                    .font(.system(.body, weight: .semibold))
                     .lineLimit(1)
 
                 Text(transaction.transactionDate.relativeFormatted)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(.secondary)
             }
 
             Spacer()
 
             // Amount
-            Text(transaction.signedAmount.asCHF)
-                .font(PulpeTypography.amountMedium)
+            Text(transaction.signedAmount.asAmount)
+                .font(.system(.callout, weight: .regular))
                 .foregroundStyle(transaction.kind.color)
                 .sensitiveAmount()
         }
-        .padding(.vertical, DesignTokens.Spacing.sm)
+        .padding(.vertical, DesignTokens.ListRow.verticalPadding)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
             "\(transaction.name), \(transaction.kind.label), "

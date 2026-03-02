@@ -64,14 +64,14 @@ struct AccountView: View {
                 }
             } message: {
                 Text(
-                    "Votre compte sera définitivement supprimé " +
+                    "Ton compte sera définitivement supprimé " +
                     "après un délai de 3 jours. Cette action est irréversible."
                 )
             }
             .sensoryFeedback(.impact, trigger: debugToggleTrigger)
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
-            .background(Color.surfacePrimary)
+            .background(Color.surface)
             .trackScreen("Account")
             .navigationTitle("Compte")
             .toolbar {
@@ -130,7 +130,7 @@ extension AccountView {
             Text("INFORMATIONS PERSONNELLES")
                 .font(PulpeTypography.labelLarge)
         }
-        .listRowBackground(Color.surfaceCard)
+        .listRowBackground(Color.surfaceContainerHigh)
     }
 
     private var securitySection: some View {
@@ -187,7 +187,7 @@ extension AccountView {
             Text("SÉCURITÉ")
                 .font(PulpeTypography.labelLarge)
         }
-        .listRowBackground(Color.surfaceCard)
+        .listRowBackground(Color.surfaceContainerHigh)
     }
 
     private var applicationSection: some View {
@@ -220,10 +220,10 @@ extension AccountView {
                 .font(PulpeTypography.labelLarge)
                 .onLongPressGesture(minimumDuration: 5) {
                     debugToggleTrigger.toggle()
-                    withAnimation(.easeInOut(duration: 0.3)) { isDebugVisible.toggle() }
+                    withAnimation(.easeInOut(duration: DesignTokens.Animation.normal)) { isDebugVisible.toggle() }
                 }
         }
-        .listRowBackground(Color.surfaceCard)
+        .listRowBackground(Color.surfaceContainerHigh)
     }
 
     private var logoutSection: some View {
@@ -235,7 +235,7 @@ extension AccountView {
                     .foregroundStyle(Color.errorPrimary)
             }
         }
-        .listRowBackground(Color.surfaceCard)
+        .listRowBackground(Color.surfaceContainerHigh)
     }
 
     private var dangerZoneSection: some View {

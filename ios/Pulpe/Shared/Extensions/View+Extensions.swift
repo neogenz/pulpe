@@ -23,7 +23,7 @@ private struct SensitiveAmountModifier: ViewModifier {
             .blur(radius: amountsHidden ? 8 : 0)
             .accessibilityLabel(amountsHidden ? "Montant masqué" : "")
             .accessibilityHidden(amountsHidden)
-            .animation(.easeInOut(duration: 0.2), value: amountsHidden)
+            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: amountsHidden)
     }
 }
 
@@ -163,7 +163,7 @@ extension View {
         .animation(DesignTokens.Animation.defaultSpring, value: manager.currentToast)
     }
 
-    /// Glass card styling with padding and Liquid Glass effect (iOS 26+) or material fallback
+    /// Standard content card styling: spacing + flat surface background.
     func pulpeCard() -> some View {
         self
             .padding(DesignTokens.Spacing.lg)
@@ -182,60 +182,14 @@ extension View {
     func pulpeBackground() -> some View {
         modifier(PulpeBackgroundModifier())
     }
-
-    /// Status-tinted background for budget details: green (positive) or amber (negative)
-    func pulpeStatusBackground(isDeficit: Bool) -> some View {
-        modifier(PulpeStatusBackgroundModifier(isDeficit: isDeficit))
-    }
 }
 
 // MARK: - Background Modifiers
 
 private struct PulpeBackgroundModifier: ViewModifier {
-    @Environment(\.colorScheme) private var colorScheme
-
     func body(content: Content) -> some View {
         content.background {
-            backgroundView.ignoresSafeArea()
-        }
-    }
-
-    @ViewBuilder
-    private var backgroundView: some View {
-        if colorScheme == .dark {
-            // Dark mode: use system background so elevated cards (#1C1C1E) stand out naturally
-            Color(uiColor: .systemGroupedBackground)
-        } else if #available(iOS 18.0, *) {
-            MeshGradient(
-                width: 3, height: 3,
-                points: Color.meshPoints,
-                colors: Color.lightMeshColors
-            )
-        } else {
-            Color.appFallbackBackground
-        }
-    }
-}
-
-private struct PulpeStatusBackgroundModifier: ViewModifier {
-    let isDeficit: Bool
-    @Environment(\.colorScheme) private var colorScheme
-
-    func body(content: Content) -> some View {
-        content.background {
-            statusBackground.ignoresSafeArea()
-        }
-    }
-
-    @ViewBuilder
-    private var statusBackground: some View {
-        if colorScheme == .dark {
-            // Dark mode: system background for consistent card contrast
-            Color(uiColor: .systemGroupedBackground)
-        } else if isDeficit {
-            Color.appNegativeBackground
-        } else {
-            Color.appPositiveBackground
+            Color.appBackground.ignoresSafeArea()
         }
     }
 }
@@ -281,12 +235,14 @@ private struct KeyboardDismissView: UIViewRepresentable {
 
 extension View {
     /// Standard sheet presentation used across all form sheets
-    func standardSheetPresentation() -> some View {
+    func standardSheetPresentation(
+        detents: Set<PresentationDetent> = [.large]
+    ) -> some View {
         self
-            .presentationDetents([.large])
+            .presentationDetents(detents)
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(DesignTokens.CornerRadius.xl)
-            .presentationBackground(Color.surfacePrimary)
+            .presentationBackground(Color.surface)
     }
 }
 
@@ -307,17 +263,13 @@ extension View {
 
 // MARK: - Card Modifiers
 
-/// Card surface with subtle shadow for definition against the background
+/// Flat card surface — depth via color contrast, not shadows (Liquid Glass era)
 private struct CardBackgroundModifier: ViewModifier {
     let cornerRadius: CGFloat
 
     func body(content: Content) -> some View {
         content
-            .background(
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(Color.surfaceCard)
-                    .shadow(DesignTokens.Shadow.subtle)
-            )
+            .background(Color.surfaceContainerLowest, in: .rect(cornerRadius: cornerRadius))
     }
 }
 
