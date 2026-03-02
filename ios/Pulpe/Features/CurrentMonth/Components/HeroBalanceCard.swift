@@ -20,6 +20,7 @@ struct HeroBalanceCard: View {
     // MARK: - Environment
 
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.amountsHidden) private var amountsHidden
 
     // MARK: - Computed Properties
 
@@ -84,6 +85,17 @@ struct HeroBalanceCard: View {
         }
     }
 
+    private var accessibilityDescription: String {
+        if amountsHidden {
+            return "\(contextLabel) — montant masqué. \(motivationalMessage)"
+        }
+        return """
+        \(contextLabel) \(formattedBalance) CHF. \
+        \(motivationalMessage). \
+        Dépensé \(formattedSpent) sur \(formattedAvailable)
+        """
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -97,14 +109,9 @@ struct HeroBalanceCard: View {
                 cardContent
             }
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(
-            """
-            \(contextLabel) \(formattedBalance) CHF. \
-            \(motivationalMessage). \
-            Dépensé \(formattedSpent) sur \(formattedAvailable)
-            """
-        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityDescription)
+        .accessibilityAddTraits(onTapProgress != nil ? .isButton : [])
     }
 
     // MARK: - Card Content

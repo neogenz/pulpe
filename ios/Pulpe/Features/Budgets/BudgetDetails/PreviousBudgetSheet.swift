@@ -138,8 +138,7 @@ struct PreviousBudgetSheet: View {
     private var heroSection: some View {
         Section {
             HeroBalanceCard(
-                metrics: viewModel.metrics,
-                onTapProgress: {}
+                metrics: viewModel.metrics
             )
         }
         .listRowBackground(Color.clear)

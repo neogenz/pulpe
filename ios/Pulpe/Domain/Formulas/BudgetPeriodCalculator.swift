@@ -115,11 +115,11 @@ enum BudgetPeriodCalculator {
     // MARK: - Time Elapsed
 
     /// Percentage of the budget period that has elapsed (0-100)
-    static func timeElapsedPercentage(month: Int, year: Int, payDayOfMonth: Int?) -> Double {
+    static func timeElapsedPercentage(month: Int, year: Int, payDayOfMonth: Int?, now: Date = Date()) -> Double {
         let dates = periodDates(month: month, year: year, payDayOfMonth: payDayOfMonth)
         let totalDuration = dates.endDate.timeIntervalSince(dates.startDate)
         guard totalDuration > 0 else { return 0 }
-        let elapsed = Date().timeIntervalSince(dates.startDate)
+        let elapsed = now.timeIntervalSince(dates.startDate)
         return min(max(elapsed / totalDuration * 100, 0), 100)
     }
 

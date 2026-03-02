@@ -8,12 +8,7 @@ extension Decimal {
 
     /// Format as amount only (no currency code) using Swiss locale — "1'234.56"
     var asAmount: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.locale = Locale(identifier: "de_CH")
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
-        return formatter.string(from: self as NSDecimalNumber) ?? "0.00"
+        Self.amountFormatter.string(from: self as NSDecimalNumber) ?? "0.00"
     }
 
     /// Format as compact CHF (no decimals for whole numbers)
@@ -44,6 +39,17 @@ extension Decimal {
     func asPercentage(maximumFractionDigits: Int = 0) -> String {
         (self / 100).formatted(.percent.precision(.fractionLength(0...maximumFractionDigits)))
     }
+}
+
+private extension Decimal {
+    static let amountFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.locale = Locale(identifier: "de_CH")
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        return formatter
+    }()
 }
 
 // MARK: - Amount Parsing
