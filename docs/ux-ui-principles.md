@@ -648,4 +648,38 @@ L'onboarding en 5 étapes avec barre de progression utilise l'effet Zeigarnik po
 
 ---
 
+## 26. Couleur = état, jamais catégorie dans les listes financières 🔴
+
+### Le principe
+
+Dans une liste financière, la couleur d'un montant doit communiquer l'**état** (ok / attention / alerte), jamais la **catégorie** (dépense / revenu / épargne). L'identité catégorie est déjà portée par l'icône colorée — y ajouter la couleur sur le montant crée une collision cognitive : l'utilisateur ne sait plus si la couleur dit "ça va" ou "c'est une dépense".
+
+Ce principe s'applique dès qu'il y a **consommation active** (transactions liées). Sans consommation, pas d'état à communiquer — la couleur catégorie sur le montant est correcte car elle aide à différencier visuellement les types de lignes (income/expense/saving).
+
+### Source
+
+- YNAB (You Need A Budget) — modèle mental établi chez les utilisateurs d'apps budget : rouge = over-budget, vert = healthy, jamais "rouge = dépense".
+- Monzo — toutes les listes de transactions en app bancaire : couleur = direction du solde, jamais catégorie comptable.
+- Nielsen Norman Group — "Color should reinforce meaning, not add noise." Principle of semantic consistency.
+- Tractinsky, N. & Meyer, J. (1999). "Chartjunk or goldgraph? Effects of presentation objectives and content desirability on information presentation." *MIS Quarterly*, 23(3), 397-420. — La redondance de codage visuel (couleur catégorie + icône catégorie) réduit la lisibilité sans ajouter d'information.
+
+### Application Pulpe
+
+`BudgetLineRow` applique cette asymétrie intentionnelle :
+
+| État | Montant | Barre |
+|------|---------|-------|
+| Sans transactions | `kind.color` (catégorie) | — |
+| 0–79% consommé | `.secondary` gris | `.secondary` gris |
+| 80–100% (near limit) | `.warningPrimary` amber | `.warningPrimary` amber |
+| >100% (over-budget) | `.financialOverBudget` amber profond | `.financialOverBudget` |
+
+L'icône colorée (orange/bleu/vert) porte l'identité catégorie en permanence — elle ne change pas selon l'état. Le montant et la barre changent uniquement selon l'état de consommation.
+
+### Règle à retenir
+
+> **Dès qu'une ligne a des transactions liées, utilise exclusivement les couleurs d'état (neutre/warning/danger) sur le montant et la barre. L'icône catégorie suffit à identifier le type. Double-coder la catégorie avec une couleur sur le montant = bruit cognitif.**
+
+---
+
 *Ce document sera enrichi au fil des découvertes UX/UI pendant le développement de Pulpe.*
