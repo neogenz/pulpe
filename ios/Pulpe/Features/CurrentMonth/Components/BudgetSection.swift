@@ -88,6 +88,17 @@ struct BudgetSection: View {
                             swipeActions(for: item)
                         }
                     }
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        if let onEdit, !item.isVirtualRollover {
+                            Button {
+                                onEdit(item)
+                                ProductTips.gestures.invalidate(reason: .actionPerformed)
+                            } label: {
+                                Label("Modifier", systemImage: "pencil")
+                            }
+                            .tint(.pulpePrimary)
+                        }
+                    }
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
                     .animation(
                         .easeOut(duration: DesignTokens.Animation.normal)
@@ -213,17 +224,26 @@ struct BudgetLineRow: View {
     private var consumptionColor: Color {
         if consumption.isOverBudget { return .financialOverBudget }
         if consumption.isNearLimit { return .financialOverBudget }
-        return .pulpePrimary
-    }
-
-    private var remainingColor: Color {
-        consumption.available < 0 ? .financialOverBudget : line.kind.color
+        return .secondary
     }
 
     private var amountTextColor: Color {
         if line.isChecked { return .secondary }
-        if hasConsumption { return remainingColor }
+        if hasConsumption {
+            return consumption.available < 0 ? .financialOverBudget : .secondary
+        }
         return line.kind.color
+    }
+
+    private var remainingAmountText: String {
+        guard hasConsumption else {
+            return line.amount.asSignedAmount(for: line.kind)
+        }
+        if consumption.available >= 0 {
+            return consumption.available.asAmount
+        } else {
+            return "-\(consumption.available.absoluteValue.asAmount)"
+        }
     }
 
     private var linkedTransactions: [Transaction] {
@@ -257,6 +277,7 @@ struct BudgetLineRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .sensitiveAmount()
+                    progressBar
                 } else {
                     Text(line.recurrence.label)
                         .font(PulpeTypography.caption)
@@ -270,42 +291,12 @@ struct BudgetLineRow: View {
             SyncIndicator(isSyncing: isSyncing)
 
             // Amount (remaining when transactions exist, otherwise budgeted)
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(
-                    hasConsumption
-                        ? consumption.available.asSignedAmount(for: line.kind)
-                        : line.amount.asSignedAmount(for: line.kind)
-                )
-                    .font(.system(.callout, weight: .regular))
-                    .foregroundStyle(amountTextColor)
-                    .sensitiveAmount()
-
-                if hasConsumption {
-                    Text("reste")
-                        .font(PulpeTypography.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            // Add button (only for non-rollover lines with callback)
-            if let onAddTransaction, !line.isVirtualRollover {
-                Button(action: onAddTransaction) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Color.accentColor)
-                        .frame(width: 28, height: 28)
-                        .background(Color.accentColor.opacity(DesignTokens.Opacity.shadow))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-            }
+            Text(remainingAmountText)
+                .font(.system(.callout, weight: .regular))
+                .foregroundStyle(amountTextColor)
+                .sensitiveAmount()
         }
         .padding(.vertical, DesignTokens.ListRow.verticalPadding)
-
-            // Consumption progress bar
-            if hasConsumption {
-                progressBar
-            }
         }
         .contentShape(Rectangle())
         .onLongPressGesture(
@@ -320,24 +311,24 @@ struct BudgetLineRow: View {
             perform: handleLongPress
         )
         .onTapGesture {
-            guard let onEdit, !line.isVirtualRollover else { return }
+            guard let onAddTransaction, !line.isVirtualRollover else { return }
             ProductTips.gestures.invalidate(reason: .actionPerformed)
-            onEdit()
+            onAddTransaction()
         }
         .scaleEffect(isPressed ? 0.97 : 1.0)
         .animation(.spring(duration: DesignTokens.Animation.fast), value: isPressed)
         .sensoryFeedback(.success, trigger: triggerSuccessFeedback)
         .sensoryFeedback(.error, trigger: triggerWarningFeedback)
         .accessibilityIdentifier("budgetLineRow-\(line.id)")
-        .ifLet(onEdit) { view, onEdit in
+        .ifLet(onAddTransaction) { view, onAdd in
             view
                 .accessibilityAddTraits(.isButton)
-                .accessibilityAction { onEdit() }
+                .accessibilityAction { onAdd() }
                 .accessibilityHint(
                     hasConsumption
                         ? "Montant restant: \(consumption.available.asCHF). " +
-                          "Touche pour modifier, maintiens pour voir les transactions"
-                        : "Touche pour modifier, maintiens pour voir les transactions"
+                          "Touche pour ajouter une transaction, maintiens pour voir les transactions"
+                        : "Touche pour ajouter une transaction, maintiens pour voir les transactions"
                 )
         }
     }
@@ -432,7 +423,7 @@ struct BudgetLineRow: View {
                     kind: .income,
                     recurrence: .fixed,
                     isManuallyAdjusted: false,
-                    checkedAt: Date(),
+                    checkedAt: nil,
                     createdAt: Date(),
                     updatedAt: Date()
                 ),
@@ -457,7 +448,7 @@ struct BudgetLineRow: View {
                     budgetId: "b1",
                     budgetLineId: "1",
                     name: "Loyer janvier",
-                    amount: 1500,
+                    amount: 850,
                     kind: .expense,
                     transactionDate: Date(),
                     category: nil,
