@@ -11,6 +11,15 @@ extension Decimal {
         Self.amountFormatter.string(from: self as NSDecimalNumber) ?? "0.00"
     }
 
+    /// Format as signed amount based on transaction kind — "+5'000.00" for income, "-1'500.00" for expense/saving
+    func asSignedAmount(for kind: TransactionKind) -> String {
+        let formatted = absoluteValue.asAmount
+        switch kind {
+        case .income: return "+\(formatted)"
+        case .expense, .saving: return "-\(formatted)"
+        }
+    }
+
     /// Format as compact CHF (no decimals for whole numbers)
     var asCompactCHF: String {
         let formatter = isWholeNumber ? Formatters.chfWholeNumber : Formatters.chfCompact

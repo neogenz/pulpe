@@ -34,10 +34,6 @@ Ce fichier définit le template **exact** à utiliser pour toute user story. Cha
 ### Hors périmètre
 
 - [Ce qui n'est PAS inclus dans cette story]
-
----
-
-**Estimation : [2 | 3 | 5 | 8 | 13 | 20] points**
 ```
 
 ## Règles strictes
@@ -48,7 +44,7 @@ Ce fichier définit le template **exact** à utiliser pour toute user story. Cha
 4. **Critères d'acceptation** : préfixés `CA1:`, `CA2:`, etc. avec checkbox `- [ ]`. Chaque CA doit être vérifiable par oui/non
 5. **Regroupement des CA** : si multi-plateforme, regrouper sous des sous-titres en gras (ex: `**Web :**`, `**iOS :**`, `**Commun :**`)
 6. **Notes techniques** : toujours commencer par la ligne `Package(s) concerné(s)` en gras
-7. **Estimation obligatoire** : en fin de body, séparée par `---`, en gras. Utiliser les story points (voir barème ci-dessous)
+7. **Estimation** : passer uniquement via le champ `estimate` de Linear (`save_issue`). **Ne jamais écrire l'estimation dans le body de l'issue.**
 8. **Langue** : tout en français
 9. **Vocabulaire domaine** : utiliser les termes du glossaire Pulpe (prévisions, récurrent, prévu, etc.)
 10. **Si > 20 points** : ne pas créer la story, la découper en stories plus petites et demander validation

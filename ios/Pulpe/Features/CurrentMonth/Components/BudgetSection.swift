@@ -271,7 +271,11 @@ struct BudgetLineRow: View {
 
             // Amount (remaining when transactions exist, otherwise budgeted)
             VStack(alignment: .trailing, spacing: 2) {
-                Text(hasConsumption ? consumption.available.asAmount : line.amount.asAmount)
+                Text(
+                    hasConsumption
+                        ? consumption.available.asSignedAmount(for: line.kind)
+                        : line.amount.asSignedAmount(for: line.kind)
+                )
                     .font(.system(.callout, weight: .regular))
                     .foregroundStyle(amountTextColor)
                     .sensitiveAmount()
@@ -378,7 +382,7 @@ struct BudgetLineRow: View {
                 .animation(.spring(duration: DesignTokens.Animation.slow), value: consumption.percentage)
         }
         .frame(height: DesignTokens.ProgressBar.height)
-        .clipShape(.rect(cornerRadius: 1.5))
+        .clipShape(.rect(cornerRadius: 10))
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }
     }
 

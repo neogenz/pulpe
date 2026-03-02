@@ -208,7 +208,7 @@ enum DesignTokens {
 
     enum ProgressBar {
         /// Standard thin progress bar height
-        static let height: CGFloat = 3
+        static let height: CGFloat = 5
         /// Thick progress bar height
         static let thickHeight: CGFloat = 8
         /// Circular progress stroke width
