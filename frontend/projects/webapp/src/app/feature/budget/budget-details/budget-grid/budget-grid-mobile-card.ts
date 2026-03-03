@@ -123,7 +123,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
               @let remaining =
                 item().data.amount - item().consumption!.consumed;
               <div
-                class="text-headline-medium font-bold"
+                class="ph-no-capture text-headline-medium font-bold"
                 [class.text-on-surface-variant]="
                   item().consumption!.consumptionState === 'healthy'
                 "
@@ -141,7 +141,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
               >
             } @else {
               <div
-                class="text-headline-medium font-bold"
+                class="ph-no-capture text-headline-medium font-bold"
                 [pulpeFinancialKind]="item().data.kind"
               >
                 {{ item().data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
@@ -155,7 +155,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
           <!-- Consumption mini-stat if applicable -->
           @if (item().consumption?.hasTransactions) {
             <div class="text-right">
-              <div class="text-title-medium font-semibold text-on-surface">
+              <div class="ph-no-capture text-title-medium font-semibold text-on-surface">
                 {{
                   item().consumption!.consumed
                     | currency: 'CHF' : 'symbol' : '1.0-0'
@@ -181,7 +181,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
             />
             <div class="text-label-small text-center mt-1.5">
               @if (item().consumption!.consumptionState === 'over-budget') {
-                <span class="text-financial-over-budget">
+                <span class="ph-no-capture text-financial-over-budget">
                   Dépassé de
                   {{
                     item().consumption!.consumed - item().data.amount
@@ -225,10 +225,10 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                   "
                 >
                   <mat-icon class="text-base! mr-1">receipt_long</mat-icon>
-                  {{
+                  <span class="ph-no-capture">{{
                     item().consumption!.consumed
                       | currency: 'CHF' : 'symbol' : '1.0-0'
-                  }}
+                  }}</span>
                 </button>
               }
               <button

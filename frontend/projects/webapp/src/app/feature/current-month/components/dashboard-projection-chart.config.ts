@@ -10,6 +10,7 @@ import {
 
 export function buildProjectionChartOptions(
   theme: ChartThemeColors | null,
+  amountsHidden = false,
 ): ChartConfiguration['options'] {
   const tickColor = theme?.tickColor || undefined;
   const gridColor = theme?.gridColor || undefined;
@@ -57,7 +58,7 @@ export function buildProjectionChartOptions(
               label += ': ';
             }
             if (context.parsed.y !== null) {
-              label += formatCHF(context.parsed.y);
+              label += amountsHidden ? '•••••' : formatCHF(context.parsed.y);
             }
             return label;
           },
@@ -88,7 +89,7 @@ export function buildProjectionChartOptions(
           },
           color: tickColor,
           callback: function (value: string | number) {
-            return Number(value) / 1000 + 'k';
+            return amountsHidden ? '•' : Number(value) / 1000 + 'k';
           },
         },
       },

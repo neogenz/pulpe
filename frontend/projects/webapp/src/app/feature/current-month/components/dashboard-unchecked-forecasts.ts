@@ -92,7 +92,10 @@ const MAX_VISIBLE_FORECASTS = 5;
                   class="text-label-large whitespace-nowrap ml-4 font-semibold tabular-nums ph-no-capture"
                   [pulpeFinancialKind]="forecast.kind"
                 >
-                  {{ displayAmount | number: '1.2-2' : 'de-CH' }}
+                  {{
+                    displayAmount
+                      | number: '1.2-2' : 'de-CH'
+                  }}
                   CHF
                 </span>
               </div>

@@ -73,11 +73,14 @@ import type {
           <th mat-header-cell *matHeaderCellDef class="text-right">Prévu</th>
           <td mat-cell *matCellDef="let line" class="text-right">
             <span
-              class="text-body-medium font-bold"
+              class="text-body-medium font-bold ph-no-capture"
               [class.italic]="line.metadata.isRollover"
               [pulpeFinancialKind]="line.data.kind"
             >
-              {{ line.data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+              {{
+                line.data.amount
+                  | currency: 'CHF' : 'symbol' : '1.0-0'
+              }}
             </span>
           </td>
         </ng-container>
@@ -93,7 +96,7 @@ import type {
             ) {
               <button
                 matButton
-                class="text-body-small h-8! px-3!"
+                class="text-body-small h-8! px-3! ph-no-capture"
                 [matBadge]="line.consumption.transactionCount"
                 matBadgeColor="primary"
                 (click)="viewTransactions.emit(line)"

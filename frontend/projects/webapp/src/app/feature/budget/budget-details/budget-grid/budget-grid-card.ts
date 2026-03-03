@@ -107,7 +107,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
         @if (item().consumption?.hasTransactions) {
           @let remaining = item().data.amount - item().consumption!.consumed;
           <div
-            class="text-headline-large font-bold"
+            class="ph-no-capture text-headline-large font-bold"
             [class.text-on-surface-variant]="
               item().consumption!.consumptionState === 'healthy'
             "
@@ -125,7 +125,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
           >
         } @else {
           <div
-            class="text-headline-large font-bold"
+            class="ph-no-capture text-headline-large font-bold"
             [pulpeFinancialKind]="item().data.kind"
           >
             {{ item().data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
@@ -144,7 +144,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
             [consumptionState]="item().consumption!.consumptionState"
           />
           <div class="flex justify-between items-center mt-2">
-            <span class="text-body-small text-on-surface-variant">
+            <span class="ph-no-capture text-body-small text-on-surface-variant">
               {{
                 item().consumption!.consumed
                   | currency: 'CHF' : 'symbol' : '1.0-0'

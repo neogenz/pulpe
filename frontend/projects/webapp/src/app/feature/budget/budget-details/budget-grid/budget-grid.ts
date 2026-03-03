@@ -229,7 +229,10 @@ export function groupByKind<T extends { data: { kind: string } }>(
               [pulpeFinancialKind]="item.data.kind"
               [attr.data-testid]="'transaction-amount-' + item.data.id"
             >
-              {{ item.data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+              {{
+                item.data.amount
+                  | currency: 'CHF' : 'symbol' : '1.0-0'
+              }}
             </div>
             @if (item.data.transactionDate) {
               <span
@@ -293,7 +296,10 @@ export function groupByKind<T extends { data: { kind: string } }>(
           [pulpeFinancialKind]="item.data.kind"
           [attr.data-testid]="'transaction-amount-' + item.data.id"
         >
-          {{ item.data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+          {{
+            item.data.amount
+              | currency: 'CHF' : 'symbol' : '1.0-0'
+          }}
         </div>
 
         <!-- Footer: Kind label + date + toggle -->

@@ -105,7 +105,11 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
           <span class="text-on-surface-variant/50">·</span>
           <span class="ph-no-capture">
             Ton compte ≈
-            {{ estimatedBalance() | number: '1.0-0' : 'de-CH' }} CHF
+            {{
+              estimatedBalance()
+                | number: '1.0-0' : 'de-CH'
+            }}
+            CHF
           </span>
           <mat-icon
             matTooltip="Au fur et à mesure que tu pointes tes éléments, ce montant te dit combien il devrait rester sur ton compte. Compare avec ton app bancaire !"

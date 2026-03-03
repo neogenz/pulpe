@@ -11,7 +11,12 @@ import { CurrencyPipe } from '@angular/common';
 
 @Component({
   selector: 'pulpe-month-card-item',
-  imports: [MatCardModule, MatIconModule, MatButtonModule, CurrencyPipe],
+  imports: [
+    MatCardModule,
+    MatIconModule,
+    MatButtonModule,
+    CurrencyPipe,
+  ],
   template: `
     <mat-card appearance="outlined" [attr.data-testid]="'month-card-' + id()">
       <mat-card-header>
@@ -41,7 +46,10 @@ import { CurrencyPipe } from '@angular/common';
             [attr.data-type]="totalAmount() >= 0 ? 'positive' : 'negative'"
             data-testid="month-card-amount"
           >
-            {{ totalAmount() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
+            {{
+              totalAmount()
+                | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+            }}
           </p>
         </div>
       </mat-card-content>

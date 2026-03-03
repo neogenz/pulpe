@@ -141,12 +141,15 @@ import { Logger } from '@core/logging/logger';
               <td
                 mat-cell
                 *matCellDef="let row"
-                class="text-right text-body-medium font-bold"
+                class="ph-no-capture text-right text-body-medium font-bold"
                 [class.text-financial-income]="row.kind === 'income'"
                 [class.text-financial-expense]="row.kind === 'expense'"
                 [class.text-financial-savings]="row.kind === 'saving'"
               >
-                {{ row.amount | currency: 'CHF' : 'symbol' : '1.2-2' }}
+                {{
+                  row.amount
+                    | currency: 'CHF' : 'symbol' : '1.2-2'
+                }}
               </td>
             </ng-container>
 

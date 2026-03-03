@@ -188,3 +188,11 @@ body {
     transform: translateX(0);
   }
 }
+
+// Screen-sharing: hide financial amounts via CSS when toggle is active.
+// Elements marked with .ph-no-capture (PostHog convention) are blurred.
+body.amounts-hidden .ph-no-capture {
+  filter: blur(8px);
+  user-select: none;
+  pointer-events: none;
+}

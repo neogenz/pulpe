@@ -185,7 +185,10 @@ import { TemplateDetailsStore } from './services/template-details-store';
                 [class.text-on-primary-container]="netBalance() >= 0"
                 [class.text-on-error-container]="netBalance() < 0"
               >
-                {{ absNetBalance() | number: '1.0-0' : 'de-CH' }}
+                {{
+                  absNetBalance()
+                    | number: '1.0-0' : 'de-CH'
+                }}
                 <span class="text-headline-small font-normal">CHF</span>
               </div>
             </div>
@@ -214,7 +217,11 @@ import { TemplateDetailsStore } from './services/template-details-store';
                         pill.colorClass
                       "
                     >
-                      {{ pill.amount | number: '1.0-0' : 'de-CH' }} CHF
+                      {{
+                        pill.amount
+                          | number: '1.0-0' : 'de-CH'
+                      }}
+                      CHF
                     </span>
                   </div>
                 </div>

@@ -32,6 +32,7 @@ import {
   RouterLinkActive,
   RouterOutlet,
 } from '@angular/router';
+import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth/auth-state.service';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
@@ -287,6 +288,25 @@ interface NavigationItem {
             </button>
 
             <mat-menu #userMenu="matMenu" xPosition="before">
+              <button
+                mat-menu-item
+                (click)="toggleAmounts()"
+                [attr.aria-label]="
+                  amountsHidden()
+                    ? 'Afficher les montants'
+                    : 'Masquer les montants'
+                "
+                data-testid="toggle-amounts-button"
+              >
+                <mat-icon matMenuItemIcon>{{
+                  amountsHidden() ? 'visibility' : 'visibility_off'
+                }}</mat-icon>
+                <span>{{
+                  amountsHidden()
+                    ? 'Afficher les montants'
+                    : 'Masquer les montants'
+                }}</span>
+              </button>
               <a
                 mat-menu-item
                 [routerLink]="settingsRoute"
@@ -497,6 +517,7 @@ interface NavigationItem {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class MainLayout {
+  readonly #amountsVisibility = inject(AmountsVisibilityService);
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #router = inject(Router);
   readonly #authState = inject(AuthStateService);
@@ -647,6 +668,12 @@ export default class MainLayout {
   // State for logout process
   readonly #isLoggingOut = signal(false);
   readonly isLoggingOut = this.#isLoggingOut.asReadonly();
+
+  protected readonly amountsHidden = this.#amountsVisibility.amountsHidden;
+
+  protected toggleAmounts(): void {
+    this.#amountsVisibility.toggle();
+  }
 
   protected closeDrawerOnMobile(drawer: { close: () => void }): void {
     if (this.isHandset()) {

@@ -7,7 +7,6 @@ import {
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-
 import type { UpcomingMonthForecast } from '../services/dashboard-state';
 
 const MONTH_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'long' });
@@ -47,7 +46,7 @@ const ROLLOVER_FORMATTER = new Intl.NumberFormat('de-CH', {
           <p class="text-body-medium text-on-surface-variant text-center">
             Budget anticipé — report estimé :
             <span
-              class="font-bold tabular-nums"
+              class="font-bold tabular-nums ph-no-capture"
               [class]="
                 estimatedRollover() >= 0
                   ? 'text-financial-savings'

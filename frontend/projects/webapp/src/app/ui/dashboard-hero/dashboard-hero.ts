@@ -8,6 +8,7 @@ import {
 import { DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+
 import type { BudgetPeriodDates } from 'pulpe-shared';
 
 @Component({
@@ -22,9 +23,7 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
       (keydown.enter)="heroClick.emit()"
       tabindex="0"
       role="button"
-      [attr.aria-label]="
-        'Disponible ' + remaining() + ' CHF — ' + periodLabel()
-      "
+      [attr.aria-label]="'Disponible ' + remaining() + ' CHF — ' + periodLabel()"
     >
       <div
         class="absolute -right-10 -bottom-10 w-56 h-56 bg-white/15 rounded-full blur-3xl pointer-events-none"
@@ -78,21 +77,31 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
         </p>
         <div class="flex items-baseline gap-2">
           <span
-            class="font-extrabold text-display-large tracking-tighter leading-none"
+            class="font-extrabold text-display-large tracking-tighter leading-none ph-no-capture"
             data-testid="hero-remaining-amount"
           >
-            {{ remaining() | number: '1.2-2' : 'de-CH' }}
+            {{
+              remaining()
+                | number: '1.2-2' : 'de-CH'
+            }}
           </span>
           <span class="text-title-large font-semibold opacity-70">CHF</span>
         </div>
         <p class="text-body-small opacity-60 mt-1">
-          Revenus {{ totalIncome() | number: '1.2-2' : 'de-CH' }}
+          Revenus
+          <span class="ph-no-capture">{{
+            totalIncome()
+              | number: '1.2-2' : 'de-CH'
+          }}</span>
           @let rollover = rolloverAmount();
           @if (rollover !== 0) {
-            <span class="opacity-80">
+            <span class="opacity-80 ph-no-capture">
               Report
               {{ rollover > 0 ? '+' : ''
-              }}{{ rollover | number: '1.2-2' : 'de-CH' }}
+              }}{{
+                rollover
+                  | number: '1.2-2' : 'de-CH'
+              }}
             </span>
           }
         </p>
@@ -105,13 +114,19 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
         <div class="flex justify-between text-label-small font-bold">
           <span>
             Dépensé
-            <span data-testid="hero-expenses-amount">{{
-              absExpenses() | number: '1.2-2' : 'de-CH'
+            <span data-testid="hero-expenses-amount" class="ph-no-capture">{{
+              absExpenses()
+                | number: '1.2-2' : 'de-CH'
             }}</span>
             CHF
           </span>
           <span class="opacity-70">
-            sur {{ available() | number: '1.2-2' : 'de-CH' }} CHF
+            sur
+            <span class="ph-no-capture">{{
+              available()
+                | number: '1.2-2' : 'de-CH'
+            }}</span>
+            CHF
           </span>
         </div>
         <div
