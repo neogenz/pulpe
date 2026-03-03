@@ -281,7 +281,7 @@ interface NavigationItem {
             >
               <div class="flex items-center gap-2">
                 <mat-icon>person</mat-icon>
-                <span class="ph-no-capture max-w-64 truncate">{{
+                <span class="ph-no-capture amounts-visible max-w-64 truncate">{{
                   userEmail()
                 }}</span>
               </div>

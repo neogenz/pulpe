@@ -70,7 +70,11 @@ import {
           }
         </mat-form-field>
 
-        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-form-field
+          appearance="outline"
+          subscriptSizing="dynamic"
+          class="ph-no-capture"
+        >
           <mat-label>Montant</mat-label>
           <input
             matInput
