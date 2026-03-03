@@ -414,7 +414,7 @@ describe('BudgetService', () => {
         ).toBe(1500);
       });
 
-      it('should calculate remaining when requested (income - expenses - savings + rollover)', async () => {
+      it('should calculate remaining when requested (income - expenses + rollover)', async () => {
         const mockUser = createMockAuthenticatedUser();
         const mockBudgets = [
           createValidBudgetEntity({ id: 'budget-1', month: 1, year: 2026 }),
@@ -422,12 +422,13 @@ describe('BudgetService', () => {
 
         mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
 
+        // totalExpenses now includes savings via envelope logic
         mockRepository.fetchBudgetAggregates = () =>
           Promise.resolve(
             new Map([
               [
                 'budget-1',
-                { totalExpenses: 1500, totalSavings: 500, totalIncome: 5000 },
+                { totalExpenses: 2000, totalSavings: 500, totalIncome: 5000 },
               ],
             ]),
           );
@@ -444,7 +445,7 @@ describe('BudgetService', () => {
         );
 
         expect(result.success).toBe(true);
-        // remaining = 5000 - 1500 - 500 + 200 = 3200
+        // remaining = 5000 - 2000 + 200 = 3200 (totalExpenses includes savings)
         expect(result.data[0].remaining).toBe(3200);
       });
 
@@ -481,16 +482,17 @@ describe('BudgetService', () => {
 
         mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
 
+        // totalExpenses includes savings via envelope logic
         mockRepository.fetchBudgetAggregates = () =>
           Promise.resolve(
             new Map([
               [
                 'budget-1',
-                { totalExpenses: 1000, totalSavings: 200, totalIncome: 3000 },
+                { totalExpenses: 1200, totalSavings: 200, totalIncome: 3000 },
               ],
               [
                 'budget-2',
-                { totalExpenses: 500, totalSavings: 100, totalIncome: 2000 },
+                { totalExpenses: 600, totalSavings: 100, totalIncome: 2000 },
               ],
             ]),
           );
@@ -517,12 +519,12 @@ describe('BudgetService', () => {
 
         // First budget: rollover succeeded = 150
         expect(result.data[0].rollover).toBe(150);
-        // remaining = 3000 - 1000 - 200 + 150 = 1950
+        // remaining = 3000 - 1200 + 150 = 1950
         expect(result.data[0].remaining).toBe(1950);
 
         // Second budget: rollover failed, fallback to 0
         expect(result.data[1].rollover).toBe(0);
-        // remaining = 2000 - 500 - 100 + 0 = 1400
+        // remaining = 2000 - 600 + 0 = 1400
         expect(result.data[1].remaining).toBe(1400);
       });
 

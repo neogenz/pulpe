@@ -135,11 +135,9 @@ export function toSparseApi(
       sparse.totalIncome = aggregates.totalIncome;
     }
     if (requestedFields.includes('remaining')) {
+      // totalExpenses already includes savings via envelope logic
       sparse.remaining =
-        aggregates.totalIncome -
-        aggregates.totalExpenses -
-        aggregates.totalSavings +
-        (rollover ?? 0);
+        aggregates.totalIncome - aggregates.totalExpenses + (rollover ?? 0);
     }
   }
 
