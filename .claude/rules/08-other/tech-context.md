@@ -7,28 +7,49 @@ paths: "memory-bank/techContext.md"
 
 ## Structure
 
-- Most recent entries at top (descending chronological order)
-- Each entry starts with `## YYYY-MM-DD: Title`
+- Index table at top : `| ID | Title | Date |`
+- Each entry : `## DR-XXX: Title` with `**Date**: YYYY-MM-DD`
+- IDs are sequential (DR-001, DR-002, ...)
+- No status field — a decision record is a fact, not a ticket
 
 ## Content Focus
 
 - Document **why** decisions were made, not how to implement
-- Include technical validation sources (links)
-- Use tables for compact decision summaries
-- Avoid implementation details (those belong in plan files or code comments)
+- Include alternatives considered and why they were rejected
+- Avoid implementation details (those belong in code comments)
 
 ## Entry Template
 
 ```markdown
-## YYYY-MM-DD: Decision Title
+## DR-XXX: Decision Title
 
-### Context
-One-liner explaining what triggered this decision.
+**Date**: YYYY-MM-DD
 
-### Decisions
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
+### Problem
+What triggered this decision.
 
-### Sources (if applicable)
-- [Link](url)
+### Decision Drivers
+- Driver 1
+- Driver 2
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A | ... | Chosen |
+| B | ... | Rejected — reason |
+
+### Decision
+What was decided and how it works.
+
+### Rationale
+Why this option over the others.
+
+### Consequences
+- **Positive**: ...
+- **Trade-off**: ...
+- **Impact**: files/areas affected
+
+### Notes
+Caveats, future revisit conditions, linked issues.
 ```

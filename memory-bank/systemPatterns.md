@@ -57,13 +57,25 @@ The `core/` layer contains domain-specific services:
 - `auth/` - Authentication, guards, session
 - `analytics/` - PostHog tracking
 - `budget/` - Budget calculations
+- `budget-template/` - Template-related API
+- `cache/` - Data caching (`DataCache`)
 - `config/` - App configuration
+- `date/` - Date utilities
 - `demo/` - Demo mode services
 - `encryption/` - Client-key management, vault code
+- `lifecycle/` - App lifecycle hooks
+- `loading/` - Loading state management
+- `logging/` - Logging service
+- `maintenance/` - Maintenance mode detection
 - `preload/` - Critical data preloading on auth (allSettled)
+- `product-tour/` - Guided product tour service
 - `routing/` - Route guards, navigation
 - `storage/` - LocalStorage, persistence
+- `theme/` - Theme management
+- `transaction/` - Transaction API
+- `turnstile/` - Cloudflare Turnstile captcha integration
 - `user-settings/` - User preferences
+- `validators/` - Custom form validators
 
 ### Feature Domains
 
@@ -74,10 +86,18 @@ Current features in `feature/`:
 - `budget-templates/` - Template management
 - `complete-profile/` - Onboarding
 - `current-month/` - Main budget view
+- `design-system/` - Design system showcase/dev reference
 - `legal/` - Privacy, terms
 - `maintenance/` - Maintenance page
 - `settings/` - User settings
 - `welcome/` - Welcome flow
+
+### Pattern Layer
+
+Stateful reusable components in `pattern/`:
+
+- `edit-transaction-form/` - Transaction edit form
+- `google-oauth/` - Google OAuth button/flow
 
 ### Dependency Rules
 
@@ -158,12 +178,15 @@ Each domain in `src/modules/[domain]/`:
 
 ### Current Modules
 
+- `account-deletion/` - Account deletion flow
 - `auth/` - Authentication endpoints
 - `budget/` - Budget CRUD + calculations
 - `budget-line/` - Budget line management
 - `budget-template/` - Template CRUD
+- `cache/` - Caching service
 - `demo/` - Demo mode API
 - `debug/` - Debug endpoints (dev only)
+- `encryption/` - Server-side encryption key management
 - `supabase/` - Supabase client
 - `transaction/` - Transaction management
 - `user/` - User management

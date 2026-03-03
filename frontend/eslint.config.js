@@ -1,4 +1,5 @@
 // @ts-check
+const path = require("path");
 const eslint = require("@eslint/js");
 const tseslint = require("typescript-eslint");
 const angular = require("angular-eslint");
@@ -37,7 +38,7 @@ module.exports = tseslint.config(
         },
       },
       "boundaries/dependency-nodes": ["import", "dynamic-import"],
-      "boundaries/root-path": "..",
+      "boundaries/root-path": path.resolve(__dirname, ".."),
       "boundaries/elements": [
         {
           type: "shared",

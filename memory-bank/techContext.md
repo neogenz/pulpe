@@ -16,26 +16,25 @@
 
 ---
 
-## Active Decisions
+## Decisions
 
-| ID | Title | Date | Status |
-|----|-------|------|--------|
-| DR-001 | Backend-First Demo Mode | 2024-06-15 | Accepted |
-| DR-002 | Automated Demo Cleanup | 2024-06-15 | Accepted |
-| DR-003 | Remove Variable Transaction Recurrence | 2024-07-20 | Accepted |
-| DR-004 | Typed & Versioned Storage Service | 2024-11-10 | Pending |
-| DR-005 | Temp ID Replacement Before Toggle Cascade | 2026-01-30 | Accepted |
-| DR-006 | Split-Key Encryption for Financial Amounts | 2026-01-29 | Accepted |
-| DR-007 | Zoneless Testing — Child Input Signal Limitation | 2026-02-13 | Accepted |
-| DR-008 | Centralized ApiClient with Mandatory Zod Validation | 2026-02-13 | Accepted |
-| DR-009 | Signal Store Pattern with SWR | 2026-02-13 | Accepted |
+| ID | Title | Date |
+|----|-------|------|
+| DR-001 | Backend-First Demo Mode | 2025-06-15 |
+| DR-002 | Automated Demo Cleanup | 2025-06-15 |
+| DR-003 | Remove Variable Transaction Recurrence | 2025-07-20 |
+| DR-004 | Typed & Versioned Storage Service | 2025-11-10 |
+| DR-005 | Temp ID Replacement Before Toggle Cascade | 2026-01-30 |
+| DR-006 | Split-Key Encryption for Financial Amounts | 2026-01-29 |
+| DR-007 | Zoneless Testing — Child Input Signal Limitation | 2026-02-13 |
+| DR-008 | Centralized ApiClient with Mandatory Zod Validation | 2026-02-13 |
+| DR-009 | Signal Store Pattern with SWR | 2026-02-13 |
 
 ---
 
 ## DR-009: Signal Store Pattern with SWR
 
 **Date**: 2026-02-13
-**Status**: Accepted
 
 ### Problem
 
@@ -71,7 +70,6 @@ Standardiser un store pattern en 6 sections (Dependencies, State, Resource, Sele
 ## DR-008: Centralized ApiClient with Mandatory Zod Validation
 
 **Date**: 2026-02-13
-**Status**: Accepted
 
 ### Problem
 
@@ -109,7 +107,6 @@ Tous les appels HTTP passent par `ApiClient` (`core/api/api-client.ts`) avec un 
 ## DR-007: Zoneless Testing — Child Input Signal Limitation
 
 **Date**: 2026-02-13
-**Status**: Accepted
 
 ### Problem
 
@@ -154,7 +151,6 @@ Conserver les lectures de signaux privés (`component['...']()`) pour les assert
 ## DR-005: Temp ID Replacement Before Toggle Cascade
 
 **Date**: 2026-01-30
-**Status**: Accepted
 
 ### Problem
 
@@ -197,8 +193,7 @@ Pattern applies to any optimistic update followed by cascade: always resolve tem
 
 ## DR-001: Backend-First Demo Mode
 
-**Date**: 2024-06-15
-**Status**: Accepted
+**Date**: 2025-06-15
 
 ### Problem
 
@@ -241,8 +236,7 @@ Stack-specific: Supabase cascade delete handles cleanup of related tables automa
 
 ## DR-002: Automated Demo Cleanup Strategy
 
-**Date**: 2024-06-15
-**Status**: Accepted
+**Date**: 2025-06-15
 
 ### Problem
 
@@ -288,8 +282,7 @@ Consider adding warning toast at 23h mark if user session is still active.
 
 ## DR-003: Remove Variable Transaction Recurrence
 
-**Date**: 2024-07-20
-**Status**: Accepted
+**Date**: 2025-07-20
 
 ### Problem
 
@@ -334,8 +327,7 @@ If users request recurring transactions in future, implement as "auto-generated 
 
 ## DR-004: Typed & Versioned Storage Service
 
-**Date**: 2024-11-10
-**Status**: Pending
+**Date**: 2025-11-10
 
 ### Problem
 
@@ -378,14 +370,13 @@ Implement a typed storage service with:
 
 ### Notes
 
-Implementation pending. Priority: Medium (bug was hotfixed, this is preventive).
+Implémenté. Le service est dans `core/storage/`.
 
 ---
 
 ## DR-006: Split-Key Encryption for Financial Amounts
 
 **Date**: 2026-01-29
-**Status**: Accepted
 
 ### Problem
 
