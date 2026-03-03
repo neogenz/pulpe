@@ -60,60 +60,90 @@ enum BudgetFormulas {
 
     // MARK: - Income Calculations
 
-    /// Calculate total income from budget lines and transactions
-    /// Formula: Σ(items WHERE kind = 'income')
+    /// Calculate total income using envelope logic
+    /// Allocated transactions are covered by their envelope: max(line.amount, consumed)
+    /// Free transactions (no budgetLineId) are added separately
     static func calculateTotalIncome(
         budgetLines: [BudgetLine],
         transactions: [Transaction] = []
     ) -> Decimal {
-        let budgetIncome = budgetLines
-            .filter { $0.kind == .income && !($0.isRollover ?? false) }
-            .reduce(Decimal.zero) { $0 + $1.amount }
+        let transactionsByLineId = Dictionary(
+            grouping: transactions.filter { $0.kind == .income },
+            by: { $0.budgetLineId ?? "" }
+        )
 
-        let transactionIncome = transactions
-            .filter { $0.kind == .income }
-            .reduce(Decimal.zero) { $0 + $1.amount }
+        var total: Decimal = 0
 
-        return budgetIncome + transactionIncome
+        for line in budgetLines {
+            guard line.kind == .income, !(line.isRollover ?? false) else { continue }
+            let consumed = transactionsByLineId[line.id]?
+                .reduce(Decimal.zero) { $0 + $1.amount } ?? 0
+            total += max(line.amount, consumed)
+        }
+
+        let freeTransactions = transactionsByLineId[""]?
+            .reduce(Decimal.zero) { $0 + $1.amount } ?? 0
+
+        return total + freeTransactions
     }
 
     // MARK: - Expense Calculations
 
-    /// Calculate total expenses (expenses + savings) from budget lines and transactions
-    /// Formula: Σ(items WHERE kind IN ('expense', 'saving'))
+    /// Calculate total expenses (expenses + savings) using envelope logic
+    /// Allocated transactions are covered by their envelope: max(line.amount, consumed)
+    /// Free transactions (no budgetLineId) are added separately
     /// Note: Savings are treated as expenses per SPECS
     static func calculateTotalExpenses(
         budgetLines: [BudgetLine],
         transactions: [Transaction] = []
     ) -> Decimal {
-        let budgetExpenses = budgetLines
-            .filter { $0.kind.isOutflow && !($0.isRollover ?? false) }
-            .reduce(Decimal.zero) { $0 + $1.amount }
+        let transactionsByLineId = Dictionary(
+            grouping: transactions.filter { $0.kind.isOutflow },
+            by: { $0.budgetLineId ?? "" }
+        )
 
-        let transactionExpenses = transactions
-            .filter { $0.kind.isOutflow }
-            .reduce(Decimal.zero) { $0 + $1.amount }
+        var total: Decimal = 0
 
-        return budgetExpenses + transactionExpenses
+        for line in budgetLines {
+            guard line.kind.isOutflow, !(line.isRollover ?? false) else { continue }
+            let consumed = transactionsByLineId[line.id]?
+                .reduce(Decimal.zero) { $0 + $1.amount } ?? 0
+            total += max(line.amount, consumed)
+        }
+
+        let freeTransactions = transactionsByLineId[""]?
+            .reduce(Decimal.zero) { $0 + $1.amount } ?? 0
+
+        return total + freeTransactions
     }
 
     // MARK: - Savings Calculations
 
-    /// Calculate total savings from budget lines and transactions
-    /// Formula: Σ(items WHERE kind = 'saving')
+    /// Calculate total savings using envelope logic
+    /// Allocated transactions are covered by their envelope: max(line.amount, consumed)
+    /// Free transactions (no budgetLineId) are added separately
     static func calculateTotalSavings(
         budgetLines: [BudgetLine],
         transactions: [Transaction] = []
     ) -> Decimal {
-        let budgetSavings = budgetLines
-            .filter { $0.kind == .saving && !($0.isRollover ?? false) }
-            .reduce(Decimal.zero) { $0 + $1.amount }
+        let transactionsByLineId = Dictionary(
+            grouping: transactions.filter { $0.kind == .saving },
+            by: { $0.budgetLineId ?? "" }
+        )
 
-        let transactionSavings = transactions
-            .filter { $0.kind == .saving }
-            .reduce(Decimal.zero) { $0 + $1.amount }
+        var total: Decimal = 0
 
-        return budgetSavings + transactionSavings
+        for line in budgetLines {
+            guard line.kind == .saving, !(line.isRollover ?? false) else { continue }
+            let consumed = transactionsByLineId[line.id]?
+                .reduce(Decimal.zero) { $0 + $1.amount } ?? 0
+            total += max(line.amount, consumed)
+        }
+
+        let freeTransactions = transactionsByLineId[""]?
+            .reduce(Decimal.zero) { $0 + $1.amount } ?? 0
+
+        return total + freeTransactions
     }
 
     // MARK: - Realized Calculations (checked items only)
@@ -202,96 +232,6 @@ enum BudgetFormulas {
     /// Formula: remaining = available - totalExpenses
     static func calculateRemaining(available: Decimal, totalExpenses: Decimal) -> Decimal {
         calculateEndingBalance(available: available, totalExpenses: totalExpenses)
-    }
-
-    // MARK: - All Metrics
-
-    /// Calculate all metrics at once (single-pass optimization)
-    /// Performance: O(n+m) with 2 iterations instead of 10
-    static func calculateAllMetrics(
-        budgetLines: [BudgetLine],
-        transactions: [Transaction] = [],
-        rollover: Decimal = 0
-    ) -> Metrics {
-        // Single pass over budget lines
-        var budgetIncome: Decimal = 0
-        var budgetExpenses: Decimal = 0
-        var budgetSavings: Decimal = 0
-
-        for line in budgetLines {
-            guard !(line.isRollover ?? false) else { continue }
-            switch line.kind {
-            case .income:
-                budgetIncome += line.amount
-            case .expense:
-                budgetExpenses += line.amount
-            case .saving:
-                budgetSavings += line.amount
-                budgetExpenses += line.amount // Savings count as expenses per SPECS
-            }
-        }
-
-        // Single pass over transactions
-        var transactionIncome: Decimal = 0
-        var transactionExpenses: Decimal = 0
-        var transactionSavings: Decimal = 0
-
-        for tx in transactions {
-            switch tx.kind {
-            case .income:
-                transactionIncome += tx.amount
-            case .expense:
-                transactionExpenses += tx.amount
-            case .saving:
-                transactionSavings += tx.amount
-                transactionExpenses += tx.amount // Savings count as expenses per SPECS
-            }
-        }
-
-        let totalIncome = budgetIncome + transactionIncome
-        let totalExpenses = budgetExpenses + transactionExpenses
-        let totalSavings = budgetSavings + transactionSavings
-        let available = totalIncome + rollover
-        let endingBalance = available - totalExpenses
-
-        return Metrics(
-            totalIncome: totalIncome,
-            totalExpenses: totalExpenses,
-            totalSavings: totalSavings,
-            available: available,
-            endingBalance: endingBalance,
-            remaining: endingBalance, // Same as ending balance per SPECS
-            rollover: rollover
-        )
-    }
-
-    /// Calculate realized metrics
-    static func calculateRealizedMetrics(
-        budgetLines: [BudgetLine],
-        transactions: [Transaction] = []
-    ) -> RealizedMetrics {
-        let realizedIncome = calculateRealizedIncome(budgetLines: budgetLines, transactions: transactions)
-        let realizedExpenses = calculateRealizedExpenses(budgetLines: budgetLines, transactions: transactions)
-        let realizedBalance = realizedIncome - realizedExpenses
-
-        let checkedCount = budgetLines.filter { $0.isChecked }.count + transactions.filter { $0.isChecked }.count
-        let totalCount = budgetLines.count + transactions.count
-
-        let checkedSavingsAmount = budgetLines
-            .filter { $0.isChecked && $0.kind == .saving }
-            .reduce(Decimal.zero) { $0 + $1.amount }
-            + transactions
-            .filter { $0.isChecked && $0.kind == .saving }
-            .reduce(Decimal.zero) { $0 + $1.amount }
-
-        return RealizedMetrics(
-            realizedIncome: realizedIncome,
-            realizedExpenses: realizedExpenses,
-            realizedBalance: realizedBalance,
-            checkedItemsCount: checkedCount,
-            totalItemsCount: totalCount,
-            checkedSavingsAmount: checkedSavingsAmount
-        )
     }
 
     // MARK: - Consumption Tracking
