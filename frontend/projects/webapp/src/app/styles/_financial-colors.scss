@@ -37,14 +37,19 @@
 //     expense  → amber           (--pulpe-financial-expense)
 //     savings  → blue/tertiary   (--pulpe-financial-savings)
 //
-//   STATE tokens (critical, overrun):
-//     critical → red/error       (--pulpe-financial-critical)
+//   STATE tokens (critical, near-limit, over-budget):
+//     critical   → red/error       (--pulpe-financial-critical)
+//     near-limit → dark gold        (--pulpe-financial-near-limit)
+//     over-budget → amber           (--pulpe-financial-over-budget)
 //
 //   Rule: amber = a category (expense is planned, normal)
 //         red   = a state (deficit is a critical consequence)
 //
 //   Where to use red (--pulpe-financial-critical):
 //     - Hero section showing a deficit
+//
+//   Where to use dark gold (--pulpe-financial-near-limit):
+//     - Budget envelope near its limit (80–99%)
 //
 //   Where to use amber (--pulpe-financial-over-budget):
 //     - Budget envelope overrun (>100%)
