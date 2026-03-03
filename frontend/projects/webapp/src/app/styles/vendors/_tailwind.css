@@ -185,6 +185,12 @@
 @utility text-financial-critical {
   color: var(--pulpe-financial-critical) !important;
 }
+@utility text-financial-warning {
+  color: var(--pulpe-financial-near-limit) !important;
+}
+@utility text-financial-over-budget {
+  color: var(--pulpe-financial-over-budget) !important;
+}
 @utility text-warning-on-container {
   color: var(--pulpe-amber-on-container) !important;
 }
@@ -237,6 +243,8 @@
   --color-on-financial-light: var(--pulpe-on-financial-light);
   --color-financial-critical: var(--pulpe-financial-critical);
   --color-financial-critical-light: var(--pulpe-financial-critical-light);
+  --color-financial-warning: var(--pulpe-financial-near-limit);
+  --color-financial-over-budget: var(--pulpe-financial-over-budget);
 
   /* same as `plain-family` in angular material */
   --font-sans: var(--mat-sys-body-large-font), sans-serif;

@@ -18,7 +18,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetLine, type Transaction } from 'pulpe-shared';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { TransactionLabelPipe } from '@ui/transaction-display';
-import type { BudgetLineTableItem } from '../data-core';
+import {
+  createBudgetLineConsumptionDisplay,
+  type BudgetLineTableItem,
+} from '../data-core';
 import { SegmentedBudgetProgress } from '../components/segmented-budget-progress';
 import { BudgetKindIndicator } from '../components/budget-kind-indicator';
 import { BudgetDetailsStore } from '../store/budget-details-store';
@@ -68,7 +71,7 @@ const DETAIL_SEGMENT_COUNT = 12;
     BudgetKindIndicator,
   ],
   template: `
-    @let envelope = data.item;
+    @let envelope = envelopeItem();
     <div class="h-full flex flex-col bg-surface">
       <!-- Header -->
       <div class="p-5 border-b border-outline-variant">
@@ -123,8 +126,15 @@ const DETAIL_SEGMENT_COUNT = 12;
               envelope.data.amount - (envelope.consumption?.consumed ?? 0);
             <div
               class="text-title-medium font-semibold"
-              [class.text-error]="remaining < 0"
-              [class.text-primary]="remaining >= 0"
+              [class.text-on-surface-variant]="
+                envelope.consumption?.consumptionState === 'healthy'
+              "
+              [class.text-financial-warning]="
+                envelope.consumption?.consumptionState === 'near-limit'
+              "
+              [class.text-financial-over-budget]="
+                envelope.consumption?.consumptionState === 'over-budget'
+              "
             >
               {{ remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
             </div>
@@ -138,17 +148,26 @@ const DETAIL_SEGMENT_COUNT = 12;
             [percentage]="consumption.percentage"
             [segmentCount]="detailSegmentCount"
             [height]="10"
+            [consumptionState]="consumption.consumptionState"
             class="mb-2"
           />
-          <div class="text-center text-label-medium text-on-surface-variant">
-            @if (consumption.percentage > 100) {
-              Dépassé de
-              {{
-                consumption.consumed - envelope.data.amount
-                  | currency: 'CHF' : 'symbol' : '1.0-0'
-              }}
+          <div class="text-center text-label-medium">
+            @if (consumption.consumptionState === 'over-budget') {
+              <span class="text-financial-over-budget">
+                Dépassé de
+                {{
+                  consumption.consumed - envelope.data.amount
+                    | currency: 'CHF' : 'symbol' : '1.0-0'
+                }}
+              </span>
+            } @else if (consumption.consumptionState === 'near-limit') {
+              <span class="text-financial-warning"
+                >{{ consumption.percentage }}% utilisé</span
+              >
             } @else {
-              {{ consumption.percentage }}% utilisé
+              <span class="text-on-surface-variant"
+                >{{ consumption.percentage }}% utilisé</span
+              >
             }
           </div>
         }
@@ -266,6 +285,30 @@ export class BudgetDetailPanel {
   protected readonly data = inject<BudgetDetailPanelData>(MAT_DIALOG_DATA);
 
   readonly detailSegmentCount = DETAIL_SEGMENT_COUNT;
+
+  /**
+   * Reactive envelope derived from the store.
+   * Recomputes consumption when transactions are added/removed,
+   * so Prévu/Dépensé/Reste update without closing the panel.
+   */
+  protected readonly envelopeItem = computed<BudgetLineTableItem>(() => {
+    const details = this.#store.budgetDetails();
+    if (!details) return this.data.item;
+
+    const budgetLine = details.budgetLines.find(
+      (line) => line.id === this.data.item.data.id,
+    );
+    if (!budgetLine) return this.data.item;
+
+    return {
+      ...this.data.item,
+      data: budgetLine,
+      consumption: createBudgetLineConsumptionDisplay(
+        budgetLine,
+        details.transactions ?? [],
+      ),
+    };
+  });
 
   /**
    * Computed signal that reactively filters transactions for the current budget line.

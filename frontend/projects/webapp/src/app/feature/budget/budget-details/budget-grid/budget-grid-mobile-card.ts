@@ -119,13 +119,37 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
         <!-- Row 2: Amount prominently left-aligned with consumption on right -->
         <div class="flex items-end justify-between mb-4">
           <div>
-            <div
-              class="text-headline-medium font-bold"
-              [pulpeFinancialKind]="item().data.kind"
-            >
-              {{ item().data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
-            </div>
-            <span class="text-label-small text-on-surface-variant">prévu</span>
+            @if (item().consumption?.hasTransactions) {
+              @let remaining =
+                item().data.amount - item().consumption!.consumed;
+              <div
+                class="text-headline-medium font-bold"
+                [class.text-on-surface-variant]="
+                  item().consumption!.consumptionState === 'healthy'
+                "
+                [class.text-financial-warning]="
+                  item().consumption!.consumptionState === 'near-limit'
+                "
+                [class.text-financial-over-budget]="
+                  item().consumption!.consumptionState === 'over-budget'
+                "
+              >
+                {{ remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
+              </div>
+              <span class="text-label-small text-on-surface-variant"
+                >disponible</span
+              >
+            } @else {
+              <div
+                class="text-headline-medium font-bold"
+                [pulpeFinancialKind]="item().data.kind"
+              >
+                {{ item().data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+              </div>
+              <span class="text-label-small text-on-surface-variant"
+                >prévu</span
+              >
+            }
           </div>
 
           <!-- Consumption mini-stat if applicable -->
@@ -153,18 +177,27 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
               [percentage]="item().consumption!.percentage"
               [segmentCount]="10"
               [height]="6"
+              [consumptionState]="item().consumption!.consumptionState"
             />
-            <div
-              class="text-label-small text-on-surface-variant text-center mt-1.5"
-            >
-              @if (item().consumption!.percentage > 100) {
-                Dépassé de
-                {{
-                  item().consumption!.consumed - item().data.amount
-                    | currency: 'CHF' : 'symbol' : '1.0-0'
-                }}
+            <div class="text-label-small text-center mt-1.5">
+              @if (item().consumption!.consumptionState === 'over-budget') {
+                <span class="text-financial-over-budget">
+                  Dépassé de
+                  {{
+                    item().consumption!.consumed - item().data.amount
+                      | currency: 'CHF' : 'symbol' : '1.0-0'
+                  }}
+                </span>
+              } @else if (
+                item().consumption!.consumptionState === 'near-limit'
+              ) {
+                <span class="text-financial-warning"
+                  >{{ item().consumption!.percentage }}% utilisé</span
+                >
               } @else {
-                {{ item().consumption!.percentage }}% utilisé
+                <span class="text-on-surface-variant"
+                  >{{ item().consumption!.percentage }}% utilisé</span
+                >
               }
             </div>
           </div>

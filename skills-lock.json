@@ -1,15 +1,20 @@
 {
   "version": 1,
   "skills": {
+    "posthog-instrumentation": {
+      "source": "posthog/posthog-for-claude",
+      "sourceType": "github",
+      "computedHash": "a9a30a63accd756ef41009f987ac75812ab1e855b30ea5d6153e0fed16ebf22d"
+    },
     "swiftui-expert-skill": {
       "source": "avdlee/swiftui-agent-skill",
       "sourceType": "github",
       "computedHash": "0331c926849c43df17ece2fc04daac21e7724ed4e6b41995c8d36a748fa16cde"
     },
-    "posthog-instrumentation": {
-      "source": "posthog/posthog-for-claude",
+    "tailwind-design-system": {
+      "source": "wshobson/agents",
       "sourceType": "github",
-      "computedHash": "a9a30a63accd756ef41009f987ac75812ab1e855b30ea5d6153e0fed16ebf22d"
+      "computedHash": "d0e4d2ba5a99cdc6e264d3927d1d81e85e79f551c8e246fa0a86123217eaad94"
     }
   }
 }

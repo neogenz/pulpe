@@ -336,7 +336,7 @@ extension CurrentMonthStore {
     /// Budget lines that are at or above 80% consumption (alerts)
     var alertBudgetLines: [(line: BudgetLine, consumption: BudgetFormulas.Consumption)] {
         budgetLines
-            .filter { $0.kind.isOutflow && !($0.isRollover ?? false) }
+            .filter { $0.kind == .expense && !($0.isRollover ?? false) }
             .compactMap { line -> (BudgetLine, BudgetFormulas.Consumption)? in
                 let consumption = BudgetFormulas.calculateConsumption(for: line, transactions: transactions)
                 guard consumption.percentage >= 80 else { return nil }

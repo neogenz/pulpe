@@ -222,6 +222,7 @@ struct BudgetLineRow: View {
     }
 
     private var consumptionColor: Color {
+        guard line.kind == .expense else { return .secondary }
         if consumption.isOverBudget { return .financialOverBudget }
         if consumption.isNearLimit { return .warningPrimary }
         return .secondary
@@ -229,11 +230,12 @@ struct BudgetLineRow: View {
 
     private var amountTextColor: Color {
         if line.isChecked { return .secondary }
-        if hasConsumption {
+        if hasConsumption && line.kind == .expense {
             if consumption.isOverBudget { return .financialOverBudget }
             if consumption.isNearLimit { return .warningPrimary }
             return .secondary
         }
+        if hasConsumption { return .secondary }
         return line.kind.color
     }
 

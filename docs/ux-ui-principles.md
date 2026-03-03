@@ -670,9 +670,12 @@ Ce principe s'applique dès qu'il y a **consommation active** (transactions lié
 | État | Montant | Barre |
 |------|---------|-------|
 | Sans transactions | `kind.color` (catégorie) | — |
-| 0–79% consommé | `.secondary` gris | `.secondary` gris |
-| 80–100% (near limit) | `.warningPrimary` amber | `.warningPrimary` amber |
-| >100% (over-budget) | `.financialOverBudget` amber profond | `.financialOverBudget` |
+| 0–79% consommé (expense) | `.secondary` gris | `.secondary` gris |
+| 80–100% near-limit (expense) | `.warningPrimary` amber | `.warningPrimary` amber |
+| >100% over-budget (expense) | `.financialOverBudget` amber profond | `.financialOverBudget` saturé |
+| Income/Saving (tout %) | `.secondary` gris (healthy) | `.secondary` gris |
+
+Les états `near-limit` et `over-budget` ne s'appliquent qu'aux lignes `expense`. Pour `income` et `saving`, dépasser 100% est une bonne nouvelle (plus de revenus/épargne que prévu) — l'état reste toujours `healthy`.
 
 L'icône colorée (orange/bleu/vert) porte l'identité catégorie en permanence — elle ne change pas selon l'état. Le montant et la barre changent uniquement selon l'état de consommation.
 

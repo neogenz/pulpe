@@ -4,6 +4,7 @@ import {
   computed,
   input,
 } from '@angular/core';
+import type { BudgetConsumptionState } from '../data-core/budget-item-constants';
 
 const DEFAULT_SEGMENT_COUNT = 10;
 
@@ -20,13 +21,17 @@ const DEFAULT_SEGMENT_COUNT = 10;
       @for (i of segments(); track i) {
         <div
           class="flex-1 rounded-full transition-colors"
-          [class.bg-primary]="
-            i <= percentage() / segmentValue() && percentage() <= 100
+          [class.bg-secondary]="
+            i <= filledSegmentCount() && consumptionState() === 'healthy'
           "
-          [class.bg-error]="percentage() > 100"
+          [class.bg-financial-warning]="
+            i <= filledSegmentCount() && consumptionState() === 'near-limit'
+          "
+          [class.bg-financial-over-budget]="
+            consumptionState() === 'over-budget'
+          "
           [class.bg-outline-variant/40]="
-            i > percentage() / segmentValue() ||
-            (percentage() > 100 && i > segmentCount())
+            consumptionState() !== 'over-budget' && i > filledSegmentCount()
           "
         ></div>
       }
@@ -41,6 +46,8 @@ const DEFAULT_SEGMENT_COUNT = 10;
 })
 export class SegmentedBudgetProgress {
   readonly percentage = input.required<number>();
+  /** Expects an active state (not 'no-transactions') — callers must guard with hasTransactions */
+  readonly consumptionState = input.required<BudgetConsumptionState>();
   readonly segmentCount = input(DEFAULT_SEGMENT_COUNT);
   readonly height = input(6);
 
@@ -49,4 +56,8 @@ export class SegmentedBudgetProgress {
   );
 
   protected readonly segmentValue = computed(() => 100 / this.segmentCount());
+
+  protected readonly filledSegmentCount = computed(
+    () => this.percentage() / this.segmentValue(),
+  );
 }

@@ -4,6 +4,15 @@ import type {
   BudgetLine,
 } from 'pulpe-shared';
 
+export type BudgetConsumptionState =
+  | 'no-transactions'
+  | 'healthy'
+  | 'near-limit'
+  | 'over-budget';
+
+export const NEAR_LIMIT_THRESHOLD = 80;
+const FORCED_OVER_BUDGET_PERCENTAGE = 101;
+
 export const KIND_ICONS: Record<TransactionKind, string> = {
   income: 'arrow_upward',
   expense: 'arrow_downward',
@@ -59,8 +68,20 @@ export function calculatePercentage(
   reserved: number,
   consumed: number,
 ): number {
-  if (reserved <= 0) return 0;
+  if (reserved <= 0) return consumed > 0 ? FORCED_OVER_BUDGET_PERCENTAGE : 0;
   return Math.round((consumed / reserved) * 100);
+}
+
+export function getBudgetConsumptionState(
+  percentage: number,
+  hasTransactions: boolean,
+  kind: TransactionKind,
+): BudgetConsumptionState {
+  if (!hasTransactions) return 'no-transactions';
+  if (kind !== 'expense') return 'healthy';
+  if (percentage > 100) return 'over-budget';
+  if (percentage >= NEAR_LIMIT_THRESHOLD) return 'near-limit';
+  return 'healthy';
 }
 
 export function getRolloverSourceBudgetId(
