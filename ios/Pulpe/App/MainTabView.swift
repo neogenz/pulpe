@@ -90,7 +90,7 @@ struct MainTabView: View {
             }
         }
         .frame(height: tabBarHeight)
-        .animation(.smooth(duration: 0.25), value: selectedTab.wrappedValue)
+        .animation(.smooth(duration: DesignTokens.Animation.quickSnap), value: selectedTab.wrappedValue)
     }
 
     @available(iOS 26.0, *)
@@ -100,18 +100,14 @@ struct MainTabView: View {
             ForEach(Tab.allCases) { tab in
                 let isSelected = selectedTab.wrappedValue == tab
                 VStack(spacing: 3) {
-                    ZStack {
-                        Image(systemName: tab.icon).opacity(isSelected ? 0 : 1)
-                        Image(systemName: tab.icon).symbolVariant(.fill).opacity(isSelected ? 1 : 0)
-                    }
-                    .font(.title3)
+                    tabBarIcon(for: tab, isSelected: isSelected)
                     Text(tab.title).font(PulpeTypography.tabLabel)
                 }
                 .foregroundStyle(isSelected ? Color.pulpePrimary : Color(.label))
                 .frame(maxWidth: .infinity)
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: selectedTab.wrappedValue)
+        .animation(.easeInOut(duration: DesignTokens.Animation.quickSnap), value: selectedTab.wrappedValue)
     }
 
     @available(iOS 26.0, *)
@@ -148,14 +144,7 @@ struct MainTabView: View {
                         let isSelected = selectedTab.wrappedValue == tab
 
                         VStack(spacing: 3) {
-                            ZStack {
-                                Image(systemName: tab.icon)
-                                    .opacity(isSelected ? 0 : 1)
-                                Image(systemName: tab.icon)
-                                    .symbolVariant(.fill)
-                                    .opacity(isSelected ? 1 : 0)
-                            }
-                            .font(.title3)
+                            tabBarIcon(for: tab, isSelected: isSelected)
                             Text(tab.title)
                                 .font(PulpeTypography.tabLabel)
                         }
@@ -187,7 +176,18 @@ struct MainTabView: View {
             }
         }
         .frame(height: tabBarHeight)
-        .animation(.smooth(duration: 0.25), value: selectedTab.wrappedValue)
+        .animation(.smooth(duration: DesignTokens.Animation.quickSnap), value: selectedTab.wrappedValue)
+    }
+
+    // MARK: - Shared Helpers
+
+    @ViewBuilder
+    private func tabBarIcon(for tab: Tab, isSelected: Bool) -> some View {
+        ZStack {
+            Image(systemName: tab.icon).opacity(isSelected ? 0 : 1)
+            Image(systemName: tab.icon).symbolVariant(.fill).opacity(isSelected ? 1 : 0)
+        }
+        .font(.title3)
     }
 }
 
