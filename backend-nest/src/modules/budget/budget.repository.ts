@@ -4,7 +4,11 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import type { BudgetUpdate, TransactionKind } from 'pulpe-shared';
+import {
+  type BudgetUpdate,
+  type TransactionKind,
+  BudgetFormulas,
+} from 'pulpe-shared';
 import type { Tables } from '../../types/database.types';
 import type { PostgrestError } from '@supabase/supabase-js';
 
@@ -330,12 +334,14 @@ export class BudgetRepository {
   }
 
   /**
-   * Fetches aggregated totals for multiple budgets in batch
-   * Calculates totalExpenses, totalSavings, totalIncome from budget_lines and transactions
-   * @param budgetIds - Array of budget IDs
-   * @param supabase - Authenticated Supabase client
-   * @param decryptFn - Function to decrypt amount values (default: returns 0)
-   * @returns Map of budget ID to aggregates
+   * Fetches aggregated totals for multiple budgets in batch using envelope logic.
+   *
+   * Envelope rule: for each budget line, use max(line.amount, sum_of_allocated_transactions).
+   * Free transactions (no budget_line_id) are added separately.
+   * This prevents double-counting when transactions are allocated to budget lines.
+   *
+   * totalExpenses includes both expense and saving kinds (per SPECS).
+   * totalSavings is the sum of saving budget line amounts only (for display).
    */
   async fetchBudgetAggregates(
     budgetIds: string[],
@@ -360,20 +366,16 @@ export class BudgetRepository {
       const [budgetLinesResult, transactionsResult] = await Promise.all([
         supabase
           .from('budget_line')
-          .select('budget_id, kind, amount')
+          .select('id, budget_id, kind, amount')
           .in('budget_id', budgetIds),
         supabase
           .from('transaction')
-          .select('budget_id, kind, amount')
+          .select('budget_id, kind, amount, budget_line_id')
           .in('budget_id', budgetIds),
       ]);
 
-      this.accumulateAmounts(
+      this.computeEnvelopeAggregates(
         budgetLinesResult.data ?? [],
-        aggregatesMap,
-        decryptFn,
-      );
-      this.accumulateAmounts(
         transactionsResult.data ?? [],
         aggregatesMap,
         decryptFn,
@@ -388,31 +390,56 @@ export class BudgetRepository {
     return aggregatesMap;
   }
 
-  private accumulateAmounts(
-    items: Array<{
+  private computeEnvelopeAggregates(
+    budgetLines: Array<{
+      id: string;
       budget_id: string;
       kind: TransactionKind;
       amount: string | null;
     }>,
+    transactions: Array<{
+      budget_id: string;
+      kind: TransactionKind;
+      amount: string | null;
+      budget_line_id: string | null;
+    }>,
     aggregatesMap: Map<string, BudgetAggregates>,
     decryptFn: (amount: string | null) => number,
   ): void {
-    for (const item of items) {
-      const aggregates = aggregatesMap.get(item.budget_id);
-      if (!aggregates) continue;
+    const linesByBudget = this.groupByBudgetId(budgetLines);
+    const txsByBudget = this.groupByBudgetId(transactions);
 
-      const value = decryptFn(item.amount);
-      switch (item.kind) {
-        case 'expense':
-          aggregates.totalExpenses += value;
-          break;
-        case 'saving':
-          aggregates.totalSavings += value;
-          break;
-        case 'income':
-          aggregates.totalIncome += value;
-          break;
-      }
+    for (const [budgetId, aggregates] of aggregatesMap) {
+      const lines = (linesByBudget.get(budgetId) ?? []).map((l) => ({
+        id: l.id,
+        kind: l.kind,
+        amount: decryptFn(l.amount),
+      }));
+
+      const txs = (txsByBudget.get(budgetId) ?? []).map((t) => ({
+        kind: t.kind,
+        amount: decryptFn(t.amount),
+        budgetLineId: t.budget_line_id,
+      }));
+
+      aggregates.totalExpenses =
+        BudgetFormulas.calculateTotalExpensesWithEnvelopes(lines, txs);
+      aggregates.totalIncome = BudgetFormulas.calculateTotalIncome(lines, txs);
+      aggregates.totalSavings = lines
+        .filter((l) => l.kind === 'saving')
+        .reduce((sum, l) => sum + l.amount, 0);
     }
+  }
+
+  private groupByBudgetId<T extends { budget_id: string }>(
+    items: T[],
+  ): Map<string, T[]> {
+    const map = new Map<string, T[]>();
+    for (const item of items) {
+      const list = map.get(item.budget_id) ?? [];
+      list.push(item);
+      map.set(item.budget_id, list);
+    }
+    return map;
   }
 }

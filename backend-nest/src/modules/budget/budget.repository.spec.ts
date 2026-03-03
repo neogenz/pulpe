@@ -252,18 +252,34 @@ describe('BudgetRepository', () => {
       expect(result.size).toBe(0);
     });
 
-    it('should calculate correct aggregates from budget_lines and transactions', async () => {
+    it('should calculate correct aggregates with envelope logic (free transactions)', async () => {
+      // All transactions are free (no budget_line_id), so they add on top of budget lines
       const mockBudgetLines = [
-        { budget_id: 'budget-1', kind: 'expense', amount: 500 },
-        { budget_id: 'budget-1', kind: 'income', amount: 3000 },
-        { budget_id: 'budget-1', kind: 'saving', amount: 200 },
-        { budget_id: 'budget-2', kind: 'expense', amount: 1000 },
+        { id: 'line-1', budget_id: 'budget-1', kind: 'expense', amount: 500 },
+        { id: 'line-2', budget_id: 'budget-1', kind: 'income', amount: 3000 },
+        { id: 'line-3', budget_id: 'budget-1', kind: 'saving', amount: 200 },
+        { id: 'line-4', budget_id: 'budget-2', kind: 'expense', amount: 1000 },
       ];
 
       const mockTransactions = [
-        { budget_id: 'budget-1', kind: 'expense', amount: 100 },
-        { budget_id: 'budget-1', kind: 'income', amount: 500 },
-        { budget_id: 'budget-2', kind: 'saving', amount: 300 },
+        {
+          budget_id: 'budget-1',
+          kind: 'expense',
+          amount: 100,
+          budget_line_id: null,
+        },
+        {
+          budget_id: 'budget-1',
+          kind: 'income',
+          amount: 500,
+          budget_line_id: null,
+        },
+        {
+          budget_id: 'budget-2',
+          kind: 'saving',
+          amount: 300,
+          budget_line_id: null,
+        },
       ];
 
       const mockSupabase = {
@@ -289,15 +305,19 @@ describe('BudgetRepository', () => {
 
       const budget1 = result.get('budget-1');
       expect(budget1).toBeDefined();
-      expect(budget1?.totalExpenses).toBe(600); // 500 + 100
-      expect(budget1?.totalIncome).toBe(3500); // 3000 + 500
+      // Envelope: max(500,0)=500 + max(200,0)=200 + 100 (free expense) = 800
+      expect(budget1?.totalExpenses).toBe(800);
+      // Income: 3000 (line) + 500 (free tx) = 3500
+      expect(budget1?.totalIncome).toBe(3500);
+      // totalSavings: sum of saving budget lines = 200
       expect(budget1?.totalSavings).toBe(200);
 
       const budget2 = result.get('budget-2');
       expect(budget2).toBeDefined();
-      expect(budget2?.totalExpenses).toBe(1000);
+      // Envelope: max(1000,0)=1000 + 300 (free saving tx) = 1300
+      expect(budget2?.totalExpenses).toBe(1300);
       expect(budget2?.totalIncome).toBe(0);
-      expect(budget2?.totalSavings).toBe(300);
+      expect(budget2?.totalSavings).toBe(0);
     });
 
     it('should return zero aggregates when no budget_lines or transactions exist', async () => {
@@ -370,6 +390,231 @@ describe('BudgetRepository', () => {
       expect(budget2?.totalExpenses).toBe(0);
       expect(budget2?.totalIncome).toBe(0);
       expect(budget2?.totalSavings).toBe(0);
+    });
+
+    it('should not double-count allocated transactions (envelope logic)', async () => {
+      // ARRANGE — budget line of 500 with an allocated transaction of 100
+      // Envelope logic: max(500, 100) = 500, NOT 500 + 100 = 600
+      const mockBudgetLines = [
+        { id: 'line-1', budget_id: 'budget-1', kind: 'expense', amount: 500 },
+        { id: 'line-2', budget_id: 'budget-1', kind: 'income', amount: 3000 },
+      ];
+
+      const mockTransactions = [
+        {
+          budget_id: 'budget-1',
+          kind: 'expense',
+          amount: 100,
+          budget_line_id: 'line-1',
+        },
+      ];
+
+      const mockSupabase = {
+        from: (table: string) => ({
+          select: () => ({
+            in: () => {
+              if (table === 'budget_line') {
+                return Promise.resolve({ data: mockBudgetLines, error: null });
+              }
+              return Promise.resolve({ data: mockTransactions, error: null });
+            },
+          }),
+        }),
+      };
+
+      // ACT
+      const result = await repository.fetchBudgetAggregates(
+        ['budget-1'],
+        mockSupabase as any,
+        (amount) => Number(amount) || 0,
+      );
+
+      // ASSERT — should be 500 (envelope covers the 100 transaction), NOT 600
+      const budget1 = result.get('budget-1');
+      expect(budget1?.totalExpenses).toBe(500);
+      expect(budget1?.totalIncome).toBe(3000);
+    });
+
+    it('should use max(line, consumed) when allocated transactions exceed envelope', async () => {
+      // ARRANGE — budget line of 100, allocated transactions totaling 250
+      // Envelope logic: max(100, 250) = 250
+      const mockBudgetLines = [
+        { id: 'line-1', budget_id: 'budget-1', kind: 'expense', amount: 100 },
+        { id: 'line-2', budget_id: 'budget-1', kind: 'income', amount: 5000 },
+      ];
+
+      const mockTransactions = [
+        {
+          budget_id: 'budget-1',
+          kind: 'expense',
+          amount: 150,
+          budget_line_id: 'line-1',
+        },
+        {
+          budget_id: 'budget-1',
+          kind: 'expense',
+          amount: 100,
+          budget_line_id: 'line-1',
+        },
+      ];
+
+      const mockSupabase = {
+        from: (table: string) => ({
+          select: () => ({
+            in: () => {
+              if (table === 'budget_line') {
+                return Promise.resolve({ data: mockBudgetLines, error: null });
+              }
+              return Promise.resolve({ data: mockTransactions, error: null });
+            },
+          }),
+        }),
+      };
+
+      // ACT
+      const result = await repository.fetchBudgetAggregates(
+        ['budget-1'],
+        mockSupabase as any,
+        (amount) => Number(amount) || 0,
+      );
+
+      // ASSERT — max(100, 150+100) = max(100, 250) = 250
+      const budget1 = result.get('budget-1');
+      expect(budget1?.totalExpenses).toBe(250);
+      expect(budget1?.totalIncome).toBe(5000);
+    });
+
+    it('should count free transactions (no budget_line_id) separately', async () => {
+      // ARRANGE — budget line of 500, plus a free transaction of 75
+      const mockBudgetLines = [
+        { id: 'line-1', budget_id: 'budget-1', kind: 'expense', amount: 500 },
+        { id: 'line-2', budget_id: 'budget-1', kind: 'income', amount: 3000 },
+      ];
+
+      const mockTransactions = [
+        {
+          budget_id: 'budget-1',
+          kind: 'expense',
+          amount: 100,
+          budget_line_id: 'line-1',
+        },
+        {
+          budget_id: 'budget-1',
+          kind: 'expense',
+          amount: 75,
+          budget_line_id: null,
+        },
+      ];
+
+      const mockSupabase = {
+        from: (table: string) => ({
+          select: () => ({
+            in: () => {
+              if (table === 'budget_line') {
+                return Promise.resolve({ data: mockBudgetLines, error: null });
+              }
+              return Promise.resolve({ data: mockTransactions, error: null });
+            },
+          }),
+        }),
+      };
+
+      // ACT
+      const result = await repository.fetchBudgetAggregates(
+        ['budget-1'],
+        mockSupabase as any,
+        (amount) => Number(amount) || 0,
+      );
+
+      // ASSERT — max(500, 100) + 75 (free) = 500 + 75 = 575
+      const budget1 = result.get('budget-1');
+      expect(budget1?.totalExpenses).toBe(575);
+      expect(budget1?.totalIncome).toBe(3000);
+    });
+
+    it('should handle savings with envelope logic (savings treated as expenses)', async () => {
+      // ARRANGE — saving line of 300, allocated saving transaction of 200
+      const mockBudgetLines = [
+        { id: 'line-1', budget_id: 'budget-1', kind: 'saving', amount: 300 },
+        { id: 'line-2', budget_id: 'budget-1', kind: 'income', amount: 5000 },
+      ];
+
+      const mockTransactions = [
+        {
+          budget_id: 'budget-1',
+          kind: 'saving',
+          amount: 200,
+          budget_line_id: 'line-1',
+        },
+      ];
+
+      const mockSupabase = {
+        from: (table: string) => ({
+          select: () => ({
+            in: () => {
+              if (table === 'budget_line') {
+                return Promise.resolve({ data: mockBudgetLines, error: null });
+              }
+              return Promise.resolve({ data: mockTransactions, error: null });
+            },
+          }),
+        }),
+      };
+
+      // ACT
+      const result = await repository.fetchBudgetAggregates(
+        ['budget-1'],
+        mockSupabase as any,
+        (amount) => Number(amount) || 0,
+      );
+
+      // ASSERT — max(300, 200) = 300
+      // totalExpenses includes savings per SPECS
+      const budget1 = result.get('budget-1');
+      expect(budget1?.totalExpenses).toBe(300);
+      expect(budget1?.totalIncome).toBe(5000);
+    });
+
+    it('should handle income with envelope logic (income lines + free income transactions)', async () => {
+      // ARRANGE — income line of 5000, plus a free income transaction of 300
+      const mockBudgetLines = [
+        { id: 'line-1', budget_id: 'budget-1', kind: 'income', amount: 5000 },
+        { id: 'line-2', budget_id: 'budget-1', kind: 'expense', amount: 1000 },
+      ];
+
+      const mockTransactions = [
+        {
+          budget_id: 'budget-1',
+          kind: 'income',
+          amount: 300,
+          budget_line_id: null,
+        },
+      ];
+
+      const mockSupabase = {
+        from: (table: string) => ({
+          select: () => ({
+            in: () => {
+              if (table === 'budget_line') {
+                return Promise.resolve({ data: mockBudgetLines, error: null });
+              }
+              return Promise.resolve({ data: mockTransactions, error: null });
+            },
+          }),
+        }),
+      };
+
+      // ACT
+      const result = await repository.fetchBudgetAggregates(
+        ['budget-1'],
+        mockSupabase as any,
+        (amount) => Number(amount) || 0,
+      );
+
+      // ASSERT — income: 5000 (budget line) + 300 (free transaction) = 5300
+      const budget1 = result.get('budget-1');
+      expect(budget1?.totalIncome).toBe(5300);
+      expect(budget1?.totalExpenses).toBe(1000);
     });
   });
 });
