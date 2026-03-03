@@ -78,7 +78,8 @@
   --pulpe-financial-critical: var(--mat-sys-error);
   --pulpe-financial-critical-light: var(--mat-sys-error-container);
 
-  // State token for near-budget-limit (80–99%)
+  // State token for budget overrun (> 100%)
+  --pulpe-financial-over-budget: #c27a00;
   --pulpe-financial-over-budget: #c27a00;
 
   // Hero card budget-state gradient (cascades from primitives above)

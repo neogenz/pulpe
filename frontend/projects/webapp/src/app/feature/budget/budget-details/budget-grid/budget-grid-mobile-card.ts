@@ -195,7 +195,9 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                   >{{ item().consumption!.percentage }}% utilisé</span
                 >
               } @else {
-                {{ item().consumption!.percentage }}% utilisé
+                <span class="text-on-surface-variant"
+                  >{{ item().consumption!.percentage }}% utilisé</span
+                >
               }
             </div>
           </div>
