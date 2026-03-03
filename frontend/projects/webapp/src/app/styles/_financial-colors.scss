@@ -80,8 +80,11 @@
   --pulpe-financial-critical: var(--mat-sys-error);
   --pulpe-financial-critical-light: var(--mat-sys-error-container);
 
+  // State token for near budget limit (80–99%)
+  --pulpe-financial-near-limit: var(--pulpe-warning-primary);
+
   // State token for budget overrun (> 100%)
-  --pulpe-financial-over-budget: #c27a00;
+  --pulpe-financial-over-budget: var(--pulpe-amber);
 
   // Hero card budget-state gradient (cascades from primitives above)
 }
@@ -94,7 +97,8 @@
   --pulpe-financial-income: var(--mat-sys-on-tertiary-container);
   --pulpe-financial-savings: var(--mat-sys-on-primary-container);
   --pulpe-financial-critical: var(--mat-sys-on-error-container);
-  --pulpe-financial-over-budget: #e8a020;
+  --pulpe-financial-near-limit: var(--pulpe-warning-primary);
+  --pulpe-financial-over-budget: var(--pulpe-amber);
 }
 
 // ─── Layer 3: Hero gradient tokens ───────────────────────────────────

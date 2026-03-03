@@ -1,5 +1,8 @@
 import type { Transaction, BudgetLine, TransactionKind } from 'pulpe-shared';
-import { calculateAllConsumptions } from '@core/budget/budget-line-consumption';
+import {
+  calculateAllConsumptions,
+  calculateBudgetLineConsumption,
+} from '@core/budget/budget-line-consumption';
 import {
   isRolloverLine,
   formatRolloverDisplayName,
@@ -227,7 +230,11 @@ function createBudgetLineViewModel(
         transactionCount,
       ),
       hasTransactions,
-      consumptionState: getBudgetConsumptionState(percentage, hasTransactions),
+      consumptionState: getBudgetConsumptionState(
+        percentage,
+        hasTransactions,
+        budgetLine.kind,
+      ),
     },
   };
 }
@@ -278,11 +285,10 @@ export function createBudgetLineConsumptionDisplay(
   budgetLine: BudgetLine,
   transactions: Transaction[],
 ): BudgetLineConsumptionDisplay {
-  const allocated = transactions.filter(
-    (tx) => tx.budgetLineId === budgetLine.id,
+  const { consumed, transactionCount } = calculateBudgetLineConsumption(
+    budgetLine,
+    transactions,
   );
-  const consumed = allocated.reduce((sum, tx) => sum + tx.amount, 0);
-  const transactionCount = allocated.length;
   const percentage = calculatePercentage(budgetLine.amount, consumed);
   const hasTransactions = transactionCount > 0;
 
@@ -295,7 +301,11 @@ export function createBudgetLineConsumptionDisplay(
       transactionCount,
     ),
     hasTransactions,
-    consumptionState: getBudgetConsumptionState(percentage, hasTransactions),
+    consumptionState: getBudgetConsumptionState(
+      percentage,
+      hasTransactions,
+      budgetLine.kind,
+    ),
   };
 }
 

@@ -74,8 +74,10 @@ export function calculatePercentage(
 export function getBudgetConsumptionState(
   percentage: number,
   hasTransactions: boolean,
+  kind: TransactionKind,
 ): BudgetConsumptionState {
   if (!hasTransactions) return 'no-transactions';
+  if (kind !== 'expense') return percentage > 0 ? 'healthy' : 'no-transactions';
   if (percentage > 100) return 'over-budget';
   if (percentage >= NEAR_LIMIT_THRESHOLD) return 'near-limit';
   return 'healthy';

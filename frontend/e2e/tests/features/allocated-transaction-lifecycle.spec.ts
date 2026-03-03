@@ -63,7 +63,7 @@ test.describe('Allocated Transaction Lifecycle', () => {
     );
     await expect(envelopeCard).toBeVisible();
     await expect(envelopeCard).toContainText('Courses');
-    await expect(envelopeCard).toContainText('500 CHF');
+    await expect(envelopeCard).toContainText('400 CHF');
 
     // Click the card to open the detail panel
     await envelopeCard.click();
