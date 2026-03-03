@@ -52,7 +52,9 @@ import type { BudgetLineTableItem } from '../../data-core';
       --mat-progress-bar-active-indicator-color: var(--mat-sys-secondary);
     }
     .near-limit-bar {
-      --mat-progress-bar-active-indicator-color: var(--pulpe-warning-primary);
+      --mat-progress-bar-active-indicator-color: var(
+        --pulpe-financial-near-limit
+      );
     }
     .over-budget-bar {
       --mat-progress-bar-active-indicator-color: var(
