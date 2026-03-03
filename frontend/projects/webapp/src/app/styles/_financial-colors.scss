@@ -45,6 +45,8 @@
 //
 //   Where to use red (--pulpe-financial-critical):
 //     - Hero section showing a deficit
+//
+//   Where to use amber (--pulpe-financial-over-budget):
 //     - Budget envelope overrun (>100%)
 //
 //   Where to use amber (--pulpe-financial-expense):
@@ -79,7 +81,6 @@
   --pulpe-financial-critical-light: var(--mat-sys-error-container);
 
   // State token for budget overrun (> 100%)
-  --pulpe-financial-over-budget: #c27a00;
   --pulpe-financial-over-budget: #c27a00;
 
   // Hero card budget-state gradient (cascades from primitives above)
