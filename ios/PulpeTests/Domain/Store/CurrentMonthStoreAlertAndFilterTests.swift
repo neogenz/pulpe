@@ -21,7 +21,7 @@ struct CurrentMonthStoreAlertAndFilterTests {
 
         // Act
         let alerts = budgetLines
-            .filter { $0.kind.isOutflow }
+            .filter { $0.kind == .expense }
             .compactMap { line -> BudgetAlert? in
                 let consumption = BudgetFormulas.calculateConsumption(
                     for: line,
@@ -56,7 +56,7 @@ struct CurrentMonthStoreAlertAndFilterTests {
 
         // Act
         let alerts = budgetLines
-            .filter { $0.kind.isOutflow }
+            .filter { $0.kind == .expense }
             .compactMap { line -> BudgetAlert? in
                 let consumption = BudgetFormulas.calculateConsumption(
                     for: line,
@@ -93,7 +93,7 @@ struct CurrentMonthStoreAlertAndFilterTests {
 
         // Act
         let alerts = budgetLines
-            .filter { $0.kind.isOutflow && !($0.isRollover ?? false) }
+            .filter { $0.kind == .expense && !($0.isRollover ?? false) }
             .compactMap { line -> BudgetAlert? in
                 let consumption = BudgetFormulas.calculateConsumption(for: line, transactions: transactions)
                 guard consumption.percentage >= 80 else { return nil }
@@ -119,7 +119,33 @@ struct CurrentMonthStoreAlertAndFilterTests {
 
         // Act
         let alerts = budgetLines
-            .filter { $0.kind.isOutflow }
+            .filter { $0.kind == .expense }
+            .compactMap { line -> BudgetAlert? in
+                let consumption = BudgetFormulas.calculateConsumption(for: line, transactions: transactions)
+                guard consumption.percentage >= 80 else { return nil }
+                return BudgetAlert(line: line, consumption: consumption)
+            }
+
+        // Assert
+        #expect(alerts.count == 1)
+        #expect(alerts[0].line.id == "expense")
+    }
+
+    @Test func alertBudgetLinesLogic_excludesSavingLines() {
+        // Arrange
+        let expenseLine = TestDataFactory.createBudgetLine(id: "expense", amount: 1000, kind: .expense)
+        let savingLine = TestDataFactory.createBudgetLine(id: "saving", amount: 1000, kind: .saving)
+
+        let transactions = [
+            TestDataFactory.createTransaction(id: "tx-expense", budgetLineId: "expense", amount: 900),
+            TestDataFactory.createTransaction(id: "tx-saving", budgetLineId: "saving", amount: 900)
+        ]
+
+        let budgetLines = [expenseLine, savingLine]
+
+        // Act
+        let alerts = budgetLines
+            .filter { $0.kind == .expense }
             .compactMap { line -> BudgetAlert? in
                 let consumption = BudgetFormulas.calculateConsumption(for: line, transactions: transactions)
                 guard consumption.percentage >= 80 else { return nil }

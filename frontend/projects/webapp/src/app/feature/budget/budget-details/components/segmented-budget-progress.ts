@@ -46,6 +46,7 @@ const DEFAULT_SEGMENT_COUNT = 10;
 })
 export class SegmentedBudgetProgress {
   readonly percentage = input.required<number>();
+  /** Expects an active state (not 'no-transactions') — callers must guard with hasTransactions */
   readonly consumptionState = input.required<BudgetConsumptionState>();
   readonly segmentCount = input(DEFAULT_SEGMENT_COUNT);
   readonly height = input(6);

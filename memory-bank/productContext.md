@@ -64,13 +64,16 @@ Mar: income=5100, expenses=5200, rollover=900  → ending=800
 - Manually adjusted budget lines (`is_manually_adjusted = true`) never modified
 - Never propagates to past months
 
-### RG-002: Overspending Alerts
+### RG-002: Budget Line Consumption States
 
-| Threshold | Alert Level |
-|-----------|-------------|
-| 80% | Warning (orange) |
-| 90% | Strong alert (red) |
-| 100%+ | Allowed, creates negative rollover |
+Applies to **expense lines only**. Income and saving lines always display as `healthy` regardless of consumption (saving is an objective to reach, not a limit to respect).
+
+| Threshold | State | Color |
+|-----------|-------|-------|
+| 0–79% | `healthy` | Secondary (gray) |
+| 80–100% | `near-limit` | Warning amber |
+| >100% | `over-budget` | Deep amber |
+| 100%+ overall budget | Allowed, creates negative rollover |
 
 ### RG-003: Atomicity
 

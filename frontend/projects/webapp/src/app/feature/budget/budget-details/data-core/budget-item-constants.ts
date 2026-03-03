@@ -11,6 +11,7 @@ export type BudgetConsumptionState =
   | 'over-budget';
 
 export const NEAR_LIMIT_THRESHOLD = 80;
+const FORCED_OVER_BUDGET_PERCENTAGE = 101;
 
 export const KIND_ICONS: Record<TransactionKind, string> = {
   income: 'arrow_upward',
@@ -67,7 +68,7 @@ export function calculatePercentage(
   reserved: number,
   consumed: number,
 ): number {
-  if (reserved <= 0) return consumed > 0 ? 101 : 0;
+  if (reserved <= 0) return consumed > 0 ? FORCED_OVER_BUDGET_PERCENTAGE : 0;
   return Math.round((consumed / reserved) * 100);
 }
 

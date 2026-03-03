@@ -42,8 +42,8 @@
 //     near-limit → dark gold        (--pulpe-financial-near-limit)
 //     over-budget → amber           (--pulpe-financial-over-budget)
 //
-//   Rule: amber = a category (expense is planned, normal)
-//         red   = a state (deficit is a critical consequence)
+//   Rule: amber = both a category (expense) AND a state (near-limit, over-budget)
+//         red   = critical state (deficit)
 //
 //   Where to use red (--pulpe-financial-critical):
 //     - Hero section showing a deficit

@@ -144,7 +144,7 @@ The content zone background must be neutral warm — never green-tinted. The Mat
 - Do not hardcode financial hex values in components.
 - Financial token values must map to Material system tokens for theme consistency.
 
-**Expense (category) vs Deficit (state) — different concepts, different colors:**
+**Category tokens (normal, planned) vs State tokens (consumption feedback):**
 
 | Concept | Color | Token | When to use |
 |---------|-------|-------|-------------|
@@ -152,12 +152,15 @@ The content zone background must be neutral warm — never green-tinted. The Mat
 | Expense (category) | Amber | `--pulpe-financial-expense` | Budget lines, pills, amounts, individual transactions |
 | Savings (category) | Green / Primary | `--pulpe-financial-savings` | Budget lines, pills, amounts |
 | Negative (moderate state) | Amber | `--pulpe-financial-negative` | Negative rollover, tight month |
-| Deficit (critical state) | Red / Error | `--pulpe-financial-critical` | Hero section in deficit, envelope overrun (>100%) |
+| Near-limit (state, 80–99%) | Dark gold | `--pulpe-financial-near-limit` | Budget envelope approaching limit |
+| Over-budget (state, >100%) | Amber | `--pulpe-financial-over-budget` | Budget envelope overrun |
+| Deficit (critical state) | Red / Error | `--pulpe-financial-critical` | Hero section in deficit |
 
-- Amber signals a **category** — an expense is planned and normal
-- Red signals a **state** — a deficit is a critical consequence
+- Amber = both a **category** (expense) AND a **state** (near-limit, over-budget)
+- Red = **critical state** only (deficit)
+- State colors apply only to expense lines with active consumption (income/saving always stay `healthy`)
 - Do NOT use `text-error` / `bg-error-container` for individual expense amounts or transaction rows
-- Red is reserved for hero deficit display and critical overrun states only
+- Red is reserved for hero deficit display only
 
 ### Visual Zones
 
