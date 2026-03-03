@@ -218,15 +218,17 @@ L'icône actuelle (tranche d'agrume neumorphique) :
 
 #### Application par élément
 
-Chaque catégorie financière utilise sa couleur de manière cohérente :
-
 | Élément | Principe |
 |---------|----------|
-| **Montant texte** | Couleur pleine de la catégorie (bleu / ambre / vert) |
+| **Montant texte — sans transactions** | Couleur pleine de la catégorie (bleu / ambre / vert) |
+| **Montant texte — avec transactions** | Couleur d'état uniquement : neutre (0–79%), warning amber (80–100%), over-budget amber (>100%). L'icône porte déjà la catégorie. |
 | **Icône badge** | Fond = version transparente de la couleur ; texte = couleur pleine. Exception : dépense utilise un fond/texte neutre |
 | **Pills hero** | Fond et bordure = versions transparentes de la couleur de catégorie |
-| **Barre de progression** | Track = version transparente ; fill = couleur pleine |
+| **Barre de progression — sans transactions** | Masquée |
+| **Barre de progression — avec transactions** | Track = version transparente ; fill = couleur d'état (même logique que montant texte) |
 | **Section header badge** | Fond = version transparente de la couleur dominante de la section |
+
+**Asymétrie intentionnelle :** dès qu'une ligne a des transactions liées, la logique bascule de "catégorie" à "état". L'icône colorée suffit à identifier le type — doubler la catégorie sur le montant crée une collision cognitive (principe 26, ux-ui-principles.md).
 
 Les valeurs d'opacité exactes vivent dans les DesignTokens du code, pas ici.
 
@@ -238,11 +240,16 @@ Les valeurs d'opacité exactes vivent dans les DesignTokens du code, pas ici.
 | **Serré** (80-100%) | Ambre (gradient warning) | Blanc chaud | Factuel, pas alarmiste |
 | **Déficit** (>100%) | Rouge (gradient error) | Blanc rosé | "Tu le sais, et c'est déjà ça" |
 
-#### Principes du rouge
+#### Principes des couleurs d'état
 
-**Principe :** L'ambre signale une catégorie (dépense), le rouge signale un état (déficit).
-- Une dépense est planifiée, normale — ambre (neutre)
-- Un déficit est une conséquence critique — rouge (alerte)
+**Niveau ligne (budget line row) :** couleurs d'état en spectre ambre — jamais rouge.
+- Sain (0–79%) → neutre (gris secondaire)
+- Near limit (80–100%) → warning amber (`#B8860B`)
+- Over-budget (>100%) → deep amber (`#C27A00`)
+
+**Niveau hero card :** le rouge entre en jeu uniquement ici.
+- L'ambre signale une catégorie (dépense) ET les états ligne (near-limit / over-budget)
+- Le rouge est réservé à l'état de déficit global (hero card uniquement)
 
 **Pourquoi le rouge n'est pas anxiogène ici :**
 - Le hero est le seul endroit où l'émotion doit frapper
@@ -256,8 +263,7 @@ Les valeurs d'opacité exactes vivent dans les DesignTokens du code, pas ici.
 - Aux états d'alerte dans les tables → ambre
 
 **Le rouge est réservé à :**
-- Hero section en déficit
-- États de dépassement critiques (>100% d'une enveloppe)
+- Hero section en déficit global (>100% du budget total)
 
 ---
 
@@ -392,7 +398,7 @@ Avant de valider un écran, un email ou une communication :
 - [ ] **Tutoiement** : Est-ce qu'on utilise "tu" ?
 - [ ] **Vocabulaire** : Est-ce qu'on utilise les termes utilisateur (pas techniques) ?
 - [ ] **Zones** : Est-ce que la zone d'émotion et la zone de contenu sont distinctes ?
-- [ ] **Couleurs** : Vert = accents/actions, fond = neutre chaud, financières = par catégorie ?
+- [ ] **Couleurs** : Vert = accents/actions, fond = neutre chaud, financières = catégorie si pas de transactions / état si transactions liées (principe 26) ?
 
 ---
 
