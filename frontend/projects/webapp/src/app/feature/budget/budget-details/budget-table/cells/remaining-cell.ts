@@ -9,16 +9,20 @@ import type { BudgetLineTableItem } from '../../data-core';
   template: `
     @if (line().consumption?.hasTransactions) {
       @let remaining = line().data.amount - line().consumption!.consumed;
-      @let isExceeded = remaining < 0;
 
       <div class="flex flex-col items-end gap-1">
         <div class="flex flex-col items-center">
           <span
             class="text-body-medium font-semibold"
-            [class.text-error]="isExceeded"
+            [class.text-financial-warning]="
+              line().consumption!.consumptionState === 'near-limit'
+            "
+            [class.text-financial-over-budget]="
+              line().consumption!.consumptionState === 'over-budget'
+            "
           >
             {{ remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
-            @if (isExceeded) {
+            @if (line().consumption!.consumptionState === 'over-budget') {
               <span class="text-label-small font-normal ml-1">dépassé</span>
             }
           </span>
@@ -30,7 +34,12 @@ import type { BudgetLineTableItem } from '../../data-core';
                   ? 100
                   : line().consumption!.percentage
               "
-              [class.warn-bar]="line().consumption!.percentage > 100"
+              [class.near-limit-bar]="
+                line().consumption!.consumptionState === 'near-limit'
+              "
+              [class.over-budget-bar]="
+                line().consumption!.consumptionState === 'over-budget'
+              "
               class="h-1.5! w-24! rounded-full"
             />
           }
@@ -39,8 +48,16 @@ import type { BudgetLineTableItem } from '../../data-core';
     }
   `,
   styles: `
-    .warn-bar {
-      --mat-progress-bar-active-indicator-color: var(--mat-sys-error);
+    mat-progress-bar {
+      --mat-progress-bar-active-indicator-color: var(--mat-sys-secondary);
+    }
+    .near-limit-bar {
+      --mat-progress-bar-active-indicator-color: var(--pulpe-warning-primary);
+    }
+    .over-budget-bar {
+      --mat-progress-bar-active-indicator-color: var(
+        --pulpe-financial-over-budget
+      );
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

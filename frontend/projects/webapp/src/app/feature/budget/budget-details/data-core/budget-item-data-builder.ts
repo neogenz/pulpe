@@ -5,6 +5,7 @@ import {
   formatRolloverDisplayName,
 } from '@core/budget/rollover/rollover-types';
 import type {
+  BudgetLineConsumptionDisplay,
   BudgetLineTableItem,
   GroupHeaderTableItem,
   TableRowItem,
@@ -23,6 +24,7 @@ import {
   getRolloverSourceBudgetId,
   safeParseDate,
   normalizeText,
+  getBudgetConsumptionState,
 } from './budget-item-constants';
 
 type BudgetItemWithBalance =
@@ -196,6 +198,8 @@ function createBudgetLineViewModel(
   const consumption = consumptionMap.get(budgetLine.id);
   const consumed = consumption?.consumed ?? 0;
   const transactionCount = consumption?.transactionCount ?? 0;
+  const percentage = calculatePercentage(budgetLine.amount, consumed);
+  const hasTransactions = transactionCount > 0;
 
   return {
     data: budgetLine,
@@ -217,12 +221,13 @@ function createBudgetLineViewModel(
     consumption: {
       consumed,
       transactionCount,
-      percentage: calculatePercentage(budgetLine.amount, consumed),
+      percentage,
       transactionCountLabel: getTransactionCountLabel(
         budgetLine.kind,
         transactionCount,
       ),
-      hasTransactions: transactionCount > 0,
+      hasTransactions,
+      consumptionState: getBudgetConsumptionState(percentage, hasTransactions),
     },
   };
 }
@@ -262,6 +267,36 @@ function mapToTableItems(
     }
     return createTransactionViewModel(item.item);
   });
+}
+
+/**
+ * Build consumption display data for a single budget line.
+ * Centralizes the calculatePercentage + getBudgetConsumptionState + getTransactionCountLabel
+ * orchestration so callers don't have to coordinate these functions manually.
+ */
+export function createBudgetLineConsumptionDisplay(
+  budgetLine: BudgetLine,
+  transactions: Transaction[],
+): BudgetLineConsumptionDisplay {
+  const allocated = transactions.filter(
+    (tx) => tx.budgetLineId === budgetLine.id,
+  );
+  const consumed = allocated.reduce((sum, tx) => sum + tx.amount, 0);
+  const transactionCount = allocated.length;
+  const percentage = calculatePercentage(budgetLine.amount, consumed);
+  const hasTransactions = transactionCount > 0;
+
+  return {
+    consumed,
+    transactionCount,
+    percentage,
+    transactionCountLabel: getTransactionCountLabel(
+      budgetLine.kind,
+      transactionCount,
+    ),
+    hasTransactions,
+    consumptionState: getBudgetConsumptionState(percentage, hasTransactions),
+  };
 }
 
 export function buildViewData(params: {

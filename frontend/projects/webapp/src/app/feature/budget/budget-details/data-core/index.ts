@@ -32,7 +32,10 @@ export {
 export type { BudgetViewMode } from './budget-view-mode';
 
 // Data builder
-export { buildViewData } from './budget-item-data-builder';
+export {
+  buildViewData,
+  createBudgetLineConsumptionDisplay,
+} from './budget-item-data-builder';
 
 // Data provider service
 export { BudgetItemDataProvider } from './budget-item-data-provider';

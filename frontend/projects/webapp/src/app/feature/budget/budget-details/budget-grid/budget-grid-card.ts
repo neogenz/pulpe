@@ -104,13 +104,34 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
 
       <!-- Hero Amount -->
       <div class="text-center mb-4 flex-1 flex flex-col justify-center">
-        <div
-          class="text-headline-large font-bold"
-          [pulpeFinancialKind]="item().data.kind"
-        >
-          {{ item().data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
-        </div>
-        <span class="text-label-medium text-on-surface-variant">prévu</span>
+        @if (item().consumption?.hasTransactions) {
+          @let remaining = item().data.amount - item().consumption!.consumed;
+          <div
+            class="text-headline-large font-bold"
+            [class.text-on-surface-variant]="
+              item().consumption!.consumptionState === 'healthy'
+            "
+            [class.text-financial-warning]="
+              item().consumption!.consumptionState === 'near-limit'
+            "
+            [class.text-financial-over-budget]="
+              item().consumption!.consumptionState === 'over-budget'
+            "
+          >
+            {{ remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
+          </div>
+          <span class="text-label-medium text-on-surface-variant"
+            >disponible</span
+          >
+        } @else {
+          <div
+            class="text-headline-large font-bold"
+            [pulpeFinancialKind]="item().data.kind"
+          >
+            {{ item().data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+          </div>
+          <span class="text-label-medium text-on-surface-variant">prévu</span>
+        }
       </div>
 
       <!-- Segmented Progress -->
@@ -120,6 +141,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
             [percentage]="item().consumption!.percentage"
             [segmentCount]="10"
             [height]="8"
+            [consumptionState]="item().consumption!.consumptionState"
           />
           <div class="flex justify-between items-center mt-2">
             <span class="text-body-small text-on-surface-variant">
@@ -130,10 +152,18 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
               dépensé
             </span>
             <span class="text-body-small font-medium">
-              @if (item().consumption!.percentage > 100) {
-                <span class="text-error">dépassé</span>
+              @if (item().consumption!.consumptionState === 'over-budget') {
+                <span class="text-financial-over-budget">dépassé</span>
+              } @else if (
+                item().consumption!.consumptionState === 'near-limit'
+              ) {
+                <span class="text-financial-warning"
+                  >{{ item().consumption!.percentage }}%</span
+                >
               } @else {
-                {{ item().consumption!.percentage }}%
+                <span class="text-on-surface-variant"
+                  >{{ item().consumption!.percentage }}%</span
+                >
               }
             </span>
           </div>

@@ -16,12 +16,14 @@
   --pulpe-amber: #b35800;
   --pulpe-amber-container: #fff3e0;
   --pulpe-amber-on-container: #3e2723;
+  --pulpe-warning-primary: #b8860b;
 }
 
 .dark-theme {
   --pulpe-amber: #f0a050;
   --pulpe-amber-container: #2a1f10;
   --pulpe-amber-on-container: #fff3e0;
+  --pulpe-warning-primary: #d4a017;
 }
 
 // ─── Layer 2: Semantic financial tokens ─────────────────────────────
@@ -76,6 +78,9 @@
   --pulpe-financial-critical: var(--mat-sys-error);
   --pulpe-financial-critical-light: var(--mat-sys-error-container);
 
+  // State token for near-budget-limit (80–99%)
+  --pulpe-financial-over-budget: #c27a00;
+
   // Hero card budget-state gradient (cascades from primitives above)
 }
 
@@ -87,6 +92,7 @@
   --pulpe-financial-income: var(--mat-sys-on-tertiary-container);
   --pulpe-financial-savings: var(--mat-sys-on-primary-container);
   --pulpe-financial-critical: var(--mat-sys-on-error-container);
+  --pulpe-financial-over-budget: #e8a020;
 }
 
 // ─── Layer 3: Hero gradient tokens ───────────────────────────────────

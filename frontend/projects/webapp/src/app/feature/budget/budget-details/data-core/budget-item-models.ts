@@ -3,6 +3,7 @@ import {
   type Transaction,
   type TransactionKind,
 } from 'pulpe-shared';
+import type { BudgetConsumptionState } from './budget-item-constants';
 
 /**
  * Métadonnées d'affichage pré-calculées pour éviter les appels de fonctions dans le template
@@ -29,6 +30,8 @@ export interface BudgetLineConsumptionDisplay {
   /** Label formaté ('2 dépenses', '1 revenu', etc.) */
   transactionCountLabel: string;
   hasTransactions: boolean;
+  /** État de consommation pré-calculé (no-transactions / healthy / near-limit / over-budget) */
+  consumptionState: BudgetConsumptionState;
 }
 
 /**
