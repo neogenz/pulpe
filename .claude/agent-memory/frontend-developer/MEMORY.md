@@ -24,6 +24,6 @@ This uses Angular's internal `SIGNAL` primitives to directly write to the underl
 
 For hiding sensitive financial amounts:
 - `AmountsVisibilityService` lives in `core/amounts-visibility/` (`providedIn: 'root'`)
-- `SensitiveAmountPipe` is pure, takes `isHidden` parameter: `| sensitiveAmount: amountsHidden()`
-- Feature components inject the service and expose `amountsHidden` signal
-- UI components receive `amountsHidden` via `input(false)` from parent
+- Uses a CSS-based approach: `ph-no-capture` class on amount elements, `AmountsVisibilityService.toggle()` adds/removes `body.amounts-hidden` which activates `filter: blur()` via `styles.scss`
+- Exemption: add `amounts-visible` class on a `.ph-no-capture` element to exclude it from blur
+- Never put `ph-no-capture` on interactive elements (`<button>`, `<a>`) — wrap only the amount text in a `<span class="ph-no-capture">`

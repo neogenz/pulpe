@@ -60,3 +60,4 @@ For `mat-form-field` (amount inputs), the `ph-no-capture` class blurs the value 
 - Global CSS: `frontend/projects/webapp/src/styles.scss` (search `amounts-hidden`)
 - Service: `AmountsVisibilityService` in `core/amounts-visibility/`
 - Toggle: settings page amount visibility toggle
+- Exemption: add `amounts-visible` class on a `.ph-no-capture` element to exclude it from blur
