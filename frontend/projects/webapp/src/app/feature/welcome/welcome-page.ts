@@ -1,4 +1,5 @@
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -210,6 +211,12 @@ export default class WelcomePage {
   readonly #ERROR_MESSAGES = {
     DEMO_INIT_FAILED: 'Le mode démo ne démarre pas — réessaie',
   } as const;
+
+  constructor() {
+    afterNextRender(() => {
+      this.#postHogService.captureEvent('welcome_page_viewed');
+    });
+  }
 
   protected readonly errorMessage = signal('');
   protected readonly isGoogleLoading = signal(false);

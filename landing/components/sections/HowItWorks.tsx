@@ -1,7 +1,7 @@
 'use client'
 
 import { Section, Button, FadeIn } from '@/components/ui'
-import { ANGULAR_APP_URL } from '@/lib/config'
+import { angularUrl } from '@/lib/config'
 import { trackCTAClick } from '@/lib/posthog'
 import { Check } from 'lucide-react'
 
@@ -83,7 +83,7 @@ export function HowItWorks() {
 
       <FadeIn variant="blur" delay={0.4}>
         <div className="text-center">
-          <Button href={`${ANGULAR_APP_URL}/signup`} onClick={() => trackCTAClick('creer_mon_budget', 'how_it_works', '/signup')}>Créer mon budget</Button>
+          <Button href={angularUrl('/signup', 'how_it_works_creer')} onClick={() => trackCTAClick('creer_mon_budget', 'how_it_works', '/signup')}>Créer mon budget</Button>
         </div>
       </FadeIn>
     </Section>

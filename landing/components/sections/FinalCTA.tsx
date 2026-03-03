@@ -1,7 +1,7 @@
 'use client'
 
 import { Button, Container, FadeIn, GrainOverlay } from '@/components/ui'
-import { ANGULAR_APP_URL } from '@/lib/config'
+import { angularUrl } from '@/lib/config'
 import { trackCTAClick } from '@/lib/posthog'
 
 export function FinalCTA() {
@@ -28,7 +28,7 @@ export function FinalCTA() {
             <p className="text-lg text-white/80 mb-10 max-w-xl mx-auto">
               Gratuit, open source, et respectueux de ta vie privée.
             </p>
-            <Button href={`${ANGULAR_APP_URL}/signup`} variant="inverse" onClick={() => trackCTAClick('commencer_gratuitement', 'final_cta', '/signup')}>
+            <Button href={angularUrl('/signup', 'final_cta_commencer')} variant="inverse" onClick={() => trackCTAClick('commencer_gratuitement', 'final_cta', '/signup')}>
               Commencer gratuitement
             </Button>
           </FadeIn>

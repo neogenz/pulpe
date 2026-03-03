@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, type CSSProperties } from 'react'
 import { Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui'
-import { ANGULAR_APP_URL } from '@/lib/config'
+import { angularUrl } from '@/lib/config'
 import { trackCTAClick } from '@/lib/posthog'
 
 const navLinks = [
@@ -156,7 +156,7 @@ export function Header() {
           </div>
 
           <div className="relative z-10 flex items-center gap-2">
-            <Button href={`${ANGULAR_APP_URL}/welcome`} size="sm" className="rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow" onClick={() => trackCTAClick('essayer', 'header', '/welcome')}>
+            <Button href={angularUrl('/welcome', 'header_essayer')} size="sm" className="rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow" onClick={() => trackCTAClick('essayer', 'header', '/welcome')}>
               Essayer
             </Button>
 

@@ -8,7 +8,7 @@ import {
   HeroScreenshot,
   TypeWriter,
 } from "@/components/ui";
-import { ANGULAR_APP_URL } from "@/lib/config";
+import { angularUrl } from "@/lib/config";
 import { trackCTAClick } from "@/lib/posthog";
 import {
   Check,
@@ -205,7 +205,7 @@ export function Hero() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 sm:items-start items-center justify-center lg:justify-start">
               <div className="flex flex-col items-center gap-2">
-                <Button href={`${ANGULAR_APP_URL}/signup`} glow onClick={() => trackCTAClick('commencer', 'hero', '/signup')}>
+                <Button href={angularUrl('/signup', 'hero_commencer')} glow onClick={() => trackCTAClick('commencer', 'hero', '/signup')}>
                   Commencer
                 </Button>
                 <span className="text-xs italic text-text-secondary">
