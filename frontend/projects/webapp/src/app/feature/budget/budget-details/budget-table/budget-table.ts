@@ -93,7 +93,7 @@ import type {
             ) {
               <button
                 matButton
-                class="text-body-small h-8! px-3! ph-no-capture"
+                class="text-body-small h-8! px-3!"
                 [matBadge]="line.consumption.transactionCount"
                 matBadgeColor="primary"
                 (click)="viewTransactions.emit(line)"
@@ -102,10 +102,10 @@ import type {
                 "
               >
                 <mat-icon class="text-base! mr-1">receipt_long</mat-icon>
-                {{
+                <span class="ph-no-capture">{{
                   line.consumption.consumed
                     | currency: 'CHF' : 'symbol' : '1.0-0'
-                }}
+                }}</span>
               </button>
             }
           </td>

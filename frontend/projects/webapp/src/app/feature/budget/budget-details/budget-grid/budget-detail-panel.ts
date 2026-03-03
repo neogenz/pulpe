@@ -151,7 +151,6 @@ const DETAIL_SEGMENT_COUNT = 12;
             [consumptionState]="consumption.consumptionState"
             class="mb-2"
           />
-<<<<<<< HEAD
           <div class="text-center text-label-medium">
             @if (consumption.consumptionState === 'over-budget') {
               <span class="ph-no-capture text-financial-over-budget">
