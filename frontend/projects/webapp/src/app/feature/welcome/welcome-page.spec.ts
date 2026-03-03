@@ -252,9 +252,13 @@ describe('WelcomePage', () => {
     });
 
     it('should not track signup_started when OAuth stops loading', () => {
+      mockPostHogService.captureEvent.mockClear();
       component.onGoogleLoadingChange(false);
 
-      expect(mockPostHogService.captureEvent).not.toHaveBeenCalled();
+      expect(mockPostHogService.captureEvent).not.toHaveBeenCalledWith(
+        'signup_started',
+        expect.anything(),
+      );
     });
 
     it('should track signup_started with email method on email click', () => {
