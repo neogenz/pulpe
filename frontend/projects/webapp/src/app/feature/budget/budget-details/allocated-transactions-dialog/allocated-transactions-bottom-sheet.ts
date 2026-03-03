@@ -67,20 +67,14 @@ import type {
             [class.text-financial-expense]="data.budgetLine.kind === 'expense'"
             [class.text-financial-savings]="data.budgetLine.kind === 'saving'"
           >
-            {{
-              consumption().consumed
-                | currency: 'CHF' : 'symbol' : '1.0-0'
-            }}
+            {{ consumption().consumed | currency: 'CHF' : 'symbol' : '1.0-0' }}
           </div>
         </div>
         <!-- Prévu -->
         <div class="text-center p-2 bg-surface-container rounded-lg">
           <div class="text-label-small text-on-surface-variant">Prévu</div>
           <div class="text-title-small font-semibold ph-no-capture">
-            {{
-              data.budgetLine.amount
-                | currency: 'CHF' : 'symbol' : '1.0-0'
-            }}
+            {{ data.budgetLine.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
           </div>
         </div>
         <!-- Reste -->
@@ -91,10 +85,7 @@ import type {
             [class.text-error]="consumption().remaining < 0"
             [class.text-financial-income]="consumption().remaining >= 0"
           >
-            {{
-              consumption().remaining
-                | currency: 'CHF' : 'symbol' : '1.0-0'
-            }}
+            {{ consumption().remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
           </div>
         </div>
       </div>
@@ -139,11 +130,10 @@ import type {
                     {{ tx.transactionDate | date: 'dd.MM.yyyy' }}
                   </span>
                 </div>
-                <span class="text-body-medium font-semibold whitespace-nowrap ph-no-capture">
-                  {{
-                    tx.amount
-                      | currency: 'CHF' : 'symbol' : '1.2-2'
-                  }}
+                <span
+                  class="text-body-medium font-semibold whitespace-nowrap ph-no-capture"
+                >
+                  {{ tx.amount | currency: 'CHF' : 'symbol' : '1.2-2' }}
                 </span>
                 <button
                   matIconButton

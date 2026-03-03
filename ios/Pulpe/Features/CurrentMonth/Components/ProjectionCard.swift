@@ -5,6 +5,8 @@ import SwiftUI
 struct ProjectionCard: View {
     let projection: BudgetFormulas.Projection
 
+    @Environment(\.amountsHidden) private var amountsHidden
+
     private var icon: String {
         switch projection.trend {
         case .onTrack: "arrow.right.circle.fill"
@@ -49,18 +51,20 @@ struct ProjectionCard: View {
                 Text(message)
                     .font(PulpeTypography.buttonSecondary)
                     .foregroundStyle(.primary)
+                    .sensitiveAmount()
 
                 Text(subMessage)
                     .font(PulpeTypography.caption)
                     .foregroundStyle(.secondary)
+                    .sensitiveAmount()
             }
 
             Spacer()
         }
         .pulpeCard()
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(message)
-        .accessibilityHint(subMessage)
+        .accessibilityLabel(amountsHidden ? "Projection masquée" : message)
+        .accessibilityHint(amountsHidden ? "" : subMessage)
     }
 }
 

@@ -247,7 +247,7 @@ struct RootView: View {
             uiPreferences.amountsHidden ? "Afficher les montants ?" : "Masquer les montants ?",
             isPresented: $showAmountsToggleAlert
         ) {
-            Button("Confirmer") {
+            Button(uiPreferences.amountsHidden ? "Afficher" : "Masquer") {
                 uiPreferences.toggleAmountsVisibility()
             }
             Button("Annuler", role: .cancel) {}

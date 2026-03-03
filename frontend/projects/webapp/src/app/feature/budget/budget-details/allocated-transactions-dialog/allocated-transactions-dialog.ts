@@ -50,8 +50,7 @@ export interface AllocatedTransactionsDialogResult {
             <div class="text-label-small text-on-surface-variant">Prévu</div>
             <div class="text-title-medium font-semibold ph-no-capture">
               {{
-                data.budgetLine.amount
-                  | currency: 'CHF' : 'symbol' : '1.2-2'
+                data.budgetLine.amount | currency: 'CHF' : 'symbol' : '1.2-2'
               }}
             </div>
           </div>
@@ -59,8 +58,7 @@ export interface AllocatedTransactionsDialogResult {
             <div class="text-label-small text-on-surface-variant">Consommé</div>
             <div class="text-title-medium font-semibold ph-no-capture">
               {{
-                data.consumption.consumed
-                  | currency: 'CHF' : 'symbol' : '1.2-2'
+                data.consumption.consumed | currency: 'CHF' : 'symbol' : '1.2-2'
               }}
             </div>
           </div>
@@ -125,10 +123,7 @@ export interface AllocatedTransactionsDialogResult {
                 *matCellDef="let tx"
                 class="text-right text-body-medium font-medium ph-no-capture"
               >
-                {{
-                  tx.amount
-                    | currency: 'CHF' : 'symbol' : '1.2-2'
-                }}
+                {{ tx.amount | currency: 'CHF' : 'symbol' : '1.2-2' }}
               </td>
             </ng-container>
 

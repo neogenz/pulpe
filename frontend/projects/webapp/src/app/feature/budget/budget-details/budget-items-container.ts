@@ -105,10 +105,7 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
           <span class="text-on-surface-variant/50">·</span>
           <span class="ph-no-capture">
             Ton compte ≈
-            {{
-              estimatedBalance()
-                | number: '1.0-0' : 'de-CH'
-            }}
+            {{ estimatedBalance() | number: '1.0-0' : 'de-CH' }}
             CHF
           </span>
           <mat-icon

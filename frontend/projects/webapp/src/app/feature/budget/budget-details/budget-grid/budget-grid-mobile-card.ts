@@ -155,7 +155,9 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
           <!-- Consumption mini-stat if applicable -->
           @if (item().consumption?.hasTransactions) {
             <div class="text-right">
-              <div class="ph-no-capture text-title-medium font-semibold text-on-surface">
+              <div
+                class="ph-no-capture text-title-medium font-semibold text-on-surface"
+              >
                 {{
                   item().consumption!.consumed
                     | currency: 'CHF' : 'symbol' : '1.0-0'

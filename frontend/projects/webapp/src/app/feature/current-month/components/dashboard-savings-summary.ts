@@ -76,16 +76,12 @@ import { MatIconModule } from '@angular/material/icon';
             <p class="text-body-medium text-on-surface">
               Tu as mis de côté
               <span class="font-bold text-financial-savings ph-no-capture">
-                {{
-                  totalRealized()
-                    | number: '1.2-2' : 'de-CH'
-                }}
+                {{ totalRealized() | number: '1.2-2' : 'de-CH' }}
                 CHF
               </span>
               sur
               <span class="ph-no-capture">{{
-                totalPlanned()
-                  | number: '1.2-2' : 'de-CH'
+                totalPlanned() | number: '1.2-2' : 'de-CH'
               }}</span>
               prévus
             </p>

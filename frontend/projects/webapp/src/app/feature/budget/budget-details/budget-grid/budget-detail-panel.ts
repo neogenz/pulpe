@@ -108,10 +108,7 @@ const DETAIL_SEGMENT_COUNT = 12;
               class="ph-no-capture text-title-medium font-bold"
               [pulpeFinancialKind]="envelope.data.kind"
             >
-              {{
-                envelope.data.amount
-                  | currency: 'CHF' : 'symbol' : '1.0-0'
-              }}
+              {{ envelope.data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
             </div>
           </div>
           <div class="text-center">
@@ -139,10 +136,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                 envelope.consumption?.consumptionState === 'over-budget'
               "
             >
-              {{
-                remaining
-                  | currency: 'CHF' : 'symbol' : '1.0-0'
-              }}
+              {{ remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
             </div>
           </div>
         </div>
@@ -157,6 +151,7 @@ const DETAIL_SEGMENT_COUNT = 12;
             [consumptionState]="consumption.consumptionState"
             class="mb-2"
           />
+<<<<<<< HEAD
           <div class="text-center text-label-medium">
             @if (consumption.consumptionState === 'over-budget') {
               <span class="ph-no-capture text-financial-over-budget">
@@ -236,10 +231,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                     [class.text-financial-income]="tx.kind === 'income'"
                     [class.text-on-surface-variant]="tx.kind !== 'income'"
                   >
-                    {{
-                      tx.amount
-                        | currency: 'CHF' : 'symbol' : '1.0-0'
-                    }}
+                    {{ tx.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
                   </div>
                   <div class="flex items-center gap-1">
                     <mat-slide-toggle

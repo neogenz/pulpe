@@ -1,8 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  input,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 
@@ -69,8 +65,7 @@ export interface FinancialEntry {
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
               @if (row.spent !== 0) {
                 <span class="ph-no-capture">{{
-                  row.spent
-                    | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                  row.spent | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
                 }}</span>
               }
             </td>
@@ -88,8 +83,7 @@ export interface FinancialEntry {
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
               @if (row.earned !== 0) {
                 <span class="ph-no-capture">{{
-                  row.earned
-                    | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                  row.earned | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
                 }}</span>
               }
             </td>
@@ -107,8 +101,7 @@ export interface FinancialEntry {
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
               @if (row.saved !== 0) {
                 <span class="ph-no-capture">{{
-                  row.saved
-                    | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                  row.saved | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
                 }}</span>
               }
             </td>
@@ -125,8 +118,7 @@ export interface FinancialEntry {
             </th>
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
               <span class="ph-no-capture">{{
-                row.total
-                  | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                row.total | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
               }}</span>
             </td>
           </ng-container>

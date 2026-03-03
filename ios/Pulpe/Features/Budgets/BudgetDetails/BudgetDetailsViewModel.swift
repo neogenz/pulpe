@@ -351,7 +351,7 @@ final class BudgetDetailsViewModel {
         }
     }
 
-    func showEnvelopeToastIfNeeded(for line: BudgetLine, toastManager: ToastManager) {
+    func showEnvelopeToastIfNeeded(for line: BudgetLine, toastManager: ToastManager, amountsHidden: Bool = false) {
         guard !line.isChecked, line.kind.isOutflow else { return }
 
         let consumed = transactions
@@ -359,7 +359,8 @@ final class BudgetDetailsViewModel {
             .reduce(Decimal.zero) { $0 + $1.amount }
         let effective = max(line.amount, consumed)
         guard effective > consumed, consumed > 0 else { return }
-        toastManager.show("Comptabilisé \(effective.asCHF) (enveloppe)")
+        let amountText = amountsHidden ? "" : " \(effective.asCHF)"
+        toastManager.show("Comptabilisé\(amountText) (enveloppe)")
     }
 
     // MARK: - Mutations

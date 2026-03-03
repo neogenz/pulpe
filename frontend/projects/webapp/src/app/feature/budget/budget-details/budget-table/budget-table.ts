@@ -77,10 +77,7 @@ import type {
               [class.italic]="line.metadata.isRollover"
               [pulpeFinancialKind]="line.data.kind"
             >
-              {{
-                line.data.amount
-                  | currency: 'CHF' : 'symbol' : '1.0-0'
-              }}
+              {{ line.data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
             </span>
           </td>
         </ng-container>

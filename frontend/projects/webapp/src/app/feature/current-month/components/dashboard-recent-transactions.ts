@@ -82,10 +82,7 @@ const KIND_ICONS: Record<TransactionKind, string> = {
                   class="text-label-large whitespace-nowrap ml-4 font-semibold tabular-nums ph-no-capture"
                   [pulpeFinancialKind]="tx.kind"
                 >
-                  {{
-                    tx.amount
-                      | currency: 'CHF' : 'symbol' : '1.0-0'
-                  }}
+                  {{ tx.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
                 </span>
               </div>
             }

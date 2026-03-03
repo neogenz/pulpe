@@ -146,10 +146,7 @@ import { Logger } from '@core/logging/logger';
                 [class.text-financial-expense]="row.kind === 'expense'"
                 [class.text-financial-savings]="row.kind === 'saving'"
               >
-                {{
-                  row.amount
-                    | currency: 'CHF' : 'symbol' : '1.2-2'
-                }}
+                {{ row.amount | currency: 'CHF' : 'symbol' : '1.2-2' }}
               </td>
             </ng-container>
 

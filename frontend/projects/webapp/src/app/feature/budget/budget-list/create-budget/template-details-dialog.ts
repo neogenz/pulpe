@@ -49,8 +49,7 @@ export interface TemplateDetailsDialogData {
             <div>Revenus total:</div>
             <div class="ph-no-capture text-financial-income text-label-large">
               {{
-                totalIncome()
-                  | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                totalIncome() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
               }}
             </div>
           </div>
@@ -58,8 +57,7 @@ export interface TemplateDetailsDialogData {
             <div>Dépenses total:</div>
             <div class="ph-no-capture text-financial-negative text-label-large">
               {{
-                totalExpenses()
-                  | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                totalExpenses() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
               }}
             </div>
           </div>
@@ -94,8 +92,7 @@ export interface TemplateDetailsDialogData {
                 >
                   {{ line.kind === 'income' ? '+' : '-' }}
                   {{
-                    line.amount
-                      | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                    line.amount | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
                   }}
                 </div>
               </div>
@@ -111,10 +108,7 @@ export interface TemplateDetailsDialogData {
         <div class="flex justify-between text-body-medium font-medium">
           <span>Solde net:</span>
           <span class="ph-no-capture">
-            {{
-              netBalance()
-                | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
-            }}
+            {{ netBalance() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
           </span>
         </div>
       } @else {
