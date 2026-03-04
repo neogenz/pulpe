@@ -434,9 +434,8 @@ export class BudgetRepository {
   ): Map<string, T[]> {
     const map = new Map<string, T[]>();
     for (const item of items) {
-      const list = map.get(item.budget_id) ?? [];
-      list.push(item);
-      map.set(item.budget_id, list);
+      if (!map.has(item.budget_id)) map.set(item.budget_id, []);
+      map.get(item.budget_id)!.push(item);
     }
     return map;
   }

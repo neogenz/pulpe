@@ -60,28 +60,35 @@ export function isOutflowKind(kind: TransactionKind): boolean {
  * Toutes les méthodes sont statiques et pures (pas d'effets de bord)
  */
 export class BudgetFormulas {
-  /**
-   * Envelope-aware total for a given kind filter.
-   * For each matching line: effective = max(line.amount, consumed_matching_txs).
-   * Free transactions (no budgetLineId) matching the filter are added directly.
-   */
+  static #indexByLineId(
+    transactions: TransactionWithBudgetLineId[],
+  ): Map<string, TransactionWithBudgetLineId[]> {
+    const map = new Map<string, TransactionWithBudgetLineId[]>();
+    for (const tx of transactions) {
+      const key = tx.budgetLineId ?? '';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(tx);
+    }
+    return map;
+  }
+
   static #calculateEnvelopeTotal(
     budgetLines: FinancialItemWithId[],
-    transactions: TransactionWithBudgetLineId[],
+    txsByLineId: Map<string, TransactionWithBudgetLineId[]>,
     kindFilter: (kind: TransactionKind) => boolean,
   ): number {
     let total = 0;
 
     for (const line of budgetLines) {
       if (!kindFilter(line.kind)) continue;
-      const consumed = transactions
-        .filter((tx) => tx.budgetLineId === line.id && kindFilter(tx.kind))
+      const consumed = (txsByLineId.get(line.id) ?? [])
+        .filter((tx) => kindFilter(tx.kind))
         .reduce((sum, tx) => sum + tx.amount, 0);
       total += Math.max(line.amount, consumed);
     }
 
-    for (const tx of transactions) {
-      if (!tx.budgetLineId && kindFilter(tx.kind)) {
+    for (const tx of txsByLineId.get('') ?? []) {
+      if (kindFilter(tx.kind)) {
         total += tx.amount;
       }
     }
@@ -96,7 +103,7 @@ export class BudgetFormulas {
   ): number {
     return this.#calculateEnvelopeTotal(
       budgetLines,
-      transactions,
+      this.#indexByLineId(transactions),
       (kind) => kind === 'income',
     );
   }
@@ -108,7 +115,7 @@ export class BudgetFormulas {
   ): number {
     return this.#calculateEnvelopeTotal(
       budgetLines,
-      transactions,
+      this.#indexByLineId(transactions),
       isOutflowKind,
     );
   }
@@ -120,7 +127,7 @@ export class BudgetFormulas {
   ): number {
     return this.#calculateEnvelopeTotal(
       budgetLines,
-      transactions,
+      this.#indexByLineId(transactions),
       (kind) => kind === 'saving',
     );
   }
@@ -164,18 +171,14 @@ export class BudgetFormulas {
     budgetLines: FinancialItemWithId[],
     transactions: TransactionWithBudgetLineId[] = [],
   ): number {
+    const txsByLineId = this.#indexByLineId(transactions);
     let total = 0;
 
-    budgetLines.forEach((line) => {
-      if (!isOutflowKind(line.kind)) return;
+    for (const line of budgetLines) {
+      if (!isOutflowKind(line.kind)) continue;
 
-      const consumed = transactions
-        .filter(
-          (tx) =>
-            tx.budgetLineId === line.id &&
-            tx.checkedAt != null &&
-            isOutflowKind(tx.kind),
-        )
+      const consumed = (txsByLineId.get(line.id) ?? [])
+        .filter((tx) => tx.checkedAt != null && isOutflowKind(tx.kind))
         .reduce((sum, tx) => sum + tx.amount, 0);
 
       if (line.checkedAt != null) {
@@ -183,14 +186,13 @@ export class BudgetFormulas {
       } else {
         total += consumed;
       }
-    });
+    }
 
-    // Ajouter les transactions libres (sans budgetLineId) qui sont pointées
-    transactions.forEach((tx) => {
-      if (!tx.budgetLineId && tx.checkedAt != null && isOutflowKind(tx.kind)) {
+    for (const tx of txsByLineId.get('') ?? []) {
+      if (tx.checkedAt != null && isOutflowKind(tx.kind)) {
         total += tx.amount;
       }
-    });
+    }
 
     return total;
   }
@@ -276,12 +278,22 @@ export class BudgetFormulas {
     transactions: TransactionWithBudgetLineId[] = [],
     rollover: number = 0,
   ) {
-    const totalIncome = this.calculateTotalIncome(budgetLines, transactions);
-    const totalExpenses = this.calculateTotalExpenses(
+    const txsByLineId = this.#indexByLineId(transactions);
+    const totalIncome = this.#calculateEnvelopeTotal(
       budgetLines,
-      transactions,
+      txsByLineId,
+      (kind) => kind === 'income',
     );
-    const totalSavings = this.calculateTotalSavings(budgetLines, transactions);
+    const totalExpenses = this.#calculateEnvelopeTotal(
+      budgetLines,
+      txsByLineId,
+      isOutflowKind,
+    );
+    const totalSavings = this.#calculateEnvelopeTotal(
+      budgetLines,
+      txsByLineId,
+      (kind) => kind === 'saving',
+    );
     const available = this.calculateAvailable(totalIncome, rollover);
     const endingBalance = this.calculateEndingBalance(available, totalExpenses);
     const remaining = endingBalance;

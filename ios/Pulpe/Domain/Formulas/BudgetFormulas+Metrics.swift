@@ -28,8 +28,9 @@ extension BudgetFormulas {
             case .expense:
                 totalExpenses += max(line.amount, consumed(lineTxs) { $0.isOutflow })
             case .saving:
-                totalExpenses += max(line.amount, consumed(lineTxs) { $0.isOutflow })
-                totalSavings += max(line.amount, consumed(lineTxs) { $0 == .saving })
+                let savingsConsumed = consumed(lineTxs) { $0 == .saving }
+                totalExpenses += max(line.amount, savingsConsumed)
+                totalSavings += max(line.amount, savingsConsumed)
             }
         }
 
