@@ -424,7 +424,10 @@ export class BudgetRepository {
 
       aggregates.totalExpenses =
         BudgetFormulas.calculateTotalExpensesWithEnvelopes(lines, txs);
-      aggregates.totalIncome = BudgetFormulas.calculateTotalIncome(lines, txs);
+      aggregates.totalIncome = BudgetFormulas.calculateTotalIncomeWithEnvelopes(
+        lines,
+        txs,
+      );
       aggregates.totalSavings = lines
         .filter((l) => l.kind === 'saving')
         .reduce((sum, l) => sum + l.amount, 0);

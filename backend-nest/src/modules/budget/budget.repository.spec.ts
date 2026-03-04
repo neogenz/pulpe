@@ -616,5 +616,47 @@ describe('BudgetRepository', () => {
       expect(budget1?.totalIncome).toBe(5300);
       expect(budget1?.totalExpenses).toBe(1000);
     });
+
+    it('should not double-count allocated income transactions', async () => {
+      // ARRANGE
+      const mockBudgetLines = [
+        { id: 'line-1', budget_id: 'budget-1', kind: 'income', amount: 5000 },
+        { id: 'line-2', budget_id: 'budget-1', kind: 'expense', amount: 1000 },
+      ];
+
+      const mockTransactions = [
+        {
+          budget_id: 'budget-1',
+          kind: 'income',
+          amount: 4800,
+          budget_line_id: 'line-1',
+        },
+      ];
+
+      const mockSupabase = {
+        from: (table: string) => ({
+          select: () => ({
+            in: () => {
+              if (table === 'budget_line') {
+                return Promise.resolve({ data: mockBudgetLines, error: null });
+              }
+              return Promise.resolve({ data: mockTransactions, error: null });
+            },
+          }),
+        }),
+      };
+
+      // ACT
+      const result = await repository.fetchBudgetAggregates(
+        ['budget-1'],
+        mockSupabase as any,
+        (amount) => Number(amount) || 0,
+      );
+
+      // ASSERT — income uses envelope: max(5000, 4800) = 5000, NOT 5000 + 4800 = 9800
+      const budget1 = result.get('budget-1');
+      expect(budget1?.totalIncome).toBe(5000);
+      expect(budget1?.totalExpenses).toBe(1000);
+    });
   });
 });

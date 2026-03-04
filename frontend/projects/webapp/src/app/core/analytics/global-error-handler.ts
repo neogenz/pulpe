@@ -17,14 +17,12 @@ export class GlobalErrorHandler implements ErrorHandler {
 
   handleError(error: Error | HttpErrorResponse | unknown): void {
     const errorMessage = this.#extractMessage(error);
+    this.#logger.error(`[GlobalError] ${errorMessage}`, error);
 
-    // HTTP errors already captured by httpErrorInterceptor — log only, don't double-capture
+    // HTTP errors already captured by httpErrorInterceptor — don't double-capture
     if (error instanceof HttpErrorResponse || error instanceof ApiError) {
-      this.#logger.error(`[GlobalError] ${errorMessage}`, error);
       return;
     }
-
-    this.#logger.error(`[GlobalError] ${errorMessage}`, error);
 
     // Only capture JS runtime errors (null refs, type errors, uncaught exceptions)
     this.#postHogService.captureException(error);

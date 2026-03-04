@@ -76,6 +76,43 @@ export class BudgetFormulas {
   }
 
   /**
+   * Calcule le revenu total avec logique d'enveloppe
+   *
+   * Business Rule:
+   * - Allocated income transactions are "covered" by their envelope (budget line)
+   * - Only the OVERAGE (consumed > envelope.amount) impacts the budget
+   * - Free income transactions (no budgetLineId) impact the budget directly
+   *
+   * @param budgetLines - Budget lines with `id` field
+   * @param transactions - Transactions with optional `budgetLineId` field
+   * @returns Total income accounting for envelope coverage
+   */
+  static calculateTotalIncomeWithEnvelopes(
+    budgetLines: FinancialItemWithId[],
+    transactions: TransactionWithBudgetLineId[] = [],
+  ): number {
+    let total = 0;
+
+    budgetLines.forEach((line) => {
+      if (line.kind === 'income') {
+        const consumed = transactions
+          .filter((tx) => tx.budgetLineId === line.id)
+          .reduce((sum, tx) => sum + tx.amount, 0);
+
+        total += Math.max(line.amount, consumed);
+      }
+    });
+
+    transactions.forEach((tx) => {
+      if (!tx.budgetLineId && tx.kind === 'income') {
+        total += tx.amount;
+      }
+    });
+
+    return total;
+  }
+
+  /**
    * Calcule les dépenses totales (expenses + savings) depuis les budget lines et transactions
    * Formule SPECS: expenses_M = Σ(budget_lines WHERE type IN ('expense', 'saving')) + Σ(transactions WHERE type IN ('expense', 'saving'))
    *
@@ -296,7 +333,10 @@ export class BudgetFormulas {
     transactions: TransactionWithBudgetLineId[] = [],
     rollover: number = 0,
   ) {
-    const totalIncome = this.calculateTotalIncome(budgetLines, transactions);
+    const totalIncome = this.calculateTotalIncomeWithEnvelopes(
+      budgetLines,
+      transactions,
+    );
     const totalExpenses = this.calculateTotalExpensesWithEnvelopes(
       budgetLines,
       transactions,
