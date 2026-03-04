@@ -17,26 +17,24 @@ struct LoginView: View {
 
     var body: some View {
         NavigationStack {
-            GeometryReader { geometry in
-                ZStack {
-                    Color.loginGradientBackground
+            ZStack {
+                Color.loginGradientBackground
 
-                    ScrollView {
-                        VStack(spacing: DesignTokens.Spacing.xxl) {
-                            Spacer(minLength: 0)
-                            headerSection
-                            Spacer().frame(height: DesignTokens.Spacing.lg)
-                            formSection
-                            createAccountSection
-                            Spacer(minLength: 0)
-                            termsFooter
-                        }
-                        .padding(.horizontal, DesignTokens.Spacing.xxl)
-                        .padding(.bottom, DesignTokens.Spacing.xxxl)
-                        .frame(minHeight: geometry.size.height)
+                ScrollView {
+                    VStack(spacing: DesignTokens.Spacing.xxl) {
+                        Spacer(minLength: 0)
+                        headerSection
+                        Spacer().frame(height: DesignTokens.Spacing.lg)
+                        formSection
+                        createAccountSection
+                        Spacer(minLength: 0)
+                        termsFooter
                     }
-                    .scrollBounceBehavior(.basedOnSize)
+                    .padding(.horizontal, DesignTokens.Spacing.xxl)
+                    .padding(.bottom, DesignTokens.Spacing.xxxl)
+                    .containerRelativeFrame(.vertical)
                 }
+                .scrollBounceBehavior(.basedOnSize)
             }
             .toolbar {
                 if let isPresented {
@@ -61,7 +59,7 @@ struct LoginView: View {
                 if !reduceMotion {
                     try? await Task.sleep(for: .milliseconds(100))
                 }
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                withAnimation(DesignTokens.Animation.entranceSpring) {
                     isAppeared = true
                 }
             }
@@ -77,7 +75,7 @@ extension LoginView {
             PulpeIcon(size: 72)
                 .scaleEffect(isAppeared ? 1 : 0.8)
                 .opacity(isAppeared ? 1 : 0)
-                .animation(reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 0.8), value: isAppeared)
+                .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring, value: isAppeared)
 
             VStack(spacing: DesignTokens.Spacing.xs) {
                 Text("Content de te revoir")
@@ -91,7 +89,7 @@ extension LoginView {
             .multilineTextAlignment(.center)
             .opacity(isAppeared ? 1 : 0)
             .offset(y: isAppeared ? 0 : 10)
-            .animation(reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: isAppeared)
+            .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.1), value: isAppeared)
         }
         .padding(.top, DesignTokens.Spacing.xxxl)
     }
@@ -107,7 +105,7 @@ extension LoginView {
         }
         .opacity(isAppeared ? 1 : 0)
         .offset(y: isAppeared ? 0 : 20)
-        .animation(reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 0.8).delay(0.2), value: isAppeared)
+        .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.2), value: isAppeared)
     }
 
     @ViewBuilder
@@ -223,20 +221,13 @@ extension LoginView {
         }
     }
 
-    private static let termsURL = URL(string: "https://pulpe.app/legal/cgu")
-    private static let privacyURL = URL(string: "https://pulpe.app/legal/confidentialite")
-
     private var termsFooter: some View {
         HStack(spacing: 4) {
-            if let url = Self.termsURL {
-                Link("CGU", destination: url)
-                    .underline()
-            }
+            Link("CGU", destination: AppURLs.terms)
+                .underline()
             Text("&")
-            if let url = Self.privacyURL {
-                Link("Politique de confidentialité", destination: url)
-                    .underline()
-            }
+            Link("Politique de confidentialité", destination: AppURLs.privacy)
+                .underline()
         }
         .font(PulpeTypography.labelMedium)
         .foregroundStyle(Color.textSecondaryOnboarding)

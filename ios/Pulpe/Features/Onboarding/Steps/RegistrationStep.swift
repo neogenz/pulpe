@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct RegistrationStep: View {
-    let state: OnboardingState
+    @Bindable var state: OnboardingState
     let onComplete: (UserInfo) -> Void
 
     @State private var password = ""
@@ -70,10 +70,7 @@ extension RegistrationStep {
 
             AuthTextField(
                 prompt: "ton@email.com",
-                text: Binding(
-                    get: { state.email },
-                    set: { state.email = $0 }
-                ),
+                text: $state.email,
                 systemImage: "envelope",
                 isFocused: focusedField == .email
             )
@@ -168,7 +165,7 @@ extension RegistrationStep {
                 }
                 .animation(.spring(response: 0.3, dampingFraction: 0.6), value: state.acceptTerms)
 
-                Text("J'accepte les [conditions d'utilisation](https://pulpe.app/legal/cgu) et la [politique de confidentialité](https://pulpe.app/legal/confidentialite)")
+                Text(termsMarkdown)
                     .font(PulpeTypography.footnote)
                     .foregroundStyle(Color.textPrimaryOnboarding)
                     .multilineTextAlignment(.leading)
@@ -178,11 +175,19 @@ extension RegistrationStep {
         .buttonStyle(.plain)
     }
 
+    private var termsMarkdown: AttributedString {
+        let termsLink = AppURLs.terms.absoluteString
+        let privacyLink = AppURLs.privacy.absoluteString
+        let md = "J'accepte les [conditions d'utilisation](\(termsLink))"
+            + " et la [politique de confidentialité](\(privacyLink))"
+        return (try? AttributedString(markdown: md)) ?? AttributedString(md)
+    }
+
     private func passwordCriteriaRow(met: Bool, text: String) -> some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: met ? "checkmark.circle.fill" : "circle")
                 .font(PulpeTypography.caption)
-                .foregroundStyle(met ? .green : Color.textSecondaryOnboarding.opacity(0.5))
+                .foregroundStyle(met ? Color.financialSavings : Color.textSecondaryOnboarding.opacity(0.5))
             Text(text)
                 .font(PulpeTypography.caption)
                 .foregroundStyle(met ? Color.textPrimaryOnboarding : Color.textSecondaryOnboarding)

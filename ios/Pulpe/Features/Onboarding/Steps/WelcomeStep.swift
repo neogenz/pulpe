@@ -76,7 +76,7 @@ struct WelcomeStep: View {
             LoginView(isPresented: $showLogin)
         }
         .task {
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
+            withAnimation(DesignTokens.Animation.entranceSpring.delay(0.1)) {
                 isAppeared = true
             }
         }

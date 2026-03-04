@@ -190,29 +190,33 @@ extension Color {
     /// Welcome sky gradient — covers top ~55%, fades out with a soft convex curve at the bottom
     @ViewBuilder
     static var welcomeGradientBackground: some View {
-        GeometryReader { geometry in
-            let gradientHeight = geometry.size.height * 0.57
+        ZStack(alignment: .top) {
+            authBase
 
-            ZStack(alignment: .top) {
-                authBase
-
-                LinearGradient(
-                    stops: welcomeGradientStops,
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: gradientHeight)
-                .mask {
-                    // Radial gradient centered at top: sides fade before center → convex curve
-                    RadialGradient(
-                        stops: [
-                            .init(color: .white, location: 0.0),
-                            .init(color: .white, location: 0.4),
-                            .init(color: .clear, location: 0.82),
-                        ],
-                        center: UnitPoint(x: 0.5, y: 0.0),
-                        startRadius: 0,
-                        endRadius: gradientHeight * 1.45
+            LinearGradient(
+                stops: welcomeGradientStops,
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .containerRelativeFrame(.vertical) { height, _ in height * 0.57 }
+            .mask {
+                // Radial gradient centered at top: sides fade before center -> convex curve
+                Canvas { context, size in
+                    let radius = size.height * 1.45
+                    let center = CGPoint(x: size.width / 2, y: 0)
+                    let shading = Gradient(stops: [
+                        .init(color: .white, location: 0.0),
+                        .init(color: .white, location: 0.4),
+                        .init(color: .clear, location: 0.82),
+                    ])
+                    context.fill(
+                        Path(CGRect(origin: .zero, size: size)),
+                        with: .radialGradient(
+                            shading,
+                            center: center,
+                            startRadius: 0,
+                            endRadius: radius
+                        )
                     )
                 }
             }

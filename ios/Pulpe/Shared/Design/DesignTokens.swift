@@ -136,6 +136,10 @@ enum DesignTokens {
             .spring(response: 0.4, dampingFraction: 0.65)
         }
 
+        static var entranceSpring: SwiftUI.Animation {
+            .spring(response: 0.6, dampingFraction: 0.8)
+        }
+
         // MARK: - Easing
 
         static var smoothEaseOut: SwiftUI.Animation {
