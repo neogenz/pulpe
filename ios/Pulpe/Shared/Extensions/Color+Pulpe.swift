@@ -187,22 +187,34 @@ extension Color {
     static let authGradientText = Color(light: .white, dark: Color(hex: 0xF5F5F5))
     static let authGradientTextSecondary = Color(light: .white.opacity(0.85), dark: Color(hex: 0xD0D0D0))
 
-    /// Welcome sky gradient — rounded shape covering top ~55% with curved bottom edge
+    /// Welcome sky gradient — covers top ~55%, fades out with a soft convex curve at the bottom
     @ViewBuilder
     static var welcomeGradientBackground: some View {
         GeometryReader { geometry in
+            let gradientHeight = geometry.size.height * 0.57
+
             ZStack(alignment: .top) {
                 authBase
 
-                UnevenRoundedRectangle(bottomLeadingRadius: 44, bottomTrailingRadius: 44)
-                    .fill(
-                        LinearGradient(
-                            stops: welcomeGradientStops,
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+                LinearGradient(
+                    stops: welcomeGradientStops,
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: gradientHeight)
+                .mask {
+                    // Radial gradient centered at top: sides fade before center → convex curve
+                    RadialGradient(
+                        stops: [
+                            .init(color: .white, location: 0.0),
+                            .init(color: .white, location: 0.4),
+                            .init(color: .clear, location: 0.82),
+                        ],
+                        center: UnitPoint(x: 0.5, y: 0.0),
+                        startRadius: 0,
+                        endRadius: gradientHeight * 1.45
                     )
-                    .frame(height: geometry.size.height * 0.55)
+                }
             }
         }
         .ignoresSafeArea()
