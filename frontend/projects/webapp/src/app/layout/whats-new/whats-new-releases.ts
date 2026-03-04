@@ -4,10 +4,10 @@ export interface WhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.28.0',
+  version: '0.29.0',
   features: [
-    "Menu d'actions sur les transactions",
-    'Section des transactions libres',
-    'Limites du sélecteur de date corrigées',
+    'Etats de consommation colores sur les previsions',
+    'Correction de la logique enveloppe',
+    'Protection des montants dans les captures',
   ],
 };

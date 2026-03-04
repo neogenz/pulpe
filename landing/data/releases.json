@@ -1,5 +1,59 @@
 [
   {
+    "version": "0.29.0",
+    "date": "2026-03-04",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.29.0",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "Etats de consommation colores",
+          "description": "Les lignes budgetaires affichent un code couleur selon le niveau de consommation (vert, orange, rouge) avec un panel reactif"
+        },
+        {
+          "title": "Ecrans de chargement iOS",
+          "description": "Des squelettes d'interface s'affichent pendant le chargement des donnees sur toutes les pages"
+        },
+        {
+          "title": "Report du mois precedent iOS",
+          "description": "Consultez le budget du mois precedent directement depuis le detail d'un budget"
+        },
+        {
+          "title": "Analytics PostHog iOS",
+          "description": "Suivi anonymise de l'usage integre a l'application iOS"
+        },
+        {
+          "title": "Protection des montants",
+          "description": "Les champs de montants sont exclus de la capture PostHog pour proteger la vie privee"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Logique enveloppe",
+          "description": "Correction du calcul du reste disponible pour les enveloppes de revenus sur le backend, le shared et iOS"
+        },
+        {
+          "title": "Formule du solde restant",
+          "description": "Correction de l'agregation du solde restant dans les budgets"
+        },
+        {
+          "title": "Refonte visuelle iOS",
+          "description": "Alignement complet avec la direction artistique (theme sombre, Liquid Glass, couleurs systeme iOS, hero card redessinee)"
+        },
+        {
+          "title": "Stabilite iOS",
+          "description": "Correction de bugs de cache, conditions de course et ecrans vides au chargement"
+        }
+      ],
+      "technical": [
+        {
+          "title": "Optimisation des calculs",
+          "description": "Pre-indexation des transactions et migration vers onGeometryChange pour de meilleures performances"
+        }
+      ]
+    }
+  },
+  {
     "version": "0.28.0",
     "date": "2026-02-28",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.28.0",

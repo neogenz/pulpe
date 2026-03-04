@@ -1,5 +1,11 @@
 # pulpe-shared
 
+## 0.8.3
+
+### Patch Changes
+
+- Etats de consommation colores, logique enveloppe corrigee, squelettes iOS, analytics PostHog iOS, protection des montants.
+
 ## 0.8.2
 
 ### Patch Changes

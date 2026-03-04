@@ -1,5 +1,11 @@
 # pulpe-landing
 
+## 0.6.0
+
+### Minor Changes
+
+- Etats de consommation colores, logique enveloppe corrigee, squelettes iOS, analytics PostHog iOS, protection des montants.
+
 ## 0.5.0
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 # pulpe-frontend
 
+## 0.29.0
+
+### Minor Changes
+
+- Etats de consommation colores, logique enveloppe corrigee, squelettes iOS, analytics PostHog iOS, protection des montants.
+
+### Patch Changes
+
+- Updated dependencies
+  - pulpe-shared@0.8.3
+
 ## 0.28.0
 
 ### Minor Changes

@@ -1,5 +1,13 @@
 # backend-nest
 
+## 0.15.1
+
+### Patch Changes
+
+- Etats de consommation colores, logique enveloppe corrigee, squelettes iOS, analytics PostHog iOS, protection des montants.
+- Updated dependencies
+  - pulpe-shared@0.8.3
+
 ## 0.15.0
 
 ### Minor Changes
