@@ -7,48 +7,48 @@
     "changes": {
       "features": [
         {
-          "title": "Etats de consommation colores",
-          "description": "Les lignes budgetaires affichent un code couleur selon le niveau de consommation (vert, orange, rouge) avec un panel reactif"
+          "title": "États de consommation colorés",
+          "description": "Les lignes budgétaires affichent un code couleur selon le niveau de consommation (vert, orange, rouge) avec un panel réactif"
         },
         {
-          "title": "Ecrans de chargement iOS",
-          "description": "Des squelettes d'interface s'affichent pendant le chargement des donnees sur toutes les pages"
+          "title": "Écrans de chargement iOS",
+          "description": "Des squelettes d'interface s'affichent pendant le chargement des données sur toutes les pages"
         },
         {
-          "title": "Report du mois precedent iOS",
-          "description": "Consultez le budget du mois precedent directement depuis le detail d'un budget"
+          "title": "Report du mois précédent iOS",
+          "description": "Consultez le budget du mois précédent directement depuis le détail d'un budget"
         },
         {
           "title": "Analytics PostHog iOS",
-          "description": "Suivi anonymise de l'usage integre a l'application iOS"
+          "description": "Suivi anonymisé de l'usage intégré à l'application iOS"
         },
         {
           "title": "Protection des montants",
-          "description": "Les champs de montants sont exclus de la capture PostHog pour proteger la vie privee"
+          "description": "Les champs de montants sont exclus de la capture PostHog pour protéger la vie privée"
         }
       ],
       "fixes": [
         {
           "title": "Logique enveloppe",
-          "description": "Correction du calcul du reste disponible pour les enveloppes de revenus sur le backend, le shared et iOS"
+          "description": "Correction du calcul du reste disponible pour les enveloppes de revenus sur le backend, le partagé et iOS"
         },
         {
           "title": "Formule du solde restant",
-          "description": "Correction de l'agregation du solde restant dans les budgets"
+          "description": "Correction de l'agrégation du solde restant dans les budgets"
         },
         {
           "title": "Refonte visuelle iOS",
-          "description": "Alignement complet avec la direction artistique (theme sombre, Liquid Glass, couleurs systeme iOS, hero card redessinee)"
+          "description": "Alignement complet avec la direction artistique (thème sombre, Liquid Glass, couleurs système iOS, hero card redessinée)"
         },
         {
-          "title": "Stabilite iOS",
-          "description": "Correction de bugs de cache, conditions de course et ecrans vides au chargement"
+          "title": "Stabilité iOS",
+          "description": "Correction de bugs de cache, conditions de course et écrans vides au chargement"
         }
       ],
       "technical": [
         {
           "title": "Optimisation des calculs",
-          "description": "Pre-indexation des transactions et migration vers onGeometryChange pour de meilleures performances"
+          "description": "Pré-indexation des transactions et migration vers onGeometryChange pour de meilleures performances"
         }
       ]
     }
