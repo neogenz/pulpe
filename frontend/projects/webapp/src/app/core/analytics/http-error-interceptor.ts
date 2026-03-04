@@ -34,6 +34,9 @@ export const httpErrorInterceptor: HttpInterceptorFn = (req, next) => {
   );
 };
 
+/** 401/403 are handled by authInterceptor (token refresh, redirect) — not bugs */
+const AUTH_HANDLED_STATUSES = new Set([401, 403]);
+
 /**
  * Capture HTTP error as exception to PostHog for error tracking
  */
@@ -44,6 +47,10 @@ function captureHttpError(
   logger: Logger,
   applicationConfiguration: ApplicationConfiguration,
 ): void {
+  if (AUTH_HANDLED_STATUSES.has(error.status)) {
+    return;
+  }
+
   try {
     const posthogError = normalizeHttpError(error);
     const context: HttpErrorContext = {

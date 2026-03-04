@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { BudgetFormulas } from './budget-formulas.js';
+import { BudgetFormulas, isOutflowKind } from './budget-formulas.js';
 import type { TransactionKind } from '../types.js';
 
 /**
@@ -19,7 +19,7 @@ function createFinancialItem(kind: TransactionKind, amount: number) {
 let idCounter = 0;
 
 /**
- * Helper pour créer des items financiers avec id (pour calculateAllMetricsWithEnvelopes)
+ * Helper pour créer des items financiers avec id (pour les calculs avec logique d'enveloppe)
  */
 function createFinancialItemWithId(kind: TransactionKind, amount: number) {
   return { id: `item-${++idCounter}`, kind, amount };
@@ -44,40 +44,37 @@ const complexTestDataWithIds = {
   rollover: 250, // Report positif
 };
 
-/**
- * Dataset de test complexe simulant un mois réel (legacy - sans ids)
- */
-const complexTestData = {
-  budgetLines: [
-    createFinancialItem('income', 5000), // Salaire
-    createFinancialItem('expense', 1500), // Loyer
-    createFinancialItem('expense', 800), // Courses
-    createFinancialItem('saving', 500), // Épargne planifiée
-  ],
-  transactions: [
-    createFinancialItem('expense', 200), // Restaurant
-    createFinancialItem('expense', 150), // Essence
-    createFinancialItem('income', 300), // Freelance
-    createFinancialItem('saving', 100), // Épargne supplémentaire
-  ],
-  rollover: 250, // Report positif
-};
+describe('isOutflowKind', () => {
+  it('should return true for expense', () => {
+    expect(isOutflowKind('expense')).toBe(true);
+  });
+
+  it('should return true for saving', () => {
+    expect(isOutflowKind('saving')).toBe(true);
+  });
+
+  it('should return false for income', () => {
+    expect(isOutflowKind('income')).toBe(false);
+  });
+});
 
 describe('BudgetFormulas', () => {
   describe('calculateTotalIncome', () => {
     it('should calculate income from budget lines only', () => {
       const budgetLines = [
-        createFinancialItem('income', 5000),
-        createFinancialItem('income', 1000),
-        createFinancialItem('expense', 500), // Should be ignored
+        createFinancialItemWithId('income', 5000),
+        createFinancialItemWithId('income', 1000),
+        createFinancialItemWithId('expense', 500), // Should be ignored
       ];
 
       expect(BudgetFormulas.calculateTotalIncome(budgetLines, [])).toBe(6000);
     });
 
     it('should calculate income from budget lines and transactions', () => {
-      const budgetLines = [createFinancialItem('income', 5000)];
-      const transactions = [createFinancialItem('income', 300)];
+      const budgetLines = [createFinancialItemWithId('income', 5000)];
+      const transactions = [
+        { ...createFinancialItem('income', 300), budgetLineId: null },
+      ];
 
       expect(
         BudgetFormulas.calculateTotalIncome(budgetLines, transactions),
@@ -91,10 +88,12 @@ describe('BudgetFormulas', () => {
 
     it('should ignore non-income items', () => {
       const budgetLines = [
-        createFinancialItem('expense', 1000),
-        createFinancialItem('saving', 500),
+        createFinancialItemWithId('expense', 1000),
+        createFinancialItemWithId('saving', 500),
       ];
-      const transactions = [createFinancialItem('expense', 200)];
+      const transactions = [
+        { ...createFinancialItem('expense', 200), budgetLineId: null },
+      ];
 
       expect(
         BudgetFormulas.calculateTotalIncome(budgetLines, transactions),
@@ -105,9 +104,9 @@ describe('BudgetFormulas', () => {
   describe('calculateTotalExpenses', () => {
     it('should include both expenses and savings according to SPECS', () => {
       const budgetLines = [
-        createFinancialItem('expense', 1000),
-        createFinancialItem('saving', 500), // Traité comme expense selon SPECS
-        createFinancialItem('income', 5000), // Should be ignored
+        createFinancialItemWithId('expense', 1000),
+        createFinancialItemWithId('saving', 500), // Traité comme expense selon SPECS
+        createFinancialItemWithId('income', 5000), // Should be ignored
       ];
 
       expect(BudgetFormulas.calculateTotalExpenses(budgetLines, [])).toBe(1500);
@@ -115,12 +114,12 @@ describe('BudgetFormulas', () => {
 
     it('should combine budget lines and transactions expenses', () => {
       const budgetLines = [
-        createFinancialItem('expense', 1000),
-        createFinancialItem('saving', 500),
+        createFinancialItemWithId('expense', 1000),
+        createFinancialItemWithId('saving', 500),
       ];
       const transactions = [
-        createFinancialItem('expense', 200),
-        createFinancialItem('saving', 100),
+        { ...createFinancialItem('expense', 200), budgetLineId: null },
+        { ...createFinancialItem('saving', 100), budgetLineId: null },
       ];
 
       expect(
@@ -134,8 +133,10 @@ describe('BudgetFormulas', () => {
     });
 
     it('should ignore income items', () => {
-      const budgetLines = [createFinancialItem('income', 5000)];
-      const transactions = [createFinancialItem('income', 300)];
+      const budgetLines = [createFinancialItemWithId('income', 5000)];
+      const transactions = [
+        { ...createFinancialItem('income', 300), budgetLineId: null },
+      ];
 
       expect(
         BudgetFormulas.calculateTotalExpenses(budgetLines, transactions),
@@ -877,7 +878,7 @@ describe('BudgetFormulas', () => {
   describe('validateMetricsCoherence', () => {
     it('should validate coherent metrics', () => {
       const { budgetLines, transactions, rollover } = complexTestDataWithIds;
-      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+      const metrics = BudgetFormulas.calculateAllMetrics(
         budgetLines,
         transactions,
         rollover,
@@ -891,6 +892,7 @@ describe('BudgetFormulas', () => {
       const badMetrics = {
         totalIncome: 5000,
         totalExpenses: 3000,
+        totalSavings: 0,
         available: 4000, // Incorrecte: devrait être 5000 + rollover
         endingBalance: 2000,
         remaining: 2000,
@@ -904,6 +906,7 @@ describe('BudgetFormulas', () => {
       const badMetrics = {
         totalIncome: -1000, // Invalide
         totalExpenses: 3000,
+        totalSavings: 0,
         available: 4000,
         endingBalance: 2000,
         remaining: 2000,
@@ -922,11 +925,7 @@ describe('BudgetFormulas', () => {
         createFinancialItemWithId('expense', 4500),
       ];
 
-      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
-        budgetLines,
-        [],
-        0,
-      );
+      const metrics = BudgetFormulas.calculateAllMetrics(budgetLines, [], 0);
 
       expect(metrics.totalIncome).toBe(5000);
       expect(metrics.totalExpenses).toBe(4500);
@@ -943,7 +942,7 @@ describe('BudgetFormulas', () => {
       ];
       const rollover = 500; // Depuis janvier
 
-      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+      const metrics = BudgetFormulas.calculateAllMetrics(
         budgetLines,
         [],
         rollover,
@@ -964,11 +963,7 @@ describe('BudgetFormulas', () => {
         createFinancialItemWithId('saving', 1000), // Doit être traité comme expense
       ];
 
-      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
-        budgetLines,
-        [],
-        0,
-      );
+      const metrics = BudgetFormulas.calculateAllMetrics(budgetLines, [], 0);
 
       expect(metrics.totalExpenses).toBe(4000); // 3000 + 1000 (saving inclus)
       expect(metrics.endingBalance).toBe(1000); // 5000 - 4000
@@ -982,7 +977,7 @@ describe('BudgetFormulas', () => {
       ];
       const rollover = 900; // Depuis février
 
-      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+      const metrics = BudgetFormulas.calculateAllMetrics(
         budgetLines,
         [],
         rollover,
@@ -1003,7 +998,7 @@ describe('BudgetFormulas', () => {
       ];
       const rollover = 800; // Depuis mars
 
-      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+      const metrics = BudgetFormulas.calculateAllMetrics(
         budgetLines,
         [],
         rollover,
@@ -1055,7 +1050,7 @@ describe('BudgetFormulas', () => {
           createFinancialItemWithId('expense', month.expenses),
         ];
 
-        const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+        const metrics = BudgetFormulas.calculateAllMetrics(
           budgetLines,
           [],
           month.rollover,
@@ -1084,7 +1079,7 @@ describe('BudgetFormulas', () => {
       }));
 
       const start = performance.now();
-      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+      const metrics = BudgetFormulas.calculateAllMetrics(
         largeBudgetLines,
         largeTransactions,
         0,
@@ -1101,7 +1096,7 @@ describe('BudgetFormulas', () => {
     });
   });
 
-  describe('calculateTotalExpensesWithEnvelopes', () => {
+  describe('calculateTotalExpenses', () => {
     function createBudgetLine(
       id: string,
       kind: TransactionKind,
@@ -1124,7 +1119,7 @@ describe('BudgetFormulas', () => {
           const budgetLines = [createBudgetLine('line-1', 'expense', 500)];
           const transactions = [createTransaction('expense', 100, 'line-1')];
 
-          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+          const result = BudgetFormulas.calculateTotalExpenses(
             budgetLines,
             transactions,
           );
@@ -1134,22 +1129,15 @@ describe('BudgetFormulas', () => {
         });
 
         it('should not double-count the transaction amount', () => {
-          // Without envelope logic: 500 (line) + 100 (tx) = 600 (WRONG)
           // With envelope logic: max(500, 100) = 500 (CORRECT)
           const budgetLines = [createBudgetLine('line-1', 'expense', 500)];
           const transactions = [createTransaction('expense', 100, 'line-1')];
 
-          const naiveResult = BudgetFormulas.calculateTotalExpenses(
+          const envelopeResult = BudgetFormulas.calculateTotalExpenses(
             budgetLines,
             transactions,
           );
-          const envelopeResult =
-            BudgetFormulas.calculateTotalExpensesWithEnvelopes(
-              budgetLines,
-              transactions,
-            );
 
-          expect(naiveResult).toBe(600); // Naive double-counts
           expect(envelopeResult).toBe(500); // Envelope-aware is correct
         });
       });
@@ -1159,7 +1147,7 @@ describe('BudgetFormulas', () => {
           const budgetLines = [createBudgetLine('line-1', 'expense', 100)];
           const transactions = [createTransaction('expense', 150, 'line-1')];
 
-          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+          const result = BudgetFormulas.calculateTotalExpenses(
             budgetLines,
             transactions,
           );
@@ -1172,7 +1160,7 @@ describe('BudgetFormulas', () => {
           const budgetLines = [createBudgetLine('line-1', 'expense', 100)];
           const transactions = [createTransaction('expense', 188, 'line-1')];
 
-          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+          const result = BudgetFormulas.calculateTotalExpenses(
             budgetLines,
             transactions,
           );
@@ -1187,7 +1175,7 @@ describe('BudgetFormulas', () => {
           const budgetLines: ReturnType<typeof createBudgetLine>[] = [];
           const transactions = [createTransaction('expense', 50, null)];
 
-          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+          const result = BudgetFormulas.calculateTotalExpenses(
             budgetLines,
             transactions,
           );
@@ -1202,7 +1190,7 @@ describe('BudgetFormulas', () => {
             createTransaction('expense', 75, null), // Free transaction
           ];
 
-          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+          const result = BudgetFormulas.calculateTotalExpenses(
             budgetLines,
             transactions,
           );
@@ -1222,7 +1210,7 @@ describe('BudgetFormulas', () => {
             createTransaction('expense', 150, 'line-1'),
           ];
 
-          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+          const result = BudgetFormulas.calculateTotalExpenses(
             budgetLines,
             transactions,
           );
@@ -1238,7 +1226,7 @@ describe('BudgetFormulas', () => {
             createTransaction('expense', 250, 'line-1'),
           ];
 
-          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+          const result = BudgetFormulas.calculateTotalExpenses(
             budgetLines,
             transactions,
           );
@@ -1260,7 +1248,7 @@ describe('BudgetFormulas', () => {
             createTransaction('expense', 50, null), // Free transaction
           ];
 
-          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+          const result = BudgetFormulas.calculateTotalExpenses(
             budgetLines,
             transactions,
           );
@@ -1278,7 +1266,7 @@ describe('BudgetFormulas', () => {
           const budgetLines = [createBudgetLine('line-1', 'saving', 500)];
           const transactions = [createTransaction('saving', 100, 'line-1')];
 
-          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+          const result = BudgetFormulas.calculateTotalExpenses(
             budgetLines,
             transactions,
           );
@@ -1295,20 +1283,34 @@ describe('BudgetFormulas', () => {
             createTransaction('income', 300, null), // Free income - should be ignored
           ];
 
-          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+          const result = BudgetFormulas.calculateTotalExpenses(
             budgetLines,
             transactions,
           );
 
           expect(result).toBe(500);
         });
+
+        it('should not inflate consumed when an income tx is allocated to an expense line', () => {
+          const budgetLines = [createBudgetLine('line-1', 'expense', 500)];
+          const transactions = [
+            createTransaction('expense', 200, 'line-1'),
+            createTransaction('income', 300, 'line-1'), // income allocated to expense line — should NOT count toward consumed
+          ];
+
+          const result = BudgetFormulas.calculateTotalExpenses(
+            budgetLines,
+            transactions,
+          );
+
+          // Only expense tx counts toward consumed: max(500, 200) = 500
+          expect(result).toBe(500);
+        });
       });
 
       describe('edge cases', () => {
         it('should return 0 for empty arrays', () => {
-          expect(
-            BudgetFormulas.calculateTotalExpensesWithEnvelopes([], []),
-          ).toBe(0);
+          expect(BudgetFormulas.calculateTotalExpenses([], [])).toBe(0);
         });
 
         it('should handle budget lines with no transactions', () => {
@@ -1317,10 +1319,7 @@ describe('BudgetFormulas', () => {
             createBudgetLine('line-2', 'expense', 300),
           ];
 
-          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
-            budgetLines,
-            [],
-          );
+          const result = BudgetFormulas.calculateTotalExpenses(budgetLines, []);
 
           expect(result).toBe(800);
         });
@@ -1334,10 +1333,7 @@ describe('BudgetFormulas', () => {
             },
           ];
 
-          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
-            budgetLines,
-            [],
-          );
+          const result = BudgetFormulas.calculateTotalExpenses(budgetLines, []);
 
           expect(result).toBe(600);
         });
@@ -1346,7 +1342,7 @@ describe('BudgetFormulas', () => {
           const budgetLines = [createBudgetLine('line-1', 'expense', 500)];
           const transactions = [{ kind: 'expense' as const, amount: 50 }]; // No budgetLineId field
 
-          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+          const result = BudgetFormulas.calculateTotalExpenses(
             budgetLines,
             transactions,
           );
@@ -1358,7 +1354,295 @@ describe('BudgetFormulas', () => {
     });
   });
 
-  describe('calculateAllMetricsWithEnvelopes', () => {
+  describe('calculateTotalIncome', () => {
+    function createBudgetLine(
+      id: string,
+      kind: TransactionKind,
+      amount: number,
+    ) {
+      return { id, kind, amount };
+    }
+
+    function createTransaction(
+      kind: TransactionKind,
+      amount: number,
+      budgetLineId?: string | null,
+    ) {
+      return { kind, amount, budgetLineId };
+    }
+
+    describe('Envelope allocation business rules', () => {
+      describe('when income transaction is allocated within its envelope', () => {
+        it('should only count the envelope amount (no double-counting)', () => {
+          const budgetLines = [createBudgetLine('line-1', 'income', 5000)];
+          const transactions = [createTransaction('income', 4800, 'line-1')];
+
+          const result = BudgetFormulas.calculateTotalIncome(
+            budgetLines,
+            transactions,
+          );
+
+          // Envelope is 5000, consumed is 4800 -> max(5000, 4800) = 5000
+          expect(result).toBe(5000);
+        });
+      });
+
+      describe('when income transaction exceeds its envelope', () => {
+        it('should count the actual consumed amount (overage)', () => {
+          const budgetLines = [createBudgetLine('line-1', 'income', 5000)];
+          const transactions = [createTransaction('income', 5200, 'line-1')];
+
+          const result = BudgetFormulas.calculateTotalIncome(
+            budgetLines,
+            transactions,
+          );
+
+          // Envelope is 5000, consumed is 5200 -> max(5000, 5200) = 5200
+          expect(result).toBe(5200);
+        });
+      });
+
+      describe('when income transaction has no envelope allocation (free)', () => {
+        it('should count the full transaction amount directly', () => {
+          const budgetLines = [createBudgetLine('line-1', 'income', 5000)];
+          const transactions = [
+            createTransaction('income', 300, null), // Free income
+          ];
+
+          const result = BudgetFormulas.calculateTotalIncome(
+            budgetLines,
+            transactions,
+          );
+
+          // Envelope: max(5000, 0) = 5000
+          // Free: 300
+          // Total: 5000 + 300 = 5300
+          expect(result).toBe(5300);
+        });
+      });
+
+      describe('with mixed allocated and free income transactions', () => {
+        it('should apply envelope rules to allocated and direct impact for free', () => {
+          const budgetLines = [createBudgetLine('line-1', 'income', 5000)];
+          const transactions = [
+            createTransaction('income', 4800, 'line-1'), // Allocated within envelope
+            createTransaction('income', 300, null), // Free income
+          ];
+
+          const result = BudgetFormulas.calculateTotalIncome(
+            budgetLines,
+            transactions,
+          );
+
+          // Envelope: max(5000, 4800) = 5000
+          // Free: 300
+          // Total: 5000 + 300 = 5300
+          expect(result).toBe(5300);
+        });
+      });
+
+      describe('with multiple income lines and their transactions', () => {
+        it('should apply envelope logic per line independently', () => {
+          const budgetLines = [
+            createBudgetLine('line-1', 'income', 5000),
+            createBudgetLine('line-2', 'income', 3000),
+          ];
+          const transactions = [
+            createTransaction('income', 4800, 'line-1'),
+            createTransaction('income', 3500, 'line-2'),
+          ];
+
+          const result = BudgetFormulas.calculateTotalIncome(
+            budgetLines,
+            transactions,
+          );
+
+          // line-1: max(5000, 4800) = 5000
+          // line-2: max(3000, 3500) = 3500
+          // Total: 5000 + 3500 = 8500
+          expect(result).toBe(8500);
+        });
+      });
+
+      describe('with non-income items', () => {
+        it('should ignore expense and saving budget lines', () => {
+          const budgetLines = [
+            createBudgetLine('line-1', 'income', 5000),
+            createBudgetLine('line-2', 'expense', 1000),
+          ];
+          const transactions: ReturnType<typeof createTransaction>[] = [];
+
+          const result = BudgetFormulas.calculateTotalIncome(
+            budgetLines,
+            transactions,
+          );
+
+          // Only income line counts: 5000
+          expect(result).toBe(5000);
+        });
+
+        it('should not count free expense transactions', () => {
+          const budgetLines = [createBudgetLine('line-1', 'income', 5000)];
+          const transactions = [
+            createTransaction('income', 4800, 'line-1'),
+            createTransaction('expense', 200, null), // Free expense - should be ignored
+          ];
+
+          const result = BudgetFormulas.calculateTotalIncome(
+            budgetLines,
+            transactions,
+          );
+
+          expect(result).toBe(5000);
+        });
+
+        it('should not inflate consumed when an expense tx is allocated to an income line', () => {
+          const budgetLines = [createBudgetLine('line-1', 'income', 5000)];
+          const transactions = [
+            createTransaction('income', 4800, 'line-1'),
+            createTransaction('expense', 300, 'line-1'), // expense allocated to income line — should NOT count toward consumed
+          ];
+
+          const result = BudgetFormulas.calculateTotalIncome(
+            budgetLines,
+            transactions,
+          );
+
+          // Only income tx counts toward consumed: max(5000, 4800) = 5000
+          expect(result).toBe(5000);
+        });
+      });
+
+      describe('edge cases', () => {
+        it('should return 0 for empty arrays', () => {
+          expect(BudgetFormulas.calculateTotalIncome([], [])).toBe(0);
+        });
+
+        it('should handle budget lines with no transactions', () => {
+          const budgetLines = [
+            createBudgetLine('line-1', 'income', 5000),
+            createBudgetLine('line-2', 'income', 3000),
+          ];
+
+          const result = BudgetFormulas.calculateTotalIncome(budgetLines, []);
+
+          expect(result).toBe(8000);
+        });
+
+        it('should handle transactions without budgetLineId field', () => {
+          const budgetLines = [createBudgetLine('line-1', 'income', 5000)];
+          const transactions = [{ kind: 'income' as const, amount: 300 }]; // No budgetLineId field
+
+          const result = BudgetFormulas.calculateTotalIncome(
+            budgetLines,
+            transactions,
+          );
+
+          // Budget line: 5000, free transaction: 300 -> 5300
+          expect(result).toBe(5300);
+        });
+      });
+    });
+  });
+
+  describe('calculateTotalSavings', () => {
+    function createBudgetLine(
+      id: string,
+      kind: TransactionKind,
+      amount: number,
+    ) {
+      return { id, kind, amount };
+    }
+
+    function createTransaction(
+      kind: TransactionKind,
+      amount: number,
+      budgetLineId?: string | null,
+    ) {
+      return { kind, amount, budgetLineId };
+    }
+
+    it('should return sum of saving budget line amounts only', () => {
+      const budgetLines = [
+        createBudgetLine('line-1', 'saving', 500),
+        createBudgetLine('line-2', 'saving', 300),
+        createBudgetLine('line-3', 'expense', 1000), // should be ignored
+      ];
+
+      const result = BudgetFormulas.calculateTotalSavings(budgetLines, []);
+
+      expect(result).toBe(800);
+    });
+
+    it('should add free saving transactions directly', () => {
+      const budgetLines: ReturnType<typeof createBudgetLine>[] = [];
+      const transactions = [
+        createTransaction('saving', 100, null),
+        createTransaction('saving', 50, null),
+        createTransaction('expense', 200, null), // should be ignored
+      ];
+
+      const result = BudgetFormulas.calculateTotalSavings(
+        budgetLines,
+        transactions,
+      );
+
+      expect(result).toBe(150);
+    });
+
+    it('should use envelope logic: max(line.amount, consumed) for allocated saving transactions', () => {
+      const budgetLines = [createBudgetLine('line-1', 'saving', 500)];
+      const transactions = [
+        createTransaction('saving', 200, 'line-1'),
+        createTransaction('saving', 150, 'line-1'),
+      ];
+
+      const result = BudgetFormulas.calculateTotalSavings(
+        budgetLines,
+        transactions,
+      );
+
+      // Envelope: 500, consumed: 200 + 150 = 350 -> max(500, 350) = 500
+      expect(result).toBe(500);
+    });
+
+    it('should use consumed when it exceeds envelope', () => {
+      const budgetLines = [createBudgetLine('line-1', 'saving', 200)];
+      const transactions = [createTransaction('saving', 350, 'line-1')];
+
+      const result = BudgetFormulas.calculateTotalSavings(
+        budgetLines,
+        transactions,
+      );
+
+      // Envelope: 200, consumed: 350 -> max(200, 350) = 350
+      expect(result).toBe(350);
+    });
+
+    it('should ignore expense and income items', () => {
+      const budgetLines = [
+        createBudgetLine('line-1', 'income', 5000),
+        createBudgetLine('line-2', 'expense', 1000),
+      ];
+      const transactions = [
+        createTransaction('income', 300, null),
+        createTransaction('expense', 200, null),
+      ];
+
+      const result = BudgetFormulas.calculateTotalSavings(
+        budgetLines,
+        transactions,
+      );
+
+      expect(result).toBe(0);
+    });
+
+    it('should handle empty arrays', () => {
+      expect(BudgetFormulas.calculateTotalSavings([], [])).toBe(0);
+    });
+  });
+
+  describe('calculateAllMetrics', () => {
     function createBudgetLine(
       id: string,
       kind: TransactionKind,
@@ -1383,7 +1667,7 @@ describe('BudgetFormulas', () => {
       const transactions = [createTransaction('expense', 100, 'expense-1')];
       const rollover = 200;
 
-      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+      const metrics = BudgetFormulas.calculateAllMetrics(
         budgetLines,
         transactions,
         rollover,
@@ -1391,6 +1675,7 @@ describe('BudgetFormulas', () => {
 
       expect(metrics.totalIncome).toBe(5000);
       expect(metrics.totalExpenses).toBe(500); // envelope-aware: max(500, 100) = 500
+      expect(metrics.totalSavings).toBe(0);
       expect(metrics.available).toBe(5200); // 5000 + 200
       expect(metrics.endingBalance).toBe(4700); // 5200 - 500
       expect(metrics.remaining).toBe(4700);
@@ -1404,7 +1689,7 @@ describe('BudgetFormulas', () => {
       ];
       const transactions = [createTransaction('expense', 300, 'expense-1')];
 
-      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+      const metrics = BudgetFormulas.calculateAllMetrics(
         budgetLines,
         transactions,
         0,
@@ -1424,7 +1709,7 @@ describe('BudgetFormulas', () => {
         createTransaction('expense', 50, null), // free transaction
       ];
 
-      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+      const metrics = BudgetFormulas.calculateAllMetrics(
         budgetLines,
         transactions,
         0,
@@ -1449,7 +1734,7 @@ describe('BudgetFormulas', () => {
       ];
       const rollover = 250;
 
-      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+      const metrics = BudgetFormulas.calculateAllMetrics(
         budgetLines,
         transactions,
         rollover,
@@ -1461,18 +1746,33 @@ describe('BudgetFormulas', () => {
         metrics.available - metrics.totalExpenses,
       );
       expect(metrics.remaining).toBe(metrics.endingBalance);
+      expect(metrics.totalSavings).toBeGreaterThanOrEqual(0);
       expect(BudgetFormulas.validateMetricsCoherence(metrics)).toBe(true);
     });
 
-    it('should handle empty data', () => {
-      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
-        [],
-        [],
+    it('should include totalSavings in returned metrics', () => {
+      const budgetLines = [
+        createBudgetLine('income-1', 'income', 5000),
+        createBudgetLine('saving-1', 'saving', 400),
+      ];
+      const transactions = [createTransaction('saving', 100, null)];
+
+      const metrics = BudgetFormulas.calculateAllMetrics(
+        budgetLines,
+        transactions,
         0,
       );
 
+      // saving line: max(400, 0) = 400; free saving tx: 100 → totalSavings = 500
+      expect(metrics.totalSavings).toBe(500);
+    });
+
+    it('should handle empty data', () => {
+      const metrics = BudgetFormulas.calculateAllMetrics([], [], 0);
+
       expect(metrics.totalIncome).toBe(0);
       expect(metrics.totalExpenses).toBe(0);
+      expect(metrics.totalSavings).toBe(0);
       expect(metrics.available).toBe(0);
       expect(metrics.endingBalance).toBe(0);
       expect(metrics.remaining).toBe(0);

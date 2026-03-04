@@ -184,10 +184,7 @@ describe('DashboardStore - Business Scenarios', () => {
       const { store } = await setupWithBudgetAndWait(budget, lines, txs);
 
       // Envelope: max(300, 100) = 300, free: 50 → total = 350
-      const expected = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
-        lines,
-        txs,
-      );
+      const expected = BudgetFormulas.calculateTotalExpenses(lines, txs);
       expect(store.totalExpenses()).toBe(expected);
       expect(store.totalExpenses()).toBe(350);
     });

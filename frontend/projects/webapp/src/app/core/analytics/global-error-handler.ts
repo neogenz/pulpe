@@ -2,6 +2,7 @@ import { ErrorHandler, Injectable, inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { PostHogService } from './posthog';
 import { Logger } from '../logging/logger';
+import { ApiError } from '../api/api-error';
 
 /**
  * Global error handler following Angular best practices.
@@ -15,17 +16,21 @@ export class GlobalErrorHandler implements ErrorHandler {
   readonly #logger = inject(Logger);
 
   handleError(error: Error | HttpErrorResponse | unknown): void {
-    // Extract meaningful error message for logging
     const errorMessage = this.#extractMessage(error);
-    const isHttpError = error instanceof HttpErrorResponse;
-
-    // Log locally for development
     this.#logger.error(`[GlobalError] ${errorMessage}`, error);
 
-    // Send to PostHog (built-in sanitization handles security)
-    this.#postHogService.captureException(error, {
-      isHttpError,
-    });
+    // HTTP errors already captured by httpErrorInterceptor — don't double-capture
+    if (error instanceof HttpErrorResponse) {
+      return;
+    }
+
+    // ApiError wrapping an HTTP response is already captured — skip only those
+    if (error instanceof ApiError && error.status > 0) {
+      return;
+    }
+
+    // Only capture JS runtime errors (null refs, type errors, uncaught exceptions)
+    this.#postHogService.captureException(error);
   }
 
   #extractMessage(error: unknown): string {

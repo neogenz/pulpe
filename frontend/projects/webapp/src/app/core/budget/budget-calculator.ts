@@ -142,7 +142,7 @@ export class BudgetCalculator {
     transactions: Transaction[],
     rollover = 0,
   ): number {
-    return BudgetFormulas.calculateAllMetricsWithEnvelopes(
+    return BudgetFormulas.calculateAllMetrics(
       budgetLines,
       transactions,
       rollover,

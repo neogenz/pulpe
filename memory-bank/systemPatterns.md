@@ -294,6 +294,21 @@ Remaining = Available - Expenses
 Ending Balance = Remaining (becomes next month's rollover)
 ```
 
+### Envelope Pattern (BudgetFormulas)
+
+`calculateAllMetrics` is the single entry point for budget metric calculations. It delegates to:
+
+- `calculateTotalIncome` — income with envelope logic + kind filter
+- `calculateTotalExpenses` — expenses/savings with envelope logic + kind filter
+- `calculateTotalSavings` — savings with envelope logic + free saving transactions
+
+All use the same rule: for each budget line, `effective = max(line.amount, consumed)` where consumed only counts transactions matching the line's kind category (income vs outflow). Free transactions (no `budgetLineId`) are added separately. This ensures:
+1. Allocated transactions are never double-counted
+2. A misallocated transaction (e.g., income tx on an expense line) doesn't inflate the wrong total
+3. `totalSavings` includes both envelope-covered savings and free saving transactions
+
+Backend, frontend, and iOS all delegate to this shared logic (iOS has a Swift port with identical semantics).
+
 ---
 
 ## Shared Package (pulpe-shared)

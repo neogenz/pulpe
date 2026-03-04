@@ -2,7 +2,7 @@
 
 import { Globe, Smartphone, Apple } from 'lucide-react'
 import { Section, Badge, Button, FadeIn, Card, ShineBorder } from '@/components/ui'
-import { ANGULAR_APP_URL } from '@/lib/config'
+import { angularUrl } from '@/lib/config'
 import { trackCTAClick } from '@/lib/posthog'
 
 const IOS_APP_URL = '#' // TODO: Remplacer par le lien App Store
@@ -30,7 +30,7 @@ export function Platforms() {
             <p className="text-text-secondary mb-6 flex-1">
               Utilise Pulpe directement dans ton navigateur, sur ordinateur ou téléphone. Aucune installation requise.
             </p>
-            <Button href={`${ANGULAR_APP_URL}/welcome`} variant="secondary" className="w-full" onClick={() => trackCTAClick('ouvrir_navigateur', 'platforms', '/welcome')}>
+            <Button href={angularUrl('/welcome', 'platforms_ouvrir')} variant="secondary" className="w-full" onClick={() => trackCTAClick('ouvrir_navigateur', 'platforms', '/welcome')}>
               Ouvrir dans le navigateur
             </Button>
           </Card>

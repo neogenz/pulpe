@@ -25,9 +25,14 @@ captureEvent('click');              // Too vague
 
 **Web:**
 ```
-$pageview (landing) → cta_clicked → signup_started → signup_completed
-→ vault_code_setup_completed → onboarding_started → profile_step1_completed
-→ profile_step2_completed → first_budget_created
+$pageview (landing) → cta_clicked → welcome_page_viewed → signup_started
+→ signup_completed → vault_code_setup_completed → onboarding_started
+→ profile_step1_completed → profile_step2_completed → first_budget_created
+```
+
+**Web (with demo):**
+```
+welcome_page_viewed → demo_started → signup_started → signup_completed → ...
 ```
 
 **iOS:**
@@ -54,10 +59,11 @@ app_opened → welcome_screen_viewed → signup_started → onboarding_step_comp
 | `$pageview` | Auto-captured on page load | `$current_url` |
 | `cta_clicked` | User clicks CTA button | `cta_name`, `cta_location`, `destination` |
 
-### Auth Flow Events
+### Welcome & Auth Flow Events
 
 | Event | When | Properties |
 |-------|------|------------|
+| `welcome_page_viewed` | User lands on /welcome | `$referrer`, `$utm_source` (auto) |
 | `signup_started` | User clicks signup button | `method` (`email` \| `google`) |
 | `signup_completed` | Signup succeeds (email direct, Google via pending method) | `method` (`email` \| `google`) |
 | `vault_code_setup_completed` | New user creates vault code | — |

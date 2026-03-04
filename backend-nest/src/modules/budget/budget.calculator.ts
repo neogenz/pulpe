@@ -51,22 +51,15 @@ export class BudgetCalculator {
       clientKey,
     );
 
-    // Map snake_case budget_line_id to camelCase budgetLineId for shared calculation
     const mappedTransactions = decryptedTransactions.map((tx) => ({
       ...tx,
       budgetLineId: tx.budget_line_id,
     }));
-
-    const totalIncome = BudgetFormulas.calculateTotalIncome(
-      decryptedBudgetLines,
-      decryptedTransactions,
-    );
-    const totalExpenses = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+    const metrics = BudgetFormulas.calculateAllMetrics(
       decryptedBudgetLines,
       mappedTransactions,
     );
-
-    return totalIncome - totalExpenses;
+    return metrics.endingBalance;
   }
 
   async recalculateAndPersist(
