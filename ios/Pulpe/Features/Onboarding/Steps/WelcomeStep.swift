@@ -16,7 +16,7 @@ struct WelcomeStep: View {
 
                 // Hero — PulpeIcon at the gradient/white transition
                 PulpeIcon(size: 80)
-                    .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
+                    .shadow(DesignTokens.Shadow.elevated)
                     .scaleEffect(isAppeared ? 1 : 0.6)
                     .opacity(isAppeared ? 1 : 0)
 

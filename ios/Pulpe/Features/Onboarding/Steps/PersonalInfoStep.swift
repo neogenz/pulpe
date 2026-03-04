@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct PersonalInfoStep: View {
-    let state: OnboardingState
+    @Bindable var state: OnboardingState
     @FocusState private var isFocused: Bool
 
     var body: some View {
@@ -19,10 +19,7 @@ struct PersonalInfoStep: View {
 
                         AuthTextField(
                             prompt: "Ton prénom",
-                            text: Binding(
-                                get: { state.firstName },
-                                set: { state.firstName = $0 }
-                            ),
+                            text: $state.firstName,
                             systemImage: "person",
                             isFocused: isFocused,
                             isFilled: state.isFirstNameValid
@@ -33,15 +30,12 @@ struct PersonalInfoStep: View {
                     }
 
                     CurrencyField(
-                        value: Binding(
-                            get: { state.monthlyIncome },
-                            set: { state.monthlyIncome = $0 }
-                        ),
+                        value: $state.monthlyIncome,
                         hint: "5000",
                         label: "Revenu mensuel net"
                     )
                 }
-                .onAppear {
+                .task {
                     isFocused = true
                 }
             }

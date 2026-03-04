@@ -222,7 +222,7 @@ extension LoginView {
     }
 
     private var termsFooter: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: DesignTokens.Spacing.xs) {
             Link("CGU", destination: AppURLs.terms)
                 .underline()
             Text("&")

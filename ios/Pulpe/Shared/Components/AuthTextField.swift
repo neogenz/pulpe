@@ -34,6 +34,7 @@ private struct AuthFieldContainer<Content: View>: View {
                     .font(.callout)
                     .foregroundStyle(Color.authInputText.opacity(0.5))
                     .frame(width: 24)
+                    .accessibilityHidden(true)
             }
 
             content()
@@ -43,6 +44,7 @@ private struct AuthFieldContainer<Content: View>: View {
                     .font(.subheadline)
                     .foregroundStyle(Color.pulpePrimary.opacity(0.6))
                     .transition(.scale.combined(with: .opacity))
+                    .accessibilityHidden(true)
             }
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)

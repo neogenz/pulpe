@@ -244,9 +244,6 @@ extension Color {
     /// Input field text color for auth screens
     static let authInputText = Color(light: Color(hex: 0x1A1A1A), dark: .white)
 
-    /// Input field placeholder color for auth screens
-    static let authInputPlaceholder = Color(light: Color(hex: 0x999999), dark: Color(hex: 0x999999))
-
     /// Input field border color for auth screens
     static let authInputBorder = Color(light: Color(hex: 0xE0E0E0), dark: Color(hex: 0x3C3C3E))
 

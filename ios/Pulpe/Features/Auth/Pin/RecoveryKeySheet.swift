@@ -71,14 +71,14 @@ struct RecoveryKeySheet: View {
                         .localOnly: true
                     ]
                 )
-                withAnimation {
+                withAnimation(DesignTokens.Animation.smoothEaseInOut) {
                     copied = true
                 }
                 copyResetTask?.cancel()
                 copyResetTask = Task {
                     try? await Task.sleep(for: .seconds(2))
                     guard !Task.isCancelled else { return }
-                    withAnimation {
+                    withAnimation(DesignTokens.Animation.smoothEaseInOut) {
                         copied = false
                     }
                 }

@@ -83,7 +83,7 @@ struct CurrencyField: View {
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .frame(height: DesignTokens.FrameHeight.button)
             .background { fieldBackground }
-            .shadow(color: shadowColor, radius: shadowRadius, y: shadowYOffset)
+            .shadow(color: shadowStyle?.color ?? .clear, radius: shadowStyle?.radius ?? 0, y: shadowStyle?.y ?? 0)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: effectiveFocus)
         }
         .task {
@@ -183,30 +183,12 @@ struct CurrencyField: View {
         }
     }
 
-    private var shadowColor: Color {
+    private var shadowStyle: ShadowStyle? {
         switch visualStyle {
         case .onboarding:
-            return .black.opacity(0.04)
+            return ShadowStyle(color: .black.opacity(0.04), radius: 6, y: 2)
         case .flat:
-            return .clear
-        }
-    }
-
-    private var shadowRadius: CGFloat {
-        switch visualStyle {
-        case .onboarding:
-            return 6
-        case .flat:
-            return 0
-        }
-    }
-
-    private var shadowYOffset: CGFloat {
-        switch visualStyle {
-        case .onboarding:
-            return 2
-        case .flat:
-            return 0
+            return nil
         }
     }
 }
