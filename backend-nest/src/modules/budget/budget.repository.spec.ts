@@ -309,7 +309,7 @@ describe('BudgetRepository', () => {
       expect(budget1?.totalExpenses).toBe(800);
       // Income: 3000 (line) + 500 (free tx) = 3500
       expect(budget1?.totalIncome).toBe(3500);
-      // totalSavings: sum of saving budget lines = 200
+      // totalSavings: max(200, 0) = 200 (envelope, no allocated saving tx)
       expect(budget1?.totalSavings).toBe(200);
 
       const budget2 = result.get('budget-2');
@@ -317,7 +317,8 @@ describe('BudgetRepository', () => {
       // Envelope: max(1000,0)=1000 + 300 (free saving tx) = 1300
       expect(budget2?.totalExpenses).toBe(1300);
       expect(budget2?.totalIncome).toBe(0);
-      expect(budget2?.totalSavings).toBe(0);
+      // totalSavings: 300 (free saving tx, no saving budget lines)
+      expect(budget2?.totalSavings).toBe(300);
     });
 
     it('should return zero aggregates when no budget_lines or transactions exist', async () => {

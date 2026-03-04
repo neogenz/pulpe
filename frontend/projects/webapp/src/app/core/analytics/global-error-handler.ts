@@ -20,7 +20,12 @@ export class GlobalErrorHandler implements ErrorHandler {
     this.#logger.error(`[GlobalError] ${errorMessage}`, error);
 
     // HTTP errors already captured by httpErrorInterceptor — don't double-capture
-    if (error instanceof HttpErrorResponse || error instanceof ApiError) {
+    if (error instanceof HttpErrorResponse) {
+      return;
+    }
+
+    // ApiError wrapping an HTTP response is already captured — skip only those
+    if (error instanceof ApiError && error.status > 0) {
       return;
     }
 

@@ -3,6 +3,7 @@ import {
   type BudgetCreate,
   type BudgetUpdate,
   type BudgetSparse,
+  BudgetFormulas,
 } from 'pulpe-shared';
 import type { BudgetAggregates } from './budget.repository';
 import { Tables, TablesInsert } from '@/types/database.types';
@@ -135,9 +136,14 @@ export function toSparseApi(
       sparse.totalIncome = aggregates.totalIncome;
     }
     if (requestedFields.includes('remaining')) {
-      // totalExpenses already includes savings via envelope logic
-      sparse.remaining =
-        aggregates.totalIncome - aggregates.totalExpenses + (rollover ?? 0);
+      const available = BudgetFormulas.calculateAvailable(
+        aggregates.totalIncome,
+        rollover ?? 0,
+      );
+      sparse.remaining = BudgetFormulas.calculateRemaining(
+        available,
+        aggregates.totalExpenses,
+      );
     }
   }
 

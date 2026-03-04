@@ -1,12 +1,14 @@
 # Backend Developer Memory
 
 ## Envelope Logic (Budget Aggregation)
-- `BudgetFormulas.calculateTotalExpensesWithEnvelopes()` combines expense+saving kinds
-- For each budget line: `max(line.amount, sum_of_allocated_transactions)`
+- `BudgetFormulas.calculateTotalExpenses()` combines expense+saving kinds with envelope logic
+- `BudgetFormulas.calculateTotalIncome()` uses envelope logic for income
+- `BudgetFormulas.calculateTotalSavings()` uses envelope logic + free saving transactions
+- `BudgetFormulas.calculateAllMetrics()` returns all metrics including `totalSavings`
+- For each budget line: `max(line.amount, consumed)` with kind filter on consumed
 - Free transactions (no `budget_line_id`) are added separately
 - `totalExpenses` in `BudgetAggregates` includes savings via envelope logic
-- `remaining = totalIncome - totalExpenses + rollover` (NOT minus totalSavings separately)
-- `totalSavings` is display-only (sum of saving budget line amounts)
+- `remaining` computed via `BudgetFormulas.calculateRemaining(available, totalExpenses)`
 
 ## Test Patterns
 - Budget tests use `bun:test` with `describe/it/expect/beforeEach`

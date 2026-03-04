@@ -36,12 +36,14 @@ Progress = (Expenses ÷ Available) × 100
 Ending Balance = Remaining (stored, becomes next month's rollover)
 ```
 
-### Envelope Logic
+### Envelope Logic (SSOT: `shared/BudgetFormulas`)
 
-All kinds (income, expense, saving) use the same envelope rule:
+All calculations use a single set of formulas with envelope logic and kind filtering. There is only one version of each formula — no "with/without envelope" variants.
 
 - **Allocated transactions** (`budget_line_id` set) are covered by their envelope (budget line). Effective amount = `max(line.amount, consumed)`. This prevents double-counting when transactions are allocated to a line.
+- **Kind filter**: When computing `consumed` for a line, only transactions matching the line's kind category count (income transactions for income lines, expense/saving transactions for expense/saving lines). This prevents a misallocated transaction from inflating the wrong total.
 - **Free transactions** (`budget_line_id` null) impact the budget directly, added on top of envelope totals.
+- **totalSavings**: Uses envelope logic (`max(line.amount, consumed)`) for saving lines, plus free saving transactions. This provides a complete savings picture including ad-hoc savings.
 
 ### Rollover Chain
 

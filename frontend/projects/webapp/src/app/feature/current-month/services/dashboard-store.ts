@@ -177,30 +177,20 @@ export class DashboardStore {
     return budget?.rollover ?? 0;
   });
 
-  readonly totalIncome = computed<number>(() => {
-    const budgetLines = this.budgetLines();
-    const transactions = this.transactions();
-    return BudgetFormulas.calculateTotalIncome(budgetLines, transactions);
-  });
-
-  readonly totalExpenses = computed<number>(() =>
-    BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+  readonly #metrics = computed(() =>
+    BudgetFormulas.calculateAllMetrics(
       this.budgetLines(),
       this.transactions(),
+      this.rolloverAmount(),
     ),
   );
 
-  readonly totalAvailable = computed<number>(() => {
-    const totalIncome = this.totalIncome();
-    const rollover = this.rolloverAmount();
-    return BudgetFormulas.calculateAvailable(totalIncome, rollover);
-  });
-
-  readonly remaining = computed<number>(() => {
-    const available = this.totalAvailable();
-    const expenses = this.totalExpenses();
-    return BudgetFormulas.calculateRemaining(available, expenses);
-  });
+  readonly totalIncome = computed<number>(() => this.#metrics().totalIncome);
+  readonly totalExpenses = computed<number>(
+    () => this.#metrics().totalExpenses,
+  );
+  readonly totalAvailable = computed<number>(() => this.#metrics().available);
+  readonly remaining = computed<number>(() => this.#metrics().remaining);
 
   readonly uncheckedForecasts = computed<BudgetLine[]>(() =>
     this.budgetLines().filter(
@@ -369,7 +359,7 @@ export class DashboardStore {
         const updatedData = updateData(currentData, responseData);
 
         const rollover = updatedData.budget?.rollover ?? 0;
-        const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+        const metrics = BudgetFormulas.calculateAllMetrics(
           updatedData.budgetLines,
           updatedData.transactions,
           rollover,

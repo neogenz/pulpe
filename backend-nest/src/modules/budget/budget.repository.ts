@@ -341,7 +341,7 @@ export class BudgetRepository {
    * This prevents double-counting when transactions are allocated to budget lines.
    *
    * totalExpenses includes both expense and saving kinds (per SPECS).
-   * totalSavings is the sum of saving budget line amounts only (for display).
+   * totalSavings uses envelope logic + free saving transactions.
    */
   async fetchBudgetAggregates(
     budgetIds: string[],
@@ -422,15 +422,10 @@ export class BudgetRepository {
         budgetLineId: t.budget_line_id,
       }));
 
-      aggregates.totalExpenses =
-        BudgetFormulas.calculateTotalExpensesWithEnvelopes(lines, txs);
-      aggregates.totalIncome = BudgetFormulas.calculateTotalIncomeWithEnvelopes(
-        lines,
-        txs,
-      );
-      aggregates.totalSavings = lines
-        .filter((l) => l.kind === 'saving')
-        .reduce((sum, l) => sum + l.amount, 0);
+      const metrics = BudgetFormulas.calculateAllMetrics(lines, txs);
+      aggregates.totalExpenses = metrics.totalExpenses;
+      aggregates.totalIncome = metrics.totalIncome;
+      aggregates.totalSavings = metrics.totalSavings;
     }
   }
 

@@ -4,11 +4,11 @@
  * Implémentation des formules SPECS.md section 3 "Modèle de Calcul"
  * Fonctions pures, testables, réutilisables côté frontend ET backend
  *
- * Formules SPECS:
+ * Formules SPECS (avec logique d'enveloppe):
+ * - Pour chaque ligne: effective = max(line.amount, consumed_matching_txs)
  * - available_M = income_M + rollover_M
- * - expenses_M = Σ(budget_lines WHERE type IN ('expense', 'saving')) + Σ(transactions WHERE type IN ('expense', 'saving'))
  * - ending_balance_M = available_M - expenses_M
- * - remaining_M = available_M - expenses_M
+ * - remaining_M = ending_balance_M
  *
  * NOTE: L'import utilise l'extension .js (pas .ts) - exigence ESM Node.js
  * Voir shared/README.md section "Résolution des Modules ESM"
@@ -48,134 +48,81 @@ interface TransactionWithBudgetLineId extends FinancialItem {
 }
 
 /**
+ * Returns true for outflow kinds (expense, saving).
+ * Mirrors iOS `TransactionKind.isOutflow`.
+ */
+export function isOutflowKind(kind: TransactionKind): boolean {
+  return kind === 'expense' || kind === 'saving';
+}
+
+/**
  * Classe contenant toutes les formules métier selon SPECS
  * Toutes les méthodes sont statiques et pures (pas d'effets de bord)
  */
 export class BudgetFormulas {
   /**
-   * Calcule le revenu total depuis les budget lines et transactions
-   * Formule: Σ(items WHERE kind = 'income')
-   *
-   * @param budgetLines - Lignes budgétaires planifiées
-   * @param transactions - Transactions réelles
-   * @returns Montant total des revenus
+   * Envelope-aware total for a given kind filter.
+   * For each matching line: effective = max(line.amount, consumed_matching_txs).
+   * Free transactions (no budgetLineId) matching the filter are added directly.
    */
+  static #calculateEnvelopeTotal(
+    budgetLines: FinancialItemWithId[],
+    transactions: TransactionWithBudgetLineId[],
+    kindFilter: (kind: TransactionKind) => boolean,
+  ): number {
+    let total = 0;
+
+    for (const line of budgetLines) {
+      if (!kindFilter(line.kind)) continue;
+      const consumed = transactions
+        .filter((tx) => tx.budgetLineId === line.id && kindFilter(tx.kind))
+        .reduce((sum, tx) => sum + tx.amount, 0);
+      total += Math.max(line.amount, consumed);
+    }
+
+    for (const tx of transactions) {
+      if (!tx.budgetLineId && kindFilter(tx.kind)) {
+        total += tx.amount;
+      }
+    }
+
+    return total;
+  }
+
+  /** Total income with envelope logic + kind filter. */
   static calculateTotalIncome(
-    budgetLines: FinancialItem[],
-    transactions: FinancialItem[] = [],
-  ): number {
-    const budgetIncome = budgetLines
-      .filter((line) => line.kind === 'income')
-      .reduce((sum, line) => sum + line.amount, 0);
-
-    const transactionIncome = transactions
-      .filter((t) => t.kind === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    return budgetIncome + transactionIncome;
-  }
-
-  /**
-   * Calcule le revenu total avec logique d'enveloppe
-   *
-   * Business Rule:
-   * - Allocated income transactions are "covered" by their envelope (budget line)
-   * - Only the OVERAGE (consumed > envelope.amount) impacts the budget
-   * - Free income transactions (no budgetLineId) impact the budget directly
-   *
-   * @param budgetLines - Budget lines with `id` field
-   * @param transactions - Transactions with optional `budgetLineId` field
-   * @returns Total income accounting for envelope coverage
-   */
-  static calculateTotalIncomeWithEnvelopes(
     budgetLines: FinancialItemWithId[],
     transactions: TransactionWithBudgetLineId[] = [],
   ): number {
-    let total = 0;
-
-    budgetLines.forEach((line) => {
-      if (line.kind === 'income') {
-        const consumed = transactions
-          .filter((tx) => tx.budgetLineId === line.id)
-          .reduce((sum, tx) => sum + tx.amount, 0);
-
-        total += Math.max(line.amount, consumed);
-      }
-    });
-
-    transactions.forEach((tx) => {
-      if (!tx.budgetLineId && tx.kind === 'income') {
-        total += tx.amount;
-      }
-    });
-
-    return total;
+    return this.#calculateEnvelopeTotal(
+      budgetLines,
+      transactions,
+      (kind) => kind === 'income',
+    );
   }
 
-  /**
-   * Calcule les dépenses totales (expenses + savings) depuis les budget lines et transactions
-   * Formule SPECS: expenses_M = Σ(budget_lines WHERE type IN ('expense', 'saving')) + Σ(transactions WHERE type IN ('expense', 'saving'))
-   *
-   * Note SPECS: "Le saving est volontairement traité comme une expense dans les calculs"
-   *
-   * @param budgetLines - Lignes budgétaires planifiées
-   * @param transactions - Transactions réelles
-   * @returns Montant total des dépenses + épargnes
-   */
+  /** Total expenses (expense + saving) with envelope logic + kind filter. */
   static calculateTotalExpenses(
-    budgetLines: FinancialItem[],
-    transactions: FinancialItem[] = [],
-  ): number {
-    const budgetExpenses = budgetLines
-      .filter((line) => line.kind === 'expense' || line.kind === 'saving')
-      .reduce((sum, line) => sum + line.amount, 0);
-
-    const transactionExpenses = transactions
-      .filter((t) => t.kind === 'expense' || t.kind === 'saving')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    return budgetExpenses + transactionExpenses;
-  }
-
-  /**
-   * Calcule les dépenses totales avec logique d'enveloppe
-   *
-   * Business Rule:
-   * - Allocated transactions are "covered" by their envelope (budget line)
-   * - Only the OVERAGE (consumed > envelope.amount) impacts the budget
-   * - Free transactions (no budgetLineId) impact the budget directly
-   *
-   * @param budgetLines - Budget lines with `id` field
-   * @param transactions - Transactions with optional `budgetLineId` field
-   * @returns Total expenses accounting for envelope coverage
-   */
-  static calculateTotalExpensesWithEnvelopes(
     budgetLines: FinancialItemWithId[],
     transactions: TransactionWithBudgetLineId[] = [],
   ): number {
-    let total = 0;
+    return this.#calculateEnvelopeTotal(
+      budgetLines,
+      transactions,
+      isOutflowKind,
+    );
+  }
 
-    // For each expense/saving budget line, use max(envelope, consumed)
-    budgetLines.forEach((line) => {
-      if (line.kind === 'expense' || line.kind === 'saving') {
-        // Calculate consumed amount for this envelope
-        const consumed = transactions
-          .filter((tx) => tx.budgetLineId === line.id)
-          .reduce((sum, tx) => sum + tx.amount, 0);
-
-        const effectiveAmount = Math.max(line.amount, consumed);
-        total += effectiveAmount;
-      }
-    });
-
-    // Add free transactions (those without budgetLineId)
-    transactions.forEach((tx) => {
-      if (!tx.budgetLineId && (tx.kind === 'expense' || tx.kind === 'saving')) {
-        total += tx.amount;
-      }
-    });
-
-    return total;
+  /** Total savings with envelope logic + kind filter. */
+  static calculateTotalSavings(
+    budgetLines: FinancialItemWithId[],
+    transactions: TransactionWithBudgetLineId[] = [],
+  ): number {
+    return this.#calculateEnvelopeTotal(
+      budgetLines,
+      transactions,
+      (kind) => kind === 'saving',
+    );
   }
 
   /**
@@ -220,14 +167,14 @@ export class BudgetFormulas {
     let total = 0;
 
     budgetLines.forEach((line) => {
-      if (line.kind !== 'expense' && line.kind !== 'saving') return;
+      if (!isOutflowKind(line.kind)) return;
 
       const consumed = transactions
         .filter(
           (tx) =>
             tx.budgetLineId === line.id &&
             tx.checkedAt != null &&
-            (tx.kind === 'expense' || tx.kind === 'saving'),
+            isOutflowKind(tx.kind),
         )
         .reduce((sum, tx) => sum + tx.amount, 0);
 
@@ -240,11 +187,7 @@ export class BudgetFormulas {
 
     // Ajouter les transactions libres (sans budgetLineId) qui sont pointées
     transactions.forEach((tx) => {
-      if (
-        !tx.budgetLineId &&
-        tx.checkedAt != null &&
-        (tx.kind === 'expense' || tx.kind === 'saving')
-      ) {
+      if (!tx.budgetLineId && tx.checkedAt != null && isOutflowKind(tx.kind)) {
         total += tx.amount;
       }
     });
@@ -328,19 +271,17 @@ export class BudgetFormulas {
    * @param rollover - Report du mois précédent
    * @returns Toutes les métriques calculées avec logique d'enveloppe
    */
-  static calculateAllMetricsWithEnvelopes(
+  static calculateAllMetrics(
     budgetLines: FinancialItemWithId[],
     transactions: TransactionWithBudgetLineId[] = [],
     rollover: number = 0,
   ) {
-    const totalIncome = this.calculateTotalIncomeWithEnvelopes(
+    const totalIncome = this.calculateTotalIncome(budgetLines, transactions);
+    const totalExpenses = this.calculateTotalExpenses(
       budgetLines,
       transactions,
     );
-    const totalExpenses = this.calculateTotalExpensesWithEnvelopes(
-      budgetLines,
-      transactions,
-    );
+    const totalSavings = this.calculateTotalSavings(budgetLines, transactions);
     const available = this.calculateAvailable(totalIncome, rollover);
     const endingBalance = this.calculateEndingBalance(available, totalExpenses);
     const remaining = endingBalance;
@@ -348,6 +289,7 @@ export class BudgetFormulas {
     return {
       totalIncome,
       totalExpenses,
+      totalSavings,
       available,
       endingBalance,
       remaining,
@@ -355,13 +297,6 @@ export class BudgetFormulas {
     };
   }
 
-  /**
-   * Valide la cohérence des calculs selon les règles métier
-   * Utile pour les tests et la validation
-   *
-   * @param metrics - Métriques calculées
-   * @returns True si cohérent, false sinon
-   */
   /**
    * Calcule le rollover pour un budget donné (port TypeScript de get_budget_with_rollover SQL).
    *
@@ -456,7 +391,7 @@ export class BudgetFormulas {
   }
 
   static validateMetricsCoherence(
-    metrics: ReturnType<typeof BudgetFormulas.calculateAllMetricsWithEnvelopes>,
+    metrics: ReturnType<typeof BudgetFormulas.calculateAllMetrics>,
   ): boolean {
     // Tolérance epsilon pour les comparaisons de nombres décimaux
     const EPSILON = 0.01;

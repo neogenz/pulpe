@@ -1,6 +1,11 @@
 import Foundation
 
 extension BudgetFormulas {
+    /// Sum amounts of transactions matching a kind predicate
+    private static func consumed(_ txs: [Transaction], where matches: (TransactionKind) -> Bool) -> Decimal {
+        txs.filter { matches($0.kind) }.reduce(.zero) { $0 + $1.amount }
+    }
+
     /// Calculate all metrics at once using envelope logic
     /// Performance: O(n+m) with Dictionary-based indexing
     static func calculateAllMetrics(
@@ -8,57 +13,37 @@ extension BudgetFormulas {
         transactions: [Transaction] = [],
         rollover: Decimal = 0
     ) -> Metrics {
-        let transactionsByLineId = Dictionary(
-            grouping: transactions,
-            by: { $0.budgetLineId ?? "" }
-        )
-
+        let txsByLineId = Dictionary(grouping: transactions, by: { $0.budgetLineId ?? "" })
         var totalIncome: Decimal = 0
         var totalExpenses: Decimal = 0
         var totalSavings: Decimal = 0
 
         for line in budgetLines {
             guard !(line.isRollover ?? false) else { continue }
-
-            let consumed = transactionsByLineId[line.id]?
-                .reduce(Decimal.zero) { $0 + $1.amount } ?? 0
-            let effective = max(line.amount, consumed)
+            let lineTxs = txsByLineId[line.id] ?? []
 
             switch line.kind {
             case .income:
-                totalIncome += effective
+                totalIncome += max(line.amount, consumed(lineTxs) { $0 == .income })
             case .expense:
-                totalExpenses += effective
+                totalExpenses += max(line.amount, consumed(lineTxs) { $0.isOutflow })
             case .saving:
-                totalSavings += effective
-                totalExpenses += effective
+                totalExpenses += max(line.amount, consumed(lineTxs) { $0.isOutflow })
+                totalSavings += max(line.amount, consumed(lineTxs) { $0 == .saving })
             }
         }
 
-        if let freeTransactions = transactionsByLineId[""] {
-            for tx in freeTransactions {
-                switch tx.kind {
-                case .income:
-                    totalIncome += tx.amount
-                case .expense:
-                    totalExpenses += tx.amount
-                case .saving:
-                    totalSavings += tx.amount
-                    totalExpenses += tx.amount
-                }
-            }
+        for tx in txsByLineId[""] ?? [] {
+            if tx.kind == .income { totalIncome += tx.amount }
+            if tx.kind.isOutflow { totalExpenses += tx.amount }
+            if tx.kind == .saving { totalSavings += tx.amount }
         }
 
         let available = totalIncome + rollover
         let endingBalance = available - totalExpenses
-
         return Metrics(
-            totalIncome: totalIncome,
-            totalExpenses: totalExpenses,
-            totalSavings: totalSavings,
-            available: available,
-            endingBalance: endingBalance,
-            remaining: endingBalance,
+            totalIncome: totalIncome, totalExpenses: totalExpenses, totalSavings: totalSavings,
+            available: available, endingBalance: endingBalance, remaining: endingBalance,
             rollover: rollover
         )
     }
