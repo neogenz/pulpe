@@ -108,7 +108,7 @@ export function buildProjectionChartData(
   }
 
   const balanceData = withBudget.map(
-    (f) => (f.income || 0) - (f.expenses || 0) - (f.savings || 0),
+    (f) => (f.income || 0) - (f.expenses || 0),
   );
 
   let cumulativeSavings = 0;

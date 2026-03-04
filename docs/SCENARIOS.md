@@ -460,7 +460,7 @@ Noter les valeurs initiales : montant enveloppe, dépensé enveloppe, reste glob
 
 **Critères** :
 - `Disponible` = somme de toutes les lignes de revenu + report du mois précédent
-- `Reste` = Disponible - somme des dépenses (récurrentes + prévues) - somme de l'épargne
+- `Reste` = Disponible - totalDépenses (avec logique enveloppe ; inclut dépenses ET épargne)
 - Le premier budget de l'utilisateur a un report de 0
 
 ### 7.2 Impact d'un ajout de dépense sur le solde final
