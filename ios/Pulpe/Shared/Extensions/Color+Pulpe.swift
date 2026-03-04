@@ -164,17 +164,42 @@ extension Color {
     static let onboardingBackground = Color(light: Color(hex: 0xF8FAF9), dark: Color(hex: 0x1C1C1E))
     static let onboardingCardBackground = Color(light: .white, dark: Color(hex: 0x2C2C2E))
 
-    // MARK: - Auth Screen Gradient Colors (inspired by reference design)
+    // MARK: - Auth Screen Gradient Colors
 
-    /// Auth screen gradient stops — very pale green → white (light), dark green hint → charcoal (dark)
-    private static let authGradientTop = Color(light: Color(hex: 0xE8F5EC), dark: Color(hex: 0x0E1A12))
-    private static let authGradientBottom = Color(light: .white, dark: Color(hex: 0x1C1C1E))
+    /// Welcome sky gradient — bold green sky covering top ~55%, fading to white bottom
+    private static let welcomeGradientStops: [Gradient.Stop] = [
+        .init(color: Color(light: Color(hex: 0x00A838), dark: Color(hex: 0x003D14)), location: 0.0),
+        .init(color: Color(light: Color(hex: 0x3EBE65), dark: Color(hex: 0x0C2B15)), location: 0.18),
+        .init(color: Color(light: Color(hex: 0x90DBA8), dark: Color(hex: 0x161D18)), location: 0.38),
+        .init(color: Color(light: .white, dark: Color(hex: 0x1C1C1E)), location: 0.55),
+    ]
 
-    /// Full-screen auth gradient background — clean top-to-bottom
+    /// Login gradient — subtle branded tint, form stays on clean white
+    private static let loginGradientStops: [Gradient.Stop] = [
+        .init(color: Color(light: Color(hex: 0xD6F2DE), dark: Color(hex: 0x0E1A12)), location: 0.0),
+        .init(color: Color(light: .white, dark: Color(hex: 0x1C1C1E)), location: 0.30),
+    ]
+
+    /// Text color for content sitting on the welcome gradient (white on vivid green in light, stays light in dark)
+    static let authGradientText = Color(light: .white, dark: Color(hex: 0xF5F5F5))
+    static let authGradientTextSecondary = Color(light: .white.opacity(0.85), dark: Color(hex: 0xD0D0D0))
+
+    /// Full-screen welcome sky gradient — bold color top, white bottom
     @ViewBuilder
-    static var authGradientBackground: some View {
+    static var welcomeGradientBackground: some View {
         LinearGradient(
-            colors: [authGradientTop, authGradientBottom],
+            stops: welcomeGradientStops,
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea()
+    }
+
+    /// Full-screen login gradient — subtle branded top, clean white for the form
+    @ViewBuilder
+    static var loginGradientBackground: some View {
+        LinearGradient(
+            stops: loginGradientStops,
             startPoint: .top,
             endPoint: .bottom
         )

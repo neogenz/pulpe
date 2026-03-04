@@ -8,21 +8,22 @@ struct WelcomeStep: View {
     var body: some View {
         ZStack {
             // Full-screen gradient background
-            Color.authGradientBackground
+            Color.welcomeGradientBackground
 
             VStack(spacing: 0) {
+                // Gradient breathing space
                 Spacer()
 
-                // Hero — PulpeIcon (real logo, not leaf.fill)
+                // Hero — PulpeIcon at the gradient/white transition
                 PulpeIcon(size: 80)
                     .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
                     .scaleEffect(isAppeared ? 1 : 0.6)
                     .opacity(isAppeared ? 1 : 0)
 
                 Spacer()
-                    .frame(height: DesignTokens.Spacing.xxxl)
+                    .frame(height: DesignTokens.Spacing.xxl)
 
-                // Value proposition
+                // Value proposition — sits on white zone
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Text("Vois clair dans tes finances")
                         .font(PulpeTypography.brandTitle)
@@ -39,6 +40,7 @@ struct WelcomeStep: View {
                 .offset(y: isAppeared ? 0 : 20)
 
                 Spacer()
+                    .frame(height: DesignTokens.Spacing.xxxl)
 
                 // Bottom buttons
                 VStack(spacing: DesignTokens.Spacing.md) {

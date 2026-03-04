@@ -22,10 +22,10 @@ struct PrimaryButtonStyle: ButtonStyle {
                 }
             }
             .foregroundStyle(isEnabled ? Color.textOnPrimary : Color.onSurfaceVariant)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+            .clipShape(Capsule())
             .overlay {
                 if !isEnabled {
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button)
+                    Capsule()
                         .strokeBorder(Color.pulpePrimary.opacity(0.2), lineWidth: 1)
                 }
             }
@@ -42,9 +42,9 @@ struct SecondaryButtonStyle: ButtonStyle {
             .frame(maxWidth: .infinity)
             .frame(height: DesignTokens.FrameHeight.button)
             .foregroundStyle(Color.textPrimaryOnboarding)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+            .clipShape(Capsule())
             .overlay(
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button)
+                Capsule()
                     .stroke(Color.pulpeTextTertiary, lineWidth: 1.5)
             )
             .opacity(configuration.isPressed ? 0.8 : 1.0)
@@ -61,7 +61,7 @@ struct DestructiveButtonStyle: ButtonStyle {
             .frame(height: DesignTokens.FrameHeight.button)
             .background(Color.destructivePrimary)
             .foregroundStyle(Color.textOnPrimary)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+            .clipShape(Capsule())
             .opacity(configuration.isPressed ? 0.8 : 1.0)
             .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
     }

@@ -18,7 +18,7 @@ struct LoginView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.authGradientBackground
+                Color.loginGradientBackground
 
                 ScrollView {
                     VStack(spacing: DesignTokens.Spacing.xxl) {
