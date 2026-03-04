@@ -166,12 +166,12 @@ extension Color {
 
     // MARK: - Auth Screen Gradient Colors
 
-    /// Welcome sky gradient — bold green sky covering top ~55%, fading to white bottom
+    /// Welcome sky gradient stops — fills a rounded shape, so 0→1 maps to the shape height
     private static let welcomeGradientStops: [Gradient.Stop] = [
         .init(color: Color(light: Color(hex: 0x00A838), dark: Color(hex: 0x003D14)), location: 0.0),
-        .init(color: Color(light: Color(hex: 0x3EBE65), dark: Color(hex: 0x0C2B15)), location: 0.18),
-        .init(color: Color(light: Color(hex: 0x90DBA8), dark: Color(hex: 0x161D18)), location: 0.38),
-        .init(color: Color(light: .white, dark: Color(hex: 0x1C1C1E)), location: 0.55),
+        .init(color: Color(light: Color(hex: 0x3EBE65), dark: Color(hex: 0x0C2B15)), location: 0.30),
+        .init(color: Color(light: Color(hex: 0x90DBA8), dark: Color(hex: 0x161D18)), location: 0.65),
+        .init(color: Color(light: .white, dark: Color(hex: 0x1C1C1E)), location: 1.0),
     ]
 
     /// Login gradient — subtle branded tint, form stays on clean white
@@ -180,18 +180,31 @@ extension Color {
         .init(color: Color(light: .white, dark: Color(hex: 0x1C1C1E)), location: 0.30),
     ]
 
+    /// Base color behind gradient shapes
+    private static let authBase = Color(light: .white, dark: Color(hex: 0x1C1C1E))
+
     /// Text color for content sitting on the welcome gradient (white on vivid green in light, stays light in dark)
     static let authGradientText = Color(light: .white, dark: Color(hex: 0xF5F5F5))
     static let authGradientTextSecondary = Color(light: .white.opacity(0.85), dark: Color(hex: 0xD0D0D0))
 
-    /// Full-screen welcome sky gradient — bold color top, white bottom
+    /// Welcome sky gradient — rounded shape covering top ~55% with curved bottom edge
     @ViewBuilder
     static var welcomeGradientBackground: some View {
-        LinearGradient(
-            stops: welcomeGradientStops,
-            startPoint: .top,
-            endPoint: .bottom
-        )
+        GeometryReader { geometry in
+            ZStack(alignment: .top) {
+                authBase
+
+                UnevenRoundedRectangle(bottomLeadingRadius: 44, bottomTrailingRadius: 44)
+                    .fill(
+                        LinearGradient(
+                            stops: welcomeGradientStops,
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(height: geometry.size.height * 0.55)
+            }
+        }
         .ignoresSafeArea()
     }
 

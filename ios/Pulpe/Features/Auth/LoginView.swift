@@ -17,20 +17,24 @@ struct LoginView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                Color.loginGradientBackground
+            GeometryReader { geometry in
+                ZStack {
+                    Color.loginGradientBackground
 
-                ScrollView {
-                    VStack(spacing: DesignTokens.Spacing.xxl) {
-                        headerSection
-                        Spacer().frame(height: DesignTokens.Spacing.lg)
-                        formSection
-                        createAccountSection
+                    ScrollView {
+                        VStack(spacing: DesignTokens.Spacing.xxl) {
+                            Spacer(minLength: 0)
+                            headerSection
+                            Spacer().frame(height: DesignTokens.Spacing.lg)
+                            formSection
+                            createAccountSection
+                        }
+                        .padding(.horizontal, DesignTokens.Spacing.xxl)
+                        .padding(.bottom, DesignTokens.Spacing.xxxl)
+                        .frame(minHeight: geometry.size.height)
                     }
-                    .padding(.horizontal, DesignTokens.Spacing.xxl)
-                    .padding(.bottom, DesignTokens.Spacing.xxxl)
+                    .scrollBounceBehavior(.basedOnSize)
                 }
-                .scrollBounceBehavior(.basedOnSize)
             }
             .toolbar {
                 if let isPresented {
