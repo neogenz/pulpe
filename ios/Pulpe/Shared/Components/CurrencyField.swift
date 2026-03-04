@@ -186,7 +186,7 @@ struct CurrencyField: View {
     private var shadowColor: Color {
         switch visualStyle {
         case .onboarding:
-            return effectiveFocus ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05)
+            return .black.opacity(0.04)
         case .flat:
             return .clear
         }
@@ -195,7 +195,7 @@ struct CurrencyField: View {
     private var shadowRadius: CGFloat {
         switch visualStyle {
         case .onboarding:
-            return effectiveFocus ? 12 : 4
+            return 6
         case .flat:
             return 0
         }
@@ -204,7 +204,7 @@ struct CurrencyField: View {
     private var shadowYOffset: CGFloat {
         switch visualStyle {
         case .onboarding:
-            return 4
+            return 2
         case .flat:
             return 0
         }

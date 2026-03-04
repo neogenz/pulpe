@@ -30,8 +30,8 @@ struct WelcomeStep: View {
                         .foregroundStyle(Color.textPrimaryOnboarding)
                         .multilineTextAlignment(.center)
 
-                    Text("Planifie ton budget en 2 minutes, sans prise de tête")
-                        .font(PulpeTypography.title3)
+                    Text("Ton budget est prêt en 2 minutes")
+                        .font(PulpeTypography.onboardingSubtitle)
                         .foregroundStyle(Color.textSecondaryOnboarding)
                         .multilineTextAlignment(.center)
                 }
@@ -50,7 +50,7 @@ struct WelcomeStep: View {
                         state.nextStep()
                     } label: {
                         HStack(spacing: DesignTokens.Spacing.sm) {
-                            Text("Commencer")
+                            Text("C'est parti")
                             Image(systemName: "arrow.right")
                                 .font(PulpeTypography.labelLarge)
                         }

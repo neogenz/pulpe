@@ -18,7 +18,7 @@ struct PrimaryButtonStyle: ButtonStyle {
                 if isEnabled {
                     Color.onboardingGradient
                 } else {
-                    Color.pulpePrimary.opacity(0.08)
+                    Color.pulpePrimary.opacity(0.12)
                 }
             }
             .foregroundStyle(isEnabled ? Color.textOnPrimary : Color.onSurfaceVariant)

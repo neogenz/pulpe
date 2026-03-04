@@ -168,7 +168,7 @@ extension RegistrationStep {
                 }
                 .animation(.spring(response: 0.3, dampingFraction: 0.6), value: state.acceptTerms)
 
-                Text("J'accepte les [conditions d'utilisation](https://pulpe.app/terms) et la [politique de confidentialité](https://pulpe.app/privacy)")
+                Text("J'accepte les [conditions d'utilisation](https://pulpe.app/legal/cgu) et la [politique de confidentialité](https://pulpe.app/legal/confidentialite)")
                     .font(PulpeTypography.footnote)
                     .foregroundStyle(Color.textPrimaryOnboarding)
                     .multilineTextAlignment(.leading)

@@ -61,7 +61,7 @@ struct LoginView: View {
                 if !reduceMotion {
                     try? await Task.sleep(for: .milliseconds(100))
                 }
-                withAnimation {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     isAppeared = true
                 }
             }
@@ -223,8 +223,8 @@ extension LoginView {
         }
     }
 
-    private static let termsURL = URL(string: "https://pulpe.app/terms")
-    private static let privacyURL = URL(string: "https://pulpe.app/privacy")
+    private static let termsURL = URL(string: "https://pulpe.app/legal/cgu")
+    private static let privacyURL = URL(string: "https://pulpe.app/legal/confidentialite")
 
     private var termsFooter: some View {
         HStack(spacing: 4) {
@@ -238,7 +238,7 @@ extension LoginView {
                     .underline()
             }
         }
-        .font(.callout.weight(.medium))
+        .font(PulpeTypography.labelMedium)
         .foregroundStyle(Color.textSecondaryOnboarding)
     }
 

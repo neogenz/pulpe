@@ -99,8 +99,8 @@ extension Color {
     /// Error primary — warm orange, not aggressive red (#D4760A light, #F0A050 dark)
     static let errorPrimary = Color(light: Color(hex: 0xD4760A), dark: Color(hex: 0xF0A050))
 
-    /// Error background — soft warm tint (#FFF3E0 light, #2A1F10 dark)
-    static let errorBackground = Color(light: Color(hex: 0xFFF3E0), dark: Color(hex: 0x2A1F10))
+    /// Error background — soft warm tint (#FFF3E0 light, #3A2510 dark)
+    static let errorBackground = Color(light: Color(hex: 0xFFF3E0), dark: Color(hex: 0x3A2510))
 
     // MARK: - Destructive Colors (true red for irreversible actions)
 
@@ -115,8 +115,8 @@ extension Color {
     /// Warning primary — amber/yellow for tips and caution (#B8860B light, #FFD54F dark)
     static let warningPrimary = Color(light: Color(hex: 0xB8860B), dark: Color(hex: 0xFFD54F))
 
-    /// Warning background — soft amber tint (#FFF8E1 light, #2A2510 dark)
-    static let warningBackground = Color(light: Color(hex: 0xFFF8E1), dark: Color(hex: 0x2A2510))
+    /// Warning background — soft amber tint (#FFF8E1 light, #382E12 dark)
+    static let warningBackground = Color(light: Color(hex: 0xFFF8E1), dark: Color(hex: 0x382E12))
 
     // MARK: - Component Colors
 
@@ -168,15 +168,15 @@ extension Color {
 
     /// Welcome sky gradient stops — fills a rounded shape, so 0→1 maps to the shape height
     private static let welcomeGradientStops: [Gradient.Stop] = [
-        .init(color: Color(light: Color(hex: 0x00A838), dark: Color(hex: 0x003D14)), location: 0.0),
-        .init(color: Color(light: Color(hex: 0x3EBE65), dark: Color(hex: 0x0C2B15)), location: 0.30),
-        .init(color: Color(light: Color(hex: 0x90DBA8), dark: Color(hex: 0x161D18)), location: 0.65),
+        .init(color: Color(light: Color(hex: 0x00A838), dark: Color(hex: 0x006B25)), location: 0.0),
+        .init(color: Color(light: Color(hex: 0x3EBE65), dark: Color(hex: 0x1A4A25)), location: 0.30),
+        .init(color: Color(light: Color(hex: 0x90DBA8), dark: Color(hex: 0x1A2A1E)), location: 0.65),
         .init(color: Color(light: .white, dark: Color(hex: 0x1C1C1E)), location: 1.0),
     ]
 
     /// Login gradient — subtle branded tint, form stays on clean white
     private static let loginGradientStops: [Gradient.Stop] = [
-        .init(color: Color(light: Color(hex: 0xD6F2DE), dark: Color(hex: 0x0E1A12)), location: 0.0),
+        .init(color: Color(light: Color(hex: 0xD6F2DE), dark: Color(hex: 0x1A3520)), location: 0.0),
         .init(color: Color(light: .white, dark: Color(hex: 0x1C1C1E)), location: 0.30),
     ]
 

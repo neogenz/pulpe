@@ -8,37 +8,31 @@ struct OnboardingNavigationButtons: View {
     let onNext: () -> Void
     let onBack: () -> Void
 
+    private var isEnabled: Bool {
+        canProceed && !isLoading
+    }
+
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.md) {
-            // Primary button with gradient
             Button(action: onNext) {
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    if isLoading {
-                        ProgressView()
-                            .tint(Color.textOnPrimary)
-                    } else {
+                if isLoading {
+                    ProgressView()
+                        .tint(.white)
+                        .accessibilityLabel("Chargement")
+                } else {
+                    HStack(spacing: DesignTokens.Spacing.sm) {
                         Text(buttonTitle)
-                            .font(PulpeTypography.buttonPrimary)
 
                         if step != .registration {
                             Image(systemName: "arrow.right")
-                                .font(PulpeTypography.inputLabel)
+                                .font(PulpeTypography.labelLarge)
                         }
                     }
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: DesignTokens.FrameHeight.button)
-                .background(buttonBackground)
-                .foregroundStyle(Color.textOnPrimary)
-                .clipShape(Capsule())
-                .shadow(
-                    color: canProceed ? Color.pulpePrimary.opacity(0.3) : .clear,
-                    radius: 8,
-                    y: 4
-                )
             }
-            .disabled(!canProceed || isLoading)
-            .animation(.easeInOut(duration: 0.2), value: canProceed)
+            .primaryButtonStyle(isEnabled: isEnabled)
+            .disabled(!isEnabled)
+            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isEnabled)
 
             // Back button
             if step != .welcome {
@@ -63,15 +57,6 @@ struct OnboardingNavigationButtons: View {
         case .registration: "Créer mon compte"
         case .welcome: "Commencer"
         default: "Continuer"
-        }
-    }
-
-    @ViewBuilder
-    private var buttonBackground: some View {
-        if canProceed {
-            Color.onboardingGradient
-        } else {
-            Color.secondary.opacity(0.5)
         }
     }
 }

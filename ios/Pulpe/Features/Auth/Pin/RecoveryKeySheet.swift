@@ -121,7 +121,7 @@ struct RecoveryKeySheet: View {
                 .foregroundStyle(Color.warningPrimary)
             Text("Sans cette clé et sans ton code PIN, tes données financières seront définitivement inaccessibles.")
                 .font(PulpeTypography.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textPrimary)
         }
         .padding(DesignTokens.Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -138,13 +138,8 @@ struct RecoveryKeySheet: View {
             onAcknowledge()
         } label: {
             Text("J'ai noté ma clé")
-                .font(PulpeTypography.buttonPrimary)
-                .frame(maxWidth: .infinity)
-                .frame(height: DesignTokens.FrameHeight.button)
-                .background(Color.pulpePrimary)
-                .foregroundStyle(.white)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
         }
+        .primaryButtonStyle()
     }
 }
 
