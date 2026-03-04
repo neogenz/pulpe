@@ -114,26 +114,14 @@ struct ResetPasswordFlowView: View {
                     }
                 }
             } label: {
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    if viewModel.isSubmitting {
-                        ProgressView()
-                            .tint(.white)
-                    }
-                    Text(viewModel.isSubmitting ? "Réinitialisation..." : "Valider")
-                        .font(PulpeTypography.buttonPrimary)
+                if viewModel.isSubmitting {
+                    ProgressView()
+                        .tint(.white)
+                } else {
+                    Text("Valider")
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: DesignTokens.FrameHeight.button)
-                .background {
-                    if viewModel.canSubmit {
-                        Color.onboardingGradient
-                    } else {
-                        Color.surfaceContainerHigh
-                    }
-                }
-                .foregroundStyle(viewModel.canSubmit ? Color.textOnPrimary : Color.textSecondaryOnboarding)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
             }
+            .primaryButtonStyle(isEnabled: viewModel.canSubmit)
             .disabled(!viewModel.canSubmit)
         }
     }

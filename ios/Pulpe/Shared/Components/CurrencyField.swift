@@ -80,18 +80,9 @@ struct CurrencyField: View {
                         }
                     }
             }
-            .padding(DesignTokens.Spacing.lg)
-            .background {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(backgroundColor)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(
-                                effectiveFocus ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder,
-                                lineWidth: effectiveFocus ? 2 : 1
-                            )
-                    }
-            }
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .frame(height: DesignTokens.FrameHeight.button)
+            .background { fieldBackground }
             .shadow(color: shadowColor, radius: shadowRadius, y: shadowYOffset)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: effectiveFocus)
         }
@@ -134,6 +125,34 @@ struct CurrencyField: View {
         // Only update if not focused (avoid cursor jumping)
         if !effectiveFocus {
             textValue = Self.displayFormatter.string(from: decimal as NSDecimalNumber) ?? ""
+        }
+    }
+
+    private var borderColor: Color {
+        effectiveFocus ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder
+    }
+
+    private var borderWidth: CGFloat {
+        effectiveFocus ? 2 : 1
+    }
+
+    @ViewBuilder
+    private var fieldBackground: some View {
+        switch visualStyle {
+        case .onboarding:
+            Capsule(style: .continuous)
+                .fill(backgroundColor)
+                .overlay {
+                    Capsule(style: .continuous)
+                        .strokeBorder(borderColor, lineWidth: borderWidth)
+                }
+        case .flat:
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md, style: .continuous)
+                .fill(backgroundColor)
+                .overlay {
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md, style: .continuous)
+                        .strokeBorder(borderColor, lineWidth: borderWidth)
+                }
         }
     }
 

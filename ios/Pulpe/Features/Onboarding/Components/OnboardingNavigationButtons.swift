@@ -30,7 +30,7 @@ struct OnboardingNavigationButtons: View {
                 .frame(height: DesignTokens.FrameHeight.button)
                 .background(buttonBackground)
                 .foregroundStyle(Color.textOnPrimary)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+                .clipShape(Capsule())
                 .shadow(
                     color: canProceed ? Color.pulpePrimary.opacity(0.3) : .clear,
                     radius: 8,
