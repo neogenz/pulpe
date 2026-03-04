@@ -28,6 +28,8 @@ struct LoginView: View {
                             Spacer().frame(height: DesignTokens.Spacing.lg)
                             formSection
                             createAccountSection
+                            Spacer(minLength: 0)
+                            termsFooter
                         }
                         .padding(.horizontal, DesignTokens.Spacing.xxl)
                         .padding(.bottom, DesignTokens.Spacing.xxxl)
@@ -135,6 +137,7 @@ extension LoginView {
             AuthTextField(
                 prompt: "Adresse e-mail",
                 text: $viewModel.email,
+                systemImage: "envelope",
                 isFocused: focusedField == .email,
                 isFilled: viewModel.isEmailValid
             )
@@ -159,6 +162,7 @@ extension LoginView {
                 prompt: "Ton mot de passe",
                 text: $viewModel.password,
                 isVisible: $viewModel.showPassword,
+                systemImage: "lock",
                 isFocused: focusedField == .password,
                 isFilled: viewModel.isPasswordValid
             )
@@ -217,6 +221,25 @@ extension LoginView {
             .secondaryButtonStyle()
             .accessibilityIdentifier("faceIDButton")
         }
+    }
+
+    private static let termsURL = URL(string: "https://pulpe.app/terms")
+    private static let privacyURL = URL(string: "https://pulpe.app/privacy")
+
+    private var termsFooter: some View {
+        HStack(spacing: 4) {
+            if let url = Self.termsURL {
+                Link("CGU", destination: url)
+                    .underline()
+            }
+            Text("&")
+            if let url = Self.privacyURL {
+                Link("Politique de confidentialité", destination: url)
+                    .underline()
+            }
+        }
+        .font(.callout.weight(.medium))
+        .foregroundStyle(Color.textSecondaryOnboarding)
     }
 
     private var createAccountSection: some View {

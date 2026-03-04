@@ -7,6 +7,7 @@ import SwiftUI
 struct AuthTextField: View {
     let prompt: String
     @Binding var text: String
+    var systemImage: String?
     var isFocused: Bool = false
     var hasError: Bool = false
     var isFilled: Bool = false
@@ -32,6 +33,13 @@ struct AuthTextField: View {
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.callout)
+                    .foregroundStyle(Color.authInputText.opacity(0.5))
+                    .frame(width: 24)
+            }
+
             TextField(prompt, text: $text)
                 .font(PulpeTypography.body)
                 .foregroundStyle(Color.authInputText)
@@ -46,10 +54,10 @@ struct AuthTextField: View {
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .frame(height: DesignTokens.FrameHeight.button)
         .background {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
+            Capsule(style: .continuous)
                 .fill(fillColor)
                 .overlay {
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
+                    Capsule(style: .continuous)
                         .strokeBorder(borderColor, lineWidth: strokeWidth)
                 }
         }
@@ -64,6 +72,7 @@ struct AuthSecureField: View {
     let prompt: String
     @Binding var text: String
     @Binding var isVisible: Bool
+    var systemImage: String?
     var isFocused: Bool = false
     var hasError: Bool = false
     var isFilled: Bool = false
@@ -89,6 +98,13 @@ struct AuthSecureField: View {
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.callout)
+                    .foregroundStyle(Color.authInputText.opacity(0.5))
+                    .frame(width: 24)
+            }
+
             Group {
                 if isVisible {
                     TextField(prompt, text: $text)
@@ -121,10 +137,10 @@ struct AuthSecureField: View {
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .frame(height: DesignTokens.FrameHeight.button)
         .background {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
+            Capsule(style: .continuous)
                 .fill(fillColor)
                 .overlay {
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
+                    Capsule(style: .continuous)
                         .strokeBorder(borderColor, lineWidth: strokeWidth)
                 }
         }

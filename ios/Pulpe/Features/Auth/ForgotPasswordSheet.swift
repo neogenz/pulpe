@@ -52,6 +52,7 @@ struct ForgotPasswordSheet: View {
                 AuthTextField(
                     prompt: "ton@email.com",
                     text: $viewModel.email,
+                    systemImage: "envelope",
                     isFocused: isEmailFocused,
                     hasError: viewModel.errorMessage != nil,
                     isFilled: viewModel.isEmailValid

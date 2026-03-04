@@ -4,6 +4,8 @@ struct ResetPasswordFlowView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = ResetPasswordFlowViewModel()
     @State private var hasPerformedCancelCleanup = false
+    @State private var showNewPassword = false
+    @State private var showConfirmPassword = false
     @FocusState private var focusedField: Field?
 
     let callbackURL: URL
@@ -141,16 +143,16 @@ struct ResetPasswordFlowView: View {
             Text("Nouveau mot de passe")
                 .font(PulpeTypography.labelLarge)
 
-            SecureField("8 caractères minimum", text: $viewModel.newPassword)
-                .focused($focusedField, equals: .newPassword)
-                .textContentType(.newPassword)
-                .padding()
-                .background(Color.surfaceContainerHigh)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-                .overlay {
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                        .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
-                }
+            AuthSecureField(
+                prompt: "8 caractères minimum",
+                text: $viewModel.newPassword,
+                isVisible: $showNewPassword,
+                systemImage: "lock",
+                isFocused: focusedField == .newPassword,
+                isFilled: viewModel.isNewPasswordValid
+            )
+            .textContentType(.newPassword)
+            .focused($focusedField, equals: .newPassword)
         }
     }
 
@@ -159,16 +161,16 @@ struct ResetPasswordFlowView: View {
             Text("Confirmer le mot de passe")
                 .font(PulpeTypography.labelLarge)
 
-            SecureField("Confirme ton nouveau mot de passe", text: $viewModel.confirmPassword)
-                .focused($focusedField, equals: .confirmPassword)
-                .textContentType(.newPassword)
-                .padding()
-                .background(Color.surfaceContainerHigh)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-                .overlay {
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                        .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
-                }
+            AuthSecureField(
+                prompt: "Confirme ton nouveau mot de passe",
+                text: $viewModel.confirmPassword,
+                isVisible: $showConfirmPassword,
+                systemImage: "lock",
+                isFocused: focusedField == .confirmPassword,
+                isFilled: viewModel.isPasswordConfirmed
+            )
+            .textContentType(.newPassword)
+            .focused($focusedField, equals: .confirmPassword)
         }
     }
 

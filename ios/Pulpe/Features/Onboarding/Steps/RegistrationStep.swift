@@ -74,6 +74,7 @@ extension RegistrationStep {
                     get: { state.email },
                     set: { state.email = $0 }
                 ),
+                systemImage: "envelope",
                 isFocused: focusedField == .email
             )
             .textContentType(.emailAddress)
@@ -94,6 +95,7 @@ extension RegistrationStep {
                 prompt: "••••••••",
                 text: $password,
                 isVisible: $showPassword,
+                systemImage: "lock",
                 isFocused: focusedField == .password
             )
             .textContentType(.newPassword)
@@ -122,6 +124,7 @@ extension RegistrationStep {
                 prompt: "••••••••",
                 text: $passwordConfirmation,
                 isVisible: $showPasswordConfirmation,
+                systemImage: "lock",
                 isFocused: focusedField == .passwordConfirmation,
                 hasError: passwordMismatch
             )
