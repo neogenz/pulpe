@@ -128,10 +128,26 @@ extension RegistrationStep {
             .textContentType(.newPassword)
             .focused($focusedField, equals: .passwordConfirmation)
 
-            if passwordMismatch {
-                Text("Les mots de passe ne correspondent pas")
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.errorPrimary)
+            if !passwordConfirmation.isEmpty && !isPasswordConfirmed {
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(PulpeTypography.footnote)
+                        .foregroundStyle(Color.errorPrimary)
+                    Text("Les mots de passe ne correspondent pas")
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(Color.errorPrimary)
+                }
+                .padding(.top, DesignTokens.Spacing.xs)
+            } else if isPasswordConfirmed {
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(PulpeTypography.footnote)
+                        .foregroundStyle(Color.financialSavings)
+                    Text("Les mots de passe correspondent")
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(Color.financialSavings)
+                }
+                .padding(.top, DesignTokens.Spacing.xs)
             }
         }
     }
