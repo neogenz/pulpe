@@ -251,14 +251,17 @@ describe('WelcomePage', () => {
       );
     });
 
+    it('should track welcome_page_viewed on render', () => {
+      expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
+        'welcome_page_viewed',
+      );
+    });
+
     it('should not track signup_started when OAuth stops loading', () => {
       mockPostHogService.captureEvent.mockClear();
       component.onGoogleLoadingChange(false);
 
-      expect(mockPostHogService.captureEvent).not.toHaveBeenCalledWith(
-        'signup_started',
-        expect.anything(),
-      );
+      expect(mockPostHogService.captureEvent).not.toHaveBeenCalled();
     });
 
     it('should track signup_started with email method on email click', () => {

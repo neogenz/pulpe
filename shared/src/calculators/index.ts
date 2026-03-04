@@ -9,7 +9,7 @@
  * Voir shared/README.md section "Résolution des Modules ESM" pour plus de détails.
  */
 
-export { BudgetFormulas, isOutflowKind } from './budget-formulas.js';
+export { BudgetFormulas } from './budget-formulas.js';
 export {
   getBudgetPeriodForDate,
   isInCurrentBudgetPeriod,
