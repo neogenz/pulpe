@@ -3,24 +3,13 @@ import SwiftUI
 /// Styled text field for auth screens (login, registration).
 ///
 /// Provides the standard auth input appearance: rounded background, focus-reactive
-/// border, shadow, and subtle scale animation.
+/// border, and lightweight shadow. Supports a "filled" state with trailing checkmark.
 struct AuthTextField: View {
     let prompt: String
     @Binding var text: String
     var isFocused: Bool = false
     var hasError: Bool = false
-
-    private var shadowColor: Color {
-        isFocused ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05)
-    }
-
-    private var shadowRadius: CGFloat {
-        isFocused ? 12 : 4
-    }
-
-    private var scale: CGFloat {
-        isFocused ? 1.01 : 1
-    }
+    var isFilled: Bool = false
 
     private var fillColor: Color {
         hasError ? Color.errorBackground : Color.authInputBackground
@@ -28,30 +17,45 @@ struct AuthTextField: View {
 
     private var borderColor: Color {
         if hasError { return Color.errorPrimary.opacity(0.5) }
-        return isFocused ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder
+        if isFocused { return Color.pulpePrimary.opacity(0.6) }
+        if isFilled { return Color.pulpePrimary.opacity(0.3) }
+        return Color.authInputBorder
     }
 
     private var strokeWidth: CGFloat {
         (isFocused || hasError) ? 2 : 1
     }
 
+    private var showCheckmark: Bool {
+        isFilled && !isFocused && !hasError
+    }
+
     var body: some View {
-        TextField(prompt, text: $text)
-            .font(PulpeTypography.body)
-            .foregroundStyle(Color.authInputText)
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .frame(height: DesignTokens.FrameHeight.button)
-            .background {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                    .fill(fillColor)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                            .strokeBorder(borderColor, lineWidth: strokeWidth)
-                    }
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            TextField(prompt, text: $text)
+                .font(PulpeTypography.body)
+                .foregroundStyle(Color.authInputText)
+
+            if showCheckmark {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.pulpePrimary.opacity(0.6))
+                    .transition(.scale.combined(with: .opacity))
             }
-            .shadow(color: shadowColor, radius: shadowRadius, y: 4)
-            .scaleEffect(scale)
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFocused)
+        }
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .frame(height: DesignTokens.FrameHeight.button)
+        .background {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
+                .fill(fillColor)
+                .overlay {
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
+                        .strokeBorder(borderColor, lineWidth: strokeWidth)
+                }
+        }
+        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFocused)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showCheckmark)
     }
 }
 
@@ -62,18 +66,7 @@ struct AuthSecureField: View {
     @Binding var isVisible: Bool
     var isFocused: Bool = false
     var hasError: Bool = false
-
-    private var shadowColor: Color {
-        isFocused ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05)
-    }
-
-    private var shadowRadius: CGFloat {
-        isFocused ? 12 : 4
-    }
-
-    private var scale: CGFloat {
-        isFocused ? 1.01 : 1
-    }
+    var isFilled: Bool = false
 
     private var fillColor: Color {
         hasError ? Color.errorBackground : Color.authInputBackground
@@ -81,11 +74,17 @@ struct AuthSecureField: View {
 
     private var borderColor: Color {
         if hasError { return Color.errorPrimary.opacity(0.5) }
-        return isFocused ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder
+        if isFocused { return Color.pulpePrimary.opacity(0.6) }
+        if isFilled { return Color.pulpePrimary.opacity(0.3) }
+        return Color.authInputBorder
     }
 
     private var strokeWidth: CGFloat {
         (isFocused || hasError) ? 2 : 1
+    }
+
+    private var showCheckmark: Bool {
+        isFilled && !isFocused && !hasError
     }
 
     var body: some View {
@@ -99,6 +98,13 @@ struct AuthSecureField: View {
             }
             .font(PulpeTypography.body)
             .foregroundStyle(Color.authInputText)
+
+            if showCheckmark {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.pulpePrimary.opacity(0.6))
+                    .transition(.scale.combined(with: .opacity))
+            }
 
             Button {
                 withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
@@ -122,8 +128,8 @@ struct AuthSecureField: View {
                         .strokeBorder(borderColor, lineWidth: strokeWidth)
                 }
         }
-        .shadow(color: shadowColor, radius: shadowRadius, y: 4)
-        .scaleEffect(scale)
+        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFocused)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showCheckmark)
     }
 }

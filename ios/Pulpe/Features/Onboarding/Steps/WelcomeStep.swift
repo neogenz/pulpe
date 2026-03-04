@@ -13,24 +13,11 @@ struct WelcomeStep: View {
             VStack(spacing: 0) {
                 Spacer()
 
-                // Hero illustration with glow
-                ZStack {
-                    Circle()
-                        .fill(Color.white.opacity(0.15))
-                        .frame(width: 160, height: 160)
-                        .blur(radius: 30)
-
-                    Circle()
-                        .fill(Color.white.opacity(0.25))
-                        .frame(width: 140, height: 140)
-
-                    Image(systemName: "leaf.fill")
-                        .font(PulpeTypography.welcomeEmoji)
-                        .foregroundStyle(Color.pulpePrimary)
-                        .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
-                }
-                .scaleEffect(isAppeared ? 1 : 0.6)
-                .opacity(isAppeared ? 1 : 0)
+                // Hero — PulpeIcon (real logo, not leaf.fill)
+                PulpeIcon(size: 80)
+                    .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
+                    .scaleEffect(isAppeared ? 1 : 0.6)
+                    .opacity(isAppeared ? 1 : 0)
 
                 Spacer()
                     .frame(height: DesignTokens.Spacing.xxxl)
@@ -55,44 +42,26 @@ struct WelcomeStep: View {
 
                 // Bottom buttons
                 VStack(spacing: DesignTokens.Spacing.md) {
-                    // Primary CTA - vibrant and eye-catching
+                    // Primary CTA
                     Button {
                         AnalyticsService.shared.capture(.signupStarted, properties: ["method": "email"])
                         state.nextStep()
                     } label: {
                         HStack(spacing: DesignTokens.Spacing.sm) {
                             Text("Commencer")
-                                .font(PulpeTypography.buttonPrimary)
                             Image(systemName: "arrow.right")
                                 .font(PulpeTypography.labelLarge)
                         }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: DesignTokens.FrameHeight.button)
-                        .background(Color.pulpePrimary)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous))
-                        .shadow(color: Color.pulpePrimary.opacity(0.4), radius: 20, y: 10)
                     }
+                    .primaryButtonStyle()
 
-                    // Secondary action - more visible with proper contrast
+                    // Secondary action
                     Button {
                         showLogin = true
                     } label: {
                         Text("Se connecter")
-                            .font(PulpeTypography.buttonPrimary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: DesignTokens.FrameHeight.button)
-                            .foregroundStyle(Color.textPrimaryOnboarding)
-                            .background {
-                                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous)
-                                    .fill(Color.white.opacity(0.4))
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous)
-                                            .strokeBorder(Color.white.opacity(0.5), lineWidth: 1.5)
-                                    }
-                            }
-                            .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
                     }
+                    .secondaryButtonStyle()
                 }
                 .padding(.horizontal, DesignTokens.Spacing.xxl)
                 .padding(.bottom, DesignTokens.Spacing.xxxl)

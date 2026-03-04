@@ -97,7 +97,10 @@ struct CurrentMonthHeroCard: View {
         .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
             isPressed = pressing
         }, perform: {})
-        .accessibilityLabel("\(monthName), ce mois-ci, \(amountsHidden ? "Montant masqué" : (budget.remaining?.asCHF ?? "non défini")) disponible")
+        .accessibilityLabel(
+            "\(monthName), ce mois-ci, "
+            + "\(amountsHidden ? "Montant masqué" : (budget.remaining?.asCHF ?? "non défini")) disponible"
+        )
         .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)
     }
@@ -255,7 +258,10 @@ struct BudgetMonthRow: View {
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.selection, trigger: tapTrigger)
-        .accessibilityLabel("\(monthName), solde \(amountsHidden ? "Montant masqué" : (budget.remaining?.asCompactCHF ?? "non défini"))")
+        .accessibilityLabel(
+            "\(monthName), solde "
+            + "\(amountsHidden ? "Montant masqué" : (budget.remaining?.asCompactCHF ?? "non défini"))"
+        )
         .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)
     }

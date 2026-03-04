@@ -166,37 +166,18 @@ extension Color {
 
     // MARK: - Auth Screen Gradient Colors (inspired by reference design)
 
-    /// Auth screen gradient stops - light mode: vibrant greens, dark mode: deep charcoals with green accent
-    private static let authGradientTop = Color(light: Color(hex: 0xA8E6CF), dark: Color(hex: 0x0A0F0C))
-    private static let authGradientMid = Color(light: Color(hex: 0xC2F0D8), dark: Color(hex: 0x0E1612))
-    private static let authGradientBottom = Color(light: Color(hex: 0xD4F5E3), dark: Color(hex: 0x121A15))
-    private static let authGradientAccent = Color(light: Color(hex: 0x8FDDBB), dark: Color(hex: 0x1A3A28))
+    /// Auth screen gradient stops — very pale green → white (light), dark green hint → charcoal (dark)
+    private static let authGradientTop = Color(light: Color(hex: 0xE8F5EC), dark: Color(hex: 0x0E1A12))
+    private static let authGradientBottom = Color(light: .white, dark: Color(hex: 0x1C1C1E))
 
-    /// Full-screen auth gradient background
+    /// Full-screen auth gradient background — clean top-to-bottom
     @ViewBuilder
     static var authGradientBackground: some View {
-        ZStack {
-            // Base gradient
-            LinearGradient(
-                colors: [authGradientTop, authGradientMid, authGradientBottom],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            // Accent radial overlay (top-trailing)
-            RadialGradient(
-                colors: [authGradientAccent.opacity(0.6), .clear],
-                center: .topTrailing,
-                startRadius: 50,
-                endRadius: 500
-            )
-            // Subtle center glow
-            RadialGradient(
-                colors: [Color(light: .white.opacity(0.2), dark: .clear), .clear],
-                center: .center,
-                startRadius: 100,
-                endRadius: 600
-            )
-        }
+        LinearGradient(
+            colors: [authGradientTop, authGradientBottom],
+            startPoint: .top,
+            endPoint: .bottom
+        )
         .ignoresSafeArea()
     }
 
