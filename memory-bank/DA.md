@@ -457,7 +457,7 @@ En dark mode : fond système avec accents minimaux.
 
 #### Typographie
 
-Polices : Manrope (titres/brand) + SF Pro système (corps, labels, captions, montants). Tailles spécifiques iOS :
+Polices : Manrope (titres/brand) + SF Pro système (corps, labels, captions, montants). **Exception logotype :** le wordmark "Pulpe" du splash screen (LaunchScreen) utilise **Poppins Black (900)** (SVG statique) pour assurer la continuité visuelle avec la landing page — c'est un asset de marque figé, pas une police chargée au runtime. Tailles spécifiques iOS :
 
 | Usage | Poids | Taille |
 |-------|-------|--------|
