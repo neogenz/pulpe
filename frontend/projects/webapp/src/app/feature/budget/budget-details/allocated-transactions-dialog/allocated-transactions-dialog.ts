@@ -48,7 +48,7 @@ export interface AllocatedTransactionsDialogResult {
         <div class="grid grid-cols-3 gap-4 p-4 bg-surface-container rounded-lg">
           <div class="text-center">
             <div class="text-label-small text-on-surface-variant">Prévu</div>
-            <div class="text-title-medium font-semibold">
+            <div class="text-title-medium font-semibold ph-no-capture">
               {{
                 data.budgetLine.amount | currency: 'CHF' : 'symbol' : '1.2-2'
               }}
@@ -56,7 +56,7 @@ export interface AllocatedTransactionsDialogResult {
           </div>
           <div class="text-center">
             <div class="text-label-small text-on-surface-variant">Consommé</div>
-            <div class="text-title-medium font-semibold">
+            <div class="text-title-medium font-semibold ph-no-capture">
               {{
                 data.consumption.consumed | currency: 'CHF' : 'symbol' : '1.2-2'
               }}
@@ -67,7 +67,7 @@ export interface AllocatedTransactionsDialogResult {
               Disponible
             </div>
             <div
-              class="text-title-medium font-semibold"
+              class="text-title-medium font-semibold ph-no-capture"
               [class.text-error]="data.consumption.remaining < 0"
               [class.text-financial-income]="data.consumption.remaining >= 0"
             >
@@ -121,7 +121,7 @@ export interface AllocatedTransactionsDialogResult {
               <td
                 mat-cell
                 *matCellDef="let tx"
-                class="text-right text-body-medium font-medium"
+                class="text-right text-body-medium font-medium ph-no-capture"
               >
                 {{ tx.amount | currency: 'CHF' : 'symbol' : '1.2-2' }}
               </td>

@@ -1,6 +1,7 @@
 import { CurrencyPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+
 import type { BudgetLineTableItem } from '../../data-core';
 
 @Component({
@@ -13,7 +14,7 @@ import type { BudgetLineTableItem } from '../../data-core';
       <div class="flex flex-col items-end gap-1">
         <div class="flex flex-col items-center">
           <span
-            class="text-body-medium font-semibold"
+            class="ph-no-capture text-body-medium font-semibold"
             [class.text-financial-warning]="
               line().consumption!.consumptionState === 'near-limit'
             "

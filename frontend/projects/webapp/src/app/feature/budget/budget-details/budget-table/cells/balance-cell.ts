@@ -1,6 +1,7 @@
 import { CurrencyPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+
 import type {
   BudgetLineTableItem,
   TransactionTableItem,
@@ -25,7 +26,7 @@ import type {
         }
       </mat-icon>
       <span
-        class="text-body-medium font-medium"
+        class="ph-no-capture text-body-medium font-medium"
         [class.text-financial-income]="line().metadata.cumulativeBalance >= 0"
         [class.text-financial-negative]="line().metadata.cumulativeBalance < 0"
       >

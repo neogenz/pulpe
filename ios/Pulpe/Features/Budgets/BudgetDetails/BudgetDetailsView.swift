@@ -9,6 +9,7 @@ struct BudgetDetailsView: View {
     let budgetId: String
     @Environment(AppState.self) private var appState
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(\.amountsHidden) private var amountsHidden
     @State private var viewModel: BudgetDetailsViewModel
     @State private var selectedLineForTransaction: BudgetLine?
     @State private var showAddBudgetLine = false
@@ -137,7 +138,7 @@ struct BudgetDetailsView: View {
                 Task {
                     let succeeded = await viewModel.confirmToggle(for: line, checkAll: false)
                     if succeeded {
-                        viewModel.showEnvelopeToastIfNeeded(for: line, toastManager: appState.toastManager)
+                        viewModel.showEnvelopeToastIfNeeded(for: line, toastManager: appState.toastManager, amountsHidden: amountsHidden)
                     }
                 }
             }
@@ -145,7 +146,7 @@ struct BudgetDetailsView: View {
                 Task {
                     let succeeded = await viewModel.confirmToggle(for: line, checkAll: true)
                     if succeeded {
-                        viewModel.showEnvelopeToastIfNeeded(for: line, toastManager: appState.toastManager)
+                        viewModel.showEnvelopeToastIfNeeded(for: line, toastManager: appState.toastManager, amountsHidden: amountsHidden)
                     }
                 }
             }
@@ -260,7 +261,7 @@ struct BudgetDetailsView: View {
                 Task {
                     let succeeded = await viewModel.toggleBudgetLine(line)
                     if succeeded {
-                        viewModel.showEnvelopeToastIfNeeded(for: line, toastManager: appState.toastManager)
+                        viewModel.showEnvelopeToastIfNeeded(for: line, toastManager: appState.toastManager, amountsHidden: amountsHidden)
                     }
                 }
             },

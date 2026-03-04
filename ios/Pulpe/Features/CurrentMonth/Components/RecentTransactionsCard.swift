@@ -36,6 +36,7 @@ struct RecentTransactionsCard: View {
 /// Transaction row for dashboard card
 private struct RecentTransactionCardRow: View {
     let transaction: Transaction
+    @Environment(\.amountsHidden) private var amountsHidden
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
@@ -72,7 +73,7 @@ private struct RecentTransactionCardRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
             "\(transaction.name), \(transaction.kind.label), "
-            + "\(transaction.transactionDate.relativeFormatted), \(transaction.signedAmount.asCHF)"
+            + "\(transaction.transactionDate.relativeFormatted), \(amountsHidden ? "Montant masqué" : transaction.signedAmount.asCHF)"
         )
     }
 }

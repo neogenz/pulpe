@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
+import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { BaseChartDirective } from 'ng2-charts';
@@ -106,6 +107,7 @@ import {
 })
 export class DashboardFutureProjectionChart {
   readonly #doc = inject(DOCUMENT);
+  readonly #amountsVisibility = inject(AmountsVisibilityService);
   readonly forecasts = input.required<UpcomingMonthForecast[]>();
 
   readonly #theme = signal<ChartThemeColors | null>(null);
@@ -141,7 +143,10 @@ export class DashboardFutureProjectionChart {
   readonly chartType: ChartType = 'line';
 
   readonly chartOptions = computed(() =>
-    buildProjectionChartOptions(this.#theme()),
+    buildProjectionChartOptions(
+      this.#theme(),
+      this.#amountsVisibility.amountsHidden(),
+    ),
   );
 
   readonly chartData = computed(() =>

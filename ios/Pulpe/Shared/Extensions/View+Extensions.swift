@@ -21,7 +21,6 @@ private struct SensitiveAmountModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .blur(radius: amountsHidden ? 8 : 0)
-            .accessibilityLabel(amountsHidden ? "Montant masqué" : "")
             .accessibilityHidden(amountsHidden)
             .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: amountsHidden)
     }

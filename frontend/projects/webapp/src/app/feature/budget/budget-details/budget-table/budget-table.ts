@@ -73,7 +73,7 @@ import type {
           <th mat-header-cell *matHeaderCellDef class="text-right">Prévu</th>
           <td mat-cell *matCellDef="let line" class="text-right">
             <span
-              class="text-body-medium font-bold"
+              class="text-body-medium font-bold ph-no-capture"
               [class.italic]="line.metadata.isRollover"
               [pulpeFinancialKind]="line.data.kind"
             >
@@ -102,10 +102,10 @@ import type {
                 "
               >
                 <mat-icon class="text-base! mr-1">receipt_long</mat-icon>
-                {{
+                <span class="ph-no-capture">{{
                   line.consumption.consumed
                     | currency: 'CHF' : 'symbol' : '1.0-0'
-                }}
+                }}</span>
               </button>
             }
           </td>

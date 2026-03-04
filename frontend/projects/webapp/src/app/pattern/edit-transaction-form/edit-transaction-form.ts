@@ -102,7 +102,7 @@ export type EditTransactionFormData = Pick<
       </mat-form-field>
 
       <!-- Amount Field -->
-      <mat-form-field class="w-full" subscriptSizing="dynamic">
+      <mat-form-field class="w-full ph-no-capture" subscriptSizing="dynamic">
         <mat-label class="ph-no-capture">Montant</mat-label>
         <mat-icon matIconPrefix class="text-on-surface-variant"
           >payments</mat-icon

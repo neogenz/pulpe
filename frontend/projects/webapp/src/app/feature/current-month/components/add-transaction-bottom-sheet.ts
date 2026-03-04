@@ -76,7 +76,11 @@ import { TransactionValidators } from '@core/transaction';
         data-testid="transaction-form"
       >
         <!-- Amount Field -->
-        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-form-field
+          appearance="outline"
+          subscriptSizing="dynamic"
+          class="ph-no-capture"
+        >
           <mat-label>Montant</mat-label>
           <input
             class="!text-xl !font-bold !text-center"

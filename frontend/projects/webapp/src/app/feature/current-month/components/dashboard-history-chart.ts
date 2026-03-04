@@ -7,6 +7,7 @@ import {
   input,
   signal,
 } from '@angular/core';
+import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
 import { DOCUMENT } from '@angular/common';
 import { BaseChartDirective } from 'ng2-charts';
 import { MatIconModule } from '@angular/material/icon';
@@ -86,6 +87,7 @@ import {
 })
 export class DashboardHistoryChart {
   readonly #doc = inject(DOCUMENT);
+  readonly #amountsVisibility = inject(AmountsVisibilityService);
   readonly history = input.required<HistoryDataPoint[]>();
 
   readonly chartType = 'bar' as const;
@@ -162,6 +164,7 @@ export class DashboardHistoryChart {
 
   readonly chartOptions = computed<ChartConfiguration['options']>(() => {
     const theme = this.#theme();
+    const isHidden = this.#amountsVisibility.amountsHidden();
     const tickColor = theme?.tickColor || undefined;
     const gridColor = theme?.gridColor || undefined;
     const tooltipBg = theme?.tooltipBg || undefined;
@@ -197,7 +200,7 @@ export class DashboardHistoryChart {
                 label += ': ';
               }
               if (context.parsed.y !== null) {
-                label += formatCHF(context.parsed.y);
+                label += isHidden ? '•••••' : formatCHF(context.parsed.y);
               }
               return label;
             },
@@ -231,6 +234,7 @@ export class DashboardHistoryChart {
           },
           ticks: {
             callback: (value) => {
+              if (isHidden) return '•';
               if (typeof value === 'number') {
                 if (value >= 1000) return value / 1000 + 'k';
                 return value;

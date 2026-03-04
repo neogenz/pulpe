@@ -214,7 +214,8 @@ import { TemplateDetailsStore } from './services/template-details-store';
                         pill.colorClass
                       "
                     >
-                      {{ pill.amount | number: '1.0-0' : 'de-CH' }} CHF
+                      {{ pill.amount | number: '1.0-0' : 'de-CH' }}
+                      CHF
                     </span>
                   </div>
                 </div>

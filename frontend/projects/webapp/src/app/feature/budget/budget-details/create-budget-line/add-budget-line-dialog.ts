@@ -53,7 +53,7 @@ export interface BudgetLineDialogData {
             />
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="w-full">
+          <mat-form-field appearance="outline" class="w-full ph-no-capture">
             <mat-label class="ph-no-capture">Montant</mat-label>
             <input
               matInput

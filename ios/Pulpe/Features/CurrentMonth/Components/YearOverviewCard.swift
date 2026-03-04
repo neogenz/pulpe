@@ -5,6 +5,8 @@ struct YearOverviewCard: View {
     let savingsYTD: Decimal
     let rollover: Decimal
 
+    @Environment(\.amountsHidden) private var amountsHidden
+
     private var currentYear: Int {
         Calendar.current.component(.year, from: Date())
     }
@@ -55,7 +57,7 @@ struct YearOverviewCard: View {
         .padding(.vertical, 14)
         .pulpeCardBackground()
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title): \(value.asCHF)")
+        .accessibilityLabel("\(title): \(amountsHidden ? "Montant masqué" : value.asCHF)")
     }
 }
 

@@ -10,6 +10,7 @@ struct CurrentMonthHeroCard: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.amountsHidden) private var amountsHidden
 
     private var monthName: String {
         guard let month = budget.month, month >= 1, month <= 12 else { return "—" }
@@ -96,7 +97,7 @@ struct CurrentMonthHeroCard: View {
         .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
             isPressed = pressing
         }, perform: {})
-        .accessibilityLabel("\(monthName), ce mois-ci, \(budget.remaining?.asCHF ?? "non défini") disponible")
+        .accessibilityLabel("\(monthName), ce mois-ci, \(amountsHidden ? "Montant masqué" : (budget.remaining?.asCHF ?? "non défini")) disponible")
         .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)
     }
@@ -150,6 +151,7 @@ struct BudgetMonthRow: View {
 
     @State private var tapTrigger = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.amountsHidden) private var amountsHidden
 
     private var monthName: String {
         guard let month = budget.month, month >= 1, month <= 12 else { return "—" }
@@ -253,7 +255,7 @@ struct BudgetMonthRow: View {
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.selection, trigger: tapTrigger)
-        .accessibilityLabel("\(monthName), solde \(budget.remaining?.asCompactCHF ?? "non défini")")
+        .accessibilityLabel("\(monthName), solde \(amountsHidden ? "Montant masqué" : (budget.remaining?.asCompactCHF ?? "non défini"))")
         .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)
     }

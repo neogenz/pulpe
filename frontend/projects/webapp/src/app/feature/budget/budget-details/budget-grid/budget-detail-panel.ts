@@ -105,7 +105,7 @@ const DETAIL_SEGMENT_COUNT = 12;
           <div class="text-center">
             <div class="text-label-medium text-on-surface-variant">Prévu</div>
             <div
-              class="text-title-medium font-bold"
+              class="ph-no-capture text-title-medium font-bold"
               [pulpeFinancialKind]="envelope.data.kind"
             >
               {{ envelope.data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
@@ -113,7 +113,7 @@ const DETAIL_SEGMENT_COUNT = 12;
           </div>
           <div class="text-center">
             <div class="text-label-medium text-on-surface-variant">Dépensé</div>
-            <div class="text-title-medium font-semibold">
+            <div class="ph-no-capture text-title-medium font-semibold">
               {{
                 envelope.consumption?.consumed ?? 0
                   | currency: 'CHF' : 'symbol' : '1.0-0'
@@ -125,7 +125,7 @@ const DETAIL_SEGMENT_COUNT = 12;
             @let remaining =
               envelope.data.amount - (envelope.consumption?.consumed ?? 0);
             <div
-              class="text-title-medium font-semibold"
+              class="ph-no-capture text-title-medium font-semibold"
               [class.text-on-surface-variant]="
                 envelope.consumption?.consumptionState === 'healthy'
               "
@@ -153,7 +153,7 @@ const DETAIL_SEGMENT_COUNT = 12;
           />
           <div class="text-center text-label-medium">
             @if (consumption.consumptionState === 'over-budget') {
-              <span class="text-financial-over-budget">
+              <span class="ph-no-capture text-financial-over-budget">
                 Dépassé de
                 {{
                   consumption.consumed - envelope.data.amount
@@ -226,7 +226,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                     </div>
                   </div>
                   <div
-                    class="text-title-medium font-bold shrink-0"
+                    class="ph-no-capture text-title-medium font-bold shrink-0"
                     [class.text-financial-income]="tx.kind === 'income'"
                     [class.text-on-surface-variant]="tx.kind !== 'income'"
                   >
