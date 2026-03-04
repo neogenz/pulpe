@@ -21,10 +21,10 @@ struct BudgetPreviewStep: View {
                 }
                 .task {
                     try? await Task.sleep(for: .milliseconds(300))
-                    withAnimation(.spring(response: 0.6, dampingFraction: 0.75)) {
+                    withAnimation(DesignTokens.Animation.entranceSpring) {
                         showHero = true
                     } completion: {
-                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                        withAnimation(DesignTokens.Animation.defaultSpring) {
                             showCard = true
                         } completion: {
                             withAnimation(.easeOut(duration: 0.4)) {

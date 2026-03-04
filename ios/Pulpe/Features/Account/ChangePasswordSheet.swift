@@ -68,26 +68,14 @@ struct ChangePasswordSheet: View {
                             }
                         }
                     } label: {
-                        HStack(spacing: DesignTokens.Spacing.sm) {
-                            if viewModel.isSubmitting {
-                                ProgressView()
-                                    .tint(.white)
-                            }
-                            Text(viewModel.isSubmitting ? "Mise à jour..." : "Confirmer")
-                                .font(PulpeTypography.buttonPrimary)
+                        if viewModel.isSubmitting {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Text("Confirmer")
                         }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: DesignTokens.FrameHeight.button)
-                        .background {
-                            if viewModel.canSubmit {
-                                Color.onboardingGradient
-                            } else {
-                                Color.surfaceContainerHigh
-                            }
-                        }
-                        .foregroundStyle(viewModel.canSubmit ? Color.textOnPrimary : Color.textSecondaryOnboarding)
-                        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
                     }
+                    .primaryButtonStyle(isEnabled: viewModel.canSubmit)
                     .disabled(!viewModel.canSubmit)
                     .accessibilityIdentifier("changePasswordSubmit")
                 }
@@ -163,6 +151,18 @@ struct ChangePasswordSheet: View {
         .padding(.top, DesignTokens.Spacing.xs)
     }
 
+    private func passwordMatchRow(icon: String, text: String, color: Color) -> some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            Image(systemName: icon)
+                .font(PulpeTypography.footnote)
+                .foregroundStyle(color)
+            Text(text)
+                .font(PulpeTypography.caption)
+                .foregroundStyle(color)
+        }
+        .padding(.top, DesignTokens.Spacing.xs)
+    }
+
     private func requirementRow(met: Bool, text: String) -> some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: met ? "checkmark.circle.fill" : "circle")
@@ -192,25 +192,17 @@ struct ChangePasswordSheet: View {
             )
 
             if !viewModel.confirmPassword.isEmpty && !viewModel.isPasswordConfirmed {
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(PulpeTypography.footnote)
-                        .foregroundStyle(Color.errorPrimary)
-                    Text("Les mots de passe ne correspondent pas")
-                        .font(PulpeTypography.caption)
-                        .foregroundStyle(Color.errorPrimary)
-                }
-                .padding(.top, DesignTokens.Spacing.xs)
+                passwordMatchRow(
+                    icon: "xmark.circle.fill",
+                    text: "Les mots de passe ne correspondent pas",
+                    color: Color.errorPrimary
+                )
             } else if viewModel.isPasswordConfirmed {
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(PulpeTypography.footnote)
-                        .foregroundStyle(Color.financialSavings)
-                    Text("Les mots de passe correspondent")
-                        .font(PulpeTypography.caption)
-                        .foregroundStyle(Color.financialSavings)
-                }
-                .padding(.top, DesignTokens.Spacing.xs)
+                passwordMatchRow(
+                    icon: "checkmark.circle.fill",
+                    text: "Les mots de passe correspondent",
+                    color: Color.financialSavings
+                )
             }
         }
     }

@@ -47,23 +47,16 @@ struct ConfirmPasswordSheet: View {
                 Button {
                     verifyTask = Task { await verifyPassword() }
                 } label: {
-                    HStack {
-                        if isVerifying {
-                            ProgressView()
-                                .tint(.white)
-                                .padding(.trailing, DesignTokens.Spacing.xs)
-                        }
+                    if isVerifying {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
                         Text("Confirmer")
-                            .font(PulpeTypography.buttonPrimary)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.onboardingGradient)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button))
                 }
+                .primaryButtonStyle(isEnabled: !password.isEmpty && !isVerifying)
                 .disabled(password.isEmpty || isVerifying)
-                .padding()
+                .padding(.horizontal)
             }
             .navigationTitle("Vérification")
             .navigationBarTitleDisplayMode(.inline)

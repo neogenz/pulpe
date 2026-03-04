@@ -14,13 +14,9 @@ struct RegistrationStep: View {
         case email, password, passwordConfirmation
     }
 
-    private var isPasswordValid: Bool {
-        password.count >= 8 &&
-        password.contains { $0.isNumber }
-    }
-
     private var hasMinLength: Bool { password.count >= 8 }
     private var hasNumber: Bool { password.contains(where: { $0.isNumber }) }
+    private var isPasswordValid: Bool { hasMinLength && hasNumber }
 
     private var isPasswordConfirmed: Bool {
         !passwordConfirmation.isEmpty && password == passwordConfirmation
@@ -28,10 +24,6 @@ struct RegistrationStep: View {
 
     private var canSubmit: Bool {
         state.canSubmitRegistration && isPasswordValid && isPasswordConfirmed
-    }
-
-    private var passwordMismatch: Bool {
-        !passwordConfirmation.isEmpty && password != passwordConfirmation
     }
 
     var body: some View {
@@ -123,31 +115,23 @@ extension RegistrationStep {
                 isVisible: $showPasswordConfirmation,
                 systemImage: "lock",
                 isFocused: focusedField == .passwordConfirmation,
-                hasError: passwordMismatch
+                hasError: !passwordConfirmation.isEmpty && !isPasswordConfirmed
             )
             .textContentType(.newPassword)
             .focused($focusedField, equals: .passwordConfirmation)
 
             if !passwordConfirmation.isEmpty && !isPasswordConfirmed {
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(PulpeTypography.footnote)
-                        .foregroundStyle(Color.errorPrimary)
-                    Text("Les mots de passe ne correspondent pas")
-                        .font(PulpeTypography.caption)
-                        .foregroundStyle(Color.errorPrimary)
-                }
-                .padding(.top, DesignTokens.Spacing.xs)
+                passwordMatchRow(
+                    icon: "xmark.circle.fill",
+                    text: "Les mots de passe ne correspondent pas",
+                    color: Color.errorPrimary
+                )
             } else if isPasswordConfirmed {
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(PulpeTypography.footnote)
-                        .foregroundStyle(Color.financialSavings)
-                    Text("Les mots de passe correspondent")
-                        .font(PulpeTypography.caption)
-                        .foregroundStyle(Color.financialSavings)
-                }
-                .padding(.top, DesignTokens.Spacing.xs)
+                passwordMatchRow(
+                    icon: "checkmark.circle.fill",
+                    text: "Les mots de passe correspondent",
+                    color: Color.financialSavings
+                )
             }
         }
     }
@@ -181,7 +165,7 @@ extension RegistrationStep {
                 }
                 .animation(.spring(response: 0.3, dampingFraction: 0.6), value: state.acceptTerms)
 
-                Text(termsMarkdown)
+                Text(Self.termsMarkdown)
                     .font(PulpeTypography.footnote)
                     .foregroundStyle(Color.textPrimaryOnboarding)
                     .multilineTextAlignment(.leading)
@@ -191,12 +175,24 @@ extension RegistrationStep {
         .buttonStyle(.plain)
     }
 
-    private var termsMarkdown: AttributedString {
+    private static let termsMarkdown: AttributedString = {
         let termsLink = AppURLs.terms.absoluteString
         let privacyLink = AppURLs.privacy.absoluteString
         let md = "J'accepte les [conditions d'utilisation](\(termsLink))"
             + " et la [politique de confidentialité](\(privacyLink))"
         return (try? AttributedString(markdown: md)) ?? AttributedString(md)
+    }()
+
+    private func passwordMatchRow(icon: String, text: String, color: Color) -> some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            Image(systemName: icon)
+                .font(PulpeTypography.footnote)
+                .foregroundStyle(color)
+            Text(text)
+                .font(PulpeTypography.caption)
+                .foregroundStyle(color)
+        }
+        .padding(.top, DesignTokens.Spacing.xs)
     }
 
     private func passwordCriteriaRow(met: Bool, text: String) -> some View {

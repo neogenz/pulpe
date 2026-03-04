@@ -57,7 +57,7 @@ private struct AuthFieldContainer<Content: View>: View {
                         .strokeBorder(borderColor, lineWidth: strokeWidth)
                 }
         }
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+        .shadow(DesignTokens.Shadow.input)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFocused)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showCheckmark)
     }

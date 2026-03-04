@@ -54,6 +54,12 @@ enum DesignTokens {
             radius: 8,
             y: 4
         )
+        /// Input fields (auth, currency)
+        static let input = ShadowStyle(
+            color: .black.opacity(0.04),
+            radius: 6,
+            y: 2
+        )
         /// Toast notifications
         static let toast = ShadowStyle(
             color: .black.opacity(0.1),
