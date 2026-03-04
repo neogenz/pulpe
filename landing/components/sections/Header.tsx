@@ -115,12 +115,11 @@ export function Header() {
             style={GLASS_DISTORTION_STYLE}
           />
 
-          {/* Layer 2: Tint */}
+          {/* Layer 2: Tint — opaque on mobile (no blur), glass on desktop */}
           <div
-            className="liquidGlass-tint absolute inset-0 rounded-full transition-colors duration-300"
-            style={{
-              background: `rgba(255, 255, 255, ${scrolled ? 0.2 : 0.15})`,
-            }}
+            className={`liquidGlass-tint absolute inset-0 rounded-full transition-colors duration-300 ${
+              scrolled ? 'bg-white/90 md:bg-white/20' : 'bg-white/85 md:bg-white/15'
+            }`}
           />
 
           {/* Layer 3: Shine/Reflections */}
@@ -173,28 +172,17 @@ export function Header() {
           </div>
         </nav>
 
-        {/* Mobile Menu - CSS transitions */}
+        {/* Mobile Menu - absolute so it doesn't inflate header's bounding box when collapsed */}
         <div
-          className={`md:hidden mt-2 rounded-2xl relative transition-all duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+          className={`md:hidden absolute left-0 right-0 top-full mt-2 rounded-2xl transition-all duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] ${
             mobileMenuOpen
               ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
               : 'opacity-0 -translate-y-2.5 scale-95 pointer-events-none'
           }`}
           {...(mobileMenuOpen && { role: 'dialog', 'aria-modal': true, 'aria-label': 'Menu de navigation' })}
         >
-          {/* Mobile: Distortion */}
-          <div
-            className="absolute inset-0 rounded-2xl overflow-hidden"
-            style={GLASS_DISTORTION_STYLE}
-          />
-
-          {/* Mobile: Tint */}
-          <div
-            className="absolute inset-0 rounded-2xl"
-            style={{
-              background: 'rgba(255, 255, 255, 0.8)',
-            }}
-          />
+          {/* Mobile: Tint — no SVG distortion filter (causes clipping artifacts on mobile) */}
+          <div className="absolute inset-0 rounded-2xl bg-white/85 backdrop-blur-sm" />
 
           {/* Mobile: Shine */}
           <div

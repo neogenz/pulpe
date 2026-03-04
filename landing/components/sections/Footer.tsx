@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Heart } from 'lucide-react'
 import { Container } from '@/components/ui'
-import { ANGULAR_APP_URL } from '@/lib/config'
+import { ANGULAR_APP_URL, GITHUB_URL, CONTACT_EMAIL } from '@/lib/config'
 
 export function Footer() {
   return (
@@ -18,7 +18,7 @@ export function Footer() {
 
           <nav aria-label="Liens utiles" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 md:gap-x-6 text-sm text-text-secondary">
             <a
-              href="https://github.com/neogenz/pulpe"
+              href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-text transition-colors py-3"
@@ -38,7 +38,7 @@ export function Footer() {
               Support
             </Link>
             <a
-              href="mailto:maxime.desogus@gmail.com"
+              href={`mailto:${CONTACT_EMAIL}`}
               className="hover:text-text transition-colors py-3"
             >
               Contact

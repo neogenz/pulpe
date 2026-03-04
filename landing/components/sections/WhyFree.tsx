@@ -1,5 +1,5 @@
 import { Card, FadeIn, Section } from "@/components/ui";
-import { ANGULAR_APP_URL } from "@/lib/config";
+import { ANGULAR_APP_URL, GITHUB_URL } from "@/lib/config";
 import { Code2, Globe, Shield } from "lucide-react";
 
 const TRUST_BADGES = [
@@ -91,7 +91,7 @@ export function WhyFree() {
         <FadeIn variant="blur" delay={0.7}>
           <div className="flex flex-wrap gap-2 justify-center mt-10 text-sm">
             <a
-              href="https://github.com/neogenz/pulpe"
+              href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="text-accent hover:underline py-3 px-2"

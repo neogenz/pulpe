@@ -1,11 +1,11 @@
 'use client'
 
 import { ChevronDown } from 'lucide-react'
-import { memo, useId, useState } from 'react'
+import { type ReactNode, memo, useId, useState } from 'react'
 
 interface AccordionItemProps {
   question: string
-  answer: string
+  answer: ReactNode
 }
 
 export const AccordionItem = memo(function AccordionItem({ question, answer }: AccordionItemProps) {
