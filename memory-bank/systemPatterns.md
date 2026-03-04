@@ -294,6 +294,15 @@ Remaining = Available - Expenses
 Ending Balance = Remaining (becomes next month's rollover)
 ```
 
+### Envelope Pattern (BudgetFormulas)
+
+`calculateAllMetricsWithEnvelopes` is the primary entry point for budget metric calculations. It delegates to:
+
+- `calculateTotalIncomeWithEnvelopes` — income with envelope logic
+- `calculateTotalExpensesWithEnvelopes` — expenses/savings with envelope logic
+
+Both use the same rule: for each budget line, `effective = max(line.amount, consumed)`. Free transactions (no `budgetLineId`) are added separately. This ensures allocated transactions are never double-counted across all kinds (income, expense, saving).
+
 ---
 
 ## Shared Package (pulpe-shared)

@@ -36,6 +36,13 @@ Progress = (Expenses ÷ Available) × 100
 Ending Balance = Remaining (stored, becomes next month's rollover)
 ```
 
+### Envelope Logic
+
+All kinds (income, expense, saving) use the same envelope rule:
+
+- **Allocated transactions** (`budget_line_id` set) are covered by their envelope (budget line). Effective amount = `max(line.amount, consumed)`. This prevents double-counting when transactions are allocated to a line.
+- **Free transactions** (`budget_line_id` null) impact the budget directly, added on top of envelope totals.
+
 ### Rollover Chain
 
 ```
