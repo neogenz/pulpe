@@ -4,7 +4,6 @@ import {
   Post,
   Body,
   UseGuards,
-  Logger,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -30,6 +29,7 @@ import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.ser
 import { ErrorResponseDto } from '@common/dto/response.dto';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { EncryptionService } from './encryption.service';
 import {
   EncryptionValidateKeyRequestDto,
@@ -58,9 +58,11 @@ const HEX_KEY_REGEX = /^[0-9a-f]{64}$/i;
   type: ErrorResponseDto,
 })
 export class EncryptionController {
-  readonly #logger = new Logger(EncryptionController.name);
-
-  constructor(private readonly encryptionService: EncryptionService) {}
+  constructor(
+    @InjectInfoLogger(EncryptionController.name)
+    private readonly logger: InfoLogger,
+    private readonly encryptionService: EncryptionService,
+  ) {}
 
   @SkipClientKey()
   @Get('vault-status')
@@ -117,7 +119,7 @@ export class EncryptionController {
       );
 
       if (!isValid) {
-        this.#logger.warn(
+        this.logger.warn(
           { userId: user.id, operation: 'validate_key.failed' },
           'Client key verification failed',
         );
@@ -151,7 +153,7 @@ export class EncryptionController {
       user.clientKey,
     );
 
-    this.#logger.log(
+    this.logger.info(
       { userId: user.id, operation: 'recovery_key.create' },
       'Recovery key created',
     );
@@ -180,7 +182,7 @@ export class EncryptionController {
       user.clientKey,
     );
 
-    this.#logger.log(
+    this.logger.info(
       { userId: user.id, operation: 'recovery_key.regenerate' },
       'Recovery key regenerated',
     );
@@ -236,7 +238,7 @@ export class EncryptionController {
       newKeyBuffer.fill(0);
     }
 
-    this.#logger.log(
+    this.logger.info(
       { userId: user.id, operation: 'recovery.complete' },
       'Account recovered with recovery key',
     );
@@ -276,7 +278,7 @@ export class EncryptionController {
         supabase,
       );
 
-      this.#logger.log(
+      this.logger.info(
         {
           userId: user.id,
           operation: 'pin_change.complete',
@@ -309,7 +311,7 @@ export class EncryptionController {
   }
 
   #handleRecoveryError(userId: string, error: unknown): never {
-    this.#logger.warn(
+    this.logger.warn(
       {
         userId,
         operation: 'recovery.failed',

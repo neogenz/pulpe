@@ -346,7 +346,17 @@ describe('Encryption integration (local Supabase)', () => {
     }
 
     hasSupabase = true;
-    encryptionService = new EncryptionService(configService, repository);
+    const mockLogger = {
+      info: () => {},
+      warn: () => {},
+      debug: () => {},
+      trace: () => {},
+    };
+    encryptionService = new EncryptionService(
+      mockLogger as any,
+      configService,
+      repository,
+    );
   });
 
   afterAll(() => {

@@ -1,5 +1,4 @@
-import { describe, it, expect, mock, spyOn } from 'bun:test';
-import { Logger } from '@nestjs/common';
+import { describe, it, expect, mock } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import { EncryptionController } from './encryption.controller';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -61,13 +60,24 @@ const createMockUser = (): AuthenticatedUser => ({
   clientKey: Buffer.alloc(32, 0xab),
 });
 
+const createMockLogger = () => ({
+  info: mock(() => {}),
+  warn: mock(() => {}),
+  debug: mock(() => {}),
+  trace: mock(() => {}),
+});
+
 function setupController(
   encryptionOverrides?: Parameters<typeof createMockEncryptionService>[0],
 ) {
   const mockEncryptionService =
     createMockEncryptionService(encryptionOverrides);
-  const controller = new EncryptionController(mockEncryptionService as any);
-  return { controller, mockEncryptionService };
+  const mockLogger = createMockLogger();
+  const controller = new EncryptionController(
+    mockLogger as any,
+    mockEncryptionService as any,
+  );
+  return { controller, mockEncryptionService, mockLogger };
 }
 
 describe('EncryptionController', () => {
@@ -188,9 +198,8 @@ describe('EncryptionController', () => {
     it('should log warning on failed validation', async () => {
       const user = createMockUser();
       const body = { clientKey: 'ab'.repeat(32) };
-      const warnSpy = spyOn(Logger.prototype, 'warn');
 
-      const { controller } = setupController({
+      const { controller, mockLogger } = setupController({
         verifyAndEnsureKeyCheck: mock(() => Promise.resolve(false)),
       });
 
@@ -200,12 +209,10 @@ describe('EncryptionController', () => {
         // Expected to throw
       }
 
-      expect(warnSpy).toHaveBeenCalledWith(
+      expect(mockLogger.warn).toHaveBeenCalledWith(
         { userId: user.id, operation: 'validate_key.failed' },
         'Client key verification failed',
       );
-
-      warnSpy.mockRestore();
     });
 
     it('should throw BusinessException for all-zero client key', async () => {
@@ -259,18 +266,15 @@ describe('EncryptionController', () => {
 
     it('should log audit event with recovery_key.create operation', async () => {
       const user = createMockUser();
-      const logSpy = spyOn(Logger.prototype, 'log');
 
-      const { controller } = setupController();
+      const { controller, mockLogger } = setupController();
 
       await controller.setupRecovery(user);
 
-      expect(logSpy).toHaveBeenCalledWith(
+      expect(mockLogger.info).toHaveBeenCalledWith(
         { userId: user.id, operation: 'recovery_key.create' },
         'Recovery key created',
       );
-
-      logSpy.mockRestore();
     });
 
     it('should use user.clientKey from AuthenticatedUser', async () => {
@@ -326,18 +330,15 @@ describe('EncryptionController', () => {
 
     it('should log audit event with recovery_key.regenerate operation', async () => {
       const user = createMockUser();
-      const logSpy = spyOn(Logger.prototype, 'log');
 
-      const { controller } = setupController();
+      const { controller, mockLogger } = setupController();
 
       await controller.regenerateRecovery(user);
 
-      expect(logSpy).toHaveBeenCalledWith(
+      expect(mockLogger.info).toHaveBeenCalledWith(
         { userId: user.id, operation: 'recovery_key.regenerate' },
         'Recovery key regenerated',
       );
-
-      logSpy.mockRestore();
     });
   });
 
@@ -498,18 +499,15 @@ describe('EncryptionController', () => {
         recoveryKey: 'XXXX-YYYY-ZZZZ-1234',
         newClientKey: 'ab'.repeat(32),
       };
-      const logSpy = spyOn(Logger.prototype, 'log');
 
-      const { controller } = setupController();
+      const { controller, mockLogger } = setupController();
 
       await controller.recover(user, mockSupabase as any, body);
 
-      expect(logSpy).toHaveBeenCalledWith(
+      expect(mockLogger.info).toHaveBeenCalledWith(
         { userId: user.id, operation: 'recovery.complete' },
         'Account recovered with recovery key',
       );
-
-      logSpy.mockRestore();
     });
 
     it('should throw BusinessException for all-zero newClientKey', async () => {
@@ -766,9 +764,8 @@ describe('EncryptionController', () => {
         oldClientKey: 'ab'.repeat(32),
         newClientKey: 'cd'.repeat(32),
       };
-      const logSpy = spyOn(Logger.prototype, 'log');
 
-      const { controller } = setupController({
+      const { controller, mockLogger } = setupController({
         changePinRekey: mock(() =>
           Promise.resolve({
             keyCheck: 'kc',
@@ -779,7 +776,7 @@ describe('EncryptionController', () => {
 
       await controller.changePin(user, mockSupabase as any, body);
 
-      expect(logSpy).toHaveBeenCalledWith(
+      expect(mockLogger.info).toHaveBeenCalledWith(
         {
           userId: user.id,
           operation: 'pin_change.complete',
@@ -787,8 +784,6 @@ describe('EncryptionController', () => {
         },
         'PIN changed and data re-encrypted',
       );
-
-      logSpy.mockRestore();
     });
 
     it('should call changePinRekey with correct arguments', async () => {

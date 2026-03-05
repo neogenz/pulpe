@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 
 interface UserEncryptionKeyRow {
@@ -20,7 +20,6 @@ export interface VaultStatusRow {
 
 @Injectable()
 export class EncryptionKeyRepository {
-  readonly #logger = new Logger(EncryptionKeyRepository.name);
   readonly #supabaseService: SupabaseService;
 
   constructor(supabaseService: SupabaseService) {

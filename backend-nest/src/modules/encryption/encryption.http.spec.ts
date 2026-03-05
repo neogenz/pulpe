@@ -16,6 +16,7 @@ import { GlobalExceptionFilter } from '@common/filters/global-exception.filter';
 import { AuthGuard } from '@common/guards/auth.guard';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { createInfoLoggerProvider } from '@common/logger';
 
 const VALID_HEX_KEY = 'ab'.repeat(32);
 const VALID_HEX_KEY_ALT = 'cd'.repeat(32);
@@ -101,6 +102,8 @@ beforeAll(async () => {
         provide: APP_FILTER,
         useFactory: () => new GlobalExceptionFilter(mockLogger as PinoLogger),
       },
+      { provide: PinoLogger, useValue: mockLogger },
+      createInfoLoggerProvider(EncryptionController.name),
       Reflector,
     ],
   })
