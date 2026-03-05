@@ -148,13 +148,13 @@ describe('Encryption HTTP pipeline', () => {
       expect(res.body.code).toBe('ERR_ZOD_VALIDATION_FAILED');
     });
 
-    it('returns 400 ERR_AUTH_CLIENT_KEY_INVALID for invalid hex', async () => {
+    it('returns 400 Zod error for invalid hex', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/encryption/validate-key')
         .send({ clientKey: 'not-valid-hex' })
         .expect(400);
 
-      expect(res.body.code).toBe('ERR_AUTH_CLIENT_KEY_INVALID');
+      expect(res.body.code).toBe('ERR_ZOD_VALIDATION_FAILED');
     });
 
     it('returns 400 ERR_AUTH_CLIENT_KEY_INVALID for all-zero key', async () => {
@@ -269,13 +269,13 @@ describe('Encryption HTTP pipeline', () => {
       expect(res.body.code).toBe('ERR_ENCRYPTION_KEY_CHECK_FAILED');
     });
 
-    it('returns 400 ERR_AUTH_CLIENT_KEY_INVALID for invalid hex oldClientKey', async () => {
+    it('returns 400 Zod error for invalid hex oldClientKey', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/encryption/change-pin')
         .send({ oldClientKey: 'not-hex', newClientKey: VALID_HEX_KEY_ALT })
         .expect(400);
 
-      expect(res.body.code).toBe('ERR_AUTH_CLIENT_KEY_INVALID');
+      expect(res.body.code).toBe('ERR_ZOD_VALIDATION_FAILED');
     });
   });
 
@@ -322,13 +322,13 @@ describe('Encryption HTTP pipeline', () => {
       expect(res.body.code).toBe('ERR_RECOVERY_KEY_INVALID');
     });
 
-    it('returns 400 ERR_AUTH_CLIENT_KEY_INVALID for invalid hex newClientKey', async () => {
+    it('returns 400 Zod error for invalid hex newClientKey', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/encryption/recover')
         .send({ recoveryKey: 'XXXX-YYYY-ZZZZ', newClientKey: 'not-valid-hex' })
         .expect(400);
 
-      expect(res.body.code).toBe('ERR_AUTH_CLIENT_KEY_INVALID');
+      expect(res.body.code).toBe('ERR_ZOD_VALIDATION_FAILED');
     });
 
     it('returns 400 Zod error when newClientKey is missing', async () => {
@@ -380,9 +380,10 @@ describe('Encryption HTTP pipeline', () => {
   // ──────────────────────────────────────────────
   describe('Error response shape', () => {
     it('includes standard error envelope fields', async () => {
+      // Use all-zero key (valid hex, passes Zod, caught by controller buffer check)
       const res = await request(app.getHttpServer())
         .post('/api/v1/encryption/validate-key')
-        .send({ clientKey: 'bad-hex' })
+        .send({ clientKey: '00'.repeat(32) })
         .expect(400);
 
       expect(res.body.success).toBe(false);
