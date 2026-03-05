@@ -23,7 +23,6 @@ const createMockRepository = (overrides?: {
   updateWrappedDEKIfNull?: ReturnType<typeof mock>;
   hasRecoveryKey?: ReturnType<typeof mock>;
   updateKeyCheckIfNull?: ReturnType<typeof mock>;
-  hasVaultCode?: ReturnType<typeof mock>;
   getVaultStatus?: ReturnType<typeof mock>;
 }) => ({
   findSaltByUserId:
@@ -43,7 +42,6 @@ const createMockRepository = (overrides?: {
     overrides?.hasRecoveryKey ?? mock(() => Promise.resolve(false)),
   updateKeyCheckIfNull:
     overrides?.updateKeyCheckIfNull ?? mock(() => Promise.resolve()),
-  hasVaultCode: overrides?.hasVaultCode ?? mock(() => Promise.resolve(false)),
   getVaultStatus:
     overrides?.getVaultStatus ??
     mock(() =>

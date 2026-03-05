@@ -119,23 +119,6 @@ export class EncryptionKeyRepository {
     }
   }
 
-  async hasVaultCode(userId: string): Promise<boolean> {
-    const supabase = this.#supabaseService.getServiceRoleClient();
-    const { data, error } = await supabase
-      .from('user_encryption_key')
-      .select('key_check, wrapped_dek')
-      .eq('user_id', userId)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') return false;
-      throw new Error(
-        `Failed to check vault code for user ${userId}: ${error.message}`,
-      );
-    }
-    return data?.key_check != null && data?.wrapped_dek != null;
-  }
-
   async getVaultStatus(userId: string): Promise<VaultStatusRow> {
     const supabase = this.#supabaseService.getServiceRoleClient();
     const { data, error } = await supabase

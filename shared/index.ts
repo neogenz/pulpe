@@ -119,7 +119,6 @@ export {
   // Encryption schemas — responses
   encryptionVaultStatusResponseSchema,
   encryptionSaltResponseSchema,
-  encryptionRekeyResponseSchema,
   encryptionSetupRecoveryResponseSchema,
   encryptionRecoverResponseSchema,
   encryptionChangePinResponseSchema,
@@ -262,7 +261,6 @@ export type {
   // Encryption types — responses
   EncryptionVaultStatusResponse,
   EncryptionSaltResponse,
-  EncryptionRekeyResponse,
   EncryptionSetupRecoveryResponse,
   EncryptionRecoverResponse,
   EncryptionChangePinResponse,
