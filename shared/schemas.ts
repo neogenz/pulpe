@@ -935,9 +935,12 @@ export type DemoCleanupResponse = z.infer<typeof demoCleanupResponseSchema>;
 
 // -- Request schemas --
 
+/** Hex-encoded 32-byte key (64 hex chars) */
+const hexKey64 = z.string().regex(/^[0-9a-f]{64}$/i);
+
 /** POST /validate-key — hex-encoded 32-byte client key */
 export const encryptionValidateKeyRequestSchema = z.object({
-  clientKey: z.string(),
+  clientKey: hexKey64,
 });
 export type EncryptionValidateKeyRequest = z.infer<
   typeof encryptionValidateKeyRequestSchema
@@ -946,7 +949,7 @@ export type EncryptionValidateKeyRequest = z.infer<
 /** POST /recover — recovery key + new hex-encoded client key */
 export const encryptionRecoverRequestSchema = z.object({
   recoveryKey: z.string(),
-  newClientKey: z.string(),
+  newClientKey: hexKey64,
 });
 export type EncryptionRecoverRequest = z.infer<
   typeof encryptionRecoverRequestSchema
@@ -954,8 +957,8 @@ export type EncryptionRecoverRequest = z.infer<
 
 /** POST /change-pin — old + new hex-encoded client keys */
 export const encryptionChangePinRequestSchema = z.object({
-  oldClientKey: z.string(),
-  newClientKey: z.string(),
+  oldClientKey: hexKey64,
+  newClientKey: hexKey64,
 });
 export type EncryptionChangePinRequest = z.infer<
   typeof encryptionChangePinRequestSchema
