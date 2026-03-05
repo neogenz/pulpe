@@ -1672,7 +1672,34 @@ describe('EncryptionService', () => {
 
     it('should throw ENCRYPTION_SAME_KEY when old and new keys are identical', async () => {
       const sameKey = randomBytes(32);
-      const repo = createMockRepository();
+
+      // Must provide a valid row + key_check since findByUserId + key verification
+      // now happens BEFORE the same-key check (prevents same-key oracle).
+      const bootstrapRepo = createMockRepository({
+        findSaltByUserId: mock(() =>
+          Promise.resolve({
+            salt: existingSalt,
+            kdf_iterations: 600000,
+            key_check: null,
+          }),
+        ),
+      });
+      const bootstrapService = new EncryptionService(
+        mockConfigService as any,
+        bootstrapRepo as any,
+      );
+      const dek = await bootstrapService.getUserDEK(TEST_USER_ID, sameKey);
+      const validKeyCheck = bootstrapService.generateKeyCheck(dek);
+
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: null,
+          key_check: validKeyCheck,
+        }),
+      );
+      const repo = createMockRepository({ findByUserId });
       service = new EncryptionService(mockConfigService as any, repo as any);
 
       try {
@@ -1984,32 +2011,26 @@ describe('EncryptionService', () => {
       wrapSpy.mockRestore();
     });
 
-    it('should throw when user has no encryption key', async () => {
+    it('should throw ENCRYPTION_REKEY_PARTIAL_FAILURE when user has no encryption key', async () => {
       const findByUserId = mock(() => Promise.resolve(null));
-      const findSaltByUserId = mock(() =>
-        Promise.resolve({
-          salt: existingSalt,
-          kdf_iterations: 600000,
-          key_check: null,
-        }),
-      );
-      const updateKeyCheckIfNull = mock(() => Promise.resolve());
 
-      const repo = createMockRepository({
-        findByUserId,
-        findSaltByUserId,
-        updateKeyCheckIfNull,
-      });
+      const repo = createMockRepository({ findByUserId });
       service = new EncryptionService(mockConfigService as any, repo as any);
 
-      await expect(
-        service.changePinRekey(
+      try {
+        await service.changePinRekey(
           TEST_USER_ID,
           oldClientKey,
           newClientKey,
           mockSupabase,
-        ),
-      ).rejects.toThrow('No encryption key found');
+        );
+        expect.unreachable('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE.code,
+        );
+      }
     });
   });
 });
