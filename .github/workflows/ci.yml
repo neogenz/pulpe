@@ -5,11 +5,10 @@ on:
     branches: [main, preview] # Seulement sur les branches principales
   pull_request:
     branches: [main, preview] # Tests sur toutes les PRs vers ces branches
-  workflow_dispatch: # Manual trigger
 
 # Éviter les runs multiples pour la même ref
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-v2
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 # Sécurité : permissions minimales
