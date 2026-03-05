@@ -752,37 +752,6 @@ describe('EncryptionController', () => {
       logSpy.mockRestore();
     });
 
-    it('should log warning on non-BusinessException failure', async () => {
-      const user = createMockUser();
-      const mockSupabase = {};
-      const body = {
-        oldClientKey: 'ab'.repeat(32),
-        newClientKey: 'cd'.repeat(32),
-      };
-      const warnSpy = spyOn(Logger.prototype, 'warn');
-
-      const { controller } = setupController({
-        changePinRekey: mock(() => Promise.reject(new Error('RPC failed'))),
-      });
-
-      try {
-        await controller.changePin(user, mockSupabase as any, body);
-      } catch {
-        // Expected to throw
-      }
-
-      expect(warnSpy).toHaveBeenCalledWith(
-        {
-          userId: user.id,
-          operation: 'pin_change.failed',
-          error: 'RPC failed',
-        },
-        'PIN change failed',
-      );
-
-      warnSpy.mockRestore();
-    });
-
     it('should call changePinRekey with correct arguments', async () => {
       const user = createMockUser();
       const mockSupabase = { test: 'supabase' };

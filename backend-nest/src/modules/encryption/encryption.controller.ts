@@ -25,6 +25,7 @@ import {
   SupabaseClient,
   type AuthenticatedUser,
 } from '@common/decorators/user.decorator';
+import type { EncryptionChangePinResponse } from 'pulpe-shared';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -261,11 +262,13 @@ export class EncryptionController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
     @Body() body: EncryptionChangePinRequestDto,
-  ): Promise<{ keyCheck: string; recoveryKey: string | null }> {
-    const oldKeyBuffer = this.#validateClientKeyHex(body.oldClientKey);
-    const newKeyBuffer = this.#validateClientKeyHex(body.newClientKey);
+  ): Promise<EncryptionChangePinResponse> {
+    let oldKeyBuffer: Buffer | undefined;
+    let newKeyBuffer: Buffer | undefined;
 
     try {
+      oldKeyBuffer = this.#validateClientKeyHex(body.oldClientKey);
+      newKeyBuffer = this.#validateClientKeyHex(body.newClientKey);
       const result = await this.encryptionService.changePinRekey(
         user.id,
         oldKeyBuffer,
@@ -284,8 +287,8 @@ export class EncryptionController {
 
       return result;
     } finally {
-      oldKeyBuffer.fill(0);
-      newKeyBuffer.fill(0);
+      oldKeyBuffer?.fill(0);
+      newKeyBuffer?.fill(0);
     }
   }
 
