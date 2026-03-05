@@ -1895,7 +1895,7 @@ describe('EncryptionService', () => {
       const reEncryptSpy = spyOn(
         service,
         'reEncryptAllUserData',
-      ).mockResolvedValue(undefined);
+      ).mockResolvedValue('mock-key-check');
 
       const result = await service.changePinRekey(
         TEST_USER_ID,
@@ -1905,7 +1905,7 @@ describe('EncryptionService', () => {
       );
 
       expect(result.recoveryKey).toBeNull();
-      expect(result.keyCheck).toBe('new-key-check-from-rpc');
+      expect(result.keyCheck).toBe('mock-key-check');
       expect(reEncryptSpy).toHaveBeenCalledTimes(1);
       expect(updateWrappedDEK).not.toHaveBeenCalled();
 
@@ -1951,6 +1951,7 @@ describe('EncryptionService', () => {
         'reEncryptAllUserData',
       ).mockImplementation(async () => {
         callOrder.push('reEncryptAllUserData');
+        return 'mock-key-check';
       });
 
       const result = await service.changePinRekey(

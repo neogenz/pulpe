@@ -283,17 +283,6 @@ export class EncryptionController {
       );
 
       return result;
-    } catch (error) {
-      if (error instanceof BusinessException) throw error;
-      this.#logger.warn(
-        {
-          userId: user.id,
-          operation: 'pin_change.failed',
-          error: error instanceof Error ? error.message : String(error),
-        },
-        'PIN change failed',
-      );
-      throw error;
     } finally {
       oldKeyBuffer.fill(0);
       newKeyBuffer.fill(0);

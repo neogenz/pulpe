@@ -443,11 +443,17 @@ export class EncryptionService {
     const newDek = this.#deriveDEK(newClientKey, salt, userId);
     const hadRecovery = !!row.wrapped_dek;
     let recoveryKeyFormatted: string | null = null;
+    let keyCheck: string;
 
     this.#invalidateUserDEKCache(userId);
 
     try {
-      await this.reEncryptAllUserData(userId, oldDek, newDek, supabase);
+      keyCheck = await this.reEncryptAllUserData(
+        userId,
+        oldDek,
+        newDek,
+        supabase,
+      );
 
       // If user had a recovery key, generate a new one and re-wrap the new DEK
       // in the same call — wrapped_dek goes directly from old wrapping to new
@@ -461,7 +467,17 @@ export class EncryptionService {
         } catch (wrapError) {
           // Wrap failed — nullify to prevent stale wrapping pointing to old DEK
           await this.#repository.updateWrappedDEK(userId, null);
-          throw wrapError;
+          throw new BusinessException(
+            ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
+            undefined,
+            { userId, operation: 'pin_change.recovery_wrap_failed' },
+            {
+              cause:
+                wrapError instanceof Error
+                  ? wrapError
+                  : new Error(String(wrapError)),
+            },
+          );
         } finally {
           raw.fill(0);
         }
@@ -471,17 +487,8 @@ export class EncryptionService {
       newDek.fill(0);
     }
 
-    const updatedRow = await this.#repository.findSaltByUserId(userId);
-    if (!updatedRow?.key_check) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
-        undefined,
-        { userId, operation: 'pin_change.key_check_readback' },
-      );
-    }
-
     return {
-      keyCheck: updatedRow.key_check,
+      keyCheck,
       recoveryKey: recoveryKeyFormatted,
     };
   }
@@ -491,7 +498,7 @@ export class EncryptionService {
     oldDek: Buffer,
     newDek: Buffer,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
+  ): Promise<string> {
     const [budgetIds, templateIds] = await Promise.all([
       this.#fetchUserBudgetIds(userId, supabase),
       this.#fetchUserTemplateIds(userId, supabase),
@@ -557,6 +564,8 @@ export class EncryptionService {
       },
       'All user data re-encrypted',
     );
+
+    return keyCheck;
   }
 
   #buildRekeyPayloads(
