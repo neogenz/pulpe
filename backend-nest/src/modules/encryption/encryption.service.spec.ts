@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, mock, spyOn } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
@@ -1771,6 +1771,284 @@ describe('EncryptionService', () => {
       } catch {
         expect(reEncryptUserData).not.toHaveBeenCalled();
       }
+    });
+  });
+
+  describe('changePinRekey', () => {
+    const existingSalt = randomBytes(16).toString('hex');
+    const oldClientKey = randomBytes(32);
+    const newClientKey = randomBytes(32);
+    const mockSupabase = {} as any;
+
+    function setupServiceWithValidKeyCheck() {
+      // Bootstrap service to derive DEK and generate a valid keyCheck
+      const bootstrapFindSalt = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
+      );
+      const bootstrapRepo = createMockRepository({
+        findSaltByUserId: bootstrapFindSalt,
+      });
+      const bootstrapService = new EncryptionService(
+        mockConfigService as any,
+        bootstrapRepo as any,
+      );
+      const dek = bootstrapService.getUserDEK(TEST_USER_ID, oldClientKey);
+      return dek;
+    }
+
+    it('should throw ENCRYPTION_SAME_KEY when old and new keys are identical', async () => {
+      const sameKey = randomBytes(32);
+      const repo = createMockRepository();
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      try {
+        await service.changePinRekey(
+          TEST_USER_ID,
+          sameKey,
+          Buffer.from(sameKey),
+          mockSupabase,
+        );
+        expect.unreachable('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          ERROR_DEFINITIONS.ENCRYPTION_SAME_KEY.code,
+        );
+      }
+    });
+
+    it('should throw ENCRYPTION_KEY_CHECK_FAILED when old key is invalid', async () => {
+      const wrongKey = randomBytes(32);
+      const wrongDek = randomBytes(32);
+      const invalidKeyCheck = new EncryptionService(
+        mockConfigService as any,
+        createMockRepository() as any,
+      ).generateKeyCheck(wrongDek);
+
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: null,
+          key_check: invalidKeyCheck,
+        }),
+      );
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: invalidKeyCheck,
+        }),
+      );
+
+      const repo = createMockRepository({ findByUserId, findSaltByUserId });
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      try {
+        await service.changePinRekey(
+          TEST_USER_ID,
+          wrongKey,
+          newClientKey,
+          mockSupabase,
+        );
+        expect.unreachable('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
+        );
+      }
+    });
+
+    it('should re-encrypt data and return keyCheck on success (no recovery)', async () => {
+      const dek = await setupServiceWithValidKeyCheck();
+      const validKeyCheck = service.generateKeyCheck(await dek);
+
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: null,
+          key_check: validKeyCheck,
+        }),
+      );
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: 'new-key-check-from-rpc',
+        }),
+      );
+      const updateWrappedDEK = mock(() => Promise.resolve());
+
+      const repo = createMockRepository({
+        findByUserId,
+        findSaltByUserId,
+        updateWrappedDEK,
+      });
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      const reEncryptSpy = spyOn(
+        service,
+        'reEncryptAllUserData',
+      ).mockResolvedValue(undefined);
+
+      const result = await service.changePinRekey(
+        TEST_USER_ID,
+        oldClientKey,
+        newClientKey,
+        mockSupabase,
+      );
+
+      expect(result.recoveryKey).toBeNull();
+      expect(result.keyCheck).toBe('new-key-check-from-rpc');
+      expect(reEncryptSpy).toHaveBeenCalledTimes(1);
+      expect(updateWrappedDEK).not.toHaveBeenCalled();
+
+      reEncryptSpy.mockRestore();
+    });
+
+    it('should re-wrap with new recovery key AFTER re-encryption when recovery exists', async () => {
+      const dek = await setupServiceWithValidKeyCheck();
+      const validKeyCheck = service.generateKeyCheck(await dek);
+      const callOrder: string[] = [];
+
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: 'some-wrapped-dek',
+          key_check: validKeyCheck,
+        }),
+      );
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: 'new-key-check-from-rpc',
+        }),
+      );
+      const updateWrappedDEK = mock((userId: string, value: string | null) => {
+        callOrder.push(
+          `updateWrappedDEK:${value === null ? 'null' : 'wrapped'}`,
+        );
+        return Promise.resolve();
+      });
+
+      const repo = createMockRepository({
+        findByUserId,
+        findSaltByUserId,
+        updateWrappedDEK,
+      });
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      const reEncryptSpy = spyOn(
+        service,
+        'reEncryptAllUserData',
+      ).mockImplementation(async () => {
+        callOrder.push('reEncryptAllUserData');
+      });
+
+      const result = await service.changePinRekey(
+        TEST_USER_ID,
+        oldClientKey,
+        newClientKey,
+        mockSupabase,
+      );
+
+      expect(result.recoveryKey).not.toBeNull();
+      expect(result.recoveryKey).toMatch(/^[A-Z2-7]+-/); // base32 formatted
+      // Re-wrapping happens AFTER re-encryption, and wraps (not nullifies)
+      expect(updateWrappedDEK).toHaveBeenCalledTimes(1);
+      expect(callOrder).toEqual([
+        'reEncryptAllUserData',
+        'updateWrappedDEK:wrapped',
+      ]);
+
+      reEncryptSpy.mockRestore();
+    });
+
+    it('should NOT nullify wrapped_dek when re-encryption fails', async () => {
+      const dek = await setupServiceWithValidKeyCheck();
+      const validKeyCheck = service.generateKeyCheck(await dek);
+
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: 'some-wrapped-dek',
+          key_check: validKeyCheck,
+        }),
+      );
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: validKeyCheck,
+        }),
+      );
+      const updateWrappedDEK = mock(() => Promise.resolve());
+
+      const repo = createMockRepository({
+        findByUserId,
+        findSaltByUserId,
+        updateWrappedDEK,
+      });
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      const reEncryptSpy = spyOn(
+        service,
+        'reEncryptAllUserData',
+      ).mockRejectedValue(new Error('RPC failed'));
+
+      try {
+        await service.changePinRekey(
+          TEST_USER_ID,
+          oldClientKey,
+          newClientKey,
+          mockSupabase,
+        );
+        expect.unreachable('Should have thrown');
+      } catch (error) {
+        expect((error as Error).message).toBe('RPC failed');
+      }
+
+      // wrapped_dek should NOT be nullified since re-encryption failed
+      expect(updateWrappedDEK).not.toHaveBeenCalled();
+
+      reEncryptSpy.mockRestore();
+    });
+
+    it('should throw when user has no encryption key', async () => {
+      const findByUserId = mock(() => Promise.resolve(null));
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
+      );
+      const updateKeyCheckIfNull = mock(() => Promise.resolve());
+
+      const repo = createMockRepository({
+        findByUserId,
+        findSaltByUserId,
+        updateKeyCheckIfNull,
+      });
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      await expect(
+        service.changePinRekey(
+          TEST_USER_ID,
+          oldClientKey,
+          newClientKey,
+          mockSupabase,
+        ),
+      ).rejects.toThrow('No encryption key found');
     });
   });
 });
