@@ -34,6 +34,7 @@ struct ConfirmPasswordSheet: View {
                     .accessibilityIdentifier("confirmPasswordInput")
                     .accessibilityLabel("Mot de passe")
                     .accessibilityHint("Saisis ton mot de passe pour confirmer")
+                    .textContentType(.password)
 
                     if let error = errorMessage {
                         Text(error)

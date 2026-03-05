@@ -11,6 +11,7 @@ struct PasswordMatchRow: View {
             Image(systemName: icon)
                 .font(PulpeTypography.footnote)
                 .foregroundStyle(color)
+                .accessibilityHidden(true)
             Text(text)
                 .font(PulpeTypography.caption)
                 .foregroundStyle(color)

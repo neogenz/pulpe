@@ -10,6 +10,7 @@ struct PasswordCriteriaRow: View {
             Image(systemName: met ? "checkmark.circle.fill" : "circle")
                 .font(PulpeTypography.caption)
                 .foregroundStyle(met ? Color.financialSavings : Color.textSecondaryOnboarding.opacity(0.5))
+                .accessibilityHidden(true)
             Text(text)
                 .font(PulpeTypography.caption)
                 .foregroundStyle(met ? Color.textPrimaryOnboarding : Color.textSecondaryOnboarding)
