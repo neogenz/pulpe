@@ -426,13 +426,6 @@ export class EncryptionService {
       throw new BusinessException(ERROR_DEFINITIONS.ENCRYPTION_SAME_KEY);
     }
 
-    const isValid = await this.verifyAndEnsureKeyCheck(userId, oldClientKey);
-    if (!isValid) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
-      );
-    }
-
     const row = await this.#repository.findByUserId(userId);
     if (!row) {
       throw new Error(`No encryption key found for user ${userId}`);
@@ -440,6 +433,19 @@ export class EncryptionService {
 
     const salt = Buffer.from(row.salt, 'hex');
     const oldDek = this.#deriveDEK(oldClientKey, salt, userId);
+
+    // Verify old key inline (avoids a redundant findByUserId + deriveDEK round-trip)
+    if (row.key_check) {
+      if (!this.validateKeyCheck(row.key_check, oldDek)) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+        );
+      }
+    } else {
+      const generatedKeyCheck = this.generateKeyCheck(oldDek);
+      await this.#repository.updateKeyCheckIfNull(userId, generatedKeyCheck);
+    }
+
     const newDek = this.#deriveDEK(newClientKey, salt, userId);
     const hadRecovery = !!row.wrapped_dek;
     let recoveryKeyFormatted: string | null = null;
@@ -499,24 +505,20 @@ export class EncryptionService {
     newDek: Buffer,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<string> {
-    const [budgetIds, templateIds] = await Promise.all([
-      this.#fetchUserBudgetIds(userId, supabase),
+    const [monthlyBudgets, templateIds] = await Promise.all([
+      this.#fetchMonthlyBudgets(userId, supabase),
       this.#fetchUserTemplateIds(userId, supabase),
     ]);
 
-    const [
-      budgetLines,
-      transactions,
-      templateLines,
-      savingsGoals,
-      monthlyBudgets,
-    ] = await Promise.all([
-      this.#fetchBudgetLines(budgetIds, supabase),
-      this.#fetchTransactions(budgetIds, supabase),
-      this.#fetchTemplateLines(templateIds, supabase),
-      this.#fetchSavingsGoals(userId, supabase),
-      this.#fetchMonthlyBudgets(userId, supabase),
-    ]);
+    const budgetIds = monthlyBudgets.map((b) => b.id);
+
+    const [budgetLines, transactions, templateLines, savingsGoals] =
+      await Promise.all([
+        this.#fetchBudgetLines(budgetIds, supabase),
+        this.#fetchTransactions(budgetIds, supabase),
+        this.#fetchTemplateLines(templateIds, supabase),
+        this.#fetchSavingsGoals(userId, supabase),
+      ]);
 
     const payloads = this.#buildRekeyPayloads(
       {
@@ -630,19 +632,6 @@ export class EncryptionService {
   ): string {
     const plaintext = this.decryptAmount(ciphertext, oldDek);
     return this.encryptAmount(plaintext, newDek);
-  }
-
-  async #fetchUserBudgetIds(
-    userId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<string[]> {
-    const { data, error } = await supabase
-      .from('monthly_budget')
-      .select('id')
-      .eq('user_id', userId);
-
-    if (error) throw error;
-    return data?.map((b) => b.id) ?? [];
   }
 
   async #fetchUserTemplateIds(
