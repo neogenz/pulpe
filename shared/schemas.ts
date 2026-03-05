@@ -932,6 +932,46 @@ export const demoCleanupResponseSchema = z.object({
 export type DemoCleanupResponse = z.infer<typeof demoCleanupResponseSchema>;
 
 // Encryption schemas
+
+// -- Request schemas --
+
+/** POST /validate-key — hex-encoded 32-byte client key */
+export const encryptionValidateKeyRequestSchema = z.object({
+  clientKey: z.string(),
+});
+export type EncryptionValidateKeyRequest = z.infer<
+  typeof encryptionValidateKeyRequestSchema
+>;
+
+/** POST /recover — recovery key + new hex-encoded client key */
+export const encryptionRecoverRequestSchema = z.object({
+  recoveryKey: z.string(),
+  newClientKey: z.string(),
+});
+export type EncryptionRecoverRequest = z.infer<
+  typeof encryptionRecoverRequestSchema
+>;
+
+/** POST /change-pin — old + new hex-encoded client keys */
+export const encryptionChangePinRequestSchema = z.object({
+  oldClientKey: z.string(),
+  newClientKey: z.string(),
+});
+export type EncryptionChangePinRequest = z.infer<
+  typeof encryptionChangePinRequestSchema
+>;
+
+// -- Response schemas --
+
+export const encryptionVaultStatusResponseSchema = z.object({
+  pinCodeConfigured: z.boolean(),
+  recoveryKeyConfigured: z.boolean(),
+  vaultCodeConfigured: z.boolean(),
+});
+export type EncryptionVaultStatusResponse = z.infer<
+  typeof encryptionVaultStatusResponseSchema
+>;
+
 export const encryptionSaltResponseSchema = z.object({
   salt: z.string(),
   kdfIterations: z.number().int().positive(),
@@ -960,4 +1000,12 @@ export const encryptionRecoverResponseSchema = z.object({
 });
 export type EncryptionRecoverResponse = z.infer<
   typeof encryptionRecoverResponseSchema
+>;
+
+export const encryptionChangePinResponseSchema = z.object({
+  keyCheck: z.string(),
+  recoveryKey: z.string().nullable(),
+});
+export type EncryptionChangePinResponse = z.infer<
+  typeof encryptionChangePinResponseSchema
 >;
