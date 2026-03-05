@@ -139,8 +139,8 @@ struct BudgetDetailsView: View {
                     let succeeded = await viewModel.confirmToggle(for: line, checkAll: false)
                     if succeeded {
                         viewModel.showEnvelopeToastIfNeeded(
-                        for: line, toastManager: appState.toastManager, amountsHidden: amountsHidden
-                    )
+                            for: line, toastManager: appState.toastManager, amountsHidden: amountsHidden
+                        )
                     }
                 }
             }

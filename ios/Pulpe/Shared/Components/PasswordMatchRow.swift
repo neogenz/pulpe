@@ -21,7 +21,6 @@ struct PasswordMatchRow: View {
                 .foregroundStyle(color)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityValue(matches ? "validé" : "non validé")
         .padding(.top, DesignTokens.Spacing.xs)
     }
 }
