@@ -167,20 +167,6 @@ export class EncryptionKeyRepository {
     };
   }
 
-  async updateKeyCheck(userId: string, keyCheck: string): Promise<void> {
-    const supabase = this.#supabaseService.getServiceRoleClient();
-    const { error } = await supabase
-      .from('user_encryption_key')
-      .update({ key_check: keyCheck })
-      .eq('user_id', userId);
-
-    if (error) {
-      throw new Error(
-        `Failed to update key_check for user ${userId}: ${error.message}`,
-      );
-    }
-  }
-
   async updateKeyCheckIfNull(userId: string, keyCheck: string): Promise<void> {
     const supabase = this.#supabaseService.getServiceRoleClient();
     const { error } = await supabase

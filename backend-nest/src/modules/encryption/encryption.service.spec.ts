@@ -22,7 +22,6 @@ const createMockRepository = (overrides?: {
   updateWrappedDEK?: ReturnType<typeof mock>;
   updateWrappedDEKIfNull?: ReturnType<typeof mock>;
   hasRecoveryKey?: ReturnType<typeof mock>;
-  updateKeyCheck?: ReturnType<typeof mock>;
   updateKeyCheckIfNull?: ReturnType<typeof mock>;
   hasVaultCode?: ReturnType<typeof mock>;
   getVaultStatus?: ReturnType<typeof mock>;
@@ -42,14 +41,8 @@ const createMockRepository = (overrides?: {
       : mock(() => Promise.resolve(true))),
   hasRecoveryKey:
     overrides?.hasRecoveryKey ?? mock(() => Promise.resolve(false)),
-  updateKeyCheck: overrides?.updateKeyCheck ?? mock(() => Promise.resolve()),
   updateKeyCheckIfNull:
-    overrides?.updateKeyCheckIfNull ??
-    (overrides?.updateKeyCheck
-      ? mock((userId: string, keyCheck: string) =>
-          overrides.updateKeyCheck!(userId, keyCheck),
-        )
-      : mock(() => Promise.resolve())),
+    overrides?.updateKeyCheckIfNull ?? mock(() => Promise.resolve()),
   hasVaultCode: overrides?.hasVaultCode ?? mock(() => Promise.resolve(false)),
   getVaultStatus:
     overrides?.getVaultStatus ??
@@ -302,81 +295,6 @@ describe('EncryptionService', () => {
       const result = service.tryDecryptAmount(encrypted, dek2, fallback);
 
       expect(result).toBe(fallback);
-    });
-  });
-
-  describe('encryptAmounts', () => {
-    beforeEach(() => {
-      service = new EncryptionService(
-        mockConfigService as any,
-        mockRepository as any,
-      );
-    });
-
-    it('should encrypt multiple amounts', () => {
-      const dek = randomBytes(32);
-      const amounts = [100.5, 200.75, 300.25];
-
-      const encrypted = service.encryptAmounts(amounts, dek);
-
-      expect(encrypted.length).toBe(amounts.length);
-      expect(encrypted.every((ct) => typeof ct === 'string')).toBe(true);
-    });
-
-    it('should handle empty array', () => {
-      const dek = randomBytes(32);
-      const amounts: number[] = [];
-
-      const encrypted = service.encryptAmounts(amounts, dek);
-
-      expect(encrypted).toEqual([]);
-    });
-
-    it('should handle single amount', () => {
-      const dek = randomBytes(32);
-      const amounts = [1234.56];
-
-      const encrypted = service.encryptAmounts(amounts, dek);
-
-      expect(encrypted.length).toBe(1);
-    });
-  });
-
-  describe('decryptAmounts', () => {
-    beforeEach(() => {
-      service = new EncryptionService(
-        mockConfigService as any,
-        mockRepository as any,
-      );
-    });
-
-    it('should decrypt multiple amounts', () => {
-      const dek = randomBytes(32);
-      const amounts = [100.5, 200.75, 300.25];
-
-      const encrypted = service.encryptAmounts(amounts, dek);
-      const decrypted = service.decryptAmounts(encrypted, dek);
-
-      expect(decrypted).toEqual(amounts);
-    });
-
-    it('should handle empty array', () => {
-      const dek = randomBytes(32);
-      const ciphertexts: string[] = [];
-
-      const decrypted = service.decryptAmounts(ciphertexts, dek);
-
-      expect(decrypted).toEqual([]);
-    });
-
-    it('should handle single ciphertext', () => {
-      const dek = randomBytes(32);
-      const amounts = [1234.56];
-
-      const encrypted = service.encryptAmounts(amounts, dek);
-      const decrypted = service.decryptAmounts(encrypted, dek);
-
-      expect(decrypted).toEqual(amounts);
     });
   });
 
@@ -861,25 +779,6 @@ describe('EncryptionService', () => {
       );
     });
 
-    it('should roundtrip batch encryption and decryption', () => {
-      const dek = randomBytes(32);
-      const amounts = [100.5, 0, 0.01, 99999.99, -500.25];
-
-      const encrypted = service.encryptAmounts(amounts, dek);
-      const decrypted = service.decryptAmounts(encrypted, dek);
-
-      expect(decrypted).toEqual(amounts);
-    });
-
-    it('should produce different ciphertexts for batch with same plaintext values', () => {
-      const dek = randomBytes(32);
-      const amounts = [1234.56, 1234.56];
-
-      const encrypted = service.encryptAmounts(amounts, dek);
-
-      expect(encrypted[0]).not.toBe(encrypted[1]);
-    });
-
     it('should encrypt and decrypt with derived DEK end-to-end', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
@@ -1178,33 +1077,6 @@ describe('EncryptionService', () => {
       await expect(
         service.verifyAndEnsureKeyCheck(TEST_USER_ID, TEST_CLIENT_KEY),
       ).rejects.toThrow('Database connection failed');
-    });
-  });
-
-  describe('storeKeyCheck', () => {
-    it('should delegate to repository updateKeyCheck', async () => {
-      const updateKeyCheck = mock(() => Promise.resolve());
-      const repo = createMockRepository({ updateKeyCheck });
-      service = new EncryptionService(mockConfigService as any, repo as any);
-
-      const keyCheck = 'test-key-check-value';
-      await service.storeKeyCheck(TEST_USER_ID, keyCheck);
-
-      expect(updateKeyCheck).toHaveBeenCalledWith(TEST_USER_ID, keyCheck);
-    });
-
-    it('should await repository call', async () => {
-      let resolved = false;
-      const updateKeyCheck = mock(async () => {
-        await new Promise((r) => setTimeout(r, 10));
-        resolved = true;
-      });
-      const repo = createMockRepository({ updateKeyCheck });
-      service = new EncryptionService(mockConfigService as any, repo as any);
-
-      await service.storeKeyCheck(TEST_USER_ID, 'test-key-check');
-
-      expect(resolved).toBe(true);
     });
   });
 

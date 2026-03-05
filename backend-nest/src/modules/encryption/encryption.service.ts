@@ -125,14 +125,6 @@ export class EncryptionService {
     }
   }
 
-  encryptAmounts(amounts: number[], dek: Buffer): string[] {
-    return amounts.map((amount) => this.encryptAmount(amount, dek));
-  }
-
-  decryptAmounts(ciphertexts: string[], dek: Buffer): number[] {
-    return ciphertexts.map((ct) => this.decryptAmount(ct, dek));
-  }
-
   async prepareAmountData(
     amount: number,
     userId: string,
@@ -295,10 +287,6 @@ export class EncryptionService {
     return true;
   }
 
-  async storeKeyCheck(userId: string, keyCheck: string): Promise<void> {
-    await this.#repository.updateKeyCheck(userId, keyCheck);
-  }
-
   async createRecoveryKey(
     userId: string,
     clientKey: Buffer,
@@ -403,17 +391,6 @@ export class EncryptionService {
       oldDek.fill(0);
       newDek.fill(0);
     }
-  }
-
-  async rekeyUserData(
-    userId: string,
-    oldClientKey: Buffer,
-    newClientKey: Buffer,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
-    const oldDek = await this.getUserDEK(userId, oldClientKey);
-    const newDek = await this.ensureUserDEK(userId, newClientKey);
-    await this.reEncryptAllUserData(userId, oldDek, newDek, supabase);
   }
 
   async changePinRekey(
