@@ -8,7 +8,7 @@ on:
 
 # Éviter les runs multiples pour la même ref
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-v2
   cancel-in-progress: true
 
 # Sécurité : permissions minimales
