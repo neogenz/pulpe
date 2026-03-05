@@ -8,6 +8,13 @@ const TEST_MASTER_KEY = randomBytes(32).toString('hex');
 const TEST_USER_ID = 'test-user-123';
 const TEST_CLIENT_KEY = randomBytes(32);
 
+const createMockLogger = () => ({
+  info: () => {},
+  warn: () => {},
+  debug: () => {},
+  trace: () => {},
+});
+
 const createMockConfigService = () => ({
   get: (key: string) => {
     if (key === 'ENCRYPTION_MASTER_KEY') return TEST_MASTER_KEY;
@@ -66,6 +73,7 @@ describe('EncryptionService', () => {
   describe('constructor', () => {
     it('should create service with valid ENCRYPTION_MASTER_KEY', () => {
       service = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
       );
@@ -77,7 +85,11 @@ describe('EncryptionService', () => {
         get: () => undefined,
       };
       expect(() => {
-        new EncryptionService(configWithoutKey as any, mockRepository as any);
+        new EncryptionService(
+          createMockLogger() as any,
+          configWithoutKey as any,
+          mockRepository as any,
+        );
       }).toThrow('ENCRYPTION_MASTER_KEY must be defined');
     });
 
@@ -86,7 +98,11 @@ describe('EncryptionService', () => {
         get: () => '',
       };
       expect(() => {
-        new EncryptionService(configWithEmptyKey as any, mockRepository as any);
+        new EncryptionService(
+          createMockLogger() as any,
+          configWithEmptyKey as any,
+          mockRepository as any,
+        );
       }).toThrow('ENCRYPTION_MASTER_KEY must be defined');
     });
   });
@@ -94,6 +110,7 @@ describe('EncryptionService', () => {
   describe('encryptAmount and decryptAmount roundtrip', () => {
     beforeEach(() => {
       service = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
       );
@@ -153,6 +170,7 @@ describe('EncryptionService', () => {
   describe('encryptAmount', () => {
     beforeEach(() => {
       service = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
       );
@@ -196,6 +214,7 @@ describe('EncryptionService', () => {
   describe('decryptAmount', () => {
     beforeEach(() => {
       service = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
       );
@@ -248,6 +267,7 @@ describe('EncryptionService', () => {
   describe('tryDecryptAmount', () => {
     beforeEach(() => {
       service = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
       );
@@ -314,7 +334,11 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findSaltByUserId, upsertSalt });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const dek = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
 
@@ -335,7 +359,11 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const dek = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
 
@@ -355,7 +383,11 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const dek1 = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
       const dek2 = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
@@ -377,10 +409,12 @@ describe('EncryptionService', () => {
       const repo = createMockRepository({ findSaltByUserId });
 
       const service1 = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         repo as any,
       );
       const service2 = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         repo as any,
       );
@@ -407,10 +441,12 @@ describe('EncryptionService', () => {
       const clientKey2 = randomBytes(32);
 
       const service1 = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         repo as any,
       );
       const service2 = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         repo as any,
       );
@@ -436,6 +472,7 @@ describe('EncryptionService', () => {
         findSaltByUserId: initialFindSaltByUserId,
       });
       const initialService = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         initialRepo as any,
       );
@@ -454,7 +491,11 @@ describe('EncryptionService', () => {
         }),
       );
       const repo = createMockRepository({ findSaltByUserId });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const result = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
       expect(result).toEqual(dek);
@@ -465,6 +506,7 @@ describe('EncryptionService', () => {
       const wrongDek = randomBytes(32);
 
       service = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
       );
@@ -478,7 +520,11 @@ describe('EncryptionService', () => {
         }),
       );
       const repo = createMockRepository({ findSaltByUserId });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       try {
         await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
@@ -502,7 +548,11 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const dek = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
       expect(dek).toBeDefined();
@@ -514,6 +564,7 @@ describe('EncryptionService', () => {
       const wrongDek = randomBytes(32);
 
       service = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
       );
@@ -528,7 +579,11 @@ describe('EncryptionService', () => {
         }),
       );
       const repo = createMockRepository({ findSaltByUserId });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const dek = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
 
@@ -554,7 +609,11 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       try {
         await service.getUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
@@ -576,7 +635,11 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const dek = await service.getUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
       expect(dek).toBeDefined();
@@ -598,7 +661,11 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findSaltByUserId, hasRecoveryKey });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const result = await service.getUserSalt(TEST_USER_ID);
       expect(result.salt).toBe(existingSalt);
@@ -619,7 +686,11 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findSaltByUserId, hasRecoveryKey });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const result = await service.getUserSalt(TEST_USER_ID);
       expect(result.salt).toBe(existingSalt);
@@ -648,7 +719,11 @@ describe('EncryptionService', () => {
         hasRecoveryKey,
       });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const result = await service.getUserSalt(TEST_USER_ID);
       expect(result.salt).toBeDefined();
@@ -670,7 +745,11 @@ describe('EncryptionService', () => {
       );
 
       const repo = createMockRepository({ findSaltByUserId });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       try {
         await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
@@ -692,7 +771,11 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ getVaultStatus });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const result = await service.getVaultStatus(TEST_USER_ID);
 
@@ -714,7 +797,11 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ getVaultStatus });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const result = await service.getVaultStatus(TEST_USER_ID);
 
@@ -735,7 +822,11 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ getVaultStatus });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const result = await service.getVaultStatus(TEST_USER_ID);
 
@@ -756,7 +847,11 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ getVaultStatus });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const result = await service.getVaultStatus(TEST_USER_ID);
 
@@ -772,6 +867,7 @@ describe('EncryptionService', () => {
   describe('integration tests', () => {
     beforeEach(() => {
       service = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
       );
@@ -789,7 +885,11 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const dek = await service.getUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
       const amount = 1234.56;
@@ -804,6 +904,7 @@ describe('EncryptionService', () => {
   describe('generateRecoveryKey', () => {
     beforeEach(() => {
       service = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
       );
@@ -829,6 +930,7 @@ describe('EncryptionService', () => {
   describe('wrapDEK and unwrapDEK', () => {
     beforeEach(() => {
       service = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
       );
@@ -954,6 +1056,7 @@ describe('EncryptionService', () => {
         findSaltByUserId: initialFindSaltByUserId,
       });
       const initialService = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         initialRepo as any,
       );
@@ -981,7 +1084,11 @@ describe('EncryptionService', () => {
       );
 
       const repo = createMockRepository({ findByUserId, findSaltByUserId });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const result = await service.verifyAndEnsureKeyCheck(
         TEST_USER_ID,
@@ -1014,7 +1121,11 @@ describe('EncryptionService', () => {
       );
 
       const repo = createMockRepository({ findByUserId, findSaltByUserId });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const result = await service.verifyAndEnsureKeyCheck(
         TEST_USER_ID,
@@ -1051,7 +1162,11 @@ describe('EncryptionService', () => {
         findSaltByUserId,
         updateKeyCheckIfNull: updateKeyCheckIfNull as ReturnType<typeof mock>,
       });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const result = await service.verifyAndEnsureKeyCheck(
         TEST_USER_ID,
@@ -1070,7 +1185,11 @@ describe('EncryptionService', () => {
       );
 
       const repo = createMockRepository({ findByUserId });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       await expect(
         service.verifyAndEnsureKeyCheck(TEST_USER_ID, TEST_CLIENT_KEY),
@@ -1090,7 +1209,11 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const amount = 1234.56;
       const result = await service.prepareAmountData(
@@ -1114,7 +1237,11 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const amount = 1234.56;
       const result = await service.prepareAmountData(
@@ -1140,7 +1267,11 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const result = await service.prepareAmountData(
         0,
@@ -1168,7 +1299,11 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const amounts = [100.5, 200.75, 300.25];
       const results = await service.prepareAmountsData(
@@ -1195,7 +1330,11 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const amounts = [100.5, 200.75, 300.25];
       const results = await service.prepareAmountsData(
@@ -1222,7 +1361,11 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const results = await service.prepareAmountsData(
         [],
@@ -1244,7 +1387,11 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const amounts = [1234.56];
       const results = await service.prepareAmountsData(
@@ -1261,6 +1408,7 @@ describe('EncryptionService', () => {
   describe('unwrapDEK', () => {
     beforeEach(() => {
       service = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
       );
@@ -1317,7 +1465,11 @@ describe('EncryptionService', () => {
         findSaltByUserId,
         updateWrappedDEKIfNull,
       });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const result = await service.createRecoveryKey(
         TEST_USER_ID,
@@ -1342,7 +1494,11 @@ describe('EncryptionService', () => {
         findSaltByUserId,
         updateWrappedDEKIfNull,
       });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       try {
         await service.createRecoveryKey(TEST_USER_ID, TEST_CLIENT_KEY);
@@ -1381,7 +1537,11 @@ describe('EncryptionService', () => {
         findByUserId,
         updateWrappedDEK,
       });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const result = await service.regenerateRecoveryKey(
         TEST_USER_ID,
@@ -1408,7 +1568,11 @@ describe('EncryptionService', () => {
         findByUserId,
         updateWrappedDEK,
       });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const result = await service.regenerateRecoveryKey(
         TEST_USER_ID,
@@ -1422,6 +1586,7 @@ describe('EncryptionService', () => {
   describe('recoverWithKey', () => {
     beforeEach(() => {
       service = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
       );
@@ -1439,7 +1604,11 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findByUserId });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const newClientKey = randomBytes(32);
       const recoveryKeyFormatted =
@@ -1474,7 +1643,11 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findByUserId });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const newClientKey = randomBytes(32);
       // Invalid recovery key (too short after base32 decode)
@@ -1522,6 +1695,7 @@ describe('EncryptionService', () => {
         updateWrappedDEKIfNull,
       });
       const svc1 = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         repo1 as any,
       );
@@ -1557,6 +1731,7 @@ describe('EncryptionService', () => {
         updateWrappedDEK: updateWrappedDEK2,
       });
       const svc2 = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         repo2 as any,
       );
@@ -1617,7 +1792,11 @@ describe('EncryptionService', () => {
         updateWrappedDEKIfNull,
       });
 
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const clientKey = randomBytes(32);
       const first = await service.createRecoveryKey(TEST_USER_ID, clientKey);
@@ -1663,6 +1842,7 @@ describe('EncryptionService', () => {
         findSaltByUserId: bootstrapFindSalt,
       });
       const bootstrapService = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         bootstrapRepo as any,
       );
@@ -1685,6 +1865,7 @@ describe('EncryptionService', () => {
         ),
       });
       const bootstrapService = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         bootstrapRepo as any,
       );
@@ -1700,7 +1881,11 @@ describe('EncryptionService', () => {
         }),
       );
       const repo = createMockRepository({ findByUserId });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       try {
         await service.changePinRekey(
@@ -1722,6 +1907,7 @@ describe('EncryptionService', () => {
       const wrongKey = randomBytes(32);
       const wrongDek = randomBytes(32);
       const invalidKeyCheck = new EncryptionService(
+        createMockLogger() as any,
         mockConfigService as any,
         createMockRepository() as any,
       ).generateKeyCheck(wrongDek);
@@ -1743,7 +1929,11 @@ describe('EncryptionService', () => {
       );
 
       const repo = createMockRepository({ findByUserId, findSaltByUserId });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       try {
         await service.changePinRekey(
@@ -1787,7 +1977,11 @@ describe('EncryptionService', () => {
         findSaltByUserId,
         updateWrappedDEK,
       });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const reEncryptSpy = spyOn(
         service,
@@ -1841,7 +2035,11 @@ describe('EncryptionService', () => {
         findSaltByUserId,
         updateWrappedDEK,
       });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const reEncryptSpy = spyOn(
         service,
@@ -1896,7 +2094,11 @@ describe('EncryptionService', () => {
         findSaltByUserId,
         updateWrappedDEK,
       });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const reEncryptSpy = spyOn(
         service,
@@ -1936,7 +2138,11 @@ describe('EncryptionService', () => {
         findByUserId,
         updateKeyCheckIfNull,
       });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const reEncryptSpy = spyOn(
         service,
@@ -1975,7 +2181,11 @@ describe('EncryptionService', () => {
         findByUserId,
         updateWrappedDEK,
       });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       const reEncryptSpy = spyOn(
         service,
@@ -2015,7 +2225,11 @@ describe('EncryptionService', () => {
       const findByUserId = mock(() => Promise.resolve(null));
 
       const repo = createMockRepository({ findByUserId });
-      service = new EncryptionService(mockConfigService as any, repo as any);
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
 
       try {
         await service.changePinRekey(

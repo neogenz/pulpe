@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   createCipheriv,
@@ -9,6 +9,7 @@ import {
 } from 'node:crypto';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   EncryptionKeyRepository,
@@ -39,12 +40,13 @@ interface CachedDEK {
 
 @Injectable()
 export class EncryptionService {
-  readonly #logger = new Logger(EncryptionService.name);
   readonly #masterKey: Buffer;
   readonly #dekCache = new Map<string, CachedDEK>();
   readonly #repository: EncryptionKeyRepository;
 
   constructor(
+    @InjectInfoLogger(EncryptionService.name)
+    private readonly logger: InfoLogger,
     configService: ConfigService,
     repository: EncryptionKeyRepository,
   ) {
@@ -114,7 +116,7 @@ export class EncryptionService {
       // Always use fallback, never throw - this prevents cascading failures
       // when data was encrypted with a different key (e.g., after password change
       // or salt rotation without re-encryption)
-      this.#logger.warn(
+      this.logger.warn(
         {
           error: error instanceof Error ? error.message : String(error),
           ciphertextLength: ciphertext.length,
@@ -539,7 +541,7 @@ export class EncryptionService {
       );
     }
 
-    this.#logger.log(
+    this.logger.info(
       {
         userId,
         operation: 'rekey.complete',
