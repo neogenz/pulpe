@@ -69,7 +69,6 @@ function createMockEncryptionService() {
     ensureUserDEK: mock(() => Promise.resolve(Buffer.alloc(32))),
     getUserDEK: mock(() => Promise.resolve(Buffer.alloc(32))),
     generateKeyCheck: mock(() => 'mock-key-check'),
-    storeKeyCheck: mock(() => Promise.resolve()),
   };
 }
 

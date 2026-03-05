@@ -449,10 +449,14 @@ describe('Encryption integration (local Supabase)', () => {
         })
         .eq('id', budgetId);
 
-      await encryptionService.rekeyUserData(
+      const newDek = await encryptionService.ensureUserDEK(
         userId,
-        oldClientKey,
         newClientKey,
+      );
+      await encryptionService.reEncryptAllUserData(
+        userId,
+        oldDek,
+        newDek,
         adminClient,
       );
 
@@ -487,8 +491,6 @@ describe('Encryption integration (local Supabase)', () => {
       expect(templateLine?.amount).toBeTruthy();
       expect(savingsGoal?.target_amount).toBeTruthy();
       expect(monthlyBudget?.ending_balance).toBeTruthy();
-
-      const newDek = await encryptionService.getUserDEK(userId, newClientKey);
 
       expect(encryptionService.decryptAmount(budgetLine!.amount!, newDek)).toBe(
         150,
@@ -583,11 +585,15 @@ describe('Encryption integration (local Supabase)', () => {
         .eq('id', transactionId)
         .single();
 
+      const newDek = await encryptionService.ensureUserDEK(
+        userId,
+        newClientKey,
+      );
       await expect(
-        encryptionService.rekeyUserData(
+        encryptionService.reEncryptAllUserData(
           userId,
-          oldClientKey,
-          newClientKey,
+          oldDek,
+          newDek,
           adminClient,
         ),
       ).rejects.toThrow();
@@ -907,10 +913,14 @@ describe('Encryption integration (local Supabase)', () => {
       }
 
       // Rekey via authenticated client (same path as production)
-      await encryptionService.rekeyUserData(
+      const newDek = await encryptionService.ensureUserDEK(
         userId,
-        oldClientKey,
         newClientKey,
+      );
+      await encryptionService.reEncryptAllUserData(
+        userId,
+        oldDek,
+        newDek,
         authClient as unknown as SupabaseClient<Database>,
       );
 
@@ -919,7 +929,6 @@ describe('Encryption integration (local Supabase)', () => {
       expect(keyState.key_check).toBeTruthy();
 
       // Verify key_check validates against new DEK (not old DEK)
-      const newDek = await encryptionService.getUserDEK(userId, newClientKey);
       expect(
         encryptionService.validateKeyCheck(keyState.key_check!, newDek),
       ).toBe(true);

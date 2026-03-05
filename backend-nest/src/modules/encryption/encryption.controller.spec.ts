@@ -11,7 +11,6 @@ const createMockEncryptionService = (overrides?: {
   getUserSalt?: ReturnType<typeof mock>;
   getUserDEK?: ReturnType<typeof mock>;
   generateKeyCheck?: ReturnType<typeof mock>;
-  storeKeyCheck?: ReturnType<typeof mock>;
   verifyAndEnsureKeyCheck?: ReturnType<typeof mock>;
   createRecoveryKey?: ReturnType<typeof mock>;
   regenerateRecoveryKey?: ReturnType<typeof mock>;
@@ -34,7 +33,6 @@ const createMockEncryptionService = (overrides?: {
   getUserDEK:
     overrides?.getUserDEK ?? mock(() => Promise.resolve(randomBytes(32))),
   generateKeyCheck: overrides?.generateKeyCheck ?? mock(() => 'mock-key-check'),
-  storeKeyCheck: overrides?.storeKeyCheck ?? mock(() => Promise.resolve()),
   verifyAndEnsureKeyCheck:
     overrides?.verifyAndEnsureKeyCheck ?? mock(() => Promise.resolve(true)),
   createRecoveryKey:
@@ -478,12 +476,10 @@ describe('EncryptionController', () => {
 
       const getUserDEK = mock(() => Promise.resolve(randomBytes(32)));
       const generateKeyCheck = mock(() => 'should-not-be-called');
-      const storeKeyCheck = mock(() => Promise.resolve());
 
       const { controller, mockEncryptionService } = setupController({
         getUserDEK,
         generateKeyCheck,
-        storeKeyCheck,
       });
 
       await controller.recover(user, mockSupabase as any, body);
@@ -493,7 +489,6 @@ describe('EncryptionController', () => {
       );
       expect(getUserDEK).not.toHaveBeenCalled();
       expect(generateKeyCheck).not.toHaveBeenCalled();
-      expect(storeKeyCheck).not.toHaveBeenCalled();
     });
 
     it('should log audit event with recovery.complete operation', async () => {
