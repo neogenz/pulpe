@@ -23,6 +23,7 @@ struct PrimaryButtonStyle: ButtonStyle {
             }
             .foregroundStyle(isEnabled ? Color.textOnPrimary : Color.onSurfaceVariant)
             .clipShape(Capsule())
+            .contentShape(Capsule())
             .overlay {
                 if !isEnabled {
                     Capsule()
@@ -43,6 +44,7 @@ struct SecondaryButtonStyle: ButtonStyle {
             .frame(height: DesignTokens.FrameHeight.button)
             .foregroundStyle(Color.textPrimaryOnboarding)
             .clipShape(Capsule())
+            .contentShape(Capsule())
             .overlay(
                 Capsule()
                     .strokeBorder(Color.pulpeTextTertiary, lineWidth: 1.5)
@@ -62,6 +64,7 @@ struct DestructiveButtonStyle: ButtonStyle {
             .background(Color.destructivePrimary)
             .foregroundStyle(Color.textOnPrimary)
             .clipShape(Capsule())
+            .contentShape(Capsule())
             .opacity(configuration.isPressed ? 0.8 : 1.0)
             .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
     }
