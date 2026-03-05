@@ -981,13 +981,6 @@ export type EncryptionSaltResponse = z.infer<
   typeof encryptionSaltResponseSchema
 >;
 
-export const encryptionRekeyResponseSchema = z.object({
-  success: z.literal(true),
-});
-export type EncryptionRekeyResponse = z.infer<
-  typeof encryptionRekeyResponseSchema
->;
-
 export const encryptionSetupRecoveryResponseSchema = z.object({
   recoveryKey: z.string(),
 });
