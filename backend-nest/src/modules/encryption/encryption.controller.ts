@@ -30,6 +30,16 @@ import { ErrorResponseDto } from '@common/dto/response.dto';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { EncryptionService } from './encryption.service';
+import {
+  EncryptionValidateKeyRequestDto,
+  EncryptionRecoverRequestDto,
+  EncryptionChangePinRequestDto,
+  EncryptionVaultStatusResponseDto,
+  EncryptionSaltResponseDto,
+  EncryptionSetupRecoveryResponseDto,
+  EncryptionRecoverResponseDto,
+  EncryptionChangePinResponseDto,
+} from './dto/encryption-swagger.dto';
 
 const CLIENT_KEY_LENGTH = 32;
 const HEX_KEY_REGEX = /^[0-9a-f]{64}$/i;
@@ -57,6 +67,7 @@ export class EncryptionController {
   @ApiResponse({
     status: 200,
     description: 'Vault code configuration status',
+    type: EncryptionVaultStatusResponseDto,
   })
   async getVaultStatus(@User() user: AuthenticatedUser): Promise<{
     pinCodeConfigured: boolean;
@@ -72,6 +83,7 @@ export class EncryptionController {
   @ApiResponse({
     status: 200,
     description: 'Salt, KDF iterations, and recovery key status',
+    type: EncryptionSaltResponseDto,
   })
   async getSalt(
     @User() user: AuthenticatedUser,
@@ -94,7 +106,7 @@ export class EncryptionController {
   })
   async validateKey(
     @User() user: AuthenticatedUser,
-    @Body() body: { clientKey: string },
+    @Body() body: EncryptionValidateKeyRequestDto,
   ): Promise<void> {
     const keyBuffer = this.#validateClientKeyHex(body.clientKey);
     try {
@@ -128,6 +140,7 @@ export class EncryptionController {
     status: 201,
     description:
       'Recovery key generated (shown once, never stored server-side)',
+    type: EncryptionSetupRecoveryResponseDto,
   })
   async setupRecovery(
     @User() user: AuthenticatedUser,
@@ -156,6 +169,7 @@ export class EncryptionController {
     status: 201,
     description:
       'Recovery key regenerated (shown once, never stored server-side)',
+    type: EncryptionSetupRecoveryResponseDto,
   })
   async regenerateRecovery(
     @User() user: AuthenticatedUser,
@@ -184,6 +198,7 @@ export class EncryptionController {
   @ApiResponse({
     status: 200,
     description: 'Account recovered and data re-encrypted',
+    type: EncryptionRecoverResponseDto,
   })
   @ApiBadRequestResponse({
     description: 'Invalid recovery key or new client key',
@@ -192,7 +207,7 @@ export class EncryptionController {
   async recover(
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-    @Body() body: { recoveryKey: string; newClientKey: string },
+    @Body() body: EncryptionRecoverRequestDto,
   ): Promise<{ success: boolean }> {
     if (!body.recoveryKey?.trim()) {
       throw new BusinessException(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID);
@@ -226,6 +241,63 @@ export class EncryptionController {
     );
 
     return { success: true };
+  }
+
+  @SkipClientKey()
+  @Post('change-pin')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 3600000 } })
+  @ApiOperation({ summary: 'Change PIN code and re-encrypt all user data' })
+  @ApiResponse({
+    status: 200,
+    description: 'PIN changed and data re-encrypted',
+    type: EncryptionChangePinResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid client key or old PIN verification failed',
+    type: ErrorResponseDto,
+  })
+  async changePin(
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+    @Body() body: EncryptionChangePinRequestDto,
+  ): Promise<{ keyCheck: string; recoveryKey: string | null }> {
+    const oldKeyBuffer = this.#validateClientKeyHex(body.oldClientKey);
+    const newKeyBuffer = this.#validateClientKeyHex(body.newClientKey);
+
+    try {
+      const result = await this.encryptionService.changePinRekey(
+        user.id,
+        oldKeyBuffer,
+        newKeyBuffer,
+        supabase,
+      );
+
+      this.#logger.log(
+        {
+          userId: user.id,
+          operation: 'pin_change.complete',
+          recoveryKeyRegenerated: result.recoveryKey !== null,
+        },
+        'PIN changed and data re-encrypted',
+      );
+
+      return result;
+    } catch (error) {
+      if (error instanceof BusinessException) throw error;
+      this.#logger.warn(
+        {
+          userId: user.id,
+          operation: 'pin_change.failed',
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'PIN change failed',
+      );
+      throw error;
+    } finally {
+      oldKeyBuffer.fill(0);
+      newKeyBuffer.fill(0);
+    }
   }
 
   #validateClientKeyHex(hex: string): Buffer {
