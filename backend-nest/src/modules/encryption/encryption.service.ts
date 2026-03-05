@@ -400,12 +400,20 @@ export class EncryptionService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<{ keyCheck: string; recoveryKey: string | null }> {
     if (oldClientKey.equals(newClientKey)) {
-      throw new BusinessException(ERROR_DEFINITIONS.ENCRYPTION_SAME_KEY);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_SAME_KEY,
+        undefined,
+        { userId, operation: 'change_pin.same_key_rejected' },
+      );
     }
 
     const row = await this.#repository.findByUserId(userId);
     if (!row) {
-      throw new Error(`No encryption key found for user ${userId}`);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
+        undefined,
+        { userId, operation: 'change_pin.missing_encryption_row' },
+      );
     }
 
     const salt = Buffer.from(row.salt, 'hex');
