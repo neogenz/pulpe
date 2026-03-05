@@ -29,40 +29,42 @@ struct ForgotPasswordSheet: View {
                 }
             }
         }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(Color.surface)
+        .task { isEmailFocused = true }
         .accessibilityIdentifier("forgotPasswordPage")
     }
 
     private var formState: some View {
         VStack(spacing: DesignTokens.Spacing.xl) {
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                Text("Entre ton email pour recevoir un lien de réinitialisation.")
-                    .font(PulpeTypography.bodyLarge)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.top, DesignTokens.Spacing.md)
+            Text("Entre ton email pour recevoir un lien de réinitialisation.")
+                .font(PulpeTypography.bodyLarge)
+                .foregroundStyle(Color.textSecondaryOnboarding)
+                .multilineTextAlignment(.center)
+                .padding(.top, DesignTokens.Spacing.md)
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 Text("Adresse e-mail")
-                    .font(PulpeTypography.labelLarge)
+                    .font(PulpeTypography.buttonSecondary)
+                    .foregroundStyle(Color.textPrimaryOnboarding)
 
-                TextField("ton@email.com", text: $viewModel.email)
-                    .textContentType(.emailAddress)
-                    .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .focused($isEmailFocused)
-                    .padding()
-                    .background(Color.surfaceContainerHigh)
-                    .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                            .strokeBorder(
-                                isEmailFocused ? Color.pulpePrimary.opacity(0.5) : Color.primary.opacity(0.1),
-                                lineWidth: isEmailFocused ? 2 : 1
-                            )
-                    }
-                    .accessibilityIdentifier("forgotPasswordEmail")
+                AuthTextField(
+                    prompt: "ton@email.com",
+                    text: $viewModel.email,
+                    systemImage: "envelope",
+                    isFocused: isEmailFocused,
+                    hasError: viewModel.errorMessage != nil,
+                    isFilled: viewModel.isEmailValid
+                )
+                .textContentType(.emailAddress)
+                .keyboardType(.emailAddress)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .focused($isEmailFocused)
+                .accessibilityIdentifier("forgotPasswordEmail")
+                .accessibilityLabel("Adresse e-mail")
+                .accessibilityHint("Saisis ton adresse e-mail")
 
                 if let error = viewModel.errorMessage {
                     Text(error)
@@ -72,31 +74,18 @@ struct ForgotPasswordSheet: View {
                 }
             }
 
-            Spacer()
-
             Button {
                 Task { await viewModel.submit() }
             } label: {
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    if viewModel.isSubmitting {
-                        ProgressView()
-                            .tint(.white)
-                    }
-                    Text(viewModel.isSubmitting ? "Envoi en cours..." : "Envoyer le lien")
-                        .font(PulpeTypography.buttonPrimary)
+                if viewModel.isSubmitting {
+                    ProgressView()
+                        .tint(.white)
+                        .accessibilityLabel("Envoi en cours")
+                } else {
+                    Text("Envoyer le lien")
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: DesignTokens.FrameHeight.button)
-                .background {
-                    if viewModel.canSubmit {
-                        Color.onboardingGradient
-                    } else {
-                        Color.surfaceContainerHigh
-                    }
-                }
-                .foregroundStyle(viewModel.canSubmit ? Color.textOnPrimary : Color.textSecondaryOnboarding)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
             }
+            .primaryButtonStyle(isEnabled: viewModel.canSubmit)
             .disabled(!viewModel.canSubmit)
             .accessibilityIdentifier("forgotPasswordSubmit")
         }
@@ -121,18 +110,11 @@ struct ForgotPasswordSheet: View {
                     .multilineTextAlignment(.center)
             }
 
-            Spacer()
-
             Button("Retour à la connexion") {
                 dismiss()
                 onClose()
             }
-            .font(PulpeTypography.buttonPrimary)
-            .frame(maxWidth: .infinity)
-            .frame(height: DesignTokens.FrameHeight.button)
-            .background(Color.onboardingGradient)
-            .foregroundStyle(Color.textOnPrimary)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+            .primaryButtonStyle()
         }
         .accessibilityIdentifier("forgotPasswordSuccess")
     }

@@ -9,8 +9,8 @@ struct OnboardingFlow: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Beautiful auth gradient background (same as welcome/login)
-                Color.authGradientBackground
+                // Subtle branded gradient for onboarding form steps
+                Color.loginGradientBackground
 
                 VStack(spacing: 0) {
                     // Segmented progress indicator (except welcome)

@@ -18,14 +18,15 @@ struct PrimaryButtonStyle: ButtonStyle {
                 if isEnabled {
                     Color.onboardingGradient
                 } else {
-                    Color.pulpePrimary.opacity(0.08)
+                    Color.pulpePrimary.opacity(0.12)
                 }
             }
             .foregroundStyle(isEnabled ? Color.textOnPrimary : Color.onSurfaceVariant)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+            .clipShape(Capsule())
+            .contentShape(Capsule())
             .overlay {
                 if !isEnabled {
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button)
+                    Capsule()
                         .strokeBorder(Color.pulpePrimary.opacity(0.2), lineWidth: 1)
                 }
             }
@@ -42,10 +43,11 @@ struct SecondaryButtonStyle: ButtonStyle {
             .frame(maxWidth: .infinity)
             .frame(height: DesignTokens.FrameHeight.button)
             .foregroundStyle(Color.textPrimaryOnboarding)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+            .clipShape(Capsule())
+            .contentShape(Capsule())
             .overlay(
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button)
-                    .stroke(Color.pulpeTextTertiary, lineWidth: 1.5)
+                Capsule()
+                    .strokeBorder(Color.pulpeTextTertiary, lineWidth: 1.5)
             )
             .opacity(configuration.isPressed ? 0.8 : 1.0)
             .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
@@ -61,7 +63,8 @@ struct DestructiveButtonStyle: ButtonStyle {
             .frame(height: DesignTokens.FrameHeight.button)
             .background(Color.destructivePrimary)
             .foregroundStyle(Color.textOnPrimary)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
+            .clipShape(Capsule())
+            .contentShape(Capsule())
             .opacity(configuration.isPressed ? 0.8 : 1.0)
             .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
     }

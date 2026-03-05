@@ -8,42 +8,30 @@ struct WelcomeStep: View {
     var body: some View {
         ZStack {
             // Full-screen gradient background
-            Color.authGradientBackground
+            Color.welcomeGradientBackground
 
             VStack(spacing: 0) {
+                // Gradient breathing space
                 Spacer()
 
-                // Hero illustration with glow
-                ZStack {
-                    Circle()
-                        .fill(Color.white.opacity(0.15))
-                        .frame(width: 160, height: 160)
-                        .blur(radius: 30)
-
-                    Circle()
-                        .fill(Color.white.opacity(0.25))
-                        .frame(width: 140, height: 140)
-
-                    Image(systemName: "leaf.fill")
-                        .font(PulpeTypography.welcomeEmoji)
-                        .foregroundStyle(Color.pulpePrimary)
-                        .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
-                }
-                .scaleEffect(isAppeared ? 1 : 0.6)
-                .opacity(isAppeared ? 1 : 0)
+                // Hero — PulpeIcon at the gradient/white transition
+                PulpeIcon(size: 80)
+                    .shadow(DesignTokens.Shadow.elevated)
+                    .scaleEffect(isAppeared ? 1 : 0.6)
+                    .opacity(isAppeared ? 1 : 0)
 
                 Spacer()
-                    .frame(height: DesignTokens.Spacing.xxxl)
+                    .frame(height: DesignTokens.Spacing.xxl)
 
-                // Value proposition
+                // Value proposition — sits on white zone
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Text("Vois clair dans tes finances")
                         .font(PulpeTypography.brandTitle)
                         .foregroundStyle(Color.textPrimaryOnboarding)
                         .multilineTextAlignment(.center)
 
-                    Text("Planifie ton budget en 2 minutes, sans prise de tête")
-                        .font(PulpeTypography.title3)
+                    Text("Ton budget est prêt en 2 minutes")
+                        .font(PulpeTypography.onboardingSubtitle)
                         .foregroundStyle(Color.textSecondaryOnboarding)
                         .multilineTextAlignment(.center)
                 }
@@ -52,47 +40,30 @@ struct WelcomeStep: View {
                 .offset(y: isAppeared ? 0 : 20)
 
                 Spacer()
+                    .frame(height: DesignTokens.Spacing.xxxl)
 
                 // Bottom buttons
                 VStack(spacing: DesignTokens.Spacing.md) {
-                    // Primary CTA - vibrant and eye-catching
+                    // Primary CTA
                     Button {
                         AnalyticsService.shared.capture(.signupStarted, properties: ["method": "email"])
                         state.nextStep()
                     } label: {
                         HStack(spacing: DesignTokens.Spacing.sm) {
-                            Text("Commencer")
-                                .font(PulpeTypography.buttonPrimary)
+                            Text("C'est parti")
                             Image(systemName: "arrow.right")
                                 .font(PulpeTypography.labelLarge)
                         }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: DesignTokens.FrameHeight.button)
-                        .background(Color.pulpePrimary)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous))
-                        .shadow(color: Color.pulpePrimary.opacity(0.4), radius: 20, y: 10)
                     }
+                    .primaryButtonStyle()
 
-                    // Secondary action - more visible with proper contrast
+                    // Secondary action
                     Button {
                         showLogin = true
                     } label: {
                         Text("Se connecter")
-                            .font(PulpeTypography.buttonPrimary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: DesignTokens.FrameHeight.button)
-                            .foregroundStyle(Color.textPrimaryOnboarding)
-                            .background {
-                                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous)
-                                    .fill(Color.white.opacity(0.4))
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous)
-                                            .strokeBorder(Color.white.opacity(0.5), lineWidth: 1.5)
-                                    }
-                            }
-                            .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
                     }
+                    .secondaryButtonStyle()
                 }
                 .padding(.horizontal, DesignTokens.Spacing.xxl)
                 .padding(.bottom, DesignTokens.Spacing.xxxl)
@@ -105,7 +76,7 @@ struct WelcomeStep: View {
             LoginView(isPresented: $showLogin)
         }
         .task {
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
+            withAnimation(DesignTokens.Animation.entranceSpring.delay(0.1)) {
                 isAppeared = true
             }
         }

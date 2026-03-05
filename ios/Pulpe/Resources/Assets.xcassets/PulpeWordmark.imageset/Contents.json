@@ -3,6 +3,16 @@
     {
       "filename": "PulpeWordmark.svg",
       "idiom": "universal"
+    },
+    {
+      "appearances": [
+        {
+          "appearance": "luminosity",
+          "value": "dark"
+        }
+      ],
+      "filename": "PulpeWordmark-dark.svg",
+      "idiom": "universal"
     }
   ],
   "info": {

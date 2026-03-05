@@ -73,7 +73,8 @@ private struct RecentTransactionCardRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
             "\(transaction.name), \(transaction.kind.label), "
-            + "\(transaction.transactionDate.relativeFormatted), \(amountsHidden ? "Montant masqué" : transaction.signedAmount.asCHF)"
+            + "\(transaction.transactionDate.relativeFormatted), "
+            + "\(amountsHidden ? "Montant masqué" : transaction.signedAmount.asCHF)"
         )
     }
 }

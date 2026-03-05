@@ -80,19 +80,10 @@ struct CurrencyField: View {
                         }
                     }
             }
-            .padding(DesignTokens.Spacing.lg)
-            .background {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(backgroundColor)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(
-                                effectiveFocus ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder,
-                                lineWidth: effectiveFocus ? 2 : 1
-                            )
-                    }
-            }
-            .shadow(color: shadowColor, radius: shadowRadius, y: shadowYOffset)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .frame(height: DesignTokens.FrameHeight.button)
+            .background { fieldBackground }
+            .ifLet(shadowStyle) { view, style in view.shadow(style) }
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: effectiveFocus)
         }
         .task {
@@ -137,6 +128,34 @@ struct CurrencyField: View {
         }
     }
 
+    private var borderColor: Color {
+        effectiveFocus ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder
+    }
+
+    private var borderWidth: CGFloat {
+        effectiveFocus ? 2 : 1
+    }
+
+    @ViewBuilder
+    private var fieldBackground: some View {
+        switch visualStyle {
+        case .onboarding:
+            Capsule(style: .continuous)
+                .fill(backgroundColor)
+                .overlay {
+                    Capsule(style: .continuous)
+                        .strokeBorder(borderColor, lineWidth: borderWidth)
+                }
+        case .flat:
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md, style: .continuous)
+                .fill(backgroundColor)
+                .overlay {
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md, style: .continuous)
+                        .strokeBorder(borderColor, lineWidth: borderWidth)
+                }
+        }
+    }
+
     private var labelColor: Color {
         switch visualStyle {
         case .onboarding:
@@ -164,30 +183,12 @@ struct CurrencyField: View {
         }
     }
 
-    private var shadowColor: Color {
+    private var shadowStyle: ShadowStyle? {
         switch visualStyle {
         case .onboarding:
-            return effectiveFocus ? Color.pulpePrimary.opacity(0.2) : Color.black.opacity(0.05)
+            return DesignTokens.Shadow.input
         case .flat:
-            return .clear
-        }
-    }
-
-    private var shadowRadius: CGFloat {
-        switch visualStyle {
-        case .onboarding:
-            return effectiveFocus ? 12 : 4
-        case .flat:
-            return 0
-        }
-    }
-
-    private var shadowYOffset: CGFloat {
-        switch visualStyle {
-        case .onboarding:
-            return 4
-        case .flat:
-            return 0
+            return nil
         }
     }
 }

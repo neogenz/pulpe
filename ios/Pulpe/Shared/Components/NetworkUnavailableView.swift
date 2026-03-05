@@ -10,19 +10,18 @@ struct NetworkUnavailableView: View {
             Spacer()
 
             Image(systemName: "wifi.exclamationmark")
-                .font(.system(size: 56))
-                .foregroundStyle(.secondary)
+                .font(PulpeTypography.heroIcon)
+                .foregroundStyle(Color.textSecondaryOnboarding)
 
             VStack(spacing: DesignTokens.Spacing.sm) {
                 Text("Connexion impossible")
-                    .font(PulpeTypography.title2)
-                    .fontWeight(.bold)
+                    .font(PulpeTypography.onboardingTitle)
+                    .foregroundStyle(Color.textPrimaryOnboarding)
 
                 Text("Impossible de joindre le serveur — vérifie ta connexion internet et réessaie.")
-                    .font(PulpeTypography.body)
-                    .foregroundStyle(.secondary)
+                    .font(PulpeTypography.bodyLarge)
+                    .foregroundStyle(Color.textSecondaryOnboarding)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, DesignTokens.Spacing.xxl)
             }
 
             Button {
@@ -34,15 +33,17 @@ struct NetworkUnavailableView: View {
             } label: {
                 if isRetrying {
                     ProgressView()
+                        .tint(.white)
                 } else {
                     Label("Réessayer", systemImage: "arrow.clockwise")
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .primaryButtonStyle(isEnabled: !isRetrying)
             .disabled(isRetrying)
 
             Spacer()
         }
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .pulpeBackground()
     }

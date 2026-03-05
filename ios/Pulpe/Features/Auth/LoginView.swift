@@ -18,16 +18,21 @@ struct LoginView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.authGradientBackground
+                Color.loginGradientBackground
 
                 ScrollView {
                     VStack(spacing: DesignTokens.Spacing.xxl) {
+                        Spacer(minLength: 0)
                         headerSection
+                        Spacer().frame(height: DesignTokens.Spacing.lg)
                         formSection
                         createAccountSection
+                        Spacer(minLength: 0)
+                        termsFooter
                     }
                     .padding(.horizontal, DesignTokens.Spacing.xxl)
                     .padding(.bottom, DesignTokens.Spacing.xxxl)
+                    .containerRelativeFrame(.vertical)
                 }
                 .scrollBounceBehavior(.basedOnSize)
             }
@@ -54,7 +59,7 @@ struct LoginView: View {
                 if !reduceMotion {
                     try? await Task.sleep(for: .milliseconds(100))
                 }
-                withAnimation {
+                withAnimation(DesignTokens.Animation.entranceSpring) {
                     isAppeared = true
                 }
             }
@@ -67,9 +72,10 @@ struct LoginView: View {
 extension LoginView {
     private var headerSection: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
-            PulpeIcon(size: 64)
+            PulpeIcon(size: 72)
                 .scaleEffect(isAppeared ? 1 : 0.8)
                 .opacity(isAppeared ? 1 : 0)
+                .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring, value: isAppeared)
 
             VStack(spacing: DesignTokens.Spacing.xs) {
                 Text("Content de te revoir")
@@ -83,9 +89,9 @@ extension LoginView {
             .multilineTextAlignment(.center)
             .opacity(isAppeared ? 1 : 0)
             .offset(y: isAppeared ? 0 : 10)
+            .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.1), value: isAppeared)
         }
         .padding(.top, DesignTokens.Spacing.xxxl)
-        .animation(reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 0.8), value: isAppeared)
     }
 
     private var formSection: some View {
@@ -99,7 +105,7 @@ extension LoginView {
         }
         .opacity(isAppeared ? 1 : 0)
         .offset(y: isAppeared ? 0 : 20)
-        .animation(reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: isAppeared)
+        .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.2), value: isAppeared)
     }
 
     @ViewBuilder
@@ -116,7 +122,7 @@ extension LoginView {
             }
             .padding(DesignTokens.Spacing.lg)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.errorBackground, in: .rect(cornerRadius: DesignTokens.CornerRadius.md))
+            .background(Color.errorBackground, in: .rect(cornerRadius: DesignTokens.CornerRadius.button))
         }
     }
 
@@ -129,7 +135,9 @@ extension LoginView {
             AuthTextField(
                 prompt: "Adresse e-mail",
                 text: $viewModel.email,
-                isFocused: focusedField == .email
+                systemImage: "envelope",
+                isFocused: focusedField == .email,
+                isFilled: viewModel.isEmailValid
             )
             .textContentType(.emailAddress)
             .keyboardType(.emailAddress)
@@ -152,6 +160,7 @@ extension LoginView {
                 prompt: "Ton mot de passe",
                 text: $viewModel.password,
                 isVisible: $viewModel.showPassword,
+                systemImage: "lock",
                 isFocused: focusedField == .password
             )
             .textContentType(.password)
@@ -170,32 +179,24 @@ extension LoginView {
             }
             .font(PulpeTypography.labelMedium)
             .foregroundStyle(Color.textPrimaryOnboarding.opacity(0.9))
+            .underline()
             .accessibilityIdentifier("forgotPasswordButton")
         }
     }
 
     private var loginButton: some View {
         Button {
-            Task {
-                await login()
-            }
+            Task { await login() }
         } label: {
-            Group {
-                if viewModel.isLoading {
-                    ProgressView()
-                        .tint(.white)
-                        .accessibilityLabel("Connexion en cours")
-                } else {
-                    Text("Se connecter")
-                        .font(PulpeTypography.buttonPrimary)
-                }
+            if viewModel.isLoading {
+                ProgressView()
+                    .tint(.white)
+                    .accessibilityLabel("Connexion en cours")
+            } else {
+                Text("Se connecter")
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: DesignTokens.FrameHeight.button)
-            .background(viewModel.canSubmit ? Color.pulpePrimary : Color.pulpePrimary.opacity(0.4))
-            .foregroundStyle(.white)
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous))
         }
+        .primaryButtonStyle(isEnabled: viewModel.canSubmit)
         .disabled(!viewModel.canSubmit)
         .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: viewModel.canSubmit)
         .accessibilityIdentifier("loginButton")
@@ -212,16 +213,23 @@ extension LoginView {
                     Image(systemName: "faceid")
                         .font(PulpeTypography.body)
                     Text("Face ID")
-                        .font(PulpeTypography.buttonSecondary)
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: DesignTokens.FrameHeight.button)
-                .background(Color.textPrimaryOnboarding.opacity(0.1))
-                .foregroundStyle(Color.textPrimaryOnboarding)
-                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous))
             }
+            .secondaryButtonStyle()
             .accessibilityIdentifier("faceIDButton")
         }
+    }
+
+    private var termsFooter: some View {
+        HStack(spacing: DesignTokens.Spacing.xs) {
+            Link("CGU", destination: AppURLs.terms)
+                .underline()
+            Text("&")
+            Link("Politique de confidentialité", destination: AppURLs.privacy)
+                .underline()
+        }
+        .font(PulpeTypography.labelMedium)
+        .foregroundStyle(Color.textSecondaryOnboarding)
     }
 
     private var createAccountSection: some View {
@@ -244,7 +252,7 @@ extension LoginView {
         }
         .padding(.top, DesignTokens.Spacing.md)
         .opacity(isAppeared ? 1 : 0)
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.4).delay(0.2), value: isAppeared)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.4).delay(0.35), value: isAppeared)
     }
 
     private func login() async {

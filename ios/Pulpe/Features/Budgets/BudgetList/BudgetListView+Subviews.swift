@@ -97,7 +97,10 @@ struct CurrentMonthHeroCard: View {
         .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
             isPressed = pressing
         }, perform: {})
-        .accessibilityLabel("\(monthName), ce mois-ci, \(amountsHidden ? "Montant masqué" : (budget.remaining?.asCHF ?? "non défini")) disponible")
+        .accessibilityLabel(
+            "\(monthName), ce mois-ci, "
+            + "\(amountsHidden ? "Montant masqué" : (budget.remaining?.asCHF ?? "non défini")) disponible"
+        )
         .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)
     }
@@ -255,7 +258,10 @@ struct BudgetMonthRow: View {
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.selection, trigger: tapTrigger)
-        .accessibilityLabel("\(monthName), solde \(amountsHidden ? "Montant masqué" : (budget.remaining?.asCompactCHF ?? "non défini"))")
+        .accessibilityLabel(
+            "\(monthName), solde "
+            + "\(amountsHidden ? "Montant masqué" : (budget.remaining?.asCompactCHF ?? "non défini"))"
+        )
         .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)
     }
@@ -265,8 +271,6 @@ struct NextMonthPlaceholder: View {
     let month: Int
     let year: Int
     let onTap: () -> Void
-
-    @Environment(\.colorScheme) private var colorScheme
 
     private var monthName: String {
         Formatters.monthYear.monthSymbols[month - 1].capitalized
@@ -309,7 +313,7 @@ struct NextMonthPlaceholder: View {
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, 14)
             .background(
-                Color.surfaceContainerLow.opacity(colorScheme == .dark ? 0.5 : 0.4)
+                Color(light: Color.surfaceContainerLow.opacity(0.4), dark: Color.surfaceContainerLow.opacity(0.5))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg)

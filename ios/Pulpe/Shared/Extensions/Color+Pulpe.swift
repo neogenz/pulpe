@@ -99,8 +99,8 @@ extension Color {
     /// Error primary — warm orange, not aggressive red (#D4760A light, #F0A050 dark)
     static let errorPrimary = Color(light: Color(hex: 0xD4760A), dark: Color(hex: 0xF0A050))
 
-    /// Error background — soft warm tint (#FFF3E0 light, #2A1F10 dark)
-    static let errorBackground = Color(light: Color(hex: 0xFFF3E0), dark: Color(hex: 0x2A1F10))
+    /// Error background — soft warm tint (#FFF3E0 light, #3A2510 dark)
+    static let errorBackground = Color(light: Color(hex: 0xFFF3E0), dark: Color(hex: 0x3A2510))
 
     // MARK: - Destructive Colors (true red for irreversible actions)
 
@@ -115,8 +115,8 @@ extension Color {
     /// Warning primary — amber/yellow for tips and caution (#B8860B light, #FFD54F dark)
     static let warningPrimary = Color(light: Color(hex: 0xB8860B), dark: Color(hex: 0xFFD54F))
 
-    /// Warning background — soft amber tint (#FFF8E1 light, #2A2510 dark)
-    static let warningBackground = Color(light: Color(hex: 0xFFF8E1), dark: Color(hex: 0x2A2510))
+    /// Warning background — soft amber tint (#FFF8E1 light, #382E12 dark)
+    static let warningBackground = Color(light: Color(hex: 0xFFF8E1), dark: Color(hex: 0x382E12))
 
     // MARK: - Component Colors
 
@@ -164,39 +164,70 @@ extension Color {
     static let onboardingBackground = Color(light: Color(hex: 0xF8FAF9), dark: Color(hex: 0x1C1C1E))
     static let onboardingCardBackground = Color(light: .white, dark: Color(hex: 0x2C2C2E))
 
-    // MARK: - Auth Screen Gradient Colors (inspired by reference design)
+    // MARK: - Auth Screen Gradient Colors
 
-    /// Auth screen gradient stops - light mode: vibrant greens, dark mode: deep charcoals with green accent
-    private static let authGradientTop = Color(light: Color(hex: 0xA8E6CF), dark: Color(hex: 0x0A0F0C))
-    private static let authGradientMid = Color(light: Color(hex: 0xC2F0D8), dark: Color(hex: 0x0E1612))
-    private static let authGradientBottom = Color(light: Color(hex: 0xD4F5E3), dark: Color(hex: 0x121A15))
-    private static let authGradientAccent = Color(light: Color(hex: 0x8FDDBB), dark: Color(hex: 0x1A3A28))
+    /// Welcome sky gradient stops — fills a rounded shape, so 0→1 maps to the shape height
+    private static let welcomeGradientStops: [Gradient.Stop] = [
+        .init(color: Color(light: Color(hex: 0x00A838), dark: Color(hex: 0x006B25)), location: 0.0),
+        .init(color: Color(light: Color(hex: 0x3EBE65), dark: Color(hex: 0x1A4A25)), location: 0.30),
+        .init(color: Color(light: Color(hex: 0x90DBA8), dark: Color(hex: 0x1A2A1E)), location: 0.65),
+        .init(color: Color(light: .white, dark: Color(hex: 0x1C1C1E)), location: 1.0),
+    ]
 
-    /// Full-screen auth gradient background
+    /// Login gradient — subtle branded tint, form stays on clean white
+    private static let loginGradientStops: [Gradient.Stop] = [
+        .init(color: Color(light: Color(hex: 0xD6F2DE), dark: Color(hex: 0x1A3520)), location: 0.0),
+        .init(color: Color(light: .white, dark: Color(hex: 0x1C1C1E)), location: 0.30),
+    ]
+
+    /// Base color behind gradient shapes
+    private static let authBase = Color(light: .white, dark: Color(hex: 0x1C1C1E))
+
+    /// Welcome sky gradient — covers top ~55%, fades out with a soft convex curve at the bottom
     @ViewBuilder
-    static var authGradientBackground: some View {
-        ZStack {
-            // Base gradient
+    static var welcomeGradientBackground: some View {
+        ZStack(alignment: .top) {
+            authBase
+
             LinearGradient(
-                colors: [authGradientTop, authGradientMid, authGradientBottom],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                stops: welcomeGradientStops,
+                startPoint: .top,
+                endPoint: .bottom
             )
-            // Accent radial overlay (top-trailing)
-            RadialGradient(
-                colors: [authGradientAccent.opacity(0.6), .clear],
-                center: .topTrailing,
-                startRadius: 50,
-                endRadius: 500
-            )
-            // Subtle center glow
-            RadialGradient(
-                colors: [Color(light: .white.opacity(0.2), dark: .clear), .clear],
-                center: .center,
-                startRadius: 100,
-                endRadius: 600
-            )
+            .containerRelativeFrame(.vertical) { height, _ in height * 0.57 }
+            .mask {
+                // Radial gradient centered at top: sides fade before center -> convex curve
+                Canvas { context, size in
+                    let radius = size.height * 1.45
+                    let center = CGPoint(x: size.width / 2, y: 0)
+                    let shading = Gradient(stops: [
+                        .init(color: .white, location: 0.0),
+                        .init(color: .white, location: 0.4),
+                        .init(color: .clear, location: 0.82),
+                    ])
+                    context.fill(
+                        Path(CGRect(origin: .zero, size: size)),
+                        with: .radialGradient(
+                            shading,
+                            center: center,
+                            startRadius: 0,
+                            endRadius: radius
+                        )
+                    )
+                }
+            }
         }
+        .ignoresSafeArea()
+    }
+
+    /// Full-screen login gradient — subtle branded top, clean white for the form
+    @ViewBuilder
+    static var loginGradientBackground: some View {
+        LinearGradient(
+            stops: loginGradientStops,
+            startPoint: .top,
+            endPoint: .bottom
+        )
         .ignoresSafeArea()
     }
 
@@ -208,9 +239,6 @@ extension Color {
 
     /// Input field text color for auth screens
     static let authInputText = Color(light: Color(hex: 0x1A1A1A), dark: .white)
-
-    /// Input field placeholder color for auth screens
-    static let authInputPlaceholder = Color(light: Color(hex: 0x999999), dark: Color(hex: 0x999999))
 
     /// Input field border color for auth screens
     static let authInputBorder = Color(light: Color(hex: 0xE0E0E0), dark: Color(hex: 0x3C3C3E))

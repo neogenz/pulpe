@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct RegistrationStep: View {
-    let state: OnboardingState
+    @Bindable var state: OnboardingState
     let onComplete: (UserInfo) -> Void
 
     @State private var password = ""
@@ -14,13 +14,10 @@ struct RegistrationStep: View {
         case email, password, passwordConfirmation
     }
 
-    private var isPasswordValid: Bool {
-        password.count >= 8 &&
-        password.contains { $0.isNumber }
-    }
-
     private var hasMinLength: Bool { password.count >= 8 }
     private var hasNumber: Bool { password.contains(where: { $0.isNumber }) }
+    private var hasLetter: Bool { password.contains(where: { $0.isLetter }) }
+    private var isPasswordValid: Bool { hasMinLength && hasNumber && hasLetter }
 
     private var isPasswordConfirmed: Bool {
         !passwordConfirmation.isEmpty && password == passwordConfirmation
@@ -28,10 +25,6 @@ struct RegistrationStep: View {
 
     private var canSubmit: Bool {
         state.canSubmitRegistration && isPasswordValid && isPasswordConfirmed
-    }
-
-    private var passwordMismatch: Bool {
-        !passwordConfirmation.isEmpty && password != passwordConfirmation
     }
 
     var body: some View {
@@ -70,16 +63,18 @@ extension RegistrationStep {
 
             AuthTextField(
                 prompt: "ton@email.com",
-                text: Binding(
-                    get: { state.email },
-                    set: { state.email = $0 }
-                ),
-                isFocused: focusedField == .email
+                text: $state.email,
+                systemImage: "envelope",
+                isFocused: focusedField == .email,
+                isFilled: state.isEmailValid
             )
             .textContentType(.emailAddress)
             .keyboardType(.emailAddress)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
+            .accessibilityIdentifier("registrationEmail")
+            .accessibilityLabel("Adresse e-mail")
+            .accessibilityHint("Saisis ton adresse e-mail")
             .focused($focusedField, equals: .email)
         }
     }
@@ -94,20 +89,19 @@ extension RegistrationStep {
                 prompt: "••••••••",
                 text: $password,
                 isVisible: $showPassword,
+                systemImage: "lock",
                 isFocused: focusedField == .password
             )
             .textContentType(.newPassword)
             .focused($focusedField, equals: .password)
+            .accessibilityIdentifier("registrationPassword")
+            .accessibilityLabel("Mot de passe")
+            .accessibilityHint("Crée ton mot de passe")
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                passwordCriteriaRow(
-                    met: hasMinLength,
-                    text: "8 caractères minimum"
-                )
-                passwordCriteriaRow(
-                    met: hasNumber,
-                    text: "Au moins un chiffre"
-                )
+                PasswordCriteriaRow(met: hasMinLength, text: "8 caractères minimum")
+                PasswordCriteriaRow(met: hasNumber, text: "Au moins un chiffre")
+                PasswordCriteriaRow(met: hasLetter, text: "Au moins une lettre")
             }
         }
     }
@@ -122,16 +116,18 @@ extension RegistrationStep {
                 prompt: "••••••••",
                 text: $passwordConfirmation,
                 isVisible: $showPasswordConfirmation,
+                systemImage: "lock",
                 isFocused: focusedField == .passwordConfirmation,
-                hasError: passwordMismatch
+                hasError: !passwordConfirmation.isEmpty && !isPasswordConfirmed
             )
             .textContentType(.newPassword)
             .focused($focusedField, equals: .passwordConfirmation)
+            .accessibilityIdentifier("registrationPasswordConfirmation")
+            .accessibilityLabel("Confirmation du mot de passe")
+            .accessibilityHint("Confirme ton mot de passe")
 
-            if passwordMismatch {
-                Text("Les mots de passe ne correspondent pas")
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.errorPrimary)
+            if !passwordConfirmation.isEmpty {
+                PasswordMatchRow(matches: isPasswordConfirmed)
             }
         }
     }
@@ -165,7 +161,7 @@ extension RegistrationStep {
                 }
                 .animation(.spring(response: 0.3, dampingFraction: 0.6), value: state.acceptTerms)
 
-                Text("J'accepte les [conditions d'utilisation](https://pulpe.app/terms) et la [politique de confidentialité](https://pulpe.app/privacy)")
+                Text(Self.termsMarkdown)
                     .font(PulpeTypography.footnote)
                     .foregroundStyle(Color.textPrimaryOnboarding)
                     .multilineTextAlignment(.leading)
@@ -175,16 +171,14 @@ extension RegistrationStep {
         .buttonStyle(.plain)
     }
 
-    private func passwordCriteriaRow(met: Bool, text: String) -> some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: met ? "checkmark.circle.fill" : "circle")
-                .font(PulpeTypography.caption)
-                .foregroundStyle(met ? .green : Color.textSecondaryOnboarding.opacity(0.5))
-            Text(text)
-                .font(PulpeTypography.caption)
-                .foregroundStyle(met ? Color.textPrimaryOnboarding : Color.textSecondaryOnboarding)
-        }
-    }
+    private static let termsMarkdown: AttributedString = {
+        let termsLink = AppURLs.terms.absoluteString
+        let privacyLink = AppURLs.privacy.absoluteString
+        let md = "J'accepte les [conditions d'utilisation](\(termsLink))"
+            + " et la [politique de confidentialité](\(privacyLink))"
+        let fallback = "J'accepte les conditions d'utilisation et la politique de confidentialité"
+        return (try? AttributedString(markdown: md)) ?? AttributedString(fallback)
+    }()
 
     private func submitRegistration() async {
         state.isLoading = true

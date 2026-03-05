@@ -18,15 +18,6 @@ struct ChangePasswordSheet: View {
         case confirmPassword
     }
 
-    private struct PasswordFieldConfig {
-        let prompt: String
-        let text: Binding<String>
-        let isVisible: Binding<Bool>
-        let focused: Field
-        let accessibilityId: String
-        let contentType: UITextContentType
-    }
-
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -68,26 +59,15 @@ struct ChangePasswordSheet: View {
                             }
                         }
                     } label: {
-                        HStack(spacing: DesignTokens.Spacing.sm) {
-                            if viewModel.isSubmitting {
-                                ProgressView()
-                                    .tint(.white)
-                            }
-                            Text(viewModel.isSubmitting ? "Mise à jour..." : "Confirmer")
-                                .font(PulpeTypography.buttonPrimary)
+                        if viewModel.isSubmitting {
+                            ProgressView()
+                                .tint(.white)
+                                .accessibilityLabel("Mise à jour en cours")
+                        } else {
+                            Text("Confirmer")
                         }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: DesignTokens.FrameHeight.button)
-                        .background {
-                            if viewModel.canSubmit {
-                                Color.onboardingGradient
-                            } else {
-                                Color.surfaceContainerHigh
-                            }
-                        }
-                        .foregroundStyle(viewModel.canSubmit ? Color.textOnPrimary : Color.textSecondaryOnboarding)
-                        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
                     }
+                    .primaryButtonStyle(isEnabled: viewModel.canSubmit)
                     .disabled(!viewModel.canSubmit)
                     .accessibilityIdentifier("changePasswordSubmit")
                 }
@@ -108,38 +88,38 @@ struct ChangePasswordSheet: View {
     private var currentPasswordField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Mot de passe actuel")
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.textSecondaryOnboarding)
+                .font(PulpeTypography.buttonSecondary)
+                .foregroundStyle(Color.textPrimaryOnboarding)
 
-            passwordField(
-                config: PasswordFieldConfig(
-                    prompt: "Ton mot de passe actuel",
-                    text: $viewModel.currentPassword,
-                    isVisible: $showCurrentPassword,
-                    focused: .currentPassword,
-                    accessibilityId: "changeCurrentPasswordInput",
-                    contentType: .password
-                )
+            AuthSecureField(
+                prompt: "Ton mot de passe actuel",
+                text: $viewModel.currentPassword,
+                isVisible: $showCurrentPassword,
+                systemImage: "lock",
+                isFocused: focusedField == .currentPassword
             )
+            .textContentType(.password)
+            .focused($focusedField, equals: .currentPassword)
+            .accessibilityIdentifier("changeCurrentPasswordInput")
         }
     }
 
     private var newPasswordField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Nouveau mot de passe")
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.textSecondaryOnboarding)
+                .font(PulpeTypography.buttonSecondary)
+                .foregroundStyle(Color.textPrimaryOnboarding)
 
-            passwordField(
-                config: PasswordFieldConfig(
-                    prompt: "Ton nouveau mot de passe",
-                    text: $viewModel.newPassword,
-                    isVisible: $showNewPassword,
-                    focused: .newPassword,
-                    accessibilityId: "changeNewPasswordInput",
-                    contentType: .newPassword
-                )
+            AuthSecureField(
+                prompt: "Ton nouveau mot de passe",
+                text: $viewModel.newPassword,
+                isVisible: $showNewPassword,
+                systemImage: "lock",
+                isFocused: focusedField == .newPassword
             )
+            .textContentType(.newPassword)
+            .focused($focusedField, equals: .newPassword)
+            .accessibilityIdentifier("changeNewPasswordInput")
 
             passwordRequirementsHint
         }
@@ -147,103 +127,35 @@ struct ChangePasswordSheet: View {
 
     private var passwordRequirementsHint: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            requirementRow(
-                met: viewModel.newPassword.count >= 8,
-                text: "8 caractères minimum"
-            )
-            requirementRow(
-                met: viewModel.hasLetter,
-                text: "Au moins une lettre"
-            )
-            requirementRow(
-                met: viewModel.hasNumber,
-                text: "Au moins un chiffre"
-            )
+            PasswordCriteriaRow(met: viewModel.hasMinLength, text: "8 caractères minimum")
+            PasswordCriteriaRow(met: viewModel.hasNumber, text: "Au moins un chiffre")
+            PasswordCriteriaRow(met: viewModel.hasLetter, text: "Au moins une lettre")
         }
         .padding(.top, DesignTokens.Spacing.xs)
-    }
-
-    private func requirementRow(met: Bool, text: String) -> some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: met ? "checkmark.circle.fill" : "circle")
-                .font(PulpeTypography.footnote)
-                .foregroundStyle(met ? Color.financialSavings : Color.pulpeTextTertiary)
-            Text(text)
-                .font(PulpeTypography.caption)
-                .foregroundStyle(met ? Color.textSecondaryOnboarding : Color.pulpeTextTertiary)
-        }
     }
 
     private var confirmPasswordField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Confirmer le nouveau mot de passe")
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.textSecondaryOnboarding)
+                .font(PulpeTypography.buttonSecondary)
+                .foregroundStyle(Color.textPrimaryOnboarding)
 
-            passwordField(
-                config: PasswordFieldConfig(
-                    prompt: "Confirme ton nouveau mot de passe",
-                    text: $viewModel.confirmPassword,
-                    isVisible: $showConfirmPassword,
-                    focused: .confirmPassword,
-                    accessibilityId: "changeConfirmPasswordInput",
-                    contentType: .newPassword
-                )
+            AuthSecureField(
+                prompt: "Confirme ton nouveau mot de passe",
+                text: $viewModel.confirmPassword,
+                isVisible: $showConfirmPassword,
+                systemImage: "lock",
+                isFocused: focusedField == .confirmPassword,
+                hasError: !viewModel.confirmPassword.isEmpty && !viewModel.isPasswordConfirmed
             )
+            .textContentType(.newPassword)
+            .focused($focusedField, equals: .confirmPassword)
+            .accessibilityIdentifier("changeConfirmPasswordInput")
 
-            if !viewModel.confirmPassword.isEmpty && !viewModel.isPasswordConfirmed {
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(PulpeTypography.footnote)
-                        .foregroundStyle(Color.errorPrimary)
-                    Text("Les mots de passe ne correspondent pas")
-                        .font(PulpeTypography.caption)
-                        .foregroundStyle(Color.errorPrimary)
-                }
-                .padding(.top, DesignTokens.Spacing.xs)
-            } else if viewModel.isPasswordConfirmed {
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(PulpeTypography.footnote)
-                        .foregroundStyle(Color.financialSavings)
-                    Text("Les mots de passe correspondent")
-                        .font(PulpeTypography.caption)
-                        .foregroundStyle(Color.financialSavings)
-                }
-                .padding(.top, DesignTokens.Spacing.xs)
+            if !viewModel.confirmPassword.isEmpty {
+                PasswordMatchRow(matches: viewModel.isPasswordConfirmed)
             }
         }
-    }
-
-    private func passwordField(config: PasswordFieldConfig) -> some View {
-        HStack(spacing: 0) {
-            Group {
-                if config.isVisible.wrappedValue {
-                    TextField(config.prompt, text: config.text)
-                } else {
-                    SecureField(config.prompt, text: config.text)
-                }
-            }
-            .focused($focusedField, equals: config.focused)
-            .textContentType(config.contentType)
-
-            Button {
-                config.isVisible.wrappedValue.toggle()
-            } label: {
-                Image(systemName: config.isVisible.wrappedValue ? "eye.slash.fill" : "eye.fill")
-                    .foregroundStyle(Color.pulpeTextTertiary)
-                    .frame(width: 24, height: 24)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(DesignTokens.Spacing.md)
-        .background(Color.surfaceContainerHigh)
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-        .overlay {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
-        }
-        .accessibilityIdentifier(config.accessibilityId)
     }
 }
 
@@ -272,8 +184,10 @@ final class ChangePasswordViewModel {
         newPassword.contains(where: { $0.isNumber })
     }
 
+    var hasMinLength: Bool { newPassword.count >= 8 }
+
     var isNewPasswordValid: Bool {
-        newPassword.count >= 8 && hasLetter && hasNumber
+        hasMinLength && hasLetter && hasNumber
     }
 
     var isPasswordConfirmed: Bool {
