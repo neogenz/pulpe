@@ -127,7 +127,7 @@ struct ChangePasswordSheet: View {
 
     private var passwordRequirementsHint: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            PasswordCriteriaRow(met: viewModel.newPassword.count >= 8, text: "8 caractères minimum")
+            PasswordCriteriaRow(met: viewModel.hasMinLength, text: "8 caractères minimum")
             PasswordCriteriaRow(met: viewModel.hasNumber, text: "Au moins un chiffre")
             PasswordCriteriaRow(met: viewModel.hasLetter, text: "Au moins une lettre")
         }
@@ -184,8 +184,10 @@ final class ChangePasswordViewModel {
         newPassword.contains(where: { $0.isNumber })
     }
 
+    var hasMinLength: Bool { newPassword.count >= 8 }
+
     var isNewPasswordValid: Bool {
-        newPassword.count >= 8 && hasLetter && hasNumber
+        hasMinLength && hasLetter && hasNumber
     }
 
     var isPasswordConfirmed: Bool {

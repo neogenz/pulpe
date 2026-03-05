@@ -183,10 +183,6 @@ extension Color {
     /// Base color behind gradient shapes
     private static let authBase = Color(light: .white, dark: Color(hex: 0x1C1C1E))
 
-    /// Text color for content sitting on the welcome gradient (white on vivid green in light, stays light in dark)
-    static let authGradientText = Color(light: .white, dark: Color(hex: 0xF5F5F5))
-    static let authGradientTextSecondary = Color(light: .white.opacity(0.85), dark: Color(hex: 0xD0D0D0))
-
     /// Welcome sky gradient — covers top ~55%, fades out with a soft convex curve at the bottom
     @ViewBuilder
     static var welcomeGradientBackground: some View {

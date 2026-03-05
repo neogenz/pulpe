@@ -13,7 +13,7 @@ struct PasswordMatchRow: View {
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: icon)
-                .font(PulpeTypography.footnote)
+                .font(PulpeTypography.caption)
                 .foregroundStyle(color)
                 .accessibilityHidden(true)
             Text(text)
