@@ -399,14 +399,6 @@ export class EncryptionService {
     newClientKey: Buffer,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<{ keyCheck: string; recoveryKey: string | null }> {
-    if (oldClientKey.equals(newClientKey)) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.ENCRYPTION_SAME_KEY,
-        undefined,
-        { userId, operation: 'change_pin.same_key_rejected' },
-      );
-    }
-
     const row = await this.#repository.findByUserId(userId);
     if (!row) {
       throw new BusinessException(
@@ -429,6 +421,16 @@ export class EncryptionService {
     } else {
       const generatedKeyCheck = this.generateKeyCheck(oldDek);
       await this.#repository.updateKeyCheckIfNull(userId, generatedKeyCheck);
+    }
+
+    // Check same-key AFTER verifying old key — prevents oracle that leaks
+    // whether the old key is valid via different error codes.
+    if (oldClientKey.equals(newClientKey)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_SAME_KEY,
+        undefined,
+        { userId, operation: 'change_pin.same_key_rejected' },
+      );
     }
 
     const newDek = this.#deriveDEK(newClientKey, salt, userId);
