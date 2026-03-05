@@ -441,7 +441,7 @@ describe('EncryptionController', () => {
       }
     });
 
-    it('should call recoverWithKey with correct callback', async () => {
+    it('should call recoverWithKey with supabase client', async () => {
       const user = createMockUser();
       const mockSupabase = { test: 'supabase' };
       const body = {
@@ -449,22 +449,15 @@ describe('EncryptionController', () => {
         newClientKey: 'ab'.repeat(32),
       };
 
-      let callbackCalled = false;
-      const { controller, mockEncryptionService } = setupController({
-        recoverWithKey: mock(
-          async (_userId, _recoveryKey, _newKey, callback) => {
-            callbackCalled = true;
-            await callback(randomBytes(32), randomBytes(32));
-          },
-        ),
-      });
+      const { controller, mockEncryptionService } = setupController();
 
       await controller.recover(user, mockSupabase as any, body);
 
-      expect(callbackCalled).toBe(true);
-      expect(mockEncryptionService.reEncryptAllUserData.mock.calls.length).toBe(
-        1,
-      );
+      expect(mockEncryptionService.recoverWithKey).toHaveBeenCalledTimes(1);
+      const args = mockEncryptionService.recoverWithKey.mock.calls[0];
+      expect(args[0]).toBe(user.id);
+      expect(args[1]).toBe(body.recoveryKey);
+      expect(args[3]).toBe(mockSupabase);
     });
 
     it('should delegate key_check to encryption service (atomic RPC)', async () => {

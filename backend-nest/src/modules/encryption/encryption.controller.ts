@@ -223,14 +223,7 @@ export class EncryptionController {
         user.id,
         body.recoveryKey,
         newKeyBuffer,
-        async (oldDek, newDek) => {
-          await this.encryptionService.reEncryptAllUserData(
-            user.id,
-            oldDek,
-            newDek,
-            supabase,
-          );
-        },
+        supabase,
       );
     } catch (error) {
       this.#handleRecoveryError(user.id, error);

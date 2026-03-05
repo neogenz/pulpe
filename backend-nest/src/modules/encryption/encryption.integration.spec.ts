@@ -697,14 +697,7 @@ describe('Encryption integration (local Supabase)', () => {
         userId,
         recoveryKey,
         recoveredClientKey,
-        async (oldRecoveredDek, newRecoveredDek) => {
-          await encryptionService.reEncryptAllUserData(
-            userId,
-            oldRecoveredDek,
-            newRecoveredDek,
-            adminClient,
-          );
-        },
+        adminClient,
       );
 
       const afterRecoverState = await getUserEncryptionKeyState(
@@ -803,21 +796,12 @@ describe('Encryption integration (local Supabase)', () => {
         .eq('id', budgetLineId)
         .single();
 
-      let callbackCalled = false;
       try {
         await encryptionService.recoverWithKey(
           userId,
           invalidRecoveryKey,
           newClientKey,
-          async (oldRecoveredDek, newRecoveredDek) => {
-            callbackCalled = true;
-            await encryptionService.reEncryptAllUserData(
-              userId,
-              oldRecoveredDek,
-              newRecoveredDek,
-              adminClient,
-            );
-          },
+          adminClient,
         );
         expect.unreachable('recoverWithKey should reject invalid recovery key');
       } catch {
@@ -834,7 +818,6 @@ describe('Encryption integration (local Supabase)', () => {
         .eq('id', budgetLineId)
         .single();
 
-      expect(callbackCalled).toBe(false);
       expect(keyStateAfter.salt).toBe(keyStateBefore.salt);
       expect(keyStateAfter.wrapped_dek).toBe(keyStateBefore.wrapped_dek);
       expect(keyStateAfter.key_check).toBe(keyStateBefore.key_check);
