@@ -280,6 +280,15 @@ describe('Encryption HTTP pipeline', () => {
 
       expect(res.body.code).toBe('ERR_ZOD_VALIDATION_FAILED');
     });
+
+    it('returns 400 Zod error for invalid hex newClientKey', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/encryption/change-pin')
+        .send({ oldClientKey: VALID_HEX_KEY, newClientKey: 'not-hex' })
+        .expect(400);
+
+      expect(res.body.code).toBe('ERR_ZOD_VALIDATION_FAILED');
+    });
   });
 
   // ──────────────────────────────────────────────

@@ -373,6 +373,54 @@ describe('Encryption E2E (local Supabase)', () => {
     expect(res.body.pinCodeConfigured).toBe(true);
   });
 
+  it('change-pin with recovery key: setup → change-pin → verify new recovery key works', async () => {
+    if (!hasSupabase) return;
+
+    // Current active key is NEW_CLIENT_KEY_HEX from earlier tests
+
+    // 1. Setup recovery key
+    const setupRes = await request(app.getHttpServer())
+      .post('/api/v1/encryption/setup-recovery')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('X-Client-Key', NEW_CLIENT_KEY_HEX)
+      .expect(201);
+
+    expect(setupRes.body.recoveryKey).toBeTruthy();
+
+    // 2. Change PIN — should return a new recovery key since one was configured
+    const THIRD_CLIENT_KEY_HEX = 'dd'.repeat(32);
+    const changePinRes = await request(app.getHttpServer())
+      .post('/api/v1/encryption/change-pin')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        oldClientKey: NEW_CLIENT_KEY_HEX,
+        newClientKey: THIRD_CLIENT_KEY_HEX,
+      })
+      .expect(200);
+
+    expect(changePinRes.body.keyCheck).toBeTruthy();
+    expect(changePinRes.body.recoveryKey).not.toBeNull();
+    expect(changePinRes.body.recoveryKey).toMatch(
+      /^[A-Z2-7]{4}(-[A-Z2-7]{4})+$/,
+    );
+
+    // 3. New key works
+    await request(app.getHttpServer())
+      .post('/api/v1/encryption/validate-key')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ clientKey: THIRD_CLIENT_KEY_HEX })
+      .expect(204);
+
+    // 4. Old key fails
+    const oldKeyRes = await request(app.getHttpServer())
+      .post('/api/v1/encryption/validate-key')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ clientKey: NEW_CLIENT_KEY_HEX })
+      .expect(400);
+
+    expect(oldKeyRes.body.code).toBe('ERR_ENCRYPTION_KEY_CHECK_FAILED');
+  }, 30_000);
+
   it('Zod validation rejects malformed body in real app', async () => {
     if (!hasSupabase) return;
 
