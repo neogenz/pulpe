@@ -73,6 +73,39 @@ Le mode démo utilise un `clientKey` déterministe (`DEMO_CLIENT_KEY_BUFFER`) po
 
 Le mot de passe Supabase et le code PIN sont **indépendants**. Changer ou réinitialiser le mot de passe ne touche pas au chiffrement. Aucun endpoint encryption n'est appelé et le `clientKey` reste valable.
 
+## Changement de code PIN
+
+Le changement de code PIN re-chiffre toutes les données financières avec une nouvelle DEK dérivée du nouveau PIN.
+
+### Flux
+
+```
+1. Frontend dérive oldClientKey (ancien PIN) et newClientKey (nouveau PIN) via PBKDF2
+2. Frontend appelle POST /v1/encryption/change-pin { oldClientKey, newClientKey }
+3. Backend vérifie oldClientKey via key_check (canary)
+4. Toutes les données sont re-chiffrées atomiquement (RPC rekey_user_encrypted_data)
+5. key_check est recalculé avec la nouvelle DEK
+6. Si wrapped_dek existait → nouvelle recovery key générée, nouvelle DEK wrappée
+7. Réponse : { keyCheck: string, recoveryKey: string | null }
+8. Si recoveryKey !== null → frontend affiche la nouvelle recovery key à l'utilisateur
+```
+
+### Recovery key et changement de PIN
+
+Quand l'utilisateur avait une recovery key configurée, le changement de PIN génère une **nouvelle recovery key** et re-wrappe la nouvelle DEK dans le même appel. Le `wrapped_dek` passe directement de l'ancien wrapping au nouveau — il n'est **jamais null**. Le frontend affiche la nouvelle recovery key dans le modal `RecoveryKeyDialog`.
+
+Si le re-wrapping échoue après un re-chiffrement réussi, le `wrapped_dek` est nullifié par sécurité (pour éviter un wrapping stale pointant vers l'ancienne DEK).
+
+### Rate limiting
+
+L'endpoint `change-pin` est limité à 5 appels par heure par utilisateur.
+
+### Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /v1/encryption/change-pin` | Ancien + nouveau clientKey → re-chiffrement complet |
+
 ## Recovery key
 
 La recovery key permet de récupérer l'accès aux données chiffrées quand le **code PIN** est perdu.
@@ -105,7 +138,7 @@ Recovery (code PIN oublié) :
 - La recovery key n'est **jamais stockée** côté serveur (seul `wrappedDEK` l'est)
 - Le serveur ne peut pas déchiffrer `wrappedDEK` sans la recovery key
 - Rate limiting sur `/v1/encryption/recover` (5 tentatives/heure)
-- Le `wrapped_dek` ne change que lors d'un setup recovery ou d'une récupération (recover)
+- Le `wrapped_dek` ne change que lors d'un setup recovery, d'une récupération (recover) ou d'un changement de PIN (re-wrappé)
 
 ### Endpoints
 
@@ -139,6 +172,7 @@ La colonne `key_check` de `user_encryption_key` stocke un ciphertext canary : `A
 |-----------|--------|
 | Première validation (key_check absent) | Généré et stocké |
 | Recovery (`/recover`) | Régénéré avec la nouvelle DEK |
+| Changement de PIN (`/change-pin`) | Régénéré avec la nouvelle DEK |
 | Setup recovery key | Généré si absent |
 
 ### Rate limiting
@@ -281,7 +315,7 @@ Si la validation échoue, le serveur refuse de démarrer.
 |---------|------|
 | `encryption.service.ts` | Dérivation DEK, chiffrement/déchiffrement AES-GCM, wrap/unwrap DEK, cache, re-chiffrement |
 | `encryption-key.repository.ts` | CRUD de la table `user_encryption_key` (salt, wrapped_dek) |
-| `encryption.controller.ts` | Endpoints `/salt`, `/validate-key`, `/setup-recovery`, `/recover` |
+| `encryption.controller.ts` | Endpoints `/salt`, `/validate-key`, `/setup-recovery`, `/recover`, `/change-pin` |
 | `client-key-cleanup.interceptor.ts` | Efface le clientKey de la mémoire après chaque requête |
 | `auth.guard.ts` | Extrait et valide le `X-Client-Key` du header |
 
