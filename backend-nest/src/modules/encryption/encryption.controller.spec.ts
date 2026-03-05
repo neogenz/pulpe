@@ -697,6 +697,50 @@ describe('EncryptionController', () => {
       }
     });
 
+    it('should throw BusinessException for all-zero newClientKey', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = {
+        oldClientKey: 'ab'.repeat(32),
+        newClientKey: '00'.repeat(32),
+      };
+
+      const { controller } = setupController();
+
+      try {
+        await controller.changePin(user, mockSupabase as any, body);
+        expect.unreachable('Should have thrown BusinessException');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect(error.code).toBe(ERROR_DEFINITIONS.AUTH_CLIENT_KEY_INVALID.code);
+      }
+    });
+
+    it('should propagate ENCRYPTION_SAME_KEY from service', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = {
+        oldClientKey: 'ab'.repeat(32),
+        newClientKey: 'cd'.repeat(32),
+      };
+
+      const { controller } = setupController({
+        changePinRekey: mock(() =>
+          Promise.reject(
+            new BusinessException(ERROR_DEFINITIONS.ENCRYPTION_SAME_KEY),
+          ),
+        ),
+      });
+
+      try {
+        await controller.changePin(user, mockSupabase as any, body);
+        expect.unreachable('Should have thrown BusinessException');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect(error.code).toBe(ERROR_DEFINITIONS.ENCRYPTION_SAME_KEY.code);
+      }
+    });
+
     it('should re-throw non-BusinessException errors', async () => {
       const user = createMockUser();
       const mockSupabase = {};

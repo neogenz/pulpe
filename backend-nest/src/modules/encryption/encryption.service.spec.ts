@@ -2024,6 +2024,96 @@ describe('EncryptionService', () => {
       reEncryptSpy.mockRestore();
     });
 
+    it('should generate key_check when row exists but key_check is null', async () => {
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: null,
+          key_check: null,
+        }),
+      );
+      const updateKeyCheckIfNull = mock(() => Promise.resolve());
+
+      const repo = createMockRepository({
+        findByUserId,
+        updateKeyCheckIfNull,
+      });
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      const reEncryptSpy = spyOn(
+        service,
+        'reEncryptAllUserData',
+      ).mockResolvedValue('mock-key-check');
+
+      const result = await service.changePinRekey(
+        TEST_USER_ID,
+        oldClientKey,
+        newClientKey,
+        mockSupabase,
+      );
+
+      expect(updateKeyCheckIfNull).toHaveBeenCalledTimes(1);
+      expect(result.keyCheck).toBe('mock-key-check');
+      expect(reEncryptSpy).toHaveBeenCalledTimes(1);
+
+      reEncryptSpy.mockRestore();
+    });
+
+    it('should nullify wrapped_dek and throw REKEY_PARTIAL_FAILURE when recovery re-wrap fails', async () => {
+      const dek = await setupServiceWithValidKeyCheck();
+      const validKeyCheck = service.generateKeyCheck(await dek);
+
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: 'some-wrapped-dek',
+          key_check: validKeyCheck,
+        }),
+      );
+      const updateWrappedDEK = mock(() => Promise.resolve());
+
+      const repo = createMockRepository({
+        findByUserId,
+        updateWrappedDEK,
+      });
+      service = new EncryptionService(mockConfigService as any, repo as any);
+
+      const reEncryptSpy = spyOn(
+        service,
+        'reEncryptAllUserData',
+      ).mockResolvedValue('mock-key-check');
+
+      // Force wrapDEK to throw
+      const wrapSpy = spyOn(service, 'wrapDEK').mockImplementation(() => {
+        throw new Error('AES-GCM wrap failed');
+      });
+
+      try {
+        await service.changePinRekey(
+          TEST_USER_ID,
+          oldClientKey,
+          newClientKey,
+          mockSupabase,
+        );
+        expect.unreachable('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE.code,
+        );
+      }
+
+      // wrapped_dek should be nullified after wrap failure
+      expect(updateWrappedDEK).toHaveBeenCalledTimes(1);
+      const calls = updateWrappedDEK.mock.calls as unknown[][];
+      expect(calls[0][1]).toBeNull();
+
+      reEncryptSpy.mockRestore();
+      wrapSpy.mockRestore();
+    });
+
     it('should throw when user has no encryption key', async () => {
       const findByUserId = mock(() => Promise.resolve(null));
       const findSaltByUserId = mock(() =>
