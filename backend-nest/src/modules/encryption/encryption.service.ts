@@ -416,6 +416,76 @@ export class EncryptionService {
     await this.reEncryptAllUserData(userId, oldDek, newDek, supabase);
   }
 
+  async changePinRekey(
+    userId: string,
+    oldClientKey: Buffer,
+    newClientKey: Buffer,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<{ keyCheck: string; recoveryKey: string | null }> {
+    if (oldClientKey.equals(newClientKey)) {
+      throw new BusinessException(ERROR_DEFINITIONS.ENCRYPTION_SAME_KEY);
+    }
+
+    const isValid = await this.verifyAndEnsureKeyCheck(userId, oldClientKey);
+    if (!isValid) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+      );
+    }
+
+    const row = await this.#repository.findByUserId(userId);
+    if (!row) {
+      throw new Error(`No encryption key found for user ${userId}`);
+    }
+
+    const salt = Buffer.from(row.salt, 'hex');
+    const oldDek = this.#deriveDEK(oldClientKey, salt, userId);
+    const newDek = this.#deriveDEK(newClientKey, salt, userId);
+    const hadRecovery = !!row.wrapped_dek;
+    let recoveryKeyFormatted: string | null = null;
+
+    this.#invalidateUserDEKCache(userId);
+
+    try {
+      await this.reEncryptAllUserData(userId, oldDek, newDek, supabase);
+
+      // If user had a recovery key, generate a new one and re-wrap the new DEK
+      // in the same call — wrapped_dek goes directly from old wrapping to new
+      // wrapping, never null. The frontend displays the new recovery key.
+      if (hadRecovery) {
+        const { raw, formatted } = this.generateRecoveryKey();
+        try {
+          const newWrappedDEK = this.wrapDEK(newDek, raw);
+          await this.#repository.updateWrappedDEK(userId, newWrappedDEK);
+          recoveryKeyFormatted = formatted;
+        } catch (wrapError) {
+          // Wrap failed — nullify to prevent stale wrapping pointing to old DEK
+          await this.#repository.updateWrappedDEK(userId, null);
+          throw wrapError;
+        } finally {
+          raw.fill(0);
+        }
+      }
+    } finally {
+      oldDek.fill(0);
+      newDek.fill(0);
+    }
+
+    const updatedRow = await this.#repository.findSaltByUserId(userId);
+    if (!updatedRow?.key_check) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
+        undefined,
+        { userId, operation: 'pin_change.key_check_readback' },
+      );
+    }
+
+    return {
+      keyCheck: updatedRow.key_check,
+      recoveryKey: recoveryKeyFormatted,
+    };
+  }
+
   async reEncryptAllUserData(
     userId: string,
     oldDek: Buffer,
