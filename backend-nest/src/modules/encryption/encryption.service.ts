@@ -353,7 +353,7 @@ export class EncryptionService {
     userId: string,
     recoveryKeyFormatted: string,
     newClientKey: Buffer,
-    reEncryptUserData: (oldDek: Buffer, newDek: Buffer) => Promise<void>,
+    supabase: AuthenticatedSupabaseClient,
   ): Promise<void> {
     const row = await this.#repository.findByUserId(userId);
     if (!row?.wrapped_dek) {
@@ -380,8 +380,7 @@ export class EncryptionService {
       // will need to regenerate a recovery key from settings.
       await this.#repository.updateWrappedDEK(userId, null);
 
-      // Re-encrypt user data with new DEK (newClientKey produces different DEK)
-      await reEncryptUserData(oldDek, newDek);
+      await this.reEncryptAllUserData(userId, oldDek, newDek, supabase);
 
       // Re-wrap with the same recovery key — the frontend will immediately call
       // regenerateRecoveryKey$() to replace it with a fresh one.

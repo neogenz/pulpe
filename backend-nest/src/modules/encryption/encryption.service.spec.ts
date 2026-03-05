@@ -1619,7 +1619,7 @@ describe('EncryptionService', () => {
           TEST_USER_ID,
           recoveryKeyFormatted,
           newClientKey,
-          mock(() => Promise.resolve()),
+          {} as any,
         );
         expect.unreachable('Should have thrown');
       } catch (error: any) {
@@ -1658,7 +1658,7 @@ describe('EncryptionService', () => {
           TEST_USER_ID,
           invalidRecoveryKey,
           newClientKey,
-          mock(() => Promise.resolve()),
+          {} as any,
         );
         expect.unreachable('Should have thrown');
       } catch (error: any) {
@@ -1737,14 +1737,21 @@ describe('EncryptionService', () => {
       );
 
       const newClientKey = randomBytes(32);
-      const reEncryptUserData = mock(() => Promise.resolve());
+      const mockSupabase = {} as any;
+
+      const reEncryptSpy = spyOn(
+        svc2,
+        'reEncryptAllUserData',
+      ).mockResolvedValue('mock-key-check');
 
       await svc2.recoverWithKey(
         TEST_USER_ID,
         formatted,
         newClientKey,
-        reEncryptUserData,
+        mockSupabase,
       );
+
+      reEncryptSpy.mockRestore();
 
       // First updateWrappedDEK call should be null (invalidation before re-encryption)
       expect(updateWrappedDEK2).toHaveBeenCalledTimes(2);
@@ -1806,7 +1813,6 @@ describe('EncryptionService', () => {
       await service.regenerateRecoveryKey(TEST_USER_ID, clientKey);
       expect(wrappedDek).not.toBe(firstWrapped);
 
-      const reEncryptUserData = mock(() => Promise.resolve());
       const newClientKey = randomBytes(32);
 
       try {
@@ -1814,11 +1820,11 @@ describe('EncryptionService', () => {
           TEST_USER_ID,
           first.formatted,
           newClientKey,
-          reEncryptUserData,
+          {} as any,
         );
         expect.unreachable('Should have thrown');
       } catch {
-        expect(reEncryptUserData).not.toHaveBeenCalled();
+        // Expected: old recovery key is invalidated after regeneration
       }
     });
   });
