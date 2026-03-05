@@ -64,7 +64,8 @@ extension RegistrationStep {
                 prompt: "ton@email.com",
                 text: $state.email,
                 systemImage: "envelope",
-                isFocused: focusedField == .email
+                isFocused: focusedField == .email,
+                isFilled: state.isEmailValid
             )
             .textContentType(.emailAddress)
             .keyboardType(.emailAddress)
@@ -121,13 +122,13 @@ extension RegistrationStep {
             .focused($focusedField, equals: .passwordConfirmation)
 
             if !passwordConfirmation.isEmpty && !isPasswordConfirmed {
-                passwordMatchRow(
+                PasswordMatchRow(
                     icon: "xmark.circle.fill",
                     text: "Les mots de passe ne correspondent pas",
                     color: Color.errorPrimary
                 )
             } else if isPasswordConfirmed {
-                passwordMatchRow(
+                PasswordMatchRow(
                     icon: "checkmark.circle.fill",
                     text: "Les mots de passe correspondent",
                     color: Color.financialSavings
@@ -182,18 +183,6 @@ extension RegistrationStep {
             + " et la [politique de confidentialité](\(privacyLink))"
         return (try? AttributedString(markdown: md)) ?? AttributedString(md)
     }()
-
-    private func passwordMatchRow(icon: String, text: String, color: Color) -> some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: icon)
-                .font(PulpeTypography.footnote)
-                .foregroundStyle(color)
-            Text(text)
-                .font(PulpeTypography.caption)
-                .foregroundStyle(color)
-        }
-        .padding(.top, DesignTokens.Spacing.xs)
-    }
 
     private func passwordCriteriaRow(met: Bool, text: String) -> some View {
         HStack(spacing: DesignTokens.Spacing.sm) {

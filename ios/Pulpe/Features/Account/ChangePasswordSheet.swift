@@ -151,18 +151,6 @@ struct ChangePasswordSheet: View {
         .padding(.top, DesignTokens.Spacing.xs)
     }
 
-    private func passwordMatchRow(icon: String, text: String, color: Color) -> some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: icon)
-                .font(PulpeTypography.footnote)
-                .foregroundStyle(color)
-            Text(text)
-                .font(PulpeTypography.caption)
-                .foregroundStyle(color)
-        }
-        .padding(.top, DesignTokens.Spacing.xs)
-    }
-
     private func requirementRow(met: Bool, text: String) -> some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: met ? "checkmark.circle.fill" : "circle")
@@ -192,13 +180,13 @@ struct ChangePasswordSheet: View {
             )
 
             if !viewModel.confirmPassword.isEmpty && !viewModel.isPasswordConfirmed {
-                passwordMatchRow(
+                PasswordMatchRow(
                     icon: "xmark.circle.fill",
                     text: "Les mots de passe ne correspondent pas",
                     color: Color.errorPrimary
                 )
             } else if viewModel.isPasswordConfirmed {
-                passwordMatchRow(
+                PasswordMatchRow(
                     icon: "checkmark.circle.fill",
                     text: "Les mots de passe correspondent",
                     color: Color.financialSavings
