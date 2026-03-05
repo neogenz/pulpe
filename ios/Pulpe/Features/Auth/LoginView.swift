@@ -161,8 +161,7 @@ extension LoginView {
                 text: $viewModel.password,
                 isVisible: $viewModel.showPassword,
                 systemImage: "lock",
-                isFocused: focusedField == .password,
-                isFilled: viewModel.isPasswordValid
+                isFocused: focusedField == .password
             )
             .textContentType(.password)
             .focused($focusedField, equals: .password)

@@ -5,7 +5,7 @@ private struct AuthFieldContainer<Content: View>: View {
     var systemImage: String?
     var isFocused: Bool
     var hasError: Bool
-    var isFilled: Bool
+    var isFilled: Bool = false
     @ViewBuilder let content: () -> Content
 
     private var fillColor: Color {
@@ -90,6 +90,9 @@ struct AuthTextField: View {
 }
 
 /// Password variant with show/hide toggle.
+///
+/// Does not display a trailing checkmark — validation feedback is provided
+/// by `PasswordCriteriaRow` / `PasswordMatchRow` below the field.
 struct AuthSecureField: View {
     let prompt: String
     @Binding var text: String
@@ -97,14 +100,12 @@ struct AuthSecureField: View {
     var systemImage: String?
     var isFocused: Bool = false
     var hasError: Bool = false
-    var isFilled: Bool = false
 
     var body: some View {
         AuthFieldContainer(
             systemImage: systemImage,
             isFocused: isFocused,
-            hasError: hasError,
-            isFilled: isFilled
+            hasError: hasError
         ) {
             Group {
                 if isVisible {

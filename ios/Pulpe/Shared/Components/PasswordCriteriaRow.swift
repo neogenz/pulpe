@@ -15,5 +15,7 @@ struct PasswordCriteriaRow: View {
                 .font(PulpeTypography.caption)
                 .foregroundStyle(met ? Color.textPrimaryOnboarding : Color.textSecondaryOnboarding)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(met ? "validé" : "non validé")
     }
 }

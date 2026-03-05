@@ -90,8 +90,7 @@ extension RegistrationStep {
                 text: $password,
                 isVisible: $showPassword,
                 systemImage: "lock",
-                isFocused: focusedField == .password,
-                isFilled: isPasswordValid
+                isFocused: focusedField == .password
             )
             .textContentType(.newPassword)
             .focused($focusedField, equals: .password)
@@ -119,8 +118,7 @@ extension RegistrationStep {
                 isVisible: $showPasswordConfirmation,
                 systemImage: "lock",
                 isFocused: focusedField == .passwordConfirmation,
-                hasError: !passwordConfirmation.isEmpty && !isPasswordConfirmed,
-                isFilled: isPasswordConfirmed
+                hasError: !passwordConfirmation.isEmpty && !isPasswordConfirmed
             )
             .textContentType(.newPassword)
             .focused($focusedField, equals: .passwordConfirmation)
@@ -128,18 +126,8 @@ extension RegistrationStep {
             .accessibilityLabel("Confirmation du mot de passe")
             .accessibilityHint("Confirme ton mot de passe")
 
-            if !passwordConfirmation.isEmpty && !isPasswordConfirmed {
-                PasswordMatchRow(
-                    icon: "xmark.circle.fill",
-                    text: "Les mots de passe ne correspondent pas",
-                    color: Color.errorPrimary
-                )
-            } else if isPasswordConfirmed {
-                PasswordMatchRow(
-                    icon: "checkmark.circle.fill",
-                    text: "Les mots de passe correspondent",
-                    color: Color.financialSavings
-                )
+            if !passwordConfirmation.isEmpty {
+                PasswordMatchRow(matches: isPasswordConfirmed)
             }
         }
     }
@@ -188,7 +176,8 @@ extension RegistrationStep {
         let privacyLink = AppURLs.privacy.absoluteString
         let md = "J'accepte les [conditions d'utilisation](\(termsLink))"
             + " et la [politique de confidentialité](\(privacyLink))"
-        return (try? AttributedString(markdown: md)) ?? AttributedString(md)
+        let fallback = "J'accepte les conditions d'utilisation et la politique de confidentialité"
+        return (try? AttributedString(markdown: md)) ?? AttributedString(fallback)
     }()
 
     private func submitRegistration() async {

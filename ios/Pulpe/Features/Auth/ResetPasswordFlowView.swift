@@ -139,8 +139,7 @@ struct ResetPasswordFlowView: View {
                 text: $viewModel.newPassword,
                 isVisible: $showNewPassword,
                 systemImage: "lock",
-                isFocused: focusedField == .newPassword,
-                isFilled: viewModel.isNewPasswordValid
+                isFocused: focusedField == .newPassword
             )
             .textContentType(.newPassword)
             .focused($focusedField, equals: .newPassword)
@@ -168,8 +167,7 @@ struct ResetPasswordFlowView: View {
                 isVisible: $showConfirmPassword,
                 systemImage: "lock",
                 isFocused: focusedField == .confirmPassword,
-                hasError: !viewModel.confirmPassword.isEmpty && !viewModel.isPasswordConfirmed,
-                isFilled: viewModel.isPasswordConfirmed
+                hasError: !viewModel.confirmPassword.isEmpty && !viewModel.isPasswordConfirmed
             )
             .textContentType(.newPassword)
             .focused($focusedField, equals: .confirmPassword)
@@ -177,18 +175,8 @@ struct ResetPasswordFlowView: View {
             .accessibilityLabel("Confirmation du mot de passe")
             .accessibilityHint("Confirme ton nouveau mot de passe")
 
-            if !viewModel.confirmPassword.isEmpty && !viewModel.isPasswordConfirmed {
-                PasswordMatchRow(
-                    icon: "xmark.circle.fill",
-                    text: "Les mots de passe ne correspondent pas",
-                    color: Color.errorPrimary
-                )
-            } else if viewModel.isPasswordConfirmed {
-                PasswordMatchRow(
-                    icon: "checkmark.circle.fill",
-                    text: "Les mots de passe correspondent",
-                    color: Color.financialSavings
-                )
+            if !viewModel.confirmPassword.isEmpty {
+                PasswordMatchRow(matches: viewModel.isPasswordConfirmed)
             }
         }
     }
