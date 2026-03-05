@@ -4,9 +4,11 @@ struct ConfirmPasswordSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var password = ""
+    @State private var showPassword = false
     @State private var isVerifying = false
     @State private var errorMessage: String?
     @State private var verifyTask: Task<Void, Never>?
+    @FocusState private var isFocused: Bool
 
     var onVerify: (String) async -> String?
 
@@ -20,18 +22,18 @@ struct ConfirmPasswordSheet: View {
                     .padding(.horizontal)
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    SecureField("Mot de passe", text: $password)
-                        .textFieldStyle(.plain)
-                        .padding()
-                        .background(Color.surfaceContainerHigh)
-                        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                                .strokeBorder(
-                                    errorMessage != nil ? Color.errorPrimary : Color.primary.opacity(0.1),
-                                    lineWidth: 1
-                                )
-                        )
+                    AuthSecureField(
+                        prompt: "Mot de passe",
+                        text: $password,
+                        isVisible: $showPassword,
+                        systemImage: "lock",
+                        isFocused: isFocused,
+                        hasError: errorMessage != nil
+                    )
+                    .focused($isFocused)
+                    .accessibilityIdentifier("confirmPasswordInput")
+                    .accessibilityLabel("Mot de passe")
+                    .accessibilityHint("Saisis ton mot de passe pour confirmer")
 
                     if let error = errorMessage {
                         Text(error)
@@ -50,6 +52,7 @@ struct ConfirmPasswordSheet: View {
                     if isVerifying {
                         ProgressView()
                             .tint(.white)
+                            .accessibilityLabel("Vérification en cours")
                     } else {
                         Text("Confirmer")
                     }

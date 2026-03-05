@@ -58,6 +58,7 @@ struct ResetPasswordFlowView: View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             ProgressView()
                 .tint(Color.pulpePrimary)
+                .accessibilityLabel("Vérification du lien en cours")
             Text("Vérification du lien...")
                 .font(PulpeTypography.bodyLarge)
                 .foregroundStyle(Color.textSecondaryOnboarding)
@@ -117,6 +118,7 @@ struct ResetPasswordFlowView: View {
                 if viewModel.isSubmitting {
                     ProgressView()
                         .tint(.white)
+                        .accessibilityLabel("Réinitialisation en cours")
                 } else {
                     Text("Valider")
                 }
@@ -129,7 +131,8 @@ struct ResetPasswordFlowView: View {
     private var newPasswordField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Nouveau mot de passe")
-                .font(PulpeTypography.labelLarge)
+                .font(PulpeTypography.buttonSecondary)
+                .foregroundStyle(Color.textPrimaryOnboarding)
 
             AuthSecureField(
                 prompt: "8 caractères minimum",
@@ -141,13 +144,23 @@ struct ResetPasswordFlowView: View {
             )
             .textContentType(.newPassword)
             .focused($focusedField, equals: .newPassword)
+            .accessibilityIdentifier("resetNewPassword")
+            .accessibilityLabel("Nouveau mot de passe")
+            .accessibilityHint("Saisis ton nouveau mot de passe")
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                PasswordCriteriaRow(met: viewModel.hasMinLength, text: "8 caractères minimum")
+                PasswordCriteriaRow(met: viewModel.hasNumber, text: "Au moins un chiffre")
+                PasswordCriteriaRow(met: viewModel.hasLetter, text: "Au moins une lettre")
+            }
         }
     }
 
     private var confirmPasswordField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text("Confirmer le mot de passe")
-                .font(PulpeTypography.labelLarge)
+            Text("Confirmer le nouveau mot de passe")
+                .font(PulpeTypography.buttonSecondary)
+                .foregroundStyle(Color.textPrimaryOnboarding)
 
             AuthSecureField(
                 prompt: "Confirme ton nouveau mot de passe",
@@ -155,10 +168,28 @@ struct ResetPasswordFlowView: View {
                 isVisible: $showConfirmPassword,
                 systemImage: "lock",
                 isFocused: focusedField == .confirmPassword,
+                hasError: !viewModel.confirmPassword.isEmpty && !viewModel.isPasswordConfirmed,
                 isFilled: viewModel.isPasswordConfirmed
             )
             .textContentType(.newPassword)
             .focused($focusedField, equals: .confirmPassword)
+            .accessibilityIdentifier("resetConfirmPassword")
+            .accessibilityLabel("Confirmation du mot de passe")
+            .accessibilityHint("Confirme ton nouveau mot de passe")
+
+            if !viewModel.confirmPassword.isEmpty && !viewModel.isPasswordConfirmed {
+                PasswordMatchRow(
+                    icon: "xmark.circle.fill",
+                    text: "Les mots de passe ne correspondent pas",
+                    color: Color.errorPrimary
+                )
+            } else if viewModel.isPasswordConfirmed {
+                PasswordMatchRow(
+                    icon: "checkmark.circle.fill",
+                    text: "Les mots de passe correspondent",
+                    color: Color.financialSavings
+                )
+            }
         }
     }
 
@@ -205,9 +236,11 @@ final class ResetPasswordFlowViewModel {
         self.dependencies = dependencies ?? .live
     }
 
-    var isNewPasswordValid: Bool {
-        newPassword.count >= 8 && newPassword.contains(where: { $0.isNumber })
-    }
+    var hasMinLength: Bool { newPassword.count >= 8 }
+    var hasNumber: Bool { newPassword.contains(where: { $0.isNumber }) }
+    var hasLetter: Bool { newPassword.contains(where: { $0.isLetter }) }
+
+    var isNewPasswordValid: Bool { hasMinLength && hasNumber && hasLetter }
 
     var isPasswordConfirmed: Bool {
         !confirmPassword.isEmpty && newPassword == confirmPassword

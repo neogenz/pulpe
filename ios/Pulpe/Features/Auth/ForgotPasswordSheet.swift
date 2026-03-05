@@ -63,6 +63,8 @@ struct ForgotPasswordSheet: View {
                 .autocorrectionDisabled()
                 .focused($isEmailFocused)
                 .accessibilityIdentifier("forgotPasswordEmail")
+                .accessibilityLabel("Adresse e-mail")
+                .accessibilityHint("Saisis ton adresse e-mail")
 
                 if let error = viewModel.errorMessage {
                     Text(error)

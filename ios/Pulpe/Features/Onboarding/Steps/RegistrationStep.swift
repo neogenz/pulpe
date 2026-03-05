@@ -16,7 +16,8 @@ struct RegistrationStep: View {
 
     private var hasMinLength: Bool { password.count >= 8 }
     private var hasNumber: Bool { password.contains(where: { $0.isNumber }) }
-    private var isPasswordValid: Bool { hasMinLength && hasNumber }
+    private var hasLetter: Bool { password.contains(where: { $0.isLetter }) }
+    private var isPasswordValid: Bool { hasMinLength && hasNumber && hasLetter }
 
     private var isPasswordConfirmed: Bool {
         !passwordConfirmation.isEmpty && password == passwordConfirmation
@@ -71,6 +72,9 @@ extension RegistrationStep {
             .keyboardType(.emailAddress)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
+            .accessibilityIdentifier("registrationEmail")
+            .accessibilityLabel("Adresse e-mail")
+            .accessibilityHint("Saisis ton adresse e-mail")
             .focused($focusedField, equals: .email)
         }
     }
@@ -86,20 +90,19 @@ extension RegistrationStep {
                 text: $password,
                 isVisible: $showPassword,
                 systemImage: "lock",
-                isFocused: focusedField == .password
+                isFocused: focusedField == .password,
+                isFilled: isPasswordValid
             )
             .textContentType(.newPassword)
             .focused($focusedField, equals: .password)
+            .accessibilityIdentifier("registrationPassword")
+            .accessibilityLabel("Mot de passe")
+            .accessibilityHint("Crée ton mot de passe")
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                passwordCriteriaRow(
-                    met: hasMinLength,
-                    text: "8 caractères minimum"
-                )
-                passwordCriteriaRow(
-                    met: hasNumber,
-                    text: "Au moins un chiffre"
-                )
+                PasswordCriteriaRow(met: hasMinLength, text: "8 caractères minimum")
+                PasswordCriteriaRow(met: hasNumber, text: "Au moins un chiffre")
+                PasswordCriteriaRow(met: hasLetter, text: "Au moins une lettre")
             }
         }
     }
@@ -116,10 +119,14 @@ extension RegistrationStep {
                 isVisible: $showPasswordConfirmation,
                 systemImage: "lock",
                 isFocused: focusedField == .passwordConfirmation,
-                hasError: !passwordConfirmation.isEmpty && !isPasswordConfirmed
+                hasError: !passwordConfirmation.isEmpty && !isPasswordConfirmed,
+                isFilled: isPasswordConfirmed
             )
             .textContentType(.newPassword)
             .focused($focusedField, equals: .passwordConfirmation)
+            .accessibilityIdentifier("registrationPasswordConfirmation")
+            .accessibilityLabel("Confirmation du mot de passe")
+            .accessibilityHint("Confirme ton mot de passe")
 
             if !passwordConfirmation.isEmpty && !isPasswordConfirmed {
                 PasswordMatchRow(
@@ -183,17 +190,6 @@ extension RegistrationStep {
             + " et la [politique de confidentialité](\(privacyLink))"
         return (try? AttributedString(markdown: md)) ?? AttributedString(md)
     }()
-
-    private func passwordCriteriaRow(met: Bool, text: String) -> some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: met ? "checkmark.circle.fill" : "circle")
-                .font(PulpeTypography.caption)
-                .foregroundStyle(met ? Color.financialSavings : Color.textSecondaryOnboarding.opacity(0.5))
-            Text(text)
-                .font(PulpeTypography.caption)
-                .foregroundStyle(met ? Color.textPrimaryOnboarding : Color.textSecondaryOnboarding)
-        }
-    }
 
     private func submitRegistration() async {
         state.isLoading = true
