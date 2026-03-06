@@ -13,11 +13,16 @@ vi.mock('@core/encryption/crypto.utils', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...(actual as Record<string, unknown>),
-    deriveClientKey: vi.fn().mockResolvedValue('a'.repeat(64)),
+    deriveClientKey: vi
+      .fn()
+      .mockImplementation((pin: string) =>
+        Promise.resolve(pin === '123456' ? 'a'.repeat(64) : 'b'.repeat(64)),
+      ),
   };
 });
 
-const MOCK_CLIENT_KEY = 'a'.repeat(64);
+const MOCK_OLD_CLIENT_KEY = 'a'.repeat(64);
+const MOCK_NEW_CLIENT_KEY = 'b'.repeat(64);
 
 describe('ChangePinDialog', () => {
   let component: ChangePinDialog;
@@ -170,8 +175,8 @@ describe('ChangePinDialog', () => {
       await component['onSubmitNewPin']();
 
       expect(mockEncryptionApi.changePin$).toHaveBeenCalledWith(
-        MOCK_CLIENT_KEY,
-        MOCK_CLIENT_KEY,
+        MOCK_OLD_CLIENT_KEY,
+        MOCK_NEW_CLIENT_KEY,
       );
     });
 
@@ -181,7 +186,7 @@ describe('ChangePinDialog', () => {
       await component['onSubmitNewPin']();
 
       expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
-        MOCK_CLIENT_KEY,
+        MOCK_NEW_CLIENT_KEY,
         false,
       );
     });
@@ -193,7 +198,7 @@ describe('ChangePinDialog', () => {
       await component['onSubmitNewPin']();
 
       expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
-        MOCK_CLIENT_KEY,
+        MOCK_NEW_CLIENT_KEY,
         true,
       );
     });
@@ -266,7 +271,7 @@ describe('ChangePinDialog', () => {
       );
     });
 
-    it('shows generic error for unknown failures', async () => {
+    it('shows generic error for unknown failures and resets to step 1', async () => {
       mockEncryptionApi.changePin$.mockReturnValue(
         throwError(() => new Error('Unknown')),
       );
@@ -277,6 +282,7 @@ describe('ChangePinDialog', () => {
       expect(component['errorMessage']()).toBe(
         'Le changement de code PIN a échoué — réessaie plus tard',
       );
+      expect(component['step']()).toBe(1);
     });
   });
 
@@ -294,7 +300,7 @@ describe('ChangePinDialog', () => {
       // Mock deriveClientKey to block
       const { deriveClientKey } = await import('@core/encryption/crypto.utils');
       (deriveClientKey as Mock).mockImplementationOnce(() =>
-        blockingPromise.then(() => MOCK_CLIENT_KEY),
+        blockingPromise.then(() => MOCK_OLD_CLIENT_KEY),
       );
 
       component['oldPinForm'].patchValue({ oldPin: '123456' });

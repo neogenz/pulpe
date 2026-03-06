@@ -2046,7 +2046,7 @@ describe('EncryptionService', () => {
       expect(result.recoveryKey).toMatch(/^[A-Z2-7]+-/);
       expect(result.keyCheck).toBe('mock-key-check');
       expect(reEncryptSpy).toHaveBeenCalledTimes(1);
-      expect(updateWrappedDEK).toHaveBeenCalledTimes(1);
+      expect(updateWrappedDEK).toHaveBeenCalledTimes(2);
 
       reEncryptSpy.mockRestore();
     });
@@ -2106,9 +2106,10 @@ describe('EncryptionService', () => {
 
       expect(result.recoveryKey).not.toBeNull();
       expect(result.recoveryKey).toMatch(/^[A-Z2-7]+-/); // base32 formatted
-      // Re-wrapping happens AFTER re-encryption, and wraps (not nullifies)
-      expect(updateWrappedDEK).toHaveBeenCalledTimes(1);
+      // Nullify BEFORE re-encryption, then wrap AFTER
+      expect(updateWrappedDEK).toHaveBeenCalledTimes(2);
       expect(callOrder).toEqual([
+        'updateWrappedDEK:null',
         'reEncryptAllUserData',
         'updateWrappedDEK:wrapped',
       ]);
@@ -2116,7 +2117,7 @@ describe('EncryptionService', () => {
       reEncryptSpy.mockRestore();
     });
 
-    it('should NOT nullify wrapped_dek when re-encryption fails', async () => {
+    it('should nullify wrapped_dek before re-encryption even when re-encryption fails', async () => {
       const dek = await setupServiceWithValidKeyCheck();
       const validKeyCheck = service.generateKeyCheck(dek);
 
@@ -2165,8 +2166,9 @@ describe('EncryptionService', () => {
         expect((error as Error).message).toBe('RPC failed');
       }
 
-      // wrapped_dek should NOT be nullified since re-encryption failed
-      expect(updateWrappedDEK).not.toHaveBeenCalled();
+      // wrapped_dek is nullified BEFORE re-encryption, so the call still happens
+      expect(updateWrappedDEK).toHaveBeenCalledTimes(1);
+      expect(updateWrappedDEK).toHaveBeenCalledWith(TEST_USER_ID, null);
 
       reEncryptSpy.mockRestore();
     });
@@ -2253,10 +2255,11 @@ describe('EncryptionService', () => {
         );
       }
 
-      // wrapped_dek should be nullified after wrap failure
-      expect(updateWrappedDEK).toHaveBeenCalledTimes(1);
+      // wrapped_dek nullified twice: once before re-encryption, once after wrap failure
+      expect(updateWrappedDEK).toHaveBeenCalledTimes(2);
       const calls = updateWrappedDEK.mock.calls as unknown[][];
-      expect(calls[0][1]).toBeNull();
+      expect(calls[0][1]).toBeNull(); // before re-encryption
+      expect(calls[1][1]).toBeNull(); // after wrap failure (best-effort cleanup)
 
       reEncryptSpy.mockRestore();
       wrapSpy.mockRestore();

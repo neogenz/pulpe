@@ -446,6 +446,8 @@ export class EncryptionService {
 
       this.#invalidateUserDEKCache(userId);
 
+      await this.#repository.updateWrappedDEK(userId, null);
+
       const keyCheck = await this.reEncryptAllUserData(
         userId,
         oldDek,

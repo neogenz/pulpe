@@ -702,6 +702,40 @@ describe('EncryptionController', () => {
       }
     });
 
+    it('should propagate ENCRYPTION_REKEY_PARTIAL_FAILURE from service', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = {
+        oldClientKey: 'ab'.repeat(32),
+        newClientKey: 'cd'.repeat(32),
+      };
+
+      const { controller } = setupController({
+        changePinRekey: mock(() =>
+          Promise.reject(
+            new BusinessException(
+              ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
+              undefined,
+              {
+                userId: 'user-1',
+                operation: 'pin_change.recovery_wrap_failed',
+              },
+            ),
+          ),
+        ),
+      });
+
+      try {
+        await controller.changePin(user, mockSupabase as any, body);
+        expect.unreachable('Should have thrown BusinessException');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect(error.code).toBe(
+          ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE.code,
+        );
+      }
+    });
+
     it('should re-throw non-BusinessException errors', async () => {
       const user = createMockUser();
       const mockSupabase = {};
