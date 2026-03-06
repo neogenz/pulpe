@@ -1,31 +1,37 @@
 import { Injectable, inject } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
+import { API_ERROR_CODES, type ApiErrorCode } from 'pulpe-shared';
 import type { ApiError } from './api-error';
 
 const CODE_KEY_MAP = {
-  ERR_BUDGET_NOT_FOUND: 'apiError.budgetNotFound',
-  ERR_BUDGET_CREATION_FAILED: 'apiError.budgetCreationFailed',
-  ERR_BUDGET_UPDATE_FAILED: 'apiError.budgetUpdateFailed',
-  ERR_BUDGET_DELETE_FAILED: 'apiError.budgetDeleteFailed',
-  ERR_BUDGET_ALREADY_EXISTS: 'apiError.budgetAlreadyExists',
-  ERR_BUDGET_LINE_NOT_FOUND: 'apiError.budgetLineNotFound',
-  ERR_BUDGET_LINE_CREATION_FAILED: 'apiError.budgetLineCreationFailed',
-  ERR_BUDGET_LINE_UPDATE_FAILED: 'apiError.budgetLineUpdateFailed',
-  ERR_BUDGET_LINE_DELETE_FAILED: 'apiError.budgetLineDeleteFailed',
-  ERR_TRANSACTION_NOT_FOUND: 'apiError.transactionNotFound',
-  ERR_TRANSACTION_CREATION_FAILED: 'apiError.transactionCreationFailed',
-  ERR_TRANSACTION_UPDATE_FAILED: 'apiError.transactionUpdateFailed',
-  ERR_TRANSACTION_DELETE_FAILED: 'apiError.transactionDeleteFailed',
-  ERR_TEMPLATE_NOT_FOUND: 'apiError.templateNotFound',
-  ERR_TEMPLATE_CREATION_FAILED: 'apiError.templateCreationFailed',
-  ERR_TEMPLATE_UPDATE_FAILED: 'apiError.templateUpdateFailed',
-  ERR_TEMPLATE_DELETE_FAILED: 'apiError.templateDeleteFailed',
-  ERR_PROFILE_NOT_FOUND: 'apiError.profileNotFound',
-  ERR_PROFILE_UPDATE_FAILED: 'apiError.profileUpdateFailed',
-  ERR_VALIDATION_FAILED: 'apiError.validationFailed',
-  ERR_UNAUTHORIZED: 'apiError.unauthorized',
-  ERR_FORBIDDEN: 'apiError.forbidden',
-} as const satisfies Record<string, string>;
+  [API_ERROR_CODES.BUDGET_NOT_FOUND]: 'apiError.budgetNotFound',
+  [API_ERROR_CODES.BUDGET_CREATE_FAILED]: 'apiError.budgetCreationFailed',
+  [API_ERROR_CODES.BUDGET_UPDATE_FAILED]: 'apiError.budgetUpdateFailed',
+  [API_ERROR_CODES.BUDGET_DELETE_FAILED]: 'apiError.budgetDeleteFailed',
+  [API_ERROR_CODES.BUDGET_ALREADY_EXISTS]: 'apiError.budgetAlreadyExists',
+  [API_ERROR_CODES.BUDGET_LINE_NOT_FOUND]: 'apiError.budgetLineNotFound',
+  [API_ERROR_CODES.BUDGET_LINE_CREATE_FAILED]:
+    'apiError.budgetLineCreationFailed',
+  [API_ERROR_CODES.BUDGET_LINE_UPDATE_FAILED]:
+    'apiError.budgetLineUpdateFailed',
+  [API_ERROR_CODES.BUDGET_LINE_DELETE_FAILED]:
+    'apiError.budgetLineDeleteFailed',
+  [API_ERROR_CODES.TRANSACTION_NOT_FOUND]: 'apiError.transactionNotFound',
+  [API_ERROR_CODES.TRANSACTION_CREATE_FAILED]:
+    'apiError.transactionCreationFailed',
+  [API_ERROR_CODES.TRANSACTION_UPDATE_FAILED]:
+    'apiError.transactionUpdateFailed',
+  [API_ERROR_CODES.TRANSACTION_DELETE_FAILED]:
+    'apiError.transactionDeleteFailed',
+  [API_ERROR_CODES.TEMPLATE_NOT_FOUND]: 'apiError.templateNotFound',
+  [API_ERROR_CODES.TEMPLATE_CREATE_FAILED]: 'apiError.templateCreationFailed',
+  [API_ERROR_CODES.TEMPLATE_UPDATE_FAILED]: 'apiError.templateUpdateFailed',
+  [API_ERROR_CODES.TEMPLATE_DELETE_FAILED]: 'apiError.templateDeleteFailed',
+  [API_ERROR_CODES.USER_NOT_FOUND]: 'apiError.profileNotFound',
+  [API_ERROR_CODES.USER_PROFILE_UPDATE_FAILED]: 'apiError.profileUpdateFailed',
+  [API_ERROR_CODES.VALIDATION_FAILED]: 'apiError.validationFailed',
+  [API_ERROR_CODES.AUTH_UNAUTHORIZED]: 'apiError.unauthorized',
+} as const satisfies Partial<Record<ApiErrorCode, string>>;
 
 @Injectable({ providedIn: 'root' })
 export class ApiErrorLocalizer {

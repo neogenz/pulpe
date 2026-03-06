@@ -26,7 +26,7 @@ describe('ApiErrorLocalizer', () => {
   it('should localize budget creation error', () => {
     const error = new ApiError(
       'Creation failed',
-      'ERR_BUDGET_CREATION_FAILED',
+      'ERR_BUDGET_CREATE_FAILED',
       500,
       null,
     );
@@ -60,17 +60,12 @@ describe('ApiErrorLocalizer', () => {
   it('should localize auth-related API errors', () => {
     const unauthorized = new ApiError(
       'Unauthorized',
-      'ERR_UNAUTHORIZED',
+      'ERR_AUTH_UNAUTHORIZED',
       401,
       null,
     );
     expect(service.localizeApiError(unauthorized)).toBe(
       'Tu dois te connecter pour continuer',
-    );
-
-    const forbidden = new ApiError('Forbidden', 'ERR_FORBIDDEN', 403, null);
-    expect(service.localizeApiError(forbidden)).toBe(
-      "Tu n'as pas accès à cette ressource",
     );
   });
 
