@@ -36,6 +36,7 @@ import {
 } from '@ui/dialogs/recovery-key-dialog';
 import { PAY_DAY_MAX } from 'pulpe-shared';
 import { ChangePasswordDialog } from './components/change-password-dialog';
+import { ChangePinDialog } from './components/change-pin-dialog';
 import { DeleteAccountDialog } from './components/delete-account-dialog';
 import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-key-dialog';
 
@@ -176,6 +177,25 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                 </button>
               </div>
             }
+
+            <!-- Code PIN -->
+            <div
+              class="flex items-center justify-between gap-6 pb-6 border-b border-outline-variant/20"
+            >
+              <div class="space-y-1">
+                <h3 class="text-title-small">Code PIN</h3>
+                <p class="text-body-medium text-on-surface-variant">
+                  Modifier ton code de chiffrement.
+                </p>
+              </div>
+              <button
+                matButton="outlined"
+                data-testid="change-pin-button"
+                (click)="onChangePin()"
+              >
+                Modifier
+              </button>
+            </div>
 
             <!-- Clé de récupération -->
             <div class="flex items-center justify-between gap-6">
@@ -321,6 +341,30 @@ export default class SettingsPage {
     if (!changed) return;
 
     this.#snackBar.open('Mot de passe modifié', 'OK', {
+      duration: 3000,
+      horizontalPosition: 'center',
+      verticalPosition: 'bottom',
+    });
+  }
+
+  async onChangePin(): Promise<void> {
+    const dialogRef = this.#dialog.open(ChangePinDialog, { width: '480px' });
+    const result = await firstValueFrom(dialogRef.afterClosed());
+    if (!result) return;
+
+    if (result.recoveryKey) {
+      const dialogData: RecoveryKeyDialogData = {
+        recoveryKey: result.recoveryKey,
+      };
+      const recoveryRef = this.#dialog.open(RecoveryKeyDialog, {
+        data: dialogData,
+        width: '480px',
+        disableClose: true,
+      });
+      await firstValueFrom(recoveryRef.afterClosed());
+    }
+
+    this.#snackBar.open('Code PIN modifié', 'OK', {
       duration: 3000,
       horizontalPosition: 'center',
       verticalPosition: 'bottom',
