@@ -107,7 +107,11 @@ BEGIN
     WHERE user_id = auth.uid();
 
     GET DIAGNOSTICS v_rows = ROW_COUNT;
-    -- auth.uid() is NULL for service_role — skip assertion for admin callers
+    -- auth.uid() returns NULL for service_role callers (no JWT context).
+    -- In production, this RPC is always called through an authenticated Supabase
+    -- client (SECURITY INVOKER), so auth.uid() is always set.
+    -- Service role callers (e.g., admin scripts) will skip this assertion —
+    -- acceptable since they bypass RLS anyway.
     IF v_rows <> 1 AND auth.uid() IS NOT NULL THEN
       RAISE EXCEPTION 'rekey: key_check update expected 1 row, got %', v_rows
         USING ERRCODE = 'P0001';

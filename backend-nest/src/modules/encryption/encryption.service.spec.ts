@@ -1908,6 +1908,48 @@ describe('EncryptionService', () => {
       }
     });
 
+    it('should return ENCRYPTION_SAME_KEY even when key_check does not match (oracle prevention)', async () => {
+      const sameKey = randomBytes(32);
+
+      // key_check generated from a DIFFERENT DEK — would fail key verification
+      const differentDek = randomBytes(32);
+      const mismatchedKeyCheck = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        createMockRepository() as any,
+      ).generateKeyCheck(differentDek);
+
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: null,
+          key_check: mismatchedKeyCheck,
+        }),
+      );
+      const repo = createMockRepository({ findByUserId });
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
+
+      try {
+        await service.changePinRekey(
+          TEST_USER_ID,
+          sameKey,
+          Buffer.from(sameKey),
+          mockSupabase,
+        );
+        expect.unreachable('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          ERROR_DEFINITIONS.ENCRYPTION_SAME_KEY.code,
+        );
+      }
+    });
+
     it('should throw ENCRYPTION_KEY_CHECK_FAILED when old key is invalid', async () => {
       const wrongKey = randomBytes(32);
       const wrongDek = randomBytes(32);

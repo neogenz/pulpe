@@ -4,9 +4,11 @@ import {
   type EncryptionSaltResponse,
   type EncryptionSetupRecoveryResponse,
   type EncryptionRecoverResponse,
+  type EncryptionChangePinResponse,
   encryptionSaltResponseSchema,
   encryptionSetupRecoveryResponseSchema,
   encryptionRecoverResponseSchema,
+  encryptionChangePinResponseSchema,
 } from 'pulpe-shared';
 import { ApiClient } from '@core/api/api-client';
 
@@ -54,6 +56,17 @@ export class EncryptionApi {
       '/encryption/recover',
       { recoveryKey, newClientKey: newClientKeyHex },
       encryptionRecoverResponseSchema,
+    );
+  }
+
+  changePin$(
+    oldClientKey: string,
+    newClientKey: string,
+  ): Observable<EncryptionChangePinResponse> {
+    return this.#api.post$(
+      '/encryption/change-pin',
+      { oldClientKey, newClientKey },
+      encryptionChangePinResponseSchema,
     );
   }
 }
