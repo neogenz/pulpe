@@ -29,7 +29,7 @@ struct ResetPasswordFlowView: View {
                 }
             }
             .padding(DesignTokens.Spacing.xl)
-            .background(Color.surface)
+            .background(Color.sheetBackground)
             .navigationTitle("Réinitialiser le mot de passe")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

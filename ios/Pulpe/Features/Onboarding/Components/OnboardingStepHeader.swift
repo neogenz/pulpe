@@ -5,13 +5,13 @@ struct OnboardingStepHeader: View {
     let step: OnboardingStep
 
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
+        VStack(spacing: DesignTokens.Spacing.lg) {
             Text(step.title)
                 .font(PulpeTypography.onboardingTitle)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             Text(step.subtitle)
-                .font(PulpeTypography.stepSubtitle)
+                .font(PulpeTypography.onboardingSubtitle)
                 .foregroundStyle(Color.textSecondaryOnboarding)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, DesignTokens.Spacing.lg)
@@ -36,7 +36,7 @@ struct OptionalBadge: View {
         .foregroundStyle(Color.textTertiaryOnboarding)
         .padding(.horizontal, 14)
         .padding(.vertical, 6)
-        .background(Color.secondary.opacity(0.08), in: Capsule())
+        .background(Color.textTertiaryOnboarding.opacity(0.15), in: Capsule())
     }
 }
 

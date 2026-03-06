@@ -8,19 +8,21 @@ private struct AuthFieldContainer<Content: View>: View {
     var isFilled: Bool = false
     @ViewBuilder let content: () -> Content
 
+    @Environment(\.colorScheme) private var colorScheme
+
     private var fillColor: Color {
         hasError ? Color.errorBackground : Color.authInputBackground
     }
 
     private var borderColor: Color {
         if hasError { return Color.errorPrimary.opacity(0.5) }
-        if isFocused { return Color.pulpePrimary.opacity(0.6) }
-        if isFilled { return Color.pulpePrimary.opacity(0.3) }
+        if isFocused { return Color.pulpePrimary.opacity(0.45) }
+        if isFilled { return Color.pulpePrimary.opacity(0.2) }
         return Color.authInputBorder
     }
 
     private var strokeWidth: CGFloat {
-        (isFocused || hasError) ? 2 : 1
+        (isFocused || hasError) ? 2 : 0.75
     }
 
     private var showCheckmark: Bool {
@@ -57,7 +59,9 @@ private struct AuthFieldContainer<Content: View>: View {
                         .strokeBorder(borderColor, lineWidth: strokeWidth)
                 }
         }
-        .shadow(DesignTokens.Shadow.input)
+        .shadow(colorScheme == .dark
+            ? ShadowStyle(color: .black.opacity(0.01), radius: 2, y: 1)
+            : DesignTokens.Shadow.input)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFocused)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showCheckmark)
     }

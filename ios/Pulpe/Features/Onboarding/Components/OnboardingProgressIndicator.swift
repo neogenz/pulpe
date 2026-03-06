@@ -13,7 +13,7 @@ struct OnboardingProgressIndicator: View {
         HStack(spacing: DesignTokens.Spacing.xs) {
             ForEach(1..<totalSteps, id: \.self) { index in
                 Capsule()
-                    .fill(index <= stepIndex ? Color.pulpePrimary : Color.secondary.opacity(0.2))
+                    .fill(index <= stepIndex ? Color.pulpePrimary : Color.secondary.opacity(0.15))
                     .frame(height: DesignTokens.Spacing.xs)
             }
         }

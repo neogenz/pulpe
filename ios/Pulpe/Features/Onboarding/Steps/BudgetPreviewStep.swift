@@ -86,6 +86,8 @@ struct BudgetPreviewStep: View {
             )
 
             Divider()
+                .opacity(0.15)
+                .padding(.horizontal, DesignTokens.Spacing.xs)
 
             if state.totalExpenses > 0 {
                 breakdownRow(
@@ -96,6 +98,8 @@ struct BudgetPreviewStep: View {
                 )
 
                 Divider()
+                    .opacity(0.15)
+                    .padding(.horizontal, DesignTokens.Spacing.xs)
             }
 
             HStack {
@@ -128,7 +132,7 @@ struct BudgetPreviewStep: View {
 
             Text("Tu pourras affiner tout \u{00e7}a plus tard.")
                 .font(PulpeTypography.footnote)
-                .foregroundStyle(Color.textTertiaryOnboarding.opacity(0.7))
+                .foregroundStyle(Color.textTertiaryOnboarding)
         }
         .multilineTextAlignment(.center)
         .blurSlide(showMessage)

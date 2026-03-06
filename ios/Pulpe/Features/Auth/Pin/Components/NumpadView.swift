@@ -84,7 +84,7 @@ struct NumpadView: View {
 
         case .empty:
             Color.clear
-                .frame(width: 75, height: 75)
+                .frame(width: DesignTokens.Numpad.buttonSize, height: DesignTokens.Numpad.buttonSize)
         }
     }
 
@@ -133,7 +133,7 @@ private struct NumpadButton<Label: View>: View {
             action()
         } label: {
             label()
-                .frame(width: 75, height: 75)
+                .frame(width: DesignTokens.Numpad.buttonSize, height: DesignTokens.Numpad.buttonSize)
                 .background(Circle().fill(Color.pinButtonFill))
                 .overlay(Circle().stroke(Color.pinButtonStroke, lineWidth: 1))
         }
@@ -156,7 +156,7 @@ private struct NumpadButtonStyle: ButtonStyle {
 
 #Preview {
     ZStack {
-        Color.pinBackground.ignoresSafeArea()
+        Color.loginGradientBackground
         NumpadView(
             onDigit: { _ in },
             onDelete: {},

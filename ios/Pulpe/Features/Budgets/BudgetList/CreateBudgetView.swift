@@ -46,7 +46,7 @@ struct CreateBudgetView: View {
                 .padding(.bottom, DesignTokens.Spacing.xxxl)
             }
             .scrollIndicators(.hidden)
-            .background(Color.surface)
+            .background(Color.sheetBackground)
             .navigationTitle("Nouveau budget")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

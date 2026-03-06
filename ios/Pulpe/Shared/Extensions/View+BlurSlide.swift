@@ -16,6 +16,7 @@ extension View {
 @MainActor
 func delayedAnimation(_ delay: Double, animation: Animation = .smooth, action: @escaping () -> Void) async {
     try? await Task.sleep(for: .seconds(delay))
+    guard !Task.isCancelled else { return }
     withAnimation(animation) {
         action()
     }

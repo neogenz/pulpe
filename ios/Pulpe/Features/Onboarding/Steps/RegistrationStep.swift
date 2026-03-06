@@ -49,7 +49,7 @@ extension RegistrationStep {
     private var emailSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Email")
-                .font(PulpeTypography.buttonSecondary)
+                .font(PulpeTypography.inputLabel)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             AuthTextField(
@@ -73,7 +73,7 @@ extension RegistrationStep {
     private var passwordSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Mot de passe")
-                .font(PulpeTypography.buttonSecondary)
+                .font(PulpeTypography.inputLabel)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             AuthSecureField(
@@ -96,7 +96,7 @@ extension RegistrationStep {
     private var confirmPasswordSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Confirmer le mot de passe")
-                .font(PulpeTypography.buttonSecondary)
+                .font(PulpeTypography.inputLabel)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             AuthSecureField(
@@ -131,7 +131,7 @@ extension RegistrationStep {
                                 Color.textPrimaryOnboarding.opacity(0.4),
                             lineWidth: 2
                         )
-                        .frame(width: 24, height: 24)
+                        .frame(width: DesignTokens.Checkbox.size, height: DesignTokens.Checkbox.size)
                         .background {
                             if !state.acceptTerms {
                                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm, style: .continuous)

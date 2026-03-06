@@ -32,7 +32,9 @@ struct OnboardingFlow: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .onChange(of: scenePhase) { _, newPhase in
-                if newPhase == .background, state.currentStep != .welcome {
+                if newPhase == .background,
+                   state.currentStep != .welcome,
+                   !state.hasCompleted {
                     AnalyticsService.shared.capture(
                         .onboardingAbandoned,
                         properties: ["last_step": state.currentStep.analyticsName]
@@ -58,6 +60,7 @@ struct OnboardingFlow: View {
         case .registration:
             RegistrationStep(state: state) { user in
                 Task {
+                    state.hasCompleted = true
                     await appState.completeOnboarding(user: user, onboardingData: state.createTemplateData())
                     if appState.showPostAuthError {
                         state.error = APIError.serverError(message: "La création du budget a échoué. Réessaie.")
@@ -96,12 +99,13 @@ struct OnboardingStepView<Content: View>: View {
             ScrollView {
                 VStack(spacing: DesignTokens.Spacing.xxxl) {
                     OnboardingStepHeader(step: step)
-                        .padding(.top, 48)
+                        .padding(.top, DesignTokens.Spacing.stepHeaderTop)
 
                     content()
                         .padding(.horizontal, DesignTokens.Spacing.xxl)
                         .blurSlide(showContent)
                 }
+                .padding(.bottom, DesignTokens.Spacing.xxxl)
             }
             .scrollBounceBehavior(.basedOnSize)
 
