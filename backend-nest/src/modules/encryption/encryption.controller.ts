@@ -304,15 +304,6 @@ export class EncryptionController {
   }
 
   #handleRecoveryError(userId: string, error: unknown): never {
-    this.logger.warn(
-      {
-        userId,
-        operation: 'recovery.failed',
-        error: error instanceof Error ? error.message : String(error),
-      },
-      'Recovery attempt failed',
-    );
-
     if (error instanceof Error) {
       const isRecoveryKeyError =
         error.message.includes('No recovery key configured') ||
@@ -322,7 +313,12 @@ export class EncryptionController {
         error.message.includes('Unwrapped DEK has invalid length');
 
       if (isRecoveryKeyError) {
-        throw new BusinessException(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID);
+        throw new BusinessException(
+          ERROR_DEFINITIONS.RECOVERY_KEY_INVALID,
+          undefined,
+          { userId, operation: 'recovery.failed' },
+          { cause: error },
+        );
       }
     }
     throw error;
