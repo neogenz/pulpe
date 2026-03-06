@@ -48,8 +48,7 @@ final class OnboardingState {
     }
 
     var isEmailValid: Bool {
-        let pattern = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/
-        return email.wholeMatch(of: pattern) != nil
+        email.isValidEmail
     }
 
     var canSubmitRegistration: Bool {
@@ -199,17 +198,17 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
         case .personalInfo: "Qui es-tu ?"
         case .expenses: "Tes charges fixes"
         case .budgetPreview: "Ton budget"
-        case .registration: "Dernière étape"
+        case .registration: "Crée ton compte"
         }
     }
 
     var subtitle: String {
         switch self {
         case .welcome: "Reprends le contrôle de tes finances"
-        case .personalInfo: "On fait connaissance"
+        case .personalInfo: "Juste ton prénom et tes revenus"
         case .expenses: "Renseigne ce que tu connais — le reste peut attendre"
         case .budgetPreview: "Voici ce que ça donne"
-        case .registration: "On y est presque !"
+        case .registration: "Pour sauvegarder ton budget"
         }
     }
 

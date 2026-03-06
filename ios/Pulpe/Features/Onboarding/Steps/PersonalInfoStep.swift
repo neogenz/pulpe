@@ -11,7 +11,7 @@ struct PersonalInfoStep: View {
             canProceed: state.isFirstNameValid && state.isIncomeValid,
             onNext: { state.nextStep() },
             content: {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                         Text("Prénom")
                             .font(PulpeTypography.inputLabel)

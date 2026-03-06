@@ -7,6 +7,12 @@ struct RecoveryKeySheet: View {
     @State private var copied = false
     @State private var copyResetTask: Task<Void, Never>?
 
+    // Staggered entrance states
+    @State private var showHeader = false
+    @State private var showKey = false
+    @State private var showWarning = false
+    @State private var showButton = false
+
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
@@ -24,18 +30,37 @@ struct RecoveryKeySheet: View {
             acknowledgeButton
                 .padding(.horizontal, DesignTokens.Spacing.xxl)
                 .padding(.bottom, DesignTokens.Spacing.lg)
+                .blurSlide(showButton)
         }
         .pulpeBackground()
         .interactiveDismissDisabled()
+        .allowsHitTesting(showButton)
+        .task {
+            guard !showHeader else { return }
+            await delayedAnimation(0.3, animation: DesignTokens.Animation.entranceSpring) {
+                showHeader = true
+            }
+            await delayedAnimation(0.2, animation: DesignTokens.Animation.defaultSpring) {
+                showKey = true
+            }
+            await delayedAnimation(0.2) { showWarning = true }
+            await delayedAnimation(0.15) { showButton = true }
+        }
     }
 
     // MARK: - Header
 
     private var headerSection: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
-            Image(systemName: "key.horizontal.fill")
-                .font(PulpeTypography.brandTitle)
-                .foregroundStyle(Color.pulpePrimary)
+            ZStack {
+                Circle()
+                    .fill(Color.pulpePrimary.opacity(DesignTokens.Opacity.badgeBackground))
+                    .frame(width: 56, height: 56)
+
+                Image(systemName: "key.horizontal.fill")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(Color.pulpePrimary)
+            }
 
             VStack(spacing: DesignTokens.Spacing.sm) {
                 Text("Clé de récupération")
@@ -51,6 +76,7 @@ struct RecoveryKeySheet: View {
                     .multilineTextAlignment(.center)
             }
         }
+        .blurSlide(showHeader)
     }
 
     // MARK: - Key Card
@@ -98,7 +124,9 @@ struct RecoveryKeySheet: View {
                 )
             }
             .sensoryFeedback(.success, trigger: copied)
-            .accessibilityLabel(copied ? "Clé copiée" : "Copier la clé de récupération")
+            .accessibilityLabel(
+                copied ? "Clé copiée" : "Copier la clé de récupération"
+            )
         }
         .padding(DesignTokens.Spacing.xxl)
         .frame(maxWidth: .infinity)
@@ -110,6 +138,8 @@ struct RecoveryKeySheet: View {
                         .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
                 }
         }
+        .scaleEffect(showKey ? 1 : 0.95)
+        .opacity(showKey ? 1 : 0)
     }
 
     // MARK: - Warning Text
@@ -119,7 +149,10 @@ struct RecoveryKeySheet: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(PulpeTypography.subheadline)
                 .foregroundStyle(Color.warningPrimary)
-            Text("Sans cette clé et sans ton code PIN, tes données financières seront définitivement inaccessibles.")
+            Text(
+                "Sans cette clé et sans ton code PIN, tes données " +
+                "financières seront définitivement inaccessibles."
+            )
                 .font(PulpeTypography.footnote)
                 .foregroundStyle(Color.textPrimary)
         }
@@ -129,6 +162,7 @@ struct RecoveryKeySheet: View {
             Color.warningBackground,
             in: .rect(cornerRadius: DesignTokens.CornerRadius.md)
         )
+        .blurSlide(showWarning)
     }
 
     // MARK: - Acknowledge Button
