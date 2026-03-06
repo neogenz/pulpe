@@ -403,7 +403,7 @@ export class EncryptionService {
     const row = await this.#repository.findByUserId(userId);
     if (!row) {
       throw new BusinessException(
-        ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
+        ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
         undefined,
         { userId, operation: 'change_pin.missing_encryption_row' },
       );
@@ -411,38 +411,40 @@ export class EncryptionService {
 
     const salt = Buffer.from(row.salt, 'hex');
     const oldDek = this.#deriveDEK(oldClientKey, salt, userId);
-
-    // Verify old key inline (avoids a redundant findByUserId + deriveDEK round-trip)
-    if (row.key_check) {
-      if (!this.validateKeyCheck(row.key_check, oldDek)) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
-        );
-      }
-    } else {
-      const generatedKeyCheck = this.generateKeyCheck(oldDek);
-      await this.#repository.updateKeyCheckIfNull(userId, generatedKeyCheck);
-    }
-
-    // Check same-key AFTER verifying old key — prevents oracle that leaks
-    // whether the old key is valid via different error codes.
-    if (oldClientKey.equals(newClientKey)) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.ENCRYPTION_SAME_KEY,
-        undefined,
-        { userId, operation: 'change_pin.same_key_rejected' },
-      );
-    }
-
-    const newDek = this.#deriveDEK(newClientKey, salt, userId);
-    const hadRecovery = !!row.wrapped_dek;
-    let recoveryKeyFormatted: string | null = null;
-    let keyCheck: string;
-
-    this.#invalidateUserDEKCache(userId);
+    let newDek: Buffer | null = null;
 
     try {
-      keyCheck = await this.reEncryptAllUserData(
+      // Verify old key inline (avoids a redundant findByUserId + deriveDEK round-trip)
+      if (row.key_check) {
+        if (!this.validateKeyCheck(row.key_check, oldDek)) {
+          throw new BusinessException(
+            ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+            undefined,
+            { userId, operation: 'change_pin.key_check_failed' },
+          );
+        }
+      } else {
+        const generatedKeyCheck = this.generateKeyCheck(oldDek);
+        await this.#repository.updateKeyCheckIfNull(userId, generatedKeyCheck);
+      }
+
+      // Check same-key AFTER verifying old key — prevents oracle that leaks
+      // whether the old key is valid via different error codes.
+      if (oldClientKey.equals(newClientKey)) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.ENCRYPTION_SAME_KEY,
+          undefined,
+          { userId, operation: 'change_pin.same_key_rejected' },
+        );
+      }
+
+      newDek = this.#deriveDEK(newClientKey, salt, userId);
+      const hadRecovery = !!row.wrapped_dek;
+      let recoveryKeyFormatted: string | null = null;
+
+      this.#invalidateUserDEKCache(userId);
+
+      const keyCheck = await this.reEncryptAllUserData(
         userId,
         oldDek,
         newDek,
@@ -476,15 +478,15 @@ export class EncryptionService {
           raw.fill(0);
         }
       }
+
+      return {
+        keyCheck,
+        recoveryKey: recoveryKeyFormatted,
+      };
     } finally {
       oldDek.fill(0);
-      newDek.fill(0);
+      newDek?.fill(0);
     }
-
-    return {
-      keyCheck,
-      recoveryKey: recoveryKeyFormatted,
-    };
   }
 
   async reEncryptAllUserData(

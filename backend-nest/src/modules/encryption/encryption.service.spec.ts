@@ -2227,7 +2227,7 @@ describe('EncryptionService', () => {
       wrapSpy.mockRestore();
     });
 
-    it('should throw ENCRYPTION_REKEY_PARTIAL_FAILURE when user has no encryption key', async () => {
+    it('should throw ENCRYPTION_KEY_CHECK_FAILED when user has no encryption key', async () => {
       const findByUserId = mock(() => Promise.resolve(null));
 
       const repo = createMockRepository({ findByUserId });
@@ -2248,7 +2248,7 @@ describe('EncryptionService', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(BusinessException);
         expect((error as BusinessException).code).toBe(
-          ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE.code,
+          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
         );
       }
     });
