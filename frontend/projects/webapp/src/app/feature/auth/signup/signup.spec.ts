@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AuthCredentialsService, PASSWORD_MIN_LENGTH } from '@core/auth';
 import { PostHogService } from '@core/analytics/posthog';
 import { Logger } from '@core/logging/logger';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 import Signup from './signup';
 
@@ -46,6 +47,7 @@ describe('Signup', () => {
         provideZonelessChangeDetection(),
         provideAnimationsAsync(),
         provideRouter([]),
+        ...provideTranslocoForTest(),
         { provide: AuthCredentialsService, useValue: mockAuthCredentials },
         { provide: Logger, useValue: mockLogger },
         { provide: PostHogService, useValue: mockPostHogService },

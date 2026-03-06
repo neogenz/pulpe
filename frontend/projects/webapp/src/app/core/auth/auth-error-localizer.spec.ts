@@ -1,12 +1,17 @@
+import { TestBed } from '@angular/core/testing';
 import { AuthApiError, AuthWeakPasswordError } from '@supabase/supabase-js';
 
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 
 describe('AuthErrorLocalizer', () => {
   let service: AuthErrorLocalizer;
 
   beforeEach(() => {
-    service = new AuthErrorLocalizer();
+    TestBed.configureTestingModule({
+      providers: [...provideTranslocoForTest(), AuthErrorLocalizer],
+    });
+    service = TestBed.inject(AuthErrorLocalizer);
   });
 
   it('should localize known error messages', () => {

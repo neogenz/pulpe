@@ -100,6 +100,10 @@ export function buildProjectionChartOptions(
 export function buildProjectionChartData(
   forecasts: UpcomingMonthForecast[],
   theme: ChartThemeColors | null,
+  labels: { available: string; cumulatedSavings: string } = {
+    available: 'Disponible',
+    cumulatedSavings: 'Épargne cumulée',
+  },
 ): ChartConfiguration['data'] {
   const withBudget = forecasts.filter((f) => f.hasBudget);
 
@@ -125,7 +129,7 @@ export function buildProjectionChartData(
   const datasets: ChartConfiguration['data']['datasets'] = [
     {
       data: balanceData,
-      label: 'Disponible',
+      label: labels.available,
       borderColor: theme.income,
       fill: 'origin',
       backgroundColor: ((context: { chart: Chart }) => {
@@ -162,7 +166,7 @@ export function buildProjectionChartData(
   if (hasSavings) {
     datasets.push({
       data: savingsData,
-      label: 'Épargne cumulée',
+      label: labels.cumulatedSavings,
       borderColor: theme.savings,
       backgroundColor: colorWithAlpha(theme.savings, 0.1),
       fill: true,

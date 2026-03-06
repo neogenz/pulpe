@@ -6,6 +6,7 @@ import {
   input,
   output,
 } from '@angular/core';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -16,7 +17,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { type BudgetLine } from 'pulpe-shared';
 import { FinancialKindDirective } from '@ui/financial-kind';
-import { RecurrenceLabelPipe } from '@ui/transaction-display';
+import { RecurrenceLabelPipe } from '@pattern/transaction-display';
 import { formatMatchAnnotation, type BudgetLineTableItem } from '../data-core';
 import { SegmentedBudgetProgress } from '../components/segmented-budget-progress';
 import { BudgetKindIndicator } from '../components/budget-kind-indicator';
@@ -38,6 +39,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
     MatTooltipModule,
     RouterLink,
     CurrencyPipe,
+    TranslocoPipe,
     FinancialKindDirective,
     RecurrenceLabelPipe,
     SegmentedBudgetProgress,
@@ -136,9 +138,9 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
               >
                 {{ remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
               </div>
-              <span class="text-label-small text-on-surface-variant"
-                >disponible</span
-              >
+              <span class="text-label-small text-on-surface-variant">{{
+                'budgetLine.available' | transloco
+              }}</span>
             } @else {
               <div
                 class="ph-no-capture text-headline-medium font-bold"
@@ -146,9 +148,9 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
               >
                 {{ item().data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
               </div>
-              <span class="text-label-small text-on-surface-variant"
-                >prévu</span
-              >
+              <span class="text-label-small text-on-surface-variant">{{
+                'budgetLine.planned' | transloco
+              }}</span>
             }
           </div>
 
@@ -163,9 +165,9 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                     | currency: 'CHF' : 'symbol' : '1.0-0'
                 }}
               </div>
-              <span class="text-label-small text-on-surface-variant"
-                >dépensé</span
-              >
+              <span class="text-label-small text-on-surface-variant">{{
+                'budgetLine.spent' | transloco
+              }}</span>
             </div>
           }
         </div>
@@ -184,22 +186,28 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
             <div class="text-label-small text-center mt-1.5">
               @if (item().consumption!.consumptionState === 'over-budget') {
                 <span class="ph-no-capture text-financial-over-budget">
-                  Dépassé de
                   {{
-                    item().consumption!.consumed - item().data.amount
-                      | currency: 'CHF' : 'symbol' : '1.0-0'
+                    'budgetLine.exceededBy'
+                      | transloco
+                        : {
+                            amount:
+                              (item().consumption!.consumed - item().data.amount
+                              | currency: 'CHF' : 'symbol' : '1.0-0'),
+                          }
                   }}
                 </span>
               } @else if (
                 item().consumption!.consumptionState === 'near-limit'
               ) {
-                <span class="text-financial-warning"
-                  >{{ item().consumption!.percentage }}% utilisé</span
-                >
+                <span class="text-financial-warning">{{
+                  'budgetLine.usedPercent'
+                    | transloco: { percent: item().consumption!.percentage }
+                }}</span>
               } @else {
-                <span class="text-on-surface-variant"
-                  >{{ item().consumption!.percentage }}% utilisé</span
-                >
+                <span class="text-on-surface-variant">{{
+                  'budgetLine.usedPercent'
+                    | transloco: { percent: item().consumption!.percentage }
+                }}</span>
               }
             </div>
           </div>
@@ -237,8 +245,8 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                 matIconButton
                 class="text-primary"
                 (click)="addTransaction.emit(item().data)"
-                matTooltip="Saisir une transaction"
-                aria-label="Saisir une transaction"
+                [matTooltip]="'budgetLine.addTransaction' | transloco"
+                [attr.aria-label]="'budgetLine.addTransaction' | transloco"
                 [attr.data-testid]="'add-transaction-' + item().data.id"
               >
                 <mat-icon>add</mat-icon>
@@ -251,8 +259,10 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                 [attr.data-testid]="'toggle-check-' + item().data.id"
                 [attr.aria-label]="
                   item().data.checkedAt
-                    ? 'Marquer ' + item().data.name + ' comme non vérifié'
-                    : 'Marquer ' + item().data.name + ' comme vérifié'
+                    ? ('budgetLine.uncheckLabel'
+                      | transloco: { name: item().data.name })
+                    : ('budgetLine.checkLabel'
+                      | transloco: { name: item().data.name })
                 "
               />
             </div>

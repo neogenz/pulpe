@@ -41,6 +41,7 @@ import {
 } from '@core/product-tour/product-tour.service';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { UserSettingsApi } from '@core/user-settings/user-settings-api';
+import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 
 const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
 
@@ -54,6 +55,7 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
     MonthsError,
     MatTabsModule,
     YearCalendar,
+    TranslocoPipe,
   ],
   template: `
     <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0 min-w-0">
@@ -119,7 +121,7 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
       @switch (true) {
         @case (state.budgets.status() === 'loading') {
           <pulpe-base-loading
-            message="Récupération de tes budgets..."
+            [message]="'budget.loadingBudgets' | transloco"
             size="large"
             testId="months-loading"
           />
@@ -176,6 +178,7 @@ export default class BudgetListPage {
   readonly #budgetApi = inject(BudgetApi);
   readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #excelExportService = inject(ExcelExportService);
+  readonly #transloco = inject(TranslocoService);
 
   protected readonly isExporting = signal(false);
   protected readonly isExportingExcel = signal(false);
@@ -294,11 +297,9 @@ export default class BudgetListPage {
     } catch (error) {
       this.#logger.error('Error opening create budget dialog', error);
       this.#snackBar.open(
-        "Impossible d'ouvrir le dialogue — réessaie",
-        'Fermer',
-        {
-          duration: 5000,
-        },
+        this.#transloco.translate('budget.openDialogError'),
+        this.#transloco.translate('common.close'),
+        { duration: 5000 },
       );
     }
   }
@@ -326,11 +327,9 @@ export default class BudgetListPage {
     } catch (error) {
       this.#logger.error('Error opening create budget dialog', error);
       this.#snackBar.open(
-        "Impossible d'ouvrir le dialogue — réessaie",
-        'Fermer',
-        {
-          duration: 5000,
-        },
+        this.#transloco.translate('budget.openDialogError'),
+        this.#transloco.translate('common.close'),
+        { duration: 5000 },
       );
     }
   }
@@ -344,14 +343,18 @@ export default class BudgetListPage {
       const today = new Date().toISOString().split('T')[0];
       downloadAsJsonFile(data, `pulpe-export-${today}`);
 
-      this.#snackBar.open('Export terminé — fichier téléchargé', 'Fermer', {
-        duration: 3000,
-      });
+      this.#snackBar.open(
+        this.#transloco.translate('budget.exportDone'),
+        this.#transloco.translate('common.close'),
+        { duration: 3000 },
+      );
     } catch (error) {
       this.#logger.error('Error exporting budgets', error);
-      this.#snackBar.open("L'export a échoué — réessaie", 'Fermer', {
-        duration: 5000,
-      });
+      this.#snackBar.open(
+        this.#transloco.translate('budget.exportError'),
+        this.#transloco.translate('common.close'),
+        { duration: 5000 },
+      );
     } finally {
       this.isExporting.set(false);
       this.#loadingIndicator.setLoading(false);
@@ -369,17 +372,17 @@ export default class BudgetListPage {
       downloadAsExcelFile(workbook, `pulpe-export-${today}`);
 
       this.#snackBar.open(
-        'Export Excel terminé — fichier téléchargé',
-        'Fermer',
-        {
-          duration: 3000,
-        },
+        this.#transloco.translate('budget.exportExcelDone'),
+        this.#transloco.translate('common.close'),
+        { duration: 3000 },
       );
     } catch (error) {
       this.#logger.error('Error exporting budgets as Excel', error);
-      this.#snackBar.open("L'export Excel a échoué — réessaie", 'Fermer', {
-        duration: 5000,
-      });
+      this.#snackBar.open(
+        this.#transloco.translate('budget.exportExcelError'),
+        this.#transloco.translate('common.close'),
+        { duration: 5000 },
+      );
     } finally {
       this.isExportingExcel.set(false);
       this.#loadingIndicator.setLoading(false);
@@ -402,11 +405,9 @@ export default class BudgetListPage {
     } catch (error) {
       this.#logger.error('Error opening search dialog', error);
       this.#snackBar.open(
-        "Impossible d'ouvrir le dialogue — réessaie",
-        'Fermer',
-        {
-          duration: 5000,
-        },
+        this.#transloco.translate('budget.openDialogError'),
+        this.#transloco.translate('common.close'),
+        { duration: 5000 },
       );
     }
   }

@@ -16,6 +16,7 @@ import { MatCardModule } from '@angular/material/card';
 
 import { Router } from '@angular/router';
 import { A11yModule } from '@angular/cdk/a11y';
+import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 
 export interface TemplateUsageDialogData {
   templateId: string;
@@ -39,9 +40,12 @@ interface BudgetUsage {
     MatProgressSpinnerModule,
     MatCardModule,
     A11yModule,
+    TranslocoPipe,
   ],
   template: `
-    <h2 mat-dialog-title class="text-headline-small">Suppression impossible</h2>
+    <h2 mat-dialog-title class="text-headline-small">
+      {{ 'template.cannotDelete' | transloco }}
+    </h2>
 
     <mat-dialog-content>
       @if (isLoading()) {
@@ -54,29 +58,29 @@ interface BudgetUsage {
             [diameter]="40"
             class="flex-shrink-0"
             mode="indeterminate"
-            aria-label="Vérification en cours"
+            [attr.aria-label]="verifyingLabel"
           ></mat-progress-spinner>
           <p class="mt-4 text-body-medium text-on-surface-variant">
-            Vérification en cours...
+            {{ 'template.verifyingText' | transloco }}
           </p>
         </div>
       } @else if (hasError()) {
         <div class="text-error text-body-large" role="alert">
-          <p>Une erreur est survenue lors de la vérification.</p>
+          <p>{{ 'template.verificationCheckError' | transloco }}</p>
         </div>
       } @else {
         <div class="flex flex-col gap-4">
           <p class="text-body-large text-on-surface">
-            Le modèle « {{ data.templateName }} » ne peut pas être supprimé car
-            il est utilisé dans {{ budgetCount() }} budget{{
-              budgetCount() > 1 ? 's' : ''
-            }}.
+            {{
+              'template.usedInBudgets'
+                | transloco: { name: data.templateName, count: budgetCount() }
+            }}
           </p>
 
           @if (budgets().length > 0) {
             <div class="mt-4 space-y-3">
               <p class="text-label-large text-on-surface-variant">
-                Budgets concernés :
+                {{ 'template.affectedBudgets' | transloco }}
               </p>
               <div class="grid gap-3">
                 @for (budget of budgets(); track budget.id) {
@@ -129,8 +133,7 @@ interface BudgetUsage {
                 >info</mat-icon
               >
               <p class="text-body-medium">
-                Pour supprimer ce modèle, vous devez d'abord supprimer ou
-                modifier les budgets qui l'utilisent.
+                {{ 'template.deleteHint' | transloco }}
               </p>
             </div>
           </div>
@@ -140,7 +143,7 @@ interface BudgetUsage {
 
     <mat-dialog-actions align="end">
       <button matButton="filled" (click)="close()" cdkFocusInitial>
-        Compris
+        {{ 'template.understood' | transloco }}
       </button>
     </mat-dialog-actions>
   `,
@@ -167,7 +170,11 @@ interface BudgetUsage {
 export class TemplateUsageDialogComponent {
   readonly #dialogRef = inject(MatDialogRef<TemplateUsageDialogComponent>);
   readonly #router = inject(Router);
+  readonly #transloco = inject(TranslocoService);
   readonly data = inject<TemplateUsageDialogData>(MAT_DIALOG_DATA);
+
+  protected readonly verifyingLabel =
+    this.#transloco.translate('template.verifying');
 
   readonly isLoading = signal(false);
   readonly hasError = signal(false);
@@ -200,20 +207,9 @@ export class TemplateUsageDialogComponent {
   }
 
   getMonthName(month: number): string {
-    const monthNames = [
-      'Janvier',
-      'Février',
-      'Mars',
-      'Avril',
-      'Mai',
-      'Juin',
-      'Juillet',
-      'Août',
-      'Septembre',
-      'Octobre',
-      'Novembre',
-      'Décembre',
-    ];
-    return monthNames[month - 1] || '';
+    const date = new Date(2000, month - 1, 1);
+    return new Intl.DateTimeFormat(this.#transloco.getActiveLang(), {
+      month: 'long',
+    }).format(date);
   }
 }

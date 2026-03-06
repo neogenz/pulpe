@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { TranslocoService } from '@jsverse/transloco';
 import {
   type BudgetCreate,
   type BudgetTemplateCreateFromOnboarding,
@@ -23,6 +24,7 @@ export class ProfileSetupService {
   readonly #budgetApi = inject(BudgetApi);
   readonly #postHogService = inject(PostHogService);
   readonly #logger = inject(Logger);
+  readonly #transloco = inject(TranslocoService);
 
   async createInitialBudget(
     profileData: ProfileData,
@@ -34,7 +36,7 @@ export class ProfileSetupService {
     ) {
       return {
         success: false,
-        error: 'Données obligatoires manquantes (prénom et revenu mensuel)',
+        error: this.#transloco.translate('completeProfile.missingDataError'),
       };
     }
 
@@ -89,20 +91,22 @@ export class ProfileSetupService {
       if (errorMessage.includes('template')) {
         return {
           success: false,
-          error: 'Erreur lors de la création de votre template budgétaire.',
+          error: this.#transloco.translate(
+            'completeProfile.templateCreateError',
+          ),
         };
       }
 
       if (errorMessage.includes('budget')) {
         return {
           success: false,
-          error: 'Erreur lors de la création de votre budget initial.',
+          error: this.#transloco.translate('completeProfile.budgetCreateError'),
         };
       }
 
       return {
         success: false,
-        error: "Une erreur inattendue s'est produite",
+        error: this.#transloco.translate('completeProfile.unexpectedError'),
       };
     }
   }

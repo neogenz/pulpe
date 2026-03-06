@@ -8,13 +8,14 @@ import {
   output,
   ViewContainerRef,
 } from '@angular/core';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { FinancialKindDirective } from '@ui/financial-kind';
-import { TransactionLabelPipe } from '@ui/transaction-display';
+import { TransactionLabelPipe } from '@pattern/transaction-display';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
 import type { TransactionViewModel } from '../models/transaction-view-model';
 import type { BudgetLineTableItem } from '../data-core';
@@ -35,23 +36,23 @@ export function filterFreeTransactionItems<
   return items.filter((item) => !item.data.budgetLineId);
 }
 
-/** Groups items by financial kind into labeled categories. */
+/** Groups items by financial kind into labeled categories using i18n keys. */
 export function groupByKind<T extends { data: { kind: string } }>(
   items: T[],
-): { title: string; icon: string; items: T[] }[] {
+): { titleKey: string; icon: string; items: T[] }[] {
   return [
     {
-      title: 'Revenus',
+      titleKey: 'budgetLine.incomeGroups',
       icon: 'trending_up',
       items: items.filter((i) => i.data.kind === 'income'),
     },
     {
-      title: 'Épargnes',
+      titleKey: 'budgetLine.savingsGroups',
       icon: 'savings',
       items: items.filter((i) => i.data.kind === 'saving'),
     },
     {
-      title: 'Dépenses',
+      titleKey: 'budgetLine.expensesGroups',
       icon: 'shopping_cart',
       items: items.filter((i) => i.data.kind === 'expense'),
     },
@@ -72,6 +73,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
     MatCardModule,
     MatIconModule,
     MatSlideToggleModule,
+    TranslocoPipe,
     BudgetGridCard,
     BudgetGridMobileCard,
     BudgetGridSection,
@@ -104,7 +106,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
         @if (transactionItems().length > 0) {
           <div class="pt-4 border-outline-variant">
             <h3 class="text-title-medium text-on-surface-variant mb-3">
-              Transactions
+              {{ 'budget.transactions' | transloco }}
             </h3>
             @for (item of transactionItems(); track item.data.id) {
               <ng-container
@@ -125,10 +127,10 @@ export function groupByKind<T extends { data: { kind: string } }>(
         <ng-container *ngTemplateOutlet="emptyState" />
       } @else {
         <div class="space-y-4">
-          @for (category of categories(); track category.title) {
+          @for (category of categories(); track category.titleKey) {
             @if (category.items.length > 0) {
               <pulpe-budget-grid-section
-                title="{{ category.title }}"
+                [title]="category.titleKey | transloco"
                 icon="{{ category.icon }}"
                 [itemCount]="category.items.length"
               >
@@ -149,7 +151,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
 
           @if (freeTransactionItems().length > 0) {
             <pulpe-budget-grid-section
-              title="Hors enveloppes"
+              [title]="'budget.freeTransactions' | transloco"
               icon="receipt_long"
               [itemCount]="freeTransactionItems().length"
               data-testid="free-transactions-section"
@@ -179,10 +181,10 @@ export function groupByKind<T extends { data: { kind: string } }>(
           >
         </div>
         <p class="text-body-large text-on-surface mb-2">
-          Pas encore d'enveloppe
+          {{ 'budget.noEnvelopesYet' | transloco }}
         </p>
         <p class="text-body-medium text-on-surface-variant mb-6">
-          Crée ta première enveloppe pour commencer à voir clair
+          {{ 'budget.createFirstEnvelope' | transloco }}
         </p>
         <button
           matButton="filled"
@@ -191,7 +193,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
           data-testid="add-first-line"
         >
           <mat-icon>add</mat-icon>
-          Créer une enveloppe
+          {{ 'budget.createEnvelope' | transloco }}
         </button>
       </div>
     </ng-template>
@@ -255,7 +257,9 @@ export function groupByKind<T extends { data: { kind: string } }>(
               (click)="$event.stopPropagation()"
               [attr.data-testid]="'toggle-check-tx-' + item.data.id"
               [attr.aria-label]="
-                item.data.checkedAt ? 'Retirer le pointage' : 'Pointer'
+                item.data.checkedAt
+                  ? ('budgetLine.removeCheck' | transloco)
+                  : ('budgetLine.addCheck' | transloco)
               "
             />
           </div>
@@ -320,7 +324,9 @@ export function groupByKind<T extends { data: { kind: string } }>(
             (click)="$event.stopPropagation()"
             [attr.data-testid]="'toggle-check-tx-' + item.data.id"
             [attr.aria-label]="
-              item.data.checkedAt ? 'Retirer le pointage' : 'Pointer'
+              item.data.checkedAt
+                ? ('budgetLine.removeCheck' | transloco)
+                : ('budgetLine.addCheck' | transloco)
             "
           />
         </div>

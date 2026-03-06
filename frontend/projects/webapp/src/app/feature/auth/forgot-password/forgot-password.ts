@@ -12,6 +12,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 import { AuthSessionService } from '@core/auth';
 import { ROUTES } from '@core/routing/routes-constants';
@@ -30,6 +31,7 @@ import { LoadingButton } from '@ui/loading-button';
     RouterLink,
     ErrorAlert,
     LoadingButton,
+    TranslocoPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -43,18 +45,18 @@ import { LoadingButton } from '@ui/loading-button';
         class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
       >
         <mat-icon class="text-lg">arrow_back</mat-icon>
-        <span>Retour à la connexion</span>
+        <span>{{ 'auth.forgotPassword.backToLogin' | transloco }}</span>
       </button>
 
       <div class="text-center mb-8 mt-4">
         <h1
           class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
         >
-          Mot de passe oublié
+          {{ 'auth.forgotPassword.title' | transloco }}
         </h1>
         @if (!isSuccess()) {
           <p class="text-body-large text-on-surface-variant">
-            Entre ton email pour recevoir un lien de réinitialisation
+            {{ 'auth.forgotPassword.subtitle' | transloco }}
           </p>
         }
       </div>
@@ -67,23 +69,23 @@ import { LoadingButton } from '@ui/loading-button';
           data-testid="forgot-password-form"
         >
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Email</mat-label>
+            <mat-label>{{ 'form.emailLabel' | transloco }}</mat-label>
             <input
               matInput
               type="email"
               formControlName="email"
               data-testid="email-input"
               (input)="clearError()"
-              placeholder="ton@email.com"
+              [placeholder]="'form.emailPlaceholder' | transloco"
               [disabled]="isSubmitting()"
             />
             <mat-icon matPrefix>email</mat-icon>
             @if (form.get('email')?.invalid && form.get('email')?.touched) {
               <mat-error>
                 @if (form.get('email')?.hasError('required')) {
-                  Ton email est nécessaire pour continuer
+                  {{ 'form.emailRequired' | transloco }}
                 } @else if (form.get('email')?.hasError('email')) {
-                  Cette adresse email ne semble pas valide
+                  {{ 'form.emailInvalid' | transloco }}
                 }
               </mat-error>
             }
@@ -94,11 +96,13 @@ import { LoadingButton } from '@ui/loading-button';
           <pulpe-loading-button
             [loading]="isSubmitting()"
             [disabled]="!canSubmit()"
-            loadingText="Envoi en cours..."
+            [loadingText]="'auth.forgotPassword.submitting' | transloco"
             icon="send"
             testId="forgot-password-submit-button"
           >
-            <span class="ml-2">Envoyer le lien</span>
+            <span class="ml-2">{{
+              'auth.forgotPassword.submit' | transloco
+            }}</span>
           </pulpe-loading-button>
         </form>
       } @else {
@@ -108,11 +112,10 @@ import { LoadingButton } from '@ui/loading-button';
         >
           <mat-icon class="text-6xl text-primary">mark_email_read</mat-icon>
           <p class="text-body-large text-on-surface">
-            Si un compte existe avec cette adresse, tu recevras un email avec un
-            lien de réinitialisation.
+            {{ 'auth.forgotPassword.successMessage' | transloco }}
           </p>
           <p class="text-body-medium text-on-surface-variant">
-            Pense à vérifier tes spams si tu ne le vois pas.
+            {{ 'auth.forgotPassword.checkSpam' | transloco }}
           </p>
           <button
             [routerLink]="['/', ROUTES.LOGIN]"
@@ -121,7 +124,7 @@ import { LoadingButton } from '@ui/loading-button';
             class="w-full"
             data-testid="back-to-login-button"
           >
-            Retour à la connexion
+            {{ 'auth.forgotPassword.backToLogin' | transloco }}
           </button>
         </div>
       }
@@ -132,6 +135,7 @@ export default class ForgotPassword {
   readonly #authSession = inject(AuthSessionService);
   readonly #formBuilder = inject(FormBuilder);
   readonly #logger = inject(Logger);
+  readonly #transloco = inject(TranslocoService);
 
   protected readonly ROUTES = ROUTES;
   protected readonly isSubmitting = signal(false);
@@ -172,12 +176,15 @@ export default class ForgotPassword {
         this.isSuccess.set(true);
       } else {
         this.errorMessage.set(
-          result.error || "L'envoi a échoué — réessaie dans quelques instants",
+          result.error ||
+            this.#transloco.translate('auth.forgotPassword.errorDefault'),
         );
       }
     } catch (error) {
       this.#logger.error('Error sending reset email:', error);
-      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessaie");
+      this.errorMessage.set(
+        this.#transloco.translate('common.somethingWentWrong'),
+      );
     } finally {
       this.isSubmitting.set(false);
     }

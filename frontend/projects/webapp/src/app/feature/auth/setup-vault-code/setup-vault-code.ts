@@ -15,6 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialog } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 import { AuthSessionService, VAULT_CODE_MIN_LENGTH } from '@core/auth';
 import {
@@ -45,6 +46,7 @@ import { PostHogService } from '@core/analytics';
     MatCheckboxModule,
     ErrorAlert,
     LoadingButton,
+    TranslocoPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -57,12 +59,10 @@ import { PostHogService } from '@core/analytics';
         <h1
           class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
         >
-          Crée ton code PIN
+          {{ 'auth.vaultCode.setupTitle' | transloco }}
         </h1>
         <p class="text-body-large text-on-surface-variant">
-          Ce code protège tes données chiffrées. Garde-le précieusement :
-          personne d'autre ne peut y accéder à ta place, et on ne pourra pas le
-          retrouver si tu l'oublies.
+          {{ 'auth.vaultCode.setupSubtitle' | transloco }}
         </p>
       </div>
 
@@ -73,7 +73,9 @@ import { PostHogService } from '@core/analytics';
         data-testid="setup-vault-code-form"
       >
         <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Ton code PIN</mat-label>
+          <mat-label>{{
+            'auth.vaultCode.setupPinLabel' | transloco
+          }}</mat-label>
           <input
             matInput
             [type]="isCodeHidden() ? 'password' : 'text'"
@@ -81,7 +83,7 @@ import { PostHogService } from '@core/analytics';
             formControlName="vaultCode"
             data-testid="vault-code-input"
             (input)="clearError()"
-            placeholder="Ton code PIN"
+            [placeholder]="'auth.vaultCode.setupPinLabel' | transloco"
           />
           <mat-icon matPrefix>lock</mat-icon>
           <button
@@ -89,31 +91,33 @@ import { PostHogService } from '@core/analytics';
             matIconButton
             matSuffix
             (click)="isCodeHidden.set(!isCodeHidden())"
-            [attr.aria-label]="'Afficher le code PIN'"
+            [attr.aria-label]="'form.showPassword' | transloco"
             [attr.aria-pressed]="!isCodeHidden()"
           >
             <mat-icon>{{
               isCodeHidden() ? 'visibility_off' : 'visibility'
             }}</mat-icon>
           </button>
-          <mat-hint>4 chiffres minimum (6+ recommandé)</mat-hint>
+          <mat-hint>{{ 'auth.vaultCode.pinHint' | transloco }}</mat-hint>
           @if (
             form.get('vaultCode')?.invalid && form.get('vaultCode')?.touched
           ) {
             <mat-error>
               @if (form.get('vaultCode')?.hasError('required')) {
-                Ton code PIN est nécessaire
+                {{ 'auth.vaultCode.pinRequired' | transloco }}
               } @else if (form.get('vaultCode')?.hasError('minlength')) {
-                4 chiffres minimum
+                {{ 'auth.vaultCode.pinMinLength' | transloco }}
               } @else if (form.get('vaultCode')?.hasError('pattern')) {
-                Le code PIN ne doit contenir que des chiffres
+                {{ 'auth.vaultCode.pinPattern' | transloco }}
               }
             </mat-error>
           }
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="w-full mt-4">
-          <mat-label>Confirmer le code</mat-label>
+          <mat-label>{{
+            'auth.vaultCode.confirmPinLabel' | transloco
+          }}</mat-label>
           <input
             matInput
             [type]="isConfirmCodeHidden() ? 'password' : 'text'"
@@ -121,7 +125,7 @@ import { PostHogService } from '@core/analytics';
             formControlName="confirmCode"
             data-testid="confirm-vault-code-input"
             (input)="clearError()"
-            placeholder="Confirme ton code"
+            [placeholder]="'auth.vaultCode.confirmPinPlaceholder' | transloco"
           />
           <mat-icon matPrefix>lock</mat-icon>
           <button
@@ -129,7 +133,7 @@ import { PostHogService } from '@core/analytics';
             matIconButton
             matSuffix
             (click)="isConfirmCodeHidden.set(!isConfirmCodeHidden())"
-            [attr.aria-label]="'Afficher le code'"
+            [attr.aria-label]="'form.showPassword' | transloco"
             [attr.aria-pressed]="!isConfirmCodeHidden()"
           >
             <mat-icon>{{
@@ -141,9 +145,9 @@ import { PostHogService } from '@core/analytics';
           ) {
             <mat-error>
               @if (form.get('confirmCode')?.hasError('required')) {
-                Confirme ton code
+                {{ 'auth.vaultCode.confirmPinRequired' | transloco }}
               } @else if (form.get('confirmCode')?.hasError('fieldsMismatch')) {
-                Les deux codes ne sont pas identiques — réessaie
+                {{ 'auth.vaultCode.pinsMismatch' | transloco }}
               }
             </mat-error>
           }
@@ -155,7 +159,7 @@ import { PostHogService } from '@core/analytics';
             data-testid="remember-device-checkbox"
           >
             <span class="text-body-medium text-on-surface">
-              Ne plus me demander sur cet appareil
+              {{ 'auth.vaultCode.rememberDevice' | transloco }}
             </span>
           </mat-checkbox>
         </div>
@@ -165,11 +169,13 @@ import { PostHogService } from '@core/analytics';
         <pulpe-loading-button
           [loading]="isSubmitting()"
           [disabled]="!canSubmit()"
-          loadingText="On prépare ton espace..."
+          [loadingText]="'auth.vaultCode.setupSubmitting' | transloco"
           icon="arrow_forward"
           testId="setup-vault-code-submit-button"
         >
-          <span class="ml-2">Créer mon code PIN</span>
+          <span class="ml-2">{{
+            'auth.vaultCode.setupSubmit' | transloco
+          }}</span>
         </pulpe-loading-button>
       </form>
 
@@ -182,7 +188,7 @@ import { PostHogService } from '@core/analytics';
           data-testid="setup-vault-code-logout-button"
         >
           <mat-icon>logout</mat-icon>
-          Se déconnecter
+          {{ 'layout.logout' | transloco }}
         </button>
       </div>
     </div>
@@ -197,6 +203,7 @@ export default class SetupVaultCode {
   readonly #dialog = inject(MatDialog);
   readonly #logger = inject(Logger);
   readonly #postHogService = inject(PostHogService);
+  readonly #transloco = inject(TranslocoService);
 
   protected readonly ROUTES = ROUTES;
   protected readonly isSubmitting = signal(false);
@@ -282,7 +289,9 @@ export default class SetupVaultCode {
       this.#router.navigate(['/', ROUTES.DASHBOARD]);
     } catch (error) {
       this.#logger.error('Setup vault code failed:', error);
-      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessaie");
+      this.errorMessage.set(
+        this.#transloco.translate('common.somethingWentWrong'),
+      );
     } finally {
       this.form.enable();
       this.isSubmitting.set(false);

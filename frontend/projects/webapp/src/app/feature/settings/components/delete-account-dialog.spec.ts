@@ -7,6 +7,7 @@ import { DeleteAccountDialog } from './delete-account-dialog';
 import { Logger } from '@core/logging/logger';
 import { AuthSessionService, AuthStateService } from '@core/auth';
 import { EncryptionApi } from '@core/encryption';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 const { deriveClientKeyMock } = vi.hoisted(() => ({
   deriveClientKeyMock: vi.fn(),
@@ -45,6 +46,7 @@ describe('DeleteAccountDialog', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        ...provideTranslocoForTest(),
         DeleteAccountDialog,
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: AuthSessionService, useValue: mockAuthSession },

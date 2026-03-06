@@ -4,6 +4,7 @@ import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { provideRouter } from '@angular/router';
 import { AboutDialog } from './about-dialog';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 
 describe('AboutDialog', () => {
@@ -26,6 +27,7 @@ describe('AboutDialog', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([]),
+        ...provideTranslocoForTest(),
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: ApplicationConfiguration, useValue: mockApplicationConfig },
       ],

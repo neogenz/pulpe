@@ -7,6 +7,7 @@ import {
   MAT_BOTTOM_SHEET_DATA,
   MatBottomSheetRef,
 } from '@angular/material/bottom-sheet';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { CreateAllocatedTransactionBottomSheet } from './create-allocated-transaction-bottom-sheet';
 import type { CreateAllocatedTransactionDialogData } from './create-allocated-transaction-dialog';
 
@@ -45,6 +46,7 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
         provideZonelessChangeDetection(),
         provideAnimationsAsync(),
         provideNativeDateAdapter(),
+        ...provideTranslocoForTest(),
         { provide: MAT_BOTTOM_SHEET_DATA, useValue: dialogData },
         { provide: MatBottomSheetRef, useValue: mockBottomSheetRef },
       ],
@@ -202,6 +204,7 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
             provideZonelessChangeDetection(),
             provideAnimationsAsync(),
             provideNativeDateAdapter(),
+            ...provideTranslocoForTest(),
             { provide: MAT_BOTTOM_SHEET_DATA, useValue: pastData },
             { provide: MatBottomSheetRef, useValue: pastRef },
           ],
@@ -238,6 +241,7 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
             provideZonelessChangeDetection(),
             provideAnimationsAsync(),
             provideNativeDateAdapter(),
+            ...provideTranslocoForTest(),
             { provide: MAT_BOTTOM_SHEET_DATA, useValue: customPayDayData },
             { provide: MatBottomSheetRef, useValue: customRef },
           ],

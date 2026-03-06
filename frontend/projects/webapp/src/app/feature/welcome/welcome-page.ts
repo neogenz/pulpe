@@ -10,6 +10,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { GoogleOAuthButton } from '@app/pattern/google-oauth';
 import { PostHogService } from '@core/analytics/posthog';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
@@ -29,6 +30,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
     LottieComponent,
     RouterLink,
     NgxTurnstileModule,
+    TranslocoPipe,
     GoogleOAuthButton,
     ErrorAlert,
     LoadingButton,
@@ -46,7 +48,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
       <p
         class="text-xs font-semibold tracking-widest uppercase text-primary mb-3"
       >
-        Budget annuel en 3 minutes
+        {{ 'welcome.eyebrow' | transloco }}
       </p>
 
       <!-- Title -->
@@ -54,7 +56,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
         class="text-headline-large md:text-display-small font-bold text-on-surface leading-tight text-center mb-2"
         data-testid="welcome-title"
       >
-        Vois clair dans tes finances
+        {{ 'welcome.title' | transloco }}
       </h1>
 
       <!-- Subtitle -->
@@ -62,7 +64,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
         class="text-body-large text-on-surface-variant text-center leading-relaxed mb-4"
         data-testid="welcome-subtitle"
       >
-        Planifie ton année, sache toujours ce que tu peux dépenser.
+        {{ 'welcome.subtitle' | transloco }}
       </p>
 
       <!-- Lottie animation -->
@@ -114,7 +116,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
           <div class="flex-1 h-px bg-outline-variant/30"></div>
           <span
             class="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest"
-            >OU</span
+            >{{ 'common.or' | transloco }}</span
           >
           <div class="flex-1 h-px bg-outline-variant/30"></div>
         </div>
@@ -129,7 +131,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
         >
           <div class="flex items-center justify-center gap-2">
             <mat-icon>email</mat-icon>
-            <span>S'inscrire par e-mail</span>
+            <span>{{ 'welcome.emailSignup' | transloco }}</span>
           </div>
         </button>
 
@@ -153,14 +155,14 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
           [disabled]="isLoading()"
           variant=""
           type="button"
-          loadingText="Préparation..."
+          [loadingText]="'welcome.demoLoading' | transloco"
           icon="play_arrow"
           testId="demo-mode-button"
           data-testid="demo-link"
           class="w-full"
           (click)="startDemoMode()"
         >
-          Essayer sans compte
+          {{ 'welcome.tryWithoutAccount' | transloco }}
         </pulpe-loading-button>
 
         <pulpe-error-alert [message]="errorMessage()" class="w-full" />
@@ -171,31 +173,31 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
         class="text-xs text-on-surface-variant text-center mt-5"
         data-testid="app-version"
       >
-        En continuant, tu acceptes les
+        {{ 'welcome.legalPrefix' | transloco }}
         <a
           [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
           target="_blank"
           class="text-primary underline"
-          >CGU</a
+          >{{ 'welcome.termsShort' | transloco }}</a
         >
-        et la
+        {{ 'welcome.legalAnd' | transloco }}
         <a
           [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
           target="_blank"
           class="text-primary underline"
-          >Politique de Confidentialité</a
+          >{{ 'welcome.privacyPolicy' | transloco }}</a
         >
       </p>
 
       <!-- Login link -->
       <p class="text-sm text-on-surface-variant mt-4">
-        Déjà un compte ?
+        {{ 'welcome.alreadyAccount' | transloco }}
         <button
           matButton
           [routerLink]="['/', ROUTES.LOGIN]"
           class="text-primary font-semibold"
         >
-          Se connecter
+          {{ 'welcome.signin' | transloco }}
         </button>
       </p>
     </div>
@@ -205,12 +207,9 @@ export default class WelcomePage {
   readonly #demoInitializer = inject(DemoInitializerService);
   readonly #logger = inject(Logger);
   readonly #postHogService = inject(PostHogService);
+  readonly #transloco = inject(TranslocoService);
   protected readonly turnstileService = inject(TurnstileService);
   protected readonly ROUTES = ROUTES;
-
-  readonly #ERROR_MESSAGES = {
-    DEMO_INIT_FAILED: 'Le mode démo ne démarre pas — réessaie',
-  } as const;
 
   constructor() {
     afterNextRender(() => {
@@ -274,7 +273,9 @@ export default class WelcomePage {
       this.#postHogService.captureEvent('demo_started');
     } catch (error) {
       this.#logger.error('Failed to start demo mode', { error });
-      this.errorMessage.set(this.#ERROR_MESSAGES.DEMO_INIT_FAILED);
+      this.errorMessage.set(
+        this.#transloco.translate('welcome.demoInitFailed'),
+      );
       this.turnstileService.reset();
     }
   }

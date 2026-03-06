@@ -5,6 +5,7 @@ import {
   computed,
   inject,
 } from '@angular/core';
+import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -69,13 +70,14 @@ interface EditTransactionsDialogResult {
     MatInputModule,
     MatSelectModule,
     MatTooltipModule,
+    TranslocoPipe,
   ],
   providers: [TemplateLineStore],
   template: `
     <h2 mat-dialog-title class="flex gap-2 items-center">
       <mat-icon class="text-primary">edit</mat-icon>
       <span
-        >Modifier les transactions -
+        >{{ 'template.editTitle' | transloco }} -
         <span class="ph-no-capture">{{ data.templateName }}</span></span
       >
     </h2>
@@ -86,7 +88,7 @@ interface EditTransactionsDialogResult {
         <mat-progress-bar
           mode="indeterminate"
           class="!h-1"
-          aria-label="Sauvegarde en cours"
+          [attr.aria-label]="saveLoadingLabel"
         ></mat-progress-bar>
       }
 
@@ -104,7 +106,7 @@ interface EditTransactionsDialogResult {
               class="items-center"
             >
               <mat-icon>add</mat-icon>
-              Ajouter une transaction
+              {{ 'template.addTransaction' | transloco }}
             </button>
           </div>
         </div>
@@ -128,7 +130,9 @@ interface EditTransactionsDialogResult {
           >
             <!-- Description Column -->
             <ng-container matColumnDef="description">
-              <th mat-header-cell *matHeaderCellDef>Description</th>
+              <th mat-header-cell *matHeaderCellDef>
+                {{ 'transactionForm.description' | transloco }}
+              </th>
               <td
                 mat-cell
                 *matCellDef="let transaction; let i = index"
@@ -143,12 +147,14 @@ interface EditTransactionsDialogResult {
                     matInput
                     [value]="transaction.formData.description"
                     (input)="updateDescription(transaction.id, $event)"
-                    placeholder="Description de la transaction"
+                    [placeholder]="descriptionPlaceholder"
                     [attr.id]="'desc-' + transaction.id"
                     data-testid="edit-line-description"
                   />
                   @if (!transaction.formData.description?.trim()) {
-                    <mat-error>La description est requise</mat-error>
+                    <mat-error>{{
+                      'template.descriptionRequired' | transloco
+                    }}</mat-error>
                   }
                 </mat-form-field>
               </td>
@@ -157,7 +163,9 @@ interface EditTransactionsDialogResult {
             <!-- Amount Column -->
             <ng-container matColumnDef="amount">
               <th mat-header-cell *matHeaderCellDef>
-                <span class="ph-no-capture">Montant</span>
+                <span class="ph-no-capture">{{
+                  'template.colAmount' | transloco
+                }}</span>
               </th>
               <td
                 mat-cell
@@ -185,7 +193,9 @@ interface EditTransactionsDialogResult {
                   />
                   <span matTextSuffix>CHF</span>
                   @if (transaction.formData.amount < 0) {
-                    <mat-error>Le montant doit être positif</mat-error>
+                    <mat-error>{{
+                      'template.amountPositive' | transloco
+                    }}</mat-error>
                   }
                 </mat-form-field>
               </td>
@@ -193,7 +203,9 @@ interface EditTransactionsDialogResult {
 
             <!-- Type Column -->
             <ng-container matColumnDef="type">
-              <th mat-header-cell *matHeaderCellDef>Type</th>
+              <th mat-header-cell *matHeaderCellDef>
+                {{ 'template.colType' | transloco }}
+              </th>
               <td
                 mat-cell
                 *matCellDef="let transaction; let i = index"
@@ -222,7 +234,9 @@ interface EditTransactionsDialogResult {
 
             <!-- Total Column -->
             <ng-container matColumnDef="total">
-              <th mat-header-cell *matHeaderCellDef>Total</th>
+              <th mat-header-cell *matHeaderCellDef>
+                {{ 'template.colTotal' | transloco }}
+              </th>
               <td
                 mat-cell
                 *matCellDef="let transaction; let i = index"
@@ -244,7 +258,7 @@ interface EditTransactionsDialogResult {
             <!-- Actions Column -->
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef class="text-center">
-                Actions
+                {{ 'template.colActions' | transloco }}
               </th>
               <td
                 mat-cell
@@ -259,8 +273,8 @@ interface EditTransactionsDialogResult {
                   [attr.aria-disabled]="!canRemoveTransaction() || isLoading()"
                   [matTooltip]="
                     !canRemoveTransaction()
-                      ? 'Au moins une ligne est requise'
-                      : 'Supprimer cette ligne'
+                      ? minLineRequiredTooltip
+                      : deleteLineTooltip
                   "
                   matTooltipPosition="left"
                 >
@@ -299,7 +313,7 @@ interface EditTransactionsDialogResult {
 
     <mat-dialog-actions align="end">
       <button matButton (click)="cancel()" [disabled]="isLoading()">
-        Annuler
+        {{ 'common.cancel' | transloco }}
       </button>
       <button
         matButton="filled"
@@ -316,7 +330,7 @@ interface EditTransactionsDialogResult {
               aria-hidden="true"
             ></mat-spinner>
           }
-          <span>Enregistrer</span>
+          <span>{{ 'common.save' | transloco }}</span>
         </div>
       </button>
     </mat-dialog-actions>
@@ -362,7 +376,21 @@ export default class EditTransactionsDialog {
   readonly #dialogRef = inject(MatDialogRef<EditTransactionsDialog>);
   readonly #dialog = inject(MatDialog);
   readonly #store = inject(TemplateLineStore);
+  readonly #transloco = inject(TranslocoService);
   protected readonly data = inject<EditTransactionsDialogData>(MAT_DIALOG_DATA);
+
+  protected readonly saveLoadingLabel = this.#transloco.translate(
+    'template.saveLoading',
+  );
+  protected readonly descriptionPlaceholder = this.#transloco.translate(
+    'template.descriptionPlaceholder',
+  );
+  protected readonly minLineRequiredTooltip = this.#transloco.translate(
+    'template.minLineRequired',
+  );
+  protected readonly deleteLineTooltip = this.#transloco.translate(
+    'template.deleteLine',
+  );
 
   // Expose store signals directly
   protected readonly isLoading = this.#store.isLoading;
@@ -516,10 +544,10 @@ export default class EditTransactionsDialog {
   async #showConfirmationDialog(): Promise<boolean> {
     const dialogRef = this.#dialog.open(ConfirmationDialog, {
       data: {
-        title: 'Confirmer la suppression',
-        message: 'Êtes-vous sûr de vouloir supprimer cette ligne ?',
-        confirmText: 'Supprimer',
-        cancelText: 'Annuler',
+        title: this.#transloco.translate('template.confirmDeleteLine'),
+        message: this.#transloco.translate('template.confirmDeleteLineMessage'),
+        confirmText: this.#transloco.translate('common.delete'),
+        cancelText: this.#transloco.translate('common.cancel'),
         confirmColor: 'warn',
       } as ConfirmationDialogData,
     });

@@ -15,6 +15,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
+import { TranslocoService } from '@jsverse/transloco';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { ROUTES } from '@core/routing';
@@ -26,10 +27,9 @@ import {
 } from 'pulpe-shared';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { BaseLoading } from '@ui/loading';
-import { TransactionLabelPipe } from '@ui/transaction-display';
+import { TransactionLabelPipe } from '@pattern/transaction-display';
 import { firstValueFrom } from 'rxjs';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
-import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
 import {
   BudgetTemplatesApi,
   type BudgetTemplateDetailViewModel,
@@ -59,7 +59,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
       @if (templateDetailsStore.isLoading()) {
         <!-- Loading state with proper accessibility -->
         <pulpe-base-loading
-          message="Préparation du modèle..."
+          [message]="loadingMessage"
           size="large"
           [fullHeight]="true"
           testId="template-details-loading"
@@ -75,16 +75,14 @@ import { TemplateDetailsStore } from './services/template-details-store';
             <mat-icon class="mb-4 !text-4xl" aria-hidden="true">
               error_outline
             </mat-icon>
-            <p class="text-body-large">
-              Une erreur est survenue lors du chargement des détails du modèle.
-            </p>
+            <p class="text-body-large">{{ loadingError }}</p>
             <button
               matButton="outlined"
               (click)="templateDetailsStore.reloadTemplateDetails()"
               class="mt-4"
-              aria-label="Réessayer le chargement"
+              [attr.aria-label]="retryLoadingLabel"
             >
-              Réessayer
+              {{ retryLabel }}
             </button>
           </div>
         </div>
@@ -96,7 +94,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
             <button
               matIconButton
               (click)="navigateBack()"
-              aria-label="Retour à la liste des modèles"
+              [attr.aria-label]="backLabel"
               class="flex-shrink-0"
             >
               <mat-icon>arrow_back</mat-icon>
@@ -115,7 +113,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
               <button
                 matIconButton
                 (click)="editTemplate()"
-                aria-label="Modifier les transactions du modèle"
+                [attr.aria-label]="editAriaLabel"
                 data-testid="template-detail-edit-button-mobile"
               >
                 <mat-icon>edit</mat-icon>
@@ -124,7 +122,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
                 matIconButton
                 color="warn"
                 (click)="deleteTemplate()"
-                aria-label="Supprimer le modèle"
+                [attr.aria-label]="deleteAriaLabel"
                 data-testid="delete-template-detail-button-mobile"
               >
                 <mat-icon>delete</mat-icon>
@@ -135,21 +133,21 @@ import { TemplateDetailsStore } from './services/template-details-store';
               <button
                 matButton="tonal"
                 (click)="editTemplate()"
-                aria-label="Modifier les transactions du modèle"
+                [attr.aria-label]="editAriaLabel"
                 data-testid="template-detail-edit-button"
               >
                 <mat-icon>edit</mat-icon>
-                Modifier
+                {{ editLabel }}
               </button>
               <button
                 matButton="filled"
                 color="warn"
                 (click)="deleteTemplate()"
-                aria-label="Supprimer le modèle"
+                [attr.aria-label]="deleteAriaLabel"
                 data-testid="delete-template-detail-button"
               >
                 <mat-icon>delete</mat-icon>
-                Supprimer
+                {{ deleteLabel }}
               </button>
             </div>
           </header>
@@ -160,7 +158,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
             aria-labelledby="financial-summary-heading"
           >
             <h2 id="financial-summary-heading" class="sr-only">
-              Résumé financier du modèle
+              {{ financialSummaryHeading }}
             </h2>
 
             <!-- Hero: Net balance -->
@@ -175,9 +173,9 @@ import { TemplateDetailsStore } from './services/template-details-store';
                 [class.text-on-error-container]="netBalance() < 0"
               >
                 @if (netBalance() >= 0) {
-                  Solde net du modèle
+                  {{ netBalanceLabel }}
                 } @else {
-                  Déficit du modèle
+                  {{ deficitLabel }}
                 }
               </p>
               <div
@@ -228,11 +226,8 @@ import { TemplateDetailsStore } from './services/template-details-store';
             class="flex flex-col flex-1 gap-4 min-h-0"
             aria-labelledby="transactions-heading"
           >
-            <h2
-              id="transactions-heading"
-              class="flex-shrink-0 text-headline-small"
-            >
-              Prévisions du modèle
+            <h2 id="transactions-heading" class="shrink-0 text-headline-small">
+              {{ forecastsHeading }}
             </h2>
 
             <div class="flex-1 min-h-0 rounded-lg">
@@ -240,7 +235,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
                 class="flex-1 min-h-0"
                 [entries]="entries()"
                 role="table"
-                aria-label="Liste des transactions fixes du modèle"
+                [attr.aria-label]="forecastsTableLabel"
               />
             </div>
           </section>
@@ -276,6 +271,40 @@ export default class TemplateDetail implements OnInit {
   readonly #destroyRef = inject(DestroyRef);
   readonly #budgetInvalidationService = inject(BudgetInvalidationService);
   readonly #budgetApi = inject(BudgetApi);
+  readonly #transloco = inject(TranslocoService);
+
+  protected readonly loadingMessage =
+    this.#transloco.translate('template.loading');
+  protected readonly loadingError = this.#transloco.translate(
+    'template.loadingError',
+  );
+  protected readonly retryLoadingLabel = this.#transloco.translate(
+    'template.retryLoading',
+  );
+  protected readonly retryLabel = this.#transloco.translate('common.retry');
+  protected readonly backLabel =
+    this.#transloco.translate('template.backLabel');
+  protected readonly editLabel = this.#transloco.translate('common.edit');
+  protected readonly editAriaLabel =
+    this.#transloco.translate('template.editTitle');
+  protected readonly deleteLabel = this.#transloco.translate('common.delete');
+  protected readonly deleteAriaLabel = this.#transloco.translate(
+    'template.deleteTitle',
+  );
+  protected readonly financialSummaryHeading = this.#transloco.translate(
+    'template.financialSummary',
+  );
+  protected readonly netBalanceLabel = this.#transloco.translate(
+    'template.netBalance',
+  );
+  protected readonly deficitLabel =
+    this.#transloco.translate('template.deficit');
+  protected readonly forecastsHeading = this.#transloco.translate(
+    'template.forecastsHeading',
+  );
+  protected readonly forecastsTableLabel = this.#transloco.translate(
+    'template.forecastsTableLabel',
+  );
   ngOnInit(): void {
     const templateId = this.#route.snapshot.paramMap.get('templateId');
     if (!templateId) return;
@@ -347,6 +376,10 @@ export default class TemplateDetail implements OnInit {
 
   readonly absNetBalance = computed(() => Math.abs(this.netBalance()));
 
+  readonly #incomeLabel = this.#transloco.translate('template.incomeLabel');
+  readonly #expensesLabel = this.#transloco.translate('template.expensesLabel');
+  readonly #savingsLabel = this.#transloco.translate('template.savingsLabel');
+
   readonly financialPills = computed(() => {
     const t = this.totals();
     return [
@@ -355,7 +388,7 @@ export default class TemplateDetail implements OnInit {
         bgStyle: 'var(--pulpe-financial-income-light)',
         colorClass: 'text-financial-income',
         icon: 'trending_up',
-        label: 'Revenus',
+        label: this.#incomeLabel,
         amount: t.income,
       },
       {
@@ -363,7 +396,7 @@ export default class TemplateDetail implements OnInit {
         bgStyle: 'var(--pulpe-financial-expense-light)',
         colorClass: 'text-financial-expense',
         icon: 'trending_down',
-        label: 'Dépenses',
+        label: this.#expensesLabel,
         amount: t.expense,
       },
       {
@@ -371,7 +404,7 @@ export default class TemplateDetail implements OnInit {
         bgStyle: 'var(--pulpe-financial-savings-light)',
         colorClass: 'text-financial-savings',
         icon: 'savings',
-        label: 'Épargne',
+        label: this.#savingsLabel,
         amount: t.savings,
       },
     ];
@@ -489,7 +522,15 @@ export default class TemplateDetail implements OnInit {
       } else {
         // Template is not used, show confirmation dialog
         const dialogRef = this.#dialog.open(ConfirmationDialog, {
-          data: getDeleteConfirmationConfig(template.name),
+          data: {
+            title: this.#transloco.translate('template.deleteTitle'),
+            message: this.#transloco.translate('template.deleteConfirm', {
+              name: template.name,
+            }),
+            confirmText: this.#transloco.translate('common.delete'),
+            cancelText: this.#transloco.translate('common.cancel'),
+            confirmColor: 'warn' as const,
+          },
           width: '400px',
         });
 
@@ -501,8 +542,8 @@ export default class TemplateDetail implements OnInit {
     } catch (error) {
       this.#logger.error('Error checking template usage:', error);
       this.#snackBar.open(
-        'Une erreur est survenue lors de la vérification',
-        'Fermer',
+        this.#transloco.translate('template.verificationCheckError'),
+        this.#transloco.translate('common.close'),
         {
           duration: 5000,
         },
@@ -514,17 +555,18 @@ export default class TemplateDetail implements OnInit {
     propagation: TemplateLinesPropagationSummary | null,
   ): string {
     if (!propagation) {
-      return 'Aucune modification à enregistrer';
+      return this.#transloco.translate('template.noChanges');
     }
 
     if (propagation.mode !== 'propagate') {
-      return 'Modèle mis à jour (budgets non modifiés).';
+      return this.#transloco.translate('template.updatedWithoutBudgets');
     }
     if (propagation.affectedBudgetsCount > 0) {
-      const plural = propagation.affectedBudgetsCount > 1 ? 's' : '';
-      return `Modèle et budgets futurs mis à jour (${propagation.affectedBudgetsCount} budget${plural} ajusté${plural})`;
+      return this.#transloco.translate('template.updatedWithBudgets', {
+        count: propagation.affectedBudgetsCount,
+      });
     }
-    return 'Modèle mis à jour (budgets non modifiés).';
+    return this.#transloco.translate('template.updatedWithoutBudgets');
   }
 
   async #performDeletion() {
@@ -536,17 +578,21 @@ export default class TemplateDetail implements OnInit {
     try {
       await firstValueFrom(this.#budgetTemplatesApi.delete$(templateId));
 
-      this.#snackBar.open('Modèle supprimé avec succès', undefined, {
-        duration: 3000,
-      });
+      this.#snackBar.open(
+        this.#transloco.translate('template.deleted'),
+        undefined,
+        {
+          duration: 3000,
+        },
+      );
 
       // Navigate back to templates list
       this.navigateBack();
     } catch (error) {
       this.#logger.error('Error deleting template:', error);
       this.#snackBar.open(
-        'Une erreur est survenue lors de la suppression',
-        'Fermer',
+        this.#transloco.translate('template.deleteCheckError'),
+        this.#transloco.translate('common.close'),
         {
           duration: 5000,
         },

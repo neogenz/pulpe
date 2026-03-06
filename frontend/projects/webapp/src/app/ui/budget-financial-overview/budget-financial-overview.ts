@@ -6,6 +6,7 @@ import {
   input,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 export interface FinancialTotals {
   income: number;
@@ -22,7 +23,7 @@ export interface FinancialTotals {
  */
 @Component({
   selector: 'pulpe-budget-financial-overview',
-  imports: [MatIconModule, DecimalPipe],
+  imports: [MatIconModule, DecimalPipe, TranslocoPipe],
   template: `
     <div class="space-y-6">
       <!-- Hero Section: What matters most -->
@@ -98,7 +99,7 @@ export interface FinancialTotals {
       <div class="pills-scroll-fade -mx-4 md:mx-0">
         <div
           role="list"
-          aria-label="Résumé financier"
+          [attr.aria-label]="'budget.financialSummaryAriaLabel' | transloco"
           class="flex gap-3 overflow-x-auto px-4 md:px-0 md:justify-center scrollbar-hide"
         >
           <!-- Income Pill -->

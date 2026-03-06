@@ -6,6 +6,7 @@ import {
   ActivatedRoute,
   type UrlTree,
 } from '@angular/router';
+import { TranslocoService } from '@jsverse/transloco';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 
@@ -21,6 +22,7 @@ export class BreadcrumbState {
   readonly #router = inject(Router);
   readonly #activatedRoute = inject(ActivatedRoute);
   readonly #logger = inject(Logger);
+  readonly #transloco = inject(TranslocoService);
 
   readonly #dynamicLabel = signal<string | null>(null);
 
@@ -88,7 +90,7 @@ export class BreadcrumbState {
             const url: string = this.#router.serializeUrl(urlTree);
 
             acc.items.push({
-              label: breadcrumbLabel,
+              label: this.#transloco.translate(breadcrumbLabel),
               icon: route.snapshot.data?.['icon'],
               url: url || '/',
               isActive: false,

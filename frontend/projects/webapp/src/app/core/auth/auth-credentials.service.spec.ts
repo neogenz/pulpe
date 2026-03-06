@@ -14,6 +14,7 @@ import {
   type AuthSessionResult,
   type MockSupabaseClient,
 } from '../testing/test-utils';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 describe('AuthCredentialsService', () => {
   let service: AuthCredentialsService;
@@ -54,6 +55,7 @@ describe('AuthCredentialsService', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        ...provideTranslocoForTest(),
         AuthCredentialsService,
         { provide: AuthSessionService, useValue: mockSession },
         { provide: AuthStateService, useValue: mockState },

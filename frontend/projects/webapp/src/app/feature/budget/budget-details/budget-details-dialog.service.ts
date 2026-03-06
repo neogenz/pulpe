@@ -1,6 +1,7 @@
 import { inject, Injectable, Injector } from '@angular/core';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
+import { TranslocoService } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
 import type {
   BudgetLine,
@@ -48,6 +49,7 @@ export class BudgetDetailsDialogService {
   readonly #dialog = inject(MatDialog);
   readonly #bottomSheet = inject(MatBottomSheet);
   readonly #injector = inject(Injector);
+  readonly #transloco = inject(TranslocoService);
 
   async openAddBudgetLineDialog(
     budgetId: string,
@@ -178,7 +180,7 @@ export class BudgetDetailsDialogService {
       data: {
         title: options.title,
         message: options.message,
-        confirmText: 'Supprimer',
+        confirmText: this.#transloco.translate('common.delete'),
         confirmColor: 'warn',
       } satisfies ConfirmationDialogData,
       width: '400px',
@@ -191,11 +193,10 @@ export class BudgetDetailsDialogService {
   async confirmCheckAllocatedTransactions(): Promise<boolean> {
     const dialogRef = this.#dialog.open(ConfirmationDialog, {
       data: {
-        title: 'Pointer les transactions ?',
-        message:
-          'Des transactions non pointées sont liées à cette enveloppe. Voulez-vous toutes les pointer ?',
-        confirmText: 'Oui, tout pointer',
-        cancelText: "Non, juste l'enveloppe",
+        title: this.#transloco.translate('budget.checkTransactionsTitle'),
+        message: this.#transloco.translate('budget.checkAllTransactions'),
+        confirmText: this.#transloco.translate('budget.checkAllConfirm'),
+        cancelText: this.#transloco.translate('budget.checkOnlyEnvelope'),
       } satisfies ConfirmationDialogData,
       width: '500px',
       maxWidth: '90vw',

@@ -1,15 +1,16 @@
 import { ChangeDetectionStrategy, Component, output } from '@angular/core';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { StateCard } from '@ui/state-card/state-card';
 
 @Component({
   selector: 'pulpe-months-error',
-  imports: [StateCard],
+  imports: [StateCard, TranslocoPipe],
   template: `
     <pulpe-state-card
       variant="error"
-      title="Impossible de charger tes budgets"
-      message="Le chargement a bloqué. Réessaie pour afficher tes mois."
-      actionLabel="Réessayer"
+      [title]="'budget.loadBudgetsError' | transloco"
+      [message]="'budget.loadBudgetsMessage' | transloco"
+      [actionLabel]="'common.retry' | transloco"
       testId="months-error-card"
       (action)="reload.emit()"
     />

@@ -6,13 +6,14 @@ import {
   input,
   output,
 } from '@angular/core';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { type BudgetLine } from 'pulpe-shared';
 import { FinancialKindDirective } from '@ui/financial-kind';
-import { RecurrenceLabelPipe } from '@ui/transaction-display';
+import { RecurrenceLabelPipe } from '@pattern/transaction-display';
 import { formatMatchAnnotation, type BudgetLineTableItem } from '../data-core';
 import { SegmentedBudgetProgress } from '../components/segmented-budget-progress';
 import { BudgetKindIndicator } from '../components/budget-kind-indicator';
@@ -41,6 +42,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
     MatIconModule,
     MatSlideToggleModule,
     CurrencyPipe,
+    TranslocoPipe,
     FinancialKindDirective,
     RecurrenceLabelPipe,
     SegmentedBudgetProgress,
@@ -120,9 +122,9 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
           >
             {{ remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
           </div>
-          <span class="text-label-medium text-on-surface-variant"
-            >disponible</span
-          >
+          <span class="text-label-medium text-on-surface-variant">{{
+            'budgetLine.available' | transloco
+          }}</span>
         } @else {
           <div
             class="ph-no-capture text-headline-large font-bold"
@@ -130,7 +132,9 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
           >
             {{ item().data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
           </div>
-          <span class="text-label-medium text-on-surface-variant">prévu</span>
+          <span class="text-label-medium text-on-surface-variant">{{
+            'budgetLine.planned' | transloco
+          }}</span>
         }
       </div>
 
@@ -149,11 +153,13 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                 item().consumption!.consumed
                   | currency: 'CHF' : 'symbol' : '1.0-0'
               }}
-              dépensé
+              {{ 'budgetLine.spent' | transloco }}
             </span>
             <span class="text-body-small font-medium">
               @if (item().consumption!.consumptionState === 'over-budget') {
-                <span class="text-financial-over-budget">dépassé</span>
+                <span class="text-financial-over-budget">{{
+                  'budgetLine.exceeded' | transloco
+                }}</span>
               } @else if (
                 item().consumption!.consumptionState === 'near-limit'
               ) {
@@ -186,8 +192,10 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
             [attr.data-testid]="'toggle-check-' + item().data.id"
             [attr.aria-label]="
               item().data.checkedAt
-                ? 'Marquer ' + item().data.name + ' comme non vérifié'
-                : 'Marquer ' + item().data.name + ' comme vérifié'
+                ? ('budgetLine.uncheckLabel'
+                  | transloco: { name: item().data.name })
+                : ('budgetLine.checkLabel'
+                  | transloco: { name: item().data.name })
             "
           />
         </div>

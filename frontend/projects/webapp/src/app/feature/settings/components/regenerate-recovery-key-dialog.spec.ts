@@ -5,6 +5,7 @@ import { of, throwError } from 'rxjs';
 import { RegenerateRecoveryKeyDialog } from './regenerate-recovery-key-dialog';
 import { Logger } from '@core/logging/logger';
 import { EncryptionApi } from '@core/encryption';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 const { deriveClientKeyMock } = vi.hoisted(() => ({
   deriveClientKeyMock: vi.fn(),
@@ -42,6 +43,7 @@ describe('RegenerateRecoveryKeyDialog', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        ...provideTranslocoForTest(),
         RegenerateRecoveryKeyDialog,
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: EncryptionApi, useValue: mockEncryptionApi },

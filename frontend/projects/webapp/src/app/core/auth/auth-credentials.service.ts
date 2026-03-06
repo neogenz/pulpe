@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { TranslocoService } from '@jsverse/transloco';
 
 import { ClientKeyService } from '@core/encryption';
 
@@ -6,10 +7,7 @@ import { AuthSessionService } from './auth-session.service';
 import { AuthStateService } from './auth-state.service';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { Logger } from '../logging/logger';
-import {
-  AUTH_ERROR_MESSAGES,
-  formatScheduledDeletionMessage,
-} from './auth-constants';
+import { AUTH_ERROR_MESSAGES, formatDeletionDate } from './auth-constants';
 import { isE2EMode } from './e2e-window';
 
 @Injectable({
@@ -21,6 +19,7 @@ export class AuthCredentialsService {
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
   readonly #logger = inject(Logger);
   readonly #clientKeyService = inject(ClientKeyService);
+  readonly #transloco = inject(TranslocoService);
 
   async signInWithEmail(
     email: string,
@@ -54,9 +53,11 @@ export class AuthCredentialsService {
         await this.#session.signOut();
         return {
           success: false,
-          error: formatScheduledDeletionMessage(
-            data.session.user.user_metadata['scheduledDeletionAt'],
-          ),
+          error: this.#transloco.translate('auth.scheduledDeletion', {
+            date: formatDeletionDate(
+              data.session.user.user_metadata['scheduledDeletionAt'],
+            ),
+          }),
         };
       }
 

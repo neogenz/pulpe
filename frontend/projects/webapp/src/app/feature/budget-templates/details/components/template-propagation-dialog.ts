@@ -12,6 +12,7 @@ import {
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatRadioModule } from '@angular/material/radio';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 export type TemplatePropagationChoice = 'template-only' | 'propagate';
 
@@ -21,46 +22,50 @@ interface TemplatePropagationDialogData {
 
 @Component({
   selector: 'pulpe-template-propagation-dialog',
-  imports: [MatDialogModule, MatButtonModule, MatRadioModule, MatIconModule],
+  imports: [
+    MatDialogModule,
+    MatButtonModule,
+    MatRadioModule,
+    MatIconModule,
+    TranslocoPipe,
+  ],
   template: `
     <h2 mat-dialog-title class="flex! gap-2 items-center pt-6!">
       <mat-icon>tune</mat-icon>
-      <span>Comment appliquer ces modifications ?</span>
+      <span>{{ 'template.propagationTitle' | transloco }}</span>
     </h2>
 
     <mat-dialog-content class="flex flex-col gap-4">
       <p class="text-body-medium">
-        Vous modifiez le modèle
+        {{ 'template.propagationIntro' | transloco }}
         <strong class="ph-no-capture">{{ data.templateName }}</strong
-        >. Choisissez comment ces changements doivent s'appliquer.
+        >.
       </p>
 
       <mat-radio-group
         [value]="selectedMode()"
         (change)="onSelectionChange($event.value)"
         class="flex flex-col gap-3"
-        aria-label="Options de propagation"
+        [attr.aria-label]="'template.propagateRadioLabel' | transloco"
       >
         <mat-radio-button value="template-only">
           <div class="flex flex-col">
-            <span class="text-title-medium"
-              >Mettre à jour uniquement le modèle</span
-            >
+            <span class="text-title-medium">{{
+              'template.templateOnly' | transloco
+            }}</span>
             <span class="text-body-small text-on-surface-variant">
-              Les budgets existants ne changent pas. Idéal pour préparer les
-              prochains mois sans impacter ceux déjà planifiés.
+              {{ 'template.templateOnlyDesc' | transloco }}
             </span>
           </div>
         </mat-radio-button>
 
         <mat-radio-button value="propagate">
           <div class="flex flex-col">
-            <span class="text-title-medium">
-              Mettre à jour le modèle et les budgets actuels et futurs
-            </span>
+            <span class="text-title-medium">{{
+              'template.propagateAll' | transloco
+            }}</span>
             <span class="text-body-small text-on-surface-variant">
-              Les budgets à partir du mois en cours seront ajustés
-              automatiquement (mois passés inchangés).
+              {{ 'template.propagateAllDesc' | transloco }}
             </span>
           </div>
         </mat-radio-button>
@@ -75,27 +80,23 @@ interface TemplatePropagationDialogData {
           </div>
           <div>
             <p class="text-body-small">
-              <strong>Note :</strong> Les saisies modifiées manuellement
-              (marquées avec
-              <mat-icon class="text-sm! h-[auto]! w-[auto]! align-text-bottom"
-                >lock</mat-icon
-              >) sont protégées et ne seront pas affectées par la propagation.
-              Seules les lignes non modifiées seront automatiquement mises à
-              jour.
+              {{ 'template.propagateNote' | transloco }}
             </p>
           </div>
         </div>
       }
 
       <p class="text-body-small text-outline mt-2">
-        Vous pourrez toujours ajuster un budget mensuel manuellement après coup.
+        {{ 'template.propagateFooter' | transloco }}
       </p>
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button matButton (click)="cancel()">Annuler</button>
+      <button matButton (click)="cancel()">
+        {{ 'common.cancel' | transloco }}
+      </button>
       <button matButton="filled" color="primary" (click)="confirm()">
-        Continuer
+        {{ 'common.confirm' | transloco }}
       </button>
     </mat-dialog-actions>
   `,

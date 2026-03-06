@@ -31,6 +31,7 @@ import { TemplateStore } from './services/template-store';
 import { TemplateTotalsCalculator } from './services/template-totals-calculator';
 import { BudgetApi } from '@core/budget/budget-api';
 import { isApiError } from '@core/api/api-error';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 const BUDGET_CREATION_CONSTANTS = {
   // Form validation constraints
@@ -74,6 +75,7 @@ const MONTH_YEAR_FORMATS = {
     MatProgressSpinnerModule,
     ReactiveFormsModule,
     TemplatesList,
+    TranslocoPipe,
   ],
   providers: [
     TemplateStore,
@@ -190,7 +192,7 @@ const MONTH_YEAR_FORMATS = {
           <mat-progress-spinner
             mode="indeterminate"
             [diameter]="24"
-            aria-label="Création en cours"
+            [attr.aria-label]="'budget.creationInProgress' | transloco"
             role="progressbar"
             class="pulpe-loading-indicator pulpe-loading-small mr-2 flex-shrink-0"
           ></mat-progress-spinner>

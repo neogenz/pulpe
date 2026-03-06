@@ -14,6 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 import {
   AuthSessionService,
@@ -38,6 +39,7 @@ import { createFieldsMatchValidator } from '@core/validators';
     RouterLink,
     ErrorAlert,
     LoadingButton,
+    TranslocoPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -49,18 +51,17 @@ import { createFieldsMatchValidator } from '@core/validators';
         <div class="flex flex-col items-center gap-4 py-8">
           <mat-spinner diameter="40" />
           <p class="text-body-medium text-on-surface-variant">
-            Vérification de ton lien...
+            {{ 'auth.resetPassword.checkingSession' | transloco }}
           </p>
         </div>
       } @else if (!isSessionValid()) {
         <div class="text-center space-y-6" data-testid="invalid-link-message">
           <mat-icon class="text-6xl text-error">link_off</mat-icon>
           <h1 class="text-2xl font-bold text-on-surface">
-            Lien invalide ou expiré
+            {{ 'auth.resetPassword.invalidLink' | transloco }}
           </h1>
           <p class="text-body-medium text-on-surface-variant">
-            Ce lien de réinitialisation n'est plus valide. Demande-en un
-            nouveau.
+            {{ 'auth.resetPassword.invalidLinkMessage' | transloco }}
           </p>
           <a
             [routerLink]="['/', ROUTES.FORGOT_PASSWORD]"
@@ -69,18 +70,17 @@ import { createFieldsMatchValidator } from '@core/validators';
             class="w-full"
             data-testid="back-to-forgot-password-button"
           >
-            Demander un nouveau lien
+            {{ 'auth.resetPassword.requestNewLink' | transloco }}
           </a>
         </div>
       } @else if (isOAuthOnly()) {
         <div class="text-center space-y-6" data-testid="oauth-user-blocked">
           <mat-icon class="text-6xl text-error">block</mat-icon>
           <h1 class="text-2xl font-bold text-on-surface">
-            Réinitialisation non disponible
+            {{ 'auth.resetPassword.oauthTitle' | transloco }}
           </h1>
           <p class="text-body-medium text-on-surface-variant">
-            Ton compte utilise une connexion via un fournisseur externe (Google,
-            Apple...). Tu ne peux pas définir de mot de passe.
+            {{ 'auth.resetPassword.oauthMessage' | transloco }}
           </p>
           <a
             [routerLink]="['/', ROUTES.LOGIN]"
@@ -89,7 +89,7 @@ import { createFieldsMatchValidator } from '@core/validators';
             class="w-full"
             data-testid="back-to-login-button"
           >
-            Retour à la connexion
+            {{ 'auth.resetPassword.backToLogin' | transloco }}
           </a>
         </div>
       } @else {
@@ -99,17 +99,17 @@ import { createFieldsMatchValidator } from '@core/validators';
           class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
         >
           <mat-icon class="text-lg">arrow_back</mat-icon>
-          <span>Retour à la connexion</span>
+          <span>{{ 'auth.resetPassword.backToLogin' | transloco }}</span>
         </button>
 
         <div class="text-center mb-8 mt-4">
           <h1
             class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
           >
-            Réinitialiser le mot de passe
+            {{ 'auth.resetPassword.title' | transloco }}
           </h1>
           <p class="text-body-large text-on-surface-variant">
-            Entre ton nouveau mot de passe
+            {{ 'auth.resetPassword.subtitle' | transloco }}
           </p>
         </div>
 
@@ -120,14 +120,14 @@ import { createFieldsMatchValidator } from '@core/validators';
           data-testid="reset-password-form"
         >
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Nouveau mot de passe</mat-label>
+            <mat-label>{{ 'form.newPasswordLabel' | transloco }}</mat-label>
             <input
               matInput
               [type]="isPasswordHidden() ? 'password' : 'text'"
               formControlName="newPassword"
               data-testid="new-password-input"
               (input)="clearError()"
-              placeholder="Nouveau mot de passe"
+              [placeholder]="'form.newPasswordPlaceholder' | transloco"
               [disabled]="isSubmitting()"
             />
             <mat-icon matPrefix>lock</mat-icon>
@@ -136,37 +136,37 @@ import { createFieldsMatchValidator } from '@core/validators';
               matIconButton
               matSuffix
               (click)="isPasswordHidden.set(!isPasswordHidden())"
-              [attr.aria-label]="'Afficher le mot de passe'"
+              [attr.aria-label]="'form.showPassword' | transloco"
               [attr.aria-pressed]="!isPasswordHidden()"
             >
               <mat-icon>{{
                 isPasswordHidden() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
-            <mat-hint>8 caractères minimum</mat-hint>
+            <mat-hint>{{ 'form.passwordMinLengthHint' | transloco }}</mat-hint>
             @if (
               form.get('newPassword')?.invalid &&
               form.get('newPassword')?.touched
             ) {
               <mat-error>
                 @if (form.get('newPassword')?.hasError('required')) {
-                  Ton nouveau mot de passe est nécessaire
+                  {{ 'form.newPasswordRequired' | transloco }}
                 } @else if (form.get('newPassword')?.hasError('minlength')) {
-                  8 caractères minimum
+                  {{ 'form.passwordMinLength' | transloco }}
                 }
               </mat-error>
             }
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Confirmer le mot de passe</mat-label>
+            <mat-label>{{ 'form.confirmPasswordLabel' | transloco }}</mat-label>
             <input
               matInput
               [type]="isConfirmPasswordHidden() ? 'password' : 'text'"
               formControlName="confirmPassword"
               data-testid="confirm-password-input"
               (input)="clearError()"
-              placeholder="Confirmer le mot de passe"
+              [placeholder]="'form.confirmPasswordPlaceholder' | transloco"
               [disabled]="isSubmitting()"
             />
             <mat-icon matPrefix>lock</mat-icon>
@@ -175,7 +175,7 @@ import { createFieldsMatchValidator } from '@core/validators';
               matIconButton
               matSuffix
               (click)="isConfirmPasswordHidden.set(!isConfirmPasswordHidden())"
-              [attr.aria-label]="'Afficher le mot de passe'"
+              [attr.aria-label]="'form.showPassword' | transloco"
               [attr.aria-pressed]="!isConfirmPasswordHidden()"
             >
               <mat-icon>{{
@@ -188,11 +188,11 @@ import { createFieldsMatchValidator } from '@core/validators';
             ) {
               <mat-error>
                 @if (form.get('confirmPassword')?.hasError('required')) {
-                  Confirme ton mot de passe
+                  {{ 'form.confirmPasswordRequired' | transloco }}
                 } @else if (
                   form.get('confirmPassword')?.hasError('passwordsMismatch')
                 ) {
-                  Les mots de passe ne correspondent pas
+                  {{ 'form.passwordsMismatch' | transloco }}
                 }
               </mat-error>
             }
@@ -203,11 +203,13 @@ import { createFieldsMatchValidator } from '@core/validators';
           <pulpe-loading-button
             [loading]="isSubmitting()"
             [disabled]="!canSubmit()"
-            loadingText="Réinitialisation..."
+            [loadingText]="'auth.resetPassword.submitting' | transloco"
             icon="lock_reset"
             testId="reset-password-submit-button"
           >
-            <span class="ml-2">Réinitialiser le mot de passe</span>
+            <span class="ml-2">{{
+              'auth.resetPassword.submit' | transloco
+            }}</span>
           </pulpe-loading-button>
         </form>
       }
@@ -220,6 +222,7 @@ export default class ResetPassword {
   readonly #formBuilder = inject(FormBuilder);
   readonly #router = inject(Router);
   readonly #logger = inject(Logger);
+  readonly #transloco = inject(TranslocoService);
 
   protected readonly ROUTES = ROUTES;
   protected readonly isSubmitting = signal(false);
@@ -291,7 +294,7 @@ export default class ResetPassword {
       if (!passwordResult.success) {
         this.errorMessage.set(
           passwordResult.error ||
-            'La mise à jour du mot de passe a échoué — réessaie',
+            this.#transloco.translate('auth.resetPassword.errorDefault'),
         );
         return;
       }
@@ -299,7 +302,9 @@ export default class ResetPassword {
       this.#router.navigate(['/', ROUTES.DASHBOARD]);
     } catch (error) {
       this.#logger.error('Reset password failed:', error);
-      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessaie");
+      this.errorMessage.set(
+        this.#transloco.translate('common.somethingWentWrong'),
+      );
     } finally {
       this.isSubmitting.set(false);
     }

@@ -23,6 +23,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { CurrencyInput } from '@ui/currency-input';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { PostHogService } from '@core/analytics/posthog';
 import { ROUTES } from '@core/routing/routes-constants';
 import { CompleteProfileStore } from './complete-profile-store';
@@ -38,6 +39,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
     MatIconModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    TranslocoPipe,
     CurrencyInput,
     ErrorAlert,
     LoadingButton,
@@ -78,7 +80,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
         <div class="flex flex-col items-center justify-center min-h-96 gap-6">
           <mat-progress-spinner mode="indeterminate" [diameter]="40" />
           <p class="text-body-large text-on-surface-variant animate-pulse">
-            Préparation de ton espace de liberté...
+            {{ 'completeProfile.loading' | transloco }}
           </p>
         </div>
       } @else {
@@ -103,13 +105,19 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                 <h1
                   class="text-display-small font-bold mb-3 tracking-tight text-on-surface"
                 >
-                  Salut{{ store.firstName() ? ' ' + store.firstName() : '' }} 👋
+                  @if (store.firstName()) {
+                    {{
+                      'completeProfile.greetingWithName'
+                        | transloco: { name: ' ' + store.firstName() }
+                    }}
+                  } @else {
+                    {{ 'completeProfile.greetingNoName' | transloco }}
+                  }
                 </h1>
                 <p
                   class="text-body-large text-on-surface-variant leading-relaxed"
                 >
-                  On va personnaliser ton espace ensemble en deux petites
-                  étapes.
+                  {{ 'completeProfile.step1Subtitle' | transloco }}
                 </p>
               </div>
 
@@ -118,19 +126,23 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                   <mat-icon matPrefix class="mr-3 text-on-surface-variant"
                     >person</mat-icon
                   >
-                  <mat-label>Ton prénom</mat-label>
+                  <mat-label>{{
+                    'completeProfile.firstName' | transloco
+                  }}</mat-label>
                   <input
                     matInput
                     type="text"
                     [ngModel]="store.firstName()"
                     (ngModelChange)="store.updateFirstName($event)"
-                    placeholder="Comment t'appeler ?"
+                    [placeholder]="
+                      'completeProfile.firstNamePlaceholder' | transloco
+                    "
                     data-testid="first-name-input"
                   />
                 </mat-form-field>
 
                 <pulpe-currency-input
-                  label="Revenus mensuels"
+                  [label]="'completeProfile.monthlyIncome' | transloco"
                   [value]="store.monthlyIncome()"
                   (valueChange)="store.updateMonthlyIncome($event)"
                   [required]="true"
@@ -149,7 +161,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                   (click)="nextStep()"
                 >
                   <span class="flex items-center justify-center gap-2">
-                    Suivant
+                    {{ 'completeProfile.next' | transloco }}
                     <mat-icon class="!text-xl">arrow_forward</mat-icon>
                   </span>
                 </button>
@@ -159,7 +171,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                 >
                   <mat-icon class="text-tertiary !text-lg">shield</mat-icon>
                   <span class="text-label-medium text-on-surface-variant">
-                    Tes données restent privées et sécurisées
+                    {{ 'completeProfile.privateData' | transloco }}
                   </span>
                 </div>
               </div>
@@ -173,12 +185,12 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                 <h1
                   class="text-display-small font-bold mb-2 tracking-tight text-on-surface"
                 >
-                  Presque terminé 🎯
+                  {{ 'completeProfile.step2Title' | transloco }}
                 </h1>
                 <p
                   class="text-body-large text-on-surface-variant leading-relaxed"
                 >
-                  Quelques infos pour affiner — ou passe directement.
+                  {{ 'completeProfile.step2Subtitle' | transloco }}
                 </p>
               </div>
 
@@ -187,17 +199,21 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                   <mat-icon matPrefix class="mr-3 text-on-surface-variant"
                     >event_repeat</mat-icon
                   >
-                  <mat-label>Quand reçois-tu ton salaire ?</mat-label>
+                  <mat-label>{{
+                    'completeProfile.payDay' | transloco
+                  }}</mat-label>
                   <mat-select
                     [ngModel]="store.payDayOfMonth()"
                     (ngModelChange)="store.updatePayDayOfMonth($event)"
                     data-testid="pay-day-select"
                   >
-                    <mat-option [value]="null"
-                      >1er du mois (calendaire)</mat-option
-                    >
+                    <mat-option [value]="null">{{
+                      'completeProfile.payDayFirstOfMonth' | transloco
+                    }}</mat-option>
                     @for (day of availableDays; track day) {
-                      <mat-option [value]="day">Le {{ day }}</mat-option>
+                      <mat-option [value]="day">{{
+                        'completeProfile.payDayOption' | transloco: { day: day }
+                      }}</mat-option>
                     }
                   </mat-select>
                 </mat-form-field>
@@ -218,10 +234,10 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                       >
                       <div class="text-left">
                         <p class="text-title-medium text-on-surface">
-                          Charges mensuelles
+                          {{ 'completeProfile.charges' | transloco }}
                         </p>
                         <p class="text-body-small text-on-surface-variant">
-                          Facultatif — tu pourras ajuster plus tard
+                          {{ 'completeProfile.chargesOptional' | transloco }}
                         </p>
                       </div>
                     </div>
@@ -235,7 +251,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                   @if (isChargesExpanded()) {
                     <div class="px-4 pb-4 space-y-4" @staggerList>
                       <pulpe-currency-input
-                        label="Loyer / Crédit"
+                        [label]="'completeProfile.housing' | transloco"
                         [value]="store.housingCosts()"
                         (valueChange)="store.updateHousingCosts($event)"
                         icon="home"
@@ -244,7 +260,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         [autoFocus]="false"
                       />
                       <pulpe-currency-input
-                        label="Assurance maladie"
+                        [label]="'completeProfile.health' | transloco"
                         [value]="store.healthInsurance()"
                         (valueChange)="store.updateHealthInsurance($event)"
                         icon="health_and_safety"
@@ -253,7 +269,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         [autoFocus]="false"
                       />
                       <pulpe-currency-input
-                        label="Abonnement téléphonique"
+                        [label]="'completeProfile.phone' | transloco"
                         [value]="store.phonePlan()"
                         (valueChange)="store.updatePhonePlan($event)"
                         icon="smartphone"
@@ -262,7 +278,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         [autoFocus]="false"
                       />
                       <pulpe-currency-input
-                        label="Abonnement internet"
+                        [label]="'completeProfile.internet' | transloco"
                         [value]="store.internetPlan()"
                         (valueChange)="store.updateInternetPlan($event)"
                         icon="wifi"
@@ -271,7 +287,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         [autoFocus]="false"
                       />
                       <pulpe-currency-input
-                        label="Transport"
+                        [label]="'completeProfile.transport' | transloco"
                         [value]="store.transportCosts()"
                         (valueChange)="store.updateTransportCosts($event)"
                         icon="directions_car"
@@ -280,7 +296,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         [autoFocus]="false"
                       />
                       <pulpe-currency-input
-                        label="Leasing"
+                        [label]="'completeProfile.leasing' | transloco"
                         [value]="store.leasingCredit()"
                         (valueChange)="store.updateLeasingCredit($event)"
                         icon="more_horiz"
@@ -291,7 +307,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                       <p
                         class="text-body-small text-on-surface-variant text-center pt-2"
                       >
-                        Tu pourras ajouter d'autres dépenses depuis ton modèle
+                        {{ 'completeProfile.chargesFooter' | transloco }}
                       </p>
                     </div>
                   }
@@ -303,13 +319,13 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
               <div class="mt-10 flex flex-col gap-3">
                 <pulpe-loading-button
                   [loading]="store.isLoading()"
-                  loadingText="Préparation de ton espace..."
+                  [loadingText]="'completeProfile.loadingSubmit' | transloco"
                   testId="submit-button"
                   class="w-full rounded-2xl"
                   (click)="onSubmit()"
                 >
                   <span class="flex items-center justify-center gap-2">
-                    C'est parti
+                    {{ 'completeProfile.submit' | transloco }}
                     <mat-icon class="!text-xl">rocket_launch</mat-icon>
                   </span>
                 </pulpe-loading-button>
@@ -323,7 +339,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                   >
                     <span class="flex items-center justify-center gap-1">
                       <mat-icon class="!text-lg">arrow_back</mat-icon>
-                      Retour
+                      {{ 'completeProfile.back' | transloco }}
                     </span>
                   </button>
                 </div>
@@ -331,7 +347,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                 <p
                   class="text-center text-body-small text-on-surface-variant mt-2"
                 >
-                  Tu pourras tout modifier dans les paramètres
+                  {{ 'completeProfile.settingsNote' | transloco }}
                 </p>
               </div>
             </div>

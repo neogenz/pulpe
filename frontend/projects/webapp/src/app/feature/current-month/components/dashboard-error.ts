@@ -1,17 +1,18 @@
 import { ChangeDetectionStrategy, Component, output } from '@angular/core';
 import { StateCard } from '@ui/state-card/state-card';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 @Component({
   selector: 'pulpe-dashboard-error',
-  imports: [StateCard],
+  imports: [StateCard, TranslocoPipe],
   template: `
     <pulpe-state-card
       data-testid="dashboard-error-container"
       testId="dashboard-error-container"
       variant="error"
-      title="On n'arrive pas à charger ton tableau de bord"
-      message="Ta connexion a peut-être coupé. Réessaie pour récupérer tes données."
-      actionLabel="Réessayer"
+      [title]="'currentMonth.loadErrorTitle' | transloco"
+      [message]="'currentMonth.loadErrorMessage' | transloco"
+      [actionLabel]="'common.retry' | transloco"
       (action)="reload.emit()"
     />
   `,
