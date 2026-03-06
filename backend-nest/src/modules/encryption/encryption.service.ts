@@ -399,7 +399,7 @@ export class EncryptionService {
     oldClientKey: Buffer,
     newClientKey: Buffer,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<{ keyCheck: string; recoveryKey: string | null }> {
+  ): Promise<{ keyCheck: string; recoveryKey: string }> {
     const row = await this.#repository.findByUserId(userId);
     if (!row) {
       throw new BusinessException(
@@ -442,8 +442,7 @@ export class EncryptionService {
       }
 
       newDek = this.#deriveDEK(newClientKey, salt, userId);
-      const hadRecovery = !!row.wrapped_dek;
-      let recoveryKeyFormatted: string | null = null;
+      let recoveryKeyFormatted: string = '';
 
       this.#invalidateUserDEKCache(userId);
 
@@ -454,35 +453,32 @@ export class EncryptionService {
         supabase,
       );
 
-      // If user had a recovery key, generate a new one and re-wrap the new DEK
-      // in the same call — wrapped_dek goes directly from old wrapping to new
-      // wrapping, never null. The frontend displays the new recovery key.
-      if (hadRecovery) {
-        const { raw, formatted } = this.generateRecoveryKey();
+      // Always generate a new recovery key and wrap the new DEK — ensures every
+      // user gets a recovery safety net after PIN change.
+      const { raw, formatted } = this.generateRecoveryKey();
+      try {
+        const newWrappedDEK = this.wrapDEK(newDek, raw);
+        await this.#repository.updateWrappedDEK(userId, newWrappedDEK);
+        recoveryKeyFormatted = formatted;
+      } catch (wrapError) {
         try {
-          const newWrappedDEK = this.wrapDEK(newDek, raw);
-          await this.#repository.updateWrappedDEK(userId, newWrappedDEK);
-          recoveryKeyFormatted = formatted;
-        } catch (wrapError) {
-          try {
-            await this.#repository.updateWrappedDEK(userId, null);
-          } catch {
-            // Best-effort nullification — next recovery key regeneration will fix state
-          }
-          throw new BusinessException(
-            ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
-            undefined,
-            { userId, operation: 'pin_change.recovery_wrap_failed' },
-            {
-              cause:
-                wrapError instanceof Error
-                  ? wrapError
-                  : new Error(String(wrapError)),
-            },
-          );
-        } finally {
-          raw.fill(0);
+          await this.#repository.updateWrappedDEK(userId, null);
+        } catch {
+          // Best-effort nullification — next recovery key regeneration will fix state
         }
+        throw new BusinessException(
+          ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
+          undefined,
+          { userId, operation: 'pin_change.recovery_wrap_failed' },
+          {
+            cause:
+              wrapError instanceof Error
+                ? wrapError
+                : new Error(String(wrapError)),
+          },
+        );
+      } finally {
+        raw.fill(0);
       }
 
       return {

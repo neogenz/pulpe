@@ -1000,7 +1000,7 @@ export type EncryptionRecoverResponse = z.infer<
 
 export const encryptionChangePinResponseSchema = z.object({
   keyCheck: z.string(),
-  recoveryKey: z.string().nullable(),
+  recoveryKey: z.string(),
 });
 export type EncryptionChangePinResponse = z.infer<
   typeof encryptionChangePinResponseSchema
