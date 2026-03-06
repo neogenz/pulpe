@@ -4,6 +4,7 @@ import { DashboardHero } from './dashboard-hero';
 import { setTestInput } from '@app/testing/signal-test-utils';
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 registerLocaleData(localeDE);
 
@@ -14,7 +15,10 @@ describe('DashboardHero', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [DashboardHero],
-      providers: [provideZonelessChangeDetection()],
+      providers: [
+        provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(DashboardHero);

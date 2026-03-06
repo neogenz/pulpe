@@ -11,6 +11,7 @@ import { PostHogService } from '@core/analytics/posthog';
 import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import * as cryptoUtils from '@core/encryption/crypto.utils';
 import { Logger } from '@core/logging/logger';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 import SetupVaultCode from './setup-vault-code';
 
@@ -86,6 +87,7 @@ describe('SetupVaultCode', () => {
         provideZonelessChangeDetection(),
         provideAnimationsAsync(),
         provideRouter([]),
+        ...provideTranslocoForTest(),
         { provide: AuthSessionService, useValue: mockAuthSessionService },
         { provide: ClientKeyService, useValue: mockClientKeyService },
         { provide: EncryptionApi, useValue: mockEncryptionApi },

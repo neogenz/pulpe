@@ -1,12 +1,17 @@
 import { describe, beforeEach, it, expect } from 'vitest';
+import { TestBed } from '@angular/core/testing';
 import { TransactionLabelPipe } from './transaction-label.pipe';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import type { TransactionKind } from 'pulpe-shared';
 
 describe('TransactionLabelPipe', () => {
   let pipe: TransactionLabelPipe;
 
   beforeEach(() => {
-    pipe = new TransactionLabelPipe();
+    TestBed.configureTestingModule({
+      providers: [TransactionLabelPipe, ...provideTranslocoForTest()],
+    });
+    pipe = TestBed.inject(TransactionLabelPipe);
   });
 
   it('should create', () => {

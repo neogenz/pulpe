@@ -8,6 +8,7 @@ import { Logger } from '@core/logging/logger';
 import { PostHogService } from '@core/analytics/posthog';
 import { UserSettingsApi } from '@core/user-settings';
 import { AuthOAuthService } from '@core/auth';
+import { provideTranslocoForTest } from '../../testing/transloco-testing';
 
 describe('CompleteProfileStore', () => {
   let store: CompleteProfileStore;
@@ -70,6 +71,7 @@ describe('CompleteProfileStore', () => {
         { provide: AuthOAuthService, useValue: mockAuthOAuth },
         { provide: Logger, useValue: mockLogger },
         { provide: PostHogService, useValue: mockPostHogService },
+        ...provideTranslocoForTest(),
       ],
     });
 

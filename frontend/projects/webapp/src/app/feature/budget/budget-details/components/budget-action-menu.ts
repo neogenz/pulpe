@@ -9,6 +9,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoPipe } from '@jsverse/transloco';
 import type { BudgetLine } from 'pulpe-shared';
 import type { BudgetLineTableItem } from '../data-core';
 
@@ -24,6 +25,7 @@ import type { BudgetLineTableItem } from '../data-core';
     MatMenuModule,
     MatTooltipModule,
     MatDividerModule,
+    TranslocoPipe,
   ],
   template: `
     <button
@@ -47,7 +49,7 @@ import type { BudgetLineTableItem } from '../data-core';
       </div>
       @if (showBalance()) {
         <div class="px-4 pb-2 text-label-medium">
-          Solde:
+          {{ 'budget.balance' | transloco }}:
           {{ formattedBalance() }}
         </div>
       }
@@ -66,7 +68,7 @@ import type { BudgetLineTableItem } from '../data-core';
         [attr.data-testid]="'edit-' + item().data.id"
       >
         <mat-icon matMenuItemIcon>edit</mat-icon>
-        <span>Modifier</span>
+        <span>{{ 'budget.modify' | transloco }}</span>
       </button>
       @if (item().metadata.canResetFromTemplate) {
         <button
@@ -75,7 +77,7 @@ import type { BudgetLineTableItem } from '../data-core';
           [attr.data-testid]="'reset-from-template-' + item().data.id"
         >
           <mat-icon matMenuItemIcon>refresh</mat-icon>
-          <span>Réinitialiser</span>
+          <span>{{ 'budget.reset' | transloco }}</span>
         </button>
       }
       <button
@@ -85,7 +87,7 @@ import type { BudgetLineTableItem } from '../data-core';
         class="text-error"
       >
         <mat-icon matMenuItemIcon class="text-error">delete</mat-icon>
-        <span>Supprimer</span>
+        <span>{{ 'common.delete' | transloco }}</span>
       </button>
     </mat-menu>
   `,

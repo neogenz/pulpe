@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { Router, type NavigationEnd, ActivatedRoute } from '@angular/router';
@@ -17,6 +18,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 import { Subject, EMPTY } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import MainLayout from './main-layout';
 import { AuthStateService } from '../core/auth/auth-state.service';
 import { AuthSessionService } from '../core/auth/auth-session.service';
@@ -202,6 +204,7 @@ describe('MainLayout', () => {
       ],
       providers: [
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
         { provide: AuthStateService, useValue: mockAuthStateService },
         { provide: AuthSessionService, useValue: mockAuthSessionService },
         { provide: Router, useValue: mockRouter },
@@ -258,6 +261,7 @@ describe('MainLayout', () => {
           RouterModule,
           MockNavigationMenuComponent,
           MockPulpeBreadcrumbComponent,
+          TranslocoPipe,
         ],
         styles: [],
         schemas: [NO_ERRORS_SCHEMA],

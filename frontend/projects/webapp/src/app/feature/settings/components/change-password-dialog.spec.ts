@@ -4,6 +4,7 @@ import { MatDialogRef } from '@angular/material/dialog';
 import { ChangePasswordDialog } from './change-password-dialog';
 import { Logger } from '@core/logging/logger';
 import { AuthSessionService } from '@core/auth';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 describe('ChangePasswordDialog', () => {
   let component: ChangePasswordDialog;
@@ -24,6 +25,7 @@ describe('ChangePasswordDialog', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        ...provideTranslocoForTest(),
         ChangePasswordDialog,
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: AuthSessionService, useValue: mockAuthSession },

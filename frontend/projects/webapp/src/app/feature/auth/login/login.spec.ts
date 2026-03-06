@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { AuthCredentialsService } from '@core/auth';
 import { Logger } from '@core/logging/logger';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 import Login from './login';
 
@@ -37,6 +38,7 @@ describe('Login', () => {
         provideZonelessChangeDetection(),
         provideAnimationsAsync(),
         provideRouter([]),
+        ...provideTranslocoForTest(),
         { provide: AuthCredentialsService, useValue: mockAuthCredentials },
         { provide: Logger, useValue: mockLogger },
         {

@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
 import type { TransactionKind } from 'pulpe-shared';
-import { TransactionLabelPipe } from '@ui/transaction-display';
+import { TransactionLabelPipe } from '@pattern/transaction-display';
 
 export interface TransactionFormData {
   description: string;

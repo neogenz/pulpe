@@ -18,6 +18,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 import {
   ClientKeyService,
@@ -54,6 +55,7 @@ import {
     RouterLink,
     ErrorAlert,
     LoadingButton,
+    TranslocoPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -73,7 +75,7 @@ import {
             aria-label="Redirection en cours"
           />
           <p class="text-body-large text-on-surface-variant animate-pulse">
-            Redirection vers ton tableau de bord...
+            {{ 'auth.recoverVaultCode.redirecting' | transloco }}
           </p>
         </div>
       </div>
@@ -88,7 +90,7 @@ import {
           class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
         >
           <mat-icon class="text-lg">arrow_back</mat-icon>
-          <span>Retour</span>
+          <span>{{ 'common.back' | transloco }}</span>
         </button>
 
         <div class="text-center mb-8">
@@ -98,10 +100,10 @@ import {
           <h1
             class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
           >
-            Récupère ton code PIN
+            {{ 'auth.recoverVaultCode.title' | transloco }}
           </h1>
           <p class="text-body-large text-on-surface-variant">
-            Entre ta clé de récupération et ton nouveau code
+            {{ 'auth.recoverVaultCode.subtitle' | transloco }}
           </p>
         </div>
 
@@ -112,7 +114,9 @@ import {
           data-testid="recover-vault-code-form"
         >
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Clé de récupération</mat-label>
+            <mat-label>{{
+              'auth.recoverVaultCode.recoveryKeyLabel' | transloco
+            }}</mat-label>
             <input
               matInput
               formControlName="recoveryKey"
@@ -130,16 +134,20 @@ import {
             ) {
               <mat-error>
                 @if (form.get('recoveryKey')?.hasError('required')) {
-                  Ta clé de récupération est nécessaire
+                  {{ 'auth.recoverVaultCode.recoveryKeyRequired' | transloco }}
                 } @else if (form.get('recoveryKey')?.hasError('pattern')) {
-                  Format invalide — vérifie que tu as bien copié la clé
+                  {{
+                    'auth.recoverVaultCode.recoveryKeyInvalidFormat' | transloco
+                  }}
                 }
               </mat-error>
             }
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Nouveau code PIN</mat-label>
+            <mat-label>{{
+              'auth.recoverVaultCode.newPinLabel' | transloco
+            }}</mat-label>
             <input
               matInput
               [type]="isVaultCodeHidden() ? 'password' : 'text'"
@@ -147,7 +155,9 @@ import {
               formControlName="newVaultCode"
               data-testid="new-vault-code-input"
               (input)="clearError()"
-              placeholder="Nouveau code PIN"
+              [placeholder]="
+                'auth.recoverVaultCode.newPinPlaceholder' | transloco
+              "
             />
             <mat-icon matPrefix>lock</mat-icon>
             <button
@@ -155,32 +165,34 @@ import {
               matIconButton
               matSuffix
               (click)="isVaultCodeHidden.set(!isVaultCodeHidden())"
-              [attr.aria-label]="'Afficher le code'"
+              [attr.aria-label]="'form.showPassword' | transloco"
               [attr.aria-pressed]="!isVaultCodeHidden()"
             >
               <mat-icon>{{
                 isVaultCodeHidden() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
-            <mat-hint>4 chiffres minimum (6+ recommandé)</mat-hint>
+            <mat-hint>{{ 'auth.vaultCode.pinHint' | transloco }}</mat-hint>
             @if (
               form.get('newVaultCode')?.invalid &&
               form.get('newVaultCode')?.touched
             ) {
               <mat-error>
                 @if (form.get('newVaultCode')?.hasError('required')) {
-                  Ton nouveau code est nécessaire
+                  {{ 'auth.recoverVaultCode.newPinRequired' | transloco }}
                 } @else if (form.get('newVaultCode')?.hasError('minlength')) {
-                  4 chiffres minimum
+                  {{ 'auth.vaultCode.pinMinLength' | transloco }}
                 } @else if (form.get('newVaultCode')?.hasError('pattern')) {
-                  Le code PIN ne doit contenir que des chiffres
+                  {{ 'auth.vaultCode.pinPattern' | transloco }}
                 }
               </mat-error>
             }
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Confirmer le code PIN</mat-label>
+            <mat-label>{{
+              'auth.recoverVaultCode.confirmPinLabel' | transloco
+            }}</mat-label>
             <input
               matInput
               [type]="isConfirmCodeHidden() ? 'password' : 'text'"
@@ -188,7 +200,9 @@ import {
               formControlName="confirmCode"
               data-testid="confirm-vault-code-input"
               (input)="clearError()"
-              placeholder="Confirmer le code PIN"
+              [placeholder]="
+                'auth.recoverVaultCode.confirmPinPlaceholder' | transloco
+              "
             />
             <mat-icon matPrefix>lock</mat-icon>
             <button
@@ -196,7 +210,7 @@ import {
               matIconButton
               matSuffix
               (click)="isConfirmCodeHidden.set(!isConfirmCodeHidden())"
-              [attr.aria-label]="'Afficher le code'"
+              [attr.aria-label]="'form.showPassword' | transloco"
               [attr.aria-pressed]="!isConfirmCodeHidden()"
             >
               <mat-icon>{{
@@ -209,11 +223,11 @@ import {
             ) {
               <mat-error>
                 @if (form.get('confirmCode')?.hasError('required')) {
-                  Confirme ton code
+                  {{ 'auth.recoverVaultCode.confirmPinRequired' | transloco }}
                 } @else if (
                   form.get('confirmCode')?.hasError('fieldsMismatch')
                 ) {
-                  Les codes ne correspondent pas
+                  {{ 'auth.recoverVaultCode.pinsMismatch' | transloco }}
                 }
               </mat-error>
             }
@@ -225,7 +239,7 @@ import {
               data-testid="remember-device-checkbox"
             >
               <span class="text-body-medium text-on-surface">
-                Ne plus me demander sur cet appareil
+                {{ 'auth.vaultCode.rememberDevice' | transloco }}
               </span>
             </mat-checkbox>
           </div>
@@ -235,11 +249,13 @@ import {
           <pulpe-loading-button
             [loading]="isSubmitting()"
             [disabled]="!canSubmit()"
-            loadingText="Récupération..."
+            [loadingText]="'auth.recoverVaultCode.submitting' | transloco"
             icon="lock_reset"
             testId="recover-vault-code-submit-button"
           >
-            <span class="ml-2">Récupérer</span>
+            <span class="ml-2">{{
+              'auth.recoverVaultCode.submit' | transloco
+            }}</span>
           </pulpe-loading-button>
         </form>
       </div>
@@ -254,6 +270,7 @@ export default class RecoverVaultCode {
   readonly #dialog = inject(MatDialog);
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
+  readonly #transloco = inject(TranslocoService);
 
   protected readonly ROUTES = ROUTES;
   protected readonly isSubmitting = signal(false);
@@ -349,7 +366,7 @@ export default class RecoverVaultCode {
       if (!navigated) {
         this.isRedirecting.set(false);
         this.errorMessage.set(
-          'La redirection a échoué — réessaie de te connecter',
+          this.#transloco.translate('auth.vaultCode.redirectFailed'),
         );
       }
     } catch (error) {
@@ -359,16 +376,20 @@ export default class RecoverVaultCode {
         (error instanceof HttpErrorResponse && error.status === 429) ||
         (isApiError(error) && error.status === 429)
       ) {
-        this.errorMessage.set('Trop de tentatives, patiente quelques minutes');
+        this.errorMessage.set(
+          this.#transloco.translate('auth.vaultCode.rateLimited'),
+        );
       } else if (
         (error instanceof HttpErrorResponse && error.status === 400) ||
         (isApiError(error) && error.status === 400)
       ) {
         this.errorMessage.set(
-          'Clé de récupération invalide — vérifie que tu as bien copié la clé',
+          this.#transloco.translate('auth.vaultCode.invalidRecoveryKey'),
         );
       } else {
-        this.errorMessage.set("Quelque chose n'a pas fonctionné — réessaie");
+        this.errorMessage.set(
+          this.#transloco.translate('common.somethingWentWrong'),
+        );
       }
     } finally {
       this.isRedirecting.set(false);
@@ -397,7 +418,9 @@ export default class RecoverVaultCode {
         error,
       );
       this.#snackBar.open(
-        "La clé de récupération n'a pas pu être générée — pense à en créer une dans les paramètres",
+        this.#transloco.translate(
+          'auth.recoverVaultCode.recoveryKeyGenerationFailed',
+        ),
         'OK',
         { duration: 8000, horizontalPosition: 'center' },
       );

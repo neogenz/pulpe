@@ -16,10 +16,8 @@ import {
   type TransactionKind,
   type TransactionRecurrence,
 } from 'pulpe-shared';
-import {
-  TransactionIconPipe,
-  TransactionLabelPipe,
-} from '@ui/transaction-display';
+import { TransactionIconPipe } from '@ui/transaction-display';
+import { TransactionLabelPipe } from '@pattern/transaction-display';
 
 export interface EditBudgetLineDialogData {
   budgetLine: BudgetLine;

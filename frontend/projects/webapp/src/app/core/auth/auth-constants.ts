@@ -17,12 +17,7 @@ export const AUTH_ERROR_MESSAGES = {
     'La préparation de ton espace sécurisé a échoué — réessaie de te connecter. Si le problème persiste, contacte le support.',
 } as const;
 
-export function formatScheduledDeletionMessage(
-  scheduledDeletionAt: unknown,
-): string {
+export function formatDeletionDate(scheduledDeletionAt: unknown): string {
   const date = new Date(String(scheduledDeletionAt));
-  const formattedDate = isNaN(date.getTime())
-    ? '—'
-    : date.toLocaleDateString('fr-CH');
-  return `Ton compte est programmé pour suppression le ${formattedDate}. Si c'est une erreur, contacte le support.`;
+  return isNaN(date.getTime()) ? '—' : date.toLocaleDateString('fr-CH');
 }

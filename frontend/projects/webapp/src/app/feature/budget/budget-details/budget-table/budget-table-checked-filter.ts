@@ -9,21 +9,22 @@ import {
   MatChipsModule,
 } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 @Component({
   selector: 'pulpe-budget-table-checked-filter',
-  imports: [MatChipsModule, MatIconModule],
+  imports: [MatChipsModule, MatIconModule, TranslocoPipe],
   template: `
     <span class="sr-only" role="status" aria-live="polite">
       {{
         isShowingOnlyUnchecked()
-          ? 'Affichage des éléments à pointer'
-          : 'Affichage de tous les éléments'
+          ? ('budget.uncheckedItemsDisplay' | transloco)
+          : ('budget.allItemsDisplay' | transloco)
       }}
     </span>
     <mat-chip-listbox
       class="checked-filter-chips"
-      aria-label="Filtrer les éléments"
+      [attr.aria-label]="'budget.filterLabel' | transloco"
       [hideSingleSelectionIndicator]="true"
     >
       <mat-chip-option
@@ -32,7 +33,7 @@ import { MatIconModule } from '@angular/material/icon';
         data-testid="unchecked-filter-chip"
       >
         <mat-icon matChipAvatar>check_box_outline_blank</mat-icon>
-        À pointer
+        {{ 'budget.filterUnchecked' | transloco }}
       </mat-chip-option>
       <mat-chip-option
         [selected]="!isShowingOnlyUnchecked()"
@@ -40,7 +41,7 @@ import { MatIconModule } from '@angular/material/icon';
         data-testid="all-items-filter-chip"
       >
         <mat-icon matChipAvatar>list</mat-icon>
-        Toutes
+        {{ 'budget.filterAll' | transloco }}
       </mat-chip-option>
     </mat-chip-listbox>
   `,

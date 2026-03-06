@@ -17,6 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DatePipe } from '@angular/common';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   type BudgetLineConsumption,
   BudgetCalculator,
@@ -58,6 +59,7 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
     MatButtonModule,
     MatSnackBarModule,
     DatePipe,
+    TranslocoPipe,
     BudgetItemsContainer,
     BudgetFinancialOverview,
     BaseLoading,
@@ -159,6 +161,7 @@ export default class BudgetDetailsPage {
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
   readonly #userSettingsApi = inject(UserSettingsApi);
+  readonly #transloco = inject(TranslocoService);
   readonly #breakpointObserver = inject(BreakpointObserver);
 
   readonly #isMobile = toSignal(
@@ -284,20 +287,28 @@ export default class BudgetDetailsPage {
   async handleUpdateBudgetLine(data: BudgetLineUpdate): Promise<void> {
     await this.store.updateBudgetLine(data);
 
-    this.#snackBar.open('Modification enregistrée', 'Fermer', {
-      duration: 5000,
-      panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
-    });
+    this.#snackBar.open(
+      this.#transloco.translate('budget.modificationSaved'),
+      this.#transloco.translate('common.close'),
+      {
+        duration: 5000,
+        panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
+      },
+    );
   }
 
   async handleUpdateTransaction(
     data: TransactionUpdate & { id: string },
   ): Promise<void> {
     await this.store.updateTransaction(data.id, data);
-    this.#snackBar.open('Modification enregistrée', 'Fermer', {
-      duration: 5000,
-      panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
-    });
+    this.#snackBar.open(
+      this.#transloco.translate('budget.modificationSaved'),
+      this.#transloco.translate('common.close'),
+      {
+        duration: 5000,
+        panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
+      },
+    );
   }
 
   async handleEditAllocatedTransaction(
@@ -337,9 +348,9 @@ export default class BudgetDetailsPage {
 
     const isBudgetLine = !!budgetLine;
     const title = isBudgetLine
-      ? 'Supprimer cette prévision ?'
-      : 'Supprimer cette transaction ?';
-    const message = 'Cette action est irréversible.';
+      ? this.#transloco.translate('budget.deleteForecast')
+      : this.#transloco.translate('budget.deleteTransaction');
+    const message = this.#transloco.translate('budget.irreversibleAction');
 
     const confirmed = await this.#dialogService.confirmDelete({
       title,
@@ -353,10 +364,14 @@ export default class BudgetDetailsPage {
     } else {
       await this.store.deleteTransaction(id);
 
-      this.#snackBar.open('Transaction supprimée', 'Fermer', {
-        duration: 5000,
-        panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
-      });
+      this.#snackBar.open(
+        this.#transloco.translate('transaction.deleted'),
+        this.#transloco.translate('common.close'),
+        {
+          duration: 5000,
+          panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
+        },
+      );
     }
   }
 
@@ -408,24 +423,30 @@ export default class BudgetDetailsPage {
     if (transaction) {
       await this.store.createAllocatedTransaction(transaction);
 
-      this.#snackBar.open('Transaction ajoutée', 'Fermer', {
-        duration: 3000,
-      });
+      this.#snackBar.open(
+        this.#transloco.translate('budget.transactionAdded'),
+        this.#transloco.translate('common.close'),
+        { duration: 3000 },
+      );
     }
   }
 
   async handleDeleteTransaction(transaction: Transaction): Promise<void> {
     const confirmed = await this.#dialogService.confirmDelete({
-      title: 'Supprimer cette transaction ?',
-      message: `Tu vas supprimer « ${transaction.name} ». Cette action est irréversible.`,
+      title: this.#transloco.translate('budget.deleteTransaction'),
+      message: this.#transloco.translate('transaction.deleteConfirm', {
+        name: transaction.name,
+      }),
     });
 
     if (confirmed) {
       await this.store.deleteTransaction(transaction.id);
 
-      this.#snackBar.open('Transaction supprimée', 'Fermer', {
-        duration: 3000,
-      });
+      this.#snackBar.open(
+        this.#transloco.translate('transaction.deleted'),
+        this.#transloco.translate('common.close'),
+        { duration: 3000 },
+      );
     }
   }
 
@@ -434,8 +455,8 @@ export default class BudgetDetailsPage {
       await this.store.resetBudgetLineFromTemplate(budgetLineId);
 
       this.#snackBar.open(
-        'Prévision réinitialisée depuis le modèle',
-        'Fermer',
+        this.#transloco.translate('budget.forecastReset'),
+        this.#transloco.translate('common.close'),
         {
           duration: 5000,
           panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
@@ -443,12 +464,18 @@ export default class BudgetDetailsPage {
       );
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Erreur inconnue';
+        error instanceof Error
+          ? error.message
+          : this.#transloco.translate('common.error');
 
-      this.#snackBar.open(errorMessage, 'Fermer', {
-        duration: 5000,
-        panelClass: ['bg-error-container', 'text-on-error-container'],
-      });
+      this.#snackBar.open(
+        errorMessage,
+        this.#transloco.translate('common.close'),
+        {
+          duration: 5000,
+          panelClass: ['bg-error-container', 'text-on-error-container'],
+        },
+      );
     }
   }
 
@@ -488,6 +515,17 @@ export default class BudgetDetailsPage {
       budgetLineId,
       details.budgetLines,
       details.transactions,
+      {
+        overEnvelope: (consumed, envelope) =>
+          this.#transloco.translate('budget.snackbar.envelopeOver', {
+            consumed,
+            envelope,
+          }),
+        withinEnvelope: (envelope) =>
+          this.#transloco.translate('budget.snackbar.envelopeWithin', {
+            envelope,
+          }),
+      },
     );
     if (message) this.#snackBar.open(message, undefined, { duration: 3000 });
   }
@@ -503,6 +541,12 @@ export default class BudgetDetailsPage {
     const message = computeTransactionSnackbarMessage(
       transactionId,
       details.transactions,
+      {
+        checked: (amount) =>
+          this.#transloco.translate('budget.snackbar.transactionChecked', {
+            amount,
+          }),
+      },
     );
     if (message) this.#snackBar.open(message, undefined, { duration: 3000 });
   }

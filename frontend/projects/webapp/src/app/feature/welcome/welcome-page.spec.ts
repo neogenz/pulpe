@@ -4,6 +4,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterModule } from '@angular/router';
 import { NO_ERRORS_SCHEMA, signal, Component, input } from '@angular/core';
 import WelcomePage from './welcome-page';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { Logger } from '@core/logging/logger';
 import { TurnstileService } from '@core/turnstile';
@@ -81,6 +82,7 @@ describe('WelcomePage', () => {
     await TestBed.configureTestingModule({
       imports: [WelcomePage, NoopAnimationsModule, RouterModule.forRoot([])],
       providers: [
+        ...provideTranslocoForTest(),
         { provide: DemoInitializerService, useValue: mockDemoInitializer },
         { provide: Logger, useValue: mockLogger },
         { provide: TurnstileService, useValue: mockTurnstileService },

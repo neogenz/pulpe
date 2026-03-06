@@ -15,10 +15,9 @@ import {
   type TransactionKind,
   type TransactionRecurrence,
 } from 'pulpe-shared';
-import {
-  TransactionIconPipe,
-  TransactionLabelPipe,
-} from '@ui/transaction-display';
+import { TranslocoPipe } from '@jsverse/transloco';
+import { TransactionIconPipe } from '@ui/transaction-display';
+import { TransactionLabelPipe } from '@pattern/transaction-display';
 
 export interface BudgetLineDialogData {
   budgetId: string;
@@ -34,27 +33,32 @@ export interface BudgetLineDialogData {
     MatButtonModule,
     MatIconModule,
     ReactiveFormsModule,
+    TranslocoPipe,
     TransactionIconPipe,
     TransactionLabelPipe,
   ],
   template: `
-    <h2 mat-dialog-title class="text-headline-small">Nouvelle prévision</h2>
+    <h2 mat-dialog-title class="text-headline-small">
+      {{ 'budget.newForecast' | transloco }}
+    </h2>
 
     <mat-dialog-content>
       <div class="flex flex-col gap-4 pt-4">
         <form [formGroup]="form">
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Nom</mat-label>
+            <mat-label>{{ 'budget.forecastNameLabel' | transloco }}</mat-label>
             <input
               matInput
               formControlName="name"
-              placeholder="Ex: Salaire, Loyer, Épargne..."
+              [placeholder]="'budget.forecastNamePlaceholder' | transloco"
               data-testid="new-line-name"
             />
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full ph-no-capture">
-            <mat-label class="ph-no-capture">Montant</mat-label>
+            <mat-label class="ph-no-capture">{{
+              'transactionForm.amountLabel' | transloco
+            }}</mat-label>
             <input
               matInput
               type="number"
@@ -69,7 +73,7 @@ export interface BudgetLineDialogData {
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Type</mat-label>
+            <mat-label>{{ 'budget.forecastTypeLabel' | transloco }}</mat-label>
             <mat-select formControlName="kind" data-testid="new-line-kind">
               <mat-option value="income">
                 <mat-icon class="text-financial-income">{{
@@ -97,7 +101,7 @@ export interface BudgetLineDialogData {
 
     <mat-dialog-actions align="end">
       <button matButton (click)="handleCancel()" data-testid="cancel-new-line">
-        Annuler
+        {{ 'common.cancel' | transloco }}
       </button>
       <button
         matButton="filled"
@@ -107,7 +111,7 @@ export interface BudgetLineDialogData {
         data-testid="add-new-line"
       >
         <mat-icon>add</mat-icon>
-        Ajouter
+        {{ 'common.add' | transloco }}
       </button>
     </mat-dialog-actions>
   `,

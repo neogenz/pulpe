@@ -18,6 +18,7 @@ import {
   createMockBudgetDetailsResponse,
   createMockTransaction,
 } from '../../../../testing/mock-factories';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 const mockBudgetId = 'budget-search-test';
 
@@ -121,6 +122,7 @@ describe('BudgetDetailsStore - Search Filtering', () => {
         provideZonelessChangeDetection(),
         provideHttpClient(),
         provideHttpClientTesting(),
+        ...provideTranslocoForTest(),
         BudgetDetailsStore,
         {
           provide: BudgetApi,

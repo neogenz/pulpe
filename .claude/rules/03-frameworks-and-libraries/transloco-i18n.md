@@ -1,0 +1,110 @@
+---
+description: Transloco i18n conventions for the Angular webapp
+paths: "frontend/**/*.ts"
+---
+
+# Transloco i18n
+
+## Overview
+
+All French strings in the webapp are centralized in `frontend/projects/webapp/public/i18n/fr.json`.
+The library is `@jsverse/transloco` v8+.
+
+## Key Naming
+
+Use dot-notation camelCase: `domain.subDomain.key`
+
+```
+auth.login.title
+auth.signup.submit
+budget.loadError
+common.cancel
+form.emailRequired
+```
+
+## Template Usage
+
+Import `TranslocoPipe` and use the `transloco` pipe:
+
+```typescript
+import { TranslocoPipe } from '@jsverse/transloco';
+
+@Component({
+  imports: [TranslocoPipe],
+  template: `
+    <h1>{{ 'auth.login.title' | transloco }}</h1>
+    <button>{{ 'common.save' | transloco }}</button>
+    <!-- With parameters -->
+    <p>{{ 'budget.payDayHint' | transloco: { day: selectedDay() } }}</p>
+  `,
+})
+```
+
+## TypeScript Usage
+
+Inject `TranslocoService` and use `translate()`:
+
+```typescript
+import { TranslocoService } from '@jsverse/transloco';
+
+@Injectable({ providedIn: 'root' })
+export class MyService {
+  readonly #transloco = inject(TranslocoService);
+
+  getMessage(): string {
+    return this.#transloco.translate('common.error');
+  }
+
+  getMessageWithParam(name: string): string {
+    return this.#transloco.translate('budget.checkLabel', { name });
+  }
+}
+```
+
+## Test Setup
+
+Always include `...provideTranslocoForTest()` in TestBed providers:
+
+```typescript
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+
+TestBed.configureTestingModule({
+  providers: [
+    ...provideTranslocoForTest(),
+  ],
+});
+```
+
+## JSON Structure
+
+`public/i18n/fr.json` is organized by domain:
+
+```json
+{
+  "common": { "save": "Enregistrer", "cancel": "Annuler" },
+  "auth": {
+    "login": { "title": "...", "submit": "..." },
+    "signup": { "title": "...", "submit": "..." }
+  },
+  "budget": { "loadError": "..." },
+  "form": { "emailRequired": "..." },
+  "errors": { "generic": "..." }
+}
+```
+
+## Rules
+
+- **NEVER** hardcode French strings in templates or TS files — always use transloco keys
+- **ALWAYS** add new strings to `fr.json` before referencing the key
+- Single translation file: all translations in `public/i18n/fr.json`
+- Keys must be camelCase and descriptive
+- Group by domain, not by component
+- Use parameter interpolation `{{ param }}` for dynamic values
+- Import `TranslocoPipe` in standalone component imports array — do NOT use `TranslocoModule`
+
+## Infrastructure Files
+
+- Loader: `src/app/core/i18n/transloco-loader.ts`
+- Config: `src/app/core/i18n/transloco-config.ts` — exports `provideAppTransloco()`
+- Provider registered in: `src/app/core/core.ts` via `...provideAppTransloco()`
+- Test helper: `src/app/testing/transloco-testing.ts` — exports `provideTranslocoForTest()`

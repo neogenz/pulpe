@@ -4,11 +4,12 @@ import {
   MatChipsModule,
 } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslocoPipe } from '@jsverse/transloco';
 import type { BudgetViewMode } from '../data-core';
 
 @Component({
   selector: 'pulpe-budget-view-toggle',
-  imports: [MatChipsModule, MatIconModule],
+  imports: [MatChipsModule, MatIconModule, TranslocoPipe],
   template: `
     <mat-chip-listbox
       class="view-toggle-chips"
@@ -21,7 +22,7 @@ import type { BudgetViewMode } from '../data-core';
         data-testid="grid-mode-chip"
       >
         <mat-icon matChipAvatar>grid_view</mat-icon>
-        Vue Grille
+        {{ 'budget.viewGrid' | transloco }}
       </mat-chip-option>
       <mat-chip-option
         [selected]="viewMode() === 'table'"
@@ -29,7 +30,7 @@ import type { BudgetViewMode } from '../data-core';
         data-testid="table-mode-chip"
       >
         <mat-icon matChipAvatar>table_rows</mat-icon>
-        Vue Table
+        {{ 'budget.viewTable' | transloco }}
       </mat-chip-option>
     </mat-chip-listbox>
   `,

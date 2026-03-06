@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
+import { TranslocoPipe } from '@jsverse/transloco';
 import type { TransactionCreate } from 'pulpe-shared';
 import { formatLocalDate } from '@core/date/format-local-date';
 import type { CreateAllocatedTransactionDialogData } from './create-allocated-transaction-dialog';
@@ -26,6 +27,7 @@ import {
     MatIconModule,
     MatDatepickerModule,
     ReactiveFormsModule,
+    TranslocoPipe,
   ],
   template: `
     <div class="flex flex-col gap-4 pb-6">
@@ -37,9 +39,16 @@ import {
       <!-- Header -->
       <div class="flex justify-between items-center">
         <h2 class="text-title-large text-on-surface m-0">
-          Nouvelle transaction - {{ data.budgetLine.name }}
+          {{
+            'budget.newTransactionTitle'
+              | transloco: { name: data.budgetLine.name }
+          }}
         </h2>
-        <button matIconButton (click)="close()" aria-label="Fermer">
+        <button
+          matIconButton
+          (click)="close()"
+          [attr.aria-label]="'common.close' | transloco"
+        >
           <mat-icon>close</mat-icon>
         </button>
       </div>
@@ -52,21 +61,25 @@ import {
         novalidate
       >
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
-          <mat-label>Description</mat-label>
+          <mat-label>{{ 'budget.tableDescription' | transloco }}</mat-label>
           <input
             matInput
             formControlName="name"
-            placeholder="Ex: Restaurant, Courses..."
+            [placeholder]="'transactionForm.namePlaceholder' | transloco"
           />
           @if (
             form.get('name')?.hasError('required') && form.get('name')?.touched
           ) {
-            <mat-error>La description est requise</mat-error>
+            <mat-error>{{
+              'budget.descriptionRequired' | transloco
+            }}</mat-error>
           }
           @if (
             form.get('name')?.hasError('maxlength') && form.get('name')?.touched
           ) {
-            <mat-error>100 caractères maximum</mat-error>
+            <mat-error>{{
+              'budget.descriptionMaxLength' | transloco
+            }}</mat-error>
           }
         </mat-form-field>
 
@@ -75,7 +88,7 @@ import {
           subscriptSizing="dynamic"
           class="ph-no-capture"
         >
-          <mat-label>Montant</mat-label>
+          <mat-label>{{ 'transactionForm.amountLabel' | transloco }}</mat-label>
           <input
             matInput
             type="number"
@@ -89,17 +102,19 @@ import {
             form.get('amount')?.hasError('required') &&
             form.get('amount')?.touched
           ) {
-            <mat-error>Le montant est requis</mat-error>
+            <mat-error>{{
+              'transactionForm.amountRequired' | transloco
+            }}</mat-error>
           }
           @if (
             form.get('amount')?.hasError('min') && form.get('amount')?.touched
           ) {
-            <mat-error>Le montant doit être supérieur à 0</mat-error>
+            <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
           }
         </mat-form-field>
 
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
-          <mat-label>Date</mat-label>
+          <mat-label>{{ 'budget.dateLabel' | transloco }}</mat-label>
           <input
             matInput
             [matDatepicker]="picker"
@@ -110,25 +125,33 @@ import {
           />
           <mat-datepicker-toggle matIconSuffix [for]="picker" />
           <mat-datepicker #picker />
-          <mat-hint>Doit être dans la période du budget</mat-hint>
+          <mat-hint>{{
+            'transactionForm.dateHintBudget' | transloco
+          }}</mat-hint>
           @if (
             form.get('transactionDate')?.hasError('required') &&
             form.get('transactionDate')?.touched
           ) {
-            <mat-error>La date est requise</mat-error>
+            <mat-error>{{
+              'transactionForm.dateRequired' | transloco
+            }}</mat-error>
           }
           @if (
             form.get('transactionDate')?.hasError('dateOutOfRange') &&
             form.get('transactionDate')?.touched
           ) {
-            <mat-error>La date doit être dans la période du budget</mat-error>
+            <mat-error>{{
+              'budget.dateOutOfBudgetPeriod' | transloco
+            }}</mat-error>
           }
         </mat-form-field>
       </form>
 
       <!-- Action buttons -->
       <div class="flex gap-3 pt-2">
-        <button matButton (click)="close()" class="flex-1">Annuler</button>
+        <button matButton (click)="close()" class="flex-1">
+          {{ 'common.cancel' | transloco }}
+        </button>
         <button
           matButton="filled"
           (click)="submit()"
@@ -136,7 +159,7 @@ import {
           class="flex-2"
         >
           <mat-icon>add</mat-icon>
-          Créer
+          {{ 'budget.createButton' | transloco }}
         </button>
       </div>
     </div>

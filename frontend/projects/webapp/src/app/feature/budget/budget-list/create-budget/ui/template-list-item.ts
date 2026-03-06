@@ -14,6 +14,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
 import { type TemplateViewModel } from './template-view-model';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 @Component({
   selector: 'pulpe-template-list-item',
@@ -27,6 +28,7 @@ import { type TemplateViewModel } from './template-view-model';
     MatProgressSpinnerModule,
     MatListModule,
     MatDividerModule,
+    TranslocoPipe,
   ],
   template: `
     <mat-card
@@ -81,7 +83,7 @@ import { type TemplateViewModel } from './template-view-model';
             >
               <mat-progress-spinner
                 mode="indeterminate"
-                aria-label="Calcul des données financières en cours"
+                [attr.aria-label]="'template.calculatingAriaLabel' | transloco"
                 role="progressbar"
                 class="pulpe-loading-indicator pulpe-loading-medium flex-shrink-0"
                 [diameter]="24"
