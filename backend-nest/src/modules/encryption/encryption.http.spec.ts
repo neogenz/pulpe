@@ -272,6 +272,23 @@ describe('Encryption HTTP pipeline', () => {
       expect(res.body.code).toBe('ERR_ENCRYPTION_KEY_CHECK_FAILED');
     });
 
+    it('returns 500 ERR_ENCRYPTION_REKEY_PARTIAL_FAILURE when rekey partially fails', async () => {
+      mockService.changePinRekey.mockImplementationOnce(() =>
+        Promise.reject(
+          new BusinessException(
+            ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
+          ),
+        ),
+      );
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/encryption/change-pin')
+        .send({ oldClientKey: VALID_HEX_KEY, newClientKey: VALID_HEX_KEY_ALT })
+        .expect(500);
+
+      expect(res.body.code).toBe('ERR_ENCRYPTION_REKEY_PARTIAL_FAILURE');
+    });
+
     it('returns 400 Zod error for invalid hex oldClientKey', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/encryption/change-pin')

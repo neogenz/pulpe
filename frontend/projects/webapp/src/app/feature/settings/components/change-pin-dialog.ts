@@ -287,7 +287,7 @@ export class ChangePinDialog {
   protected async onSubmitNewPin(): Promise<void> {
     if (this.isSubmitting() || !this.newPinForm.valid) return;
 
-    if (!this.#salt || !this.#kdfIterations) {
+    if (!this.#salt || !this.#kdfIterations || !this.#oldClientKey) {
       this.errorMessage.set('Une erreur est survenue — réessaie plus tard');
       this.step.set(1);
       return;
@@ -338,6 +338,8 @@ export class ChangePinDialog {
           return;
         }
       }
+      this.#clearSensitiveState();
+      this.step.set(1);
       this.#logger.error('PIN change failed', error);
       this.errorMessage.set(
         'Le changement de code PIN a échoué — réessaie plus tard',
