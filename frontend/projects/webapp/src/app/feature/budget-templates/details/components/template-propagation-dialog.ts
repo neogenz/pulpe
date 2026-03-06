@@ -96,7 +96,7 @@ interface TemplatePropagationDialogData {
         {{ 'common.cancel' | transloco }}
       </button>
       <button matButton="filled" color="primary" (click)="confirm()">
-        {{ 'common.confirm' | transloco }}
+        {{ 'common.continue' | transloco }}
       </button>
     </mat-dialog-actions>
   `,
