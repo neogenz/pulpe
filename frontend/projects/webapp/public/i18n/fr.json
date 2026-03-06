@@ -736,6 +736,31 @@
     "validationFailed": "Les informations fournies ne sont pas valides",
     "pwnedPassword": "Ce mot de passe a été exposé dans une fuite de données — choisis-en un autre"
   },
+  "apiError": {
+    "generic": "Une erreur est survenue — réessaie",
+    "budgetNotFound": "Budget introuvable",
+    "budgetCreationFailed": "La création du budget a échoué — réessaie",
+    "budgetUpdateFailed": "La mise à jour du budget a échoué — réessaie",
+    "budgetDeleteFailed": "La suppression du budget a échoué — réessaie",
+    "budgetAlreadyExists": "Ce budget existe déjà",
+    "budgetLineNotFound": "Prévision introuvable",
+    "budgetLineCreationFailed": "L'ajout de la prévision a échoué — réessaie",
+    "budgetLineUpdateFailed": "La modification de la prévision a échoué — réessaie",
+    "budgetLineDeleteFailed": "La suppression de la prévision a échoué — réessaie",
+    "transactionNotFound": "Transaction introuvable",
+    "transactionCreationFailed": "L'ajout de la transaction a échoué — réessaie",
+    "transactionUpdateFailed": "La modification de la transaction a échoué — réessaie",
+    "transactionDeleteFailed": "La suppression de la transaction a échoué — réessaie",
+    "templateNotFound": "Modèle introuvable",
+    "templateCreationFailed": "La création du modèle a échoué — réessaie",
+    "templateUpdateFailed": "La mise à jour du modèle a échoué — réessaie",
+    "templateDeleteFailed": "La suppression du modèle a échoué — réessaie",
+    "profileNotFound": "Profil introuvable",
+    "profileUpdateFailed": "La mise à jour du profil a échoué — réessaie",
+    "validationFailed": "Les données envoyées ne sont pas valides",
+    "unauthorized": "Tu dois te connecter pour continuer",
+    "forbidden": "Tu n'as pas accès à cette ressource"
+  },
   "logout": {
     "inProgress": "Déconnexion...",
     "seeYouSoon": "À bientôt !"

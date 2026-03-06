@@ -1,5 +1,4 @@
 import { Chart, registerables } from 'chart.js';
-import { APP_LOCALE } from '@core/locale';
 
 let _registered = false;
 
@@ -8,8 +7,6 @@ export function registerChartPlugins(): void {
   Chart.register(...registerables);
   _registered = true;
 }
-
-const MONTH_FORMATTER = new Intl.DateTimeFormat(APP_LOCALE, { month: 'short' });
 
 const CHF_FORMATTER = new Intl.NumberFormat('de-CH', {
   style: 'currency',
@@ -98,9 +95,16 @@ export function resolveChartThemeColors(doc: Document): ChartThemeColors {
   };
 }
 
-export function formatShortMonth(monthNumber: number): string {
+const monthFormatterCache = new Map<string, Intl.DateTimeFormat>();
+
+export function formatShortMonth(monthNumber: number, locale: string): string {
+  let formatter = monthFormatterCache.get(locale);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, { month: 'short' });
+    monthFormatterCache.set(locale, formatter);
+  }
   const date = new Date(2000, monthNumber - 1, 1);
-  const month = MONTH_FORMATTER.format(date);
+  const month = formatter.format(date);
   return month.charAt(0).toUpperCase() + month.slice(1);
 }
 

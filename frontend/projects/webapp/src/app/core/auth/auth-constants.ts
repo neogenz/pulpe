@@ -1,5 +1,3 @@
-import { APP_LOCALE } from '@core/locale';
-
 export const PASSWORD_MIN_LENGTH = 8;
 export const VAULT_CODE_MIN_LENGTH = 4;
 
@@ -19,7 +17,10 @@ export const AUTH_ERROR_MESSAGES = {
     'La préparation de ton espace sécurisé a échoué — réessaie de te connecter. Si le problème persiste, contacte le support.',
 } as const;
 
-export function formatDeletionDate(scheduledDeletionAt: unknown): string {
+export function formatDeletionDate(
+  scheduledDeletionAt: unknown,
+  locale: string,
+): string {
   const date = new Date(String(scheduledDeletionAt));
-  return isNaN(date.getTime()) ? '—' : date.toLocaleDateString(APP_LOCALE);
+  return isNaN(date.getTime()) ? '—' : date.toLocaleDateString(locale);
 }

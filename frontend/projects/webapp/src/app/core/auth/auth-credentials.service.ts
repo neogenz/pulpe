@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, LOCALE_ID } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
 
 import { ClientKeyService } from '@core/encryption';
@@ -19,6 +19,7 @@ export class AuthCredentialsService {
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
   readonly #logger = inject(Logger);
   readonly #clientKeyService = inject(ClientKeyService);
+  readonly #locale = inject(LOCALE_ID);
   readonly #transloco = inject(TranslocoService);
 
   async signInWithEmail(
@@ -56,6 +57,7 @@ export class AuthCredentialsService {
           error: this.#transloco.translate('auth.scheduledDeletion', {
             date: formatDeletionDate(
               data.session.user.user_metadata['scheduledDeletionAt'],
+              this.#locale,
             ),
           }),
         };

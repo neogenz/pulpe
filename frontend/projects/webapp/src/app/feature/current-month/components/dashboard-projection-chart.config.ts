@@ -100,6 +100,7 @@ export function buildProjectionChartOptions(
 export function buildProjectionChartData(
   forecasts: UpcomingMonthForecast[],
   theme: ChartThemeColors | null,
+  locale: string,
   labels: { available: string; cumulatedSavings: string } = {
     available: 'Disponible',
     cumulatedSavings: 'Épargne cumulée',
@@ -177,7 +178,7 @@ export function buildProjectionChartData(
   }
 
   return {
-    labels: withBudget.map((f) => formatShortMonth(f.month)),
+    labels: withBudget.map((f) => formatShortMonth(f.month, locale)),
     datasets,
   };
 }

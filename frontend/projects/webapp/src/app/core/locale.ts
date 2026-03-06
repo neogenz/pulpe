@@ -31,7 +31,7 @@ const CUSTOM_DATE_FORMATS = {
   },
 };
 
-export const APP_LOCALE = 'fr-CH' as const;
+const APP_LOCALE = 'fr-CH' as const;
 
 export function provideLocale() {
   return [

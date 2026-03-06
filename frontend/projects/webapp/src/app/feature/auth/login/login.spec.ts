@@ -1,4 +1,4 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import { LOCALE_ID, provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { ActivatedRoute, provideRouter, Router } from '@angular/router';
@@ -39,6 +39,7 @@ describe('Login', () => {
         provideAnimationsAsync(),
         provideRouter([]),
         ...provideTranslocoForTest(),
+        { provide: LOCALE_ID, useValue: 'fr-CH' },
         { provide: AuthCredentialsService, useValue: mockAuthCredentials },
         { provide: Logger, useValue: mockLogger },
         {

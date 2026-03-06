@@ -31,7 +31,7 @@ describe('buildProjectionChartData', () => {
       makeForecast({ month: 4, hasBudget: false }),
     ];
 
-    const result = buildProjectionChartData(forecasts, mockTheme);
+    const result = buildProjectionChartData(forecasts, mockTheme, 'fr-CH');
     expect(result.datasets).toEqual([]);
     expect(result.labels).toEqual([]);
   });
@@ -41,7 +41,7 @@ describe('buildProjectionChartData', () => {
       makeForecast({ month: 4, income: 5000, expenses: 3000, savings: 500 }),
     ];
 
-    const result = buildProjectionChartData(forecasts, null);
+    const result = buildProjectionChartData(forecasts, null, 'fr-CH');
     expect(result.datasets).toEqual([]);
   });
 
@@ -58,7 +58,7 @@ describe('buildProjectionChartData', () => {
         }),
       ];
 
-      const result = buildProjectionChartData(forecasts, mockTheme);
+      const result = buildProjectionChartData(forecasts, mockTheme, 'fr-CH');
       const balanceDataset = result.datasets[0];
 
       // Correct: 5000 - 4500 = 500
@@ -76,7 +76,7 @@ describe('buildProjectionChartData', () => {
         }),
       ];
 
-      const result = buildProjectionChartData(forecasts, mockTheme);
+      const result = buildProjectionChartData(forecasts, mockTheme, 'fr-CH');
       expect(result.datasets[0].data).toEqual([2000]);
     });
 
@@ -102,7 +102,7 @@ describe('buildProjectionChartData', () => {
         }),
       ];
 
-      const result = buildProjectionChartData(forecasts, mockTheme);
+      const result = buildProjectionChartData(forecasts, mockTheme, 'fr-CH');
 
       // balance = income - expenses for each month
       expect(result.datasets[0].data).toEqual([500, 1200, 0]);
@@ -118,7 +118,7 @@ describe('buildProjectionChartData', () => {
         }),
       ];
 
-      const result = buildProjectionChartData(forecasts, mockTheme);
+      const result = buildProjectionChartData(forecasts, mockTheme, 'fr-CH');
       expect(result.datasets[0].data).toEqual([-1000]);
     });
   });
@@ -135,7 +135,7 @@ describe('buildProjectionChartData', () => {
         }),
       ];
 
-      const result = buildProjectionChartData(forecasts, mockTheme);
+      const result = buildProjectionChartData(forecasts, mockTheme, 'fr-CH');
       const savingsDataset = result.datasets.find(
         (d) => d.label === 'Épargne cumulée',
       );
@@ -149,7 +149,7 @@ describe('buildProjectionChartData', () => {
         makeForecast({ month: 4, income: 5000, expenses: 3000, savings: 0 }),
       ];
 
-      const result = buildProjectionChartData(forecasts, mockTheme);
+      const result = buildProjectionChartData(forecasts, mockTheme, 'fr-CH');
       expect(result.datasets.length).toBe(1);
       expect(result.datasets[0].label).toBe('Disponible');
     });
@@ -162,7 +162,7 @@ describe('buildProjectionChartData', () => {
         makeForecast({ month: 5, income: 100, expenses: 50, savings: 0 }),
       ];
 
-      const result = buildProjectionChartData(forecasts, mockTheme);
+      const result = buildProjectionChartData(forecasts, mockTheme, 'fr-CH');
       expect(result.labels?.length).toBe(2);
     });
 
@@ -173,7 +173,7 @@ describe('buildProjectionChartData', () => {
         makeForecast({ month: 6, income: 100, expenses: 50, savings: 0 }),
       ];
 
-      const result = buildProjectionChartData(forecasts, mockTheme);
+      const result = buildProjectionChartData(forecasts, mockTheme, 'fr-CH');
       expect(result.labels?.length).toBe(2);
     });
   });
@@ -184,7 +184,7 @@ describe('buildProjectionChartData', () => {
         makeForecast({ month: 4 }), // all nulls
       ];
 
-      const result = buildProjectionChartData(forecasts, mockTheme);
+      const result = buildProjectionChartData(forecasts, mockTheme, 'fr-CH');
       expect(result.datasets[0].data).toEqual([0]);
     });
   });
