@@ -5,7 +5,7 @@ export default [
     path: '',
     loadComponent: () => import('./complete-profile-page'),
     data: {
-      breadcrumb: 'Finaliser mon profil',
+      breadcrumb: 'pageTitle.completeProfile',
       icon: 'person_add',
     },
   },
