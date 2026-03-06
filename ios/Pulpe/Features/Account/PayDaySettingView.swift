@@ -16,12 +16,10 @@ struct PayDaySettingView: View {
             }
         } header: {
             Text("PR\u{00C9}F\u{00C9}RENCES")
-                .font(PulpeTypography.labelLarge)
         } footer: {
             Text(hintText)
                 .font(PulpeTypography.caption)
         }
-        .listRowBackground(Color.surfaceContainerHigh)
         .onChange(of: userSettingsStore.payDayOfMonth) { _, newValue in
             if viewModel == nil {
                 viewModel = PayDaySettingViewModel(currentPayDay: newValue)
@@ -158,8 +156,6 @@ final class PayDaySettingViewModel {
         PayDaySettingView()
     }
     .listStyle(.insetGrouped)
-    .scrollContentBackground(.hidden)
-    .background(Color.surface)
     .environment(AppState())
     .environment(UserSettingsStore())
     .environment(CurrentMonthStore())

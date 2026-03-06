@@ -18,9 +18,12 @@ struct AccountView: View {
                 personalInfoSection
                 PayDaySettingView()
                 securitySection
+                settingsSection
                 applicationSection
+                supportSection
                 logoutSection
                 dangerZoneSection
+                legalFooterSection
             }
             .onAppear {
                 biometricToggle = appState.biometricEnabled
@@ -70,8 +73,6 @@ struct AccountView: View {
             }
             .sensoryFeedback(.impact, trigger: debugToggleTrigger)
             .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
-            .background(Color.surface)
             .trackScreen("Account")
             .navigationTitle("Compte")
             .toolbar {
@@ -128,19 +129,33 @@ extension AccountView {
             LabeledContent("E-mail", value: appState.currentUser?.email ?? "Non connecté(e)")
         } header: {
             Text("INFORMATIONS PERSONNELLES")
-                .font(PulpeTypography.labelLarge)
         }
-        .listRowBackground(Color.surfaceContainerHigh)
     }
 
     private var securitySection: some View {
         Section {
             LabeledContent("Code PIN") {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Color.financialSavings)
             }
 
-            if BiometricService.shared.canUseBiometrics() {
+            chevronRow("Mot de passe", detail: "••••••••") {
+                showChangePassword = true
+            }
+
+            chevronRow("Clé de secours", detail: "Régénérer") {
+                securityViewModel.showConfirmPassword = true
+            }
+            .disabled(securityViewModel.isRegenerating)
+        } header: {
+            Text("SÉCURITÉ")
+        }
+    }
+
+    @ViewBuilder
+    private var settingsSection: some View {
+        if BiometricService.shared.canUseBiometrics() {
+            Section {
                 Toggle(
                     BiometricService.shared.biometryDisplayName,
                     isOn: $biometricToggle
@@ -163,31 +178,10 @@ extension AccountView {
                         showDisableBiometricConfirmation = true
                     }
                 }
+            } header: {
+                Text("PARAMÈTRES DE L'APPLICATION")
             }
-
-            LabeledContent("Mot de passe") {
-                Button("Changer") {
-                    showChangePassword = true
-                }
-                .buttonStyle(.bordered)
-                .buttonBorderShape(.capsule)
-                .tint(.pulpePrimary)
-            }
-
-            LabeledContent("Clé de secours") {
-                Button("Régénérer") {
-                    securityViewModel.showConfirmPassword = true
-                }
-                .buttonStyle(.bordered)
-                .buttonBorderShape(.capsule)
-                .tint(.pulpePrimary)
-                .disabled(securityViewModel.isRegenerating)
-            }
-        } header: {
-            Text("SÉCURITÉ")
-                .font(PulpeTypography.labelLarge)
         }
-        .listRowBackground(Color.surfaceContainerHigh)
     }
 
     private var applicationSection: some View {
@@ -217,13 +211,31 @@ extension AccountView {
             }
         } header: {
             Text("APPLICATION")
-                .font(PulpeTypography.labelLarge)
                 .onLongPressGesture(minimumDuration: 5) {
                     debugToggleTrigger.toggle()
                     withAnimation(.easeInOut(duration: DesignTokens.Animation.normal)) { isDebugVisible.toggle() }
                 }
         }
-        .listRowBackground(Color.surfaceContainerHigh)
+    }
+
+    private var supportSection: some View {
+        Section {
+            iconChevronLink(
+                icon: "questionmark.circle",
+                title: "FAQ et support",
+                subtitle: "Aide et questions fréquentes",
+                url: AppURLs.support
+            )
+
+            iconChevronLink(
+                icon: "sparkles",
+                title: "Nouveautés",
+                subtitle: "Dernières mises à jour",
+                url: AppURLs.changelog
+            )
+        } header: {
+            Text("SUPPORT")
+        }
     }
 
     private var logoutSection: some View {
@@ -234,8 +246,8 @@ extension AccountView {
                 Text("Déconnexion")
                     .foregroundStyle(Color.errorPrimary)
             }
+            .buttonStyle(.plain)
         }
-        .listRowBackground(Color.surfaceContainerHigh)
     }
 
     private var dangerZoneSection: some View {
@@ -261,10 +273,86 @@ extension AccountView {
             }
         } header: {
             Text("ZONE DE DANGER")
-                .font(PulpeTypography.labelLarge)
                 .foregroundStyle(Color.destructivePrimary)
         }
         .listRowBackground(Color.destructiveBackground)
+    }
+
+    private var legalFooterSection: some View {
+        Section {
+            VStack(spacing: DesignTokens.Spacing.sm) {
+                // swiftlint:disable:next force_try
+                Text(try! AttributedString(
+                    markdown: "Les [Conditions générales](\(AppURLs.terms)) et " +
+                        "l'[Avis de confidentialité](\(AppURLs.privacy)) de Pulpe s'appliquent."
+                ))
+                .font(PulpeTypography.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .tint(Color.pulpePrimary)
+
+                Text("Version \(AppConfiguration.appVersion) - \(AppConfiguration.buildNumber)")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, DesignTokens.Spacing.xs)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .listRowBackground(Color.clear)
+    }
+}
+
+// MARK: - Row Helpers
+
+extension AccountView {
+    private func chevronRow(
+        _ title: String,
+        detail: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack {
+                Text(title)
+                    .foregroundStyle(.primary)
+                Spacer()
+                Text(detail)
+                    .foregroundStyle(.secondary)
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func iconChevronLink(
+        icon: String,
+        title: String,
+        subtitle: String,
+        url: URL
+    ) -> some View {
+        Link(destination: url) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Image(systemName: icon)
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color.pulpePrimary)
+                    .frame(
+                        width: DesignTokens.IconSize.compact,
+                        height: DesignTokens.IconSize.compact
+                    )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .foregroundStyle(.primary)
+                    Text(subtitle)
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+        }
     }
 }
 

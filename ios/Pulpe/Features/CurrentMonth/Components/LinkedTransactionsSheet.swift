@@ -51,7 +51,7 @@ struct LinkedTransactionsSheet: View {
                 .padding(.top, DesignTokens.Spacing.sm)
                 .padding(.bottom, 100)
             }
-            .background(Color.surface)
+            .background(Color.sheetBackground)
             .safeAreaInset(edge: .bottom) {
                 addTransactionButton
             }

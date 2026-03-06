@@ -32,7 +32,7 @@ struct RecoveryKeySheet: View {
                 .padding(.bottom, DesignTokens.Spacing.lg)
                 .blurSlide(showButton)
         }
-        .pulpeBackground()
+        .background { Color.loginGradientBackground }
         .interactiveDismissDisabled()
         .allowsHitTesting(showButton)
         .task {
@@ -132,10 +132,10 @@ struct RecoveryKeySheet: View {
         .frame(maxWidth: .infinity)
         .background {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous)
-                .fill(Color.surfaceContainerHigh)
+                .fill(Color.onboardingCardBackground)
                 .overlay {
                     RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous)
-                        .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                        .strokeBorder(Color.outlineVariant.opacity(0.3), lineWidth: 1)
                 }
         }
         .scaleEffect(showKey ? 1 : 0.95)

@@ -81,7 +81,7 @@ struct ChangePasswordSheet: View {
                     Button("Annuler") { dismiss() }
                 }
             }
-            .background(Color.surface)
+            .background(Color.sheetBackground)
         }
     }
 

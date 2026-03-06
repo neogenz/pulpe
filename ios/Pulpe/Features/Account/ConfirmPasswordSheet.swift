@@ -69,7 +69,7 @@ struct ConfirmPasswordSheet: View {
                     Button("Annuler") { dismiss() }
                 }
             }
-            .background(Color.surface)
+            .background(Color.sheetBackground)
             .interactiveDismissDisabled(isVerifying)
             .onDisappear { verifyTask?.cancel() }
         }

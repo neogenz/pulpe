@@ -17,7 +17,7 @@ struct ForgotPasswordSheet: View {
                 }
             }
             .padding(DesignTokens.Spacing.xl)
-            .background(Color.surface)
+            .background(Color.sheetBackground)
             .navigationTitle("Mot de passe oublié")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -31,7 +31,7 @@ struct ForgotPasswordSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(Color.surface)
+        .presentationBackground(Color.sheetBackground)
         .task { isEmailFocused = true }
         .accessibilityIdentifier("forgotPasswordPage")
     }

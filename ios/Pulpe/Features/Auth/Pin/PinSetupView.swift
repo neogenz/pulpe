@@ -52,7 +52,7 @@ struct PinSetupView: View {
     var body: some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .pulpeBackground()
+            .background { Color.loginGradientBackground }
             .sensoryFeedback(.error, trigger: viewModel.hapticError)
             .sensoryFeedback(.success, trigger: viewModel.hapticSuccess)
             .sheet(item: recoveryKeySheetItemBinding) { item in
@@ -76,9 +76,9 @@ struct PinSetupView: View {
             }
             Spacer()
             headerSection
-            Spacer().frame(height: 40)
+            Spacer().frame(height: DesignTokens.Spacing.sectionGap)
             dotsSection
-            Spacer().frame(height: 48)
+            Spacer().frame(height: DesignTokens.Spacing.stepHeaderTop)
             NumpadView(
                 onDigit: { viewModel.appendDigit($0) },
                 onDelete: { viewModel.deleteLastDigit() },
@@ -87,9 +87,7 @@ struct PinSetupView: View {
                 } : nil,
                 isDisabled: viewModel.isValidating
             )
-            Spacer().frame(height: 24)
-            Spacer().frame(height: 20)
-            Spacer().frame(height: 16)
+            Spacer().frame(height: DesignTokens.Spacing.xxxl + DesignTokens.Spacing.xxl)
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
     }
