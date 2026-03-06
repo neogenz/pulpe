@@ -109,11 +109,11 @@ extension Color {
 
     // MARK: - Destructive Colors (true red for irreversible actions)
 
-    /// Destructive primary — true red for account deletion, danger zones (#C62828 light, #EF5350 dark)
-    static let destructivePrimary = Color(light: Color(hex: 0xC62828), dark: Color(hex: 0xEF5350))
+    /// Destructive primary — true red for account deletion, danger zones (#C62828 light, #FF6B6B dark)
+    static let destructivePrimary = Color(light: Color(hex: 0xC62828), dark: Color(hex: 0xFF6B6B))
 
-    /// Destructive background — soft red tint for danger zone cards (#FDECEA light, #2A1414 dark)
-    static let destructiveBackground = Color(light: Color(hex: 0xFDECEA), dark: Color(hex: 0x2A1414))
+    /// Destructive background — soft red tint for danger zone cards (#FDECEA light, #3A1818 dark)
+    static let destructiveBackground = Color(light: Color(hex: 0xFDECEA), dark: Color(hex: 0x3A1818))
 
     // MARK: - Warning Colors
 

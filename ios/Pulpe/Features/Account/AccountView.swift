@@ -3,12 +3,8 @@ import SwiftUI
 struct AccountView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppState.self) private var appState
-    @State private var biometricToggle = false
     @State private var showDeleteConfirmation = false
     @State private var showLogoutConfirmation = false
-    @State private var showDisableBiometricConfirmation = false
-    @State private var showChangePassword = false
-    @State private var securityViewModel = AccountSecurityViewModel()
     @State private var isDebugVisible = false
     @State private var debugToggleTrigger = false
 
@@ -16,17 +12,12 @@ struct AccountView: View {
         NavigationStack {
             List {
                 personalInfoSection
-                PayDaySettingView()
-                securitySection
-                settingsSection
+                appSettingsSection
                 applicationSection
                 supportSection
                 logoutSection
                 dangerZoneSection
                 legalFooterSection
-            }
-            .onAppear {
-                biometricToggle = appState.biometricEnabled
             }
             .alert("Déconnexion", isPresented: $showLogoutConfirmation) {
                 Button("Annuler", role: .cancel) { }
@@ -38,24 +29,6 @@ struct AccountView: View {
                 }
             } message: {
                 Text("Tu devras te reconnecter avec ton email et mot de passe.")
-            }
-            .alert(
-                "Désactiver \(BiometricService.shared.biometryDisplayName) ?",
-                isPresented: $showDisableBiometricConfirmation
-            ) {
-                Button("Annuler", role: .cancel) { }
-                Button("Désactiver", role: .destructive) {
-                    Task {
-                        await appState.disableBiometric()
-                        biometricToggle = false
-                        appState.toastManager.show(
-                            "\(BiometricService.shared.biometryDisplayName) désactivé",
-                            type: .success
-                        )
-                    }
-                }
-            } message: {
-                Text("Tu devras utiliser ton code PIN pour te connecter.")
             }
             .alert("Supprimer mon compte", isPresented: $showDeleteConfirmation) {
                 Button("Annuler", role: .cancel) { }
@@ -80,43 +53,6 @@ struct AccountView: View {
                     Button("Fermer") { dismiss() }
                 }
             }
-            .sheet(isPresented: $showChangePassword) {
-                ChangePasswordSheet {
-                    appState.toastManager.show("Mot de passe modifié", type: .success)
-                }
-            }
-            .sheet(isPresented: $securityViewModel.showConfirmPassword) {
-                ConfirmPasswordSheet { password in
-                    let error = await securityViewModel.verifyAndRegenerateRecoveryKey(
-                        password: password,
-                        email: appState.currentUser?.email
-                    )
-                    if error == nil {
-                        appState.toastManager.show("Clé de secours régénérée", type: .success)
-                    }
-                    return error
-                }
-            }
-            .sheet(isPresented: $securityViewModel.showRecoveryKeySheet) {
-                if let recoveryKey = securityViewModel.generatedRecoveryKey {
-                    RecoveryKeySheet(recoveryKey: recoveryKey) {
-                        securityViewModel.showRecoveryKeySheet = false
-                    }
-                }
-            }
-            .overlay {
-                if securityViewModel.isRegenerating {
-                    Color.black.opacity(0.4)
-                        .ignoresSafeArea()
-                    VStack(spacing: DesignTokens.Spacing.md) {
-                        ProgressView()
-                            .tint(.white)
-                        Text("Génération de la nouvelle clé...")
-                            .foregroundStyle(.white)
-                            .font(PulpeTypography.labelLarge)
-                    }
-                }
-            }
         }
     }
 }
@@ -132,55 +68,25 @@ extension AccountView {
         }
     }
 
-    private var securitySection: some View {
+    private var appSettingsSection: some View {
         Section {
-            LabeledContent("Code PIN") {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(Color.financialSavings)
+            settingsNavigationRow(
+                icon: "lock.shield",
+                title: "Sécurité",
+                subtitle: "Code PIN, Mot de passe, Biométrie"
+            ) {
+                SecuritySettingsView()
             }
 
-            chevronRow("Mot de passe", detail: "••••••••") {
-                showChangePassword = true
+            settingsNavigationRow(
+                icon: "gearshape",
+                title: "Préférences",
+                subtitle: "Jour de paie"
+            ) {
+                PreferencesView()
             }
-
-            chevronRow("Clé de secours", detail: "Régénérer") {
-                securityViewModel.showConfirmPassword = true
-            }
-            .disabled(securityViewModel.isRegenerating)
         } header: {
-            Text("SÉCURITÉ")
-        }
-    }
-
-    @ViewBuilder
-    private var settingsSection: some View {
-        if BiometricService.shared.canUseBiometrics() {
-            Section {
-                Toggle(
-                    BiometricService.shared.biometryDisplayName,
-                    isOn: $biometricToggle
-                )
-                .onChange(of: biometricToggle) { _, newValue in
-                    guard newValue != appState.biometricEnabled else { return }
-                    if newValue {
-                        Task {
-                            let displayName = BiometricService.shared.biometryDisplayName
-                            let success = await appState.enableBiometric()
-                            if success {
-                                appState.toastManager.show("\(displayName) activé", type: .success)
-                            } else {
-                                appState.toastManager.show("Impossible d'activer \(displayName)", type: .error)
-                            }
-                            biometricToggle = appState.biometricEnabled
-                        }
-                    } else {
-                        biometricToggle = true
-                        showDisableBiometricConfirmation = true
-                    }
-                }
-            } header: {
-                Text("PARAMÈTRES DE L'APPLICATION")
-            }
+            Text("PARAMÈTRES DE L'APPLICATION")
         }
     }
 
@@ -295,34 +201,46 @@ extension AccountView {
                     .font(PulpeTypography.caption)
                     .foregroundStyle(.tertiary)
                     .padding(.top, DesignTokens.Spacing.xs)
+
+                Text("iOS \(Self.iOSVersion)")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(.tertiary)
             }
             .frame(maxWidth: .infinity)
         }
         .listRowBackground(Color.clear)
     }
+
+    private static let iOSVersion = UIDevice.current.systemVersion
 }
 
 // MARK: - Row Helpers
 
 extension AccountView {
-    private func chevronRow(
-        _ title: String,
-        detail: String,
-        action: @escaping () -> Void
+    private func settingsNavigationRow<Destination: View>(
+        icon: String,
+        title: String,
+        subtitle: String,
+        @ViewBuilder destination: () -> Destination
     ) -> some View {
-        Button(action: action) {
-            HStack {
-                Text(title)
-                    .foregroundStyle(.primary)
-                Spacer()
-                Text(detail)
+        NavigationLink(destination: destination) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Image(systemName: icon)
+                    .font(.system(size: 16))
                     .foregroundStyle(.secondary)
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .frame(
+                        width: DesignTokens.IconSize.compact,
+                        height: DesignTokens.IconSize.compact
+                    )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .foregroundStyle(.primary)
+                    Text(subtitle)
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
-        .buttonStyle(.plain)
     }
 
     private func iconChevronLink(
@@ -335,7 +253,7 @@ extension AccountView {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Image(systemName: icon)
                     .font(.system(size: 16))
-                    .foregroundStyle(Color.pulpePrimary)
+                    .foregroundStyle(.secondary)
                     .frame(
                         width: DesignTokens.IconSize.compact,
                         height: DesignTokens.IconSize.compact
@@ -353,64 +271,7 @@ extension AccountView {
                     .foregroundStyle(.tertiary)
             }
         }
-    }
-}
-
-@Observable @MainActor
-final class AccountSecurityViewModel {
-    var showConfirmPassword = false
-    var showRecoveryKeySheet = false
-    var isRegenerating = false
-    var generatedRecoveryKey: String?
-
-    private let dependencies: AccountSecurityDependencies
-
-    init(dependencies: AccountSecurityDependencies? = nil) {
-        self.dependencies = dependencies ?? .live
-    }
-
-    func verifyAndRegenerateRecoveryKey(
-        password: String,
-        email: String?
-    ) async -> String? {
-        guard let email, !email.isEmpty else {
-            return "Utilisateur non connecté"
-        }
-
-        isRegenerating = true
-        defer { isRegenerating = false }
-
-        do {
-            try await dependencies.verifyPassword(email, password)
-            let key = try await dependencies.setupRecoveryKey()
-            generatedRecoveryKey = key
-            showRecoveryKeySheet = true
-            return nil
-        } catch {
-            if AuthErrorLocalizer.isInvalidCredentials(error) {
-                return "Mot de passe incorrect"
-            }
-            if error is APIError {
-                return "Erreur lors de la génération"
-            }
-            return AuthErrorLocalizer.localize(error)
-        }
-    }
-}
-
-struct AccountSecurityDependencies: Sendable {
-    var verifyPassword: @Sendable (String, String) async throws -> Void
-    var setupRecoveryKey: @Sendable () async throws -> String
-
-    static var live: AccountSecurityDependencies {
-        AccountSecurityDependencies(
-        verifyPassword: { email, password in
-            try await AuthService.shared.verifyPassword(email: email, password: password)
-        },
-        setupRecoveryKey: {
-            try await EncryptionAPI.shared.regenerateRecoveryKey()
-        }
-        )
+        .tint(.primary)
     }
 }
 
