@@ -1835,7 +1835,7 @@ describe('EncryptionService', () => {
     const newClientKey = randomBytes(32);
     const mockSupabase = {} as any;
 
-    function setupServiceWithValidKeyCheck() {
+    async function setupServiceWithValidKeyCheck(): Promise<Buffer> {
       // Bootstrap service to derive DEK and generate a valid keyCheck
       const bootstrapFindSalt = mock(() =>
         Promise.resolve({
@@ -1852,8 +1852,7 @@ describe('EncryptionService', () => {
         mockConfigService as any,
         bootstrapRepo as any,
       );
-      const dek = bootstrapService.getUserDEK(TEST_USER_ID, oldClientKey);
-      return dek;
+      return bootstrapService.getUserDEK(TEST_USER_ID, oldClientKey);
     }
 
     it('should throw ENCRYPTION_SAME_KEY when old and new keys are identical', async () => {
@@ -1959,7 +1958,7 @@ describe('EncryptionService', () => {
 
     it('should re-encrypt data and return keyCheck on success (no recovery)', async () => {
       const dek = await setupServiceWithValidKeyCheck();
-      const validKeyCheck = service.generateKeyCheck(await dek);
+      const validKeyCheck = service.generateKeyCheck(dek);
 
       const findByUserId = mock(() =>
         Promise.resolve({
@@ -2011,7 +2010,7 @@ describe('EncryptionService', () => {
 
     it('should re-wrap with new recovery key AFTER re-encryption when recovery exists', async () => {
       const dek = await setupServiceWithValidKeyCheck();
-      const validKeyCheck = service.generateKeyCheck(await dek);
+      const validKeyCheck = service.generateKeyCheck(dek);
       const callOrder: string[] = [];
 
       const findByUserId = mock(() =>
@@ -2076,7 +2075,7 @@ describe('EncryptionService', () => {
 
     it('should NOT nullify wrapped_dek when re-encryption fails', async () => {
       const dek = await setupServiceWithValidKeyCheck();
-      const validKeyCheck = service.generateKeyCheck(await dek);
+      const validKeyCheck = service.generateKeyCheck(dek);
 
       const findByUserId = mock(() =>
         Promise.resolve({
@@ -2164,7 +2163,7 @@ describe('EncryptionService', () => {
 
     it('should nullify wrapped_dek and throw REKEY_PARTIAL_FAILURE when recovery re-wrap fails', async () => {
       const dek = await setupServiceWithValidKeyCheck();
-      const validKeyCheck = service.generateKeyCheck(await dek);
+      const validKeyCheck = service.generateKeyCheck(dek);
 
       const findByUserId = mock(() =>
         Promise.resolve({
@@ -2248,7 +2247,7 @@ describe('EncryptionService', () => {
 
     it('should zero DEK buffers after successful re-encryption', async () => {
       const dek = await setupServiceWithValidKeyCheck();
-      const validKeyCheck = service.generateKeyCheck(await dek);
+      const validKeyCheck = service.generateKeyCheck(dek);
 
       const findByUserId = mock(() =>
         Promise.resolve({
@@ -2299,7 +2298,7 @@ describe('EncryptionService', () => {
 
     it('should zero DEK buffers even when re-encryption fails', async () => {
       const dek = await setupServiceWithValidKeyCheck();
-      const validKeyCheck = service.generateKeyCheck(await dek);
+      const validKeyCheck = service.generateKeyCheck(dek);
 
       const findByUserId = mock(() =>
         Promise.resolve({
