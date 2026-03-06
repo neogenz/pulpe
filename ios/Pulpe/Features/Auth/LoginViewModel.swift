@@ -19,8 +19,7 @@ final class LoginViewModel {
     }
 
     var isEmailValid: Bool {
-        let pattern = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/
-        return email.wholeMatch(of: pattern) != nil
+        email.isValidEmail
     }
 
     var isPasswordValid: Bool {

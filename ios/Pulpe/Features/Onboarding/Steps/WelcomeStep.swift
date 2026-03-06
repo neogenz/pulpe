@@ -61,7 +61,7 @@ struct WelcomeStep: View {
                     Button {
                         showLogin = true
                     } label: {
-                        Text("Se connecter")
+                        Text("J'ai déjà un compte")
                     }
                     .secondaryButtonStyle()
                 }

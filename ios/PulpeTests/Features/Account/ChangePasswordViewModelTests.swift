@@ -66,32 +66,32 @@ struct ChangePasswordViewModelTests {
 
         // Empty password
         viewModel.newPassword = ""
-        #expect(!viewModel.hasLetter)
-        #expect(!viewModel.hasNumber)
+        #expect(!viewModel.passwordValidator.hasLetter)
+        #expect(!viewModel.passwordValidator.hasNumber)
         #expect(!viewModel.isNewPasswordValid)
 
         // Only letters
         viewModel.newPassword = "abcdefgh"
-        #expect(viewModel.hasLetter)
-        #expect(!viewModel.hasNumber)
+        #expect(viewModel.passwordValidator.hasLetter)
+        #expect(!viewModel.passwordValidator.hasNumber)
         #expect(!viewModel.isNewPasswordValid)
 
         // Only numbers
         viewModel.newPassword = "12345678"
-        #expect(!viewModel.hasLetter)
-        #expect(viewModel.hasNumber)
+        #expect(!viewModel.passwordValidator.hasLetter)
+        #expect(viewModel.passwordValidator.hasNumber)
         #expect(!viewModel.isNewPasswordValid)
 
         // Letters + numbers but too short
         viewModel.newPassword = "abc123"
-        #expect(viewModel.hasLetter)
-        #expect(viewModel.hasNumber)
+        #expect(viewModel.passwordValidator.hasLetter)
+        #expect(viewModel.passwordValidator.hasNumber)
         #expect(!viewModel.isNewPasswordValid)
 
         // Valid: 8+ chars with letters and numbers
         viewModel.newPassword = "password123"
-        #expect(viewModel.hasLetter)
-        #expect(viewModel.hasNumber)
+        #expect(viewModel.passwordValidator.hasLetter)
+        #expect(viewModel.passwordValidator.hasNumber)
         #expect(viewModel.isNewPasswordValid)
     }
 
