@@ -2129,7 +2129,7 @@ describe('EncryptionService', () => {
       reEncryptSpy.mockRestore();
     });
 
-    it('should generate key_check when row exists but key_check is null', async () => {
+    it('should throw ENCRYPTION_KEY_CHECK_FAILED when key_check is null (not initialized)', async () => {
       const findByUserId = mock(() =>
         Promise.resolve({
           salt: existingSalt,
@@ -2138,35 +2138,28 @@ describe('EncryptionService', () => {
           key_check: null,
         }),
       );
-      const updateKeyCheckIfNull = mock(() => Promise.resolve());
 
-      const repo = createMockRepository({
-        findByUserId,
-        updateKeyCheckIfNull,
-      });
+      const repo = createMockRepository({ findByUserId });
       service = new EncryptionService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
       );
 
-      const reEncryptSpy = spyOn(
-        service,
-        'reEncryptAllUserData',
-      ).mockResolvedValue('mock-key-check');
-
-      const result = await service.changePinRekey(
-        TEST_USER_ID,
-        oldClientKey,
-        newClientKey,
-        mockSupabase,
-      );
-
-      expect(updateKeyCheckIfNull).toHaveBeenCalledTimes(1);
-      expect(result.keyCheck).toBe('mock-key-check');
-      expect(reEncryptSpy).toHaveBeenCalledTimes(1);
-
-      reEncryptSpy.mockRestore();
+      try {
+        await service.changePinRekey(
+          TEST_USER_ID,
+          oldClientKey,
+          newClientKey,
+          mockSupabase,
+        );
+        expect.unreachable('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
+        );
+      }
     });
 
     it('should nullify wrapped_dek and throw REKEY_PARTIAL_FAILURE when recovery re-wrap fails', async () => {

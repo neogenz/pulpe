@@ -414,18 +414,20 @@ export class EncryptionService {
     let newDek: Buffer | null = null;
 
     try {
-      // Verify old key inline (avoids a redundant findByUserId + deriveDEK round-trip)
-      if (row.key_check) {
-        if (!this.validateKeyCheck(row.key_check, oldDek)) {
-          throw new BusinessException(
-            ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
-            undefined,
-            { userId, operation: 'change_pin.key_check_failed' },
-          );
-        }
-      } else {
-        const generatedKeyCheck = this.generateKeyCheck(oldDek);
-        await this.#repository.updateKeyCheckIfNull(userId, generatedKeyCheck);
+      if (!row.key_check) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+          undefined,
+          { userId, operation: 'change_pin.key_check_not_initialized' },
+        );
+      }
+
+      if (!this.validateKeyCheck(row.key_check, oldDek)) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+          undefined,
+          { userId, operation: 'change_pin.key_check_failed' },
+        );
       }
 
       // Check same-key AFTER verifying old key — prevents oracle that leaks
@@ -461,8 +463,11 @@ export class EncryptionService {
           await this.#repository.updateWrappedDEK(userId, newWrappedDEK);
           recoveryKeyFormatted = formatted;
         } catch (wrapError) {
-          // Wrap failed — nullify to prevent stale wrapping pointing to old DEK
-          await this.#repository.updateWrappedDEK(userId, null);
+          try {
+            await this.#repository.updateWrappedDEK(userId, null);
+          } catch {
+            // Best-effort nullification — next recovery key regeneration will fix state
+          }
           throw new BusinessException(
             ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
             undefined,
