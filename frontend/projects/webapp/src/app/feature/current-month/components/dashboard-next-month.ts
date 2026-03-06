@@ -8,8 +8,9 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import type { UpcomingMonthForecast } from '../services/dashboard-state';
+import { APP_LOCALE } from '@core/locale';
 
-const MONTH_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'long' });
+const MONTH_FORMATTER = new Intl.DateTimeFormat(APP_LOCALE, { month: 'long' });
 const ROLLOVER_FORMATTER = new Intl.NumberFormat('de-CH', {
   minimumFractionDigits: 0,
   maximumFractionDigits: 0,

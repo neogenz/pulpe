@@ -1,3 +1,5 @@
+import { APP_LOCALE } from '@core/locale';
+
 export const PASSWORD_MIN_LENGTH = 8;
 export const VAULT_CODE_MIN_LENGTH = 4;
 
@@ -19,5 +21,5 @@ export const AUTH_ERROR_MESSAGES = {
 
 export function formatDeletionDate(scheduledDeletionAt: unknown): string {
   const date = new Date(String(scheduledDeletionAt));
-  return isNaN(date.getTime()) ? '—' : date.toLocaleDateString('fr-CH');
+  return isNaN(date.getTime()) ? '—' : date.toLocaleDateString(APP_LOCALE);
 }

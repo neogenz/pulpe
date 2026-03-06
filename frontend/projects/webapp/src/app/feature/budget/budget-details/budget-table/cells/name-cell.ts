@@ -103,7 +103,7 @@ import {
         }
         @if (line().data.checkedAt) {
           <span class="text-body-small text-on-surface-variant ml-2">
-            {{ line().data.checkedAt | date: 'dd.MM' : '' : 'fr-CH' }}
+            {{ line().data.checkedAt | date: 'dd.MM' }}
           </span>
         }
       </span>

@@ -27,6 +27,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { type Transaction, type TransactionCreate } from 'pulpe-shared';
 import { startOfMonth, endOfMonth } from 'date-fns';
+import { APP_LOCALE } from '@core/locale';
 import { TransactionValidators } from '@core/transaction';
 import { TransactionLabelPipe } from '@pattern/transaction-display';
 import { Logger } from '@core/logging/logger';
@@ -302,8 +303,8 @@ export class EditTransactionForm implements OnInit {
     if (date < min || date > max) {
       return {
         dateOutOfRange: {
-          min: min.toLocaleDateString('fr-CH'),
-          max: max.toLocaleDateString('fr-CH'),
+          min: min.toLocaleDateString(APP_LOCALE),
+          max: max.toLocaleDateString(APP_LOCALE),
         },
       };
     }

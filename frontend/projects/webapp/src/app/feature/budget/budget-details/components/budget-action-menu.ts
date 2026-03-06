@@ -11,6 +11,14 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe } from '@jsverse/transloco';
 import type { BudgetLine } from 'pulpe-shared';
+import { APP_LOCALE } from '@core/locale';
+
+const BALANCE_FORMATTER = new Intl.NumberFormat(APP_LOCALE, {
+  style: 'currency',
+  currency: 'CHF',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
 import type { BudgetLineTableItem } from '../data-core';
 
 /**
@@ -110,12 +118,6 @@ export class BudgetActionMenu {
   readonly resetFromTemplate = output<BudgetLineTableItem>();
 
   protected formattedBalance(): string {
-    const balance = this.item().metadata.cumulativeBalance;
-    return new Intl.NumberFormat('fr-CH', {
-      style: 'currency',
-      currency: 'CHF',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(balance);
+    return BALANCE_FORMATTER.format(this.item().metadata.cumulativeBalance);
   }
 }

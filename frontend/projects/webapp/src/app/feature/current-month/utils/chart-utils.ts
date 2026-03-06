@@ -1,4 +1,5 @@
 import { Chart, registerables } from 'chart.js';
+import { APP_LOCALE } from '@core/locale';
 
 let _registered = false;
 
@@ -8,7 +9,7 @@ export function registerChartPlugins(): void {
   _registered = true;
 }
 
-const MONTH_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'short' });
+const MONTH_FORMATTER = new Intl.DateTimeFormat(APP_LOCALE, { month: 'short' });
 
 const CHF_FORMATTER = new Intl.NumberFormat('de-CH', {
   style: 'currency',

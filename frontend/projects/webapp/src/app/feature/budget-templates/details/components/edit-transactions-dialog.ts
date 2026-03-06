@@ -248,8 +248,7 @@ interface EditTransactionsDialogResult {
                   class="font-medium ph-no-capture"
                 >
                   {{
-                    runningTotals()[i]
-                      | currency: 'CHF' : 'symbol' : '1.2-2' : 'fr-CH'
+                    runningTotals()[i] | currency: 'CHF' : 'symbol' : '1.2-2'
                   }}
                 </span>
               </td>
