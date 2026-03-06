@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { TranslocoService } from '@jsverse/transloco';
 import { AuthSessionService } from './auth-session.service';
 import { AuthStateService } from './auth-state.service';
 import { AuthErrorLocalizer } from './auth-error-localizer';
@@ -22,6 +23,7 @@ export class AuthOAuthService {
   readonly #state = inject(AuthStateService);
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
   readonly #logger = inject(Logger);
+  readonly #transloco = inject(TranslocoService);
 
   getOAuthUserMetadata(): OAuthUserMetadata | null {
     const session = this.#state.session();
@@ -73,7 +75,9 @@ export class AuthOAuthService {
     } catch {
       return {
         success: false,
-        error: AUTH_ERROR_MESSAGES.OAUTH_CONNECTION_ERROR,
+        error: this.#transloco.translate(
+          AUTH_ERROR_MESSAGES.OAUTH_CONNECTION_ERROR,
+        ),
       };
     }
   }
