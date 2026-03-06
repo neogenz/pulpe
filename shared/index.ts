@@ -119,6 +119,9 @@ export {
   encryptionRecoverResponseSchema,
 } from './schemas.js';
 
+// Export error codes
+export { API_ERROR_CODES, type ApiErrorCode } from './src/error-codes.js';
+
 // Export response schema factories
 export {
   createSuccessResponse,

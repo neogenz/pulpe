@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'bun:test';
 import { HttpStatus } from '@nestjs/common';
+import { API_ERROR_CODES } from 'pulpe-shared';
 import { BusinessException } from './business.exception';
 import { ErrorDefinition } from '@common/constants/error-definitions';
 
 describe('BusinessException', () => {
   const mockErrorDefinition: ErrorDefinition = {
-    code: 'ERR_TEST_ERROR',
+    code: API_ERROR_CODES.UNKNOWN,
     message: (details?: Record<string, unknown>) =>
       details?.id ? `Test error with ID '${details.id}'` : 'Test error',
     httpStatus: HttpStatus.BAD_REQUEST,
@@ -19,7 +20,7 @@ describe('BusinessException', () => {
         { userId: 'user-456' },
       );
 
-      expect(exception.code).toBe('ERR_TEST_ERROR');
+      expect(exception.code).toBe('ERR_UNKNOWN');
       expect(exception.message).toBe("Test error with ID '123'");
       expect(exception.getStatus()).toBe(HttpStatus.BAD_REQUEST);
       expect(exception.details).toEqual({ id: '123' });
@@ -264,7 +265,7 @@ describe('BusinessException', () => {
 
       const businessException = new BusinessException(
         {
-          code: 'ERR_BUDGET_CREATE_FAILED',
+          code: API_ERROR_CODES.BUDGET_CREATE_FAILED,
           message: () => 'Failed to create budget',
           httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
         },
@@ -294,7 +295,7 @@ describe('BusinessException', () => {
 
       const exception = new BusinessException(
         {
-          code: 'ERR_BUDGET_ALREADY_EXISTS',
+          code: API_ERROR_CODES.BUDGET_ALREADY_EXISTS,
           message: (details) =>
             `Budget for ${details?.month}/${details?.year} already exists`,
           httpStatus: HttpStatus.CONFLICT,
