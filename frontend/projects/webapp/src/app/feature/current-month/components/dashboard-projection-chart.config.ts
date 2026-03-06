@@ -101,10 +101,7 @@ export function buildProjectionChartData(
   forecasts: UpcomingMonthForecast[],
   theme: ChartThemeColors | null,
   locale: string,
-  labels: { available: string; cumulatedSavings: string } = {
-    available: 'Disponible',
-    cumulatedSavings: 'Épargne cumulée',
-  },
+  labels: { available: string; cumulatedSavings: string },
 ): ChartConfiguration['data'] {
   const withBudget = forecasts.filter((f) => f.hasBudget);
 

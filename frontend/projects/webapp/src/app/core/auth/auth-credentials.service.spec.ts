@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { LOCALE_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { TranslocoService } from '@jsverse/transloco';
 import type { Session, User } from '@supabase/supabase-js';
 import { ClientKeyService } from '@core/encryption';
 import { AuthCredentialsService } from './auth-credentials.service';
@@ -19,6 +20,7 @@ import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 describe('AuthCredentialsService', () => {
   let service: AuthCredentialsService;
+  let transloco: TranslocoService;
   let mockSession: Partial<AuthSessionService>;
   let mockState: Partial<AuthStateService>;
   let mockErrorLocalizer: Partial<AuthErrorLocalizer>;
@@ -68,6 +70,7 @@ describe('AuthCredentialsService', () => {
     });
 
     service = TestBed.inject(AuthCredentialsService);
+    transloco = TestBed.inject(TranslocoService);
   });
 
   afterEach(() => {
@@ -121,7 +124,7 @@ describe('AuthCredentialsService', () => {
 
       expect(result).toEqual({
         success: false,
-        error: AUTH_ERROR_MESSAGES.UNEXPECTED_LOGIN_ERROR,
+        error: transloco.translate(AUTH_ERROR_MESSAGES.UNEXPECTED_LOGIN_ERROR),
       });
     });
 
@@ -220,7 +223,7 @@ describe('AuthCredentialsService', () => {
 
       expect(result).toEqual({
         success: false,
-        error: AUTH_ERROR_MESSAGES.UNEXPECTED_SIGNUP_ERROR,
+        error: transloco.translate(AUTH_ERROR_MESSAGES.UNEXPECTED_SIGNUP_ERROR),
       });
     });
 

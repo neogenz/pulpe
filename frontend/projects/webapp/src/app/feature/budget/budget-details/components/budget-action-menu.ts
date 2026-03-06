@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
+  computed,
   input,
   LOCALE_ID,
   output,
@@ -118,9 +119,7 @@ export class BudgetActionMenu {
   readonly addTransaction = output<BudgetLine>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
 
-  protected formattedBalance(): string {
-    return this.#balanceFormatter.format(
-      this.item().metadata.cumulativeBalance,
-    );
-  }
+  protected readonly formattedBalance = computed(() =>
+    this.#balanceFormatter.format(this.item().metadata.cumulativeBalance),
+  );
 }

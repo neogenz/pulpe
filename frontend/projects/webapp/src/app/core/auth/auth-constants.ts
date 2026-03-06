@@ -8,13 +8,10 @@ export const SCHEDULED_DELETION_PARAMS = {
 } as const;
 
 export const AUTH_ERROR_MESSAGES = {
-  OAUTH_CONNECTION_ERROR: 'La connexion a échoué — réessaie',
-  UNEXPECTED_LOGIN_ERROR: "Quelque chose n'a pas fonctionné — réessaie",
-  UNEXPECTED_SIGNUP_ERROR:
-    "La création du compte n'a pas abouti — on retente ?",
-  UNEXPECTED_SESSION_ERROR: "Quelque chose n'a pas fonctionné — réessaie",
-  ENCRYPTION_SETUP_ERROR:
-    'La préparation de ton espace sécurisé a échoué — réessaie de te connecter. Si le problème persiste, contacte le support.',
+  OAUTH_CONNECTION_ERROR: 'auth.errors.oauthConnection',
+  UNEXPECTED_LOGIN_ERROR: 'auth.errors.unexpectedLogin',
+  UNEXPECTED_SIGNUP_ERROR: 'auth.errors.unexpectedSignup',
+  UNEXPECTED_SESSION_ERROR: 'auth.errors.unexpectedSession',
 } as const;
 
 export function formatDeletionDate(

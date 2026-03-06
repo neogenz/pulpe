@@ -75,7 +75,9 @@ export class AuthCredentialsService {
       });
       return {
         success: false,
-        error: AUTH_ERROR_MESSAGES.UNEXPECTED_LOGIN_ERROR,
+        error: this.#transloco.translate(
+          AUTH_ERROR_MESSAGES.UNEXPECTED_LOGIN_ERROR,
+        ),
       };
     } finally {
       this.#state.setLoading(false);
@@ -118,7 +120,9 @@ export class AuthCredentialsService {
       });
       return {
         success: false,
-        error: AUTH_ERROR_MESSAGES.UNEXPECTED_SIGNUP_ERROR,
+        error: this.#transloco.translate(
+          AUTH_ERROR_MESSAGES.UNEXPECTED_SIGNUP_ERROR,
+        ),
       };
     } finally {
       this.#state.setLoading(false);

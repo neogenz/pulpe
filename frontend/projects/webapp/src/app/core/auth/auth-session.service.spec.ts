@@ -24,6 +24,7 @@ import {
   createMockSupabaseClient,
   type MockSupabaseClient,
 } from '../testing/test-utils';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 const { createClientMock } = vi.hoisted(() => ({
   createClientMock: vi.fn(),
@@ -129,6 +130,7 @@ describe('AuthSessionService', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        ...provideTranslocoForTest(),
         AuthSessionService,
         { provide: AuthStateService, useValue: mockAuthState },
         { provide: ApplicationConfiguration, useValue: mockConfig },

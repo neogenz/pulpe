@@ -135,6 +135,12 @@
       "submitting": "Récupération...",
       "submit": "Récupérer",
       "recoveryKeyGenerationFailed": "La clé de récupération n'a pas pu être générée — pense à en créer une dans les paramètres"
+    },
+    "errors": {
+      "oauthConnection": "La connexion a échoué — réessaie",
+      "unexpectedLogin": "Quelque chose n'a pas fonctionné — réessaie",
+      "unexpectedSignup": "La création du compte n'a pas abouti — on retente ?",
+      "unexpectedSession": "Quelque chose n'a pas fonctionné — réessaie"
     }
   },
   "welcome": {
@@ -298,6 +304,16 @@
     "infoSection": "Budget",
     "created": "Budget créé avec succès !",
     "descriptionTooLong": "La description ne peut pas dépasser 100 caractères",
+    "createTitle": "Créer un budget",
+    "generalInfo": "Informations générales",
+    "monthYearLabel": "Mois et année",
+    "monthYearHint": "mm.aaaa",
+    "monthYearRequired": "Le mois et l'année sont requis",
+    "descriptionLabel": "Description (optionnelle)",
+    "descriptionPlaceholder": "Ex: Budget vacances d'été",
+    "modelSelection": "Sélection du modèle",
+    "creating": "Création...",
+    "createButton": "Créer le budget",
     "createError": "La création du budget a échoué — réessaie",
     "loadingBudgets": "Récupération de tes budgets...",
     "creationInProgress": "Création en cours",
@@ -370,13 +386,6 @@
     }
   },
   "budgetLine": {
-    "types": {
-      "fixed": "Récurrent",
-      "one_off": "Prévu",
-      "income": "Revenu",
-      "expense": "Dépense",
-      "saving": "Épargne"
-    },
     "checkLabel": "Marquer {{ name }} comme vérifié",
     "uncheckLabel": "Marquer {{ name }} comme non vérifié",
     "checked": "Déjà pointé",
@@ -516,15 +525,6 @@
     "colTotal": "Total",
     "colActions": "Actions"
   },
-  "templateLine": {
-    "types": {
-      "fixed": "Récurrent",
-      "one_off": "Prévu",
-      "income": "Revenu",
-      "expense": "Dépense",
-      "saving": "Épargne"
-    }
-  },
   "currentMonth": {
     "pageTitle": "Tableau de bord",
     "refresh": "Actualiser",
@@ -580,7 +580,11 @@
     "addTransactionToday": "Aujourd'hui",
     "addTransactionCancel": "Annuler",
     "addTransactionSubmit": "Ajouter",
-    "addTransactionDefaultName": "Dépense"
+    "addTransactionDefaultName": "Dépense",
+    "nextMonthTitle": "Mois prochain",
+    "nextMonthEstimatedRollover": "Budget anticipé — report estimé :",
+    "nextMonthNoBudget": "Pas encore de budget pour {{ month }}",
+    "nextMonthAnticipate": "Anticiper le mois prochain"
   },
   "completeProfile": {
     "loading": "Préparation de ton espace de liberté...",

@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GoogleOAuthButton } from './google-oauth-button';
 import { AuthOAuthService } from '@core/auth';
 import { Logger } from '@core/logging/logger';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 describe('GoogleOAuthButton', () => {
   let component: GoogleOAuthButton;
@@ -23,6 +24,7 @@ describe('GoogleOAuthButton', () => {
     await TestBed.configureTestingModule({
       imports: [GoogleOAuthButton],
       providers: [
+        ...provideTranslocoForTest(),
         provideZonelessChangeDetection(),
         provideAnimationsAsync(),
         { provide: AuthOAuthService, useValue: mockAuthOAuth },

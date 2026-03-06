@@ -4,6 +4,7 @@ import { By } from '@angular/platform-browser';
 import { DashboardNextMonth } from './dashboard-next-month';
 import type { UpcomingMonthForecast } from '../services/dashboard-state';
 import { setTestInput } from '../../../testing/signal-test-utils';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
 
@@ -36,6 +37,7 @@ describe('DashboardNextMonth', () => {
       imports: [DashboardNextMonth],
       providers: [
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
         { provide: LOCALE_ID, useValue: 'fr-CH' },
       ],
     }).compileComponents();
