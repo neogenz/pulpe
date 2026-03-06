@@ -784,7 +784,7 @@
   },
   "recurrence": {
     "fixed": "Récurrent",
-    "one_off": "Prévu"
+    "oneOff": "Prévu"
   },
   "transactionForm": {
     "nameLabel": "Nom de la transaction",
