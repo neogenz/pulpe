@@ -562,7 +562,11 @@ export default class TemplateDetail implements OnInit {
       return this.#transloco.translate('template.updatedWithoutBudgets');
     }
     if (propagation.affectedBudgetsCount > 0) {
-      return this.#transloco.translate('template.updatedWithBudgets', {
+      const key =
+        propagation.affectedBudgetsCount === 1
+          ? 'template.updatedWithBudgetsSingular'
+          : 'template.updatedWithBudgetsPlural';
+      return this.#transloco.translate(key, {
         count: propagation.affectedBudgetsCount,
       });
     }
