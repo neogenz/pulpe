@@ -41,7 +41,6 @@ export const PAGE_TITLES = {
   BUDGET_DETAILS: 'pageTitle.budgetDetails',
   NEW_TEMPLATE: 'pageTitle.newTemplate',
   TEMPLATE_DETAIL: 'pageTitle.templateDetail',
-  TEMPLATE_DETAIL_DYNAMIC: 'pageTitle.templateDetail',
   LEGAL: 'pageTitle.legal',
   LEGAL_TERMS: 'pageTitle.legalTerms',
   LEGAL_PRIVACY: 'pageTitle.legalPrivacy',
