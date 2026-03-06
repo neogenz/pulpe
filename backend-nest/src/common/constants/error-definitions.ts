@@ -92,6 +92,11 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Client key verification failed',
     httpStatus: HttpStatus.BAD_REQUEST,
   },
+  ENCRYPTION_SAME_KEY: {
+    code: 'ERR_ENCRYPTION_SAME_KEY',
+    message: () => 'New client key must be different from the old one',
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
   ENCRYPTION_REKEY_PARTIAL_FAILURE: {
     code: 'ERR_ENCRYPTION_REKEY_PARTIAL_FAILURE',
     message: () =>

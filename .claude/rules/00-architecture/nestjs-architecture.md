@@ -84,6 +84,30 @@ export class BudgetService {
 }
 ```
 
+## Module Pattern
+
+**MANDATORY:** Every class that uses `@InjectInfoLogger` MUST have a corresponding `createInfoLoggerProvider` in its module's `providers` array. Forgetting this causes a NestJS DI error at runtime.
+
+```typescript
+import { createInfoLoggerProvider } from '@common/logger';
+
+@Module({
+  controllers: [BudgetController],
+  providers: [
+    BudgetService,
+    BudgetRepository,
+    BudgetMapper,
+    createInfoLoggerProvider(BudgetService.name),      // required — service uses @InjectInfoLogger
+    createInfoLoggerProvider(BudgetController.name),   // required — controller uses @InjectInfoLogger
+  ],
+})
+export class BudgetModule {}
+```
+
+**Checklist when creating or modifying a module:**
+- [ ] Each `Service` using `@InjectInfoLogger` → `createInfoLoggerProvider(Service.name)` in providers
+- [ ] Each `Controller` using `@InjectInfoLogger` → `createInfoLoggerProvider(Controller.name)` in providers
+
 ## Dependency Flow
 
 ```

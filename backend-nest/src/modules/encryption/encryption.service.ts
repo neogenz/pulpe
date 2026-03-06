@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   createCipheriv,
@@ -9,6 +9,7 @@ import {
 } from 'node:crypto';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   EncryptionKeyRepository,
@@ -39,12 +40,13 @@ interface CachedDEK {
 
 @Injectable()
 export class EncryptionService {
-  readonly #logger = new Logger(EncryptionService.name);
   readonly #masterKey: Buffer;
   readonly #dekCache = new Map<string, CachedDEK>();
   readonly #repository: EncryptionKeyRepository;
 
   constructor(
+    @InjectInfoLogger(EncryptionService.name)
+    private readonly logger: InfoLogger,
     configService: ConfigService,
     repository: EncryptionKeyRepository,
   ) {
@@ -114,7 +116,7 @@ export class EncryptionService {
       // Always use fallback, never throw - this prevents cascading failures
       // when data was encrypted with a different key (e.g., after password change
       // or salt rotation without re-encryption)
-      this.#logger.warn(
+      this.logger.warn(
         {
           error: error instanceof Error ? error.message : String(error),
           ciphertextLength: ciphertext.length,
@@ -123,14 +125,6 @@ export class EncryptionService {
       );
       return fallbackAmount;
     }
-  }
-
-  encryptAmounts(amounts: number[], dek: Buffer): string[] {
-    return amounts.map((amount) => this.encryptAmount(amount, dek));
-  }
-
-  decryptAmounts(ciphertexts: string[], dek: Buffer): number[] {
-    return ciphertexts.map((ct) => this.decryptAmount(ct, dek));
   }
 
   async prepareAmountData(
@@ -295,10 +289,6 @@ export class EncryptionService {
     return true;
   }
 
-  async storeKeyCheck(userId: string, keyCheck: string): Promise<void> {
-    await this.#repository.updateKeyCheck(userId, keyCheck);
-  }
-
   async createRecoveryKey(
     userId: string,
     clientKey: Buffer,
@@ -363,7 +353,7 @@ export class EncryptionService {
     userId: string,
     recoveryKeyFormatted: string,
     newClientKey: Buffer,
-    reEncryptUserData: (oldDek: Buffer, newDek: Buffer) => Promise<void>,
+    supabase: AuthenticatedSupabaseClient,
   ): Promise<void> {
     const row = await this.#repository.findByUserId(userId);
     if (!row?.wrapped_dek) {
@@ -390,8 +380,7 @@ export class EncryptionService {
       // will need to regenerate a recovery key from settings.
       await this.#repository.updateWrappedDEK(userId, null);
 
-      // Re-encrypt user data with new DEK (newClientKey produces different DEK)
-      await reEncryptUserData(oldDek, newDek);
+      await this.reEncryptAllUserData(userId, oldDek, newDek, supabase);
 
       // Re-wrap with the same recovery key — the frontend will immediately call
       // regenerateRecoveryKey$() to replace it with a fresh one.
@@ -405,15 +394,105 @@ export class EncryptionService {
     }
   }
 
-  async rekeyUserData(
+  async changePinRekey(
     userId: string,
     oldClientKey: Buffer,
     newClientKey: Buffer,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
-    const oldDek = await this.getUserDEK(userId, oldClientKey);
-    const newDek = await this.ensureUserDEK(userId, newClientKey);
-    await this.reEncryptAllUserData(userId, oldDek, newDek, supabase);
+  ): Promise<{ keyCheck: string; recoveryKey: string | null }> {
+    const row = await this.#repository.findByUserId(userId);
+    if (!row) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+        undefined,
+        { userId, operation: 'change_pin.missing_encryption_row' },
+      );
+    }
+
+    const salt = Buffer.from(row.salt, 'hex');
+    const oldDek = this.#deriveDEK(oldClientKey, salt, userId);
+    let newDek: Buffer | null = null;
+
+    try {
+      // Check same-key BEFORE key verification — prevents oracle: if checked after,
+      // {old=X, new=X} would return ENCRYPTION_SAME_KEY when X is correct vs
+      // ENCRYPTION_KEY_CHECK_FAILED when wrong, leaking PIN validity.
+      if (oldClientKey.equals(newClientKey)) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.ENCRYPTION_SAME_KEY,
+          undefined,
+          { userId, operation: 'change_pin.same_key_rejected' },
+        );
+      }
+
+      if (!row.key_check) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+          undefined,
+          { userId, operation: 'change_pin.key_check_not_initialized' },
+        );
+      }
+
+      if (!this.validateKeyCheck(row.key_check, oldDek)) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+          undefined,
+          { userId, operation: 'change_pin.key_check_failed' },
+        );
+      }
+
+      newDek = this.#deriveDEK(newClientKey, salt, userId);
+      const hadRecovery = !!row.wrapped_dek;
+      let recoveryKeyFormatted: string | null = null;
+
+      this.#invalidateUserDEKCache(userId);
+
+      const keyCheck = await this.reEncryptAllUserData(
+        userId,
+        oldDek,
+        newDek,
+        supabase,
+      );
+
+      // If user had a recovery key, generate a new one and re-wrap the new DEK
+      // in the same call — wrapped_dek goes directly from old wrapping to new
+      // wrapping, never null. The frontend displays the new recovery key.
+      if (hadRecovery) {
+        const { raw, formatted } = this.generateRecoveryKey();
+        try {
+          const newWrappedDEK = this.wrapDEK(newDek, raw);
+          await this.#repository.updateWrappedDEK(userId, newWrappedDEK);
+          recoveryKeyFormatted = formatted;
+        } catch (wrapError) {
+          try {
+            await this.#repository.updateWrappedDEK(userId, null);
+          } catch {
+            // Best-effort nullification — next recovery key regeneration will fix state
+          }
+          throw new BusinessException(
+            ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
+            undefined,
+            { userId, operation: 'pin_change.recovery_wrap_failed' },
+            {
+              cause:
+                wrapError instanceof Error
+                  ? wrapError
+                  : new Error(String(wrapError)),
+            },
+          );
+        } finally {
+          raw.fill(0);
+        }
+      }
+
+      return {
+        keyCheck,
+        recoveryKey: recoveryKeyFormatted,
+      };
+    } finally {
+      oldDek.fill(0);
+      newDek?.fill(0);
+    }
   }
 
   async reEncryptAllUserData(
@@ -421,25 +500,21 @@ export class EncryptionService {
     oldDek: Buffer,
     newDek: Buffer,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
-    const [budgetIds, templateIds] = await Promise.all([
-      this.#fetchUserBudgetIds(userId, supabase),
+  ): Promise<string> {
+    const [monthlyBudgets, templateIds] = await Promise.all([
+      this.#fetchMonthlyBudgets(userId, supabase),
       this.#fetchUserTemplateIds(userId, supabase),
     ]);
 
-    const [
-      budgetLines,
-      transactions,
-      templateLines,
-      savingsGoals,
-      monthlyBudgets,
-    ] = await Promise.all([
-      this.#fetchBudgetLines(budgetIds, supabase),
-      this.#fetchTransactions(budgetIds, supabase),
-      this.#fetchTemplateLines(templateIds, supabase),
-      this.#fetchSavingsGoals(userId, supabase),
-      this.#fetchMonthlyBudgets(userId, supabase),
-    ]);
+    const budgetIds = monthlyBudgets.map((b) => b.id);
+
+    const [budgetLines, transactions, templateLines, savingsGoals] =
+      await Promise.all([
+        this.#fetchBudgetLines(budgetIds, supabase),
+        this.#fetchTransactions(budgetIds, supabase),
+        this.#fetchTemplateLines(templateIds, supabase),
+        this.#fetchSavingsGoals(userId, supabase),
+      ]);
 
     const payloads = this.#buildRekeyPayloads(
       {
@@ -473,7 +548,7 @@ export class EncryptionService {
       );
     }
 
-    this.#logger.log(
+    this.logger.info(
       {
         userId,
         operation: 'rekey.complete',
@@ -487,6 +562,8 @@ export class EncryptionService {
       },
       'All user data re-encrypted',
     );
+
+    return keyCheck;
   }
 
   #buildRekeyPayloads(
@@ -551,19 +628,6 @@ export class EncryptionService {
   ): string {
     const plaintext = this.decryptAmount(ciphertext, oldDek);
     return this.encryptAmount(plaintext, newDek);
-  }
-
-  async #fetchUserBudgetIds(
-    userId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<string[]> {
-    const { data, error } = await supabase
-      .from('monthly_budget')
-      .select('id')
-      .eq('user_id', userId);
-
-    if (error) throw error;
-    return data?.map((b) => b.id) ?? [];
   }
 
   async #fetchUserTemplateIds(
