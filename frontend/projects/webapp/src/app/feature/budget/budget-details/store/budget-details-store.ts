@@ -10,6 +10,8 @@ import {
 import { TranslocoService } from '@jsverse/transloco';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
+import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
+import { isApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
 import { createRolloverLine } from '@core/budget/rollover/rollover-types';
 import { formatLocalDate } from '@core/date/format-local-date';
@@ -52,6 +54,7 @@ function generateTempId(): string {
 @Injectable()
 export class BudgetDetailsStore {
   // ── 1. Dependencies ──
+  readonly #apiErrorLocalizer = inject(ApiErrorLocalizer);
   readonly #budgetApi = inject(BudgetApi);
   readonly #invalidationService = inject(BudgetInvalidationService);
   readonly #logger = inject(Logger);
@@ -617,10 +620,9 @@ export class BudgetDetailsStore {
     } catch (error) {
       this.reloadBudgetDetails();
 
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : this.#transloco.translate('budget.forecastResetError');
+      const errorMessage = isApiError(error)
+        ? this.#apiErrorLocalizer.localizeApiError(error)
+        : this.#transloco.translate('budget.forecastResetError');
       this.#setError(errorMessage);
       this.#logger.error('Error resetting budget line from template', error);
       throw error;

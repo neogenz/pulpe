@@ -30,8 +30,9 @@ import { TemplateDetailsDialog } from './template-details-dialog';
 import { TemplateStore } from './services/template-store';
 import { TemplateTotalsCalculator } from './services/template-totals-calculator';
 import { BudgetApi } from '@core/budget/budget-api';
+import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { isApiError } from '@core/api/api-error';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 const BUDGET_CREATION_CONSTANTS = {
   // Form validation constraints
@@ -210,7 +211,9 @@ export class CreateBudgetDialogComponent {
   readonly #formBuilder = inject(FormBuilder);
   readonly #dialog = inject(MatDialog);
   readonly #snackBar = inject(MatSnackBar);
+  readonly #apiErrorLocalizer = inject(ApiErrorLocalizer);
   readonly #budgetApi = inject(BudgetApi);
+  readonly #transloco = inject(TranslocoService);
   readonly templateStore = inject(TemplateStore);
   readonly #data = inject(MAT_DIALOG_DATA, { optional: true }) as {
     month?: number;
@@ -380,14 +383,18 @@ export class CreateBudgetDialogComponent {
       this.isCreating.set(false);
 
       const errorMessage = isApiError(error)
-        ? error.message
-        : 'La création du budget a échoué — réessaie';
+        ? this.#apiErrorLocalizer.localizeApiError(error)
+        : this.#transloco.translate('budget.createError');
 
       // Show error snackbar with the localized message
-      this.#snackBar.open(errorMessage, 'Fermer', {
-        duration: 8000,
-        panelClass: ['bg-[color-error]', 'text-[color-on-error]'],
-      });
+      this.#snackBar.open(
+        errorMessage,
+        this.#transloco.translate('common.close'),
+        {
+          duration: 8000,
+          panelClass: ['bg-[color-error]', 'text-[color-on-error]'],
+        },
+      );
     }
   }
 }

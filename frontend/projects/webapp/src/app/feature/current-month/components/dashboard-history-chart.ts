@@ -5,6 +5,7 @@ import {
   computed,
   inject,
   input,
+  LOCALE_ID,
   signal,
 } from '@angular/core';
 import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
@@ -89,6 +90,7 @@ import {
 export class DashboardHistoryChart {
   readonly #doc = inject(DOCUMENT);
   readonly #amountsVisibility = inject(AmountsVisibilityService);
+  readonly #locale = inject(LOCALE_ID);
   readonly #transloco = inject(TranslocoService);
   readonly history = input.required<HistoryDataPoint[]>();
 
@@ -172,7 +174,7 @@ export class DashboardHistoryChart {
     }
 
     return {
-      labels: data.map((d) => formatShortMonth(d.month)),
+      labels: data.map((d) => formatShortMonth(d.month, this.#locale)),
       datasets,
     };
   });

@@ -2,15 +2,15 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
+  LOCALE_ID,
   output,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import type { UpcomingMonthForecast } from '../services/dashboard-state';
-import { APP_LOCALE } from '@core/locale';
 
-const MONTH_FORMATTER = new Intl.DateTimeFormat(APP_LOCALE, { month: 'long' });
 const ROLLOVER_FORMATTER = new Intl.NumberFormat('de-CH', {
   minimumFractionDigits: 0,
   maximumFractionDigits: 0,
@@ -87,6 +87,10 @@ const ROLLOVER_FORMATTER = new Intl.NumberFormat('de-CH', {
   `,
 })
 export class DashboardNextMonth {
+  readonly #monthFormatter = new Intl.DateTimeFormat(inject(LOCALE_ID), {
+    month: 'long',
+  });
+
   readonly forecast = input.required<UpcomingMonthForecast>();
   readonly estimatedRollover = input.required<number>();
 
@@ -94,7 +98,7 @@ export class DashboardNextMonth {
 
   protected readonly monthName = computed(() => {
     const f = this.forecast();
-    return MONTH_FORMATTER.format(new Date(f.year, f.month - 1, 1));
+    return this.#monthFormatter.format(new Date(f.year, f.month - 1, 1));
   });
 
   protected readonly hasBudget = computed(() => this.forecast().hasBudget);

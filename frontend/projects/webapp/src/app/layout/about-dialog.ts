@@ -4,13 +4,13 @@ import {
   computed,
   DestroyRef,
   inject,
+  LOCALE_ID,
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { APP_LOCALE } from '@core/locale';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { ROUTES } from '@core/routing/routes-constants';
 import { buildInfo } from '@env/build-info';
@@ -131,6 +131,7 @@ export class AboutDialog {
   readonly #dialogRef = inject(MatDialogRef<AboutDialog>);
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #destroyRef = inject(DestroyRef);
+  readonly #locale = inject(LOCALE_ID);
   readonly #transloco = inject(TranslocoService);
 
   protected readonly ROUTES = ROUTES;
@@ -238,7 +239,7 @@ export class AboutDialog {
 
   #formatDate(isoDate: string): string {
     try {
-      return new Date(isoDate).toLocaleDateString(APP_LOCALE, {
+      return new Date(isoDate).toLocaleDateString(this.#locale, {
         year: 'numeric',
         month: 'short',
         day: 'numeric',

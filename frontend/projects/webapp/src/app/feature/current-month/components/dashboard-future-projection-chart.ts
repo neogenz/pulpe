@@ -5,6 +5,7 @@ import {
   computed,
   inject,
   input,
+  LOCALE_ID,
   signal,
 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
@@ -111,6 +112,7 @@ import {
 export class DashboardFutureProjectionChart {
   readonly #doc = inject(DOCUMENT);
   readonly #amountsVisibility = inject(AmountsVisibilityService);
+  readonly #locale = inject(LOCALE_ID);
   readonly #transloco = inject(TranslocoService);
   readonly forecasts = input.required<UpcomingMonthForecast[]>();
 
@@ -147,7 +149,7 @@ export class DashboardFutureProjectionChart {
   protected readonly missingMonthsTooltip = computed(() => {
     const months = this.forecasts()
       .filter((f) => !f.hasBudget)
-      .map((f) => `${formatShortMonth(f.month)} ${f.year}`)
+      .map((f) => `${formatShortMonth(f.month, this.#locale)} ${f.year}`)
       .join(', ');
     return this.#transloco.translate('currentMonth.projectionMissingMonths', {
       months,
@@ -164,7 +166,7 @@ export class DashboardFutureProjectionChart {
   );
 
   readonly chartData = computed(() =>
-    buildProjectionChartData(this.forecasts(), this.#theme(), {
+    buildProjectionChartData(this.forecasts(), this.#theme(), this.#locale, {
       available: this.#projectionBalanceLabel,
       cumulatedSavings: this.#projectionCumulatedSavingsLabel,
     }),

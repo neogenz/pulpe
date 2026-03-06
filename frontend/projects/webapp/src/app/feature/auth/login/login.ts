@@ -4,6 +4,7 @@ import {
   signal,
   inject,
   computed,
+  LOCALE_ID,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -190,6 +191,7 @@ import { LoadingButton } from '@ui/loading-button';
 export default class Login {
   readonly #authCredentials = inject(AuthCredentialsService);
   readonly #formBuilder = inject(FormBuilder);
+  readonly #locale = inject(LOCALE_ID);
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);
   readonly #logger = inject(Logger);
@@ -210,7 +212,7 @@ export default class Login {
     if (reason === SCHEDULED_DELETION_PARAMS.REASON_VALUE && date) {
       this.errorMessage.set(
         this.#transloco.translate('auth.scheduledDeletion', {
-          date: formatDeletionDate(date),
+          date: formatDeletionDate(date, this.#locale),
         }),
       );
     }

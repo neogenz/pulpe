@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { LOCALE_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { Session, User } from '@supabase/supabase-js';
 import { ClientKeyService } from '@core/encryption';
@@ -56,6 +57,7 @@ describe('AuthCredentialsService', () => {
     TestBed.configureTestingModule({
       providers: [
         ...provideTranslocoForTest(),
+        { provide: LOCALE_ID, useValue: 'fr-CH' },
         AuthCredentialsService,
         { provide: AuthSessionService, useValue: mockSession },
         { provide: AuthStateService, useValue: mockState },
