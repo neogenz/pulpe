@@ -115,7 +115,7 @@ export interface AllocatedTransactionsDialogResult {
                 {{ 'budget.dateColumn' | transloco }}
               </th>
               <td mat-cell *matCellDef="let tx" class="text-body-small">
-                {{ tx.transactionDate | date: 'dd.MM.yyyy' : 'fr-CH' }}
+                {{ tx.transactionDate | date: 'dd.MM.yyyy' }}
               </td>
             </ng-container>
 

@@ -220,9 +220,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                       {{ tx.name }}
                     </div>
                     <div class="text-label-small text-on-surface-variant">
-                      {{
-                        tx.transactionDate | date: 'dd.MM.yyyy' : '' : 'fr-CH'
-                      }}
+                      {{ tx.transactionDate | date: 'dd.MM.yyyy' }}
                     </div>
                   </div>
                   <div

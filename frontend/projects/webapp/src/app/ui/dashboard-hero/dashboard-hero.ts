@@ -2,7 +2,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
+  LOCALE_ID,
   output,
 } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
@@ -206,6 +208,9 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardHero {
+  readonly #monthFormatter = new Intl.DateTimeFormat(inject(LOCALE_ID), {
+    month: 'long',
+  });
   readonly expenses = input.required<number>();
   readonly available = input.required<number>();
   readonly periodDates = input.required<BudgetPeriodDates>();
@@ -243,8 +248,6 @@ export class DashboardHero {
     const start = dates.startDate.getTime();
     const end = dates.endDate.getTime();
     const middleDate = new Date(start + (end - start) / 2);
-    return new Intl.DateTimeFormat('fr-FR', { month: 'long' }).format(
-      middleDate,
-    );
+    return this.#monthFormatter.format(middleDate);
   });
 }

@@ -237,9 +237,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
               <span
                 class="text-label-small text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-full"
               >
-                {{
-                  item.data.transactionDate | date: 'dd.MM.yyyy' : '' : 'fr-CH'
-                }}
+                {{ item.data.transactionDate | date: 'dd.MM.yyyy' }}
               </span>
             }
           </div>
@@ -312,9 +310,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
               <span
                 class="text-label-small text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-full"
               >
-                {{
-                  item.data.transactionDate | date: 'dd.MM.yyyy' : '' : 'fr-CH'
-                }}
+                {{ item.data.transactionDate | date: 'dd.MM.yyyy' }}
               </span>
             }
           </div>

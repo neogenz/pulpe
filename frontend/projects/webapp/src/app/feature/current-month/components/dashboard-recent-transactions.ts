@@ -75,7 +75,7 @@ const KIND_ICONS: Record<TransactionKind, string> = {
                   <p
                     class="text-body-small text-on-surface-variant font-medium"
                   >
-                    {{ tx.transactionDate | date: 'dd MMM' : '' : 'fr-CH' }}
+                    {{ tx.transactionDate | date: 'dd MMM' }}
                   </p>
                 </div>
                 <span
