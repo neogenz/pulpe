@@ -56,7 +56,7 @@ function createMockEncryptionService() {
     changePinRekey: mock(() =>
       Promise.resolve({
         keyCheck: 'mock-key-check',
-        recoveryKey: null as string | null,
+        recoveryKey: 'MOCK-RECO-VERY-KEY0',
       }),
     ),
     recoverWithKey: mock(() => Promise.resolve()),
@@ -187,7 +187,7 @@ describe('Encryption HTTP pipeline', () => {
   // POST /api/v1/encryption/change-pin
   // ──────────────────────────────────────────────
   describe('POST /api/v1/encryption/change-pin', () => {
-    it('returns 200 with keyCheck and null recoveryKey', async () => {
+    it('returns 200 with keyCheck and recoveryKey', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/encryption/change-pin')
         .send({ oldClientKey: VALID_HEX_KEY, newClientKey: VALID_HEX_KEY_ALT })
@@ -195,11 +195,11 @@ describe('Encryption HTTP pipeline', () => {
 
       expect(res.body).toEqual({
         keyCheck: 'mock-key-check',
-        recoveryKey: null,
+        recoveryKey: 'MOCK-RECO-VERY-KEY0',
       });
     });
 
-    it('returns 200 with recoveryKey when service returns one', async () => {
+    it('returns 200 with custom recoveryKey', async () => {
       mockService.changePinRekey.mockImplementationOnce(() =>
         Promise.resolve({
           keyCheck: 'new-kc',

@@ -48,7 +48,7 @@ const createMockEncryptionService = (overrides?: {
     mock(() =>
       Promise.resolve({
         keyCheck: 'mock-key-check',
-        recoveryKey: null,
+        recoveryKey: 'MOCK-RECO-VERY-KEY0',
       }),
     ),
 });
@@ -547,32 +547,7 @@ describe('EncryptionController', () => {
   });
 
   describe('changePin', () => {
-    it('should return result without recovery key (user had none)', async () => {
-      const user = createMockUser();
-      const mockSupabase = {};
-      const body = {
-        oldClientKey: 'ab'.repeat(32),
-        newClientKey: 'cd'.repeat(32),
-      };
-      const expected = {
-        keyCheck: 'new-key-check',
-        recoveryKey: null,
-      };
-
-      const { controller } = setupController({
-        changePinRekey: mock(() => Promise.resolve(expected)),
-      });
-
-      const result = await controller.changePin(
-        user,
-        mockSupabase as any,
-        body,
-      );
-
-      expect(result).toEqual(expected);
-    });
-
-    it('should return new recovery key when user had one', async () => {
+    it('should return result with recovery key', async () => {
       const user = createMockUser();
       const mockSupabase = {};
       const body = {
@@ -795,7 +770,7 @@ describe('EncryptionController', () => {
             Buffer.from(args[2]),
             args[3],
           );
-          return { keyCheck: 'kc', recoveryKey: null };
+          return { keyCheck: 'kc', recoveryKey: 'MOCK-RECO-VERY-KEY0' };
         }),
       });
 

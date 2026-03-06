@@ -1998,7 +1998,7 @@ describe('EncryptionService', () => {
       }
     });
 
-    it('should re-encrypt data and return keyCheck on success (no recovery)', async () => {
+    it('should re-encrypt data and always return a recovery key', async () => {
       const dek = await setupServiceWithValidKeyCheck();
       const validKeyCheck = service.generateKeyCheck(dek);
 
@@ -2042,10 +2042,11 @@ describe('EncryptionService', () => {
         mockSupabase,
       );
 
-      expect(result.recoveryKey).toBeNull();
+      expect(result.recoveryKey).not.toBeNull();
+      expect(result.recoveryKey).toMatch(/^[A-Z2-7]+-/);
       expect(result.keyCheck).toBe('mock-key-check');
       expect(reEncryptSpy).toHaveBeenCalledTimes(1);
-      expect(updateWrappedDEK).not.toHaveBeenCalled();
+      expect(updateWrappedDEK).toHaveBeenCalledTimes(1);
 
       reEncryptSpy.mockRestore();
     });
