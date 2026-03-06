@@ -414,6 +414,17 @@ export class EncryptionService {
     let newDek: Buffer | null = null;
 
     try {
+      // Check same-key BEFORE key verification — prevents oracle: if checked after,
+      // {old=X, new=X} would return ENCRYPTION_SAME_KEY when X is correct vs
+      // ENCRYPTION_KEY_CHECK_FAILED when wrong, leaking PIN validity.
+      if (oldClientKey.equals(newClientKey)) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.ENCRYPTION_SAME_KEY,
+          undefined,
+          { userId, operation: 'change_pin.same_key_rejected' },
+        );
+      }
+
       if (!row.key_check) {
         throw new BusinessException(
           ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
@@ -427,16 +438,6 @@ export class EncryptionService {
           ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
           undefined,
           { userId, operation: 'change_pin.key_check_failed' },
-        );
-      }
-
-      // Check same-key AFTER verifying old key — prevents oracle that leaks
-      // whether the old key is valid via different error codes.
-      if (oldClientKey.equals(newClientKey)) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.ENCRYPTION_SAME_KEY,
-          undefined,
-          { userId, operation: 'change_pin.same_key_rejected' },
         );
       }
 
