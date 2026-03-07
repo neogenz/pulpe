@@ -16,7 +16,6 @@ import { firstValueFrom } from 'rxjs';
 import { authInterceptor, resetRefreshState } from './auth-interceptor';
 import { AuthSessionService } from './auth-session.service';
 import { AuthStateService } from './auth-state.service';
-import { ClientKeyService } from '../encryption';
 import { ApplicationConfiguration } from '../config/application-configuration';
 
 // Test simple de la fonction shouldInterceptRequest
@@ -75,11 +74,12 @@ describe('shouldInterceptRequest', () => {
   });
 });
 
-describe('authInterceptor - concurrent 401 refresh lock', () => {
+describe('authInterceptor', () => {
   const BACKEND_URL = 'https://api.pulpe.ch';
 
   let http: HttpClient;
   let httpTesting: HttpTestingController;
+  let mockRouter: { navigate: ReturnType<typeof vi.fn> };
   let mockAuthSession: {
     getCurrentSession: ReturnType<typeof vi.fn>;
     refreshSession: ReturnType<typeof vi.fn>;
@@ -109,6 +109,8 @@ describe('authInterceptor - concurrent 401 refresh lock', () => {
       isAuthenticated: vi.fn().mockReturnValue(true),
     };
 
+    mockRouter = { navigate: vi.fn().mockResolvedValue(true) };
+
     const mockApplicationConfig = {
       backendApiUrl: vi.fn().mockReturnValue(BACKEND_URL),
     };
@@ -120,12 +122,8 @@ describe('authInterceptor - concurrent 401 refresh lock', () => {
         provideHttpClientTesting(),
         { provide: AuthSessionService, useValue: mockAuthSession },
         { provide: AuthStateService, useValue: mockAuthState },
-        { provide: ClientKeyService, useValue: { clear: vi.fn() } },
         { provide: ApplicationConfiguration, useValue: mockApplicationConfig },
-        {
-          provide: Router,
-          useValue: { navigate: vi.fn().mockResolvedValue(true) },
-        },
+        { provide: Router, useValue: mockRouter },
       ],
     });
 
@@ -133,80 +131,227 @@ describe('authInterceptor - concurrent 401 refresh lock', () => {
     httpTesting = TestBed.inject(HttpTestingController);
   });
 
-  // Flush microtasks so the async addAuthToken pipeline resolves
   async function flushMicrotasks() {
     await new Promise((resolve) => setTimeout(resolve, 0));
   }
 
-  it('should only call refreshSession once for concurrent 401 responses', async () => {
-    // Fire two requests simultaneously
-    const promise1 = firstValueFrom(http.get(`${BACKEND_URL}/endpoint1`)).catch(
-      () => 'failed',
-    );
-    const promise2 = firstValueFrom(http.get(`${BACKEND_URL}/endpoint2`)).catch(
-      () => 'failed',
-    );
+  describe('concurrent 401 refresh lock', () => {
+    it('should only call refreshSession once for concurrent 401 responses', async () => {
+      const promise1 = firstValueFrom(
+        http.get(`${BACKEND_URL}/endpoint1`),
+      ).catch(() => 'failed');
+      const promise2 = firstValueFrom(
+        http.get(`${BACKEND_URL}/endpoint2`),
+      ).catch(() => 'failed');
 
-    // Let async interceptor pipeline (addAuthToken) resolve
-    await flushMicrotasks();
+      await flushMicrotasks();
 
-    // Both requests return 401
-    const req1 = httpTesting.expectOne(`${BACKEND_URL}/endpoint1`);
-    const req2 = httpTesting.expectOne(`${BACKEND_URL}/endpoint2`);
-    req1.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
-    req2.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+      const req1 = httpTesting.expectOne(`${BACKEND_URL}/endpoint1`);
+      const req2 = httpTesting.expectOne(`${BACKEND_URL}/endpoint2`);
+      req1.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+      req2.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
 
-    // Wait for the 401 handler to call refreshSession
-    await vi.waitFor(() => {
-      expect(refreshResolvers.length).toBeGreaterThanOrEqual(1);
+      await vi.waitFor(() => {
+        expect(refreshResolvers.length).toBeGreaterThanOrEqual(1);
+      });
+
+      expect(mockAuthSession.refreshSession).toHaveBeenCalledTimes(1);
+
+      refreshResolvers[0](true);
+
+      await flushMicrotasks();
+
+      const retries = httpTesting.match(() => true);
+      retries.forEach((r) => r.flush({ data: 'ok' }));
+
+      await Promise.all([promise1, promise2]);
     });
 
-    // Only ONE refresh should have been initiated
-    expect(mockAuthSession.refreshSession).toHaveBeenCalledTimes(1);
+    it('should redirect all waiting requests to login when refresh fails', async () => {
+      const promise1 = firstValueFrom(
+        http.get(`${BACKEND_URL}/endpoint1`),
+      ).catch((err) => err);
+      const promise2 = firstValueFrom(
+        http.get(`${BACKEND_URL}/endpoint2`),
+      ).catch((err) => err);
 
-    // Resolve the refresh
-    refreshResolvers[0](true);
+      await flushMicrotasks();
 
-    // Let retry's addAuthToken resolve
-    await flushMicrotasks();
+      const req1 = httpTesting.expectOne(`${BACKEND_URL}/endpoint1`);
+      const req2 = httpTesting.expectOne(`${BACKEND_URL}/endpoint2`);
+      req1.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+      req2.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
 
-    // Complete retried requests
-    const retries = httpTesting.match(() => true);
-    retries.forEach((r) => r.flush({ data: 'ok' }));
+      await vi.waitFor(() => {
+        expect(refreshResolvers.length).toBeGreaterThanOrEqual(1);
+      });
 
-    await Promise.all([promise1, promise2]);
+      refreshResolvers[0](false);
+
+      const [result1, result2] = await Promise.all([promise1, promise2]);
+
+      expect(result1).toBeInstanceOf(Error);
+      expect(result2).toBeInstanceOf(Error);
+      expect(mockAuthSession.refreshSession).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('should redirect all waiting requests to login when refresh fails', async () => {
-    const promise1 = firstValueFrom(http.get(`${BACKEND_URL}/endpoint1`)).catch(
-      (err) => err,
-    );
-    const promise2 = firstValueFrom(http.get(`${BACKEND_URL}/endpoint2`)).catch(
-      (err) => err,
-    );
+  describe('ERR_AUTH_CLIENT_KEY_MISSING (403)', () => {
+    it('should redirect to enter-vault-code without signing out', async () => {
+      const result = firstValueFrom(http.get(`${BACKEND_URL}/api/data`)).catch(
+        (err) => err,
+      );
 
-    // Let async interceptor pipeline resolve
-    await flushMicrotasks();
+      await flushMicrotasks();
 
-    const req1 = httpTesting.expectOne(`${BACKEND_URL}/endpoint1`);
-    const req2 = httpTesting.expectOne(`${BACKEND_URL}/endpoint2`);
-    req1.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
-    req2.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+      httpTesting
+        .expectOne(`${BACKEND_URL}/api/data`)
+        .flush(
+          { code: 'ERR_AUTH_CLIENT_KEY_MISSING' },
+          { status: 403, statusText: 'Forbidden' },
+        );
 
-    await vi.waitFor(() => {
-      expect(refreshResolvers.length).toBeGreaterThanOrEqual(1);
+      const error = await result;
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith([
+        '/',
+        'enter-vault-code',
+      ]);
+      expect(mockAuthSession.signOut).not.toHaveBeenCalled();
+      expect(error).toBeInstanceOf(Error);
+      expect(error.message).toBe('Client encryption key missing');
+    });
+  });
+
+  describe('ERR_USER_ACCOUNT_BLOCKED (403)', () => {
+    it('should sign out and redirect to login when code field is used', async () => {
+      const result = firstValueFrom(http.get(`${BACKEND_URL}/api/data`)).catch(
+        (err) => err,
+      );
+
+      await flushMicrotasks();
+
+      httpTesting
+        .expectOne(`${BACKEND_URL}/api/data`)
+        .flush(
+          { code: 'ERR_USER_ACCOUNT_BLOCKED' },
+          { status: 403, statusText: 'Forbidden' },
+        );
+
+      const error = await result;
+
+      expect(mockAuthSession.signOut).toHaveBeenCalled();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/', 'login']);
+      expect(error).toBeInstanceOf(Error);
     });
 
-    // Refresh fails
-    refreshResolvers[0](false);
+    it('should sign out and redirect to login when error field is used', async () => {
+      const result = firstValueFrom(http.get(`${BACKEND_URL}/api/data`)).catch(
+        (err) => err,
+      );
 
-    const [result1, result2] = await Promise.all([promise1, promise2]);
+      await flushMicrotasks();
 
-    // Both should have errored
-    expect(result1).toBeInstanceOf(Error);
-    expect(result2).toBeInstanceOf(Error);
+      httpTesting
+        .expectOne(`${BACKEND_URL}/api/data`)
+        .flush(
+          { error: 'ERR_USER_ACCOUNT_BLOCKED' },
+          { status: 403, statusText: 'Forbidden' },
+        );
 
-    // Only one refresh call
-    expect(mockAuthSession.refreshSession).toHaveBeenCalledTimes(1);
+      const error = await result;
+
+      expect(mockAuthSession.signOut).toHaveBeenCalled();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/', 'login']);
+      expect(error).toBeInstanceOf(Error);
+    });
+  });
+
+  describe('ERR_ENCRYPTION_KEY_CHECK_FAILED (400)', () => {
+    it('should pass the error through without redirecting', async () => {
+      const result = firstValueFrom(
+        http.get(`${BACKEND_URL}/api/encryption/validate-key`),
+      ).catch((err) => err);
+
+      await flushMicrotasks();
+
+      httpTesting
+        .expectOne(`${BACKEND_URL}/api/encryption/validate-key`)
+        .flush(
+          { code: 'ERR_ENCRYPTION_KEY_CHECK_FAILED' },
+          { status: 400, statusText: 'Bad Request' },
+        );
+
+      const error = await result;
+
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+      expect(mockAuthSession.signOut).not.toHaveBeenCalled();
+      expect(error.status).toBe(400);
+      expect(error.error.code).toBe('ERR_ENCRYPTION_KEY_CHECK_FAILED');
+    });
+  });
+
+  describe('non-auth errors', () => {
+    it('should pass through 400 errors without interception', async () => {
+      const result = firstValueFrom(http.get(`${BACKEND_URL}/api/data`)).catch(
+        (err) => err,
+      );
+
+      await flushMicrotasks();
+
+      httpTesting
+        .expectOne(`${BACKEND_URL}/api/data`)
+        .flush(
+          { message: 'Validation failed' },
+          { status: 400, statusText: 'Bad Request' },
+        );
+
+      const error = await result;
+
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+      expect(mockAuthSession.signOut).not.toHaveBeenCalled();
+      expect(error.status).toBe(400);
+    });
+
+    it('should pass through 500 errors without interception', async () => {
+      const result = firstValueFrom(http.get(`${BACKEND_URL}/api/data`)).catch(
+        (err) => err,
+      );
+
+      await flushMicrotasks();
+
+      httpTesting
+        .expectOne(`${BACKEND_URL}/api/data`)
+        .flush(
+          { message: 'Internal error' },
+          { status: 500, statusText: 'Internal Server Error' },
+        );
+
+      const error = await result;
+
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+      expect(mockAuthSession.signOut).not.toHaveBeenCalled();
+      expect(error.status).toBe(500);
+    });
+
+    it('should not intercept 401 when user is not authenticated', async () => {
+      mockAuthState.isAuthenticated.mockReturnValue(false);
+
+      const result = firstValueFrom(http.get(`${BACKEND_URL}/api/data`)).catch(
+        (err) => err,
+      );
+
+      await flushMicrotasks();
+
+      httpTesting
+        .expectOne(`${BACKEND_URL}/api/data`)
+        .flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+
+      const error = await result;
+
+      expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+      expect(error.status).toBe(401);
+    });
   });
 });
