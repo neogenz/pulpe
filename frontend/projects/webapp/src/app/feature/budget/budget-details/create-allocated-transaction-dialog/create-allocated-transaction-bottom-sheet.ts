@@ -159,7 +159,7 @@ import {
           class="flex-2"
         >
           <mat-icon>add</mat-icon>
-          {{ 'budget.createButton' | transloco }}
+          {{ 'budget.transactionCreateButton' | transloco }}
         </button>
       </div>
     </div>

@@ -144,7 +144,7 @@ export interface CreateAllocatedTransactionDialogData {
         data-testid="save-transaction"
       >
         <mat-icon>add</mat-icon>
-        {{ 'budget.createButton' | transloco }}
+        {{ 'budget.transactionCreateButton' | transloco }}
       </button>
     </mat-dialog-actions>
   `,
