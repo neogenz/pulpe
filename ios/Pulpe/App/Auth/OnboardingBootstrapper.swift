@@ -54,7 +54,7 @@ final class OnboardingBootstrapper {
 
             pendingOnboardingData = nil
             AnalyticsService.shared.capture(.firstBudgetCreated, properties: [
-                "has_pay_day": onboardingData.monthlyIncome != nil,
+                "has_pay_day": false,
                 "charges_count": [
                     onboardingData.housingCosts,
                     onboardingData.healthInsurance,
