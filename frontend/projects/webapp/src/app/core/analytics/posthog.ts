@@ -77,6 +77,7 @@ export class PostHogService {
         // Built-in privacy protection
         person_profiles: 'identified_only',
         persistence: 'localStorage+cookie',
+        cross_subdomain_cookie: true,
 
         // Sanitize financial data before sending
         before_send: this.#sanitizeEvent.bind(this),

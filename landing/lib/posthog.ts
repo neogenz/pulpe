@@ -29,6 +29,7 @@ export function initPostHog(): void {
       capture_pageleave: true,
       person_profiles: 'identified_only',
       persistence: 'localStorage+cookie',
+      cross_subdomain_cookie: true,
     });
 
     posthog.register({
