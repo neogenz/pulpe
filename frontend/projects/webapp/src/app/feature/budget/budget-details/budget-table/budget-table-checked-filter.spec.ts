@@ -3,6 +3,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import type { MatChipSelectionChange } from '@angular/material/chips';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { BudgetTableCheckedFilter } from './budget-table-checked-filter';
 
 describe('BudgetTableCheckedFilter', () => {
@@ -12,7 +13,10 @@ describe('BudgetTableCheckedFilter', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [BudgetTableCheckedFilter, NoopAnimationsModule],
-      providers: [provideZonelessChangeDetection()],
+      providers: [
+        provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(BudgetTableCheckedFilter);

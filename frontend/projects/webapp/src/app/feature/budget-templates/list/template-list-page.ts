@@ -10,6 +10,7 @@ import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { BudgetTemplatesStore } from '../services/budget-templates-store';
 import { TemplateList } from '../components/template-list';
 import { BaseLoading } from '@ui/loading';
@@ -29,6 +30,7 @@ import {
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
+    TranslocoPipe,
     TemplateList,
     BaseLoading,
     TemplatesError,
@@ -52,10 +54,11 @@ import {
               data-testid="template-counter"
               data-tour="template-counter"
             >
-              {{ store.templateCount() }} modèle{{
-                store.templateCount() > 1 ? 's' : ''
+              {{
+                'template.counter'
+                  | transloco
+                    : { count: store.templateCount(), max: store.MAX_TEMPLATES }
               }}
-              sur {{ store.MAX_TEMPLATES }} maximum
             </p>
           }
         </div>
@@ -64,8 +67,8 @@ import {
             matIconButton
             (click)="store.refreshData()"
             [disabled]="store.budgetTemplates.isLoading()"
-            matTooltip="Actualiser"
-            aria-label="Actualiser"
+            [matTooltip]="'template.refresh' | transloco"
+            [attr.aria-label]="'template.refresh' | transloco"
             data-testid="refresh-button"
           >
             <mat-icon>refresh</mat-icon>
@@ -77,15 +80,18 @@ import {
             [disabled]="store.isTemplateLimitReached()"
             [matTooltip]="
               store.isTemplateLimitReached()
-                ? 'Limite de ' + store.MAX_TEMPLATES + ' modèles atteinte'
-                : 'Créer un nouveau modèle'
+                ? ('template.limitReached'
+                  | transloco: { max: store.MAX_TEMPLATES })
+                : ('template.createTitle' | transloco)
             "
             data-testid="create-template-button"
             data-tour="create-template"
           >
             <mat-icon class="md:inline hidden">add_circle</mat-icon>
-            <span class="md:hidden">Ajouter</span>
-            <span class="hidden md:inline">Ajouter un modèle</span>
+            <span class="md:hidden">{{ 'template.add' | transloco }}</span>
+            <span class="hidden md:inline">{{
+              'template.addTemplate' | transloco
+            }}</span>
           </button>
         </div>
       </header>
@@ -93,7 +99,7 @@ import {
       @switch (true) {
         @case (store.budgetTemplates.status() === 'loading') {
           <pulpe-base-loading
-            message="Récupération de tes modèles..."
+            [message]="'template.loadingList' | transloco"
             size="large"
             testId="templates-loading"
           />

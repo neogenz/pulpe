@@ -17,7 +17,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetLine, type Transaction } from 'pulpe-shared';
 import { FinancialKindDirective } from '@ui/financial-kind';
-import { TransactionLabelPipe } from '@ui/transaction-display';
+import { TransactionLabelPipe } from '@pattern/transaction-display';
 import {
   createBudgetLineConsumptionDisplay,
   type BudgetLineTableItem,
@@ -220,9 +220,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                       {{ tx.name }}
                     </div>
                     <div class="text-label-small text-on-surface-variant">
-                      {{
-                        tx.transactionDate | date: 'dd.MM.yyyy' : '' : 'fr-CH'
-                      }}
+                      {{ tx.transactionDate | date: 'dd.MM.yyyy' }}
                     </div>
                   </div>
                   <div

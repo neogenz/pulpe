@@ -31,9 +31,11 @@ const CUSTOM_DATE_FORMATS = {
   },
 };
 
+const APP_LOCALE = 'fr-CH' as const;
+
 export function provideLocale() {
   return [
-    { provide: LOCALE_ID, useValue: 'fr-CH' },
+    { provide: LOCALE_ID, useValue: APP_LOCALE },
     { provide: MAT_DATE_LOCALE, useValue: frCH },
     provideDateFnsAdapter(),
     { provide: MAT_DATE_FORMATS, useValue: CUSTOM_DATE_FORMATS },

@@ -15,6 +15,7 @@ import {
   type ValidationErrors,
   Validators,
 } from '@angular/forms';
+import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDividerModule } from '@angular/material/divider';
@@ -45,6 +46,7 @@ const MAX_TEMPLATES = 5;
     MatTooltipModule,
     MatDividerModule,
     DefaultWarningPanel,
+    TranslocoPipe,
   ],
   template: `
     <div
@@ -59,7 +61,7 @@ const MAX_TEMPLATES = 5;
           <div class="flex flex-col items-center gap-3">
             <mat-spinner diameter="32"></mat-spinner>
             <span class="text-body-medium text-on-surface-variant font-medium">
-              Création en cours...
+              {{ 'template.creating' | transloco }}
             </span>
           </div>
         </div>
@@ -67,7 +69,10 @@ const MAX_TEMPLATES = 5;
 
       @if (templateCount() > 0) {
         <div class="text-body-medium text-on-surface-variant">
-          {{ templateCount() }}/{{ maxTemplates }} modèles créés
+          {{
+            'template.countDisplay'
+              | transloco: { count: templateCount(), max: maxTemplates }
+          }}
         </div>
       }
 
@@ -81,7 +86,7 @@ const MAX_TEMPLATES = 5;
         <div class="flex flex-col gap-4 md:gap-6 pt-4">
           <!-- Name field - full width for optimal UX -->
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Nom du modèle</mat-label>
+            <mat-label>{{ 'template.nameLabel' | transloco }}</mat-label>
             <input
               matInput
               formControlName="name"
@@ -104,12 +109,12 @@ const MAX_TEMPLATES = 5;
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Description (optionnelle)</mat-label>
+            <mat-label>{{ 'template.descriptionLabel' | transloco }}</mat-label>
             <textarea
               matInput
               formControlName="description"
               rows="3"
-              aria-label="Description du modèle (optionnel)"
+              [attr.aria-label]="descriptionAriaLabel"
               data-testid="template-description-input"
             ></textarea>
             <mat-hint align="end">
@@ -118,7 +123,7 @@ const MAX_TEMPLATES = 5;
             @if (templateForm.get('description')?.errors) {
               <mat-error>
                 @if (templateForm.get('description')?.errors?.['maxlength']) {
-                  La description ne doit pas dépasser 200 caractères.
+                  {{ 'template.descriptionMaxLength' | transloco }}
                 }
               </mat-error>
             }
@@ -128,15 +133,15 @@ const MAX_TEMPLATES = 5;
             <mat-checkbox
               formControlName="isDefault"
               data-testid="template-default-checkbox"
-              aria-label="Définir comme modèle par défaut"
+              [attr.aria-label]="isDefaultAriaLabel"
               class="min-h-[44px] flex items-center"
             >
-              Modèle par défaut
+              {{ 'template.isDefaultLabel' | transloco }}
             </mat-checkbox>
             <mat-icon
-              matTooltip="Le modèle par défaut est sélectionné par défaut pour créer de nouveaux budgets mensuels."
+              [matTooltip]="isDefaultTooltip"
               matTooltipPosition="above"
-              aria-label="Information sur le modèle par défaut"
+              [attr.aria-label]="isDefaultAriaInfo"
               class="!text-on-surface-variant cursor-help"
               tabindex="0"
             >
@@ -185,8 +190,10 @@ const MAX_TEMPLATES = 5;
                   >warning</mat-icon
                 >
                 <span class="text-body-medium leading-relaxed">
-                  Limite de {{ maxTemplates }} modèles atteinte. Supprimez un
-                  modèle existant pour en créer un nouveau.
+                  {{
+                    'template.limitReachedInfo'
+                      | transloco: { max: maxTemplates }
+                  }}
                 </span>
               </div>
             </div>
@@ -205,7 +212,7 @@ const MAX_TEMPLATES = 5;
             data-testid="cancel-button"
             type="button"
           >
-            Annuler
+            {{ 'common.cancel' | transloco }}
           </button>
           <button
             matButton="filled"
@@ -228,6 +235,7 @@ const MAX_TEMPLATES = 5;
 })
 export class CreateTemplateForm {
   readonly #fb = inject(FormBuilder);
+  readonly #transloco = inject(TranslocoService);
 
   // All data comes via inputs - NO state injection
   readonly isCreating = input(false);
@@ -239,10 +247,21 @@ export class CreateTemplateForm {
   readonly addTemplate = output<BudgetTemplateCreate>();
   readonly cancelForm = output<void>();
 
-  // Constants
   readonly maxTemplates = MAX_TEMPLATES;
 
-  // Local state
+  protected readonly descriptionAriaLabel = this.#transloco.translate(
+    'template.descriptionAriaLabel',
+  );
+  protected readonly isDefaultAriaLabel = this.#transloco.translate(
+    'template.isDefaultAriaLabel',
+  );
+  protected readonly isDefaultTooltip = this.#transloco.translate(
+    'template.isDefaultTooltip',
+  );
+  protected readonly isDefaultAriaInfo = this.#transloco.translate(
+    'template.isDefaultAriaInfo',
+  );
+
   readonly globalFormError = signal<string | null>(null);
 
   // Form definition - validators set initially, updated via effect when inputs change
@@ -274,22 +293,24 @@ export class CreateTemplateForm {
     () => !this.isCreating() && this.templateCount() >= this.maxTemplates,
   );
 
-  // Computed: warning message when overriding default
   readonly overrideDefaultWarning = computed(() => {
     const defaultName = this.defaultTemplateName();
     const isDefaultChecked = this.isDefaultChecked();
 
     if (defaultName && isDefaultChecked) {
-      return `Le modèle "${defaultName}" ne sera plus le modèle par défaut.`;
+      return this.#transloco.translate('template.overrideDefault', {
+        name: defaultName,
+      });
     }
     return null;
   });
 
-  // Submit button text
   readonly submitButtonText = computed(() => {
-    if (this.isCreating()) return 'Création...';
-    if (this.isLimitReached()) return 'Limite atteinte';
-    return 'Créer';
+    if (this.isCreating())
+      return this.#transloco.translate('template.submitCreating');
+    if (this.isLimitReached())
+      return this.#transloco.translate('template.submitLimitReached');
+    return this.#transloco.translate('template.submitCreate');
   });
 
   // Form valid for submission
@@ -329,7 +350,9 @@ export class CreateTemplateForm {
     if (!this.isFormValidForSubmission()) {
       if (this.isLimitReached()) {
         this.globalFormError.set(
-          `Vous avez atteint la limite de ${this.maxTemplates} modèles`,
+          this.#transloco.translate('template.limitExceeded', {
+            max: this.maxTemplates,
+          }),
         );
       }
       return;

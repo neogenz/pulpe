@@ -19,6 +19,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
+import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { AuthSessionService, PASSWORD_MIN_LENGTH } from '@core/auth';
 import { Logger } from '@core/logging/logger';
 import { MatDivider } from '@angular/material/divider';
@@ -36,13 +37,16 @@ import { ErrorAlert } from '@ui/error-alert';
     MatProgressSpinnerModule,
     MatDivider,
     ErrorAlert,
+    TranslocoPipe,
   ],
   template: `
-    <h2 mat-dialog-title class="pb-2!">Modifier le mot de passe</h2>
+    <h2 mat-dialog-title class="pb-2!">
+      {{ 'settings.changePasswordTitle' | transloco }}
+    </h2>
 
     <mat-dialog-content>
       <p class="text-body-medium text-on-surface-variant mb-4">
-        Confirme ton identité pour modifier ton accès
+        {{ 'settings.confirmIdentity' | transloco }}
       </p>
 
       <pulpe-error-alert
@@ -53,7 +57,7 @@ import { ErrorAlert } from '@ui/error-alert';
       <form [formGroup]="passwordForm" (ngSubmit)="onSubmit()">
         <!-- Section: Ancien mot de passe -->
         <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Mot de passe actuel</mat-label>
+          <mat-label>{{ 'settings.currentPassword' | transloco }}</mat-label>
           <input
             matInput
             [type]="isCurrentPasswordHidden() ? 'password' : 'text'"
@@ -66,7 +70,7 @@ import { ErrorAlert } from '@ui/error-alert';
             matIconButton
             matSuffix
             (click)="isCurrentPasswordHidden.set(!isCurrentPasswordHidden())"
-            [attr.aria-label]="'Afficher le mot de passe'"
+            [attr.aria-label]="showPasswordLabel"
             [attr.aria-pressed]="!isCurrentPasswordHidden()"
           >
             <mat-icon>{{
@@ -74,17 +78,21 @@ import { ErrorAlert } from '@ui/error-alert';
             }}</mat-icon>
           </button>
           @if (passwordForm.get('currentPassword')?.hasError('required')) {
-            <mat-error>Le mot de passe actuel est requis</mat-error>
+            <mat-error>{{
+              'settings.currentPasswordRequired' | transloco
+            }}</mat-error>
           }
         </mat-form-field>
 
-        <h3 class="text-title-medium pt-2!">Nouveau mot de passe</h3>
+        <h3 class="text-title-medium pt-2!">
+          {{ 'settings.newPasswordSection' | transloco }}
+        </h3>
         <mat-divider class="mb-4! mt-2!"></mat-divider>
 
         <!-- Section: Nouveau mot de passe -->
         <div class="space-y-4">
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Nouveau mot de passe</mat-label>
+            <mat-label>{{ 'settings.newPassword' | transloco }}</mat-label>
             <input
               matInput
               [type]="isNewPasswordHidden() ? 'password' : 'text'"
@@ -97,27 +105,37 @@ import { ErrorAlert } from '@ui/error-alert';
               matIconButton
               matSuffix
               (click)="isNewPasswordHidden.set(!isNewPasswordHidden())"
-              [attr.aria-label]="'Afficher le mot de passe'"
+              [attr.aria-label]="showPasswordLabel"
               [attr.aria-pressed]="!isNewPasswordHidden()"
             >
               <mat-icon>{{
                 isNewPasswordHidden() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
-            <mat-hint>{{ PASSWORD_MIN_LENGTH }} caractères minimum</mat-hint>
+            <mat-hint>{{
+              'settings.passwordMinHint'
+                | transloco: { min: PASSWORD_MIN_LENGTH }
+            }}</mat-hint>
             @if (passwordForm.get('newPassword')?.hasError('required')) {
-              <mat-error>Le nouveau mot de passe est requis</mat-error>
+              <mat-error>{{
+                'settings.newPasswordRequired' | transloco
+              }}</mat-error>
             } @else if (
               passwordForm.get('newPassword')?.hasError('minlength')
             ) {
               <mat-error>
-                Au moins {{ PASSWORD_MIN_LENGTH }} caractères
+                {{
+                  'settings.passwordMinLengthError'
+                    | transloco: { min: PASSWORD_MIN_LENGTH }
+                }}
               </mat-error>
             }
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Confirmer le nouveau mot de passe</mat-label>
+            <mat-label>{{
+              'settings.confirmNewPassword' | transloco
+            }}</mat-label>
             <input
               matInput
               [type]="isConfirmPasswordHidden() ? 'password' : 'text'"
@@ -130,7 +148,7 @@ import { ErrorAlert } from '@ui/error-alert';
               matIconButton
               matSuffix
               (click)="isConfirmPasswordHidden.set(!isConfirmPasswordHidden())"
-              [attr.aria-label]="'Afficher le mot de passe'"
+              [attr.aria-label]="showPasswordLabel"
               [attr.aria-pressed]="!isConfirmPasswordHidden()"
             >
               <mat-icon>{{
@@ -138,7 +156,9 @@ import { ErrorAlert } from '@ui/error-alert';
               }}</mat-icon>
             </button>
             @if (passwordForm.get('confirmPassword')?.hasError('required')) {
-              <mat-error>La confirmation est requise</mat-error>
+              <mat-error>{{
+                'settings.confirmPasswordRequired' | transloco
+              }}</mat-error>
             }
           </mat-form-field>
         </div>
@@ -147,7 +167,7 @@ import { ErrorAlert } from '@ui/error-alert';
 
     <mat-dialog-actions align="end">
       <button matButton mat-dialog-close data-testid="cancel-button">
-        Annuler
+        {{ 'common.cancel' | transloco }}
       </button>
       <button
         matButton="filled"
@@ -159,7 +179,7 @@ import { ErrorAlert } from '@ui/error-alert';
         @if (isSubmitting()) {
           <mat-spinner diameter="20" class="mr-2" />
         }
-        Confirmer
+        {{ 'common.confirm' | transloco }}
       </button>
     </mat-dialog-actions>
   `,
@@ -171,6 +191,11 @@ export class ChangePasswordDialog {
   readonly #logger = inject(Logger);
   readonly #dialogRef = inject(MatDialogRef<ChangePasswordDialog>);
   readonly #authSession = inject(AuthSessionService);
+  readonly #transloco = inject(TranslocoService);
+
+  protected readonly showPasswordLabel = this.#transloco.translate(
+    'settings.showPassword',
+  );
 
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
@@ -220,7 +245,8 @@ export class ChangePasswordDialog {
         await this.#authSession.verifyPassword(currentPassword);
       if (!verifyResult.success) {
         this.errorMessage.set(
-          verifyResult.error ?? 'Mot de passe actuel incorrect',
+          verifyResult.error ??
+            this.#transloco.translate('settings.currentPasswordIncorrect'),
         );
         return;
       }
@@ -228,7 +254,8 @@ export class ChangePasswordDialog {
       const updateResult = await this.#authSession.updatePassword(newPassword);
       if (!updateResult.success) {
         this.errorMessage.set(
-          updateResult.error ?? 'Le changement de mot de passe a échoué',
+          updateResult.error ??
+            this.#transloco.translate('settings.changePasswordFailed'),
         );
         return;
       }
@@ -239,7 +266,7 @@ export class ChangePasswordDialog {
     } catch (error) {
       this.#logger.error('Password change failed', error);
       this.errorMessage.set(
-        'Le changement de mot de passe a échoué — réessaie plus tard',
+        this.#transloco.translate('settings.changePasswordError'),
       );
     } finally {
       this.isSubmitting.set(false);

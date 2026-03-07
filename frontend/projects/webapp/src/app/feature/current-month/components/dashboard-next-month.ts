@@ -2,14 +2,16 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
+  LOCALE_ID,
   output,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { TranslocoPipe } from '@jsverse/transloco';
 import type { UpcomingMonthForecast } from '../services/dashboard-state';
 
-const MONTH_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'long' });
 const ROLLOVER_FORMATTER = new Intl.NumberFormat('de-CH', {
   minimumFractionDigits: 0,
   maximumFractionDigits: 0,
@@ -17,7 +19,7 @@ const ROLLOVER_FORMATTER = new Intl.NumberFormat('de-CH', {
 
 @Component({
   selector: 'pulpe-dashboard-next-month',
-  imports: [MatIconModule, MatButtonModule],
+  imports: [MatIconModule, MatButtonModule, TranslocoPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col w-full h-full">
@@ -29,7 +31,7 @@ const ROLLOVER_FORMATTER = new Intl.NumberFormat('de-CH', {
         </div>
         <div>
           <h2 class="text-title-medium font-bold text-on-surface leading-tight">
-            Mois prochain
+            {{ 'currentMonth.nextMonthTitle' | transloco }}
           </h2>
           <p
             class="text-body-small text-on-surface-variant font-medium mt-0.5 capitalize"
@@ -44,7 +46,7 @@ const ROLLOVER_FORMATTER = new Intl.NumberFormat('de-CH', {
       >
         @if (hasBudget()) {
           <p class="text-body-medium text-on-surface-variant text-center">
-            Budget anticipé — report estimé :
+            {{ 'currentMonth.nextMonthEstimatedRollover' | transloco }}
             <span
               class="font-bold tabular-nums ph-no-capture"
               [class]="
@@ -68,11 +70,14 @@ const ROLLOVER_FORMATTER = new Intl.NumberFormat('de-CH', {
             <h3
               class="text-title-medium font-medium text-on-surface-variant text-center"
             >
-              Pas encore de budget pour {{ monthName() }}
+              {{
+                'currentMonth.nextMonthNoBudget'
+                  | transloco: { month: monthName() }
+              }}
             </h3>
             <button matButton="outlined" (click)="navigateToBudgets.emit()">
               <mat-icon aria-hidden="true">add</mat-icon>
-              Anticiper le mois prochain
+              {{ 'currentMonth.nextMonthAnticipate' | transloco }}
             </button>
           </div>
         }
@@ -86,6 +91,10 @@ const ROLLOVER_FORMATTER = new Intl.NumberFormat('de-CH', {
   `,
 })
 export class DashboardNextMonth {
+  readonly #monthFormatter = new Intl.DateTimeFormat(inject(LOCALE_ID), {
+    month: 'long',
+  });
+
   readonly forecast = input.required<UpcomingMonthForecast>();
   readonly estimatedRollover = input.required<number>();
 
@@ -93,7 +102,7 @@ export class DashboardNextMonth {
 
   protected readonly monthName = computed(() => {
     const f = this.forecast();
-    return MONTH_FORMATTER.format(new Date(f.year, f.month - 1, 1));
+    return this.#monthFormatter.format(new Date(f.year, f.month - 1, 1));
   });
 
   protected readonly hasBudget = computed(() => this.forecast().hasBudget);

@@ -2,18 +2,21 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
+  LOCALE_ID,
   output,
 } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 import type { BudgetPeriodDates } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-dashboard-hero',
-  imports: [MatIconModule, DecimalPipe, MatTooltipModule],
+  imports: [MatIconModule, DecimalPipe, MatTooltipModule, TranslocoPipe],
   template: `
     <div
       class="hero-container rounded-[32px] p-6 pb-5 relative overflow-hidden cursor-pointer motion-safe:transition-transform motion-safe:hover:scale-[0.99] dark:border dark:border-white/5"
@@ -24,7 +27,11 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
       tabindex="0"
       role="button"
       [attr.aria-label]="
-        'Disponible ' + remaining() + ' CHF — ' + periodLabel()
+        ('dashboard.available' | transloco) +
+        ' ' +
+        remaining() +
+        ' CHF — ' +
+        periodLabel()
       "
     >
       <div
@@ -44,7 +51,7 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
               class="w-2 h-2 rounded-full motion-safe:animate-pulse indicator-dot"
             ></div>
             <p class="text-label-medium font-bold uppercase tracking-wider">
-              Mois en cours
+              {{ 'dashboard.currentMonth' | transloco }}
             </p>
           </div>
           <h2
@@ -75,7 +82,7 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
         <p
           class="text-label-medium font-bold uppercase tracking-wider opacity-80 mb-2"
         >
-          Disponible
+          {{ 'dashboard.available' | transloco }}
         </p>
         <div class="flex items-baseline gap-2">
           <span
@@ -87,14 +94,14 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
           <span class="text-title-large font-semibold opacity-70">CHF</span>
         </div>
         <p class="text-body-small opacity-60 mt-1">
-          Revenus
+          {{ 'dashboard.income' | transloco }}
           <span class="ph-no-capture">{{
             totalIncome() | number: '1.2-2' : 'de-CH'
           }}</span>
           @let rollover = rolloverAmount();
           @if (rollover !== 0) {
             <span class="opacity-80 ph-no-capture">
-              Report
+              {{ 'dashboard.rollover' | transloco }}
               {{ rollover > 0 ? '+' : ''
               }}{{ rollover | number: '1.2-2' : 'de-CH' }}
             </span>
@@ -108,14 +115,14 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
       >
         <div class="flex justify-between text-label-small font-bold">
           <span>
-            Dépensé
+            {{ 'dashboard.spent' | transloco }}
             <span data-testid="hero-expenses-amount" class="ph-no-capture">{{
               absExpenses() | number: '1.2-2' : 'de-CH'
             }}</span>
             CHF
           </span>
           <span class="opacity-70">
-            sur
+            {{ 'dashboard.on' | transloco }}
             <span class="ph-no-capture">{{
               available() | number: '1.2-2' : 'de-CH'
             }}</span>
@@ -124,7 +131,10 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
         </div>
         <div
           class="relative w-full h-3 bg-black/10 rounded-full overflow-hidden"
-          [matTooltip]="'Mois écoulé : ' + timeElapsedPercentage() + '%'"
+          [matTooltip]="
+            'dashboard.timeElapsed'
+              | transloco: { percent: timeElapsedPercentage() }
+          "
         >
           <div
             class="absolute -top-0.5 -bottom-0.5 w-1 z-10 rounded-full pace-marker motion-safe:transition-all motion-safe:duration-700"
@@ -198,6 +208,9 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardHero {
+  readonly #monthFormatter = new Intl.DateTimeFormat(inject(LOCALE_ID), {
+    month: 'long',
+  });
   readonly expenses = input.required<number>();
   readonly available = input.required<number>();
   readonly periodDates = input.required<BudgetPeriodDates>();
@@ -235,8 +248,6 @@ export class DashboardHero {
     const start = dates.startDate.getTime();
     const end = dates.endDate.getTime();
     const middleDate = new Date(start + (end - start) / 2);
-    return new Intl.DateTimeFormat('fr-FR', { month: 'long' }).format(
-      middleDate,
-    );
+    return this.#monthFormatter.format(middleDate);
   });
 }

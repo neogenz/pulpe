@@ -1,5 +1,6 @@
 import { DecimalPipe } from '@angular/common';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { TranslocoPipe } from '@jsverse/transloco';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -51,6 +52,7 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
+    TranslocoPipe,
     SearchBar,
     BudgetGrid,
     BudgetTable,
@@ -63,9 +65,14 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-title-large font-medium">Tes enveloppes</h2>
+          <h2 class="text-title-large font-medium">
+            {{ 'budget.envelopes' | transloco }}
+          </h2>
           <p class="text-body-medium text-on-surface-variant">
-            {{ budgetLines().length }} prévisions ce mois
+            {{
+              'budget.forecastsThisMonth'
+                | transloco: { count: budgetLines().length }
+            }}
           </p>
         </div>
         @if (!isMobile()) {
@@ -75,7 +82,7 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
 
       <!-- Search -->
       <pulpe-search-bar
-        placeholder="Rechercher une prévision..."
+        [placeholder]="'budget.searchPlaceholder' | transloco"
         [value]="searchText()"
         (valueChange)="searchTextChange.emit($event)"
       />
@@ -98,21 +105,26 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
             <mat-icon aria-hidden="true" class="text-primary text-base!"
               >check_circle</mat-icon
             >
-            <span>Tout pointé</span>
+            <span>{{ 'budget.allChecked' | transloco }}</span>
           } @else {
-            <span>{{ checkedCount() }}/{{ totalCount() }} pointés</span>
+            <span>{{
+              'budget.checkedSummary'
+                | transloco: { checked: checkedCount(), total: totalCount() }
+            }}</span>
           }
           <span class="text-on-surface-variant/50">·</span>
           <span class="ph-no-capture">
-            Ton compte ≈
-            {{ estimatedBalance() | number: '1.0-0' : 'de-CH' }}
-            CHF
+            {{
+              'budget.accountBalance'
+                | transloco
+                  : { amount: (estimatedBalance() | number: '1.0-0' : 'de-CH') }
+            }}
           </span>
           <mat-icon
             matTooltip="Au fur et à mesure que tu pointes tes éléments, ce montant te dit combien il devrait rester sur ton compte. Compare avec ton app bancaire !"
             matTooltipPosition="above"
             matTooltipTouchGestures="auto"
-            aria-label="Information sur le solde estimé"
+            [attr.aria-label]="'budget.estimatedBalanceInfo' | transloco"
             role="img"
             tabindex="0"
             class="text-on-surface-variant/50 text-base! cursor-help"
@@ -127,7 +139,9 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
           class="flex flex-col items-center gap-2 py-8 text-on-surface-variant"
         >
           <mat-icon class="!text-5xl !w-12 !h-12">search_off</mat-icon>
-          <p class="text-body-large">Aucune prévision trouvée</p>
+          <p class="text-body-large">
+            {{ 'budget.noForecastFound' | transloco }}
+          </p>
         </div>
       } @else if (isMobile() || viewMode() === 'envelopes') {
         <pulpe-budget-grid
@@ -171,7 +185,7 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
             class="gap-2 !h-11 !rounded-full !px-6"
           >
             <mat-icon>add</mat-icon>
-            Ajouter une enveloppe
+            {{ 'budget.addEnvelope' | transloco }}
           </button>
         </div>
       }

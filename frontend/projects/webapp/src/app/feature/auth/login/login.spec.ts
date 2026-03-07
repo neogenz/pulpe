@@ -1,4 +1,4 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import { LOCALE_ID, provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { ActivatedRoute, provideRouter, Router } from '@angular/router';
@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { AuthCredentialsService } from '@core/auth';
 import { Logger } from '@core/logging/logger';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 import Login from './login';
 
@@ -37,6 +38,8 @@ describe('Login', () => {
         provideZonelessChangeDetection(),
         provideAnimationsAsync(),
         provideRouter([]),
+        ...provideTranslocoForTest(),
+        { provide: LOCALE_ID, useValue: 'fr-CH' },
         { provide: AuthCredentialsService, useValue: mockAuthCredentials },
         { provide: Logger, useValue: mockLogger },
         {

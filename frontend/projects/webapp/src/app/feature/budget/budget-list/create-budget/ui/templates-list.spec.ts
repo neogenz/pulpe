@@ -11,6 +11,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { type BudgetTemplate } from 'pulpe-shared';
 import { TemplatesList } from './templates-list';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 // Mock component for testing without template rendering issues
 @Component({
@@ -54,7 +55,10 @@ describe('TemplatesList', () => {
         NoopAnimationsModule,
         ReactiveFormsModule,
       ],
-      providers: [provideZonelessChangeDetection()],
+      providers: [
+        provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
+      ],
       schemas: [NO_ERRORS_SCHEMA],
     })
       .overrideComponent(TemplatesList, {

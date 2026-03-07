@@ -10,7 +10,8 @@ import { NgTemplateOutlet } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { AUTH_ERROR_MESSAGES, AuthOAuthService } from '@core/auth';
+import { TranslocoService } from '@jsverse/transloco';
+import { AUTH_ERROR_KEYS, AuthOAuthService } from '@core/auth';
 import { Logger } from '@core/logging/logger';
 
 @Component({
@@ -71,6 +72,7 @@ import { Logger } from '@core/logging/logger';
 })
 export class GoogleOAuthButton {
   readonly #authOAuth = inject(AuthOAuthService);
+  readonly #transloco = inject(TranslocoService);
   readonly #logger = inject(Logger);
 
   readonly buttonLabel = input<string>('Continuer avec Google');
@@ -91,12 +93,15 @@ export class GoogleOAuthButton {
 
       if (!result.success) {
         this.authError.emit(
-          result.error ?? AUTH_ERROR_MESSAGES.OAUTH_CONNECTION_ERROR,
+          result.error ??
+            this.#transloco.translate(AUTH_ERROR_KEYS.OAUTH_CONNECTION_ERROR),
         );
       }
     } catch (err) {
       this.#logger.error('Google OAuth error', err);
-      this.authError.emit(AUTH_ERROR_MESSAGES.OAUTH_CONNECTION_ERROR);
+      this.authError.emit(
+        this.#transloco.translate(AUTH_ERROR_KEYS.OAUTH_CONNECTION_ERROR),
+      );
     } finally {
       this.isLoading.set(false);
       this.loadingChange.emit(false);

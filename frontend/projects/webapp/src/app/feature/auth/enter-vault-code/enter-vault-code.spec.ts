@@ -12,6 +12,7 @@ import { ApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { PostHogService } from '@core/analytics/posthog';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 import EnterVaultCode from './enter-vault-code';
 
@@ -66,6 +67,7 @@ describe('EnterVaultCode', () => {
         provideZonelessChangeDetection(),
         provideAnimationsAsync(),
         provideRouter([]),
+        ...provideTranslocoForTest(),
         { provide: ClientKeyService, useValue: mockClientKeyService },
         { provide: EncryptionApi, useValue: mockEncryptionApi },
         { provide: Logger, useValue: mockLogger },
@@ -397,6 +399,7 @@ describe('EnterVaultCode', () => {
           provideZonelessChangeDetection(),
           provideAnimationsAsync(),
           provideRouter([]),
+          ...provideTranslocoForTest(),
           { provide: ClientKeyService, useValue: mockClientKeyService },
           { provide: EncryptionApi, useValue: mockEncryptionApi },
           { provide: AuthSessionService, useValue: mockAuthSession },

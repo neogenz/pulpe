@@ -11,6 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoPipe } from '@jsverse/transloco';
 import type { BudgetLine } from 'pulpe-shared';
 import type {
   BudgetLineTableItem,
@@ -26,6 +27,7 @@ import type {
     MatMenuModule,
     MatDividerModule,
     MatTooltipModule,
+    TranslocoPipe,
   ],
   template: `
     <div class="flex gap-1 justify-end items-center">
@@ -78,7 +80,7 @@ import type {
               [attr.data-testid]="'edit-' + line().data.id"
             >
               <mat-icon matMenuItemIcon>edit</mat-icon>
-              <span>Modifier</span>
+              <span>{{ 'common.edit' | transloco }}</span>
             </button>
           }
           @if (line().metadata.canResetFromTemplate) {
@@ -88,7 +90,7 @@ import type {
               [attr.data-testid]="'reset-from-template-' + line().data.id"
             >
               <mat-icon matMenuItemIcon>refresh</mat-icon>
-              <span>Réinitialiser</span>
+              <span>{{ 'budget.reset' | transloco }}</span>
             </button>
           }
           <button
@@ -98,7 +100,7 @@ import type {
             class="text-error"
           >
             <mat-icon matMenuItemIcon class="text-error">delete</mat-icon>
-            <span>Supprimer</span>
+            <span>{{ 'common.delete' | transloco }}</span>
           </button>
         </mat-menu>
       }

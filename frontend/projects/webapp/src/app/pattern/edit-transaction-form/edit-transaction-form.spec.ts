@@ -8,6 +8,7 @@ import {
   type EditTransactionFormData,
 } from './edit-transaction-form';
 import { setTestInput } from '@app/testing/signal-test-utils';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 describe('EditTransactionForm', () => {
@@ -19,6 +20,7 @@ describe('EditTransactionForm', () => {
       imports: [EditTransactionForm, ReactiveFormsModule],
       providers: [
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
         provideAnimationsAsync(),
         provideNativeDateAdapter(),
       ],

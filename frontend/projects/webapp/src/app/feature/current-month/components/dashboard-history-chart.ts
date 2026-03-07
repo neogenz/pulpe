@@ -5,10 +5,12 @@ import {
   computed,
   inject,
   input,
+  LOCALE_ID,
   signal,
 } from '@angular/core';
 import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
 import { DOCUMENT } from '@angular/common';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { BaseChartDirective } from 'ng2-charts';
 import { MatIconModule } from '@angular/material/icon';
 import { type ChartConfiguration } from 'chart.js';
@@ -25,7 +27,7 @@ import {
 
 @Component({
   selector: 'pulpe-dashboard-history-chart',
-  imports: [BaseChartDirective, MatIconModule],
+  imports: [BaseChartDirective, MatIconModule, TranslocoPipe],
   template: `
     <div class="flex flex-col w-full h-full">
       <div class="mb-4 px-1 flex items-center gap-3">
@@ -36,10 +38,10 @@ import {
         </div>
         <div>
           <h2 class="text-title-medium font-bold text-on-surface leading-tight">
-            Historique
+            {{ 'currentMonth.historyTitle' | transloco }}
           </h2>
           <p class="text-body-small text-on-surface-variant font-medium mt-0.5">
-            Revenus, dépenses et épargne
+            {{ 'currentMonth.historySubtitle' | transloco }}
           </p>
         </div>
       </div>
@@ -68,10 +70,10 @@ import {
               >
             </div>
             <h3 class="text-title-medium font-medium text-on-surface-variant">
-              Pas encore d'historique
+              {{ 'currentMonth.historyEmptyTitle' | transloco }}
             </h3>
             <p class="text-body-medium text-on-surface-variant">
-              L'historique apparaîtra avec tes prochains budgets.
+              {{ 'currentMonth.historyEmptyMessage' | transloco }}
             </p>
           </div>
         }
@@ -88,9 +90,24 @@ import {
 export class DashboardHistoryChart {
   readonly #doc = inject(DOCUMENT);
   readonly #amountsVisibility = inject(AmountsVisibilityService);
+  readonly #locale = inject(LOCALE_ID);
+  readonly #transloco = inject(TranslocoService);
   readonly history = input.required<HistoryDataPoint[]>();
 
   readonly chartType = 'bar' as const;
+
+  readonly #historyIncomeLabel = this.#transloco.translate(
+    'currentMonth.historyIncomeLabel',
+  );
+  readonly #historyExpensesLabel = this.#transloco.translate(
+    'currentMonth.historyExpensesLabel',
+  );
+  readonly #historySavingsLabel = this.#transloco.translate(
+    'currentMonth.historySavingsLabel',
+  );
+  readonly #historyAvgIncomeLabel = this.#transloco.translate(
+    'currentMonth.historyAvgIncomeLabel',
+  );
 
   readonly #theme = signal<ChartThemeColors | null>(null);
 
@@ -113,7 +130,7 @@ export class DashboardHistoryChart {
     const datasets: ChartConfiguration['data']['datasets'] = [
       {
         data: data.map((d) => d.income),
-        label: 'Revenus',
+        label: this.#historyIncomeLabel,
         backgroundColor: theme?.income ?? '',
         borderRadius: 4,
         barPercentage: 0.6,
@@ -121,7 +138,7 @@ export class DashboardHistoryChart {
       },
       {
         data: data.map((d) => d.expenses),
-        label: 'Dépenses',
+        label: this.#historyExpensesLabel,
         backgroundColor: theme?.expense ?? '',
         borderRadius: 4,
         barPercentage: 0.6,
@@ -132,7 +149,7 @@ export class DashboardHistoryChart {
     if (hasSavingsData) {
       datasets.push({
         data: data.map((d) => d.savings),
-        label: 'Épargne',
+        label: this.#historySavingsLabel,
         backgroundColor: theme?.savings ?? '',
         borderRadius: 4,
         barPercentage: 0.6,
@@ -146,7 +163,7 @@ export class DashboardHistoryChart {
       datasets.push({
         type: 'line',
         data: Array(data.length).fill(avgIncome),
-        label: 'Revenu moyen',
+        label: this.#historyAvgIncomeLabel,
         borderColor: colorWithAlpha(theme?.income ?? '', 0.38),
         borderDash: [6, 4],
         borderWidth: 2,
@@ -157,7 +174,7 @@ export class DashboardHistoryChart {
     }
 
     return {
-      labels: data.map((d) => formatShortMonth(d.month)),
+      labels: data.map((d) => formatShortMonth(d.month, this.#locale)),
       datasets,
     };
   });

@@ -6,6 +6,7 @@ import {
   input,
   output,
 } from '@angular/core';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
@@ -20,7 +21,7 @@ import {
   type ConfirmationDialogData,
 } from '@ui/dialogs/confirmation-dialog';
 import { FinancialKindDirective } from '@ui/financial-kind';
-import { RecurrenceLabelPipe } from '@ui/transaction-display';
+import { RecurrenceLabelPipe } from '@pattern/transaction-display';
 import { type BudgetLine, type BudgetLineUpdate } from 'pulpe-shared';
 import { ActionsCell, BalanceCell, NameCell, RemainingCell } from './cells';
 import { EditBudgetLineDialog } from '../edit-budget-line/edit-budget-line-dialog';
@@ -45,6 +46,7 @@ import type {
     MatChipsModule,
     MatTooltipModule,
     CurrencyPipe,
+    TranslocoPipe,
     FinancialKindDirective,
     RecurrenceLabelPipe,
     NameCell,
@@ -62,7 +64,9 @@ import type {
       >
         <!-- Name Column -->
         <ng-container matColumnDef="name">
-          <th mat-header-cell *matHeaderCellDef>Description</th>
+          <th mat-header-cell *matHeaderCellDef>
+            {{ 'budget.tableDescription' | transloco }}
+          </th>
           <td mat-cell *matCellDef="let line">
             <pulpe-name-cell [line]="line" />
           </td>
@@ -70,7 +74,9 @@ import type {
 
         <!-- Planned Column -->
         <ng-container matColumnDef="planned">
-          <th mat-header-cell *matHeaderCellDef class="text-right">Prévu</th>
+          <th mat-header-cell *matHeaderCellDef class="text-right">
+            {{ 'budget.tablePlanned' | transloco }}
+          </th>
           <td mat-cell *matCellDef="let line" class="text-right">
             <span
               class="text-body-medium font-bold ph-no-capture"
@@ -84,7 +90,9 @@ import type {
 
         <!-- Spent Column -->
         <ng-container matColumnDef="spent">
-          <th mat-header-cell *matHeaderCellDef>Dépensé</th>
+          <th mat-header-cell *matHeaderCellDef>
+            {{ 'budget.tableSpent' | transloco }}
+          </th>
           <td mat-cell *matCellDef="let line">
             @if (
               line.metadata.itemType === 'budget_line' &&
@@ -113,7 +121,9 @@ import type {
 
         <!-- Remaining Column -->
         <ng-container matColumnDef="remaining">
-          <th mat-header-cell *matHeaderCellDef class="text-right!">Reste</th>
+          <th mat-header-cell *matHeaderCellDef class="text-right!">
+            {{ 'budget.tableRemaining' | transloco }}
+          </th>
           <td mat-cell *matCellDef="let line" class="text-right">
             <pulpe-remaining-cell [line]="line" />
           </td>
@@ -121,7 +131,9 @@ import type {
 
         <!-- Balance Column -->
         <ng-container matColumnDef="balance">
-          <th mat-header-cell *matHeaderCellDef class="text-right">Solde</th>
+          <th mat-header-cell *matHeaderCellDef class="text-right">
+            {{ 'budget.tableBalance' | transloco }}
+          </th>
           <td mat-cell *matCellDef="let line" class="text-right">
             <pulpe-balance-cell [line]="line" />
           </td>
@@ -129,7 +141,9 @@ import type {
 
         <!-- Recurrence Column -->
         <ng-container matColumnDef="recurrence">
-          <th mat-header-cell *matHeaderCellDef>Fréquence</th>
+          <th mat-header-cell *matHeaderCellDef>
+            {{ 'budget.tableFrequency' | transloco }}
+          </th>
           <td mat-cell *matCellDef="let line">
             <mat-chip
               class="bg-secondary-container chip-on-secondary-container"
@@ -137,7 +151,7 @@ import type {
               @if ('recurrence' in line.data) {
                 {{ line.data.recurrence | recurrenceLabel }}
               } @else {
-                Une seule fois
+                {{ 'budget.oneTimeTransaction' | transloco }}
               }
             </mat-chip>
           </td>
@@ -205,7 +219,7 @@ import type {
             [attr.colspan]="displayedColumns.length"
           >
             <p class="text-body-medium text-on-surface-variant">
-              Pas encore de prévision
+              {{ 'budget.noForecastYet' | transloco }}
             </p>
             <button
               matButton="outlined"
@@ -214,7 +228,7 @@ import type {
               data-testid="add-first-line-table"
             >
               <mat-icon>add</mat-icon>
-              Commencer à planifier
+              {{ 'budget.startPlanning' | transloco }}
             </button>
           </td>
         </tr>
@@ -270,6 +284,7 @@ import type {
 export class BudgetTable {
   readonly #dialog = inject(MatDialog);
   readonly #logger = inject(Logger);
+  readonly #transloco = inject(TranslocoService);
 
   // Inputs
   readonly tableData = input.required<TableRowItem[]>();
@@ -333,10 +348,9 @@ export class BudgetTable {
     try {
       const dialogRef = this.#dialog.open(ConfirmationDialog, {
         data: {
-          title: 'Réinitialiser depuis le modèle',
-          message:
-            'Cette action va remplacer les valeurs actuelles par celles du modèle. Cette action est irréversible.',
-          confirmText: 'Réinitialiser',
+          title: this.#transloco.translate('budget.resetFromTemplateTitle'),
+          message: this.#transloco.translate('budget.resetFromTemplateMessage'),
+          confirmText: this.#transloco.translate('budget.resetConfirm'),
           confirmColor: 'primary',
         } satisfies ConfirmationDialogData,
         width: '400px',

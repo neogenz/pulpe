@@ -65,7 +65,7 @@ describe('BudgetGrid', () => {
   });
 
   describe('categories — budget line grouping', () => {
-    it('should group items by kind with correct titles', () => {
+    it('should group items by kind with correct title keys', () => {
       const items = [
         { data: { kind: 'income' } },
         { data: { kind: 'saving' } },
@@ -75,11 +75,11 @@ describe('BudgetGrid', () => {
 
       const categories = groupByKind(items);
 
-      expect(categories[0].title).toBe('Revenus');
+      expect(categories[0].titleKey).toBe('budgetLine.incomeGroups');
       expect(categories[0].items).toHaveLength(1);
-      expect(categories[1].title).toBe('Épargnes');
+      expect(categories[1].titleKey).toBe('budgetLine.savingsGroups');
       expect(categories[1].items).toHaveLength(1);
-      expect(categories[2].title).toBe('Dépenses');
+      expect(categories[2].titleKey).toBe('budgetLine.expensesGroups');
       expect(categories[2].items).toHaveLength(2);
     });
 
@@ -87,6 +87,9 @@ describe('BudgetGrid', () => {
       const categories = groupByKind([]);
 
       expect(categories.every((c) => c.items.length === 0)).toBe(true);
+      expect(categories.every((c) => typeof c.titleKey === 'string')).toBe(
+        true,
+      );
     });
   });
 

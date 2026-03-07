@@ -19,6 +19,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { formatLocalDate } from '@core/date/format-local-date';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { Logger } from '@core/logging/logger';
@@ -58,6 +59,7 @@ type TransactionFormData = Pick<
     DashboardError,
     BaseLoading,
     StateCard,
+    TranslocoPipe,
     DashboardHero,
     DashboardUncheckedForecasts,
     DashboardHistoryChart,
@@ -73,15 +75,15 @@ type TransactionFormData = Pick<
           class="text-headline-medium md:text-display-small truncate min-w-0 shrink pb-0"
           data-testid="page-title"
         >
-          Tableau de bord
+          {{ 'currentMonth.pageTitle' | transloco }}
         </h1>
         <div class="flex gap-2 items-center shrink-0 ml-auto">
           <button
             matIconButton
             (click)="store.refreshData()"
             [disabled]="store.isLoading()"
-            matTooltip="Actualiser"
-            aria-label="Actualiser"
+            [matTooltip]="'currentMonth.refresh' | transloco"
+            [attr.aria-label]="'currentMonth.refresh' | transloco"
             data-testid="refresh-button"
           >
             <mat-icon aria-hidden="true">refresh</mat-icon>
@@ -91,7 +93,7 @@ type TransactionFormData = Pick<
 
       @if (store.isInitialLoading()) {
         <pulpe-base-loading
-          message="Préparation de ton tableau de bord..."
+          [message]="'currentMonth.loadingMessage' | transloco"
           size="large"
           testId="dashboard-loading"
         />
@@ -178,7 +180,7 @@ type TransactionFormData = Pick<
           matFab
           (click)="openAddTransactionBottomSheet()"
           class="fab-button"
-          aria-label="Ajouter une transaction"
+          [attr.aria-label]="'budgetLine.addTransaction' | transloco"
           data-testid="add-transaction-fab"
           data-tour="add-transaction-fab"
         >
@@ -188,9 +190,12 @@ type TransactionFormData = Pick<
         <pulpe-state-card
           variant="empty"
           testId="empty-state"
-          [title]="'Pas encore de budget pour ' + budgetPeriodDisplayName()"
-          message="Crée-le depuis tes modèles pour commencer à suivre ton mois."
-          actionLabel="Voir mes budgets"
+          [title]="
+            'currentMonth.noBudgetTitle'
+              | transloco: { period: budgetPeriodDisplayName() }
+          "
+          [message]="'currentMonth.noBudgetMessage' | transloco"
+          [actionLabel]="'currentMonth.viewBudgets' | transloco"
           (action)="navigateToBudgetList()"
         />
       }
@@ -290,6 +295,7 @@ export default class Dashboard {
   readonly #router = inject(Router);
   readonly #logger = inject(Logger);
   readonly #snackBar = inject(MatSnackBar);
+  readonly #transloco = inject(TranslocoService);
 
   protected readonly budgetPeriodDisplayName = computed(() => {
     const period = this.store.currentBudgetPeriod();
@@ -335,8 +341,8 @@ export default class Dashboard {
     } catch (error) {
       this.#logger.error('Error toggling budget line check:', error);
       this.#snackBar.open(
-        'La mise à jour a échoué — vérifie ta connexion et réessaie',
-        'Fermer',
+        this.#transloco.translate('currentMonth.updateError'),
+        this.#transloco.translate('currentMonth.close'),
         { duration: 5000 },
       );
     }
@@ -375,11 +381,9 @@ export default class Dashboard {
     } catch (error) {
       this.#logger.error('Error adding transaction:', error);
       this.#snackBar.open(
-        "L'ajout a échoué — vérifie ta connexion et réessaie",
-        'Fermer',
-        {
-          duration: 5000,
-        },
+        this.#transloco.translate('currentMonth.addError'),
+        this.#transloco.translate('currentMonth.close'),
+        { duration: 5000 },
       );
     }
   }

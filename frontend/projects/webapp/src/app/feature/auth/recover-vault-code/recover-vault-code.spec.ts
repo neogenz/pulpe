@@ -12,6 +12,7 @@ import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import * as cryptoUtils from '@core/encryption/crypto.utils';
 import { ApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 import RecoverVaultCode from './recover-vault-code';
 
@@ -75,6 +76,7 @@ describe('RecoverVaultCode', () => {
         provideZonelessChangeDetection(),
         provideAnimationsAsync(),
         provideRouter([]),
+        ...provideTranslocoForTest(),
         { provide: ClientKeyService, useValue: mockClientKeyService },
         { provide: EncryptionApi, useValue: mockEncryptionApi },
         { provide: MatDialog, useValue: mockDialog },

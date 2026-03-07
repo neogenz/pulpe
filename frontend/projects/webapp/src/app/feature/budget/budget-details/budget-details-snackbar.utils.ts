@@ -1,9 +1,19 @@
 import type { BudgetLine, Transaction } from 'pulpe-shared';
 
+export interface EnvelopeSnackbarMessages {
+  overEnvelope: (consumed: number, envelope: number) => string;
+  withinEnvelope: (envelope: number) => string;
+}
+
+export interface TransactionSnackbarMessages {
+  checked: (amount: number) => string;
+}
+
 export function computeEnvelopeSnackbarMessage(
   budgetLineId: string,
   budgetLines: BudgetLine[],
   transactions: Transaction[],
+  messages: EnvelopeSnackbarMessages,
 ): string | null {
   const budgetLine = budgetLines.find((line) => line.id === budgetLineId);
   if (!budgetLine || budgetLine.checkedAt == null) return null;
@@ -22,17 +32,18 @@ export function computeEnvelopeSnackbarMessage(
   const roundedEnvelope = Math.round(envelopeAmount);
 
   if (roundedConsumed > roundedEnvelope) {
-    return `Comptabilisé ${roundedConsumed} sur ${roundedEnvelope} CHF (enveloppe)`;
+    return messages.overEnvelope(roundedConsumed, roundedEnvelope);
   }
-  return `Comptabilisé ${roundedEnvelope} CHF (enveloppe)`;
+  return messages.withinEnvelope(roundedEnvelope);
 }
 
 export function computeTransactionSnackbarMessage(
   transactionId: string,
   transactions: Transaction[],
+  messages: TransactionSnackbarMessages,
 ): string | null {
   const transaction = transactions.find((tx) => tx.id === transactionId);
   if (!transaction || transaction.checkedAt == null) return null;
 
-  return `Comptabilisé ${Math.round(Math.abs(transaction.amount))} CHF`;
+  return messages.checked(Math.round(Math.abs(transaction.amount)));
 }

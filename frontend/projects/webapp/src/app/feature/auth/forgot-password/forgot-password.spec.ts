@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { AuthSessionService } from '@core/auth';
 import { Logger } from '@core/logging/logger';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 import ForgotPassword from './forgot-password';
 
@@ -33,6 +34,7 @@ describe('ForgotPassword', () => {
         provideZonelessChangeDetection(),
         provideAnimationsAsync(),
         provideRouter([]),
+        ...provideTranslocoForTest(),
         { provide: AuthSessionService, useValue: mockAuthSession },
         { provide: Logger, useValue: mockLogger },
       ],

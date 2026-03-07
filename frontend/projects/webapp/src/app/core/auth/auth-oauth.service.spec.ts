@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { TranslocoService } from '@jsverse/transloco';
 import type { Session } from '@supabase/supabase-js';
 import { AuthOAuthService } from './auth-oauth.service';
 import { AuthSessionService } from './auth-session.service';
@@ -8,16 +9,18 @@ import { AuthStateService } from './auth-state.service';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { Logger } from '../logging/logger';
-import { AUTH_ERROR_MESSAGES } from './auth-constants';
+import { AUTH_ERROR_KEYS } from './auth-constants';
 import { ROUTES } from '@core/routing/routes-constants';
 import { type E2EWindow } from './e2e-window';
 import {
   createMockSupabaseClient,
   type MockSupabaseClient,
 } from '../testing/test-utils';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 describe('AuthOAuthService', () => {
   let service: AuthOAuthService;
+  let transloco: TranslocoService;
   let mockSession: Partial<AuthSessionService>;
   let mockState: Partial<AuthStateService>;
   let mockConfig: Partial<ApplicationConfiguration>;
@@ -50,6 +53,7 @@ describe('AuthOAuthService', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        ...provideTranslocoForTest(),
         AuthOAuthService,
         { provide: AuthSessionService, useValue: mockSession },
         { provide: AuthStateService, useValue: mockState },
@@ -60,6 +64,7 @@ describe('AuthOAuthService', () => {
     });
 
     service = TestBed.inject(AuthOAuthService);
+    transloco = TestBed.inject(TranslocoService);
     sessionSignal.set(null);
   });
 
@@ -172,7 +177,7 @@ describe('AuthOAuthService', () => {
 
       expect(result).toEqual({
         success: false,
-        error: AUTH_ERROR_MESSAGES.OAUTH_CONNECTION_ERROR,
+        error: transloco.translate(AUTH_ERROR_KEYS.OAUTH_CONNECTION_ERROR),
       });
     });
 

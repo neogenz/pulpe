@@ -23,13 +23,14 @@ import { PulpeTitleStrategy } from '@core/routing/title-strategy';
 import { Logger } from '@core/logging/logger';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { BudgetApi } from '@core/budget/budget-api';
-import { TransactionLabelPipe } from '@ui/transaction-display';
+import { TransactionLabelPipe } from '@pattern/transaction-display';
 import { BaseLoading } from '@ui/loading';
 import { TransactionsTable, EditTransactionsDialog } from './components';
 import {
   createMockBudgetTemplate,
   createMockTemplateLine,
 } from '@app/testing/mock-factories';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 registerLocaleData(localeDeCH, 'de-CH');
 
@@ -137,6 +138,7 @@ describe('TemplateDetail', () => {
       imports: [TemplateDetail, NoopAnimationsModule],
       providers: [
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
         provideRouter([]),
         TransactionLabelPipe,
         { provide: ActivatedRoute, useValue: mockRoute },

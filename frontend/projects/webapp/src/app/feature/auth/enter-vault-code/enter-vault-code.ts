@@ -16,6 +16,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { firstValueFrom } from 'rxjs';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 import {
   ClientKeyService,
@@ -44,6 +45,7 @@ import { PostHogService } from '@core/analytics';
     RouterLink,
     ErrorAlert,
     LoadingButton,
+    TranslocoPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -58,10 +60,10 @@ import { PostHogService } from '@core/analytics';
         <h1
           class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
         >
-          Saisis ton code PIN
+          {{ 'auth.vaultCode.enterTitle' | transloco }}
         </h1>
         <p class="text-body-large text-on-surface-variant">
-          Entre ton code pour accéder à tes données.
+          {{ 'auth.vaultCode.enterSubtitle' | transloco }}
         </p>
       </div>
 
@@ -72,7 +74,7 @@ import { PostHogService } from '@core/analytics';
         data-testid="enter-vault-code-form"
       >
         <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Code PIN</mat-label>
+          <mat-label>{{ 'auth.vaultCode.pinLabel' | transloco }}</mat-label>
           <input
             matInput
             [type]="isCodeHidden() ? 'password' : 'text'"
@@ -80,7 +82,7 @@ import { PostHogService } from '@core/analytics';
             formControlName="vaultCode"
             data-testid="vault-code-input"
             (input)="clearError()"
-            placeholder="Code PIN"
+            [placeholder]="'auth.vaultCode.pinLabel' | transloco"
           />
           <mat-icon matPrefix>lock</mat-icon>
           <button
@@ -88,7 +90,7 @@ import { PostHogService } from '@core/analytics';
             matIconButton
             matSuffix
             (click)="isCodeHidden.set(!isCodeHidden())"
-            [attr.aria-label]="'Afficher le code'"
+            [attr.aria-label]="'form.showPassword' | transloco"
             [attr.aria-pressed]="!isCodeHidden()"
           >
             <mat-icon>{{
@@ -100,11 +102,11 @@ import { PostHogService } from '@core/analytics';
           ) {
             <mat-error>
               @if (form.get('vaultCode')?.hasError('required')) {
-                Ton code PIN est nécessaire
+                {{ 'auth.vaultCode.pinRequired' | transloco }}
               } @else if (form.get('vaultCode')?.hasError('minlength')) {
-                4 chiffres minimum
+                {{ 'auth.vaultCode.pinMinLength' | transloco }}
               } @else if (form.get('vaultCode')?.hasError('pattern')) {
-                Le code PIN ne doit contenir que des chiffres
+                {{ 'auth.vaultCode.pinPattern' | transloco }}
               }
             </mat-error>
           }
@@ -116,7 +118,7 @@ import { PostHogService } from '@core/analytics';
             data-testid="remember-device-checkbox"
           >
             <span class="text-body-medium text-on-surface">
-              Ne plus me demander sur cet appareil
+              {{ 'auth.vaultCode.rememberDevice' | transloco }}
             </span>
           </mat-checkbox>
         </div>
@@ -126,11 +128,11 @@ import { PostHogService } from '@core/analytics';
         <pulpe-loading-button
           [loading]="isSubmitting()"
           [disabled]="!canSubmit()"
-          loadingText="Vérification..."
+          [loadingText]="'auth.vaultCode.submitting' | transloco"
           icon="arrow_forward"
           testId="enter-vault-code-submit-button"
         >
-          <span class="ml-2">Continuer</span>
+          <span class="ml-2">{{ 'auth.vaultCode.continue' | transloco }}</span>
         </pulpe-loading-button>
 
         <div class="text-center mt-2">
@@ -139,7 +141,7 @@ import { PostHogService } from '@core/analytics';
             class="text-body-small text-primary hover:underline"
             data-testid="lost-code-link"
           >
-            Code perdu ?
+            {{ 'auth.vaultCode.lostCode' | transloco }}
           </a>
         </div>
       </form>
@@ -153,7 +155,7 @@ import { PostHogService } from '@core/analytics';
           data-testid="vault-code-logout-button"
         >
           <mat-icon>logout</mat-icon>
-          Se déconnecter
+          {{ 'layout.logout' | transloco }}
         </button>
       </div>
     </div>
@@ -168,6 +170,7 @@ export default class EnterVaultCode {
   readonly #router = inject(Router);
   readonly #logger = inject(Logger);
   readonly #postHogService = inject(PostHogService);
+  readonly #transloco = inject(TranslocoService);
 
   protected readonly ROUTES = ROUTES;
   protected readonly isSubmitting = signal(false);
@@ -235,17 +238,19 @@ export default class EnterVaultCode {
         (error instanceof HttpErrorResponse && error.status === 429) ||
         (isApiError(error) && error.status === 429)
       ) {
-        this.errorMessage.set('Trop de tentatives, patiente quelques minutes');
+        this.errorMessage.set(
+          this.#transloco.translate('auth.vaultCode.rateLimited'),
+        );
       } else if (
         (error instanceof HttpErrorResponse && error.status === 400) ||
         (isApiError(error) && error.status === 400)
       ) {
         this.errorMessage.set(
-          'Ce code ne semble pas correct — vérifie et réessaie',
+          this.#transloco.translate('auth.vaultCode.invalidCode'),
         );
       } else {
         this.errorMessage.set(
-          "Quelque chose n'a pas fonctionné — réessaie plus tard",
+          this.#transloco.translate('common.somethingWentWrong'),
         );
       }
     } finally {

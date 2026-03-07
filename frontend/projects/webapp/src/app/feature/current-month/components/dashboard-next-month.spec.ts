@@ -1,9 +1,10 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { LOCALE_ID, provideZonelessChangeDetection } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { DashboardNextMonth } from './dashboard-next-month';
 import type { UpcomingMonthForecast } from '../services/dashboard-state';
 import { setTestInput } from '../../../testing/signal-test-utils';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
 
@@ -34,7 +35,11 @@ describe('DashboardNextMonth', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [DashboardNextMonth],
-      providers: [provideZonelessChangeDetection()],
+      providers: [
+        provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
+        { provide: LOCALE_ID, useValue: 'fr-CH' },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(DashboardNextMonth);

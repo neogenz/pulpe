@@ -8,10 +8,17 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { CurrencyPipe } from '@angular/common';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 @Component({
   selector: 'pulpe-month-card-item',
-  imports: [MatCardModule, MatIconModule, MatButtonModule, CurrencyPipe],
+  imports: [
+    MatCardModule,
+    MatIconModule,
+    MatButtonModule,
+    CurrencyPipe,
+    TranslocoPipe,
+  ],
   template: `
     <mat-card appearance="outlined" [attr.data-testid]="'month-card-' + id()">
       <mat-card-header>
@@ -27,7 +34,7 @@ import { CurrencyPipe } from '@angular/common';
         }}</mat-card-title>
         @if (parentTemplate()) {
           <mat-card-subtitle
-            >Créer depuis le template
+            >{{ 'budget.createdFromTemplate' | transloco }}
             <span class="ph-no-capture">{{
               parentTemplate()?.name
             }}</span></mat-card-subtitle
@@ -52,7 +59,7 @@ import { CurrencyPipe } from '@angular/common';
           data-testid="month-card-details-button"
         >
           <mat-icon>visibility</mat-icon>
-          Détails
+          {{ 'budget.details' | transloco }}
         </button>
       </mat-card-actions>
     </mat-card>

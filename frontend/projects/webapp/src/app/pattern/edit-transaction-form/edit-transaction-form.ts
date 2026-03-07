@@ -5,6 +5,7 @@ import {
   effect,
   inject,
   input,
+  LOCALE_ID,
   output,
   signal,
   untracked,
@@ -24,10 +25,11 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
+import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { type Transaction, type TransactionCreate } from 'pulpe-shared';
 import { startOfMonth, endOfMonth } from 'date-fns';
 import { TransactionValidators } from '@core/transaction';
-import { TransactionLabelPipe } from '@ui/transaction-display';
+import { TransactionLabelPipe } from '@pattern/transaction-display';
 import { Logger } from '@core/logging/logger';
 import { formatLocalDate } from '@core/date/format-local-date';
 
@@ -52,6 +54,7 @@ export type EditTransactionFormData = Pick<
     MatNativeDateModule,
     ReactiveFormsModule,
     TransactionLabelPipe,
+    TranslocoPipe,
   ],
 
   template: `
@@ -60,15 +63,15 @@ export type EditTransactionFormData = Pick<
       (ngSubmit)="onSubmit()"
       class="flex flex-col gap-6 min-w-0 px-1"
       novalidate
-      aria-label="Formulaire de modification de transaction"
+      [attr.aria-label]="formAriaLabel"
     >
       <!-- Transaction Name Field -->
       <mat-form-field subscriptSizing="dynamic" class="w-full">
-        <mat-label>Nom de la transaction</mat-label>
+        <mat-label>{{ 'transactionForm.nameLabel' | transloco }}</mat-label>
         <input
           matInput
           formControlName="name"
-          placeholder="Ex: Courses, Loyer, Salaire"
+          [placeholder]="'transactionForm.namePlaceholder' | transloco"
           aria-describedby="name-hint"
           maxlength="100"
         />
@@ -79,31 +82,33 @@ export type EditTransactionFormData = Pick<
           transactionForm.get('name')?.hasError('required') &&
           transactionForm.get('name')?.touched
         ) {
-          <mat-error role="alert" aria-live="assertive"
-            >Le nom est requis</mat-error
-          >
+          <mat-error role="alert" aria-live="assertive">
+            {{ 'transactionForm.nameRequired' | transloco }}
+          </mat-error>
         }
         @if (
           transactionForm.get('name')?.hasError('minlength') &&
           transactionForm.get('name')?.touched
         ) {
-          <mat-error role="alert" aria-live="assertive"
-            >Le nom doit contenir au moins 2 caractères</mat-error
-          >
+          <mat-error role="alert" aria-live="assertive">
+            {{ 'transactionForm.nameMinLength' | transloco }}
+          </mat-error>
         }
         @if (
           transactionForm.get('name')?.hasError('maxlength') &&
           transactionForm.get('name')?.touched
         ) {
-          <mat-error role="alert" aria-live="assertive"
-            >Le nom ne peut pas dépasser 100 caractères</mat-error
-          >
+          <mat-error role="alert" aria-live="assertive">
+            {{ 'transactionForm.nameMaxLength' | transloco }}
+          </mat-error>
         }
       </mat-form-field>
 
       <!-- Amount Field -->
       <mat-form-field class="w-full ph-no-capture" subscriptSizing="dynamic">
-        <mat-label class="ph-no-capture">Montant</mat-label>
+        <mat-label class="ph-no-capture">{{
+          'transactionForm.amountLabel' | transloco
+        }}</mat-label>
         <mat-icon matIconPrefix class="text-on-surface-variant"
           >payments</mat-icon
         >
@@ -119,40 +124,43 @@ export type EditTransactionFormData = Pick<
           aria-describedby="amount-hint"
         />
         <span matTextSuffix>CHF</span>
-        <mat-hint id="amount-hint" class="ph-no-capture"
-          >Montant en francs suisses</mat-hint
-        >
+        <mat-hint id="amount-hint" class="ph-no-capture">
+          {{ 'transactionForm.amountHint' | transloco }}
+        </mat-hint>
         @if (
           transactionForm.get('amount')?.hasError('required') &&
           transactionForm.get('amount')?.touched
         ) {
-          <mat-error role="alert" aria-live="assertive"
-            >Le montant est requis</mat-error
-          >
+          <mat-error role="alert" aria-live="assertive">
+            {{ 'transactionForm.amountRequired' | transloco }}
+          </mat-error>
         }
         @if (
           transactionForm.get('amount')?.hasError('min') &&
           transactionForm.get('amount')?.touched
         ) {
-          <mat-error role="alert" aria-live="assertive"
-            >Le montant doit être au moins 0.01 CHF</mat-error
-          >
+          <mat-error role="alert" aria-live="assertive">
+            {{ 'transactionForm.amountMin' | transloco }}
+          </mat-error>
         }
         @if (
           transactionForm.get('amount')?.hasError('max') &&
           transactionForm.get('amount')?.touched
         ) {
-          <mat-error role="alert" aria-live="assertive"
-            >Le montant ne peut pas dépasser 999'999.99 CHF</mat-error
-          >
+          <mat-error role="alert" aria-live="assertive">
+            {{ 'transactionForm.amountMax' | transloco }}
+          </mat-error>
         }
       </mat-form-field>
 
       <!-- Type Field -->
       @if (!isFieldHidden('kind')) {
         <mat-form-field class="w-full" subscriptSizing="dynamic">
-          <mat-label>Type de transaction</mat-label>
-          <mat-select formControlName="kind" aria-label="Type de transaction">
+          <mat-label>{{ 'transactionForm.typeLabel' | transloco }}</mat-label>
+          <mat-select
+            formControlName="kind"
+            [attr.aria-label]="'transactionForm.typeLabel' | transloco"
+          >
             <mat-option value="expense">
               <mat-icon class="mr-2 icon-filled">remove_circle</mat-icon>
               {{ 'expense' | transactionLabel }}
@@ -171,50 +179,52 @@ export type EditTransactionFormData = Pick<
 
       <!-- Date Field -->
       <mat-form-field class="w-full" subscriptSizing="dynamic">
-        <mat-label>Date de transaction</mat-label>
+        <mat-label>{{ 'transactionForm.dateLabel' | transloco }}</mat-label>
         <input
           matInput
           [matDatepicker]="picker"
           [min]="minDate()"
           [max]="maxDate()"
           formControlName="transactionDate"
-          placeholder="jj.mm.aaaa"
+          [placeholder]="'transactionForm.datePlaceholder' | transloco"
           aria-describedby="date-hint"
           readonly
         />
         <mat-datepicker-toggle
           matIconSuffix
           [for]="picker"
-          aria-label="Ouvrir le calendrier"
+          [attr.aria-label]="'transactionForm.openCalendar' | transloco"
         ></mat-datepicker-toggle>
         <mat-datepicker #picker></mat-datepicker>
         <mat-hint id="date-hint">{{
           minDateInput()
-            ? 'Doit être dans la période du budget'
-            : 'Doit être dans le mois en cours'
+            ? ('transactionForm.dateHintBudget' | transloco)
+            : ('transactionForm.dateHintMonth' | transloco)
         }}</mat-hint>
         @if (
           transactionForm.get('transactionDate')?.hasError('required') &&
           transactionForm.get('transactionDate')?.touched
         ) {
-          <mat-error role="alert" aria-live="assertive"
-            >La date est requise</mat-error
-          >
+          <mat-error role="alert" aria-live="assertive">
+            {{ 'transactionForm.dateRequired' | transloco }}
+          </mat-error>
         }
         @if (
           transactionForm.get('transactionDate')?.hasError('dateOutOfRange') &&
           transactionForm.get('transactionDate')?.touched
         ) {
           <mat-error role="alert" aria-live="assertive">
-            La date doit être comprise entre le
             {{
-              transactionForm.get('transactionDate')?.errors?.['dateOutOfRange']
-                ?.min
-            }}
-            et le
-            {{
-              transactionForm.get('transactionDate')?.errors?.['dateOutOfRange']
-                ?.max
+              'transactionForm.dateOutOfRange'
+                | transloco
+                  : {
+                      min: transactionForm.get('transactionDate')?.errors?.[
+                        'dateOutOfRange'
+                      ]?.min,
+                      max: transactionForm.get('transactionDate')?.errors?.[
+                        'dateOutOfRange'
+                      ]?.max,
+                    }
             }}
           </mat-error>
         }
@@ -223,25 +233,25 @@ export type EditTransactionFormData = Pick<
       <!-- Category Field -->
       @if (!isFieldHidden('category')) {
         <mat-form-field class="w-full" subscriptSizing="dynamic">
-          <mat-label>Notes</mat-label>
+          <mat-label>{{ 'transactionForm.notesLabel' | transloco }}</mat-label>
           <input
             matInput
             formControlName="category"
-            placeholder="Ex: Alimentation, Transport"
+            [placeholder]="'transactionForm.notesPlaceholder' | transloco"
             maxlength="50"
             aria-describedby="category-hint"
           />
-          <mat-hint id="category-hint" align="end"
-            >{{ transactionForm.get('category')?.value?.length || 0 }}/50
-            (optionnel)</mat-hint
-          >
+          <mat-hint id="category-hint" align="end">
+            {{ transactionForm.get('category')?.value?.length || 0 }}/50
+            {{ 'transactionForm.notesOptional' | transloco }}
+          </mat-hint>
           @if (
             transactionForm.get('category')?.hasError('maxlength') &&
             transactionForm.get('category')?.touched
           ) {
-            <mat-error role="alert" aria-live="assertive"
-              >La catégorie ne peut pas dépasser 50 caractères</mat-error
-            >
+            <mat-error role="alert" aria-live="assertive">
+              {{ 'transactionForm.notesMaxLength' | transloco }}
+            </mat-error>
           }
         </mat-form-field>
       }
@@ -256,7 +266,13 @@ export type EditTransactionFormData = Pick<
 })
 export class EditTransactionForm implements OnInit {
   readonly #fb = inject(FormBuilder);
+  readonly #locale = inject(LOCALE_ID);
   readonly #logger = inject(Logger);
+  readonly #transloco = inject(TranslocoService);
+
+  protected readonly formAriaLabel = this.#transloco.translate(
+    'transactionForm.formAriaLabel',
+  );
 
   readonly transaction = input.required<Transaction>();
   readonly hiddenFields = input<HideableField[]>([]);
@@ -288,8 +304,8 @@ export class EditTransactionForm implements OnInit {
     if (date < min || date > max) {
       return {
         dateOutOfRange: {
-          min: min.toLocaleDateString('fr-CH'),
-          max: max.toLocaleDateString('fr-CH'),
+          min: min.toLocaleDateString(this.#locale),
+          max: max.toLocaleDateString(this.#locale),
         },
       };
     }

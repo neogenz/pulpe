@@ -1,12 +1,17 @@
 import { describe, beforeEach, it, expect } from 'vitest';
+import { TestBed } from '@angular/core/testing';
 import { RecurrenceLabelPipe } from './recurrence-label.pipe';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import type { TransactionRecurrence } from 'pulpe-shared';
 
 describe('RecurrenceLabelPipe', () => {
   let pipe: RecurrenceLabelPipe;
 
   beforeEach(() => {
-    pipe = new RecurrenceLabelPipe();
+    TestBed.configureTestingModule({
+      providers: [RecurrenceLabelPipe, ...provideTranslocoForTest()],
+    });
+    pipe = TestBed.inject(RecurrenceLabelPipe);
   });
 
   it('should create', () => {

@@ -1,5 +1,11 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  input,
+} from '@angular/core';
 import { type BudgetTemplate } from 'pulpe-shared';
+import { TranslocoService } from '@jsverse/transloco';
 import { StateCard } from '@ui/state-card/state-card';
 import { TemplateCard } from './template-card';
 
@@ -11,8 +17,8 @@ import { TemplateCard } from './template-card';
       <pulpe-state-card
         testId="empty-state"
         variant="empty"
-        title="Tu n'as pas encore de modèle"
-        message="Crée ton premier modèle pour réutiliser ta structure chaque mois."
+        [title]="emptyTitle"
+        [message]="emptyMessage"
       />
     } @else {
       <div
@@ -36,5 +42,14 @@ import { TemplateCard } from './template-card';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TemplateList {
+  readonly #transloco = inject(TranslocoService);
+
   readonly templates = input.required<BudgetTemplate[]>();
+
+  protected readonly emptyTitle = this.#transloco.translate(
+    'template.emptyTitle',
+  );
+  protected readonly emptyMessage = this.#transloco.translate(
+    'template.emptyMessage',
+  );
 }

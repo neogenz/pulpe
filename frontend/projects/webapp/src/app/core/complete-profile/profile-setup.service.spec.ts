@@ -7,6 +7,7 @@ import { ApiClient } from '@core/api/api-client';
 import { BudgetApi } from '@core/budget';
 import { PostHogService } from '@core/analytics/posthog';
 import { Logger } from '@core/logging/logger';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 describe('ProfileSetupService', () => {
   let service: ProfileSetupService;
@@ -44,6 +45,7 @@ describe('ProfileSetupService', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        ...provideTranslocoForTest(),
         ProfileSetupService,
         {
           provide: ApplicationConfiguration,

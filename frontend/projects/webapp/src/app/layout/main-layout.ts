@@ -32,6 +32,7 @@ import {
   RouterLinkActive,
   RouterOutlet,
 } from '@angular/router';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth/auth-state.service';
@@ -57,9 +58,9 @@ const NAVIGATION_LOADER_DELAY_MS = 100;
 
 interface NavigationItem {
   readonly route: string;
-  readonly label: string;
+  readonly labelKey: string;
   readonly icon: string;
-  readonly tooltip?: string;
+  readonly tooltipKey?: string;
 }
 
 @Component({
@@ -79,6 +80,7 @@ interface NavigationItem {
     PulpeBreadcrumb,
     MatProgressBarModule,
     WhatsNewToast,
+    TranslocoPipe,
   ],
   template: `
     <mat-sidenav-container
@@ -130,7 +132,7 @@ interface NavigationItem {
                 <mat-icon matListItemIcon [class.icon-filled]="rla.isActive">{{
                   item.icon
                 }}</mat-icon>
-                <span matListItemTitle>{{ item.label }}</span>
+                <span matListItemTitle>{{ item.labelKey | transloco }}</span>
               </a>
             }
           </mat-nav-list>
@@ -149,7 +151,7 @@ interface NavigationItem {
                 class="flex flex-col items-center mb-4 group transition-opacity"
                 [class.pointer-events-none]="isNavigating()"
                 [class.opacity-50]="isNavigating()"
-                [matTooltip]="item.tooltip || item.label"
+                [matTooltip]="item.tooltipKey ?? item.labelKey | transloco"
                 matTooltipPosition="right"
               >
                 <div
@@ -174,7 +176,7 @@ interface NavigationItem {
                   [class.text-on-surface]="rla.isActive"
                   [class.text-on-surface-variant]="!rla.isActive"
                 >
-                  {{ item.label }}
+                  {{ item.labelKey | transloco }}
                 </span>
               </a>
             }
@@ -203,7 +205,7 @@ interface NavigationItem {
             <div class="absolute top-0 left-0 right-0">
               <mat-progress-bar
                 mode="indeterminate"
-                aria-label="Chargement en cours"
+                [attr.aria-label]="'layout.loading' | transloco"
                 data-testid="loading-progress"
               />
             </div>
@@ -225,10 +227,10 @@ interface NavigationItem {
                 </div>
                 <div class="flex flex-col">
                   <span class="text-label-large font-semibold">
-                    Mode Démo
+                    {{ 'layout.demoMode' | transloco }}
                   </span>
                   <span class="text-body-small opacity-80">
-                    Vos données seront supprimées après 24h
+                    {{ 'layout.demoDataWillBeDeleted' | transloco }}
                   </span>
                 </div>
               </div>
@@ -238,7 +240,7 @@ interface NavigationItem {
                 (click)="exitDemoMode()"
               >
                 <mat-icon>close</mat-icon>
-                <span>Quitter</span>
+                <span>{{ 'layout.exitDemo' | transloco }}</span>
               </button>
             </div>
           }
@@ -274,7 +276,9 @@ interface NavigationItem {
               matButton
               [matMenuTriggerFor]="userMenu"
               [attr.aria-label]="
-                isLoggingOut() ? 'Déconnexion en cours...' : 'Menu utilisateur'
+                isLoggingOut()
+                  ? ('layout.loggingOut' | transloco)
+                  : ('layout.userMenu' | transloco)
               "
               [disabled]="isLoggingOut()"
               data-testid="user-menu-trigger"
@@ -293,8 +297,8 @@ interface NavigationItem {
                 (click)="toggleAmounts()"
                 [attr.aria-label]="
                   amountsHidden()
-                    ? 'Afficher les montants'
-                    : 'Masquer les montants'
+                    ? ('layout.showAmounts' | transloco)
+                    : ('layout.hideAmounts' | transloco)
                 "
                 data-testid="toggle-amounts-button"
               >
@@ -303,39 +307,39 @@ interface NavigationItem {
                 }}</mat-icon>
                 <span>{{
                   amountsHidden()
-                    ? 'Afficher les montants'
-                    : 'Masquer les montants'
+                    ? ('layout.showAmounts' | transloco)
+                    : ('layout.hideAmounts' | transloco)
                 }}</span>
               </button>
               <a
                 mat-menu-item
                 [routerLink]="settingsRoute"
-                aria-label="Accéder aux paramètres"
+                [attr.aria-label]="'layout.accessSettings' | transloco"
                 data-testid="settings-link"
               >
                 <mat-icon matMenuItemIcon>settings</mat-icon>
-                <span>Paramètres</span>
+                <span>{{ 'navigation.settings' | transloco }}</span>
               </a>
               @if (currentTourPageId()) {
                 <button
                   mat-menu-item
                   (click)="startPageTour()"
-                  aria-label="Découvrir cette page"
+                  [attr.aria-label]="'navigation.discoverPage' | transloco"
                   data-testid="page-tour-button"
                 >
                   <mat-icon matMenuItemIcon>help_outline</mat-icon>
-                  <span>Découvrir cette page</span>
+                  <span>{{ 'navigation.discoverPage' | transloco }}</span>
                 </button>
               }
               <mat-divider />
               <button
                 mat-menu-item
                 (click)="openAboutDialog()"
-                aria-label="Afficher les informations de l'application"
+                [attr.aria-label]="'layout.aboutApp' | transloco"
                 data-testid="about-button"
               >
                 <mat-icon matMenuItemIcon aria-hidden="true">info</mat-icon>
-                <span>À propos</span>
+                <span>{{ 'navigation.about' | transloco }}</span>
               </button>
               <button
                 mat-menu-item
@@ -343,8 +347,8 @@ interface NavigationItem {
                 [disabled]="isLoggingOut()"
                 [attr.aria-label]="
                   isLoggingOut()
-                    ? 'Déconnexion en cours, veuillez patienter'
-                    : 'Se déconnecter de votre compte'
+                    ? ('layout.loggingOutWait' | transloco)
+                    : ('layout.logoutAction' | transloco)
                 "
                 data-testid="logout-button"
               >
@@ -357,9 +361,9 @@ interface NavigationItem {
                 </mat-icon>
                 <span>
                   @if (isLoggingOut()) {
-                    Déconnexion...
+                    {{ 'layout.loggingOut' | transloco }}
                   } @else {
-                    Se déconnecter
+                    {{ 'layout.logout' | transloco }}
                   }
                 </span>
               </button>
@@ -368,7 +372,7 @@ interface NavigationItem {
             <!-- Accessibility: Screen reader feedback for logout state -->
             <div class="sr-only" aria-live="polite" aria-atomic="true">
               @if (isLoggingOut()) {
-                Déconnexion en cours, veuillez patienter...
+                {{ 'layout.loggingOutWaitSr' | transloco }}
               }
             </div>
           </mat-toolbar>
@@ -551,29 +555,28 @@ export default class MainLayout {
   protected readonly navigationItems: readonly NavigationItem[] = [
     {
       route: ROUTES.DASHBOARD,
-      label: 'Tableau de bord',
+      labelKey: 'navigation.dashboard',
       icon: 'space_dashboard',
-      tooltip: "Ta vue d'ensemble du mois",
+      tooltipKey: 'navigation.dashboardTooltip',
     },
     {
       route: ROUTES.BUDGET,
-      label: 'Budgets',
+      labelKey: 'navigation.budgetsShort',
       icon: 'calendar_month',
-      tooltip: 'Planifiez tous vos mois',
+      tooltipKey: 'navigation.budgetsTooltip',
     },
     {
       route: ROUTES.BUDGET_TEMPLATES,
-      label: 'Modèles',
+      labelKey: 'navigation.templatesShort',
       icon: 'description',
-      tooltip: 'Préparez vos bases mensuelles',
+      tooltipKey: 'navigation.templatesTooltip',
     },
     ...(isDevMode()
       ? [
           {
             route: ROUTES.DESIGN_SYSTEM,
-            label: 'Design System',
+            labelKey: 'navigation.designSystem',
             icon: 'palette',
-            tooltip: 'Tokens et composants',
           },
         ]
       : []),
@@ -602,10 +605,10 @@ export default class MainLayout {
     return this.navigationItems.find((item) => url.includes(item.route));
   });
 
-  // Dynamic page title
+  // Dynamic page title key
   protected readonly currentPageTitle = computed(() => {
     const navigationItem = this.currentNavigationItem();
-    return navigationItem?.label || 'Pulpe Budget';
+    return navigationItem?.labelKey || 'Pulpe Budget';
   });
 
   // Current tour page ID based on route

@@ -4,6 +4,7 @@ import { DashboardHistoryChart } from './dashboard-history-chart';
 import type { HistoryDataPoint } from '../services/dashboard-state';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { setTestInput } from '../../../testing/signal-test-utils';
+import { provideTranslocoForTest } from '../../../testing/transloco-testing';
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
 
@@ -57,6 +58,7 @@ describe('DashboardHistoryChart', () => {
       providers: [
         provideCharts(withDefaultRegisterables()),
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
       ],
     }).compileComponents();
 
@@ -97,6 +99,7 @@ describe('DashboardHistoryChart', () => {
     expect(chartData.datasets[0].label).toBe('Revenus');
     expect(chartData.datasets[0].data).toEqual([5000, 5200]);
     expect(chartData.datasets[1].label).toBe('Dépenses');
+
     expect(chartData.datasets[1].data).toEqual([3000, 3100]);
   });
 

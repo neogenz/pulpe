@@ -9,6 +9,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoPipe } from '@jsverse/transloco';
 import type { Transaction } from 'pulpe-shared';
 
 /**
@@ -24,6 +25,7 @@ import type { Transaction } from 'pulpe-shared';
     MatMenuModule,
     MatTooltipModule,
     MatDividerModule,
+    TranslocoPipe,
   ],
   template: `
     <button
@@ -53,7 +55,7 @@ import type { Transaction } from 'pulpe-shared';
         [attr.data-testid]="'edit-tx-' + transaction().id"
       >
         <mat-icon matMenuItemIcon>edit</mat-icon>
-        <span>Modifier</span>
+        <span>{{ 'common.edit' | transloco }}</span>
       </button>
       <button
         mat-menu-item
@@ -62,7 +64,7 @@ import type { Transaction } from 'pulpe-shared';
         class="text-error"
       >
         <mat-icon matMenuItemIcon class="text-error">delete</mat-icon>
-        <span>Supprimer</span>
+        <span>{{ 'common.delete' | transloco }}</span>
       </button>
     </mat-menu>
   `,

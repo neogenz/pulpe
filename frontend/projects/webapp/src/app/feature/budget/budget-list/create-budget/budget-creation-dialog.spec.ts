@@ -18,6 +18,7 @@ import {
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideLocale } from '@core/locale';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { Subject, defer, of, throwError } from 'rxjs';
 
 import { BudgetApi } from '@core/budget/budget-api';
@@ -214,6 +215,7 @@ describe('CreateBudgetDialogComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         ...provideLocale(),
+        ...provideTranslocoForTest(),
         FormBuilder,
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MatSnackBar, useValue: mockSnackBar },

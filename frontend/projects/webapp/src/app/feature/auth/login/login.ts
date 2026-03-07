@@ -4,6 +4,7 @@ import {
   signal,
   inject,
   computed,
+  LOCALE_ID,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -13,9 +14,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   AuthCredentialsService,
-  formatScheduledDeletionMessage,
+  formatDeletionDate,
   PASSWORD_MIN_LENGTH,
   SCHEDULED_DELETION_PARAMS,
 } from '@core/auth';
@@ -39,6 +41,7 @@ import { LoadingButton } from '@ui/loading-button';
     GoogleOAuthButton,
     ErrorAlert,
     LoadingButton,
+    TranslocoPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -49,17 +52,17 @@ import { LoadingButton } from '@ui/loading-button';
         class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
       >
         <mat-icon class="text-lg">arrow_back</mat-icon>
-        <span>Retour à l'accueil</span>
+        <span>{{ 'auth.login.backToHome' | transloco }}</span>
       </button>
 
       <div class="text-center mb-8 mt-4">
         <h1
           class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
         >
-          Content de te revoir
+          {{ 'auth.login.title' | transloco }}
         </h1>
         <p class="text-body-large text-on-surface-variant">
-          Retrouve ton budget là où tu l'as laissé
+          {{ 'auth.login.subtitle' | transloco }}
         </p>
       </div>
 
@@ -70,14 +73,14 @@ import { LoadingButton } from '@ui/loading-button';
         data-testid="login-form"
       >
         <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Email</mat-label>
+          <mat-label>{{ 'form.emailLabel' | transloco }}</mat-label>
           <input
             matInput
             type="email"
             formControlName="email"
             data-testid="email-input"
             (input)="clearMessages()"
-            placeholder="ton@email.com"
+            [placeholder]="'form.emailPlaceholder' | transloco"
             [disabled]="isSubmitting()"
           />
           <mat-icon matPrefix>email</mat-icon>
@@ -86,23 +89,23 @@ import { LoadingButton } from '@ui/loading-button';
           ) {
             <mat-error>
               @if (loginForm.get('email')?.hasError('required')) {
-                Ton email est nécessaire pour continuer
+                {{ 'form.emailRequired' | transloco }}
               } @else if (loginForm.get('email')?.hasError('email')) {
-                Cette adresse email ne semble pas valide
+                {{ 'form.emailInvalid' | transloco }}
               }
             </mat-error>
           }
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Mot de passe</mat-label>
+          <mat-label>{{ 'form.passwordLabel' | transloco }}</mat-label>
           <input
             matInput
             [type]="isPasswordHidden() ? 'password' : 'text'"
             formControlName="password"
             data-testid="password-input"
             (input)="clearMessages()"
-            placeholder="Mot de passe"
+            [placeholder]="'form.passwordPlaceholder' | transloco"
             [disabled]="isSubmitting()"
           />
           <mat-icon matPrefix>lock</mat-icon>
@@ -111,7 +114,7 @@ import { LoadingButton } from '@ui/loading-button';
             matIconButton
             matSuffix
             (click)="togglePasswordVisibility()"
-            [attr.aria-label]="'Afficher le mot de passe'"
+            [attr.aria-label]="'form.showPassword' | transloco"
             [attr.aria-pressed]="!isPasswordHidden()"
           >
             <mat-icon>{{
@@ -124,9 +127,9 @@ import { LoadingButton } from '@ui/loading-button';
           ) {
             <mat-error>
               @if (loginForm.get('password')?.hasError('required')) {
-                Ton mot de passe est nécessaire
+                {{ 'form.passwordRequired' | transloco }}
               } @else if (loginForm.get('password')?.hasError('minlength')) {
-                8 caractères minimum
+                {{ 'form.passwordMinLength' | transloco }}
               }
             </mat-error>
           }
@@ -138,7 +141,7 @@ import { LoadingButton } from '@ui/loading-button';
             class="text-body-small text-primary hover:underline"
             data-testid="forgot-password-link"
           >
-            Mot de passe oublié ?
+            {{ 'auth.login.forgotPassword' | transloco }}
           </a>
         </div>
 
@@ -147,17 +150,19 @@ import { LoadingButton } from '@ui/loading-button';
         <pulpe-loading-button
           [loading]="isSubmitting()"
           [disabled]="!canSubmit()"
-          loadingText="Connexion..."
+          [loadingText]="'auth.login.submitting' | transloco"
           icon="login"
           testId="login-submit-button"
         >
-          <span class="ml-2">Se connecter</span>
+          <span class="ml-2">{{ 'auth.login.submit' | transloco }}</span>
         </pulpe-loading-button>
       </form>
 
       <div class="flex items-center gap-4 my-6">
         <mat-divider class="flex-1" />
-        <span class="text-body-medium text-on-surface-variant">ou</span>
+        <span class="text-body-medium text-on-surface-variant">{{
+          'common.or' | transloco
+        }}</span>
         <mat-divider class="flex-1" />
       </div>
 
@@ -169,14 +174,14 @@ import { LoadingButton } from '@ui/loading-button';
 
       <div class="text-center mt-6">
         <p class="text-body-medium text-on-surface-variant">
-          Nouveau sur Pulpe ?
+          {{ 'auth.login.noAccount' | transloco }}
           <button
             matButton
             color="primary"
             class="ml-1"
             [routerLink]="['/', ROUTES.SIGNUP]"
           >
-            Créer un compte
+            {{ 'auth.login.createAccount' | transloco }}
           </button>
         </p>
       </div>
@@ -186,9 +191,11 @@ import { LoadingButton } from '@ui/loading-button';
 export default class Login {
   readonly #authCredentials = inject(AuthCredentialsService);
   readonly #formBuilder = inject(FormBuilder);
+  readonly #locale = inject(LOCALE_ID);
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);
   readonly #logger = inject(Logger);
+  readonly #transloco = inject(TranslocoService);
 
   protected readonly ROUTES = ROUTES;
   protected readonly isPasswordHidden = signal(true);
@@ -203,7 +210,11 @@ export default class Login {
       SCHEDULED_DELETION_PARAMS.DATE,
     );
     if (reason === SCHEDULED_DELETION_PARAMS.REASON_VALUE && date) {
-      this.errorMessage.set(formatScheduledDeletionMessage(date));
+      this.errorMessage.set(
+        this.#transloco.translate('auth.scheduledDeletion', {
+          date: formatDeletionDate(date, this.#locale),
+        }),
+      );
     }
   }
 
@@ -234,7 +245,7 @@ export default class Login {
   protected async signIn(): Promise<void> {
     if (!this.loginForm.valid) {
       this.loginForm.markAllAsTouched();
-      this.errorMessage.set('Quelques champs à vérifier avant de continuer');
+      this.errorMessage.set(this.#transloco.translate('common.formErrors'));
       return;
     }
 
@@ -253,12 +264,14 @@ export default class Login {
         this.#router.navigate(['/', ROUTES.DASHBOARD]);
       } else {
         this.errorMessage.set(
-          result.error || 'Email ou mot de passe incorrect — réessaie',
+          result.error || this.#transloco.translate('auth.login.errorDefault'),
         );
       }
     } catch (error) {
       this.#logger.error('Erreur lors de la connexion:', error);
-      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessaie");
+      this.errorMessage.set(
+        this.#transloco.translate('common.somethingWentWrong'),
+      );
     } finally {
       this.isSubmitting.set(false);
     }

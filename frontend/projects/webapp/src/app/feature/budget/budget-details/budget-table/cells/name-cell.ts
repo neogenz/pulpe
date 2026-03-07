@@ -10,7 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { FinancialKindDirective } from '@ui/financial-kind';
-import { TransactionLabelPipe } from '@ui/transaction-display';
+import { TransactionLabelPipe } from '@pattern/transaction-display';
 import {
   formatMatchAnnotation,
   type BudgetLineTableItem,
@@ -103,7 +103,7 @@ import {
         }
         @if (line().data.checkedAt) {
           <span class="text-body-small text-on-surface-variant ml-2">
-            {{ line().data.checkedAt | date: 'dd.MM' : '' : 'fr-CH' }}
+            {{ line().data.checkedAt | date: 'dd.MM' }}
           </span>
         }
       </span>

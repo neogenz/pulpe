@@ -1,5 +1,6 @@
 import { Injectable, inject, DestroyRef } from '@angular/core';
 import { Router } from '@angular/router';
+import { TranslocoService } from '@jsverse/transloco';
 import {
   createClient,
   type Session,
@@ -9,10 +10,7 @@ import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { AuthStateService, type AuthState } from './auth-state.service';
 import { AuthErrorLocalizer } from './auth-error-localizer';
-import {
-  AUTH_ERROR_MESSAGES,
-  SCHEDULED_DELETION_PARAMS,
-} from './auth-constants';
+import { AUTH_ERROR_KEYS, SCHEDULED_DELETION_PARAMS } from './auth-constants';
 import { AuthCleanupService } from './auth-cleanup.service';
 import { isE2EMode, type E2EWindow } from './e2e-window';
 import { ROUTES } from '@core/routing/routes-constants';
@@ -27,6 +25,7 @@ export class AuthSessionService {
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
   readonly #logger = inject(Logger);
   readonly #cleanup = inject(AuthCleanupService);
+  readonly #transloco = inject(TranslocoService);
   readonly #destroyRef = inject(DestroyRef);
 
   #supabaseClient: SupabaseClient | null = null;
@@ -258,7 +257,9 @@ export class AuthSessionService {
       });
       return {
         success: false,
-        error: AUTH_ERROR_MESSAGES.UNEXPECTED_SESSION_ERROR,
+        error: this.#transloco.translate(
+          AUTH_ERROR_KEYS.UNEXPECTED_SESSION_ERROR,
+        ),
       };
     }
   }
@@ -294,7 +295,9 @@ export class AuthSessionService {
       });
       return {
         success: false,
-        error: AUTH_ERROR_MESSAGES.UNEXPECTED_SESSION_ERROR,
+        error: this.#transloco.translate(
+          AUTH_ERROR_KEYS.UNEXPECTED_SESSION_ERROR,
+        ),
       };
     }
   }
@@ -331,7 +334,9 @@ export class AuthSessionService {
       });
       return {
         success: false,
-        error: AUTH_ERROR_MESSAGES.UNEXPECTED_SESSION_ERROR,
+        error: this.#transloco.translate(
+          AUTH_ERROR_KEYS.UNEXPECTED_SESSION_ERROR,
+        ),
       };
     }
   }
@@ -396,7 +401,9 @@ export class AuthSessionService {
       });
       return {
         success: false,
-        error: AUTH_ERROR_MESSAGES.UNEXPECTED_SESSION_ERROR,
+        error: this.#transloco.translate(
+          AUTH_ERROR_KEYS.UNEXPECTED_SESSION_ERROR,
+        ),
       };
     }
   }

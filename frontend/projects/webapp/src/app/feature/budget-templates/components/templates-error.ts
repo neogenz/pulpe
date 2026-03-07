@@ -9,6 +9,7 @@ import {
   DestroyRef,
   inject,
 } from '@angular/core';
+import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { StateCard } from '@ui/state-card/state-card';
 
 import { type HttpErrorResponse } from '@angular/common/http';
@@ -28,7 +29,7 @@ type TemplateErrorType = HttpErrorResponse | ApiError | Error | null;
 
 @Component({
   selector: 'pulpe-templates-error',
-  imports: [StateCard],
+  imports: [StateCard, TranslocoPipe],
   template: `
     <pulpe-state-card
       testId="templates-error-card"
@@ -42,7 +43,10 @@ type TemplateErrorType = HttpErrorResponse | ApiError | Error | null;
 
     @if (isRateLimited()) {
       <p class="text-body-medium text-on-surface-variant mt-4 text-center">
-        Patiente encore {{ retryCountdown() }} secondes avant de réessayer.
+        {{
+          'template.rateLimitCountdown'
+            | transloco: { seconds: retryCountdown() }
+        }}
       </p>
     }
   `,
@@ -55,6 +59,7 @@ type TemplateErrorType = HttpErrorResponse | ApiError | Error | null;
 })
 export class TemplatesError {
   readonly #destroyRef = inject(DestroyRef);
+  readonly #transloco = inject(TranslocoService);
 
   readonly reload = output<void>();
   readonly error = input<TemplateErrorType>();
@@ -84,22 +89,30 @@ export class TemplatesError {
     return false;
   });
 
-  readonly errorTitle = computed(() => {
-    return this.isRateLimited()
-      ? 'Trop de requêtes pour le moment'
-      : 'Impossible de charger tes modèles';
-  });
+  readonly #rateLimitTitle = this.#transloco.translate(
+    'template.rateLimitTitle',
+  );
+  readonly #loadFailTitle = this.#transloco.translate('template.loadFailTitle');
+  readonly #rateLimitMessage = this.#transloco.translate(
+    'template.rateLimitMessage',
+  );
+  readonly #loadFailMessage = this.#transloco.translate(
+    'template.loadFailMessage',
+  );
+  readonly #retryWaitLabel = this.#transloco.translate('template.retryWait');
+  readonly #retryLabel = this.#transloco.translate('common.retry');
 
-  readonly errorMessage = computed(() => {
-    if (this.isRateLimited()) {
-      return 'Le serveur est temporairement surchargé — réessaie dans un instant';
-    }
-    return 'Le chargement des modèles a échoué. Réessaie pour continuer.';
-  });
+  readonly errorTitle = computed(() =>
+    this.isRateLimited() ? this.#rateLimitTitle : this.#loadFailTitle,
+  );
 
-  readonly retryButtonLabel = computed(() => {
-    return this.retryDisabled() ? 'Patienter...' : 'Réessayer';
-  });
+  readonly errorMessage = computed(() =>
+    this.isRateLimited() ? this.#rateLimitMessage : this.#loadFailMessage,
+  );
+
+  readonly retryButtonLabel = computed(() =>
+    this.retryDisabled() ? this.#retryWaitLabel : this.#retryLabel,
+  );
 
   #currentIntervalId: number | null = null;
 

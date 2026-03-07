@@ -16,6 +16,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { startWith, debounceTime, map } from 'rxjs';
 import { TemplateListItem } from './template-list-item';
 import { type TemplateViewModel } from './template-view-model';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 @Component({
   selector: 'pulpe-templates-list',
@@ -28,11 +29,12 @@ import { type TemplateViewModel } from './template-view-model';
     MatProgressSpinnerModule,
     ReactiveFormsModule,
     TemplateListItem,
+    TranslocoPipe,
   ],
   template: `
     <!-- Search Field -->
     <mat-form-field appearance="outline" class="w-full mb-2 md:mb-4">
-      <mat-label>Rechercher un modèle</mat-label>
+      <mat-label>{{ 'template.searchLabel' | transloco }}</mat-label>
       <input
         matInput
         [formControl]="searchControl"
@@ -53,7 +55,7 @@ import { type TemplateViewModel } from './template-view-model';
           <mat-progress-spinner
             mode="indeterminate"
             [diameter]="24"
-            aria-label="Chargement des modèles"
+            [attr.aria-label]="'template.loadingAriaLabel' | transloco"
             role="progressbar"
             class="pulpe-loading-indicator pulpe-loading-medium"
           ></mat-progress-spinner>
@@ -63,8 +65,12 @@ import { type TemplateViewModel } from './template-view-model';
           class="flex flex-col items-center justify-center h-[200px] text-error"
         >
           <mat-icon class="text-display-small mb-2">error_outline</mat-icon>
-          <p class="text-label-large">Erreur lors du chargement des modèles</p>
-          <button matButton (click)="retryRequested.emit()">Réessayer</button>
+          <p class="text-label-large">
+            {{ 'template.loadErrorShort' | transloco }}
+          </p>
+          <button matButton (click)="retryRequested.emit()">
+            {{ 'common.retry' | transloco }}
+          </button>
         </div>
       } @else if (filteredTemplates().length === 0) {
         <div
@@ -73,9 +79,9 @@ import { type TemplateViewModel } from './template-view-model';
           <mat-icon class="text-display-small mb-2">inbox</mat-icon>
           <p class="text-label-large">
             @if (searchTerm()) {
-              Pas de modèle pour "{{ searchTerm() }}"
+              {{ 'template.noResultsFor' | transloco: { term: searchTerm() } }}
             } @else {
-              Pas encore de modèle
+              {{ 'template.emptyTitle' | transloco }}
             }
           </p>
         </div>
