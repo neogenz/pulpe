@@ -162,10 +162,12 @@ import { ErrorAlert } from '@ui/error-alert';
         "
         (click)="onSubmit()"
       >
-        @if (isSubmitting()) {
-          <mat-spinner diameter="20" class="mr-2" />
-        }
-        {{ 'settings.deleteAccountConfirm' | transloco }}
+        <span class="flex items-center justify-center">
+          @if (isSubmitting()) {
+            <mat-spinner diameter="20" class="mr-2" />
+          }
+          {{ 'settings.deleteAccountConfirm' | transloco }}
+        </span>
       </button>
     </mat-dialog-actions>
   `,

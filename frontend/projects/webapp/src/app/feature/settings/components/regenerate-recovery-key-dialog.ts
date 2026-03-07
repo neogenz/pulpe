@@ -112,10 +112,12 @@ import { ErrorAlert } from '@ui/error-alert';
         [disabled]="isSubmitting() || !verificationForm.valid"
         (click)="onSubmit()"
       >
-        @if (isSubmitting()) {
-          <mat-spinner diameter="20" class="mr-2" />
-        }
-        {{ 'settings.regenerateKeySubmit' | transloco }}
+        <span class="flex items-center justify-center">
+          @if (isSubmitting()) {
+            <mat-spinner diameter="20" class="mr-2" />
+          }
+          {{ 'settings.regenerateKeySubmit' | transloco }}
+        </span>
       </button>
     </mat-dialog-actions>
   `,

@@ -144,10 +144,12 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                   [disabled]="isSaving()"
                   (click)="saveSettings()"
                 >
-                  @if (isSaving()) {
-                    <mat-spinner diameter="20" class="mr-2" />
-                  }
-                  {{ 'common.save' | transloco }}
+                  <span class="flex items-center justify-center">
+                    @if (isSaving()) {
+                      <mat-spinner diameter="20" class="mr-2" />
+                    }
+                    {{ 'common.save' | transloco }}
+                  </span>
                 </button>
               </div>
             }
@@ -230,10 +232,12 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                 [disabled]="isGeneratingRecoveryKey()"
                 (click)="onRegenerateRecoveryKey()"
               >
-                @if (isGeneratingRecoveryKey()) {
-                  <mat-spinner diameter="20" class="mr-2" />
-                }
-                {{ 'settings.regenerateKey' | transloco }}
+                <span class="flex items-center justify-center">
+                  @if (isGeneratingRecoveryKey()) {
+                    <mat-spinner diameter="20" class="mr-2" />
+                  }
+                  {{ 'settings.regenerateKey' | transloco }}
+                </span>
               </button>
             </div>
           </div>
@@ -274,10 +278,12 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                 (click)="onDeleteAccount()"
                 class="shrink-0"
               >
-                @if (isDeleting()) {
-                  <mat-spinner diameter="20" class="mr-2" />
-                }
-                {{ 'settings.deleteAccountButton' | transloco }}
+                <span class="flex items-center justify-center">
+                  @if (isDeleting()) {
+                    <mat-spinner diameter="20" class="mr-2" />
+                  }
+                  {{ 'settings.deleteAccountButton' | transloco }}
+                </span>
               </button>
             </div>
           </div>

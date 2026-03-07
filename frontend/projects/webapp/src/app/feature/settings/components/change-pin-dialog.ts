@@ -181,10 +181,12 @@ import { ErrorAlert } from '@ui/error-alert';
           [disabled]="isSubmitting() || !isOldPinValid()"
           (click)="onSubmitOldPin()"
         >
-          @if (isSubmitting()) {
-            <mat-spinner diameter="20" class="mr-2" />
-          }
-          {{ 'settings.changePin.next' | transloco }}
+          <span class="flex items-center justify-center">
+            @if (isSubmitting()) {
+              <mat-spinner diameter="20" class="mr-2" />
+            }
+            {{ 'settings.changePin.next' | transloco }}
+          </span>
         </button>
       } @else {
         <button
@@ -194,10 +196,12 @@ import { ErrorAlert } from '@ui/error-alert';
           [disabled]="isSubmitting() || !isNewPinValid()"
           (click)="onSubmitNewPin()"
         >
-          @if (isSubmitting()) {
-            <mat-spinner diameter="20" class="mr-2" />
-          }
-          {{ 'common.confirm' | transloco }}
+          <span class="flex items-center justify-center">
+            @if (isSubmitting()) {
+              <mat-spinner diameter="20" class="mr-2" />
+            }
+            {{ 'common.confirm' | transloco }}
+          </span>
         </button>
       }
     </mat-dialog-actions>
@@ -371,6 +375,12 @@ export class ChangePinDialog {
           this.#clientKeyService.setDirectKey(newClientKey, hasLocalKey);
           this.#clearSensitiveState();
           this.#dialogRef.close({ recoveryKey: null });
+          return;
+        }
+        if (error.code === API_ERROR_CODES.ENCRYPTION_REKEY_FAILED) {
+          this.errorMessage.set(
+            this.#transloco.translate('settings.changePin.rekeyFailed'),
+          );
           return;
         }
         if (error.status === 429) {
