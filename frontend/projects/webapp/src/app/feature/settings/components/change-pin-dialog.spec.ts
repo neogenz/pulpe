@@ -7,6 +7,7 @@ import { ApiError } from '@core/api/api-error';
 import { EncryptionApi, ClientKeyService } from '@core/encryption';
 import { Logger } from '@core/logging/logger';
 import { StorageService } from '@core/storage/storage.service';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { ChangePinDialog } from './change-pin-dialog';
 
 vi.mock('@core/encryption/crypto.utils', async (importOriginal) => {
@@ -61,6 +62,7 @@ describe('ChangePinDialog', () => {
         { provide: ClientKeyService, useValue: mockClientKeyService },
         { provide: StorageService, useValue: mockStorage },
         { provide: Logger, useValue: mockLogger },
+        ...provideTranslocoForTest(),
       ],
     });
 
@@ -269,6 +271,53 @@ describe('ChangePinDialog', () => {
       expect(component['errorMessage']()).toBe(
         'Trop de tentatives — réessaie plus tard',
       );
+    });
+
+    it('sets new client key and closes dialog on partial rekey failure', async () => {
+      mockEncryptionApi.changePin$.mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'Partial rekey failure',
+              'ERR_ENCRYPTION_REKEY_PARTIAL_FAILURE',
+              500,
+              undefined,
+            ),
+        ),
+      );
+      component['newPinForm'].patchValue({ newPin: '654321' });
+
+      await component['onSubmitNewPin']();
+
+      expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
+        MOCK_NEW_CLIENT_KEY,
+        false,
+      );
+      expect(mockDialogRef.close).toHaveBeenCalledWith({ recoveryKey: null });
+    });
+
+    it('shows error and stays on step 2 on rekey failed (RPC rollback)', async () => {
+      mockEncryptionApi.changePin$.mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'Rekey failed',
+              'ERR_ENCRYPTION_REKEY_FAILED',
+              500,
+              undefined,
+            ),
+        ),
+      );
+      component['newPinForm'].patchValue({ newPin: '654321' });
+
+      await component['onSubmitNewPin']();
+
+      expect(component['errorMessage']()).toBe(
+        'Le re-chiffrement a échoué — ton ancien code PIN reste actif, réessaie plus tard',
+      );
+      expect(component['step']()).toBe(2);
+      expect(mockClientKeyService.setDirectKey).not.toHaveBeenCalled();
+      expect(mockDialogRef.close).not.toHaveBeenCalled();
     });
 
     it('shows generic error for unknown failures and resets to step 1', async () => {

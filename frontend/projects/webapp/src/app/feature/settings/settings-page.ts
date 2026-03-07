@@ -144,10 +144,12 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                   [disabled]="isSaving()"
                   (click)="saveSettings()"
                 >
-                  @if (isSaving()) {
-                    <mat-spinner diameter="20" class="mr-2" />
-                  }
-                  {{ 'common.save' | transloco }}
+                  <span class="flex items-center justify-center">
+                    @if (isSaving()) {
+                      <mat-spinner diameter="20" class="mr-2" />
+                    }
+                    {{ 'common.save' | transloco }}
+                  </span>
                 </button>
               </div>
             }
@@ -198,9 +200,11 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
               class="flex items-center justify-between gap-6 pb-6 border-b border-outline-variant/20"
             >
               <div class="space-y-1">
-                <h3 class="text-title-small">Code PIN</h3>
+                <h3 class="text-title-small">
+                  {{ 'settings.pinCode' | transloco }}
+                </h3>
                 <p class="text-body-medium text-on-surface-variant">
-                  Modifier ton code de chiffrement.
+                  {{ 'settings.pinCodeDescription' | transloco }}
                 </p>
               </div>
               <button
@@ -208,7 +212,7 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                 data-testid="change-pin-button"
                 (click)="onChangePin()"
               >
-                Modifier
+                {{ 'common.edit' | transloco }}
               </button>
             </div>
 
@@ -228,10 +232,12 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                 [disabled]="isGeneratingRecoveryKey()"
                 (click)="onRegenerateRecoveryKey()"
               >
-                @if (isGeneratingRecoveryKey()) {
-                  <mat-spinner diameter="20" class="mr-2" />
-                }
-                {{ 'settings.regenerateKey' | transloco }}
+                <span class="flex items-center justify-center">
+                  @if (isGeneratingRecoveryKey()) {
+                    <mat-spinner diameter="20" class="mr-2" />
+                  }
+                  {{ 'settings.regenerateKey' | transloco }}
+                </span>
               </button>
             </div>
           </div>
@@ -272,10 +278,12 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                 (click)="onDeleteAccount()"
                 class="shrink-0"
               >
-                @if (isDeleting()) {
-                  <mat-spinner diameter="20" class="mr-2" />
-                }
-                {{ 'settings.deleteAccountButton' | transloco }}
+                <span class="flex items-center justify-center">
+                  @if (isDeleting()) {
+                    <mat-spinner diameter="20" class="mr-2" />
+                  }
+                  {{ 'settings.deleteAccountButton' | transloco }}
+                </span>
               </button>
             </div>
           </div>
@@ -394,11 +402,19 @@ export default class SettingsPage {
       await firstValueFrom(recoveryRef.afterClosed());
     }
 
-    this.#snackBar.open('Code PIN modifié', 'OK', {
-      duration: 3000,
-      horizontalPosition: 'center',
-      verticalPosition: 'bottom',
-    });
+    this.#snackBar.open(
+      this.#transloco.translate(
+        result.recoveryKey
+          ? 'settings.pinChanged'
+          : 'settings.pinChangedNoRecovery',
+      ),
+      'OK',
+      {
+        duration: result.recoveryKey ? 3000 : 6000,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom',
+      },
+    );
   }
 
   async onRegenerateRecoveryKey(): Promise<void> {

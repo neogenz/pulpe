@@ -176,10 +176,12 @@ import { ErrorAlert } from '@ui/error-alert';
         [disabled]="isSubmitting() || !isFormValid()"
         (click)="onSubmit()"
       >
-        @if (isSubmitting()) {
-          <mat-spinner diameter="20" class="mr-2" />
-        }
-        {{ 'common.confirm' | transloco }}
+        <span class="flex items-center justify-center">
+          @if (isSubmitting()) {
+            <mat-spinner diameter="20" class="mr-2" />
+          }
+          {{ 'common.confirm' | transloco }}
+        </span>
       </button>
     </mat-dialog-actions>
   `,

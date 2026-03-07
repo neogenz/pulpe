@@ -689,8 +689,7 @@ Si l'enveloppe à 2000 CHF n'avait aucune transaction :
 **Critères** :
 - L'ancien code PIN est vérifié avant le changement
 - Toutes les données financières sont re-chiffrées avec la nouvelle clé dérivée du nouveau PIN
-- Si une clé de secours existait, une nouvelle est générée et affichée (l'ancienne ne fonctionne plus)
-- Si aucune clé de secours n'existait, aucune n'est générée
+- Une nouvelle clé de secours est toujours générée et affichée après le changement de PIN (l'ancienne, si elle existait, ne fonctionne plus)
 - Le nouveau code PIN fonctionne pour les connexions suivantes
 - Erreur si l'ancien code PIN est incorrect
 - Erreur si le nouveau code PIN est identique à l'ancien

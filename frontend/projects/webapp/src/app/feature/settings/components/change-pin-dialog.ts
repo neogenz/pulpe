@@ -18,7 +18,10 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
+
+import { API_ERROR_CODES } from 'pulpe-shared';
 
 import { isApiError } from '@core/api/api-error';
 import { VAULT_CODE_MIN_LENGTH } from '@core/auth';
@@ -39,25 +42,30 @@ import { ErrorAlert } from '@ui/error-alert';
     MatIconModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    TranslocoPipe,
     ErrorAlert,
   ],
   template: `
     <h2 mat-dialog-title class="pb-2!">
       @if (step() === 1) {
-        Modifier le code PIN
+        {{ 'settings.changePin.title' | transloco }}
       } @else {
-        Nouveau code PIN
+        {{ 'settings.changePin.titleNewPin' | transloco }}
       }
     </h2>
 
     <mat-dialog-content>
       <p class="text-body-medium text-on-surface-variant mb-4">
         @if (step() === 1) {
-          Saisis ton code PIN actuel pour confirmer ton identité (au moins
-          {{ VAULT_CODE_MIN_LENGTH }} chiffres)
+          {{
+            'settings.changePin.descriptionStep1'
+              | transloco: { min: VAULT_CODE_MIN_LENGTH }
+          }}
         } @else {
-          Choisis ton nouveau code PIN (au moins
-          {{ VAULT_CODE_MIN_LENGTH }} chiffres)
+          {{
+            'settings.changePin.descriptionStep2'
+              | transloco: { min: VAULT_CODE_MIN_LENGTH }
+          }}
         }
       </p>
 
@@ -69,7 +77,9 @@ import { ErrorAlert } from '@ui/error-alert';
       @if (step() === 1) {
         <form [formGroup]="oldPinForm" (ngSubmit)="onSubmitOldPin()">
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Code PIN actuel</mat-label>
+            <mat-label>{{
+              'settings.changePin.oldPinLabel' | transloco
+            }}</mat-label>
             <input
               matInput
               [type]="isOldPinHidden() ? 'password' : 'text'"
@@ -85,8 +95,8 @@ import { ErrorAlert } from '@ui/error-alert';
               (click)="isOldPinHidden.set(!isOldPinHidden())"
               [attr.aria-label]="
                 isOldPinHidden()
-                  ? 'Afficher le code PIN'
-                  : 'Masquer le code PIN'
+                  ? ('settings.changePin.showPin' | transloco)
+                  : ('settings.changePin.hidePin' | transloco)
               "
               [attr.aria-pressed]="!isOldPinHidden()"
             >
@@ -95,22 +105,27 @@ import { ErrorAlert } from '@ui/error-alert';
               }}</mat-icon>
             </button>
             @if (oldPinForm.get('oldPin')?.hasError('required')) {
-              <mat-error>Ton code PIN est requis</mat-error>
+              <mat-error>{{
+                'settings.changePin.oldPinRequired' | transloco
+              }}</mat-error>
             } @else if (oldPinForm.get('oldPin')?.hasError('minlength')) {
-              <mat-error
-                >Au moins {{ VAULT_CODE_MIN_LENGTH }} chiffres</mat-error
-              >
+              <mat-error>{{
+                'settings.pinCodeMinLength'
+                  | transloco: { min: VAULT_CODE_MIN_LENGTH }
+              }}</mat-error>
             } @else if (oldPinForm.get('oldPin')?.hasError('pattern')) {
-              <mat-error
-                >Le code PIN ne doit contenir que des chiffres</mat-error
-              >
+              <mat-error>{{
+                'settings.pinCodeDigitsOnly' | transloco
+              }}</mat-error>
             }
           </mat-form-field>
         </form>
       } @else {
         <form [formGroup]="newPinForm" (ngSubmit)="onSubmitNewPin()">
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Nouveau code PIN</mat-label>
+            <mat-label>{{
+              'settings.changePin.newPinLabel' | transloco
+            }}</mat-label>
             <input
               matInput
               [type]="isNewPinHidden() ? 'password' : 'text'"
@@ -126,8 +141,8 @@ import { ErrorAlert } from '@ui/error-alert';
               (click)="isNewPinHidden.set(!isNewPinHidden())"
               [attr.aria-label]="
                 isNewPinHidden()
-                  ? 'Afficher le code PIN'
-                  : 'Masquer le code PIN'
+                  ? ('settings.changePin.showPin' | transloco)
+                  : ('settings.changePin.hidePin' | transloco)
               "
               [attr.aria-pressed]="!isNewPinHidden()"
             >
@@ -136,15 +151,18 @@ import { ErrorAlert } from '@ui/error-alert';
               }}</mat-icon>
             </button>
             @if (newPinForm.get('newPin')?.hasError('required')) {
-              <mat-error>Ton nouveau code PIN est requis</mat-error>
+              <mat-error>{{
+                'settings.changePin.newPinRequired' | transloco
+              }}</mat-error>
             } @else if (newPinForm.get('newPin')?.hasError('minlength')) {
-              <mat-error
-                >Au moins {{ VAULT_CODE_MIN_LENGTH }} chiffres</mat-error
-              >
+              <mat-error>{{
+                'settings.pinCodeMinLength'
+                  | transloco: { min: VAULT_CODE_MIN_LENGTH }
+              }}</mat-error>
             } @else if (newPinForm.get('newPin')?.hasError('pattern')) {
-              <mat-error
-                >Le code PIN ne doit contenir que des chiffres</mat-error
-              >
+              <mat-error>{{
+                'settings.pinCodeDigitsOnly' | transloco
+              }}</mat-error>
             }
           </mat-form-field>
         </form>
@@ -153,7 +171,7 @@ import { ErrorAlert } from '@ui/error-alert';
 
     <mat-dialog-actions align="end">
       <button matButton mat-dialog-close data-testid="change-pin-cancel-button">
-        Annuler
+        {{ 'common.cancel' | transloco }}
       </button>
       @if (step() === 1) {
         <button
@@ -163,10 +181,12 @@ import { ErrorAlert } from '@ui/error-alert';
           [disabled]="isSubmitting() || !isOldPinValid()"
           (click)="onSubmitOldPin()"
         >
-          @if (isSubmitting()) {
-            <mat-spinner diameter="20" class="mr-2" />
-          }
-          Suivant
+          <span class="flex items-center justify-center">
+            @if (isSubmitting()) {
+              <mat-spinner diameter="20" class="mr-2" />
+            }
+            {{ 'settings.changePin.next' | transloco }}
+          </span>
         </button>
       } @else {
         <button
@@ -176,10 +196,12 @@ import { ErrorAlert } from '@ui/error-alert';
           [disabled]="isSubmitting() || !isNewPinValid()"
           (click)="onSubmitNewPin()"
         >
-          @if (isSubmitting()) {
-            <mat-spinner diameter="20" class="mr-2" />
-          }
-          Confirmer
+          <span class="flex items-center justify-center">
+            @if (isSubmitting()) {
+              <mat-spinner diameter="20" class="mr-2" />
+            }
+            {{ 'common.confirm' | transloco }}
+          </span>
         </button>
       }
     </mat-dialog-actions>
@@ -192,6 +214,7 @@ export class ChangePinDialog {
   readonly #clientKeyService = inject(ClientKeyService);
   readonly #logger = inject(Logger);
   readonly #storage = inject(StorageService);
+  readonly #transloco = inject(TranslocoService);
 
   protected readonly step = signal<1 | 2>(1);
   protected readonly isSubmitting = signal(false);
@@ -268,17 +291,23 @@ export class ChangePinDialog {
     } catch (error) {
       this.#clearSensitiveState();
       if (isApiError(error)) {
-        if (error.code === 'ERR_ENCRYPTION_KEY_CHECK_FAILED') {
-          this.errorMessage.set('Code PIN incorrect');
+        if (error.code === API_ERROR_CODES.ENCRYPTION_KEY_CHECK_FAILED) {
+          this.errorMessage.set(
+            this.#transloco.translate('settings.changePin.incorrectPin'),
+          );
           return;
         }
         if (error.status === 429) {
-          this.errorMessage.set('Trop de tentatives — réessaie plus tard');
+          this.errorMessage.set(
+            this.#transloco.translate('settings.changePin.rateLimited'),
+          );
           return;
         }
       }
       this.#logger.error('Failed to fetch salt for PIN change', error);
-      this.errorMessage.set('Une erreur est survenue — réessaie plus tard');
+      this.errorMessage.set(
+        this.#transloco.translate('settings.changePin.genericError'),
+      );
     } finally {
       this.isSubmitting.set(false);
     }
@@ -288,7 +317,9 @@ export class ChangePinDialog {
     if (this.isSubmitting() || !this.newPinForm.valid) return;
 
     if (!this.#salt || !this.#kdfIterations || !this.#oldClientKey) {
-      this.errorMessage.set('Une erreur est survenue — réessaie plus tard');
+      this.errorMessage.set(
+        this.#transloco.translate('settings.changePin.genericError'),
+      );
       this.step.set(1);
       return;
     }
@@ -298,8 +329,14 @@ export class ChangePinDialog {
     this.isSubmitting.set(true);
     this.errorMessage.set('');
 
+    let newClientKey: string | undefined;
+    const hasLocalKey = !!this.#storage.getString(
+      STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
+      'local',
+    );
+
     try {
-      const newClientKey = await deriveClientKey(
+      newClientKey = await deriveClientKey(
         newPin,
         this.#salt,
         this.#kdfIterations,
@@ -309,10 +346,6 @@ export class ChangePinDialog {
         this.#encryptionApi.changePin$(this.#oldClientKey, newClientKey),
       );
 
-      const hasLocalKey = !!this.#storage.getString(
-        STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
-        'local',
-      );
       this.#clientKeyService.setDirectKey(newClientKey, hasLocalKey);
 
       this.newPinForm.reset();
@@ -320,21 +353,40 @@ export class ChangePinDialog {
       this.#dialogRef.close({ recoveryKey: response.recoveryKey });
     } catch (error) {
       if (isApiError(error)) {
-        if (error.code === 'ERR_ENCRYPTION_KEY_CHECK_FAILED') {
-          this.errorMessage.set('Code PIN actuel incorrect');
+        if (error.code === API_ERROR_CODES.ENCRYPTION_KEY_CHECK_FAILED) {
+          this.errorMessage.set(
+            this.#transloco.translate('settings.changePin.incorrectOldPin'),
+          );
           this.#clearSensitiveState();
           this.step.set(1);
           this.oldPinForm.reset();
           return;
         }
-        if (error.code === 'ERR_ENCRYPTION_SAME_KEY') {
+        if (error.code === API_ERROR_CODES.ENCRYPTION_SAME_KEY) {
           this.errorMessage.set(
-            "Le nouveau code PIN doit être différent de l'ancien",
+            this.#transloco.translate('settings.changePin.samePin'),
+          );
+          return;
+        }
+        if (
+          error.code === API_ERROR_CODES.ENCRYPTION_REKEY_PARTIAL_FAILURE &&
+          newClientKey
+        ) {
+          this.#clientKeyService.setDirectKey(newClientKey, hasLocalKey);
+          this.#clearSensitiveState();
+          this.#dialogRef.close({ recoveryKey: null });
+          return;
+        }
+        if (error.code === API_ERROR_CODES.ENCRYPTION_REKEY_FAILED) {
+          this.errorMessage.set(
+            this.#transloco.translate('settings.changePin.rekeyFailed'),
           );
           return;
         }
         if (error.status === 429) {
-          this.errorMessage.set('Trop de tentatives — réessaie plus tard');
+          this.errorMessage.set(
+            this.#transloco.translate('settings.changePin.rateLimited'),
+          );
           return;
         }
       }
@@ -342,7 +394,7 @@ export class ChangePinDialog {
       this.step.set(1);
       this.#logger.error('PIN change failed', error);
       this.errorMessage.set(
-        'Le changement de code PIN a échoué — réessaie plus tard',
+        this.#transloco.translate('settings.changePin.changeFailed'),
       );
     } finally {
       this.isSubmitting.set(false);

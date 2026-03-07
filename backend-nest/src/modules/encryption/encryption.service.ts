@@ -446,14 +446,25 @@ export class EncryptionService {
 
       this.#invalidateUserDEKCache(userId);
 
+      const oldWrappedDEK = row.wrapped_dek;
       await this.#repository.updateWrappedDEK(userId, null);
 
-      const keyCheck = await this.reEncryptAllUserData(
-        userId,
-        oldDek,
-        newDek,
-        supabase,
-      );
+      let keyCheck: string;
+      try {
+        keyCheck = await this.reEncryptAllUserData(
+          userId,
+          oldDek,
+          newDek,
+          supabase,
+        );
+      } catch (rekeyError) {
+        try {
+          await this.#repository.updateWrappedDEK(userId, oldWrappedDEK);
+        } catch {
+          // Best-effort restore — recovery key regeneration will fix state
+        }
+        throw rekeyError;
+      }
 
       // Always generate a new recovery key and wrap the new DEK — ensures every
       // user gets a recovery safety net after PIN change.
@@ -539,7 +550,7 @@ export class EncryptionService {
 
     if (error) {
       throw new BusinessException(
-        ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
+        ERROR_DEFINITIONS.ENCRYPTION_REKEY_FAILED,
         undefined,
         { userId, operation: 'rekey.rpc_failure' },
         { cause: error },
