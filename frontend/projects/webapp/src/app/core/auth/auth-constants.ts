@@ -7,7 +7,7 @@ export const SCHEDULED_DELETION_PARAMS = {
   DATE: 'date',
 } as const;
 
-export const AUTH_ERROR_MESSAGES = {
+export const AUTH_ERROR_KEYS = {
   OAUTH_CONNECTION_ERROR: 'auth.errors.oauthConnection',
   UNEXPECTED_LOGIN_ERROR: 'auth.errors.unexpectedLogin',
   UNEXPECTED_SIGNUP_ERROR: 'auth.errors.unexpectedSignup',

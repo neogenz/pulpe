@@ -11,7 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslocoService } from '@jsverse/transloco';
-import { AUTH_ERROR_MESSAGES, AuthOAuthService } from '@core/auth';
+import { AUTH_ERROR_KEYS, AuthOAuthService } from '@core/auth';
 import { Logger } from '@core/logging/logger';
 
 @Component({
@@ -94,15 +94,13 @@ export class GoogleOAuthButton {
       if (!result.success) {
         this.authError.emit(
           result.error ??
-            this.#transloco.translate(
-              AUTH_ERROR_MESSAGES.OAUTH_CONNECTION_ERROR,
-            ),
+            this.#transloco.translate(AUTH_ERROR_KEYS.OAUTH_CONNECTION_ERROR),
         );
       }
     } catch (err) {
       this.#logger.error('Google OAuth error', err);
       this.authError.emit(
-        this.#transloco.translate(AUTH_ERROR_MESSAGES.OAUTH_CONNECTION_ERROR),
+        this.#transloco.translate(AUTH_ERROR_KEYS.OAUTH_CONNECTION_ERROR),
       );
     } finally {
       this.isLoading.set(false);

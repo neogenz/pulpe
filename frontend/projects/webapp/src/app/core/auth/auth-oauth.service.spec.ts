@@ -9,7 +9,7 @@ import { AuthStateService } from './auth-state.service';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { Logger } from '../logging/logger';
-import { AUTH_ERROR_MESSAGES } from './auth-constants';
+import { AUTH_ERROR_KEYS } from './auth-constants';
 import { ROUTES } from '@core/routing/routes-constants';
 import { type E2EWindow } from './e2e-window';
 import {
@@ -177,7 +177,7 @@ describe('AuthOAuthService', () => {
 
       expect(result).toEqual({
         success: false,
-        error: transloco.translate(AUTH_ERROR_MESSAGES.OAUTH_CONNECTION_ERROR),
+        error: transloco.translate(AUTH_ERROR_KEYS.OAUTH_CONNECTION_ERROR),
       });
     });
 
