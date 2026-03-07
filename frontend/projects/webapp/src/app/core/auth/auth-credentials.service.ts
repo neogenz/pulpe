@@ -7,7 +7,7 @@ import { AuthSessionService } from './auth-session.service';
 import { AuthStateService } from './auth-state.service';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { Logger } from '../logging/logger';
-import { AUTH_ERROR_MESSAGES, formatDeletionDate } from './auth-constants';
+import { AUTH_ERROR_KEYS, formatDeletionDate } from './auth-constants';
 import { isE2EMode } from './e2e-window';
 
 @Injectable({
@@ -76,7 +76,7 @@ export class AuthCredentialsService {
       return {
         success: false,
         error: this.#transloco.translate(
-          AUTH_ERROR_MESSAGES.UNEXPECTED_LOGIN_ERROR,
+          AUTH_ERROR_KEYS.UNEXPECTED_LOGIN_ERROR,
         ),
       };
     } finally {
@@ -121,7 +121,7 @@ export class AuthCredentialsService {
       return {
         success: false,
         error: this.#transloco.translate(
-          AUTH_ERROR_MESSAGES.UNEXPECTED_SIGNUP_ERROR,
+          AUTH_ERROR_KEYS.UNEXPECTED_SIGNUP_ERROR,
         ),
       };
     } finally {

@@ -9,7 +9,7 @@ import { AuthSessionService } from './auth-session.service';
 import { AuthStateService } from './auth-state.service';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { Logger } from '../logging/logger';
-import { AUTH_ERROR_MESSAGES } from './auth-constants';
+import { AUTH_ERROR_KEYS } from './auth-constants';
 import { type E2EWindow } from './e2e-window';
 import {
   createMockSupabaseClient,
@@ -124,7 +124,7 @@ describe('AuthCredentialsService', () => {
 
       expect(result).toEqual({
         success: false,
-        error: transloco.translate(AUTH_ERROR_MESSAGES.UNEXPECTED_LOGIN_ERROR),
+        error: transloco.translate(AUTH_ERROR_KEYS.UNEXPECTED_LOGIN_ERROR),
       });
     });
 
@@ -223,7 +223,7 @@ describe('AuthCredentialsService', () => {
 
       expect(result).toEqual({
         success: false,
-        error: transloco.translate(AUTH_ERROR_MESSAGES.UNEXPECTED_SIGNUP_ERROR),
+        error: transloco.translate(AUTH_ERROR_KEYS.UNEXPECTED_SIGNUP_ERROR),
       });
     });
 

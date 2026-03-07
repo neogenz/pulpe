@@ -4,7 +4,7 @@ import { AuthSessionService } from './auth-session.service';
 import { AuthStateService } from './auth-state.service';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { Logger } from '../logging/logger';
-import { AUTH_ERROR_MESSAGES } from './auth-constants';
+import { AUTH_ERROR_KEYS } from './auth-constants';
 import { ROUTES } from '@core/routing/routes-constants';
 import { isE2EMode } from './e2e-window';
 
@@ -76,7 +76,7 @@ export class AuthOAuthService {
       return {
         success: false,
         error: this.#transloco.translate(
-          AUTH_ERROR_MESSAGES.OAUTH_CONNECTION_ERROR,
+          AUTH_ERROR_KEYS.OAUTH_CONNECTION_ERROR,
         ),
       };
     }
