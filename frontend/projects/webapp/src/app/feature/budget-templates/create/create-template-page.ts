@@ -148,7 +148,7 @@ export default class CreateTemplatePage {
     } catch (error) {
       // Only reset isCreating on error (user stays on page to retry)
       this.isCreatingTemplate.set(false);
-      this.handleError(error);
+      this.#handleError(error);
     }
   }
 
@@ -156,11 +156,10 @@ export default class CreateTemplatePage {
     this.#router.navigate([ROUTES.BUDGET_TEMPLATES]);
   }
 
-  private handleError(error: unknown): void {
-    // Simple logging - in a real app, this would use a proper logging service
+  #handleError(error: unknown): void {
     this.#logger.error('Erreur lors de la création du template:', error);
 
-    const errorMessage = this.getErrorMessage(error);
+    const errorMessage = this.#getErrorMessage(error);
     this.#snackBar.open(
       errorMessage,
       this.#transloco.translate('common.close'),
@@ -168,7 +167,7 @@ export default class CreateTemplatePage {
     );
   }
 
-  private getErrorMessage(error: unknown): string {
+  #getErrorMessage(error: unknown): string {
     if (error instanceof Error) {
       if (
         error.message.includes('network') ||
