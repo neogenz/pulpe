@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 
 import { type AuthError, isAuthWeakPasswordError } from '@supabase/supabase-js';
 import { TranslocoService } from '@jsverse/transloco';
+import { API_ERROR_CODES } from 'pulpe-shared';
 
 @Injectable({
   providedIn: 'root',
@@ -45,7 +46,7 @@ export class AuthErrorLocalizer {
     user_cancelled_login: 'authError.accessDenied',
     'OAuth callback error': 'authError.oauthError',
     'Provider not enabled': 'authError.providerNotEnabled',
-    ERR_USER_ACCOUNT_BLOCKED: 'authError.accountBlocked',
+    [API_ERROR_CODES.USER_ACCOUNT_BLOCKED]: 'authError.accountBlocked',
   };
 
   readonly #codeKeyMap: Record<string, string> = {
