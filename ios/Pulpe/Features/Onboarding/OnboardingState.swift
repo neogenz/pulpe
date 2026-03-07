@@ -27,6 +27,7 @@ final class OnboardingState {
     var isMovingForward: Bool = true
     var hasCompleted: Bool = false
     var hasAbandoned: Bool = false
+    var isSubmitting: Bool = false
 
     // MARK: - Persistence Keys
 
