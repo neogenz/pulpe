@@ -1,96 +1,180 @@
 import SwiftUI
 
-struct PayDaySettingView: View {
+// MARK: - PayDay Picker Sheet (Revolut-style)
+
+struct PayDayPickerSheet: View {
     @Environment(AppState.self) private var appState
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(BudgetListStore.self) private var budgetListStore
     @Environment(DashboardStore.self) private var dashboardStore
+    @Environment(\.dismiss) private var dismiss
+
     @State private var viewModel: PayDaySettingViewModel?
 
+    private static let gridColumns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
+
     var body: some View {
-        Section {
-            payDayPicker
-            if let viewModel, viewModel.hasChanges {
-                actionButtons
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: DesignTokens.Spacing.xl) {
+                    header
+
+                    dayGrid
+                        .padding(DesignTokens.Spacing.lg)
+                        .background(Color.surface)
+                        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+
+                    hintCard
+                }
+                .padding(.horizontal)
+                .padding(.top, DesignTokens.Spacing.sm)
+                .padding(.bottom, 100)
             }
-        } header: {
-            Text("PR\u{00C9}F\u{00C9}RENCES")
-        } footer: {
-            Text(hintText)
-                .font(PulpeTypography.caption)
-        }
-        .onChange(of: userSettingsStore.payDayOfMonth) { _, newValue in
-            if viewModel == nil {
-                viewModel = PayDaySettingViewModel(currentPayDay: newValue)
-            } else {
-                viewModel?.syncInitialDay(newValue)
+            .background(Color.sheetBackground)
+            .safeAreaInset(edge: .bottom) {
+                continueButton
+                    .padding(.horizontal, DesignTokens.Spacing.xxl)
+                    .padding(.bottom, DesignTokens.Spacing.xxl)
+                    .background(.ultraThinMaterial)
             }
-        }
-        .onAppear {
-            if viewModel == nil {
-                viewModel = PayDaySettingViewModel(currentPayDay: userSettingsStore.payDayOfMonth)
-            }
-        }
-    }
-
-    // MARK: - Subviews
-
-    private var payDayPicker: some View {
-        let selectedDay = Binding<Int>(
-            get: { viewModel?.selectedDay ?? 0 },
-            set: { viewModel?.selectDay($0 == 0 ? nil : $0) }
-        )
-
-        return Picker("Jour de paie", selection: selectedDay) {
-            Text("Calendrier standard").tag(0)
-            ForEach(2...31, id: \.self) { day in
-                Text("\(day)").tag(day)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var actionButtons: some View {
-        HStack {
-            Button("Annuler") {
-                viewModel?.reset()
-            }
-            .buttonStyle(.bordered)
-            .buttonBorderShape(.capsule)
-
-            Spacer()
-
-            Button("Sauvegarder") {
-                Task {
-                    await viewModel?.save(using: userSettingsStore)
-                    if userSettingsStore.error == nil {
-                        viewModel?.commitSave()
-                        appState.toastManager.show("Jour de paie enregistr\u{00E9}", type: .success)
-                        currentMonthStore.setPayDay(userSettingsStore.payDayOfMonth)
-                        dashboardStore.setPayDay(userSettingsStore.payDayOfMonth)
-                        async let refreshMonth: Void = currentMonthStore.forceRefresh()
-                        async let refreshList: Void = budgetListStore.forceRefresh()
-                        async let refreshDashboard: Void = dashboardStore.forceRefresh()
-                        _ = await (refreshMonth, refreshList, refreshDashboard)
-                    } else {
-                        appState.toastManager.show("Erreur lors de la sauvegarde", type: .error)
-                    }
+            .navigationTitle("Jour de paie")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton()
                 }
             }
-            .buttonStyle(.borderedProminent)
-            .buttonBorderShape(.capsule)
-            .tint(.pulpePrimary)
-            .disabled(viewModel?.isSaving ?? false)
+        }
+        .standardSheetPresentation()
+        .onAppear {
+            let currentDay = userSettingsStore.payDayOfMonth
+            viewModel = PayDaySettingViewModel(currentPayDay: currentDay)
+        }
+        .onChange(of: userSettingsStore.payDayOfMonth) { _, newValue in
+            viewModel?.syncInitialDay(newValue)
         }
     }
 
-    // MARK: - Hint Text
+    // MARK: - Header
 
-    private var hintText: String {
-        guard let day = viewModel?.selectedDay, day > 1 else {
-            return "Le budget suit le calendrier mensuel standard."
+    private var header: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text("Le mois commencera un...")
+                .font(PulpeTypography.stepTitle)
+                .foregroundStyle(Color.textPrimary)
+
+            Text(
+                "Choisis la date à laquelle tu souhaites commencer " +
+                "à suivre tes dépenses et revenus (ton jour de paie, par exemple)."
+            )
+                .font(PulpeTypography.subheadline)
+                .foregroundStyle(Color.onSurfaceVariant)
         }
+    }
+
+    // MARK: - Day Grid
+
+    private var dayGrid: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            Text("S\u{00E9}lectionne une date")
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.onSurfaceVariant)
+
+            LazyVGrid(columns: Self.gridColumns, spacing: DesignTokens.Spacing.sm) {
+                ForEach(1...31, id: \.self) { day in
+                    dayCell(day)
+                }
+            }
+        }
+    }
+
+    private func dayCell(_ day: Int) -> some View {
+        let isSelected = day == 1
+            ? viewModel?.selectedDay == nil
+            : viewModel?.selectedDay == day
+
+        return Button {
+            withAnimation(DesignTokens.Animation.defaultSpring) {
+                viewModel?.selectDay(day == 1 ? nil : day)
+            }
+        } label: {
+            Text("\(day)")
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(isSelected ? Color.textOnPrimary : Color.textPrimary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+                .background {
+                    if isSelected {
+                        Circle()
+                            .fill(Color.pulpePrimary)
+                    }
+                }
+                .animation(DesignTokens.Animation.defaultSpring, value: isSelected)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Jour \(day)")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    // MARK: - Hint Card
+
+    @ViewBuilder
+    private var hintCard: some View {
+        if let day = viewModel?.selectedDay, day >= 2 {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                Text("Ton mois budg\u{00E9}taire")
+                    .font(PulpeTypography.labelLargeBold)
+                    .foregroundStyle(Color.textPrimary)
+
+                Text(hintPeriod(for: day))
+                    .font(PulpeTypography.subheadline)
+                    .foregroundStyle(Color.onSurfaceVariant)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(DesignTokens.Spacing.lg)
+            .background(Color.surface)
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
+    // MARK: - Continue Button
+
+    private var continueButton: some View {
+        Button {
+            Task {
+                guard let viewModel else { return }
+                await viewModel.save(using: userSettingsStore)
+                if userSettingsStore.error == nil {
+                    viewModel.commitSave()
+                    appState.toastManager.show("Jour de paie enregistr\u{00E9}", type: .success)
+                    currentMonthStore.setPayDay(userSettingsStore.payDayOfMonth)
+                    dashboardStore.setPayDay(userSettingsStore.payDayOfMonth)
+                    async let refreshMonth: Void = currentMonthStore.forceRefresh()
+                    async let refreshList: Void = budgetListStore.forceRefresh()
+                    async let refreshDashboard: Void = dashboardStore.forceRefresh()
+                    _ = await (refreshMonth, refreshList, refreshDashboard)
+                    dismiss()
+                } else {
+                    appState.toastManager.show("Erreur lors de la sauvegarde", type: .error)
+                }
+            }
+        } label: {
+            if viewModel?.isSaving == true {
+                ProgressView()
+            } else {
+                Text("Continuer")
+            }
+        }
+        .primaryButtonStyle(isEnabled: true)
+        .disabled(viewModel?.isSaving == true)
+    }
+
+    // MARK: - Helpers
+
+    private func hintPeriod(for day: Int) -> String {
         let calendar = Calendar.current
         let now = Date()
         let exampleMonth = calendar.component(.month, from: now)
@@ -101,7 +185,32 @@ struct PayDaySettingView: View {
             return "Le budget suit le calendrier mensuel standard."
         }
         let monthName = Formatters.monthYear.monthSymbols[exampleMonth - 1].capitalized
-        return "Ton budget \u{00AB} \(monthName) \u{00BB} couvrira du \(period)."
+        return "Ton budget \u{00AB}\u{00A0}\(monthName)\u{00A0}\u{00BB} couvrira du \(period)."
+    }
+}
+
+// MARK: - Row for PreferencesView
+
+struct PayDaySettingRow: View {
+    @Environment(UserSettingsStore.self) private var userSettingsStore
+
+    var body: some View {
+        HStack {
+            Text("Jour de paie")
+            Spacer()
+            Text(displayValue)
+                .foregroundStyle(Color.onSurfaceVariant)
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+    }
+
+    private var displayValue: String {
+        guard let day = userSettingsStore.payDayOfMonth else {
+            return "1er du mois"
+        }
+        return "Le \(day)"
     }
 }
 
@@ -131,7 +240,6 @@ final class PayDaySettingViewModel {
         await store.updatePayDay(selectedDay)
     }
 
-    /// Call after a successful save to update the baseline and hide buttons
     func commitSave() {
         initialDay = selectedDay
         hasChanges = false
@@ -142,8 +250,6 @@ final class PayDaySettingViewModel {
         hasChanges = false
     }
 
-    /// Update baseline when the store changes externally (e.g., async load completing)
-    /// and the user hasn't started editing yet.
     func syncInitialDay(_ day: Int?) {
         guard !hasChanges else { return }
         initialDay = day
@@ -152,13 +258,10 @@ final class PayDaySettingViewModel {
 }
 
 #Preview {
-    List {
-        PayDaySettingView()
-    }
-    .listStyle(.insetGrouped)
-    .environment(AppState())
-    .environment(UserSettingsStore())
-    .environment(CurrentMonthStore())
-    .environment(BudgetListStore())
-    .environment(DashboardStore())
+    PayDayPickerSheet()
+        .environment(AppState())
+        .environment(UserSettingsStore())
+        .environment(CurrentMonthStore())
+        .environment(BudgetListStore())
+        .environment(DashboardStore())
 }

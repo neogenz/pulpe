@@ -3,7 +3,6 @@ import SwiftUI
 struct AccountView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppState.self) private var appState
-    @State private var showDeleteConfirmation = false
     @State private var showLogoutConfirmation = false
     @State private var isDebugVisible = false
     @State private var debugToggleTrigger = false
@@ -13,10 +12,8 @@ struct AccountView: View {
             List {
                 personalInfoSection
                 appSettingsSection
-                applicationSection
                 supportSection
                 logoutSection
-                dangerZoneSection
                 legalFooterSection
             }
             .alert("Déconnexion", isPresented: $showLogoutConfirmation) {
@@ -29,20 +26,6 @@ struct AccountView: View {
                 }
             } message: {
                 Text("Tu devras te reconnecter avec ton email et mot de passe.")
-            }
-            .alert("Supprimer mon compte", isPresented: $showDeleteConfirmation) {
-                Button("Annuler", role: .cancel) { }
-                Button("Supprimer", role: .destructive) {
-                    Task {
-                        await appState.deleteAccount()
-                        dismiss()
-                    }
-                }
-            } message: {
-                Text(
-                    "Ton compte sera définitivement supprimé " +
-                    "après un délai de 3 jours. Cette action est irréversible."
-                )
             }
             .sensoryFeedback(.impact, trigger: debugToggleTrigger)
             .listStyle(.insetGrouped)
@@ -63,6 +46,12 @@ extension AccountView {
     private var personalInfoSection: some View {
         Section {
             LabeledContent("E-mail", value: appState.currentUser?.email ?? "Non connecté(e)")
+
+            NavigationLink {
+                SecuritySettingsView()
+            } label: {
+                LabeledContent("Mot de passe", value: "••••••••")
+            }
         } header: {
             Text("INFORMATIONS PERSONNELLES")
         }
@@ -87,40 +76,6 @@ extension AccountView {
             }
         } header: {
             Text("PARAMÈTRES DE L'APPLICATION")
-        }
-    }
-
-    private var applicationSection: some View {
-        Section {
-            LabeledContent("Version", value: AppConfiguration.appVersion)
-            LabeledContent("Build", value: AppConfiguration.buildNumber)
-
-            if isDebugVisible {
-                Group {
-                    LabeledContent("Environnement", value: AppConfiguration.environment.rawValue)
-                    LabeledContent("API") {
-                        Text(AppConfiguration.apiBaseURL.host() ?? AppConfiguration.apiBaseURL.absoluteString)
-                            .font(.footnote.monospaced())
-                    }
-                    LabeledContent("Supabase") {
-                        Text(AppConfiguration.supabaseURL.host() ?? AppConfiguration.supabaseURL.absoluteString)
-                            .font(.footnote.monospaced())
-                    }
-                    LabeledContent("Anon Key") {
-                        Text(AppConfiguration.supabaseAnonKey)
-                            .font(.caption2.monospaced())
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                    }
-                }
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        } header: {
-            Text("APPLICATION")
-                .onLongPressGesture(minimumDuration: 5) {
-                    debugToggleTrigger.toggle()
-                    withAnimation(.easeInOut(duration: DesignTokens.Animation.normal)) { isDebugVisible.toggle() }
-                }
         }
     }
 
@@ -156,42 +111,17 @@ extension AccountView {
         }
     }
 
-    private var dangerZoneSection: some View {
-        Section {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text("Supprimer mon compte")
-                        .font(PulpeTypography.labelLarge)
-                        .foregroundStyle(Color.destructivePrimary)
-                    Text("Tes données seront supprimées définitivement après 3 jours.")
-                        .font(PulpeTypography.labelMedium)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer(minLength: 0)
-
-                Button("Supprimer") {
-                    showDeleteConfirmation = true
-                }
-                .buttonStyle(.borderedProminent)
-                .buttonBorderShape(.capsule)
-                .tint(.destructivePrimary)
-            }
-        } header: {
-            Text("ZONE DE DANGER")
-                .foregroundStyle(Color.destructivePrimary)
-        }
-        .listRowBackground(Color.destructiveBackground)
-    }
-
     private var legalFooterSection: some View {
         Section {
             VStack(spacing: DesignTokens.Spacing.sm) {
-                // swiftlint:disable:next force_try
-                Text(try! AttributedString(
-                    markdown: "Les [Conditions générales](\(AppURLs.terms)) et " +
-                        "l'[Avis de confidentialité](\(AppURLs.privacy)) de Pulpe s'appliquent."
-                ))
+                Text(
+                    (try? AttributedString(
+                        markdown: "Les [Conditions générales](\(AppURLs.terms)) et " +
+                            "l'[Avis de confidentialité](\(AppURLs.privacy)) de Pulpe s'appliquent."
+                    )) ?? AttributedString(
+                        "Les Conditions générales et l'Avis de confidentialité de Pulpe s'appliquent."
+                    )
+                )
                 .font(PulpeTypography.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -201,10 +131,38 @@ extension AccountView {
                     .font(PulpeTypography.caption)
                     .foregroundStyle(.tertiary)
                     .padding(.top, DesignTokens.Spacing.xs)
+                    .onLongPressGesture(minimumDuration: 5) {
+                        debugToggleTrigger.toggle()
+                        withAnimation(.easeInOut(duration: DesignTokens.Animation.normal)) {
+                            isDebugVisible.toggle()
+                        }
+                    }
 
                 Text("iOS \(Self.iOSVersion)")
                     .font(PulpeTypography.caption)
                     .foregroundStyle(.tertiary)
+
+                if isDebugVisible {
+                    Group {
+                        LabeledContent("Env", value: AppConfiguration.environment.rawValue)
+                        LabeledContent("API") {
+                            Text(AppConfiguration.apiBaseURL.host() ?? AppConfiguration.apiBaseURL.absoluteString)
+                                .font(.footnote.monospaced())
+                        }
+                        LabeledContent("Supabase") {
+                            Text(AppConfiguration.supabaseURL.host() ?? AppConfiguration.supabaseURL.absoluteString)
+                                .font(.footnote.monospaced())
+                        }
+                        LabeledContent("Anon Key") {
+                            Text(AppConfiguration.supabaseAnonKey)
+                                .font(.caption2.monospaced())
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                    }
+                    .font(PulpeTypography.caption)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
             }
             .frame(maxWidth: .infinity)
         }

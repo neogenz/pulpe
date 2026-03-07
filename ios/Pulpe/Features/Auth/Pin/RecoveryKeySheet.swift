@@ -4,6 +4,9 @@ struct RecoveryKeySheet: View {
     let recoveryKey: String
     let onAcknowledge: () -> Void
 
+    /// Clipboard auto-expires after 2 minutes for security
+    private static let clipboardExpirationSeconds: TimeInterval = 120
+
     @State private var copied = false
     @State private var copyResetTask: Task<Void, Never>?
 
@@ -93,7 +96,7 @@ struct RecoveryKeySheet: View {
                 UIPasteboard.general.setItems(
                     [[UIPasteboard.typeAutomatic: recoveryKey]],
                     options: [
-                        .expirationDate: Date().addingTimeInterval(120),
+                        .expirationDate: Date().addingTimeInterval(Self.clipboardExpirationSeconds),
                         .localOnly: true
                     ]
                 )

@@ -125,11 +125,11 @@ private struct NumpadButton<Label: View>: View {
     let action: () -> Void
     @ViewBuilder let label: () -> Label
 
-    @State private var tapCount = 0
+    @State private var feedbackTrigger = false
 
     var body: some View {
         Button {
-            tapCount += 1
+            feedbackTrigger.toggle()
             action()
         } label: {
             label()
@@ -138,7 +138,7 @@ private struct NumpadButton<Label: View>: View {
                 .overlay(Circle().stroke(Color.pinButtonStroke, lineWidth: 1))
         }
         .buttonStyle(NumpadButtonStyle())
-        .sensoryFeedback(.impact(flexibility: .soft), trigger: tapCount)
+        .sensoryFeedback(.impact(flexibility: .soft), trigger: feedbackTrigger)
         .disabled(isDisabled)
     }
 }
