@@ -275,7 +275,7 @@ export class EncryptionController {
         {
           userId: user.id,
           operation: 'pin_change.complete',
-          recoveryKeyRegenerated: result.recoveryKey !== null,
+          recoveryKeyRegenerated: !!result.recoveryKey,
         },
         'PIN changed and data re-encrypted',
       );

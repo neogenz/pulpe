@@ -298,8 +298,10 @@ export class ChangePinDialog {
     this.isSubmitting.set(true);
     this.errorMessage.set('');
 
+    let newClientKey: string | undefined;
+
     try {
-      const newClientKey = await deriveClientKey(
+      newClientKey = await deriveClientKey(
         newPin,
         this.#salt,
         this.#kdfIterations,
@@ -331,6 +333,19 @@ export class ChangePinDialog {
           this.errorMessage.set(
             "Le nouveau code PIN doit être différent de l'ancien",
           );
+          return;
+        }
+        if (
+          error.code === 'ERR_ENCRYPTION_REKEY_PARTIAL_FAILURE' &&
+          newClientKey
+        ) {
+          const hasLocalKey = !!this.#storage.getString(
+            STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
+            'local',
+          );
+          this.#clientKeyService.setDirectKey(newClientKey, hasLocalKey);
+          this.#clearSensitiveState();
+          this.#dialogRef.close({ recoveryKey: null });
           return;
         }
         if (error.status === 429) {
