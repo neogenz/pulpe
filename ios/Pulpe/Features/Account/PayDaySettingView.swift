@@ -47,6 +47,7 @@ struct PayDayPickerSheet: View {
             }
         }
         .standardSheetPresentation()
+        .presentationDragIndicator(.hidden)
         .onAppear {
             let currentDay = userSettingsStore.payDayOfMonth
             viewModel = PayDaySettingViewModel(currentPayDay: currentDay)
@@ -185,7 +186,8 @@ struct PayDayPickerSheet: View {
             return "Le budget suit le calendrier mensuel standard."
         }
         let monthName = Formatters.monthYear.monthSymbols[exampleMonth - 1].capitalized
-        return "Ton budget \u{00AB}\u{00A0}\(monthName)\u{00A0}\u{00BB} couvrira du \(period)."
+        let suffix = period.hasSuffix(".") ? "" : "."
+        return "Ton budget \u{00AB}\u{00A0}\(monthName)\u{00A0}\u{00BB} couvrira du \(period)\(suffix)"
     }
 }
 
