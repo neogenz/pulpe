@@ -34,7 +34,9 @@ struct OnboardingFlow: View {
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .background,
                    state.currentStep != .welcome,
-                   !state.hasCompleted {
+                   !state.hasCompleted,
+                   !state.hasAbandoned {
+                    state.hasAbandoned = true
                     AnalyticsService.shared.capture(
                         .onboardingAbandoned,
                         properties: ["last_step": state.currentStep.analyticsName]
@@ -60,10 +62,11 @@ struct OnboardingFlow: View {
         case .registration:
             RegistrationStep(state: state) { user in
                 Task {
-                    state.hasCompleted = true
                     await appState.completeOnboarding(user: user, onboardingData: state.createTemplateData())
                     if appState.showPostAuthError {
                         state.error = APIError.serverError(message: "La création du budget a échoué. Réessaie.")
+                    } else {
+                        state.hasCompleted = true
                     }
                 }
             }

@@ -53,7 +53,16 @@ final class OnboardingBootstrapper {
             _ = try await createBudget(budgetData)
 
             pendingOnboardingData = nil
-            AnalyticsService.shared.capture(.firstBudgetCreated)
+            AnalyticsService.shared.capture(.firstBudgetCreated, properties: [
+                "has_pay_day": onboardingData.monthlyIncome != nil,
+                "charges_count": [
+                    onboardingData.housingCosts,
+                    onboardingData.healthInsurance,
+                    onboardingData.phonePlan,
+                    onboardingData.transportCosts,
+                    onboardingData.leasingCredit
+                ].compactMap { $0 }.count
+            ])
             return true
         } catch {
             Logger.auth.error("OnboardingBootstrapper: failed to create template/budget - \(error)")
