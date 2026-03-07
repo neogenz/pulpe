@@ -10,10 +10,9 @@ struct PreferencesView: View {
                     showPayDayPicker = true
                 } label: {
                     PayDaySettingRow()
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-            } header: {
-                Text("PR\u{00C9}F\u{00C9}RENCES")
             }
         }
         .listStyle(.insetGrouped)
