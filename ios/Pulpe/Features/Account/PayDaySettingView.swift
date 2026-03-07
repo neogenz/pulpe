@@ -147,6 +147,10 @@ struct PayDayPickerSheet: View {
         Button {
             Task {
                 guard let viewModel else { return }
+                guard viewModel.hasChanges else {
+                    dismiss()
+                    return
+                }
                 await viewModel.save(using: userSettingsStore)
                 if userSettingsStore.error == nil {
                     viewModel.commitSave()

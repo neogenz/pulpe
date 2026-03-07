@@ -46,12 +46,6 @@ extension AccountView {
     private var personalInfoSection: some View {
         Section {
             LabeledContent("E-mail", value: appState.currentUser?.email ?? "Non connecté(e)")
-
-            NavigationLink {
-                SecuritySettingsView()
-            } label: {
-                LabeledContent("Mot de passe", value: "••••••••")
-            }
         } header: {
             Text("INFORMATIONS PERSONNELLES")
         }
