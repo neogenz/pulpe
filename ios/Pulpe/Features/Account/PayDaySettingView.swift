@@ -131,7 +131,7 @@ struct PayDayPickerSheet: View {
                 Text(hintPeriod(for: day))
                     .font(PulpeTypography.subheadline)
                     .foregroundStyle(Color.onSurfaceVariant)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .minimumScaleFactor(0.85)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(DesignTokens.Spacing.lg)
