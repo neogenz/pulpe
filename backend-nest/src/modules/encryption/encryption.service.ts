@@ -550,7 +550,7 @@ export class EncryptionService {
 
     if (error) {
       throw new BusinessException(
-        ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
+        ERROR_DEFINITIONS.ENCRYPTION_REKEY_FAILED,
         undefined,
         { userId, operation: 'rekey.rpc_failure' },
         { cause: error },

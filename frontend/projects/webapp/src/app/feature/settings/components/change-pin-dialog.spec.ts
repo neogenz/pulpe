@@ -273,6 +273,53 @@ describe('ChangePinDialog', () => {
       );
     });
 
+    it('sets new client key and closes dialog on partial rekey failure', async () => {
+      mockEncryptionApi.changePin$.mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'Partial rekey failure',
+              'ERR_ENCRYPTION_REKEY_PARTIAL_FAILURE',
+              500,
+              undefined,
+            ),
+        ),
+      );
+      component['newPinForm'].patchValue({ newPin: '654321' });
+
+      await component['onSubmitNewPin']();
+
+      expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
+        MOCK_NEW_CLIENT_KEY,
+        false,
+      );
+      expect(mockDialogRef.close).toHaveBeenCalledWith({ recoveryKey: null });
+    });
+
+    it('shows error and stays on step 2 on rekey failed (RPC rollback)', async () => {
+      mockEncryptionApi.changePin$.mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'Rekey failed',
+              'ERR_ENCRYPTION_REKEY_FAILED',
+              500,
+              undefined,
+            ),
+        ),
+      );
+      component['newPinForm'].patchValue({ newPin: '654321' });
+
+      await component['onSubmitNewPin']();
+
+      expect(component['errorMessage']()).toBe(
+        'Le re-chiffrement a échoué — ton ancien code PIN reste actif, réessaie plus tard',
+      );
+      expect(component['step']()).toBe(2);
+      expect(mockClientKeyService.setDirectKey).not.toHaveBeenCalled();
+      expect(mockDialogRef.close).not.toHaveBeenCalled();
+    });
+
     it('shows generic error for unknown failures and resets to step 1', async () => {
       mockEncryptionApi.changePin$.mockReturnValue(
         throwError(() => new Error('Unknown')),

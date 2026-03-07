@@ -287,7 +287,8 @@
       "samePin": "Le nouveau code PIN doit être différent de l'ancien",
       "rateLimited": "Trop de tentatives — réessaie plus tard",
       "genericError": "Une erreur est survenue — réessaie plus tard",
-      "changeFailed": "Le changement de code PIN a échoué — réessaie plus tard"
+      "changeFailed": "Le changement de code PIN a échoué — réessaie plus tard",
+      "rekeyFailed": "Le re-chiffrement a échoué — ton ancien code PIN reste actif, réessaie plus tard"
     }
   },
   "budget": {
