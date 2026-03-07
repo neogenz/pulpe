@@ -1,12 +1,26 @@
 import SwiftUI
 
 struct PreferencesView: View {
+    @State private var showPayDayPicker = false
+
     var body: some View {
         List {
-            PayDaySettingView()
+            Section {
+                Button {
+                    showPayDayPicker = true
+                } label: {
+                    PayDaySettingRow()
+                }
+                .buttonStyle(.plain)
+            } header: {
+                Text("PR\u{00C9}F\u{00C9}RENCES")
+            }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Préférences")
+        .navigationTitle("Pr\u{00E9}f\u{00E9}rences")
+        .sheet(isPresented: $showPayDayPicker) {
+            PayDayPickerSheet()
+        }
     }
 }
 
