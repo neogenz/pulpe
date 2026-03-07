@@ -94,7 +94,7 @@ export const ERROR_DEFINITIONS = {
     httpStatus: HttpStatus.BAD_REQUEST,
   },
   ENCRYPTION_SAME_KEY: {
-    code: 'ERR_ENCRYPTION_SAME_KEY',
+    code: API_ERROR_CODES.ENCRYPTION_SAME_KEY,
     message: () => 'New client key must be different from the old one',
     httpStatus: HttpStatus.BAD_REQUEST,
   },

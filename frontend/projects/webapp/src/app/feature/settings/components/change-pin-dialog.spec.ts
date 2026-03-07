@@ -7,6 +7,7 @@ import { ApiError } from '@core/api/api-error';
 import { EncryptionApi, ClientKeyService } from '@core/encryption';
 import { Logger } from '@core/logging/logger';
 import { StorageService } from '@core/storage/storage.service';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { ChangePinDialog } from './change-pin-dialog';
 
 vi.mock('@core/encryption/crypto.utils', async (importOriginal) => {
@@ -61,6 +62,7 @@ describe('ChangePinDialog', () => {
         { provide: ClientKeyService, useValue: mockClientKeyService },
         { provide: StorageService, useValue: mockStorage },
         { provide: Logger, useValue: mockLogger },
+        ...provideTranslocoForTest(),
       ],
     });
 

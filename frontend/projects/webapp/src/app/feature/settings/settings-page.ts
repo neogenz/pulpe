@@ -198,9 +198,11 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
               class="flex items-center justify-between gap-6 pb-6 border-b border-outline-variant/20"
             >
               <div class="space-y-1">
-                <h3 class="text-title-small">Code PIN</h3>
+                <h3 class="text-title-small">
+                  {{ 'settings.pinCode' | transloco }}
+                </h3>
                 <p class="text-body-medium text-on-surface-variant">
-                  Modifier ton code de chiffrement.
+                  {{ 'settings.pinCodeDescription' | transloco }}
                 </p>
               </div>
               <button
@@ -208,7 +210,7 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                 data-testid="change-pin-button"
                 (click)="onChangePin()"
               >
-                Modifier
+                {{ 'common.edit' | transloco }}
               </button>
             </div>
 
@@ -395,9 +397,11 @@ export default class SettingsPage {
     }
 
     this.#snackBar.open(
-      result.recoveryKey
-        ? 'Code PIN modifié'
-        : 'Code PIN modifié — régénère ta clé de secours dans les réglages',
+      this.#transloco.translate(
+        result.recoveryKey
+          ? 'settings.pinChanged'
+          : 'settings.pinChangedNoRecovery',
+      ),
       'OK',
       {
         duration: result.recoveryKey ? 3000 : 6000,
