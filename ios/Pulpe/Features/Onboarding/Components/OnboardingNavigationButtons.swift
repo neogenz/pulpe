@@ -39,7 +39,7 @@ struct OnboardingNavigationButtons: View {
                 Button(action: onBack) {
                     HStack(spacing: DesignTokens.Spacing.xs) {
                         Image(systemName: "chevron.left")
-                            .font(PulpeTypography.inputHelper)
+                            .font(PulpeTypography.footnote)
                         Text("Retour")
                             .font(PulpeTypography.buttonSecondary)
                     }

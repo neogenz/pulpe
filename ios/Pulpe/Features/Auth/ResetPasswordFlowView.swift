@@ -29,7 +29,7 @@ struct ResetPasswordFlowView: View {
                 }
             }
             .padding(DesignTokens.Spacing.xl)
-            .background(Color.surface)
+            .background(Color.sheetBackground)
             .navigationTitle("Réinitialiser le mot de passe")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -147,11 +147,7 @@ struct ResetPasswordFlowView: View {
             .accessibilityLabel("Nouveau mot de passe")
             .accessibilityHint("Saisis ton nouveau mot de passe")
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                PasswordCriteriaRow(met: viewModel.hasMinLength, text: "8 caractères minimum")
-                PasswordCriteriaRow(met: viewModel.hasNumber, text: "Au moins un chiffre")
-                PasswordCriteriaRow(met: viewModel.hasLetter, text: "Au moins une lettre")
-            }
+            PasswordCriteriaList(validator: viewModel.passwordValidator)
         }
     }
 
@@ -224,14 +220,12 @@ final class ResetPasswordFlowViewModel {
         self.dependencies = dependencies ?? .live
     }
 
-    var hasMinLength: Bool { newPassword.count >= 8 }
-    var hasNumber: Bool { newPassword.contains(where: { $0.isNumber }) }
-    var hasLetter: Bool { newPassword.contains(where: { $0.isLetter }) }
+    var passwordValidator: PasswordValidator { PasswordValidator(password: newPassword) }
 
-    var isNewPasswordValid: Bool { hasMinLength && hasNumber && hasLetter }
+    var isNewPasswordValid: Bool { passwordValidator.isValid }
 
     var isPasswordConfirmed: Bool {
-        !confirmPassword.isEmpty && newPassword == confirmPassword
+        PasswordValidator.isConfirmed(password: newPassword, confirmation: confirmPassword)
     }
 
     var canSubmit: Bool {

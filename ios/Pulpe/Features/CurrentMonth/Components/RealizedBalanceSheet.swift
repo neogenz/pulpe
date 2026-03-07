@@ -23,7 +23,7 @@ struct RealizedBalanceSheet: View {
                 }
                 .padding()
             }
-            .background(Color.surface)
+            .background(Color.sheetBackground)
             .navigationTitle("Suivi du budget")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

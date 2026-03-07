@@ -3,6 +3,7 @@ import SwiftUI
 struct BudgetPreviewStep: View {
     let state: OnboardingState
 
+    @State private var showCheckmark = false
     @State private var showHero = false
     @State private var showCard = false
     @State private var showMessage = false
@@ -19,20 +20,6 @@ struct BudgetPreviewStep: View {
                     breakdownCard
                     encouragingMessage
                 }
-                .task {
-                    try? await Task.sleep(for: .milliseconds(300))
-                    withAnimation(DesignTokens.Animation.entranceSpring) {
-                        showHero = true
-                    } completion: {
-                        withAnimation(DesignTokens.Animation.defaultSpring) {
-                            showCard = true
-                        } completion: {
-                            withAnimation(.easeOut(duration: 0.4)) {
-                                showMessage = true
-                            }
-                        }
-                    }
-                }
             }
         )
         .trackScreen("Onboarding_BudgetPreview")
@@ -41,7 +28,21 @@ struct BudgetPreviewStep: View {
     // MARK: - Hero Section
 
     private var heroSection: some View {
-        VStack(spacing: DesignTokens.Spacing.xs) {
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            // Celebration checkmark — peak moment opener
+            ZStack {
+                Circle()
+                    .fill(Color.pulpePrimary.opacity(DesignTokens.Opacity.badgeBackground))
+                    .frame(width: 56, height: 56)
+
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundStyle(Color.pulpePrimary)
+                    .symbolEffect(.bounce, value: showCheckmark)
+            }
+            .scaleEffect(showCheckmark ? 1 : 0.3)
+            .opacity(showCheckmark ? 1 : 0)
+
             Text(state.availableToSpend.asCHF)
                 .font(PulpeTypography.amountHero)
                 .monospacedDigit()
@@ -52,9 +53,25 @@ struct BudgetPreviewStep: View {
                 .font(PulpeTypography.onboardingSubtitle)
                 .foregroundStyle(Color.textSecondaryOnboarding)
         }
-        .padding(.vertical, DesignTokens.Spacing.xxl)
-        .scaleEffect(showHero ? 1 : 0.85)
+        .padding(.vertical, DesignTokens.Spacing.xl)
         .opacity(showHero ? 1 : 0)
+        .offset(y: showHero ? 0 : 10)
+        .task {
+            // Stagger: checkmark first (peak opener), then amount, then card, then message
+            try? await Task.sleep(for: .milliseconds(400))
+            await delayedAnimation(0, animation: DesignTokens.Animation.bouncySpring) {
+                showCheckmark = true
+            }
+            await delayedAnimation(0.15, animation: DesignTokens.Animation.entranceSpring) {
+                showHero = true
+            }
+            await delayedAnimation(0.25, animation: DesignTokens.Animation.defaultSpring) {
+                showCard = true
+            }
+            await delayedAnimation(0.2) {
+                showMessage = true
+            }
+        }
     }
 
     // MARK: - Breakdown Card
@@ -62,21 +79,27 @@ struct BudgetPreviewStep: View {
     private var breakdownCard: some View {
         VStack(spacing: DesignTokens.Spacing.md) {
             breakdownRow(
+                icon: "arrow.down.circle.fill",
                 label: "Revenus",
                 value: "+\((state.monthlyIncome ?? 0).asCHF)",
                 color: .pulpePrimary
             )
 
             Divider()
+                .opacity(0.15)
+                .padding(.horizontal, DesignTokens.Spacing.xs)
 
             if state.totalExpenses > 0 {
                 breakdownRow(
+                    icon: "arrow.up.circle.fill",
                     label: "Charges fixes",
                     value: "-\(state.totalExpenses.asCHF)",
                     color: .secondary
                 )
 
                 Divider()
+                    .opacity(0.15)
+                    .padding(.horizontal, DesignTokens.Spacing.xs)
             }
 
             HStack {
@@ -102,21 +125,32 @@ struct BudgetPreviewStep: View {
     // MARK: - Encouraging Message
 
     private var encouragingMessage: some View {
-        Text("On y voit plus clair, non ?")
-            .font(PulpeTypography.onboardingSubtitle)
-            .foregroundStyle(Color.textTertiaryOnboarding)
-            .multilineTextAlignment(.center)
-            .opacity(showMessage ? 1 : 0)
-            .offset(y: showMessage ? 0 : 8)
+        VStack(spacing: DesignTokens.Spacing.xs) {
+            Text("On y voit plus clair, non ?")
+                .font(PulpeTypography.onboardingSubtitle)
+                .foregroundStyle(Color.textTertiaryOnboarding)
+
+            Text("Tu pourras affiner tout \u{00e7}a plus tard.")
+                .font(PulpeTypography.footnote)
+                .foregroundStyle(Color.textTertiaryOnboarding)
+        }
+        .multilineTextAlignment(.center)
+        .blurSlide(showMessage)
     }
 
     // MARK: - Helpers
 
-    private func breakdownRow(label: String, value: String, color: Color) -> some View {
-        HStack {
+    private func breakdownRow(icon: String, label: String, value: String, color: Color) -> some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            Image(systemName: icon)
+                .font(PulpeTypography.body)
+                .foregroundStyle(color)
+
             Text(label)
                 .font(PulpeTypography.bodyLarge)
+
             Spacer()
+
             Text(value)
                 .font(PulpeTypography.onboardingSubtitle)
                 .monospacedDigit()

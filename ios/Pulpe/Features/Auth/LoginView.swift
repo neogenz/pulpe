@@ -129,7 +129,7 @@ extension LoginView {
     private var emailField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text("E-mail")
-                .font(PulpeTypography.buttonSecondary)
+                .font(PulpeTypography.inputLabel)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             AuthTextField(
@@ -153,7 +153,7 @@ extension LoginView {
     private var passwordField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text("Mot de passe")
-                .font(PulpeTypography.buttonSecondary)
+                .font(PulpeTypography.inputLabel)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             AuthSecureField(
@@ -178,8 +178,7 @@ extension LoginView {
                 forgotPasswordPresentation = ForgotPasswordPresentation()
             }
             .font(PulpeTypography.labelMedium)
-            .foregroundStyle(Color.textPrimaryOnboarding.opacity(0.9))
-            .underline()
+            .foregroundStyle(Color.pulpePrimary)
             .accessibilityIdentifier("forgotPasswordButton")
         }
     }

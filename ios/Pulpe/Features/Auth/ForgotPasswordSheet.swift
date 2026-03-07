@@ -17,7 +17,7 @@ struct ForgotPasswordSheet: View {
                 }
             }
             .padding(DesignTokens.Spacing.xl)
-            .background(Color.surface)
+            .background(Color.sheetBackground)
             .navigationTitle("Mot de passe oublié")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -31,7 +31,7 @@ struct ForgotPasswordSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(Color.surface)
+        .presentationBackground(Color.sheetBackground)
         .task { isEmailFocused = true }
         .accessibilityIdentifier("forgotPasswordPage")
     }
@@ -134,8 +134,7 @@ final class ForgotPasswordViewModel {
     }
 
     var isEmailValid: Bool {
-        let pattern = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/
-        return email.wholeMatch(of: pattern) != nil
+        email.isValidEmail
     }
 
     var canSubmit: Bool {

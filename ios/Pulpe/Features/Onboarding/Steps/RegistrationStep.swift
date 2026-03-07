@@ -14,17 +14,14 @@ struct RegistrationStep: View {
         case email, password, passwordConfirmation
     }
 
-    private var hasMinLength: Bool { password.count >= 8 }
-    private var hasNumber: Bool { password.contains(where: { $0.isNumber }) }
-    private var hasLetter: Bool { password.contains(where: { $0.isLetter }) }
-    private var isPasswordValid: Bool { hasMinLength && hasNumber && hasLetter }
+    private var passwordValidator: PasswordValidator { PasswordValidator(password: password) }
 
     private var isPasswordConfirmed: Bool {
-        !passwordConfirmation.isEmpty && password == passwordConfirmation
+        PasswordValidator.isConfirmed(password: password, confirmation: passwordConfirmation)
     }
 
     private var canSubmit: Bool {
-        state.canSubmitRegistration && isPasswordValid && isPasswordConfirmed
+        state.canSubmitRegistration && passwordValidator.isValid && isPasswordConfirmed
     }
 
     var body: some View {
@@ -35,12 +32,6 @@ struct RegistrationStep: View {
             onNext: { Task { await submitRegistration() } },
             content: {
                 VStack(spacing: DesignTokens.Spacing.xxl) {
-                    Text("Crée ton compte pour sauvegarder ton budget")
-                        .font(PulpeTypography.body.weight(.medium))
-                        .foregroundStyle(Color.textPrimaryOnboarding)
-                        .multilineTextAlignment(.center)
-                        .padding(.bottom, DesignTokens.Spacing.sm)
-
                     emailSection
                     passwordSection
                     confirmPasswordSection
@@ -58,7 +49,7 @@ extension RegistrationStep {
     private var emailSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Email")
-                .font(PulpeTypography.buttonSecondary)
+                .font(PulpeTypography.inputLabel)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             AuthTextField(
@@ -82,7 +73,7 @@ extension RegistrationStep {
     private var passwordSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Mot de passe")
-                .font(PulpeTypography.buttonSecondary)
+                .font(PulpeTypography.inputLabel)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             AuthSecureField(
@@ -98,18 +89,14 @@ extension RegistrationStep {
             .accessibilityLabel("Mot de passe")
             .accessibilityHint("Crée ton mot de passe")
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                PasswordCriteriaRow(met: hasMinLength, text: "8 caractères minimum")
-                PasswordCriteriaRow(met: hasNumber, text: "Au moins un chiffre")
-                PasswordCriteriaRow(met: hasLetter, text: "Au moins une lettre")
-            }
+            PasswordCriteriaList(validator: passwordValidator)
         }
     }
 
     private var confirmPasswordSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Confirmer le mot de passe")
-                .font(PulpeTypography.buttonSecondary)
+                .font(PulpeTypography.inputLabel)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             AuthSecureField(
@@ -144,7 +131,7 @@ extension RegistrationStep {
                                 Color.textPrimaryOnboarding.opacity(0.4),
                             lineWidth: 2
                         )
-                        .frame(width: 24, height: 24)
+                        .frame(width: DesignTokens.Checkbox.size, height: DesignTokens.Checkbox.size)
                         .background {
                             if !state.acceptTerms {
                                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm, style: .continuous)
