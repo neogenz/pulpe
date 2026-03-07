@@ -449,8 +449,6 @@
     "loadingList": "Récupération de tes modèles...",
     "loadingError": "Une erreur est survenue lors du chargement des détails du modèle.",
     "retryLoading": "Réessayer le chargement",
-    "createBreadcrumb": "Créer un modèle",
-    "detailBreadcrumb": "Détail du modèle",
     "select": "Sélectionner {{ name }}",
     "isDefault": "Template par défaut",
     "defaultLabel": "Template",
