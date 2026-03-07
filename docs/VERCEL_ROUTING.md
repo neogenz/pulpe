@@ -1,124 +1,67 @@
 # Vercel Routing - Pulpe
 
-Configuration du routing Vercel pour servir la landing page (Next.js static export) et l'application (Angular) depuis le même domaine.
+Configuration du routing Vercel pour les deux projets : landing page (Next.js) et application Angular, déployés sur deux sous-domaines séparés.
 
 ## Architecture
 
 ```
-pulpe.app/
-├── /                    → Landing page (Next.js) [si non connecté]
-├── /                    → Redirect vers /dashboard [si connecté]
-├── /support             → Page support/FAQ (Next.js)
-├── /changelog           → Changelog (Next.js)
-├── /screenshots/*       → Assets landing
-├── /icon.png            → Assets landing
-├── /welcome, /dashboard → Angular SPA
-└── /budget, /settings   → Angular SPA
+pulpe.app/                    → Landing page (Next.js) — Projet Vercel "pulpe-landing"
+├── /                         → Homepage
+├── /support                  → Page support/FAQ
+├── /changelog                → Changelog
+├── /legal/*                  → Pages légales (CGU, confidentialité)
+└── /ph/*                     → Reverse proxy PostHog
+
+app.pulpe.app/                → Angular SPA — Projet Vercel "pulpe-frontend"
+├── /welcome, /signup         → Auth flow
+├── /dashboard                → Dashboard principal
+├── /budget, /settings        → Features Angular
+└── /ph/*                     → Reverse proxy PostHog
 ```
 
-**Deux applications, un domaine :**
+**Deux projets Vercel, deux sous-domaines :**
 
-| App | Stack | Chemin source | Servi depuis |
-|-----|-------|---------------|--------------|
-| Landing | Next.js (static export) | `landing/dist/` | `dist/landing/` |
-| Webapp | Angular | `frontend/dist/webapp/browser/` | `dist/` |
+| Domaine | Contenu | Projet Vercel | Framework |
+|---------|---------|---------------|-----------|
+| `pulpe.app` / `www.pulpe.app` | Landing page | `pulpe-landing` | Next.js |
+| `app.pulpe.app` | Angular webapp | `pulpe-frontend` | Angular |
 
 ## Build Pipeline
 
+### Landing (`pulpe-landing`)
+
+```bash
+# landing/vercel.json > buildCommand
+cd .. && pnpm build:shared && cd landing && pnpm build
+```
+
+- **Root Directory** : `landing`
+- **Install** : `cd .. && pnpm install --frozen-lockfile --filter=pulpe-landing --filter=pulpe-shared --ignore-scripts`
+- **Output** : géré automatiquement par Next.js
+
+### Angular App (`pulpe-frontend`)
+
 ```bash
 # vercel.json > buildCommand
-turbo build --filter=pulpe-frontend           # → frontend/dist/webapp/browser/
-pnpm --filter=pulpe-frontend upload:sourcemaps  # Upload sourcemaps to observability
-pnpm build:landing                            # → landing/dist/
-pnpm build:merge                              # → dist/ (merge final)
+pnpm build:shared && turbo build --filter=pulpe-frontend && pnpm --filter=pulpe-frontend upload:sourcemaps
 ```
 
-**Script `build:merge` :**
-```bash
-mkdir -p dist
-cp -r landing/dist dist/landing           # Landing dans sous-dossier
-cp -r frontend/dist/webapp/browser/* dist/ # Angular à la racine
-mv dist/index.html dist/_app.html          # Renommer pour éviter conflit
-```
+- **Root Directory** : (racine du repo)
+- **Install** : `pnpm install --frozen-lockfile --filter=pulpe-frontend --filter=pulpe-shared --ignore-scripts`
+- **Output** : `frontend/dist/webapp/browser`
 
-**Structure finale `dist/` :**
-```
-dist/
-├── landing/
-│   ├── index.html        ← Landing Next.js
-│   ├── _next/            ← JS/CSS Next.js
-│   ├── screenshots/      ← Images landing
-│   └── icon.png
-├── _app.html             ← Angular (renommé)
-├── chunk-*.js            ← Assets Angular
-└── styles-*.css
-```
-
-**Installation sélective :**
-
-Pour optimiser le temps de build, Vercel installe uniquement les packages nécessaires :
-
-```json
-"installCommand": "pnpm install --frozen-lockfile --filter=pulpe-frontend --filter=pulpe-shared --filter=pulpe-landing --ignore-scripts"
-```
-
-Cette commande évite d'installer les dépendances du backend (non nécessaires pour le déploiement frontend).
-
-## Configuration Vercel
+## Configuration Vercel — Landing (`landing/vercel.json`)
 
 ### Rewrites
 
-Les rewrites routent les requêtes sans changer l'URL visible.
-
 ```json
 "rewrites": [
-  { "source": "/", "destination": "/landing/index.html" },
-  { "source": "/screenshots/:path*", "destination": "/landing/screenshots/:path*" },
-  { "source": "/icon.png", "destination": "/landing/icon.png" },
-  { "source": "/icon-64.webp", "destination": "/landing/icon-64.webp" },
-  { "source": "/app-store-badge.svg", "destination": "/landing/app-store-badge.svg" },
-  { "source": "/og-image.png", "destination": "/landing/og-image.png" },
-  { "source": "/landing/_next/:path*", "destination": "/landing/_next/:path*" },
-  { "source": "/_next/:path*", "destination": "/landing/_next/:path*" },
-  { "source": "/robots.txt", "destination": "/landing/robots.txt" },
-  { "source": "/sitemap.xml", "destination": "/landing/sitemap.xml" },
-  { "source": "/support", "destination": "/landing/support.html" },
-  { "source": "/changelog", "destination": "/landing/changelog.html" },
-  { "source": "/ph/static/:path*", "destination": "https://eu-assets.i.posthog.com/static/:path*" },
-  { "source": "/ph/:path*", "destination": "https://eu.i.posthog.com/:path*" },
-  { "source": "/:path*", "destination": "/_app.html" }
+  { "source": "/ph/static/:path(.*)", "destination": "https://eu-assets.i.posthog.com/static/:path" },
+  { "source": "/ph/:path(.*)", "destination": "https://eu.i.posthog.com/:path" }
 ]
 ```
 
-**Ordre important :** regles specifiques avant le catch-all. Vercel evalue sequentiellement.
-
-| Regle | Requete | Destination |
-|-------|---------|-------------|
-| 1 | `/` | Landing page |
-| 2 | `/screenshots/*` | Images landing |
-| 3-6 | `/icon.png`, `/icon-64.webp`, `/app-store-badge.svg`, `/og-image.png` | Assets landing |
-| 7-8 | `/landing/_next/*`, `/_next/*` | Assets Next.js |
-| 9-10 | `/robots.txt`, `/sitemap.xml` | SEO files |
-| 11-12 | `/support`, `/changelog` | Pages Next.js |
-| 13-14 | `/ph/static/*`, `/ph/*` | PostHog reverse proxy |
-| 15 | `/:path*` (catch-all) | Angular SPA |
-
-**Note importante sur `/_next/*` :** La règle 6 est essentielle pour éviter que les assets statiques (CSS/JS) de la landing page soient interceptés par la règle catch-all (règle 7). Sans elle, les requêtes vers `/_next/static/css/...` retourneraient du HTML (`_app.html`) au lieu des fichiers CSS/JS, causant des erreurs MIME type et un rendu cassé.
-
-### Redirects
-
-Redirections permanentes (301) pour les anciennes URLs.
-
-```json
-"redirects": [
-  { "source": "/app/current-month", "destination": "/dashboard", "permanent": true },
-  { "source": "/app/budget/:path*", "destination": "/budget/:path*", "permanent": true },
-  { "source": "/app/budget-templates/:path*", "destination": "/budget-templates/:path*", "permanent": true },
-  { "source": "/app/settings/:path*", "destination": "/settings/:path*", "permanent": true },
-  { "source": "/app/complete-profile", "destination": "/complete-profile", "permanent": true },
-  { "source": "/app", "destination": "/dashboard", "permanent": true }
-]
-```
+Le routing des pages (`/`, `/support`, `/changelog`, `/legal/*`) est géré nativement par Next.js — pas besoin de rewrites.
 
 ### Headers de sécurité
 
@@ -136,96 +79,81 @@ Redirections permanentes (301) pour les anciennes URLs.
 ]
 ```
 
-Des headers `Cache-Control` sont aussi definis pour les assets statiques (`/robots.txt`, `/sitemap.xml`, `/icon.png`, `/og-image.png`, `/screenshots/*`).
+## Configuration Vercel — Angular App (`vercel.json`)
 
-## Auth Redirect (Client-Side)
+### Rewrites
 
-La landing utilise une stratégie pour rediriger les utilisateurs connectés vers `/dashboard` depuis la homepage uniquement (les sous-pages comme `/support` restent accessibles) :
-
-### Fonctionnement
-
-```
-GET /
-  │
-  ▼
-Vercel → Landing Page HTML
-  │
-  ▼
-1. Script inline synchrone (<head>)
-  │  Vérifie localStorage pour sb-*-auth-token
-  │
-  ├─ Si token trouvé:
-  │     └─ window.location.replace('/dashboard') (immédiat, pas de flash)
-  │
-  └─ Si pas de token:
-        └─ Afficher la landing page
+```json
+"rewrites": [
+  { "source": "/ph/static/:path(.*)", "destination": "https://eu-assets.i.posthog.com/static/:path" },
+  { "source": "/ph/:path(.*)", "destination": "https://eu.i.posthog.com/:path" },
+  { "source": "/:path(.*)", "destination": "/index.html" }
+]
 ```
 
-### Pourquoi un script inline ?
+| Règle | Requête | Destination |
+|-------|---------|-------------|
+| 1-2 | `/ph/*` | PostHog reverse proxy |
+| 3 | `/:path*` (catch-all) | Angular SPA (`index.html`) |
 
-La landing utilise `output: 'export'` (static HTML) dans Next.js, ce qui est incompatible avec Edge Middleware (qui nécessite un runtime serveur). Le script inline dans `<head>` :
+### Redirects (legacy)
 
-- **Fonctionne avec le static export** : Pas de runtime serveur requis
-- **Pas de flash de contenu** : S'exécute avant le rendu React, avant que le HTML soit affiché
-- **Zero dépendance** : Lit directement localStorage sans SDK Supabase
-
-## Next.js Static Export
-
-La landing utilise `output: 'export'` et `distDir: 'dist'` dans `next.config.ts`. Next.js génère les assets dans `_next/` automatiquement. Les fichiers du dossier `public/` (images, icons) sont copiés à la racine du dist. D'où les rewrites `/screenshots/*` et `/icon.png`.
-
-## Flux de requêtes
-
-```
-GET /
-  → Rewrite → /landing/index.html → Landing Next.js
-
-GET /screenshots/webapp/dashboard.png
-  → Rewrite → /landing/screenshots/webapp/dashboard.png → Image
-
-GET /support
-  → Rewrite → /landing/support.html → Page support Next.js
-
-GET /changelog
-  → Rewrite → /landing/changelog.html → Changelog Next.js
-
-GET /welcome
-  → Pas de fichier statique
-  → Catch-all rewrite → /_app.html → Angular SPA
-  → Angular Router prend le relais
-
-GET /app/budget/123
-  → Redirect 301 → /budget/123
-  → Catch-all rewrite → /_app.html → Angular SPA
+```json
+"redirects": [
+  { "source": "/app/current-month", "destination": "/dashboard", "permanent": true },
+  { "source": "/app/budget/:path*", "destination": "/budget/:path*", "permanent": true },
+  { "source": "/app/budget-templates/:path*", "destination": "/budget-templates/:path*", "permanent": true },
+  { "source": "/app/settings/:path*", "destination": "/settings/:path*", "permanent": true },
+  { "source": "/app/complete-profile", "destination": "/complete-profile", "permanent": true },
+  { "source": "/app", "destination": "/dashboard", "permanent": true }
+]
 ```
 
-## Ajouter des assets landing
+### Headers de sécurité
 
-Pour ajouter un nouveau dossier d'assets à la landing :
-
-1. Placer les fichiers dans `landing/public/nouveau-dossier/`
-2. Ajouter un rewrite dans `vercel.json` :
-   ```json
-   { "source": "/nouveau-dossier/:path*", "destination": "/landing/nouveau-dossier/:path*" }
-   ```
-3. Placer ce rewrite **avant** le catch-all `/:path*`
+Identiques à ceux de la landing (voir ci-dessus).
 
 ## PostHog Reverse Proxy
 
-Les requêtes PostHog sont proxifiées via Vercel pour contourner les ad-blockers :
-
-```json
-{ "source": "/ph/static/:path*", "destination": "https://eu-assets.i.posthog.com/static/:path*" },
-{ "source": "/ph/:path*", "destination": "https://eu.i.posthog.com/:path*" }
-```
+Les deux projets proxifient les requêtes PostHog via Vercel pour contourner les ad-blockers :
 
 | Rewrite | Destination | Usage |
 |---------|-------------|-------|
 | `/ph/static/*` | `eu-assets.i.posthog.com` | SDK JS (fichiers statiques) |
 | `/ph/*` | `eu.i.posthog.com` | API (events, decide, feature flags) |
 
-**Utilisation :** Les deux apps (landing + Angular) utilisent `api_host: '/ph'` en production. En local, `PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com` pointe directement vers PostHog.
+**Utilisation :** Les deux apps utilisent `api_host: '/ph'` en production. En local, `PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com` pointe directement.
 
-Les deux SDKs ajoutent aussi `ui_host: 'https://eu.posthog.com'` pour que la toolbar PostHog fonctionne avec le proxy.
+Les deux SDKs ajoutent aussi `ui_host: 'https://eu.posthog.com'` pour la toolbar PostHog.
+
+### Cross-subdomain tracking
+
+Les deux apps utilisent `cross_subdomain_cookie: true` pour partager le cookie PostHog sur `*.pulpe.app`, permettant de suivre le parcours landing → app comme une seule session.
+
+## Ignored Build Step
+
+Chaque projet utilise un custom command pour skip le build quand seul l'autre a changé :
+
+- **Landing** : `git diff --quiet HEAD^ HEAD -- landing/ shared/`
+- **Angular App** : `git diff --quiet HEAD^ HEAD -- frontend/ shared/`
+
+## Flux de requêtes
+
+```
+GET pulpe.app/
+  → Next.js → Landing page
+
+GET pulpe.app/support
+  → Next.js → Page support
+
+GET app.pulpe.app/welcome
+  → Catch-all → /index.html → Angular SPA
+  → Angular Router prend le relais
+
+GET app.pulpe.app/app/budget/123
+  → Redirect 301 → /budget/123
+  → Catch-all → /index.html → Angular SPA
+```
 
 ## Références
 

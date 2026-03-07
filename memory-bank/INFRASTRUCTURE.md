@@ -248,32 +248,38 @@ graph TD
 - **Database**: Supabase Cloud (PostgreSQL + Auth + RLS)
 - **Analytics**: PostHog Cloud (Event Tracking)
 
-### Frontend Deployment (Vercel)
+### Frontend Deployment (Vercel — Two Projects)
 
-**Configuration Strategy**:
+**Architecture**: Two separate Vercel projects from the same monorepo:
 
-- **Dynamic Config**: `config.json` generated from environment variables
-- **Environment Variables**: `PUBLIC_*` prefix for build-time injection
-- **Edge Optimization**: Vercel Edge Network for global distribution
-- **Preview Deployments**: Automatic preview environments per PR
+| Domain | Project | Framework |
+|--------|---------|-----------|
+| `pulpe.app` / `www.pulpe.app` | `pulpe-landing` | Next.js |
+| `app.pulpe.app` | `pulpe-frontend` | Angular |
 
-**Build Process**:
+**Angular App (`pulpe-frontend`)**:
 
-```bash
-# Vercel build steps
-1. Install dependencies (pnpm install)
-2. Build shared package (turbo build --filter=pulpe-shared)
-3. Generate config.json (from PUBLIC_* env vars)
-4. Build Angular app (ng build --configuration=production)
-5. Deploy to edge network
-```
+- **Build**: `pnpm build:shared && turbo build --filter=pulpe-frontend && pnpm --filter=pulpe-frontend upload:sourcemaps`
+- **Output**: `frontend/dist/webapp/browser`
+- **Config**: Dynamic `config.json` generated from `PUBLIC_*` env vars
+- **Preview**: Automatic per PR
 
-**Key Environment Variables**:
+**Landing (`pulpe-landing`)**:
+
+- **Root Directory**: `landing`
+- **Build**: `cd .. && pnpm build:shared && cd landing && pnpm build`
+- **Install**: `cd .. && pnpm install --frozen-lockfile --filter=pulpe-landing --filter=pulpe-shared --ignore-scripts`
+
+**Ignored Build Step** (each project skips when only the other changed):
+- Landing: `git diff --quiet HEAD^ HEAD -- landing/ shared/`
+- Angular: `git diff --quiet HEAD^ HEAD -- frontend/ shared/`
+
+**Key Environment Variables (Angular App)**:
 
 ```env
 PUBLIC_SUPABASE_URL=https://project.supabase.co
 PUBLIC_SUPABASE_ANON_KEY=eyJ...
-PUBLIC_BACKEND_API_URL=https://backend.railway.app/api/v1
+PUBLIC_BACKEND_API_URL=https://api.pulpe.app/api/v1
 PUBLIC_ENVIRONMENT=production
 ```
 
@@ -303,7 +309,7 @@ CMD ["bun", "run", "dist/main.js"]
 NODE_ENV=production
 PORT=3000
 RAILWAY_DOCKERFILE_PATH=backend-nest/Dockerfile
-CORS_ORIGIN=https://app.pulpe.ch
+CORS_ORIGIN=https://app.pulpe.app
 SUPABASE_URL=https://project.supabase.co
 SUPABASE_ANON_KEY=eyJ...
 ```

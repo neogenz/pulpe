@@ -46,7 +46,7 @@ import { LATEST_RELEASE } from './whats-new-releases';
               }
             </ul>
             <a
-              href="/changelog"
+              href="https://pulpe.app/changelog"
               target="_blank"
               rel="noopener"
               class="inline-flex items-center gap-1 mt-3 text-label-medium text-primary hover:underline"

@@ -72,7 +72,7 @@ const LONG_PRESS_DURATION_MS = 10_000;
           <div class="flex flex-col gap-1">
             <a
               class="text-body-medium text-primary py-1 hover:underline"
-              href="/changelog"
+              href="https://pulpe.app/changelog"
               target="_blank"
               rel="noopener"
             >

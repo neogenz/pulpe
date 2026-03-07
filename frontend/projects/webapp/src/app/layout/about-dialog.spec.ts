@@ -118,7 +118,9 @@ describe('AboutDialog', () => {
     );
 
     expect(changelogLink).toBeTruthy();
-    expect(changelogLink?.getAttribute('href')).toBe('/changelog');
+    expect(changelogLink?.getAttribute('href')).toBe(
+      'https://pulpe.app/changelog',
+    );
     expect(changelogLink?.getAttribute('target')).toBe('_blank');
     expect(changelogLink?.getAttribute('rel')).toBe('noopener');
   });

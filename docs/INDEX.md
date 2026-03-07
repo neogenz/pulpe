@@ -20,7 +20,7 @@
 ### ⚙️ Configuration (Setup & maintenance)
 - **[CI.md](./CI.md)** - Architecture CI GitHub Actions (jobs, cache, parallélisation)
 - **[FRONTEND_CONFIG.md](./FRONTEND_CONFIG.md)** - Configuration Angular + variables E2E + tests
-- **[VERCEL_ROUTING.md](./VERCEL_ROUTING.md)** - Routing Vercel (landing React + Angular SPA)
+- **[VERCEL_ROUTING.md](./VERCEL_ROUTING.md)** - Routing Vercel (2 projets : landing Next.js + Angular SPA sur sous-domaines séparés)
 - **[MONITORING.md](./MONITORING.md)** - PostHog sourcemaps + error tracking complet
 - **[BACKEND_PRACTICES.md](./BACKEND_PRACTICES.md)** - Error handling + guidelines NestJS
 - **[VERSIONING.md](./VERSIONING.md)** - Versioning produit unifié (SemVer, tags, releases)
@@ -36,7 +36,7 @@
 ### Infrastructure & Déploiement
 - **Railway ne démarre pas** → [TROUBLESHOOTING.md#railway](./TROUBLESHOOTING.md#railway)
 - **Vercel build fail** → [TROUBLESHOOTING.md#vercel](./TROUBLESHOOTING.md#vercel)
-- **Vercel routing (landing + Angular)** → [VERCEL_ROUTING.md](./VERCEL_ROUTING.md)
+- **Vercel routing (2 projets, sous-domaines)** → [VERCEL_ROUTING.md](./VERCEL_ROUTING.md)
 - **Supabase migration** → [DEPLOYMENT.md#supabase](./DEPLOYMENT.md#supabase)
 
 ### Configuration Frontend

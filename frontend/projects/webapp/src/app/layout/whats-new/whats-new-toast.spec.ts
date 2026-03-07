@@ -91,7 +91,7 @@ describe('WhatsNewToast', () => {
       ) as HTMLAnchorElement;
 
       expect(link).toBeTruthy();
-      expect(link.getAttribute('href')).toBe('/changelog');
+      expect(link.getAttribute('href')).toBe('https://pulpe.app/changelog');
       expect(link.getAttribute('target')).toBe('_blank');
       expect(link.getAttribute('rel')).toBe('noopener');
     });

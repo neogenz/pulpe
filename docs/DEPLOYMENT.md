@@ -1,58 +1,66 @@
-# 🚀 Deployment Guide - Pulpe
+# Deployment Guide - Pulpe
 
-## 🚀 TLDR - Déploiement Rapide
+## TLDR - Quick Deploy
 
 ```bash
-# 1. Qualité check
+# 1. Quality check
 pnpm quality:fix && pnpm test && pnpm test:e2e
 
-# 2. Release avec changeset
+# 2. Release with changeset
 pnpm changeset:version    # Bump versions
 git add . && git commit -m "chore: release version bump"
 
-# 3. Push vers main
-git push origin main      # Déclenche CI/CD automatique
+# 3. Push to main
+git push origin main      # Triggers automatic CI/CD
 ```
 
-## ✅ Pré-requis
+## Prerequisites
 
-- Compte Supabase
-- Compte Railway (backend)
-- Compte Vercel (frontend)
-- CLIs installées : `supabase`, `railway`, `vercel`
-- Domaine `pulpe.app` (optionnel, voir [Domaine personnalisé](#domaine-personnalisé-pulpeapp))
+- Supabase account
+- Railway account (backend)
+- Vercel account (frontend + landing)
+- CLIs installed: `supabase`, `railway`, `vercel`
+- Domain `pulpe.app` (see [Custom domain](#custom-domain-pulpeapp))
 
-## ⚙️ Configuration Initiale
+## Architecture
 
-### Base de données (Supabase)
+| Domain | Content | Vercel Project | Framework |
+|--------|---------|----------------|-----------|
+| `pulpe.app` / `www.pulpe.app` | Landing page | `pulpe-landing` | Next.js (static export) |
+| `app.pulpe.app` | Angular webapp | `pulpe-frontend` | Angular |
+| `api.pulpe.app` | Backend NestJS | Railway | - |
 
-#### Créer le projet
-1. Aller sur https://supabase.com/dashboard
-2. **New Project** → `pulpe-production` → Region : `eu-central-1`
-3. Récupérer les credentials dans **Settings > API** : `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+## Initial Setup
 
-#### Migrer la base
+### Database (Supabase)
+
+#### Create project
+1. Go to https://supabase.com/dashboard
+2. **New Project** > `pulpe-production` > Region: `eu-central-1`
+3. Get credentials from **Settings > API**: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+
+#### Run migrations
 
 ```bash
 cd backend-nest
 supabase link --project-ref [PROJECT_REF]
 supabase db push
-Pour la branche preview :
+For preview branch:
 supabase db push --db-url "postgresql://postgres.uzsgvcwchwqcuwejjtdb:[PASSWORD]@aws-1-us-east-2.pooler.supabase.com:5432/postgres"
 supabase unlink
 ```
 
-- Les migrations se déclenchent automatiquement lors du push sur `main` si des fichiers existent dans `backend-nest/supabase/migrations/`.
-- Pour créer une nouvelle migration : `supabase migration new [description]` puis `supabase db push` après avoir édité le SQL généré. Attention, ça va pousser sur le projet linked (prod).
+- Migrations run automatically on push to `main` if files exist in `backend-nest/supabase/migrations/`.
+- To create a new migration: `supabase migration new [description]` then `supabase db push` after editing the generated SQL. Warning: this pushes to the linked (prod) project.
 
-##### Appliquer les migrations en local
+##### Apply migrations locally
 
 ```bash
 supabase migration up
 ```
-Ensuite le `db push` appliquera les nouvelles migrations sur la base de données distante.
+Then `db push` will apply new migrations to the remote database.
 
-#### Exporter les données (optionnel)
+#### Export data (optional)
 
 ```bash
 supabase link --project-ref [PROJECT_REF]
@@ -60,7 +68,7 @@ supabase db dump --linked -f supabase/[timestamp]_data.sql --data-only --use-cop
 supabase unlink
 ```
 
-#### Importer des données (optionnel)
+#### Import data (optional)
 
 ```bash
 psql "postgresql://postgres.uzsgvcwchwqcuwejjtdb:[PASSWORD]@aws-1-us-east-2.pooler.supabase.com:5432/postgres" \
@@ -70,10 +78,9 @@ psql "postgresql://postgres.uzsgvcwchwqcuwejjtdb:[PASSWORD]@aws-1-us-east-2.pool
   --file ./supabase/data.sql
 ```
 
-
 ### Backend (Railway)
 
-Configurer un service Railway avec ces variables d'environnement :
+Configure a Railway service with these environment variables:
 
 ```env
 NODE_ENV=production
@@ -82,62 +89,88 @@ PORT=3000
 SUPABASE_URL=https://[PROJECT_REF].supabase.co
 SUPABASE_ANON_KEY=[ANON_KEY]
 SUPABASE_SERVICE_ROLE_KEY=[SERVICE_ROLE_KEY]  # REQUIRED in production/preview
-CORS_ORIGIN=https://pulpe.app
+CORS_ORIGIN=https://app.pulpe.app
 ```
 
-> ⚠️ **SUPABASE_SERVICE_ROLE_KEY est obligatoire** en production/preview pour le nettoyage automatique des utilisateurs démo. L'application **ne démarrera pas** sans cette variable.
+> **SUPABASE_SERVICE_ROLE_KEY is mandatory** in production/preview for automatic demo user cleanup. The application **will not start** without this variable.
 
-Déployer :
+Deploy:
 
 ```bash
 railway link
 railway up --detach
-railway domain  # Récupérer l'URL publique
+railway domain  # Get the public URL
 ```
 
-### Frontend (Vercel)
+### Frontend — Angular App (Vercel project: `pulpe-frontend`)
 
-Configurer les variables d'environnement Production dans Vercel :
+**Domain:** `app.pulpe.app`
 
-| Variable | Valeur | Description |
-|----------|--------|-------------|
-| `PUBLIC_SUPABASE_URL` | `https://[PROJECT_REF].supabase.co` | URL du projet Supabase |
-| `PUBLIC_SUPABASE_ANON_KEY` | `[ANON_KEY]` | Clé anonyme Supabase |
-| `PUBLIC_BACKEND_API_URL` | `https://[RAILWAY_URL]/api/v1` | URL du backend Railway |
-| `PUBLIC_ENVIRONMENT` | `production` | Environnement actuel |
+Configure Production environment variables in Vercel:
 
-Le build Vercel exécute `frontend/scripts/generate-config.ts` (via `pnpm generate:config`), qui lit les variables `PUBLIC_*`, valide avec Zod, et génère `config.json`.
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `PUBLIC_SUPABASE_URL` | `https://[PROJECT_REF].supabase.co` | Supabase project URL |
+| `PUBLIC_SUPABASE_ANON_KEY` | `[ANON_KEY]` | Supabase anonymous key |
+| `PUBLIC_BACKEND_API_URL` | `https://[RAILWAY_URL]/api/v1` | Railway backend URL |
+| `PUBLIC_ENVIRONMENT` | `production` | Current environment |
 
-Variables additionnelles pour PostHog (Production) :
+The Vercel build runs `frontend/scripts/generate-config.ts` (via `pnpm generate:config`), which reads `PUBLIC_*` variables, validates with Zod, and generates `config.json`.
+
+PostHog variables (Production):
 
 ```env
-PUBLIC_POSTHOG_HOST=/ph                          # Reverse proxy (voir vercel.json)
+PUBLIC_POSTHOG_HOST=/ph                          # Reverse proxy (see vercel.json)
 POSTHOG_PERSONAL_API_KEY=phc_...                 # Sourcemaps upload (CI)
 POSTHOG_CLI_ENV_ID=12345                         # Sourcemaps upload (CI)
-POSTHOG_HOST=https://eu.i.posthog.com            # Sourcemaps upload (CI, accès direct)
+POSTHOG_HOST=https://eu.i.posthog.com            # Sourcemaps upload (CI, direct access)
 ```
 
-> **Note** : `PUBLIC_POSTHOG_HOST=/ph` route le trafic analytics via le reverse proxy Vercel (`/ph/*` → `eu.i.posthog.com`), contournant les ad-blockers. Voir `docs/VERCEL_ROUTING.md`.
+> **Note**: `PUBLIC_POSTHOG_HOST=/ph` routes analytics traffic via the Vercel reverse proxy (`/ph/*` > `eu.i.posthog.com`), bypassing ad-blockers.
 
-Déployer :
-
-```bash
-vercel --prod
+**Ignored Build Step** (skip build when only landing changed):
+```
+git diff --quiet HEAD^ HEAD -- frontend/ shared/
 ```
 
-### Branches de preview (Vercel)
+### Frontend — Landing Page (Vercel project: `pulpe-landing`)
 
-Pour une branch preview, n'ajouter que les variables qui diffèrent de la production. Exemple :
+**Domain:** `pulpe.app`, `www.pulpe.app`
 
-- **Name** : `PUBLIC_BACKEND_API_URL`
-- **Value** : `https://backend-preview-xyz.railway.app/api/v1`
-- **Environment** : Preview
+1. **Add New Project**: connect the same GitHub repo
+2. **Root Directory**: `landing`
+3. **Framework Preset**: Next.js
+4. **Build Command**: `cd .. && pnpm build:shared && cd landing && pnpm build`
+5. **Output Directory**: leave default (Next.js manages it)
+6. **Install Command**: `cd .. && pnpm install --frozen-lockfile --filter=pulpe-landing --filter=pulpe-shared --ignore-scripts`
 
-Les autres variables héritent des valeurs de production.
+Environment variables:
 
-### Développement local
+| Variable | Value |
+|----------|-------|
+| `NEXT_PUBLIC_ANGULAR_APP_URL` | `https://app.pulpe.app` |
+| `NEXT_PUBLIC_SUPABASE_URL` | (same as frontend project) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | (same as frontend project) |
+| PostHog variables | as needed |
 
-Créer un `.env.local` dans `frontend/` pour surcharger les valeurs sans modifier le code :
+**Ignored Build Step** (skip build when only frontend changed):
+```
+git diff --quiet HEAD^ HEAD -- landing/ shared/
+```
+
+### Preview branches (Vercel)
+
+For a preview branch, only add variables that differ from production. Example:
+
+- **Name**: `PUBLIC_BACKEND_API_URL`
+- **Value**: `https://backend-preview-xyz.railway.app/api/v1`
+- **Environment**: Preview
+
+Other variables inherit from production values.
+
+### Local development
+
+Create a `.env.local` in `frontend/` to override values without modifying code:
 
 ```env
 PUBLIC_SUPABASE_URL=http://localhost:54321
@@ -146,104 +179,107 @@ PUBLIC_BACKEND_API_URL=http://localhost:3000/api/v1
 PUBLIC_ENVIRONMENT=local
 ```
 
-Le fichier est ignoré par Git. Ensuite :
+The file is git-ignored. Then:
 
 ```bash
 cd frontend
 pnpm generate:config
 ```
 
-### Domaine personnalisé (pulpe.app)
+### Custom domain (pulpe.app)
 
 #### Registrar
 
-Domaine acheté chez **Infomaniak**.
+Domain purchased at **Infomaniak**.
 
-#### Configuration DNS (Infomaniak)
+#### DNS Configuration (Infomaniak)
 
 | Type | Name | Value |
 |------|------|-------|
 | A | @ | `76.76.21.21` |
 | CNAME | www | `cname.vercel-dns.com` |
+| CNAME | app | `cname.vercel-dns.com` |
 | CNAME | api | `backend-production-e7df.up.railway.app` |
 
-#### Vercel (Frontend)
+#### Vercel — Angular App (`pulpe-frontend`)
 
-1. **Settings > Domains** → `pulpe.app` et `www.pulpe.app` ajoutés
-2. **Variable Production** :
+1. **Settings > Domains** > `app.pulpe.app`
+2. **Variable Production**:
    ```
    PUBLIC_BACKEND_API_URL=https://api.pulpe.app/api/v1
    ```
 
+#### Vercel — Landing (`pulpe-landing`)
+
+1. **Settings > Domains** > `pulpe.app` and `www.pulpe.app`
+
 #### Railway (Backend API)
 
-1. **Settings > Networking > Custom Domain** → `api.pulpe.app` (port 8080)
-2. **Variable** :
+1. **Settings > Networking > Custom Domain** > `api.pulpe.app` (port 8080)
+2. **Variable**:
    ```
-   CORS_ORIGIN=https://pulpe.app
+   CORS_ORIGIN=https://app.pulpe.app
    ```
 
 #### Supabase (Auth)
 
-**Dashboard > Authentication > URL Configuration** :
-- **Site URL** : `https://pulpe.app`
-- **Redirect URLs** :
+**Dashboard > Authentication > URL Configuration**:
+- **Site URL**: `https://app.pulpe.app`
+- **Redirect URLs**:
+  - `https://app.pulpe.app/**`
   - `https://pulpe.app/**`
   - `https://www.pulpe.app/**`
   - `https://*.vercel.app/**` (previews)
 
 #### Google OAuth (Cloud Console)
 
-**APIs & Services > Credentials > OAuth 2.0 Client IDs** :
-- **Authorized JavaScript origins** : `https://pulpe.app`
-- **Redirect URI** : `https://[PROJECT_ID].supabase.co/auth/v1/callback` (inchangé)
+**APIs & Services > Credentials > OAuth 2.0 Client IDs**:
+- **Authorized JavaScript origins**: `https://app.pulpe.app`, `https://pulpe.app`
+- **Redirect URI**: `https://[PROJECT_ID].supabase.co/auth/v1/callback` (unchanged)
 
 #### Cloudflare Turnstile
 
-**Dashboard > Turnstile > Widget** :
-- Domaine ajouté : `pulpe.app`
+**Dashboard > Turnstile > Widget**:
+- Domains: `pulpe.app`, `app.pulpe.app`
 
 #### PostHog
 
-**Settings > Toolbar Authorized URLs** :
-- URL ajoutée : `https://pulpe.app`
+**Settings > Toolbar Authorized URLs**:
+- `https://pulpe.app`
+- `https://app.pulpe.app`
 
-#### Checklist domaine personnalisé
+#### Subdomain migration checklist
 
-- [x] Domaine acheté (Infomaniak)
-- [x] DNS configuré (A + CNAME)
-- [x] Domaines ajoutés dans Vercel
-- [x] `api.pulpe.app` ajouté dans Railway
-- [x] `PUBLIC_BACKEND_API_URL` mis à jour dans Vercel
-- [x] `CORS_ORIGIN` mis à jour dans Railway
-- [x] Supabase URL Configuration mis à jour
-- [x] Google OAuth origins mis à jour
-- [x] Turnstile domaine ajouté
-- [x] PostHog toolbar URL ajoutée
-- [ ] Test auth flow complet
+- [ ] DNS: add CNAME `app` > `cname.vercel-dns.com`
+- [ ] Vercel: create `pulpe-landing` project, configure domains + env vars
+- [ ] Vercel: update `pulpe-frontend` project (domain `app.pulpe.app`, remove `pulpe.app`/`www.pulpe.app`)
+- [ ] Railway: `CORS_ORIGIN=https://app.pulpe.app`
+- [ ] Supabase: Site URL > `https://app.pulpe.app`, add redirect URLs
+- [ ] Google OAuth: add `https://app.pulpe.app` to authorized origins
+- [ ] Turnstile: add `app.pulpe.app`
+- [ ] PostHog: add `https://app.pulpe.app` to toolbar URLs
+- [ ] Test: landing on `pulpe.app`, app on `app.pulpe.app`, auth flow, Google OAuth, legal pages from iOS
 
-> **Note** : Les environnements Preview (Vercel, Railway, Supabase) n'ont pas besoin de modification — ils utilisent leurs propres URLs auto-générées.
+## Release Process
 
-## 📋 Processus de Release Complet
-
-### 1. Pré-Release Checks
+### 1. Pre-Release Checks
 
 ```bash
-# Vérifications locales
-pnpm build                # Tout build sans erreur
+# Local checks
+pnpm build                # Everything builds without error
 pnpm quality              # Lint + format + type-check
-pnpm test                 # Tests unitaires + intégration
-pnpm test:e2e             # Tests E2E (Playwright)
-pnpm test:performance     # Tests de charge backend
+pnpm test                 # Unit + integration tests
+pnpm test:e2e             # E2E tests (Playwright)
+pnpm test:performance     # Backend load tests
 ```
 
 ### 2. Versioning (Changesets)
 
 ```bash
-# Créer changeset (décrit changements)
+# Create changeset (describe changes)
 pnpm changeset
 
-# Appliquer versions + update changelogs
+# Apply versions + update changelogs
 pnpm changeset:version
 
 # Commit version bump
@@ -251,46 +287,49 @@ git add .
 git commit -m "chore: release version bump"
 ```
 
-### 3. Déploiement Production
+### 3. Production Deployment
 
 ```bash
-# Push main déclenche CI/CD
+# Push main triggers CI/CD
 git push origin main
 
-# Monitoring automatique
-# → GitHub Actions CI/CD
-# → Vercel (Frontend)
-# → Railway (Backend)
-# → Supabase (Migrations si applicable)
+# Automatic monitoring
+# > GitHub Actions CI/CD
+# > Vercel (Frontend + Landing — separate projects)
+# > Railway (Backend)
+# > Supabase (Migrations if applicable)
 ```
 
-## 📊 Monitoring Post-Déploiement
+## Post-Deployment Monitoring
 
-### Health Checks Automatiques
-- **Frontend (Vercel)** : monitoring intégré
-- **Backend (Railway)** : endpoint `/health`
-- **Database (Supabase)** : dashboard monitoring
+### Automatic Health Checks
+- **Frontend (Vercel)**: built-in monitoring
+- **Landing (Vercel)**: built-in monitoring
+- **Backend (Railway)**: endpoint `/health`
+- **Database (Supabase)**: dashboard monitoring
 
-### Vérifications Manuelles
+### Manual Checks
 
 ```bash
-curl https://www.pulpe.app                     # Frontend accessible
-curl https://api.pulpe.app/health              # Backend API
-# PostHog sourcemaps → Vercel build logs: "PostHog source maps processing completed!"
+curl https://pulpe.app                           # Landing accessible
+curl https://app.pulpe.app                       # Angular app accessible
+curl https://api.pulpe.app/health                # Backend API
+# PostHog sourcemaps > Vercel build logs: "PostHog source maps processing completed!"
 ```
 
-## ⚠️ Checklist Pré-Production
+## Pre-Production Checklist
 
-- [ ] Supabase : projet créé + migrations appliquées
-- [ ] Railway : variables d'environnement configurées + backend déployé
-- [ ] Vercel : variables `PUBLIC_*` et PostHog configurées
-- [ ] Domaine personnalisé configuré (DNS, Vercel, Railway, Supabase)
-- [ ] Tests E2E passent sur staging
-- [ ] PostHog sourcemaps upload configuré
-- [ ] Monitoring alerts configurés
-- [ ] Documentation à jour
-- [ ] Backup database récent disponible
+- [ ] Supabase: project created + migrations applied
+- [ ] Railway: environment variables configured + backend deployed
+- [ ] Vercel (frontend): `PUBLIC_*` and PostHog variables configured
+- [ ] Vercel (landing): env vars configured (`NEXT_PUBLIC_ANGULAR_APP_URL`, etc.)
+- [ ] Custom domain configured (DNS, Vercel x2, Railway, Supabase)
+- [ ] E2E tests pass on staging
+- [ ] PostHog sourcemaps upload configured
+- [ ] Monitoring alerts configured
+- [ ] Documentation up to date
+- [ ] Recent database backup available
 
 ---
 
-**Problème en production ?** → [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+**Production issue?** > [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
