@@ -2,9 +2,11 @@ import SwiftUI
 
 struct SecuritySettingsView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
     @State private var biometricToggle = false
     @State private var showDisableBiometricConfirmation = false
     @State private var showChangePassword = false
+    @State private var showDeleteConfirmation = false
     @State private var securityViewModel = AccountSecurityViewModel()
 
     private let canUseBiometrics = BiometricService.shared.canUseBiometrics()
@@ -55,6 +57,33 @@ struct SecuritySettingsView: View {
                     Text("BIOMÉTRIE")
                 }
             }
+            Section {
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text("Supprimer mon compte")
+                            .font(PulpeTypography.labelLarge)
+                            .foregroundStyle(Color.destructivePrimary)
+                        Text("Tes données seront supprimées définitivement après 3 jours.")
+                            .font(PulpeTypography.labelMedium)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Button("Supprimer") {
+                        showDeleteConfirmation = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .buttonBorderShape(.capsule)
+                    .tint(.destructivePrimary)
+                    .accessibilityLabel("Supprimer le compte")
+                    .accessibilityHint("Demande la suppression définitive de ton compte Pulpe")
+                }
+            } header: {
+                Text("ZONE DE DANGER")
+                    .foregroundStyle(Color.destructivePrimary)
+            }
+            .listRowBackground(Color.destructiveBackground)
         }
         .onAppear {
             biometricToggle = appState.biometricEnabled
@@ -113,6 +142,20 @@ struct SecuritySettingsView: View {
                         .font(PulpeTypography.labelLarge)
                 }
             }
+        }
+        .alert("Supprimer mon compte", isPresented: $showDeleteConfirmation) {
+            Button("Annuler", role: .cancel) { }
+            Button("Supprimer", role: .destructive) {
+                Task {
+                    await appState.deleteAccount()
+                    dismiss()
+                }
+            }
+        } message: {
+            Text(
+                "Ton compte sera définitivement supprimé " +
+                "après un délai de 3 jours. Cette action est irréversible."
+            )
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Sécurité")
