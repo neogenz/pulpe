@@ -265,7 +265,30 @@
     "regenerateKeyTitle": "Régénérer ma clé",
     "regenerateKeyWarningTitle": "Attention",
     "regenerateKeyWarning": "Cette action invalide l'ancienne clé. Sans ton code PIN ou ta clé de récupération, l'accès à tes données sera définitivement perdu.",
-    "regenerateKeySubmit": "Régénérer"
+    "regenerateKeySubmit": "Régénérer",
+    "pinCode": "Code PIN",
+    "pinCodeDescription": "Modifier ton code de chiffrement.",
+    "pinChanged": "Code PIN modifié",
+    "pinChangedNoRecovery": "Code PIN modifié — régénère ta clé de secours dans les réglages",
+    "changePin": {
+      "title": "Modifier le code PIN",
+      "titleNewPin": "Nouveau code PIN",
+      "descriptionStep1": "Saisis ton code PIN actuel pour confirmer ton identité (au moins {{ min }} chiffres)",
+      "descriptionStep2": "Choisis ton nouveau code PIN (au moins {{ min }} chiffres)",
+      "oldPinLabel": "Code PIN actuel",
+      "newPinLabel": "Nouveau code PIN",
+      "showPin": "Afficher le code PIN",
+      "hidePin": "Masquer le code PIN",
+      "oldPinRequired": "Ton code PIN est requis",
+      "newPinRequired": "Ton nouveau code PIN est requis",
+      "next": "Suivant",
+      "incorrectPin": "Code PIN incorrect",
+      "incorrectOldPin": "Code PIN actuel incorrect",
+      "samePin": "Le nouveau code PIN doit être différent de l'ancien",
+      "rateLimited": "Trop de tentatives — réessaie plus tard",
+      "genericError": "Une erreur est survenue — réessaie plus tard",
+      "changeFailed": "Le changement de code PIN a échoué — réessaie plus tard"
+    }
   },
   "budget": {
     "loading": "Préparation de ton budget...",
