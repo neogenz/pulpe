@@ -299,6 +299,10 @@ export class ChangePinDialog {
     this.errorMessage.set('');
 
     let newClientKey: string | undefined;
+    const hasLocalKey = !!this.#storage.getString(
+      STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
+      'local',
+    );
 
     try {
       newClientKey = await deriveClientKey(
@@ -311,10 +315,6 @@ export class ChangePinDialog {
         this.#encryptionApi.changePin$(this.#oldClientKey, newClientKey),
       );
 
-      const hasLocalKey = !!this.#storage.getString(
-        STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
-        'local',
-      );
       this.#clientKeyService.setDirectKey(newClientKey, hasLocalKey);
 
       this.newPinForm.reset();
@@ -339,10 +339,6 @@ export class ChangePinDialog {
           error.code === 'ERR_ENCRYPTION_REKEY_PARTIAL_FAILURE' &&
           newClientKey
         ) {
-          const hasLocalKey = !!this.#storage.getString(
-            STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
-            'local',
-          );
           this.#clientKeyService.setDirectKey(newClientKey, hasLocalKey);
           this.#clearSensitiveState();
           this.#dialogRef.close({ recoveryKey: null });

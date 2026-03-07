@@ -394,11 +394,17 @@ export default class SettingsPage {
       await firstValueFrom(recoveryRef.afterClosed());
     }
 
-    this.#snackBar.open('Code PIN modifié', 'OK', {
-      duration: 3000,
-      horizontalPosition: 'center',
-      verticalPosition: 'bottom',
-    });
+    this.#snackBar.open(
+      result.recoveryKey
+        ? 'Code PIN modifié'
+        : 'Code PIN modifié — régénère ta clé de secours dans les réglages',
+      'OK',
+      {
+        duration: result.recoveryKey ? 3000 : 6000,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom',
+      },
+    );
   }
 
   async onRegenerateRecoveryKey(): Promise<void> {
