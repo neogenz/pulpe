@@ -370,7 +370,7 @@
     "amountMinError": "Le montant doit être supérieur à 0",
     "dateLabel": "Date",
     "dateOutOfBudgetPeriod": "La date doit être dans la période du budget",
-    "createButton": "Créer",
+    "transactionCreateButton": "Créer",
     "transactionsDialogTitle": "Transactions — {{ name }}",
     "consumedLabel": "Consommé",
     "availableLabel": "Disponible",

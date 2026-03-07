@@ -131,7 +131,7 @@ interface EditTransactionsDialogResult {
             <!-- Description Column -->
             <ng-container matColumnDef="description">
               <th mat-header-cell *matHeaderCellDef>
-                {{ 'transactionForm.description' | transloco }}
+                {{ 'template.colDescription' | transloco }}
               </th>
               <td
                 mat-cell
