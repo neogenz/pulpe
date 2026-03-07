@@ -87,34 +87,11 @@ const jsonLd = {
   ],
 }
 
-// Static script only — never inject dynamic data (XSS risk)
-// Only redirect on homepage — sub-pages like /support must remain accessible
-const authRedirectScript = `
-(function() {
-  try {
-    if (window.location.pathname !== '/') return;
-    var keys = Object.keys(localStorage);
-    for (var i = 0; i < keys.length; i++) {
-      if (keys[i].match(/^sb-.*-auth-token$/)) {
-        var data = localStorage.getItem(keys[i]);
-        if (data) {
-          var parsed = JSON.parse(data);
-          if (parsed.access_token) {
-            window.location.replace('/dashboard');
-            return;
-          }
-        }
-      }
-    }
-  } catch (e) {}
-})();
-`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={poppins.variable}>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: authRedirectScript }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
