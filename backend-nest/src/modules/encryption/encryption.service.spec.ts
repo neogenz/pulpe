@@ -2166,9 +2166,14 @@ describe('EncryptionService', () => {
         expect((error as Error).message).toBe('RPC failed');
       }
 
-      // wrapped_dek is nullified BEFORE re-encryption, so the call still happens
-      expect(updateWrappedDEK).toHaveBeenCalledTimes(1);
-      expect(updateWrappedDEK).toHaveBeenCalledWith(TEST_USER_ID, null);
+      // wrapped_dek is nullified BEFORE re-encryption, then best-effort restored on failure
+      expect(updateWrappedDEK).toHaveBeenCalledTimes(2);
+      expect(updateWrappedDEK).toHaveBeenNthCalledWith(1, TEST_USER_ID, null);
+      expect(updateWrappedDEK).toHaveBeenNthCalledWith(
+        2,
+        TEST_USER_ID,
+        'some-wrapped-dek',
+      );
 
       reEncryptSpy.mockRestore();
     });

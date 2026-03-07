@@ -85,9 +85,9 @@ Le changement de code PIN re-chiffre toutes les données financières avec une n
 3. Backend vérifie oldClientKey via key_check (canary)
 4. Toutes les données sont re-chiffrées atomiquement (RPC rekey_user_encrypted_data)
 5. key_check est recalculé avec la nouvelle DEK
-6. Si wrapped_dek existait → nouvelle recovery key générée, nouvelle DEK wrappée
-7. Réponse : { keyCheck: string, recoveryKey: string | null }
-8. Si recoveryKey !== null → frontend affiche la nouvelle recovery key à l'utilisateur
+6. Nouvelle recovery key générée et nouvelle DEK wrappée (inconditionnel)
+7. Réponse : { keyCheck: string, recoveryKey: string }
+8. Frontend affiche la nouvelle recovery key à l'utilisateur
 ```
 
 ### Recovery key et changement de PIN
