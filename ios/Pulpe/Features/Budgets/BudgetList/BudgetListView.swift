@@ -270,13 +270,10 @@ struct YearSection: View {
 
             if isExpanded {
                 expandedContent(data: data)
-                    .transition(
-                        .move(edge: .top)
-                            .combined(with: .opacity)
-                            .combined(with: .scale(scale: 0.98, anchor: .top))
-                    )
+                    .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
             }
         }
+        .clipped()
         .sensoryFeedback(.impact(flexibility: .soft), trigger: expandTrigger)
         .onChange(of: isExpanded) { _, _ in
             expandTrigger.toggle()
