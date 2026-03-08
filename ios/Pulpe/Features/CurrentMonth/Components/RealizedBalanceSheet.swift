@@ -378,7 +378,7 @@ private struct CategoryRow: View {
                         Capsule()
                             .fill(iconColor)
                             .frame(width: barWidth * CGFloat(percentage))
-                            .animation(.spring(duration: DesignTokens.Animation.slow), value: percentage)
+                            .animation(DesignTokens.Animation.gentleSpring, value: percentage)
                     }
                     .frame(height: DesignTokens.ProgressBar.thickHeight)
                     .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }
