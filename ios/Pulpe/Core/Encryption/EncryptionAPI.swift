@@ -74,6 +74,16 @@ struct RecoverRequest: Codable, Sendable {
     let newClientKey: String
 }
 
+struct ChangePinRequest: Codable, Sendable {
+    let oldClientKey: String
+    let newClientKey: String
+}
+
+struct ChangePinResponse: Codable, Sendable {
+    let keyCheck: String
+    let recoveryKey: String
+}
+
 // MARK: - EncryptionAPI
 
 actor EncryptionAPI {
@@ -116,5 +126,11 @@ actor EncryptionAPI {
     func recover(recoveryKey: String, newClientKeyHex: String) async throws {
         let body = RecoverRequest(recoveryKey: recoveryKey, newClientKey: newClientKeyHex)
         try await apiClient.requestVoid(.encryptionRecover, body: body)
+    }
+
+    /// Change PIN by re-encrypting all data with a new client key
+    func changePin(oldClientKeyHex: String, newClientKeyHex: String) async throws -> ChangePinResponse {
+        let body = ChangePinRequest(oldClientKey: oldClientKeyHex, newClientKey: newClientKeyHex)
+        return try await apiClient.request(.encryptionChangePin, body: body)
     }
 }

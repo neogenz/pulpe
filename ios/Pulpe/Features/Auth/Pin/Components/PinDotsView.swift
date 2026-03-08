@@ -18,6 +18,7 @@ struct PinDotsView: View {
             }
         }
         .offset(x: shakeOffset)
+        .accessibilityHidden(true)
         .onChange(of: isError) { _, newValue in
             guard newValue else { return }
             withAnimation(.easeInOut(duration: 0.08).repeatCount(5, autoreverses: true)) {

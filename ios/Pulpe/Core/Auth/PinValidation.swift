@@ -34,9 +34,19 @@ enum PinValidation {
         encryptionAPI: any PinEncryptionValidation
     ) async throws -> DeriveResult {
         let salt = try await encryptionAPI.getSalt()
+        return try await derive(pin: pin, cachedSalt: salt, cryptoService: cryptoService)
+    }
+
+    /// Derives a client key using a previously fetched salt (avoids redundant network call).
+    /// Used by ChangePinViewModel which already fetched salt during old PIN validation.
+    static func derive(
+        pin: String,
+        cachedSalt: EncryptionSaltResponse,
+        cryptoService: any PinCryptoKeyDerivation
+    ) async throws -> DeriveResult {
         let clientKeyHex = try await cryptoService.deriveClientKey(
-            pin: pin, saltHex: salt.salt, iterations: salt.kdfIterations
+            pin: pin, saltHex: cachedSalt.salt, iterations: cachedSalt.kdfIterations
         )
-        return DeriveResult(clientKeyHex: clientKeyHex, saltResponse: salt)
+        return DeriveResult(clientKeyHex: clientKeyHex, saltResponse: cachedSalt)
     }
 }

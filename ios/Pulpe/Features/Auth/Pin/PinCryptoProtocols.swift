@@ -47,6 +47,13 @@ protocol PinEncryptionRecovery: PinEncryptionValidation {
     func regenerateRecoveryKey() async throws -> String
 }
 
+/// Extended encryption operations for PIN change flow.
+protocol PinEncryptionChangePin: PinEncryptionValidation {
+    /// Changes the PIN by re-encrypting all data with a new client key.
+    /// Returns the new recovery key and key check.
+    func changePin(oldClientKeyHex: String, newClientKeyHex: String) async throws -> ChangePinResponse
+}
+
 /// Securely stores the client encryption key.
 protocol PinClientKeyStorage: Sendable {
     /// Stores the client key in memory and optionally in biometric-protected keychain.
@@ -64,3 +71,28 @@ extension ClientKeyManager: PinClientKeyStorage {}
 extension EncryptionAPI: PinEncryptionValidation {}
 extension EncryptionAPI: PinEncryptionSetup {}
 extension EncryptionAPI: PinEncryptionRecovery {}
+extension EncryptionAPI: PinEncryptionChangePin {}
+
+// MARK: - PIN Error Messages
+
+extension APIError {
+    /// User-facing message for PIN validation errors (entry, change).
+    var pinValidationMessage: String {
+        switch self {
+        case .rateLimited: "Trop de tentatives, patiente un moment"
+        case .networkError: "Erreur de connexion, réessaie"
+        default: "Ce code ne semble pas correct"
+        }
+    }
+}
+
+extension CryptoServiceError {
+    /// User-facing message for crypto errors during PIN flows.
+    var pinUserMessage: String {
+        switch self {
+        case .invalidSalt, .invalidIterations: "Erreur de sécurité, contacte le support"
+        case .derivationFailed: "Erreur de chiffrement, réessaie"
+        case .invalidPin: "Code invalide"
+        }
+    }
+}

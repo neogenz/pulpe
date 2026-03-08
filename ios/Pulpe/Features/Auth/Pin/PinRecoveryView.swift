@@ -13,11 +13,6 @@ enum RecoveryStep: Equatable {
 // MARK: - View
 
 struct PinRecoveryView: View {
-    private struct RecoveryKeySheetItem: Identifiable {
-        let key: String
-        var id: String { key }
-    }
-
     let onComplete: () -> Void
     let onCancel: () -> Void
     let onSessionExpired: () -> Void
@@ -29,7 +24,7 @@ struct PinRecoveryView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .pulpeBackground()
             .sheet(item: recoveryKeySheetItemBinding) { item in
-                RecoveryKeySheet(recoveryKey: item.key) {
+                RecoveryKeySheet(recoveryKey: item.recoveryKey) {
                     onComplete()
                 }
             }
@@ -162,25 +157,16 @@ struct PinRecoveryView: View {
                 }
             }
 
-            Spacer().frame(height: 40)
+            Spacer().frame(height: DesignTokens.Spacing.sectionGap)
 
-            VStack(spacing: DesignTokens.Spacing.md) {
-                PinDotsView(
-                    enteredCount: viewModel.digits.count,
-                    maxDigits: viewModel.maxDigits,
-                    isError: viewModel.isError
-                )
+            PinDotsErrorView(
+                enteredCount: viewModel.digits.count,
+                maxDigits: viewModel.maxDigits,
+                isError: viewModel.isError,
+                errorMessage: viewModel.errorMessage
+            )
 
-                if let error = viewModel.errorMessage {
-                    Text(error)
-                        .font(PulpeTypography.footnote)
-                        .foregroundStyle(Color.errorPrimary)
-                        .transition(.opacity)
-                }
-            }
-            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: viewModel.errorMessage)
-
-            Spacer().frame(height: 48)
+            Spacer().frame(height: DesignTokens.Spacing.stepHeaderTop)
 
             NumpadView(
                 onDigit: { viewModel.appendDigit($0) },
@@ -206,20 +192,10 @@ struct PinRecoveryView: View {
     // MARK: - Processing Step
 
     private var processingStep: some View {
-        VStack(spacing: DesignTokens.Spacing.xl) {
-            ProgressView()
-                .tint(Color.textPrimaryOnboarding)
-                .scaleEffect(1.5)
-
-            Text("Récupération en cours...")
-                .font(PulpeTypography.onboardingTitle)
-                .foregroundStyle(Color.textPrimaryOnboarding)
-
-            Text("Tes données sont en cours de re-chiffrement")
-                .font(PulpeTypography.stepSubtitle)
-                .foregroundStyle(Color.textSecondaryOnboarding)
-                .multilineTextAlignment(.center)
-        }
+        PinProcessingView(
+            title: "Récupération en cours...",
+            subtitle: "Tes données sont en cours de re-chiffrement"
+        )
     }
 
     // MARK: - Cancel Button
@@ -238,7 +214,7 @@ struct PinRecoveryView: View {
         Binding<RecoveryKeySheetItem?>(
             get: {
                 guard viewModel.showRecoverySheet, let key = viewModel.newRecoveryKey else { return nil }
-                return RecoveryKeySheetItem(key: key)
+                return RecoveryKeySheetItem(recoveryKey: key)
             },
             set: { item in
                 guard item == nil else { return }
@@ -317,6 +293,7 @@ final class PinRecoveryViewModel {
 
     func appendDigit(_ digit: Int) {
         guard digits.count < maxDigits, !isProcessing else { return }
+        if isError { clearError() }
         digits.append(digit)
 
         if digits.count == maxDigits {
@@ -475,9 +452,9 @@ final class PinRecoveryViewModel {
 
         errorResetTask?.cancel()
         errorResetTask = Task {
-            try? await Task.sleep(for: .seconds(2))
+            try? await Task.sleep(for: .seconds(3))
             guard !Task.isCancelled else { return }
-            isError = false
+            clearError()
         }
     }
 

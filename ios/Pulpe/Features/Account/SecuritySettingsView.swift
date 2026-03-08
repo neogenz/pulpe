@@ -5,6 +5,7 @@ struct SecuritySettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var biometricToggle = false
     @State private var showDisableBiometricConfirmation = false
+    @State private var showChangePin = false
     @State private var showChangePassword = false
     @State private var showDeleteConfirmation = false
     @State private var securityViewModel = AccountSecurityViewModel()
@@ -15,9 +16,8 @@ struct SecuritySettingsView: View {
     var body: some View {
         List {
             Section {
-                LabeledContent("Code PIN") {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(Color.financialSavings)
+                chevronRow("Code PIN", detail: "Modifier") {
+                    showChangePin = true
                 }
 
                 chevronRow("Mot de passe", detail: "••••••••") {
@@ -106,6 +106,12 @@ struct SecuritySettingsView: View {
         } message: {
             Text("Tu devras utiliser ton code PIN pour te connecter.")
         }
+        .navigationDestination(isPresented: $showChangePin) {
+            ChangePinView {
+                showChangePin = false
+                appState.toastManager.show("Code PIN modifié", type: .success)
+            }
+        }
         .sheet(isPresented: $showChangePassword) {
             ChangePasswordSheet {
                 appState.toastManager.show("Mot de passe modifié", type: .success)
@@ -159,6 +165,7 @@ struct SecuritySettingsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Sécurité")
+        .trackScreen("Security")
     }
 
     private func chevronRow(

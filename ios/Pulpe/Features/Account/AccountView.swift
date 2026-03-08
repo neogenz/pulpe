@@ -105,17 +105,19 @@ extension AccountView {
         }
     }
 
+    private static let legalText: AttributedString = {
+        (try? AttributedString(
+            markdown: "Les [Conditions générales](\(AppURLs.terms)) et " +
+                "l'[Avis de confidentialité](\(AppURLs.privacy)) de Pulpe s'appliquent."
+        )) ?? AttributedString(
+            "Les Conditions générales et l'Avis de confidentialité de Pulpe s'appliquent."
+        )
+    }()
+
     private var legalFooterSection: some View {
         Section {
             VStack(spacing: DesignTokens.Spacing.sm) {
-                Text(
-                    (try? AttributedString(
-                        markdown: "Les [Conditions générales](\(AppURLs.terms)) et " +
-                            "l'[Avis de confidentialité](\(AppURLs.privacy)) de Pulpe s'appliquent."
-                    )) ?? AttributedString(
-                        "Les Conditions générales et l'Avis de confidentialité de Pulpe s'appliquent."
-                    )
-                )
+                Text(Self.legalText)
                 .font(PulpeTypography.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
