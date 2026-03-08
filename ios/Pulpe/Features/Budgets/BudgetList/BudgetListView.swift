@@ -127,20 +127,17 @@ struct BudgetListView: View {
                             payDayOfMonth: userSettingsStore.payDayOfMonth,
                             isExpanded: expandedYears.contains(group.year),
                             onToggle: {
-                                if reduceMotion {
+                                let toggle = {
                                     if expandedYears.contains(group.year) {
                                         expandedYears.remove(group.year)
                                     } else {
                                         expandedYears.insert(group.year)
                                     }
+                                }
+                                if reduceMotion {
+                                    toggle()
                                 } else {
-                                    withAnimation(DesignTokens.Animation.defaultSpring) {
-                                        if expandedYears.contains(group.year) {
-                                            expandedYears.remove(group.year)
-                                        } else {
-                                            expandedYears.insert(group.year)
-                                        }
-                                    }
+                                    withAnimation(DesignTokens.Animation.defaultSpring) { toggle() }
                                 }
                             },
                             onSelect: { budget in
@@ -192,50 +189,9 @@ private struct BudgetListSkeletonView: View {
                     }
                     .padding(.vertical, DesignTokens.Spacing.md)
 
-                    // Month rows card (before hero)
-                    VStack(spacing: 0) {
-                        ForEach(0..<2, id: \.self) { index in
-                            HStack(spacing: DesignTokens.Spacing.md) {
-                                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                                    SkeletonShape(width: 100, height: 14)
-                                    SkeletonShape(width: 140, height: 11)
-                                }
-                                Spacer()
-                                SkeletonShape(width: 70, height: 14)
-                            }
-                            .padding(.horizontal, DesignTokens.Spacing.lg)
-                            .padding(.vertical, DesignTokens.Spacing.md)
-
-                            if index < 1 {
-                                Divider().padding(.leading, dividerLeadingInset)
-                            }
-                        }
-                    }
-                    .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.lg)
-
-                    // Hero card placeholder
+                    skeletonMonthRowsCard
                     SkeletonShape(height: 170, cornerRadius: DesignTokens.CornerRadius.xl)
-
-                    // Month rows card (after hero)
-                    VStack(spacing: 0) {
-                        ForEach(0..<2, id: \.self) { index in
-                            HStack(spacing: DesignTokens.Spacing.md) {
-                                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                                    SkeletonShape(width: 100, height: 14)
-                                    SkeletonShape(width: 140, height: 11)
-                                }
-                                Spacer()
-                                SkeletonShape(width: 70, height: 14)
-                            }
-                            .padding(.horizontal, DesignTokens.Spacing.lg)
-                            .padding(.vertical, DesignTokens.Spacing.md)
-
-                            if index < 1 {
-                                Divider().padding(.leading, dividerLeadingInset)
-                            }
-                        }
-                    }
-                    .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.lg)
+                    skeletonMonthRowsCard
                 }
             }
             .padding(.horizontal, DesignTokens.Spacing.xl)
@@ -245,6 +201,28 @@ private struct BudgetListSkeletonView: View {
         .shimmering()
         .pulpeBackground()
         .accessibilityLabel("Chargement des budgets")
+    }
+
+    private var skeletonMonthRowsCard: some View {
+        VStack(spacing: 0) {
+            ForEach(0..<2, id: \.self) { index in
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        SkeletonShape(width: 100, height: 14)
+                        SkeletonShape(width: 140, height: 11)
+                    }
+                    Spacer()
+                    SkeletonShape(width: 70, height: 14)
+                }
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.vertical, DesignTokens.Spacing.md)
+
+                if index < 1 {
+                    Divider().padding(.leading, dividerLeadingInset)
+                }
+            }
+        }
+        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.lg)
     }
 }
 
@@ -331,16 +309,10 @@ struct YearSection: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(yearAccessibilityLabel)
+        .accessibilityLabel(data.isCurrentYear ? "Année \(year), en cours" : "Année \(year)")
         .accessibilityValue(isExpanded ? "développé" : "réduit")
         .accessibilityHint(isExpanded ? "Appuie pour réduire" : "Appuie pour développer")
         .accessibilityAddTraits(.isHeader)
-    }
-
-    private var yearAccessibilityLabel: String {
-        var label = "Année \(year)"
-        if layoutData.isCurrentYear { label += ", en cours" }
-        return label
     }
 
     private var enCoursBadge: some View {

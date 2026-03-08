@@ -42,6 +42,23 @@ enum BudgetFormulas {
         case comfortable, tight, deficit
     }
 
+    /// Compute emotion state from raw sparse values (used by budget list hero card).
+    /// SOT logic matches `Metrics.emotionState`.
+    static func emotionState(
+        remaining: Decimal?,
+        totalIncome: Decimal?,
+        totalExpenses: Decimal?,
+        rollover: Decimal?
+    ) -> EmotionState {
+        guard let remaining else { return .comfortable }
+        if remaining < 0 { return .deficit }
+        let available = (totalIncome ?? 0) + (rollover ?? 0)
+        guard available > 0 else { return .comfortable }
+        let usagePercentage = Double(truncating: ((totalExpenses ?? 0) / available * 100) as NSDecimalNumber)
+        if usagePercentage >= tightBudgetThreshold { return .tight }
+        return .comfortable
+    }
+
     // MARK: - Realized Metrics
 
     struct RealizedMetrics: Equatable, Sendable {

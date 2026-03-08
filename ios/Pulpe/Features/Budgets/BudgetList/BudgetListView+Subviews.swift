@@ -14,20 +14,17 @@ struct CurrentMonthHeroCard: View {
     @Environment(\.amountsHidden) private var amountsHidden
 
     private var monthName: String {
-        guard let month = budget.month, month >= 1, month <= 12 else { return "—" }
-        return Formatters.monthYear.monthSymbols[month - 1].capitalized
+        Formatters.monthName(for: budget.month ?? 0)
     }
 
-    /// SOT with HeroBalanceCard — 3-state emotion system from BudgetFormulas
+    /// SOT — delegates to BudgetFormulas shared logic (same as HeroBalanceCard)
     private var emotionState: BudgetFormulas.EmotionState {
-        guard let remaining = budget.remaining else { return .comfortable }
-        if remaining < 0 { return .deficit }
-        let available = (budget.totalIncome ?? 0) + (budget.rollover ?? 0)
-        guard available > 0 else { return .comfortable }
-        let totalExpenses = budget.totalExpenses ?? 0
-        let usagePercentage = Double(truncating: (totalExpenses / available * 100) as NSDecimalNumber)
-        if usagePercentage >= BudgetFormulas.tightBudgetThreshold { return .tight }
-        return .comfortable
+        BudgetFormulas.emotionState(
+            remaining: budget.remaining,
+            totalIncome: budget.totalIncome,
+            totalExpenses: budget.totalExpenses,
+            rollover: budget.rollover
+        )
     }
 
     private var disponibleLabel: some View {
@@ -189,6 +186,7 @@ struct CurrentMonthHeroCard: View {
                 .blur(radius: 24)
                 .offset(x: -50, y: 0)
         }
+        .animation(reduceMotion ? nil : .spring(response: 0.7, dampingFraction: 0.8), value: emotionState)
         .allowsHitTesting(false)
     }
 }
@@ -204,25 +202,19 @@ struct BudgetMonthRow: View {
     @Environment(\.amountsHidden) private var amountsHidden
 
     private var monthName: String {
-        guard let month = budget.month, month >= 1, month <= 12 else { return "—" }
-        return Formatters.monthYear.monthSymbols[month - 1].capitalized
+        Formatters.monthName(for: budget.month ?? 0)
     }
 
-    private var isPastMonth: Bool {
-        guard let month = budget.month, let year = budget.year else { return false }
+    private func temporalState() -> (isPast: Bool, isFuture: Bool) {
+        guard let month = budget.month, let year = budget.year else { return (false, false) }
         let current = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
-        return year < current.year || (year == current.year && month < current.month)
+        let isPast = year < current.year || (year == current.year && month < current.month)
+        let isFuture = year > current.year || (year == current.year && month > current.month)
+        return (isPast, isFuture)
     }
 
-    private var isFutureMonth: Bool {
-        guard let month = budget.month, let year = budget.year else { return false }
-        let current = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
-        return year > current.year || (year == current.year && month > current.month)
-    }
-
-    private var amountColor: Color {
-        if isPastMonth { return .secondary }
-        if isFutureMonth { return .secondary }
+    private func amountColor(isPast: Bool, isFuture: Bool) -> Color {
+        if isPast || isFuture { return .secondary }
         guard let remaining = budget.remaining else { return .secondary }
         if remaining < 0 { return .financialOverBudget }
         if remaining > 0 { return .financialSavings }
@@ -230,6 +222,10 @@ struct BudgetMonthRow: View {
     }
 
     var body: some View {
+        let temporal = temporalState()
+        let isPast = temporal.isPast
+        let color = amountColor(isPast: temporal.isPast, isFuture: temporal.isFuture)
+
         Button {
             tapTrigger.toggle()
             onTap()
@@ -238,8 +234,8 @@ struct BudgetMonthRow: View {
                 if dynamicTypeSize.isAccessibilitySize {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                         Text(monthName)
-                            .font(isPastMonth ? PulpeTypography.body : PulpeTypography.onboardingSubtitle)
-                            .foregroundStyle(isPastMonth ? .secondary : .primary)
+                            .font(isPast ? PulpeTypography.body : PulpeTypography.onboardingSubtitle)
+                            .foregroundStyle(isPast ? .secondary : .primary)
 
                         if let periodLabel {
                             Text(periodLabel)
@@ -251,7 +247,7 @@ struct BudgetMonthRow: View {
                             Text(remaining.asCompactCHF)
                                 .font(PulpeTypography.amountMedium)
                                 .monospacedDigit()
-                                .foregroundStyle(amountColor)
+                                .foregroundStyle(color)
                                 .sensitiveAmount()
                         }
                     }
@@ -260,8 +256,8 @@ struct BudgetMonthRow: View {
                 } else {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(monthName)
-                            .font(isPastMonth ? PulpeTypography.body : PulpeTypography.onboardingSubtitle)
-                            .foregroundStyle(isPastMonth ? .secondary : .primary)
+                            .font(isPast ? PulpeTypography.body : PulpeTypography.onboardingSubtitle)
+                            .foregroundStyle(isPast ? .secondary : .primary)
                         if let periodLabel {
                             Text(periodLabel)
                                 .font(PulpeTypography.caption)
@@ -273,7 +269,7 @@ struct BudgetMonthRow: View {
                         Text(remaining.asCompactCHF)
                             .font(PulpeTypography.amountMedium)
                             .monospacedDigit()
-                            .foregroundStyle(amountColor)
+                            .foregroundStyle(color)
                             .sensitiveAmount()
                     }
                 }
@@ -305,8 +301,7 @@ struct NextMonthPlaceholder: View {
     @State private var tapTrigger = false
 
     private var monthName: String {
-        guard month >= 1, month <= 12 else { return "—" }
-        return Formatters.monthYear.monthSymbols[month - 1].capitalized
+        Formatters.monthName(for: month)
     }
 
     var body: some View {
