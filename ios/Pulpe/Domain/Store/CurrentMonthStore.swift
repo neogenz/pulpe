@@ -12,6 +12,21 @@ final class CurrentMonthStore: StoreProtocol {
         let totalExpenses: Decimal
     }
 
+    struct SavingsSummary: Sendable {
+        let totalPlanned: Decimal
+        let totalRealized: Decimal
+        let checkedCount: Int
+        let totalCount: Int
+
+        var progressPercentage: Double {
+            guard totalPlanned > 0 else { return 0 }
+            return max(0, min(Double(truncating: (totalRealized / totalPlanned * 100) as NSDecimalNumber), 100))
+        }
+
+        var isComplete: Bool { progressPercentage >= 100 && totalPlanned > 0 }
+        var hasSavings: Bool { totalPlanned > 0 || totalRealized > 0 }
+    }
+
     // MARK: - State
 
     private(set) var budget: Budget?
@@ -369,6 +384,28 @@ extension CurrentMonthStore {
                 .filter { !$0.isChecked }
                 .sorted { $0.transactionDate > $1.transactionDate }
                 .prefix(5)
+        )
+    }
+
+    /// Unchecked budget lines for dashboard checking widget (max 5)
+    var uncheckedBudgetLines: [BudgetLine] {
+        Array(
+            budgetLines
+                .filter { !$0.isChecked && !($0.isRollover ?? false) }
+                .sorted { $0.createdAt > $1.createdAt }
+                .prefix(5)
+        )
+    }
+
+    var savingsSummary: SavingsSummary {
+        let savingLines = budgetLines.filter { $0.kind == .saving && !($0.isRollover ?? false) }
+        let totalPlanned = savingLines.reduce(Decimal.zero) { $0 + $1.amount }
+        let checkedCount = savingLines.filter(\.isChecked).count
+        return SavingsSummary(
+            totalPlanned: totalPlanned,
+            totalRealized: realizedMetrics.checkedSavingsAmount,
+            checkedCount: checkedCount,
+            totalCount: savingLines.count
         )
     }
 

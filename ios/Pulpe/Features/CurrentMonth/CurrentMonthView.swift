@@ -12,16 +12,11 @@ private enum SheetDestination: Identifiable {
 struct CurrentMonthView: View {
     @Environment(AppState.self) private var appState
     @Environment(CurrentMonthStore.self) private var store
-    @Environment(DashboardStore.self) private var dashboardStore
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var activeSheet: SheetDestination?
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    // Progressive disclosure state (collapsed by default for cleaner dashboard)
-    @AppStorage("dashboard.trendsExpanded") private var trendsExpanded = false
-    @AppStorage("dashboard.yearOverviewExpanded") private var yearOverviewExpanded = false
 
     private var timeElapsedPercentage: Double {
         guard let budget = store.budget else { return 0 }
@@ -93,10 +88,7 @@ struct CurrentMonthView: View {
             }
         }
         .task {
-            dashboardStore.setPayDay(userSettingsStore.payDayOfMonth)
-            async let loadDetails: Void = store.loadDetailsIfNeeded()
-            async let loadDashboard: Void = dashboardStore.loadIfNeeded()
-            _ = await (loadDetails, loadDashboard)
+            await store.loadDetailsIfNeeded()
             if reduceMotion {
                 hasAppeared = true
             } else {
@@ -124,11 +116,8 @@ struct CurrentMonthView: View {
         .onChange(of: appState.selectedTab) { oldTab, newTab in
             guard newTab == .currentMonth, oldTab != .currentMonth else { return }
             store.invalidateCache()
-            dashboardStore.invalidateCache()
             Task {
-                async let storeLoad: Void = store.loadDetailsIfNeeded()
-                async let dashLoad: Void = dashboardStore.loadIfNeeded()
-                _ = await (storeLoad, dashLoad)
+                await store.loadDetailsIfNeeded()
             }
         }
         .onChange(of: activeSheet) { _, sheet in
@@ -141,7 +130,7 @@ struct CurrentMonthView: View {
     private var dashboardContent: some View {
         ScrollView {
             VStack(spacing: DesignTokens.Spacing.xxl) {
-                // Hero card with available balance and spent progress
+                // 1. Hero card — primary metric
                 HeroBalanceCard(
                     metrics: store.metrics,
                     timeElapsedPercentage: timeElapsedPercentage,
@@ -149,33 +138,11 @@ struct CurrentMonthView: View {
                 )
                 .staggeredEntrance(isVisible: hasAppeared, index: 0)
 
-                // Forward-looking projection
-                if let projection = store.projection {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                        Text("Projection")
-                            .pulpeSectionHeader()
-
-                        ProjectionCard(projection: projection)
-                    }
+                // 2. Unchecked forecasts — tap to check
+                uncheckedForecastsSection
                     .staggeredEntrance(isVisible: hasAppeared, index: 1)
-                }
 
-                // Insights: top spending + budget alerts
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Text("Aperçu")
-                        .pulpeSectionHeader()
-
-                    InsightsCard(
-                        topSpending: store.topSpending,
-                        alerts: store.alertBudgetLines.map {
-                            BudgetAlert(line: $0.line, consumption: $0.consumption)
-                        },
-                        onTap: { navigateToBudget = true }
-                    )
-                }
-                .staggeredEntrance(isVisible: hasAppeared, index: 2)
-
-                // Recent transactions with external section header
+                // 3. Recent transactions
                 if !store.recentTransactions.isEmpty {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                         Text("Transactions récentes")
@@ -186,40 +153,48 @@ struct CurrentMonthView: View {
                             onViewAll: { navigateToBudget = true }
                         )
                     }
+                    .staggeredEntrance(isVisible: hasAppeared, index: 2)
+                }
+
+                // 4. Savings progress
+                if store.savingsSummary.hasSavings {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        Text("Épargne")
+                            .pulpeSectionHeader()
+
+                        SavingsSummaryCard(summary: store.savingsSummary)
+                    }
                     .staggeredEntrance(isVisible: hasAppeared, index: 3)
                 }
-
-                // Trends (expenses over last 3 months) - collapsible for progressive disclosure
-                CollapsibleSection(title: "Dépenses", isExpanded: $trendsExpanded) {
-                    if dashboardStore.hasEnoughHistoryForTrends {
-                        TrendsCard(
-                            expenses: dashboardStore.historicalExpenses,
-                            variation: dashboardStore.expenseVariation,
-                            currentMonthTotal: store.metrics.totalExpenses
-                        )
-                    } else {
-                        TrendsEmptyState()
-                    }
-                }
-                .staggeredEntrance(isVisible: hasAppeared, index: 4)
-
-                // Year overview (savings YTD + rollover) - collapsible for progressive disclosure
-                CollapsibleSection(title: "Cette année", isExpanded: $yearOverviewExpanded) {
-                    YearOverviewCard(
-                        savingsYTD: dashboardStore.savingsYTD,
-                        rollover: store.budget?.rollover ?? 0
-                    )
-                }
-                .staggeredEntrance(isVisible: hasAppeared, index: 5)
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.lg)
         }
         .pulpeBackground()
         .refreshable {
-            async let refreshStore: Void = store.forceRefresh()
-            async let refreshDashboard: Void = dashboardStore.forceRefresh()
-            _ = await (refreshStore, refreshDashboard)
+            await store.forceRefresh()
+        }
+    }
+
+    // MARK: - Unchecked Forecasts Section
+
+    @ViewBuilder
+    private var uncheckedForecastsSection: some View {
+        if !store.uncheckedBudgetLines.isEmpty {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                Text("À pointer")
+                    .pulpeSectionHeader()
+
+                UncheckedForecastsCard(
+                    budgetLines: store.uncheckedBudgetLines,
+                    transactions: store.transactions,
+                    syncingIds: store.syncingBudgetLineIds,
+                    onToggle: { line in Task { await store.toggleBudgetLine(line) } },
+                    onViewAll: { navigateToBudget = true }
+                )
+            }
+        } else if !store.budgetLines.isEmpty {
+            UncheckedForecastsEmptyState()
         }
     }
 }
@@ -233,17 +208,16 @@ private struct CurrentMonthSkeletonView: View {
                 // Hero card placeholder
                 SkeletonShape(height: 200, cornerRadius: DesignTokens.CornerRadius.xl)
 
-                // Projection section
+                // Unchecked forecasts section
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     SkeletonShape(width: 80, height: 14)
-                    SkeletonShape(height: 80, cornerRadius: DesignTokens.CornerRadius.lg)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                // Insights section
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    SkeletonShape(width: 60, height: 14)
-                    SkeletonShape(height: 120, cornerRadius: DesignTokens.CornerRadius.lg)
+                    VStack(spacing: DesignTokens.Spacing.sm) {
+                        ForEach(0..<3, id: \.self) { _ in
+                            SkeletonRow()
+                        }
+                    }
+                    .padding(DesignTokens.Spacing.lg)
+                    .pulpeCardBackground()
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -257,6 +231,13 @@ private struct CurrentMonthSkeletonView: View {
                     }
                     .padding(DesignTokens.Spacing.lg)
                     .pulpeCardBackground()
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Savings section
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    SkeletonShape(width: 70, height: 14)
+                    SkeletonShape(height: 80, cornerRadius: DesignTokens.CornerRadius.lg)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -276,6 +257,5 @@ private struct CurrentMonthSkeletonView: View {
     .environment(AppState())
     .environment(CurrentMonthStore())
     .environment(BudgetListStore())
-    .environment(DashboardStore())
     .environment(UserSettingsStore())
 }
