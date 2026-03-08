@@ -8,20 +8,27 @@ struct RealizedBalanceSheet: View {
         realizedMetrics.realizedBalance >= 0
     }
 
+    private var completionRatio: Double {
+        guard realizedMetrics.totalItemsCount > 0 else { return 0 }
+        return Double(realizedMetrics.checkedItemsCount) / Double(realizedMetrics.totalItemsCount)
+    }
+
+    private var statusColor: Color {
+        isPositiveBalance ? .financialSavings : .financialOverBudget
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: DesignTokens.Spacing.xxl) {
-                    // Main balance card
-                    balanceCard
-
-                    // Progress comparison
+                VStack(spacing: DesignTokens.Spacing.xl) {
+                    balanceSection
+                    completionSection
                     progressSection
-
-                    // Tip
                     tipSection
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.top, DesignTokens.Spacing.sm)
+                .padding(.bottom, DesignTokens.Spacing.xxxl)
             }
             .background(Color.sheetBackground)
             .navigationTitle("Suivi du budget")
@@ -35,19 +42,19 @@ struct RealizedBalanceSheet: View {
         .standardSheetPresentation(detents: [.medium, .large])
     }
 
-    // MARK: - Balance Card
+    // MARK: - Balance Section
 
-    private var balanceCard: some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
-            // Label
+    private var balanceSection: some View {
+        VStack(spacing: DesignTokens.Spacing.md) {
             Text("Solde à date")
                 .font(PulpeTypography.subheadline)
                 .foregroundStyle(.secondary)
 
-            // Amount
             Text(realizedMetrics.realizedBalance.asCHF)
                 .font(PulpeTypography.amountHero)
+                .monospacedDigit()
                 .foregroundStyle(isPositiveBalance ? .primary : Color.financialOverBudget)
+                .contentTransition(.numericText())
                 .sensitiveAmount()
 
             // Status badge
@@ -57,70 +64,84 @@ struct RealizedBalanceSheet: View {
                 Text(isPositiveBalance ? "Tout va bien" : "Solde négatif — on y remédie ?")
                     .font(PulpeTypography.inputHelper)
             }
-            .foregroundStyle(isPositiveBalance ? Color.financialSavings : Color.financialOverBudget)
+            .foregroundStyle(statusColor)
             .padding(.horizontal, DesignTokens.Spacing.md)
             .padding(.vertical, 6)
-            .background(
-                (isPositiveBalance ? Color.financialSavings : Color.financialOverBudget)
-                    .opacity(DesignTokens.Opacity.badgeBackground)
-            )
+            .background(statusColor.opacity(DesignTokens.Opacity.badgeBackground))
             .clipShape(Capsule())
-
-            // Completion info
-            Text(
-                "Basé sur \(realizedMetrics.checkedItemsCount) éléments pointés sur " +
-                "\(realizedMetrics.totalItemsCount)"
-            )
-                .font(PulpeTypography.caption)
-                .foregroundStyle(Color.pulpeTextTertiary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.xxl)
-        .background(Color.surfaceContainerHigh)
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
+    }
+
+    // MARK: - Completion Section
+
+    private var completionSection: some View {
+        VStack(spacing: DesignTokens.Spacing.md) {
+            HStack {
+                Text("Pointage")
+                    .font(PulpeTypography.labelLarge)
+
+                Spacer()
+
+                Text("\(realizedMetrics.checkedItemsCount) / \(realizedMetrics.totalItemsCount)")
+                    .font(PulpeTypography.labelLargeBold)
+                    .monospacedDigit()
+                    .foregroundStyle(statusColor)
+            }
+
+            // Segmented progress bar
+            CompletionBar(
+                checked: realizedMetrics.checkedItemsCount,
+                total: realizedMetrics.totalItemsCount,
+                color: statusColor
+            )
+        }
+        .padding(DesignTokens.Spacing.lg)
+        .pulpeCardBackground()
     }
 
     // MARK: - Progress Section
 
     private var progressSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
             Text("Prévu vs Réalisé")
                 .font(PulpeTypography.headline)
 
-            // Income row
-            ProgressRow(
-                label: "Revenus",
-                icon: "arrow.down.circle.fill",
-                iconColor: .financialIncome,
-                realized: realizedMetrics.realizedIncome,
-                planned: metrics.totalIncome
-            )
+            VStack(spacing: 0) {
+                CategoryRow(
+                    label: "Revenus",
+                    icon: "arrow.down.circle.fill",
+                    iconColor: .financialIncome,
+                    realized: realizedMetrics.realizedIncome,
+                    planned: metrics.totalIncome
+                )
 
-            // Expenses row
-            ProgressRow(
-                label: "Dépenses",
-                icon: "arrow.up.circle.fill",
-                iconColor: .financialExpense,
-                realized: realizedMetrics.realizedExpenses,
-                planned: metrics.totalExpenses - metrics.totalSavings
-            )
+                Divider()
+                    .padding(.leading, DesignTokens.IconSize.badge + DesignTokens.Spacing.md)
 
-            // Savings row
-            ProgressRow(
-                label: "Épargne",
-                icon: TransactionKind.savingsIcon,
-                iconColor: .financialSavings,
-                realized: realizedSavings,
-                planned: metrics.totalSavings
-            )
+                CategoryRow(
+                    label: "Dépenses",
+                    icon: "arrow.up.circle.fill",
+                    iconColor: .financialExpense,
+                    realized: realizedMetrics.realizedExpenses,
+                    planned: metrics.totalExpenses - metrics.totalSavings
+                )
+
+                Divider()
+                    .padding(.leading, DesignTokens.IconSize.badge + DesignTokens.Spacing.md)
+
+                CategoryRow(
+                    label: "Épargne",
+                    icon: TransactionKind.savingsIcon,
+                    iconColor: .financialSavings,
+                    realized: realizedMetrics.checkedSavingsAmount,
+                    planned: metrics.totalSavings
+                )
+            }
+            .padding(DesignTokens.Spacing.lg)
+            .pulpeCardBackground()
         }
-        .padding()
-        .background(Color.surfaceContainerHigh)
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
-    }
-
-    private var realizedSavings: Decimal {
-        realizedMetrics.checkedSavingsAmount
     }
 
     // MARK: - Tip Section
@@ -128,8 +149,11 @@ struct RealizedBalanceSheet: View {
     private var tipSection: some View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
             Image(systemName: "lightbulb.fill")
-                .font(PulpeTypography.body)
+                .font(.system(size: 14))
                 .foregroundStyle(Color.warningPrimary)
+                .frame(width: 28, height: 28)
+                .background(Color.warningPrimary.opacity(DesignTokens.Opacity.badgeBackground))
+                .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Astuce")
@@ -143,16 +167,43 @@ struct RealizedBalanceSheet: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding()
+        .padding(DesignTokens.Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.warningBackground)
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+        .pulpeCardBackground()
     }
 }
 
-// MARK: - Progress Row Component
+// MARK: - Completion Bar (segmented)
 
-private struct ProgressRow: View {
+private struct CompletionBar: View {
+    let checked: Int
+    let total: Int
+    let color: Color
+
+    private let segmentCount = 10
+    private let segmentSpacing: CGFloat = 3
+    private let segmentHeight: CGFloat = 8
+
+    private var filledSegments: Int {
+        guard total > 0 else { return 0 }
+        return Int((Double(checked) / Double(total)) * Double(segmentCount))
+    }
+
+    var body: some View {
+        HStack(spacing: segmentSpacing) {
+            ForEach(0..<segmentCount, id: \.self) { index in
+                Capsule()
+                    .fill(index < filledSegments ? color : Color.progressTrack)
+                    .frame(height: segmentHeight)
+            }
+        }
+        .animation(DesignTokens.Animation.gentleSpring, value: filledSegments)
+    }
+}
+
+// MARK: - Category Row
+
+private struct CategoryRow: View {
     let label: String
     let icon: String
     let iconColor: Color
@@ -169,44 +220,56 @@ private struct ProgressRow: View {
     private var percentageText: String {
         guard planned > 0 else { return "0%" }
         let pct = Int(truncating: NSDecimalNumber(decimal: realized / planned * 100))
-        return "\(min(pct, 100))%"
+        return "\(min(pct, 999))%"
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            // Header
-            HStack {
-                Image(systemName: icon)
-                    .foregroundStyle(iconColor)
+        HStack(spacing: DesignTokens.Spacing.md) {
+            // Icon badge
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundStyle(.white)
+                .frame(width: DesignTokens.IconSize.badge, height: DesignTokens.IconSize.badge)
+                .background(iconColor)
+                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.sm + 2))
 
-                Text(label)
-                    .font(PulpeTypography.buttonSecondary)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                // Label + amounts
+                HStack(alignment: .firstTextBaseline) {
+                    Text(label)
+                        .font(PulpeTypography.buttonSecondary)
 
-                Spacer()
+                    Spacer()
 
-                Text("\(realized.asCompactCHF) / \(planned.asCompactCHF)")
-                    .font(PulpeTypography.subheadline)
-                    .foregroundStyle(.secondary)
-                    .sensitiveAmount()
+                    Text("\(realized.asCompactCHF) / \(planned.asCompactCHF)")
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(.secondary)
+                        .sensitiveAmount()
+                }
+
+                // Progress bar + percentage
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.progressTrack)
+
+                        Capsule()
+                            .fill(iconColor)
+                            .frame(width: barWidth * CGFloat(percentage))
+                            .animation(.spring(duration: DesignTokens.Animation.slow), value: percentage)
+                    }
+                    .frame(height: DesignTokens.ProgressBar.thickHeight)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }
+
+                    Text(percentageText)
+                        .font(PulpeTypography.progressUnit)
+                        .foregroundStyle(Color.pulpeTextTertiary)
+                        .monospacedDigit()
+                        .frame(minWidth: 28, alignment: .trailing)
+                }
             }
-
-            // Progress bar
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Color.progressTrack)
-
-                Capsule()
-                    .fill(iconColor)
-                    .frame(width: barWidth * CGFloat(percentage))
-            }
-            .frame(height: DesignTokens.Spacing.sm)
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }
-
-            // Percentage label
-            Text("\(percentageText) réalisé")
-                .font(PulpeTypography.caption)
-                .foregroundStyle(Color.pulpeTextTertiary)
         }
+        .padding(.vertical, DesignTokens.Spacing.md)
     }
 }
 

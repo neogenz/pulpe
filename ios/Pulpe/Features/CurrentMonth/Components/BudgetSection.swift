@@ -83,20 +83,9 @@ struct BudgetSection: View {
             ForEach(Array(displayedItems.enumerated()), id: \.element.id) { index, item in
                 budgetLineRow(for: item)
                     .listRowSeparator(.hidden)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        if onToggle != nil || onDelete != nil {
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        if onToggle != nil || onDelete != nil || onEdit != nil {
                             swipeActions(for: item)
-                        }
-                    }
-                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                        if let onEdit, !item.isVirtualRollover {
-                            Button {
-                                onEdit(item)
-                                ProductTips.gestures.invalidate(reason: .actionPerformed)
-                            } label: {
-                                Label("Modifier", systemImage: "pencil")
-                            }
-                            .tint(.pulpePrimary)
                         }
                     }
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
@@ -143,6 +132,16 @@ struct BudgetSection: View {
                     )
                 }
                 .tint(item.isChecked ? Color.financialOverBudget : .pulpePrimary)
+            }
+
+            if let onEdit {
+                Button {
+                    onEdit(item)
+                    ProductTips.gestures.invalidate(reason: .actionPerformed)
+                } label: {
+                    Label("Modifier", systemImage: "pencil")
+                }
+                .tint(.pulpePrimary)
             }
         }
     }
