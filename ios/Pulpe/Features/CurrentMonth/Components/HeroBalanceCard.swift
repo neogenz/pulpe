@@ -21,6 +21,7 @@ struct HeroBalanceCard: View {
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.amountsHidden) private var amountsHidden
+    @State private var tapTrigger = false
 
     // MARK: - Computed Properties
 
@@ -101,10 +102,14 @@ struct HeroBalanceCard: View {
     var body: some View {
         Group {
             if let onTapProgress {
-                Button(action: onTapProgress) {
+                Button {
+                    tapTrigger.toggle()
+                    onTapProgress()
+                } label: {
                     cardContent
                 }
                 .buttonStyle(.plain)
+                .sensoryFeedback(.impact(flexibility: .soft), trigger: tapTrigger)
             } else {
                 cardContent
             }

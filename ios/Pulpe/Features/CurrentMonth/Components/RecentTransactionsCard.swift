@@ -5,6 +5,8 @@ struct RecentTransactionsCard: View {
     let transactions: [Transaction]
     let onViewAll: () -> Void
 
+    @State private var viewAllTrigger = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             // Transaction rows
@@ -15,7 +17,10 @@ struct RecentTransactionsCard: View {
             }
 
             // View all button
-            Button(action: onViewAll) {
+            Button {
+                viewAllTrigger.toggle()
+                onViewAll()
+            } label: {
                 HStack {
                     Text("Voir tout")
                         .font(PulpeTypography.buttonSecondary)
@@ -26,6 +31,7 @@ struct RecentTransactionsCard: View {
                 }
             }
             .buttonStyle(.plain)
+            .sensoryFeedback(.selection, trigger: viewAllTrigger)
         }
         .pulpeCard()
         .accessibilityElement(children: .contain)
