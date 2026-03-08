@@ -27,11 +27,6 @@ enum PinSetupStep {
 // MARK: - View
 
 struct PinSetupView: View {
-    private struct RecoveryKeySheetItem: Identifiable {
-        let key: String
-        var id: String { key }
-    }
-
     let mode: PinSetupMode
     let onComplete: () async -> Void
     let onLogout: (() async -> Void)?
@@ -56,7 +51,7 @@ struct PinSetupView: View {
             .sensoryFeedback(.error, trigger: viewModel.hapticError)
             .sensoryFeedback(.success, trigger: viewModel.hapticSuccess)
             .sheet(item: recoveryKeySheetItemBinding) { item in
-                RecoveryKeySheet(recoveryKey: item.key) {
+                RecoveryKeySheet(recoveryKey: item.recoveryKey) {
                     Task { await onComplete() }
                 }
             }
@@ -125,28 +120,19 @@ struct PinSetupView: View {
     // MARK: - Dots + Error
 
     private var dotsSection: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
-            PinDotsView(
-                enteredCount: viewModel.digits.count,
-                maxDigits: viewModel.maxDigits,
-                isError: viewModel.isError
-            )
-
-            if let errorMessage = viewModel.errorMessage {
-                Text(errorMessage)
-                    .font(PulpeTypography.footnote)
-                    .foregroundStyle(Color.errorPrimary)
-                    .transition(.opacity)
-            }
-        }
-        .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: viewModel.errorMessage)
+        PinDotsErrorView(
+            enteredCount: viewModel.digits.count,
+            maxDigits: viewModel.maxDigits,
+            isError: viewModel.isError,
+            errorMessage: viewModel.errorMessage
+        )
     }
 
     private var recoveryKeySheetItemBinding: Binding<RecoveryKeySheetItem?> {
         Binding<RecoveryKeySheetItem?>(
             get: {
                 guard viewModel.showRecoverySheet, let key = viewModel.recoveryKey else { return nil }
-                return RecoveryKeySheetItem(key: key)
+                return RecoveryKeySheetItem(recoveryKey: key)
             },
             set: { item in
                 guard item == nil else { return }

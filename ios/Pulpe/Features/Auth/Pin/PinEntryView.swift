@@ -93,21 +93,12 @@ struct PinEntryView: View {
     // MARK: - Dots + Error
 
     private var dotsSection: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
-            PinDotsView(
-                enteredCount: viewModel.digits.count,
-                maxDigits: viewModel.maxDigits,
-                isError: viewModel.isError
-            )
-
-            if let errorMessage = viewModel.errorMessage {
-                Text(errorMessage)
-                    .font(PulpeTypography.footnote)
-                    .foregroundStyle(Color.errorPrimary)
-                    .transition(.opacity)
-            }
-        }
-        .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: viewModel.errorMessage)
+        PinDotsErrorView(
+            enteredCount: viewModel.digits.count,
+            maxDigits: viewModel.maxDigits,
+            isError: viewModel.isError,
+            errorMessage: viewModel.errorMessage
+        )
     }
 
     // MARK: - Forgot PIN
