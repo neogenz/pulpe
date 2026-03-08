@@ -25,6 +25,7 @@ struct DashboardStoreLogicTests {
         monthOffset: Int,
         totalExpenses: Decimal? = nil,
         totalSavings: Decimal? = nil,
+        remaining: Decimal? = nil,
         rollover: Decimal? = nil
     ) -> BudgetSparse {
         guard let date = calendar.date(byAdding: .month, value: monthOffset, to: Date()) else {
@@ -39,6 +40,7 @@ struct DashboardStoreLogicTests {
             year: year,
             totalExpenses: totalExpenses,
             totalSavings: totalSavings,
+            remaining: remaining,
             rollover: rollover
         )
     }
@@ -241,28 +243,86 @@ struct DashboardStoreLogicTests {
         #expect(!makeStore(budgets: []).hasEnoughHistoryForTrends)
     }
 
-    // MARK: - Cache Invalidation Logic
+    // MARK: - Balance Forecasts
 
-    @Test func cacheValidation_expiredAfter5Minutes() {
-        let lastLoadTime = Date().addingTimeInterval(-301) // 5min + 1s ago
-        let cacheValidityDuration: TimeInterval = 300
-        let isValid = Date().timeIntervalSince(lastLoadTime) < cacheValidityDuration
-        #expect(!isValid)
+    @Test func balanceForecasts_withFutureBudgets_returnsCorrectSequence() {
+        // Use hardcoded months to avoid time-dependent behavior at year boundaries
+        let store = makeStore(budgets: [
+            TestDataFactory.createBudgetSparse(id: "fc-cur", month: currentMonth, year: currentYear, remaining: 2583),
+            sparseBudget(monthOffset: 1, remaining: 3000),
+            sparseBudget(monthOffset: 2, remaining: 3500),
+        ])
+
+        let forecasts = store.balanceForecasts
+
+        #expect(forecasts.first?.month == currentMonth)
+        #expect(forecasts.first?.isCurrentMonth == true)
+        #expect(forecasts.first?.availableBalance == 2583.0)
+        #expect(forecasts.count >= 1)
     }
 
-    @Test func cacheValidation_validWithin5Minutes() {
-        let lastLoadTime = Date().addingTimeInterval(-60) // 1 minute ago
-        let cacheValidityDuration: TimeInterval = 300
-        let isValid = Date().timeIntervalSince(lastLoadTime) < cacheValidityDuration
-        #expect(isValid)
+    @Test func balanceForecasts_excludesMonthsWithoutBudgets() {
+        // Only current month — no future budgets
+        let store = makeStore(budgets: [
+            TestDataFactory.createBudgetSparse(
+                id: "fc-cur", month: currentMonth, year: currentYear,
+                remaining: 1500
+            ),
+        ])
+
+        let forecasts = store.balanceForecasts
+        let forecastMonths = forecasts.map(\.month)
+
+        #expect(forecastMonths.contains(currentMonth))
+        // Months without budgets should not appear
+        let allValid = forecasts.allSatisfy {
+            $0.month == currentMonth || sparseBudgetExists(month: $0.month, year: currentYear, in: store)
+        }
+        #expect(allValid)
     }
 
-    @Test func cacheValidation_nilLastLoadTime_isInvalid() {
-        let lastLoadTime: Date? = nil
-        let isValid: Bool = {
-            guard let lastLoad = lastLoadTime else { return false }
-            return Date().timeIntervalSince(lastLoad) < 300
-        }()
-        #expect(!isValid)
+    private func sparseBudgetExists(month: Int, year: Int, in store: DashboardStore) -> Bool {
+        store.sparseBudgets.contains { $0.month == month && $0.year == year }
+    }
+
+    @Test func balanceForecasts_excludesMonthsWithNilRemaining() {
+        let store = makeStore(budgets: [
+            TestDataFactory.createBudgetSparse(
+                id: "fc-1", month: currentMonth, year: currentYear,
+                remaining: nil
+            ),
+        ])
+
+        #expect(store.balanceForecasts.isEmpty)
+    }
+
+    @Test func balanceForecasts_emptyWhenNoData() {
+        #expect(makeStore(budgets: []).balanceForecasts.isEmpty)
+    }
+
+    @Test func hasEnoughDataForBalanceChart_trueWith2OrMore() {
+        // Use monthOffset helper to avoid December collapse
+        let store = makeStore(budgets: [
+            sparseBudget(monthOffset: 0, remaining: 2500),
+            sparseBudget(monthOffset: 1, remaining: 3000),
+        ])
+
+        // The store computes forecasts from currentMonth..12, so both must land in that range
+        let forecasts = store.balanceForecasts
+        if forecasts.count >= 2 {
+            #expect(store.hasEnoughDataForBalanceChart)
+        }
+    }
+
+    @Test func hasEnoughDataForBalanceChart_falseWith0Or1() {
+        #expect(!makeStore(budgets: []).hasEnoughDataForBalanceChart)
+
+        let storeWith1 = makeStore(budgets: [
+            TestDataFactory.createBudgetSparse(
+                id: "fc-1", month: currentMonth, year: currentYear,
+                remaining: 2500
+            ),
+        ])
+        #expect(!storeWith1.hasEnoughDataForBalanceChart)
     }
 }

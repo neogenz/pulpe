@@ -262,28 +262,6 @@ struct CurrentMonthStoreAlertAndFilterTests {
         #expect(recent[4].id == "tx-4")
     }
 
-    @Test func uncheckedTransactionsLogic_filtersAndLimits() {
-        // Arrange
-        let transactions = [
-            TestDataFactory.createTransaction(id: "tx-1", isChecked: false),
-            TestDataFactory.createTransaction(id: "tx-2", isChecked: true),
-            TestDataFactory.createTransaction(id: "tx-3", isChecked: false),
-            TestDataFactory.createTransaction(id: "tx-4", isChecked: false)
-        ]
-
-        // Act
-        let unchecked = Array(
-            transactions
-                .filter { !$0.isChecked }
-                .prefix(5)
-        )
-
-        // Assert
-        #expect(unchecked.count == 3)
-        let allUnchecked = unchecked.allSatisfy { !$0.isChecked }
-        #expect(allUnchecked)
-    }
-
     @Test func freeTransactionsLogic_filtersUnallocated() {
         // Arrange
         let transactions = [

@@ -211,6 +211,20 @@ struct BudgetDetailsView: View {
                     .listRowSeparator(.hidden)
             }
 
+            // All checked empty state (À pointer filter active, nothing left to check)
+            if searchText.isEmpty && viewModel.isShowingOnlyUnchecked &&
+                filteredIncome.isEmpty && filteredExpenses.isEmpty &&
+                filteredSavings.isEmpty && filteredFree.isEmpty &&
+                (!viewModel.budgetLines.isEmpty || !viewModel.transactions.isEmpty) {
+                ContentUnavailableView {
+                    Label("Tout est pointé", systemImage: "checkmark.circle.fill")
+                } description: {
+                    Text("Bien joué ! Passe sur « Toutes » pour revoir tes prévisions.")
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            }
+
             // Budget line sections (tip appears in the first visible section)
             if !filteredIncome.isEmpty {
                 budgetSection(title: "Revenus", items: filteredIncome, tip: ProductTips.gestures)

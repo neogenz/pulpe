@@ -37,7 +37,7 @@ final class DashboardStore: StoreProtocol {
     // MARK: - Constants
 
     private static let historicalMonthsCount = 3
-    private static let maxBudgetsToFetch = 12 // Enough for YTD + trends
+    private static let maxHistoricalToFetch = 6 // Enough for trends + YTD lookback
 
     // MARK: - Initialization
 
@@ -84,15 +84,28 @@ final class DashboardStore: StoreProtocol {
             defer { isLoading = false }
 
             do {
-                // Fetch only aggregated data - no transactions or budget lines
-                let budgets = try await budgetService.getBudgetsSparse(
-                    limit: Self.maxBudgetsToFetch
+                let currentYear = Calendar.current.component(.year, from: Date())
+
+                // Fetch current year (all months including future) + recent history in parallel
+                async let currentYearBudgets = budgetService.getBudgetsSparse(year: currentYear)
+                async let recentBudgets = budgetService.getBudgetsSparse(
+                    limit: Self.maxHistoricalToFetch,
+                    year: currentYear - 1
                 )
+
+                let (yearBudgets, pastBudgets) = try await (currentYearBudgets, recentBudgets)
 
                 // Check for cancellation before updating state
                 try Task.checkCancellation()
 
-                sparseBudgets = budgets
+                // Merge and deduplicate by id
+                var seen = Set<String>()
+                var merged: [BudgetSparse] = []
+                for budget in pastBudgets + yearBudgets where seen.insert(budget.id).inserted {
+                    merged.append(budget)
+                }
+
+                sparseBudgets = merged
                 lastLoadTime = Date()
             } catch is CancellationError {
                 // Task was cancelled, don't update error state
@@ -189,18 +202,43 @@ final class DashboardStore: StoreProtocol {
     var hasEnoughHistoryForTrends: Bool {
         historicalExpenses.count >= 2
     }
+
+    /// Projected remaining balance from current month through December.
+    /// Uses the backend-computed `remaining` field (income + rollover - expenses)
+    /// to match the "disponible" amounts shown in the budget list.
+    var balanceForecasts: [MonthlyForecast] {
+        let currentPeriod = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
+        let currentYear = currentPeriod.year
+
+        return (currentPeriod.month...12).compactMap { month -> MonthlyForecast? in
+            guard let budget = sparseBudgets.first(where: { $0.month == month && $0.year == currentYear }),
+                  let remaining = budget.remaining else {
+                return nil
+            }
+
+            return MonthlyForecast(
+                month: month,
+                year: currentYear,
+                availableBalance: Double(truncating: remaining as NSDecimalNumber),
+                isCurrentMonth: month == currentPeriod.month
+            )
+        }
+    }
+
+    /// At least 2 forecast entries needed for a meaningful chart
+    var hasEnoughDataForBalanceChart: Bool {
+        balanceForecasts.count >= 2
+    }
 }
 
 // MARK: - Supporting Types
 
-struct MonthlyExpense: Identifiable {
-    let month: Int
-    let year: Int
-    let total: Decimal
-    let isCurrentPeriod: Bool
+protocol MonthlyDataPoint {
+    var month: Int { get }
+    var year: Int { get }
+}
 
-    var id: String { "\(year)-\(month)" }
-
+extension MonthlyDataPoint {
     var shortMonthName: String {
         var components = DateComponents()
         components.month = month
@@ -212,6 +250,15 @@ struct MonthlyExpense: Identifiable {
         }
         return "\(month)"
     }
+}
+
+struct MonthlyExpense: Identifiable, MonthlyDataPoint {
+    let month: Int
+    let year: Int
+    let total: Decimal
+    let isCurrentPeriod: Bool
+
+    var id: String { "\(year)-\(month)" }
 }
 
 struct ExpenseVariation {
@@ -238,4 +285,13 @@ struct ExpenseVariation {
         let sign = isIncrease ? "+" : ""
         return "\(sign)\(Int(percentage))%"
     }
+}
+
+struct MonthlyForecast: Identifiable, MonthlyDataPoint {
+    let month: Int
+    let year: Int
+    let availableBalance: Double
+    let isCurrentMonth: Bool
+
+    var id: String { "\(year)-\(month)" }
 }

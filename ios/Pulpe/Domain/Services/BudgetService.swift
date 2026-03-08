@@ -7,7 +7,7 @@ actor BudgetService {
     // MARK: - Constants
 
     /// Default fields for sparse dashboard queries (optimized payload)
-    static let defaultSparseFields = "month,year,totalExpenses,totalSavings,rollover"
+    static let defaultSparseFields = "month,year,totalIncome,totalExpenses,totalSavings,rollover,remaining"
 
     private let apiClient: APIClient
 
