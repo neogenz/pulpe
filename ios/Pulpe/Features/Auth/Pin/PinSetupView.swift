@@ -309,9 +309,9 @@ final class PinSetupViewModel {
 
         errorResetTask?.cancel()
         errorResetTask = Task {
-            try? await Task.sleep(for: .seconds(1))
+            try? await Task.sleep(for: .seconds(3))
             guard !Task.isCancelled else { return }
-            isError = false
+            clearError()
         }
     }
 

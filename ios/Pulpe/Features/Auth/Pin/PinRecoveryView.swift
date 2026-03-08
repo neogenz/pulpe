@@ -157,7 +157,7 @@ struct PinRecoveryView: View {
                 }
             }
 
-            Spacer().frame(height: 40)
+            Spacer().frame(height: DesignTokens.Spacing.sectionGap)
 
             PinDotsErrorView(
                 enteredCount: viewModel.digits.count,
@@ -166,7 +166,7 @@ struct PinRecoveryView: View {
                 errorMessage: viewModel.errorMessage
             )
 
-            Spacer().frame(height: 48)
+            Spacer().frame(height: DesignTokens.Spacing.stepHeaderTop)
 
             NumpadView(
                 onDigit: { viewModel.appendDigit($0) },
@@ -451,9 +451,9 @@ final class PinRecoveryViewModel {
 
         errorResetTask?.cancel()
         errorResetTask = Task {
-            try? await Task.sleep(for: .seconds(2))
+            try? await Task.sleep(for: .seconds(3))
             guard !Task.isCancelled else { return }
-            isError = false
+            clearError()
         }
     }
 

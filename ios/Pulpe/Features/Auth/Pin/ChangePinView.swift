@@ -296,6 +296,7 @@ final class ChangePinViewModel {
             self.oldClientKeyHex = nil
             self.cachedSalt = nil
             hapticSuccess.toggle()
+            AnalyticsService.shared.capture(.pinChanged)
             recoveryKey = response.recoveryKey
         } catch let error as APIError {
             step = .enterNewPin
