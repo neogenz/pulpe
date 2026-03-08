@@ -9,20 +9,30 @@ struct UncheckedForecastsCard: View {
     let onToggle: (BudgetLine) -> Void
     let onViewAll: () -> Void
 
+    @State private var viewAllTrigger = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             VStack(spacing: 0) {
-                ForEach(budgetLines, id: \.id) { line in
+                ForEach(Array(budgetLines.enumerated()), id: \.element.id) { index, line in
                     UncheckedForecastRow(
                         line: line,
                         consumption: BudgetFormulas.calculateConsumption(for: line, transactions: transactions),
                         isSyncing: syncingIds.contains(line.id),
                         onToggle: { onToggle(line) }
                     )
+
+                    if index < budgetLines.count - 1 {
+                        Divider()
+                            .padding(.leading, 40 + DesignTokens.Spacing.md)
+                    }
                 }
             }
 
-            Button(action: onViewAll) {
+            Button {
+                viewAllTrigger.toggle()
+                onViewAll()
+            } label: {
                 HStack {
                     Text("Voir tout")
                         .font(PulpeTypography.buttonSecondary)
@@ -33,6 +43,7 @@ struct UncheckedForecastsCard: View {
                 }
             }
             .buttonStyle(.plain)
+            .sensoryFeedback(.selection, trigger: viewAllTrigger)
         }
         .pulpeCard()
         .accessibilityElement(children: .contain)
@@ -63,55 +74,54 @@ private struct UncheckedForecastRow: View {
     }
 
     var body: some View {
-        Button {
-            triggerFeedback.toggle()
-            onToggle()
-        } label: {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                // Kind icon circle
+        HStack(spacing: DesignTokens.Spacing.md) {
+            // Checkbox circle — sole toggle target
+            Button {
+                triggerFeedback.toggle()
+                onToggle()
+            } label: {
                 Circle()
-                    .fill(line.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
+                    .strokeBorder(line.kind.color.opacity(0.4), lineWidth: 2)
                     .frame(width: 40, height: 40)
                     .overlay {
                         Image(systemName: line.kind.icon)
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(line.kind.color)
                     }
-
-                // Name + consumption or recurrence
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(line.name)
-                        .font(.system(.body, weight: .semibold))
-                        .lineLimit(1)
-
-                    if line.kind == .expense, consumption.allocated > 0 {
-                        Text("\(consumptionPercentage)% \u{00B7} \(consumption.available.asAmount) restant")
-                            .font(PulpeTypography.caption)
-                            .foregroundStyle(consumptionColor)
-                            .sensitiveAmount()
-                    } else {
-                        Text(line.recurrence.label)
-                            .font(PulpeTypography.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Spacer(minLength: 8)
-
-                SyncIndicator(isSyncing: isSyncing)
-
-                Text(line.amount.asSignedAmount(for: line.kind))
-                    .font(.system(.callout, weight: .regular))
-                    .foregroundStyle(line.kind.color)
-                    .sensitiveAmount()
             }
-            .padding(.vertical, DesignTokens.ListRow.verticalPadding)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .sensoryFeedback(.success, trigger: triggerFeedback)
+            .accessibilityLabel("Pointer \(line.name)")
+
+            // Name + consumption or recurrence
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(line.name)
+                    .font(.system(.body, weight: .semibold))
+                    .lineLimit(1)
+
+                if line.kind == .expense, consumption.allocated > 0 {
+                    Text("\(consumptionPercentage)% \u{00B7} \(consumption.available.asAmount) restant")
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(consumptionColor)
+                        .sensitiveAmount()
+                } else {
+                    Text(line.recurrence.label)
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            SyncIndicator(isSyncing: isSyncing)
+
+            Text(line.amount.asSignedAmount(for: line.kind))
+                .font(.system(.callout, weight: .regular))
+                .foregroundStyle(line.kind.color)
+                .sensitiveAmount()
         }
-        .buttonStyle(.plain)
-        .sensoryFeedback(.success, trigger: triggerFeedback)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Pointer \(line.name), \(amountsHidden ? "Montant masqu\u{00E9}" : line.amount.asCHF)")
+        .padding(.vertical, DesignTokens.ListRow.verticalPadding)
+        .accessibilityElement(children: .contain)
     }
 }
 
