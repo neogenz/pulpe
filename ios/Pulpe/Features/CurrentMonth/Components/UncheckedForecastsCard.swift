@@ -23,7 +23,7 @@ struct UncheckedForecastsCard: View {
                         syncingTransactionIds: syncingTransactionIds,
                         onToggle: { onToggle(item) }
                     )
-                    .transition(.opacity.combined(with: .move(edge: .leading)))
+                    .transition(.opacity)
 
                     if index < items.count - 1 {
                         Divider()
@@ -49,7 +49,7 @@ struct UncheckedForecastsCard: View {
             .buttonStyle(.plain)
             .sensoryFeedback(.selection, trigger: viewAllTrigger)
         }
-        .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: items.map(\.id))
+        .animation(DesignTokens.Animation.defaultSpring, value: items.map(\.id))
         .pulpeCard()
         .accessibilityElement(children: .contain)
         .accessibilityLabel("À pointer, \(items.count) éléments")
