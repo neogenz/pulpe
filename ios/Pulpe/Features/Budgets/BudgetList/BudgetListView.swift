@@ -251,7 +251,6 @@ struct YearSection: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
             }
         }
-        .clipped()
         .sensoryFeedback(.impact(flexibility: .soft), trigger: expandTrigger)
         .onChange(of: isExpanded) { _, _ in
             expandTrigger.toggle()
@@ -355,7 +354,7 @@ struct YearSection: View {
             }
         }
         .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.lg)
-        .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 2)
+        .shadow(DesignTokens.Shadow.card)
     }
 }
 

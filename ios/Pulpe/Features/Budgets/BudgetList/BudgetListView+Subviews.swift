@@ -205,7 +205,7 @@ struct BudgetMonthRow: View {
         Formatters.monthName(for: budget.month ?? 0)
     }
 
-    private func isPast() -> Bool {
+    private var isPast: Bool {
         guard let month = budget.month, let year = budget.year else { return false }
         let current = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
         return year < current.year || (year == current.year && month < current.month)
@@ -220,7 +220,7 @@ struct BudgetMonthRow: View {
     }
 
     var body: some View {
-        let isPast = isPast()
+        let isPast = isPast
         let color = amountColor(isPast: isPast)
 
         Button {
