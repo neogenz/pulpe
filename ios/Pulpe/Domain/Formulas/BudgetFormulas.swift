@@ -31,9 +31,12 @@ enum BudgetFormulas {
 
         /// DA §3.1: 3-state emotion zone — comfortable (<80%), tight (80-100%), deficit (>100%)
         var emotionState: EmotionState {
-            if isDeficit { return .deficit }
-            if usagePercentage >= BudgetFormulas.tightBudgetThreshold { return .tight }
-            return .comfortable
+            BudgetFormulas.emotionState(
+                remaining: remaining,
+                totalIncome: totalIncome,
+                totalExpenses: totalExpenses,
+                rollover: rollover
+            )
         }
     }
 
@@ -42,8 +45,8 @@ enum BudgetFormulas {
         case comfortable, tight, deficit
     }
 
-    /// Compute emotion state from raw sparse values (used by budget list hero card).
-    /// SOT logic matches `Metrics.emotionState`.
+    /// SOT: Compute emotion state from raw values.
+    /// Used by both `Metrics.emotionState` and budget list hero card.
     static func emotionState(
         remaining: Decimal?,
         totalIncome: Decimal?,
