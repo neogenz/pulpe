@@ -231,6 +231,16 @@ export async function setupApiMocks(page: Page) {
         body: '',
       });
     }
+    if (url.includes('encryption/change-pin')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          keyCheck: 'e2e-mock-key-check',
+          recoveryKey: 'AAAA-BBBB-CCCC-DDDD-EEEE-FFFF-GGHH-IIJJ',
+        }),
+      });
+    }
 
     // Template endpoints - handle different patterns
     if (url.includes('budget-templates')) {
