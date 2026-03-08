@@ -208,6 +208,7 @@ final class PinSetupViewModel {
 
     func appendDigit(_ digit: Int) {
         guard digits.count < maxDigits, !isValidating else { return }
+        if isError { clearError() }
         digits.append(digit)
 
         if digits.count == maxDigits {

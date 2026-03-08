@@ -293,6 +293,7 @@ final class PinRecoveryViewModel {
 
     func appendDigit(_ digit: Int) {
         guard digits.count < maxDigits, !isProcessing else { return }
+        if isError { clearError() }
         digits.append(digit)
 
         if digits.count == maxDigits {
