@@ -460,8 +460,18 @@ export class EncryptionService {
       } catch (rekeyError) {
         try {
           await this.#repository.updateWrappedDEK(userId, oldWrappedDEK);
-        } catch {
-          // Best-effort restore — recovery key regeneration will fix state
+        } catch (restoreError) {
+          this.logger.warn(
+            {
+              userId,
+              operation: 'change_pin.restore_wrapped_dek_failed',
+              error:
+                restoreError instanceof Error
+                  ? restoreError.message
+                  : String(restoreError),
+            },
+            'Failed to restore wrapped_dek after rekey failure — stuck at null until recovery key regeneration',
+          );
         }
         throw rekeyError;
       }
@@ -476,8 +486,18 @@ export class EncryptionService {
       } catch (wrapError) {
         try {
           await this.#repository.updateWrappedDEK(userId, null);
-        } catch {
-          // Best-effort nullification — next recovery key regeneration will fix state
+        } catch (nullifyError) {
+          this.logger.warn(
+            {
+              userId,
+              operation: 'change_pin.nullify_wrapped_dek_failed',
+              error:
+                nullifyError instanceof Error
+                  ? nullifyError.message
+                  : String(nullifyError),
+            },
+            'Failed to nullify wrapped_dek after wrap failure — stale wrapped_dek may remain until recovery key regeneration',
+          );
         }
         throw new BusinessException(
           ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
