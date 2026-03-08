@@ -7,6 +7,8 @@ struct CurrentMonthHeroCard: View {
 
     @State private var isPressed = false
     @State private var isPulsing = false
+    @State private var tapTrigger = false
+    @State private var hasAppeared = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
@@ -26,7 +28,10 @@ struct CurrentMonthHeroCard: View {
     }
 
     var body: some View {
-        Button(action: onTap) {
+        Button {
+            tapTrigger.toggle()
+            onTap()
+        } label: {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 HStack(alignment: .center) {
                     HStack(spacing: 6) {
@@ -54,8 +59,8 @@ struct CurrentMonthHeroCard: View {
                 }
 
                 Spacer().frame(height: DesignTokens.Spacing.sm)
-                HStack(alignment: .bottom) {
-                    VStack(alignment: .leading, spacing: 6) {
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                         Text("Disponible")
                             .font(PulpeTypography.inputHelper)
                             .foregroundStyle(.tertiary)
@@ -70,16 +75,43 @@ struct CurrentMonthHeroCard: View {
                                 .contentTransition(.numericText())
                                 .sensitiveAmount()
                         }
-                    }
 
-                    Spacer()
-                    HStack(spacing: DesignTokens.Spacing.xs) {
-                        Text("Détails")
-                            .font(PulpeTypography.buttonSecondary)
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
+                        HStack(spacing: DesignTokens.Spacing.xs) {
+                            Text("Détails")
+                                .font(PulpeTypography.buttonSecondary)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundStyle(Color.pulpePrimary)
                     }
-                    .foregroundStyle(Color.pulpePrimary)
+                } else {
+                    HStack(alignment: .bottom) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Disponible")
+                                .font(PulpeTypography.inputHelper)
+                                .foregroundStyle(.tertiary)
+                                .textCase(.uppercase)
+                                .tracking(0.5)
+
+                            if let remaining = budget.remaining {
+                                Text(remaining.asCHF)
+                                    .font(PulpeTypography.amountLarge)
+                                    .monospacedDigit()
+                                    .foregroundStyle(amountColor)
+                                    .contentTransition(.numericText())
+                                    .sensitiveAmount()
+                            }
+                        }
+
+                        Spacer()
+                        HStack(spacing: DesignTokens.Spacing.xs) {
+                            Text("Détails")
+                                .font(PulpeTypography.buttonSecondary)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundStyle(Color.pulpePrimary)
+                    }
                 }
             }
             .padding(DesignTokens.Spacing.xxl)
@@ -91,9 +123,21 @@ struct CurrentMonthHeroCard: View {
                     .strokeBorder(Color.outlineVariant.opacity(0.15), lineWidth: 1)
             )
             .scaleEffect(isPressed ? 0.97 : 1)
+            .scaleEffect(hasAppeared ? 1 : 0.96)
+            .offset(y: hasAppeared ? 0 : 8)
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
+            .task {
+                if reduceMotion {
+                    hasAppeared = true
+                } else {
+                    withAnimation(DesignTokens.Animation.entranceSpring) {
+                        hasAppeared = true
+                    }
+                }
+            }
         }
         .buttonStyle(.plain)
+        .sensoryFeedback(.impact(weight: .medium), trigger: tapTrigger)
         .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
             isPressed = pressing
         }, perform: {})
@@ -161,11 +205,6 @@ struct BudgetMonthRow: View {
         return Formatters.monthYear.monthSymbols[month - 1].capitalized
     }
 
-    private var monthNumber: String {
-        guard let month = budget.month else { return "—" }
-        return String(format: "%02d", month)
-    }
-
     private var isPastMonth: Bool {
         guard let month = budget.month, let year = budget.year else { return false }
         let current = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
@@ -180,6 +219,7 @@ struct BudgetMonthRow: View {
 
     private var amountColor: Color {
         if isPastMonth { return .secondary }
+        if isFutureMonth { return .secondary }
         guard let remaining = budget.remaining else { return .secondary }
         if remaining < 0 { return .financialOverBudget }
         if remaining > 0 { return .financialSavings }
@@ -192,11 +232,6 @@ struct BudgetMonthRow: View {
             onTap()
         } label: {
             HStack(spacing: DesignTokens.Spacing.md) {
-                Text(monthNumber)
-                    .font(.system(.caption, design: .monospaced, weight: .semibold))
-                    .foregroundStyle(isPastMonth ? .quaternary : .tertiary)
-                    .frame(width: 24)
-
                 if dynamicTypeSize.isAccessibilitySize {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                         Text(monthName)
@@ -230,14 +265,6 @@ struct BudgetMonthRow: View {
                                 .foregroundStyle(.tertiary)
                         }
                     }
-                    if isFutureMonth {
-                        Text("À venir")
-                            .font(PulpeTypography.progressUnit)
-                            .foregroundStyle(.tertiary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.surfaceContainerLow, in: Capsule())
-                    }
                     Spacer()
                     if let remaining = budget.remaining {
                         Text(remaining.asCompactCHF)
@@ -250,7 +277,7 @@ struct BudgetMonthRow: View {
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.quaternary)
+                    .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.lg)
@@ -272,22 +299,19 @@ struct NextMonthPlaceholder: View {
     let year: Int
     let onTap: () -> Void
 
-    private var monthName: String {
-        Formatters.monthYear.monthSymbols[month - 1].capitalized
-    }
+    @State private var tapTrigger = false
 
-    private var monthNumber: String {
-        String(format: "%02d", month)
+    private var monthName: String {
+        guard month >= 1, month <= 12 else { return "—" }
+        return Formatters.monthYear.monthSymbols[month - 1].capitalized
     }
 
     var body: some View {
-        Button(action: onTap) {
+        Button {
+            tapTrigger.toggle()
+            onTap()
+        } label: {
             HStack(spacing: DesignTokens.Spacing.md) {
-                Text(monthNumber)
-                    .font(.system(.caption, design: .monospaced, weight: .semibold))
-                    .foregroundStyle(.quaternary)
-                    .frame(width: 24)
-
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(monthName)
                         .font(PulpeTypography.onboardingSubtitle)
@@ -295,7 +319,7 @@ struct NextMonthPlaceholder: View {
 
                     Text("Pas encore de budget")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.quaternary)
+                        .foregroundStyle(.tertiary)
                 }
 
                 Spacer()
@@ -325,6 +349,7 @@ struct NextMonthPlaceholder: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: tapTrigger)
         .accessibilityLabel("Créer un budget pour \(monthName)")
         .accessibilityHint("Appuie pour créer un budget")
         .accessibilityAddTraits(.isButton)

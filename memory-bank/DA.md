@@ -487,10 +487,10 @@ Polices : Manrope (titres/brand) + SF Pro système (corps, labels, captions, mon
 |-------|--------|-------|
 | xs | 4pt | Progress bars, indicateurs fins |
 | sm | 8pt | Badges, chips |
-| md | 12pt | Cartes, inputs |
+| md | 24pt | Cartes, inputs |
 | button | 14pt | Boutons primaires |
-| lg | 16pt | Sheets, modals |
-| xl | 20pt | Hero cards |
+| lg | 30pt | Sheets, modals |
+| xl | 32pt | Hero cards |
 
 #### Motion
 
