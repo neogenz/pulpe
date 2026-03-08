@@ -2178,6 +2178,78 @@ describe('EncryptionService', () => {
       reEncryptSpy.mockRestore();
     });
 
+    it('should warn when best-effort restore of wrapped_dek fails after rekey failure', async () => {
+      const dek = await setupServiceWithValidKeyCheck();
+      const validKeyCheck = service.generateKeyCheck(dek);
+
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: 'some-wrapped-dek',
+          key_check: validKeyCheck,
+        }),
+      );
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: validKeyCheck,
+        }),
+      );
+      let callCount = 0;
+      const updateWrappedDEK = mock(() => {
+        callCount++;
+        // First call (nullify) succeeds, second call (restore) fails
+        if (callCount === 2) {
+          return Promise.reject(new Error('DB write failed'));
+        }
+        return Promise.resolve();
+      });
+
+      const mockLogger = createMockLogger();
+      const warnSpy = spyOn(mockLogger, 'warn');
+
+      const repo = createMockRepository({
+        findByUserId,
+        findSaltByUserId,
+        updateWrappedDEK,
+      });
+      service = new EncryptionService(
+        mockLogger as any,
+        mockConfigService as any,
+        repo as any,
+      );
+
+      const reEncryptSpy = spyOn(
+        service,
+        'reEncryptAllUserData',
+      ).mockRejectedValue(new Error('RPC failed'));
+
+      try {
+        await service.changePinRekey(
+          TEST_USER_ID,
+          oldClientKey,
+          newClientKey,
+          mockSupabase,
+        );
+        expect.unreachable('Should have thrown');
+      } catch (error) {
+        expect((error as Error).message).toBe('RPC failed');
+      }
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: TEST_USER_ID,
+          operation: 'change_pin.restore_wrapped_dek_failed',
+          error: 'DB write failed',
+        }),
+        expect.stringContaining('Failed to restore wrapped_dek'),
+      );
+
+      reEncryptSpy.mockRestore();
+    });
+
     it('should throw ENCRYPTION_KEY_CHECK_FAILED when key_check is null (not initialized)', async () => {
       const findByUserId = mock(() =>
         Promise.resolve({
