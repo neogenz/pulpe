@@ -16,15 +16,15 @@ struct SecuritySettingsView: View {
     var body: some View {
         List {
             Section {
-                navigationRow("Code PIN", detail: "Modifier") {
+                chevronRow("Code PIN", detail: "Modifier") {
                     showChangePin = true
                 }
 
-                actionRow("Mot de passe", detail: "••••••••") {
+                chevronRow("Mot de passe", detail: "••••••••") {
                     showChangePassword = true
                 }
 
-                actionRow("Clé de secours", detail: "Régénérer") {
+                chevronRow("Clé de secours", detail: "Régénérer") {
                     securityViewModel.showConfirmPassword = true
                 }
                 .disabled(securityViewModel.isRegenerating)
@@ -168,24 +168,7 @@ struct SecuritySettingsView: View {
         .trackScreen("Security")
     }
 
-    private func actionRow(
-        _ title: String,
-        detail: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack {
-                Text(title)
-                    .foregroundStyle(.primary)
-                Spacer()
-                Text(detail)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func navigationRow(
+    private func chevronRow(
         _ title: String,
         detail: String,
         action: @escaping () -> Void
