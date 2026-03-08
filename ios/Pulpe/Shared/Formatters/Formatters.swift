@@ -38,6 +38,14 @@ enum Formatters {
         return formatter
     }()
 
+    // MARK: - Month Name
+
+    /// Bounds-checked month name from 1-based month number, capitalized.
+    static func monthName(for month: Int) -> String {
+        guard month >= 1, month <= 12 else { return "—" }
+        return monthYear.monthSymbols[month - 1].capitalized
+    }
+
     // MARK: - Dates
 
     static let monthYear: DateFormatter = {

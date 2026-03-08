@@ -10,11 +10,11 @@ extension Color {
     /// Expense indicator color - Orange (#B35800 light, #F0A050 dark)
     static let financialExpense = Color("FinancialExpense")
 
-    /// Savings indicator color - Green (#1E8A4C light, #50C882 dark)
+    /// Savings indicator color - Green (#157038 light, #50C882 dark)
     static let financialSavings = Color("FinancialSavings")
 
-    /// Over-budget indicator - Warm amber, not aggressive red (#C27A00 light, #E5A33A dark)
-    static let financialOverBudget = Color(light: Color(hex: 0xC27A00), dark: Color(hex: 0xE5A33A))
+    /// Over-budget indicator - Warm amber, not aggressive red (#A86800 light, #E5A33A dark)
+    static let financialOverBudget = Color(light: Color(hex: 0xA86800), dark: Color(hex: 0xE5A33A))
 
     // MARK: - Hero Card Gradient Colors (4-stop, 150° linear)
     // Aligned with frontend --pulpe-hero-* tokens (base → color-mix 75% black)

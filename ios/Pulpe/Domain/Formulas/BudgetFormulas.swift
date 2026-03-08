@@ -31,15 +31,35 @@ enum BudgetFormulas {
 
         /// DA §3.1: 3-state emotion zone — comfortable (<80%), tight (80-100%), deficit (>100%)
         var emotionState: EmotionState {
-            if isDeficit { return .deficit }
-            if usagePercentage >= BudgetFormulas.tightBudgetThreshold { return .tight }
-            return .comfortable
+            BudgetFormulas.emotionState(
+                remaining: remaining,
+                totalIncome: totalIncome,
+                totalExpenses: totalExpenses,
+                rollover: rollover
+            )
         }
     }
 
     /// Budget emotion states for UI tinting (hero card, background zones)
     enum EmotionState: Equatable, Sendable {
         case comfortable, tight, deficit
+    }
+
+    /// SOT: Compute emotion state from raw values.
+    /// Used by both `Metrics.emotionState` and budget list hero card.
+    static func emotionState(
+        remaining: Decimal?,
+        totalIncome: Decimal?,
+        totalExpenses: Decimal?,
+        rollover: Decimal?
+    ) -> EmotionState {
+        guard let remaining else { return .comfortable }
+        if remaining < 0 { return .deficit }
+        let available = (totalIncome ?? 0) + (rollover ?? 0)
+        guard available > 0 else { return .comfortable }
+        let usagePercentage = Double(truncating: ((totalExpenses ?? 0) / available * 100) as NSDecimalNumber)
+        if usagePercentage >= tightBudgetThreshold { return .tight }
+        return .comfortable
     }
 
     // MARK: - Realized Metrics

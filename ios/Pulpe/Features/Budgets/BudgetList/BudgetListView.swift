@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Leading inset for list dividers, aligned with row text past the status indicator.
-private let dividerLeadingInset: CGFloat = 34
+private let dividerLeadingInset: CGFloat = 16
 
 struct BudgetListView: View {
     @Environment(AppState.self) private var appState
@@ -127,12 +127,17 @@ struct BudgetListView: View {
                             payDayOfMonth: userSettingsStore.payDayOfMonth,
                             isExpanded: expandedYears.contains(group.year),
                             onToggle: {
-                                withAnimation(.easeInOut(duration: DesignTokens.Animation.quickSnap)) {
+                                let toggle = {
                                     if expandedYears.contains(group.year) {
                                         expandedYears.remove(group.year)
                                     } else {
                                         expandedYears.insert(group.year)
                                     }
+                                }
+                                if reduceMotion {
+                                    toggle()
+                                } else {
+                                    withAnimation(DesignTokens.Animation.defaultSpring) { toggle() }
                                 }
                             },
                             onSelect: { budget in
@@ -184,26 +189,9 @@ private struct BudgetListSkeletonView: View {
                     }
                     .padding(.vertical, DesignTokens.Spacing.md)
 
-                    // Month rows card
-                    VStack(spacing: 0) {
-                        ForEach(0..<4, id: \.self) { index in
-                            HStack(spacing: DesignTokens.Spacing.md) {
-                                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                                    SkeletonShape(width: 100, height: 14)
-                                    SkeletonShape(width: 140, height: 11)
-                                }
-                                Spacer()
-                                SkeletonShape(width: 70, height: 14)
-                            }
-                            .padding(.horizontal, DesignTokens.Spacing.lg)
-                            .padding(.vertical, DesignTokens.Spacing.md)
-
-                            if index < 3 {
-                                Divider().padding(.leading, dividerLeadingInset)
-                            }
-                        }
-                    }
-                    .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.lg)
+                    skeletonMonthRowsCard
+                    SkeletonShape(height: 170, cornerRadius: DesignTokens.CornerRadius.xl)
+                    skeletonMonthRowsCard
                 }
             }
             .padding(.horizontal, DesignTokens.Spacing.xl)
@@ -213,6 +201,28 @@ private struct BudgetListSkeletonView: View {
         .shimmering()
         .pulpeBackground()
         .accessibilityLabel("Chargement des budgets")
+    }
+
+    private var skeletonMonthRowsCard: some View {
+        VStack(spacing: 0) {
+            ForEach(0..<2, id: \.self) { index in
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        SkeletonShape(width: 100, height: 14)
+                        SkeletonShape(width: 140, height: 11)
+                    }
+                    Spacer()
+                    SkeletonShape(width: 70, height: 14)
+                }
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.vertical, DesignTokens.Spacing.md)
+
+                if index < 1 {
+                    Divider().padding(.leading, dividerLeadingInset)
+                }
+            }
+        }
+        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.lg)
     }
 }
 
@@ -231,10 +241,6 @@ struct YearSection: View {
         YearSectionLayoutData(year: year, budgets: budgets, payDayOfMonth: payDayOfMonth)
     }
 
-    private var yearEndRemaining: Decimal? {
-        budgets.max { ($0.month ?? 0) < ($1.month ?? 0) }?.remaining
-    }
-
     var body: some View {
         let data = layoutData
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
@@ -242,7 +248,7 @@ struct YearSection: View {
 
             if isExpanded {
                 expandedContent(data: data)
-                    .transition(.opacity)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
             }
         }
         .sensoryFeedback(.impact(flexibility: .soft), trigger: expandTrigger)
@@ -253,26 +259,24 @@ struct YearSection: View {
 
     @ViewBuilder
     private func expandedContent(data: YearSectionLayoutData) -> some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
-            if data.currentMonthBudget != nil {
+        VStack(spacing: DesignTokens.Spacing.lg) {
+            if let current = data.currentMonthBudget {
                 if !data.monthsBefore.isEmpty {
                     monthListCard(months: data.monthsBefore)
                 }
-                if let current = data.currentMonthBudget {
-                    CurrentMonthHeroCard(
-                        budget: current,
-                        periodLabel: current.month.flatMap { month in
-                            current.year.flatMap { year in
-                                BudgetPeriodCalculator.formatPeriod(
-                                    month: month, year: year, payDayOfMonth: payDayOfMonth
-                                )
-                            }
+                CurrentMonthHeroCard(
+                    budget: current,
+                    periodLabel: current.month.flatMap { month in
+                        current.year.flatMap { year in
+                            BudgetPeriodCalculator.formatPeriod(
+                                month: month, year: year, payDayOfMonth: payDayOfMonth
+                            )
                         }
-                    ) {
-                        onSelect(current)
                     }
-                    .id("currentMonthHero")
+                ) {
+                    onSelect(current)
                 }
+                .id("currentMonthHero")
                 if !data.monthsAfter.isEmpty {
                     monthListCard(months: data.monthsAfter)
                 }
@@ -287,7 +291,7 @@ struct YearSection: View {
             HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(data.isPastYear ? .quaternary : .tertiary)
+                    .foregroundStyle(data.isPastYear ? .tertiary : .secondary)
                     .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 Text(String(year))
                     .font(PulpeTypography.stepTitle)
@@ -297,23 +301,13 @@ struct YearSection: View {
                 }
 
                 Spacer()
-                if let endBalance = yearEndRemaining {
-                    HStack(spacing: DesignTokens.Spacing.xs) {
-                        Image(systemName: endBalance >= 0 ? "arrow.up.right" : "arrow.down.right")
-                            .font(.system(size: 11, weight: .bold))
-                        Text(endBalance.asCompactCHF)
-                            .font(PulpeTypography.labelLarge)
-                            .monospacedDigit()
-                    }
-                    .foregroundStyle(endBalance >= 0 ? Color.financialSavings : .financialOverBudget)
-                    .sensitiveAmount()
-                }
             }
             .padding(.vertical, DesignTokens.Spacing.md)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Année \(year)")
+        .accessibilityLabel(data.isCurrentYear ? "Année \(year), en cours" : "Année \(year)")
+        .accessibilityValue(isExpanded ? "développé" : "réduit")
         .accessibilityHint(isExpanded ? "Appuie pour réduire" : "Appuie pour développer")
         .accessibilityAddTraits(.isHeader)
     }
@@ -358,6 +352,7 @@ struct YearSection: View {
             }
         }
         .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.lg)
+        .shadow(DesignTokens.Shadow.card)
     }
 }
 
