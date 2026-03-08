@@ -15,27 +15,34 @@ final class CurrentMonthStore: StoreProtocol {
     /// A checkable item in the "À pointer" dashboard card.
     /// Priority: free transactions → allocated transactions → budget lines.
     enum CheckableItem: Identifiable, Sendable {
-        case transaction(Transaction)
-        case budgetLine(BudgetLine)
+        case transaction(Transaction, consumption: BudgetFormulas.Consumption? = nil)
+        case budgetLine(BudgetLine, consumption: BudgetFormulas.Consumption? = nil)
 
         var id: String {
             switch self {
-            case .transaction(let tx): return "tx-\(tx.id)"
-            case .budgetLine(let line): return "bl-\(line.id)"
+            case .transaction(let tx, _): return "tx-\(tx.id)"
+            case .budgetLine(let line, _): return "bl-\(line.id)"
             }
         }
 
         var kind: TransactionKind {
             switch self {
-            case .transaction(let tx): return tx.kind
-            case .budgetLine(let line): return line.kind
+            case .transaction(let tx, _): return tx.kind
+            case .budgetLine(let line, _): return line.kind
             }
         }
 
         var name: String {
             switch self {
-            case .transaction(let tx): return tx.name
-            case .budgetLine(let line): return line.name
+            case .transaction(let tx, _): return tx.name
+            case .budgetLine(let line, _): return line.name
+            }
+        }
+
+        var consumption: BudgetFormulas.Consumption? {
+            switch self {
+            case .transaction(_, let consumption): return consumption
+            case .budgetLine(_, let consumption): return consumption
             }
         }
     }
@@ -82,6 +89,8 @@ final class CurrentMonthStore: StoreProtocol {
     // Cache for expensive computed properties
     private var cachedMetrics: BudgetFormulas.Metrics?
     private var cachedRealizedMetrics: BudgetFormulas.RealizedMetrics?
+    private var cachedUncheckedItems: [CheckableItem]?
+    private var cachedSavingsSummary: SavingsSummary?
 
     // Widget sync debouncing
     private var widgetSyncTask: Task<Void, Never>?
@@ -225,6 +234,8 @@ final class CurrentMonthStore: StoreProtocol {
         lastLoadTime = nil
         cachedMetrics = nil
         cachedRealizedMetrics = nil
+        cachedUncheckedItems = nil
+        cachedSavingsSummary = nil
         error = nil
         BudgetDetailCache.shared.invalidateAll()
     }
@@ -338,6 +349,8 @@ final class CurrentMonthStore: StoreProtocol {
             budgetLines: budgetLines,
             transactions: transactions
         )
+        cachedUncheckedItems = computeUncheckedItems()
+        cachedSavingsSummary = computeSavingsSummary()
     }
 }
 
@@ -405,36 +418,20 @@ extension CurrentMonthStore {
         )
     }
 
-    /// Unchecked transactions (not yet pointed, sorted by date desc)
-    var uncheckedTransactions: [Transaction] {
-        Array(
-            transactions
-                .filter { !$0.isChecked }
-                .sorted { $0.transactionDate > $1.transactionDate }
-                .prefix(5)
-        )
-    }
+    private static let maxDashboardItems = 5
+    private static let kindSortOrder: [TransactionKind] = [.income, .expense, .saving]
 
-    /// Unchecked budget lines for dashboard checking widget (max 5).
-    /// Sorted by kind: income → expense → saving, then by creation date (newest first).
-    var uncheckedBudgetLines: [BudgetLine] {
-        let kindOrder: [TransactionKind] = [.income, .expense, .saving]
-        return Array(
-            budgetLines
-                .filter { !$0.isChecked && !($0.isRollover ?? false) }
-                .sorted {
-                    let lhs = kindOrder.firstIndex(of: $0.kind) ?? 99
-                    let rhs = kindOrder.firstIndex(of: $1.kind) ?? 99
-                    if lhs != rhs { return lhs < rhs }
-                    return $0.createdAt > $1.createdAt
-                }
-                .prefix(5)
-        )
-    }
-
-    /// Unchecked items for dashboard "À pointer" card (max 5).
+    /// Unchecked items for dashboard "À pointer" card (max 5, cached).
     /// Priority: free transactions → allocated transactions → budget lines.
     var uncheckedItems: [CheckableItem] {
+        cachedUncheckedItems ?? computeUncheckedItems()
+    }
+
+    var savingsSummary: SavingsSummary {
+        cachedSavingsSummary ?? computeSavingsSummary()
+    }
+
+    private func computeUncheckedItems() -> [CheckableItem] {
         var items: [CheckableItem] = []
 
         // 1. Free transactions (unchecked, newest first)
@@ -443,28 +440,35 @@ extension CurrentMonthStore {
             .sorted { $0.transactionDate > $1.transactionDate }
             .map { .transaction($0) }
 
-        // 2. Allocated transactions (unchecked, newest first)
+        // 2. Allocated transactions (unchecked, newest first) — pre-compute consumption for linked budget line
         items += transactions
             .filter { $0.isAllocated && !$0.isChecked }
             .sorted { $0.transactionDate > $1.transactionDate }
-            .map { .transaction($0) }
+            .map { tx in
+                let consumption = tx.budgetLineId
+                    .flatMap { lineId in budgetLines.first { $0.id == lineId } }
+                    .map { BudgetFormulas.calculateConsumption(for: $0, transactions: transactions) }
+                return .transaction(tx, consumption: consumption)
+            }
 
         // 3. Unchecked budget lines (income → expense → saving)
-        let kindOrder: [TransactionKind] = [.income, .expense, .saving]
         items += budgetLines
             .filter { !$0.isChecked && !($0.isRollover ?? false) }
             .sorted {
-                let lhs = kindOrder.firstIndex(of: $0.kind) ?? 99
-                let rhs = kindOrder.firstIndex(of: $1.kind) ?? 99
+                let lhs = Self.kindSortOrder.firstIndex(of: $0.kind) ?? Int.max
+                let rhs = Self.kindSortOrder.firstIndex(of: $1.kind) ?? Int.max
                 if lhs != rhs { return lhs < rhs }
                 return $0.createdAt > $1.createdAt
             }
-            .map { .budgetLine($0) }
+            .map { line in
+                let consumption = BudgetFormulas.calculateConsumption(for: line, transactions: transactions)
+                return .budgetLine(line, consumption: consumption)
+            }
 
-        return Array(items.prefix(5))
+        return Array(items.prefix(Self.maxDashboardItems))
     }
 
-    var savingsSummary: SavingsSummary {
+    private func computeSavingsSummary() -> SavingsSummary {
         let savingLines = budgetLines.filter { $0.kind == .saving && !($0.isRollover ?? false) }
         let totalPlanned = savingLines.reduce(Decimal.zero) { $0 + $1.amount }
         let checkedCount = savingLines.filter(\.isChecked).count

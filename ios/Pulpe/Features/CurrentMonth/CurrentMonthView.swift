@@ -187,15 +187,14 @@ struct CurrentMonthView: View {
 
                 UncheckedForecastsCard(
                     items: store.uncheckedItems,
-                    transactions: store.transactions,
                     syncingBudgetLineIds: store.syncingBudgetLineIds,
                     syncingTransactionIds: store.syncingTransactionIds,
                     onToggle: { item in
                         Task {
                             switch item {
-                            case .transaction(let tx):
+                            case .transaction(let tx, _):
                                 await store.toggleTransaction(tx)
-                            case .budgetLine(let line):
+                            case .budgetLine(let line, _):
                                 await store.toggleBudgetLine(line)
                             }
                         }

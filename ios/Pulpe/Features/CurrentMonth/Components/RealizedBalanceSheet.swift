@@ -10,11 +10,6 @@ struct RealizedBalanceSheet: View {
         realizedMetrics.realizedBalance >= 0
     }
 
-    private var completionRatio: Double {
-        guard realizedMetrics.totalItemsCount > 0 else { return 0 }
-        return Double(realizedMetrics.checkedItemsCount) / Double(realizedMetrics.totalItemsCount)
-    }
-
     private var statusColor: Color {
         isPositiveBalance ? .financialSavings : .financialOverBudget
     }
@@ -152,9 +147,8 @@ struct RealizedBalanceSheet: View {
 
     @ViewBuilder
     private var trendSection: some View {
-        if dashboardStore.hasEnoughDataForBalanceChart {
-            let forecasts = dashboardStore.balanceForecasts
-
+        let forecasts = dashboardStore.balanceForecasts
+        if forecasts.count >= 2 {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 Text("Tendance")
                     .font(PulpeTypography.headline)
@@ -343,8 +337,7 @@ private struct CategoryRow: View {
     }
 
     private var percentageText: String {
-        guard planned > 0 else { return "0%" }
-        let pct = Int(truncating: NSDecimalNumber(decimal: realized / planned * 100))
+        let pct = Int(percentage * 100)
         return "\(min(pct, 999))%"
     }
 

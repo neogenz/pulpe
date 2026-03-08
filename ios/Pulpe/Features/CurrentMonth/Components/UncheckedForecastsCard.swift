@@ -4,7 +4,6 @@ import SwiftUI
 /// Parent controls visibility — this card has no empty state.
 struct UncheckedForecastsCard: View {
     let items: [CurrentMonthStore.CheckableItem]
-    let transactions: [Transaction]
     let syncingBudgetLineIds: Set<String>
     let syncingTransactionIds: Set<String>
     let onToggle: (CurrentMonthStore.CheckableItem) -> Void
@@ -15,17 +14,16 @@ struct UncheckedForecastsCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             VStack(spacing: 0) {
-                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                ForEach(items) { item in
                     UncheckedItemRow(
                         item: item,
-                        transactions: transactions,
                         syncingBudgetLineIds: syncingBudgetLineIds,
                         syncingTransactionIds: syncingTransactionIds,
                         onToggle: { onToggle(item) }
                     )
                     .transition(.opacity)
 
-                    if index < items.count - 1 {
+                    if item.id != items.last?.id {
                         Divider()
                             .padding(.leading, 22 + 40 + DesignTokens.Spacing.md * 2)
                     }
@@ -60,7 +58,6 @@ struct UncheckedForecastsCard: View {
 
 private struct UncheckedItemRow: View {
     let item: CurrentMonthStore.CheckableItem
-    let transactions: [Transaction]
     let syncingBudgetLineIds: Set<String>
     let syncingTransactionIds: Set<String>
     let onToggle: () -> Void
@@ -72,9 +69,9 @@ private struct UncheckedItemRow: View {
 
     private var isSyncing: Bool {
         switch item {
-        case .transaction(let tx):
+        case .transaction(let tx, _):
             return syncingTransactionIds.contains(tx.id)
-        case .budgetLine(let line):
+        case .budgetLine(let line, _):
             return syncingBudgetLineIds.contains(line.id)
         }
     }
@@ -139,14 +136,13 @@ private struct UncheckedItemRow: View {
     @ViewBuilder
     private var subtitle: some View {
         switch item {
-        case .transaction(let tx):
+        case .transaction(let tx, _):
             Text(tx.transactionDate.relativeFormatted)
                 .font(PulpeTypography.caption)
                 .foregroundStyle(.secondary)
 
-        case .budgetLine(let line):
-            let consumption = BudgetFormulas.calculateConsumption(for: line, transactions: transactions)
-            if line.kind == .expense, consumption.allocated > 0 {
+        case .budgetLine(let line, let consumption):
+            if let consumption, line.kind == .expense, consumption.allocated > 0 {
                 let pct = Int(min(consumption.percentage, 999))
                 let color: Color = consumption.isOverBudget ? .financialOverBudget :
                     consumption.isNearLimit ? .warningPrimary : .secondary
@@ -167,13 +163,13 @@ private struct UncheckedItemRow: View {
     @ViewBuilder
     private var amountText: some View {
         switch item {
-        case .transaction(let tx):
+        case .transaction(let tx, _):
             Text(tx.signedAmount.asAmount)
                 .font(.system(.callout, weight: .regular))
                 .foregroundStyle(tx.kind.color)
                 .sensitiveAmount()
 
-        case .budgetLine(let line):
+        case .budgetLine(let line, _):
             Text(line.amount.asSignedAmount(for: line.kind))
                 .font(.system(.callout, weight: .regular))
                 .foregroundStyle(line.kind.color)
@@ -249,7 +245,6 @@ struct UncheckedForecastsEmptyState: View {
                     updatedAt: Date()
                 ))
             ],
-            transactions: [],
             syncingBudgetLineIds: ["1"],
             syncingTransactionIds: [],
             onToggle: { _ in },
