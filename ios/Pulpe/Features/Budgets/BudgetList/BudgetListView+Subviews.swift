@@ -213,8 +213,8 @@ struct BudgetMonthRow: View {
         return (isPast, isFuture)
     }
 
-    private func amountColor(isPast: Bool, isFuture: Bool) -> Color {
-        if isPast || isFuture { return .secondary }
+    private func amountColor(isPast: Bool) -> Color {
+        if isPast { return .secondary }
         guard let remaining = budget.remaining else { return .secondary }
         if remaining < 0 { return .financialOverBudget }
         if remaining > 0 { return .financialSavings }
@@ -224,7 +224,7 @@ struct BudgetMonthRow: View {
     var body: some View {
         let temporal = temporalState()
         let isPast = temporal.isPast
-        let color = amountColor(isPast: temporal.isPast, isFuture: temporal.isFuture)
+        let color = amountColor(isPast: temporal.isPast)
 
         Button {
             tapTrigger.toggle()
