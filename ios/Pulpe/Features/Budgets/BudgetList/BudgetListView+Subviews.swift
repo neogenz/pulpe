@@ -205,12 +205,10 @@ struct BudgetMonthRow: View {
         Formatters.monthName(for: budget.month ?? 0)
     }
 
-    private func temporalState() -> (isPast: Bool, isFuture: Bool) {
-        guard let month = budget.month, let year = budget.year else { return (false, false) }
+    private func isPast() -> Bool {
+        guard let month = budget.month, let year = budget.year else { return false }
         let current = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
-        let isPast = year < current.year || (year == current.year && month < current.month)
-        let isFuture = year > current.year || (year == current.year && month > current.month)
-        return (isPast, isFuture)
+        return year < current.year || (year == current.year && month < current.month)
     }
 
     private func amountColor(isPast: Bool) -> Color {
@@ -222,9 +220,8 @@ struct BudgetMonthRow: View {
     }
 
     var body: some View {
-        let temporal = temporalState()
-        let isPast = temporal.isPast
-        let color = amountColor(isPast: temporal.isPast)
+        let isPast = isPast()
+        let color = amountColor(isPast: isPast)
 
         Button {
             tapTrigger.toggle()
