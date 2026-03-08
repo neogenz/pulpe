@@ -5,6 +5,7 @@ struct RealizedBalanceSheet: View {
     let metrics: BudgetFormulas.Metrics
     let realizedMetrics: BudgetFormulas.RealizedMetrics
     @Environment(DashboardStore.self) private var dashboardStore
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     private var isPositiveBalance: Bool {
         realizedMetrics.realizedBalance >= 0
@@ -38,7 +39,10 @@ struct RealizedBalanceSheet: View {
             }
         }
         .standardSheetPresentation(detents: [.medium, .large])
-        .task { await dashboardStore.loadIfNeeded() }
+        .task {
+            dashboardStore.setPayDay(userSettingsStore.payDayOfMonth)
+            await dashboardStore.loadIfNeeded()
+        }
     }
 
     // MARK: - Balance Section

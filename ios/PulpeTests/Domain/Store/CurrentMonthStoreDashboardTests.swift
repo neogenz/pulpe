@@ -2,26 +2,23 @@ import Foundation
 @testable import Pulpe
 import Testing
 
+@MainActor
 struct CurrentMonthStoreDashboardTests {
     // MARK: - Unchecked Items (Combined) Logic
 
     @Test func uncheckedItems_freeTransactionsFirst_thenAllocated_thenBudgetLines() {
-        let freeTx = TestDataFactory.createTransaction(id: "free-tx", budgetLineId: nil, isChecked: false)
-        let allocatedTx = TestDataFactory.createTransaction(id: "alloc-tx", budgetLineId: "line-1", isChecked: false)
-        let budgetLine = TestDataFactory.createBudgetLine(id: "bl-1", isChecked: false)
+        let store = CurrentMonthStore()
+        store.populateForTesting(
+            budgetLines: [
+                TestDataFactory.createBudgetLine(id: "bl-1", isChecked: false)
+            ],
+            transactions: [
+                TestDataFactory.createTransaction(id: "alloc-tx", budgetLineId: "line-1", isChecked: false),
+                TestDataFactory.createTransaction(id: "free-tx", budgetLineId: nil, isChecked: false)
+            ]
+        )
 
-        let transactions = [allocatedTx, freeTx]
-        let budgetLines = [budgetLine]
-
-        var items: [CurrentMonthStore.CheckableItem] = []
-        items += transactions.filter { $0.isFree && !$0.isChecked }
-            .sorted { $0.transactionDate > $1.transactionDate }
-            .map { .transaction($0) }
-        items += transactions.filter { $0.isAllocated && !$0.isChecked }
-            .sorted { $0.transactionDate > $1.transactionDate }
-            .map { .transaction($0) }
-        items += budgetLines.filter { !$0.isChecked && !($0.isRollover ?? false) }
-            .map { .budgetLine($0) }
+        let items = store.uncheckedItems
 
         #expect(items.count == 3)
         #expect(items[0].id == "tx-free-tx")
@@ -30,84 +27,80 @@ struct CurrentMonthStoreDashboardTests {
     }
 
     @Test func uncheckedItems_excludesCheckedTransactions() {
-        let uncheckedFree = TestDataFactory.createTransaction(id: "free", budgetLineId: nil, isChecked: false)
-        let checkedFree = TestDataFactory.createTransaction(id: "checked", budgetLineId: nil, isChecked: true)
+        let store = CurrentMonthStore()
+        store.populateForTesting(
+            transactions: [
+                TestDataFactory.createTransaction(id: "free", budgetLineId: nil, isChecked: false),
+                TestDataFactory.createTransaction(id: "checked", budgetLineId: nil, isChecked: true)
+            ]
+        )
 
-        let transactions = [uncheckedFree, checkedFree]
-
-        var items: [CurrentMonthStore.CheckableItem] = []
-        items += transactions.filter { $0.isFree && !$0.isChecked }
-            .map { .transaction($0) }
+        let items = store.uncheckedItems
 
         #expect(items.count == 1)
         #expect(items[0].id == "tx-free")
     }
 
     @Test func uncheckedItems_limitsTo5Total() {
-        let transactions = (0..<4).map { i in
-            TestDataFactory.createTransaction(id: "tx-\(i)", budgetLineId: nil, isChecked: false)
-        }
-        let budgetLines = (0..<4).map { i in
-            TestDataFactory.createBudgetLine(id: "bl-\(i)", isChecked: false)
-        }
+        let store = CurrentMonthStore()
+        store.populateForTesting(
+            budgetLines: (0..<4).map { i in
+                TestDataFactory.createBudgetLine(id: "bl-\(i)", isChecked: false)
+            },
+            transactions: (0..<4).map { i in
+                TestDataFactory.createTransaction(id: "tx-\(i)", budgetLineId: nil, isChecked: false)
+            }
+        )
 
-        var items: [CurrentMonthStore.CheckableItem] = []
-        items += transactions.filter { $0.isFree && !$0.isChecked }
-            .map { .transaction($0) }
-        items += budgetLines.filter { !$0.isChecked && !($0.isRollover ?? false) }
-            .map { .budgetLine($0) }
-        let result = Array(items.prefix(5))
-
-        #expect(result.count == 5)
+        #expect(store.uncheckedItems.count == 5)
     }
 
     @Test func uncheckedItems_emptyWhenAllChecked() {
-        let transactions = [
-            TestDataFactory.createTransaction(id: "tx-1", isChecked: true)
-        ]
-        let budgetLines = [
-            TestDataFactory.createBudgetLine(id: "bl-1", isChecked: true)
-        ]
+        let store = CurrentMonthStore()
+        store.populateForTesting(
+            budgetLines: [
+                TestDataFactory.createBudgetLine(id: "bl-1", isChecked: true)
+            ],
+            transactions: [
+                TestDataFactory.createTransaction(id: "tx-1", isChecked: true)
+            ]
+        )
 
-        var items: [CurrentMonthStore.CheckableItem] = []
-        items += transactions.filter { $0.isFree && !$0.isChecked }
-            .map { .transaction($0) }
-        items += transactions.filter { $0.isAllocated && !$0.isChecked }
-            .map { .transaction($0) }
-        items += budgetLines.filter { !$0.isChecked && !($0.isRollover ?? false) }
-            .map { .budgetLine($0) }
-
-        #expect(items.isEmpty)
+        #expect(store.uncheckedItems.isEmpty)
     }
 
     // MARK: - Savings Summary Logic
 
     @Test func savingsSummary_computesFromSavingLines() {
-        let savingLine1 = TestDataFactory.createBudgetLine(id: "s1", amount: 500, kind: .saving, isChecked: true)
-        let savingLine2 = TestDataFactory.createBudgetLine(id: "s2", amount: 300, kind: .saving, isChecked: false)
-        let expenseLine = TestDataFactory.createBudgetLine(id: "e1", amount: 1000, kind: .expense)
+        let store = CurrentMonthStore()
+        store.populateForTesting(
+            budgetLines: [
+                TestDataFactory.createBudgetLine(id: "s1", amount: 500, kind: .saving, isChecked: true),
+                TestDataFactory.createBudgetLine(id: "s2", amount: 300, kind: .saving, isChecked: false),
+                TestDataFactory.createBudgetLine(id: "e1", amount: 1000, kind: .expense)
+            ]
+        )
 
-        let lines = [savingLine1, savingLine2, expenseLine]
+        let summary = store.savingsSummary
 
-        let savingLines = lines.filter { $0.kind == .saving && !($0.isRollover ?? false) }
-        let totalPlanned = savingLines.reduce(Decimal.zero) { $0 + $1.amount }
-        let checkedCount = savingLines.filter(\.isChecked).count
-
-        #expect(totalPlanned == 800)
-        #expect(checkedCount == 1)
-        #expect(savingLines.count == 2)
+        #expect(summary.totalPlanned == 800)
+        #expect(summary.checkedCount == 1)
+        #expect(summary.totalCount == 2)
     }
 
     @Test func savingsSummary_excludesRolloverLines() {
-        let savingLine = TestDataFactory.createBudgetLine(id: "s1", amount: 500, kind: .saving, isChecked: false)
-        let rolloverSaving = TestDataFactory.createBudgetLine(id: "sr", amount: 200, kind: .saving, isRollover: true)
+        let store = CurrentMonthStore()
+        store.populateForTesting(
+            budgetLines: [
+                TestDataFactory.createBudgetLine(id: "s1", amount: 500, kind: .saving, isChecked: false),
+                TestDataFactory.createBudgetLine(id: "sr", amount: 200, kind: .saving, isRollover: true)
+            ]
+        )
 
-        let lines = [savingLine, rolloverSaving]
+        let summary = store.savingsSummary
 
-        let savingLines = lines.filter { $0.kind == .saving && !($0.isRollover ?? false) }
-
-        #expect(savingLines.count == 1)
-        #expect(savingLines[0].id == "s1")
+        #expect(summary.totalCount == 1)
+        #expect(summary.totalPlanned == 500)
     }
 
     // MARK: - SavingsSummary Struct

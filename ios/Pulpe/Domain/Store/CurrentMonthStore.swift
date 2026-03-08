@@ -352,6 +352,20 @@ final class CurrentMonthStore: StoreProtocol {
         cachedUncheckedItems = computeUncheckedItems()
         cachedSavingsSummary = computeSavingsSummary()
     }
+
+    #if DEBUG
+    /// Test-only: populate store with data for unit testing
+    func populateForTesting(
+        budget: Budget? = nil,
+        budgetLines: [BudgetLine] = [],
+        transactions: [Transaction] = []
+    ) {
+        self.budget = budget
+        self.budgetLines = budgetLines
+        self.transactions = transactions
+        recomputeMetrics()
+    }
+    #endif
 }
 
 // MARK: - Computed Properties
