@@ -319,4 +319,42 @@ struct BudgetFormulasExtendedTests {
         let metrics = BudgetFormulas.calculateAllMetrics(budgetLines: [])
         #expect(metrics.emotionState == .comfortable)
     }
+
+    // MARK: - Emotion State (static — optional Decimal? paths)
+
+    @Test func emotionState_static_nilRemaining_returnsComfortable() {
+        let result = BudgetFormulas.emotionState(
+            remaining: nil, totalIncome: 1000, totalExpenses: 900, rollover: nil
+        )
+        #expect(result == .comfortable)
+    }
+
+    @Test func emotionState_static_nilExpenses_returnsComfortable() {
+        let result = BudgetFormulas.emotionState(
+            remaining: 100, totalIncome: 1000, totalExpenses: nil, rollover: nil
+        )
+        #expect(result == .comfortable)
+    }
+
+    @Test func emotionState_static_allNilExceptPositiveRemaining_returnsComfortable() {
+        // totalIncome=nil, rollover=nil → available=0 → guard returns .comfortable
+        let result = BudgetFormulas.emotionState(
+            remaining: 100, totalIncome: nil, totalExpenses: nil, rollover: nil
+        )
+        #expect(result == .comfortable)
+    }
+
+    @Test func emotionState_static_negativeRemaining_returnsDeficit() {
+        let result = BudgetFormulas.emotionState(
+            remaining: -50, totalIncome: 1000, totalExpenses: 1050, rollover: nil
+        )
+        #expect(result == .deficit)
+    }
+
+    @Test func emotionState_static_tightUsage_returnsTight() {
+        let result = BudgetFormulas.emotionState(
+            remaining: 100, totalIncome: 1000, totalExpenses: 900, rollover: nil
+        )
+        #expect(result == .tight)
+    }
 }
