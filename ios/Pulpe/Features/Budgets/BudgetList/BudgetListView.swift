@@ -282,7 +282,7 @@ struct YearSection: View {
 
     @ViewBuilder
     private func expandedContent(data: YearSectionLayoutData) -> some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
+        VStack(spacing: DesignTokens.Spacing.lg) {
             if data.currentMonthBudget != nil {
                 if !data.monthsBefore.isEmpty {
                     monthListCard(months: data.monthsBefore)
@@ -383,6 +383,7 @@ struct YearSection: View {
             }
         }
         .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.lg)
+        .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 2)
     }
 }
 

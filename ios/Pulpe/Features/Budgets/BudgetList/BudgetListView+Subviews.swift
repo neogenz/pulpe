@@ -6,7 +6,6 @@ struct CurrentMonthHeroCard: View {
     let onTap: () -> Void
 
     @State private var isPressed = false
-    @State private var isPulsing = false
     @State private var tapTrigger = false
     @State private var hasAppeared = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -19,12 +18,46 @@ struct CurrentMonthHeroCard: View {
         return Formatters.monthYear.monthSymbols[month - 1].capitalized
     }
 
-    private var isNegative: Bool {
-        (budget.remaining ?? 0) < 0
+    /// SOT with HeroBalanceCard — 3-state emotion system from BudgetFormulas
+    private var emotionState: BudgetFormulas.EmotionState {
+        guard let remaining = budget.remaining else { return .comfortable }
+        if remaining < 0 { return .deficit }
+        let available = (budget.totalIncome ?? 0) + (budget.rollover ?? 0)
+        guard available > 0 else { return .comfortable }
+        let totalExpenses = budget.totalExpenses ?? 0
+        let usagePercentage = Double(truncating: (totalExpenses / available * 100) as NSDecimalNumber)
+        if usagePercentage >= BudgetFormulas.tightBudgetThreshold { return .tight }
+        return .comfortable
     }
 
-    private var amountColor: Color {
-        isNegative ? .financialOverBudget : .financialSavings
+    private var disponibleLabel: some View {
+        Text("Disponible")
+            .font(PulpeTypography.inputHelper)
+            .foregroundStyle(.white.opacity(0.6))
+            .textCase(.uppercase)
+            .tracking(0.5)
+    }
+
+    @ViewBuilder
+    private var remainingAmount: some View {
+        if let remaining = budget.remaining {
+            Text(remaining.asCHF)
+                .font(PulpeTypography.amountLarge)
+                .monospacedDigit()
+                .foregroundStyle(.white)
+                .contentTransition(.numericText())
+                .sensitiveAmount()
+        }
+    }
+
+    private var detailsCTA: some View {
+        HStack(spacing: DesignTokens.Spacing.xs) {
+            Text("Détails")
+                .font(PulpeTypography.buttonSecondary)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+        }
+        .foregroundStyle(.white.opacity(0.8))
     }
 
     var body: some View {
@@ -33,95 +66,60 @@ struct CurrentMonthHeroCard: View {
             onTap()
         } label: {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                HStack(alignment: .center) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "calendar")
-                            .font(.system(size: 13, weight: .semibold))
-                        Text("Ce mois-ci")
-                            .font(PulpeTypography.labelLarge)
-                    }
-                    .foregroundStyle(.secondary)
-
-                    Spacer()
-
-                    pulseDot
+                HStack(spacing: 6) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text("Ce mois-ci")
+                        .font(PulpeTypography.labelLarge)
                 }
+                .foregroundStyle(.white.opacity(0.7))
                 VStack(alignment: .leading, spacing: 4) {
                     Text(monthName)
                         .font(PulpeTypography.brandTitle)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(.white)
 
                     if let periodLabel {
                         Text(periodLabel)
                             .font(PulpeTypography.caption)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(.white.opacity(0.5))
                     }
                 }
 
                 Spacer().frame(height: DesignTokens.Spacing.sm)
                 if dynamicTypeSize.isAccessibilitySize {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                        Text("Disponible")
-                            .font(PulpeTypography.inputHelper)
-                            .foregroundStyle(.tertiary)
-                            .textCase(.uppercase)
-                            .tracking(0.5)
-
-                        if let remaining = budget.remaining {
-                            Text(remaining.asCHF)
-                                .font(PulpeTypography.amountLarge)
-                                .monospacedDigit()
-                                .foregroundStyle(amountColor)
-                                .contentTransition(.numericText())
-                                .sensitiveAmount()
-                        }
-
-                        HStack(spacing: DesignTokens.Spacing.xs) {
-                            Text("Détails")
-                                .font(PulpeTypography.buttonSecondary)
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .semibold))
-                        }
-                        .foregroundStyle(Color.pulpePrimary)
+                        disponibleLabel
+                        remainingAmount
+                        detailsCTA
                     }
                 } else {
                     HStack(alignment: .bottom) {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Disponible")
-                                .font(PulpeTypography.inputHelper)
-                                .foregroundStyle(.tertiary)
-                                .textCase(.uppercase)
-                                .tracking(0.5)
-
-                            if let remaining = budget.remaining {
-                                Text(remaining.asCHF)
-                                    .font(PulpeTypography.amountLarge)
-                                    .monospacedDigit()
-                                    .foregroundStyle(amountColor)
-                                    .contentTransition(.numericText())
-                                    .sensitiveAmount()
-                            }
+                            disponibleLabel
+                            remainingAmount
                         }
-
                         Spacer()
-                        HStack(spacing: DesignTokens.Spacing.xs) {
-                            Text("Détails")
-                                .font(PulpeTypography.buttonSecondary)
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .semibold))
-                        }
-                        .foregroundStyle(Color.pulpePrimary)
+                        detailsCTA
                     }
                 }
             }
             .padding(DesignTokens.Spacing.xxl)
             .frame(minHeight: 170)
+            .contentShape(Rectangle())
             .background(heroGradientBackground)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.xl))
-            .overlay(
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
-                    .strokeBorder(Color.outlineVariant.opacity(0.15), lineWidth: 1)
-            )
+            .overlay(alignment: .top) {
+                Capsule()
+                    .fill(.white.opacity(0.15))
+                    .frame(height: 1)
+                    .padding(.horizontal, 28)
+            }
+            .overlay {
+                if colorScheme == .dark {
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
+                        .stroke(.white.opacity(0.05), lineWidth: 1)
+                }
+            }
             .scaleEffect(isPressed ? 0.97 : 1)
             .scaleEffect(hasAppeared ? 1 : 0.96)
             .offset(y: hasAppeared ? 0 : 8)
@@ -149,44 +147,49 @@ struct CurrentMonthHeroCard: View {
         .accessibilityAddTraits(.isButton)
     }
 
-    @ViewBuilder
+    /// SOT with HeroBalanceCard.cardBackground — 3-state gradient crossfade + decorative circles
     private var heroGradientBackground: some View {
         ZStack {
-            Color.surfaceContainerHigh
             LinearGradient(
-                colors: [
-                    Color.pulpePrimary.opacity(colorScheme == .dark ? 0.12 : 0.10),
-                    Color.pulpePrimary.opacity(colorScheme == .dark ? 0.04 : 0.03)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                colors: Color.heroGradientComfortable,
+                startPoint: UnitPoint(x: 0.1, y: 0),
+                endPoint: UnitPoint(x: 0.9, y: 1)
             )
-        }
-    }
+            .opacity(emotionState == .comfortable ? 1 : 0)
 
-    private var pulseDot: some View {
-        ZStack {
-            if reduceMotion {
-                Circle()
-                    .fill(Color.pulpePrimary.opacity(0.3))
-                    .frame(width: 14, height: 14)
-            } else {
-                Circle()
-                    .fill(Color.pulpePrimary.opacity(isPulsing ? 0 : 0.35))
-                    .frame(width: 10, height: 10)
-                    .scaleEffect(isPulsing ? 2.0 : 1)
-                    .animation(.easeOut(duration: 1.5).repeatForever(autoreverses: false), value: isPulsing)
-            }
+            LinearGradient(
+                colors: Color.heroGradientTight,
+                startPoint: UnitPoint(x: 0.1, y: 0),
+                endPoint: UnitPoint(x: 0.9, y: 1)
+            )
+            .opacity(emotionState == .tight ? 1 : 0)
+
+            LinearGradient(
+                colors: Color.heroGradientDeficit,
+                startPoint: UnitPoint(x: 0.1, y: 0),
+                endPoint: UnitPoint(x: 0.9, y: 1)
+            )
+            .opacity(emotionState == .deficit ? 1 : 0)
 
             Circle()
-                .fill(Color.pulpePrimary)
-                .frame(width: 10, height: 10)
+                .fill(.white.opacity(0.07))
+                .frame(width: 180, height: 180)
+                .blur(radius: 40)
+                .offset(x: 80, y: 60)
+
+            Circle()
+                .fill(.white.opacity(0.05))
+                .frame(width: 120, height: 120)
+                .blur(radius: 28)
+                .offset(x: 60, y: -40)
+
+            Circle()
+                .fill(.white.opacity(0.03))
+                .frame(width: 80, height: 80)
+                .blur(radius: 24)
+                .offset(x: -50, y: 0)
         }
-        .onAppear {
-            if !reduceMotion {
-                isPulsing = true
-            }
-        }
+        .allowsHitTesting(false)
     }
 }
 
