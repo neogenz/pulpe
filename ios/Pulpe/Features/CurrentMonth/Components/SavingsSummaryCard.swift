@@ -37,6 +37,8 @@ struct SavingsSummaryCard: View {
                     .foregroundStyle(.secondary)
                     .sensitiveAmount()
             }
+
+            Spacer()
         }
     }
 
