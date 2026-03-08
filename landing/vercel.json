@@ -3,6 +3,13 @@
   "framework": "nextjs",
   "buildCommand": "cd .. && pnpm build:shared && cd landing && pnpm build",
   "installCommand": "cd .. && pnpm install --frozen-lockfile --filter=pulpe-landing --filter=pulpe-shared --ignore-scripts",
+  "redirects": [
+    {
+      "source": "/app/:path*",
+      "destination": "https://app.pulpe.app/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/ph/static/:path(.*)",
