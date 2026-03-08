@@ -260,25 +260,23 @@ struct YearSection: View {
     @ViewBuilder
     private func expandedContent(data: YearSectionLayoutData) -> some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
-            if data.currentMonthBudget != nil {
+            if let current = data.currentMonthBudget {
                 if !data.monthsBefore.isEmpty {
                     monthListCard(months: data.monthsBefore)
                 }
-                if let current = data.currentMonthBudget {
-                    CurrentMonthHeroCard(
-                        budget: current,
-                        periodLabel: current.month.flatMap { month in
-                            current.year.flatMap { year in
-                                BudgetPeriodCalculator.formatPeriod(
-                                    month: month, year: year, payDayOfMonth: payDayOfMonth
-                                )
-                            }
+                CurrentMonthHeroCard(
+                    budget: current,
+                    periodLabel: current.month.flatMap { month in
+                        current.year.flatMap { year in
+                            BudgetPeriodCalculator.formatPeriod(
+                                month: month, year: year, payDayOfMonth: payDayOfMonth
+                            )
                         }
-                    ) {
-                        onSelect(current)
                     }
-                    .id("currentMonthHero")
+                ) {
+                    onSelect(current)
                 }
+                .id("currentMonthHero")
                 if !data.monthsAfter.isEmpty {
                     monthListCard(months: data.monthsAfter)
                 }
