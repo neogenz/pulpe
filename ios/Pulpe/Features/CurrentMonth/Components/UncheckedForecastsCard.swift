@@ -31,7 +31,6 @@ struct UncheckedForecastsCard: View {
                     }
                 }
             }
-            .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: items.map(\.id))
 
             Button {
                 viewAllTrigger.toggle()
@@ -50,6 +49,7 @@ struct UncheckedForecastsCard: View {
             .buttonStyle(.plain)
             .sensoryFeedback(.selection, trigger: viewAllTrigger)
         }
+        .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: items.map(\.id))
         .pulpeCard()
         .accessibilityElement(children: .contain)
         .accessibilityLabel("À pointer, \(items.count) éléments")
