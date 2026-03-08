@@ -241,6 +241,114 @@ struct DashboardStoreLogicTests {
         #expect(!makeStore(budgets: []).hasEnoughHistoryForTrends)
     }
 
+    // MARK: - Balance Forecasts
+
+    @Test func balanceForecasts_withFutureBudgets_returnsCorrectSequence() {
+        // Arrange — create budgets from current month through +2 months (or until Dec)
+        let month0 = currentMonth
+        let month1 = min(currentMonth + 1, 12)
+        let month2 = min(currentMonth + 2, 12)
+
+        let months = Set([month0, month1, month2])
+        let store = makeStore(budgets: months.sorted().map { month in
+            TestDataFactory.createBudgetSparse(
+                id: "fc-\(month)",
+                month: month,
+                year: currentYear,
+                remaining: 2583
+            )
+        })
+
+        // Act
+        let forecasts = store.balanceForecasts
+
+        // Assert
+        #expect(forecasts.count == months.count)
+        #expect(forecasts.first?.month == month0)
+        #expect(forecasts.first?.isCurrentMonth == true)
+        #expect(forecasts.first?.availableBalance == 2583.0)
+    }
+
+    @Test func balanceForecasts_excludesMonthsWithoutBudgets() {
+        // Arrange — current month and +2, but NOT +1 (gap)
+        let month0 = currentMonth
+        let month2 = min(currentMonth + 2, 12)
+
+        var budgets = [
+            TestDataFactory.createBudgetSparse(
+                id: "fc-\(month0)", month: month0, year: currentYear,
+                remaining: 1500
+            ),
+        ]
+        if month2 != month0 {
+            budgets.append(
+                TestDataFactory.createBudgetSparse(
+                    id: "fc-\(month2)", month: month2, year: currentYear,
+                    remaining: 2000
+                )
+            )
+        }
+
+        let store = makeStore(budgets: budgets)
+
+        // Act
+        let forecasts = store.balanceForecasts
+
+        // Assert — gap month is filtered out
+        let forecastMonths = forecasts.map(\.month)
+        let expectedGapMonth = min(currentMonth + 1, 12)
+        if expectedGapMonth != month0 && expectedGapMonth != month2 {
+            #expect(!forecastMonths.contains(expectedGapMonth))
+        }
+    }
+
+    @Test func balanceForecasts_excludesMonthsWithNilRemaining() {
+        // Arrange — budget exists but remaining is nil (not computed by backend)
+        let store = makeStore(budgets: [
+            TestDataFactory.createBudgetSparse(
+                id: "fc-1", month: currentMonth, year: currentYear,
+                remaining: nil
+            ),
+        ])
+
+        // Act & Assert — nil remaining is filtered out
+        #expect(store.balanceForecasts.isEmpty)
+    }
+
+    @Test func balanceForecasts_emptyWhenNoData() {
+        let store = makeStore(budgets: [])
+        #expect(store.balanceForecasts.isEmpty)
+    }
+
+    @Test func hasEnoughDataForBalanceChart_trueWith2OrMore() {
+        let store = makeStore(budgets: [
+            TestDataFactory.createBudgetSparse(
+                id: "fc-1", month: currentMonth, year: currentYear,
+                remaining: 2500
+            ),
+            TestDataFactory.createBudgetSparse(
+                id: "fc-2", month: min(currentMonth + 1, 12), year: currentYear,
+                remaining: 3000
+            ),
+        ])
+
+        if currentMonth < 12 {
+            #expect(store.hasEnoughDataForBalanceChart)
+        }
+    }
+
+    @Test func hasEnoughDataForBalanceChart_falseWith0Or1() {
+        #expect(!makeStore(budgets: []).hasEnoughDataForBalanceChart)
+
+        let storeWith1 = makeStore(budgets: [
+            TestDataFactory.createBudgetSparse(
+                id: "fc-1", month: currentMonth, year: currentYear,
+                remaining: 2500
+            ),
+        ])
+        #expect(!storeWith1.hasEnoughDataForBalanceChart)
+    }
+
     // MARK: - Cache Invalidation Logic
 
     @Test func cacheValidation_expiredAfter5Minutes() {

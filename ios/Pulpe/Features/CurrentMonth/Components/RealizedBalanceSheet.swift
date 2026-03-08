@@ -1,8 +1,10 @@
+import Charts
 import SwiftUI
 
 struct RealizedBalanceSheet: View {
     let metrics: BudgetFormulas.Metrics
     let realizedMetrics: BudgetFormulas.RealizedMetrics
+    @Environment(DashboardStore.self) private var dashboardStore
 
     private var isPositiveBalance: Bool {
         realizedMetrics.realizedBalance >= 0
@@ -24,6 +26,7 @@ struct RealizedBalanceSheet: View {
                     balanceSection
                     completionSection
                     progressSection
+                    trendSection
                     tipSection
                 }
                 .padding(.horizontal)
@@ -40,6 +43,7 @@ struct RealizedBalanceSheet: View {
             }
         }
         .standardSheetPresentation(detents: [.medium, .large])
+        .task { await dashboardStore.loadIfNeeded() }
     }
 
     // MARK: - Balance Section
@@ -144,6 +148,47 @@ struct RealizedBalanceSheet: View {
         }
     }
 
+    // MARK: - Trend Section
+
+    @ViewBuilder
+    private var trendSection: some View {
+        if dashboardStore.hasEnoughDataForBalanceChart {
+            let forecasts = dashboardStore.balanceForecasts
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                Text("Tendance")
+                    .font(PulpeTypography.headline)
+
+                VStack(spacing: DesignTokens.Spacing.sm) {
+                    // Month labels
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        ForEach(forecasts) { point in
+                            Text(point.shortMonthName)
+                                .font(PulpeTypography.caption2)
+                                .foregroundStyle(point.isCurrentMonth ? .primary : .secondary)
+                                .fontWeight(point.isCurrentMonth ? .semibold : .regular)
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+
+                    BalanceTrendChart(forecasts: forecasts)
+                        .clipped()
+                }
+                .padding(DesignTokens.Spacing.lg)
+                .pulpeCardBackground()
+                .sensitiveAmount()
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Graphique de tendance du solde")
+        } else {
+            Text("Crée des budgets futurs pour voir la tendance")
+                .font(PulpeTypography.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .pulpeCard()
+        }
+    }
+
     // MARK: - Tip Section
 
     private var tipSection: some View {
@@ -198,6 +243,86 @@ private struct CompletionBar: View {
             }
         }
         .animation(DesignTokens.Animation.gentleSpring, value: filledSegments)
+    }
+}
+
+// MARK: - Balance Trend Chart
+
+private struct BalanceTrendChart: View {
+    let forecasts: [MonthlyForecast]
+
+    private var yMin: Double { forecasts.map(\.availableBalance).min() ?? 0 }
+    private var yMax: Double {
+        let max = forecasts.map(\.availableBalance).max() ?? 1
+        // Ensure non-zero range — Swift Charts crashes on empty domain
+        return max <= yMin ? yMin + 1 : max
+    }
+
+    private var yPadding: Double {
+        let range = yMax - yMin
+        return max(range * 0.08, 1)
+    }
+
+    var body: some View {
+        Chart {
+            RuleMark(y: .value("Zero", 0))
+                .foregroundStyle(.secondary.opacity(0.3))
+                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4]))
+
+            ForEach(forecasts) { point in
+                AreaMark(
+                    x: .value("Mois", point.shortMonthName),
+                    y: .value("Solde", point.availableBalance)
+                )
+                .interpolationMethod(.monotone)
+                .foregroundStyle(areaGradient)
+
+                LineMark(
+                    x: .value("Mois", point.shortMonthName),
+                    y: .value("Solde", point.availableBalance)
+                )
+                .interpolationMethod(.monotone)
+                .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
+                .foregroundStyle(Color.pulpePrimary)
+                .accessibilityLabel("Mois \(point.shortMonthName)")
+                .accessibilityValue(Formatters.chfCompact.string(from: point.availableBalance as NSNumber) ?? "")
+            }
+        }
+        .chartXAxis(.hidden)
+        .chartYAxis {
+            AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { value in
+                AxisGridLine()
+                    .foregroundStyle(.secondary.opacity(0.2))
+                AxisValueLabel {
+                    if let amount = value.as(Double.self) {
+                        Text(Self.formatAxisLabel(amount))
+                            .font(PulpeTypography.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+        .chartLegend(.hidden)
+        .chartYScale(domain: (yMin - yPadding) ... (yMax + yPadding))
+        .frame(height: 150)
+    }
+
+    private static func formatAxisLabel(_ value: Double) -> String {
+        let abs = abs(value), sign = value < 0 ? "-" : ""
+        guard abs >= 1000 else { return "\(Int(value))" }
+        let k = abs / 1000
+        return k.truncatingRemainder(dividingBy: 1) == 0 ? "\(sign)\(Int(k))K" : String(format: "%@%.1fK", sign, k)
+    }
+
+    private var areaGradient: LinearGradient {
+        LinearGradient(
+            stops: [
+                .init(color: Color.pulpePrimary.opacity(0.25), location: 0),
+                .init(color: Color.pulpePrimary.opacity(0), location: 0.9),
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
     }
 }
 
@@ -273,6 +398,26 @@ private struct CategoryRow: View {
     }
 }
 
+// MARK: - Preview Helpers
+
+private let previewDashboardStore: DashboardStore = {
+    let calendar = Calendar.current
+    let currentMonth = calendar.component(.month, from: Date())
+    let currentYear = calendar.component(.year, from: Date())
+
+    let remainingValues: [Decimal] = [1274, 2583, 2583, 4419, 2583, 2583, -777, 532, 532, 3398]
+    let budgets = (0..<min(10, 13 - currentMonth)).map { offset -> BudgetSparse in
+        let month = currentMonth + offset
+        return BudgetSparse(
+            id: "preview-\(month)",
+            month: month,
+            year: currentYear,
+            remaining: remainingValues[offset]
+        )
+    }
+    return DashboardStore(initialBudgets: budgets)
+}()
+
 // MARK: - Previews
 
 #Preview("Positive Balance") {
@@ -297,6 +442,7 @@ private struct CategoryRow: View {
                     checkedSavingsAmount: 250
                 )
             )
+            .environment(previewDashboardStore)
         }
 }
 
@@ -322,6 +468,7 @@ private struct CategoryRow: View {
                     checkedSavingsAmount: 200
                 )
             )
+            .environment(previewDashboardStore)
         }
 }
 
@@ -347,5 +494,6 @@ private struct CategoryRow: View {
                     checkedSavingsAmount: 800
                 )
             )
+            .environment(previewDashboardStore)
         }
 }
