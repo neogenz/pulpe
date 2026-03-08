@@ -373,7 +373,7 @@ struct BudgetLineRow: View {
             Rectangle()
                 .fill(consumptionColor)
                 .frame(width: barWidth * CGFloat(min(consumption.percentage / 100, 1)))
-                .animation(.spring(duration: DesignTokens.Animation.slow), value: consumption.percentage)
+                .animation(DesignTokens.Animation.gentleSpring, value: consumption.percentage)
         }
         .frame(height: DesignTokens.ProgressBar.height)
         .clipShape(.rect(cornerRadius: 10))
