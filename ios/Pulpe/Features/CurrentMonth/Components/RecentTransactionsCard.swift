@@ -29,6 +29,7 @@ struct RecentTransactionsCard: View {
                         .font(PulpeTypography.caption)
                         .foregroundStyle(.tertiary)
                 }
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .sensoryFeedback(.selection, trigger: viewAllTrigger)

@@ -180,20 +180,30 @@ struct CurrentMonthView: View {
 
     @ViewBuilder
     private var uncheckedForecastsSection: some View {
-        if !store.uncheckedBudgetLines.isEmpty {
+        if !store.uncheckedItems.isEmpty {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 Text("À pointer")
                     .pulpeSectionHeader()
 
                 UncheckedForecastsCard(
-                    budgetLines: store.uncheckedBudgetLines,
+                    items: store.uncheckedItems,
                     transactions: store.transactions,
-                    syncingIds: store.syncingBudgetLineIds,
-                    onToggle: { line in Task { await store.toggleBudgetLine(line) } },
+                    syncingBudgetLineIds: store.syncingBudgetLineIds,
+                    syncingTransactionIds: store.syncingTransactionIds,
+                    onToggle: { item in
+                        Task {
+                            switch item {
+                            case .transaction(let tx):
+                                await store.toggleTransaction(tx)
+                            case .budgetLine(let line):
+                                await store.toggleBudgetLine(line)
+                            }
+                        }
+                    },
                     onViewAll: { navigateToBudget = true }
                 )
             }
-        } else if !store.budgetLines.isEmpty {
+        } else if !store.budgetLines.isEmpty || !store.transactions.isEmpty {
             UncheckedForecastsEmptyState()
         }
     }

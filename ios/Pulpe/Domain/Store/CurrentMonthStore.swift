@@ -12,6 +12,34 @@ final class CurrentMonthStore: StoreProtocol {
         let totalExpenses: Decimal
     }
 
+    /// A checkable item in the "À pointer" dashboard card.
+    /// Priority: free transactions → allocated transactions → budget lines.
+    enum CheckableItem: Identifiable, Sendable {
+        case transaction(Transaction)
+        case budgetLine(BudgetLine)
+
+        var id: String {
+            switch self {
+            case .transaction(let tx): return "tx-\(tx.id)"
+            case .budgetLine(let line): return "bl-\(line.id)"
+            }
+        }
+
+        var kind: TransactionKind {
+            switch self {
+            case .transaction(let tx): return tx.kind
+            case .budgetLine(let line): return line.kind
+            }
+        }
+
+        var name: String {
+            switch self {
+            case .transaction(let tx): return tx.name
+            case .budgetLine(let line): return line.name
+            }
+        }
+    }
+
     struct SavingsSummary: Sendable {
         let totalPlanned: Decimal
         let totalRealized: Decimal
@@ -387,14 +415,53 @@ extension CurrentMonthStore {
         )
     }
 
-    /// Unchecked budget lines for dashboard checking widget (max 5)
+    /// Unchecked budget lines for dashboard checking widget (max 5).
+    /// Sorted by kind: income → expense → saving, then by creation date (newest first).
     var uncheckedBudgetLines: [BudgetLine] {
-        Array(
+        let kindOrder: [TransactionKind] = [.income, .expense, .saving]
+        return Array(
             budgetLines
                 .filter { !$0.isChecked && !($0.isRollover ?? false) }
-                .sorted { $0.createdAt > $1.createdAt }
+                .sorted {
+                    let lhs = kindOrder.firstIndex(of: $0.kind) ?? 99
+                    let rhs = kindOrder.firstIndex(of: $1.kind) ?? 99
+                    if lhs != rhs { return lhs < rhs }
+                    return $0.createdAt > $1.createdAt
+                }
                 .prefix(5)
         )
+    }
+
+    /// Unchecked items for dashboard "À pointer" card (max 5).
+    /// Priority: free transactions → allocated transactions → budget lines.
+    var uncheckedItems: [CheckableItem] {
+        var items: [CheckableItem] = []
+
+        // 1. Free transactions (unchecked, newest first)
+        items += transactions
+            .filter { $0.isFree && !$0.isChecked }
+            .sorted { $0.transactionDate > $1.transactionDate }
+            .map { .transaction($0) }
+
+        // 2. Allocated transactions (unchecked, newest first)
+        items += transactions
+            .filter { $0.isAllocated && !$0.isChecked }
+            .sorted { $0.transactionDate > $1.transactionDate }
+            .map { .transaction($0) }
+
+        // 3. Unchecked budget lines (income → expense → saving)
+        let kindOrder: [TransactionKind] = [.income, .expense, .saving]
+        items += budgetLines
+            .filter { !$0.isChecked && !($0.isRollover ?? false) }
+            .sorted {
+                let lhs = kindOrder.firstIndex(of: $0.kind) ?? 99
+                let rhs = kindOrder.firstIndex(of: $1.kind) ?? 99
+                if lhs != rhs { return lhs < rhs }
+                return $0.createdAt > $1.createdAt
+            }
+            .map { .budgetLine($0) }
+
+        return Array(items.prefix(5))
     }
 
     var savingsSummary: SavingsSummary {
