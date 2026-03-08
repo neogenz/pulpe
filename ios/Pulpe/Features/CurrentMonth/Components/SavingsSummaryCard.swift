@@ -69,7 +69,7 @@ struct SavingsSummaryCard: View {
                 Capsule()
                     .fill(Color.financialSavings)
                     .frame(width: barWidth * CGFloat(max(0, min(summary.progressPercentage / 100, 1))))
-                    .animation(.spring(duration: DesignTokens.Animation.slow), value: summary.progressPercentage)
+                    .animation(DesignTokens.Animation.gentleSpring, value: summary.progressPercentage)
             }
             .frame(height: DesignTokens.ProgressBar.thickHeight)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }

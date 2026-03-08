@@ -262,7 +262,7 @@ struct CurrentMonthStoreAlertAndFilterTests {
         #expect(recent[4].id == "tx-4")
     }
 
-@Test func freeTransactionsLogic_filtersUnallocated() {
+    @Test func freeTransactionsLogic_filtersUnallocated() {
         // Arrange
         let transactions = [
             TestDataFactory.createTransaction(id: "tx-free-1", budgetLineId: nil),
