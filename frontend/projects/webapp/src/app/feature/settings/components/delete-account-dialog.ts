@@ -95,7 +95,10 @@ import { ErrorAlert } from '@ui/error-alert';
               <mat-error>{{
                 'settings.pinCodeRequired' | transloco
               }}</mat-error>
-            } @else if (vaultCodeForm.get('vaultCode')?.hasError('minlength')) {
+            } @else if (
+              vaultCodeForm.get('vaultCode')?.hasError('minlength') ||
+              vaultCodeForm.get('vaultCode')?.hasError('maxlength')
+            ) {
               <mat-error>{{
                 'settings.pinCodeLength'
                   | transloco: { length: VAULT_CODE_LENGTH }

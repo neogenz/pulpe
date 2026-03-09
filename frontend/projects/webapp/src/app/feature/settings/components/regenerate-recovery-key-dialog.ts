@@ -82,7 +82,8 @@ import { ErrorAlert } from '@ui/error-alert';
           @if (verificationForm.get('vaultCode')?.hasError('required')) {
             <mat-error>{{ 'settings.pinCodeRequired' | transloco }}</mat-error>
           } @else if (
-            verificationForm.get('vaultCode')?.hasError('minlength')
+            verificationForm.get('vaultCode')?.hasError('minlength') ||
+            verificationForm.get('vaultCode')?.hasError('maxlength')
           ) {
             <mat-error>{{
               'settings.pinCodeLength'

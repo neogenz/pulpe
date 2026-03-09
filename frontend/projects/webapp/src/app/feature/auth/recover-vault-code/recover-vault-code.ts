@@ -181,7 +181,10 @@ import {
               <mat-error>
                 @if (form.get('newVaultCode')?.hasError('required')) {
                   {{ 'auth.recoverVaultCode.newPinRequired' | transloco }}
-                } @else if (form.get('newVaultCode')?.hasError('minlength')) {
+                } @else if (
+                  form.get('newVaultCode')?.hasError('minlength') ||
+                  form.get('newVaultCode')?.hasError('maxlength')
+                ) {
                   {{ 'auth.vaultCode.pinLength' | transloco }}
                 } @else if (form.get('newVaultCode')?.hasError('pattern')) {
                   {{ 'auth.vaultCode.pinPattern' | transloco }}
