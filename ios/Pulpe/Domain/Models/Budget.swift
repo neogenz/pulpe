@@ -49,18 +49,6 @@ struct Budget: Codable, Identifiable, Hashable, Sendable {
         let currentPeriod = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
         return month == currentPeriod.month && year == currentPeriod.year
     }
-
-    /// Budget lines augmented with a virtual rollover line when rollover != 0.
-    /// Shared logic used by both CurrentMonthStore and BudgetDetailsViewModel.
-    func displayBudgetLines(base: [BudgetLine]) -> [BudgetLine] {
-        guard let rollover, rollover != 0 else { return base }
-        let rolloverLine = BudgetLine.rolloverLine(
-            amount: rollover,
-            budgetId: id,
-            sourceBudgetId: previousBudgetId
-        )
-        return [rolloverLine] + base
-    }
 }
 
 // MARK: - Create/Update DTOs

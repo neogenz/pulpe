@@ -216,7 +216,7 @@ struct CurrentMonthStoreAlertAndFilterTests {
         // Assert
         #expect(displayLines.count == 2)
         #expect(displayLines[0].isVirtualRollover)
-        #expect(displayLines[0].amount == -300)
+        #expect(displayLines[0].amount == 300)
         #expect(displayLines[0].kind == .expense)
     }
 
