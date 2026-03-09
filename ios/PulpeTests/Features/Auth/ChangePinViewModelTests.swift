@@ -25,8 +25,8 @@ struct ChangePinViewModelTests {
         #expect(sut.isProcessing == false)
         #expect(sut.recoveryKey == nil)
         #expect(sut.canConfirm == false)
-        #expect(sut.maxDigits == 6)
-        #expect(sut.minDigits == 4)
+        #expect(sut.pinLength == 4)
+        #expect(sut.maxDigits == 4)
     }
 
     // MARK: - appendDigit
@@ -62,15 +62,15 @@ struct ChangePinViewModelTests {
 
     // MARK: - canConfirm
 
-    @Test func canConfirm_falseWithLessThanMinDigits() {
+    @Test func canConfirm_falseWithLessThanPinLength() {
         let sut = makeSUT()
-        for _ in 0..<(sut.minDigits - 1) { sut.appendDigit(1) }
+        for _ in 0..<(sut.pinLength - 1) { sut.appendDigit(1) }
         #expect(sut.canConfirm == false)
     }
 
-    @Test func canConfirm_trueAtMinDigits() {
+    @Test func canConfirm_trueAtPinLength() {
         let sut = makeSUT()
-        for _ in 0..<sut.minDigits { sut.appendDigit(1) }
+        for _ in 0..<sut.pinLength { sut.appendDigit(1) }
         #expect(sut.canConfirm == true)
     }
 
@@ -228,21 +228,20 @@ struct ChangePinFlowTests {
         #expect(result.sut.recoveryKey == nil)
     }
 
-    // MARK: - Auto-confirm on maxDigits
+    // MARK: - No auto-confirm
 
-    @Test("filling maxDigits auto-triggers confirm")
-    func maxDigits_autoTriggersConfirm() async {
+    @Test("filling maxDigits does NOT auto-trigger confirm")
+    func maxDigits_doesNotAutoTriggerConfirm() async {
         let result = makeFlowSUT()
 
-        // Enter 6 digits (maxDigits) — should auto-validate and advance
-        for i in 1...6 { result.sut.appendDigit(i) }
+        // Enter 4 digits (maxDigits) — should NOT auto-validate
+        for i in 1...4 { result.sut.appendDigit(i) }
 
-        // Wait for async processing to complete
-        await waitForCondition("should advance to enterNewPin") {
-            result.sut.step == .enterNewPin
-        }
+        // Give time for any erroneous async task to fire
+        try? await Task.sleep(for: .milliseconds(100))
 
-        #expect(result.sut.step == .enterNewPin)
+        #expect(result.sut.step == .enterOldPin, "Should stay on enterOldPin — no auto-confirm")
+        #expect(result.sut.digits.count == 4)
     }
 }
 

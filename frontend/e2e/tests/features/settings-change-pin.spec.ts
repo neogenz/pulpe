@@ -16,8 +16,8 @@ const injectClientKey = async (page: Page): Promise<void> => {
   });
 };
 
-const VALID_OLD_PIN = '123456';
-const VALID_NEW_PIN = '654321';
+const VALID_OLD_PIN = '1234';
+const VALID_NEW_PIN = '4321';
 
 const navigateToSettings = async (page: Page): Promise<void> => {
   await setupAuthBypass(page, {

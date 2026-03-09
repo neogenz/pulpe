@@ -17,7 +17,7 @@ vi.mock('@core/encryption/crypto.utils', async (importOriginal) => {
     deriveClientKey: vi
       .fn()
       .mockImplementation((pin: string) =>
-        Promise.resolve(pin === '123456' ? 'a'.repeat(64) : 'b'.repeat(64)),
+        Promise.resolve(pin === '1234' ? 'a'.repeat(64) : 'b'.repeat(64)),
       ),
   };
 });
@@ -93,13 +93,13 @@ describe('ChangePinDialog', () => {
       expect(component['oldPinForm'].valid).toBe(false);
     });
 
-    it('form valid when exactly 6 digits', () => {
+    it('form invalid when more than 4 digits', () => {
       component['oldPinForm'].patchValue({ oldPin: '123456' });
-      expect(component['oldPinForm'].valid).toBe(true);
+      expect(component['oldPinForm'].valid).toBe(false);
     });
 
     it('transitions to step 2 after salt fetch and key validation', async () => {
-      component['oldPinForm'].patchValue({ oldPin: '123456' });
+      component['oldPinForm'].patchValue({ oldPin: '1234' });
 
       await component['onSubmitOldPin']();
 
@@ -111,7 +111,7 @@ describe('ChangePinDialog', () => {
       mockEncryptionApi.getSalt$.mockReturnValue(
         throwError(() => new Error('Network error')),
       );
-      component['oldPinForm'].patchValue({ oldPin: '123456' });
+      component['oldPinForm'].patchValue({ oldPin: '1234' });
 
       await component['onSubmitOldPin']();
 
@@ -133,7 +133,7 @@ describe('ChangePinDialog', () => {
             ),
         ),
       );
-      component['oldPinForm'].patchValue({ oldPin: '123456' });
+      component['oldPinForm'].patchValue({ oldPin: '1234' });
 
       await component['onSubmitOldPin']();
 
@@ -147,7 +147,7 @@ describe('ChangePinDialog', () => {
           () => new ApiError('Too many requests', undefined, 429, undefined),
         ),
       );
-      component['oldPinForm'].patchValue({ oldPin: '123456' });
+      component['oldPinForm'].patchValue({ oldPin: '1234' });
 
       await component['onSubmitOldPin']();
 
@@ -159,20 +159,25 @@ describe('ChangePinDialog', () => {
   });
 
   describe('Step 2 - New PIN', () => {
-    it('form valid when exactly 6 digits', () => {
-      component['newPinForm'].patchValue({ newPin: '654321' });
+    it('form valid when exactly 4 digits', () => {
+      component['newPinForm'].patchValue({ newPin: '4321' });
       expect(component['newPinForm'].valid).toBe(true);
+    });
+
+    it('form invalid when more than 4 digits', () => {
+      component['newPinForm'].patchValue({ newPin: '654321' });
+      expect(component['newPinForm'].valid).toBe(false);
     });
   });
 
   describe('Successful PIN change', () => {
     beforeEach(async () => {
-      component['oldPinForm'].patchValue({ oldPin: '123456' });
+      component['oldPinForm'].patchValue({ oldPin: '1234' });
       await component['onSubmitOldPin']();
     });
 
     it('calls changePin$ with derived keys', async () => {
-      component['newPinForm'].patchValue({ newPin: '654321' });
+      component['newPinForm'].patchValue({ newPin: '4321' });
 
       await component['onSubmitNewPin']();
 
@@ -183,7 +188,7 @@ describe('ChangePinDialog', () => {
     });
 
     it('calls setDirectKey with new client key', async () => {
-      component['newPinForm'].patchValue({ newPin: '654321' });
+      component['newPinForm'].patchValue({ newPin: '4321' });
 
       await component['onSubmitNewPin']();
 
@@ -195,7 +200,7 @@ describe('ChangePinDialog', () => {
 
     it('calls setDirectKey with useLocalStorage true when local key exists', async () => {
       mockStorage.getString.mockReturnValue('some-key');
-      component['newPinForm'].patchValue({ newPin: '654321' });
+      component['newPinForm'].patchValue({ newPin: '4321' });
 
       await component['onSubmitNewPin']();
 
@@ -206,7 +211,7 @@ describe('ChangePinDialog', () => {
     });
 
     it('closes dialog with recoveryKey result', async () => {
-      component['newPinForm'].patchValue({ newPin: '654321' });
+      component['newPinForm'].patchValue({ newPin: '4321' });
 
       await component['onSubmitNewPin']();
 
@@ -218,7 +223,7 @@ describe('ChangePinDialog', () => {
 
   describe('Error handling', () => {
     beforeEach(async () => {
-      component['oldPinForm'].patchValue({ oldPin: '123456' });
+      component['oldPinForm'].patchValue({ oldPin: '1234' });
       await component['onSubmitOldPin']();
     });
 
@@ -234,7 +239,7 @@ describe('ChangePinDialog', () => {
             ),
         ),
       );
-      component['newPinForm'].patchValue({ newPin: '654321' });
+      component['newPinForm'].patchValue({ newPin: '4321' });
 
       await component['onSubmitNewPin']();
 
@@ -249,7 +254,7 @@ describe('ChangePinDialog', () => {
             new ApiError('Same key', 'ERR_ENCRYPTION_SAME_KEY', 400, undefined),
         ),
       );
-      component['newPinForm'].patchValue({ newPin: '654321' });
+      component['newPinForm'].patchValue({ newPin: '4321' });
 
       await component['onSubmitNewPin']();
 
@@ -264,7 +269,7 @@ describe('ChangePinDialog', () => {
           () => new ApiError('Too many requests', undefined, 429, undefined),
         ),
       );
-      component['newPinForm'].patchValue({ newPin: '654321' });
+      component['newPinForm'].patchValue({ newPin: '4321' });
 
       await component['onSubmitNewPin']();
 
@@ -285,7 +290,7 @@ describe('ChangePinDialog', () => {
             ),
         ),
       );
-      component['newPinForm'].patchValue({ newPin: '654321' });
+      component['newPinForm'].patchValue({ newPin: '4321' });
 
       await component['onSubmitNewPin']();
 
@@ -308,7 +313,7 @@ describe('ChangePinDialog', () => {
             ),
         ),
       );
-      component['newPinForm'].patchValue({ newPin: '654321' });
+      component['newPinForm'].patchValue({ newPin: '4321' });
 
       await component['onSubmitNewPin']();
 
@@ -324,7 +329,7 @@ describe('ChangePinDialog', () => {
       mockEncryptionApi.changePin$.mockReturnValue(
         throwError(() => new Error('Unknown')),
       );
-      component['newPinForm'].patchValue({ newPin: '654321' });
+      component['newPinForm'].patchValue({ newPin: '4321' });
 
       await component['onSubmitNewPin']();
 
@@ -352,7 +357,7 @@ describe('ChangePinDialog', () => {
         blockingPromise.then(() => MOCK_OLD_CLIENT_KEY),
       );
 
-      component['oldPinForm'].patchValue({ oldPin: '123456' });
+      component['oldPinForm'].patchValue({ oldPin: '1234' });
       const submitPromise = component['onSubmitOldPin']();
 
       expect(component['isSubmitting']()).toBe(true);

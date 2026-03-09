@@ -73,31 +73,23 @@ struct PinEntryViewModelTests {
 
     // MARK: - canConfirm
 
-    @Test func canConfirm_falseWithLessThanMinDigits() {
+    @Test func canConfirm_falseWithLessThanPinLength() {
         let sut = makeSUT()
-        for _ in 0..<(sut.minDigits - 1) {
+        for _ in 0..<(sut.pinLength - 1) {
             sut.appendDigit(1)
         }
         #expect(sut.canConfirm == false)
     }
 
-    @Test func canConfirm_trueAtMinDigits() {
+    @Test func canConfirm_trueAtPinLength() {
         let sut = makeSUT()
-        for _ in 0..<sut.minDigits {
+        for _ in 0..<sut.pinLength {
             sut.appendDigit(1)
         }
         #expect(sut.canConfirm == true)
     }
 
-    @Test func canConfirm_trueAboveMinDigits() {
-        let sut = makeSUT()
-        for _ in 0..<(sut.minDigits + 1) {
-            sut.appendDigit(1)
-        }
-        #expect(sut.canConfirm == true)
-    }
-
-    @Test func confirm_withLessThanMinDigits_doesNothing() async {
+    @Test func confirm_withLessThanPinLength_doesNothing() async {
         let sut = makeSUT()
         sut.appendDigit(1)
         sut.appendDigit(2)
@@ -109,21 +101,12 @@ struct PinEntryViewModelTests {
         #expect(sut.errorMessage == nil)
     }
 
-    @Test func appendDigit_atMaxDigits_doesNotAutoAuthenticate() {
-        let sut = makeSUT()
-        for i in 0..<sut.maxDigits {
-            sut.appendDigit(i)
-        }
-
-        #expect(sut.authenticated == false)
-    }
-
     // MARK: - Constants
 
     @Test func constants() {
         let sut = makeSUT()
-        #expect(sut.maxDigits == 6)
-        #expect(sut.minDigits == 4)
+        #expect(sut.pinLength == 4)
+        #expect(sut.maxDigits == 4)
     }
 }
 
@@ -201,13 +184,38 @@ struct PinEntryValidationFlowTests {
         }
     }
 
+    // MARK: - Auto-Submit
+
+    @Test func autoSubmit_triggersValidationAt4Digits() async {
+        let sut = makeSUT()
+        enterPin(sut)
+
+        await waitForCondition("should auto-authenticate at 4 digits") {
+            sut.authenticated
+        }
+
+        #expect(sut.authenticated == true)
+    }
+
+    @Test func autoSubmit_doesNotFireWithFewerThan4Digits() async {
+        let sut = makeSUT()
+        enterPin(sut, digits: [1, 2, 3])
+
+        // Give time for any erroneous async task to fire
+        try? await Task.sleep(for: .milliseconds(100))
+
+        #expect(sut.authenticated == false)
+        #expect(sut.isValidating == false)
+    }
+
     // MARK: - Success Flow
 
     @Test func confirm_validPin_authenticates() async {
         let sut = makeSUT()
         enterPin(sut)
 
-        await sut.confirm()
+        // Auto-submit fires at 4 digits
+        await waitForCondition("should auto-authenticate") { sut.authenticated }
 
         #expect(sut.authenticated == true)
         #expect(sut.isValidating == false)
@@ -218,7 +226,8 @@ struct PinEntryValidationFlowTests {
         let components = makeSUTWithStubs()
         enterPin(components.sut)
 
-        await components.sut.confirm()
+        // Auto-submit fires at 4 digits
+        await waitForCondition("should auto-authenticate") { components.sut.authenticated }
 
         #expect(await components.encryptionAPI.getSaltCallCount == 1)
         #expect(await components.crypto.deriveCallCount == 1)
@@ -232,7 +241,8 @@ struct PinEntryValidationFlowTests {
         let sut = makeSUT(validateKeyError: .unauthorized)
         enterPin(sut)
 
-        await sut.confirm()
+        // Auto-submit fires at 4 digits
+        await waitForCondition("should show error") { sut.isError }
 
         #expect(sut.authenticated == false)
         #expect(sut.errorMessage == "Ce code ne semble pas correct")
@@ -245,7 +255,7 @@ struct PinEntryValidationFlowTests {
         let sut = makeSUT(validateKeyError: .rateLimited)
         enterPin(sut)
 
-        await sut.confirm()
+        await waitForCondition("should show error") { sut.isError }
 
         #expect(sut.authenticated == false)
         #expect(sut.errorMessage == "Trop de tentatives, patiente un moment")
@@ -257,7 +267,7 @@ struct PinEntryValidationFlowTests {
         let sut = makeSUT(validateKeyError: .networkError(URLError(.notConnectedToInternet)))
         enterPin(sut)
 
-        await sut.confirm()
+        await waitForCondition("should show error") { sut.isError }
 
         #expect(sut.authenticated == false)
         #expect(sut.errorMessage == "Erreur de connexion, réessaie")
@@ -269,7 +279,7 @@ struct PinEntryValidationFlowTests {
         let sut = makeSUT(validateKeyError: .unauthorized)
         enterPin(sut)
 
-        await sut.confirm()
+        await waitForCondition("should show error") { sut.isError }
 
         #expect(sut.isValidating == false)
     }
@@ -282,7 +292,7 @@ struct PinEntryValidationFlowTests {
         let sut = makeSUT(deriveError: KeychainUnavailableError())
         enterPin(sut)
 
-        await sut.confirm()
+        await waitForCondition("should show error") { sut.isError }
 
         #expect(sut.authenticated == false)
         #expect(sut.errorMessage == "Erreur inattendue, réessaie")

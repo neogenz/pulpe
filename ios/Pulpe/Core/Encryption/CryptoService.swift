@@ -21,7 +21,7 @@ actor CryptoService {
 
     /// Derives a 256-bit client encryption key from a PIN using PBKDF2-HMAC-SHA256.
     /// - Parameters:
-    ///   - pin: User's PIN code (4-8 digits)
+    ///   - pin: User's PIN code (4 digits)
     ///   - saltHex: Hexadecimal salt from server (64 characters)
     ///   - iterations: PBKDF2 iteration count (typically 600,000)
     /// - Returns: Derived key as hexadecimal string (64 characters)

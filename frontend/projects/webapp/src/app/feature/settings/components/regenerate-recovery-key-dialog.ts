@@ -4,12 +4,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import {
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -19,7 +14,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { firstValueFrom } from 'rxjs';
 
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
-import { VAULT_CODE_MIN_LENGTH } from '@core/auth';
+import { VAULT_CODE_LENGTH, VAULT_CODE_VALIDATORS } from '@core/auth';
 import { EncryptionApi, deriveClientKey } from '@core/encryption';
 import { Logger } from '@core/logging/logger';
 import { ErrorAlert } from '@ui/error-alert';
@@ -67,6 +62,7 @@ import { ErrorAlert } from '@ui/error-alert';
             matInput
             [type]="isVaultCodeHidden() ? 'password' : 'text'"
             inputmode="numeric"
+            [attr.maxlength]="VAULT_CODE_LENGTH"
             formControlName="vaultCode"
             data-testid="verify-vault-code-input"
           />
@@ -89,8 +85,8 @@ import { ErrorAlert } from '@ui/error-alert';
             verificationForm.get('vaultCode')?.hasError('minlength')
           ) {
             <mat-error>{{
-              'settings.pinCodeMinLength'
-                | transloco: { min: VAULT_CODE_MIN_LENGTH }
+              'settings.pinCodeLength'
+                | transloco: { length: VAULT_CODE_LENGTH }
             }}</mat-error>
           } @else if (verificationForm.get('vaultCode')?.hasError('pattern')) {
             <mat-error>{{
@@ -136,16 +132,12 @@ export class RegenerateRecoveryKeyDialog {
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
   protected readonly isVaultCodeHidden = signal(true);
-  protected readonly VAULT_CODE_MIN_LENGTH = VAULT_CODE_MIN_LENGTH;
+  protected readonly VAULT_CODE_LENGTH = VAULT_CODE_LENGTH;
 
   protected readonly verificationForm = new FormGroup({
     vaultCode: new FormControl('', {
       nonNullable: true,
-      validators: [
-        Validators.required,
-        Validators.minLength(VAULT_CODE_MIN_LENGTH),
-        Validators.pattern(/^\d+$/),
-      ],
+      validators: VAULT_CODE_VALIDATORS,
     }),
   });
 

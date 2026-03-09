@@ -14,7 +14,7 @@ enum PinSetupMode: Equatable, Sendable {
         }
     }
 
-    var subtitle: String { "4 chiffres minimum" }
+    var subtitle: String { "4 chiffres" }
 }
 
 // MARK: - Setup Step
@@ -162,11 +162,11 @@ final class PinSetupViewModel {
     private(set) var hapticSuccess = false
     private(set) var hapticError = false
 
-    let maxDigits = 6
-    let minDigits = 4
+    let pinLength = PinConstants.length
+    var maxDigits: Int { pinLength }
 
     var canConfirm: Bool {
-        digits.count >= minDigits && !isValidating
+        digits.count == pinLength && !isValidating
     }
 
     var title: String {
@@ -179,7 +179,7 @@ final class PinSetupViewModel {
 
     var subtitle: String {
         switch currentStep {
-        case .enterPin: return "4 chiffres minimum"
+        case .enterPin: return "4 chiffres"
         case .confirmPin: return "Saisis à nouveau ton code"
         }
     }
@@ -208,13 +208,9 @@ final class PinSetupViewModel {
     // MARK: - Actions
 
     func appendDigit(_ digit: Int) {
-        guard digits.count < maxDigits, !isValidating else { return }
+        guard digits.count < pinLength, !isValidating else { return }
         if isError { clearError() }
         digits.append(digit)
-
-        if digits.count == maxDigits {
-            Task { await handlePinComplete() }
-        }
     }
 
     func confirm() async {

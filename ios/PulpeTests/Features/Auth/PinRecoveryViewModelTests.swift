@@ -131,13 +131,29 @@ struct PinRecoveryViewModelTests {
         #expect(sut.digits == [1, 2, 3])
     }
 
-    @Test func appendDigit_stopsBeforeMaxToAvoidAutoComplete() {
+    @Test func appendDigit_respectsMaxDigits() {
         let sut = makeSUT()
         advanceToCreatePin(sut)
-        for i in 0..<(sut.maxDigits - 1) {
+        for i in 0..<sut.maxDigits {
             sut.appendDigit(i)
         }
-        #expect(sut.digits.count == sut.maxDigits - 1)
+        sut.appendDigit(9)
+        #expect(sut.digits.count == sut.maxDigits)
+    }
+
+    @Test func appendDigit_noAutoSubmitAtMaxDigits() async {
+        let sut = makeSUT()
+        advanceToCreatePin(sut)
+        for i in 0..<sut.maxDigits {
+            sut.appendDigit(i)
+        }
+
+        // Give time for any erroneous async task to fire
+        try? await Task.sleep(for: .milliseconds(100))
+
+        // Should still be on createPin step — no auto-submit
+        #expect(sut.step == .createPin)
+        #expect(sut.digits.count == sut.maxDigits)
     }
 
     // MARK: - deleteLastDigit (PIN step)
@@ -169,19 +185,19 @@ struct PinRecoveryViewModelTests {
 
     // MARK: - canConfirm
 
-    @Test func canConfirm_falseWithLessThanMinDigits() {
+    @Test func canConfirm_falseWithLessThanPinLength() {
         let sut = makeSUT()
         advanceToCreatePin(sut)
-        for _ in 0..<(sut.minDigits - 1) {
+        for _ in 0..<(sut.pinLength - 1) {
             sut.appendDigit(1)
         }
         #expect(sut.canConfirm == false)
     }
 
-    @Test func canConfirm_trueAtMinDigits() {
+    @Test func canConfirm_trueAtPinLength() {
         let sut = makeSUT()
         advanceToCreatePin(sut)
-        for _ in 0..<sut.minDigits {
+        for _ in 0..<sut.pinLength {
             sut.appendDigit(1)
         }
         #expect(sut.canConfirm == true)
@@ -211,8 +227,8 @@ struct PinRecoveryViewModelTests {
 
     @Test func constants() {
         let sut = makeSUT()
-        #expect(sut.maxDigits == 6)
-        #expect(sut.minDigits == 4)
+        #expect(sut.pinLength == 4)
+        #expect(sut.maxDigits == 4)
     }
 
     // MARK: - confirmPin

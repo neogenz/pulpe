@@ -136,11 +136,11 @@ final class PinEntryViewModel {
     private(set) var hapticSuccess = false
     private(set) var hapticError = false
 
-    let maxDigits = 6
-    let minDigits = 4
+    let pinLength = PinConstants.length
+    var maxDigits: Int { pinLength }
 
     var canConfirm: Bool {
-        digits.count >= minDigits && !isValidating
+        digits.count == pinLength && !isValidating
     }
 
     // MARK: - Private
@@ -165,9 +165,13 @@ final class PinEntryViewModel {
     // MARK: - Actions
 
     func appendDigit(_ digit: Int) {
-        guard digits.count < maxDigits, !isValidating else { return }
+        guard digits.count < pinLength, !isValidating else { return }
         if isError { clearError() }
         digits.append(digit)
+
+        if digits.count == pinLength {
+            Task { await validatePin() }
+        }
     }
 
     func deleteLastDigit() {

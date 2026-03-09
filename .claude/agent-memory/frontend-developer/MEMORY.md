@@ -27,3 +27,11 @@ For hiding sensitive financial amounts:
 - Uses a CSS-based approach: `ph-no-capture` class on amount elements, `AmountsVisibilityService.toggle()` adds/removes `body.amounts-hidden` which activates `filter: blur()` via `styles.scss`
 - Exemption: add `amounts-visible` class on a `.ph-no-capture` element to exclude it from blur
 - Never put `ph-no-capture` on interactive elements (`<button>`, `<a>`) — wrap only the amount text in a `<span class="ph-no-capture">`
+
+## Reactive Forms: valueChanges Timing with Form Group Validity
+
+When subscribing to a **control's** `valueChanges` and then checking the **parent form group's** `valid` property inside the subscription, the form group status may not yet be recalculated. Angular updates control validity first, then emits `valueChanges`, then recalculates parent form group validity.
+
+**Fix:** Call `this.form.updateValueAndValidity({ emitEvent: false })` before checking `this.form.valid` in the subscription callback. The `emitEvent: false` prevents infinite loops from re-triggering `valueChanges`.
+
+This was encountered in the auto-submit pattern on `enter-vault-code.ts`.

@@ -65,7 +65,7 @@ describe('RegenerateRecoveryKeyDialog', () => {
 
   it('should have valid form when all fields filled', () => {
     component['verificationForm'].patchValue({
-      vaultCode: '123456',
+      vaultCode: '1234',
     });
     expect(component['verificationForm'].valid).toBe(true);
   });
@@ -90,7 +90,7 @@ describe('RegenerateRecoveryKeyDialog', () => {
     );
 
     component['verificationForm'].patchValue({
-      vaultCode: '999999',
+      vaultCode: '9999',
     });
 
     await component['onSubmit']();
@@ -109,7 +109,7 @@ describe('RegenerateRecoveryKeyDialog', () => {
     mockEncryptionApi.validateKey$.mockReturnValue(of(undefined));
 
     component['verificationForm'].patchValue({
-      vaultCode: '123456',
+      vaultCode: '1234',
     });
 
     await component['onSubmit']();
@@ -121,7 +121,7 @@ describe('RegenerateRecoveryKeyDialog', () => {
     component['isSubmitting'].set(true);
 
     component['verificationForm'].patchValue({
-      vaultCode: '123456',
+      vaultCode: '1234',
     });
 
     await component['onSubmit']();

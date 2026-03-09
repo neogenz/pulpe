@@ -93,18 +93,6 @@ describe('EnterVaultCode', () => {
     fixture.detectChanges();
   }
 
-  async function submitFormViaDom(): Promise<void> {
-    const formDE = fixture.debugElement.query(
-      (el) =>
-        el.nativeElement.getAttribute?.('data-testid') ===
-        'enter-vault-code-form',
-    );
-    formDE.triggerEventHandler('ngSubmit');
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-  }
-
   function getVaultCodeInput(): HTMLInputElement {
     return fixture.nativeElement.querySelector(
       '[data-testid="vault-code-input"]',
@@ -129,55 +117,75 @@ describe('EnterVaultCode', () => {
   });
 
   describe('Form Validation', () => {
-    it('should not allow submit when vaultCode is empty', () => {
+    it('should be invalid when vaultCode is empty', () => {
       fillFormViaDom('');
-      expect(component['canSubmit']()).toBe(false);
+      expect(component['form'].valid).toBe(false);
     });
 
-    it('should not allow submit when vaultCode is too short', () => {
+    it('should be invalid when vaultCode is too short', () => {
       fillFormViaDom('123');
-      expect(component['canSubmit']()).toBe(false);
+      expect(component['form'].valid).toBe(false);
     });
 
-    it('should allow submit when vaultCode meets minimum length', () => {
-      fillFormViaDom('1234');
-      expect(component['canSubmit']()).toBe(true);
+    it('should be valid when vaultCode is exactly 4 digits', () => {
+      component['form'].controls.vaultCode.setValue('1234', {
+        emitEvent: false,
+      });
+      expect(component['form'].valid).toBe(true);
     });
 
-    it('should not allow submit for non-numeric vaultCode', () => {
+    it('should be invalid for non-numeric vaultCode', () => {
       fillFormViaDom('abcd');
-      expect(component['canSubmit']()).toBe(false);
+      expect(component['form'].valid).toBe(false);
     });
   });
 
-  describe('canSubmit', () => {
-    it('should be false when form is invalid', () => {
-      expect(component['canSubmit']()).toBe(false);
+  describe('Auto-submit', () => {
+    it('should auto-submit when 4 digits are entered', async () => {
+      component['form'].controls.vaultCode.setValue('1234');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      await vi.waitFor(() =>
+        expect(mockEncryptionApi.getSalt$).toHaveBeenCalled(),
+      );
     });
 
-    it('should be true when form is valid', () => {
-      fillFormViaDom('123456');
-      expect(component['canSubmit']()).toBe(true);
+    it('should not auto-submit for less than 4 digits', async () => {
+      component['form'].controls.vaultCode.setValue('123');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(mockEncryptionApi.getSalt$).not.toHaveBeenCalled();
+    });
+
+    it('should not render a submit button', () => {
+      const submitButton = fixture.nativeElement.querySelector(
+        '[data-testid="enter-vault-code-submit-button"]',
+      );
+      expect(submitButton).toBeNull();
     });
   });
 
   describe('onSubmit - Valid Form', () => {
-    beforeEach(() => {
-      fillFormViaDom('123456');
-    });
+    async function triggerAutoSubmit(): Promise<void> {
+      component['form'].controls.vaultCode.setValue('1234');
+      fixture.detectChanges();
+      await fixture.whenStable();
+    }
 
     it('should call getSalt$ to get encryption salt', async () => {
-      await submitFormViaDom();
+      await triggerAutoSubmit();
       await vi.waitFor(() =>
         expect(mockEncryptionApi.getSalt$).toHaveBeenCalled(),
       );
     });
 
     it('should call deriveClientKey with vault code and salt', async () => {
-      await submitFormViaDom();
+      await triggerAutoSubmit();
       await vi.waitFor(() =>
         expect(deriveClientKeySpy).toHaveBeenCalledWith(
-          '123456',
+          '1234',
           'salt-value',
           100000,
         ),
@@ -185,7 +193,7 @@ describe('EnterVaultCode', () => {
     });
 
     it('should call validateKey$ with derived client key', async () => {
-      await submitFormViaDom();
+      await triggerAutoSubmit();
       await vi.waitFor(() =>
         expect(mockEncryptionApi.validateKey$).toHaveBeenCalledWith(
           'abcd'.repeat(16),
@@ -194,7 +202,7 @@ describe('EnterVaultCode', () => {
     });
 
     it('should call setDirectKey with derived client key and rememberDevice value', async () => {
-      await submitFormViaDom();
+      await triggerAutoSubmit();
       await vi.waitFor(() =>
         expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
           'abcd'.repeat(16),
@@ -211,7 +219,7 @@ describe('EnterVaultCode', () => {
       fixture.detectChanges();
       await fixture.whenStable();
 
-      await submitFormViaDom();
+      await triggerAutoSubmit();
       await vi.waitFor(() =>
         expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
           'abcd'.repeat(16),
@@ -221,14 +229,14 @@ describe('EnterVaultCode', () => {
     });
 
     it('should navigate to dashboard after successful submission', async () => {
-      await submitFormViaDom();
+      await triggerAutoSubmit();
       await vi.waitFor(() =>
         expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']),
       );
     });
 
     it('should call captureEvent with vault_code_entered on successful submission', async () => {
-      await submitFormViaDom();
+      await triggerAutoSubmit();
       await vi.waitFor(() =>
         expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
           'vault_code_entered',
@@ -237,21 +245,20 @@ describe('EnterVaultCode', () => {
     });
 
     it('should reset isSubmitting after onSubmit completes', async () => {
-      await submitFormViaDom();
+      await triggerAutoSubmit();
       await vi.waitFor(() => expect(component['isSubmitting']()).toBe(false));
     });
   });
 
   describe('onSubmit - Error Handling', () => {
-    beforeEach(() => {
-      fillFormViaDom('123456');
-    });
-
     it('should show error message on submission failure', async () => {
-      vi.spyOn(mockEncryptionApi, 'getSalt$').mockReturnValue(
+      mockEncryptionApi.getSalt$.mockReturnValue(
         throwError(() => new Error('Network error')),
       );
-      await submitFormViaDom();
+      component['form'].controls.vaultCode.setValue('1234');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
       await vi.waitFor(() =>
         expect(component['errorMessage']()).toContain(
           "Quelque chose n'a pas fonctionné",
@@ -260,29 +267,69 @@ describe('EnterVaultCode', () => {
     });
 
     it('should not navigate on error', async () => {
-      vi.spyOn(mockEncryptionApi, 'getSalt$').mockReturnValue(
+      mockEncryptionApi.getSalt$.mockReturnValue(
         throwError(() => new Error('Network error')),
       );
-      await submitFormViaDom();
+      component['form'].controls.vaultCode.setValue('1234');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
       await vi.waitFor(() => expect(component['errorMessage']()).not.toBe(''));
       expect(navigateSpy).not.toHaveBeenCalled();
     });
 
     it('should not call captureEvent when submission fails', async () => {
-      vi.spyOn(mockEncryptionApi, 'getSalt$').mockReturnValue(
+      mockEncryptionApi.getSalt$.mockReturnValue(
         throwError(() => new Error('Network error')),
       );
-      await submitFormViaDom();
+      component['form'].controls.vaultCode.setValue('1234');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
       await vi.waitFor(() => expect(component['errorMessage']()).not.toBe(''));
       expect(mockPostHogService.captureEvent).not.toHaveBeenCalled();
     });
   });
 
-  describe('onSubmit - HTTP errors', () => {
-    beforeEach(() => {
-      fillFormViaDom('123456');
+  describe('onSubmit - Error recovery', () => {
+    it('should clear PIN value after a submission error', async () => {
+      mockEncryptionApi.getSalt$.mockReturnValue(
+        throwError(() => new Error('Network error')),
+      );
+      component['form'].controls.vaultCode.setValue('1234');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      await vi.waitFor(() => expect(component['errorMessage']()).not.toBe(''));
+
+      expect(component['form'].controls.vaultCode.value).toBe('');
     });
 
+    it('should allow retry after error (error then re-enter succeeds)', async () => {
+      mockEncryptionApi.getSalt$.mockReturnValueOnce(
+        throwError(() => new Error('Network error')),
+      );
+      component['form'].controls.vaultCode.setValue('1234');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      await vi.waitFor(() => expect(component['errorMessage']()).not.toBe(''));
+
+      mockEncryptionApi.getSalt$.mockReturnValue(
+        of({ salt: 'salt-value', kdfIterations: 100000 }),
+      );
+
+      component['form'].controls.vaultCode.setValue('1234');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      await vi.waitFor(() =>
+        expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']),
+      );
+    });
+  });
+
+  describe('onSubmit - HTTP errors', () => {
     it('should show specific error when validateKey$ returns HTTP 400', async () => {
       mockEncryptionApi.validateKey$.mockReturnValue(
         throwError(
@@ -290,7 +337,10 @@ describe('EnterVaultCode', () => {
             new HttpErrorResponse({ status: 400, statusText: 'Bad Request' }),
         ),
       );
-      await submitFormViaDom();
+      component['form'].controls.vaultCode.setValue('1234');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
       await vi.waitFor(() =>
         expect(component['errorMessage']()).toContain(
           'Ce code ne semble pas correct',
@@ -305,7 +355,10 @@ describe('EnterVaultCode', () => {
             new HttpErrorResponse({ status: 400, statusText: 'Bad Request' }),
         ),
       );
-      await submitFormViaDom();
+      component['form'].controls.vaultCode.setValue('1234');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
       await vi.waitFor(() =>
         expect(component['errorMessage']()).toContain(
           'Ce code ne semble pas correct',
@@ -325,7 +378,10 @@ describe('EnterVaultCode', () => {
             }),
         ),
       );
-      await submitFormViaDom();
+      component['form'].controls.vaultCode.setValue('1234');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
       await vi.waitFor(() =>
         expect(component['errorMessage']()).toContain(
           "Quelque chose n'a pas fonctionné",
@@ -343,7 +399,10 @@ describe('EnterVaultCode', () => {
             }),
         ),
       );
-      await submitFormViaDom();
+      component['form'].controls.vaultCode.setValue('1234');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
       await vi.waitFor(() =>
         expect(component['errorMessage']()).toBe(
           'Trop de tentatives, patiente quelques minutes',
@@ -353,15 +412,14 @@ describe('EnterVaultCode', () => {
   });
 
   describe('onSubmit - ApiError handling', () => {
-    beforeEach(() => {
-      fillFormViaDom('123456');
-    });
-
     it('should show specific error when validateKey$ throws ApiError with status 400', async () => {
       mockEncryptionApi.validateKey$.mockReturnValue(
         throwError(() => new ApiError('Bad request', 'ERR_INVALID', 400, null)),
       );
-      await submitFormViaDom();
+      component['form'].controls.vaultCode.setValue('1234');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
       await vi.waitFor(() =>
         expect(component['errorMessage']()).toContain(
           'Ce code ne semble pas correct',
@@ -373,7 +431,10 @@ describe('EnterVaultCode', () => {
       mockEncryptionApi.validateKey$.mockReturnValue(
         throwError(() => new ApiError('Server error', undefined, 500, null)),
       );
-      await submitFormViaDom();
+      component['form'].controls.vaultCode.setValue('1234');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
       await vi.waitFor(() =>
         expect(component['errorMessage']()).toContain(
           "Quelque chose n'a pas fonctionné",
