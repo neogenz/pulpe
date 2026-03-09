@@ -194,6 +194,7 @@ export default class EnterVaultCode {
         takeUntilDestroyed(),
       )
       .subscribe(() => {
+        // valueChanges fires before FormGroup recalculates validity — force sync
         this.form.updateValueAndValidity({ emitEvent: false });
         this.onSubmit();
       });
