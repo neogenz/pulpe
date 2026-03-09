@@ -5,6 +5,8 @@ struct HeroBalanceCard: View {
     let metrics: BudgetFormulas.Metrics
     var timeElapsedPercentage: Double = 0
     var onTapProgress: (() -> Void)?
+    var rolloverAmount: Decimal?
+    var onRolloverTap: (() -> Void)?
 
     // MARK: - Static Formatters (avoid recreation on every render)
 
@@ -86,15 +88,24 @@ struct HeroBalanceCard: View {
         }
     }
 
+    private var rolloverLabel: String {
+        guard let rolloverAmount else { return "" }
+        return rolloverAmount >= 0 ? "Excédent reporté" : "Déficit reporté"
+    }
+
     private var accessibilityDescription: String {
         if amountsHidden {
             return "\(contextLabel) — montant masqué. \(motivationalMessage)"
         }
-        return """
+        var desc = """
         \(contextLabel) \(formattedBalance) CHF. \
         \(motivationalMessage). \
         Dépensé \(formattedSpent) sur \(formattedAvailable)
         """
+        if let rolloverAmount {
+            desc += ". \(rolloverLabel) de \(rolloverAmount.asCHF)"
+        }
+        return desc
     }
 
     // MARK: - Body
@@ -149,6 +160,11 @@ struct HeroBalanceCard: View {
 
             // Chunk 4 — Spent ratio + progress bar
             spentRatio
+
+            // Chunk 5 — Rollover (optional)
+            if let rolloverAmount {
+                rolloverFooter(amount: rolloverAmount)
+            }
         }
         .padding(DesignTokens.Spacing.xxl)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -168,6 +184,49 @@ struct HeroBalanceCard: View {
             }
         }
         .animation(.spring(response: 0.7, dampingFraction: 0.8), value: metrics.emotionState)
+    }
+
+    // MARK: - Rollover Footer
+
+    private func rolloverFooter(amount: Decimal) -> some View {
+        let row = HStack(spacing: DesignTokens.Spacing.sm) {
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .font(.system(size: 12, weight: .semibold))
+
+            Text("Report")
+                .font(PulpeTypography.labelMedium)
+
+            Text(amount.asCHF)
+                .font(PulpeTypography.labelLargeBold)
+                .monospacedDigit()
+                .sensitiveAmount()
+
+            Spacer(minLength: 0)
+
+            Text(rolloverLabel)
+                .font(PulpeTypography.caption)
+
+            if onRolloverTap != nil {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .semibold))
+            }
+        }
+        .foregroundStyle(.white.opacity(subduedTextOpacity))
+        .padding(.top, DesignTokens.Spacing.md)
+
+        return Group {
+            if let onRolloverTap {
+                Button(action: onRolloverTap) { row }
+                    .buttonStyle(.plain)
+            } else {
+                row
+            }
+        }
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(.white.opacity(0.15))
+                .frame(height: 1)
+        }
     }
 
     // MARK: - Spent Ratio + Bar
@@ -292,7 +351,7 @@ struct HeroBalanceCard: View {
 #Preview("Hero Balance Card — 3 States") {
     ScrollView {
         VStack(spacing: 24) {
-            // Comfortable: <80% used
+            // Comfortable with rollover
             HeroBalanceCard(
                 metrics: .init(
                     totalIncome: 5500,
@@ -303,7 +362,9 @@ struct HeroBalanceCard: View {
                     remaining: 3300,
                     rollover: 0
                 ),
-                timeElapsedPercentage: 50
+                timeElapsedPercentage: 50,
+                rolloverAmount: 1274.02,
+                onRolloverTap: {}
             )
 
             // Tight: 80-100% used
@@ -320,7 +381,7 @@ struct HeroBalanceCard: View {
                 timeElapsedPercentage: 65
             )
 
-            // Deficit: >100% used
+            // Deficit with negative rollover
             HeroBalanceCard(
                 metrics: .init(
                     totalIncome: 4121,
@@ -331,7 +392,8 @@ struct HeroBalanceCard: View {
                     remaining: -1230,
                     rollover: 0
                 ),
-                timeElapsedPercentage: 85
+                timeElapsedPercentage: 85,
+                rolloverAmount: -350
             )
         }
         .padding()

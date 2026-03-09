@@ -178,30 +178,21 @@ struct BudgetDetailsView: View {
             .listSectionSeparator(.hidden)
             .listRowInsets(fullWidthInsets)
 
-            // Hero balance card
+            // Hero balance card (with integrated rollover)
             Section {
                 HeroBalanceCard(
                     metrics: viewModel.metrics,
-                    timeElapsedPercentage: timeElapsedPercentage
+                    timeElapsedPercentage: timeElapsedPercentage,
+                    rolloverAmount: viewModel.rolloverInfo?.amount,
+                    onRolloverTap: viewModel.rolloverInfo?.previousBudgetId.map { id in
+                        { previousBudgetItem = PreviousBudgetItem(id: id) }
+                    } ?? nil
                 )
             }
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
             .listSectionSeparator(.hidden)
             .listRowInsets(fullWidthInsets)
-
-            // Rollover section (toujours en premier)
-            if let rolloverInfo = viewModel.rolloverInfo {
-                RolloverInfoRow(
-                    amount: rolloverInfo.amount,
-                    onTap: rolloverInfo.previousBudgetId.map { id in
-                        { previousBudgetItem = PreviousBudgetItem(id: id) }
-                    }
-                )
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-                .listRowInsets(fullWidthInsets)
-            }
 
             // Empty search state
             if !searchText.isEmpty && filteredIncome.isEmpty && filteredExpenses.isEmpty &&

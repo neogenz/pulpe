@@ -126,7 +126,6 @@ struct PreviousBudgetSheet: View {
     private var content: some View {
         List {
             heroSection
-            rolloverSection
             budgetLineSections
             freeTransactionsSection
         }
@@ -138,26 +137,14 @@ struct PreviousBudgetSheet: View {
     private var heroSection: some View {
         Section {
             HeroBalanceCard(
-                metrics: viewModel.metrics
+                metrics: viewModel.metrics,
+                rolloverAmount: viewModel.rolloverInfo?.amount
             )
         }
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
         .listSectionSeparator(.hidden)
         .listRowInsets(EdgeInsets())
-    }
-
-    @ViewBuilder
-    private var rolloverSection: some View {
-        if let rolloverInfo = viewModel.rolloverInfo {
-            RolloverInfoRow(
-                amount: rolloverInfo.amount,
-                onTap: nil
-            )
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets())
-        }
     }
 
     @ViewBuilder
