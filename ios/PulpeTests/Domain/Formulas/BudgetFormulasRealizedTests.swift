@@ -30,6 +30,59 @@ struct BudgetFormulasRealizedTests {
         #expect(abs(metrics.completionPercentage - 50.0) < 0.01)
     }
 
+    // MARK: - Rollover in Realized Calculations
+
+    @Test func calculateRealizedExpenses_includesCheckedRolloverLine() {
+        let lines = [
+            TestDataFactory.createBudgetLine(id: "1", amount: 100, kind: .expense, isChecked: true),
+            TestDataFactory.createBudgetLine(id: "2", amount: 50, kind: .expense, isChecked: true, isRollover: true)
+        ]
+        let expenses = BudgetFormulas.calculateRealizedExpenses(budgetLines: lines)
+        #expect(expenses == 150)
+    }
+
+    @Test func calculateRealizedBalance_includesCheckedNegativeRollover() {
+        let lines = [
+            TestDataFactory.createBudgetLine(id: "1", amount: 5000, kind: .income, isChecked: true),
+            TestDataFactory.createBudgetLine(id: "2", amount: 3000, kind: .expense, isChecked: true),
+            TestDataFactory.createBudgetLine(id: "3", amount: 1950, kind: .expense, isChecked: true, isRollover: true)
+        ]
+        let balance = BudgetFormulas.calculateRealizedBalance(budgetLines: lines)
+        #expect(balance == 50)
+    }
+
+    @Test func calculateRealizedBalance_includesCheckedPositiveRollover() {
+        let lines = [
+            TestDataFactory.createBudgetLine(id: "1", amount: 5000, kind: .income, isChecked: true),
+            TestDataFactory.createBudgetLine(id: "2", amount: 3094, kind: .income, isChecked: true, isRollover: true),
+            TestDataFactory.createBudgetLine(id: "3", amount: 8000, kind: .expense, isChecked: true)
+        ]
+        let balance = BudgetFormulas.calculateRealizedBalance(budgetLines: lines)
+        #expect(balance == 94)
+    }
+
+    @Test func calculateRealizedBalance_excludesUncheckedRollover() {
+        let lines = [
+            TestDataFactory.createBudgetLine(id: "1", amount: 5000, kind: .income, isChecked: true),
+            TestDataFactory.createBudgetLine(id: "2", amount: 1950, kind: .expense, isChecked: false, isRollover: true),
+            TestDataFactory.createBudgetLine(id: "3", amount: 3000, kind: .expense, isChecked: true)
+        ]
+        let balance = BudgetFormulas.calculateRealizedBalance(budgetLines: lines)
+        #expect(balance == 2000)
+    }
+
+    @Test func calculateRealizedMetrics_includesRolloverInCountsAndBalance() {
+        let lines = [
+            TestDataFactory.createBudgetLine(id: "1", amount: 5000, kind: .income, isChecked: true),
+            TestDataFactory.createBudgetLine(id: "2", amount: 3000, kind: .expense, isChecked: true),
+            TestDataFactory.createBudgetLine(id: "3", amount: 1950, kind: .expense, isChecked: true, isRollover: true)
+        ]
+        let metrics = BudgetFormulas.calculateRealizedMetrics(budgetLines: lines)
+        #expect(metrics.checkedItemsCount == 3)
+        #expect(metrics.totalItemsCount == 3)
+        #expect(metrics.realizedBalance == 50)
+    }
+
     // MARK: - Consumption Tracking
 
     @Test func calculateConsumption_withNoTransactions_showsFullAvailable() {

@@ -45,7 +45,7 @@ struct MonthDropdownMenu: View {
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, 10)
-        .modifier(GlassBackgroundModifier())
+        .glassCapsuleBackground()
     }
 
     private var currentYear: Int? {

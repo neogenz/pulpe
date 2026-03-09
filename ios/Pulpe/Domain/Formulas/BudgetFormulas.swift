@@ -205,7 +205,6 @@ enum BudgetFormulas {
         // Calculate envelope totals - O(n) with O(1) lookups
         for line in budgetLines {
             guard line.kind.isOutflow else { continue }
-            guard line.isRollover != true else { continue }
 
             let consumed = transactionsByLineId[line.id]?
                 .reduce(Decimal.zero) { $0 + $1.amount } ?? 0

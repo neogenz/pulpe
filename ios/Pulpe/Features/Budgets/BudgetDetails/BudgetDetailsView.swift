@@ -17,6 +17,7 @@ struct BudgetDetailsView: View {
     @State private var selectedBudgetLineForEdit: BudgetLine?
     @State private var selectedTransactionForEdit: Transaction?
     @State private var previousBudgetItem: PreviousBudgetItem?
+    @State private var showRealizedBalance = false
 
     @State private var searchText = ""
 
@@ -129,6 +130,12 @@ struct BudgetDetailsView: View {
         .sheet(item: $previousBudgetItem) { item in
             PreviousBudgetSheet(budgetId: item.id)
         }
+        .sheet(isPresented: $showRealizedBalance) {
+            RealizedBalanceSheet(
+                metrics: viewModel.metrics,
+                realizedMetrics: viewModel.realizedMetrics
+            )
+        }
         .alert(
             "Pointer les transactions ?",
             isPresented: $viewModel.showCheckAllTransactionsAlert,
@@ -183,10 +190,11 @@ struct BudgetDetailsView: View {
                 HeroBalanceCard(
                     metrics: viewModel.metrics,
                     timeElapsedPercentage: timeElapsedPercentage,
+                    onTapChart: { showRealizedBalance = true },
                     rolloverAmount: viewModel.rolloverInfo?.amount,
                     onRolloverTap: viewModel.rolloverInfo?.previousBudgetId.map { id in
                         { previousBudgetItem = PreviousBudgetItem(id: id) }
-                    } ?? nil
+                    }
                 )
             }
             .listRowBackground(Color.clear)

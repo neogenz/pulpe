@@ -123,6 +123,11 @@ extension Color {
     /// Warning background — soft amber tint (#FFF8E1 light, #382E12 dark)
     static let warningBackground = Color(light: Color(hex: 0xFFF8E1), dark: Color(hex: 0x382E12))
 
+    // MARK: - Action Colors
+
+    /// Edit action color - Blue, following iOS conventions (#0063B4 light, #6BAAEE dark)
+    static let editAction = Color(light: Color(hex: 0x0063B4), dark: Color(hex: 0x6BAAEE))
+
     // MARK: - Component Colors
 
     /// Background for count badges in section headers

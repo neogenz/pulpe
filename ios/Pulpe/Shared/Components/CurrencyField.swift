@@ -62,15 +62,15 @@ struct CurrencyField: View {
             }
 
             HStack {
-                Text("CHF")
-                    .foregroundStyle(prefixColor)
-                    .font(PulpeTypography.bodyLarge)
-
                 TextField(hint, text: $textValue)
                     .keyboardType(.decimalPad)
                     .foregroundStyle(Color.authInputText)
                     .focused(externalFocus ?? $internalFocus)
                     .accessibilityLabel(label ?? "Montant en CHF")
+
+                Text("CHF")
+                    .foregroundStyle(prefixColor)
+                    .font(PulpeTypography.bodyLarge)
                     .onChange(of: textValue) { _, newValue in
                         updateValue(from: newValue)
                     }

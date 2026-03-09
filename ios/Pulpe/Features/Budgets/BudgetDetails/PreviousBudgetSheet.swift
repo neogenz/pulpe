@@ -71,6 +71,7 @@ final class PreviousBudgetSheetViewModel {
 
         isLoading = true
         error = nil
+        defer { isLoading = false }
 
         do {
             let details = try await budgetService.getBudgetWithDetails(id: budgetId)
@@ -78,11 +79,11 @@ final class PreviousBudgetSheetViewModel {
             budgetLines = details.budgetLines
             transactions = details.transactions
             recomputeMetrics()
+        } catch is CancellationError {
+            // Task was cancelled, don't update error state
         } catch {
             self.error = error
         }
-
-        isLoading = false
     }
 }
 
@@ -120,6 +121,7 @@ struct PreviousBudgetSheet: View {
         }
         .presentationDetents([.medium, .large], selection: $detent)
         .presentationDragIndicator(.visible)
+        .presentationBackground(Color.sheetBackground)
         .task { await viewModel.loadDetails() }
     }
 
@@ -130,8 +132,10 @@ struct PreviousBudgetSheet: View {
             freeTransactionsSection
         }
         .listStyle(.insetGrouped)
+        .listRowSpacing(0)
         .listSectionSpacing(DesignTokens.Spacing.lg)
         .scrollContentBackground(.hidden)
+        .pulpeBackground()
     }
 
     private var heroSection: some View {

@@ -318,7 +318,7 @@ final class CurrentMonthStore: StoreProtocol {
 
     var realizedMetrics: BudgetFormulas.RealizedMetrics {
         cachedRealizedMetrics ?? BudgetFormulas.calculateRealizedMetrics(
-            budgetLines: budgetLines,
+            budgetLines: displayBudgetLines,
             transactions: transactions
         )
     }
@@ -346,7 +346,7 @@ final class CurrentMonthStore: StoreProtocol {
             rollover: budget?.rollover.orZero ?? 0
         )
         cachedRealizedMetrics = BudgetFormulas.calculateRealizedMetrics(
-            budgetLines: budgetLines,
+            budgetLines: displayBudgetLines,
             transactions: transactions
         )
         cachedUncheckedItems = computeUncheckedItems()

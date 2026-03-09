@@ -5,6 +5,7 @@ struct HeroBalanceCard: View {
     let metrics: BudgetFormulas.Metrics
     var timeElapsedPercentage: Double = 0
     var onTapProgress: (() -> Void)?
+    var onTapChart: (() -> Void)?
     var rolloverAmount: Decimal?
     var onRolloverTap: (() -> Void)?
 
@@ -85,6 +86,16 @@ struct HeroBalanceCard: View {
             0.94
         case .comfortable, .deficit:
             0.82
+        }
+    }
+
+    /// Tint color for glass overlays — matches the hero gradient per emotion state
+    /// so Liquid Glass blends into the card instead of appearing white.
+    private var glassTintColor: Color {
+        switch metrics.emotionState {
+        case .comfortable: Color(hex: 0x006E25)
+        case .tight: Color(hex: 0xB35800)
+        case .deficit: Color(hex: 0xBA1A1A)
         }
     }
 
@@ -170,6 +181,12 @@ struct HeroBalanceCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background { cardBackground }
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.xl))
+        .overlay(alignment: .topTrailing) {
+            if let onTapChart {
+                chartButton(action: onTapChart)
+                    .padding(DesignTokens.Spacing.md)
+            }
+        }
         .overlay(alignment: .top) {
             // Subtle specular highlight to keep the hero vivid without using shadows.
             Capsule()
@@ -188,26 +205,29 @@ struct HeroBalanceCard: View {
 
     // MARK: - Rollover Footer
 
+    private var rolloverIcon: String {
+        guard let rolloverAmount else { return "arrow.triangle.2.circlepath" }
+        if rolloverAmount > 0 { return "arrow.up.right.circle" }
+        if rolloverAmount < 0 { return "arrow.down.right.circle" }
+        return "equal.circle"
+    }
+
     private func rolloverFooter(amount: Decimal) -> some View {
-        let isPositive = amount >= 0
         let pill = HStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: isPositive ? "arrow.up.right.circle" : "arrow.down.right.circle")
+            Image(systemName: rolloverIcon)
                 .font(.system(size: 12, weight: .semibold))
 
             Text("Report")
                 .font(PulpeTypography.labelMedium)
 
-            Text(amount.asCHF)
+            Text(abs(amount).asCompactCHF)
                 .font(PulpeTypography.labelLargeBold)
                 .monospacedDigit()
                 .sensitiveAmount()
 
-            Spacer(minLength: 0)
-
-            Text(rolloverLabel)
-                .font(PulpeTypography.caption)
-
             if onRolloverTap != nil {
+                Spacer(minLength: 0)
+
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .semibold))
             }
@@ -215,7 +235,8 @@ struct HeroBalanceCard: View {
         .foregroundStyle(.white)
         .padding(.horizontal, DesignTokens.Spacing.md)
         .padding(.vertical, DesignTokens.Spacing.sm)
-        .background(.white.opacity(0.15), in: Capsule())
+        .contentShape(Capsule())
+        .heroGlassBackground(tint: glassTintColor, shape: .capsule)
 
         return Group {
             if let onRolloverTap {
@@ -226,11 +247,20 @@ struct HeroBalanceCard: View {
             }
         }
         .padding(.top, DesignTokens.Spacing.md)
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(.white.opacity(0.15))
-                .frame(height: 1)
+    }
+
+    // MARK: - Chart Button
+
+    private func chartButton(action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: "chart.bar.fill")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 32, height: 32)
+                .heroGlassBackground(tint: glassTintColor, shape: .circle)
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Suivi du budget")
     }
 
     // MARK: - Spent Ratio + Bar
@@ -347,6 +377,37 @@ struct HeroBalanceCard: View {
                 .offset(x: -60, y: 0)
         }
         .allowsHitTesting(false)
+    }
+}
+
+// MARK: - Hero Glass Background
+
+/// Tinted interactive glass on iOS 26+, subtle white overlay fallback on older.
+/// Use on elements inside the HeroBalanceCard gradient — the tint makes glass
+/// blend with the card color instead of appearing flat white.
+private struct HeroGlassModifier<S: Shape>: ViewModifier {
+    let tint: Color
+    let shape: S
+
+    func body(content: Content) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            content
+                .glassEffect(.regular.tint(tint).interactive(), in: shape)
+        } else {
+            content
+                .background(.white.opacity(0.15), in: shape)
+        }
+        #else
+        content
+            .background(.white.opacity(0.15), in: shape)
+        #endif
+    }
+}
+
+private extension View {
+    func heroGlassBackground<S: Shape>(tint: Color, shape: S) -> some View {
+        modifier(HeroGlassModifier(tint: tint, shape: shape))
     }
 }
 
