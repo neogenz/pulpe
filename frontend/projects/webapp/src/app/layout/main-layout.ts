@@ -284,10 +284,21 @@ interface NavigationItem {
               data-testid="user-menu-trigger"
             >
               <div class="flex items-center gap-2">
-                <mat-icon>person</mat-icon>
-                <span class="ph-no-capture amounts-visible max-w-64 truncate">{{
-                  userEmail()
-                }}</span>
+                <span
+                  class="flex items-center gap-2"
+                  [class.early-adopter-ring]="isEarlyAdopter()"
+                >
+                  <mat-icon>person</mat-icon>
+                  <span
+                    class="ph-no-capture amounts-visible max-w-64 truncate"
+                    >{{ userEmail() }}</span
+                  >
+                </span>
+                @if (isEarlyAdopter()) {
+                  <span class="early-adopter-badge">
+                    {{ 'layout.earlyAdopter' | transloco }}
+                  </span>
+                }
               </div>
             </button>
 
@@ -497,6 +508,122 @@ interface NavigationItem {
         }
       }
 
+      /* ── Early adopter: rotating light border ── */
+      @property --ring-angle {
+        syntax: '<angle>';
+        initial-value: 0deg;
+        inherits: false;
+      }
+
+      .early-adopter-ring {
+        position: relative;
+        padding: 4px 12px;
+        border-radius: 100px;
+      }
+
+      .early-adopter-ring::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        padding: 1.5px;
+        background: conic-gradient(
+          from var(--ring-angle),
+          transparent 0%,
+          var(--pulpe-gradient-start) 6%,
+          var(--pulpe-gradient-mid1) 12%,
+          var(--pulpe-gradient-end) 18%,
+          transparent 28%,
+          transparent 100%
+        );
+        -webkit-mask:
+          linear-gradient(#fff 0 0) content-box,
+          linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask:
+          linear-gradient(#fff 0 0) content-box,
+          linear-gradient(#fff 0 0);
+        mask-composite: exclude;
+        animation: ring-rotate 3s linear infinite;
+        pointer-events: none;
+      }
+
+      @keyframes ring-rotate {
+        to {
+          --ring-angle: 360deg;
+        }
+      }
+
+      /* ── Early adopter: gradient pill badge (desktop only) ── */
+      .early-adopter-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 10px;
+        border-radius: 100px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        overflow: hidden;
+        position: relative;
+        color: #fff;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+        white-space: nowrap;
+        flex-shrink: 0;
+        isolation: isolate;
+      }
+
+      /* Static gradient background */
+      .early-adopter-badge::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          135deg,
+          var(--pulpe-gradient-start),
+          var(--pulpe-gradient-mid1),
+          var(--pulpe-gradient-mid2),
+          var(--pulpe-gradient-end)
+        );
+        z-index: -1;
+      }
+
+      /* GPU-composited shimmer via transform */
+      .early-adopter-badge::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          110deg,
+          transparent 30%,
+          rgba(255, 255, 255, 0.3) 48%,
+          rgba(255, 255, 255, 0.45) 50%,
+          rgba(255, 255, 255, 0.3) 52%,
+          transparent 70%
+        );
+        transform: translateX(-100%);
+        animation: badge-shimmer 4s ease-in-out infinite;
+        z-index: 0;
+        will-change: transform;
+      }
+
+      @keyframes badge-shimmer {
+        0%,
+        100% {
+          transform: translateX(-100%);
+        }
+        30%,
+        70% {
+          transform: translateX(100%);
+        }
+      }
+
+      @media (max-width: 599.98px) {
+        .early-adopter-badge {
+          display: none;
+        }
+      }
+
       /* Gradient fade-out for horizontal scroll affordance */
       .breadcrumb-scroll-fade {
         position: relative;
@@ -545,8 +672,10 @@ export default class MainLayout {
     if (this.#demoModeService.isDemoMode()) {
       return 'demo@gmail.com';
     }
-    return this.#authState.authState().user?.email;
+    return this.#authState.user()?.email;
   });
+
+  protected readonly isEarlyAdopter = this.#authState.isEarlyAdopter;
 
   // Route to settings page
   protected readonly settingsRoute = `/${ROUTES.SETTINGS}`;

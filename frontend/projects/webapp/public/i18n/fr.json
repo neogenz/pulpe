@@ -175,7 +175,8 @@
     "logout": "Se déconnecter",
     "logoutAction": "Se déconnecter de votre compte",
     "previousMonth": "Mois précédent",
-    "nextMonth": "Mois suivant"
+    "nextMonth": "Mois suivant",
+    "earlyAdopter": "VIP"
   },
   "about": {
     "title": "À propos",
