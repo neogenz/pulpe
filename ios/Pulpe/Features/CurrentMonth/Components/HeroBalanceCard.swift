@@ -189,8 +189,9 @@ struct HeroBalanceCard: View {
     // MARK: - Rollover Footer
 
     private func rolloverFooter(amount: Decimal) -> some View {
-        let row = HStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: "arrow.triangle.2.circlepath")
+        let isPositive = amount >= 0
+        let pill = HStack(spacing: DesignTokens.Spacing.sm) {
+            Image(systemName: isPositive ? "arrow.up.right.circle" : "arrow.down.right.circle")
                 .font(.system(size: 12, weight: .semibold))
 
             Text("Report")
@@ -211,17 +212,20 @@ struct HeroBalanceCard: View {
                     .font(.system(size: 10, weight: .semibold))
             }
         }
-        .foregroundStyle(.white.opacity(subduedTextOpacity))
-        .padding(.top, DesignTokens.Spacing.md)
+        .foregroundStyle(.white)
+        .padding(.horizontal, DesignTokens.Spacing.md)
+        .padding(.vertical, DesignTokens.Spacing.sm)
+        .background(.white.opacity(0.15), in: Capsule())
 
         return Group {
             if let onRolloverTap {
-                Button(action: onRolloverTap) { row }
+                Button(action: onRolloverTap) { pill }
                     .buttonStyle(.plain)
             } else {
-                row
+                pill
             }
         }
+        .padding(.top, DesignTokens.Spacing.md)
         .overlay(alignment: .top) {
             Rectangle()
                 .fill(.white.opacity(0.15))
