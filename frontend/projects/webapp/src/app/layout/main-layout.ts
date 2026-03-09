@@ -285,7 +285,7 @@ interface NavigationItem {
             >
               <div class="flex items-center gap-2">
                 <span
-                  class="flex items-center gap-2"
+                  class="user-identity"
                   [class.early-adopter-ring]="isEarlyAdopter()"
                 >
                   <mat-icon>person</mat-icon>
@@ -515,7 +515,14 @@ interface NavigationItem {
         inherits: false;
       }
 
+      .user-identity {
+        display: contents;
+      }
+
       .early-adopter-ring {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
         position: relative;
         padding: 4px 12px;
         border-radius: 100px;
