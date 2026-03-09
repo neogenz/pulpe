@@ -138,7 +138,8 @@ struct CurrentMonthHeroCard: View {
         }, perform: {})
         .accessibilityLabel(
             "\(monthName), ce mois-ci, "
-            + "\(amountsHidden ? "Montant masqué" : (budget.remaining?.asCHF ?? "non défini")) disponible"
+            + "disponible \(amountsHidden ? "masqué" : (budget.remaining?.asCHF ?? "non défini"))"
+            + (budget.rollover.map { $0 != 0 ? ", report cumulé \(amountsHidden ? "masqué" : $0.asCHF)" : "" } ?? "")
         )
         .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)
@@ -219,6 +220,26 @@ struct BudgetMonthRow: View {
         return .secondary
     }
 
+    private var rolloverColor: Color {
+        guard let rollover = budget.rollover else { return .secondary }
+        return rollover >= 0 ? .pulpePrimary : .financialOverBudget
+    }
+
+    @ViewBuilder
+    private var rolloverBadge: some View {
+        if let rollover = budget.rollover, rollover != 0 {
+            HStack(spacing: 3) {
+                Image(systemName: "arrow.right.circle")
+                    .font(.system(size: 10))
+                Text(rollover.asCompactCHF)
+                    .font(PulpeTypography.caption)
+                    .monospacedDigit()
+            }
+            .foregroundStyle(rolloverColor)
+            .sensitiveAmount()
+        }
+    }
+
     var body: some View {
         let isPast = isPast
         let color = amountColor(isPast: isPast)
@@ -247,6 +268,7 @@ struct BudgetMonthRow: View {
                                 .foregroundStyle(color)
                                 .sensitiveAmount()
                         }
+                        rolloverBadge
                     }
 
                     Spacer()
@@ -262,12 +284,15 @@ struct BudgetMonthRow: View {
                         }
                     }
                     Spacer()
-                    if let remaining = budget.remaining {
-                        Text(remaining.asCompactCHF)
-                            .font(PulpeTypography.amountMedium)
-                            .monospacedDigit()
-                            .foregroundStyle(color)
-                            .sensitiveAmount()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        if let remaining = budget.remaining {
+                            Text(remaining.asCompactCHF)
+                                .font(PulpeTypography.amountMedium)
+                                .monospacedDigit()
+                                .foregroundStyle(color)
+                                .sensitiveAmount()
+                        }
+                        rolloverBadge
                     }
                 }
 
@@ -282,8 +307,11 @@ struct BudgetMonthRow: View {
         .buttonStyle(.plain)
         .sensoryFeedback(.selection, trigger: tapTrigger)
         .accessibilityLabel(
-            "\(monthName), solde "
-            + "\(amountsHidden ? "Montant masqué" : (budget.remaining?.asCompactCHF ?? "non défini"))"
+            "\(monthName), disponible "
+            + "\(amountsHidden ? "masqué" : (budget.remaining?.asCompactCHF ?? "non défini"))"
+            + (budget.rollover.map {
+                $0 != 0 ? ", report cumulé \(amountsHidden ? "masqué" : $0.asCompactCHF)" : ""
+            } ?? "")
         )
         .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)
