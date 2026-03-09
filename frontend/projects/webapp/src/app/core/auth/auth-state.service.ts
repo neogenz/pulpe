@@ -33,6 +33,10 @@ export class AuthStateService {
     );
   });
 
+  readonly isEarlyAdopter = computed(
+    () => !!this.#userSignal()?.app_metadata?.['early_adopter'],
+  );
+
   readonly isOAuthOnly = computed(() => {
     const user = this.#userSignal();
     if (!user) return false;
