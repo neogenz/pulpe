@@ -656,7 +656,7 @@ export default class MainLayout {
   protected readonly hasBreadcrumb = computed(
     () => this.breadcrumbState.breadcrumbs().length > 1,
   );
-  private readonly scrollSentinel =
+  readonly #scrollSentinel =
     viewChild<ElementRef<HTMLElement>>('scrollSentinel');
   readonly #destroyRef = inject(DestroyRef);
   readonly #logger = inject(Logger);
@@ -760,7 +760,7 @@ export default class MainLayout {
 
   constructor() {
     afterNextRender(() => {
-      const sentinel = this.scrollSentinel()?.nativeElement;
+      const sentinel = this.#scrollSentinel()?.nativeElement;
       if (!sentinel) return;
 
       const observer = new IntersectionObserver(
@@ -830,7 +830,7 @@ export default class MainLayout {
     }
   }
 
-  async onLogout(): Promise<void> {
+  protected async onLogout(): Promise<void> {
     if (this.#isLoggingOut()) return;
 
     this.#isLoggingOut.set(true);

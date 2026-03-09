@@ -376,10 +376,10 @@ describe('MainLayout', () => {
 
     it('should not allow multiple logout attempts', async () => {
       // Start first logout attempt
-      const firstLogout = component.onLogout();
+      const firstLogout = component['onLogout']();
 
       // Try to start another logout while first is in progress
-      await component.onLogout();
+      await component['onLogout']();
 
       // Wait for first logout to complete
       await firstLogout;
@@ -392,7 +392,7 @@ describe('MainLayout', () => {
     it('should successfully logout and redirect via full page reload', async () => {
       mockAuthSessionService.signOut.mockResolvedValue(undefined);
 
-      const logoutPromise = component.onLogout();
+      const logoutPromise = component['onLogout']();
 
       // Check loading state is set
       expect(component.isLoggingOut()).toBe(true);
@@ -409,7 +409,7 @@ describe('MainLayout', () => {
       mockAuthSessionService.signOut.mockRejectedValue(authError);
 
       // Test the business behavior: error handling should not crash the app
-      await component.onLogout();
+      await component['onLogout']();
 
       // Verify business requirements
       expect(mockAuthSessionService.signOut).toHaveBeenCalledOnce();
