@@ -187,16 +187,8 @@ final class BudgetDetailsViewModel {
         }
     }
 
-    var displayBudgetLines: [BudgetLine] {
-        guard let budget, let rollover = budget.rollover, rollover != 0 else {
-            return budgetLines
-        }
-        let rolloverLine = BudgetLine.rolloverLine(
-            amount: rollover,
-            budgetId: budget.id,
-            sourceBudgetId: budget.previousBudgetId
-        )
-        return [rolloverLine] + budgetLines
+    private var displayBudgetLines: [BudgetLine] {
+        budget?.displayBudgetLines(base: budgetLines) ?? budgetLines
     }
 
     var realizedMetrics: BudgetFormulas.RealizedMetrics {

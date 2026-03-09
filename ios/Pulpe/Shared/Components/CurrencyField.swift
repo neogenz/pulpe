@@ -67,19 +67,18 @@ struct CurrencyField: View {
                     .foregroundStyle(Color.authInputText)
                     .focused(externalFocus ?? $internalFocus)
                     .accessibilityLabel(label ?? "Montant en CHF")
-
-                Text("CHF")
-                    .foregroundStyle(prefixColor)
-                    .font(PulpeTypography.bodyLarge)
                     .onChange(of: textValue) { _, newValue in
                         updateValue(from: newValue)
                     }
                     .onChange(of: value) { _, newValue in
-                        // Only update text if value changed externally (not from user input)
                         if hasInitialized {
                             updateText(from: newValue)
                         }
                     }
+
+                Text("CHF")
+                    .foregroundStyle(prefixColor)
+                    .font(PulpeTypography.bodyLarge)
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .frame(height: DesignTokens.FrameHeight.button)

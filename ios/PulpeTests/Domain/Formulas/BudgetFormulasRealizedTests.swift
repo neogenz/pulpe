@@ -42,10 +42,11 @@ struct BudgetFormulasRealizedTests {
     }
 
     @Test func calculateRealizedBalance_includesCheckedNegativeRollover() {
+        let rolloverLine = BudgetLine.rolloverLine(amount: -1950, budgetId: "b1", sourceBudgetId: nil)
         let lines = [
             TestDataFactory.createBudgetLine(id: "1", amount: 5000, kind: .income, isChecked: true),
             TestDataFactory.createBudgetLine(id: "2", amount: 3000, kind: .expense, isChecked: true),
-            TestDataFactory.createBudgetLine(id: "3", amount: 1950, kind: .expense, isChecked: true, isRollover: true)
+            rolloverLine
         ]
         let balance = BudgetFormulas.calculateRealizedBalance(budgetLines: lines)
         #expect(balance == 50)

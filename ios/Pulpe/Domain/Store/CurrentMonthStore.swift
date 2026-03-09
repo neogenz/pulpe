@@ -507,16 +507,7 @@ extension CurrentMonthStore {
     }
 
     var displayBudgetLines: [BudgetLine] {
-        guard let budget, let rollover = budget.rollover, rollover != 0 else {
-            return budgetLines
-        }
-        // Add virtual rollover line
-        let rolloverLine = BudgetLine.rolloverLine(
-            amount: rollover,
-            budgetId: budget.id,
-            sourceBudgetId: budget.previousBudgetId
-        )
-        return [rolloverLine] + budgetLines
+        budget?.displayBudgetLines(base: budgetLines) ?? budgetLines
     }
 
     var recurringBudgetLines: [BudgetLine] {
