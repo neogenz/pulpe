@@ -188,7 +188,7 @@ final class BudgetDetailsViewModel {
     }
 
     private var displayBudgetLines: [BudgetLine] {
-        budget?.displayBudgetLines(base: budgetLines) ?? budgetLines
+        BudgetFormulas.displayBudgetLines(base: budgetLines, budget: budget)
     }
 
     var realizedMetrics: BudgetFormulas.RealizedMetrics {

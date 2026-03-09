@@ -127,12 +127,6 @@ struct BudgetSparse: Decodable, Identifiable, Sendable, Hashable {
                year == calendar.component(.year, from: now)
     }
 
-    /// Pure monthly result: income - expenses (incl. savings) without rollover
-    var monthlyBalance: Decimal? {
-        guard let remaining else { return nil }
-        return remaining - (rollover ?? 0)
-    }
-
     /// Payday-aware check: uses BudgetPeriodCalculator when payDay > 1
     func isCurrentPeriod(payDayOfMonth: Int?) -> Bool {
         guard let month, let year else { return false }

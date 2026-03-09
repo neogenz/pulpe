@@ -507,7 +507,7 @@ extension CurrentMonthStore {
     }
 
     var displayBudgetLines: [BudgetLine] {
-        budget?.displayBudgetLines(base: budgetLines) ?? budgetLines
+        BudgetFormulas.displayBudgetLines(base: budgetLines, budget: budget)
     }
 
     var recurringBudgetLines: [BudgetLine] {

@@ -6,6 +6,20 @@ enum BudgetFormulas {
     /// DA section 3.1: threshold separating "comfortable" from "tight"
     static let tightBudgetThreshold: Double = 80
 
+    // MARK: - Display Budget Lines
+
+    /// Budget lines augmented with a virtual rollover line when rollover != 0.
+    /// Shared by CurrentMonthStore and BudgetDetailsViewModel.
+    static func displayBudgetLines(base: [BudgetLine], budget: Budget?) -> [BudgetLine] {
+        guard let budget, let rollover = budget.rollover, rollover != 0 else { return base }
+        let rolloverLine = BudgetLine.rolloverLine(
+            amount: rollover,
+            budgetId: budget.id,
+            sourceBudgetId: budget.previousBudgetId
+        )
+        return [rolloverLine] + base
+    }
+
     // MARK: - Metrics Result
 
     struct Metrics: Equatable, Sendable {
