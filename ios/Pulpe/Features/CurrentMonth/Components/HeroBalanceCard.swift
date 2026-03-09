@@ -139,6 +139,9 @@ struct HeroBalanceCard: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityDescription)
         .accessibilityAddTraits(onTapProgress != nil ? .isButton : [])
+        .ifLet(onRolloverTap) { view, action in
+            view.accessibilityAction(named: "Voir le budget précédent", action)
+        }
     }
 
     // MARK: - Card Content

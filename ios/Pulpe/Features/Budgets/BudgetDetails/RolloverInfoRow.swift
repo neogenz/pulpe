@@ -14,8 +14,6 @@ struct RolloverInfoRow: View {
         isPositive ? "Excédent reporté" : "Déficit reporté"
     }
 
-    @Environment(\.colorScheme) private var colorScheme
-
     @ViewBuilder
     var body: some View {
         if let onTap {
