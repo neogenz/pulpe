@@ -52,7 +52,7 @@ struct PinRecoveryView: View {
             case .enterRecoveryKey:
                 recoveryKeyStep
             case .createPin:
-                pinStep(title: "Nouveau code PIN", subtitle: "4 chiffres")
+                pinStep(title: "Nouveau code PIN", subtitle: "\(PinConstants.length) chiffres")
             case .confirmPin:
                 pinStep(title: "Confirme ton code PIN", subtitle: nil)
             case .processing:

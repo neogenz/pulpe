@@ -167,13 +167,13 @@ describe('EnterVaultCode', () => {
     });
   });
 
-  describe('onSubmit - Valid Form', () => {
-    async function triggerAutoSubmit(): Promise<void> {
-      component['form'].controls.vaultCode.setValue('1234');
-      fixture.detectChanges();
-      await fixture.whenStable();
-    }
+  async function triggerAutoSubmit(): Promise<void> {
+    component['form'].controls.vaultCode.setValue('1234');
+    fixture.detectChanges();
+    await fixture.whenStable();
+  }
 
+  describe('onSubmit - Valid Form', () => {
     it('should call getSalt$ to get encryption salt', async () => {
       await triggerAutoSubmit();
       await vi.waitFor(() =>
@@ -255,9 +255,7 @@ describe('EnterVaultCode', () => {
       mockEncryptionApi.getSalt$.mockReturnValue(
         throwError(() => new Error('Network error')),
       );
-      component['form'].controls.vaultCode.setValue('1234');
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await triggerAutoSubmit();
 
       await vi.waitFor(() =>
         expect(component['errorMessage']()).toContain(
@@ -270,9 +268,7 @@ describe('EnterVaultCode', () => {
       mockEncryptionApi.getSalt$.mockReturnValue(
         throwError(() => new Error('Network error')),
       );
-      component['form'].controls.vaultCode.setValue('1234');
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await triggerAutoSubmit();
 
       await vi.waitFor(() => expect(component['errorMessage']()).not.toBe(''));
       expect(navigateSpy).not.toHaveBeenCalled();
@@ -282,9 +278,7 @@ describe('EnterVaultCode', () => {
       mockEncryptionApi.getSalt$.mockReturnValue(
         throwError(() => new Error('Network error')),
       );
-      component['form'].controls.vaultCode.setValue('1234');
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await triggerAutoSubmit();
 
       await vi.waitFor(() => expect(component['errorMessage']()).not.toBe(''));
       expect(mockPostHogService.captureEvent).not.toHaveBeenCalled();
@@ -296,9 +290,7 @@ describe('EnterVaultCode', () => {
       mockEncryptionApi.getSalt$.mockReturnValue(
         throwError(() => new Error('Network error')),
       );
-      component['form'].controls.vaultCode.setValue('1234');
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await triggerAutoSubmit();
 
       await vi.waitFor(() => expect(component['errorMessage']()).not.toBe(''));
 
@@ -309,9 +301,7 @@ describe('EnterVaultCode', () => {
       mockEncryptionApi.getSalt$.mockReturnValueOnce(
         throwError(() => new Error('Network error')),
       );
-      component['form'].controls.vaultCode.setValue('1234');
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await triggerAutoSubmit();
 
       await vi.waitFor(() => expect(component['errorMessage']()).not.toBe(''));
 
@@ -319,9 +309,7 @@ describe('EnterVaultCode', () => {
         of({ salt: 'salt-value', kdfIterations: 100000 }),
       );
 
-      component['form'].controls.vaultCode.setValue('1234');
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await triggerAutoSubmit();
 
       await vi.waitFor(() =>
         expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']),
@@ -337,9 +325,7 @@ describe('EnterVaultCode', () => {
             new HttpErrorResponse({ status: 400, statusText: 'Bad Request' }),
         ),
       );
-      component['form'].controls.vaultCode.setValue('1234');
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await triggerAutoSubmit();
 
       await vi.waitFor(() =>
         expect(component['errorMessage']()).toContain(
@@ -355,9 +341,7 @@ describe('EnterVaultCode', () => {
             new HttpErrorResponse({ status: 400, statusText: 'Bad Request' }),
         ),
       );
-      component['form'].controls.vaultCode.setValue('1234');
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await triggerAutoSubmit();
 
       await vi.waitFor(() =>
         expect(component['errorMessage']()).toContain(
@@ -378,9 +362,7 @@ describe('EnterVaultCode', () => {
             }),
         ),
       );
-      component['form'].controls.vaultCode.setValue('1234');
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await triggerAutoSubmit();
 
       await vi.waitFor(() =>
         expect(component['errorMessage']()).toContain(
@@ -399,9 +381,7 @@ describe('EnterVaultCode', () => {
             }),
         ),
       );
-      component['form'].controls.vaultCode.setValue('1234');
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await triggerAutoSubmit();
 
       await vi.waitFor(() =>
         expect(component['errorMessage']()).toBe(
@@ -416,9 +396,7 @@ describe('EnterVaultCode', () => {
       mockEncryptionApi.validateKey$.mockReturnValue(
         throwError(() => new ApiError('Bad request', 'ERR_INVALID', 400, null)),
       );
-      component['form'].controls.vaultCode.setValue('1234');
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await triggerAutoSubmit();
 
       await vi.waitFor(() =>
         expect(component['errorMessage']()).toContain(
@@ -431,9 +409,7 @@ describe('EnterVaultCode', () => {
       mockEncryptionApi.validateKey$.mockReturnValue(
         throwError(() => new ApiError('Server error', undefined, 500, null)),
       );
-      component['form'].controls.vaultCode.setValue('1234');
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await triggerAutoSubmit();
 
       await vi.waitFor(() =>
         expect(component['errorMessage']()).toContain(

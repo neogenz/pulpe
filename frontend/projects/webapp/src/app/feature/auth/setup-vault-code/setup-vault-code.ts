@@ -110,7 +110,10 @@ import { PostHogService } from '@core/analytics';
             <mat-error>
               @if (form.get('vaultCode')?.hasError('required')) {
                 {{ 'auth.vaultCode.pinRequired' | transloco }}
-              } @else if (form.get('vaultCode')?.hasError('minlength')) {
+              } @else if (
+                form.get('vaultCode')?.hasError('minlength') ||
+                form.get('vaultCode')?.hasError('maxlength')
+              ) {
                 {{ 'auth.vaultCode.pinLength' | transloco }}
               } @else if (form.get('vaultCode')?.hasError('pattern')) {
                 {{ 'auth.vaultCode.pinPattern' | transloco }}

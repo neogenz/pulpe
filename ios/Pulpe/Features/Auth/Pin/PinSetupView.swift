@@ -14,7 +14,7 @@ enum PinSetupMode: Equatable, Sendable {
         }
     }
 
-    var subtitle: String { "4 chiffres" }
+    var subtitle: String { "\(PinConstants.length) chiffres" }
 }
 
 // MARK: - Setup Step
@@ -179,7 +179,7 @@ final class PinSetupViewModel {
 
     var subtitle: String {
         switch currentStep {
-        case .enterPin: return "4 chiffres"
+        case .enterPin: return "\(PinConstants.length) chiffres"
         case .confirmPin: return "Saisis à nouveau ton code"
         }
     }

@@ -104,7 +104,10 @@ import { ErrorAlert } from '@ui/error-alert';
               <mat-error>{{
                 'settings.changePin.oldPinRequired' | transloco
               }}</mat-error>
-            } @else if (oldPinForm.get('oldPin')?.hasError('minlength')) {
+            } @else if (
+              oldPinForm.get('oldPin')?.hasError('minlength') ||
+              oldPinForm.get('oldPin')?.hasError('maxlength')
+            ) {
               <mat-error>{{
                 'settings.pinCodeLength'
                   | transloco: { length: VAULT_CODE_LENGTH }
@@ -151,7 +154,10 @@ import { ErrorAlert } from '@ui/error-alert';
               <mat-error>{{
                 'settings.changePin.newPinRequired' | transloco
               }}</mat-error>
-            } @else if (newPinForm.get('newPin')?.hasError('minlength')) {
+            } @else if (
+              newPinForm.get('newPin')?.hasError('minlength') ||
+              newPinForm.get('newPin')?.hasError('maxlength')
+            ) {
               <mat-error>{{
                 'settings.pinCodeLength'
                   | transloco: { length: VAULT_CODE_LENGTH }
