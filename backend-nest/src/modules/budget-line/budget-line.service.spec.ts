@@ -306,6 +306,46 @@ describe('BudgetLineService', () => {
       ).rejects.toThrow(BusinessException);
     });
 
+    it('should persist checkedAt when provided', async () => {
+      const checkedDto: BudgetLineCreate = {
+        ...mockCreateDto,
+        checkedAt: '2026-03-10T10:00:00.000Z',
+      };
+      const checkedBudgetLineDb: BudgetLineRow = {
+        ...mockBudgetLineDb,
+        checked_at: '2026-03-10T10:00:00.000Z',
+      };
+
+      const queryBuilder = createMockQueryBuilder({
+        data: checkedBudgetLineDb,
+        error: null,
+      });
+      mockSupabase.from.mockReturnValue(queryBuilder);
+
+      const result = await service.create(
+        checkedDto,
+        mockUser,
+        getMockSupabaseClient(),
+      );
+
+      expect(result.success).toBe(true);
+      const insertCall = queryBuilder.insert.mock.calls[0][0];
+      expect(insertCall.checked_at).toBe('2026-03-10T10:00:00.000Z');
+    });
+
+    it('should default checkedAt to null when not provided', async () => {
+      const queryBuilder = createMockQueryBuilder({
+        data: mockBudgetLineDb,
+        error: null,
+      });
+      mockSupabase.from.mockReturnValue(queryBuilder);
+
+      await service.create(mockCreateDto, mockUser, getMockSupabaseClient());
+
+      const insertCall = queryBuilder.insert.mock.calls[0][0];
+      expect(insertCall.checked_at).toBeNull();
+    });
+
     it('should throw BusinessException on database error', async () => {
       mockSupabase.from.mockReturnValue(
         createMockQueryBuilder({
