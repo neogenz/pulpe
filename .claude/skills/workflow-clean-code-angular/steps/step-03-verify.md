@@ -1,42 +1,17 @@
 ---
 name: step-03-verify
-description: Verify quality passes and summarize all changes
+description: Quality gate, team lead craftsman review, commit
 prev_step: steps/step-02-apply.md
 next_step: null
 ---
 
 # Step 3: VERIFY
 
-## MANDATORY EXECUTION RULES (READ FIRST):
-
-- 🛑 NEVER complete with failing `pnpm quality`
-- ✅ ALWAYS run quality check before marking done
-- 📋 YOU ARE A VALIDATOR ensuring nothing is broken
-- 💬 FOCUS on verification and summary
-- 🚫 FORBIDDEN to skip any check
-
-## EXECUTION PROTOCOLS:
-
-- 🎯 Run all verification commands
-- 💾 Save summary if `{save_mode}` = true
-- 📖 Fix any errors before completing
-- 🚫 FORBIDDEN to mark complete if quality fails
-
-## CONTEXT BOUNDARIES:
-
-- From step-02: changes applied, files modified, progress table
-- Build/lint/test commands from CLAUDE.md
-- Package manager: pnpm (Pulpe convention)
-
-## YOUR TASK:
-
-Run quality checks, fix any errors introduced, and provide a final summary with all changes and sources.
+The final gate. Code must pass automated checks AND the team lead's craftsman review. If either fails, loop until both pass.
 
 ---
 
-## EXECUTION SEQUENCE:
-
-### 1. Run Quality Check
+## 1. Run Quality Check
 
 ```bash
 pnpm quality
@@ -44,127 +19,119 @@ pnpm quality
 
 This runs type-check + lint + format for all packages.
 
-**If errors:**
+If errors:
 1. Read the error output
-2. Fix the issue (likely in files we just modified)
+2. Fix the issue (likely in files just modified)
 3. Re-run `pnpm quality`
-4. **Loop until passes** (max 5 attempts)
+4. Loop until passes — max 5 attempts
 
-### 2. Run Tests (for scoped files)
+If still failing after 5 attempts: stop and ask the user. Something structural may need human judgment.
 
-If test files exist for the modified scope:
+## 2. Run Tests
+
+If test files exist for modified files:
 
 ```bash
 cd frontend && pnpm test -- path/to/file.spec.ts
 ```
 
-**If tests fail:**
-1. Read error
+If tests fail:
+1. Read the error
 2. Fix test or implementation
-3. Re-run
-4. **Loop until passes** (max 3 attempts)
+3. Re-run — max 3 attempts
 
-**If no tests exist:** Note in summary, don't create tests (out of scope for clean-code).
+If no tests exist for the scope: note it in the summary. Don't create tests — that's out of scope for this workflow.
 
-### 3. Generate Final Summary
+## 3. Team Lead Craftsman Review
+
+This is the gate that ensures the code reads like a senior wrote it. Launch the team lead (`code-reviewer` type):
+
+> You are a senior Angular developer doing a final quality review. The code has been cleaned up and passes automated checks. Now read every modified file one more time.
+>
+> For each file, evaluate these five dimensions:
+>
+> **1. Craftsmanship** — Does it read like a senior wrote it by hand? Is the code clear, minimal, and intentional? Would you be proud to ship this?
+>
+> **2. AI Slop** — Any remaining signs of AI generation? Unnecessary comments restating code, over-engineered abstractions, defensive checks for impossible scenarios, verbose names, single-use wrappers.
+>
+> **3. ViewModel Separation** — Do stores own data transformations via `computed()` selectors? Do components just bind to store signals? Are templates free of complex expressions (> 40 chars)? No duplicate derivations across files?
+>
+> **4. Pattern Consistency** — Does every store follow the 6-section anatomy? Every component use `OnPush`, `input()`, `inject()`? Same naming conventions throughout? No mixed old/new patterns in the same scope?
+>
+> **5. Dead Code** — Unused imports, unreachable branches, orphaned methods, commented-out code, empty lifecycle hooks.
+>
+> Rate each file: **CLEAN** / **MINOR ISSUES** / **NEEDS REWORK**
+>
+> For any file not rated CLEAN: describe exactly what's wrong and what to fix.
+
+If the team lead identifies issues:
+1. Fix them
+2. Re-run `pnpm quality` if code changed
+3. Re-run the craftsman review — max 2 review cycles
+
+The goal: every file in scope rated **CLEAN**.
+
+## 4. Generate Final Summary
 
 ```markdown
-## Angular Clean Code Complete
+## Angular Clean Code Audit Complete
 
 ### Verification
 | Check | Status |
 |-------|--------|
-| TypeScript | ✅ |
-| ESLint | ✅ |
-| Format | ✅ |
-| Tests | ✅ / ⚠️ No tests |
+| TypeScript | Pass / Fail |
+| ESLint | Pass / Fail |
+| Format | Pass / Fail |
+| Tests | Pass / No tests |
+| Craftsman Review | All CLEAN / See notes |
 
 ### Changes Applied
 | # | File:Line | Change | Category | Source |
 |---|-----------|--------|----------|--------|
-| 1 | budget.store.ts:45 | `effect()` → `computed()` | Signals | signals.md |
-| 2 | budget-card.ts:12 | `@Input()` → `input()` | Angular | angular.dev |
-| 3 | budget.service.ts:8 | constructor DI → `inject()` | DI | angular.dev |
 
-### Summary
-| Category | Critical | Improvements | Total |
-|----------|----------|--------------|-------|
-| Signals | 1 | 0 | 1 |
-| Angular | 0 | 2 | 2 |
-| Architecture | 1 | 0 | 1 |
-| TypeScript | 0 | 1 | 1 |
-| Styling | 0 | 1 | 1 |
-| **Total** | **2** | **4** | **6** |
+### Summary by Category
+| Category | Critical | Important | Minor | Total |
+|----------|----------|-----------|-------|-------|
+| Architecture | | | | |
+| Signals | | | | |
+| Store Patterns | | | | |
+| Components | | | | |
+| Templates | | | | |
+| TypeScript | | | | |
+| Styling | | | | |
+| AI Slop | | | | |
+| ViewModel | | | | |
+| Security | | | | |
+| **Total** | | | | |
 
 ### Files Modified: {N}
+### Craftsman Rating: ALL CLEAN / ATTENTION NEEDED
 ```
 
-**If `{save_mode}` = true:**
-→ Write to `.claude/output/clean-code-angular/{task_id}/03-verify.md`
+**If `{save_mode}`:** write to `03-verify.md`.
 
-### 4. Offer Commit
+## 5. Commit
 
-**If `{auto_mode}` = true:**
-→ Create commit automatically
+**If `{auto_mode}`:** commit automatically.
 
-**If `{auto_mode}` = false:**
-→ Use AskUserQuestion:
+**Otherwise:** ask:
+- **Commit** — commit with descriptive message
+- **Done** — finish without committing
+- **Review Changes** — show `git diff` before deciding
 
-```yaml
-questions:
-  - header: "Complete"
-    question: "Angular clean code complete. What next?"
-    options:
-      - label: "Commit (Recommended)"
-        description: "Commit all changes with descriptive message"
-      - label: "Done"
-        description: "Finish without committing"
-      - label: "Review Changes"
-        description: "Show git diff before committing"
-    multiSelect: false
-```
-
-**If commit:**
+Commit format:
 ```bash
-git add {modified_files}
+git add {specific_files}
 git commit -m "$(cat <<'EOF'
-refactor({scope}): apply Angular 21 clean code improvements
+refactor({scope}): apply Angular 21 clean code audit
 
-- {list of main changes}
+- {main changes grouped by category}
 EOF
 )"
 ```
 
-Use specific file adds (not `git add -A`).
-Use the actual scope name (e.g., `refactor(budget): ...`).
+Use specific file adds (not `git add -A`). Use the actual scope name in the conventional commit prefix.
 
 ---
 
-## SUCCESS METRICS:
-
-✅ `pnpm quality` passes (type-check + lint + format)
-✅ Tests pass (if they exist)
-✅ Final summary with all changes and sources
-✅ Commit created (if requested)
-
-## FAILURE MODES:
-
-❌ Completing with failing quality check
-❌ Skipping verification
-❌ Summary without source citations
-❌ Using `git add -A` instead of specific files
-
-## VERIFY PROTOCOLS:
-
-- Always run `pnpm quality` (project convention)
-- Fix errors in a loop, max 5 attempts
-- Every change in summary must have a source
-- Commit message follows conventional commits: `refactor({scope}): ...`
-
----
-
-## WORKFLOW COMPLETE
-
-<critical>
-NEVER complete if `pnpm quality` fails!
-</critical>
+## Workflow Complete
