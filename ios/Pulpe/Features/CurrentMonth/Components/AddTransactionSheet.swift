@@ -52,10 +52,6 @@ struct AddTransactionSheet: View {
             descriptionField
             dateSelector
             CheckedToggle(isOn: $isChecked, tintColor: kind.color)
-                .overlay(
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                        .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: 1)
-                )
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
