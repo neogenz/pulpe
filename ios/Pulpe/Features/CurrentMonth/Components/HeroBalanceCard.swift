@@ -110,7 +110,7 @@ struct HeroBalanceCard: View {
         """
         if let rolloverAmount {
             let label = rolloverAmount >= 0 ? "Excédent reporté" : "Déficit reporté"
-            desc += ". \(label) de \(rolloverAmount.asCHF)"
+            desc += ". \(label) de \(abs(rolloverAmount).asCHF)"
         }
         return desc
     }
@@ -204,10 +204,6 @@ struct HeroBalanceCard: View {
 
     // MARK: - Rollover Footer
 
-    private func rolloverIcon(for amount: Decimal) -> String {
-        amount >= 0 ? "arrow.up.right.circle" : "arrow.down.right.circle"
-    }
-
     @ViewBuilder
     private func rolloverFooter(amount: Decimal) -> some View {
         if let onRolloverTap {
@@ -222,7 +218,7 @@ struct HeroBalanceCard: View {
 
     private func rolloverPill(amount: Decimal) -> some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: rolloverIcon(for: amount))
+            Image(systemName: amount >= 0 ? "arrow.up.right.circle" : "arrow.down.right.circle")
                 .font(.system(size: 12, weight: .semibold))
 
             Text("Report")
