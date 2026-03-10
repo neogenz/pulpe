@@ -7,6 +7,7 @@ struct AddBudgetLineSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var name = ""
     @State private var amount: Decimal?
     @State private var kind: TransactionKind = .expense
@@ -17,8 +18,10 @@ struct AddBudgetLineSheet: View {
     @FocusState private var isDescriptionFocused: Bool
     @State private var amountText = ""
     @State private var submitSuccessTrigger = false
+    @State private var inputCurrency = "CHF"
 
     private let dependencies: AddBudgetLineDependencies
+    private let conversionService = CurrencyConversionService.shared
 
     init(
         budgetId: String,
@@ -55,12 +58,18 @@ struct AddBudgetLineSheet: View {
             descriptionFocus: $isDescriptionFocused
         ) {
             KindToggle(selection: $kind)
+            if userSettingsStore.showCurrencySelector {
+                CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
+            }
             HeroAmountField(
                 amount: $amount, amountText: $amountText,
-                isFocused: $isAmountFocused, accentColor: kind.color
+                isFocused: $isAmountFocused, currency: inputCurrency, accentColor: kind.color
             )
-            QuickAmountChips(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused, color: kind.color)
-                .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
+            QuickAmountChips(
+                amount: $amount, amountText: $amountText, isFocused: $isAmountFocused,
+                color: kind.color, currency: inputCurrency
+            )
+            .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
             descriptionField
             CheckedToggle(isOn: $isChecked, tintColor: kind.color)
 
@@ -73,6 +82,7 @@ struct AddBudgetLineSheet: View {
             addButton
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+        .onAppear { inputCurrency = userSettingsStore.currency }
     }
 
     // MARK: - Description
@@ -116,16 +126,26 @@ struct AddBudgetLineSheet: View {
         defer { isLoading = false }
         error = nil
 
-        let data = BudgetLineCreate(
-            budgetId: budgetId,
-            name: name.trimmingCharacters(in: .whitespaces),
-            amount: amount,
-            kind: kind,
-            recurrence: .oneOff,
-            checkedAt: isChecked ? Date() : nil
-        )
-
         do {
+            let conversion = try await conversionService.convert(
+                amount: amount,
+                from: inputCurrency,
+                to: userSettingsStore.currency
+            )
+
+            let data = BudgetLineCreate(
+                budgetId: budgetId,
+                name: name.trimmingCharacters(in: .whitespaces),
+                amount: conversion?.convertedAmount ?? amount,
+                kind: kind,
+                recurrence: .oneOff,
+                checkedAt: isChecked ? Date() : nil,
+                originalAmount: conversion?.originalAmount,
+                originalCurrency: conversion?.originalCurrency,
+                targetCurrency: conversion?.targetCurrency,
+                exchangeRate: conversion?.exchangeRate
+            )
+
             let budgetLine = try await dependencies.createBudgetLine(data)
             submitSuccessTrigger.toggle()
             onAdd(budgetLine)
@@ -152,4 +172,5 @@ struct AddBudgetLineDependencies: Sendable {
         print("Added: \(line)")
     }
     .environment(ToastManager())
+    .environment(UserSettingsStore())
 }

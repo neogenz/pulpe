@@ -12,22 +12,33 @@ struct ExpensesStep: View {
             content: {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sectionGap) {
                     expenseSection("Logement", icon: "house.fill") {
-                        CurrencyField(value: $state.housingCosts, hint: "1500", label: "Loyer mensuel")
+                        CurrencyField(
+                            value: $state.housingCosts, hint: "1500",
+                            label: "Loyer mensuel", currency: state.currency
+                        )
                     }
 
                     expenseSection("Assurance & Abonnements", icon: "heart.text.square.fill") {
-                        CurrencyField(value: $state.healthInsurance, hint: "400", label: "Assurance maladie")
-                        CurrencyField(value: $state.phonePlan, hint: "50", label: "Forfait t\u{00e9}l\u{00e9}phone")
+                        CurrencyField(
+                            value: $state.healthInsurance, hint: "400",
+                            label: "Assurance maladie", currency: state.currency
+                        )
                     }
 
-                    expenseSection("Mobilit\u{00e9} & Cr\u{00e9}dit", icon: "car.fill") {
+                    expenseSection("Mobilité & Crédit", icon: "car.fill") {
+                        CurrencyField(
+                            value: $state.phonePlan, hint: "50",
+                            label: "Forfait téléphone", currency: state.currency
+                        )
                         CurrencyField(
                             value: $state.transportCosts, hint: "100",
-                            label: "Transport (abonnement, essence...)"
+                            label: "Transport (abonnement, essence...)",
+                            currency: state.currency
                         )
                         CurrencyField(
                             value: $state.leasingCredit, hint: "300",
-                            label: "Leasing ou mensualit\u{00e9} de cr\u{00e9}dit"
+                            label: "Leasing ou mensualité de crédit",
+                            currency: state.currency
                         )
                     }
                 }

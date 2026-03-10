@@ -1,4 +1,9 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import {
   MatDialogRef,
   MAT_DIALOG_DATA,
@@ -15,10 +20,13 @@ import {
   type BudgetLineCreate,
   type TransactionKind,
   type TransactionRecurrence,
+  type SupportedCurrency,
 } from 'pulpe-shared';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { TransactionIconPipe } from '@ui/transaction-display';
 import { TransactionLabelPipe } from '@ui/transaction-display';
+import { UserSettingsStore } from '@core/user-settings';
+import { CurrencyConverterService } from '@core/currency';
 
 export interface BudgetLineDialogData {
   budgetId: string;
@@ -71,7 +79,20 @@ export interface BudgetLineDialogData {
               inputmode="decimal"
               data-testid="new-line-amount"
             />
-            <span matTextSuffix>CHF</span>
+            @if (showCurrencySelector()) {
+              <mat-select
+                matTextSuffix
+                [value]="inputCurrency()"
+                (selectionChange)="inputCurrency.set($event.value)"
+                class="!w-[70px] text-on-surface-variant font-medium"
+                aria-label="Devise"
+              >
+                <mat-option value="CHF">CHF</mat-option>
+                <mat-option value="EUR">EUR</mat-option>
+              </mat-select>
+            } @else {
+              <span matTextSuffix>{{ currency() }}</span>
+            }
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
@@ -133,6 +154,12 @@ export class AddBudgetLineDialog {
   readonly #dialogRef = inject(MatDialogRef<AddBudgetLineDialog>);
   readonly #data = inject<BudgetLineDialogData>(MAT_DIALOG_DATA);
   readonly #fb = inject(FormBuilder);
+  readonly #converter = inject(CurrencyConverterService);
+  readonly #userSettings = inject(UserSettingsStore);
+  protected readonly currency = this.#userSettings.currency;
+  protected readonly showCurrencySelector =
+    this.#userSettings.showCurrencySelector;
+  protected readonly inputCurrency = signal<SupportedCurrency>(this.currency());
 
   protected readonly form = this.#fb.group({
     name: ['', [Validators.required, Validators.minLength(1)]],
@@ -145,20 +172,28 @@ export class AddBudgetLineDialog {
     isChecked: [false],
   });
 
-  protected submit(): void {
-    if (this.form.valid) {
-      const value = this.form.getRawValue();
-      const budgetLine: BudgetLineCreate = {
-        budgetId: this.#data.budgetId,
-        name: value.name!.trim(),
-        amount: value.amount!,
-        kind: value.kind!,
-        recurrence: value.recurrence!,
-        isManuallyAdjusted: true,
-        checkedAt: value.isChecked ? new Date().toISOString() : null,
-      };
-      this.#dialogRef.close(budgetLine);
-    }
+  protected async submit(): Promise<void> {
+    if (!this.form.valid) return;
+
+    const value = this.form.getRawValue();
+    const { convertedAmount, metadata } =
+      await this.#converter.convertWithMetadata(
+        value.amount!,
+        this.inputCurrency(),
+        this.currency(),
+      );
+
+    const budgetLine: BudgetLineCreate = {
+      budgetId: this.#data.budgetId,
+      name: value.name!.trim(),
+      amount: convertedAmount,
+      kind: value.kind!,
+      recurrence: value.recurrence!,
+      isManuallyAdjusted: true,
+      checkedAt: value.isChecked ? new Date().toISOString() : null,
+      ...metadata,
+    };
+    this.#dialogRef.close(budgetLine);
   }
 
   protected cancel(): void {

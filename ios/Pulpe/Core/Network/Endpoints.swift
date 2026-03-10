@@ -54,6 +54,10 @@ enum Endpoint {
     case templateLine(templateId: String, lineId: String)
     case templateLinesBulk(templateId: String)
 
+    // MARK: - Currency
+
+    case currencyRate(base: String, target: String)
+
     // MARK: - Encryption
 
     case encryptionVaultStatus
@@ -112,6 +116,9 @@ enum Endpoint {
         case .templateLine(let templateId, let lineId): return "/budget-templates/\(templateId)/lines/\(lineId)"
         case .templateLinesBulk(let templateId): return "/budget-templates/\(templateId)/lines/bulk-operations"
 
+        // Currency
+        case .currencyRate: return "/currency/rate"
+
         // Encryption
         case .encryptionVaultStatus: return "/encryption/vault-status"
         case .encryptionSalt: return "/encryption/salt"
@@ -139,7 +146,7 @@ enum Endpoint {
              .budgetLine, .transaction, .template, .templateUsage, .templateLine,
              .transactionsByBudget, .budgetsSparse,
              .encryptionVaultStatus, .encryptionSalt,
-             .userSettings:
+             .userSettings, .currencyRate:
             return .get
 
         case .updateUserSettings:
@@ -158,14 +165,24 @@ enum Endpoint {
     func urlRequest(baseURL: URL) -> URLRequest {
         var url = baseURL.appendingPathComponent(path)
 
-        // Add query parameters for sparse budgets
-        if case let .budgetsSparse(fields, limit, year) = self {
+        // Add query parameters
+        switch self {
+        case let .budgetsSparse(fields, limit, year):
             var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
             var queryItems: [URLQueryItem] = [URLQueryItem(name: "fields", value: fields)]
             if let limit { queryItems.append(URLQueryItem(name: "limit", value: String(limit))) }
             if let year { queryItems.append(URLQueryItem(name: "year", value: String(year))) }
             components?.queryItems = queryItems
             url = components?.url ?? url
+        case let .currencyRate(base, target):
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            components?.queryItems = [
+                URLQueryItem(name: "base", value: base),
+                URLQueryItem(name: "target", value: target),
+            ]
+            url = components?.url ?? url
+        default:
+            break
         }
 
         var request = URLRequest(url: url)

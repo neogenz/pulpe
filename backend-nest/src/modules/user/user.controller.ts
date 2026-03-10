@@ -30,7 +30,7 @@ import {
   UserSettingsResponseDto,
   DeleteAccountResponseDto,
 } from './dto/user-profile.dto';
-import { payDayOfMonthSchema } from 'pulpe-shared';
+import { payDayOfMonthSchema, supportedCurrencySchema } from 'pulpe-shared';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 
@@ -287,13 +287,22 @@ export class UserController {
     try {
       const currentUserData = await this.getCurrentUserData(supabase);
       const rawPayDay = currentUserData.user.user_metadata?.payDayOfMonth;
-      const parsed = payDayOfMonthSchema.safeParse(rawPayDay);
-      const payDayOfMonth = parsed.success ? parsed.data : null;
+      const parsedPayDay = payDayOfMonthSchema.safeParse(rawPayDay);
+      const payDayOfMonth = parsedPayDay.success ? parsedPayDay.data : null;
+
+      const rawCurrency = currentUserData.user.user_metadata?.currency;
+      const parsedCurrency = supportedCurrencySchema.safeParse(rawCurrency);
+      const currency = parsedCurrency.success ? parsedCurrency.data : 'CHF';
+
+      const showCurrencySelector =
+        currentUserData.user.user_metadata?.showCurrencySelector === true;
 
       return {
         success: true as const,
         data: {
           payDayOfMonth,
+          currency,
+          showCurrencySelector,
         },
       };
     } catch (error) {
@@ -335,6 +344,12 @@ export class UserController {
           user_metadata: {
             ...currentUserData.user.user_metadata,
             payDayOfMonth: updateData.payDayOfMonth ?? null,
+            ...(updateData.currency !== undefined && {
+              currency: updateData.currency,
+            }),
+            ...(updateData.showCurrencySelector !== undefined && {
+              showCurrencySelector: updateData.showCurrencySelector,
+            }),
           },
         });
 
@@ -347,10 +362,16 @@ export class UserController {
         );
       }
 
+      const rawCurrency = updatedUser.user.user_metadata?.currency;
+      const parsedCurrency = supportedCurrencySchema.safeParse(rawCurrency);
+
       return {
         success: true as const,
         data: {
           payDayOfMonth: updatedUser.user.user_metadata?.payDayOfMonth ?? null,
+          currency: parsedCurrency.success ? parsedCurrency.data : 'CHF',
+          showCurrencySelector:
+            updatedUser.user.user_metadata?.showCurrencySelector === true,
         },
       };
     } catch (error) {

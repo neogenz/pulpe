@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
+import { AppCurrencyPipe } from '@core/currency';
 
 /**
  * One immutable row displayed in the financial entries table.
@@ -28,7 +28,7 @@ export interface FinancialEntry {
 @Component({
   selector: 'pulpe-transactions-table',
 
-  imports: [MatTableModule, CurrencyPipe],
+  imports: [MatTableModule, AppCurrencyPipe],
   template: `
     <div
       class="flex flex-col rounded-corner-large overflow-hidden bg-surface-container-low max-h-[50vh] 2xl:h-full 2xl:max-h-none"
@@ -64,9 +64,7 @@ export interface FinancialEntry {
             </th>
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
               @if (row.spent !== 0) {
-                <span class="ph-no-capture">{{
-                  row.spent | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
-                }}</span>
+                <span class="ph-no-capture">{{ row.spent | appCurrency }}</span>
               }
             </td>
           </ng-container>
@@ -83,7 +81,7 @@ export interface FinancialEntry {
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
               @if (row.earned !== 0) {
                 <span class="ph-no-capture">{{
-                  row.earned | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                  row.earned | appCurrency
                 }}</span>
               }
             </td>
@@ -100,9 +98,7 @@ export interface FinancialEntry {
             </th>
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
               @if (row.saved !== 0) {
-                <span class="ph-no-capture">{{
-                  row.saved | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
-                }}</span>
+                <span class="ph-no-capture">{{ row.saved | appCurrency }}</span>
               }
             </td>
           </ng-container>
@@ -117,9 +113,7 @@ export interface FinancialEntry {
               Total
             </th>
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
-              <span class="ph-no-capture">{{
-                row.total | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
-              }}</span>
+              <span class="ph-no-capture">{{ row.total | appCurrency }}</span>
             </td>
           </ng-container>
 

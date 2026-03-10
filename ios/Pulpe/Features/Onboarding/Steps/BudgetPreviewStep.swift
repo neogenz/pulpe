@@ -45,7 +45,7 @@ struct BudgetPreviewStep: View {
             .scaleEffect(showCheckmark ? 1 : 0.3)
             .opacity(showCheckmark ? 1 : 0)
 
-            Text(state.availableToSpend.asCHF)
+            Text(state.availableToSpend.asCurrency(state.currency))
                 .font(PulpeTypography.amountHero)
                 .monospacedDigit()
                 .foregroundStyle(Color.pulpePrimary)
@@ -89,7 +89,7 @@ struct BudgetPreviewStep: View {
             breakdownRow(
                 icon: "arrow.down.circle.fill",
                 label: "Revenus",
-                value: "+\((state.monthlyIncome ?? 0).asCHF)",
+                value: "+\((state.monthlyIncome ?? 0).asCurrency(state.currency))",
                 color: .pulpePrimary
             )
 
@@ -101,7 +101,7 @@ struct BudgetPreviewStep: View {
                 breakdownRow(
                     icon: "arrow.up.circle.fill",
                     label: "Charges fixes",
-                    value: "-\(state.totalExpenses.asCHF)",
+                    value: "-\(state.totalExpenses.asCurrency(state.currency))",
                     color: .secondary
                 )
 
@@ -114,7 +114,7 @@ struct BudgetPreviewStep: View {
                 Text("Disponible")
                     .font(PulpeTypography.labelLarge)
                 Spacer()
-                Text(state.availableToSpend.asCHF)
+                Text(state.availableToSpend.asCurrency(state.currency))
                     .font(PulpeTypography.buttonPrimary)
                     .monospacedDigit()
                     .foregroundStyle(Color.pulpePrimary)

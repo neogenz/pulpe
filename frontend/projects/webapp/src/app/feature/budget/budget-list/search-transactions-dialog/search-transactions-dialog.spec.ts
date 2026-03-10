@@ -48,8 +48,10 @@ describe('SearchTransactionsDialogComponent', () => {
   let mockTransactionApi: { search$: ReturnType<typeof vi.fn> };
   let mockBudgetApi: { getAllBudgets$: ReturnType<typeof vi.fn> };
   let mockLogger: {
-    error: ReturnType<typeof vi.fn>;
+    debug: ReturnType<typeof vi.fn>;
+    info: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
+    error: ReturnType<typeof vi.fn>;
   };
 
   function typeInSearchInput(text: string): void {
@@ -107,8 +109,10 @@ describe('SearchTransactionsDialogComponent', () => {
     };
 
     mockLogger = {
-      error: vi.fn(),
+      debug: vi.fn(),
+      info: vi.fn(),
       warn: vi.fn(),
+      error: vi.fn(),
     };
 
     await TestBed.configureTestingModule({

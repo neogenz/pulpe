@@ -43,6 +43,8 @@ import { DashboardFutureProjectionChart } from './components/dashboard-future-pr
 import { DashboardRecentTransactions } from './components/dashboard-recent-transactions';
 import { DashboardSavingsSummary } from './components/dashboard-savings-summary';
 import { DashboardNextMonth } from './components/dashboard-next-month';
+import { UserSettingsStore } from '@core/user-settings';
+import { CURRENCY_CONFIG } from '@core/currency';
 
 @Component({
   selector: 'pulpe-dashboard',
@@ -111,6 +113,8 @@ import { DashboardNextMonth } from './components/dashboard-next-month';
             [rolloverAmount]="store.rolloverAmount()"
             [timeElapsedPercentage]="store.timeElapsedPercentage()"
             [paceStatus]="store.paceStatus()"
+            [currency]="currency()"
+            [locale]="currencyLocale()"
             (heroClick)="navigateToBudgetDetails()"
             data-testid="dashboard-block-hero"
             data-tour="dashboard-hero"
@@ -133,6 +137,7 @@ import { DashboardNextMonth } from './components/dashboard-next-month';
               [forecasts]="store.uncheckedForecasts()"
               [consumptions]="store.consumptions()"
               [checkingIds]="store.pendingChecks()"
+              [currency]="currency()"
               (toggleCheck)="checkBudgetLine($event)"
               (viewBudget)="navigateToBudgetDetails()"
               data-testid="dashboard-block-forecasts"
@@ -152,6 +157,7 @@ import { DashboardNextMonth } from './components/dashboard-next-month';
               [totalRealized]="store.totalSavingsRealized()"
               [checkedCount]="store.savingsCheckedCount()"
               [totalCount]="store.savingsTotalCount()"
+              [currency]="currency()"
               data-testid="dashboard-block-savings"
             />
 
@@ -159,6 +165,7 @@ import { DashboardNextMonth } from './components/dashboard-next-month';
               <pulpe-dashboard-next-month
                 [forecast]="store.upcomingBudgetsData()[0]"
                 [estimatedRollover]="store.remaining()"
+                [currency]="currency()"
                 (navigateToBudgets)="navigateToBudgetList()"
                 data-testid="dashboard-block-next-month"
               />
@@ -285,6 +292,10 @@ import { DashboardNextMonth } from './components/dashboard-next-month';
 })
 export default class Dashboard {
   protected readonly store = inject(DashboardStore);
+  protected readonly currency = inject(UserSettingsStore).currency;
+  protected readonly currencyLocale = computed(
+    () => CURRENCY_CONFIG[this.currency()].locale,
+  );
   readonly #productTourService = inject(ProductTourService);
   readonly #destroyRef = inject(DestroyRef);
   readonly #loadingIndicator = inject(LoadingIndicator);

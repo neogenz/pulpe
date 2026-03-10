@@ -1,4 +1,3 @@
-import { CurrencyPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -16,6 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { type BudgetLine } from 'pulpe-shared';
+import { AppCurrencyPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { RecurrenceLabelPipe } from '@ui/transaction-display';
 import { formatMatchAnnotation, type BudgetLineTableItem } from '../data-core';
@@ -38,8 +38,8 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
     MatChipsModule,
     MatTooltipModule,
     RouterLink,
-    CurrencyPipe,
     TranslocoPipe,
+    AppCurrencyPipe,
     FinancialKindDirective,
     RecurrenceLabelPipe,
     SegmentedBudgetProgress,
@@ -94,6 +94,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
           @if (!item().metadata.isRollover) {
             <pulpe-budget-action-menu
               [item]="item()"
+              [currency]="currency()"
               menuIcon="more_horiz"
               buttonClass="!-mr-2 !-mt-1"
               [showBalance]="true"
@@ -136,7 +137,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                   item().consumption!.consumptionState === 'over-budget'
                 "
               >
-                {{ remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
+                {{ remaining | appCurrency: '1.0-0' }}
               </div>
               <span class="text-label-small text-on-surface-variant">{{
                 'budgetLine.available' | transloco
@@ -146,7 +147,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                 class="ph-no-capture text-headline-medium font-bold"
                 [pulpeFinancialKind]="item().data.kind"
               >
-                {{ item().data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+                {{ item().data.amount | appCurrency: '1.0-0' }}
               </div>
               <span class="text-label-small text-on-surface-variant">{{
                 'budgetLine.planned' | transloco
@@ -160,10 +161,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
               <div
                 class="ph-no-capture text-title-medium font-semibold text-on-surface"
               >
-                {{
-                  item().consumption!.consumed
-                    | currency: 'CHF' : 'symbol' : '1.0-0'
-                }}
+                {{ item().consumption!.consumed | appCurrency: '1.0-0' }}
               </div>
               <span class="text-label-small text-on-surface-variant">{{
                 'budgetLine.spent' | transloco
@@ -192,7 +190,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                         : {
                             amount:
                               (item().consumption!.consumed - item().data.amount
-                              | currency: 'CHF' : 'symbol' : '1.0-0'),
+                              | appCurrency: '1.0-0'),
                           }
                   }}
                 </span>
@@ -238,8 +236,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                 >
                   <mat-icon class="text-base! mr-1">receipt_long</mat-icon>
                   <span class="ph-no-capture">{{
-                    item().consumption!.consumed
-                      | currency: 'CHF' : 'symbol' : '1.0-0'
+                    item().consumption!.consumed | appCurrency: '1.0-0'
                   }}</span>
                 </button>
               }
@@ -282,6 +279,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
 })
 export class BudgetGridMobileCard {
   readonly item = input.required<BudgetLineTableItem>();
+  readonly currency = input<string>('CHF');
   readonly isSelected = input<boolean>(false);
 
   readonly matchAnnotation = computed(() =>

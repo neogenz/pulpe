@@ -1,19 +1,10 @@
-import type { BudgetLine, Transaction } from 'pulpe-shared';
-
-export interface EnvelopeSnackbarMessages {
-  overEnvelope: (consumed: number, envelope: number) => string;
-  withinEnvelope: (envelope: number) => string;
-}
-
-export interface TransactionSnackbarMessages {
-  checked: (amount: number) => string;
-}
+import type { BudgetLine, SupportedCurrency, Transaction } from 'pulpe-shared';
 
 export function computeEnvelopeSnackbarMessage(
   budgetLineId: string,
   budgetLines: BudgetLine[],
   transactions: Transaction[],
-  messages: EnvelopeSnackbarMessages,
+  currency: SupportedCurrency,
 ): string | null {
   const budgetLine = budgetLines.find((line) => line.id === budgetLineId);
   if (!budgetLine || budgetLine.checkedAt == null) return null;
@@ -32,18 +23,18 @@ export function computeEnvelopeSnackbarMessage(
   const roundedEnvelope = Math.round(envelopeAmount);
 
   if (roundedConsumed > roundedEnvelope) {
-    return messages.overEnvelope(roundedConsumed, roundedEnvelope);
+    return `Comptabilisé ${roundedConsumed} sur ${roundedEnvelope} ${currency} (enveloppe)`;
   }
-  return messages.withinEnvelope(roundedEnvelope);
+  return `Comptabilisé ${roundedEnvelope} ${currency} (enveloppe)`;
 }
 
 export function computeTransactionSnackbarMessage(
   transactionId: string,
   transactions: Transaction[],
-  messages: TransactionSnackbarMessages,
+  currency: SupportedCurrency,
 ): string | null {
   const transaction = transactions.find((tx) => tx.id === transactionId);
   if (!transaction || transaction.checkedAt == null) return null;
 
-  return messages.checked(Math.round(Math.abs(transaction.amount)));
+  return `Comptabilisé ${Math.round(Math.abs(transaction.amount))} ${currency}`;
 }
