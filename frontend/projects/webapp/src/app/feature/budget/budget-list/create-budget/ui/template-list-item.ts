@@ -1,4 +1,3 @@
-import { CurrencyPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -11,6 +10,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
+import { CurrencyPipe } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
 import { type TemplateViewModel } from './template-view-model';
@@ -117,7 +117,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
               >
                 {{
                   templateViewModel().income
-                    | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                    | currency: currency() : 'symbol' : '1.2-2' : locale()
                 }}
               </span>
             </mat-list-item>
@@ -138,7 +138,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
               >
                 {{
                   templateViewModel().expenses
-                    | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                    | currency: currency() : 'symbol' : '1.2-2' : locale()
                 }}
               </span>
             </mat-list-item>
@@ -157,7 +157,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
               >
                 {{
                   templateViewModel().netBalance
-                    | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                    | currency: currency() : 'symbol' : '1.2-2' : locale()
                 }}
               </span>
             </mat-list-item>
@@ -201,6 +201,8 @@ import { TranslocoPipe } from '@jsverse/transloco';
 export class TemplateListItem {
   readonly templateViewModel = input.required<TemplateViewModel>();
   readonly isSelected = input<boolean>(false);
+  readonly currency = input<string>('CHF');
+  readonly locale = input<string>('de-CH');
 
   readonly selectTemplate = output<string>();
   readonly showDetails = output<TemplateViewModel>();

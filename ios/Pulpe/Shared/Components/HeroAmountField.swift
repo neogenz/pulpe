@@ -7,6 +7,7 @@ struct HeroAmountField: View {
     @Binding var amountText: String
     var isFocused: FocusState<Bool>.Binding
     var hint: String?
+    var currency: String = "CHF"
     var accentColor: Color = .pulpePrimary
 
     private var displayAmount: String {
@@ -18,7 +19,7 @@ struct HeroAmountField: View {
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
-            Text(DesignTokens.AmountInput.currencyCode)
+            Text(currency)
                 .font(PulpeTypography.labelLarge)
                 .foregroundStyle(Color.onSurfaceVariant)
 

@@ -25,6 +25,7 @@ import {
   type BudgetLine,
   type BudgetLineUpdate,
   type Transaction,
+  type SupportedCurrency,
 } from 'pulpe-shared';
 import { map } from 'rxjs/operators';
 import { BudgetGrid } from './budget-grid';
@@ -163,6 +164,7 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
         </div>
       } @else if (isMobile() || viewMode() === 'envelopes') {
         <pulpe-budget-grid
+          [currency]="currency()"
           [budgetLineItems]="budgetLineItems()"
           [transactionItems]="transactionItems()"
           [transactions]="transactions()"
@@ -231,6 +233,7 @@ export class BudgetItemsContainer {
   readonly totalCount = input(0);
   readonly estimatedBalance = input(0);
   readonly totalBudgetLinesCount = input(0);
+  readonly currency = input<SupportedCurrency>('CHF');
 
   readonly isAllChecked = computed(
     () => this.totalCount() > 0 && this.checkedCount() === this.totalCount(),

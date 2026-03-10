@@ -101,6 +101,8 @@ import { TranslocoPipe } from '@jsverse/transloco';
               [isSelected]="
                 selectedTemplateId() === templateViewModel.template.id
               "
+              [currency]="currency()"
+              [locale]="locale()"
               (selectTemplate)="onTemplateSelect($event)"
               (showDetails)="onShowDetails(templateViewModel)"
               [attr.data-testid]="
@@ -131,6 +133,8 @@ export class TemplatesList {
   readonly selectedTemplateId = input<string | null>(null);
   readonly isLoading = input<boolean>(false);
   readonly hasError = input<boolean>(false);
+  readonly currency = input<string>('CHF');
+  readonly locale = input<string>('de-CH');
 
   // Outputs
   readonly templateSelected = output<string>();

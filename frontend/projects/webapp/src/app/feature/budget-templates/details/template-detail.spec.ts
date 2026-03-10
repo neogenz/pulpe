@@ -23,6 +23,7 @@ import { PulpeTitleStrategy } from '@core/routing/title-strategy';
 import { Logger } from '@core/logging/logger';
 import { BudgetApi } from '@core/budget/budget-api';
 import { TransactionLabelPipe } from '@ui/transaction-display';
+import { UserSettingsStore } from '@core/user-settings';
 import { BaseLoading } from '@ui/loading';
 import { TransactionsTable, EditTransactionsDialog } from './components';
 import {
@@ -196,6 +197,10 @@ describe('TemplateDetail', () => {
         { provide: PulpeTitleStrategy, useValue: mockTitleStrategy },
         { provide: Logger, useValue: mockLogger },
         { provide: BudgetApi, useValue: mockBudgetApi },
+        {
+          provide: UserSettingsApi,
+          useValue: { currency: signal('CHF') },
+        },
       ],
     })
       .overrideComponent(TemplateDetail, {

@@ -14,6 +14,11 @@ struct Transaction: Codable, Identifiable, Hashable, Sendable {
     let createdAt: Date
     let updatedAt: Date
 
+    // Currency conversion metadata
+    var originalAmount: Decimal?
+    var originalCurrency: String?
+    var exchangeRate: Decimal?
+
     // MARK: - Computed Properties
 
     var isChecked: Bool {
@@ -41,7 +46,10 @@ struct Transaction: Codable, Identifiable, Hashable, Sendable {
             category: category,
             checkedAt: isChecked ? nil : Date(),
             createdAt: createdAt,
-            updatedAt: Date()
+            updatedAt: Date(),
+            originalAmount: originalAmount,
+            originalCurrency: originalCurrency,
+            exchangeRate: exchangeRate
         )
     }
 }
@@ -57,6 +65,10 @@ struct TransactionCreate: Encodable {
     let transactionDate: Date?
     let category: String?
     let checkedAt: Date?
+    let originalAmount: Decimal?
+    let originalCurrency: String?
+    let targetCurrency: String?
+    let exchangeRate: Decimal?
 
     init(
         budgetId: String,
@@ -66,7 +78,11 @@ struct TransactionCreate: Encodable {
         budgetLineId: String? = nil,
         transactionDate: Date? = nil,
         category: String? = nil,
-        checkedAt: Date? = nil
+        checkedAt: Date? = nil,
+        originalAmount: Decimal? = nil,
+        originalCurrency: String? = nil,
+        targetCurrency: String? = nil,
+        exchangeRate: Decimal? = nil
     ) {
         self.budgetId = budgetId
         self.budgetLineId = budgetLineId
@@ -76,6 +92,10 @@ struct TransactionCreate: Encodable {
         self.transactionDate = transactionDate
         self.category = category
         self.checkedAt = checkedAt
+        self.originalAmount = originalAmount
+        self.originalCurrency = originalCurrency
+        self.targetCurrency = targetCurrency
+        self.exchangeRate = exchangeRate
     }
 }
 
@@ -85,4 +105,8 @@ struct TransactionUpdate: Encodable {
     var kind: TransactionKind?
     var transactionDate: Date?
     var category: String?
+    var originalAmount: Decimal?
+    var originalCurrency: String?
+    var targetCurrency: String?
+    var exchangeRate: Decimal?
 }

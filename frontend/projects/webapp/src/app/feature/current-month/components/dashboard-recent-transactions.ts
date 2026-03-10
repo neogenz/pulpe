@@ -4,10 +4,11 @@ import {
   input,
   output,
 } from '@angular/core';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import type { Transaction, TransactionKind } from 'pulpe-shared';
+import { AppCurrencyPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
 
 const KIND_ICONS: Record<TransactionKind, string> = {
@@ -19,7 +20,7 @@ const KIND_ICONS: Record<TransactionKind, string> = {
 @Component({
   selector: 'pulpe-dashboard-recent-transactions',
   imports: [
-    CurrencyPipe,
+    AppCurrencyPipe,
     DatePipe,
     MatButtonModule,
     MatIconModule,
@@ -82,7 +83,7 @@ const KIND_ICONS: Record<TransactionKind, string> = {
                   class="text-label-large whitespace-nowrap ml-4 font-semibold tabular-nums ph-no-capture"
                   [pulpeFinancialKind]="tx.kind"
                 >
-                  {{ tx.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+                  {{ tx.amount | appCurrency: '1.0-0' }}
                 </span>
               </div>
             }

@@ -284,7 +284,6 @@ enum DesignTokens {
 
     enum AmountInput {
         static let quickAmounts = [10, 15, 20, 30]
-        static let currencyCode = "CHF"
     }
 
     // MARK: - Blur

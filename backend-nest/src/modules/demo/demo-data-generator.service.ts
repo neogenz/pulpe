@@ -349,6 +349,10 @@ export class DemoDataGeneratorService {
       kind,
       recurrence,
       description: '',
+      original_amount: null,
+      original_currency: null,
+      target_currency: null,
+      exchange_rate: null,
     };
   }
 
@@ -766,6 +770,10 @@ export class DemoDataGeneratorService {
           recurrence: templateLine.recurrence,
           is_manually_adjusted: false,
           checked_at: null,
+          original_amount: null,
+          original_currency: null,
+          target_currency: null,
+          exchange_rate: null,
         });
       }
     }
@@ -917,6 +925,10 @@ export class DemoDataGeneratorService {
         day,
       ).toISOString(),
       checked_at: null,
+      original_amount: null,
+      original_currency: null,
+      target_currency: null,
+      exchange_rate: null,
     };
   }
 

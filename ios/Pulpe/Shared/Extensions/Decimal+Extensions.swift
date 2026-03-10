@@ -1,10 +1,13 @@
 import Foundation
 
 extension Decimal {
-    /// Format as CHF currency — always "1'234.56 CHF" (suffix position)
-    var asCHF: String {
-        "\(asAmount) CHF"
+    /// Format as currency using the appropriate locale
+    func asCurrency(_ code: String) -> String {
+        formatted(.currency(code: code).locale(Formatters.locale(for: code)))
     }
+
+    /// Format as CHF currency using Swiss locale
+    var asCHF: String { asCurrency("CHF") }
 
     /// Format as amount only (no currency code) using Swiss locale — "1'234.56"
     var asAmount: String {
@@ -32,9 +35,14 @@ extension Decimal {
         return Formatters.chfWholeNumber.string(from: rounded as NSDecimalNumber) ?? "0"
     }
 
+    /// Format as compact currency (always rounded to whole number) — "1'235 CHF" / "1'235 EUR" (suffix position)
+    func asCompactCurrency(_ code: String) -> String {
+        "\(asCompactAmount) \(code)"
+    }
+
     /// Format as compact CHF (always rounded to whole number) — "1'235 CHF" (suffix position)
     var asCompactCHF: String {
-        "\(asCompactAmount) CHF"
+        asCompactCurrency("CHF")
     }
 
     /// Format as signed CHF — "+1'234.56 CHF" for positive, "-1'234.56 CHF" for negative, "0.00 CHF" for zero

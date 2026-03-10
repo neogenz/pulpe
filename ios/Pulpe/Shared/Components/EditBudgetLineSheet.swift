@@ -7,6 +7,7 @@ struct EditBudgetLineSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var name: String
     @State private var amount: Decimal?
     @State private var kind: TransactionKind
@@ -16,8 +17,10 @@ struct EditBudgetLineSheet: View {
     @FocusState private var isDescriptionFocused: Bool
     @State private var amountText: String
     @State private var submitSuccessTrigger = false
+    @State private var inputCurrency = "CHF"
 
     private let dependencies: EditBudgetLineDependencies
+    private let conversionService = CurrencyConversionService.shared
 
     init(
         budgetLine: BudgetLine,
@@ -47,9 +50,17 @@ struct EditBudgetLineSheet: View {
             descriptionFocus: $isDescriptionFocused
         ) {
             KindToggle(selection: $kind)
+            if userSettingsStore.showCurrencySelector {
+                CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
+            }
             HeroAmountField(
                 amount: $amount, amountText: $amountText,
-                isFocused: $isAmountFocused, accentColor: kind.color
+                isFocused: $isAmountFocused, currency: inputCurrency, accentColor: kind.color
+            )
+            CurrencyConversionBadge(
+                originalAmount: budgetLine.originalAmount,
+                originalCurrency: budgetLine.originalCurrency,
+                exchangeRate: budgetLine.exchangeRate
             )
             descriptionField
 
@@ -62,6 +73,7 @@ struct EditBudgetLineSheet: View {
             saveButton
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+        .onAppear { inputCurrency = userSettingsStore.currency }
     }
 
     // MARK: - Description
@@ -97,15 +109,25 @@ struct EditBudgetLineSheet: View {
         defer { isLoading = false }
         error = nil
 
-        let data = BudgetLineUpdate(
-            id: budgetLine.id,
-            name: name.trimmingCharacters(in: .whitespaces),
-            amount: amount,
-            kind: kind,
-            isManuallyAdjusted: true
-        )
-
         do {
+            let conversion = try await conversionService.convert(
+                amount: amount,
+                from: inputCurrency,
+                to: userSettingsStore.currency
+            )
+
+            let data = BudgetLineUpdate(
+                id: budgetLine.id,
+                name: name.trimmingCharacters(in: .whitespaces),
+                amount: conversion?.convertedAmount ?? amount,
+                kind: kind,
+                isManuallyAdjusted: true,
+                originalAmount: conversion?.originalAmount,
+                originalCurrency: conversion?.originalCurrency,
+                targetCurrency: conversion?.targetCurrency,
+                exchangeRate: conversion?.exchangeRate
+            )
+
             let updatedLine = try await dependencies.updateBudgetLine(budgetLine.id, data)
             submitSuccessTrigger.toggle()
             onUpdate(updatedLine)
@@ -147,4 +169,5 @@ struct EditBudgetLineDependencies: Sendable {
         print("Updated: \(line)")
     }
     .environment(ToastManager())
+    .environment(UserSettingsStore())
 }
