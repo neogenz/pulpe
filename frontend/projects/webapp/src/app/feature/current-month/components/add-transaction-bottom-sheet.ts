@@ -36,7 +36,7 @@ interface TransactionFormControls {
   amount: FormControl<number | null>;
   kind: FormControl<'expense' | 'income' | 'saving' | null>;
   category: FormControl<string | null>;
-  isChecked: FormControl<boolean | null>;
+  isChecked: FormControl<boolean>;
 }
 
 import { TransactionValidators } from '@core/transaction';
@@ -241,7 +241,10 @@ import { TransactionValidators } from '@core/transaction';
           <span class="text-body-medium text-on-surface">{{
             'transactionForm.checkedToggle' | transloco
           }}</span>
-          <mat-slide-toggle formControlName="isChecked" />
+          <mat-slide-toggle
+            formControlName="isChecked"
+            [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
+          />
         </div>
       </form>
 
@@ -300,7 +303,7 @@ export class AddTransactionBottomSheet implements AfterViewInit {
       category: new FormControl<string | null>('', [
         ...TransactionValidators.category,
       ]),
-      isChecked: new FormControl<boolean | null>(false),
+      isChecked: new FormControl<boolean>(false, { nonNullable: true }),
     },
   );
 

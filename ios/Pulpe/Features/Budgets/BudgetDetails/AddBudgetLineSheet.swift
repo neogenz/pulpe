@@ -33,7 +33,7 @@ struct AddBudgetLineSheet: View {
             QuickAmountChips(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused, color: kind.color)
                 .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
             descriptionField
-            checkedToggle
+            CheckedToggle(isOn: $isChecked, tintColor: kind.color)
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -50,17 +50,6 @@ struct AddBudgetLineSheet: View {
     private var descriptionField: some View {
         TextField(kind.descriptionPlaceholder, text: $name)
             .font(PulpeTypography.bodyLarge)
-            .padding(DesignTokens.Spacing.lg)
-            .background(Color.inputBackgroundSoft)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-    }
-
-    // MARK: - Checked Toggle
-
-    private var checkedToggle: some View {
-        Toggle("Pointer", isOn: $isChecked)
-            .font(PulpeTypography.bodyLarge)
-            .tint(kind.color)
             .padding(DesignTokens.Spacing.lg)
             .background(Color.inputBackgroundSoft)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))

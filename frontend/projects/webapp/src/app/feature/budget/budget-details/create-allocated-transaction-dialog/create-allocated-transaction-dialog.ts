@@ -137,7 +137,10 @@ export interface CreateAllocatedTransactionDialogData {
           <span class="text-body-medium text-on-surface">{{
             'transactionForm.checkedToggle' | transloco
           }}</span>
-          <mat-slide-toggle formControlName="isChecked" />
+          <mat-slide-toggle
+            formControlName="isChecked"
+            [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
+          />
         </div>
       </form>
     </mat-dialog-content>

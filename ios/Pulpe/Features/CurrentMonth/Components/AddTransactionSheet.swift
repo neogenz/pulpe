@@ -51,7 +51,11 @@ struct AddTransactionSheet: View {
                 .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
             descriptionField
             dateSelector
-            checkedToggle
+            CheckedToggle(isOn: $isChecked, tintColor: kind.color)
+                .overlay(
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+                        .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: 1)
+                )
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -106,17 +110,6 @@ struct AddTransactionSheet: View {
                     .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: 1)
             )
         }
-    }
-
-    // MARK: - Checked Toggle
-
-    private var checkedToggle: some View {
-        Toggle("Pointer", isOn: $isChecked)
-            .font(PulpeTypography.bodyLarge)
-            .tint(kind.color)
-            .padding(DesignTokens.Spacing.lg)
-            .background(Color.inputBackgroundSoft)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
 
     // MARK: - Add Button

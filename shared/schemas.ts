@@ -211,7 +211,7 @@ export const budgetLineCreateSchema = z.object({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   isManuallyAdjusted: z.boolean().default(false),
-  checkedAt: z.iso.datetime().nullable().optional(),
+  checkedAt: z.iso.datetime({ offset: true }).nullable().optional(),
 });
 export type BudgetLineCreate = z.infer<typeof budgetLineCreateSchema>;
 

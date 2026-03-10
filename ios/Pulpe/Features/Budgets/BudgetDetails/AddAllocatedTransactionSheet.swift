@@ -40,7 +40,7 @@ struct AddAllocatedTransactionSheet: View {
             )
             descriptionField
             dateSelector
-            checkedToggle
+            CheckedToggle(isOn: $isChecked, tintColor: budgetLine.kind.color)
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -83,17 +83,6 @@ struct AddAllocatedTransactionSheet: View {
         .padding(DesignTokens.Spacing.lg)
         .background(Color.inputBackgroundSoft)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-    }
-
-    // MARK: - Checked Toggle
-
-    private var checkedToggle: some View {
-        Toggle("Pointer", isOn: $isChecked)
-            .font(PulpeTypography.bodyLarge)
-            .tint(budgetLine.kind.color)
-            .padding(DesignTokens.Spacing.lg)
-            .background(Color.inputBackgroundSoft)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
 
     // MARK: - Add Button

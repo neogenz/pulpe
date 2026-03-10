@@ -102,7 +102,10 @@ export interface BudgetLineDialogData {
             <span class="text-body-medium text-on-surface">{{
               'budget.forecastCheckedToggle' | transloco
             }}</span>
-            <mat-slide-toggle formControlName="isChecked" />
+            <mat-slide-toggle
+              formControlName="isChecked"
+              [attr.aria-label]="'budget.forecastCheckedToggle' | transloco"
+            />
           </div>
         </form>
       </div>
@@ -152,7 +155,7 @@ export class AddBudgetLineDialog {
         kind: value.kind!,
         recurrence: value.recurrence!,
         isManuallyAdjusted: true,
-        checkedAt: value.isChecked ? new Date().toISOString() : undefined,
+        checkedAt: value.isChecked ? new Date().toISOString() : null,
       };
       this.#dialogRef.close(budgetLine);
     }
