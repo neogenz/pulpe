@@ -44,9 +44,6 @@ struct PinEntryView: View {
                 onDigit: { viewModel.appendDigit($0) },
                 onDelete: { viewModel.deleteLastDigit() },
                 onBiometric: onBiometric,
-                onConfirm: viewModel.canConfirm ? {
-                    Task { await viewModel.confirm() }
-                } : nil,
                 isDisabled: viewModel.isValidating
             )
             Spacer().frame(height: 24)
@@ -95,7 +92,7 @@ struct PinEntryView: View {
     private var dotsSection: some View {
         PinDotsErrorView(
             enteredCount: viewModel.digits.count,
-            maxDigits: viewModel.maxDigits,
+            maxDigits: viewModel.pinLength,
             isError: viewModel.isError,
             errorMessage: viewModel.errorMessage
         )
@@ -137,7 +134,6 @@ final class PinEntryViewModel {
     private(set) var hapticError = false
 
     let pinLength = PinConstants.length
-    var maxDigits: Int { pinLength }
 
     var canConfirm: Bool {
         digits.count == pinLength && !isValidating
@@ -165,11 +161,11 @@ final class PinEntryViewModel {
     // MARK: - Actions
 
     func appendDigit(_ digit: Int) {
-        guard digits.count < pinLength, !isValidating else { return }
-        if isError { clearError() }
+        guard digits.count < pinLength, !isValidating, !isError else { return }
         digits.append(digit)
 
         if digits.count == pinLength {
+            isValidating = true
             Task { await validatePin() }
         }
     }
@@ -188,7 +184,6 @@ final class PinEntryViewModel {
     // MARK: - Validation
 
     private func validatePin() async {
-        isValidating = true
         defer { isValidating = false }
 
         let pin = digits.map(String.init).joined()

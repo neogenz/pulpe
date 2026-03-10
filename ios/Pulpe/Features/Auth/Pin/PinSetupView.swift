@@ -123,7 +123,7 @@ struct PinSetupView: View {
     private var dotsSection: some View {
         PinDotsErrorView(
             enteredCount: viewModel.digits.count,
-            maxDigits: viewModel.maxDigits,
+            maxDigits: viewModel.pinLength,
             isError: viewModel.isError,
             errorMessage: viewModel.errorMessage
         )
@@ -163,7 +163,6 @@ final class PinSetupViewModel {
     private(set) var hapticError = false
 
     let pinLength = PinConstants.length
-    var maxDigits: Int { pinLength }
 
     var canConfirm: Bool {
         digits.count == pinLength && !isValidating
@@ -208,8 +207,7 @@ final class PinSetupViewModel {
     // MARK: - Actions
 
     func appendDigit(_ digit: Int) {
-        guard digits.count < pinLength, !isValidating else { return }
-        if isError { clearError() }
+        guard digits.count < pinLength, !isValidating, !isError else { return }
         digits.append(digit)
     }
 

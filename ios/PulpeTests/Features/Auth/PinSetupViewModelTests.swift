@@ -39,16 +39,16 @@ struct PinSetupViewModelTests {
 
     @Test func appendDigit_respectsMaxDigits() {
         let sut = makeSUT()
-        for i in 0..<sut.maxDigits {
+        for i in 0..<sut.pinLength {
             sut.appendDigit(i)
         }
         sut.appendDigit(9)
-        #expect(sut.digits.count == sut.maxDigits)
+        #expect(sut.digits.count == sut.pinLength)
     }
 
     @Test func appendDigit_noAutoSubmitAtMaxDigits() async {
         let sut = makeSUT()
-        for i in 0..<sut.maxDigits {
+        for i in 0..<sut.pinLength {
             sut.appendDigit(i)
         }
 
@@ -57,7 +57,7 @@ struct PinSetupViewModelTests {
 
         // Should still be on enterPin step — no auto-submit
         #expect(sut.currentStep == .enterPin)
-        #expect(sut.digits.count == sut.maxDigits)
+        #expect(sut.digits.count == sut.pinLength)
     }
 
     // MARK: - deleteLastDigit
@@ -119,7 +119,6 @@ struct PinSetupViewModelTests {
     @Test func constants() {
         let sut = makeSUT()
         #expect(sut.pinLength == 4)
-        #expect(sut.maxDigits == 4)
     }
 }
 

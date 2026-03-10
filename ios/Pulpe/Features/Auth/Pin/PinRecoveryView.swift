@@ -161,7 +161,7 @@ struct PinRecoveryView: View {
 
             PinDotsErrorView(
                 enteredCount: viewModel.digits.count,
-                maxDigits: viewModel.maxDigits,
+                maxDigits: viewModel.pinLength,
                 isError: viewModel.isError,
                 errorMessage: viewModel.errorMessage
             )
@@ -242,7 +242,6 @@ final class PinRecoveryViewModel {
     var recoveryKeyInput = ""
 
     let pinLength = PinConstants.length
-    var maxDigits: Int { pinLength }
 
     var isRecoveryKeyValid: Bool { RecoveryKeyFormatter.strip(recoveryKey).count == 52 }
     var canConfirm: Bool { digits.count == pinLength && !isProcessing }
@@ -292,8 +291,7 @@ final class PinRecoveryViewModel {
     // MARK: - PIN Input Actions
 
     func appendDigit(_ digit: Int) {
-        guard digits.count < pinLength, !isProcessing else { return }
-        if isError { clearError() }
+        guard digits.count < pinLength, !isProcessing, !isError else { return }
         digits.append(digit)
     }
 

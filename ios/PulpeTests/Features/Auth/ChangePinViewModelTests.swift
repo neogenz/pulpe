@@ -26,7 +26,6 @@ struct ChangePinViewModelTests {
         #expect(sut.recoveryKey == nil)
         #expect(sut.canConfirm == false)
         #expect(sut.pinLength == 4)
-        #expect(sut.maxDigits == 4)
     }
 
     // MARK: - appendDigit
@@ -39,9 +38,9 @@ struct ChangePinViewModelTests {
 
     @Test func appendDigit_stopsAtMax() {
         let sut = makeSUT()
-        for i in 0..<sut.maxDigits { sut.appendDigit(i) }
+        for i in 0..<sut.pinLength { sut.appendDigit(i) }
         sut.appendDigit(9)
-        #expect(sut.digits.count == sut.maxDigits)
+        #expect(sut.digits.count == sut.pinLength)
     }
 
     // MARK: - deleteLastDigit
@@ -230,11 +229,11 @@ struct ChangePinFlowTests {
 
     // MARK: - No auto-confirm
 
-    @Test("filling maxDigits does NOT auto-trigger confirm")
-    func maxDigits_doesNotAutoTriggerConfirm() async {
+    @Test("filling pinLength does NOT auto-trigger confirm")
+    func pinLength_doesNotAutoTriggerConfirm() async {
         let result = makeFlowSUT()
 
-        // Enter 4 digits (maxDigits) — should NOT auto-validate
+        // Enter 4 digits (pinLength) — should NOT auto-validate
         for i in 1...4 { result.sut.appendDigit(i) }
 
         // Give time for any erroneous async task to fire

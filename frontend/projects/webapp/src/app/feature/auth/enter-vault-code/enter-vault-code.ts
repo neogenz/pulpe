@@ -187,9 +187,7 @@ export default class EnterVaultCode {
   constructor() {
     this.form.controls.vaultCode.valueChanges
       .pipe(
-        filter(
-          (value) => value.length === VAULT_CODE_LENGTH && /^\d+$/.test(value),
-        ),
+        filter((value) => value.length === VAULT_CODE_LENGTH),
         filter(() => !this.isSubmitting()),
         takeUntilDestroyed(),
       )

@@ -111,9 +111,6 @@ enum AppConfiguration {
     /// Grace period before requiring PIN re-entry after backgrounding (RG-006)
     static let backgroundGracePeriod: Duration = .seconds(30)
 
-    /// Minimum PIN length
-    static let minPinLength = 4
-
     // MARK: - Private
 
     private static func requiredValue(for key: String) -> String {

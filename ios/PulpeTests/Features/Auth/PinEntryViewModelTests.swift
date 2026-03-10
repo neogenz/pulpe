@@ -38,11 +38,11 @@ struct PinEntryViewModelTests {
 
     @Test func appendDigit_respectsMaxDigits() {
         let sut = makeSUT()
-        for i in 0..<sut.maxDigits {
+        for i in 0..<sut.pinLength {
             sut.appendDigit(i)
         }
         sut.appendDigit(9)
-        #expect(sut.digits.count == sut.maxDigits)
+        #expect(sut.digits.count == sut.pinLength)
     }
 
     // MARK: - deleteLastDigit
@@ -81,12 +81,14 @@ struct PinEntryViewModelTests {
         #expect(sut.canConfirm == false)
     }
 
-    @Test func canConfirm_trueAtPinLength() {
+    @Test func canConfirm_falseAtPinLength_becauseAutoSubmitSetsValidating() {
         let sut = makeSUT()
         for _ in 0..<sut.pinLength {
             sut.appendDigit(1)
         }
-        #expect(sut.canConfirm == true)
+        // Auto-submit sets isValidating synchronously, so canConfirm is false
+        #expect(sut.canConfirm == false)
+        #expect(sut.isValidating == true)
     }
 
     @Test func confirm_withLessThanPinLength_doesNothing() async {
@@ -101,12 +103,21 @@ struct PinEntryViewModelTests {
         #expect(sut.errorMessage == nil)
     }
 
+    // MARK: - Auto-Submit Sets isValidating
+
+    @Test func appendDigit_atPinLength_setsIsValidatingSynchronously() {
+        let sut = makeSUT()
+        for _ in 0..<sut.pinLength {
+            sut.appendDigit(1)
+        }
+        #expect(sut.isValidating == true)
+    }
+
     // MARK: - Constants
 
     @Test func constants() {
         let sut = makeSUT()
         #expect(sut.pinLength == 4)
-        #expect(sut.maxDigits == 4)
     }
 }
 
@@ -282,6 +293,20 @@ struct PinEntryValidationFlowTests {
         await waitForCondition("should show error") { sut.isError }
 
         #expect(sut.isValidating == false)
+    }
+
+    // MARK: - Cooldown After Error
+
+    @Test func appendDigit_blockedDuringErrorCooldown() async {
+        let sut = makeSUT(validateKeyError: .unauthorized)
+        enterPin(sut)
+
+        await waitForCondition("should show error") { sut.isError }
+
+        // Try entering digits while error is displayed — should be blocked
+        sut.appendDigit(1)
+        sut.appendDigit(2)
+        #expect(sut.digits.isEmpty)
     }
 
     // MARK: - Keychain Unavailable
