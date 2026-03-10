@@ -103,13 +103,7 @@ class MockPulpeBreadcrumbComponent {
 describe('MainLayout', () => {
   let component: MainLayout;
   let fixture: ComponentFixture<MainLayout>;
-  let mockAuthStateService: {
-    signOut: ReturnType<typeof vi.fn>;
-    authState: ReturnType<typeof vi.fn>;
-    user: ReturnType<typeof signal<{ email: string } | null>>;
-    isEarlyAdopter: ReturnType<typeof signal<boolean>>;
-    isOAuthOnly: ReturnType<typeof signal<boolean>>;
-  };
+  let mockAuthStateService: Record<string, unknown>;
   let mockAuthSessionService: {
     signOut: ReturnType<typeof vi.fn>;
   };
@@ -159,7 +153,10 @@ describe('MainLayout', () => {
         isLoading: false,
         isAuthenticated: true,
       }),
-      user: signal<{ email: string } | null>({ email: 'test@example.com' }),
+      user: signal({ email: 'test@example.com' } as unknown),
+      session: signal(null),
+      isLoading: signal(false),
+      isAuthenticated: signal(true),
       isEarlyAdopter: signal(false),
       isOAuthOnly: signal(false),
     };
