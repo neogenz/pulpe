@@ -210,9 +210,7 @@ struct HeroBalanceCard: View {
 
     private var rolloverIcon: String {
         guard let rolloverAmount else { return "arrow.triangle.2.circlepath" }
-        if rolloverAmount > 0 { return "arrow.up.right.circle" }
-        if rolloverAmount < 0 { return "arrow.down.right.circle" }
-        return "equal.circle"
+        return rolloverAmount >= 0 ? "arrow.up.right.circle" : "arrow.down.right.circle"
     }
 
     @ViewBuilder
