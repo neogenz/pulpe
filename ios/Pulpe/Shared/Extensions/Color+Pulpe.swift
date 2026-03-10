@@ -43,6 +43,12 @@ extension Color {
         Color(light: Color(hex: 0x7A1010), dark: Color(hex: 0x5C0005))
     ]
 
+    /// Glass tint for hero card overlay elements — non-adaptive, always on gradient background.
+    /// Must match the base (first stop, light variant) of each hero gradient.
+    static let heroTintComfortable = Color(hex: 0x006E25)
+    static let heroTintTight = Color(hex: 0xB35800)
+    static let heroTintDeficit = Color(hex: 0xBA1A1A)
+
     // MARK: - Brand Colors
 
     /// Primary brand color - Dark green (#006E25 light, #7EDB83 dark)

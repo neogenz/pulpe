@@ -93,15 +93,10 @@ struct HeroBalanceCard: View {
     /// so Liquid Glass blends into the card instead of appearing white.
     private var glassTintColor: Color {
         switch metrics.emotionState {
-        case .comfortable: Color(hex: 0x006E25)
-        case .tight: Color(hex: 0xB35800)
-        case .deficit: Color(hex: 0xBA1A1A)
+        case .comfortable: .heroTintComfortable
+        case .tight: .heroTintTight
+        case .deficit: .heroTintDeficit
         }
-    }
-
-    private var rolloverLabel: String {
-        guard let rolloverAmount else { return "" }
-        return rolloverAmount >= 0 ? "Excédent reporté" : "Déficit reporté"
     }
 
     private var accessibilityDescription: String {
@@ -114,7 +109,8 @@ struct HeroBalanceCard: View {
         Dépensé \(formattedSpent) sur \(formattedAvailable)
         """
         if let rolloverAmount {
-            desc += ". \(rolloverLabel) de \(rolloverAmount.asCHF)"
+            let label = rolloverAmount >= 0 ? "Excédent reporté" : "Déficit reporté"
+            desc += ". \(label) de \(rolloverAmount.asCHF)"
         }
         return desc
     }
@@ -208,15 +204,25 @@ struct HeroBalanceCard: View {
 
     // MARK: - Rollover Footer
 
-    private var rolloverIcon: String {
-        guard let rolloverAmount else { return "arrow.triangle.2.circlepath" }
-        return rolloverAmount >= 0 ? "arrow.up.right.circle" : "arrow.down.right.circle"
+    private func rolloverIcon(for amount: Decimal) -> String {
+        amount >= 0 ? "arrow.up.right.circle" : "arrow.down.right.circle"
     }
 
     @ViewBuilder
     private func rolloverFooter(amount: Decimal) -> some View {
-        let pill = HStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: rolloverIcon)
+        if let onRolloverTap {
+            Button(action: onRolloverTap) { rolloverPill(amount: amount) }
+                .buttonStyle(.plain)
+                .padding(.top, DesignTokens.Spacing.md)
+        } else {
+            rolloverPill(amount: amount)
+                .padding(.top, DesignTokens.Spacing.md)
+        }
+    }
+
+    private func rolloverPill(amount: Decimal) -> some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            Image(systemName: rolloverIcon(for: amount))
                 .font(.system(size: 12, weight: .semibold))
 
             Text("Report")
@@ -239,15 +245,6 @@ struct HeroBalanceCard: View {
         .padding(.vertical, DesignTokens.Spacing.sm)
         .contentShape(Capsule())
         .heroGlassBackground(tint: glassTintColor, shape: .capsule)
-
-        if let onRolloverTap {
-            Button(action: onRolloverTap) { pill }
-                .buttonStyle(.plain)
-                .padding(.top, DesignTokens.Spacing.md)
-        } else {
-            pill
-                .padding(.top, DesignTokens.Spacing.md)
-        }
     }
 
     // MARK: - Chart Button
