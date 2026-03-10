@@ -6,6 +6,10 @@ import {
   transactionCreateSchema,
 } from 'pulpe-shared';
 import {
+  mapCurrencyMetadataToApi,
+  mapCurrencyMetadataToDb,
+} from '@common/utils/currency-metadata.mapper';
+import {
   type TransactionRow,
   type TransactionInsert,
 } from './entities/transaction.entity';
@@ -14,9 +18,15 @@ import {
  * Transform database row (snake_case) to API entity (camelCase)
  * Expects decrypted transactionDb where amount is already a number
  */
-export function toApi(
-  transactionDb: Omit<TransactionRow, 'amount'> & { amount: number },
-): Transaction {
+export type DecryptedTransactionRow = Omit<
+  TransactionRow,
+  'amount' | 'original_amount'
+> & {
+  amount: number;
+  original_amount: number | null;
+};
+
+export function toApi(transactionDb: DecryptedTransactionRow): Transaction {
   return {
     id: transactionDb.id,
     createdAt: transactionDb.created_at,
@@ -29,6 +39,7 @@ export function toApi(
     transactionDate: transactionDb.transaction_date,
     category: transactionDb.category,
     checkedAt: transactionDb.checked_at ?? null,
+    ...mapCurrencyMetadataToApi(transactionDb),
   };
 }
 
@@ -37,7 +48,7 @@ export function toApi(
  * Expects decrypted transactionsDb where amount is already a number
  */
 export function toApiList(
-  transactionsDb: (Omit<TransactionRow, 'amount'> & { amount: number })[],
+  transactionsDb: DecryptedTransactionRow[],
 ): Transaction[] {
   return transactionsDb.map((transaction) => toApi(transaction));
 }
@@ -79,6 +90,7 @@ export function toInsert(
     kind: createDto.kind, // Pas de conversion - les enums sont maintenant unifiés
     transaction_date: createDto.transactionDate || new Date().toISOString(),
     category: createDto.category ?? null,
+    ...mapCurrencyMetadataToDb(createDto),
   };
 }
 
@@ -105,6 +117,13 @@ export function toUpdate(
   }
   if (updateDto.category !== undefined) {
     updateData.category = updateDto.category;
+  }
+  if (
+    updateDto.originalCurrency !== undefined ||
+    updateDto.targetCurrency !== undefined ||
+    updateDto.exchangeRate !== undefined
+  ) {
+    Object.assign(updateData, mapCurrencyMetadataToDb(updateDto));
   }
 
   return updateData;

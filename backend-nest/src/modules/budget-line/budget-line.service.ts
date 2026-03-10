@@ -31,27 +31,35 @@ export class BudgetLineService {
     budgetLine: Database['public']['Tables']['budget_line']['Row'],
     user: AuthenticatedUser,
   ): Promise<
-    Omit<Database['public']['Tables']['budget_line']['Row'], 'amount'> & {
+    Omit<
+      Database['public']['Tables']['budget_line']['Row'],
+      'amount' | 'original_amount'
+    > & {
       amount: number;
+      original_amount: number | null;
     }
   > {
-    if (!budgetLine.amount) {
-      return { ...budgetLine, amount: 0 };
-    }
-
     const dek = await this.encryptionService.getUserDEK(
       user.id,
       user.clientKey,
     );
-    const decryptedAmount = this.encryptionService.tryDecryptAmount(
-      budgetLine.amount,
-      dek,
-      0,
-    );
+
+    const decryptedAmount = budgetLine.amount
+      ? this.encryptionService.tryDecryptAmount(budgetLine.amount, dek, 0)
+      : 0;
+
+    const decryptedOriginalAmount = budgetLine.original_amount
+      ? this.encryptionService.tryDecryptAmount(
+          budgetLine.original_amount,
+          dek,
+          0,
+        )
+      : null;
 
     return {
       ...budgetLine,
       amount: decryptedAmount,
+      original_amount: decryptedOriginalAmount,
     };
   }
 
@@ -59,8 +67,12 @@ export class BudgetLineService {
     budgetLines: Database['public']['Tables']['budget_line']['Row'][],
     user: AuthenticatedUser,
   ): Promise<
-    (Omit<Database['public']['Tables']['budget_line']['Row'], 'amount'> & {
+    (Omit<
+      Database['public']['Tables']['budget_line']['Row'],
+      'amount' | 'original_amount'
+    > & {
       amount: number;
+      original_amount: number | null;
     })[]
   > {
     return Promise.all(
@@ -72,27 +84,35 @@ export class BudgetLineService {
     transaction: Database['public']['Tables']['transaction']['Row'],
     user: AuthenticatedUser,
   ): Promise<
-    Omit<Database['public']['Tables']['transaction']['Row'], 'amount'> & {
+    Omit<
+      Database['public']['Tables']['transaction']['Row'],
+      'amount' | 'original_amount'
+    > & {
       amount: number;
+      original_amount: number | null;
     }
   > {
-    if (!transaction.amount) {
-      return { ...transaction, amount: 0 };
-    }
-
     const dek = await this.encryptionService.getUserDEK(
       user.id,
       user.clientKey,
     );
-    const decryptedAmount = this.encryptionService.tryDecryptAmount(
-      transaction.amount,
-      dek,
-      0,
-    );
+
+    const decryptedAmount = transaction.amount
+      ? this.encryptionService.tryDecryptAmount(transaction.amount, dek, 0)
+      : 0;
+
+    const decryptedOriginalAmount = transaction.original_amount
+      ? this.encryptionService.tryDecryptAmount(
+          transaction.original_amount,
+          dek,
+          0,
+        )
+      : null;
 
     return {
       ...transaction,
       amount: decryptedAmount,
+      original_amount: decryptedOriginalAmount,
     };
   }
 
@@ -100,8 +120,12 @@ export class BudgetLineService {
     transactions: Database['public']['Tables']['transaction']['Row'][],
     user: AuthenticatedUser,
   ): Promise<
-    (Omit<Database['public']['Tables']['transaction']['Row'], 'amount'> & {
+    (Omit<
+      Database['public']['Tables']['transaction']['Row'],
+      'amount' | 'original_amount'
+    > & {
       amount: number;
+      original_amount: number | null;
     })[]
   > {
     return Promise.all(
@@ -203,6 +227,9 @@ export class BudgetLineService {
       checked_at: createBudgetLineDto.checkedAt ?? null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      original_currency: createBudgetLineDto.originalCurrency ?? null,
+      target_currency: createBudgetLineDto.targetCurrency ?? null,
+      exchange_rate: createBudgetLineDto.exchangeRate ?? null,
     };
   }
 
@@ -210,15 +237,28 @@ export class BudgetLineService {
     budgetLineData: ReturnType<typeof this.prepareBudgetLineData>,
     supabase: AuthenticatedSupabaseClient,
     user: AuthenticatedUser,
+    createDto: BudgetLineCreate,
   ): Promise<Database['public']['Tables']['budget_line']['Row']> {
     const { amount } = await this.encryptionService.prepareAmountData(
       budgetLineData.amount,
       user.id,
       user.clientKey,
     );
+
+    let encryptedOriginalAmount: string | null = null;
+    if (createDto.originalAmount) {
+      const encryptedOriginal = await this.encryptionService.prepareAmountData(
+        createDto.originalAmount,
+        user.id,
+        user.clientKey,
+      );
+      encryptedOriginalAmount = encryptedOriginal.amount;
+    }
+
     const dataWithEncryption = {
       ...budgetLineData,
       amount,
+      original_amount: encryptedOriginalAmount,
     };
 
     const { data: budgetLineDb, error } = await supabase
@@ -257,6 +297,7 @@ export class BudgetLineService {
         budgetLineData,
         supabase,
         user,
+        createBudgetLineDto,
       );
 
       const decryptedBudgetLine = await this.#decryptBudgetLine(
@@ -406,6 +447,15 @@ export class BudgetLineService {
       ...(updateBudgetLineDto.isManuallyAdjusted !== undefined && {
         is_manually_adjusted: updateBudgetLineDto.isManuallyAdjusted,
       }),
+      ...(updateBudgetLineDto.originalCurrency !== undefined && {
+        original_currency: updateBudgetLineDto.originalCurrency,
+      }),
+      ...(updateBudgetLineDto.targetCurrency !== undefined && {
+        target_currency: updateBudgetLineDto.targetCurrency,
+      }),
+      ...(updateBudgetLineDto.exchangeRate !== undefined && {
+        exchange_rate: updateBudgetLineDto.exchangeRate,
+      }),
       updated_at: new Date().toISOString(),
     };
   }
@@ -461,6 +511,20 @@ export class BudgetLineService {
           ...updateData,
           amount,
         };
+      }
+
+      if (updateBudgetLineDto.originalAmount !== undefined) {
+        if (updateBudgetLineDto.originalAmount === null) {
+          updateData.original_amount = null;
+        } else {
+          const encryptedOriginal =
+            await this.encryptionService.prepareAmountData(
+              updateBudgetLineDto.originalAmount,
+              user.id,
+              user.clientKey,
+            );
+          updateData.original_amount = encryptedOriginal.amount;
+        }
       }
 
       const budgetLineDb = await this.updateBudgetLineInDb(

@@ -5,7 +5,7 @@ import {
   computed,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import {
   MAT_BOTTOM_SHEET_DATA,
   MatBottomSheetRef,
@@ -15,6 +15,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import type { Transaction } from 'pulpe-shared';
+import { AppCurrencyPipe } from '@core/currency';
+import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
 import type {
   AllocatedTransactionsDialogData,
   AllocatedTransactionsDialogResult,
@@ -27,7 +29,8 @@ import type {
     MatIconModule,
     MatProgressBarModule,
     MatSlideToggleModule,
-    CurrencyPipe,
+    AppCurrencyPipe,
+    CurrencyConversionBadge,
     DatePipe,
     DecimalPipe,
   ],
@@ -67,14 +70,21 @@ import type {
             [class.text-financial-expense]="data.budgetLine.kind === 'expense'"
             [class.text-financial-savings]="data.budgetLine.kind === 'saving'"
           >
-            {{ consumption().consumed | currency: 'CHF' : 'symbol' : '1.0-0' }}
+            {{ consumption().consumed | appCurrency: '1.0-0' }}
           </div>
         </div>
         <!-- Prévu -->
         <div class="text-center p-2 bg-surface-container rounded-lg">
           <div class="text-label-small text-on-surface-variant">Prévu</div>
-          <div class="text-title-small font-semibold ph-no-capture">
-            {{ data.budgetLine.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+          <div
+            class="text-title-small font-semibold ph-no-capture flex items-center justify-center gap-1"
+          >
+            {{ data.budgetLine.amount | appCurrency: '1.0-0' }}
+            <pulpe-currency-conversion-badge
+              [originalAmount]="data.budgetLine.originalAmount"
+              [originalCurrency]="data.budgetLine.originalCurrency"
+              [exchangeRate]="data.budgetLine.exchangeRate"
+            />
           </div>
         </div>
         <!-- Reste -->
@@ -85,7 +95,7 @@ import type {
             [class.text-error]="consumption().remaining < 0"
             [class.text-financial-income]="consumption().remaining >= 0"
           >
-            {{ consumption().remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
+            {{ consumption().remaining | appCurrency: '1.0-0' }}
           </div>
         </div>
       </div>
@@ -131,9 +141,14 @@ import type {
                   </span>
                 </div>
                 <span
-                  class="text-body-medium font-semibold whitespace-nowrap ph-no-capture"
+                  class="text-body-medium font-semibold whitespace-nowrap ph-no-capture inline-flex items-center gap-1"
                 >
-                  {{ tx.amount | currency: 'CHF' : 'symbol' : '1.2-2' }}
+                  {{ tx.amount | appCurrency }}
+                  <pulpe-currency-conversion-badge
+                    [originalAmount]="tx.originalAmount"
+                    [originalCurrency]="tx.originalCurrency"
+                    [exchangeRate]="tx.exchangeRate"
+                  />
                 </span>
                 <button
                   matIconButton

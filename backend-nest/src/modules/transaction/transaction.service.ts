@@ -188,6 +188,9 @@ export class TransactionService {
         createTransactionDto.transactionDate || new Date().toISOString(),
       category: createTransactionDto.category ?? null,
       checked_at: createTransactionDto.checkedAt ?? null,
+      original_currency: createTransactionDto.originalCurrency ?? null,
+      target_currency: createTransactionDto.targetCurrency ?? null,
+      exchange_rate: createTransactionDto.exchangeRate ?? null,
     };
   }
 
@@ -223,21 +226,29 @@ export class TransactionService {
   private decryptTransactionWithDEK(
     transaction: Database['public']['Tables']['transaction']['Row'],
     dek: Buffer,
-  ): Omit<Database['public']['Tables']['transaction']['Row'], 'amount'> & {
+  ): Omit<
+    Database['public']['Tables']['transaction']['Row'],
+    'amount' | 'original_amount'
+  > & {
     amount: number;
+    original_amount: number | null;
   } {
-    if (!transaction.amount) {
-      return { ...transaction, amount: 0 };
-    }
+    const decryptedAmount = transaction.amount
+      ? this.encryptionService.tryDecryptAmount(transaction.amount, dek, 0)
+      : 0;
 
-    const decryptedAmount = this.encryptionService.tryDecryptAmount(
-      transaction.amount,
-      dek,
-      0,
-    );
+    const decryptedOriginalAmount = transaction.original_amount
+      ? this.encryptionService.tryDecryptAmount(
+          transaction.original_amount,
+          dek,
+          0,
+        )
+      : null;
+
     return {
       ...transaction,
       amount: decryptedAmount,
+      original_amount: decryptedOriginalAmount,
     };
   }
 
@@ -246,8 +257,12 @@ export class TransactionService {
     userId: string,
     clientKey: Buffer,
   ): Promise<
-    Omit<Database['public']['Tables']['transaction']['Row'], 'amount'> & {
+    Omit<
+      Database['public']['Tables']['transaction']['Row'],
+      'amount' | 'original_amount'
+    > & {
       amount: number;
+      original_amount: number | null;
     }
   > {
     const dek = await this.encryptionService.getUserDEK(userId, clientKey);
@@ -259,8 +274,12 @@ export class TransactionService {
     userId: string,
     clientKey: Buffer,
   ): Promise<
-    (Omit<Database['public']['Tables']['transaction']['Row'], 'amount'> & {
+    (Omit<
+      Database['public']['Tables']['transaction']['Row'],
+      'amount' | 'original_amount'
+    > & {
       amount: number;
+      original_amount: number | null;
     })[]
   > {
     const dek = await this.encryptionService.getUserDEK(userId, clientKey);
@@ -294,9 +313,22 @@ export class TransactionService {
         user.id,
         user.clientKey,
       );
+
+      let encryptedOriginalAmount: string | null = null;
+      if (createTransactionDto.originalAmount) {
+        const encryptedOriginal =
+          await this.encryptionService.prepareAmountData(
+            createTransactionDto.originalAmount,
+            user.id,
+            user.clientKey,
+          );
+        encryptedOriginalAmount = encryptedOriginal.amount;
+      }
+
       const dataWithEncryption = {
         ...transactionData,
         amount,
+        original_amount: encryptedOriginalAmount,
       };
 
       const transactionDb = await this.insertTransaction(
@@ -465,6 +497,15 @@ export class TransactionService {
       ...(updateTransactionDto.category !== undefined && {
         category: updateTransactionDto.category,
       }),
+      ...(updateTransactionDto.originalCurrency !== undefined && {
+        original_currency: updateTransactionDto.originalCurrency,
+      }),
+      ...(updateTransactionDto.targetCurrency !== undefined && {
+        target_currency: updateTransactionDto.targetCurrency,
+      }),
+      ...(updateTransactionDto.exchangeRate !== undefined && {
+        exchange_rate: updateTransactionDto.exchangeRate,
+      }),
       updated_at: new Date().toISOString(),
     };
   }
@@ -520,6 +561,20 @@ export class TransactionService {
           user.clientKey,
         );
         updateData.amount = amount;
+      }
+
+      if (updateTransactionDto.originalAmount !== undefined) {
+        if (updateTransactionDto.originalAmount === null) {
+          updateData.original_amount = null;
+        } else {
+          const encryptedOriginal =
+            await this.encryptionService.prepareAmountData(
+              updateTransactionDto.originalAmount,
+              user.id,
+              user.clientKey,
+            );
+          updateData.original_amount = encryptedOriginal.amount;
+        }
       }
 
       const transactionDb = await this.updateTransactionInDb(

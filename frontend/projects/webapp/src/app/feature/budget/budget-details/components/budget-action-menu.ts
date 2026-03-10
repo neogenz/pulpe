@@ -1,10 +1,8 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  inject,
   computed,
   input,
-  LOCALE_ID,
   output,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,6 +12,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe } from '@jsverse/transloco';
 import type { BudgetLine } from 'pulpe-shared';
+import { CURRENCY_CONFIG } from '@core/currency';
 import type { BudgetLineTableItem } from '../data-core';
 
 /**
@@ -102,14 +101,8 @@ import type { BudgetLineTableItem } from '../data-core';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetActionMenu {
-  readonly #balanceFormatter = new Intl.NumberFormat(inject(LOCALE_ID), {
-    style: 'currency',
-    currency: 'CHF',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
-
   readonly item = input.required<BudgetLineTableItem>();
+  readonly currency = input<string>('CHF');
   readonly menuIcon = input<string>('more_vert');
   readonly buttonClass = input<string>('');
   readonly showBalance = input<boolean>(false);
@@ -119,7 +112,17 @@ export class BudgetActionMenu {
   readonly addTransaction = output<BudgetLine>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
 
-  protected readonly formattedBalance = computed(() =>
-    this.#balanceFormatter.format(this.item().metadata.cumulativeBalance),
-  );
+  protected readonly formattedBalance = computed(() => {
+    const balance = this.item().metadata.cumulativeBalance;
+    const currency = this.currency();
+    const config =
+      CURRENCY_CONFIG[currency as keyof typeof CURRENCY_CONFIG] ??
+      CURRENCY_CONFIG['CHF'];
+    return new Intl.NumberFormat(config.locale, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(balance);
+  });
 }

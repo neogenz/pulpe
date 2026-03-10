@@ -179,6 +179,7 @@ struct AddTemplateLineSheet: View {
     let onAdd: (TemplateLineInput) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var name = ""
     @State private var amount: Decimal?
     @State private var kind: TransactionKind = .expense

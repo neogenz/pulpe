@@ -1,12 +1,12 @@
-import { CurrencyPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { AppCurrencyPipe } from '@core/currency';
 
 import type { BudgetLineTableItem } from '../../data-core';
 
 @Component({
   selector: 'pulpe-remaining-cell',
-  imports: [CurrencyPipe, MatProgressBarModule],
+  imports: [AppCurrencyPipe, MatProgressBarModule],
   template: `
     @if (line().consumption?.hasTransactions) {
       @let remaining = line().data.amount - line().consumption!.consumed;
@@ -22,7 +22,7 @@ import type { BudgetLineTableItem } from '../../data-core';
               line().consumption!.consumptionState === 'over-budget'
             "
           >
-            {{ remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
+            {{ remaining | appCurrency: '1.0-0' }}
             @if (line().consumption!.consumptionState === 'over-budget') {
               <span class="text-label-small font-normal ml-1">dépassé</span>
             }
