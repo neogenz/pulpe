@@ -386,9 +386,14 @@
     "details": "Détails",
     "createdFromTemplate": "Créer depuis le template",
     "newForecast": "Nouvelle prévision",
+    "editForecast": "Modifier la prévision",
     "forecastNameLabel": "Nom",
     "forecastNamePlaceholder": "Ex: Salaire, Loyer, Épargne...",
+    "forecastNameRequired": "Le nom est requis",
+    "forecastNameMinLength": "Le nom doit contenir au moins 1 caractère",
     "forecastTypeLabel": "Type",
+    "forecastAmountRequired": "Le montant est requis",
+    "forecastTypeRequired": "Le type est requis",
     "newTransactionTitle": "Nouvelle transaction — {{ name }}",
     "newTransactionButton": "Nouvelle transaction",
     "descriptionRequired": "La description est requise",
@@ -618,6 +623,9 @@
       "allCheckedMessage": "Tu as pointé toutes tes prévisions pour ce mois.",
       "toggleAriaLabel": "Pointer {{ name }} — {{ amount }} CHF"
     }
+  },
+  "currency": {
+    "conversionTooltip": "Converti depuis {{ amount }}\nTaux : {{ rate }}"
   },
   "completeProfile": {
     "loading": "Préparation de ton espace de liberté...",

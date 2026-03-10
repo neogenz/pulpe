@@ -6,6 +6,7 @@ struct AddBudgetLineSheet: View {
     let onAdd: (BudgetLine) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var name = ""
     @State private var amount: Decimal?
     @State private var kind: TransactionKind = .expense
@@ -14,8 +15,10 @@ struct AddBudgetLineSheet: View {
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
     @State private var amountText = ""
+    @State private var inputCurrency = "CHF"
 
     private let budgetLineService = BudgetLineService.shared
+    private let conversionService = CurrencyConversionService.shared
 
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
@@ -26,12 +29,18 @@ struct AddBudgetLineSheet: View {
     var body: some View {
         SheetFormContainer(title: kind.newBudgetLineTitle, isLoading: isLoading, autoFocus: $isAmountFocused) {
             KindToggle(selection: $kind)
+            if userSettingsStore.showCurrencySelector {
+                CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
+            }
             HeroAmountField(
                 amount: $amount, amountText: $amountText,
-                isFocused: $isAmountFocused, accentColor: kind.color
+                isFocused: $isAmountFocused, currency: inputCurrency, accentColor: kind.color
             )
-            QuickAmountChips(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused, color: kind.color)
-                .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
+            QuickAmountChips(
+                amount: $amount, amountText: $amountText, isFocused: $isAmountFocused,
+                color: kind.color, currency: inputCurrency
+            )
+            .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
             descriptionField
             CheckedToggle(isOn: $isChecked, tintColor: kind.color)
 
@@ -43,6 +52,7 @@ struct AddBudgetLineSheet: View {
 
             addButton
         }
+        .onAppear { inputCurrency = userSettingsStore.currency }
     }
 
     // MARK: - Description
@@ -76,16 +86,26 @@ struct AddBudgetLineSheet: View {
         defer { isLoading = false }
         error = nil
 
-        let data = BudgetLineCreate(
-            budgetId: budgetId,
-            name: name.trimmingCharacters(in: .whitespaces),
-            amount: amount,
-            kind: kind,
-            recurrence: .oneOff,
-            checkedAt: isChecked ? Date() : nil
-        )
-
         do {
+            let conversion = try await conversionService.convert(
+                amount: amount,
+                from: inputCurrency,
+                to: userSettingsStore.currency
+            )
+
+            let data = BudgetLineCreate(
+                budgetId: budgetId,
+                name: name.trimmingCharacters(in: .whitespaces),
+                amount: conversion?.convertedAmount ?? amount,
+                kind: kind,
+                recurrence: .oneOff,
+                checkedAt: isChecked ? Date() : nil,
+                originalAmount: conversion?.originalAmount,
+                originalCurrency: conversion?.originalCurrency,
+                targetCurrency: conversion?.targetCurrency,
+                exchangeRate: conversion?.exchangeRate
+            )
+
             let budgetLine = try await budgetLineService.createBudgetLine(data)
             onAdd(budgetLine)
             dismiss()
@@ -99,4 +119,5 @@ struct AddBudgetLineSheet: View {
     AddBudgetLineSheet(budgetId: "test") { line in
         print("Added: \(line)")
     }
+    .environment(UserSettingsStore())
 }

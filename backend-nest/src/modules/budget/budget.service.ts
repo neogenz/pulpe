@@ -444,21 +444,13 @@ export class BudgetService {
       clientKey,
     );
 
-    const decryptedBudgetLines = (budgetLines || []).map((line) => {
-      if (!line.amount) return { ...line, amount: 0 };
-      return {
-        ...line,
-        amount: this.encryptionService.tryDecryptAmount(line.amount, dek, 0),
-      };
-    });
+    const decryptedBudgetLines = (budgetLines || []).map((line) =>
+      this.decryptAmountFields(line, dek),
+    );
 
-    const decryptedTransactions = (transactions || []).map((tx) => {
-      if (!tx.amount) return { ...tx, amount: 0 };
-      return {
-        ...tx,
-        amount: this.encryptionService.tryDecryptAmount(tx.amount, dek, 0),
-      };
-    });
+    const decryptedTransactions = (transactions || []).map((tx) =>
+      this.decryptAmountFields(tx, dek),
+    );
 
     return {
       ...budgetMappers.toApi({
@@ -476,18 +468,8 @@ export class BudgetService {
       rollover: rolloverData.rollover,
       previousBudgetId: rolloverData.previousBudgetId,
       remaining,
-      transactions: transactionMappers.toApiList(
-        decryptedTransactions as unknown as (Omit<
-          Tables<'transaction'>,
-          'amount'
-        > & { amount: number })[],
-      ),
-      budgetLines: budgetLineMappers.toApiList(
-        decryptedBudgetLines as unknown as (Omit<
-          Tables<'budget_line'>,
-          'amount'
-        > & { amount: number })[],
-      ),
+      transactions: transactionMappers.toApiList(decryptedTransactions),
+      budgetLines: budgetLineMappers.toApiList(decryptedBudgetLines),
     };
   }
 
@@ -700,21 +682,13 @@ export class BudgetService {
       user.clientKey,
     );
 
-    const decryptedBudgetLines = (results.budgetLines || []).map((line) => {
-      if (!line.amount) return { ...line, amount: 0 };
-      return {
-        ...line,
-        amount: this.encryptionService.tryDecryptAmount(line.amount, dek, 0),
-      };
-    });
+    const decryptedBudgetLines = (results.budgetLines || []).map((line) =>
+      this.decryptAmountFields(line, dek),
+    );
 
-    const decryptedTransactions = (results.transactions || []).map((tx) => {
-      if (!tx.amount) return { ...tx, amount: 0 };
-      return {
-        ...tx,
-        amount: this.encryptionService.tryDecryptAmount(tx.amount, dek, 0),
-      };
-    });
+    const decryptedTransactions = (results.transactions || []).map((tx) =>
+      this.decryptAmountFields(tx, dek),
+    );
 
     return {
       budget: budgetMappers.toApi({
@@ -729,18 +703,8 @@ export class BudgetService {
       } as unknown as Omit<Tables<'monthly_budget'>, 'ending_balance'> & {
         ending_balance: number | null;
       }),
-      transactions: transactionMappers.toApiList(
-        decryptedTransactions as unknown as (Omit<
-          Tables<'transaction'>,
-          'amount'
-        > & { amount: number })[],
-      ),
-      budgetLines: budgetLineMappers.toApiList(
-        decryptedBudgetLines as unknown as (Omit<
-          Tables<'budget_line'>,
-          'amount'
-        > & { amount: number })[],
-      ),
+      transactions: transactionMappers.toApiList(decryptedTransactions),
+      budgetLines: budgetLineMappers.toApiList(decryptedBudgetLines),
     };
   }
 
@@ -1217,5 +1181,25 @@ export class BudgetService {
       dek,
       0,
     );
+  }
+
+  private decryptAmountFields<
+    T extends { amount: string | null; original_amount: string | null },
+  >(
+    row: T,
+    dek: Buffer,
+  ): Omit<T, 'amount' | 'original_amount'> & {
+    amount: number;
+    original_amount: number | null;
+  } {
+    return {
+      ...row,
+      amount: row.amount
+        ? this.encryptionService.tryDecryptAmount(row.amount, dek, 0)
+        : 0,
+      original_amount: row.original_amount
+        ? this.encryptionService.tryDecryptAmount(row.original_amount, dek, 0)
+        : null,
+    };
   }
 }

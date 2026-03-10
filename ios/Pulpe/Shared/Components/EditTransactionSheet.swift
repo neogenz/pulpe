@@ -6,14 +6,17 @@ struct EditTransactionSheet: View {
     let onUpdate: (Transaction) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var name: String
     @State private var amount: Decimal?
     @State private var kind: TransactionKind
     @State private var transactionDate: Date
     @State private var isLoading = false
     @State private var error: Error?
+    @State private var inputCurrency = "CHF"
 
     private let dependencies: EditTransactionDependencies
+    private let conversionService = CurrencyConversionService.shared
 
     init(
         transaction: Transaction,
@@ -47,8 +50,18 @@ struct EditTransactionSheet: View {
                 }
 
                 Section {
-                    CurrencyField(value: $amount, visualStyle: .flat)
+                    if userSettingsStore.showCurrencySelector {
+                        CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
+                            .listRowBackground(Color.surfaceContainerHigh)
+                    }
+                    CurrencyField(value: $amount, currency: inputCurrency, visualStyle: .flat)
                         .listRowBackground(Color.surfaceContainerHigh)
+                    CurrencyConversionBadge(
+                        originalAmount: transaction.originalAmount,
+                        originalCurrency: transaction.originalCurrency,
+                        exchangeRate: transaction.exchangeRate
+                    )
+                    .listRowBackground(Color.surfaceContainerHigh)
                 } header: {
                     Text("Montant")
                         .font(PulpeTypography.labelLarge)
@@ -113,6 +126,7 @@ struct EditTransactionSheet: View {
             .loadingOverlay(isLoading)
         }
         .standardSheetPresentation()
+        .onAppear { inputCurrency = userSettingsStore.currency }
     }
 
     private func updateTransaction() async {
@@ -122,14 +136,24 @@ struct EditTransactionSheet: View {
         defer { isLoading = false }
         error = nil
 
-        let data = TransactionUpdate(
-            name: name.trimmingCharacters(in: .whitespaces),
-            amount: amount,
-            kind: kind,
-            transactionDate: transactionDate
-        )
-
         do {
+            let conversion = try await conversionService.convert(
+                amount: amount,
+                from: inputCurrency,
+                to: userSettingsStore.currency
+            )
+
+            let data = TransactionUpdate(
+                name: name.trimmingCharacters(in: .whitespaces),
+                amount: conversion?.convertedAmount ?? amount,
+                kind: kind,
+                transactionDate: transactionDate,
+                originalAmount: conversion?.originalAmount,
+                originalCurrency: conversion?.originalCurrency,
+                targetCurrency: conversion?.targetCurrency,
+                exchangeRate: conversion?.exchangeRate
+            )
+
             let updatedTransaction = try await dependencies.updateTransaction(transaction.id, data)
             onUpdate(updatedTransaction)
             dismiss()
@@ -167,4 +191,5 @@ struct EditTransactionDependencies: Sendable {
     ) { transaction in
         print("Updated: \(transaction)")
     }
+    .environment(UserSettingsStore())
 }

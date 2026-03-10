@@ -68,8 +68,8 @@ export interface FinancialTotals {
           [class.text-warning]="budgetState() === 'warning'"
           [class.text-on-error-container]="budgetState() === 'deficit'"
         >
-          {{ remainingAbsolute() | number: '1.0-0' : 'de-CH' }}
-          <span class="text-headline-small font-normal">CHF</span>
+          {{ remainingAbsolute() | number: '1.0-0' : locale() }}
+          <span class="text-headline-small font-normal">{{ currency() }}</span>
         </div>
         <p
           class="text-body-medium mt-3"
@@ -118,8 +118,8 @@ export interface FinancialTotals {
               <span
                 class="text-label-large font-semibold text-financial-income ph-no-capture"
               >
-                {{ totals().income | number: '1.0-0' : 'de-CH' }}
-                CHF
+                {{ totals().income | number: '1.0-0' : locale() }}
+                {{ currency() }}
               </span>
             </div>
           </div>
@@ -140,8 +140,8 @@ export interface FinancialTotals {
               <span
                 class="text-label-large font-semibold text-financial-expense ph-no-capture"
               >
-                {{ totals().expenses | number: '1.0-0' : 'de-CH' }}
-                CHF
+                {{ totals().expenses | number: '1.0-0' : locale() }}
+                {{ currency() }}
               </span>
             </div>
           </div>
@@ -162,8 +162,8 @@ export interface FinancialTotals {
               <span
                 class="text-label-large font-semibold text-financial-savings ph-no-capture"
               >
-                {{ totals().savings | number: '1.0-0' : 'de-CH' }}
-                CHF
+                {{ totals().savings | number: '1.0-0' : locale() }}
+                {{ currency() }}
               </span>
             </div>
           </div>
@@ -228,6 +228,8 @@ export interface FinancialTotals {
 })
 export class BudgetFinancialOverview {
   readonly totals = input.required<FinancialTotals>();
+  readonly currency = input<string>('CHF');
+  readonly locale = input<string>('de-CH');
   readonly warningThreshold = input(90);
 
   readonly isPositive = computed(() => this.totals().remaining >= 0);

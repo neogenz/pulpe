@@ -1,4 +1,4 @@
-import { CurrencyPipe, DatePipe, NgTemplateOutlet } from '@angular/common';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -14,6 +14,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { AppCurrencyPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { TransactionLabelPipe } from '@pattern/transaction-display';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
@@ -66,7 +67,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
 @Component({
   selector: 'pulpe-budget-grid',
   imports: [
-    CurrencyPipe,
+    AppCurrencyPipe,
     DatePipe,
     NgTemplateOutlet,
     MatButtonModule,
@@ -89,6 +90,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
         @for (item of budgetLineItems(); track item.data.id) {
           <pulpe-budget-grid-mobile-card
             [item]="item"
+            [currency]="currency()"
             (edit)="edit.emit($event)"
             (delete)="delete.emit($event)"
             (addTransaction)="addTransaction.emit($event)"
@@ -137,6 +139,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
                 @for (item of category.items; track item.data.id) {
                   <pulpe-budget-grid-card
                     [item]="item"
+                    [currency]="currency()"
                     (cardClick)="openDetailPanel($event)"
                     (edit)="edit.emit($event)"
                     (delete)="delete.emit($event)"
@@ -231,7 +234,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
               [pulpeFinancialKind]="item.data.kind"
               [attr.data-testid]="'transaction-amount-' + item.data.id"
             >
-              {{ item.data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+              {{ item.data.amount | appCurrency: '1.0-0' }}
             </div>
             @if (item.data.transactionDate) {
               <span
@@ -295,7 +298,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
           [pulpeFinancialKind]="item.data.kind"
           [attr.data-testid]="'transaction-amount-' + item.data.id"
         >
-          {{ item.data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+          {{ item.data.amount | appCurrency: '1.0-0' }}
         </div>
 
         <!-- Footer: Kind label + date + toggle -->
@@ -341,6 +344,7 @@ export class BudgetGrid {
   readonly #viewContainerRef = inject(ViewContainerRef);
 
   // Inputs
+  readonly currency = input<string>('CHF');
   readonly budgetLineItems = input.required<BudgetLineTableItem[]>();
   readonly transactionItems = input.required<
     {

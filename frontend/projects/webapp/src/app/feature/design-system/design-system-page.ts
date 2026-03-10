@@ -59,6 +59,7 @@ import { ThemeService } from '@core/theme';
               On-track (comfortable)
             </p>
             <pulpe-dashboard-hero
+              [currency]="'CHF'"
               [expenses]="-1500"
               [available]="4000"
               [totalIncome]="5000"
@@ -73,6 +74,7 @@ import { ThemeService } from '@core/theme';
               Warning (&gt;90%)
             </p>
             <pulpe-dashboard-hero
+              [currency]="'CHF'"
               [expenses]="-3700"
               [available]="4000"
               [totalIncome]="5000"
@@ -87,6 +89,7 @@ import { ThemeService } from '@core/theme';
               Over-budget (deficit)
             </p>
             <pulpe-dashboard-hero
+              [currency]="'CHF'"
               [expenses]="-4500"
               [available]="4000"
               [totalIncome]="5000"
@@ -109,15 +112,24 @@ import { ThemeService } from '@core/theme';
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div class="space-y-2">
             <p class="text-label-large text-on-surface-variant">Comfortable</p>
-            <pulpe-budget-financial-overview [totals]="comfortableTotals" />
+            <pulpe-budget-financial-overview
+              [currency]="'CHF'"
+              [totals]="comfortableTotals"
+            />
           </div>
           <div class="space-y-2">
             <p class="text-label-large text-on-surface-variant">Warning</p>
-            <pulpe-budget-financial-overview [totals]="warningTotals" />
+            <pulpe-budget-financial-overview
+              [currency]="'CHF'"
+              [totals]="warningTotals"
+            />
           </div>
           <div class="space-y-2">
             <p class="text-label-large text-on-surface-variant">Deficit</p>
-            <pulpe-budget-financial-overview [totals]="deficitTotals" />
+            <pulpe-budget-financial-overview
+              [currency]="'CHF'"
+              [totals]="deficitTotals"
+            />
           </div>
         </div>
       </section>

@@ -29,10 +29,23 @@ struct PersonalInfoStep: View {
                         .focused($isFocused)
                     }
 
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        Text("Devise")
+                            .font(PulpeTypography.inputLabel)
+                            .foregroundStyle(Color.textPrimaryOnboarding)
+
+                        Picker("Devise", selection: $state.currency) {
+                            Text("CHF").tag("CHF")
+                            Text("EUR").tag("EUR")
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
                     CurrencyField(
                         value: $state.monthlyIncome,
                         hint: "5000",
-                        label: "Revenu mensuel net"
+                        label: "Revenu mensuel net",
+                        currency: state.currency
                     )
                 }
                 .task {

@@ -598,6 +598,16 @@ export const ERROR_DEFINITIONS = {
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
 
+  // Currency Errors
+  CURRENCY_RATE_FETCH_FAILED: {
+    code: 'ERR_CURRENCY_RATE_FETCH_FAILED',
+    message: (details?: Record<string, unknown>) =>
+      details?.base && details?.target
+        ? `Failed to fetch exchange rate for ${details.base}/${details.target}`
+        : 'Failed to fetch currency exchange rate',
+    httpStatus: HttpStatus.SERVICE_UNAVAILABLE,
+  },
+
   // Configuration Errors
   CONFIGURATION_INVALID: {
     code: API_ERROR_CODES.CONFIGURATION_INVALID,

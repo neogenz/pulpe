@@ -8,6 +8,7 @@ import {
 import { DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
+import type { SupportedCurrency } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-dashboard-savings-summary',
@@ -80,7 +81,7 @@ import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
               {{ 'currentMonth.savingsAmountText' | transloco }}
               <span class="font-bold text-financial-savings ph-no-capture">
                 {{ totalRealized() | number: '1.2-2' : 'de-CH' }}
-                CHF
+                {{ currency() }}
               </span>
               {{ 'dashboard.on' | transloco }}
               <span class="ph-no-capture">{{
@@ -121,6 +122,7 @@ export class DashboardSavingsSummary {
   readonly totalRealized = input.required<number>();
   readonly checkedCount = input.required<number>();
   readonly totalCount = input.required<number>();
+  readonly currency = input<SupportedCurrency>('CHF');
 
   protected readonly progressPercentage = computed(() => {
     const planned = this.totalPlanned();

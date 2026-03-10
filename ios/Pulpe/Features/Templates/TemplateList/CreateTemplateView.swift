@@ -180,6 +180,7 @@ struct AddTemplateLineSheet: View {
     let onAdd: (TemplateLineInput) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var name = ""
     @State private var amount: Decimal?
     @State private var kind: TransactionKind = .expense
@@ -232,7 +233,7 @@ struct AddTemplateLineSheet: View {
 
     private var heroAmountSection: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
-            Text(DesignTokens.AmountInput.currencyCode)
+            Text(userSettingsStore.currency)
                 .font(PulpeTypography.labelLarge)
                 .foregroundStyle(Color.pulpeTextTertiary)
 

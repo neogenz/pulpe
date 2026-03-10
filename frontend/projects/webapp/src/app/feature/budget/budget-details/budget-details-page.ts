@@ -50,6 +50,7 @@ import {
   computeTransactionSnackbarMessage,
 } from './budget-details-snackbar.utils';
 import { UserSettingsApi } from '@core/user-settings/user-settings-api';
+import { CURRENCY_CONFIG } from '@core/currency';
 
 @Component({
   selector: 'pulpe-budget-details-page',
@@ -162,6 +163,10 @@ export default class BudgetDetailsPage {
   readonly #logger = inject(Logger);
   readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #transloco = inject(TranslocoService);
+  protected readonly currency = this.#userSettingsApi.currency;
+  protected readonly currencyLocale = computed(
+    () => CURRENCY_CONFIG[this.currency()].locale,
+  );
   readonly #breakpointObserver = inject(BreakpointObserver);
 
   readonly #isMobile = toSignal(
@@ -515,17 +520,7 @@ export default class BudgetDetailsPage {
       budgetLineId,
       details.budgetLines,
       details.transactions,
-      {
-        overEnvelope: (consumed, envelope) =>
-          this.#transloco.translate('budget.snackbar.envelopeOver', {
-            consumed,
-            envelope,
-          }),
-        withinEnvelope: (envelope) =>
-          this.#transloco.translate('budget.snackbar.envelopeWithin', {
-            envelope,
-          }),
-      },
+      this.#userSettingsApi.currency(),
     );
     if (message) this.#snackBar.open(message, undefined, { duration: 3000 });
   }
@@ -541,12 +536,7 @@ export default class BudgetDetailsPage {
     const message = computeTransactionSnackbarMessage(
       transactionId,
       details.transactions,
-      {
-        checked: (amount) =>
-          this.#transloco.translate('budget.snackbar.transactionChecked', {
-            amount,
-          }),
-      },
+      this.#userSettingsApi.currency(),
     );
     if (message) this.#snackBar.open(message, undefined, { duration: 3000 });
   }

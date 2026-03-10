@@ -6,7 +6,6 @@ import {
   resource,
   signal,
 } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -20,6 +19,7 @@ import { firstValueFrom } from 'rxjs';
 import type { TransactionSearchResult } from 'pulpe-shared';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { BudgetApi } from '@core/budget/budget-api';
+import { AppCurrencyPipe } from '@core/currency';
 import { Logger } from '@core/logging/logger';
 
 @Component({
@@ -34,7 +34,7 @@ import { Logger } from '@core/logging/logger';
     MatProgressSpinnerModule,
     MatSelectModule,
     Field,
-    CurrencyPipe,
+    AppCurrencyPipe,
   ],
   template: `
     <h2 mat-dialog-title>Rechercher dans le budget</h2>
@@ -146,7 +146,7 @@ import { Logger } from '@core/logging/logger';
                 [class.text-financial-expense]="row.kind === 'expense'"
                 [class.text-financial-savings]="row.kind === 'saving'"
               >
-                {{ row.amount | currency: 'CHF' : 'symbol' : '1.2-2' }}
+                {{ row.amount | appCurrency }}
               </td>
             </ng-container>
 

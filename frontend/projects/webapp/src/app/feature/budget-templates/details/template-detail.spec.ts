@@ -23,6 +23,7 @@ import { PulpeTitleStrategy } from '@core/routing/title-strategy';
 import { Logger } from '@core/logging/logger';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { BudgetApi } from '@core/budget/budget-api';
+import { UserSettingsApi } from '@core/user-settings/user-settings-api';
 import { TransactionLabelPipe } from '@pattern/transaction-display';
 import { BaseLoading } from '@ui/loading';
 import { TransactionsTable, EditTransactionsDialog } from './components';
@@ -153,6 +154,10 @@ describe('TemplateDetail', () => {
           useValue: mockBudgetInvalidationService,
         },
         { provide: BudgetApi, useValue: mockBudgetApi },
+        {
+          provide: UserSettingsApi,
+          useValue: { currency: signal('CHF') },
+        },
       ],
     })
       .overrideComponent(TemplateDetail, {

@@ -1,4 +1,4 @@
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -16,6 +16,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetLine, type Transaction } from 'pulpe-shared';
+import { AppCurrencyPipe } from '@core/currency';
+import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { TransactionLabelPipe } from '@pattern/transaction-display';
 import {
@@ -63,8 +65,9 @@ const DETAIL_SEGMENT_COUNT = 12;
     MatDividerModule,
     MatSlideToggleModule,
     MatTooltipModule,
-    CurrencyPipe,
+    AppCurrencyPipe,
     DatePipe,
+    CurrencyConversionBadge,
     FinancialKindDirective,
     TransactionLabelPipe,
     SegmentedBudgetProgress,
@@ -105,19 +108,21 @@ const DETAIL_SEGMENT_COUNT = 12;
           <div class="text-center">
             <div class="text-label-medium text-on-surface-variant">Prévu</div>
             <div
-              class="ph-no-capture text-title-medium font-bold"
+              class="ph-no-capture text-title-medium font-bold flex items-center justify-center gap-1"
               [pulpeFinancialKind]="envelope.data.kind"
             >
-              {{ envelope.data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+              {{ envelope.data.amount | appCurrency: '1.0-0' }}
+              <pulpe-currency-conversion-badge
+                [originalAmount]="envelope.data.originalAmount"
+                [originalCurrency]="envelope.data.originalCurrency"
+                [exchangeRate]="envelope.data.exchangeRate"
+              />
             </div>
           </div>
           <div class="text-center">
             <div class="text-label-medium text-on-surface-variant">Dépensé</div>
             <div class="ph-no-capture text-title-medium font-semibold">
-              {{
-                envelope.consumption?.consumed ?? 0
-                  | currency: 'CHF' : 'symbol' : '1.0-0'
-              }}
+              {{ envelope.consumption?.consumed ?? 0 | appCurrency: '1.0-0' }}
             </div>
           </div>
           <div class="text-center">
@@ -136,7 +141,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                 envelope.consumption?.consumptionState === 'over-budget'
               "
             >
-              {{ remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
+              {{ remaining | appCurrency: '1.0-0' }}
             </div>
           </div>
         </div>
@@ -157,7 +162,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                 Dépassé de
                 {{
                   consumption.consumed - envelope.data.amount
-                    | currency: 'CHF' : 'symbol' : '1.0-0'
+                    | appCurrency: '1.0-0'
                 }}
               </span>
             } @else if (consumption.consumptionState === 'near-limit') {
@@ -224,11 +229,16 @@ const DETAIL_SEGMENT_COUNT = 12;
                     </div>
                   </div>
                   <div
-                    class="ph-no-capture text-title-medium font-bold shrink-0"
+                    class="ph-no-capture text-title-medium font-bold shrink-0 flex items-center gap-1"
                     [class.text-financial-income]="tx.kind === 'income'"
                     [class.text-on-surface-variant]="tx.kind !== 'income'"
                   >
-                    {{ tx.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+                    {{ tx.amount | appCurrency: '1.0-0' }}
+                    <pulpe-currency-conversion-badge
+                      [originalAmount]="tx.originalAmount"
+                      [originalCurrency]="tx.originalCurrency"
+                      [exchangeRate]="tx.exchangeRate"
+                    />
                   </div>
                   <div class="flex items-center gap-1">
                     <mat-slide-toggle

@@ -126,7 +126,11 @@ describe('UserSettingsApi', () => {
       it('should return default settings on error', async () => {
         TestBed.flushEffects();
         await vi.waitFor(() => {
-          expect(service.settings()).toEqual({ payDayOfMonth: null });
+          expect(service.settings()).toEqual({
+            payDayOfMonth: null,
+            currency: 'CHF',
+            showCurrencySelector: false,
+          });
         });
       });
 

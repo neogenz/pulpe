@@ -87,6 +87,10 @@ export {
   budgetLineListResponseSchema,
   budgetLineDeleteResponseSchema,
 
+  // Currency schemas
+  supportedCurrencySchema,
+  currencyMetadataSchema,
+
   // User schemas
   userProfileSchema,
   updateProfileSchema,
@@ -232,6 +236,10 @@ export type {
   BudgetLineResponse,
   BudgetLineListResponse,
   BudgetLineDeleteResponse,
+
+  // Currency types
+  SupportedCurrency,
+  CurrencyMetadata,
 
   // User types
   UserProfile,

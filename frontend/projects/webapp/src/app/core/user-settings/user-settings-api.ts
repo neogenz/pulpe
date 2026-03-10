@@ -55,6 +55,12 @@ export class UserSettingsApi {
     () => this.settings()?.payDayOfMonth ?? null,
   );
 
+  readonly currency = computed(() => this.settings()?.currency ?? 'CHF');
+
+  readonly showCurrencySelector = computed(
+    () => this.settings()?.showCurrencySelector ?? false,
+  );
+
   readonly isLoading = computed(() => this.#settingsResource.isLoading());
 
   readonly error = computed(() => this.#settingsResource.error());
@@ -90,7 +96,11 @@ export class UserSettingsApi {
       return response.data;
     } catch (error) {
       this.#logger.error('Failed to load user settings', { error });
-      return { payDayOfMonth: null };
+      return {
+        payDayOfMonth: null,
+        currency: 'CHF',
+        showCurrencySelector: false,
+      };
     }
   }
 }

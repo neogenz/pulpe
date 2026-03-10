@@ -1,4 +1,7 @@
 import { Chart, registerables } from 'chart.js';
+import type { SupportedCurrency } from 'pulpe-shared';
+
+import { CURRENCY_CONFIG } from '@core/currency';
 
 let _registered = false;
 
@@ -7,11 +10,6 @@ export function registerChartPlugins(): void {
   Chart.register(...registerables);
   _registered = true;
 }
-
-const CHF_FORMATTER = new Intl.NumberFormat('de-CH', {
-  style: 'currency',
-  currency: 'CHF',
-});
 
 export const CHART_FONT_FAMILY = 'DM Sans, sans-serif';
 
@@ -108,6 +106,28 @@ export function formatShortMonth(monthNumber: number, locale: string): string {
   return month.charAt(0).toUpperCase() + month.slice(1);
 }
 
-export function formatCHF(value: number): string {
-  return CHF_FORMATTER.format(value);
+const CURRENCY_FORMATTERS = new Map<string, Intl.NumberFormat>();
+
+function getCurrencyFormatter(
+  locale: string,
+  currency: SupportedCurrency,
+): Intl.NumberFormat {
+  const key = `${locale}-${currency}`;
+  let formatter = CURRENCY_FORMATTERS.get(key);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+    });
+    CURRENCY_FORMATTERS.set(key, formatter);
+  }
+  return formatter;
+}
+
+export function formatCurrency(
+  value: number,
+  currency: SupportedCurrency,
+): string {
+  const config = CURRENCY_CONFIG[currency];
+  return getCurrencyFormatter(config.locale, currency).format(value);
 }

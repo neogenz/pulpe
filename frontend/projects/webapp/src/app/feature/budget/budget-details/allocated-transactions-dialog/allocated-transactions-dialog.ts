@@ -1,5 +1,5 @@
 import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
-import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import {
   MAT_DIALOG_DATA,
   MatDialogRef,
@@ -12,6 +12,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
+import { AppCurrencyPipe } from '@core/currency';
+import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
 import type { BudgetLineConsumption } from '@core/budget';
 
 export interface AllocatedTransactionsDialogData {
@@ -34,7 +36,8 @@ export interface AllocatedTransactionsDialogResult {
     MatIconModule,
     MatTooltipModule,
     MatProgressBarModule,
-    CurrencyPipe,
+    AppCurrencyPipe,
+    CurrencyConversionBadge,
     DatePipe,
     DecimalPipe,
     TranslocoPipe,
@@ -55,10 +58,15 @@ export interface AllocatedTransactionsDialogResult {
             <div class="text-label-small text-on-surface-variant">
               {{ 'budget.tablePlanned' | transloco }}
             </div>
-            <div class="text-title-medium font-semibold ph-no-capture">
-              {{
-                data.budgetLine.amount | currency: 'CHF' : 'symbol' : '1.2-2'
-              }}
+            <div
+              class="text-title-medium font-semibold ph-no-capture flex items-center justify-center gap-1"
+            >
+              {{ data.budgetLine.amount | appCurrency }}
+              <pulpe-currency-conversion-badge
+                [originalAmount]="data.budgetLine.originalAmount"
+                [originalCurrency]="data.budgetLine.originalCurrency"
+                [exchangeRate]="data.budgetLine.exchangeRate"
+              />
             </div>
           </div>
           <div class="text-center">
@@ -66,9 +74,7 @@ export interface AllocatedTransactionsDialogResult {
               {{ 'budget.consumedLabel' | transloco }}
             </div>
             <div class="text-title-medium font-semibold ph-no-capture">
-              {{
-                data.consumption.consumed | currency: 'CHF' : 'symbol' : '1.2-2'
-              }}
+              {{ data.consumption.consumed | appCurrency }}
             </div>
           </div>
           <div class="text-center">
@@ -80,10 +86,7 @@ export interface AllocatedTransactionsDialogResult {
               [class.text-error]="data.consumption.remaining < 0"
               [class.text-financial-income]="data.consumption.remaining >= 0"
             >
-              {{
-                data.consumption.remaining
-                  | currency: 'CHF' : 'symbol' : '1.2-2'
-              }}
+              {{ data.consumption.remaining | appCurrency }}
             </div>
           </div>
         </div>
@@ -137,7 +140,14 @@ export interface AllocatedTransactionsDialogResult {
                 *matCellDef="let tx"
                 class="text-right text-body-medium font-medium ph-no-capture"
               >
-                {{ tx.amount | currency: 'CHF' : 'symbol' : '1.2-2' }}
+                <span class="inline-flex items-center gap-1">
+                  {{ tx.amount | appCurrency }}
+                  <pulpe-currency-conversion-badge
+                    [originalAmount]="tx.originalAmount"
+                    [originalCurrency]="tx.originalCurrency"
+                    [exchangeRate]="tx.exchangeRate"
+                  />
+                </span>
               </td>
             </ng-container>
 

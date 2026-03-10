@@ -12,7 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import type { BudgetLineConsumption } from '@core/budget/budget-line-consumption';
-import type { BudgetLine } from 'pulpe-shared';
+import type { BudgetLine, SupportedCurrency } from 'pulpe-shared';
 
 const MAX_VISIBLE_FORECASTS = 5;
 
@@ -97,7 +97,7 @@ const MAX_VISIBLE_FORECASTS = 5;
                   [pulpeFinancialKind]="forecast.kind"
                 >
                   {{ displayAmount | number: '1.2-2' : 'de-CH' }}
-                  CHF
+                  {{ currency() }}
                 </span>
               </div>
             }
@@ -136,6 +136,7 @@ export class DashboardUncheckedForecasts {
   readonly forecasts = input.required<BudgetLine[]>();
   readonly consumptions = input(new Map<string, BudgetLineConsumption>());
   readonly checkingIds = input(new Set<string>());
+  readonly currency = input<SupportedCurrency>('CHF');
   readonly toggleCheck = output<string>();
   readonly viewBudget = output<void>();
 

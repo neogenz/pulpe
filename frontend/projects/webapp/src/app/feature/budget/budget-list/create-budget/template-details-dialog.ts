@@ -5,13 +5,13 @@ import {
   inject,
 } from '@angular/core';
 
-import { CurrencyPipe } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatDividerModule } from '@angular/material/divider';
 import { type BudgetTemplate, type TemplateLine } from 'pulpe-shared';
+import { AppCurrencyPipe } from '@core/currency';
 
 export interface TemplateDetailsDialogData {
   template: BudgetTemplate;
@@ -22,7 +22,7 @@ export interface TemplateDetailsDialogData {
   selector: 'pulpe-template-details-dialog',
 
   imports: [
-    CurrencyPipe,
+    AppCurrencyPipe,
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
@@ -48,17 +48,13 @@ export interface TemplateDetailsDialogData {
           <div class="flex flex-col">
             <div>Revenus total:</div>
             <div class="ph-no-capture text-financial-income text-label-large">
-              {{
-                totalIncome() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
-              }}
+              {{ totalIncome() | appCurrency }}
             </div>
           </div>
           <div class="flex flex-col">
             <div>Dépenses total:</div>
             <div class="ph-no-capture text-financial-negative text-label-large">
-              {{
-                totalExpenses() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
-              }}
+              {{ totalExpenses() | appCurrency }}
             </div>
           </div>
         </div>
@@ -91,9 +87,7 @@ export interface TemplateDetailsDialogData {
                   [class.text-financial-income]="line.kind === 'income'"
                 >
                   {{ line.kind === 'income' ? '+' : '-' }}
-                  {{
-                    line.amount | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
-                  }}
+                  {{ line.amount | appCurrency }}
                 </div>
               </div>
             </mat-list-item>
@@ -108,7 +102,7 @@ export interface TemplateDetailsDialogData {
         <div class="flex justify-between text-body-medium font-medium">
           <span>Solde net:</span>
           <span class="ph-no-capture">
-            {{ netBalance() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
+            {{ netBalance() | appCurrency }}
           </span>
         </div>
       } @else {

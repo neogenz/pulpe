@@ -6,7 +6,9 @@ import {
   linkedSignal,
   signal,
 } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -14,11 +16,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import {
   type MatSelectChange,
   MatSelectModule,
 } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -26,6 +30,8 @@ import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { isApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsApi } from '@core/user-settings';
+import { CURRENCY_CONFIG } from '@core/currency';
+import { CurrencyConverterService } from '@core/currency';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth';
 import { ClientKeyService, EncryptionApi } from '@core/encryption';
@@ -35,7 +41,7 @@ import {
   RecoveryKeyDialog,
   type RecoveryKeyDialogData,
 } from '@ui/dialogs/recovery-key-dialog';
-import { PAY_DAY_MAX } from 'pulpe-shared';
+import { PAY_DAY_MAX, type SupportedCurrency } from 'pulpe-shared';
 import { ChangePasswordDialog } from './components/change-password-dialog';
 import { ChangePinDialog } from './components/change-pin-dialog';
 import { DeleteAccountDialog } from './components/delete-account-dialog';
@@ -44,7 +50,10 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
 @Component({
   selector: 'pulpe-settings-page',
   imports: [
+    DecimalPipe,
+    FormsModule,
     MatButtonModule,
+    MatButtonToggleModule,
     MatCardModule,
     MatDialogModule,
     MatFormFieldModule,
@@ -53,6 +62,7 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
     MatDividerModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    MatSlideToggleModule,
     MatSnackBarModule,
     TranslocoPipe,
   ],
@@ -92,6 +102,119 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
           </div>
 
           <div class="space-y-4">
+            <!-- Currency Selector -->
+            <div class="flex flex-col gap-2">
+              <p class="text-label-medium text-on-surface-variant">Devise</p>
+              <mat-button-toggle-group
+                aria-label="Devise"
+                [value]="selectedCurrency()"
+                (change)="onCurrencyChange($event.value)"
+                data-testid="currency-toggle"
+                class="w-full"
+                hideSingleSelectionIndicator
+              >
+                <mat-button-toggle value="CHF" class="flex-1">
+                  CHF
+                </mat-button-toggle>
+                <mat-button-toggle value="EUR" class="flex-1">
+                  EUR
+                </mat-button-toggle>
+              </mat-button-toggle-group>
+            </div>
+
+            <!-- Currency Selector Toggle -->
+            <div class="flex items-center justify-between gap-4 py-2">
+              <div class="space-y-0.5">
+                <p class="text-body-medium">Sélecteur de devise</p>
+                <p class="text-body-small text-on-surface-variant">
+                  Afficher un sélecteur de devise sur les champs montant
+                </p>
+              </div>
+              <mat-slide-toggle
+                [checked]="selectedShowCurrencySelector()"
+                (change)="onShowCurrencySelectorChange($event.checked)"
+                data-testid="show-currency-selector-toggle"
+              />
+            </div>
+
+            <!-- Currency Converter Widget -->
+            @if (isConverterVisible()) {
+              <div
+                class="rounded-2xl bg-surface-container/50 p-5 border border-outline-variant space-y-4"
+                data-testid="currency-converter"
+              >
+                <div class="flex items-center gap-3">
+                  <mat-icon class="text-on-surface-variant"
+                    >currency_exchange</mat-icon
+                  >
+                  <span class="text-title-small font-medium"
+                    >Convertisseur</span
+                  >
+                </div>
+
+                <div class="flex items-center gap-3">
+                  <mat-form-field
+                    appearance="outline"
+                    subscriptSizing="dynamic"
+                    class="flex-1"
+                  >
+                    <mat-label>{{ converterBase() }}</mat-label>
+                    <input
+                      matInput
+                      type="number"
+                      inputmode="decimal"
+                      [(ngModel)]="converterAmount"
+                      step="0.01"
+                      min="0"
+                      data-testid="converter-amount-input"
+                    />
+                    <span matTextSuffix>{{ converterBaseSymbol() }}</span>
+                  </mat-form-field>
+
+                  <button
+                    matButton
+                    type="button"
+                    (click)="swapConverterDirection()"
+                    aria-label="Inverser la conversion"
+                    data-testid="converter-swap-button"
+                  >
+                    <mat-icon>swap_horiz</mat-icon>
+                  </button>
+
+                  <div
+                    class="flex-1 rounded-xl bg-surface-container-low p-3 text-center ph-no-capture"
+                  >
+                    @if (isLoadingRate()) {
+                      <mat-progress-spinner
+                        mode="indeterminate"
+                        [diameter]="20"
+                        class="mx-auto"
+                      />
+                    } @else if (convertedAmount() !== null) {
+                      <p
+                        class="text-title-medium font-bold text-on-surface"
+                        data-testid="converter-result"
+                      >
+                        {{ convertedAmount() | number: '1.2-2' }}
+                        {{ converterTargetSymbol() }}
+                      </p>
+                    }
+                  </div>
+                </div>
+
+                @if (conversionRate() !== null) {
+                  <p
+                    class="text-body-small text-on-surface-variant text-center"
+                    data-testid="converter-rate-info"
+                  >
+                    Taux ECB : 1 {{ converterBase() }} =
+                    {{ conversionRate() | number: '1.3-3' }}
+                    {{ converterTarget() }}
+                  </p>
+                }
+              </div>
+            }
+
             <mat-form-field
               appearance="outline"
               subscriptSizing="dynamic"
@@ -305,6 +428,7 @@ export default class SettingsPage {
   readonly #encryptionApi = inject(EncryptionApi);
   readonly #authState = inject(AuthStateService);
   readonly #transloco = inject(TranslocoService);
+  readonly #currencyConverter = inject(CurrencyConverterService);
 
   readonly isDemoMode = this.#demoMode.isDemoMode;
   protected readonly isOAuthOnly = this.#authState.isOAuthOnly;
@@ -313,18 +437,86 @@ export default class SettingsPage {
   protected readonly isGeneratingRecoveryKey = signal(false);
   readonly availableDays = Array.from({ length: PAY_DAY_MAX }, (_, i) => i + 1);
 
+  // Pay day settings
   readonly selectedPayDay = linkedSignal(
     () => this.#userSettingsApi.payDayOfMonth() ?? null,
   );
 
-  readonly initialValue = computed(() => this.#userSettingsApi.payDayOfMonth());
+  // Currency settings
+  readonly selectedCurrency = linkedSignal(() =>
+    this.#userSettingsApi.currency(),
+  );
+
+  // Show currency selector toggle
+  readonly selectedShowCurrencySelector = linkedSignal(() =>
+    this.#userSettingsApi.showCurrencySelector(),
+  );
+
+  readonly initialPayDay = computed(() =>
+    this.#userSettingsApi.payDayOfMonth(),
+  );
+  readonly initialCurrency = computed(() => this.#userSettingsApi.currency());
+  readonly initialShowCurrencySelector = computed(() =>
+    this.#userSettingsApi.showCurrencySelector(),
+  );
 
   readonly hasChanges = computed(() => {
-    return this.initialValue() !== this.selectedPayDay();
+    return (
+      this.initialPayDay() !== this.selectedPayDay() ||
+      this.initialCurrency() !== this.selectedCurrency() ||
+      this.initialShowCurrencySelector() !== this.selectedShowCurrencySelector()
+    );
+  });
+
+  // Converter state
+  protected readonly converterAmount = signal<number>(100);
+  protected readonly isConverterReversed = signal(false);
+  protected readonly conversionRate = signal<number | null>(null);
+  protected readonly isLoadingRate = signal(false);
+
+  protected readonly isConverterVisible = computed(
+    () => this.selectedCurrency() !== this.initialCurrency(),
+  );
+
+  protected readonly converterBase = computed(() =>
+    this.isConverterReversed()
+      ? this.selectedCurrency()
+      : this.initialCurrency(),
+  );
+  protected readonly converterTarget = computed(() =>
+    this.isConverterReversed()
+      ? this.initialCurrency()
+      : this.selectedCurrency(),
+  );
+  protected readonly converterBaseSymbol = computed(
+    () => CURRENCY_CONFIG[this.converterBase()].symbol,
+  );
+  protected readonly converterTargetSymbol = computed(
+    () => CURRENCY_CONFIG[this.converterTarget()].symbol,
+  );
+  protected readonly convertedAmount = computed(() => {
+    const rate = this.conversionRate();
+    const amount = this.converterAmount();
+    if (rate === null || amount === null) return null;
+    return this.#currencyConverter.convert(amount, rate);
   });
 
   onPayDayChange(event: MatSelectChange): void {
     this.selectedPayDay.set(event.value);
+  }
+
+  onShowCurrencySelectorChange(value: boolean): void {
+    this.selectedShowCurrencySelector.set(value);
+  }
+
+  onCurrencyChange(value: SupportedCurrency): void {
+    this.selectedCurrency.set(value);
+    this.#fetchConversionRate();
+  }
+
+  swapConverterDirection(): void {
+    this.isConverterReversed.update((v) => !v);
+    this.#fetchConversionRate();
   }
 
   async saveSettings(): Promise<void> {
@@ -335,6 +527,8 @@ export default class SettingsPage {
 
       await this.#userSettingsApi.updateSettings({
         payDayOfMonth: this.selectedPayDay(),
+        currency: this.selectedCurrency(),
+        showCurrencySelector: this.selectedShowCurrencySelector(),
       });
 
       this.#snackBar.open(
@@ -363,7 +557,30 @@ export default class SettingsPage {
   }
 
   resetChanges(): void {
-    this.selectedPayDay.set(this.initialValue());
+    this.selectedPayDay.set(this.initialPayDay());
+    this.selectedCurrency.set(this.initialCurrency());
+    this.selectedShowCurrencySelector.set(this.initialShowCurrencySelector());
+    this.conversionRate.set(null);
+  }
+
+  async #fetchConversionRate(): Promise<void> {
+    const base = this.converterBase();
+    const target = this.converterTarget();
+    if (base === target) {
+      this.conversionRate.set(null);
+      return;
+    }
+    this.isLoadingRate.set(true);
+    try {
+      const rate = await firstValueFrom(
+        this.#currencyConverter.fetchRate$(base, target),
+      );
+      this.conversionRate.set(rate);
+    } catch {
+      this.conversionRate.set(null);
+    } finally {
+      this.isLoadingRate.set(false);
+    }
   }
 
   async onChangePassword(): Promise<void> {
