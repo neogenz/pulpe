@@ -332,3 +332,200 @@ readonly budgets = httpResource(() => `/api/budgets`, {
 - Types derived with `z.infer<>`
 - `parse` at API boundaries
 - Never import types directly from backend
+
+---
+
+## 10. ViewModel Separation
+
+The store's `computed()` selectors form the ViewModel layer. Components just bind.
+
+```
+API (DataModel) → Store computed() (ViewModel) → Component → Template
+```
+
+| Rule | Rationale |
+|------|-----------|
+| No `.filter()`/`.map()`/`.reduce()` in templates | Templates should bind, not transform |
+| No `computed()` in components reading store data | Move to store — shared, testable, reactive |
+| Store returns numbers/enums, not formatted strings | Formatting is a view concern (pipes, Decimal extensions) |
+| One `computed()` per concern, not one god object | Fine-grained signal tracking |
+| No manual ViewModel construction in `ngOnInit` | Breaks reactivity — use `computed()` |
+
+For detailed patterns and anti-patterns: see `references/viewmodel-patterns.md`.
+
+---
+
+## 11. AI Slop Prevention
+
+Code should read like a senior developer wrote it by hand. Remove:
+
+| Slop | Action |
+|------|--------|
+| Comments that restate the next line | Delete |
+| `try/catch` around non-throwing code | Remove |
+| Null checks on DI-injected or typed values | Remove — trust types |
+| Single-use helper functions | Inline |
+| JSDoc on obvious methods | Delete |
+| Abstractions with one consumer | Inline |
+| Verbose variable names (>25 chars) | Shorten |
+
+For detailed detection guide: see `references/ai-slop-detection.md`.
+
+---
+
+## 12. Angular Style Guide Conventions
+
+From angular.dev/style-guide — official Angular team recommendations.
+
+### Member Visibility
+
+```typescript
+@Component({
+  template: `<p>{{ fullName() }}</p>`,
+})
+export class UserProfileComponent {
+  readonly firstName = input<string>();
+  readonly lastName = input<string>();
+
+  // Only accessed by template — protected, not public
+  protected readonly fullName = computed(() =>
+    `${this.firstName()} ${this.lastName()}`
+  );
+
+  // Public API — called by parent components
+  resetForm(): void { /* ... */ }
+}
+```
+
+**Rule**: `protected` for template-only members. `public` only for the component's external API.
+
+### Readonly on Angular-Initialized Properties
+
+```typescript
+readonly userId = input<string>();
+readonly userSaved = output<void>();
+readonly userName = model<string>();
+readonly nameInput = viewChild<ElementRef>('nameInput');
+```
+
+Applies to: `input()`, `input.required()`, `output()`, `model()`, `viewChild()`, `viewChildren()`, `contentChild()`, `contentChildren()`.
+
+### Event Handler Naming
+
+```html
+<!-- Name for what they do, not the event -->
+<button (click)="saveUserData()">Save</button>
+<button (click)="deleteBudget()">Delete</button>
+
+<!-- Not this -->
+<button (click)="handleClick()">Save</button>
+<button (click)="onClick()">Delete</button>
+```
+
+### Component Member Order
+
+```typescript
+export class BudgetCardComponent {
+  // 1. Injected dependencies
+  readonly #store = inject(BudgetStore);
+
+  // 2. Inputs
+  readonly budget = input.required<Budget>();
+
+  // 3. Outputs
+  readonly selected = output<Budget>();
+
+  // 4. Queries
+  readonly nameInput = viewChild<ElementRef>('nameInput');
+
+  // 5. Computed / derived state
+  protected readonly displayName = computed(() => this.budget().name);
+
+  // 6. Methods
+  selectBudget(): void { /* ... */ }
+}
+```
+
+### Lifecycle Hooks
+
+- Always `implements OnInit`, `implements OnDestroy` — guarantees correct method name
+- Keep hooks thin — delegate to well-named methods
+- Empty hooks are dead code — remove them
+
+For full reference: see `references/angular-style-guide.md`.
+
+---
+
+## 13. Error Handling
+
+Errors should be handled at the callsite — the code that started the operation has the context to recover. The global `ErrorHandler` is for fatal/unexpected errors only (logging, analytics).
+
+### Store async methods — always handle errors
+
+```typescript
+async loadBudgets(): Promise<void> {
+  this.#state.update(s => ({ ...s, isLoading: true, error: null }));
+  try {
+    const budgets = await firstValueFrom(this.#budgetApi.getBudgets$());
+    this.#state.update(s => ({ ...s, budgets, isLoading: false }));
+  } catch (error) {
+    this.#state.update(s => ({
+      ...s,
+      isLoading: false,
+      error: isApiError(error) ? error.message : 'Erreur inattendue',
+    }));
+  }
+}
+```
+
+### Resource error state in templates
+
+```html
+@if (store.budgets.status() === 'error') {
+  <app-error [message]="store.budgets.error()?.message" />
+} @else if (store.budgets.isLoading()) {
+  <app-spinner />
+} @else {
+  @for (budget of store.budgets.value(); track budget.id) {
+    <app-budget-card [budget]="budget" />
+  }
+}
+```
+
+### Zod at API boundaries
+
+```typescript
+// In httpResource parse option — Angular handles ZodError via resource status
+readonly budgets = httpResource(() => `/api/budgets`, {
+  parse: budgetListSchema.parse,
+});
+
+// In component code — use safeParse for graceful handling
+const result = budgetSchema.safeParse(formValue);
+if (!result.success) {
+  this.#formErrors.set(result.error.flatten().fieldErrors);
+  return;
+}
+```
+
+### Error typing
+
+```typescript
+// Use unknown + narrowing, not any
+catch (error: unknown) {
+  if (isApiError(error)) {
+    this.#state.update(s => ({ ...s, error: error.message }));
+  } else {
+    throw error; // Re-throw unexpected errors
+  }
+}
+```
+
+**Key rules:**
+- Every `async` store method: `try/catch` with state revert on error
+- Every `resource()` / `httpResource()`: check `.error()` or `.status()` in template
+- Zod `.parse()` only in `httpResource({ parse })` — use `.safeParse()` elsewhere
+- `catch (error: unknown)` — never `catch (e: any)`
+- Never swallow errors silently (`catch (e) {}`)
+
+**Source:** angular.dev/best-practices/error-handling

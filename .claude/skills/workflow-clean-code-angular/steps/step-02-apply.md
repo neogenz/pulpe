@@ -1,245 +1,144 @@
 ---
 name: step-02-apply
-description: Load Angular 21 documentation, generate recommendations, and apply clean code fixes
+description: Load documentation, apply fixes with parallel agents, team lead coherence check
 prev_step: steps/step-01-scan.md
 next_step: steps/step-03-verify.md
 ---
 
 # Step 2: APPLY
 
-## MANDATORY EXECUTION RULES (READ FIRST):
+Apply fixes from the consolidated issue list. Every change follows documented patterns and cites its source. After all fixes, the team lead verifies cross-file coherence.
 
-- 🛑 NEVER apply patterns without reading docs/references first
-- ✅ ALWAYS load relevant reference files before making changes
-- 📋 YOU ARE AN IMPLEMENTER following documented Angular 21 patterns
-- 💬 FOCUS on applying fixes from loaded docs with cited sources
-- 🚫 FORBIDDEN to invent patterns not documented in references or Angular MCP
-
-## EXECUTION PROTOCOLS:
-
-- 🎯 Load docs based on issue categories found in step-01
-- 💾 Track every fix with file:line and source citation
-- 📖 Complete all changes before step-03
-- 🚫 FORBIDDEN to modify files outside `{scoped_files}`
-
-## CONTEXT BOUNDARIES:
-
-- From step-01: `{scoped_files}`, `{issues}`, `{workspace_path}`, flags
-- Reference files in `references/` folder
-- Angular MCP tools for framework-specific docs
-- Project rules in `.claude/rules/` (auto-loaded by Claude Code)
-
-## YOUR TASK:
-
-Load Angular 21 documentation, generate prioritized recommendations, and apply clean code fixes with documented sources.
+Don't invent patterns — follow the loaded references. If no reference covers an issue, flag it rather than improvising.
 
 ---
 
-## EXECUTION SEQUENCE:
+## 1. Load Reference Files
 
-### 1. Load Reference Files
+Based on issue categories found in step-01:
 
 | Condition | Load |
 |-----------|------|
 | Always | `references/angular-clean-code.md` |
 | Always | `references/angular-anti-patterns.md` |
-| Architecture issues detected OR `--arch` | `references/angular-architecture.md` |
+| Always | `references/angular-style-guide.md` |
+| Architecture issues | `references/angular-architecture.md` |
+| AI Slop issues | `references/ai-slop-detection.md` |
+| ViewModel issues | `references/viewmodel-patterns.md` |
+| Store issues | `.claude/rules/03-frameworks-and-libraries/angular-store-pattern.md` |
 
-**CRITICAL: Actually READ the files with Read tool!**
+Read each relevant file with the Read tool.
 
-### 2. Load Angular MCP Documentation
+## 2. Load Angular MCP Documentation
 
-Based on issue categories from step-01, query Angular MCP:
+Query Angular MCP **only for categories with actual issues** — don't load docs for clean categories:
 
 | Issue Category | MCP Tool | Query |
 |----------------|----------|-------|
-| Signal misuse | `mcp__angular-cli__find_examples` | `query: "signal computed linkedSignal"`, `workspacePath` |
-| Legacy inputs/outputs | `mcp__angular-cli__find_examples` | `query: "signal input output"`, `workspacePath` |
-| Legacy control flow | `mcp__angular-cli__search_documentation` | `query: "control flow @if @for @switch"` |
-| Legacy DI | `mcp__angular-cli__find_examples` | `query: "inject function"`, `workspacePath` |
-| Store patterns | `mcp__angular-cli__find_examples` | `query: "signal store state management"`, `workspacePath` |
-| Material styling | `mcp__angular-cli__search_documentation` | `query: "Material theming design tokens"` |
-| OnPush missing | `mcp__angular-cli__find_examples` | `query: "OnPush change detection"`, `workspacePath` |
+| Signal misuse | `find_examples` | `"signal computed linkedSignal"` |
+| Legacy inputs/outputs | `find_examples` | `"signal input output"` |
+| Legacy control flow | `search_documentation` | `"control flow @if @for @switch"` |
+| Legacy DI | `find_examples` | `"inject function"` |
+| Store patterns | `find_examples` | `"signal store state management"` |
+| Material styling | `search_documentation` | `"Material theming design tokens"` |
 
-**Only query for categories that have actual issues.** Don't load docs for clean categories.
+## 3. Generate Fix Plan
 
-### 3. Generate Recommendations
-
-Based on issues + loaded docs, generate prioritized list:
+For each issue from the consolidated list, generate a concrete recommendation:
 
 ```markdown
-## Recommendations
-
-### 🔴 Critical (must fix)
-
-1. **Signal Misuse** — `budget.store.ts:45`
-   Replace `effect()` with `computed()` for derived state
-   📚 Source: `.claude/rules/frontend/signals.md`
-
-2. **Architecture Violation** — `budget-list.ts:3`
-   Cross-feature import from `feature/dashboard/`
-   📚 Source: `.claude/rules/00-architecture/angular-architecture.md`
-
-### 🟡 Improvements (should fix)
-
-3. **Legacy Input** — `budget-card.ts:12`
-   Replace `@Input()` with `input()`
-   📚 Source: angular.dev/guide/components/inputs
-
-4. **Legacy DI** — `budget.service.ts:8`
-   Replace `constructor(private ...)` with `inject()`
-   📚 Source: angular.dev/guide/di/dependency-injection
+### #{N} — {Issue Title}
+**File**: `file.ts:line`
+**Category**: {Category} | **Severity**: {level}
+**Current**: what's wrong (brief)
+**Fix**: what to change (concrete)
+**Source**: URL or rule file path
 ```
 
-### 4. Confirm Before Applying
+Group recommendations by file to minimize context switching.
 
-**If `{auto_mode}` = true:**
-→ Apply all recommendations
+## 4. Confirm
 
-**If `{auto_mode}` = false:**
-→ Display recommendations, then use AskUserQuestion:
+**If `{auto_mode}`:** proceed to apply.
 
-```yaml
-questions:
-  - header: "Apply"
-    question: "Apply these Angular clean code improvements?"
-    options:
-      - label: "Apply All (Recommended)"
-        description: "Apply all recommendations"
-      - label: "Critical Only"
-        description: "Only fix critical issues"
-      - label: "Review Details"
-        description: "Show before/after for each fix"
-    multiSelect: false
-```
+**Otherwise:** display the fix plan and ask:
+- **Apply All** — apply everything
+- **Critical Only** — skip Minor severity items
+- **Review Before/After** — show the planned diff for each fix before applying
 
-### 5. Apply Changes
+## 5. Apply Changes
 
-**If `{economy_mode}` = true:**
-→ Apply sequentially with Edit tool
+### Economy Mode (`-e`)
 
-**If `{economy_mode}` = false AND 4+ files to change:**
-→ Use parallel Snipper agents (one per file or group of related files)
+Apply sequentially with the Edit tool. One file at a time.
 
-**For each fix, apply the following patterns:**
+### Standard / Deep Mode (4+ files to change)
 
-#### Angular Anti-Pattern Fixes
+Launch parallel `Snipper` agents — one per file or group of related files.
 
-| Anti-Pattern | Fix | Source |
-|--------------|-----|--------|
-| `@Input()` | `input()` / `input.required()` | angular.dev/guide/components/inputs |
-| `@Output()` | `output()` | angular.dev/guide/components/outputs |
-| `@Input` + `@Output` (2-way) | `model()` | angular.dev/guide/signals/inputs#model-inputs |
-| `*ngIf`, `*ngFor` | `@if`, `@for` (with `track`) | angular.dev/guide/templates/control-flow |
-| `[ngClass]` | `[class.name]` binding | Project rule |
-| `constructor(private x)` | `readonly #x = inject(X)` | angular.dev/guide/di |
-| `ChangeDetectionStrategy.Default` | `ChangeDetectionStrategy.OnPush` | Angular best practices |
+Each agent gets:
+- The file(s) to modify
+- The specific fixes to apply (from the plan, with exact line numbers)
+- The reference patterns to follow
+- This constraint: **"Apply ONLY the listed fixes. Don't improve adjacent code, add comments, or refactor anything not in the plan."**
+- After applying fixes, run `npx tsc --noEmit --pretty {file}` on the modified file(s) to catch type errors early. If it fails, fix immediately before returning — don't pass broken code to the coherence check.
 
-#### Signal Pattern Fixes
+Group related fixes: if multiple issues affect the same file, one agent handles all of them.
 
-| Anti-Pattern | Fix | Source |
-|--------------|-----|--------|
-| `effect()` for derived state | `computed()` | `.claude/rules/frontend/signals.md` |
-| `effect()` to sync signals | `linkedSignal()` | angular.dev/guide/signals/linked-signal |
-| `signal.mutate(arr => arr.push(x))` | `signal.update(arr => [...arr, x])` | angular.dev/guide/signals |
-| Missing cleanup | `takeUntilDestroyed()` | angular.dev/ecosystem/rxjs-interop |
-| `BehaviorSubject` | `signal()` + `computed()` | Signal migration |
-| Public mutable signal | Private `#signal` + public `computed()` or `.asReadonly()` | Store pattern |
+### Fix Application Rules
 
-#### TypeScript Fixes
+Follow the patterns from loaded references exactly:
 
-| Anti-Pattern | Fix | Source |
-|--------------|-----|--------|
-| `private field` | `#field` | Project rule |
-| `any` type | `unknown` + type guard | `.claude/rules/shared/typescript.md` |
-| `as Type` | Type guard or generic | Same |
+- **Angular patterns**: `references/angular-clean-code.md` — `input()`, `output()`, `@if`/`@for`, `inject()`, `OnPush`, `host: {}`
+- **Style guide**: `references/angular-style-guide.md` — `protected` template members, `readonly` signals, handler naming, member order, lifecycle interfaces
+- **Architecture**: `references/angular-architecture.md` — move shared code to correct layer, fix import direction
+- **Store anatomy**: `.claude/rules/03-frameworks-and-libraries/angular-store-pattern.md` — 6-section structure, cache-first, resource usage
+- **AI Slop removal**: `references/ai-slop-detection.md` — delete unnecessary comments, inline single-use helpers, remove defensive theater
+- **ViewModel fixes**: `references/viewmodel-patterns.md` — move transformations to store `computed()`, remove template expressions
 
-#### Architecture Fixes
+Every change must trace to a documented pattern and cite its source.
 
-| Anti-Pattern | Fix | Source |
-|--------------|-----|--------|
-| Cross-feature import | Move shared code to `pattern/` or `core/` | Architecture doc |
-| `ui/` imports `core/` | Remove service dependency, use `input()` | Architecture doc |
-| `pattern/` imports `feature/` | Invert dependency | Architecture doc |
-| `feature/` imports `feature/` | Extract to `pattern/` or `core/` | Architecture doc |
+## 6. Team Lead Coherence Check
 
-#### Styling Fixes
+After all fixes are applied, launch the team lead agent (`code-reviewer` type):
 
-| Anti-Pattern | Fix | Source |
-|--------------|-----|--------|
-| `::ng-deep` | CSS custom properties / `var(--mat-sys-*)` | material.angular.dev/guide/theming |
-| `mat-button` (legacy) | `matButton="filled"` | material.angular.dev/components/button |
-| `bg-[--var]` | `bg-(--var)` | tailwindcss.com/docs/upgrade-guide |
+> You are a senior Angular architect reviewing changes just applied across multiple files.
+> Read every modified file.
+>
+> Check for:
+> 1. **Cross-file consistency** — do all modified files follow the same patterns? Same DI style, same signal patterns, same naming conventions?
+> 2. **Broken imports** — did any refactoring break import paths? Did moving code to `pattern/` update all consumers?
+> 3. **Incomplete migrations** — if `@Input()` → `input()` in a component, did callers update their templates too?
+> 4. **ViewModel coherence** — if store selectors changed, do component template bindings still match?
+> 5. **Side effects** — did any fix break a different concern? Did removing a "defensive" null check actually remove a needed guard?
+> 6. **Remaining slop** — after fixes, is there any leftover AI slop the specialists missed?
+>
+> If issues found: list them with `file:line` for immediate fix.
+> If everything is coherent: confirm "Changes are coherent."
 
-#### Naming Fixes
+Fix any issues the team lead identifies, then re-check if the fix was non-trivial.
 
-| Anti-Pattern | Fix | Source |
-|--------------|-----|--------|
-| `loading` (boolean) | `isLoading` | `.claude/rules/naming-conventions.md` |
-| `item` (array variable) | `items` | Same |
-
-### 6. Track Progress
+## 7. Track Progress
 
 ```markdown
 ## Changes Applied
 
-| # | File:Line | Change | Source |
-|---|-----------|--------|--------|
-| 1 | budget.store.ts:45 | `effect()` → `computed()` | signals.md |
-| 2 | budget-card.ts:12 | `@Input()` → `input()` | angular.dev |
-| 3 | budget.service.ts:8 | `constructor(private)` → `inject()` | angular.dev |
-```
+| # | File:Line | Change | Category | Source |
+|---|-----------|--------|----------|--------|
+| 1 | ... | ... | ... | ... |
 
-### 7. Summary
-
-```markdown
-## Apply Summary
-
+### Summary
 - **Files modified**: {N}
 - **Critical fixes**: {N}
-- **Improvements**: {N}
-- **Categories**: Signals ({N}), Angular ({N}), Architecture ({N}), TypeScript ({N}), Styling ({N})
+- **Important fixes**: {N}
+- **Minor fixes**: {N}
+- **Coherence check**: Passed / {issues fixed}
 ```
 
-**If `{save_mode}` = true:**
-→ Write to `.claude/output/clean-code-angular/{task_id}/02-apply.md`
+**If `{save_mode}`:** write to `02-apply.md`.
 
 ---
 
-## SUCCESS METRICS:
+## Next Step
 
-✅ Reference docs loaded and read
-✅ Angular MCP queried for relevant categories
-✅ Recommendations generated with sources
-✅ Changes applied following documented patterns
-✅ Every fix has a source citation
-✅ Progress tracked with file:line
-
-## FAILURE MODES:
-
-❌ Applying patterns without reading docs
-❌ Modifying files outside `{scoped_files}`
-❌ Fixes without source citations
-❌ Inventing patterns not from reference docs or Angular MCP
-❌ Not tracking progress
-
-## APPLY PROTOCOLS:
-
-- Follow patterns from docs exactly — no improvisation
-- Every fix must cite its source (URL or rule path)
-- Use `#field` not `private field` (project convention)
-- Use `inject()` not constructor injection
-- Use `input()` / `output()` not decorators
-- Use `@if` / `@for` not `*ngIf` / `*ngFor`
-- Always add `track` expression to `@for`
-- Always use `OnPush` change detection
-
----
-
-## NEXT STEP:
-
-After changes applied, load `./step-03-verify.md`
-
-<critical>
-Follow patterns from LOADED DOCS only! Every fix needs a source citation.
-</critical>
+After changes applied and coherence verified → load `steps/step-03-verify.md`
