@@ -138,6 +138,9 @@ struct HeroBalanceCard: View {
         .ifLet(onRolloverTap) { view, action in
             view.accessibilityAction(named: "Voir le budget précédent", action)
         }
+        .ifLet(onTapChart) { view, action in
+            view.accessibilityAction(named: "Suivi du budget", action)
+        }
     }
 
     // MARK: - Card Content
