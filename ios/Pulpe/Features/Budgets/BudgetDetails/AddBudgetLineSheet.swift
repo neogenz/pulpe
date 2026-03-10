@@ -9,6 +9,7 @@ struct AddBudgetLineSheet: View {
     @State private var name = ""
     @State private var amount: Decimal?
     @State private var kind: TransactionKind = .expense
+    @State private var isChecked = false
     @State private var isLoading = false
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
@@ -32,6 +33,7 @@ struct AddBudgetLineSheet: View {
             QuickAmountChips(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused, color: kind.color)
                 .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
             descriptionField
+            checkedToggle
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -48,6 +50,17 @@ struct AddBudgetLineSheet: View {
     private var descriptionField: some View {
         TextField(kind.descriptionPlaceholder, text: $name)
             .font(PulpeTypography.bodyLarge)
+            .padding(DesignTokens.Spacing.lg)
+            .background(Color.inputBackgroundSoft)
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+    }
+
+    // MARK: - Checked Toggle
+
+    private var checkedToggle: some View {
+        Toggle("Pointer", isOn: $isChecked)
+            .font(PulpeTypography.bodyLarge)
+            .tint(kind.color)
             .padding(DesignTokens.Spacing.lg)
             .background(Color.inputBackgroundSoft)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
@@ -79,7 +92,8 @@ struct AddBudgetLineSheet: View {
             name: name.trimmingCharacters(in: .whitespaces),
             amount: amount,
             kind: kind,
-            recurrence: .oneOff
+            recurrence: .oneOff,
+            checkedAt: isChecked ? Date() : nil
         )
 
         do {

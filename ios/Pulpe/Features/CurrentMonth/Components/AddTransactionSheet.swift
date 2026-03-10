@@ -11,6 +11,7 @@ struct AddTransactionSheet: View {
     @State private var amount: Decimal?
     @State private var kind: TransactionKind = .expense
     @State private var transactionDate = Date()
+    @State private var isChecked = false
     @State private var isLoading = false
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
@@ -50,6 +51,7 @@ struct AddTransactionSheet: View {
                 .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
             descriptionField
             dateSelector
+            checkedToggle
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -106,6 +108,17 @@ struct AddTransactionSheet: View {
         }
     }
 
+    // MARK: - Checked Toggle
+
+    private var checkedToggle: some View {
+        Toggle("Pointer", isOn: $isChecked)
+            .font(PulpeTypography.bodyLarge)
+            .tint(kind.color)
+            .padding(DesignTokens.Spacing.lg)
+            .background(Color.inputBackgroundSoft)
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+    }
+
     // MARK: - Add Button
 
     private var addButton: some View {
@@ -140,7 +153,8 @@ struct AddTransactionSheet: View {
             name: name.trimmingCharacters(in: .whitespaces),
             amount: amount,
             kind: kind,
-            transactionDate: transactionDate
+            transactionDate: transactionDate,
+            checkedAt: isChecked ? Date() : nil
         )
 
         do {

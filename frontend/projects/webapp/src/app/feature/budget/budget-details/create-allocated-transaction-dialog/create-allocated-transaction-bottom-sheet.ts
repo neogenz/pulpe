@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoPipe } from '@jsverse/transloco';
 import type { TransactionCreate } from 'pulpe-shared';
 import { formatLocalDate } from '@core/date/format-local-date';
@@ -26,6 +27,7 @@ import {
     MatButtonModule,
     MatIconModule,
     MatDatepickerModule,
+    MatSlideToggleModule,
     ReactiveFormsModule,
     TranslocoPipe,
   ],
@@ -145,6 +147,13 @@ import {
             }}</mat-error>
           }
         </mat-form-field>
+
+        <div class="flex items-center justify-between py-2 px-1">
+          <span class="text-body-medium text-on-surface">{{
+            'transactionForm.checkedToggle' | transloco
+          }}</span>
+          <mat-slide-toggle formControlName="isChecked" />
+        </div>
       </form>
 
       <!-- Action buttons -->
@@ -201,6 +210,7 @@ export class CreateAllocatedTransactionBottomSheet {
         createDateRangeValidator(this.minDate, this.maxDate),
       ],
     ],
+    isChecked: [false],
   });
 
   close(): void {
@@ -220,6 +230,7 @@ export class CreateAllocatedTransactionBottomSheet {
       kind: this.data.budgetLine.kind,
       transactionDate: formatLocalDate(formValue.transactionDate!),
       category: null,
+      checkedAt: formValue.isChecked ? new Date().toISOString() : null,
     };
 
     this.#bottomSheetRef.dismiss(transaction);

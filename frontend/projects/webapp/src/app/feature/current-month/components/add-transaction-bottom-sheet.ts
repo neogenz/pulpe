@@ -20,13 +20,14 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import type { TransactionCreate } from 'pulpe-shared';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { TransactionLabelPipe } from '@pattern/transaction-display';
 
 type TransactionFormData = Pick<
   TransactionCreate,
-  'name' | 'amount' | 'kind' | 'category'
+  'name' | 'amount' | 'kind' | 'category' | 'checkedAt'
 >;
 
 // Define the form structure type
@@ -35,6 +36,7 @@ interface TransactionFormControls {
   amount: FormControl<number | null>;
   kind: FormControl<'expense' | 'income' | 'saving' | null>;
   category: FormControl<string | null>;
+  isChecked: FormControl<boolean | null>;
 }
 
 import { TransactionValidators } from '@core/transaction';
@@ -49,6 +51,7 @@ import { TransactionValidators } from '@core/transaction';
     MatInputModule,
     MatSelectModule,
     MatChipsModule,
+    MatSlideToggleModule,
     TranslocoPipe,
     TransactionLabelPipe,
   ],
@@ -233,6 +236,13 @@ import { TransactionValidators } from '@core/transaction';
           <mat-icon>event</mat-icon>
           <span>{{ 'currentMonth.addTransactionToday' | transloco }}</span>
         </div>
+
+        <div class="flex items-center justify-between py-2 px-1">
+          <span class="text-body-medium text-on-surface">{{
+            'transactionForm.checkedToggle' | transloco
+          }}</span>
+          <mat-slide-toggle formControlName="isChecked" />
+        </div>
       </form>
 
       <!-- Action Buttons -->
@@ -290,6 +300,7 @@ export class AddTransactionBottomSheet implements AfterViewInit {
       category: new FormControl<string | null>('', [
         ...TransactionValidators.category,
       ]),
+      isChecked: new FormControl<boolean | null>(false),
     },
   );
 
@@ -323,6 +334,7 @@ export class AddTransactionBottomSheet implements AfterViewInit {
       amount: formValue.amount,
       kind: formValue.kind,
       category: formValue.category || null,
+      checkedAt: formValue.isChecked ? new Date().toISOString() : null,
     };
 
     this.#bottomSheetRef.dismiss(transaction);

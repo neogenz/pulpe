@@ -395,6 +395,7 @@
     "amountMinError": "Le montant doit être supérieur à 0",
     "dateLabel": "Date",
     "dateOutOfBudgetPeriod": "La date doit être dans la période du budget",
+    "forecastCheckedToggle": "Pointer",
     "transactionCreateButton": "Créer",
     "transactionsDialogTitle": "Transactions — {{ name }}",
     "consumedLabel": "Consommé",
@@ -834,6 +835,7 @@
     "notesPlaceholder": "Ex: Alimentation, Transport",
     "notesOptional": "(optionnel)",
     "notesMaxLength": "La catégorie ne peut pas dépasser 50 caractères",
-    "formAriaLabel": "Formulaire de modification de transaction"
+    "formAriaLabel": "Formulaire de modification de transaction",
+    "checkedToggle": "Pointer"
   }
 }

@@ -45,7 +45,7 @@ import { DashboardNextMonth } from './components/dashboard-next-month';
 
 type TransactionFormData = Pick<
   TransactionCreate,
-  'name' | 'amount' | 'kind' | 'category'
+  'name' | 'amount' | 'kind' | 'category' | 'checkedAt'
 >;
 
 @Component({
@@ -377,6 +377,7 @@ export default class Dashboard {
         kind: transaction.kind,
         transactionDate: formatLocalDate(new Date()),
         category: transaction.category ?? null,
+        checkedAt: transaction.checkedAt ?? null,
       });
     } catch (error) {
       this.#logger.error('Error adding transaction:', error);

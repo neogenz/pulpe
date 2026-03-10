@@ -10,6 +10,7 @@ struct AddAllocatedTransactionSheet: View {
     @State private var name = ""
     @State private var amount: Decimal?
     @State private var transactionDate = Date()
+    @State private var isChecked = false
     @State private var isLoading = false
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
@@ -39,6 +40,7 @@ struct AddAllocatedTransactionSheet: View {
             )
             descriptionField
             dateSelector
+            checkedToggle
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -83,6 +85,17 @@ struct AddAllocatedTransactionSheet: View {
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
     }
 
+    // MARK: - Checked Toggle
+
+    private var checkedToggle: some View {
+        Toggle("Pointer", isOn: $isChecked)
+            .font(PulpeTypography.bodyLarge)
+            .tint(budgetLine.kind.color)
+            .padding(DesignTokens.Spacing.lg)
+            .background(Color.inputBackgroundSoft)
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+    }
+
     // MARK: - Add Button
 
     private var addButton: some View {
@@ -110,7 +123,8 @@ struct AddAllocatedTransactionSheet: View {
             amount: amount,
             kind: budgetLine.kind,
             budgetLineId: budgetLine.id,
-            transactionDate: transactionDate
+            transactionDate: transactionDate,
+            checkedAt: isChecked ? Date() : nil
         )
 
         do {

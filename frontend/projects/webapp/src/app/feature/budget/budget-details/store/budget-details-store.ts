@@ -554,7 +554,7 @@ export class BudgetDetailsStore {
       category: transactionData.category ?? null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      checkedAt: null,
+      checkedAt: transactionData.checkedAt ?? null,
     };
 
     this.#budgetDetailsResource.update((details) => {
@@ -568,10 +568,7 @@ export class BudgetDetailsStore {
 
     try {
       const response = await firstValueFrom(
-        this.#budgetApi.createTransaction$({
-          ...transactionData,
-          checkedAt: null,
-        }),
+        this.#budgetApi.createTransaction$(transactionData),
       );
 
       this.#budgetDetailsResource.update((details) => {
