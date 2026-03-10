@@ -56,6 +56,128 @@ describe('CreateAllocatedTransactionDialog', () => {
     ).componentInstance;
   });
 
+  describe('submit', () => {
+    it('should close with transaction data when form is valid', () => {
+      const midMonth = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        15,
+      );
+      component.form.patchValue({
+        name: 'Consultation médecin',
+        amount: 45.5,
+        transactionDate: midMonth,
+      });
+
+      component.submit();
+
+      expect(mockDialogRef.close).toHaveBeenCalledWith(
+        expect.objectContaining({
+          budgetId: 'budget-456',
+          budgetLineId: 'bl-123',
+          name: 'Consultation médecin',
+          amount: 45.5,
+          kind: 'expense',
+          category: null,
+        }),
+      );
+    });
+
+    it('should not close when form is invalid', () => {
+      component.form.patchValue({ name: '', amount: null });
+
+      component.submit();
+
+      expect(mockDialogRef.close).not.toHaveBeenCalled();
+    });
+
+    it('should trim whitespace from name', () => {
+      const midMonth = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        15,
+      );
+      component.form.patchValue({
+        name: '  Courses  ',
+        amount: 20,
+        transactionDate: midMonth,
+      });
+
+      component.submit();
+
+      expect(mockDialogRef.close).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Courses' }),
+      );
+    });
+
+    it('should apply Math.abs on amount', () => {
+      const midMonth = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        15,
+      );
+      component.form.patchValue({
+        name: 'Test',
+        amount: 42.5,
+        transactionDate: midMonth,
+      });
+
+      component.submit();
+
+      expect(mockDialogRef.close).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 42.5 }),
+      );
+    });
+  });
+
+  describe('cancel', () => {
+    it('should close without data', () => {
+      component.cancel();
+
+      expect(mockDialogRef.close).toHaveBeenCalledWith();
+    });
+  });
+
+  describe('form validation', () => {
+    it('should require name', () => {
+      component.form.get('name')?.setValue('');
+
+      expect(component.form.get('name')?.hasError('required')).toBe(true);
+    });
+
+    it('should enforce max length on name', () => {
+      component.form.get('name')?.setValue('a'.repeat(101));
+
+      expect(component.form.get('name')?.hasError('maxlength')).toBe(true);
+    });
+
+    it('should require amount', () => {
+      component.form.get('amount')?.setValue(null);
+
+      expect(component.form.get('amount')?.hasError('required')).toBe(true);
+    });
+
+    it('should reject amount below 0.01', () => {
+      component.form.get('amount')?.setValue(0);
+
+      expect(component.form.get('amount')?.hasError('min')).toBe(true);
+    });
+
+    it('should reject negative amount', () => {
+      component.form.get('amount')?.setValue(-50);
+
+      expect(component.form.get('amount')?.hasError('min')).toBe(true);
+    });
+
+    it('should require transaction date', () => {
+      component.form.get('transactionDate')?.setValue(null);
+
+      expect(component.form.get('transactionDate')?.hasError('required')).toBe(
+        true,
+      );
+    });
+  });
+
   describe('checked toggle', () => {
     it('should set checkedAt to null by default', () => {
       const midMonth = new Date(
