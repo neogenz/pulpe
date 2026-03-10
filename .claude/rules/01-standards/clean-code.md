@@ -12,7 +12,7 @@ paths: "**/*.ts"
 - Use explicit constants, never magic numbers
 - Avoid double negatives (`!isInvalid` → `isValid`)
 - Write the simplest code possible
-- Eliminate duplication (DRY)
+- Eliminate duplication (DRY) — but DRY applies to **logic**, not trivial expressions. A one-liner ternary repeated in 4 files does NOT warrant a shared utility. Three similar lines are better than a premature abstraction. Only extract when the duplicated code contains **branching, computation, or is likely to diverge**.
 
 ```typescript
 // Good
