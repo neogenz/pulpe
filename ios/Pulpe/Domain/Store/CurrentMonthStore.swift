@@ -318,7 +318,7 @@ final class CurrentMonthStore: StoreProtocol {
 
     var realizedMetrics: BudgetFormulas.RealizedMetrics {
         cachedRealizedMetrics ?? BudgetFormulas.calculateRealizedMetrics(
-            budgetLines: budgetLines,
+            budgetLines: displayBudgetLines,
             transactions: transactions
         )
     }
@@ -346,7 +346,7 @@ final class CurrentMonthStore: StoreProtocol {
             rollover: budget?.rollover.orZero ?? 0
         )
         cachedRealizedMetrics = BudgetFormulas.calculateRealizedMetrics(
-            budgetLines: budgetLines,
+            budgetLines: displayBudgetLines,
             transactions: transactions
         )
         cachedUncheckedItems = computeUncheckedItems()
@@ -507,16 +507,7 @@ extension CurrentMonthStore {
     }
 
     var displayBudgetLines: [BudgetLine] {
-        guard let budget, let rollover = budget.rollover, rollover != 0 else {
-            return budgetLines
-        }
-        // Add virtual rollover line
-        let rolloverLine = BudgetLine.rolloverLine(
-            amount: rollover,
-            budgetId: budget.id,
-            sourceBudgetId: budget.previousBudgetId
-        )
-        return [rolloverLine] + budgetLines
+        BudgetFormulas.displayBudgetLines(base: budgetLines, budget: budget)
     }
 
     var recurringBudgetLines: [BudgetLine] {

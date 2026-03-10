@@ -168,7 +168,7 @@ struct CurrentMonthStoreAlertAndFilterTests {
         let budget = TestDataFactory.createBudget(rollover: 0)
 
         // Act
-        let displayLines = budget.rollover == 0 ? lines : lines // Simplified logic
+        let displayLines = BudgetFormulas.displayBudgetLines(base: lines, budget: budget)
 
         // Assert
         #expect(displayLines.count == 2)
@@ -184,12 +184,7 @@ struct CurrentMonthStoreAlertAndFilterTests {
         let budget = TestDataFactory.createBudget(rollover: 500)
 
         // Act
-        let rolloverLine = BudgetLine.rolloverLine(
-            amount: budget.rollover ?? 0,
-            budgetId: budget.id,
-            sourceBudgetId: budget.previousBudgetId
-        )
-        let displayLines = [rolloverLine] + lines
+        let displayLines = BudgetFormulas.displayBudgetLines(base: lines, budget: budget)
 
         // Assert
         #expect(displayLines.count == 3)
@@ -206,17 +201,12 @@ struct CurrentMonthStoreAlertAndFilterTests {
         let budget = TestDataFactory.createBudget(rollover: -300)
 
         // Act
-        let rolloverLine = BudgetLine.rolloverLine(
-            amount: budget.rollover ?? 0,
-            budgetId: budget.id,
-            sourceBudgetId: budget.previousBudgetId
-        )
-        let displayLines = [rolloverLine] + lines
+        let displayLines = BudgetFormulas.displayBudgetLines(base: lines, budget: budget)
 
         // Assert
         #expect(displayLines.count == 2)
         #expect(displayLines[0].isVirtualRollover)
-        #expect(displayLines[0].amount == -300)
+        #expect(displayLines[0].amount == 300)
         #expect(displayLines[0].kind == .expense)
     }
 

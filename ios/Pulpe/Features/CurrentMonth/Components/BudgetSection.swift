@@ -141,7 +141,7 @@ struct BudgetSection: View {
                 } label: {
                     Label("Modifier", systemImage: "pencil")
                 }
-                .tint(.pulpePrimary)
+                .tint(.editAction)
             }
         }
     }

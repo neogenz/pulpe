@@ -62,10 +62,6 @@ struct CurrencyField: View {
             }
 
             HStack {
-                Text("CHF")
-                    .foregroundStyle(prefixColor)
-                    .font(PulpeTypography.bodyLarge)
-
                 TextField(hint, text: $textValue)
                     .keyboardType(.decimalPad)
                     .foregroundStyle(Color.authInputText)
@@ -75,11 +71,14 @@ struct CurrencyField: View {
                         updateValue(from: newValue)
                     }
                     .onChange(of: value) { _, newValue in
-                        // Only update text if value changed externally (not from user input)
                         if hasInitialized {
                             updateText(from: newValue)
                         }
                     }
+
+                Text("CHF")
+                    .foregroundStyle(prefixColor)
+                    .font(PulpeTypography.bodyLarge)
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .frame(height: DesignTokens.FrameHeight.button)

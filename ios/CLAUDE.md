@@ -62,8 +62,8 @@ cd .. && pnpm dev:backend
 ## Currency
 
 ```swift
-amount.asCHF        // "CHF 1'234.56"
-amount.asCompactCHF // "CHF 1'235"
+amount.asCHF        // "1'234.56 CHF"
+amount.asCompactCHF // "1'235 CHF"
 ```
 
 ## iOS-Specific Vocabulary

@@ -17,6 +17,7 @@ struct BudgetDetailsView: View {
     @State private var selectedBudgetLineForEdit: BudgetLine?
     @State private var selectedTransactionForEdit: Transaction?
     @State private var previousBudgetItem: PreviousBudgetItem?
+    @State private var showRealizedBalance = false
 
     @State private var searchText = ""
 
@@ -129,6 +130,12 @@ struct BudgetDetailsView: View {
         .sheet(item: $previousBudgetItem) { item in
             PreviousBudgetSheet(budgetId: item.id)
         }
+        .sheet(isPresented: $showRealizedBalance) {
+            RealizedBalanceSheet(
+                metrics: viewModel.metrics,
+                realizedMetrics: viewModel.realizedMetrics
+            )
+        }
         .alert(
             "Pointer les transactions ?",
             isPresented: $viewModel.showCheckAllTransactionsAlert,
@@ -178,30 +185,22 @@ struct BudgetDetailsView: View {
             .listSectionSeparator(.hidden)
             .listRowInsets(fullWidthInsets)
 
-            // Hero balance card
+            // Hero balance card (with integrated rollover)
             Section {
                 HeroBalanceCard(
                     metrics: viewModel.metrics,
-                    timeElapsedPercentage: timeElapsedPercentage
+                    timeElapsedPercentage: timeElapsedPercentage,
+                    onTapChart: { showRealizedBalance = true },
+                    rolloverAmount: viewModel.rolloverInfo?.amount,
+                    onRolloverTap: viewModel.rolloverInfo?.previousBudgetId.map { id in
+                        { previousBudgetItem = PreviousBudgetItem(id: id) }
+                    }
                 )
             }
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
             .listSectionSeparator(.hidden)
             .listRowInsets(fullWidthInsets)
-
-            // Rollover section (toujours en premier)
-            if let rolloverInfo = viewModel.rolloverInfo {
-                RolloverInfoRow(
-                    amount: rolloverInfo.amount,
-                    onTap: rolloverInfo.previousBudgetId.map { id in
-                        { previousBudgetItem = PreviousBudgetItem(id: id) }
-                    }
-                )
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-                .listRowInsets(fullWidthInsets)
-            }
 
             // Empty search state
             if !searchText.isEmpty && filteredIncome.isEmpty && filteredExpenses.isEmpty &&

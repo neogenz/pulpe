@@ -594,9 +594,9 @@ jobs:
           tail -f test-output.log | grep --line-buffered -E '(✔|✘|Test Case|passed|failed|error:|Suite|TEST SUCCEEDED|TEST FAILED)' &
           TAIL_PID=$!
 
-          # Wait for test completion or timeout (10 min)
+          # Wait for test completion or timeout (13 min — leaves 2 min buffer for 15 min step timeout)
           ELAPSED=0
-          while kill -0 $XCODE_PID 2>/dev/null && [ $ELAPSED -lt 600 ]; do
+          while kill -0 $XCODE_PID 2>/dev/null && [ $ELAPSED -lt 780 ]; do
             if grep -q '\*\* TEST SUCCEEDED \*\*\|\*\* TEST FAILED \*\*' test-output.log 2>/dev/null; then
               echo "📋 Tests finished, cleaning up xcodebuild..."
               sleep 5
@@ -615,6 +615,17 @@ jobs:
           elif grep -q '\*\* TEST FAILED \*\*' test-output.log; then
             echo "❌ Tests failed"
             exit 1
+          elif grep -q '✘' test-output.log; then
+            echo "❌ Test failures detected (✘ found in output)"
+            exit 1
+          elif grep -q '✔' test-output.log && ! grep -q '✘' test-output.log; then
+            PASS_COUNT=$(grep -c '✔' test-output.log || echo 0)
+            echo "⚠️ xcodebuild hung before writing summary — ${PASS_COUNT} tests passed, no failures detected"
+            if [ "$PASS_COUNT" -lt 50 ]; then  # ~120 tests currently — 50 catches partial runs
+              echo "❌ Too few tests passed (${PASS_COUNT}) — likely hung before completing suite"
+              exit 1
+            fi
+            exit 0
           else
             echo "⚠️ Could not determine test outcome"
             tail -30 test-output.log

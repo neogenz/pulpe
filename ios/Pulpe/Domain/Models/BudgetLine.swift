@@ -119,7 +119,7 @@ extension BudgetLine {
             templateLineId: nil,
             savingsGoalId: nil,
             name: "Report du mois précédent",
-            amount: amount,
+            amount: abs(amount),
             kind: amount >= 0 ? .income : .expense,
             recurrence: .oneOff,
             isManuallyAdjusted: false,

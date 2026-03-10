@@ -138,7 +138,8 @@ struct CurrentMonthHeroCard: View {
         }, perform: {})
         .accessibilityLabel(
             "\(monthName), ce mois-ci, "
-            + "\(amountsHidden ? "Montant masqué" : (budget.remaining?.asCHF ?? "non défini")) disponible"
+            + "disponible \(amountsHidden ? "masqué" : (budget.remaining?.asCHF ?? "non défini"))"
+            + (budget.rollover.map { $0 != 0 ? ", report cumulé \(amountsHidden ? "masqué" : $0.asCHF)" : "" } ?? "")
         )
         .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)
@@ -282,8 +283,8 @@ struct BudgetMonthRow: View {
         .buttonStyle(.plain)
         .sensoryFeedback(.selection, trigger: tapTrigger)
         .accessibilityLabel(
-            "\(monthName), solde "
-            + "\(amountsHidden ? "Montant masqué" : (budget.remaining?.asCompactCHF ?? "non défini"))"
+            "\(monthName), disponible "
+            + "\(amountsHidden ? "masqué" : (budget.remaining?.asCompactCHF ?? "non défini"))"
         )
         .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)

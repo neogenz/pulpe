@@ -7,17 +7,16 @@ enum Formatters {
 
     static let chfCompact: NumberFormatter = {
         let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "CHF"
+        formatter.numberStyle = .decimal
         formatter.locale = Locale(identifier: "de_CH")
+        formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
         return formatter
     }()
 
     static let chfWholeNumber: NumberFormatter = {
         let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "CHF"
+        formatter.numberStyle = .decimal
         formatter.locale = Locale(identifier: "de_CH")
         formatter.maximumFractionDigits = 0
         return formatter
