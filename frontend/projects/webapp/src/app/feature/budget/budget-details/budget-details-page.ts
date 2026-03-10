@@ -48,6 +48,7 @@ import {
   computeTransactionSnackbarMessage,
 } from './budget-details-snackbar.utils';
 import { UserSettingsStore } from '@core/user-settings';
+import { CURRENCY_CONFIG } from '@core/currency';
 
 @Component({
   selector: 'pulpe-budget-details-page',
@@ -161,6 +162,10 @@ export default class BudgetDetailsPage {
   readonly #transloco = inject(TranslocoService);
   readonly #loadingIndicator = inject(LoadingIndicator);
   readonly #destroyRef = inject(DestroyRef);
+  protected readonly currency = this.#userSettingsStore.currency;
+  protected readonly currencyLocale = computed(
+    () => CURRENCY_CONFIG[this.currency()].locale,
+  );
   readonly #breakpointObserver = inject(BreakpointObserver);
 
   readonly #isMobile = toSignal(
@@ -485,17 +490,7 @@ export default class BudgetDetailsPage {
       budgetLineId,
       details.budgetLines,
       details.transactions,
-      {
-        overEnvelope: (consumed, envelope) =>
-          this.#transloco.translate('budget.snackbar.envelopeOver', {
-            consumed,
-            envelope,
-          }),
-        withinEnvelope: (envelope) =>
-          this.#transloco.translate('budget.snackbar.envelopeWithin', {
-            envelope,
-          }),
-      },
+      this.#userSettingsStore.currency(),
     );
     if (message) this.#snackBar.open(message, undefined, { duration: 3000 });
   }
@@ -511,12 +506,7 @@ export default class BudgetDetailsPage {
     const message = computeTransactionSnackbarMessage(
       transactionId,
       details.transactions,
-      {
-        checked: (amount) =>
-          this.#transloco.translate('budget.snackbar.transactionChecked', {
-            amount,
-          }),
-      },
+      this.#userSettingsStore.currency(),
     );
     if (message) this.#snackBar.open(message, undefined, { duration: 3000 });
   }

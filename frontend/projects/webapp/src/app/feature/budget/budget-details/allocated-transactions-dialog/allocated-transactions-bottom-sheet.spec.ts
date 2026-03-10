@@ -109,8 +109,9 @@ describe('AllocatedTransactionsBottomSheet', () => {
 
       expect(el.textContent).toContain('Courses');
       expect(el.textContent).toContain('Restaurant');
-      expect(el.textContent).toContain('CHF50.00');
-      expect(el.textContent).toContain('CHF30.00');
+      expect(el.textContent).toContain('CHF');
+      expect(el.textContent).toContain('50.00');
+      expect(el.textContent).toContain('30.00');
     });
 
     it('should show the budget line name in the header', () => {

@@ -1,4 +1,9 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import {
   MatDialogRef,
   MAT_DIALOG_DATA,
@@ -15,9 +20,13 @@ import {
   type BudgetLineUpdate,
   type TransactionKind,
   type TransactionRecurrence,
+  type SupportedCurrency,
 } from 'pulpe-shared';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { TransactionIconPipe } from '@ui/transaction-display';
 import { TransactionLabelPipe } from '@ui/transaction-display';
+import { UserSettingsStore } from '@core/user-settings';
+import { CurrencyConverterService } from '@core/currency';
 
 export interface EditBudgetLineDialogData {
   budgetLine: BudgetLine;
@@ -33,39 +42,48 @@ export interface EditBudgetLineDialogData {
     MatButtonModule,
     MatIconModule,
     ReactiveFormsModule,
+    TranslocoPipe,
     TransactionIconPipe,
     TransactionLabelPipe,
   ],
   template: `
-    <h2 mat-dialog-title class="text-headline-small">Modifier la prévision</h2>
+    <h2 mat-dialog-title class="text-headline-small">
+      {{ 'budget.editForecast' | transloco }}
+    </h2>
 
     <mat-dialog-content>
       <div class="flex flex-col gap-4 pt-4">
         <form [formGroup]="form">
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Nom</mat-label>
+            <mat-label>{{ 'budget.forecastNameLabel' | transloco }}</mat-label>
             <input
               matInput
               formControlName="name"
-              placeholder="Ex: Salaire, Loyer, Épargne..."
+              [placeholder]="'budget.forecastNamePlaceholder' | transloco"
               data-testid="edit-line-name"
             />
             @if (
               form.get('name')?.hasError('required') &&
               form.get('name')?.touched
             ) {
-              <mat-error>Le nom est requis</mat-error>
+              <mat-error>{{
+                'budget.forecastNameRequired' | transloco
+              }}</mat-error>
             }
             @if (
               form.get('name')?.hasError('minlength') &&
               form.get('name')?.touched
             ) {
-              <mat-error>Le nom doit contenir au moins 1 caractère</mat-error>
+              <mat-error>{{
+                'budget.forecastNameMinLength' | transloco
+              }}</mat-error>
             }
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full ph-no-capture">
-            <mat-label>Montant</mat-label>
+            <mat-label class="ph-no-capture">{{
+              'transactionForm.amountLabel' | transloco
+            }}</mat-label>
             <input
               matInput
               type="number"
@@ -76,22 +94,37 @@ export interface EditBudgetLineDialogData {
               inputmode="decimal"
               data-testid="edit-line-amount"
             />
-            <span matTextSuffix>CHF</span>
+            @if (showCurrencySelector()) {
+              <mat-select
+                matTextSuffix
+                [value]="inputCurrency()"
+                (selectionChange)="inputCurrency.set($event.value)"
+                class="!w-[70px] text-on-surface-variant font-medium"
+                aria-label="Devise"
+              >
+                <mat-option value="CHF">CHF</mat-option>
+                <mat-option value="EUR">EUR</mat-option>
+              </mat-select>
+            } @else {
+              <span matTextSuffix>{{ currency() }}</span>
+            }
             @if (
               form.get('amount')?.hasError('required') &&
               form.get('amount')?.touched
             ) {
-              <mat-error>Le montant est requis</mat-error>
+              <mat-error>{{
+                'budget.forecastAmountRequired' | transloco
+              }}</mat-error>
             }
             @if (
               form.get('amount')?.hasError('min') && form.get('amount')?.touched
             ) {
-              <mat-error>Le montant doit être supérieur à 0</mat-error>
+              <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
             }
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Type</mat-label>
+            <mat-label>{{ 'budget.forecastTypeLabel' | transloco }}</mat-label>
             <mat-select formControlName="kind" data-testid="edit-line-kind">
               <mat-option value="income">
                 <mat-icon class="text-financial-income">{{
@@ -116,7 +149,9 @@ export interface EditBudgetLineDialogData {
               form.get('kind')?.hasError('required') &&
               form.get('kind')?.touched
             ) {
-              <mat-error>Le type est requis</mat-error>
+              <mat-error>{{
+                'budget.forecastTypeRequired' | transloco
+              }}</mat-error>
             }
           </mat-form-field>
         </form>
@@ -125,7 +160,7 @@ export interface EditBudgetLineDialogData {
 
     <mat-dialog-actions align="end">
       <button matButton (click)="handleCancel()" data-testid="cancel-edit-line">
-        Annuler
+        {{ 'common.cancel' | transloco }}
       </button>
       <button
         matButton="filled"
@@ -135,7 +170,7 @@ export interface EditBudgetLineDialogData {
         data-testid="save-edit-line"
       >
         <mat-icon>save</mat-icon>
-        Enregistrer
+        {{ 'common.save' | transloco }}
       </button>
     </mat-dialog-actions>
   `,
@@ -145,6 +180,12 @@ export class EditBudgetLineDialog {
   readonly #dialogRef = inject(MatDialogRef<EditBudgetLineDialog>);
   readonly #data = inject<EditBudgetLineDialogData>(MAT_DIALOG_DATA);
   readonly #fb = inject(FormBuilder);
+  readonly #converter = inject(CurrencyConverterService);
+  readonly #userSettings = inject(UserSettingsStore);
+  protected readonly currency = this.#userSettings.currency;
+  protected readonly showCurrencySelector =
+    this.#userSettings.showCurrencySelector;
+  protected readonly inputCurrency = signal<SupportedCurrency>(this.currency());
 
   readonly form = this.#fb.group({
     name: [
@@ -162,18 +203,26 @@ export class EditBudgetLineDialog {
     ],
   });
 
-  handleSubmit(): void {
+  async handleSubmit(): Promise<void> {
     if (!this.form.valid) return;
     const value = this.form.value;
+    const { convertedAmount, metadata } =
+      await this.#converter.convertWithMetadata(
+        value.amount!,
+        this.inputCurrency(),
+        this.currency(),
+      );
+
     const update: BudgetLineUpdate = {
       id: this.#data.budgetLine.id,
       name: value.name!.trim(),
-      amount: value.amount!,
+      amount: convertedAmount,
       kind: value.kind!,
       recurrence: value.recurrence!,
       templateLineId: this.#data.budgetLine.templateLineId,
       savingsGoalId: this.#data.budgetLine.savingsGoalId,
       isManuallyAdjusted: true,
+      ...metadata,
     };
     this.#dialogRef.close(update);
   }

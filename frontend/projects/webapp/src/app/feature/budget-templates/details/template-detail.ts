@@ -23,6 +23,7 @@ import {
   type TemplateLine,
   type TemplateLinesPropagationSummary,
 } from 'pulpe-shared';
+import { UserSettingsApi } from '@core/user-settings/user-settings-api';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { BaseLoading } from '@ui/loading';
 import { TransactionLabelPipe } from '@ui/transaction-display';
@@ -179,7 +180,9 @@ import { TemplateDetailsStore } from './services/template-details-store';
                 [class.text-on-error-container]="!isPositiveBalance()"
               >
                 {{ absNetBalance() | number: '1.0-0' : 'de-CH' }}
-                <span class="text-headline-small font-normal">CHF</span>
+                <span class="text-headline-small font-normal">{{
+                  currency()
+                }}</span>
               </div>
             </div>
 
@@ -208,7 +211,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
                       "
                     >
                       {{ pill.amount | number: '1.0-0' : 'de-CH' }}
-                      CHF
+                      {{ currency() }}
                     </span>
                   </div>
                 </div>
@@ -256,6 +259,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
 export default class TemplateDetail implements OnInit {
   protected readonly templateDetailsStore = inject(TemplateDetailsStore);
   readonly #budgetTemplatesStore = inject(BudgetTemplatesStore);
+  protected readonly currency = inject(UserSettingsStore).currency;
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);
   readonly #titleStrategy = inject(PulpeTitleStrategy);

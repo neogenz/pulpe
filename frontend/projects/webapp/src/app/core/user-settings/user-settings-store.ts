@@ -37,6 +37,12 @@ export class UserSettingsStore {
     () => this.settings()?.payDayOfMonth ?? null,
   );
 
+  readonly currency = computed(() => this.settings()?.currency ?? 'CHF');
+
+  readonly showCurrencySelector = computed(
+    () => this.settings()?.showCurrencySelector ?? false,
+  );
+
   readonly isLoading = this.#settingsResource.isInitialLoading;
 
   readonly error = this.#settingsResource.error;

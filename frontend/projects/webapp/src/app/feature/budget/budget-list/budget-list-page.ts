@@ -38,6 +38,8 @@ import {
 } from '@core/product-tour/product-tour.service';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
+import { CURRENCY_CONFIG } from '@core/currency';
+import { UserSettingsStore } from '@core/user-settings';
 
 @Component({
   selector: 'pulpe-budget-list',
@@ -138,6 +140,8 @@ import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
             <mat-tab [label]="budgetsOfYear.year.toString()">
               <pulpe-year-calendar
                 [calendarYear]="budgetsOfYear"
+                [currency]="currency()"
+                [locale]="currencyLocale()"
                 [currentDate]="state.currentDate()"
                 (monthClick)="navigateToDetails($event)"
                 (createMonth)="onCreateMonth($event)"
@@ -168,7 +172,12 @@ export default class BudgetListPage {
   readonly #destroyRef = inject(DestroyRef);
   readonly #excelExportService = inject(ExcelExportService);
   readonly #transloco = inject(TranslocoService);
+  readonly #userSettingsStore = inject(UserSettingsStore);
 
+  protected readonly currency = this.#userSettingsStore.currency;
+  protected readonly currencyLocale = computed(
+    () => CURRENCY_CONFIG[this.currency()].locale,
+  );
   protected readonly isExporting = signal(false);
   protected readonly isExportingExcel = signal(false);
 

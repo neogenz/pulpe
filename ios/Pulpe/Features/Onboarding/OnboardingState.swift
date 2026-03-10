@@ -7,6 +7,7 @@ final class OnboardingState {
     // MARK: - Data
 
     var firstName: String = ""
+    var currency: String = "CHF"
     var monthlyIncome: Decimal?
     var housingCosts: Decimal?
     var healthInsurance: Decimal?
@@ -156,6 +157,7 @@ final class OnboardingState {
     func saveToStorage() {
         let data = OnboardingStorageData(
             firstName: firstName,
+            currency: currency,
             currentStep: currentStep.rawValue
         )
 
@@ -171,6 +173,7 @@ final class OnboardingState {
         }
 
         firstName = decoded.firstName
+        currency = decoded.currency ?? "CHF"
 
         if let step = OnboardingStep(rawValue: decoded.currentStep) {
             currentStep = step
@@ -281,5 +284,6 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
 
 private struct OnboardingStorageData: Codable {
     let firstName: String
+    let currency: String?
     let currentStep: String
 }
