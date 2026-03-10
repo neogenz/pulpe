@@ -215,6 +215,7 @@ struct HeroBalanceCard: View {
         return "equal.circle"
     }
 
+    @ViewBuilder
     private func rolloverFooter(amount: Decimal) -> some View {
         let pill = HStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: rolloverIcon)
@@ -241,15 +242,14 @@ struct HeroBalanceCard: View {
         .contentShape(Capsule())
         .heroGlassBackground(tint: glassTintColor, shape: .capsule)
 
-        return Group {
-            if let onRolloverTap {
-                Button(action: onRolloverTap) { pill }
-                    .buttonStyle(.plain)
-            } else {
-                pill
-            }
+        if let onRolloverTap {
+            Button(action: onRolloverTap) { pill }
+                .buttonStyle(.plain)
+                .padding(.top, DesignTokens.Spacing.md)
+        } else {
+            pill
+                .padding(.top, DesignTokens.Spacing.md)
         }
-        .padding(.top, DesignTokens.Spacing.md)
     }
 
     // MARK: - Chart Button

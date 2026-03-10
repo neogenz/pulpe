@@ -619,7 +619,12 @@ jobs:
             echo "❌ Test failures detected (✘ found in output)"
             exit 1
           elif grep -q '✔' test-output.log && ! grep -q '✘' test-output.log; then
-            echo "⚠️ xcodebuild hung before writing summary, but all executed tests passed (no ✘ found)"
+            PASS_COUNT=$(grep -c '✔' test-output.log || echo 0)
+            echo "⚠️ xcodebuild hung before writing summary — ${PASS_COUNT} tests passed, no failures detected"
+            if [ "$PASS_COUNT" -lt 50 ]; then
+              echo "❌ Too few tests passed (${PASS_COUNT}) — likely hung before completing suite"
+              exit 1
+            fi
             exit 0
           else
             echo "⚠️ Could not determine test outcome"

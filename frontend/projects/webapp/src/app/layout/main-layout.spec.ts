@@ -106,6 +106,8 @@ describe('MainLayout', () => {
   let mockAuthStateService: {
     signOut: ReturnType<typeof vi.fn>;
     authState: ReturnType<typeof vi.fn>;
+    user: ReturnType<typeof signal<{ email: string } | null>>;
+    isEarlyAdopter: ReturnType<typeof signal<boolean>>;
   };
   let mockAuthSessionService: {
     signOut: ReturnType<typeof vi.fn>;
@@ -156,6 +158,8 @@ describe('MainLayout', () => {
         isLoading: false,
         isAuthenticated: true,
       }),
+      user: signal<{ email: string } | null>({ email: 'test@example.com' }),
+      isEarlyAdopter: signal(false),
     };
     mockAuthSessionService = {
       signOut: vi.fn().mockResolvedValue(undefined),
