@@ -7,6 +7,7 @@ import type { BudgetLineConsumption } from '@core/budget/budget-line-consumption
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { setTestInput } from '../../../testing/signal-test-utils';
 import { StubFinancialKindDirective } from '../../../testing/stub-directives';
+import { provideTranslocoForTest } from '../../../testing/transloco-testing';
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
 
@@ -36,7 +37,10 @@ describe('DashboardUncheckedForecasts', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [DashboardUncheckedForecasts],
-      providers: [provideZonelessChangeDetection()],
+      providers: [
+        provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
+      ],
     })
       .overrideComponent(DashboardUncheckedForecasts, {
         remove: { imports: [FinancialKindDirective] },
