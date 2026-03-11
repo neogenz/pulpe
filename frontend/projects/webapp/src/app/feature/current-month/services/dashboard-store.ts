@@ -1,10 +1,12 @@
 import {
   computed,
+  effect,
   inject,
   Injectable,
   InjectionToken,
   resource,
   signal,
+  untracked,
 } from '@angular/core';
 import {
   BudgetApi,
@@ -278,9 +280,33 @@ export class DashboardStore {
   );
 
   // ── 5. Mutations ──
+  constructor() {
+    effect(() => {
+      const lines = this.budgetLines();
+      const pending = this.#pendingChecks();
+      if (pending.size === 0) return;
+
+      const confirmed = new Set(
+        [...pending].filter((id) => {
+          const line = lines.find((l) => l.id === id);
+          return line?.checkedAt !== null;
+        }),
+      );
+
+      if (confirmed.size > 0) {
+        untracked(() => {
+          this.#pendingChecks.update((s) => {
+            const next = new Set(s);
+            confirmed.forEach((id) => next.delete(id));
+            return next;
+          });
+        });
+      }
+    });
+  }
+
   refreshData(): void {
     if (!this.#dashboardResource.isLoading()) {
-      this.#pendingChecks.set(new Set());
       this.#dashboardResource.reload();
     }
     if (!this.#historyResource.isLoading()) {
@@ -311,10 +337,6 @@ export class DashboardStore {
       await firstValueFrom(
         this.#budgetApi.toggleBudgetLineCheck$(budgetLineId),
       );
-      // Item stays in pendingChecks until resource reloads with checkedAt !== null.
-      // Can't clean here — tap() already bumped version, resource is loading,
-      // and removing from pendingChecks would cause flicker (see PUL-84).
-      // Cleanup happens on refreshData() or store destruction.
     } catch (error) {
       this.#pendingChecks.update((s) => {
         const next = new Set(s);
@@ -331,17 +353,18 @@ export class DashboardStore {
     budgetLineId: string,
     checkedAt: string | null,
   ): void {
+    let patched: DashboardData | undefined;
     this.#dashboardResource.update((data) => {
       if (!data) return data;
-      return {
+      patched = {
         ...data,
         budgetLines: data.budgetLines.map((line) =>
           line.id === budgetLineId ? { ...line, checkedAt } : line,
         ),
       };
+      return patched;
     });
-    const current = this.#dashboardResource.value();
-    if (current) this.#syncDashboardCache(current);
+    if (patched) this.#syncDashboardCache(patched);
   }
 
   #syncDashboardCache(data: DashboardData): void {

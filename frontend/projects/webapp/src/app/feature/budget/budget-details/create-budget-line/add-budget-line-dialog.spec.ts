@@ -35,14 +35,14 @@ describe('AddBudgetLineDialog', () => {
 
   describe('submit', () => {
     it('should close with budget line data when form is valid', () => {
-      component.form.patchValue({
+      component['form'].patchValue({
         name: 'Loyer',
         amount: 1200,
         kind: 'expense',
         recurrence: 'fixed',
       });
 
-      component.handleSubmit();
+      component['submit']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -57,20 +57,20 @@ describe('AddBudgetLineDialog', () => {
     });
 
     it('should not close when form is invalid', () => {
-      component.form.patchValue({ name: '', amount: null });
+      component['form'].patchValue({ name: '', amount: null });
 
-      component.handleSubmit();
+      component['submit']();
 
       expect(mockDialogRef.close).not.toHaveBeenCalled();
     });
 
     it('should trim whitespace from name', () => {
-      component.form.patchValue({
+      component['form'].patchValue({
         name: '  Assurance  ',
         amount: 385,
       });
 
-      component.handleSubmit();
+      component['submit']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'Assurance' }),
@@ -80,9 +80,9 @@ describe('AddBudgetLineDialog', () => {
 
   describe('checked toggle', () => {
     it('should set checkedAt to null by default', () => {
-      component.form.patchValue({ name: 'Test', amount: 10 });
+      component['form'].patchValue({ name: 'Test', amount: 10 });
 
-      component.handleSubmit();
+      component['submit']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({ checkedAt: null }),
@@ -90,13 +90,13 @@ describe('AddBudgetLineDialog', () => {
     });
 
     it('should set checkedAt to ISO string when isChecked is true', () => {
-      component.form.patchValue({
+      component['form'].patchValue({
         name: 'Test',
         amount: 10,
         isChecked: true,
       });
 
-      component.handleSubmit();
+      component['submit']();
 
       const callArg = mockDialogRef.close.mock.calls[0][0];
       expect(callArg.checkedAt).toBeDefined();
@@ -107,7 +107,7 @@ describe('AddBudgetLineDialog', () => {
 
   describe('cancel', () => {
     it('should close without data', () => {
-      component.handleCancel();
+      component['cancel']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith();
     });

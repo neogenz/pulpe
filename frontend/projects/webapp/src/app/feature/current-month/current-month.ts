@@ -28,10 +28,12 @@ import {
   ProductTourService,
   TOUR_START_DELAY,
 } from '@core/product-tour/product-tour.service';
-import { type TransactionCreate } from 'pulpe-shared';
 import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
-import { AddTransactionBottomSheet } from './components/add-transaction-bottom-sheet';
+import {
+  AddTransactionBottomSheet,
+  type TransactionFormData,
+} from './components/add-transaction-bottom-sheet';
 import { DashboardError } from './components/dashboard-error';
 import { DashboardStore } from './services/dashboard-store';
 
@@ -42,11 +44,6 @@ import { DashboardFutureProjectionChart } from './components/dashboard-future-pr
 import { DashboardRecentTransactions } from './components/dashboard-recent-transactions';
 import { DashboardSavingsSummary } from './components/dashboard-savings-summary';
 import { DashboardNextMonth } from './components/dashboard-next-month';
-
-type TransactionFormData = Pick<
-  TransactionCreate,
-  'name' | 'amount' | 'kind' | 'category' | 'checkedAt'
->;
 
 @Component({
   selector: 'pulpe-dashboard',

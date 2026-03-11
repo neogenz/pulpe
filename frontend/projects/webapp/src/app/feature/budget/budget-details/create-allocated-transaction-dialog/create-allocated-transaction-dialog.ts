@@ -163,7 +163,8 @@ export interface CreateAllocatedTransactionDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateAllocatedTransactionDialog {
-  readonly data = inject<CreateAllocatedTransactionDialogData>(MAT_DIALOG_DATA);
+  protected readonly data =
+    inject<CreateAllocatedTransactionDialogData>(MAT_DIALOG_DATA);
   readonly #dialogRef = inject(
     MatDialogRef<CreateAllocatedTransactionDialog, TransactionCreate>,
   );
@@ -174,10 +175,10 @@ export class CreateAllocatedTransactionDialog {
     this.data.budgetYear,
     this.data.payDayOfMonth,
   );
-  readonly minDate = this.#dateConstraints.minDate;
-  readonly maxDate = this.#dateConstraints.maxDate;
+  protected readonly minDate = this.#dateConstraints.minDate;
+  protected readonly maxDate = this.#dateConstraints.maxDate;
 
-  readonly form = this.#fb.group({
+  protected readonly form = this.#fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
     amount: [
       null as number | null,
@@ -193,11 +194,11 @@ export class CreateAllocatedTransactionDialog {
     isChecked: [false],
   });
 
-  cancel(): void {
+  protected cancel(): void {
     this.#dialogRef.close();
   }
 
-  submit(): void {
+  protected submit(): void {
     if (this.form.invalid) return;
 
     const formValue = this.form.getRawValue();

@@ -184,7 +184,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateAllocatedTransactionBottomSheet {
-  readonly data = inject<CreateAllocatedTransactionDialogData>(
+  protected readonly data = inject<CreateAllocatedTransactionDialogData>(
     MAT_BOTTOM_SHEET_DATA,
   );
   readonly #bottomSheetRef = inject(
@@ -197,10 +197,10 @@ export class CreateAllocatedTransactionBottomSheet {
     this.data.budgetYear,
     this.data.payDayOfMonth,
   );
-  readonly minDate = this.#dateConstraints.minDate;
-  readonly maxDate = this.#dateConstraints.maxDate;
+  protected readonly minDate = this.#dateConstraints.minDate;
+  protected readonly maxDate = this.#dateConstraints.maxDate;
 
-  readonly form = this.#fb.group({
+  protected readonly form = this.#fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
     amount: [
       null as number | null,
@@ -216,11 +216,11 @@ export class CreateAllocatedTransactionBottomSheet {
     isChecked: [false],
   });
 
-  close(): void {
+  protected close(): void {
     this.#bottomSheetRef.dismiss();
   }
 
-  submit(): void {
+  protected submit(): void {
     if (this.form.invalid) return;
 
     const formValue = this.form.getRawValue();

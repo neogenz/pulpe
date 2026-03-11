@@ -112,13 +112,13 @@ export interface BudgetLineDialogData {
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button matButton (click)="handleCancel()" data-testid="cancel-new-line">
+      <button matButton (click)="cancel()" data-testid="cancel-new-line">
         {{ 'common.cancel' | transloco }}
       </button>
       <button
         matButton="filled"
         color="primary"
-        (click)="handleSubmit()"
+        (click)="submit()"
         [disabled]="!form.valid"
         data-testid="add-new-line"
       >
@@ -134,7 +134,7 @@ export class AddBudgetLineDialog {
   readonly #data = inject<BudgetLineDialogData>(MAT_DIALOG_DATA);
   readonly #fb = inject(FormBuilder);
 
-  readonly form = this.#fb.group({
+  protected readonly form = this.#fb.group({
     name: ['', [Validators.required, Validators.minLength(1)]],
     amount: [
       null as number | null,
@@ -145,7 +145,7 @@ export class AddBudgetLineDialog {
     isChecked: [false],
   });
 
-  handleSubmit(): void {
+  protected submit(): void {
     if (this.form.valid) {
       const value = this.form.getRawValue();
       const budgetLine: BudgetLineCreate = {
@@ -161,7 +161,7 @@ export class AddBudgetLineDialog {
     }
   }
 
-  handleCancel(): void {
+  protected cancel(): void {
     this.#dialogRef.close();
   }
 }

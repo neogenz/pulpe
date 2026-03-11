@@ -1,5 +1,5 @@
 import {
-  type AfterViewInit,
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   type ElementRef,
@@ -25,7 +25,7 @@ import type { TransactionCreate } from 'pulpe-shared';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { TransactionLabelPipe } from '@pattern/transaction-display';
 
-type TransactionFormData = Pick<
+export type TransactionFormData = Pick<
   TransactionCreate,
   'name' | 'amount' | 'kind' | 'category' | 'checkedAt'
 >;
@@ -272,7 +272,7 @@ import { TransactionValidators } from '@core/transaction';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AddTransactionBottomSheet implements AfterViewInit {
+export class AddTransactionBottomSheet {
   readonly #fb = inject(FormBuilder);
   readonly #bottomSheetRef = inject(
     MatBottomSheetRef<AddTransactionBottomSheet>,
@@ -287,8 +287,8 @@ export class AddTransactionBottomSheet implements AfterViewInit {
   protected readonly predefinedAmounts = signal([10, 15, 20, 30]);
 
   // Reactive form with shared validators for consistency
-  readonly transactionForm: FormGroup<TransactionFormControls> = this.#fb.group(
-    {
+  protected readonly transactionForm: FormGroup<TransactionFormControls> =
+    this.#fb.group({
       name: new FormControl<string | null>(
         this.#transloco.translate('currentMonth.addTransactionDefaultName'),
         [...TransactionValidators.name],
@@ -304,14 +304,12 @@ export class AddTransactionBottomSheet implements AfterViewInit {
         ...TransactionValidators.category,
       ]),
       isChecked: new FormControl<boolean>(true, { nonNullable: true }),
-    },
-  );
+    });
 
-  ngAfterViewInit(): void {
-    // Auto-focus on amount field for immediate input
-    setTimeout(() => {
+  constructor() {
+    afterNextRender(() => {
       this.amountInput()?.nativeElement?.focus();
-    }, 200);
+    });
   }
 
   protected selectPredefinedAmount(amount: number): void {
@@ -326,16 +324,10 @@ export class AddTransactionBottomSheet implements AfterViewInit {
 
     const formValue = this.transactionForm.value;
 
-    // Explicit validation for required fields
-    if (!formValue.name || !formValue.amount || !formValue.kind) {
-      this.transactionForm.markAllAsTouched();
-      return;
-    }
-
     const transaction: TransactionFormData = {
-      name: formValue.name,
-      amount: Math.abs(formValue.amount),
-      kind: formValue.kind,
+      name: formValue.name!,
+      amount: Math.abs(formValue.amount!),
+      kind: formValue.kind!,
       category: formValue.category || null,
       checkedAt: formValue.isChecked ? new Date().toISOString() : null,
     };

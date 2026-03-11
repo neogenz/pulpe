@@ -63,13 +63,13 @@ describe('CreateAllocatedTransactionDialog', () => {
         new Date().getMonth(),
         15,
       );
-      component.form.patchValue({
+      component['form'].patchValue({
         name: 'Consultation médecin',
         amount: 45.5,
         transactionDate: midMonth,
       });
 
-      component.submit();
+      component['submit']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -84,9 +84,9 @@ describe('CreateAllocatedTransactionDialog', () => {
     });
 
     it('should not close when form is invalid', () => {
-      component.form.patchValue({ name: '', amount: null });
+      component['form'].patchValue({ name: '', amount: null });
 
-      component.submit();
+      component['submit']();
 
       expect(mockDialogRef.close).not.toHaveBeenCalled();
     });
@@ -97,13 +97,13 @@ describe('CreateAllocatedTransactionDialog', () => {
         new Date().getMonth(),
         15,
       );
-      component.form.patchValue({
+      component['form'].patchValue({
         name: '  Courses  ',
         amount: 20,
         transactionDate: midMonth,
       });
 
-      component.submit();
+      component['submit']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'Courses' }),
@@ -116,13 +116,13 @@ describe('CreateAllocatedTransactionDialog', () => {
         new Date().getMonth(),
         15,
       );
-      component.form.patchValue({
+      component['form'].patchValue({
         name: 'Test',
         amount: 42.5,
         transactionDate: midMonth,
       });
 
-      component.submit();
+      component['submit']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({ amount: 42.5 }),
@@ -132,7 +132,7 @@ describe('CreateAllocatedTransactionDialog', () => {
 
   describe('cancel', () => {
     it('should close without data', () => {
-      component.cancel();
+      component['cancel']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith();
     });
@@ -140,41 +140,41 @@ describe('CreateAllocatedTransactionDialog', () => {
 
   describe('form validation', () => {
     it('should require name', () => {
-      component.form.get('name')?.setValue('');
+      component['form'].get('name')?.setValue('');
 
-      expect(component.form.get('name')?.hasError('required')).toBe(true);
+      expect(component['form'].get('name')?.hasError('required')).toBe(true);
     });
 
     it('should enforce max length on name', () => {
-      component.form.get('name')?.setValue('a'.repeat(101));
+      component['form'].get('name')?.setValue('a'.repeat(101));
 
-      expect(component.form.get('name')?.hasError('maxlength')).toBe(true);
+      expect(component['form'].get('name')?.hasError('maxlength')).toBe(true);
     });
 
     it('should require amount', () => {
-      component.form.get('amount')?.setValue(null);
+      component['form'].get('amount')?.setValue(null);
 
-      expect(component.form.get('amount')?.hasError('required')).toBe(true);
+      expect(component['form'].get('amount')?.hasError('required')).toBe(true);
     });
 
     it('should reject amount below 0.01', () => {
-      component.form.get('amount')?.setValue(0);
+      component['form'].get('amount')?.setValue(0);
 
-      expect(component.form.get('amount')?.hasError('min')).toBe(true);
+      expect(component['form'].get('amount')?.hasError('min')).toBe(true);
     });
 
     it('should reject negative amount', () => {
-      component.form.get('amount')?.setValue(-50);
+      component['form'].get('amount')?.setValue(-50);
 
-      expect(component.form.get('amount')?.hasError('min')).toBe(true);
+      expect(component['form'].get('amount')?.hasError('min')).toBe(true);
     });
 
     it('should require transaction date', () => {
-      component.form.get('transactionDate')?.setValue(null);
+      component['form'].get('transactionDate')?.setValue(null);
 
-      expect(component.form.get('transactionDate')?.hasError('required')).toBe(
-        true,
-      );
+      expect(
+        component['form'].get('transactionDate')?.hasError('required'),
+      ).toBe(true);
     });
   });
 
@@ -185,13 +185,13 @@ describe('CreateAllocatedTransactionDialog', () => {
         new Date().getMonth(),
         15,
       );
-      component.form.patchValue({
+      component['form'].patchValue({
         name: 'Test',
         amount: 10,
         transactionDate: midMonth,
       });
 
-      component.submit();
+      component['submit']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({ checkedAt: null }),
@@ -204,14 +204,14 @@ describe('CreateAllocatedTransactionDialog', () => {
         new Date().getMonth(),
         15,
       );
-      component.form.patchValue({
+      component['form'].patchValue({
         name: 'Test',
         amount: 10,
         transactionDate: midMonth,
         isChecked: true,
       });
 
-      component.submit();
+      component['submit']();
 
       const callArg = mockDialogRef.close.mock.calls[0][0];
       expect(callArg.checkedAt).toBeDefined();

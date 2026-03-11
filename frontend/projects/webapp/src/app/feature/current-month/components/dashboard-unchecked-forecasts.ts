@@ -40,17 +40,22 @@ const MAX_VISIBLE_FORECASTS = 5;
             <h2
               class="text-title-medium font-bold text-on-surface leading-tight"
             >
-              Prévisions non pointées
+              {{ 'currentMonth.uncheckedForecasts.title' | transloco }}
             </h2>
             <p
               class="text-body-small text-on-surface-variant font-medium mt-0.5"
             >
-              Sur le mois courant ({{ forecasts().length }})
+              {{
+                'currentMonth.uncheckedForecasts.count'
+                  | transloco: { count: forecasts().length }
+              }}
             </p>
           </div>
         </div>
         @if (hasMore()) {
-          <button matButton (click)="viewBudget.emit()">Voir tout</button>
+          <button matButton (click)="viewBudget.emit()">
+            {{ 'common.viewAll' | transloco }}
+          </button>
         }
       </div>
 
@@ -65,17 +70,14 @@ const MAX_VISIBLE_FORECASTS = 5;
                 class="relative overflow-hidden flex items-center gap-3 p-3 rounded-2xl hover:bg-on-surface/8 motion-safe:transition-colors"
               >
                 <button
-                  class="flex-shrink-0 flex items-center justify-center w-10 h-10 -m-2 rounded-full cursor-pointer"
+                  class="flex-shrink-0 flex items-center justify-center w-11 h-11 -m-2 rounded-full cursor-pointer"
                   matRipple
                   [matRippleCentered]="true"
                   (click)="toggleCheck.emit(forecast.id)"
                   [attr.aria-label]="
-                    ('budget.forecastCheckedToggle' | transloco) +
-                    ' ' +
-                    forecast.name +
-                    ' — ' +
-                    displayAmount +
-                    ' CHF'
+                    'currentMonth.uncheckedForecasts.toggleAriaLabel'
+                      | transloco
+                        : { name: forecast.name, amount: displayAmount }
                   "
                 >
                   <mat-icon
@@ -112,10 +114,12 @@ const MAX_VISIBLE_FORECASTS = 5;
               >
             </div>
             <h3 class="text-title-medium font-medium text-on-surface-variant">
-              Tout est à jour !
+              {{ 'dashboard.allUpToDate' | transloco }}
             </h3>
             <p class="text-body-medium text-on-surface-variant">
-              Tu as pointé toutes tes prévisions pour ce mois.
+              {{
+                'currentMonth.uncheckedForecasts.allCheckedMessage' | transloco
+              }}
             </p>
           </div>
         }

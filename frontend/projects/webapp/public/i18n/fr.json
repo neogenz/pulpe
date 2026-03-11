@@ -23,7 +23,8 @@
     "no": "Non",
     "somethingWentWrong": "Quelque chose n'a pas fonctionné — réessaie",
     "formErrors": "Quelques champs à vérifier avant de continuer",
-    "networkError": "Erreur réseau — vérifie ta connexion"
+    "networkError": "Erreur réseau — vérifie ta connexion",
+    "viewAll": "Voir tout"
   },
   "navigation": {
     "dashboard": "Tableau de bord",
@@ -610,7 +611,13 @@
     "nextMonthTitle": "Mois prochain",
     "nextMonthEstimatedRollover": "Budget anticipé — report estimé :",
     "nextMonthNoBudget": "Pas encore de budget pour {{ month }}",
-    "nextMonthAnticipate": "Anticiper le mois prochain"
+    "nextMonthAnticipate": "Anticiper le mois prochain",
+    "uncheckedForecasts": {
+      "title": "Prévisions non pointées",
+      "count": "Sur le mois courant ({{ count }})",
+      "allCheckedMessage": "Tu as pointé toutes tes prévisions pour ce mois.",
+      "toggleAriaLabel": "Pointer {{ name }} — {{ amount }} CHF"
+    }
   },
   "completeProfile": {
     "loading": "Préparation de ton espace de liberté...",
