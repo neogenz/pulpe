@@ -1,5 +1,4 @@
 import {
-  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   type ElementRef,
@@ -307,7 +306,7 @@ export class AddTransactionBottomSheet {
     });
 
   constructor() {
-    afterNextRender(() => {
+    this.#bottomSheetRef.afterOpened().subscribe(() => {
       this.amountInput()?.nativeElement?.focus();
     });
   }
