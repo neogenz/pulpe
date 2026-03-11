@@ -279,8 +279,8 @@ export class DashboardStore {
 
   // ── 5. Mutations ──
   refreshData(): void {
-    this.#pendingChecks.set(new Set());
     if (!this.#dashboardResource.isLoading()) {
+      this.#pendingChecks.set(new Set());
       this.#dashboardResource.reload();
     }
     if (!this.#historyResource.isLoading()) {

@@ -334,7 +334,7 @@ export class AddTransactionBottomSheet implements AfterViewInit {
 
     const transaction: TransactionFormData = {
       name: formValue.name,
-      amount: formValue.amount,
+      amount: Math.abs(formValue.amount),
       kind: formValue.kind,
       category: formValue.category || null,
       checkedAt: formValue.isChecked ? new Date().toISOString() : null,

@@ -9,6 +9,7 @@ import { DecimalPipe } from '@angular/common';
 import { MatRipple } from '@angular/material/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import type { BudgetLineConsumption } from '@core/budget/budget-line-consumption';
 import type { BudgetLine } from 'pulpe-shared';
@@ -23,6 +24,7 @@ const MAX_VISIBLE_FORECASTS = 5;
     MatIconModule,
     DecimalPipe,
     FinancialKindDirective,
+    TranslocoPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -68,7 +70,12 @@ const MAX_VISIBLE_FORECASTS = 5;
                   [matRippleCentered]="true"
                   (click)="toggleCheck.emit(forecast.id)"
                   [attr.aria-label]="
-                    'Pointer ' + forecast.name + ' — ' + displayAmount + ' CHF'
+                    ('currentMonth.forecastCheckedToggle' | transloco) +
+                    ' ' +
+                    forecast.name +
+                    ' — ' +
+                    displayAmount +
+                    ' CHF'
                   "
                 >
                   <mat-icon
