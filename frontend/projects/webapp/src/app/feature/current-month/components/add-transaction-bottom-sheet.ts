@@ -303,7 +303,7 @@ export class AddTransactionBottomSheet implements AfterViewInit {
       category: new FormControl<string | null>('', [
         ...TransactionValidators.category,
       ]),
-      isChecked: new FormControl<boolean>(false, { nonNullable: true }),
+      isChecked: new FormControl<boolean>(true, { nonNullable: true }),
     },
   );
 
