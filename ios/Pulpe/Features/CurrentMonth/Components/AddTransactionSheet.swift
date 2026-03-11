@@ -11,7 +11,7 @@ struct AddTransactionSheet: View {
     @State private var amount: Decimal?
     @State private var kind: TransactionKind = .expense
     @State private var transactionDate = Date()
-    @State private var isChecked = false
+    @State private var isChecked = true
     @State private var isLoading = false
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
