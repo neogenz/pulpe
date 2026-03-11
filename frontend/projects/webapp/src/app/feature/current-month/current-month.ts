@@ -136,7 +136,8 @@ type TransactionFormData = Pick<
               class="order-1 lg:order-2"
               [forecasts]="store.uncheckedForecasts()"
               [consumptions]="store.consumptions()"
-              (toggleCheck)="toggleBudgetLineCheck($event)"
+              [checkingIds]="store.pendingChecks()"
+              (toggleCheck)="checkBudgetLine($event)"
               (viewBudget)="navigateToBudgetDetails()"
               data-testid="dashboard-block-forecasts"
             />
@@ -335,11 +336,11 @@ export default class Dashboard {
     this.#router.navigate(['/', ROUTES.BUDGET]);
   }
 
-  protected async toggleBudgetLineCheck(budgetLineId: string): Promise<void> {
+  protected async checkBudgetLine(budgetLineId: string): Promise<void> {
     try {
-      await this.store.toggleBudgetLineCheck(budgetLineId);
+      await this.store.checkBudgetLine(budgetLineId);
     } catch (error) {
-      this.#logger.error('Error toggling budget line check:', error);
+      this.#logger.error('Error checking budget line:', error);
       this.#snackBar.open(
         this.#transloco.translate('currentMonth.updateError'),
         this.#transloco.translate('currentMonth.close'),

@@ -6,7 +6,6 @@ import {
   output,
 } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatRipple } from '@angular/material/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -20,7 +19,6 @@ const MAX_VISIBLE_FORECASTS = 5;
   selector: 'pulpe-dashboard-unchecked-forecasts',
   imports: [
     MatButtonModule,
-    MatCheckboxModule,
     MatRipple,
     MatIconModule,
     DecimalPipe,
@@ -60,36 +58,33 @@ const MAX_VISIBLE_FORECASTS = 5;
             @for (forecast of displayedForecasts(); track forecast.id) {
               @let displayAmount =
                 consumptions().get(forecast.id)?.remaining ?? forecast.amount;
+              @let isChecking = checkingIds().has(forecast.id);
               <div
-                class="relative overflow-hidden flex items-center justify-between p-3 rounded-2xl hover:bg-on-surface/8 motion-safe:transition-colors cursor-pointer"
-                matRipple
-                (click)="toggleCheck.emit(forecast.id)"
-                (keydown.enter)="toggleCheck.emit(forecast.id)"
-                (keydown.space)="
-                  toggleCheck.emit(forecast.id); $event.preventDefault()
-                "
-                tabindex="0"
-                role="checkbox"
-                [attr.aria-checked]="false"
-                [attr.aria-label]="
-                  forecast.name + ' — ' + displayAmount + ' CHF'
-                "
+                class="relative overflow-hidden flex items-center gap-3 p-3 rounded-2xl hover:bg-on-surface/8 motion-safe:transition-colors"
               >
-                <mat-checkbox
-                  [checked]="false"
-                  class="flex-1 min-w-0"
-                  color="primary"
-                  (click)="$event.stopPropagation()"
-                  (change)="toggleCheck.emit(forecast.id)"
+                <button
+                  class="flex-shrink-0 flex items-center justify-center w-10 h-10 -m-2 rounded-full cursor-pointer"
+                  matRipple
+                  [matRippleCentered]="true"
+                  (click)="toggleCheck.emit(forecast.id)"
+                  [attr.aria-label]="
+                    'Pointer ' + forecast.name + ' — ' + displayAmount + ' CHF'
+                  "
                 >
-                  <span
-                    class="text-body-medium font-bold text-on-surface truncate block ml-1 ph-no-capture"
+                  <mat-icon
+                    [class.text-primary]="isChecking"
+                    aria-hidden="true"
                   >
-                    {{ forecast.name }}
-                  </span>
-                </mat-checkbox>
+                    {{ isChecking ? 'check_circle' : 'radio_button_unchecked' }}
+                  </mat-icon>
+                </button>
                 <span
-                  class="text-label-large whitespace-nowrap ml-4 font-semibold tabular-nums ph-no-capture"
+                  class="text-body-medium font-bold text-on-surface truncate flex-1 min-w-0 ph-no-capture"
+                >
+                  {{ forecast.name }}
+                </span>
+                <span
+                  class="text-label-large whitespace-nowrap font-semibold tabular-nums ph-no-capture"
                   [pulpeFinancialKind]="forecast.kind"
                 >
                   {{ displayAmount | number: '1.2-2' : 'de-CH' }}
@@ -129,6 +124,7 @@ const MAX_VISIBLE_FORECASTS = 5;
 export class DashboardUncheckedForecasts {
   readonly forecasts = input.required<BudgetLine[]>();
   readonly consumptions = input(new Map<string, BudgetLineConsumption>());
+  readonly checkingIds = input(new Set<string>());
   readonly toggleCheck = output<string>();
   readonly viewBudget = output<void>();
 
