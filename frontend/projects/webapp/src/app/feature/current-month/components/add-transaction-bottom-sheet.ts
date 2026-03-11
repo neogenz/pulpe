@@ -22,6 +22,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import type { TransactionCreate } from 'pulpe-shared';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { TransactionValidators } from '@core/transaction';
 import { TransactionLabelPipe } from '@pattern/transaction-display';
 
 export type TransactionFormData = Pick<
@@ -37,8 +38,6 @@ interface TransactionFormControls {
   category: FormControl<string | null>;
   isChecked: FormControl<boolean>;
 }
-
-import { TransactionValidators } from '@core/transaction';
 
 @Component({
   selector: 'pulpe-add-transaction-bottom-sheet',
