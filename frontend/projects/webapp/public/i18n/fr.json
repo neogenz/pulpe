@@ -23,7 +23,8 @@
     "no": "Non",
     "somethingWentWrong": "Quelque chose n'a pas fonctionné — réessaie",
     "formErrors": "Quelques champs à vérifier avant de continuer",
-    "networkError": "Erreur réseau — vérifie ta connexion"
+    "networkError": "Erreur réseau — vérifie ta connexion",
+    "viewAll": "Voir tout"
   },
   "navigation": {
     "dashboard": "Tableau de bord",
@@ -395,6 +396,7 @@
     "amountMinError": "Le montant doit être supérieur à 0",
     "dateLabel": "Date",
     "dateOutOfBudgetPeriod": "La date doit être dans la période du budget",
+    "forecastCheckedToggle": "Pointer",
     "transactionCreateButton": "Créer",
     "transactionsDialogTitle": "Transactions — {{ name }}",
     "consumedLabel": "Consommé",
@@ -609,7 +611,13 @@
     "nextMonthTitle": "Mois prochain",
     "nextMonthEstimatedRollover": "Budget anticipé — report estimé :",
     "nextMonthNoBudget": "Pas encore de budget pour {{ month }}",
-    "nextMonthAnticipate": "Anticiper le mois prochain"
+    "nextMonthAnticipate": "Anticiper le mois prochain",
+    "uncheckedForecasts": {
+      "title": "Prévisions non pointées",
+      "count": "Sur le mois courant ({{ count }})",
+      "allCheckedMessage": "Tu as pointé toutes tes prévisions pour ce mois.",
+      "toggleAriaLabel": "Pointer {{ name }} — {{ amount }} CHF"
+    }
   },
   "completeProfile": {
     "loading": "Préparation de ton espace de liberté...",
@@ -834,6 +842,7 @@
     "notesPlaceholder": "Ex: Alimentation, Transport",
     "notesOptional": "(optionnel)",
     "notesMaxLength": "La catégorie ne peut pas dépasser 50 caractères",
-    "formAriaLabel": "Formulaire de modification de transaction"
+    "formAriaLabel": "Formulaire de modification de transaction",
+    "checkedToggle": "Pointer"
   }
 }

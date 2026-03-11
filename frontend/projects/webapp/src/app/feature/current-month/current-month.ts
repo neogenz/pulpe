@@ -28,10 +28,12 @@ import {
   ProductTourService,
   TOUR_START_DELAY,
 } from '@core/product-tour/product-tour.service';
-import { type TransactionCreate } from 'pulpe-shared';
 import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
-import { AddTransactionBottomSheet } from './components/add-transaction-bottom-sheet';
+import {
+  AddTransactionBottomSheet,
+  type TransactionFormData,
+} from './components/add-transaction-bottom-sheet';
 import { DashboardError } from './components/dashboard-error';
 import { DashboardStore } from './services/dashboard-store';
 
@@ -42,11 +44,6 @@ import { DashboardFutureProjectionChart } from './components/dashboard-future-pr
 import { DashboardRecentTransactions } from './components/dashboard-recent-transactions';
 import { DashboardSavingsSummary } from './components/dashboard-savings-summary';
 import { DashboardNextMonth } from './components/dashboard-next-month';
-
-type TransactionFormData = Pick<
-  TransactionCreate,
-  'name' | 'amount' | 'kind' | 'category'
->;
 
 @Component({
   selector: 'pulpe-dashboard',
@@ -136,7 +133,8 @@ type TransactionFormData = Pick<
               class="order-1 lg:order-2"
               [forecasts]="store.uncheckedForecasts()"
               [consumptions]="store.consumptions()"
-              (toggleCheck)="toggleBudgetLineCheck($event)"
+              [checkingIds]="store.pendingChecks()"
+              (toggleCheck)="checkBudgetLine($event)"
               (viewBudget)="navigateToBudgetDetails()"
               data-testid="dashboard-block-forecasts"
             />
@@ -335,11 +333,11 @@ export default class Dashboard {
     this.#router.navigate(['/', ROUTES.BUDGET]);
   }
 
-  protected async toggleBudgetLineCheck(budgetLineId: string): Promise<void> {
+  protected async checkBudgetLine(budgetLineId: string): Promise<void> {
     try {
-      await this.store.toggleBudgetLineCheck(budgetLineId);
+      await this.store.checkBudgetLine(budgetLineId);
     } catch (error) {
-      this.#logger.error('Error toggling budget line check:', error);
+      this.#logger.error('Error checking budget line:', error);
       this.#snackBar.open(
         this.#transloco.translate('currentMonth.updateError'),
         this.#transloco.translate('currentMonth.close'),
@@ -377,6 +375,7 @@ export default class Dashboard {
         kind: transaction.kind,
         transactionDate: formatLocalDate(new Date()),
         category: transaction.category ?? null,
+        checkedAt: transaction.checkedAt ?? null,
       });
     } catch (error) {
       this.#logger.error('Error adding transaction:', error);

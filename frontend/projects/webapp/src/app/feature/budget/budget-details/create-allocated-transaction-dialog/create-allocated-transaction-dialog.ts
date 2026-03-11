@@ -10,6 +10,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { type BudgetLine, type TransactionCreate } from 'pulpe-shared';
 import { formatLocalDate } from '@core/date/format-local-date';
@@ -34,6 +35,7 @@ export interface CreateAllocatedTransactionDialogData {
     MatButtonModule,
     MatIconModule,
     MatDatepickerModule,
+    MatSlideToggleModule,
     ReactiveFormsModule,
     TranslocoPipe,
   ],
@@ -130,6 +132,16 @@ export interface CreateAllocatedTransactionDialogData {
             }}</mat-error>
           }
         </mat-form-field>
+
+        <div class="flex items-center justify-between py-2 px-1">
+          <span class="text-body-medium text-on-surface">{{
+            'transactionForm.checkedToggle' | transloco
+          }}</span>
+          <mat-slide-toggle
+            formControlName="isChecked"
+            [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
+          />
+        </div>
       </form>
     </mat-dialog-content>
 
@@ -151,7 +163,8 @@ export interface CreateAllocatedTransactionDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateAllocatedTransactionDialog {
-  readonly data = inject<CreateAllocatedTransactionDialogData>(MAT_DIALOG_DATA);
+  protected readonly data =
+    inject<CreateAllocatedTransactionDialogData>(MAT_DIALOG_DATA);
   readonly #dialogRef = inject(
     MatDialogRef<CreateAllocatedTransactionDialog, TransactionCreate>,
   );
@@ -162,10 +175,10 @@ export class CreateAllocatedTransactionDialog {
     this.data.budgetYear,
     this.data.payDayOfMonth,
   );
-  readonly minDate = this.#dateConstraints.minDate;
-  readonly maxDate = this.#dateConstraints.maxDate;
+  protected readonly minDate = this.#dateConstraints.minDate;
+  protected readonly maxDate = this.#dateConstraints.maxDate;
 
-  readonly form = this.#fb.group({
+  protected readonly form = this.#fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
     amount: [
       null as number | null,
@@ -178,13 +191,14 @@ export class CreateAllocatedTransactionDialog {
         createDateRangeValidator(this.minDate, this.maxDate),
       ],
     ],
+    isChecked: [false],
   });
 
-  cancel(): void {
+  protected cancel(): void {
     this.#dialogRef.close();
   }
 
-  submit(): void {
+  protected submit(): void {
     if (this.form.invalid) return;
 
     const formValue = this.form.getRawValue();
@@ -193,10 +207,11 @@ export class CreateAllocatedTransactionDialog {
       budgetId: this.data.budgetLine.budgetId,
       budgetLineId: this.data.budgetLine.id,
       name: formValue.name!.trim(),
-      amount: formValue.amount!,
+      amount: Math.abs(formValue.amount!),
       kind: this.data.budgetLine.kind,
       transactionDate: formatLocalDate(formValue.transactionDate!),
       category: null,
+      checkedAt: formValue.isChecked ? new Date().toISOString() : null,
     };
 
     this.#dialogRef.close(transaction);

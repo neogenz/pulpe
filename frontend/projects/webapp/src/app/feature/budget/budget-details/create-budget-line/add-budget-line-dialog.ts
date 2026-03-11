@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import {
   type BudgetLineCreate,
@@ -32,6 +33,7 @@ export interface BudgetLineDialogData {
     MatSelectModule,
     MatButtonModule,
     MatIconModule,
+    MatSlideToggleModule,
     ReactiveFormsModule,
     TranslocoPipe,
     TransactionIconPipe,
@@ -95,18 +97,28 @@ export interface BudgetLineDialogData {
               </mat-option>
             </mat-select>
           </mat-form-field>
+
+          <div class="flex items-center justify-between py-2 px-1">
+            <span class="text-body-medium text-on-surface">{{
+              'budget.forecastCheckedToggle' | transloco
+            }}</span>
+            <mat-slide-toggle
+              formControlName="isChecked"
+              [attr.aria-label]="'budget.forecastCheckedToggle' | transloco"
+            />
+          </div>
         </form>
       </div>
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button matButton (click)="handleCancel()" data-testid="cancel-new-line">
+      <button matButton (click)="cancel()" data-testid="cancel-new-line">
         {{ 'common.cancel' | transloco }}
       </button>
       <button
         matButton="filled"
         color="primary"
-        (click)="handleSubmit()"
+        (click)="submit()"
         [disabled]="!form.valid"
         data-testid="add-new-line"
       >
@@ -122,7 +134,7 @@ export class AddBudgetLineDialog {
   readonly #data = inject<BudgetLineDialogData>(MAT_DIALOG_DATA);
   readonly #fb = inject(FormBuilder);
 
-  readonly form = this.#fb.group({
+  protected readonly form = this.#fb.group({
     name: ['', [Validators.required, Validators.minLength(1)]],
     amount: [
       null as number | null,
@@ -130,9 +142,10 @@ export class AddBudgetLineDialog {
     ],
     kind: ['expense' as TransactionKind, Validators.required],
     recurrence: ['one_off' as TransactionRecurrence],
+    isChecked: [false],
   });
 
-  handleSubmit(): void {
+  protected submit(): void {
     if (this.form.valid) {
       const value = this.form.getRawValue();
       const budgetLine: BudgetLineCreate = {
@@ -142,12 +155,13 @@ export class AddBudgetLineDialog {
         kind: value.kind!,
         recurrence: value.recurrence!,
         isManuallyAdjusted: true,
+        checkedAt: value.isChecked ? new Date().toISOString() : null,
       };
       this.#dialogRef.close(budgetLine);
     }
   }
 
-  handleCancel(): void {
+  protected cancel(): void {
     this.#dialogRef.close();
   }
 }

@@ -1,5 +1,4 @@
 import {
-  type AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   type ElementRef,
@@ -20,13 +19,15 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import type { TransactionCreate } from 'pulpe-shared';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { TransactionValidators } from '@core/transaction';
 import { TransactionLabelPipe } from '@pattern/transaction-display';
 
-type TransactionFormData = Pick<
+export type TransactionFormData = Pick<
   TransactionCreate,
-  'name' | 'amount' | 'kind' | 'category'
+  'name' | 'amount' | 'kind' | 'category' | 'checkedAt'
 >;
 
 // Define the form structure type
@@ -35,9 +36,8 @@ interface TransactionFormControls {
   amount: FormControl<number | null>;
   kind: FormControl<'expense' | 'income' | 'saving' | null>;
   category: FormControl<string | null>;
+  isChecked: FormControl<boolean>;
 }
-
-import { TransactionValidators } from '@core/transaction';
 
 @Component({
   selector: 'pulpe-add-transaction-bottom-sheet',
@@ -49,6 +49,7 @@ import { TransactionValidators } from '@core/transaction';
     MatInputModule,
     MatSelectModule,
     MatChipsModule,
+    MatSlideToggleModule,
     TranslocoPipe,
     TransactionLabelPipe,
   ],
@@ -233,6 +234,16 @@ import { TransactionValidators } from '@core/transaction';
           <mat-icon>event</mat-icon>
           <span>{{ 'currentMonth.addTransactionToday' | transloco }}</span>
         </div>
+
+        <div class="flex items-center justify-between py-2 px-1">
+          <span class="text-body-medium text-on-surface">{{
+            'transactionForm.checkedToggle' | transloco
+          }}</span>
+          <mat-slide-toggle
+            formControlName="isChecked"
+            [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
+          />
+        </div>
       </form>
 
       <!-- Action Buttons -->
@@ -259,7 +270,7 @@ import { TransactionValidators } from '@core/transaction';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AddTransactionBottomSheet implements AfterViewInit {
+export class AddTransactionBottomSheet {
   readonly #fb = inject(FormBuilder);
   readonly #bottomSheetRef = inject(
     MatBottomSheetRef<AddTransactionBottomSheet>,
@@ -274,8 +285,8 @@ export class AddTransactionBottomSheet implements AfterViewInit {
   protected readonly predefinedAmounts = signal([10, 15, 20, 30]);
 
   // Reactive form with shared validators for consistency
-  readonly transactionForm: FormGroup<TransactionFormControls> = this.#fb.group(
-    {
+  protected readonly transactionForm: FormGroup<TransactionFormControls> =
+    this.#fb.group({
       name: new FormControl<string | null>(
         this.#transloco.translate('currentMonth.addTransactionDefaultName'),
         [...TransactionValidators.name],
@@ -290,14 +301,13 @@ export class AddTransactionBottomSheet implements AfterViewInit {
       category: new FormControl<string | null>('', [
         ...TransactionValidators.category,
       ]),
-    },
-  );
+      isChecked: new FormControl<boolean>(true, { nonNullable: true }),
+    });
 
-  ngAfterViewInit(): void {
-    // Auto-focus on amount field for immediate input
-    setTimeout(() => {
+  constructor() {
+    this.#bottomSheetRef.afterOpened().subscribe(() => {
       this.amountInput()?.nativeElement?.focus();
-    }, 200);
+    });
   }
 
   protected selectPredefinedAmount(amount: number): void {
@@ -312,17 +322,12 @@ export class AddTransactionBottomSheet implements AfterViewInit {
 
     const formValue = this.transactionForm.value;
 
-    // Explicit validation for required fields
-    if (!formValue.name || !formValue.amount || !formValue.kind) {
-      this.transactionForm.markAllAsTouched();
-      return;
-    }
-
     const transaction: TransactionFormData = {
-      name: formValue.name,
-      amount: formValue.amount,
-      kind: formValue.kind,
+      name: formValue.name!,
+      amount: Math.abs(formValue.amount!),
+      kind: formValue.kind!,
       category: formValue.category || null,
+      checkedAt: formValue.isChecked ? new Date().toISOString() : null,
     };
 
     this.#bottomSheetRef.dismiss(transaction);

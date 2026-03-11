@@ -7,6 +7,7 @@ import type { BudgetLineConsumption } from '@core/budget/budget-line-consumption
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { setTestInput } from '../../../testing/signal-test-utils';
 import { StubFinancialKindDirective } from '../../../testing/stub-directives';
+import { provideTranslocoForTest } from '../../../testing/transloco-testing';
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
 
@@ -36,7 +37,10 @@ describe('DashboardUncheckedForecasts', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [DashboardUncheckedForecasts],
-      providers: [provideZonelessChangeDetection()],
+      providers: [
+        provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
+      ],
     })
       .overrideComponent(DashboardUncheckedForecasts, {
         remove: { imports: [FinancialKindDirective] },
@@ -80,31 +84,61 @@ describe('DashboardUncheckedForecasts', () => {
     expect(itemNames[0].nativeElement.textContent).toContain('Test Forecast');
   });
 
-  it('should emit toggleCheck when the row div is clicked', () => {
+  it('should emit toggleCheck only when the radio button is clicked', () => {
     setTestInput(component.forecasts, mockForecasts);
     fixture.detectChanges();
 
     let emittedId: string | undefined;
     component.toggleCheck.subscribe((id) => (emittedId = id));
 
-    const row = fixture.debugElement.query(By.css('[role="checkbox"]'));
-    row.nativeElement.click();
+    // Click the radio button
+    const radioButton = fixture.debugElement.query(
+      By.css('button[aria-label]'),
+    );
+    radioButton.nativeElement.click();
 
     expect(emittedId).toBe('1');
   });
 
-  it('should emit toggleCheck when mat-checkbox is clicked without double-firing', () => {
+  it('should not emit toggleCheck when the row text is clicked', () => {
     setTestInput(component.forecasts, mockForecasts);
     fixture.detectChanges();
 
-    const emittedIds: string[] = [];
-    component.toggleCheck.subscribe((id) => emittedIds.push(id));
+    let emitted = false;
+    component.toggleCheck.subscribe(() => (emitted = true));
 
-    const checkbox = fixture.debugElement.query(By.css('mat-checkbox'));
-    checkbox.nativeElement.querySelector('input')?.click();
+    const nameSpan = fixture.debugElement.query(
+      By.css('.text-body-medium.font-bold'),
+    );
+    nameSpan.nativeElement.click();
 
-    expect(emittedIds.length).toBe(1);
-    expect(emittedIds[0]).toBe('1');
+    expect(emitted).toBe(false);
+  });
+
+  it('should show radio_button_unchecked icon by default', () => {
+    setTestInput(component.forecasts, mockForecasts);
+    fixture.detectChanges();
+
+    const radioButton = fixture.debugElement.query(
+      By.css('button[aria-label]'),
+    );
+    const icon = radioButton.query(By.css('mat-icon'));
+    expect(icon.nativeElement.textContent.trim()).toBe(
+      'radio_button_unchecked',
+    );
+  });
+
+  it('should show check_circle icon with primary color when item is in checkingIds', () => {
+    setTestInput(component.forecasts, mockForecasts);
+    setTestInput(component.checkingIds, new Set(['1']));
+    fixture.detectChanges();
+
+    const radioButton = fixture.debugElement.query(
+      By.css('button[aria-label]'),
+    );
+    const icon = radioButton.query(By.css('mat-icon'));
+    expect(icon.nativeElement.textContent.trim()).toBe('check_circle');
+    expect(icon.nativeElement.classList.contains('text-primary')).toBe(true);
   });
 
   it('should display forecast amount when no consumptions provided', () => {

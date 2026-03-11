@@ -534,7 +534,6 @@ export class BudgetDetailsStore {
 
   /**
    * Create an allocated transaction with optimistic updates
-   * New transactions always start unchecked
    */
   async createAllocatedTransaction(
     transactionData: TransactionCreate,
@@ -554,7 +553,7 @@ export class BudgetDetailsStore {
       category: transactionData.category ?? null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      checkedAt: null,
+      checkedAt: transactionData.checkedAt ?? null,
     };
 
     this.#budgetDetailsResource.update((details) => {
@@ -570,7 +569,7 @@ export class BudgetDetailsStore {
       const response = await firstValueFrom(
         this.#budgetApi.createTransaction$({
           ...transactionData,
-          checkedAt: null,
+          checkedAt: transactionData.checkedAt ?? null,
         }),
       );
 

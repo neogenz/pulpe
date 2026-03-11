@@ -338,11 +338,11 @@ describe('DashboardStore - Business Scenarios', () => {
     });
   });
 
-  describe('User can toggle budget line check', () => {
-    it('should optimistically set checkedAt when toggling unchecked line', async () => {
+  describe('User can check budget lines', () => {
+    it('should optimistically set checkedAt when checking unchecked line', async () => {
       const budget = createMockBudget();
       const line = createMockBudgetLine({
-        id: 'line-toggle',
+        id: 'line-check',
         checkedAt: null,
       });
 
@@ -363,43 +363,102 @@ describe('DashboardStore - Business Scenarios', () => {
         expect(store.budgetLines().length).toBe(1);
       });
 
-      await store.toggleBudgetLineCheck('line-toggle');
+      await store.checkBudgetLine('line-check');
 
-      // checkedAt should be set (not null anymore)
       expect(store.budgetLines()[0].checkedAt).not.toBeNull();
     });
 
-    it('should optimistically clear checkedAt when toggling checked line', async () => {
+    it('should be a no-op for already-checked items', async () => {
       const budget = createMockBudget();
       const line = createMockBudgetLine({
-        id: 'line-toggle',
+        id: 'line-already-checked',
         checkedAt: '2025-06-10T00:00:00Z',
+      });
+
+      const { store, budgetApi } = await setupWithBudgetAndWait(
+        budget,
+        [line],
+        [],
+      );
+
+      await store.checkBudgetLine('line-already-checked');
+
+      expect(budgetApi.toggleBudgetLineCheck$).not.toHaveBeenCalled();
+      expect(store.budgetLines()[0].checkedAt).toBe('2025-06-10T00:00:00Z');
+    });
+
+    it('should be a no-op for items already in pendingChecks (dedup)', async () => {
+      const budget = createMockBudget();
+      const line = createMockBudgetLine({
+        id: 'line-dedup',
+        checkedAt: null,
       });
 
       const mocks = createMocks();
       mocks.budgetApi.getDashboardData$.mockReturnValue(
         of({ budget, transactions: [], budgetLines: [line] }),
       );
-      mocks.budgetApi.toggleBudgetLineCheck$.mockReturnValue(
-        of({ success: true, data: { ...line, checkedAt: null } }),
-      );
+      // Never resolves — keeps the first call in-flight
+      mocks.budgetApi.toggleBudgetLineCheck$.mockReturnValue(NEVER);
       const { store } = setup(mocks);
 
       TestBed.tick();
       await vi.waitFor(() => {
-        expect(store.budgetLines()[0].checkedAt).toBe('2025-06-10T00:00:00Z');
+        expect(store.budgetLines().length).toBe(1);
       });
 
-      await store.toggleBudgetLineCheck('line-toggle');
+      // Fire first call (will stay pending)
+      store.checkBudgetLine('line-dedup');
 
-      expect(store.budgetLines()[0].checkedAt).toBeNull();
+      // Second call should be a no-op
+      await store.checkBudgetLine('line-dedup');
+
+      expect(mocks.budgetApi.toggleBudgetLineCheck$).toHaveBeenCalledTimes(1);
     });
 
-    it('should rollback on toggle API error', async () => {
+    it('should exclude pending items from uncheckedForecasts', async () => {
+      const budget = createMockBudget();
+      const lines = [
+        createMockBudgetLine({
+          id: 'line-a',
+          recurrence: 'fixed',
+          checkedAt: null,
+        }),
+        createMockBudgetLine({
+          id: 'line-b',
+          recurrence: 'one_off',
+          checkedAt: null,
+        }),
+      ];
+
+      const mocks = createMocks();
+      mocks.budgetApi.getDashboardData$.mockReturnValue(
+        of({ budget, transactions: [], budgetLines: lines }),
+      );
+      // Never resolves — keeps it pending
+      mocks.budgetApi.toggleBudgetLineCheck$.mockReturnValue(NEVER);
+      const { store } = setup(mocks);
+
+      TestBed.tick();
+      await vi.waitFor(() => {
+        expect(store.uncheckedForecasts().length).toBe(2);
+      });
+
+      // Check line-a — should disappear from uncheckedForecasts
+      store.checkBudgetLine('line-a');
+
+      await vi.waitFor(() => {
+        expect(store.uncheckedForecasts().length).toBe(1);
+        expect(store.uncheckedForecasts()[0].id).toBe('line-b');
+      });
+    });
+
+    it('should rollback on API error and remove from pendingChecks', async () => {
       const budget = createMockBudget();
       const line = createMockBudgetLine({
-        id: 'line-toggle',
+        id: 'line-fail',
         checkedAt: null,
+        recurrence: 'fixed',
       });
 
       const mocks = createMocks();
@@ -416,12 +475,57 @@ describe('DashboardStore - Business Scenarios', () => {
         expect(store.budgetLines().length).toBe(1);
       });
 
-      await expect(store.toggleBudgetLineCheck('line-toggle')).rejects.toThrow(
+      await expect(store.checkBudgetLine('line-fail')).rejects.toThrow(
         'Toggle failed',
       );
 
-      // Should rollback to null
+      // Should rollback checkedAt to null
       expect(store.budgetLines()[0].checkedAt).toBeNull();
+      // Should be removed from pendingChecks → reappear in uncheckedForecasts
+      expect(store.uncheckedForecasts().length).toBe(1);
+      expect(store.pendingChecks().size).toBe(0);
+    });
+
+    it('should handle two rapid calls for different items independently', async () => {
+      const budget = createMockBudget();
+      const lines = [
+        createMockBudgetLine({
+          id: 'line-x',
+          recurrence: 'fixed',
+          checkedAt: null,
+        }),
+        createMockBudgetLine({
+          id: 'line-y',
+          recurrence: 'one_off',
+          checkedAt: null,
+        }),
+      ];
+
+      const mocks = createMocks();
+      mocks.budgetApi.getDashboardData$.mockReturnValue(
+        of({ budget, transactions: [], budgetLines: lines }),
+      );
+      mocks.budgetApi.toggleBudgetLineCheck$.mockReturnValue(
+        of({ success: true }),
+      );
+      const { store } = setup(mocks);
+
+      TestBed.tick();
+      await vi.waitFor(() => {
+        expect(store.uncheckedForecasts().length).toBe(2);
+      });
+
+      // Fire both concurrently
+      await Promise.all([
+        store.checkBudgetLine('line-x'),
+        store.checkBudgetLine('line-y'),
+      ]);
+
+      expect(mocks.budgetApi.toggleBudgetLineCheck$).toHaveBeenCalledTimes(2);
+      expect(store.budgetLines()[0].checkedAt).not.toBeNull();
+      expect(store.budgetLines()[1].checkedAt).not.toBeNull();
+      // Items stay hidden via pendingChecks (cleaned up when resource reloads)
+      expect(store.uncheckedForecasts().length).toBe(0);
     });
   });
 

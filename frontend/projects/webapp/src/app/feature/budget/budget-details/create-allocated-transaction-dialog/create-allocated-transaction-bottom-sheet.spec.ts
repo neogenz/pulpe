@@ -64,13 +64,13 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
         new Date().getMonth(),
         15,
       );
-      component.form.patchValue({
+      component['form'].patchValue({
         name: 'Consultation médecin',
         amount: 45.5,
         transactionDate: midMonth,
       });
 
-      component.submit();
+      component['submit']();
 
       expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -85,9 +85,9 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
     });
 
     it('should not dismiss when form is invalid', () => {
-      component.form.patchValue({ name: '', amount: null });
+      component['form'].patchValue({ name: '', amount: null });
 
-      component.submit();
+      component['submit']();
 
       expect(mockBottomSheetRef.dismiss).not.toHaveBeenCalled();
     });
@@ -98,13 +98,13 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
         new Date().getMonth(),
         15,
       );
-      component.form.patchValue({
+      component['form'].patchValue({
         name: '  Courses  ',
         amount: 20,
         transactionDate: midMonth,
       });
 
-      component.submit();
+      component['submit']();
 
       expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'Courses' }),
@@ -117,13 +117,13 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
         new Date().getMonth(),
         15,
       );
-      component.form.patchValue({
+      component['form'].patchValue({
         name: 'Test',
         amount: 42.5,
         transactionDate: midMonth,
       });
 
-      component.submit();
+      component['submit']();
 
       expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
         expect.objectContaining({ amount: 42.5 }),
@@ -131,9 +131,51 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
     });
   });
 
+  describe('checked toggle', () => {
+    it('should set checkedAt to null by default', () => {
+      const midMonth = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        15,
+      );
+      component['form'].patchValue({
+        name: 'Test',
+        amount: 10,
+        transactionDate: midMonth,
+      });
+
+      component['submit']();
+
+      expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
+        expect.objectContaining({ checkedAt: null }),
+      );
+    });
+
+    it('should set checkedAt to ISO string when isChecked is true', () => {
+      const midMonth = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        15,
+      );
+      component['form'].patchValue({
+        name: 'Test',
+        amount: 10,
+        transactionDate: midMonth,
+        isChecked: true,
+      });
+
+      component['submit']();
+
+      const callArg = mockBottomSheetRef.dismiss.mock.calls[0][0];
+      expect(callArg.checkedAt).toBeDefined();
+      expect(typeof callArg.checkedAt).toBe('string');
+      expect(() => new Date(callArg.checkedAt)).not.toThrow();
+    });
+  });
+
   describe('close', () => {
     it('should dismiss without data', () => {
-      component.close();
+      component['close']();
 
       expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith();
     });
@@ -141,50 +183,50 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
 
   describe('form validation', () => {
     it('should require name', () => {
-      component.form.get('name')?.setValue('');
+      component['form'].get('name')?.setValue('');
 
-      expect(component.form.get('name')?.hasError('required')).toBe(true);
+      expect(component['form'].get('name')?.hasError('required')).toBe(true);
     });
 
     it('should enforce max length on name', () => {
-      component.form.get('name')?.setValue('a'.repeat(101));
+      component['form'].get('name')?.setValue('a'.repeat(101));
 
-      expect(component.form.get('name')?.hasError('maxlength')).toBe(true);
+      expect(component['form'].get('name')?.hasError('maxlength')).toBe(true);
     });
 
     it('should require amount', () => {
-      component.form.get('amount')?.setValue(null);
+      component['form'].get('amount')?.setValue(null);
 
-      expect(component.form.get('amount')?.hasError('required')).toBe(true);
+      expect(component['form'].get('amount')?.hasError('required')).toBe(true);
     });
 
     it('should reject amount below 0.01', () => {
-      component.form.get('amount')?.setValue(0);
+      component['form'].get('amount')?.setValue(0);
 
-      expect(component.form.get('amount')?.hasError('min')).toBe(true);
+      expect(component['form'].get('amount')?.hasError('min')).toBe(true);
     });
 
     it('should reject negative amount', () => {
-      component.form.get('amount')?.setValue(-50);
+      component['form'].get('amount')?.setValue(-50);
 
-      expect(component.form.get('amount')?.hasError('min')).toBe(true);
+      expect(component['form'].get('amount')?.hasError('min')).toBe(true);
     });
 
     it('should require transaction date', () => {
-      component.form.get('transactionDate')?.setValue(null);
+      component['form'].get('transactionDate')?.setValue(null);
 
-      expect(component.form.get('transactionDate')?.hasError('required')).toBe(
-        true,
-      );
+      expect(
+        component['form'].get('transactionDate')?.hasError('required'),
+      ).toBe(true);
     });
   });
 
   describe('date constraints', () => {
     it('should set minDate and maxDate for current month budget', () => {
-      expect(component.minDate).toBeDefined();
-      expect(component.maxDate).toBeDefined();
-      expect(component.minDate!.getTime()).toBeLessThanOrEqual(
-        component.maxDate!.getTime(),
+      expect(component['minDate']).toBeDefined();
+      expect(component['maxDate']).toBeDefined();
+      expect(component['minDate']!.getTime()).toBeLessThanOrEqual(
+        component['maxDate']!.getTime(),
       );
     });
 
@@ -215,10 +257,10 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
         CreateAllocatedTransactionBottomSheet,
       ).componentInstance;
 
-      expect(pastComponent.minDate).toBeDefined();
-      expect(pastComponent.maxDate).toBeDefined();
-      expect(pastComponent.minDate!.getMonth()).toBe(0); // January
-      expect(pastComponent.minDate!.getFullYear()).toBe(2020);
+      expect(pastComponent['minDate']).toBeDefined();
+      expect(pastComponent['maxDate']).toBeDefined();
+      expect(pastComponent['minDate']!.getMonth()).toBe(0); // January
+      expect(pastComponent['minDate']!.getFullYear()).toBe(2020);
     });
 
     it('should respect custom payDayOfMonth', async () => {
@@ -252,10 +294,10 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
         CreateAllocatedTransactionBottomSheet,
       ).componentInstance;
 
-      expect(customComponent.minDate).toBeDefined();
-      expect(customComponent.maxDate).toBeDefined();
-      expect(customComponent.minDate!.getDate()).toBe(25);
-      expect(customComponent.maxDate!.getDate()).toBe(24);
+      expect(customComponent['minDate']).toBeDefined();
+      expect(customComponent['maxDate']).toBeDefined();
+      expect(customComponent['minDate']!.getDate()).toBe(25);
+      expect(customComponent['maxDate']!.getDate()).toBe(24);
 
       vi.useRealTimers();
     });
