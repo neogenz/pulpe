@@ -70,7 +70,7 @@ const MAX_VISIBLE_FORECASTS = 5;
                   [matRippleCentered]="true"
                   (click)="toggleCheck.emit(forecast.id)"
                   [attr.aria-label]="
-                    ('currentMonth.forecastCheckedToggle' | transloco) +
+                    ('budget.forecastCheckedToggle' | transloco) +
                     ' ' +
                     forecast.name +
                     ' — ' +
