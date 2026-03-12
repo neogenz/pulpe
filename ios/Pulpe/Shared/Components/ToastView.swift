@@ -37,7 +37,7 @@ struct ToastView: View {
                         .fontWeight(.semibold)
                         .foregroundStyle(Color.pulpePrimary)
                 }
-                .buttonStyle(.plain)
+                .textLinkButtonStyle()
                 .accessibilityLabel("Annuler l'action")
             }
 
@@ -48,7 +48,7 @@ struct ToastView: View {
                     .font(PulpeTypography.inputHelper)
                     .foregroundStyle(.secondary)
             }
-            .buttonStyle(.plain)
+            .iconButtonStyle()
             .accessibilityLabel("Fermer")
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)

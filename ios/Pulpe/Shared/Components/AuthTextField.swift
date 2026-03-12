@@ -131,6 +131,7 @@ struct AuthSecureField: View {
                     .foregroundStyle(Color.authInputText.opacity(0.6))
                     .contentTransition(.symbolEffect(.replace))
             }
+            .iconButtonStyle()
             .accessibilityLabel(isVisible ? "Masquer le mot de passe" : "Afficher le mot de passe")
         }
     }

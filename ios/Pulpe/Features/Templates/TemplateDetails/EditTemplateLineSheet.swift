@@ -96,6 +96,7 @@ struct EditTemplateLineSheet: View {
                             .padding(.horizontal, DesignTokens.Spacing.md)
                             .padding(.vertical, DesignTokens.Spacing.sm)
                             .frame(maxWidth: .infinity)
+                            .frame(minHeight: 44)
                             .background(recurrence == type ? Color.pulpePrimary : Color.surfaceContainer)
                             .foregroundStyle(recurrence == type ? Color.textOnPrimary : Color.textPrimary)
                             .clipShape(Capsule())

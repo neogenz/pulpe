@@ -67,6 +67,7 @@ struct ErrorBanner: View {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(Color.errorPrimary)
                 }
+                .iconButtonStyle()
                 .accessibilityLabel("Fermer")
             }
         }

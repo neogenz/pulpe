@@ -111,6 +111,7 @@ struct PayDayPickerSheet: View {
                             .fill(Color.pulpePrimary)
                     }
                 }
+                .contentShape(Circle())
                 .animation(DesignTokens.Animation.defaultSpring, value: isSelected)
         }
         .buttonStyle(.plain)

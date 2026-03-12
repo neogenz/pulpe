@@ -253,10 +253,11 @@ struct HeroBalanceCard: View {
             Image(systemName: "chart.bar.fill")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.white)
-                .frame(width: 32, height: 32)
+                .frame(width: 44, height: 44)
                 .heroGlassBackground(tint: glassTintColor, shape: .circle)
         }
         .buttonStyle(.plain)
+        .contentShape(Circle())
         .accessibilityLabel("Suivi du budget")
     }
 

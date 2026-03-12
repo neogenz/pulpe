@@ -42,9 +42,8 @@ struct UncheckedForecastsCard: View {
                         .font(PulpeTypography.caption)
                         .foregroundStyle(.tertiary)
                 }
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .textLinkButtonStyle()
             .sensoryFeedback(.selection, trigger: viewAllTrigger)
         }
         .animation(DesignTokens.Animation.defaultSpring, value: items.map(\.id))
@@ -96,7 +95,7 @@ private struct UncheckedItemRow: View {
                     .foregroundStyle(isChecked ? Color.financialSavings : Color.secondary)
                     .contentTransition(.symbolEffect(.replace))
             }
-            .buttonStyle(.plain)
+            .iconButtonStyle()
             .sensoryFeedback(.success, trigger: triggerFeedback)
             .accessibilityLabel("Pointer \(item.name)")
 

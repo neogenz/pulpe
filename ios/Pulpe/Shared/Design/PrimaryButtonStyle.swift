@@ -70,6 +70,30 @@ struct DestructiveButtonStyle: ButtonStyle {
     }
 }
 
+/// Icon-only button style (eye toggle, dismiss X, delete, chart)
+/// Guarantees 44×44pt minimum tap target with transparent background.
+struct IconButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
+            .opacity(configuration.isPressed ? 0.7 : 1.0)
+            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
+    }
+}
+
+/// Text-link button style (forgot password, create account, back)
+/// Guarantees 44pt minimum tap height with transparent background.
+struct TextLinkButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+            .opacity(configuration.isPressed ? 0.7 : 1.0)
+            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
+    }
+}
+
 // MARK: - View Extension
 
 extension View {
@@ -86,5 +110,15 @@ extension View {
     /// Applies destructive button styling
     func destructiveButtonStyle() -> some View {
         self.buttonStyle(DestructiveButtonStyle())
+    }
+
+    /// Applies icon-only button styling (44×44pt minimum tap target)
+    func iconButtonStyle() -> some View {
+        self.buttonStyle(IconButtonStyle())
+    }
+
+    /// Applies text-link button styling (44pt minimum tap height)
+    func textLinkButtonStyle() -> some View {
+        self.buttonStyle(TextLinkButtonStyle())
     }
 }

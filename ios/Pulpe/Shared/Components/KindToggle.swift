@@ -16,6 +16,7 @@ struct KindToggle: View {
                         .font(isSelected ? PulpeTypography.labelLarge : PulpeTypography.labelMedium)
                         .foregroundStyle(isSelected ? kind.color : Color.onSurfaceVariant)
                         .frame(maxWidth: .infinity)
+                        .frame(minHeight: 44)
                         .padding(.vertical, DesignTokens.Spacing.sm)
                         .background(
                             isSelected
@@ -23,6 +24,7 @@ struct KindToggle: View {
                                 : Color.clear
                         )
                         .clipShape(Capsule())
+                        .contentShape(Capsule())
                         .overlay(
                             Capsule().strokeBorder(
                                 isSelected
