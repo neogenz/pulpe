@@ -79,32 +79,8 @@ struct EditTemplateLineSheet: View {
     // MARK: - Recurrence Selector
 
     private var recurrenceSelector: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Récurrence")
-                .font(PulpeTypography.inputLabel)
-                .foregroundStyle(Color.pulpeTextTertiary)
-
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                ForEach(TransactionRecurrence.allCases, id: \.self) { type in
-                    Button {
-                        withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
-                            recurrence = type
-                        }
-                    } label: {
-                        Text(type.label)
-                            .font(PulpeTypography.buttonSecondary)
-                            .padding(.horizontal, DesignTokens.Spacing.md)
-                            .padding(.vertical, DesignTokens.Spacing.sm)
-                            .frame(maxWidth: .infinity)
-                            .frame(minHeight: 44)
-                            .background(recurrence == type ? Color.pulpePrimary : Color.surfaceContainer)
-                            .foregroundStyle(recurrence == type ? Color.textOnPrimary : Color.textPrimary)
-                            .clipShape(Capsule())
-                            .contentShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+        CapsulePicker(selection: $recurrence, title: "Récurrence") { type in
+            Text(type.label)
         }
     }
 

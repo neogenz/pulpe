@@ -101,6 +101,7 @@ struct TransactionSection: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .textLinkButtonStyle()
             .listRowSeparator(.hidden)
         }
     }

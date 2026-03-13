@@ -211,7 +211,7 @@ struct HeroBalanceCard: View {
     private func rolloverFooter(amount: Decimal) -> some View {
         if let onRolloverTap {
             Button(action: onRolloverTap) { rolloverPill(amount: amount) }
-                .buttonStyle(.plain)
+                .textLinkButtonStyle()
                 .padding(.top, DesignTokens.Spacing.md)
         } else {
             rolloverPill(amount: amount)
@@ -253,10 +253,13 @@ struct HeroBalanceCard: View {
             Image(systemName: "chart.bar.fill")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.white)
-                .frame(width: 44, height: 44)
+                .frame(
+                    width: DesignTokens.TapTarget.minimum,
+                    height: DesignTokens.TapTarget.minimum
+                )
                 .heroGlassBackground(tint: glassTintColor, shape: .circle)
         }
-        .buttonStyle(.plain)
+        .iconButtonStyle()
         .contentShape(Circle())
         .accessibilityLabel("Suivi du budget")
     }

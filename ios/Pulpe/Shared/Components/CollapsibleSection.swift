@@ -25,6 +25,7 @@ struct CollapsibleSection<Content: View>: View {
                         .foregroundStyle(.secondary)
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 }
+                .frame(minHeight: DesignTokens.TapTarget.minimum)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)

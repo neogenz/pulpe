@@ -30,7 +30,7 @@ struct PrimaryButtonStyle: ButtonStyle {
                         .strokeBorder(Color.pulpePrimary.opacity(0.2), lineWidth: 1)
                 }
             }
-            .opacity(configuration.isPressed ? 0.8 : 1.0)
+            .opacity(configuration.isPressed ? DesignTokens.Opacity.pressed : 1.0)
             .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
     }
 }
@@ -49,7 +49,7 @@ struct SecondaryButtonStyle: ButtonStyle {
                 Capsule()
                     .strokeBorder(Color.pulpeTextTertiary, lineWidth: 1.5)
             )
-            .opacity(configuration.isPressed ? 0.8 : 1.0)
+            .opacity(configuration.isPressed ? DesignTokens.Opacity.pressed : 1.0)
             .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
     }
 }
@@ -65,7 +65,7 @@ struct DestructiveButtonStyle: ButtonStyle {
             .foregroundStyle(Color.textOnPrimary)
             .clipShape(Capsule())
             .contentShape(Capsule())
-            .opacity(configuration.isPressed ? 0.8 : 1.0)
+            .opacity(configuration.isPressed ? DesignTokens.Opacity.pressed : 1.0)
             .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
     }
 }
@@ -75,9 +75,9 @@ struct DestructiveButtonStyle: ButtonStyle {
 struct IconButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .frame(minWidth: 44, minHeight: 44)
+            .frame(minWidth: DesignTokens.TapTarget.minimum, minHeight: DesignTokens.TapTarget.minimum)
             .contentShape(Rectangle())
-            .opacity(configuration.isPressed ? 0.7 : 1.0)
+            .opacity(configuration.isPressed ? DesignTokens.Opacity.pressed : 1.0)
             .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
     }
 }
@@ -87,9 +87,9 @@ struct IconButtonStyle: ButtonStyle {
 struct TextLinkButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .frame(minHeight: 44)
+            .frame(minHeight: DesignTokens.TapTarget.minimum)
             .contentShape(Rectangle())
-            .opacity(configuration.isPressed ? 0.7 : 1.0)
+            .opacity(configuration.isPressed ? DesignTokens.Opacity.pressed : 1.0)
             .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
     }
 }

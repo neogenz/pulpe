@@ -2,6 +2,13 @@ import SwiftUI
 
 /// Centralized design tokens for visual consistency across the app
 enum DesignTokens {
+    // MARK: - Tap Target
+
+    enum TapTarget {
+        /// Apple HIG minimum tap target (44pt)
+        static let minimum: CGFloat = 44
+    }
+
     // MARK: - Corner Radius
 
     enum CornerRadius {
@@ -93,6 +100,8 @@ enum DesignTokens {
         static let strong: Double = 0.3
         /// Heavy overlays
         static let heavy: Double = 0.5
+        /// Pressed state for interactive elements
+        static let pressed: Double = 0.8
         /// Dark overlays (tutorial, modal backdrops)
         static let overlay: Double = 0.85
     }
