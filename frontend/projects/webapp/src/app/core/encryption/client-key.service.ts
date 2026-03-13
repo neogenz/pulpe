@@ -4,6 +4,10 @@ import { deriveClientKey, isValidClientKeyHex } from './crypto.utils';
 import { STORAGE_KEYS } from '../storage/storage-keys';
 import { StorageService } from '../storage/storage.service';
 
+// 5 min: balance between UX (skip redundant server calls across navigations)
+// and security (limits the window where an unverified key grants access).
+const VALIDATION_CACHE_DURATION_MS = 5 * 60 * 1000;
+
 @Injectable({
   providedIn: 'root',
 })
@@ -25,7 +29,7 @@ export class ClientKeyService {
     );
     if (sessionKey && isValidClientKeyHex(sessionKey)) {
       this.#clientKeyHex.set(sessionKey);
-      this.#needsServerValidation.set(true);
+      this.#needsServerValidation.set(!this.#isValidationCacheValid());
       return;
     }
 
@@ -36,12 +40,17 @@ export class ClientKeyService {
     );
     if (localKey && isValidClientKeyHex(localKey)) {
       this.#clientKeyHex.set(localKey);
-      this.#needsServerValidation.set(true);
+      this.#needsServerValidation.set(!this.#isValidationCacheValid());
     }
   }
 
   markValidated(): void {
     this.#needsServerValidation.set(false);
+    this.#storage.set<number>(
+      STORAGE_KEYS.VAULT_KEY_VALIDATED_AT,
+      Date.now(),
+      'session',
+    );
   }
 
   async deriveAndStore(
@@ -51,11 +60,26 @@ export class ClientKeyService {
     useLocalStorage = false,
   ): Promise<void> {
     const keyHex = await deriveClientKey(password, saltHex, iterations);
-    this.#clientKeyHex.set(keyHex);
-    this.#persist(keyHex, useLocalStorage);
+    this.#setAndPersist(keyHex, useLocalStorage);
   }
 
   setDirectKey(keyHex: string, useLocalStorage = false): void {
+    this.#setAndPersist(keyHex, useLocalStorage);
+  }
+
+  clearPreservingDeviceTrust(): void {
+    this.#clientKeyHex.set(null);
+    this.#needsServerValidation.set(false);
+    this.#storage.remove(STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION, 'session');
+    this.#storage.remove(STORAGE_KEYS.VAULT_KEY_VALIDATED_AT, 'session');
+  }
+
+  clear(): void {
+    this.clearPreservingDeviceTrust();
+    this.#storage.remove(STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL, 'local');
+  }
+
+  #setAndPersist(keyHex: string, useLocalStorage: boolean): void {
     if (!isValidClientKeyHex(keyHex)) {
       throw new Error('Invalid client key hex');
     }
@@ -63,15 +87,13 @@ export class ClientKeyService {
     this.#persist(keyHex, useLocalStorage);
   }
 
-  clearPreservingDeviceTrust(): void {
-    this.#clientKeyHex.set(null);
-    this.#needsServerValidation.set(false);
-    this.#storage.remove(STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION, 'session');
-  }
-
-  clear(): void {
-    this.clearPreservingDeviceTrust();
-    this.#storage.remove(STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL, 'local');
+  #isValidationCacheValid(): boolean {
+    const validatedAt = this.#storage.get<number>(
+      STORAGE_KEYS.VAULT_KEY_VALIDATED_AT,
+      'session',
+    );
+    if (validatedAt === null) return false;
+    return Date.now() - validatedAt < VALIDATION_CACHE_DURATION_MS;
   }
 
   #persist(keyHex: string, useLocalStorage: boolean): void {

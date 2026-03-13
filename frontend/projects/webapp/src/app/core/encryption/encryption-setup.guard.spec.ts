@@ -13,6 +13,7 @@ import { ClientKeyService } from './client-key.service';
 import { EncryptionApi } from './encryption-api';
 import { AuthStateService } from '@core/auth/auth-state.service';
 import { DemoModeService } from '@core/demo/demo-mode.service';
+import { ApiError } from '@core/api/api-error';
 import { ROUTES } from '@core/routing/routes-constants';
 
 const dummyRoute = {} as ActivatedRouteSnapshot;
@@ -262,6 +263,20 @@ describe('encryptionSetupGuard', () => {
         '/',
         ROUTES.ENTER_VAULT_CODE,
       ]);
+    });
+
+    it('should allow access without clearing key on rate limit (429)', async () => {
+      mockEncryptionApi.validateKey$.mockReturnValue(
+        throwError(
+          () => new ApiError('Too Many Requests', undefined, 429, undefined),
+        ),
+      );
+
+      const result = await resolveGuard();
+
+      expect(result).toBe(true);
+      expect(mockClientKeyService.clear).not.toHaveBeenCalled();
+      expect(mockClientKeyService.markValidated).not.toHaveBeenCalled();
     });
 
     it('should skip validation when needsServerValidation is false (sessionStorage key)', async () => {

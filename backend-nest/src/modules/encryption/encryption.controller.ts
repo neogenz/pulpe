@@ -97,7 +97,7 @@ export class EncryptionController {
   @SkipClientKey()
   @Post('validate-key')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Verify that a client key can decrypt user data' })
   @ApiResponse({
     status: 204,

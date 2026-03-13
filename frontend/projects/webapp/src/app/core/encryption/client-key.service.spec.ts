@@ -22,6 +22,8 @@ describe('ClientKeyService', () => {
   let mockStorageService: {
     getString: Mock;
     setString: Mock;
+    get: Mock;
+    set: Mock;
     remove: Mock;
   };
 
@@ -29,8 +31,12 @@ describe('ClientKeyService', () => {
     mockStorageService = {
       getString: vi.fn(),
       setString: vi.fn(),
+      get: vi.fn().mockReturnValue(null),
+      set: vi.fn(),
       remove: vi.fn(),
     };
+
+    mockedIsValidClientKeyHex.mockReturnValue(true);
 
     TestBed.configureTestingModule({
       providers: [
@@ -61,7 +67,6 @@ describe('ClientKeyService', () => {
     it('should restore key from sessionStorage first', () => {
       const storedKey = 'deadbeef1234567890abcdef';
       mockStorageService.getString.mockReturnValueOnce(storedKey);
-      mockedIsValidClientKeyHex.mockReturnValue(true);
 
       service.initialize();
 
@@ -74,18 +79,44 @@ describe('ClientKeyService', () => {
 
     it('should need server validation when restored from sessionStorage (multi-tab stale key)', () => {
       mockStorageService.getString.mockReturnValueOnce('session-key');
-      mockedIsValidClientKeyHex.mockReturnValue(true);
 
       service.initialize();
 
       expect(service.needsServerValidation()).toBe(true);
     });
 
+    it('should skip server validation when validation cache is fresh', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-15T12:00:00Z'));
+      mockStorageService.getString.mockReturnValueOnce('session-key');
+      mockStorageService.get.mockReturnValueOnce(
+        new Date('2026-01-15T11:57:00Z').getTime(),
+      );
+
+      service.initialize();
+
+      expect(service.needsServerValidation()).toBe(false);
+      vi.useRealTimers();
+    });
+
+    it('should require server validation when validation cache is expired', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-15T12:00:00Z'));
+      mockStorageService.getString.mockReturnValueOnce('session-key');
+      mockStorageService.get.mockReturnValueOnce(
+        new Date('2026-01-15T11:50:00Z').getTime(),
+      );
+
+      service.initialize();
+
+      expect(service.needsServerValidation()).toBe(true);
+      vi.useRealTimers();
+    });
+
     it('should fallback to localStorage when sessionStorage is empty', () => {
       const storedKey = 'deadbeef1234567890abcdef';
       mockStorageService.getString.mockReturnValueOnce(null);
       mockStorageService.getString.mockReturnValueOnce(storedKey);
-      mockedIsValidClientKeyHex.mockReturnValue(true);
 
       service.initialize();
 
@@ -105,7 +136,6 @@ describe('ClientKeyService', () => {
     it('should need server validation when restored from localStorage', () => {
       mockStorageService.getString.mockReturnValueOnce(null);
       mockStorageService.getString.mockReturnValueOnce('local-key');
-      mockedIsValidClientKeyHex.mockReturnValue(true);
 
       service.initialize();
 
@@ -127,13 +157,22 @@ describe('ClientKeyService', () => {
     it('should clear needsServerValidation flag', () => {
       mockStorageService.getString.mockReturnValueOnce(null);
       mockStorageService.getString.mockReturnValueOnce('local-key');
-      mockedIsValidClientKeyHex.mockReturnValue(true);
 
       service.initialize();
       expect(service.needsServerValidation()).toBe(true);
 
       service.markValidated();
       expect(service.needsServerValidation()).toBe(false);
+    });
+
+    it('should persist validation timestamp to sessionStorage', () => {
+      service.markValidated();
+
+      expect(mockStorageService.set).toHaveBeenCalledWith(
+        STORAGE_KEYS.VAULT_KEY_VALIDATED_AT,
+        expect.any(Number),
+        'session',
+      );
     });
   });
 
@@ -185,8 +224,6 @@ describe('ClientKeyService', () => {
 
   describe('setDirectKey()', () => {
     it('should store in sessionStorage by default', () => {
-      mockedIsValidClientKeyHex.mockReturnValue(true);
-
       service.setDirectKey('valid-key-hex');
 
       expect(mockStorageService.setString).toHaveBeenCalledWith(
@@ -201,16 +238,12 @@ describe('ClientKeyService', () => {
     });
 
     it('should not need server validation (key was just validated by caller)', () => {
-      mockedIsValidClientKeyHex.mockReturnValue(true);
-
       service.setDirectKey('valid-key-hex');
 
       expect(service.needsServerValidation()).toBe(false);
     });
 
     it('should store in localStorage when useLocalStorage=true', () => {
-      mockedIsValidClientKeyHex.mockReturnValue(true);
-
       service.setDirectKey('valid-key-hex', true);
 
       expect(mockStorageService.setString).toHaveBeenCalledWith(
@@ -254,7 +287,6 @@ describe('ClientKeyService', () => {
     it('should reset needsServerValidation flag', () => {
       mockStorageService.getString.mockReturnValueOnce(null);
       mockStorageService.getString.mockReturnValueOnce('local-key');
-      mockedIsValidClientKeyHex.mockReturnValue(true);
 
       service.initialize();
       expect(service.needsServerValidation()).toBe(true);
@@ -287,13 +319,21 @@ describe('ClientKeyService', () => {
     it('should reset needsServerValidation flag', () => {
       mockStorageService.getString.mockReturnValueOnce(null);
       mockStorageService.getString.mockReturnValueOnce('local-key');
-      mockedIsValidClientKeyHex.mockReturnValue(true);
 
       service.initialize();
       expect(service.needsServerValidation()).toBe(true);
 
       service.clearPreservingDeviceTrust();
       expect(service.needsServerValidation()).toBe(false);
+    });
+
+    it('should clear validation cache from sessionStorage', () => {
+      service.clearPreservingDeviceTrust();
+
+      expect(mockStorageService.remove).toHaveBeenCalledWith(
+        STORAGE_KEYS.VAULT_KEY_VALIDATED_AT,
+        'session',
+      );
     });
   });
 
@@ -304,7 +344,6 @@ describe('ClientKeyService', () => {
       mockStorageService.getString
         .mockReturnValueOnce(sessionKey)
         .mockReturnValueOnce(localKey);
-      mockedIsValidClientKeyHex.mockReturnValue(true);
 
       service.initialize();
 
@@ -316,9 +355,7 @@ describe('ClientKeyService', () => {
       mockStorageService.getString
         .mockReturnValueOnce('invalid-session-key')
         .mockReturnValueOnce(localKey);
-      mockedIsValidClientKeyHex
-        .mockReturnValueOnce(false)
-        .mockReturnValueOnce(true);
+      mockedIsValidClientKeyHex.mockReturnValueOnce(false);
 
       service.initialize();
 
@@ -327,6 +364,18 @@ describe('ClientKeyService', () => {
   });
 
   describe('deriveAndStore() - error paths', () => {
+    it('should throw for invalid derived key', async () => {
+      mockedDeriveClientKey.mockResolvedValue('bad-key');
+      mockedIsValidClientKeyHex.mockReturnValue(false);
+
+      await expect(
+        service.deriveAndStore('password', 'salt', 100000),
+      ).rejects.toThrow('Invalid client key hex');
+
+      expect(service.clientKeyHex()).toBeNull();
+      expect(mockStorageService.setString).not.toHaveBeenCalled();
+    });
+
     it('should not persist key when deriveClientKey rejects', async () => {
       mockedDeriveClientKey.mockRejectedValue(new Error('Derivation failed'));
 
@@ -369,7 +418,6 @@ describe('ClientKeyService', () => {
 
   describe('setDirectKey() - storage failure', () => {
     it('should not persist to storage when setString silently fails', () => {
-      mockedIsValidClientKeyHex.mockReturnValue(true);
       const storedValues = new Map<string, string>();
 
       // setString silently does nothing (simulates storage quota exceeded)
