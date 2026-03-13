@@ -65,6 +65,10 @@ export const encryptionSetupGuard: CanActivateFn = () => {
       }),
       catchError((error: unknown) => {
         if (isApiError(error) && error.status === 429) {
+          // Optimistic passthrough: don't block the user, but don't fake validation.
+          // Cache is NOT written — needsServerValidation stays true. On the next
+          // full page load, the guard will re-attempt. This is safe: 429 responses
+          // are cheap, and validation will succeed once the rate-limit window clears.
           return of(true as const);
         }
         clientKeyService.clear();

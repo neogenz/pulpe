@@ -4,6 +4,8 @@ import { deriveClientKey, isValidClientKeyHex } from './crypto.utils';
 import { STORAGE_KEYS } from '../storage/storage-keys';
 import { StorageService } from '../storage/storage.service';
 
+// 5 min: balance between UX (skip redundant server calls across navigations)
+// and security (limits the window where an unverified key grants access).
 const VALIDATION_CACHE_DURATION_MS = 5 * 60 * 1000;
 
 @Injectable({
