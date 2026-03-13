@@ -7,8 +7,11 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { TranslocoService } from '@jsverse/transloco';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
+import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
+import { isApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
 import { createRolloverLine } from '@core/budget/rollover/rollover-types';
 import { formatLocalDate } from '@core/date/format-local-date';
@@ -51,10 +54,12 @@ function generateTempId(): string {
 @Injectable()
 export class BudgetDetailsStore {
   // ── 1. Dependencies ──
+  readonly #apiErrorLocalizer = inject(ApiErrorLocalizer);
   readonly #budgetApi = inject(BudgetApi);
   readonly #invalidationService = inject(BudgetInvalidationService);
   readonly #logger = inject(Logger);
   readonly #storage = inject(StorageService);
+  readonly #transloco = inject(TranslocoService);
 
   // ── 2. Internal state (private/writable) ──
   readonly #state = createInitialBudgetDetailsState();
@@ -398,8 +403,7 @@ export class BudgetDetailsStore {
     } catch (error) {
       this.reloadBudgetDetails();
 
-      const errorMessage = "Erreur lors de l'ajout de la prévision";
-      this.#setError(errorMessage);
+      this.#setError(this.#transloco.translate('budget.forecastCreateError'));
       this.#logger.error('Error creating budget line', error);
     }
   }
@@ -433,8 +437,7 @@ export class BudgetDetailsStore {
     } catch (error) {
       this.reloadBudgetDetails();
 
-      const errorMessage = 'Erreur lors de la modification de la prévision';
-      this.#setError(errorMessage);
+      this.#setError(this.#transloco.translate('budget.forecastUpdateError'));
       this.#logger.error('Error updating budget line', error);
     }
   }
@@ -465,8 +468,9 @@ export class BudgetDetailsStore {
     } catch (error) {
       this.reloadBudgetDetails();
 
-      const errorMessage = 'Erreur lors de la modification de la transaction';
-      this.#setError(errorMessage);
+      this.#setError(
+        this.#transloco.translate('budget.transactionUpdateError'),
+      );
       this.#logger.error('Error updating transaction', error);
     }
   }
@@ -495,8 +499,7 @@ export class BudgetDetailsStore {
     } catch (error) {
       this.reloadBudgetDetails();
 
-      const errorMessage = 'Erreur lors de la suppression de la prévision';
-      this.#setError(errorMessage);
+      this.#setError(this.#transloco.translate('budget.forecastDeleteError'));
       this.#logger.error('Error deleting budget line', error);
     }
   }
@@ -522,15 +525,15 @@ export class BudgetDetailsStore {
     } catch (error) {
       this.reloadBudgetDetails();
 
-      const errorMessage = 'Erreur lors de la suppression de la transaction';
-      this.#setError(errorMessage);
+      this.#setError(
+        this.#transloco.translate('budget.transactionDeleteError'),
+      );
       this.#logger.error('Error deleting transaction', error);
     }
   }
 
   /**
    * Create an allocated transaction with optimistic updates
-   * New transactions always start unchecked
    */
   async createAllocatedTransaction(
     transactionData: TransactionCreate,
@@ -550,7 +553,7 @@ export class BudgetDetailsStore {
       category: transactionData.category ?? null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      checkedAt: null,
+      checkedAt: transactionData.checkedAt ?? null,
     };
 
     this.#budgetDetailsResource.update((details) => {
@@ -566,7 +569,7 @@ export class BudgetDetailsStore {
       const response = await firstValueFrom(
         this.#budgetApi.createTransaction$({
           ...transactionData,
-          checkedAt: null,
+          checkedAt: transactionData.checkedAt ?? null,
         }),
       );
 
@@ -585,8 +588,9 @@ export class BudgetDetailsStore {
     } catch (error) {
       this.reloadBudgetDetails();
 
-      const errorMessage = "Erreur lors de l'ajout de la transaction";
-      this.#setError(errorMessage);
+      this.#setError(
+        this.#transloco.translate('budget.transactionCreateError'),
+      );
       this.#logger.error('Error creating allocated transaction', error);
     }
   }
@@ -615,10 +619,9 @@ export class BudgetDetailsStore {
     } catch (error) {
       this.reloadBudgetDetails();
 
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Erreur lors de la réinitialisation de la prévision';
+      const errorMessage = isApiError(error)
+        ? this.#apiErrorLocalizer.localizeApiError(error)
+        : this.#transloco.translate('budget.forecastResetError');
       this.#setError(errorMessage);
       this.#logger.error('Error resetting budget line from template', error);
       throw error;
@@ -677,7 +680,7 @@ export class BudgetDetailsStore {
       return true;
     } catch (error) {
       this.reloadBudgetDetails();
-      this.#setError('Erreur lors du basculement du statut de la prévision');
+      this.#setError(this.#transloco.translate('budget.forecastToggleError'));
       this.#logger.error('Error toggling budget line check', error);
       return false;
     } finally {
@@ -726,7 +729,9 @@ export class BudgetDetailsStore {
       this.#clearError();
     } catch (error) {
       this.reloadBudgetDetails();
-      this.#setError('Erreur lors du basculement du statut de la transaction');
+      this.#setError(
+        this.#transloco.translate('budget.transactionToggleError'),
+      );
       this.#logger.error('Error toggling transaction check', error);
     } finally {
       this.#mutatingIds.delete(id);
@@ -785,7 +790,7 @@ export class BudgetDetailsStore {
       this.#clearError();
     } catch (error) {
       this.reloadBudgetDetails();
-      this.#setError('Erreur lors du pointage des transactions');
+      this.#setError(this.#transloco.translate('budget.checkAllError'));
       this.#logger.error('Error checking all allocated transactions', error);
     } finally {
       this.#mutatingIds.delete(budgetLineId);

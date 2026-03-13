@@ -212,7 +212,7 @@ struct AddTemplateLineSheet: View {
                 .padding(.top, DesignTokens.Spacing.xxxl)
                 .padding(.bottom, DesignTokens.Spacing.xl)
             }
-            .background(Color.surface)
+            .background(Color.sheetBackground)
             .navigationTitle("Nouvelle ligne")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

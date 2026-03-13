@@ -19,6 +19,7 @@ import {
   createMockBudgetDetailsResponse,
   createMockTransaction,
 } from '../../../../testing/mock-factories';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 // Mock data
 const mockBudgetId = 'budget-123';
@@ -158,6 +159,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         provideZonelessChangeDetection(),
         provideHttpClient(),
         provideHttpClientTesting(),
+        ...provideTranslocoForTest(),
         BudgetDetailsStore,
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: Logger, useValue: mockLogger },

@@ -9,11 +9,12 @@ import {
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of, Subject } from 'rxjs';
 
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import EditTransactionsDialog from './edit-transactions-dialog';
 import { TemplateLineStore } from '../services/template-line-store';
 import { TransactionFormService } from '../../services/transaction-form';
 import { BudgetTemplatesApi } from '../../services/budget-templates-api';
-import { TransactionLabelPipe } from '@ui/transaction-display';
+import { TransactionLabelPipe } from '@pattern/transaction-display';
 import type { TransactionFormData } from '../../services/transaction-form';
 import type { TemplateLine } from 'pulpe-shared';
 import { MatDialog } from '@angular/material/dialog';
@@ -100,6 +101,7 @@ describe('EditTransactionsDialog - Component Tests', () => {
       imports: [EditTransactionsDialog, MatDialogModule, NoopAnimationsModule],
       providers: [
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
         TransactionFormService,
         TemplateLineStore,
         TransactionLabelPipe,

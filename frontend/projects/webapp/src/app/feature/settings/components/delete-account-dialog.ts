@@ -18,6 +18,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { firstValueFrom } from 'rxjs';
 
+import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import {
   AuthSessionService,
   AuthStateService,
@@ -39,14 +40,15 @@ import { ErrorAlert } from '@ui/error-alert';
     MatInputModule,
     MatProgressSpinnerModule,
     ErrorAlert,
+    TranslocoPipe,
   ],
   template: `
     <div class="flex items-center justify-between pr-2">
-      <h2 mat-dialog-title>Supprimer ton compte</h2>
+      <h2 mat-dialog-title>{{ 'settings.deleteAccountTitle' | transloco }}</h2>
       <button
         matIconButton
         mat-dialog-close
-        aria-label="Fermer"
+        [attr.aria-label]="'common.close' | transloco"
         class="text-outline! shrink-0"
       >
         <mat-icon>close</mat-icon>
@@ -55,8 +57,7 @@ import { ErrorAlert } from '@ui/error-alert';
 
     <mat-dialog-content>
       <p class="text-body-medium text-on-surface-variant mb-6">
-        Toutes tes données seront supprimées définitivement. Il n'y a pas de
-        retour en arrière possible.
+        {{ 'settings.deleteAccountWarning' | transloco }}
       </p>
 
       <pulpe-error-alert
@@ -67,7 +68,7 @@ import { ErrorAlert } from '@ui/error-alert';
       @if (isOAuthOnly()) {
         <form [formGroup]="vaultCodeForm" (ngSubmit)="onSubmit()">
           <mat-form-field appearance="outline" class="w-full mb-2">
-            <mat-label>Code PIN</mat-label>
+            <mat-label>{{ 'settings.pinCodeLabel' | transloco }}</mat-label>
             <input
               matInput
               [type]="isVaultCodeHidden() ? 'password' : 'text'"
@@ -81,7 +82,7 @@ import { ErrorAlert } from '@ui/error-alert';
               matIconButton
               matSuffix
               (click)="isVaultCodeHidden.set(!isVaultCodeHidden())"
-              [attr.aria-label]="'Afficher le code PIN'"
+              [attr.aria-label]="showPinLabel"
               [attr.aria-pressed]="!isVaultCodeHidden()"
             >
               <mat-icon>{{
@@ -89,28 +90,33 @@ import { ErrorAlert } from '@ui/error-alert';
               }}</mat-icon>
             </button>
             @if (vaultCodeForm.get('vaultCode')?.hasError('required')) {
-              <mat-error>Le code PIN est requis</mat-error>
+              <mat-error>{{
+                'settings.pinCodeRequired' | transloco
+              }}</mat-error>
             } @else if (vaultCodeForm.get('vaultCode')?.hasError('minlength')) {
-              <mat-error
-                >Au moins {{ VAULT_CODE_MIN_LENGTH }} chiffres</mat-error
-              >
+              <mat-error>{{
+                'settings.pinCodeMinLength'
+                  | transloco: { min: VAULT_CODE_MIN_LENGTH }
+              }}</mat-error>
             } @else if (vaultCodeForm.get('vaultCode')?.hasError('pattern')) {
-              <mat-error
-                >Le code PIN ne doit contenir que des chiffres</mat-error
-              >
+              <mat-error>{{
+                'settings.pinCodeDigitsOnly' | transloco
+              }}</mat-error>
             }
           </mat-form-field>
         </form>
       } @else {
         <form [formGroup]="deleteForm" (ngSubmit)="onSubmit()">
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Confirme avec ton mot de passe</mat-label>
+            <mat-label>{{
+              'settings.confirmWithPassword' | transloco
+            }}</mat-label>
             <input
               matInput
               [type]="isPasswordHidden() ? 'password' : 'text'"
               formControlName="password"
               data-testid="delete-confirm-password-input"
-              placeholder="Ton mot de passe"
+              [placeholder]="passwordPlaceholder"
             />
             <mat-icon matPrefix>lock</mat-icon>
             <button
@@ -118,7 +124,7 @@ import { ErrorAlert } from '@ui/error-alert';
               matIconButton
               matSuffix
               (click)="isPasswordHidden.set(!isPasswordHidden())"
-              [attr.aria-label]="'Afficher le mot de passe'"
+              [attr.aria-label]="showPasswordLabel"
               [attr.aria-pressed]="!isPasswordHidden()"
             >
               <mat-icon>{{
@@ -126,11 +132,14 @@ import { ErrorAlert } from '@ui/error-alert';
               }}</mat-icon>
             </button>
             @if (deleteForm.get('password')?.hasError('required')) {
-              <mat-error>Le mot de passe est requis</mat-error>
+              <mat-error>{{
+                'settings.passwordRequired' | transloco
+              }}</mat-error>
             } @else if (deleteForm.get('password')?.hasError('minlength')) {
-              <mat-error
-                >Au moins {{ PASSWORD_MIN_LENGTH }} caractères</mat-error
-              >
+              <mat-error>{{
+                'settings.passwordMinLength'
+                  | transloco: { min: PASSWORD_MIN_LENGTH }
+              }}</mat-error>
             } @else if (deleteForm.get('password')?.hasError('incorrect')) {
               <mat-error>{{
                 deleteForm.get('password')?.getError('incorrect')
@@ -153,10 +162,12 @@ import { ErrorAlert } from '@ui/error-alert';
         "
         (click)="onSubmit()"
       >
-        @if (isSubmitting()) {
-          <mat-spinner diameter="20" class="mr-2" />
-        }
-        Supprimer définitivement le compte
+        <span class="flex items-center justify-center">
+          @if (isSubmitting()) {
+            <mat-spinner diameter="20" class="mr-2" />
+          }
+          {{ 'settings.deleteAccountConfirm' | transloco }}
+        </span>
       </button>
     </mat-dialog-actions>
   `,
@@ -173,6 +184,17 @@ export class DeleteAccountDialog {
   readonly #authSession = inject(AuthSessionService);
   readonly #authState = inject(AuthStateService);
   readonly #encryptionApi = inject(EncryptionApi);
+  readonly #transloco = inject(TranslocoService);
+
+  protected readonly showPasswordLabel = this.#transloco.translate(
+    'settings.showPassword',
+  );
+  protected readonly showPinLabel = this.#transloco.translate(
+    'settings.showPinCode',
+  );
+  protected readonly passwordPlaceholder = this.#transloco.translate(
+    'settings.passwordPlaceholder',
+  );
 
   protected readonly isOAuthOnly = this.#authState.isOAuthOnly;
   protected readonly isSubmitting = signal(false);
@@ -235,9 +257,7 @@ export class DeleteAccountDialog {
         'Vault code verification failed for account deletion',
         error,
       );
-      this.errorMessage.set(
-        'Code PIN incorrect ou clé de chiffrement invalide',
-      );
+      this.errorMessage.set(this.#transloco.translate('settings.pinIncorrect'));
     } finally {
       this.isSubmitting.set(false);
     }
@@ -257,7 +277,9 @@ export class DeleteAccountDialog {
     try {
       const verifyResult = await this.#authSession.verifyPassword(password);
       if (!verifyResult.success) {
-        const message = verifyResult.error ?? 'Mot de passe incorrect';
+        const message =
+          verifyResult.error ??
+          this.#transloco.translate('settings.passwordIncorrect');
         passwordControl?.setErrors({ incorrect: message });
         return;
       }
@@ -265,7 +287,9 @@ export class DeleteAccountDialog {
       this.#dialogRef.close(true);
     } catch (error) {
       this.#logger.error('Account deletion verification failed', error);
-      this.errorMessage.set('La vérification a échoué — réessaie plus tard');
+      this.errorMessage.set(
+        this.#transloco.translate('settings.deleteAccountVerificationFailed'),
+      );
     } finally {
       this.isSubmitting.set(false);
     }

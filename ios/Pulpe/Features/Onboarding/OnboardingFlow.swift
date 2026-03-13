@@ -4,6 +4,7 @@ import SwiftUI
 struct OnboardingFlow: View {
     @Environment(AppState.self) private var appState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
     @State private var state = OnboardingState()
 
     var body: some View {
@@ -30,6 +31,19 @@ struct OnboardingFlow: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .background,
+                   state.currentStep != .welcome,
+                   !state.hasCompleted,
+                   !state.isSubmitting,
+                   !state.hasAbandoned {
+                    state.hasAbandoned = true
+                    AnalyticsService.shared.capture(
+                        .onboardingAbandoned,
+                        properties: ["last_step": state.currentStep.analyticsName]
+                    )
+                }
+            }
         }
     }
 
@@ -49,9 +63,13 @@ struct OnboardingFlow: View {
         case .registration:
             RegistrationStep(state: state) { user in
                 Task {
+                    state.isSubmitting = true
+                    defer { state.isSubmitting = false }
                     await appState.completeOnboarding(user: user, onboardingData: state.createTemplateData())
                     if appState.showPostAuthError {
                         state.error = APIError.serverError(message: "La création du budget a échoué. Réessaie.")
+                    } else {
+                        state.hasCompleted = true
                     }
                 }
             }
@@ -80,29 +98,25 @@ struct OnboardingStepView<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var contentOpacity: Double = 0
-    @State private var contentOffset: CGFloat = 20
+    @State private var showContent = false
 
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
-                VStack(spacing: DesignTokens.Spacing.xxl) {
-                    // New animated header with icon
+                VStack(spacing: DesignTokens.Spacing.xxxl) {
                     OnboardingStepHeader(step: step)
-                        .padding(.top, DesignTokens.Spacing.xxl)
+                        .padding(.top, DesignTokens.Spacing.stepHeaderTop)
 
-                    // Content with entrance animation
                     content()
                         .padding(.horizontal, DesignTokens.Spacing.xxl)
-                        .opacity(contentOpacity)
-                        .offset(y: contentOffset)
+                        .blurSlide(showContent)
                 }
+                .padding(.bottom, DesignTokens.Spacing.xxxl)
             }
             .scrollBounceBehavior(.basedOnSize)
 
             Spacer()
 
-            // Error display
             if let error = state.error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
                     state.error = nil
@@ -112,7 +126,6 @@ struct OnboardingStepView<Content: View>: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
-            // New gradient navigation buttons
             OnboardingNavigationButtons(
                 step: step,
                 canProceed: canProceed,
@@ -123,15 +136,12 @@ struct OnboardingStepView<Content: View>: View {
         }
         .background(Color.clear)
         .dismissKeyboardOnTap()
-        .onAppear {
+        .task {
+            guard !showContent else { return }
             if reduceMotion {
-                contentOpacity = 1
-                contentOffset = 0
+                showContent = true
             } else {
-                withAnimation(.easeOut(duration: 0.4).delay(0.2)) {
-                    contentOpacity = 1
-                    contentOffset = 0
-                }
+                await delayedAnimation(0.25) { showContent = true }
             }
         }
     }

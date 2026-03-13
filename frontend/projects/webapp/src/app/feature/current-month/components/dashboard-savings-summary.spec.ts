@@ -3,6 +3,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { DashboardSavingsSummary } from './dashboard-savings-summary';
 import { setTestInput } from '../../../testing/signal-test-utils';
+import { provideTranslocoForTest } from '../../../testing/transloco-testing';
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
 
@@ -15,7 +16,10 @@ describe('DashboardSavingsSummary', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [DashboardSavingsSummary],
-      providers: [provideZonelessChangeDetection()],
+      providers: [
+        provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(DashboardSavingsSummary);

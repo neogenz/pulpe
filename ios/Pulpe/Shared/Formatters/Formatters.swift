@@ -7,17 +7,16 @@ enum Formatters {
 
     static let chfCompact: NumberFormatter = {
         let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "CHF"
+        formatter.numberStyle = .decimal
         formatter.locale = Locale(identifier: "de_CH")
+        formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
         return formatter
     }()
 
     static let chfWholeNumber: NumberFormatter = {
         let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "CHF"
+        formatter.numberStyle = .decimal
         formatter.locale = Locale(identifier: "de_CH")
         formatter.maximumFractionDigits = 0
         return formatter
@@ -37,6 +36,14 @@ enum Formatters {
         formatter.numberStyle = .percent
         return formatter
     }()
+
+    // MARK: - Month Name
+
+    /// Bounds-checked month name from 1-based month number, capitalized.
+    static func monthName(for month: Int) -> String {
+        guard month >= 1, month <= 12 else { return "—" }
+        return monthYear.monthSymbols[month - 1].capitalized
+    }
 
     // MARK: - Dates
 

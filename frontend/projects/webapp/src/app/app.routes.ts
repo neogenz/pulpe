@@ -96,7 +96,7 @@ export const routes: Routes = [
       {
         path: ROUTES.COMPLETE_PROFILE,
         title: PAGE_TITLES.COMPLETE_PROFILE,
-        data: { breadcrumb: 'Finaliser mon profil', icon: 'person_add' },
+        data: { breadcrumb: 'pageTitle.completeProfile', icon: 'person_add' },
         loadChildren: () =>
           import('./feature/complete-profile/complete-profile.routes'),
       },
@@ -104,7 +104,7 @@ export const routes: Routes = [
         path: ROUTES.DASHBOARD,
         title: PAGE_TITLES.DASHBOARD,
         canActivate: [hasBudgetGuard],
-        data: { breadcrumb: 'Tableau de bord', icon: 'space_dashboard' },
+        data: { breadcrumb: 'navigation.dashboard', icon: 'space_dashboard' },
         loadChildren: () =>
           import('./feature/current-month/current-month.routes'),
       },
@@ -112,21 +112,21 @@ export const routes: Routes = [
         path: ROUTES.BUDGET,
         title: PAGE_TITLES.BUDGET,
         canActivate: [hasBudgetGuard],
-        data: { breadcrumb: 'Mes budgets', icon: 'calendar_month' },
+        data: { breadcrumb: 'navigation.budgets', icon: 'calendar_month' },
         loadChildren: () => import('./feature/budget/budget.routes'),
       },
       {
         path: ROUTES.BUDGET_TEMPLATES,
         title: PAGE_TITLES.BUDGET_TEMPLATES,
         canActivate: [hasBudgetGuard],
-        data: { breadcrumb: 'Modèles de budget', icon: 'description' },
+        data: { breadcrumb: 'navigation.templates', icon: 'description' },
         loadChildren: () =>
           import('./feature/budget-templates/budget-templates.routes'),
       },
       {
         path: ROUTES.SETTINGS,
         title: PAGE_TITLES.SETTINGS,
-        data: { breadcrumb: 'Paramètres', icon: 'settings' },
+        data: { breadcrumb: 'navigation.settings', icon: 'settings' },
         loadChildren: () => import('./feature/settings/settings.routes'),
       },
       ...(isDevMode()
@@ -134,7 +134,7 @@ export const routes: Routes = [
             {
               path: ROUTES.DESIGN_SYSTEM,
               title: PAGE_TITLES.DESIGN_SYSTEM,
-              data: { breadcrumb: 'Design System', icon: 'palette' },
+              data: { breadcrumb: 'navigation.designSystem', icon: 'palette' },
               loadChildren: () =>
                 import('./feature/design-system/design-system.routes'),
             },

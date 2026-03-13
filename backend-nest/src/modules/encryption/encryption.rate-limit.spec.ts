@@ -106,4 +106,18 @@ describe('EncryptionController Rate Limiting', () => {
       expect(error).toBeInstanceOf(ThrottlerException);
     }
   });
+
+  it('throttles changePin after 5 attempts per hour', async () => {
+    const guard = await createGuard();
+    const handler = EncryptionController.prototype.changePin;
+
+    await runAttempts(guard, handler, 5);
+
+    try {
+      await guard.canActivate(createContext(handler) as any);
+      expect.unreachable('Expected throttling exception after 5 attempts');
+    } catch (error) {
+      expect(error).toBeInstanceOf(ThrottlerException);
+    }
+  });
 });

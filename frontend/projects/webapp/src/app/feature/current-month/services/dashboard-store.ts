@@ -1,9 +1,12 @@
 import {
   computed,
+  effect,
   inject,
   Injectable,
   InjectionToken,
   resource,
+  signal,
+  untracked,
 } from '@angular/core';
 import {
   BudgetApi,
@@ -44,6 +47,9 @@ export class DashboardStore {
   readonly #invalidationService = inject(BudgetInvalidationService);
 
   // ── 2. State ──
+  readonly #pendingChecks = signal(new Set<string>());
+  readonly pendingChecks = this.#pendingChecks.asReadonly();
+
   readonly #currentDate = inject(DASHBOARD_NOW);
 
   readonly payDayOfMonth = this.#userSettingsApi.payDayOfMonth;
@@ -196,7 +202,8 @@ export class DashboardStore {
     this.budgetLines().filter(
       (line) =>
         (line.recurrence === 'fixed' || line.recurrence === 'one_off') &&
-        line.checkedAt === null,
+        line.checkedAt === null &&
+        !this.#pendingChecks().has(line.id),
     ),
   );
 
@@ -273,6 +280,31 @@ export class DashboardStore {
   );
 
   // ── 5. Mutations ──
+  constructor() {
+    effect(() => {
+      const lines = this.budgetLines();
+      const pending = this.#pendingChecks();
+      if (pending.size === 0) return;
+
+      const confirmed = new Set(
+        [...pending].filter((id) => {
+          const line = lines.find((l) => l.id === id);
+          return line?.checkedAt !== null;
+        }),
+      );
+
+      if (confirmed.size > 0) {
+        untracked(() => {
+          this.#pendingChecks.update((s) => {
+            const next = new Set(s);
+            confirmed.forEach((id) => next.delete(id));
+            return next;
+          });
+        });
+      }
+    });
+  }
+
   refreshData(): void {
     if (!this.#dashboardResource.isLoading()) {
       this.#dashboardResource.reload();
@@ -292,40 +324,49 @@ export class DashboardStore {
     );
   }
 
-  async toggleBudgetLineCheck(budgetLineId: string): Promise<void> {
-    const originalData = this.#dashboardResource.value();
-    if (!originalData) return;
+  async checkBudgetLine(budgetLineId: string): Promise<void> {
+    if (this.#pendingChecks().has(budgetLineId)) return;
 
-    const budgetLine = originalData.budgetLines.find(
-      (line) => line.id === budgetLineId,
-    );
-    if (!budgetLine) return;
+    const budgetLine = this.budgetLines().find((l) => l.id === budgetLineId);
+    if (!budgetLine || budgetLine.checkedAt !== null) return;
 
-    const newCheckedAt =
-      budgetLine.checkedAt === null ? new Date().toISOString() : null;
-
-    const optimisticData = {
-      ...originalData,
-      budgetLines: originalData.budgetLines.map((line) =>
-        line.id === budgetLineId ? { ...line, checkedAt: newCheckedAt } : line,
-      ),
-    };
-
-    this.#dashboardResource.set(optimisticData);
-    this.#syncDashboardCache(optimisticData);
+    this.#pendingChecks.update((s) => new Set([...s, budgetLineId]));
+    this.#patchBudgetLineCheckedAt(budgetLineId, new Date().toISOString());
 
     try {
       await firstValueFrom(
         this.#budgetApi.toggleBudgetLineCheck$(budgetLineId),
       );
     } catch (error) {
-      this.#dashboardResource.set(originalData);
-      this.#syncDashboardCache(originalData);
+      this.#pendingChecks.update((s) => {
+        const next = new Set(s);
+        next.delete(budgetLineId);
+        return next;
+      });
+      this.#patchBudgetLineCheckedAt(budgetLineId, null);
       throw error;
     }
   }
 
   // ── 6. Private utils ──
+  #patchBudgetLineCheckedAt(
+    budgetLineId: string,
+    checkedAt: string | null,
+  ): void {
+    let patched: DashboardData | undefined;
+    this.#dashboardResource.update((data) => {
+      if (!data) return data;
+      patched = {
+        ...data,
+        budgetLines: data.budgetLines.map((line) =>
+          line.id === budgetLineId ? { ...line, checkedAt } : line,
+        ),
+      };
+      return patched;
+    });
+    if (patched) this.#syncDashboardCache(patched);
+  }
+
   #syncDashboardCache(data: DashboardData): void {
     const period = this.currentBudgetPeriod();
     const month = period.month.toString().padStart(2, '0');

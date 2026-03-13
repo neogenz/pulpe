@@ -19,6 +19,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { formatLocalDate } from '@core/date/format-local-date';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { Logger } from '@core/logging/logger';
@@ -27,10 +28,12 @@ import {
   ProductTourService,
   TOUR_START_DELAY,
 } from '@core/product-tour/product-tour.service';
-import { type TransactionCreate } from 'pulpe-shared';
 import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
-import { AddTransactionBottomSheet } from './components/add-transaction-bottom-sheet';
+import {
+  AddTransactionBottomSheet,
+  type TransactionFormData,
+} from './components/add-transaction-bottom-sheet';
 import { DashboardError } from './components/dashboard-error';
 import { DashboardStore } from './services/dashboard-store';
 
@@ -41,11 +44,6 @@ import { DashboardFutureProjectionChart } from './components/dashboard-future-pr
 import { DashboardRecentTransactions } from './components/dashboard-recent-transactions';
 import { DashboardSavingsSummary } from './components/dashboard-savings-summary';
 import { DashboardNextMonth } from './components/dashboard-next-month';
-
-type TransactionFormData = Pick<
-  TransactionCreate,
-  'name' | 'amount' | 'kind' | 'category'
->;
 
 @Component({
   selector: 'pulpe-dashboard',
@@ -58,6 +56,7 @@ type TransactionFormData = Pick<
     DashboardError,
     BaseLoading,
     StateCard,
+    TranslocoPipe,
     DashboardHero,
     DashboardUncheckedForecasts,
     DashboardHistoryChart,
@@ -73,15 +72,15 @@ type TransactionFormData = Pick<
           class="text-headline-medium md:text-display-small truncate min-w-0 shrink pb-0"
           data-testid="page-title"
         >
-          Tableau de bord
+          {{ 'currentMonth.pageTitle' | transloco }}
         </h1>
         <div class="flex gap-2 items-center shrink-0 ml-auto">
           <button
             matIconButton
             (click)="store.refreshData()"
             [disabled]="store.isLoading()"
-            matTooltip="Actualiser"
-            aria-label="Actualiser"
+            [matTooltip]="'currentMonth.refresh' | transloco"
+            [attr.aria-label]="'currentMonth.refresh' | transloco"
             data-testid="refresh-button"
           >
             <mat-icon aria-hidden="true">refresh</mat-icon>
@@ -91,7 +90,7 @@ type TransactionFormData = Pick<
 
       @if (store.isInitialLoading()) {
         <pulpe-base-loading
-          message="Préparation de ton tableau de bord..."
+          [message]="'currentMonth.loadingMessage' | transloco"
           size="large"
           testId="dashboard-loading"
         />
@@ -134,7 +133,8 @@ type TransactionFormData = Pick<
               class="order-1 lg:order-2"
               [forecasts]="store.uncheckedForecasts()"
               [consumptions]="store.consumptions()"
-              (toggleCheck)="toggleBudgetLineCheck($event)"
+              [checkingIds]="store.pendingChecks()"
+              (toggleCheck)="checkBudgetLine($event)"
               (viewBudget)="navigateToBudgetDetails()"
               data-testid="dashboard-block-forecasts"
             />
@@ -178,7 +178,7 @@ type TransactionFormData = Pick<
           matFab
           (click)="openAddTransactionBottomSheet()"
           class="fab-button"
-          aria-label="Ajouter une transaction"
+          [attr.aria-label]="'budgetLine.addTransaction' | transloco"
           data-testid="add-transaction-fab"
           data-tour="add-transaction-fab"
         >
@@ -188,9 +188,12 @@ type TransactionFormData = Pick<
         <pulpe-state-card
           variant="empty"
           testId="empty-state"
-          [title]="'Pas encore de budget pour ' + budgetPeriodDisplayName()"
-          message="Crée-le depuis tes modèles pour commencer à suivre ton mois."
-          actionLabel="Voir mes budgets"
+          [title]="
+            'currentMonth.noBudgetTitle'
+              | transloco: { period: budgetPeriodDisplayName() }
+          "
+          [message]="'currentMonth.noBudgetMessage' | transloco"
+          [actionLabel]="'currentMonth.viewBudgets' | transloco"
           (action)="navigateToBudgetList()"
         />
       }
@@ -290,6 +293,7 @@ export default class Dashboard {
   readonly #router = inject(Router);
   readonly #logger = inject(Logger);
   readonly #snackBar = inject(MatSnackBar);
+  readonly #transloco = inject(TranslocoService);
 
   protected readonly budgetPeriodDisplayName = computed(() => {
     const period = this.store.currentBudgetPeriod();
@@ -329,14 +333,14 @@ export default class Dashboard {
     this.#router.navigate(['/', ROUTES.BUDGET]);
   }
 
-  protected async toggleBudgetLineCheck(budgetLineId: string): Promise<void> {
+  protected async checkBudgetLine(budgetLineId: string): Promise<void> {
     try {
-      await this.store.toggleBudgetLineCheck(budgetLineId);
+      await this.store.checkBudgetLine(budgetLineId);
     } catch (error) {
-      this.#logger.error('Error toggling budget line check:', error);
+      this.#logger.error('Error checking budget line:', error);
       this.#snackBar.open(
-        'La mise à jour a échoué — vérifie ta connexion et réessaie',
-        'Fermer',
+        this.#transloco.translate('currentMonth.updateError'),
+        this.#transloco.translate('currentMonth.close'),
         { duration: 5000 },
       );
     }
@@ -371,15 +375,14 @@ export default class Dashboard {
         kind: transaction.kind,
         transactionDate: formatLocalDate(new Date()),
         category: transaction.category ?? null,
+        checkedAt: transaction.checkedAt ?? null,
       });
     } catch (error) {
       this.#logger.error('Error adding transaction:', error);
       this.#snackBar.open(
-        "L'ajout a échoué — vérifie ta connexion et réessaie",
-        'Fermer',
-        {
-          duration: 5000,
-        },
+        this.#transloco.translate('currentMonth.addError'),
+        this.#transloco.translate('currentMonth.close'),
+        { duration: 5000 },
       );
     }
   }

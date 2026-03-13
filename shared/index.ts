@@ -112,12 +112,20 @@ export {
   demoSessionResponseSchema,
   demoCleanupResponseSchema,
 
-  // Encryption schemas
+  // Encryption schemas — requests
+  encryptionValidateKeyRequestSchema,
+  encryptionRecoverRequestSchema,
+  encryptionChangePinRequestSchema,
+  // Encryption schemas — responses
+  encryptionVaultStatusResponseSchema,
   encryptionSaltResponseSchema,
-  encryptionRekeyResponseSchema,
   encryptionSetupRecoveryResponseSchema,
   encryptionRecoverResponseSchema,
+  encryptionChangePinResponseSchema,
 } from './schemas.js';
+
+// Export error codes
+export { API_ERROR_CODES, type ApiErrorCode } from './src/error-codes.js';
 
 // Export response schema factories
 export {
@@ -249,9 +257,14 @@ export type {
   DemoSessionCreate,
   DemoSessionResponse,
 
-  // Encryption types
+  // Encryption types — requests
+  EncryptionValidateKeyRequest,
+  EncryptionRecoverRequest,
+  EncryptionChangePinRequest,
+  // Encryption types — responses
+  EncryptionVaultStatusResponse,
   EncryptionSaltResponse,
-  EncryptionRekeyResponse,
   EncryptionSetupRecoveryResponse,
   EncryptionRecoverResponse,
+  EncryptionChangePinResponse,
 } from './schemas.js';

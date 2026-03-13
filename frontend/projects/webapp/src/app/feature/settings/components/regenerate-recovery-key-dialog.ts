@@ -18,6 +18,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { firstValueFrom } from 'rxjs';
 
+import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { VAULT_CODE_MIN_LENGTH } from '@core/auth';
 import { EncryptionApi, deriveClientKey } from '@core/encryption';
 import { Logger } from '@core/logging/logger';
@@ -34,9 +35,10 @@ import { ErrorAlert } from '@ui/error-alert';
     MatInputModule,
     MatProgressSpinnerModule,
     ErrorAlert,
+    TranslocoPipe,
   ],
   template: `
-    <h2 mat-dialog-title>Régénérer ma clé</h2>
+    <h2 mat-dialog-title>{{ 'settings.regenerateKeyTitle' | transloco }}</h2>
 
     <mat-dialog-content>
       <div
@@ -45,11 +47,10 @@ import { ErrorAlert } from '@ui/error-alert';
         <mat-icon class="text-on-error-container! shrink-0">warning</mat-icon>
         <div class="space-y-1">
           <p class="text-body-medium text-on-error-container font-medium">
-            Attention
+            {{ 'settings.regenerateKeyWarningTitle' | transloco }}
           </p>
           <p class="text-body-small text-on-error-container opacity-90">
-            Cette action invalide l'ancienne clé. Sans ton code PIN ou ta clé de
-            récupération, l'accès à tes données sera définitivement perdu.
+            {{ 'settings.regenerateKeyWarning' | transloco }}
           </p>
         </div>
       </div>
@@ -61,7 +62,7 @@ import { ErrorAlert } from '@ui/error-alert';
 
       <form [formGroup]="verificationForm" (ngSubmit)="onSubmit()">
         <mat-form-field appearance="outline" class="w-full mb-2">
-          <mat-label>Code PIN</mat-label>
+          <mat-label>{{ 'settings.pinCodeLabel' | transloco }}</mat-label>
           <input
             matInput
             [type]="isVaultCodeHidden() ? 'password' : 'text'"
@@ -75,7 +76,7 @@ import { ErrorAlert } from '@ui/error-alert';
             matIconButton
             matSuffix
             (click)="isVaultCodeHidden.set(!isVaultCodeHidden())"
-            [attr.aria-label]="'Afficher le code PIN'"
+            [attr.aria-label]="showPinLabel"
             [attr.aria-pressed]="!isVaultCodeHidden()"
           >
             <mat-icon>{{
@@ -83,13 +84,18 @@ import { ErrorAlert } from '@ui/error-alert';
             }}</mat-icon>
           </button>
           @if (verificationForm.get('vaultCode')?.hasError('required')) {
-            <mat-error>Le code PIN est requis</mat-error>
+            <mat-error>{{ 'settings.pinCodeRequired' | transloco }}</mat-error>
           } @else if (
             verificationForm.get('vaultCode')?.hasError('minlength')
           ) {
-            <mat-error>Au moins {{ VAULT_CODE_MIN_LENGTH }} chiffres</mat-error>
+            <mat-error>{{
+              'settings.pinCodeMinLength'
+                | transloco: { min: VAULT_CODE_MIN_LENGTH }
+            }}</mat-error>
           } @else if (verificationForm.get('vaultCode')?.hasError('pattern')) {
-            <mat-error>Le code PIN ne doit contenir que des chiffres</mat-error>
+            <mat-error>{{
+              'settings.pinCodeDigitsOnly' | transloco
+            }}</mat-error>
           }
         </mat-form-field>
       </form>
@@ -97,7 +103,7 @@ import { ErrorAlert } from '@ui/error-alert';
 
     <mat-dialog-actions align="end">
       <button matButton mat-dialog-close data-testid="cancel-button">
-        Annuler
+        {{ 'common.cancel' | transloco }}
       </button>
       <button
         matButton="filled"
@@ -106,10 +112,12 @@ import { ErrorAlert } from '@ui/error-alert';
         [disabled]="isSubmitting() || !verificationForm.valid"
         (click)="onSubmit()"
       >
-        @if (isSubmitting()) {
-          <mat-spinner diameter="20" class="mr-2" />
-        }
-        Régénérer
+        <span class="flex items-center justify-center">
+          @if (isSubmitting()) {
+            <mat-spinner diameter="20" class="mr-2" />
+          }
+          {{ 'settings.regenerateKeySubmit' | transloco }}
+        </span>
       </button>
     </mat-dialog-actions>
   `,
@@ -119,6 +127,11 @@ export class RegenerateRecoveryKeyDialog {
   readonly #logger = inject(Logger);
   readonly #dialogRef = inject(MatDialogRef<RegenerateRecoveryKeyDialog>);
   readonly #encryptionApi = inject(EncryptionApi);
+  readonly #transloco = inject(TranslocoService);
+
+  protected readonly showPinLabel = this.#transloco.translate(
+    'settings.showPinCode',
+  );
 
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
@@ -158,9 +171,7 @@ export class RegenerateRecoveryKeyDialog {
       this.#dialogRef.close(true);
     } catch (error) {
       this.#logger.error('Recovery key verification failed', error);
-      this.errorMessage.set(
-        'Code PIN incorrect ou clé de chiffrement invalide',
-      );
+      this.errorMessage.set(this.#transloco.translate('settings.pinIncorrect'));
     } finally {
       this.isSubmitting.set(false);
     }

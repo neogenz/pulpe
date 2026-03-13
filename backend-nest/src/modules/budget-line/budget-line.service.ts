@@ -200,6 +200,7 @@ export class BudgetLineService {
       kind: createBudgetLineDto.kind as Database['public']['Enums']['transaction_kind'],
       recurrence: createBudgetLineDto.recurrence,
       is_manually_adjusted: createBudgetLineDto.isManuallyAdjusted || false,
+      checked_at: createBudgetLineDto.checkedAt ?? null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

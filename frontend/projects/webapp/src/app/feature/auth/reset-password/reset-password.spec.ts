@@ -10,6 +10,7 @@ import {
   PASSWORD_MIN_LENGTH,
 } from '@core/auth';
 import { Logger } from '@core/logging/logger';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 import ResetPassword from './reset-password';
 
@@ -57,6 +58,7 @@ describe('ResetPassword', () => {
         provideZonelessChangeDetection(),
         provideAnimationsAsync(),
         provideRouter([]),
+        ...provideTranslocoForTest(),
         { provide: AuthSessionService, useValue: mockAuthSessionService },
         { provide: AuthStateService, useValue: mockAuthStateService },
         { provide: Logger, useValue: mockLogger },

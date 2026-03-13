@@ -3,11 +3,18 @@ import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { type BudgetTemplate } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-template-card',
-  imports: [RouterLink, MatCardModule, MatButtonModule, MatIconModule],
+  imports: [
+    RouterLink,
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    TranslocoPipe,
+  ],
   template: `
     <mat-card
       appearance="outlined"
@@ -24,9 +31,13 @@ import { type BudgetTemplate } from 'pulpe-shared';
         </div>
         <mat-card-title>{{ template().name }}</mat-card-title>
         @if (template().isDefault) {
-          <mat-card-subtitle>Template par défaut</mat-card-subtitle>
+          <mat-card-subtitle>{{
+            'template.isDefault' | transloco
+          }}</mat-card-subtitle>
         } @else {
-          <mat-card-subtitle>Template</mat-card-subtitle>
+          <mat-card-subtitle>{{
+            'template.defaultLabel' | transloco
+          }}</mat-card-subtitle>
         }
       </mat-card-header>
       <mat-card-content>
@@ -43,7 +54,7 @@ import { type BudgetTemplate } from 'pulpe-shared';
           data-testid="view-details-button"
         >
           <mat-icon>visibility</mat-icon>
-          Détails
+          {{ 'template.details' | transloco }}
         </button>
       </mat-card-actions>
     </mat-card>

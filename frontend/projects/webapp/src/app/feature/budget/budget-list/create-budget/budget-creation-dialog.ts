@@ -30,22 +30,11 @@ import { TemplateDetailsDialog } from './template-details-dialog';
 import { TemplateStore } from './services/template-store';
 import { TemplateTotalsCalculator } from './services/template-totals-calculator';
 import { BudgetApi } from '@core/budget/budget-api';
+import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { isApiError } from '@core/api/api-error';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
-const BUDGET_CREATION_CONSTANTS = {
-  // Form validation constraints
-  DESCRIPTION_MAX_LENGTH: 100,
-
-  // Error messages
-  ERROR_MESSAGES: {
-    DESCRIPTION_TOO_LONG: 'La description ne peut pas dépasser 100 caractères',
-  } as const,
-
-  // Success messages
-  SUCCESS_MESSAGES: {
-    BUDGET_CREATED: 'Budget créé avec succès !',
-  } as const,
-} as const;
+const DESCRIPTION_MAX_LENGTH = 100;
 
 // Format personnalisé pour le month/year picker
 const MONTH_YEAR_FORMATS = {
@@ -74,6 +63,7 @@ const MONTH_YEAR_FORMATS = {
     MatProgressSpinnerModule,
     ReactiveFormsModule,
     TemplatesList,
+    TranslocoPipe,
   ],
   providers: [
     TemplateStore,
@@ -81,7 +71,7 @@ const MONTH_YEAR_FORMATS = {
     { provide: MAT_DATE_FORMATS, useValue: MONTH_YEAR_FORMATS },
   ],
   template: `
-    <h2 mat-dialog-title>Créer un budget</h2>
+    <h2 mat-dialog-title>{{ 'budget.createTitle' | transloco }}</h2>
 
     <mat-dialog-content>
       <form
@@ -91,12 +81,12 @@ const MONTH_YEAR_FORMATS = {
         <section class="space-y-2 md:space-y-4">
           <!-- General Information Section -->
           <h3 class="text-title-medium text-primary mb-2 md:mb-4">
-            Informations générales
+            {{ 'budget.generalInfo' | transloco }}
           </h3>
 
           <!-- Month/Year Picker -->
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Mois et année</mat-label>
+            <mat-label>{{ 'budget.monthYearLabel' | transloco }}</mat-label>
             <input
               matInput
               [matDatepicker]="monthYearPicker"
@@ -113,32 +103,32 @@ const MONTH_YEAR_FORMATS = {
               (monthSelected)="onMonthSelected($event, monthYearPicker)"
             >
             </mat-datepicker>
-            <mat-hint>mm.aaaa</mat-hint>
+            <mat-hint>{{ 'budget.monthYearHint' | transloco }}</mat-hint>
             @if (
               budgetForm.get('monthYear')?.invalid &&
               budgetForm.get('monthYear')?.touched
             ) {
-              <mat-error>Le mois et l'année sont requis</mat-error>
+              <mat-error>{{
+                'budget.monthYearRequired' | transloco
+              }}</mat-error>
             }
           </mat-form-field>
 
           <!-- Description Field -->
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Description (optionnelle)</mat-label>
+            <mat-label>{{ 'budget.descriptionLabel' | transloco }}</mat-label>
             <input
               matInput
               formControlName="description"
-              [maxlength]="constants.DESCRIPTION_MAX_LENGTH"
-              placeholder="Ex: Budget vacances d'été"
+              [maxlength]="maxDescriptionLength"
+              [placeholder]="'budget.descriptionPlaceholder' | transloco"
             />
             <mat-hint align="end"
-              >{{ descriptionLength() }}/{{
-                constants.DESCRIPTION_MAX_LENGTH
-              }}</mat-hint
+              >{{ descriptionLength() }}/{{ maxDescriptionLength }}</mat-hint
             >
             @if (budgetForm.get('description')?.errors?.['maxlength']) {
               <mat-error>
-                {{ constants.ERROR_MESSAGES.DESCRIPTION_TOO_LONG }}
+                {{ 'budget.descriptionTooLong' | transloco }}
               </mat-error>
             }
           </mat-form-field>
@@ -146,7 +136,7 @@ const MONTH_YEAR_FORMATS = {
         <section>
           <!-- Model Selection Section -->
           <h3 class="text-title-medium text-primary mb-2 md:mb-4">
-            Sélection du modèle
+            {{ 'budget.modelSelection' | transloco }}
           </h3>
 
           <!-- Templates List Component -->
@@ -172,7 +162,7 @@ const MONTH_YEAR_FORMATS = {
         mat-dialog-close
         class="w-full md:w-auto md:mr-2 min-h-[44px]"
       >
-        Annuler
+        {{ 'common.cancel' | transloco }}
       </button>
       <button
         matButton="filled"
@@ -190,13 +180,13 @@ const MONTH_YEAR_FORMATS = {
           <mat-progress-spinner
             mode="indeterminate"
             [diameter]="24"
-            aria-label="Création en cours"
+            [attr.aria-label]="'budget.creationInProgress' | transloco"
             role="progressbar"
             class="pulpe-loading-indicator pulpe-loading-small mr-2 flex-shrink-0"
           ></mat-progress-spinner>
-          <span aria-live="polite">Création...</span>
+          <span aria-live="polite">{{ 'budget.creating' | transloco }}</span>
         } @else {
-          Créer le budget
+          {{ 'budget.createButton' | transloco }}
         }
       </button>
     </mat-dialog-actions>
@@ -208,15 +198,16 @@ export class CreateBudgetDialogComponent {
   readonly #formBuilder = inject(FormBuilder);
   readonly #dialog = inject(MatDialog);
   readonly #snackBar = inject(MatSnackBar);
+  readonly #apiErrorLocalizer = inject(ApiErrorLocalizer);
   readonly #budgetApi = inject(BudgetApi);
+  readonly #transloco = inject(TranslocoService);
   readonly templateStore = inject(TemplateStore);
   readonly #data = inject(MAT_DIALOG_DATA, { optional: true }) as {
     month?: number;
     year?: number;
   } | null;
 
-  // Expose constants for template usage
-  readonly constants = BUDGET_CREATION_CONSTANTS;
+  protected readonly maxDescriptionLength = DESCRIPTION_MAX_LENGTH;
 
   // Computed template view models for UI
   readonly templateViewModels = computed((): TemplateViewModel[] => {
@@ -245,10 +236,7 @@ export class CreateBudgetDialogComponent {
 
   budgetForm = this.#formBuilder.nonNullable.group({
     monthYear: [this.#getInitialDate(), Validators.required],
-    description: [
-      '',
-      [Validators.maxLength(BUDGET_CREATION_CONSTANTS.DESCRIPTION_MAX_LENGTH)],
-    ],
+    description: ['', [Validators.maxLength(DESCRIPTION_MAX_LENGTH)]],
     templateId: ['', Validators.required],
   });
 
@@ -367,8 +355,8 @@ export class CreateBudgetDialogComponent {
       this.#dialogRef.close({ success: true, data: formData });
 
       this.#snackBar.open(
-        BUDGET_CREATION_CONSTANTS.SUCCESS_MESSAGES.BUDGET_CREATED,
-        'Fermer',
+        this.#transloco.translate('budget.created'),
+        this.#transloco.translate('common.close'),
         {
           duration: 5000,
           panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
@@ -378,14 +366,18 @@ export class CreateBudgetDialogComponent {
       this.isCreating.set(false);
 
       const errorMessage = isApiError(error)
-        ? error.message
-        : 'La création du budget a échoué — réessaie';
+        ? this.#apiErrorLocalizer.localizeApiError(error)
+        : this.#transloco.translate('budget.createError');
 
       // Show error snackbar with the localized message
-      this.#snackBar.open(errorMessage, 'Fermer', {
-        duration: 8000,
-        panelClass: ['bg-[color-error]', 'text-[color-on-error]'],
-      });
+      this.#snackBar.open(
+        errorMessage,
+        this.#transloco.translate('common.close'),
+        {
+          duration: 8000,
+          panelClass: ['bg-[color-error]', 'text-[color-on-error]'],
+        },
+      );
     }
   }
 }

@@ -15,6 +15,7 @@ import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth';
 import { EncryptionApi } from '@core/encryption';
 import { DemoModeService } from '@core/demo/demo-mode.service';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 import SettingsPage from './settings-page';
 
@@ -73,6 +74,7 @@ describe('SettingsPage', () => {
         provideZonelessChangeDetection(),
         provideAnimationsAsync(),
         provideRouter([]),
+        ...provideTranslocoForTest(),
         { provide: UserSettingsApi, useValue: mockUserSettingsApi },
         { provide: MatSnackBar, useValue: mockSnackBar },
         { provide: Logger, useValue: mockLogger },

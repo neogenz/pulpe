@@ -12,12 +12,13 @@ struct PinDotsView: View {
             ForEach(0..<maxDigits, id: \.self) { index in
                 Circle()
                     .fill(dotColor(at: index))
-                    .frame(width: 14, height: 14)
+                    .frame(width: DesignTokens.Numpad.dotSize, height: DesignTokens.Numpad.dotSize)
                     .scaleEffect(index < enteredCount ? 1.0 : 0.7)
                     .animation(.spring(response: 0.2, dampingFraction: 0.7), value: enteredCount)
             }
         }
         .offset(x: shakeOffset)
+        .accessibilityHidden(true)
         .onChange(of: isError) { _, newValue in
             guard newValue else { return }
             withAnimation(.easeInOut(duration: 0.08).repeatCount(5, autoreverses: true)) {
@@ -38,7 +39,7 @@ struct PinDotsView: View {
 
 #Preview {
     ZStack {
-        Color.pinBackground.ignoresSafeArea()
+        Color.loginGradientBackground
         VStack(spacing: 40) {
             PinDotsView(enteredCount: 0, maxDigits: 6, isError: false)
             PinDotsView(enteredCount: 3, maxDigits: 6, isError: false)

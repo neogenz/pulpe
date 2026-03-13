@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { Router, type NavigationEnd, ActivatedRoute } from '@angular/router';
@@ -17,6 +18,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 import { Subject, EMPTY } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import MainLayout from './main-layout';
 import { AuthStateService } from '../core/auth/auth-state.service';
 import { AuthSessionService } from '../core/auth/auth-session.service';
@@ -104,6 +106,8 @@ describe('MainLayout', () => {
   let mockAuthStateService: {
     signOut: ReturnType<typeof vi.fn>;
     authState: ReturnType<typeof vi.fn>;
+    user: ReturnType<typeof signal<{ email: string } | null>>;
+    isEarlyAdopter: ReturnType<typeof signal<boolean>>;
   };
   let mockAuthSessionService: {
     signOut: ReturnType<typeof vi.fn>;
@@ -154,6 +158,8 @@ describe('MainLayout', () => {
         isLoading: false,
         isAuthenticated: true,
       }),
+      user: signal<{ email: string } | null>({ email: 'test@example.com' }),
+      isEarlyAdopter: signal(false),
     };
     mockAuthSessionService = {
       signOut: vi.fn().mockResolvedValue(undefined),
@@ -202,6 +208,7 @@ describe('MainLayout', () => {
       ],
       providers: [
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
         { provide: AuthStateService, useValue: mockAuthStateService },
         { provide: AuthSessionService, useValue: mockAuthSessionService },
         { provide: Router, useValue: mockRouter },
@@ -258,6 +265,7 @@ describe('MainLayout', () => {
           RouterModule,
           MockNavigationMenuComponent,
           MockPulpeBreadcrumbComponent,
+          TranslocoPipe,
         ],
         styles: [],
         schemas: [NO_ERRORS_SCHEMA],

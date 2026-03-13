@@ -92,11 +92,18 @@ export class MyService {
 
 ### Module Setup
 
+**MANDATORY:** Every class using `@InjectInfoLogger` — service or controller — needs a `createInfoLoggerProvider` entry. Missing one causes a NestJS DI error at runtime.
+
 ```typescript
 import { createInfoLoggerProvider } from '@common/logger';
 
 @Module({
-  providers: [MyService, createInfoLoggerProvider(MyService.name)],
+  controllers: [MyController],
+  providers: [
+    MyService,
+    createInfoLoggerProvider(MyService.name),      // required — service uses @InjectInfoLogger
+    createInfoLoggerProvider(MyController.name),   // required — controller uses @InjectInfoLogger
+  ],
 })
 export class MyModule {}
 ```

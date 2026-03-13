@@ -37,9 +37,9 @@ struct PinEntryView: View {
             logoutButton
             Spacer()
             headerSection
-            Spacer().frame(height: 40)
+            Spacer().frame(height: DesignTokens.Spacing.sectionGap)
             dotsSection
-            Spacer().frame(height: 48)
+            Spacer().frame(height: DesignTokens.Spacing.stepHeaderTop)
             NumpadView(
                 onDigit: { viewModel.appendDigit($0) },
                 onDelete: { viewModel.deleteLastDigit() },
@@ -93,21 +93,12 @@ struct PinEntryView: View {
     // MARK: - Dots + Error
 
     private var dotsSection: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
-            PinDotsView(
-                enteredCount: viewModel.digits.count,
-                maxDigits: viewModel.maxDigits,
-                isError: viewModel.isError
-            )
-
-            if let errorMessage = viewModel.errorMessage {
-                Text(errorMessage)
-                    .font(PulpeTypography.footnote)
-                    .foregroundStyle(Color.errorPrimary)
-                    .transition(.opacity)
-            }
-        }
-        .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: viewModel.errorMessage)
+        PinDotsErrorView(
+            enteredCount: viewModel.digits.count,
+            maxDigits: viewModel.maxDigits,
+            isError: viewModel.isError,
+            errorMessage: viewModel.errorMessage
+        )
     }
 
     // MARK: - Forgot PIN
@@ -175,6 +166,7 @@ final class PinEntryViewModel {
 
     func appendDigit(_ digit: Int) {
         guard digits.count < maxDigits, !isValidating else { return }
+        if isError { clearError() }
         digits.append(digit)
     }
 
@@ -221,25 +213,11 @@ final class PinEntryViewModel {
     // MARK: - Error Handling
 
     private func handleAPIError(_ error: APIError) {
-        switch error {
-        case .rateLimited:
-            showError("Trop de tentatives, patiente un moment")
-        case .networkError:
-            showError("Erreur de connexion, réessaie")
-        default:
-            showError("Ce code ne semble pas correct")
-        }
+        showError(error.pinValidationMessage)
     }
 
     private func handleCryptoError(_ error: CryptoServiceError) {
-        switch error {
-        case .invalidSalt, .invalidIterations:
-            showError("Erreur de sécurité, contacte le support")
-        case .derivationFailed:
-            showError("Erreur de chiffrement, réessaie")
-        case .invalidPin:
-            showError("Code invalide")
-        }
+        showError(error.pinUserMessage)
     }
 
     private func showError(_ message: String) {
@@ -250,9 +228,9 @@ final class PinEntryViewModel {
 
         errorResetTask?.cancel()
         errorResetTask = Task {
-            try? await Task.sleep(for: .seconds(1))
+            try? await Task.sleep(for: .seconds(3))
             guard !Task.isCancelled else { return }
-            isError = false
+            clearError()
         }
     }
 

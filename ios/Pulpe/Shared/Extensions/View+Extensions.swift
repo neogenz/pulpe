@@ -241,7 +241,7 @@ extension View {
             .presentationDetents(detents)
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(DesignTokens.CornerRadius.xl)
-            .presentationBackground(Color.surface)
+            .presentationBackground(Color.sheetBackground)
     }
 }
 

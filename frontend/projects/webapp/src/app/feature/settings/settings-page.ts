@@ -22,6 +22,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { isApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsApi } from '@core/user-settings';
@@ -36,6 +37,7 @@ import {
 } from '@ui/dialogs/recovery-key-dialog';
 import { PAY_DAY_MAX } from 'pulpe-shared';
 import { ChangePasswordDialog } from './components/change-password-dialog';
+import { ChangePinDialog } from './components/change-pin-dialog';
 import { DeleteAccountDialog } from './components/delete-account-dialog';
 import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-key-dialog';
 
@@ -52,17 +54,22 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
     MatProgressSpinnerModule,
     MatSelectModule,
     MatSnackBarModule,
+    TranslocoPipe,
   ],
   template: `
     <div data-testid="settings-page">
-      <h1 class="text-headline-medium mb-8">Paramètres</h1>
+      <h1 class="text-headline-medium mb-8">
+        {{ 'settings.title' | transloco }}
+      </h1>
 
       <!-- ═══ Section: Compte ═══ -->
       <section class="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-8">
         <div>
-          <h2 class="text-title-medium font-bold mb-2">Compte</h2>
+          <h2 class="text-title-medium font-bold mb-2">
+            {{ 'settings.accountSection' | transloco }}
+          </h2>
           <p class="text-body-small text-on-surface-variant leading-relaxed">
-            Gère tes préférences de compte et ton cycle budgétaire.
+            {{ 'settings.accountDescription' | transloco }}
           </p>
         </div>
 
@@ -75,11 +82,11 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
               >lightbulb</mat-icon
             >
             <div class="space-y-1">
-              <p class="text-body-medium font-medium">Comment ça marche ?</p>
+              <p class="text-body-medium font-medium">
+                {{ 'settings.howItWorks' | transloco }}
+              </p>
               <p class="text-body-small leading-relaxed">
-                Si tu es payé le 27, ton budget de janvier couvrira la période
-                du 27 décembre au 26 janvier. Tu planifies ainsi tes dépenses
-                selon ton vrai rythme financier.
+                {{ 'settings.howItWorksDetail' | transloco }}
               </p>
             </div>
           </div>
@@ -90,27 +97,32 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
               subscriptSizing="dynamic"
               class="w-full"
             >
-              <mat-label>Jour de paie</mat-label>
+              <mat-label>{{ 'settings.payDay' | transloco }}</mat-label>
               <mat-select
                 data-testid="pay-day-select"
                 [value]="selectedPayDay()"
                 (selectionChange)="onPayDayChange($event)"
               >
-                <mat-option [value]="null"> 1er du mois </mat-option>
+                <mat-option [value]="null">
+                  {{ 'settings.firstOfMonth' | transloco }}
+                </mat-option>
                 @for (day of availableDays; track day) {
-                  <mat-option [value]="day"> Le {{ day }} </mat-option>
+                  <mat-option [value]="day">
+                    {{ 'settings.the' | transloco }} {{ day }}
+                  </mat-option>
                 }
               </mat-select>
               <mat-hint data-testid="pay-day-hint">
                 @if (selectedPayDay(); as day) {
                   @if (day > 28) {
-                    Ton budget commence le {{ day }}. Si le mois a moins de
-                    jours, il débutera le dernier jour disponible.
+                    {{ 'settings.payDayHintCustom' | transloco: { day: day } }}
                   } @else {
-                    Ton budget commence le {{ day }} de chaque mois
+                    {{
+                      'settings.payDayHintStandard' | transloco: { day: day }
+                    }}
                   }
                 } @else {
-                  Ton budget suit le calendrier standard
+                  {{ 'settings.payDayHintDefault' | transloco }}
                 }
               </mat-hint>
             </mat-form-field>
@@ -123,7 +135,7 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                   [disabled]="isSaving()"
                   (click)="resetChanges()"
                 >
-                  Annuler
+                  {{ 'common.cancel' | transloco }}
                 </button>
                 <button
                   matButton="filled"
@@ -132,10 +144,12 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                   [disabled]="isSaving()"
                   (click)="saveSettings()"
                 >
-                  @if (isSaving()) {
-                    <mat-spinner diameter="20" class="mr-2" />
-                  }
-                  Enregistrer
+                  <span class="flex items-center justify-center">
+                    @if (isSaving()) {
+                      <mat-spinner diameter="20" class="mr-2" />
+                    }
+                    {{ 'common.save' | transloco }}
+                  </span>
                 </button>
               </div>
             }
@@ -149,9 +163,11 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
       @if (!isDemoMode()) {
         <section class="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-12">
           <div>
-            <h2 class="text-title-medium font-bold mb-2">Sécurité</h2>
+            <h2 class="text-title-medium font-bold mb-2">
+              {{ 'settings.securitySection' | transloco }}
+            </h2>
             <p class="text-body-small text-on-surface-variant leading-relaxed">
-              Protège l'accès à tes données et gère tes clés de chiffrement.
+              {{ 'settings.securityDescription' | transloco }}
             </p>
           </div>
 
@@ -162,9 +178,11 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                 class="flex items-center justify-between gap-6 pb-6 border-b border-outline-variant/20"
               >
                 <div class="space-y-1">
-                  <h3 class="text-title-small">Mot de passe</h3>
+                  <h3 class="text-title-small">
+                    {{ 'settings.password' | transloco }}
+                  </h3>
                   <p class="text-body-medium text-on-surface-variant">
-                    Modifier ton mot de passe de connexion.
+                    {{ 'settings.passwordDescription' | transloco }}
                   </p>
                 </div>
                 <button
@@ -172,17 +190,40 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                   data-testid="change-password-button"
                   (click)="onChangePassword()"
                 >
-                  Modifier
+                  {{ 'settings.changePassword' | transloco }}
                 </button>
               </div>
             }
 
+            <!-- Code PIN -->
+            <div
+              class="flex items-center justify-between gap-6 pb-6 border-b border-outline-variant/20"
+            >
+              <div class="space-y-1">
+                <h3 class="text-title-small">
+                  {{ 'settings.pinCode' | transloco }}
+                </h3>
+                <p class="text-body-medium text-on-surface-variant">
+                  {{ 'settings.pinCodeDescription' | transloco }}
+                </p>
+              </div>
+              <button
+                matButton="outlined"
+                data-testid="change-pin-button"
+                (click)="onChangePin()"
+              >
+                {{ 'common.edit' | transloco }}
+              </button>
+            </div>
+
             <!-- Clé de récupération -->
             <div class="flex items-center justify-between gap-6">
               <div class="space-y-1">
-                <h3 class="text-title-small">Clé de récupération</h3>
+                <h3 class="text-title-small">
+                  {{ 'settings.recoveryKey' | transloco }}
+                </h3>
                 <p class="text-body-medium text-on-surface-variant">
-                  Indispensable si tu oublies ton code PIN.
+                  {{ 'settings.recoveryKeyDescription' | transloco }}
                 </p>
               </div>
               <button
@@ -191,10 +232,12 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                 [disabled]="isGeneratingRecoveryKey()"
                 (click)="onRegenerateRecoveryKey()"
               >
-                @if (isGeneratingRecoveryKey()) {
-                  <mat-spinner diameter="20" class="mr-2" />
-                }
-                Régénérer
+                <span class="flex items-center justify-center">
+                  @if (isGeneratingRecoveryKey()) {
+                    <mat-spinner diameter="20" class="mr-2" />
+                  }
+                  {{ 'settings.regenerateKey' | transloco }}
+                </span>
               </button>
             </div>
           </div>
@@ -208,10 +251,10 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
         <section class="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-8 pb-12">
           <div>
             <h2 class="text-title-medium text-error font-bold mb-2">
-              Zone de danger
+              {{ 'settings.dangerSection' | transloco }}
             </h2>
             <p class="text-body-small text-error opacity-70 leading-relaxed">
-              Actions irréversibles sur ton compte.
+              {{ 'settings.dangerDescription' | transloco }}
             </p>
           </div>
 
@@ -221,10 +264,10 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
             >
               <div class="space-y-1">
                 <h3 class="text-title-small font-bold text-error">
-                  Supprimer mon compte
+                  {{ 'settings.deleteAccount' | transloco }}
                 </h3>
                 <p class="text-body-medium text-error opacity-90">
-                  Tes données seront supprimées définitivement après 3 jours.
+                  {{ 'settings.deleteAccountDescription' | transloco }}
                 </p>
               </div>
               <button
@@ -235,10 +278,12 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                 (click)="onDeleteAccount()"
                 class="shrink-0"
               >
-                @if (isDeleting()) {
-                  <mat-spinner diameter="20" class="mr-2" />
-                }
-                Supprimer le compte
+                <span class="flex items-center justify-center">
+                  @if (isDeleting()) {
+                    <mat-spinner diameter="20" class="mr-2" />
+                  }
+                  {{ 'settings.deleteAccountButton' | transloco }}
+                </span>
               </button>
             </div>
           </div>
@@ -259,6 +304,7 @@ export default class SettingsPage {
   readonly #demoMode = inject(DemoModeService);
   readonly #encryptionApi = inject(EncryptionApi);
   readonly #authState = inject(AuthStateService);
+  readonly #transloco = inject(TranslocoService);
 
   readonly isDemoMode = this.#demoMode.isDemoMode;
   protected readonly isOAuthOnly = this.#authState.isOAuthOnly;
@@ -291,18 +337,26 @@ export default class SettingsPage {
         payDayOfMonth: this.selectedPayDay(),
       });
 
-      this.#snackBar.open("C'est enregistré", 'OK', {
-        duration: 3000,
-        horizontalPosition: 'center',
-        verticalPosition: 'bottom',
-      });
+      this.#snackBar.open(
+        this.#transloco.translate('settings.saveSuccess'),
+        'OK',
+        {
+          duration: 3000,
+          horizontalPosition: 'center',
+          verticalPosition: 'bottom',
+        },
+      );
     } catch (error) {
       this.#logger.error('Failed to save settings', error);
-      this.#snackBar.open("L'enregistrement a échoué — réessaie", 'OK', {
-        duration: 5000,
-        horizontalPosition: 'center',
-        verticalPosition: 'bottom',
-      });
+      this.#snackBar.open(
+        this.#transloco.translate('settings.saveError'),
+        'OK',
+        {
+          duration: 5000,
+          horizontalPosition: 'center',
+          verticalPosition: 'bottom',
+        },
+      );
     } finally {
       this.isSaving.set(false);
     }
@@ -320,11 +374,47 @@ export default class SettingsPage {
     const changed = await firstValueFrom(dialogRef.afterClosed());
     if (!changed) return;
 
-    this.#snackBar.open('Mot de passe modifié', 'OK', {
-      duration: 3000,
-      horizontalPosition: 'center',
-      verticalPosition: 'bottom',
-    });
+    this.#snackBar.open(
+      this.#transloco.translate('settings.passwordChanged'),
+      'OK',
+      {
+        duration: 3000,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom',
+      },
+    );
+  }
+
+  async onChangePin(): Promise<void> {
+    const dialogRef = this.#dialog.open(ChangePinDialog, { width: '480px' });
+    const result = await firstValueFrom(dialogRef.afterClosed());
+    if (!result) return;
+
+    if (result.recoveryKey) {
+      const dialogData: RecoveryKeyDialogData = {
+        recoveryKey: result.recoveryKey,
+      };
+      const recoveryRef = this.#dialog.open(RecoveryKeyDialog, {
+        data: dialogData,
+        width: '480px',
+        disableClose: true,
+      });
+      await firstValueFrom(recoveryRef.afterClosed());
+    }
+
+    this.#snackBar.open(
+      this.#transloco.translate(
+        result.recoveryKey
+          ? 'settings.pinChanged'
+          : 'settings.pinChangedNoRecovery',
+      ),
+      'OK',
+      {
+        duration: result.recoveryKey ? 3000 : 6000,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom',
+      },
+    );
   }
 
   async onRegenerateRecoveryKey(): Promise<void> {
@@ -395,16 +485,20 @@ export default class SettingsPage {
 
       const confirmed = await firstValueFrom(dialogRef.afterClosed());
       if (confirmed) {
-        this.#snackBar.open('Nouvelle clé de récupération enregistrée', 'OK', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'bottom',
-        });
+        this.#snackBar.open(
+          this.#transloco.translate('settings.newRecoveryKeySaved'),
+          'OK',
+          {
+            duration: 3000,
+            horizontalPosition: 'center',
+            verticalPosition: 'bottom',
+          },
+        );
       }
     } catch (error) {
       this.#logger.error('Failed to generate recovery key', error);
       this.#snackBar.open(
-        'La génération de la clé a échoué — réessaie plus tard',
+        this.#transloco.translate('settings.generateKeyError'),
         'OK',
         {
           duration: 5000,
@@ -420,25 +514,29 @@ export default class SettingsPage {
   #getDeleteAccountErrorMessage(error: unknown): string {
     if (isApiError(error)) {
       if (error.status === 0) {
-        return 'Erreur réseau — vérifie ta connexion';
+        return this.#transloco.translate('common.networkError');
       }
 
       if (error.code === 'ERR_USER_ACCOUNT_BLOCKED') {
-        return 'Ton compte est déjà programmé pour suppression';
+        return this.#transloco.translate(
+          'settings.alreadyScheduledForDeletion',
+        );
       }
     }
 
     if (error instanceof HttpErrorResponse) {
       if (error.status === 0) {
-        return 'Erreur réseau — vérifie ta connexion';
+        return this.#transloco.translate('common.networkError');
       }
 
       const errorCode = error.error?.code;
       if (errorCode === 'ERR_USER_ACCOUNT_BLOCKED') {
-        return 'Ton compte est déjà programmé pour suppression';
+        return this.#transloco.translate(
+          'settings.alreadyScheduledForDeletion',
+        );
       }
     }
 
-    return 'La suppression a échoué — réessaie plus tard';
+    return this.#transloco.translate('settings.deleteError');
   }
 }

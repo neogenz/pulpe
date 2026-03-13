@@ -9,16 +9,16 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import {
   type BudgetLineCreate,
   type TransactionKind,
   type TransactionRecurrence,
 } from 'pulpe-shared';
-import {
-  TransactionIconPipe,
-  TransactionLabelPipe,
-} from '@ui/transaction-display';
+import { TranslocoPipe } from '@jsverse/transloco';
+import { TransactionIconPipe } from '@ui/transaction-display';
+import { TransactionLabelPipe } from '@pattern/transaction-display';
 
 export interface BudgetLineDialogData {
   budgetId: string;
@@ -33,28 +33,34 @@ export interface BudgetLineDialogData {
     MatSelectModule,
     MatButtonModule,
     MatIconModule,
+    MatSlideToggleModule,
     ReactiveFormsModule,
+    TranslocoPipe,
     TransactionIconPipe,
     TransactionLabelPipe,
   ],
   template: `
-    <h2 mat-dialog-title class="text-headline-small">Nouvelle prévision</h2>
+    <h2 mat-dialog-title class="text-headline-small">
+      {{ 'budget.newForecast' | transloco }}
+    </h2>
 
     <mat-dialog-content>
       <div class="flex flex-col gap-4 pt-4">
         <form [formGroup]="form">
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Nom</mat-label>
+            <mat-label>{{ 'budget.forecastNameLabel' | transloco }}</mat-label>
             <input
               matInput
               formControlName="name"
-              placeholder="Ex: Salaire, Loyer, Épargne..."
+              [placeholder]="'budget.forecastNamePlaceholder' | transloco"
               data-testid="new-line-name"
             />
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full ph-no-capture">
-            <mat-label class="ph-no-capture">Montant</mat-label>
+            <mat-label class="ph-no-capture">{{
+              'transactionForm.amountLabel' | transloco
+            }}</mat-label>
             <input
               matInput
               type="number"
@@ -69,7 +75,7 @@ export interface BudgetLineDialogData {
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Type</mat-label>
+            <mat-label>{{ 'budget.forecastTypeLabel' | transloco }}</mat-label>
             <mat-select formControlName="kind" data-testid="new-line-kind">
               <mat-option value="income">
                 <mat-icon class="text-financial-income">{{
@@ -91,23 +97,33 @@ export interface BudgetLineDialogData {
               </mat-option>
             </mat-select>
           </mat-form-field>
+
+          <div class="flex items-center justify-between py-2 px-1">
+            <span class="text-body-medium text-on-surface">{{
+              'budget.forecastCheckedToggle' | transloco
+            }}</span>
+            <mat-slide-toggle
+              formControlName="isChecked"
+              [attr.aria-label]="'budget.forecastCheckedToggle' | transloco"
+            />
+          </div>
         </form>
       </div>
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button matButton (click)="handleCancel()" data-testid="cancel-new-line">
-        Annuler
+      <button matButton (click)="cancel()" data-testid="cancel-new-line">
+        {{ 'common.cancel' | transloco }}
       </button>
       <button
         matButton="filled"
         color="primary"
-        (click)="handleSubmit()"
+        (click)="submit()"
         [disabled]="!form.valid"
         data-testid="add-new-line"
       >
         <mat-icon>add</mat-icon>
-        Ajouter
+        {{ 'common.add' | transloco }}
       </button>
     </mat-dialog-actions>
   `,
@@ -118,7 +134,7 @@ export class AddBudgetLineDialog {
   readonly #data = inject<BudgetLineDialogData>(MAT_DIALOG_DATA);
   readonly #fb = inject(FormBuilder);
 
-  readonly form = this.#fb.group({
+  protected readonly form = this.#fb.group({
     name: ['', [Validators.required, Validators.minLength(1)]],
     amount: [
       null as number | null,
@@ -126,9 +142,10 @@ export class AddBudgetLineDialog {
     ],
     kind: ['expense' as TransactionKind, Validators.required],
     recurrence: ['one_off' as TransactionRecurrence],
+    isChecked: [false],
   });
 
-  handleSubmit(): void {
+  protected submit(): void {
     if (this.form.valid) {
       const value = this.form.getRawValue();
       const budgetLine: BudgetLineCreate = {
@@ -138,12 +155,13 @@ export class AddBudgetLineDialog {
         kind: value.kind!,
         recurrence: value.recurrence!,
         isManuallyAdjusted: true,
+        checkedAt: value.isChecked ? new Date().toISOString() : null,
       };
       this.#dialogRef.close(budgetLine);
     }
   }
 
-  handleCancel(): void {
+  protected cancel(): void {
     this.#dialogRef.close();
   }
 }

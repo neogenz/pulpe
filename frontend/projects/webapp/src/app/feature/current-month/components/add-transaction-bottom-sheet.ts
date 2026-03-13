@@ -1,5 +1,4 @@
 import {
-  type AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   type ElementRef,
@@ -20,12 +19,15 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import type { TransactionCreate } from 'pulpe-shared';
-import { TransactionLabelPipe } from '@ui/transaction-display';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { TransactionValidators } from '@core/transaction';
+import { TransactionLabelPipe } from '@pattern/transaction-display';
 
-type TransactionFormData = Pick<
+export type TransactionFormData = Pick<
   TransactionCreate,
-  'name' | 'amount' | 'kind' | 'category'
+  'name' | 'amount' | 'kind' | 'category' | 'checkedAt'
 >;
 
 // Define the form structure type
@@ -34,9 +36,8 @@ interface TransactionFormControls {
   amount: FormControl<number | null>;
   kind: FormControl<'expense' | 'income' | 'saving' | null>;
   category: FormControl<string | null>;
+  isChecked: FormControl<boolean>;
 }
-
-import { TransactionValidators } from '@core/transaction';
 
 @Component({
   selector: 'pulpe-add-transaction-bottom-sheet',
@@ -48,6 +49,8 @@ import { TransactionValidators } from '@core/transaction';
     MatInputModule,
     MatSelectModule,
     MatChipsModule,
+    MatSlideToggleModule,
+    TranslocoPipe,
     TransactionLabelPipe,
   ],
   template: `
@@ -60,9 +63,13 @@ import { TransactionValidators } from '@core/transaction';
       <!-- Header -->
       <div class="flex justify-between items-center">
         <h2 class="text-title-large text-on-surface m-0">
-          Nouvelle transaction
+          {{ 'currentMonth.addTransactionTitle' | transloco }}
         </h2>
-        <button matIconButton (click)="close()" aria-label="Fermer">
+        <button
+          matIconButton
+          (click)="close()"
+          [attr.aria-label]="'currentMonth.addTransactionClose' | transloco"
+        >
           <mat-icon>close</mat-icon>
         </button>
       </div>
@@ -81,7 +88,9 @@ import { TransactionValidators } from '@core/transaction';
           subscriptSizing="dynamic"
           class="ph-no-capture"
         >
-          <mat-label>Montant</mat-label>
+          <mat-label>{{
+            'currentMonth.addTransactionAmount' | transloco
+          }}</mat-label>
           <input
             class="!text-xl !font-bold !text-center"
             matInput
@@ -101,24 +110,24 @@ import { TransactionValidators } from '@core/transaction';
             transactionForm.get('amount')?.hasError('required') &&
             transactionForm.get('amount')?.touched
           ) {
-            <mat-error role="alert" aria-live="assertive"
-              >Le montant est requis</mat-error
-            >
+            <mat-error role="alert" aria-live="assertive">{{
+              'currentMonth.addTransactionAmountRequired' | transloco
+            }}</mat-error>
           }
           @if (
             transactionForm.get('amount')?.hasError('min') &&
             transactionForm.get('amount')?.touched
           ) {
-            <mat-error role="alert" aria-live="assertive"
-              >Le montant doit être au moins 0.01 CHF</mat-error
-            >
+            <mat-error role="alert" aria-live="assertive">{{
+              'currentMonth.addTransactionAmountMin' | transloco
+            }}</mat-error>
           }
         </mat-form-field>
 
         <!-- Predefined Amounts -->
         <div class="flex flex-col gap-3">
           <div class="text-sm font-medium text-on-surface-variant">
-            Montants rapides
+            {{ 'currentMonth.addTransactionQuickAmounts' | transloco }}
           </div>
           <div class="flex flex-wrap gap-2">
             @for (amount of predefinedAmounts(); track amount) {
@@ -136,7 +145,9 @@ import { TransactionValidators } from '@core/transaction';
 
         <!-- Name Field -->
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
-          <mat-label>Description</mat-label>
+          <mat-label>{{
+            'currentMonth.addTransactionDescription' | transloco
+          }}</mat-label>
           <input
             matInput
             formControlName="name"
@@ -147,26 +158,28 @@ import { TransactionValidators } from '@core/transaction';
             transactionForm.get('name')?.hasError('required') &&
             transactionForm.get('name')?.touched
           ) {
-            <mat-error role="alert" aria-live="assertive"
-              >La description est requise</mat-error
-            >
+            <mat-error role="alert" aria-live="assertive">{{
+              'currentMonth.addTransactionDescriptionRequired' | transloco
+            }}</mat-error>
           }
           @if (
             transactionForm.get('name')?.hasError('minlength') &&
             transactionForm.get('name')?.touched
           ) {
-            <mat-error role="alert" aria-live="assertive"
-              >La description doit contenir au moins 2 caractères</mat-error
-            >
+            <mat-error role="alert" aria-live="assertive">{{
+              'currentMonth.addTransactionDescriptionMin' | transloco
+            }}</mat-error>
           }
         </mat-form-field>
 
         <!-- Type Field -->
         <mat-form-field class="w-full" subscriptSizing="dynamic">
-          <mat-label>Type de transaction</mat-label>
+          <mat-label>{{
+            'currentMonth.addTransactionType' | transloco
+          }}</mat-label>
           <mat-select
             formControlName="kind"
-            aria-label="Type de transaction"
+            [attr.aria-label]="'currentMonth.addTransactionType' | transloco"
             data-testid="transaction-type-select"
           >
             <mat-option value="expense">
@@ -186,25 +199,31 @@ import { TransactionValidators } from '@core/transaction';
 
         <!-- Category/Notes Field -->
         <mat-form-field class="w-full" subscriptSizing="dynamic">
-          <mat-label>Notes</mat-label>
+          <mat-label>{{
+            'currentMonth.addTransactionNotes' | transloco
+          }}</mat-label>
           <input
             matInput
             formControlName="category"
-            placeholder="Ex: Alimentation, Transport"
+            [placeholder]="
+              'currentMonth.addTransactionNotesPlaceholder' | transloco
+            "
             maxlength="50"
             aria-describedby="category-hint"
           />
           <mat-hint id="category-hint" align="end"
             >{{ transactionForm.get('category')?.value?.length || 0 }}/50
-            (optionnel)</mat-hint
+            {{
+              'currentMonth.addTransactionNotesOptional' | transloco
+            }}</mat-hint
           >
           @if (
             transactionForm.get('category')?.hasError('maxlength') &&
             transactionForm.get('category')?.touched
           ) {
-            <mat-error role="alert" aria-live="assertive"
-              >Les notes ne peuvent pas dépasser 50 caractères</mat-error
-            >
+            <mat-error role="alert" aria-live="assertive">{{
+              'currentMonth.addTransactionNotesMaxLength' | transloco
+            }}</mat-error>
           }
         </mat-form-field>
 
@@ -213,7 +232,17 @@ import { TransactionValidators } from '@core/transaction';
           class="flex items-center gap-2 p-3 bg-surface-container rounded-lg text-on-surface-variant"
         >
           <mat-icon>event</mat-icon>
-          <span>Aujourd'hui</span>
+          <span>{{ 'currentMonth.addTransactionToday' | transloco }}</span>
+        </div>
+
+        <div class="flex items-center justify-between py-2 px-1">
+          <span class="text-body-medium text-on-surface">{{
+            'transactionForm.checkedToggle' | transloco
+          }}</span>
+          <mat-slide-toggle
+            formControlName="isChecked"
+            [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
+          />
         </div>
       </form>
 
@@ -225,7 +254,7 @@ import { TransactionValidators } from '@core/transaction';
           class="flex-1"
           data-testid="transaction-cancel-button"
         >
-          Annuler
+          {{ 'currentMonth.addTransactionCancel' | transloco }}
         </button>
         <button
           matButton="outlined"
@@ -234,18 +263,19 @@ import { TransactionValidators } from '@core/transaction';
           data-testid="transaction-submit-button"
           class="flex-2"
         >
-          Ajouter
+          {{ 'currentMonth.addTransactionSubmit' | transloco }}
         </button>
       </div>
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AddTransactionBottomSheet implements AfterViewInit {
+export class AddTransactionBottomSheet {
   readonly #fb = inject(FormBuilder);
   readonly #bottomSheetRef = inject(
     MatBottomSheetRef<AddTransactionBottomSheet>,
   );
+  readonly #transloco = inject(TranslocoService);
 
   // View child for focus management
   protected readonly amountInput =
@@ -255,11 +285,12 @@ export class AddTransactionBottomSheet implements AfterViewInit {
   protected readonly predefinedAmounts = signal([10, 15, 20, 30]);
 
   // Reactive form with shared validators for consistency
-  readonly transactionForm: FormGroup<TransactionFormControls> = this.#fb.group(
-    {
-      name: new FormControl<string | null>('Dépense', [
-        ...TransactionValidators.name,
-      ]),
+  protected readonly transactionForm: FormGroup<TransactionFormControls> =
+    this.#fb.group({
+      name: new FormControl<string | null>(
+        this.#transloco.translate('currentMonth.addTransactionDefaultName'),
+        [...TransactionValidators.name],
+      ),
       amount: new FormControl<number | null>(null, [
         ...TransactionValidators.amount,
       ]),
@@ -270,14 +301,13 @@ export class AddTransactionBottomSheet implements AfterViewInit {
       category: new FormControl<string | null>('', [
         ...TransactionValidators.category,
       ]),
-    },
-  );
+      isChecked: new FormControl<boolean>(true, { nonNullable: true }),
+    });
 
-  ngAfterViewInit(): void {
-    // Auto-focus on amount field for immediate input
-    setTimeout(() => {
+  constructor() {
+    this.#bottomSheetRef.afterOpened().subscribe(() => {
       this.amountInput()?.nativeElement?.focus();
-    }, 200);
+    });
   }
 
   protected selectPredefinedAmount(amount: number): void {
@@ -292,17 +322,12 @@ export class AddTransactionBottomSheet implements AfterViewInit {
 
     const formValue = this.transactionForm.value;
 
-    // Explicit validation for required fields
-    if (!formValue.name || !formValue.amount || !formValue.kind) {
-      this.transactionForm.markAllAsTouched();
-      return;
-    }
-
     const transaction: TransactionFormData = {
-      name: formValue.name,
-      amount: formValue.amount,
-      kind: formValue.kind,
+      name: formValue.name!,
+      amount: Math.abs(formValue.amount!),
+      kind: formValue.kind!,
       category: formValue.category || null,
+      checkedAt: formValue.isChecked ? new Date().toISOString() : null,
     };
 
     this.#bottomSheetRef.dismiss(transaction);

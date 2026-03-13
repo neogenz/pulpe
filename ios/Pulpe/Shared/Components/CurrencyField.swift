@@ -21,6 +21,7 @@ struct CurrencyField: View {
     let label: String?
     let visualStyle: VisualStyle
 
+    @Environment(\.colorScheme) private var colorScheme
     @FocusState private var internalFocus: Bool
     @State private var textValue: String
     @State private var hasInitialized = false
@@ -61,10 +62,6 @@ struct CurrencyField: View {
             }
 
             HStack {
-                Text("CHF")
-                    .foregroundStyle(prefixColor)
-                    .font(PulpeTypography.bodyLarge)
-
                 TextField(hint, text: $textValue)
                     .keyboardType(.decimalPad)
                     .foregroundStyle(Color.authInputText)
@@ -74,11 +71,14 @@ struct CurrencyField: View {
                         updateValue(from: newValue)
                     }
                     .onChange(of: value) { _, newValue in
-                        // Only update text if value changed externally (not from user input)
                         if hasInitialized {
                             updateText(from: newValue)
                         }
                     }
+
+                Text("CHF")
+                    .foregroundStyle(prefixColor)
+                    .font(PulpeTypography.bodyLarge)
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .frame(height: DesignTokens.FrameHeight.button)
@@ -129,11 +129,11 @@ struct CurrencyField: View {
     }
 
     private var borderColor: Color {
-        effectiveFocus ? Color.pulpePrimary.opacity(0.6) : Color.authInputBorder
+        effectiveFocus ? Color.pulpePrimary.opacity(0.45) : Color.authInputBorder
     }
 
     private var borderWidth: CGFloat {
-        effectiveFocus ? 2 : 1
+        effectiveFocus ? 2 : 0.75
     }
 
     @ViewBuilder
@@ -168,7 +168,7 @@ struct CurrencyField: View {
     private var prefixColor: Color {
         switch visualStyle {
         case .onboarding:
-            return Color.textSecondaryOnboarding
+            return Color.textSecondaryOnboarding.opacity(0.7)
         case .flat:
             return Color.pulpeTextTertiary
         }
@@ -186,7 +186,9 @@ struct CurrencyField: View {
     private var shadowStyle: ShadowStyle? {
         switch visualStyle {
         case .onboarding:
-            return DesignTokens.Shadow.input
+            return colorScheme == .dark
+                ? ShadowStyle(color: .black.opacity(0.01), radius: 2, y: 1)
+                : DesignTokens.Shadow.input
         case .flat:
             return nil
         }

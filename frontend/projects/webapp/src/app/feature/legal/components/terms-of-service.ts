@@ -2,21 +2,22 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { ROUTES } from '@core/routing';
 
 @Component({
   selector: 'pulpe-terms-of-service',
-  imports: [MatButtonModule, MatIconModule, RouterLink],
+  imports: [MatButtonModule, MatIconModule, RouterLink, TranslocoPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="max-w-4xl mx-auto p-4 md:p-8">
       <article class="prose prose-lg max-w-none">
         <h1 class="text-display-small mb-8">
-          Conditions Générales d'Utilisation
+          {{ 'legal.termsOfServiceTitle' | transloco }}
         </h1>
 
         <p class="text-body-large text-on-surface-variant mb-6">
-          Dernière mise à jour : {{ currentDate }}
+          {{ 'legal.lastUpdated' | transloco: { date: currentDate } }}
         </p>
 
         <section class="mb-8">
@@ -161,12 +162,11 @@ import { ROUTES } from '@core/routing';
 
         <div class="mt-12 pt-8 border-t border-outline-variant">
           <p class="text-body-medium text-on-surface-variant text-center">
-            En utilisant Pulpe, vous acceptez ces conditions d'utilisation ainsi
-            que ma
+            {{ 'legal.termsFooter' | transloco }}
             <a
               [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
               class="text-primary"
-              >Politique de Confidentialité</a
+              >{{ 'legal.privacyLink' | transloco }}</a
             >.
           </p>
         </div>

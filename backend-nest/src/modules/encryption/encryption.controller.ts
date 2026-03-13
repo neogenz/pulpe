@@ -4,7 +4,6 @@ import {
   Post,
   Body,
   UseGuards,
-  Logger,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -25,11 +24,23 @@ import {
   SupabaseClient,
   type AuthenticatedUser,
 } from '@common/decorators/user.decorator';
+import type { EncryptionChangePinResponse } from 'pulpe-shared';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { EncryptionService } from './encryption.service';
+import {
+  EncryptionValidateKeyRequestDto,
+  EncryptionRecoverRequestDto,
+  EncryptionChangePinRequestDto,
+  EncryptionVaultStatusResponseDto,
+  EncryptionSaltResponseDto,
+  EncryptionSetupRecoveryResponseDto,
+  EncryptionRecoverResponseDto,
+  EncryptionChangePinResponseDto,
+} from './dto/encryption-swagger.dto';
 
 const CLIENT_KEY_LENGTH = 32;
 const HEX_KEY_REGEX = /^[0-9a-f]{64}$/i;
@@ -47,9 +58,11 @@ const HEX_KEY_REGEX = /^[0-9a-f]{64}$/i;
   type: ErrorResponseDto,
 })
 export class EncryptionController {
-  readonly #logger = new Logger(EncryptionController.name);
-
-  constructor(private readonly encryptionService: EncryptionService) {}
+  constructor(
+    @InjectInfoLogger(EncryptionController.name)
+    private readonly logger: InfoLogger,
+    private readonly encryptionService: EncryptionService,
+  ) {}
 
   @SkipClientKey()
   @Get('vault-status')
@@ -57,6 +70,7 @@ export class EncryptionController {
   @ApiResponse({
     status: 200,
     description: 'Vault code configuration status',
+    type: EncryptionVaultStatusResponseDto,
   })
   async getVaultStatus(@User() user: AuthenticatedUser): Promise<{
     pinCodeConfigured: boolean;
@@ -72,6 +86,7 @@ export class EncryptionController {
   @ApiResponse({
     status: 200,
     description: 'Salt, KDF iterations, and recovery key status',
+    type: EncryptionSaltResponseDto,
   })
   async getSalt(
     @User() user: AuthenticatedUser,
@@ -94,7 +109,7 @@ export class EncryptionController {
   })
   async validateKey(
     @User() user: AuthenticatedUser,
-    @Body() body: { clientKey: string },
+    @Body() body: EncryptionValidateKeyRequestDto,
   ): Promise<void> {
     const keyBuffer = this.#validateClientKeyHex(body.clientKey);
     try {
@@ -104,7 +119,7 @@ export class EncryptionController {
       );
 
       if (!isValid) {
-        this.#logger.warn(
+        this.logger.warn(
           { userId: user.id, operation: 'validate_key.failed' },
           'Client key verification failed',
         );
@@ -128,6 +143,7 @@ export class EncryptionController {
     status: 201,
     description:
       'Recovery key generated (shown once, never stored server-side)',
+    type: EncryptionSetupRecoveryResponseDto,
   })
   async setupRecovery(
     @User() user: AuthenticatedUser,
@@ -137,7 +153,7 @@ export class EncryptionController {
       user.clientKey,
     );
 
-    this.#logger.log(
+    this.logger.info(
       { userId: user.id, operation: 'recovery_key.create' },
       'Recovery key created',
     );
@@ -156,6 +172,7 @@ export class EncryptionController {
     status: 201,
     description:
       'Recovery key regenerated (shown once, never stored server-side)',
+    type: EncryptionSetupRecoveryResponseDto,
   })
   async regenerateRecovery(
     @User() user: AuthenticatedUser,
@@ -165,7 +182,7 @@ export class EncryptionController {
       user.clientKey,
     );
 
-    this.#logger.log(
+    this.logger.info(
       { userId: user.id, operation: 'recovery_key.regenerate' },
       'Recovery key regenerated',
     );
@@ -184,6 +201,7 @@ export class EncryptionController {
   @ApiResponse({
     status: 200,
     description: 'Account recovered and data re-encrypted',
+    type: EncryptionRecoverResponseDto,
   })
   @ApiBadRequestResponse({
     description: 'Invalid recovery key or new client key',
@@ -192,7 +210,7 @@ export class EncryptionController {
   async recover(
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-    @Body() body: { recoveryKey: string; newClientKey: string },
+    @Body() body: EncryptionRecoverRequestDto,
   ): Promise<{ success: boolean }> {
     if (!body.recoveryKey?.trim()) {
       throw new BusinessException(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID);
@@ -205,14 +223,7 @@ export class EncryptionController {
         user.id,
         body.recoveryKey,
         newKeyBuffer,
-        async (oldDek, newDek) => {
-          await this.encryptionService.reEncryptAllUserData(
-            user.id,
-            oldDek,
-            newDek,
-            supabase,
-          );
-        },
+        supabase,
       );
     } catch (error) {
       this.#handleRecoveryError(user.id, error);
@@ -220,12 +231,60 @@ export class EncryptionController {
       newKeyBuffer.fill(0);
     }
 
-    this.#logger.log(
+    this.logger.info(
       { userId: user.id, operation: 'recovery.complete' },
       'Account recovered with recovery key',
     );
 
     return { success: true };
+  }
+
+  @SkipClientKey()
+  @Post('change-pin')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 3600000 } })
+  @ApiOperation({ summary: 'Change PIN code and re-encrypt all user data' })
+  @ApiResponse({
+    status: 200,
+    description: 'PIN changed and data re-encrypted',
+    type: EncryptionChangePinResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid client key or old PIN verification failed',
+    type: ErrorResponseDto,
+  })
+  async changePin(
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+    @Body() body: EncryptionChangePinRequestDto,
+  ): Promise<EncryptionChangePinResponse> {
+    let oldKeyBuffer: Buffer | undefined;
+    let newKeyBuffer: Buffer | undefined;
+
+    try {
+      oldKeyBuffer = this.#validateClientKeyHex(body.oldClientKey);
+      newKeyBuffer = this.#validateClientKeyHex(body.newClientKey);
+      const result = await this.encryptionService.changePinRekey(
+        user.id,
+        oldKeyBuffer,
+        newKeyBuffer,
+        supabase,
+      );
+
+      this.logger.info(
+        {
+          userId: user.id,
+          operation: 'pin_change.complete',
+          recoveryKeyRegenerated: true,
+        },
+        'PIN changed and data re-encrypted',
+      );
+
+      return result;
+    } finally {
+      oldKeyBuffer?.fill(0);
+      newKeyBuffer?.fill(0);
+    }
   }
 
   #validateClientKeyHex(hex: string): Buffer {
@@ -245,15 +304,6 @@ export class EncryptionController {
   }
 
   #handleRecoveryError(userId: string, error: unknown): never {
-    this.#logger.warn(
-      {
-        userId,
-        operation: 'recovery.failed',
-        error: error instanceof Error ? error.message : String(error),
-      },
-      'Recovery attempt failed',
-    );
-
     if (error instanceof Error) {
       const isRecoveryKeyError =
         error.message.includes('No recovery key configured') ||
@@ -263,7 +313,12 @@ export class EncryptionController {
         error.message.includes('Unwrapped DEK has invalid length');
 
       if (isRecoveryKeyError) {
-        throw new BusinessException(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID);
+        throw new BusinessException(
+          ERROR_DEFINITIONS.RECOVERY_KEY_INVALID,
+          undefined,
+          { userId, operation: 'recovery.failed' },
+          { cause: error },
+        );
       }
     }
     throw error;

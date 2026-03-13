@@ -151,7 +151,7 @@ struct BudgetLineTests {
             budgetId: "budget-123",
             sourceBudgetId: nil
         )
-        #expect(rollover.amount == -300)
+        #expect(rollover.amount == 300)
         #expect(rollover.kind == .expense)
     }
 

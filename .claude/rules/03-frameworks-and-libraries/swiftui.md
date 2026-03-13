@@ -246,6 +246,55 @@ Partial detent is **required** for glass appearance:
 .presentationDetents([.medium, .large])  // Required
 ```
 
+## Animations
+
+### Animation Curves
+
+- Use `DesignTokens.Animation` springs for all animations (never hard-coded `.easeInOut`)
+- Prefer spring animations for interactive feedback (checkbox, toggle, tap)
+- Use `gentleSpring` for soft confirmations, `bouncySpring` for playful interactions
+- Always respect `@Environment(\.accessibilityReduceMotion)` for spring/bouncy animations
+
+### Post-Animation Callbacks
+
+```swift
+// Good — iOS 17+ completion handler (tied to actual animation lifecycle)
+withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+    isChecked = true
+} completion: {
+    onToggle()
+}
+
+// Bad — fragile, not tied to animation duration
+DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { onToggle() }
+Task { try? await Task.sleep(for: .seconds(0.5)); onToggle() }
+```
+
+**NEVER** use `DispatchQueue.main.asyncAfter` or `Task.sleep` for post-animation callbacks.
+Use `withAnimation(_:body:completion:)` — it fires when animation completes and handles reduced motion automatically.
+
+### SF Symbol Transitions
+
+```swift
+// Content change (different symbol names) — use contentTransition
+Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
+    .contentTransition(.symbolEffect(.replace))
+
+// Same symbol, state-driven effect — use symbolEffect
+Image(systemName: "heart.fill")
+    .symbolEffect(.bounce, value: likeCount)
+```
+
+### Haptic Feedback
+
+```swift
+// Good — iOS 17+ declarative API
+.sensoryFeedback(.success, trigger: triggerFeedback)
+
+// Bad — UIKit imperative API
+UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+```
+
 ## Anti-Patterns
 
 | Don't | Do |
@@ -259,3 +308,7 @@ Partial detent is **required** for glass appearance:
 | Inline date/number formatters | Shared `Formatters/` singleton |
 | Glass on content views | Glass on navigation elements only |
 | `AsyncImage` without caching | NSCache wrapper or Nuke/Kingfisher |
+| `DispatchQueue.main.asyncAfter` | `withAnimation { } completion: { }` |
+| `Task.sleep` for animation delay | `withAnimation` completion handler |
+| Hard-coded `.easeInOut(duration:)` | `DesignTokens.Animation` springs |
+| `UIImpactFeedbackGenerator` | `.sensoryFeedback()` modifier |

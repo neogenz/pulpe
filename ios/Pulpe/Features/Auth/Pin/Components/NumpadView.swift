@@ -84,7 +84,7 @@ struct NumpadView: View {
 
         case .empty:
             Color.clear
-                .frame(width: 75, height: 75)
+                .frame(width: DesignTokens.Numpad.buttonSize, height: DesignTokens.Numpad.buttonSize)
         }
     }
 
@@ -125,20 +125,20 @@ private struct NumpadButton<Label: View>: View {
     let action: () -> Void
     @ViewBuilder let label: () -> Label
 
-    @State private var tapCount = 0
+    @State private var feedbackTrigger = false
 
     var body: some View {
         Button {
-            tapCount += 1
+            feedbackTrigger.toggle()
             action()
         } label: {
             label()
-                .frame(width: 75, height: 75)
+                .frame(width: DesignTokens.Numpad.buttonSize, height: DesignTokens.Numpad.buttonSize)
                 .background(Circle().fill(Color.pinButtonFill))
                 .overlay(Circle().stroke(Color.pinButtonStroke, lineWidth: 1))
         }
         .buttonStyle(NumpadButtonStyle())
-        .sensoryFeedback(.impact(flexibility: .soft), trigger: tapCount)
+        .sensoryFeedback(.impact(flexibility: .soft), trigger: feedbackTrigger)
         .disabled(isDisabled)
     }
 }
@@ -156,7 +156,7 @@ private struct NumpadButtonStyle: ButtonStyle {
 
 #Preview {
     ZStack {
-        Color.pinBackground.ignoresSafeArea()
+        Color.loginGradientBackground
         NumpadView(
             onDigit: { _ in },
             onDelete: {},

@@ -1,5 +1,4 @@
-import { describe, it, expect, mock, spyOn } from 'bun:test';
-import { Logger } from '@nestjs/common';
+import { describe, it, expect, mock } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import { EncryptionController } from './encryption.controller';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -11,12 +10,12 @@ const createMockEncryptionService = (overrides?: {
   getUserSalt?: ReturnType<typeof mock>;
   getUserDEK?: ReturnType<typeof mock>;
   generateKeyCheck?: ReturnType<typeof mock>;
-  storeKeyCheck?: ReturnType<typeof mock>;
   verifyAndEnsureKeyCheck?: ReturnType<typeof mock>;
   createRecoveryKey?: ReturnType<typeof mock>;
   regenerateRecoveryKey?: ReturnType<typeof mock>;
   recoverWithKey?: ReturnType<typeof mock>;
   reEncryptAllUserData?: ReturnType<typeof mock>;
+  changePinRekey?: ReturnType<typeof mock>;
 }) => ({
   getVaultStatus:
     overrides?.getVaultStatus ??
@@ -33,7 +32,6 @@ const createMockEncryptionService = (overrides?: {
   getUserDEK:
     overrides?.getUserDEK ?? mock(() => Promise.resolve(randomBytes(32))),
   generateKeyCheck: overrides?.generateKeyCheck ?? mock(() => 'mock-key-check'),
-  storeKeyCheck: overrides?.storeKeyCheck ?? mock(() => Promise.resolve()),
   verifyAndEnsureKeyCheck:
     overrides?.verifyAndEnsureKeyCheck ?? mock(() => Promise.resolve(true)),
   createRecoveryKey:
@@ -45,6 +43,14 @@ const createMockEncryptionService = (overrides?: {
   recoverWithKey: overrides?.recoverWithKey ?? mock(() => Promise.resolve()),
   reEncryptAllUserData:
     overrides?.reEncryptAllUserData ?? mock(() => Promise.resolve()),
+  changePinRekey:
+    overrides?.changePinRekey ??
+    mock(() =>
+      Promise.resolve({
+        keyCheck: 'mock-key-check',
+        recoveryKey: 'MOCK-RECO-VERY-KEY0',
+      }),
+    ),
 });
 
 const createMockUser = (): AuthenticatedUser => ({
@@ -54,13 +60,24 @@ const createMockUser = (): AuthenticatedUser => ({
   clientKey: Buffer.alloc(32, 0xab),
 });
 
+const createMockLogger = () => ({
+  info: mock(() => {}),
+  warn: mock(() => {}),
+  debug: mock(() => {}),
+  trace: mock(() => {}),
+});
+
 function setupController(
   encryptionOverrides?: Parameters<typeof createMockEncryptionService>[0],
 ) {
   const mockEncryptionService =
     createMockEncryptionService(encryptionOverrides);
-  const controller = new EncryptionController(mockEncryptionService as any);
-  return { controller, mockEncryptionService };
+  const mockLogger = createMockLogger();
+  const controller = new EncryptionController(
+    mockLogger as any,
+    mockEncryptionService as any,
+  );
+  return { controller, mockEncryptionService, mockLogger };
 }
 
 describe('EncryptionController', () => {
@@ -181,9 +198,8 @@ describe('EncryptionController', () => {
     it('should log warning on failed validation', async () => {
       const user = createMockUser();
       const body = { clientKey: 'ab'.repeat(32) };
-      const warnSpy = spyOn(Logger.prototype, 'warn');
 
-      const { controller } = setupController({
+      const { controller, mockLogger } = setupController({
         verifyAndEnsureKeyCheck: mock(() => Promise.resolve(false)),
       });
 
@@ -193,12 +209,10 @@ describe('EncryptionController', () => {
         // Expected to throw
       }
 
-      expect(warnSpy).toHaveBeenCalledWith(
+      expect(mockLogger.warn).toHaveBeenCalledWith(
         { userId: user.id, operation: 'validate_key.failed' },
         'Client key verification failed',
       );
-
-      warnSpy.mockRestore();
     });
 
     it('should throw BusinessException for all-zero client key', async () => {
@@ -252,18 +266,15 @@ describe('EncryptionController', () => {
 
     it('should log audit event with recovery_key.create operation', async () => {
       const user = createMockUser();
-      const logSpy = spyOn(Logger.prototype, 'log');
 
-      const { controller } = setupController();
+      const { controller, mockLogger } = setupController();
 
       await controller.setupRecovery(user);
 
-      expect(logSpy).toHaveBeenCalledWith(
+      expect(mockLogger.info).toHaveBeenCalledWith(
         { userId: user.id, operation: 'recovery_key.create' },
         'Recovery key created',
       );
-
-      logSpy.mockRestore();
     });
 
     it('should use user.clientKey from AuthenticatedUser', async () => {
@@ -319,18 +330,15 @@ describe('EncryptionController', () => {
 
     it('should log audit event with recovery_key.regenerate operation', async () => {
       const user = createMockUser();
-      const logSpy = spyOn(Logger.prototype, 'log');
 
-      const { controller } = setupController();
+      const { controller, mockLogger } = setupController();
 
       await controller.regenerateRecovery(user);
 
-      expect(logSpy).toHaveBeenCalledWith(
+      expect(mockLogger.info).toHaveBeenCalledWith(
         { userId: user.id, operation: 'recovery_key.regenerate' },
         'Recovery key regenerated',
       );
-
-      logSpy.mockRestore();
     });
   });
 
@@ -433,7 +441,7 @@ describe('EncryptionController', () => {
       }
     });
 
-    it('should call recoverWithKey with correct callback', async () => {
+    it('should call recoverWithKey with supabase client', async () => {
       const user = createMockUser();
       const mockSupabase = { test: 'supabase' };
       const body = {
@@ -441,22 +449,15 @@ describe('EncryptionController', () => {
         newClientKey: 'ab'.repeat(32),
       };
 
-      let callbackCalled = false;
-      const { controller, mockEncryptionService } = setupController({
-        recoverWithKey: mock(
-          async (_userId, _recoveryKey, _newKey, callback) => {
-            callbackCalled = true;
-            await callback(randomBytes(32), randomBytes(32));
-          },
-        ),
-      });
+      const { controller, mockEncryptionService } = setupController();
 
       await controller.recover(user, mockSupabase as any, body);
 
-      expect(callbackCalled).toBe(true);
-      expect(mockEncryptionService.reEncryptAllUserData.mock.calls.length).toBe(
-        1,
-      );
+      expect(mockEncryptionService.recoverWithKey).toHaveBeenCalledTimes(1);
+      const args = mockEncryptionService.recoverWithKey.mock.calls[0];
+      expect(args[0]).toBe(user.id);
+      expect(args[1]).toBe(body.recoveryKey);
+      expect(args[3]).toBe(mockSupabase);
     });
 
     it('should delegate key_check to encryption service (atomic RPC)', async () => {
@@ -469,12 +470,10 @@ describe('EncryptionController', () => {
 
       const getUserDEK = mock(() => Promise.resolve(randomBytes(32)));
       const generateKeyCheck = mock(() => 'should-not-be-called');
-      const storeKeyCheck = mock(() => Promise.resolve());
 
       const { controller, mockEncryptionService } = setupController({
         getUserDEK,
         generateKeyCheck,
-        storeKeyCheck,
       });
 
       await controller.recover(user, mockSupabase as any, body);
@@ -484,7 +483,6 @@ describe('EncryptionController', () => {
       );
       expect(getUserDEK).not.toHaveBeenCalled();
       expect(generateKeyCheck).not.toHaveBeenCalled();
-      expect(storeKeyCheck).not.toHaveBeenCalled();
     });
 
     it('should log audit event with recovery.complete operation', async () => {
@@ -494,18 +492,15 @@ describe('EncryptionController', () => {
         recoveryKey: 'XXXX-YYYY-ZZZZ-1234',
         newClientKey: 'ab'.repeat(32),
       };
-      const logSpy = spyOn(Logger.prototype, 'log');
 
-      const { controller } = setupController();
+      const { controller, mockLogger } = setupController();
 
       await controller.recover(user, mockSupabase as any, body);
 
-      expect(logSpy).toHaveBeenCalledWith(
+      expect(mockLogger.info).toHaveBeenCalledWith(
         { userId: user.id, operation: 'recovery.complete' },
         'Account recovered with recovery key',
       );
-
-      logSpy.mockRestore();
     });
 
     it('should throw BusinessException for all-zero newClientKey', async () => {
@@ -548,6 +543,277 @@ describe('EncryptionController', () => {
         expect(error).toBe(originalError);
         expect(error.message).toBe('DB connection lost');
       }
+    });
+  });
+
+  describe('changePin', () => {
+    it('should return result with recovery key', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = {
+        oldClientKey: 'ab'.repeat(32),
+        newClientKey: 'cd'.repeat(32),
+      };
+      const expected = {
+        keyCheck: 'new-key-check',
+        recoveryKey: 'ABCD-EFGH-IJKL-MNOP',
+      };
+
+      const { controller } = setupController({
+        changePinRekey: mock(() => Promise.resolve(expected)),
+      });
+
+      const result = await controller.changePin(
+        user,
+        mockSupabase as any,
+        body,
+      );
+
+      expect(result).toEqual(expected);
+    });
+
+    it('should throw BusinessException when old PIN is incorrect', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = {
+        oldClientKey: 'ab'.repeat(32),
+        newClientKey: 'cd'.repeat(32),
+      };
+
+      const { controller } = setupController({
+        changePinRekey: mock(() =>
+          Promise.reject(
+            new BusinessException(
+              ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+            ),
+          ),
+        ),
+      });
+
+      try {
+        await controller.changePin(user, mockSupabase as any, body);
+        expect.unreachable('Should have thrown BusinessException');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect(error.code).toBe(
+          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
+        );
+      }
+    });
+
+    it('should throw BusinessException for invalid oldClientKey format', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = {
+        oldClientKey: 'not-valid-hex',
+        newClientKey: 'cd'.repeat(32),
+      };
+
+      const { controller } = setupController();
+
+      try {
+        await controller.changePin(user, mockSupabase as any, body);
+        expect.unreachable('Should have thrown BusinessException');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect(error.code).toBe(ERROR_DEFINITIONS.AUTH_CLIENT_KEY_INVALID.code);
+      }
+    });
+
+    it('should throw BusinessException for invalid newClientKey format', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = {
+        oldClientKey: 'ab'.repeat(32),
+        newClientKey: 'not-valid-hex',
+      };
+
+      const { controller } = setupController();
+
+      try {
+        await controller.changePin(user, mockSupabase as any, body);
+        expect.unreachable('Should have thrown BusinessException');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect(error.code).toBe(ERROR_DEFINITIONS.AUTH_CLIENT_KEY_INVALID.code);
+      }
+    });
+
+    it('should throw BusinessException for all-zero oldClientKey', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = {
+        oldClientKey: '00'.repeat(32),
+        newClientKey: 'cd'.repeat(32),
+      };
+
+      const { controller } = setupController();
+
+      try {
+        await controller.changePin(user, mockSupabase as any, body);
+        expect.unreachable('Should have thrown BusinessException');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect(error.code).toBe(ERROR_DEFINITIONS.AUTH_CLIENT_KEY_INVALID.code);
+      }
+    });
+
+    it('should throw BusinessException for all-zero newClientKey', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = {
+        oldClientKey: 'ab'.repeat(32),
+        newClientKey: '00'.repeat(32),
+      };
+
+      const { controller } = setupController();
+
+      try {
+        await controller.changePin(user, mockSupabase as any, body);
+        expect.unreachable('Should have thrown BusinessException');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect(error.code).toBe(ERROR_DEFINITIONS.AUTH_CLIENT_KEY_INVALID.code);
+      }
+    });
+
+    it('should propagate ENCRYPTION_SAME_KEY from service', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = {
+        oldClientKey: 'ab'.repeat(32),
+        newClientKey: 'cd'.repeat(32),
+      };
+
+      const { controller } = setupController({
+        changePinRekey: mock(() =>
+          Promise.reject(
+            new BusinessException(ERROR_DEFINITIONS.ENCRYPTION_SAME_KEY),
+          ),
+        ),
+      });
+
+      try {
+        await controller.changePin(user, mockSupabase as any, body);
+        expect.unreachable('Should have thrown BusinessException');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect(error.code).toBe(ERROR_DEFINITIONS.ENCRYPTION_SAME_KEY.code);
+      }
+    });
+
+    it('should propagate ENCRYPTION_REKEY_PARTIAL_FAILURE from service', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = {
+        oldClientKey: 'ab'.repeat(32),
+        newClientKey: 'cd'.repeat(32),
+      };
+
+      const { controller } = setupController({
+        changePinRekey: mock(() =>
+          Promise.reject(
+            new BusinessException(
+              ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
+              undefined,
+              {
+                userId: 'user-1',
+                operation: 'pin_change.recovery_wrap_failed',
+              },
+            ),
+          ),
+        ),
+      });
+
+      try {
+        await controller.changePin(user, mockSupabase as any, body);
+        expect.unreachable('Should have thrown BusinessException');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect(error.code).toBe(
+          ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE.code,
+        );
+      }
+    });
+
+    it('should re-throw non-BusinessException errors', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = {
+        oldClientKey: 'ab'.repeat(32),
+        newClientKey: 'cd'.repeat(32),
+      };
+
+      const originalError = new Error('DB connection lost');
+      const { controller } = setupController({
+        changePinRekey: mock(() => Promise.reject(originalError)),
+      });
+
+      try {
+        await controller.changePin(user, mockSupabase as any, body);
+        expect.unreachable('Should have thrown original error');
+      } catch (error: any) {
+        expect(error).not.toBeInstanceOf(BusinessException);
+        expect(error).toBe(originalError);
+        expect(error.message).toBe('DB connection lost');
+      }
+    });
+
+    it('should log audit event on successful PIN change', async () => {
+      const user = createMockUser();
+      const mockSupabase = {};
+      const body = {
+        oldClientKey: 'ab'.repeat(32),
+        newClientKey: 'cd'.repeat(32),
+      };
+
+      const { controller, mockLogger } = setupController({
+        changePinRekey: mock(() =>
+          Promise.resolve({
+            keyCheck: 'kc',
+            recoveryKey: 'ABCD-EFGH-IJKL',
+          }),
+        ),
+      });
+
+      await controller.changePin(user, mockSupabase as any, body);
+
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        {
+          userId: user.id,
+          operation: 'pin_change.complete',
+          recoveryKeyRegenerated: true,
+        },
+        'PIN changed and data re-encrypted',
+      );
+    });
+
+    it('should call changePinRekey with correct arguments', async () => {
+      const user = createMockUser();
+      const mockSupabase = { test: 'supabase' };
+      const oldKeyHex = 'ab'.repeat(32);
+      const newKeyHex = 'cd'.repeat(32);
+      const body = { oldClientKey: oldKeyHex, newClientKey: newKeyHex };
+
+      const callArguments: any[] = [];
+      const { controller } = setupController({
+        changePinRekey: mock(async (...args) => {
+          callArguments.push(
+            args[0],
+            Buffer.from(args[1]),
+            Buffer.from(args[2]),
+            args[3],
+          );
+          return { keyCheck: 'kc', recoveryKey: 'MOCK-RECO-VERY-KEY0' };
+        }),
+      });
+
+      await controller.changePin(user, mockSupabase as any, body);
+
+      expect(callArguments[0]).toBe(user.id);
+      expect(callArguments[1]).toEqual(Buffer.from(oldKeyHex, 'hex'));
+      expect(callArguments[2]).toEqual(Buffer.from(newKeyHex, 'hex'));
+      expect(callArguments[3]).toBe(mockSupabase);
     });
   });
 });

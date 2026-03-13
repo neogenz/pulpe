@@ -10,6 +10,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { type BudgetLine, type TransactionCreate } from 'pulpe-shared';
 import { formatLocalDate } from '@core/date/format-local-date';
 import {
@@ -33,37 +35,45 @@ export interface CreateAllocatedTransactionDialogData {
     MatButtonModule,
     MatIconModule,
     MatDatepickerModule,
+    MatSlideToggleModule,
     ReactiveFormsModule,
+    TranslocoPipe,
   ],
   template: `
     <h2 mat-dialog-title class="text-headline-small">
-      Nouvelle transaction - {{ data.budgetLine.name }}
+      {{
+        'budget.newTransactionTitle' | transloco: { name: data.budgetLine.name }
+      }}
     </h2>
 
     <mat-dialog-content>
       <form [formGroup]="form" class="flex flex-col gap-4 pt-4">
         <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Description</mat-label>
+          <mat-label>{{ 'budget.tableDescription' | transloco }}</mat-label>
           <input
             matInput
             formControlName="name"
-            placeholder="Ex: Restaurant, Courses..."
+            [placeholder]="'transactionForm.namePlaceholder' | transloco"
             data-testid="transaction-name"
           />
           @if (
             form.get('name')?.hasError('required') && form.get('name')?.touched
           ) {
-            <mat-error>La description est requise</mat-error>
+            <mat-error>{{
+              'budget.descriptionRequired' | transloco
+            }}</mat-error>
           }
           @if (
             form.get('name')?.hasError('maxlength') && form.get('name')?.touched
           ) {
-            <mat-error>100 caractères maximum</mat-error>
+            <mat-error>{{
+              'budget.descriptionMaxLength' | transloco
+            }}</mat-error>
           }
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="w-full ph-no-capture">
-          <mat-label>Montant</mat-label>
+          <mat-label>{{ 'transactionForm.amountLabel' | transloco }}</mat-label>
           <input
             matInput
             type="number"
@@ -78,17 +88,19 @@ export interface CreateAllocatedTransactionDialogData {
             form.get('amount')?.hasError('required') &&
             form.get('amount')?.touched
           ) {
-            <mat-error>Le montant est requis</mat-error>
+            <mat-error>{{
+              'transactionForm.amountRequired' | transloco
+            }}</mat-error>
           }
           @if (
             form.get('amount')?.hasError('min') && form.get('amount')?.touched
           ) {
-            <mat-error>Le montant doit être supérieur à 0</mat-error>
+            <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
           }
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Date</mat-label>
+          <mat-label>{{ 'budget.dateLabel' | transloco }}</mat-label>
           <input
             matInput
             [matDatepicker]="picker"
@@ -100,26 +112,42 @@ export interface CreateAllocatedTransactionDialogData {
           />
           <mat-datepicker-toggle matIconSuffix [for]="picker" />
           <mat-datepicker #picker />
-          <mat-hint>Doit être dans la période du budget</mat-hint>
+          <mat-hint>{{
+            'transactionForm.dateHintBudget' | transloco
+          }}</mat-hint>
           @if (
             form.get('transactionDate')?.hasError('required') &&
             form.get('transactionDate')?.touched
           ) {
-            <mat-error>La date est requise</mat-error>
+            <mat-error>{{
+              'transactionForm.dateRequired' | transloco
+            }}</mat-error>
           }
           @if (
             form.get('transactionDate')?.hasError('dateOutOfRange') &&
             form.get('transactionDate')?.touched
           ) {
-            <mat-error>La date doit être dans la période du budget</mat-error>
+            <mat-error>{{
+              'budget.dateOutOfBudgetPeriod' | transloco
+            }}</mat-error>
           }
         </mat-form-field>
+
+        <div class="flex items-center justify-between py-2 px-1">
+          <span class="text-body-medium text-on-surface">{{
+            'transactionForm.checkedToggle' | transloco
+          }}</span>
+          <mat-slide-toggle
+            formControlName="isChecked"
+            [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
+          />
+        </div>
       </form>
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
       <button matButton (click)="cancel()" data-testid="cancel-transaction">
-        Annuler
+        {{ 'common.cancel' | transloco }}
       </button>
       <button
         matButton="filled"
@@ -128,14 +156,15 @@ export interface CreateAllocatedTransactionDialogData {
         data-testid="save-transaction"
       >
         <mat-icon>add</mat-icon>
-        Créer
+        {{ 'budget.transactionCreateButton' | transloco }}
       </button>
     </mat-dialog-actions>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateAllocatedTransactionDialog {
-  readonly data = inject<CreateAllocatedTransactionDialogData>(MAT_DIALOG_DATA);
+  protected readonly data =
+    inject<CreateAllocatedTransactionDialogData>(MAT_DIALOG_DATA);
   readonly #dialogRef = inject(
     MatDialogRef<CreateAllocatedTransactionDialog, TransactionCreate>,
   );
@@ -146,10 +175,10 @@ export class CreateAllocatedTransactionDialog {
     this.data.budgetYear,
     this.data.payDayOfMonth,
   );
-  readonly minDate = this.#dateConstraints.minDate;
-  readonly maxDate = this.#dateConstraints.maxDate;
+  protected readonly minDate = this.#dateConstraints.minDate;
+  protected readonly maxDate = this.#dateConstraints.maxDate;
 
-  readonly form = this.#fb.group({
+  protected readonly form = this.#fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
     amount: [
       null as number | null,
@@ -162,13 +191,14 @@ export class CreateAllocatedTransactionDialog {
         createDateRangeValidator(this.minDate, this.maxDate),
       ],
     ],
+    isChecked: [false],
   });
 
-  cancel(): void {
+  protected cancel(): void {
     this.#dialogRef.close();
   }
 
-  submit(): void {
+  protected submit(): void {
     if (this.form.invalid) return;
 
     const formValue = this.form.getRawValue();
@@ -177,10 +207,11 @@ export class CreateAllocatedTransactionDialog {
       budgetId: this.data.budgetLine.budgetId,
       budgetLineId: this.data.budgetLine.id,
       name: formValue.name!.trim(),
-      amount: formValue.amount!,
+      amount: Math.abs(formValue.amount!),
       kind: this.data.budgetLine.kind,
       transactionDate: formatLocalDate(formValue.transactionDate!),
       category: null,
+      checkedAt: formValue.isChecked ? new Date().toISOString() : null,
     };
 
     this.#dialogRef.close(transaction);

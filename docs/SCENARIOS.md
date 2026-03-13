@@ -682,7 +682,19 @@ Si l'enveloppe à 2000 CHF n'avait aucune transaction :
 - La nouvelle clé est affichée et doit être sauvegardée
 - L'ancienne clé de secours ne fonctionne plus
 
-### 8.5 Supprimer son compte
+### 8.5 Changer son code PIN
+
+**Workflow** : Réglages > Section sécurité > Changer le code PIN > Saisir le code PIN actuel > Saisir le nouveau code PIN > Confirmer le nouveau code PIN > Valider > Recevoir une nouvelle clé de secours (si configurée) > Message de succès
+
+**Critères** :
+- L'ancien code PIN est vérifié avant le changement
+- Toutes les données financières sont re-chiffrées avec la nouvelle clé dérivée du nouveau PIN
+- Une nouvelle clé de secours est toujours générée et affichée après le changement de PIN (l'ancienne, si elle existait, ne fonctionne plus)
+- Le nouveau code PIN fonctionne pour les connexions suivantes
+- Erreur si l'ancien code PIN est incorrect
+- Erreur si le nouveau code PIN est identique à l'ancien
+
+### 8.6 Supprimer son compte
 
 **Workflow (email / email + OAuth)** : Réglages > Zone de danger > Supprimer le compte > Saisir son mot de passe > Confirmer
 
@@ -823,6 +835,7 @@ Si l'enveloppe à 2000 CHF n'avait aucune transaction :
 | 8.1 Jour de paie | Oui | `payday-settings.spec.ts` |
 | 8.3 Changer mot de passe | Oui | `settings-change-password.spec.ts` |
 | 8.4 Régénérer clé | Oui | `settings-recovery-key.spec.ts` |
+| 8.5 Changer code PIN | Non | — |
 | **Non couvert** | | |
 | 1.2 Créer compte Google | Non | — |
 | 5.4 Ajouter prévision | Non | — |

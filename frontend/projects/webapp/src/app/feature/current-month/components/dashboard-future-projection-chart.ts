@@ -5,12 +5,14 @@ import {
   computed,
   inject,
   input,
+  LOCALE_ID,
   signal,
 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { BaseChartDirective } from 'ng2-charts';
 import type { ChartType } from 'chart.js';
 import type { UpcomingMonthForecast } from '../services/dashboard-state';
@@ -27,7 +29,7 @@ import {
 
 @Component({
   selector: 'pulpe-dashboard-future-projection-chart',
-  imports: [MatIconModule, MatTooltipModule, BaseChartDirective],
+  imports: [MatIconModule, MatTooltipModule, BaseChartDirective, TranslocoPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col h-full w-full">
@@ -39,10 +41,10 @@ import {
         </div>
         <div>
           <h2 class="text-title-medium font-bold text-on-surface mb-0">
-            Projection du solde
+            {{ 'currentMonth.projectionTitle' | transloco }}
           </h2>
           <p class="text-body-small text-on-surface-variant font-medium mt-0.5">
-            Disponible et épargne par mois futur
+            {{ 'currentMonth.projectionSubtitle' | transloco }}
           </p>
         </div>
       </div>
@@ -62,7 +64,7 @@ import {
           @if (missingMonthsCount() > 0) {
             <div
               class="flex items-center gap-2 mt-3 px-2 py-2 rounded-xl bg-surface-container-low cursor-help"
-              [matTooltip]="'Mois manquants : ' + missingMonthsLabel()"
+              [matTooltip]="missingMonthsTooltip()"
               matTooltipPosition="above"
             >
               <mat-icon
@@ -71,8 +73,10 @@ import {
                 >info</mat-icon
               >
               <p class="text-body-small text-on-surface-variant">
-                {{ missingMonthsCount() }} mois sans budget — crée-les pour
-                affiner ta projection.
+                {{
+                  'currentMonth.projectionMissingBudget'
+                    | transloco: { count: missingMonthsCount() }
+                }}
               </p>
             </div>
           }
@@ -88,10 +92,10 @@ import {
               >
             </div>
             <h3 class="text-title-medium font-medium text-on-surface-variant">
-              Aucun budget futur défini
+              {{ 'currentMonth.projectionEmptyTitle' | transloco }}
             </h3>
             <p class="text-body-medium text-on-surface-variant">
-              Crée tes prochains budgets pour voir ta projection ici.
+              {{ 'currentMonth.projectionEmptyMessage' | transloco }}
             </p>
           </div>
         }
@@ -108,7 +112,16 @@ import {
 export class DashboardFutureProjectionChart {
   readonly #doc = inject(DOCUMENT);
   readonly #amountsVisibility = inject(AmountsVisibilityService);
+  readonly #locale = inject(LOCALE_ID);
+  readonly #transloco = inject(TranslocoService);
   readonly forecasts = input.required<UpcomingMonthForecast[]>();
+
+  readonly #projectionBalanceLabel = this.#transloco.translate(
+    'currentMonth.projectionBalanceLabel',
+  );
+  readonly #projectionCumulatedSavingsLabel = this.#transloco.translate(
+    'currentMonth.projectionCumulatedSavingsLabel',
+  );
 
   readonly #theme = signal<ChartThemeColors | null>(null);
 
@@ -133,12 +146,15 @@ export class DashboardFutureProjectionChart {
     () => this.forecasts().filter((f) => !f.hasBudget).length,
   );
 
-  readonly missingMonthsLabel = computed(() =>
-    this.forecasts()
+  protected readonly missingMonthsTooltip = computed(() => {
+    const months = this.forecasts()
       .filter((f) => !f.hasBudget)
-      .map((f) => `${formatShortMonth(f.month)} ${f.year}`)
-      .join(', '),
-  );
+      .map((f) => `${formatShortMonth(f.month, this.#locale)} ${f.year}`)
+      .join(', ');
+    return this.#transloco.translate('currentMonth.projectionMissingMonths', {
+      months,
+    });
+  });
 
   readonly chartType: ChartType = 'line';
 
@@ -150,6 +166,9 @@ export class DashboardFutureProjectionChart {
   );
 
   readonly chartData = computed(() =>
-    buildProjectionChartData(this.forecasts(), this.#theme()),
+    buildProjectionChartData(this.forecasts(), this.#theme(), this.#locale, {
+      available: this.#projectionBalanceLabel,
+      cumulatedSavings: this.#projectionCumulatedSavingsLabel,
+    }),
   );
 }

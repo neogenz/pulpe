@@ -4,11 +4,13 @@ import {
   computed,
   DestroyRef,
   inject,
+  LOCALE_ID,
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { ROUTES } from '@core/routing/routes-constants';
 import { buildInfo } from '@env/build-info';
@@ -27,7 +29,7 @@ const LONG_PRESS_DURATION_MS = 10_000;
 
 @Component({
   selector: 'pulpe-about-dialog',
-  imports: [MatDialogModule, MatButtonModule, RouterLink],
+  imports: [MatDialogModule, MatButtonModule, RouterLink, TranslocoPipe],
   template: `
     <h2
       mat-dialog-title
@@ -39,7 +41,7 @@ const LONG_PRESS_DURATION_MS = 10_000;
       (touchend)="cancelLongPress()"
       (touchcancel)="cancelLongPress()"
     >
-      À propos
+      {{ 'about.title' | transloco }}
     </h2>
 
     <mat-dialog-content>
@@ -67,7 +69,7 @@ const LONG_PRESS_DURATION_MS = 10_000;
         }
         <div>
           <h3 class="text-label-large text-on-surface-variant mb-2">
-            Liens utiles
+            {{ 'about.links' | transloco }}
           </h3>
           <div class="flex flex-col gap-1">
             <a
@@ -76,21 +78,21 @@ const LONG_PRESS_DURATION_MS = 10_000;
               target="_blank"
               rel="noopener"
             >
-              Nouveautés
+              {{ 'about.newFeatures' | transloco }}
             </a>
             <a
               class="text-body-medium text-primary py-1 hover:underline"
               [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
               (click)="close()"
             >
-              Conditions Générales d'Utilisation
+              {{ 'about.termsOfService' | transloco }}
             </a>
             <a
               class="text-body-medium text-primary py-1 hover:underline"
               [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
               (click)="close()"
             >
-              Politique de Confidentialité
+              {{ 'about.privacyPolicy' | transloco }}
             </a>
           </div>
         </div>
@@ -103,7 +105,7 @@ const LONG_PRESS_DURATION_MS = 10_000;
         (click)="close()"
         data-testid="about-close-button"
       >
-        Fermer
+        {{ 'about.close' | transloco }}
       </button>
     </mat-dialog-actions>
   `,
@@ -129,6 +131,8 @@ export class AboutDialog {
   readonly #dialogRef = inject(MatDialogRef<AboutDialog>);
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #destroyRef = inject(DestroyRef);
+  readonly #locale = inject(LOCALE_ID);
+  readonly #transloco = inject(TranslocoService);
 
   protected readonly ROUTES = ROUTES;
   readonly #isDebugVisible = signal(false);
@@ -136,11 +140,20 @@ export class AboutDialog {
 
   readonly sections: readonly DebugInfoSection[] = [
     {
-      label: 'Build',
+      label: this.#transloco.translate('about.buildSection'),
       items: [
-        { label: 'Version', value: buildInfo.version },
-        { label: 'Commit', value: buildInfo.shortCommitHash },
-        { label: 'Date', value: this.#formatDate(buildInfo.buildDate) },
+        {
+          label: this.#transloco.translate('about.version'),
+          value: buildInfo.version,
+        },
+        {
+          label: this.#transloco.translate('about.commit'),
+          value: buildInfo.shortCommitHash,
+        },
+        {
+          label: this.#transloco.translate('about.date'),
+          value: this.#formatDate(buildInfo.buildDate),
+        },
       ],
     },
   ];
@@ -185,30 +198,40 @@ export class AboutDialog {
 
     return [
       {
-        label: 'Environnement',
-        items: [{ label: 'Mode', value: config.environment() }],
-      },
-      {
-        label: 'Configuration',
+        label: this.#transloco.translate('about.environmentSection'),
         items: [
           {
-            label: 'Supabase URL',
+            label: this.#transloco.translate('about.mode'),
+            value: config.environment(),
+          },
+        ],
+      },
+      {
+        label: this.#transloco.translate('about.configSection'),
+        items: [
+          {
+            label: this.#transloco.translate('about.supabaseUrl'),
             value: this.#truncateUrl(config.supabaseUrl()),
           },
           {
-            label: 'Backend URL',
+            label: this.#transloco.translate('about.backendUrl'),
             value: this.#truncateUrl(config.backendApiUrl()),
           },
         ],
       },
       {
-        label: 'Analytics',
+        label: this.#transloco.translate('about.analyticsSection'),
         items: [
           {
-            label: 'PostHog',
-            value: config.postHog().enabled ? 'Actif' : 'Inactif',
+            label: this.#transloco.translate('about.postHog'),
+            value: config.postHog().enabled
+              ? this.#transloco.translate('about.active')
+              : this.#transloco.translate('about.inactive'),
           },
-          { label: 'Host', value: this.#truncateUrl(config.postHog().host) },
+          {
+            label: this.#transloco.translate('about.host'),
+            value: this.#truncateUrl(config.postHog().host),
+          },
         ],
       },
     ];
@@ -216,7 +239,7 @@ export class AboutDialog {
 
   #formatDate(isoDate: string): string {
     try {
-      return new Date(isoDate).toLocaleDateString('fr-FR', {
+      return new Date(isoDate).toLocaleDateString(this.#locale, {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -229,7 +252,7 @@ export class AboutDialog {
   }
 
   #truncateUrl(url: string): string {
-    if (!url) return 'Non configuré';
+    if (!url) return this.#transloco.translate('about.notConfigured');
     try {
       const parsed = new URL(url);
       return parsed.host;

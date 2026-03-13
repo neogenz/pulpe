@@ -7,6 +7,7 @@ import { UserSettingsApi } from '@core/user-settings';
 import { AuthOAuthService } from '@core/auth/auth-oauth.service';
 import { HasBudgetCache } from '@core/auth/has-budget-cache';
 import { firstValueFrom } from 'rxjs';
+import { TranslocoService } from '@jsverse/transloco';
 
 interface CompleteProfileState {
   firstName: string;
@@ -49,6 +50,7 @@ export class CompleteProfileStore {
   readonly #hasBudgetCache = inject(HasBudgetCache);
   readonly #logger = inject(Logger);
   readonly #postHogService = inject(PostHogService);
+  readonly #transloco = inject(TranslocoService);
 
   readonly #state = signal<CompleteProfileState>(createInitialState());
 
@@ -164,7 +166,7 @@ export class CompleteProfileStore {
     if (!this.isStep1Valid()) {
       this.#state.update((s) => ({
         ...s,
-        error: 'Veuillez renseigner votre prénom et vos revenus mensuels',
+        error: this.#transloco.translate('completeProfile.validationError'),
       }));
       return false;
     }
@@ -191,7 +193,9 @@ export class CompleteProfileStore {
         this.#state.update((s) => ({
           ...s,
           isLoading: false,
-          error: result.error || 'Erreur lors de la création du budget',
+          error:
+            result.error ||
+            this.#transloco.translate('completeProfile.createBudgetError'),
         }));
         return false;
       }
@@ -232,7 +236,7 @@ export class CompleteProfileStore {
       this.#state.update((s) => ({
         ...s,
         isLoading: false,
-        error: "Une erreur inattendue s'est produite",
+        error: this.#transloco.translate('completeProfile.unexpectedError'),
       }));
       return false;
     }

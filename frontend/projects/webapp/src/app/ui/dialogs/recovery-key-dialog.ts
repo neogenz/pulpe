@@ -14,6 +14,7 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 export interface RecoveryKeyDialogData {
   recoveryKey: string;
@@ -27,17 +28,15 @@ export interface RecoveryKeyDialogData {
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    TranslocoPipe,
   ],
   host: { 'data-testid': 'recovery-key-dialog' },
   template: `
-    <h2 mat-dialog-title>Ta clé de secours</h2>
+    <h2 mat-dialog-title>{{ 'recoveryKey.title' | transloco }}</h2>
 
     <mat-dialog-content>
       <p class="text-body-medium text-on-surface mb-4">
-        Cette clé est ton filet de sécurité. Si tu oublies ton code PIN, elle
-        sera le seul moyen de retrouver tes données. Copie-la dans un endroit
-        sûr : personne d'autre n'y a accès, et on ne pourra pas la retrouver
-        pour toi.
+        {{ 'recoveryKey.description' | transloco }}
       </p>
 
       <div
@@ -54,7 +53,11 @@ export interface RecoveryKeyDialogData {
         data-testid="copy-recovery-key-button"
       >
         <mat-icon>content_copy</mat-icon>
-        {{ isCopied() ? 'Copié !' : 'Copier la clé' }}
+        {{
+          isCopied()
+            ? ('recoveryKey.copied' | transloco)
+            : ('recoveryKey.copyKey' | transloco)
+        }}
       </button>
 
       <mat-form-field
@@ -62,7 +65,7 @@ export interface RecoveryKeyDialogData {
         class="w-full"
         subscriptSizing="dynamic"
       >
-        <mat-label>Copie ou colle ta clé ici pour confirmer</mat-label>
+        <mat-label>{{ 'recoveryKey.confirmLabel' | transloco }}</mat-label>
         <input
           matInput
           data-testid="recovery-key-confirm-input"
@@ -80,7 +83,7 @@ export interface RecoveryKeyDialogData {
         (click)="onConfirm()"
         data-testid="recovery-key-confirm-button"
       >
-        C'est enregistré en lieu sûr
+        {{ 'recoveryKey.confirmed' | transloco }}
       </button>
     </mat-dialog-actions>
   `,

@@ -37,7 +37,8 @@ final class BudgetDetailsViewModel {
     var isShowingOnlyUnchecked: Bool { checkedFilter == .unchecked }
 
     // Cached metrics to avoid recalculation on every access
-    private var cachedMetrics: BudgetFormulas.Metrics?
+    @ObservationIgnored private var cachedMetrics: BudgetFormulas.Metrics?
+    @ObservationIgnored private var cachedRealizedMetrics: BudgetFormulas.RealizedMetrics?
     private var pendingDeleteTasks: [String: Task<Void, Never>] = [:]
 
     private let budgetService = BudgetService.shared
@@ -93,6 +94,7 @@ final class BudgetDetailsViewModel {
             budgetLines = []
             transactions = []
             cachedMetrics = nil
+            cachedRealizedMetrics = nil
         }
     }
 
@@ -110,6 +112,10 @@ final class BudgetDetailsViewModel {
             budgetLines: budgetLines,
             transactions: transactions,
             rollover: budget?.rollover.orZero ?? 0
+        )
+        cachedRealizedMetrics = BudgetFormulas.calculateRealizedMetrics(
+            budgetLines: displayBudgetLines,
+            transactions: transactions
         )
     }
 
@@ -179,6 +185,17 @@ final class BudgetDetailsViewModel {
             $0.name.localizedStandardContains(searchText) ||
                 "\($0.amount)".contains(searchText)
         }
+    }
+
+    private var displayBudgetLines: [BudgetLine] {
+        BudgetFormulas.displayBudgetLines(base: budgetLines, budget: budget)
+    }
+
+    var realizedMetrics: BudgetFormulas.RealizedMetrics {
+        cachedRealizedMetrics ?? BudgetFormulas.calculateRealizedMetrics(
+            budgetLines: displayBudgetLines,
+            transactions: transactions
+        )
     }
 
     var rolloverInfo: (amount: Decimal, previousBudgetId: String?)? {

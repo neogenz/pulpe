@@ -168,7 +168,7 @@ struct CurrentMonthStoreAlertAndFilterTests {
         let budget = TestDataFactory.createBudget(rollover: 0)
 
         // Act
-        let displayLines = budget.rollover == 0 ? lines : lines // Simplified logic
+        let displayLines = BudgetFormulas.displayBudgetLines(base: lines, budget: budget)
 
         // Assert
         #expect(displayLines.count == 2)
@@ -184,12 +184,7 @@ struct CurrentMonthStoreAlertAndFilterTests {
         let budget = TestDataFactory.createBudget(rollover: 500)
 
         // Act
-        let rolloverLine = BudgetLine.rolloverLine(
-            amount: budget.rollover ?? 0,
-            budgetId: budget.id,
-            sourceBudgetId: budget.previousBudgetId
-        )
-        let displayLines = [rolloverLine] + lines
+        let displayLines = BudgetFormulas.displayBudgetLines(base: lines, budget: budget)
 
         // Assert
         #expect(displayLines.count == 3)
@@ -206,17 +201,12 @@ struct CurrentMonthStoreAlertAndFilterTests {
         let budget = TestDataFactory.createBudget(rollover: -300)
 
         // Act
-        let rolloverLine = BudgetLine.rolloverLine(
-            amount: budget.rollover ?? 0,
-            budgetId: budget.id,
-            sourceBudgetId: budget.previousBudgetId
-        )
-        let displayLines = [rolloverLine] + lines
+        let displayLines = BudgetFormulas.displayBudgetLines(base: lines, budget: budget)
 
         // Assert
         #expect(displayLines.count == 2)
         #expect(displayLines[0].isVirtualRollover)
-        #expect(displayLines[0].amount == -300)
+        #expect(displayLines[0].amount == 300)
         #expect(displayLines[0].kind == .expense)
     }
 
@@ -260,28 +250,6 @@ struct CurrentMonthStoreAlertAndFilterTests {
         #expect(recent.count == 5)
         #expect(recent[0].id == "tx-0")
         #expect(recent[4].id == "tx-4")
-    }
-
-    @Test func uncheckedTransactionsLogic_filtersAndLimits() {
-        // Arrange
-        let transactions = [
-            TestDataFactory.createTransaction(id: "tx-1", isChecked: false),
-            TestDataFactory.createTransaction(id: "tx-2", isChecked: true),
-            TestDataFactory.createTransaction(id: "tx-3", isChecked: false),
-            TestDataFactory.createTransaction(id: "tx-4", isChecked: false)
-        ]
-
-        // Act
-        let unchecked = Array(
-            transactions
-                .filter { !$0.isChecked }
-                .prefix(5)
-        )
-
-        // Assert
-        #expect(unchecked.count == 3)
-        let allUnchecked = unchecked.allSatisfy { !$0.isChecked }
-        #expect(allUnchecked)
     }
 
     @Test func freeTransactionsLogic_filtersUnallocated() {

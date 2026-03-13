@@ -9,6 +9,7 @@ struct AddBudgetLineSheet: View {
     @State private var name = ""
     @State private var amount: Decimal?
     @State private var kind: TransactionKind = .expense
+    @State private var isChecked = false
     @State private var isLoading = false
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
@@ -32,6 +33,7 @@ struct AddBudgetLineSheet: View {
             QuickAmountChips(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused, color: kind.color)
                 .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
             descriptionField
+            CheckedToggle(isOn: $isChecked, tintColor: kind.color)
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -79,7 +81,8 @@ struct AddBudgetLineSheet: View {
             name: name.trimmingCharacters(in: .whitespaces),
             amount: amount,
             kind: kind,
-            recurrence: .oneOff
+            recurrence: .oneOff,
+            checkedAt: isChecked ? Date() : nil
         )
 
         do {

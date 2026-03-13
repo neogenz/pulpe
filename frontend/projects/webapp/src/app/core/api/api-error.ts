@@ -44,7 +44,7 @@ export function normalizeApiError(error: unknown): ApiError {
     const message =
       typeof error.error === 'string'
         ? error.error
-        : error.message || 'Erreur serveur';
+        : error.message || 'Server error';
 
     return new ApiError(message, undefined, error.status, error.error);
   }
@@ -53,5 +53,5 @@ export function normalizeApiError(error: unknown): ApiError {
     return new ApiError(error.message, undefined, 0, undefined);
   }
 
-  return new ApiError('Erreur inconnue', undefined, 0, error);
+  return new ApiError('Unknown error', undefined, 0, error);
 }

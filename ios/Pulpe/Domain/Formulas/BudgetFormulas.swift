@@ -6,6 +6,20 @@ enum BudgetFormulas {
     /// DA section 3.1: threshold separating "comfortable" from "tight"
     static let tightBudgetThreshold: Double = 80
 
+    // MARK: - Display Budget Lines
+
+    /// Budget lines augmented with a virtual rollover line when rollover != 0.
+    /// Shared by CurrentMonthStore and BudgetDetailsViewModel.
+    static func displayBudgetLines(base: [BudgetLine], budget: Budget?) -> [BudgetLine] {
+        guard let budget, let rollover = budget.rollover, rollover != 0 else { return base }
+        let rolloverLine = BudgetLine.rolloverLine(
+            amount: rollover,
+            budgetId: budget.id,
+            sourceBudgetId: budget.previousBudgetId
+        )
+        return [rolloverLine] + base
+    }
+
     // MARK: - Metrics Result
 
     struct Metrics: Equatable, Sendable {
@@ -31,15 +45,35 @@ enum BudgetFormulas {
 
         /// DA §3.1: 3-state emotion zone — comfortable (<80%), tight (80-100%), deficit (>100%)
         var emotionState: EmotionState {
-            if isDeficit { return .deficit }
-            if usagePercentage >= BudgetFormulas.tightBudgetThreshold { return .tight }
-            return .comfortable
+            BudgetFormulas.emotionState(
+                remaining: remaining,
+                totalIncome: totalIncome,
+                totalExpenses: totalExpenses,
+                rollover: rollover
+            )
         }
     }
 
     /// Budget emotion states for UI tinting (hero card, background zones)
     enum EmotionState: Equatable, Sendable {
         case comfortable, tight, deficit
+    }
+
+    /// SOT: Compute emotion state from raw values.
+    /// Used by both `Metrics.emotionState` and budget list hero card.
+    static func emotionState(
+        remaining: Decimal?,
+        totalIncome: Decimal?,
+        totalExpenses: Decimal?,
+        rollover: Decimal?
+    ) -> EmotionState {
+        guard let remaining else { return .comfortable }
+        if remaining < 0 { return .deficit }
+        let available = (totalIncome ?? 0) + (rollover ?? 0)
+        guard available > 0 else { return .comfortable }
+        let usagePercentage = Double(truncating: ((totalExpenses ?? 0) / available * 100) as NSDecimalNumber)
+        if usagePercentage >= tightBudgetThreshold { return .tight }
+        return .comfortable
     }
 
     // MARK: - Realized Metrics
@@ -185,7 +219,6 @@ enum BudgetFormulas {
         // Calculate envelope totals - O(n) with O(1) lookups
         for line in budgetLines {
             guard line.kind.isOutflow else { continue }
-            guard line.isRollover != true else { continue }
 
             let consumed = transactionsByLineId[line.id]?
                 .reduce(Decimal.zero) { $0 + $1.amount } ?? 0

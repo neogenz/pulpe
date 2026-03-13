@@ -40,6 +40,7 @@ import { ClientKeyService } from './encryption/client-key.service';
 import { PreloadService } from './preload/preload.service';
 import { PageLifecycleRecoveryService } from './lifecycle/page-lifecycle-recovery.service';
 import { ThemeService } from './theme/theme.service';
+import { provideAppTransloco } from './i18n/transloco-config';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -191,5 +192,6 @@ export function provideCore({ routes }: CoreOptions) {
     ...provideLocale(),
     ...provideAngularMaterial(),
     ...provideLottie(),
+    ...provideAppTransloco(),
   ];
 }

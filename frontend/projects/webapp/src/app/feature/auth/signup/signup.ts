@@ -14,6 +14,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { Router, RouterLink } from '@angular/router';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 import { AuthCredentialsService, PASSWORD_MIN_LENGTH } from '@core/auth';
 import { PostHogService } from '@core/analytics/posthog';
@@ -38,6 +39,7 @@ import { createFieldsMatchValidator } from '@core/validators';
     GoogleOAuthButton,
     ErrorAlert,
     LoadingButton,
+    TranslocoPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -48,17 +50,17 @@ import { createFieldsMatchValidator } from '@core/validators';
         class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
       >
         <mat-icon class="text-lg">arrow_back</mat-icon>
-        <span>Retour à l'accueil</span>
+        <span>{{ 'auth.signup.backToHome' | transloco }}</span>
       </button>
 
       <div class="text-center mb-8 mt-4">
         <h1
           class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
         >
-          Prêt en 3 minutes
+          {{ 'auth.signup.title' | transloco }}
         </h1>
         <p class="text-body-large text-on-surface-variant">
-          Crée ton espace et vois clair dans tes finances
+          {{ 'auth.signup.subtitle' | transloco }}
         </p>
       </div>
 
@@ -69,14 +71,14 @@ import { createFieldsMatchValidator } from '@core/validators';
         data-testid="signup-form"
       >
         <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Email</mat-label>
+          <mat-label>{{ 'form.emailLabel' | transloco }}</mat-label>
           <input
             matInput
             type="email"
             formControlName="email"
             data-testid="email-input"
             (input)="clearMessages()"
-            placeholder="ton@email.com"
+            [placeholder]="'form.emailPlaceholder' | transloco"
             [disabled]="isSubmitting()"
           />
           <mat-icon matPrefix>email</mat-icon>
@@ -85,23 +87,23 @@ import { createFieldsMatchValidator } from '@core/validators';
           ) {
             <mat-error>
               @if (signupForm.get('email')?.hasError('required')) {
-                Ton email est nécessaire pour continuer
+                {{ 'form.emailRequired' | transloco }}
               } @else if (signupForm.get('email')?.hasError('email')) {
-                Cette adresse email ne semble pas valide
+                {{ 'form.emailInvalid' | transloco }}
               }
             </mat-error>
           }
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Mot de passe</mat-label>
+          <mat-label>{{ 'form.passwordLabel' | transloco }}</mat-label>
           <input
             matInput
             [type]="isPasswordHidden() ? 'password' : 'text'"
             formControlName="password"
             data-testid="password-input"
             (input)="clearMessages()"
-            placeholder="Mot de passe"
+            [placeholder]="'form.passwordPlaceholder' | transloco"
             [disabled]="isSubmitting()"
           />
           <mat-icon matPrefix>lock</mat-icon>
@@ -110,37 +112,37 @@ import { createFieldsMatchValidator } from '@core/validators';
             matIconButton
             matSuffix
             (click)="togglePasswordVisibility()"
-            [attr.aria-label]="'Afficher le mot de passe'"
+            [attr.aria-label]="'form.showPassword' | transloco"
             [attr.aria-pressed]="!isPasswordHidden()"
           >
             <mat-icon>{{
               isPasswordHidden() ? 'visibility_off' : 'visibility'
             }}</mat-icon>
           </button>
-          <mat-hint>8 caractères minimum pour sécuriser ton compte</mat-hint>
+          <mat-hint>{{ 'form.passwordHint' | transloco }}</mat-hint>
           @if (
             signupForm.get('password')?.invalid &&
             signupForm.get('password')?.touched
           ) {
             <mat-error>
               @if (signupForm.get('password')?.hasError('required')) {
-                Ton mot de passe est nécessaire
+                {{ 'form.passwordRequired' | transloco }}
               } @else if (signupForm.get('password')?.hasError('minlength')) {
-                8 caractères minimum
+                {{ 'form.passwordMinLength' | transloco }}
               }
             </mat-error>
           }
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Confirmer le mot de passe</mat-label>
+          <mat-label>{{ 'form.confirmPasswordLabel' | transloco }}</mat-label>
           <input
             matInput
             [type]="isConfirmPasswordHidden() ? 'password' : 'text'"
             formControlName="confirmPassword"
             data-testid="confirm-password-input"
             (input)="clearMessages()"
-            placeholder="Confirmer le mot de passe"
+            [placeholder]="'form.confirmPasswordPlaceholder' | transloco"
             [disabled]="isSubmitting()"
           />
           <mat-icon matPrefix>lock</mat-icon>
@@ -149,7 +151,7 @@ import { createFieldsMatchValidator } from '@core/validators';
             matIconButton
             matSuffix
             (click)="toggleConfirmPasswordVisibility()"
-            [attr.aria-label]="'Afficher le mot de passe'"
+            [attr.aria-label]="'form.showPassword' | transloco"
             [attr.aria-pressed]="!isConfirmPasswordHidden()"
           >
             <mat-icon>{{
@@ -162,11 +164,11 @@ import { createFieldsMatchValidator } from '@core/validators';
           ) {
             <mat-error>
               @if (signupForm.get('confirmPassword')?.hasError('required')) {
-                Confirme ton mot de passe
+                {{ 'form.confirmPasswordRequired' | transloco }}
               } @else if (
                 signupForm.get('confirmPassword')?.hasError('passwordsMismatch')
               ) {
-                Les mots de passe ne correspondent pas
+                {{ 'form.passwordsMismatch' | transloco }}
               }
             </mat-error>
           }
@@ -179,23 +181,23 @@ import { createFieldsMatchValidator } from '@core/validators';
             data-testid="accept-terms-checkbox"
           >
             <span class="text-body-medium">
-              J'accepte les
+              {{ 'auth.signup.acceptTerms' | transloco }}
               <a
                 [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
                 target="_blank"
                 class="text-primary underline"
                 (click)="$event.stopPropagation()"
               >
-                Conditions d'Utilisation
+                {{ 'auth.signup.termsOfService' | transloco }}
               </a>
-              et la
+              {{ 'auth.signup.acceptTermsAnd' | transloco }}
               <a
                 [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
                 target="_blank"
                 class="text-primary underline"
                 (click)="$event.stopPropagation()"
               >
-                Politique de Confidentialité
+                {{ 'auth.signup.privacyPolicy' | transloco }}
               </a>
             </span>
           </mat-checkbox>
@@ -204,7 +206,7 @@ import { createFieldsMatchValidator } from '@core/validators';
             signupForm.get('acceptTerms')?.touched
           ) {
             <p class="text-error text-body-small mt-1">
-              Accepte les conditions pour continuer
+              {{ 'auth.signup.acceptTermsRequired' | transloco }}
             </p>
           }
         </div>
@@ -214,18 +216,20 @@ import { createFieldsMatchValidator } from '@core/validators';
         <pulpe-loading-button
           [loading]="isSubmitting()"
           [disabled]="!canSubmit()"
-          loadingText="Création en cours..."
+          [loadingText]="'auth.signup.submitting' | transloco"
           icon="person_add"
           testId="signup-submit-button"
           class="mt-4"
         >
-          <span class="ml-2">Créer mon compte</span>
+          <span class="ml-2">{{ 'auth.signup.submit' | transloco }}</span>
         </pulpe-loading-button>
       </form>
 
       <div class="flex items-center gap-4 my-6">
         <mat-divider class="flex-1" />
-        <span class="text-body-medium text-on-surface-variant">ou</span>
+        <span class="text-body-medium text-on-surface-variant">{{
+          'common.or' | transloco
+        }}</span>
         <mat-divider class="flex-1" />
       </div>
 
@@ -237,14 +241,14 @@ import { createFieldsMatchValidator } from '@core/validators';
 
       <div class="text-center mt-6">
         <p class="text-body-medium text-on-surface-variant">
-          Déjà un compte ?
+          {{ 'auth.signup.alreadyAccount' | transloco }}
           <button
             matButton
             color="primary"
             class="ml-1"
             [routerLink]="['/', ROUTES.LOGIN]"
           >
-            Se connecter
+            {{ 'auth.signup.signin' | transloco }}
           </button>
         </p>
       </div>
@@ -257,6 +261,7 @@ export default class Signup {
   readonly #logger = inject(Logger);
   readonly #formBuilder = inject(FormBuilder);
   readonly #postHogService = inject(PostHogService);
+  readonly #transloco = inject(TranslocoService);
 
   protected readonly ROUTES = ROUTES;
 
@@ -307,7 +312,7 @@ export default class Signup {
   protected async signUp(): Promise<void> {
     if (!this.signupForm.valid) {
       this.signupForm.markAllAsTouched();
-      this.errorMessage.set('Quelques champs à vérifier avant de continuer');
+      this.errorMessage.set(this.#transloco.translate('common.formErrors'));
       return;
     }
 
@@ -332,12 +337,14 @@ export default class Signup {
         this.#router.navigate(['/', ROUTES.DASHBOARD]);
       } else {
         this.errorMessage.set(
-          result.error || 'La création du compte a échoué — réessaie',
+          result.error || this.#transloco.translate('auth.signup.errorDefault'),
         );
       }
     } catch (error) {
       this.#logger.error('Erreur lors de la création du compte:', error);
-      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessaie");
+      this.errorMessage.set(
+        this.#transloco.translate('common.somethingWentWrong'),
+      );
     } finally {
       this.isSubmitting.set(false);
     }

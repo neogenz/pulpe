@@ -5,24 +5,27 @@ import {
   TitleStrategy,
   type ActivatedRouteSnapshot,
 } from '@angular/router';
+import { TranslocoService } from '@jsverse/transloco';
 
 @Injectable({
   providedIn: 'root',
 })
 export class PulpeTitleStrategy extends TitleStrategy {
   readonly #title = inject(Title);
+  readonly #transloco = inject(TranslocoService);
 
-  private readonly APP_NAME = 'Pulpe';
-  private readonly SEPARATOR = ' • ';
+  readonly #APP_NAME = 'Pulpe';
+  readonly #SEPARATOR = ' • ';
 
   updateTitle(routerState: RouterStateSnapshot): void {
-    const title = this.buildTitle(routerState);
+    const titleKey = this.buildTitle(routerState);
 
-    if (title) {
-      const finalTitle = `${title}${this.SEPARATOR}${this.APP_NAME}`;
+    if (titleKey) {
+      const translated = this.#transloco.translate(titleKey);
+      const finalTitle = `${translated}${this.#SEPARATOR}${this.#APP_NAME}`;
       this.#title.setTitle(finalTitle);
     } else {
-      this.#title.setTitle(this.APP_NAME);
+      this.#title.setTitle(this.#APP_NAME);
     }
   }
 
@@ -31,41 +34,32 @@ export class PulpeTitleStrategy extends TitleStrategy {
    * Used for dynamic titles that cannot be set via routing (e.g., from API data).
    */
   setTitle(title: string): void {
-    const finalTitle = `${title}${this.SEPARATOR}${this.APP_NAME}`;
+    const finalTitle = `${title}${this.#SEPARATOR}${this.#APP_NAME}`;
     this.#title.setTitle(finalTitle);
   }
 
   override buildTitle(snapshot: RouterStateSnapshot): string | undefined {
-    const titles = this.collectTitles(snapshot.root);
+    const titles = this.#collectTitles(snapshot.root);
     return titles.length > 0 ? titles[titles.length - 1] : undefined;
   }
 
-  private collectTitles(route: ActivatedRouteSnapshot): string[] {
+  #collectTitles(route: ActivatedRouteSnapshot): string[] {
     const titles: string[] = [];
-    this.traverseRoute(route, titles);
+    this.#traverseRoute(route, titles);
     return titles;
   }
 
-  private traverseRoute(route: ActivatedRouteSnapshot, titles: string[]): void {
+  #traverseRoute(route: ActivatedRouteSnapshot, titles: string[]): void {
     if (route.data?.['title']) {
-      const resolvedTitle = this.resolveTitle(route.data['title'], route);
-      titles.push(resolvedTitle);
+      titles.push(route.data['title']);
     }
 
     if (route.title) {
-      const resolvedTitle = this.resolveTitle(route.title, route);
-      titles.push(resolvedTitle);
+      titles.push(route.title);
     }
 
     route.children.forEach((child) => {
-      this.traverseRoute(child, titles);
-    });
-  }
-
-  private resolveTitle(title: string, route: ActivatedRouteSnapshot): string {
-    return title.replace(/\{\{(\w+)\}\}/g, (match, parameterName) => {
-      const parameterValue = route.params[parameterName];
-      return parameterValue || match;
+      this.#traverseRoute(child, titles);
     });
   }
 }

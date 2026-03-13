@@ -1,47 +1,23 @@
 import SwiftUI
 
-/// Unified header for onboarding steps with animated icon
+/// Unified header for onboarding steps — bold editorial typography, no icon
 struct OnboardingStepHeader: View {
     let step: OnboardingStep
-    @State private var iconScale: CGFloat = 0.5
-    @State private var iconOpacity: Double = 0
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
-            // Animated icon in colored circle
-            ZStack {
-                Circle()
-                    .fill(step.iconColor.opacity(0.12))
-                    .frame(width: 80, height: 80)
-
-                Image(systemName: step.iconName)
-                    .font(PulpeTypography.brandTitle)
-                    .foregroundStyle(step.iconColor)
-                    .scaleEffect(iconScale)
-                    .opacity(iconOpacity)
-            }
-
-            // Title
             Text(step.title)
-                .font(PulpeTypography.stepTitle)
+                .font(PulpeTypography.onboardingTitle)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
-            // Subtitle
             Text(step.subtitle)
-                .font(PulpeTypography.stepSubtitle)
+                .font(PulpeTypography.onboardingSubtitle)
                 .foregroundStyle(Color.textSecondaryOnboarding)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, DesignTokens.Spacing.xxxl)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
 
-            // Optional badge
             if step.isOptional {
                 OptionalBadge()
-            }
-        }
-        .onAppear {
-            withAnimation(PulpeAnimations.iconEntrance.delay(0.1)) {
-                iconScale = 1.0
-                iconOpacity = 1.0
             }
         }
     }
@@ -60,7 +36,7 @@ struct OptionalBadge: View {
         .foregroundStyle(Color.textTertiaryOnboarding)
         .padding(.horizontal, 14)
         .padding(.vertical, 6)
-        .background(Color.secondary.opacity(0.08), in: Capsule())
+        .background(Color.textTertiaryOnboarding.opacity(0.15), in: Capsule())
     }
 }
 

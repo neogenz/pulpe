@@ -31,6 +31,10 @@ enum DesignTokens {
         static let xl: CGFloat = 20
         static let xxl: CGFloat = 24
         static let xxxl: CGFloat = 32
+        /// Gap between form sections (onboarding)
+        static let sectionGap: CGFloat = 40
+        /// Top padding for step headers (onboarding)
+        static let stepHeaderTop: CGFloat = 48
     }
 
     // MARK: - Shadows
@@ -205,6 +209,19 @@ enum DesignTokens {
         static let progressBar: CGFloat = 8
         /// Thin separator lines
         static let separator: CGFloat = 1
+    }
+
+    // MARK: - Numpad
+
+    enum Numpad {
+        static let buttonSize: CGFloat = 75
+        static let dotSize: CGFloat = 14
+    }
+
+    // MARK: - Checkbox
+
+    enum Checkbox {
+        static let size: CGFloat = 24
     }
 
     // MARK: - Amount Input

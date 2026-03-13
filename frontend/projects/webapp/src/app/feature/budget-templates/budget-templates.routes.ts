@@ -21,13 +21,13 @@ export const budgetTemplatesRoutes: Routes = [
       {
         path: 'create',
         title: PAGE_TITLES.NEW_TEMPLATE,
-        data: { breadcrumb: 'Créer un modèle', icon: 'add' },
+        data: { breadcrumb: 'pageTitle.newTemplate', icon: 'add' },
         loadComponent: () => import('./create/create-template-page'),
       },
       {
         path: 'details/:templateId',
         title: PAGE_TITLES.TEMPLATE_DETAIL,
-        data: { breadcrumb: 'Détail du modèle', icon: 'visibility' },
+        data: { breadcrumb: 'pageTitle.templateDetail', icon: 'visibility' },
         loadComponent: () => import('./details/template-detail'),
       },
     ],

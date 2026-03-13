@@ -10,15 +10,18 @@ enum AnalyticsEvent: String, CaseIterable {
     case signupStarted = "signup_started"
     case signupCompleted = "signup_completed"
     case onboardingStepCompleted = "onboarding_step_completed"
+    case onboardingAbandoned = "onboarding_abandoned"
 
     // MARK: - Auth
     case loginCompleted = "login_completed"
     case logoutCompleted = "logout_completed"
     case pinSetupCompleted = "pin_setup_completed"
     case pinEntered = "pin_entered"
+    case pinChanged = "pin_changed"
 
     // MARK: - Budget
     case budgetCreated = "budget_created"
+    case firstBudgetCreated = "first_budget_created"
 
     // MARK: - Transaction
     case transactionCreated = "transaction_created"
