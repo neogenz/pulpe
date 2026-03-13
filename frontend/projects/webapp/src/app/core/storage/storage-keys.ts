@@ -22,6 +22,9 @@ export const STORAGE_KEYS = {
   VAULT_CLIENT_KEY_SESSION: 'pulpe-vault-client-key-session',
   VAULT_CLIENT_KEY_LOCAL: 'pulpe-vault-client-key-local',
 
+  // Vault key validation cache (sessionStorage)
+  VAULT_KEY_VALIDATED_AT: 'pulpe-vault-key-validated-at',
+
   // What's New dismissal
   WHATS_NEW_DISMISSED: 'pulpe-whats-new-dismissed',
 

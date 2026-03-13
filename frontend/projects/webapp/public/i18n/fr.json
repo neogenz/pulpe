@@ -179,6 +179,12 @@
     "nextMonth": "Mois suivant",
     "earlyAdopter": "VIP"
   },
+  "earlyAdopter": {
+    "title": "Merci d'être là depuis le début \u2728",
+    "message": "Tu fais partie des premiers utilisateurs de Pulpe. Ta confiance et tes retours m'aident à construire l'application que tu mérites.",
+    "signature": "— Maxime, créateur de Pulpe",
+    "close": "Avec plaisir \uD83D\uDE4F"
+  },
   "about": {
     "title": "À propos",
     "links": "Liens utiles",
