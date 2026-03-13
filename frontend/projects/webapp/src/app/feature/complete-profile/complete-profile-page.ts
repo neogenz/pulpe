@@ -146,7 +146,7 @@ import { PAY_DAY_MAX, type SupportedCurrency } from 'pulpe-shared';
 
                 <div class="flex flex-col gap-2">
                   <p class="text-label-medium text-on-surface-variant">
-                    Devise
+                    {{ 'settings.currencyLabel' | transloco }}
                   </p>
                   <mat-button-toggle-group
                     aria-label="Devise"

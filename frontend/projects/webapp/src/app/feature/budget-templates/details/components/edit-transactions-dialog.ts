@@ -494,12 +494,14 @@ export default class EditTransactionsDialog {
 
     try {
       for (const line of this.transactions()) {
-        const { convertedAmount } = await this.#converter.convertWithMetadata(
-          line.formData.amount,
-          this.inputCurrency(),
-          this.#userSettings.currency(),
-        );
+        const { convertedAmount, metadata } =
+          await this.#converter.convertWithMetadata(
+            line.formData.amount,
+            this.inputCurrency(),
+            this.#userSettings.currency(),
+          );
         this.#store.updateTransaction(line.id, { amount: convertedAmount });
+        this.#store.setCurrencyMetadata(line.id, metadata);
       }
     } catch {
       this.#conversionError.set(

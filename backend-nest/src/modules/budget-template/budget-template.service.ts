@@ -1775,6 +1775,18 @@ export class BudgetTemplateService {
       user.clientKey,
     );
 
+    const encryptedOriginalAmounts = await Promise.all(
+      overriddenCreates.map(async (line) => {
+        if (line.originalAmount == null) return undefined;
+        const prepared = await this.encryptionService.prepareAmountData(
+          line.originalAmount,
+          user.id,
+          user.clientKey,
+        );
+        return prepared.amount;
+      }),
+    );
+
     const inserts = overriddenCreates.map((line, index) => ({
       ...budgetTemplateMappers.toDbTemplateLineInsert(
         line,
@@ -1782,6 +1794,9 @@ export class BudgetTemplateService {
         preparedAmounts[index].amount,
       ),
       amount: preparedAmounts[index].amount,
+      ...(encryptedOriginalAmounts[index] !== undefined && {
+        original_amount: encryptedOriginalAmounts[index],
+      }),
     }));
 
     const { data, error } = await supabase
