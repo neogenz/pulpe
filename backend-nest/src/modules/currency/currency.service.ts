@@ -64,9 +64,18 @@ export class CurrencyService {
       return dto;
     }
 
-    const base = supportedCurrencySchema.parse(dto.originalCurrency);
-    const target = supportedCurrencySchema.parse(dto.targetCurrency);
-    const { rate } = await this.getRate(base, target);
+    const baseResult = supportedCurrencySchema.safeParse(dto.originalCurrency);
+    const targetResult = supportedCurrencySchema.safeParse(dto.targetCurrency);
+
+    if (!baseResult.success || !targetResult.success) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.CURRENCY_RATE_FETCH_FAILED,
+        { base: dto.originalCurrency, target: dto.targetCurrency },
+        { operation: 'overrideExchangeRate' },
+      );
+    }
+
+    const { rate } = await this.getRate(baseResult.data, targetResult.data);
     return { ...dto, exchangeRate: rate };
   }
 
