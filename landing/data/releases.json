@@ -1,5 +1,79 @@
 [
   {
+    "version": "0.30.0",
+    "date": "2026-03-13",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.30.0",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "Changement de code PIN",
+          "description": "Nouveau flux sécurisé pour modifier son code PIN avec régénération automatique de la clé de récupération"
+        },
+        {
+          "title": "Toggle \"Pointé\" par défaut",
+          "description": "Les transactions libres sont désormais pointées par défaut à la création"
+        },
+        {
+          "title": "Refonte du tableau de bord mobile",
+          "description": "Nouvelles cartes \"À pointer\" et \"Épargne\" avec retour haptique sur les actions"
+        },
+        {
+          "title": "Refonte de l'authentification mobile",
+          "description": "Nouveau design avec dégradés, validation visuelle du mot de passe et indicateur de correspondance"
+        },
+        {
+          "title": "Refonte du compte utilisateur mobile",
+          "description": "Menus regroupés avec sous-pages sécurité et préférences"
+        },
+        {
+          "title": "Visualisation du report mobile",
+          "description": "Report affiché en pastille directionnelle dans les budgets et la carte héro"
+        },
+        {
+          "title": "Internationalisation",
+          "description": "Migration complète vers Transloco pour préparer le support multilingue"
+        },
+        {
+          "title": "Badge early adopter",
+          "description": "Badge VIP animé pour les premiers utilisateurs"
+        },
+        {
+          "title": "Page support repensée",
+          "description": "FAQ avec 10 questions orientées résultats sur le site vitrine"
+        },
+        {
+          "title": "Page 404 personnalisée",
+          "description": "Page d'erreur avec guidage vers l'application"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Formule de projection",
+          "description": "Correction du calcul de solde qui soustrayait l'épargne en double"
+        },
+        {
+          "title": "Conditions de concurrence",
+          "description": "Résolution des race conditions sur les prévisions en attente et le re-chiffrement"
+        },
+        {
+          "title": "Accessibilité VoiceOver",
+          "description": "Boutons de graphiques et critères de mot de passe accessibles"
+        }
+      ],
+      "technical": [
+        {
+          "title": "Centralisation des codes d'erreur",
+          "description": "Centralisation des codes d'erreur API dans le package partagé"
+        },
+        {
+          "title": "Verrouillage de re-chiffrement",
+          "description": "Verrouillage de ligne sur la procédure de re-chiffrement pour prévenir les exécutions concurrentes"
+        }
+      ]
+    }
+  },
+  {
     "version": "0.29.0",
     "date": "2026-03-04",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.29.0",

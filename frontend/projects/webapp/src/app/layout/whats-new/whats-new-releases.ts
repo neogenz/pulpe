@@ -4,10 +4,10 @@ export interface WhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.29.0',
+  version: '0.30.0',
   features: [
-    'États de consommation colorés sur les prévisions',
-    'Correction de la logique enveloppe',
-    'Protection des montants dans les captures',
+    'Changement de code PIN depuis les réglages',
+    'Toggle "Pointé" par défaut à la création',
+    'Correction de la formule de projection',
   ],
 };
