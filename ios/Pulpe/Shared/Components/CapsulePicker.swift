@@ -4,16 +4,14 @@ import SwiftUI
 /// Selected state uses `pulpePrimary`; unselected uses `surfaceContainer`.
 struct CapsulePicker<T: CaseIterable & Hashable, ItemLabel: View>: View where T.AllCases: RandomAccessCollection {
     @Binding var selection: T
-    let title: String?
+    let title: String
     @ViewBuilder let itemLabel: (T) -> ItemLabel
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            if let title {
-                Text(title)
-                    .font(PulpeTypography.inputLabel)
-                    .foregroundStyle(Color.pulpeTextTertiary)
-            }
+            Text(title)
+                .font(PulpeTypography.inputLabel)
+                .foregroundStyle(Color.pulpeTextTertiary)
 
             HStack(spacing: DesignTokens.Spacing.sm) {
                 ForEach(T.allCases, id: \.self) { item in
@@ -41,6 +39,6 @@ struct CapsulePicker<T: CaseIterable & Hashable, ItemLabel: View>: View where T.
             .sensoryFeedback(.selection, trigger: selection)
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(title ?? "")
+        .accessibilityLabel(title)
     }
 }

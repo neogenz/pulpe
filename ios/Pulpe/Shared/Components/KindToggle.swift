@@ -34,7 +34,7 @@ struct KindToggle: View {
                             )
                         )
                 }
-                .buttonStyle(.plain)
+                .plainPressedButtonStyle()
                 .accessibilityLabel(kind.label)
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
             }
