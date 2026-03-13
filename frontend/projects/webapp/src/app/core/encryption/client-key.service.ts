@@ -58,16 +58,11 @@ export class ClientKeyService {
     useLocalStorage = false,
   ): Promise<void> {
     const keyHex = await deriveClientKey(password, saltHex, iterations);
-    this.#clientKeyHex.set(keyHex);
-    this.#persist(keyHex, useLocalStorage);
+    this.#setAndPersist(keyHex, useLocalStorage);
   }
 
   setDirectKey(keyHex: string, useLocalStorage = false): void {
-    if (!isValidClientKeyHex(keyHex)) {
-      throw new Error('Invalid client key hex');
-    }
-    this.#clientKeyHex.set(keyHex);
-    this.#persist(keyHex, useLocalStorage);
+    this.#setAndPersist(keyHex, useLocalStorage);
   }
 
   clearPreservingDeviceTrust(): void {
@@ -80,6 +75,14 @@ export class ClientKeyService {
   clear(): void {
     this.clearPreservingDeviceTrust();
     this.#storage.remove(STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL, 'local');
+  }
+
+  #setAndPersist(keyHex: string, useLocalStorage: boolean): void {
+    if (!isValidClientKeyHex(keyHex)) {
+      throw new Error('Invalid client key hex');
+    }
+    this.#clientKeyHex.set(keyHex);
+    this.#persist(keyHex, useLocalStorage);
   }
 
   #isValidationCacheValid(): boolean {

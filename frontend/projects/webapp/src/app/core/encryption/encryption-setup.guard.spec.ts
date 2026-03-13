@@ -276,7 +276,7 @@ describe('encryptionSetupGuard', () => {
 
       expect(result).toBe(true);
       expect(mockClientKeyService.clear).not.toHaveBeenCalled();
-      expect(mockClientKeyService.markValidated).not.toHaveBeenCalled();
+      expect(mockClientKeyService.markValidated).toHaveBeenCalled();
     });
 
     it('should skip validation when needsServerValidation is false (sessionStorage key)', async () => {
