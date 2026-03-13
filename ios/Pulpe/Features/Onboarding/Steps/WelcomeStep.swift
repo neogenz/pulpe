@@ -44,7 +44,12 @@ struct WelcomeStep: View {
 
                 // Bottom buttons
                 VStack(spacing: DesignTokens.Spacing.md) {
-                    // Primary CTA
+                    // Social login — primary path
+                    SocialLoginSection()
+
+                    SocialLoginDivider()
+
+                    // Email signup CTA
                     Button {
                         AnalyticsService.shared.capture(.signupStarted, properties: ["method": "email"])
                         state.nextStep()

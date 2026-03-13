@@ -6,5 +6,7 @@ SUPABASE_ANON_KEY = sb_publishable_6bhOTXKoB7NtR0EeRKg8kA_EdBZeyJb
 APP_ENV = preview
 POSTHOG_API_KEY = phc_TQXZF60iqsU5m3HpGGtTRjGx5vFvggoBt1Gzr4zWLar
 POSTHOG_ENABLED = true
+GOOGLE_CLIENT_ID =
+GOOGLE_URL_SCHEME =
 
 #include? "Preview.secrets.xcconfig"

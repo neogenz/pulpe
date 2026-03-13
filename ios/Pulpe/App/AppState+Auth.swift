@@ -9,13 +9,33 @@ extension AppState {
         // remount it on error — causing a jarring close/reopen animation.
 
         let user = try await authService.login(email: email, password: password)
+        await completeLogin(user: user)
+        authDebug("AUTH_LOGIN", "complete")
+    }
+
+    func loginWithApple(idToken: String, nonce: String) async throws {
+        authDebug("AUTH_LOGIN_APPLE", "begin")
+        let user = try await authService.signInWithApple(idToken: idToken, nonce: nonce)
+        await completeLogin(user: user)
+        authDebug("AUTH_LOGIN_APPLE", "complete")
+    }
+
+    func loginWithGoogle(idToken: String, accessToken: String) async throws {
+        authDebug("AUTH_LOGIN_GOOGLE", "begin")
+        let user = try await authService.signInWithGoogle(idToken: idToken, accessToken: accessToken)
+        await completeLogin(user: user)
+        authDebug("AUTH_LOGIN_GOOGLE", "complete")
+    }
+
+    private func completeLogin(user: UserInfo) async {
         clearExplicitLogoutFlag()
         clearManualBiometricRetryRequiredFlag()
-        await keychainManager.saveLastUsedEmail(email)
+        if !user.email.isEmpty {
+            await keychainManager.saveLastUsedEmail(user.email)
+        }
         hasReturningUser = true
         returningUserFlagLoaded = true
         await resolvePostAuth(user: user)
-        authDebug("AUTH_LOGIN", "complete")
     }
 
     func loginWithBiometric() async {

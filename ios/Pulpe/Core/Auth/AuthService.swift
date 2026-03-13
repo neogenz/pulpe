@@ -68,6 +68,27 @@ actor AuthService {
         return Self.userInfo(from: session.user, fallbackEmail: email)
     }
 
+    // MARK: - OAuth
+
+    func signInWithApple(idToken: String, nonce: String) async throws -> UserInfo {
+        try await signInWithIdToken(.init(provider: .apple, idToken: idToken, nonce: nonce))
+    }
+
+    func signInWithGoogle(idToken: String, accessToken: String) async throws -> UserInfo {
+        try await signInWithIdToken(.init(provider: .google, idToken: idToken, accessToken: accessToken))
+    }
+
+    private func signInWithIdToken(_ credentials: OpenIDConnectCredentials) async throws -> UserInfo {
+        let session = try await supabase.auth.signInWithIdToken(credentials: credentials)
+
+        try await keychain.saveTokens(
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken
+        )
+
+        return Self.userInfo(from: session.user, fallbackEmail: "")
+    }
+
     // MARK: - Password Reset & Recovery
 
     /// Send a password reset email with a mobile deep-link callback.
@@ -326,8 +347,13 @@ actor AuthService {
     private static func userInfo(from user: User, fallbackEmail: String) -> UserInfo {
         let metadata = user.userMetadata
 
+        // Priority: firstName (email signup) > given_name (Google) > name (Apple, first sign-in only)
         var firstName: String?
         if case .string(let name) = metadata["firstName"] {
+            firstName = name
+        } else if case .string(let name) = metadata["given_name"] {
+            firstName = name
+        } else if case .string(let name) = metadata["name"] {
             firstName = name
         }
 
