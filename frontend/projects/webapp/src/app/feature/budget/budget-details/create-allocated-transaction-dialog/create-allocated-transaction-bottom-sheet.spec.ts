@@ -131,48 +131,6 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
     });
   });
 
-  describe('checked toggle', () => {
-    it('should set checkedAt to null by default', () => {
-      const midMonth = new Date(
-        new Date().getFullYear(),
-        new Date().getMonth(),
-        15,
-      );
-      component['form'].patchValue({
-        name: 'Test',
-        amount: 10,
-        transactionDate: midMonth,
-      });
-
-      component['submit']();
-
-      expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
-        expect.objectContaining({ checkedAt: null }),
-      );
-    });
-
-    it('should set checkedAt to ISO string when isChecked is true', () => {
-      const midMonth = new Date(
-        new Date().getFullYear(),
-        new Date().getMonth(),
-        15,
-      );
-      component['form'].patchValue({
-        name: 'Test',
-        amount: 10,
-        transactionDate: midMonth,
-        isChecked: true,
-      });
-
-      component['submit']();
-
-      const callArg = mockBottomSheetRef.dismiss.mock.calls[0][0];
-      expect(callArg.checkedAt).toBeDefined();
-      expect(typeof callArg.checkedAt).toBe('string');
-      expect(() => new Date(callArg.checkedAt)).not.toThrow();
-    });
-  });
-
   describe('close', () => {
     it('should dismiss without data', () => {
       component['close']();

@@ -6,12 +6,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatDividerModule } from '@angular/material/divider';
 import { TranslocoPipe } from '@jsverse/transloco';
-import {
-  type BudgetTemplate,
-  type TemplateLine,
-  BudgetFormulas,
-} from 'pulpe-shared';
+import { type BudgetTemplate, type TemplateLine } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
+import { UserSettingsStore } from '@core/user-settings';
 
 export interface TemplateDetailsDialogData {
   template: BudgetTemplate;
@@ -22,13 +19,13 @@ export interface TemplateDetailsDialogData {
   selector: 'pulpe-template-details-dialog',
 
   imports: [
+    TranslocoPipe,
     AppCurrencyPipe,
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
     MatListModule,
     MatDividerModule,
-    TranslocoPipe,
   ],
   template: `
     <h2 mat-dialog-title class="text-headline-small">
@@ -49,13 +46,13 @@ export interface TemplateDetailsDialogData {
           <div class="flex flex-col">
             <div>{{ 'template.totalIncome' | transloco }}</div>
             <div class="ph-no-capture text-financial-income text-label-large">
-              {{ totalIncome | appCurrency }}
+              {{ totalIncome | appCurrency: currency() }}
             </div>
           </div>
           <div class="flex flex-col">
             <div>{{ 'template.totalExpenses' | transloco }}</div>
             <div class="ph-no-capture text-financial-negative text-label-large">
-              {{ totalExpenses | appCurrency }}
+              {{ totalExpenses | appCurrency: currency() }}
             </div>
           </div>
         </div>
@@ -88,7 +85,7 @@ export interface TemplateDetailsDialogData {
                   [class.text-financial-income]="line.kind === 'income'"
                 >
                   {{ line.kind === 'income' ? '+' : '-' }}
-                  {{ line.amount | appCurrency }}
+                  {{ line.amount | appCurrency: currency() }}
                 </div>
               </div>
             </mat-list-item>
@@ -101,9 +98,9 @@ export interface TemplateDetailsDialogData {
         <!-- Net Balance -->
         <mat-divider class="mb-2!"></mat-divider>
         <div class="flex justify-between text-body-medium font-medium">
-          <span>{{ 'template.netBalanceSummary' | transloco }}</span>
+          <span>{{ 'template.netBalanceLabel' | transloco }}</span>
           <span class="ph-no-capture">
-            {{ netBalance | appCurrency }}
+            {{ netBalance | appCurrency: currency() }}
           </span>
         </div>
       } @else {
@@ -141,16 +138,17 @@ export interface TemplateDetailsDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TemplateDetailsDialog {
+  readonly #userSettings = inject(UserSettingsStore);
+  protected readonly currency = this.#userSettings.currency;
   readonly data = inject<TemplateDetailsDialogData>(MAT_DIALOG_DATA);
 
   readonly templateLines = this.data.templateLines;
-  readonly totalIncome = BudgetFormulas.calculateTotalIncome(
-    this.templateLines,
-    [],
-  );
-  readonly totalExpenses = BudgetFormulas.calculateTotalExpenses(
-    this.templateLines,
-    [],
-  );
+  readonly totalIncome = this.templateLines
+    .filter((line) => line.kind === 'income')
+    .reduce((sum, line) => sum + line.amount, 0);
+
+  readonly totalExpenses = this.templateLines
+    .filter((line) => line.kind === 'expense' || line.kind === 'saving')
+    .reduce((sum, line) => sum + line.amount, 0);
   readonly netBalance = this.totalIncome - this.totalExpenses;
 }

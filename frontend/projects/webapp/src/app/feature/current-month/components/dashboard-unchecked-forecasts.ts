@@ -13,6 +13,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import type { BudgetLineConsumption } from '@core/budget/budget-line-consumption';
 import type { BudgetLine, SupportedCurrency } from 'pulpe-shared';
+import { CURRENCY_CONFIG } from '@core/currency';
 
 const MAX_VISIBLE_FORECASTS = 5;
 
@@ -96,7 +97,7 @@ const MAX_VISIBLE_FORECASTS = 5;
                   class="text-label-large whitespace-nowrap font-semibold tabular-nums ph-no-capture"
                   [pulpeFinancialKind]="forecast.kind"
                 >
-                  {{ displayAmount | number: '1.2-2' : 'de-CH' }}
+                  {{ displayAmount | number: '1.2-2' : locale() }}
                   {{ currency() }}
                 </span>
               </div>
@@ -142,6 +143,10 @@ export class DashboardUncheckedForecasts {
 
   protected readonly hasMore = computed(
     () => this.forecasts().length > MAX_VISIBLE_FORECASTS,
+  );
+
+  protected readonly locale = computed(
+    () => CURRENCY_CONFIG[this.currency()].locale,
   );
 
   protected readonly displayedForecasts = computed(() =>

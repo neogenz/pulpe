@@ -67,6 +67,7 @@ describe('TransactionService', () => {
       mockBudgetService as BudgetService,
       mockEncryptionService as EncryptionService,
       mockCacheService as any,
+      {} as any,
     );
   });
 

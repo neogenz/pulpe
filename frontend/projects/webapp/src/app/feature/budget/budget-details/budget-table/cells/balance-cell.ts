@@ -1,6 +1,12 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  input,
+} from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { AppCurrencyPipe } from '@core/currency';
+import { UserSettingsStore } from '@core/user-settings';
 
 import type {
   BudgetLineTableItem,
@@ -30,12 +36,16 @@ import type {
         [class.text-financial-income]="line().metadata.cumulativeBalance >= 0"
         [class.text-financial-negative]="line().metadata.cumulativeBalance < 0"
       >
-        {{ line().metadata.cumulativeBalance | appCurrency: '1.0-0' }}
+        {{
+          line().metadata.cumulativeBalance | appCurrency: currency() : '1.0-0'
+        }}
       </span>
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BalanceCell {
+  readonly #userSettings = inject(UserSettingsStore);
+  protected readonly currency = this.#userSettings.currency;
   readonly line = input.required<BudgetLineTableItem | TransactionTableItem>();
 }

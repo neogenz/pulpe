@@ -54,14 +54,6 @@ export type SavingsGoalStatus = z.infer<typeof savingsGoalStatusSchema>;
 export const supportedCurrencySchema = z.enum(['CHF', 'EUR']);
 export type SupportedCurrency = z.infer<typeof supportedCurrencySchema>;
 
-export const currencyMetadataSchema = z.object({
-  originalAmount: z.number().positive().optional(),
-  originalCurrency: supportedCurrencySchema.optional(),
-  targetCurrency: supportedCurrencySchema.optional(),
-  exchangeRate: z.number().positive().optional(),
-});
-export type CurrencyMetadata = z.infer<typeof currencyMetadataSchema>;
-
 /**
  * BUDGET - Instance mensuelle d'un template
  *

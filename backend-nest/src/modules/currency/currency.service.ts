@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
-import type { SupportedCurrency } from 'pulpe-shared';
+import { supportedCurrencySchema, type SupportedCurrency } from 'pulpe-shared';
 
 interface CachedRate {
   rate: number;
@@ -49,6 +49,27 @@ export class CurrencyService {
     return this.#fetchAndCache(base, target, cacheKey);
   }
 
+  async overrideExchangeRate<
+    T extends {
+      originalCurrency?: string;
+      targetCurrency?: string;
+      exchangeRate?: number | null;
+    },
+  >(dto: T): Promise<T> {
+    if (
+      !dto.originalCurrency ||
+      !dto.targetCurrency ||
+      dto.originalCurrency === dto.targetCurrency
+    ) {
+      return dto;
+    }
+
+    const base = supportedCurrencySchema.parse(dto.originalCurrency);
+    const target = supportedCurrencySchema.parse(dto.targetCurrency);
+    const { rate } = await this.getRate(base, target);
+    return { ...dto, exchangeRate: rate };
+  }
+
   async #fetchAndCache(
     base: SupportedCurrency,
     target: SupportedCurrency,
@@ -78,7 +99,7 @@ export class CurrencyService {
 
     let response: Response;
     try {
-      response = await fetch(url);
+      response = await fetch(url, { signal: AbortSignal.timeout(5000) });
     } catch (error) {
       throw new BusinessException(
         ERROR_DEFINITIONS.CURRENCY_RATE_FETCH_FAILED,

@@ -91,7 +91,6 @@ export {
 
   // Currency schemas
   supportedCurrencySchema,
-  currencyMetadataSchema,
 
   // User schemas
   userProfileSchema,
@@ -242,7 +241,6 @@ export type {
 
   // Currency types
   SupportedCurrency,
-  CurrencyMetadata,
 
   // User types
   UserProfile,

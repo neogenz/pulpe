@@ -30,6 +30,7 @@ struct TemplateLine: Codable, Identifiable, Hashable, Sendable {
     // Currency conversion metadata
     var originalAmount: Decimal?
     var originalCurrency: String?
+    var targetCurrency: String?
     var exchangeRate: Decimal?
 }
 
