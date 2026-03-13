@@ -101,6 +101,18 @@ docs/angular-architecture-for-enterprise.md
 
 .mcp.local.json
 
+# skills.sh — installed skill content (restore via `skills install`)
+# Custom skills in .claude/skills/ (real dirs) are NOT ignored
+.agents/
+.agent/skills/
+.gemini/skills/
+.claude/skills/*
+!.claude/skills/design-audit/
+!.claude/skills/feature-intelligence/
+!.claude/skills/product-owner/
+!.claude/skills/update-changelog/
+!.claude/skills/workflow-clean-code-angular/
+
 # Design assets (generated files)
 design/icons/**/*.png
 icon/
