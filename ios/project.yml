@@ -23,6 +23,9 @@ packages:
   posthog-ios:
     url: https://github.com/PostHog/posthog-ios
     from: "3.0.0"
+  google-sign-in-ios:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: "8.0.0"
 
 settings:
   base:
@@ -66,6 +69,8 @@ targets:
         product: Lottie
       - package: posthog-ios
         product: PostHog
+      - package: google-sign-in-ios
+        product: GoogleSignIn
       - target: PulpeWidget
         embed: true
     entitlements:
@@ -73,6 +78,8 @@ targets:
       properties:
         com.apple.security.application-groups:
           - group.app.pulpe.ios
+        com.apple.developer.applesignin:
+          - Default
     configFiles:
       Local: Config/Local.xcconfig
       Preview: Config/Preview.xcconfig
@@ -112,6 +119,9 @@ targets:
           - CFBundleURLSchemes:
               - pulpe
             CFBundleURLName: app.pulpe.ios
+          - CFBundleURLSchemes:
+              - $(GOOGLE_URL_SCHEME)
+            CFBundleURLName: google-sign-in
         UIAppFonts:
           - Manrope-Bold.ttf
         UIBackgroundModes:
@@ -125,6 +135,8 @@ targets:
         POSTHOG_API_KEY: $(POSTHOG_API_KEY)
         POSTHOG_HOST: $(POSTHOG_HOST)
         POSTHOG_ENABLED: $(POSTHOG_ENABLED)
+        GOOGLE_CLIENT_ID: $(GOOGLE_CLIENT_ID)
+        GIDClientID: $(GOOGLE_CLIENT_ID)
 
   PulpeWidget:
     type: app-extension

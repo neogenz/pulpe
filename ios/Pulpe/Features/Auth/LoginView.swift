@@ -101,6 +101,11 @@ extension LoginView {
             passwordField
             forgotPasswordButton
             loginButton
+            SocialLoginDivider()
+            SocialLoginSection {
+                appState.biometricError = nil
+                isPresented?.wrappedValue = false
+            }
             faceIDButton
         }
         .opacity(isAppeared ? 1 : 0)

@@ -6,5 +6,7 @@ SUPABASE_ANON_KEY = sb_publishable_sOPmrqc7yz2nnZRxAOUhwQ_Yr8lfRY2
 APP_ENV = prod
 POSTHOG_API_KEY = phc_TQXZF60iqsU5m3HpGGtTRjGx5vFvggoBt1Gzr4zWLar
 POSTHOG_ENABLED = true
+GOOGLE_CLIENT_ID =
+GOOGLE_URL_SCHEME =
 
 #include? "Prod.secrets.xcconfig"

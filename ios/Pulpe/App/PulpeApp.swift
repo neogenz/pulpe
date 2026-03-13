@@ -1,3 +1,4 @@
+import GoogleSignIn
 import OSLog
 import SwiftUI
 import TipKit
@@ -79,6 +80,11 @@ struct PulpeApp: App {
     }
 
     private func handleDeepLink(_ url: URL) {
+        // Google Sign-In callback
+        if GIDSignIn.sharedInstance.handle(url) {
+            return
+        }
+
         guard url.scheme == "pulpe" else { return }
 
         let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
