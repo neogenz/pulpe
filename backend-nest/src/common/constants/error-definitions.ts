@@ -605,7 +605,7 @@ export const ERROR_DEFINITIONS = {
 
   // Currency Errors
   CURRENCY_RATE_FETCH_FAILED: {
-    code: 'ERR_CURRENCY_RATE_FETCH_FAILED',
+    code: API_ERROR_CODES.CURRENCY_RATE_FETCH_FAILED,
     message: (details?: Record<string, unknown>) =>
       details?.base && details?.target
         ? `Failed to fetch exchange rate for ${details.base}/${details.target}`

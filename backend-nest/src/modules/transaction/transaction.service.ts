@@ -21,6 +21,7 @@ import { TRANSACTION_CONSTANTS } from './entities';
 import type { Database, TablesInsert } from '../../types/database.types';
 import { BudgetService } from '../budget/budget.service';
 import { EncryptionService } from '@modules/encryption/encryption.service';
+import { CurrencyService } from '@modules/currency/currency.service';
 
 @Injectable()
 export class TransactionService {
@@ -30,6 +31,7 @@ export class TransactionService {
     private readonly budgetService: BudgetService,
     private readonly encryptionService: EncryptionService,
     private readonly cacheService: CacheService,
+    private readonly currencyService: CurrencyService,
   ) {}
 
   async findAll(
@@ -296,6 +298,14 @@ export class TransactionService {
     try {
       this.validateCreateTransactionDto(createTransactionDto);
 
+      if (
+        createTransactionDto.originalCurrency &&
+        createTransactionDto.targetCurrency
+      ) {
+        createTransactionDto =
+          await this.currencyService.overrideExchangeRate(createTransactionDto);
+      }
+
       // Validate budget line allocation if provided
       if (createTransactionDto.budgetLineId) {
         await this.validateBudgetLineAllocation(
@@ -315,7 +325,7 @@ export class TransactionService {
       );
 
       let encryptedOriginalAmount: string | null = null;
-      if (createTransactionDto.originalAmount) {
+      if (createTransactionDto.originalAmount != null) {
         const encryptedOriginal =
           await this.encryptionService.prepareAmountData(
             createTransactionDto.originalAmount,
@@ -549,6 +559,14 @@ export class TransactionService {
   ): Promise<TransactionResponse> {
     try {
       this.validateUpdateTransactionDto(updateTransactionDto);
+
+      if (
+        updateTransactionDto.originalCurrency &&
+        updateTransactionDto.targetCurrency
+      ) {
+        updateTransactionDto =
+          await this.currencyService.overrideExchangeRate(updateTransactionDto);
+      }
 
       const updateData =
         this.prepareTransactionUpdateData(updateTransactionDto);

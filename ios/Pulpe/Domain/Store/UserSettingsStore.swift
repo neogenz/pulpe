@@ -111,7 +111,7 @@ final class UserSettingsStore: StoreProtocol {
     }
 
     func updatePayDay(_ day: Int?) async {
-        if let day, !(2...31).contains(day) { return }
+        if let day, !(1...31).contains(day) { return }
 
         let previousValue = payDayOfMonth
         error = nil

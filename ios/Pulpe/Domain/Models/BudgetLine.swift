@@ -18,6 +18,7 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
     // Currency conversion metadata
     var originalAmount: Decimal?
     var originalCurrency: String?
+    var targetCurrency: String?
     var exchangeRate: Decimal?
 
     // Virtual rollover fields (added client-side)
@@ -55,6 +56,7 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
             updatedAt: Date(),
             originalAmount: originalAmount,
             originalCurrency: originalCurrency,
+            targetCurrency: targetCurrency,
             exchangeRate: exchangeRate,
             isRollover: isRollover,
             rolloverSourceBudgetId: rolloverSourceBudgetId
