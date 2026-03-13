@@ -65,7 +65,6 @@ export const encryptionSetupGuard: CanActivateFn = () => {
       }),
       catchError((error: unknown) => {
         if (isApiError(error) && error.status === 429) {
-          clientKeyService.markValidated();
           return of(true as const);
         }
         clientKeyService.clear();
