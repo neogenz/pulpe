@@ -32,7 +32,6 @@ import {
   RouterLinkActive,
   RouterOutlet,
 } from '@angular/router';
-import { TranslocoPipe } from '@jsverse/transloco';
 import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth/auth-state.service';
@@ -47,11 +46,13 @@ import {
 } from '@core/product-tour/product-tour.service';
 import { BreadcrumbState } from '@core/routing/breadcrumb-state';
 import { ROUTES } from '@core/routing/routes-constants';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
+import { LogoutDialog } from '@ui/dialogs/logout-dialog';
 import { of } from 'rxjs';
 import { delay, filter, map, switchMap } from 'rxjs/operators';
 import { AboutDialog } from './about-dialog';
-import { LogoutDialog } from '@ui/dialogs/logout-dialog';
+import { EarlyAdopterDialog } from './early-adopter-dialog';
 import { WhatsNewToast } from './whats-new/whats-new-toast';
 
 const NAVIGATION_LOADER_DELAY_MS = 100;
@@ -272,35 +273,40 @@ interface NavigationItem {
             }
 
             <!-- Toolbar Actions -->
-            <button
-              matButton
-              [matMenuTriggerFor]="userMenu"
-              [attr.aria-label]="
-                isLoggingOut()
-                  ? ('layout.loggingOut' | transloco)
-                  : ('layout.userMenu' | transloco)
-              "
-              [disabled]="isLoggingOut()"
-              data-testid="user-menu-trigger"
-            >
-              <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2">
+              @if (isEarlyAdopter()) {
                 <span
-                  class="user-identity"
-                  [class.early-adopter-ring]="isEarlyAdopter()"
+                  class="early-adopter-badge cursor-pointer"
+                  role="button"
+                  tabindex="0"
+                  (click)="openEarlyAdopterDialog()"
+                  (keydown.enter)="openEarlyAdopterDialog()"
                 >
-                  <mat-icon>person</mat-icon>
-                  <span
-                    class="ph-no-capture amounts-visible max-w-64 truncate"
-                    >{{ userEmail() }}</span
-                  >
+                  <mat-icon aria-hidden="true">auto_awesome</mat-icon>
+                  <span class="badge-text">{{
+                    'layout.earlyAdopter' | transloco
+                  }}</span>
+                  <span class="early-adopter-shimmer" aria-hidden="true"></span>
                 </span>
-                @if (isEarlyAdopter()) {
-                  <span class="early-adopter-badge">
-                    {{ 'layout.earlyAdopter' | transloco }}
-                  </span>
-                }
-              </div>
-            </button>
+              }
+              <button
+                matButton
+                [matMenuTriggerFor]="userMenu"
+                [attr.aria-label]="
+                  isLoggingOut()
+                    ? ('layout.loggingOut' | transloco)
+                    : ('layout.userMenu' | transloco)
+                "
+                [disabled]="isLoggingOut()"
+                data-testid="user-menu-trigger"
+                class="inline-flex items-center"
+              >
+                <mat-icon>person</mat-icon>
+                <span class="ph-no-capture amounts-visible max-w-64 truncate">{{
+                  userEmail()
+                }}</span>
+              </button>
+            </div>
 
             <mat-menu #userMenu="matMenu" xPosition="before">
               <button
@@ -508,126 +514,109 @@ interface NavigationItem {
         }
       }
 
-      /* ── Early adopter: rotating light border ── */
-      @property --ring-angle {
-        syntax: '<angle>';
-        initial-value: 0deg;
-        inherits: false;
-      }
-
-      .user-identity {
-        display: contents;
-      }
-
-      .early-adopter-ring {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        position: relative;
-        padding: 4px 12px;
-        border-radius: 100px;
-      }
-
-      .early-adopter-ring::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: inherit;
-        padding: 1.5px;
-        background: conic-gradient(
-          from var(--ring-angle),
-          transparent 0%,
-          var(--pulpe-gradient-start) 6%,
-          var(--pulpe-gradient-mid1) 12%,
-          var(--pulpe-gradient-end) 18%,
-          transparent 28%,
-          transparent 100%
-        );
-        -webkit-mask:
-          linear-gradient(#fff 0 0) content-box,
-          linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask:
-          linear-gradient(#fff 0 0) content-box,
-          linear-gradient(#fff 0 0);
-        mask-composite: exclude;
-        animation: ring-rotate 3s linear infinite;
-        pointer-events: none;
-      }
-
-      @keyframes ring-rotate {
-        to {
-          --ring-angle: 360deg;
-        }
-      }
-
-      /* ── Early adopter: gradient pill badge (desktop only) ── */
+      /* ── Early adopter badge (desktop only) ── */
       .early-adopter-badge {
         display: inline-flex;
         align-items: center;
-        padding: 2px 10px;
+        gap: 6px;
+        padding: 4px 12px 4px 8px;
         border-radius: 100px;
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 700;
-        letter-spacing: 0.6px;
+        letter-spacing: 0.5px;
         text-transform: uppercase;
-        overflow: hidden;
-        position: relative;
-        color: #fff;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
         white-space: nowrap;
         flex-shrink: 0;
-        isolation: isolate;
-      }
+        z-index: 1;
+        position: relative;
+        overflow: hidden;
 
-      /* Static gradient background */
-      .early-adopter-badge::before {
-        content: '';
-        position: absolute;
-        inset: 0;
+        /* Premium Gold styling */
+        color: #795500;
         background: linear-gradient(
           135deg,
-          var(--pulpe-gradient-start),
-          var(--pulpe-gradient-mid1),
-          var(--pulpe-gradient-mid2),
-          var(--pulpe-gradient-end)
+          #fff8e1 0%,
+          #ffecb3 50%,
+          #ffe082 100%
         );
-        z-index: -1;
+        border: 1px solid #ffd54f;
+        box-shadow: 0 2px 10px -2px rgba(255, 193, 7, 0.3);
       }
 
-      /* GPU-composited shimmer via transform */
-      .early-adopter-badge::after {
-        content: '';
+      .early-adopter-badge mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        line-height: 16px;
+        color: #f57f17;
+      }
+
+      .early-adopter-badge .badge-text {
+        padding-top: 1px;
+      }
+
+      /* Shimmer effect */
+      .early-adopter-shimmer {
         position: absolute;
-        inset: 0;
+        top: 0;
+        left: -100%;
+        width: 50%;
+        height: 100%;
         background: linear-gradient(
-          110deg,
-          transparent 30%,
-          rgba(255, 255, 255, 0.3) 48%,
-          rgba(255, 255, 255, 0.45) 50%,
-          rgba(255, 255, 255, 0.3) 52%,
-          transparent 70%
+          to right,
+          transparent 0%,
+          rgba(255, 255, 255, 0.8) 50%,
+          transparent 100%
         );
-        transform: translateX(-100%);
-        animation: badge-shimmer 4s ease-in-out infinite;
-        z-index: 0;
-        will-change: transform;
+        transform: skewX(-20deg);
+        animation: vip-shimmer 3s infinite;
+        pointer-events: none;
       }
 
-      @keyframes badge-shimmer {
+      @keyframes vip-shimmer {
         0%,
+        20% {
+          left: -100%;
+        }
         100% {
-          transform: translateX(-100%);
+          left: 200%;
         }
-        30%,
-        70% {
-          transform: translateX(100%);
-        }
+      }
+
+      /* Dark mode support */
+      :host-context(.dark-theme) .early-adopter-badge {
+        color: #ffd54f;
+        background: linear-gradient(
+          135deg,
+          #2e2200 0%,
+          #3d2e00 50%,
+          #4a3800 100%
+        );
+        border-color: rgba(255, 193, 7, 0.4);
+        box-shadow: 0 2px 10px -2px rgba(255, 193, 7, 0.2);
+      }
+      :host-context(.dark-theme) .early-adopter-badge mat-icon {
+        color: #ffb300;
+      }
+      :host-context(.dark-theme) .early-adopter-shimmer {
+        background: linear-gradient(
+          to right,
+          transparent 0%,
+          rgba(255, 193, 7, 0.2) 50%,
+          transparent 100%
+        );
       }
 
       @media (max-width: 599.98px) {
         .early-adopter-badge {
+          padding: 4px;
+        }
+        .early-adopter-badge .badge-text {
           display: none;
+        }
+        /* Ensure email text truncates on small screens */
+        span.truncate {
+          max-width: 140px;
         }
       }
 
@@ -818,6 +807,13 @@ export default class MainLayout {
     if (this.isHandset()) {
       drawer.close();
     }
+  }
+
+  protected openEarlyAdopterDialog(): void {
+    this.#dialog.open(EarlyAdopterDialog, {
+      width: 'auto',
+      maxWidth: '90vw',
+    });
   }
 
   protected openAboutDialog(): void {
