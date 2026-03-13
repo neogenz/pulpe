@@ -4,14 +4,14 @@ import {
   input,
   computed,
 } from '@angular/core';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { SpinnerComponent } from 'ngx-unicode-spinners';
 
 export type LoadingSize = 'small' | 'medium' | 'large';
 
 @Component({
   selector: 'pulpe-base-loading',
 
-  imports: [MatProgressSpinnerModule],
+  imports: [SpinnerComponent],
   template: `
     <div
       class="flex justify-center items-center"
@@ -22,13 +22,11 @@ export type LoadingSize = 'small' | 'medium' | 'large';
       [attr.aria-describedby]="messageId()"
     >
       <div class="text-center flex flex-col justify-center items-center gap-4">
-        <mat-progress-spinner
-          [diameter]="spinnerDiameter()"
-          mode="indeterminate"
-          [attr.aria-label]="message()"
-          role="progressbar"
-          class="pulpe-loading-indicator"
-          [class]="spinnerSizeClass()"
+        <ngx-unicode-spinners
+          name="braille"
+          [fontSize]="spinnerFontSize()"
+          color="var(--mat-sys-primary)"
+          [ariaLabel]="message()"
           data-testid="loading-spinner"
         />
         <p
@@ -50,21 +48,15 @@ export class BaseLoading {
   readonly testId = input<string>('loading-container');
   readonly fullHeight = input<boolean>(false);
 
-  protected readonly spinnerDiameter = computed(() => {
+  protected readonly spinnerFontSize = computed(() => {
     switch (this.size()) {
       case 'small':
-        return 24;
+        return '1.5rem';
       case 'medium':
-        return 32;
+        return '2rem';
       case 'large':
-        return 48;
-      default:
-        return 32;
+        return '3rem';
     }
-  });
-
-  protected readonly spinnerSizeClass = computed(() => {
-    return `pulpe-loading-${this.size()}`;
   });
 
   protected readonly messageId = computed(() => {

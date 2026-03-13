@@ -53,24 +53,24 @@
         }
       }
 
-      .pulpe-splash-spinner {
-        width: 40px;
-        height: 40px;
-        border: 3px solid transparent;
-        border-top-color: #006e25;
-        border-radius: 50%;
-        animation: pulpe-spin 0.8s linear infinite;
+      .pulpe-splash-braille {
+        display: inline-block;
+        font-size: 2rem;
+        font-family: monospace;
+        line-height: 1;
+        white-space: nowrap;
+        color: #006e25;
       }
 
       @media (prefers-color-scheme: dark) {
-        .pulpe-splash-spinner {
-          border-top-color: #7edb83;
+        .pulpe-splash-braille {
+          color: #7edb83;
         }
       }
 
-      @keyframes pulpe-spin {
-        to {
-          transform: rotate(360deg);
+      @media (prefers-reduced-motion: reduce) {
+        .pulpe-splash-braille {
+          animation: none;
         }
       }
     </style>
@@ -80,8 +80,21 @@
       role="status"
       aria-label="Chargement de Pulpe"
     >
-      <div class="pulpe-splash-spinner"></div>
+      <span id="pulpe-splash-braille" class="pulpe-splash-braille">⠋</span>
     </div>
+    <script>
+      (function () {
+        var frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+        var el = document.getElementById("pulpe-splash-braille");
+        if (!el || matchMedia("(prefers-reduced-motion: reduce)").matches)
+          return;
+        var i = 0;
+        setInterval(function () {
+          i = (i + 1) % frames.length;
+          el.textContent = frames[i];
+        }, 80);
+      })();
+    </script>
     <pulpe-root></pulpe-root>
   </body>
 </html>
