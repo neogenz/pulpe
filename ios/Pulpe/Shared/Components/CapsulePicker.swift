@@ -34,7 +34,7 @@ struct CapsulePicker<T: CaseIterable & Hashable, ItemLabel: View>: View where T.
                             .clipShape(Capsule())
                             .contentShape(Capsule())
                     }
-                    .buttonStyle(.plain)
+                    .plainPressedButtonStyle()
                     .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }
             }

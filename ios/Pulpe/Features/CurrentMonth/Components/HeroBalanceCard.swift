@@ -259,8 +259,7 @@ struct HeroBalanceCard: View {
                 )
                 .heroGlassBackground(tint: glassTintColor, shape: .circle)
         }
-        .iconButtonStyle()
-        .contentShape(Circle())
+        .circleIconButtonStyle()
         .accessibilityLabel("Suivi du budget")
     }
 

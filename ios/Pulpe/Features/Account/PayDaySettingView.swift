@@ -114,7 +114,7 @@ struct PayDayPickerSheet: View {
                 .contentShape(Circle())
                 .animation(DesignTokens.Animation.defaultSpring, value: isSelected)
         }
-        .buttonStyle(.plain)
+        .plainPressedButtonStyle()
         .accessibilityLabel("Jour \(day)")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }

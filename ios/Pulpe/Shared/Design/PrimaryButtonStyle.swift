@@ -94,6 +94,28 @@ struct TextLinkButtonStyle: ButtonStyle {
     }
 }
 
+/// Plain button style with pressed-state opacity feedback.
+/// Use when the label already defines its own layout and content shape.
+struct PlainPressedButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? DesignTokens.Opacity.pressed : 1.0)
+            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
+    }
+}
+
+/// Circle icon button style (chart button on hero card, circular toggles)
+/// Guarantees 44×44pt minimum tap target with circular hit area.
+struct CircleIconButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .frame(minWidth: DesignTokens.TapTarget.minimum, minHeight: DesignTokens.TapTarget.minimum)
+            .contentShape(Circle())
+            .opacity(configuration.isPressed ? DesignTokens.Opacity.pressed : 1.0)
+            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
+    }
+}
+
 // MARK: - View Extension
 
 extension View {
@@ -120,5 +142,15 @@ extension View {
     /// Applies text-link button styling (44pt minimum tap height)
     func textLinkButtonStyle() -> some View {
         self.buttonStyle(TextLinkButtonStyle())
+    }
+
+    /// Applies plain button styling with pressed feedback only (no layout/shape constraints)
+    func plainPressedButtonStyle() -> some View {
+        self.buttonStyle(PlainPressedButtonStyle())
+    }
+
+    /// Applies circle icon button styling (44×44pt minimum tap target, circular hit area)
+    func circleIconButtonStyle() -> some View {
+        self.buttonStyle(CircleIconButtonStyle())
     }
 }
