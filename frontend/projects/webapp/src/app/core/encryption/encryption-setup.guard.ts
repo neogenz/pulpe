@@ -8,7 +8,7 @@ import { ClientKeyService } from './client-key.service';
 import { EncryptionApi } from './encryption-api';
 import { AuthStateService } from '@core/auth/auth-state.service';
 import { DemoModeService } from '@core/demo/demo-mode.service';
-import type { ApiError } from '@core/api/api-error';
+import { isApiError } from '@core/api/api-error';
 import { ROUTES } from '@core/routing/routes-constants';
 
 export const encryptionSetupGuard: CanActivateFn = () => {
@@ -63,8 +63,8 @@ export const encryptionSetupGuard: CanActivateFn = () => {
         clientKeyService.markValidated();
         return true as const;
       }),
-      catchError((error: ApiError) => {
-        if (error.status === 429) {
+      catchError((error: unknown) => {
+        if (isApiError(error) && error.status === 429) {
           return of(true as const);
         }
         clientKeyService.clear();

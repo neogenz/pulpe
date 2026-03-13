@@ -60,6 +60,14 @@ export const STORAGE_SCHEMAS = {
     storageType: 'local',
   },
 
+  // Vault key validation cache — timestamp of last server validation (session-scoped)
+  [STORAGE_KEYS.VAULT_KEY_VALIDATED_AT]: {
+    version: 1,
+    schema: z.number().int().positive(),
+    scope: 'user',
+    storageType: 'session',
+  },
+
   // What's New - tracks last dismissed version (device-level, preserved across sessions)
   [STORAGE_KEYS.WHATS_NEW_DISMISSED]: {
     version: 1,
