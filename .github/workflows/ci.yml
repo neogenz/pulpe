@@ -118,7 +118,7 @@ jobs:
           echo "✅ Environment ready"
 
       - name: 💾 Save Supabase State
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: supabase-state
           include-hidden-files: true
@@ -167,7 +167,7 @@ jobs:
           version: latest
 
       - name: 📥 Download Supabase State
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: supabase-state
           path: backend-nest/
@@ -199,7 +199,7 @@ jobs:
         run: pnpm build
 
       - name: 📤 Upload build artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: build-artifacts
           path: |
@@ -247,13 +247,13 @@ jobs:
           version: latest
 
       - name: 📥 Download Supabase State
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: supabase-state
           path: backend-nest/
 
       - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: build-artifacts
 
@@ -349,7 +349,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: build-artifacts
 
@@ -369,7 +369,7 @@ jobs:
 
       - name: 📤 Upload E2E artifacts
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report-${{ strategy.job-index }}
           path: |
@@ -464,13 +464,13 @@ jobs:
           version: latest
 
       - name: 📥 Download Supabase State
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: supabase-state
           path: backend-nest/
 
       - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: build-artifacts
 
