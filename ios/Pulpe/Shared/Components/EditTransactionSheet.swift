@@ -6,6 +6,7 @@ struct EditTransactionSheet: View {
     let onUpdate: (Transaction) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(ToastManager.self) private var toastManager
     @State private var name: String
     @State private var amount: Decimal?
     @State private var kind: TransactionKind
@@ -14,6 +15,7 @@ struct EditTransactionSheet: View {
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
     @State private var amountText: String
+    @State private var submitSuccessTrigger = false
 
     private let dependencies: EditTransactionDependencies
 
@@ -64,48 +66,58 @@ struct EditTransactionSheet: View {
             }
 
             saveButton
-                .toolbar {
-                    ToolbarItemGroup(placement: .keyboard) {
-                        Spacer()
-                        Button("OK") { isAmountFocused = false }
-                    }
-                }
         }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("OK") { isAmountFocused = false }
+            }
+        }
+        .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
 
     // MARK: - Description
 
     private var descriptionField: some View {
-        TextField(kind.descriptionPlaceholder, text: $name)
-            .font(PulpeTypography.bodyLarge)
-            .padding(DesignTokens.Spacing.lg)
-            .background(Color.inputBackgroundSoft)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-            .accessibilityLabel("Description de la transaction")
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text("Description")
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.onSurfaceVariant)
+            TextField(kind.descriptionPlaceholder, text: $name)
+                .font(PulpeTypography.bodyLarge)
+                .padding(DesignTokens.Spacing.lg)
+                .background(Color.inputBackgroundSoft)
+                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+                .overlay(
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+                        .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: 1)
+                )
+                .accessibilityLabel("Description de la transaction")
+        }
     }
 
     // MARK: - Date Selector
 
     private var dateSelector: some View {
-        HStack {
-            Label("Date", systemImage: "calendar")
-                .font(PulpeTypography.bodyLarge)
-                .foregroundStyle(Color.textPrimary)
-
-            Spacer()
-
-            DatePicker(
-                "",
-                selection: $transactionDate,
-                displayedComponents: .date
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text("Date")
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.onSurfaceVariant)
+            HStack {
+                DatePicker("", selection: $transactionDate, displayedComponents: .date)
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
+                    .accessibilityLabel("Date de la transaction")
+                Spacer()
+            }
+            .padding(DesignTokens.Spacing.lg)
+            .background(Color.inputBackgroundSoft)
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+            .overlay(
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+                    .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: 1)
             )
-            .labelsHidden()
-            .datePickerStyle(.compact)
         }
-        .padding(DesignTokens.Spacing.lg)
-        .background(Color.inputBackgroundSoft)
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-        .accessibilityLabel("Date de la transaction")
     }
 
     // MARK: - Save Button
@@ -138,7 +150,9 @@ struct EditTransactionSheet: View {
 
         do {
             let updatedTransaction = try await dependencies.updateTransaction(transaction.id, data)
+            submitSuccessTrigger.toggle()
             onUpdate(updatedTransaction)
+            toastManager.show("Transaction modifiée")
             dismiss()
         } catch {
             self.error = error
@@ -174,4 +188,5 @@ struct EditTransactionDependencies: Sendable {
     ) { transaction in
         print("Updated: \(transaction)")
     }
+    .environment(ToastManager())
 }
