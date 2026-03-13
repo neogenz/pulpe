@@ -9,9 +9,10 @@ paths: "frontend/**/ui/**/*"
 
 ## ⚠️ CRITICAL Rules
 
-- **NEVER inject services** (no `inject()` calls)
-- **Inputs/outputs ONLY** - All data comes from parent via inputs
-- **Self-contained** - No external dependencies whatsoever
+- **NEVER inject app/business services** from `core/` (no `inject(UserService)`, `inject(AuthStateService)`, etc.)
+- **Angular/Material framework services ARE allowed**: `inject(MatDialogRef)`, `inject(ElementRef)`, `inject(DestroyRef)`, `inject(Renderer2)`, etc.
+- **Inputs/outputs ONLY** for data flow — All business data comes from parent via inputs
+- **Self-contained** - No dependencies on app-specific code
 - **Pure presentation** - No business logic, no domain knowledge
 - **Optimized by bundler** - Eager/lazy determined automatically by usage
 
@@ -45,10 +46,11 @@ ui/ ──❌──> styles/    (Self-styled, inline or component styles)
 
 ## What Does NOT Belong in UI
 
-❌ **Components with services**:
-- If it needs `inject(SomeService)` → Move to `pattern/` or `feature/`
+❌ **Components with app/business services**:
+- If it needs `inject(UserService)`, `inject(AuthStateService)`, etc. → Move to `pattern/` or `feature/`
 - If it needs HTTP calls → Move to `pattern/` or `feature/`
 - If it needs global state → Move to `pattern/` or `feature/`
+- Note: Angular/Material framework services (`MatDialogRef`, `ElementRef`, `DestroyRef`, etc.) are fine
 
 ❌ **Domain-specific components**:
 - `UserCard` → Move to `pattern/` (domain concept)
@@ -62,18 +64,25 @@ ui/ ──❌──> styles/    (Self-styled, inline or component styles)
 
 | Aspect | UI Layer | Pattern Layer |
 |--------|----------|---------------|
-| **Services** | ❌ NEVER | ✅ Can inject from `core/` |
-| **Dependencies** | ❌ NONE | ✅ Can import `core/`, `ui/` |
+| **Services** | ✅ Angular/Material framework only | ✅ Can inject from `core/` |
+| **Dependencies** | ✅ Angular/Material only | ✅ Can import `core/`, `ui/` |
 | **Domain knowledge** | ❌ Generic only | ✅ Business concepts |
 | **State** | ❌ Stateless (inputs) | ✅ Can have local state |
 | **Reusability** | ✅ ANY app | ✅ Within this app |
 
 **Example Decision**:
 ```typescript
-// ❌ WRONG - UI component with service injection
+// ❌ WRONG - UI component with app/business service
 @Component({ /* ... */ })
 export class UserCard {
-  readonly userService = inject(UserService); // FORBIDDEN in UI
+  readonly #userService = inject(UserService); // FORBIDDEN - app service
+}
+
+// ✅ CORRECT - UI component with Angular/Material framework service
+@Component({ /* ... */ })
+export class ConfirmationDialog {
+  readonly #dialogRef = inject(MatDialogRef); // OK - framework service
+  readonly #data = inject(MAT_DIALOG_DATA);   // OK - framework token
 }
 
 // ✅ CORRECT - UI component with inputs only
@@ -84,7 +93,7 @@ export class Card {
   readonly clicked = output<void>();
 }
 
-// ✅ CORRECT - Pattern component with service
+// ✅ CORRECT - Pattern component with app service
 @Component({ /* ... */ })
 export class UserCard {
   readonly userId = input.required<string>();
