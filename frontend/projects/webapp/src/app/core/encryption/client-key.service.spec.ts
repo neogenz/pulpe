@@ -22,6 +22,8 @@ describe('ClientKeyService', () => {
   let mockStorageService: {
     getString: Mock;
     setString: Mock;
+    get: Mock;
+    set: Mock;
     remove: Mock;
   };
 
@@ -29,6 +31,8 @@ describe('ClientKeyService', () => {
     mockStorageService = {
       getString: vi.fn(),
       setString: vi.fn(),
+      get: vi.fn().mockReturnValue(null),
+      set: vi.fn(),
       remove: vi.fn(),
     };
 
@@ -79,6 +83,36 @@ describe('ClientKeyService', () => {
       service.initialize();
 
       expect(service.needsServerValidation()).toBe(true);
+    });
+
+    it('should skip server validation when validation cache is fresh', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-15T12:00:00Z'));
+      mockStorageService.getString.mockReturnValueOnce('session-key');
+      mockStorageService.get.mockReturnValueOnce(
+        new Date('2026-01-15T11:57:00Z').getTime(),
+      );
+      mockedIsValidClientKeyHex.mockReturnValue(true);
+
+      service.initialize();
+
+      expect(service.needsServerValidation()).toBe(false);
+      vi.useRealTimers();
+    });
+
+    it('should require server validation when validation cache is expired', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-15T12:00:00Z'));
+      mockStorageService.getString.mockReturnValueOnce('session-key');
+      mockStorageService.get.mockReturnValueOnce(
+        new Date('2026-01-15T11:50:00Z').getTime(),
+      );
+      mockedIsValidClientKeyHex.mockReturnValue(true);
+
+      service.initialize();
+
+      expect(service.needsServerValidation()).toBe(true);
+      vi.useRealTimers();
     });
 
     it('should fallback to localStorage when sessionStorage is empty', () => {
@@ -134,6 +168,16 @@ describe('ClientKeyService', () => {
 
       service.markValidated();
       expect(service.needsServerValidation()).toBe(false);
+    });
+
+    it('should persist validation timestamp to sessionStorage', () => {
+      service.markValidated();
+
+      expect(mockStorageService.set).toHaveBeenCalledWith(
+        STORAGE_KEYS.VAULT_KEY_VALIDATED_AT,
+        expect.any(Number),
+        'session',
+      );
     });
   });
 
@@ -294,6 +338,15 @@ describe('ClientKeyService', () => {
 
       service.clearPreservingDeviceTrust();
       expect(service.needsServerValidation()).toBe(false);
+    });
+
+    it('should clear validation cache from sessionStorage', () => {
+      service.clearPreservingDeviceTrust();
+
+      expect(mockStorageService.remove).toHaveBeenCalledWith(
+        STORAGE_KEYS.VAULT_KEY_VALIDATED_AT,
+        'session',
+      );
     });
   });
 
