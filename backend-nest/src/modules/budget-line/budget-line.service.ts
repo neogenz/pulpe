@@ -18,6 +18,7 @@ import * as transactionMappers from '../transaction/transaction.mappers';
 import type { Database } from '../../types/database.types';
 import { BudgetService } from '../budget/budget.service';
 import { EncryptionService } from '@modules/encryption/encryption.service';
+import { CurrencyService } from '@modules/currency/currency.service';
 
 @Injectable()
 export class BudgetLineService {
@@ -25,6 +26,7 @@ export class BudgetLineService {
     private readonly budgetService: BudgetService,
     private readonly encryptionService: EncryptionService,
     private readonly cacheService: CacheService,
+    private readonly currencyService: CurrencyService,
   ) {}
 
   async #decryptBudgetLine(
@@ -246,7 +248,7 @@ export class BudgetLineService {
     );
 
     let encryptedOriginalAmount: string | null = null;
-    if (createDto.originalAmount) {
+    if (createDto.originalAmount != null) {
       const encryptedOriginal = await this.encryptionService.prepareAmountData(
         createDto.originalAmount,
         user.id,
@@ -291,6 +293,14 @@ export class BudgetLineService {
   ): Promise<BudgetLineResponse> {
     try {
       this.validateCreateBudgetLineDto(createBudgetLineDto);
+
+      if (
+        createBudgetLineDto.originalCurrency &&
+        createBudgetLineDto.targetCurrency
+      ) {
+        createBudgetLineDto =
+          await this.currencyService.overrideExchangeRate(createBudgetLineDto);
+      }
 
       const budgetLineData = this.prepareBudgetLineData(createBudgetLineDto);
       const budgetLineDb = await this.insertBudgetLine(
@@ -499,6 +509,14 @@ export class BudgetLineService {
   ): Promise<BudgetLineResponse> {
     try {
       this.validateUpdateBudgetLineDto(updateBudgetLineDto);
+
+      if (
+        updateBudgetLineDto.originalCurrency &&
+        updateBudgetLineDto.targetCurrency
+      ) {
+        updateBudgetLineDto =
+          await this.currencyService.overrideExchangeRate(updateBudgetLineDto);
+      }
 
       let updateData = this.prepareBudgetLineUpdateData(updateBudgetLineDto);
       if (updateBudgetLineDto.amount !== undefined) {

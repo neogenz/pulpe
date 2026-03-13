@@ -77,6 +77,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       mockBudgetService as any,
       mockEncryptionService as any,
       { invalidateForUser: () => Promise.resolve() } as any,
+      {} as any,
     );
   });
 

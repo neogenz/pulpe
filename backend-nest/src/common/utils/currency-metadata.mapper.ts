@@ -1,6 +1,6 @@
 import { type SupportedCurrency, supportedCurrencySchema } from 'pulpe-shared';
 
-interface CurrencyMetadataDbRow {
+interface DecryptedCurrencyMetadataDbRow {
   original_amount?: number | null;
   original_currency?: string | null;
   target_currency?: string | null;
@@ -23,7 +23,7 @@ function parseCurrency(
 }
 
 export function mapCurrencyMetadataToApi(
-  row: CurrencyMetadataDbRow,
+  row: DecryptedCurrencyMetadataDbRow,
 ): CurrencyMetadataApi {
   return {
     originalAmount: row.original_amount ?? undefined,

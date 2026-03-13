@@ -23,7 +23,8 @@ import {
   type TemplateLine,
   type TemplateLinesPropagationSummary,
 } from 'pulpe-shared';
-import { UserSettingsApi } from '@core/user-settings/user-settings-api';
+import { UserSettingsStore } from '@core/user-settings';
+import { CURRENCY_CONFIG } from '@core/currency';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { BaseLoading } from '@ui/loading';
 import { TransactionLabelPipe } from '@ui/transaction-display';
@@ -179,7 +180,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
                 [class.text-on-primary-container]="isPositiveBalance()"
                 [class.text-on-error-container]="!isPositiveBalance()"
               >
-                {{ absNetBalance() | number: '1.0-0' : 'de-CH' }}
+                {{ absNetBalance() | number: '1.0-0' : locale() }}
                 <span class="text-headline-small font-normal">{{
                   currency()
                 }}</span>
@@ -210,7 +211,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
                         pill.colorClass
                       "
                     >
-                      {{ pill.amount | number: '1.0-0' : 'de-CH' }}
+                      {{ pill.amount | number: '1.0-0' : locale() }}
                       {{ currency() }}
                     </span>
                   </div>
@@ -260,6 +261,9 @@ export default class TemplateDetail implements OnInit {
   protected readonly templateDetailsStore = inject(TemplateDetailsStore);
   readonly #budgetTemplatesStore = inject(BudgetTemplatesStore);
   protected readonly currency = inject(UserSettingsStore).currency;
+  protected readonly locale = computed(
+    () => CURRENCY_CONFIG[this.currency()].locale,
+  );
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);
   readonly #titleStrategy = inject(PulpeTitleStrategy);

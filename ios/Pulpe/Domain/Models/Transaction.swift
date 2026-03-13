@@ -17,6 +17,7 @@ struct Transaction: Codable, Identifiable, Hashable, Sendable {
     // Currency conversion metadata
     var originalAmount: Decimal?
     var originalCurrency: String?
+    var targetCurrency: String?
     var exchangeRate: Decimal?
 
     // MARK: - Computed Properties
@@ -49,6 +50,7 @@ struct Transaction: Codable, Identifiable, Hashable, Sendable {
             updatedAt: Date(),
             originalAmount: originalAmount,
             originalCurrency: originalCurrency,
+            targetCurrency: targetCurrency,
             exchangeRate: exchangeRate
         )
     }

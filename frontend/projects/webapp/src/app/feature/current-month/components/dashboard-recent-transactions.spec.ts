@@ -9,6 +9,7 @@ import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
 import localeFR from '@angular/common/locales/fr';
 import { FinancialKindDirective } from '@ui/financial-kind';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 registerLocaleData(localeDE);
 registerLocaleData(localeFR);
@@ -39,6 +40,7 @@ describe('DashboardRecentTransactions', () => {
       imports: [DashboardRecentTransactions],
       providers: [
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
         { provide: LOCALE_ID, useValue: 'de-CH' },
       ],
     })

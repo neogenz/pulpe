@@ -12,11 +12,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { TranslocoPipe } from '@jsverse/transloco';
 import type { UpcomingMonthForecast } from '../services/dashboard-state';
 import type { SupportedCurrency } from 'pulpe-shared';
-
-const ROLLOVER_FORMATTER = new Intl.NumberFormat('de-CH', {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-});
+import { CURRENCY_CONFIG } from '@core/currency';
 
 @Component({
   selector: 'pulpe-dashboard-next-month',
@@ -109,7 +105,11 @@ export class DashboardNextMonth {
 
   protected readonly hasBudget = computed(() => this.forecast().hasBudget);
 
-  protected readonly formattedRollover = computed(() =>
-    ROLLOVER_FORMATTER.format(this.estimatedRollover()),
-  );
+  protected readonly formattedRollover = computed(() => {
+    const locale = CURRENCY_CONFIG[this.currency()].locale;
+    return new Intl.NumberFormat(locale, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(this.estimatedRollover());
+  });
 }

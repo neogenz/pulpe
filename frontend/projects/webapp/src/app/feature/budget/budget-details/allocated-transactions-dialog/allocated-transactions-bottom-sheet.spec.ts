@@ -10,6 +10,7 @@ import { describe, it, expect, vi } from 'vitest';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
 import type { BudgetLineConsumption } from '@core/budget';
 import type { AllocatedTransactionsDialogData } from './allocated-transactions-dialog';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { AllocatedTransactionsBottomSheet } from './allocated-transactions-bottom-sheet';
 
 function buildTransaction(overrides: Partial<Transaction> = {}): Transaction {
@@ -93,6 +94,7 @@ describe('AllocatedTransactionsBottomSheet', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideAnimationsAsync(),
+        ...provideTranslocoForTest(),
         { provide: MAT_BOTTOM_SHEET_DATA, useValue: data },
         { provide: MatBottomSheetRef, useValue: mockBottomSheetRef },
       ],

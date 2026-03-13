@@ -11,6 +11,7 @@ import type {
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { BudgetApi } from '@core/budget/budget-api';
 import { Logger } from '@core/logging/logger';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 import SearchTransactionsDialogComponent from './search-transactions-dialog';
 
@@ -120,6 +121,7 @@ describe('SearchTransactionsDialogComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideAnimationsAsync(),
+        ...provideTranslocoForTest(),
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: TransactionApi, useValue: mockTransactionApi },
         { provide: BudgetApi, useValue: mockBudgetApi },

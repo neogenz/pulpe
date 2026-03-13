@@ -16,8 +16,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetLine, type Transaction } from 'pulpe-shared';
-import { TranslocoPipe } from '@jsverse/transloco';
-import { AppCurrencyPipe } from '@core/currency';
+import { AppCurrencyPipe, buildConversionTooltip } from '@core/currency';
+import { UserSettingsStore } from '@core/user-settings';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { TransactionLabelPipe } from '@ui/transaction-display';
@@ -67,6 +68,7 @@ const DETAIL_SEGMENT_COUNT = 12;
     MatSlideToggleModule,
     MatTooltipModule,
     AppCurrencyPipe,
+    TranslocoPipe,
     DatePipe,
     CurrencyConversionBadge,
     FinancialKindDirective,
@@ -96,7 +98,7 @@ const DETAIL_SEGMENT_COUNT = 12;
             matIconButton
             (click)="close()"
             [matTooltip]="'common.close' | transloco"
-            [attr.aria-label]="'budget.closePanelLabel' | transloco"
+            [attr.aria-label]="'budgetLine.closePanelAriaLabel' | transloco"
             class="shrink-0"
           >
             <mat-icon>close</mat-icon>
@@ -115,25 +117,35 @@ const DETAIL_SEGMENT_COUNT = 12;
               class="ph-no-capture text-title-medium font-bold flex items-center justify-center gap-1"
               [pulpeFinancialKind]="envelope.data.kind"
             >
-              {{ envelope.data.amount | appCurrency: '1.0-0' }}
+              {{ envelope.data.amount | appCurrency: currency() : '1.0-0' }}
               <pulpe-currency-conversion-badge
                 [originalAmount]="envelope.data.originalAmount"
                 [originalCurrency]="envelope.data.originalCurrency"
                 [exchangeRate]="envelope.data.exchangeRate"
+                [tooltipText]="
+                  conversionTooltip(
+                    envelope.data.originalAmount,
+                    envelope.data.originalCurrency,
+                    envelope.data.exchangeRate
+                  )
+                "
               />
             </div>
           </div>
           <div class="text-center">
             <div class="text-label-medium text-on-surface-variant">
-              {{ 'budget.tableSpent' | transloco }}
+              {{ 'budget.consumedLabel' | transloco }}
             </div>
             <div class="ph-no-capture text-title-medium font-semibold">
-              {{ envelope.consumption?.consumed ?? 0 | appCurrency: '1.0-0' }}
+              {{
+                envelope.consumption?.consumed ?? 0
+                  | appCurrency: currency() : '1.0-0'
+              }}
             </div>
           </div>
           <div class="text-center">
             <div class="text-label-medium text-on-surface-variant">
-              {{ 'budget.tableRemaining' | transloco }}
+              {{ 'budget.availableLabel' | transloco }}
             </div>
             @let remaining =
               envelope.data.amount - (envelope.consumption?.consumed ?? 0);
@@ -149,7 +161,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                 envelope.consumption?.consumptionState === 'over-budget'
               "
             >
-              {{ remaining | appCurrency: '1.0-0' }}
+              {{ remaining | appCurrency: currency() : '1.0-0' }}
             </div>
           </div>
         </div>
@@ -173,7 +185,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                       : {
                           amount:
                             (consumption.consumed - envelope.data.amount
-                            | currency: 'CHF' : 'symbol' : '1.0-0'),
+                            | appCurrency: currency() : '1.0-0'),
                         }
                 }}
               </span>
@@ -208,7 +220,9 @@ const DETAIL_SEGMENT_COUNT = 12;
               matButton
               (click)="onAddTransaction()"
               class="!rounded-full"
-              [attr.aria-label]="'budgetLine.addTransaction' | transloco"
+              [attr.aria-label]="
+                'budgetLine.addTransactionAriaLabel' | transloco
+              "
             >
               <mat-icon>add</mat-icon>
               {{ 'common.add' | transloco }}
@@ -222,7 +236,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                 {{ 'budget.noTransaction' | transloco }}
               </p>
               <p class="text-body-small">
-                {{ 'budget.noTransactionHint' | transloco }}
+                {{ 'budgetLine.noTransactionHint' | transloco }}
               </p>
             </div>
           } @else {
@@ -249,11 +263,18 @@ const DETAIL_SEGMENT_COUNT = 12;
                     [class.text-financial-income]="tx.kind === 'income'"
                     [class.text-on-surface-variant]="tx.kind !== 'income'"
                   >
-                    {{ tx.amount | appCurrency: '1.0-0' }}
+                    {{ tx.amount | appCurrency: currency() : '1.0-0' }}
                     <pulpe-currency-conversion-badge
                       [originalAmount]="tx.originalAmount"
                       [originalCurrency]="tx.originalCurrency"
                       [exchangeRate]="tx.exchangeRate"
+                      [tooltipText]="
+                        conversionTooltip(
+                          tx.originalAmount,
+                          tx.originalCurrency,
+                          tx.exchangeRate
+                        )
+                      "
                     />
                   </div>
                   <div class="flex items-center gap-1">
@@ -276,7 +297,8 @@ const DETAIL_SEGMENT_COUNT = 12;
                       [matTooltip]="'common.edit' | transloco"
                       [attr.data-testid]="'edit-tx-' + tx.id"
                       [attr.aria-label]="
-                        ('common.edit' | transloco) + ' ' + tx.name
+                        'budgetLine.editAriaLabel'
+                          | transloco: { name: tx.name }
                       "
                     >
                       <mat-icon>edit</mat-icon>
@@ -287,7 +309,8 @@ const DETAIL_SEGMENT_COUNT = 12;
                       [matTooltip]="'common.delete' | transloco"
                       [attr.data-testid]="'delete-tx-' + tx.id"
                       [attr.aria-label]="
-                        ('common.delete' | transloco) + ' ' + tx.name
+                        'budgetLine.deleteAriaLabel'
+                          | transloco: { name: tx.name }
                       "
                     >
                       <mat-icon class="text-error">delete</mat-icon>
@@ -312,6 +335,9 @@ const DETAIL_SEGMENT_COUNT = 12;
 export class BudgetDetailPanel {
   readonly #dialogRef = inject(MatDialogRef<BudgetDetailPanel>);
   readonly #store = inject(BudgetDetailsStore);
+  readonly #userSettings = inject(UserSettingsStore);
+  readonly #transloco = inject(TranslocoService);
+  protected readonly currency = this.#userSettings.currency;
   protected readonly data = inject<BudgetDetailPanelData>(MAT_DIALOG_DATA);
 
   readonly detailSegmentCount = DETAIL_SEGMENT_COUNT;
@@ -351,6 +377,19 @@ export class BudgetDetailPanel {
       (tx) => tx.budgetLineId === this.data.item.data.id,
     );
   });
+
+  protected conversionTooltip(
+    originalAmount: number | null | undefined,
+    originalCurrency: string | null | undefined,
+    exchangeRate: number | null | undefined,
+  ): string {
+    return buildConversionTooltip(
+      this.#transloco,
+      originalAmount,
+      originalCurrency,
+      exchangeRate,
+    );
+  }
 
   protected close(): void {
     this.#dialogRef.close();
