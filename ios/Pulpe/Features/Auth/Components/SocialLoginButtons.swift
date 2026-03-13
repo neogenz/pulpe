@@ -4,8 +4,8 @@ import SwiftUI
 
 struct SocialLoginSection: View {
     @Environment(AppState.self) private var appState
-    @State private var appleCoordinator = AppleSignInCoordinator()
-    @State private var googleCoordinator = GoogleSignInCoordinator()
+    private let appleCoordinator = AppleSignInCoordinator()
+    private let googleCoordinator = GoogleSignInCoordinator()
     @State private var isAppleLoading = false
     @State private var isGoogleLoading = false
     @State private var errorMessage: String?
@@ -57,8 +57,8 @@ struct SocialLoginSection: View {
             try await appState.loginWithGoogle(idToken: idToken, accessToken: accessToken)
             AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "google"])
             onSuccess?()
-        } catch let error as NSError where error.domain == "com.google.GIDSignIn" && error.code == -5 {
-            // GIDSignInError.canceled — no error
+        } catch GoogleSignInError.canceled {
+            // User canceled — no error
         } catch {
             errorMessage = AuthErrorLocalizer.localize(error)
         }

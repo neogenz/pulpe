@@ -18,7 +18,12 @@ final class GoogleSignInCoordinator {
             throw GoogleSignInError.noRootViewController
         }
 
-        let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController)
+        let result: GIDSignInResult
+        do {
+            result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController)
+        } catch let error as GIDSignInError where error.code == .canceled {
+            throw GoogleSignInError.canceled
+        }
 
         guard let idToken = result.user.idToken?.tokenString else {
             throw GoogleSignInError.missingToken
@@ -35,6 +40,7 @@ enum GoogleSignInError: LocalizedError {
     case missingClientID
     case noRootViewController
     case missingToken
+    case canceled
 
     var errorDescription: String? {
         switch self {
@@ -44,6 +50,8 @@ enum GoogleSignInError: LocalizedError {
             return "Impossible d'afficher l'écran de connexion Google"
         case .missingToken:
             return "Impossible de récupérer les informations Google — réessaie"
+        case .canceled:
+            return nil
         }
     }
 }

@@ -4,8 +4,12 @@ import Foundation
 
 @MainActor
 final class AppleSignInCoordinator: NSObject {
-    private var continuation: CheckedContinuation<(idToken: String, nonce: String), Error>?
+    nonisolated(unsafe) private var continuation: CheckedContinuation<(idToken: String, nonce: String), Error>?
     private var currentNonce: String?
+
+    deinit {
+        continuation?.resume(throwing: CancellationError())
+    }
 
     func signIn() async throws -> (idToken: String, nonce: String) {
         guard continuation == nil else {
@@ -59,11 +63,13 @@ extension AppleSignInCoordinator: ASAuthorizationControllerDelegate {
                   let nonce = currentNonce else {
                 continuation?.resume(throwing: AppleSignInError.missingToken)
                 continuation = nil
+                currentNonce = nil
                 return
             }
 
             continuation?.resume(returning: (idToken: idToken, nonce: nonce))
             continuation = nil
+            currentNonce = nil
         }
     }
 
@@ -78,6 +84,7 @@ extension AppleSignInCoordinator: ASAuthorizationControllerDelegate {
                 continuation?.resume(throwing: error)
             }
             continuation = nil
+            currentNonce = nil
         }
     }
 }
