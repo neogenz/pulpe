@@ -4,6 +4,7 @@ import { BudgetLineService } from './budget-line.service';
 import { BudgetService } from '../budget/budget.service';
 import { EncryptionService } from '@modules/encryption/encryption.service';
 import { CacheService } from '@modules/cache/cache.service';
+import { CurrencyService } from '@modules/currency/currency.service';
 import { BusinessException } from '@common/exceptions/business.exception';
 import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
@@ -141,6 +142,17 @@ describe('BudgetLineService', () => {
               .fn()
               .mockImplementation((_ct: string, _dek: Buffer) => 100),
             tryDecryptAmount: jest.fn().mockReturnValue(2500),
+          },
+        },
+        {
+          provide: CurrencyService,
+          useValue: {
+            getRate: jest.fn().mockResolvedValue({
+              base: 'EUR',
+              target: 'CHF',
+              rate: 0.93,
+              date: '2026-03-10',
+            }),
           },
         },
         {

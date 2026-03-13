@@ -271,6 +271,12 @@ interface TransactionFormControls {
         </div>
       </form>
 
+      @if (conversionError()) {
+        <p class="text-error text-body-small pb-2">
+          {{ 'common.conversionError' | transloco }}
+        </p>
+      }
+
       <!-- Action Buttons -->
       <div class="flex gap-3 pt-4 pb-6 px-6 border-t border-outline-variant">
         <button
@@ -314,6 +320,7 @@ export class AddTransactionBottomSheet {
 
   // Predefined amounts for quick selection
   protected readonly predefinedAmounts = signal([10, 15, 20, 30]);
+  protected readonly conversionError = signal(false);
 
   // Reactive form with shared validators for consistency
   protected readonly transactionForm: FormGroup<TransactionFormControls> =
@@ -359,12 +366,21 @@ export class AddTransactionBottomSheet {
       return;
     }
 
-    const { convertedAmount, metadata } =
-      await this.#converter.convertWithMetadata(
-        formValue.amount,
-        this.inputCurrency(),
-        this.currency(),
-      );
+    let convertedAmount: number;
+    let metadata: Awaited<
+      ReturnType<CurrencyConverterService['convertWithMetadata']>
+    >['metadata'];
+    try {
+      ({ convertedAmount, metadata } =
+        await this.#converter.convertWithMetadata(
+          formValue.amount,
+          this.inputCurrency(),
+          this.currency(),
+        ));
+    } catch {
+      this.conversionError.set(true);
+      return;
+    }
 
     const transaction: TransactionFormData = {
       name: formValue.name,

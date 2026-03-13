@@ -15,7 +15,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoPipe } from '@jsverse/transloco';
 import type { TransactionCreate, SupportedCurrency } from 'pulpe-shared';
 import { formatLocalDate } from '@core/date/format-local-date';
@@ -36,7 +35,6 @@ import { UserSettingsStore } from '@core/user-settings';
     MatIconModule,
     MatSelectModule,
     MatDatepickerModule,
-    MatSlideToggleModule,
     ReactiveFormsModule,
     TranslocoPipe,
   ],
@@ -169,17 +167,13 @@ import { UserSettingsStore } from '@core/user-settings';
             }}</mat-error>
           }
         </mat-form-field>
-
-        <div class="flex items-center justify-between py-2 px-1">
-          <span class="text-body-medium text-on-surface">{{
-            'transactionForm.checkedToggle' | transloco
-          }}</span>
-          <mat-slide-toggle
-            formControlName="isChecked"
-            [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
-          />
-        </div>
       </form>
+
+      @if (conversionError()) {
+        <p class="text-error text-body-small pb-2">
+          {{ 'common.conversionError' | transloco }}
+        </p>
+      }
 
       <!-- Action buttons -->
       <div class="flex gap-3 pt-2">
@@ -212,7 +206,7 @@ export class CreateAllocatedTransactionBottomSheet {
   protected readonly showCurrencySelector =
     this.#userSettings.showCurrencySelector;
   protected readonly inputCurrency = signal<SupportedCurrency>(this.currency());
-  protected readonly data = inject<CreateAllocatedTransactionDialogData>(
+  readonly data = inject<CreateAllocatedTransactionDialogData>(
     MAT_BOTTOM_SHEET_DATA,
   );
   readonly #bottomSheetRef = inject(
@@ -225,10 +219,10 @@ export class CreateAllocatedTransactionBottomSheet {
     this.data.budgetYear,
     this.data.payDayOfMonth,
   );
-  protected readonly minDate = this.#dateConstraints.minDate;
-  protected readonly maxDate = this.#dateConstraints.maxDate;
+  readonly minDate = this.#dateConstraints.minDate;
+  readonly maxDate = this.#dateConstraints.maxDate;
 
-  protected readonly form = this.#fb.group({
+  readonly form = this.#fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
     amount: [
       null as number | null,
@@ -241,23 +235,34 @@ export class CreateAllocatedTransactionBottomSheet {
         createDateRangeValidator(this.minDate, this.maxDate),
       ],
     ],
-    isChecked: [false],
   });
 
-  protected close(): void {
+  protected readonly conversionError = signal(false);
+
+  close(): void {
     this.#bottomSheetRef.dismiss();
   }
 
-  protected async submit(): Promise<void> {
+  async submit(): Promise<void> {
     if (this.form.invalid) return;
 
     const formValue = this.form.getRawValue();
-    const { convertedAmount, metadata } =
-      await this.#converter.convertWithMetadata(
-        Math.abs(formValue.amount!),
-        this.inputCurrency(),
-        this.currency(),
-      );
+
+    let convertedAmount: number;
+    let metadata: Awaited<
+      ReturnType<CurrencyConverterService['convertWithMetadata']>
+    >['metadata'];
+    try {
+      ({ convertedAmount, metadata } =
+        await this.#converter.convertWithMetadata(
+          formValue.amount!,
+          this.inputCurrency(),
+          this.currency(),
+        ));
+    } catch {
+      this.conversionError.set(true);
+      return;
+    }
 
     const transaction: TransactionCreate = {
       budgetId: this.data.budgetLine.budgetId,
@@ -267,7 +272,6 @@ export class CreateAllocatedTransactionBottomSheet {
       kind: this.data.budgetLine.kind,
       transactionDate: formatLocalDate(formValue.transactionDate!),
       category: null,
-      checkedAt: formValue.isChecked ? new Date().toISOString() : null,
       ...metadata,
     };
 

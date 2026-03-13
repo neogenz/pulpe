@@ -11,8 +11,8 @@ actor CurrencyConversionService {
     static let shared = CurrencyConversionService()
 
     private let apiClient: APIClient
-    private var cachedRate: CurrencyRate?
-    private var cacheTime: Date?
+    private var cachedRates: [String: CurrencyRate] = [:]
+    private var cacheTimes: [String: Date] = [:]
     private static let cacheDuration: TimeInterval = 86400 // 24h
 
     init(apiClient: APIClient = .shared) {
@@ -20,17 +20,17 @@ actor CurrencyConversionService {
     }
 
     func getRate(base: String, target: String) async throws -> CurrencyRate {
-        if let cached = cachedRate,
-           cached.base == base,
-           cached.target == target,
-           let cacheTime,
+        let cacheKey = "\(base)-\(target)"
+
+        if let cached = cachedRates[cacheKey],
+           let cacheTime = cacheTimes[cacheKey],
            Date().timeIntervalSince(cacheTime) < Self.cacheDuration {
             return cached
         }
 
         let rate: CurrencyRate = try await apiClient.request(.currencyRate(base: base, target: target))
-        cachedRate = rate
-        cacheTime = Date()
+        cachedRates[cacheKey] = rate
+        cacheTimes[cacheKey] = Date()
         return rate
     }
 
