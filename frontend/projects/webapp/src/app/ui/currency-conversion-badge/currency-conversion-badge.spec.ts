@@ -49,26 +49,13 @@ describe('CurrencyConversionBadge', () => {
     expect(icon.textContent?.trim()).toBe('currency_exchange');
   });
 
-  it('should format tooltip with amount and rate', () => {
-    setTestInput(component.originalAmount, 1000);
+  it('should set aria-label from tooltipText input', () => {
+    setTestInput(component.originalAmount, 100);
     setTestInput(component.originalCurrency, 'EUR');
-    setTestInput(component.exchangeRate, 0.9412);
+    setTestInput(component.tooltipText, 'Converti depuis 100 EUR');
     TestBed.flushEffects();
     fixture.detectChanges();
-    const tooltip = component['tooltipText']();
-    expect(tooltip).toContain('Converti depuis');
-    expect(tooltip).toContain('€');
-    expect(tooltip).toContain('Taux');
-    expect(tooltip).toContain('0.9412');
-  });
-
-  it('should format tooltip without rate when exchangeRate is null', () => {
-    setTestInput(component.originalAmount, 500);
-    setTestInput(component.originalCurrency, 'CHF');
-    TestBed.flushEffects();
-    fixture.detectChanges();
-    const tooltip = component['tooltipText']();
-    expect(tooltip).toContain('CHF');
-    expect(tooltip).not.toContain('Taux');
+    const icon = fixture.nativeElement.querySelector('mat-icon');
+    expect(icon.getAttribute('aria-label')).toBe('Converti depuis 100 EUR');
   });
 });

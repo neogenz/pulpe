@@ -124,4 +124,72 @@ describe('CurrencyService', () => {
       expect(error).toBeInstanceOf(BusinessException);
     }
   });
+
+  describe('overrideExchangeRate', () => {
+    it('should skip API call when currencies match', async () => {
+      fetchSpy = mockFetchSuccess();
+
+      const dto = {
+        originalCurrency: 'CHF',
+        targetCurrency: 'CHF',
+        exchangeRate: null,
+      };
+      const result = await service.overrideExchangeRate(dto);
+
+      expect(result).toEqual(dto);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('should skip API call when originalCurrency is missing', async () => {
+      fetchSpy = mockFetchSuccess();
+
+      const dto = { targetCurrency: 'EUR', exchangeRate: null };
+      const result = await service.overrideExchangeRate(dto);
+
+      expect(result).toEqual(dto);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('should skip API call when targetCurrency is missing', async () => {
+      fetchSpy = mockFetchSuccess();
+
+      const dto = { originalCurrency: 'CHF', exchangeRate: null };
+      const result = await service.overrideExchangeRate(dto);
+
+      expect(result).toEqual(dto);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('should override exchangeRate with server-side rate', async () => {
+      fetchSpy = mockFetchSuccess();
+
+      const dto = {
+        originalCurrency: 'CHF',
+        targetCurrency: 'EUR',
+        exchangeRate: 0.5,
+      };
+      const result = await service.overrideExchangeRate(dto);
+
+      expect(result.exchangeRate).toBe(0.94);
+      expect(result.originalCurrency).toBe('CHF');
+      expect(result.targetCurrency).toBe('EUR');
+    });
+
+    it('should preserve other dto properties', async () => {
+      fetchSpy = mockFetchSuccess();
+
+      const dto = {
+        originalCurrency: 'CHF',
+        targetCurrency: 'EUR',
+        exchangeRate: null as number | null,
+        originalAmount: 100,
+        amount: 94,
+      };
+      const result = await service.overrideExchangeRate(dto);
+
+      expect(result.exchangeRate).toBe(0.94);
+      expect(result.originalAmount).toBe(100);
+      expect(result.amount).toBe(94);
+    });
+  });
 });

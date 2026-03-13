@@ -104,9 +104,11 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
           <div class="space-y-4">
             <!-- Currency Selector -->
             <div class="flex flex-col gap-2">
-              <p class="text-label-medium text-on-surface-variant">Devise</p>
+              <p class="text-label-medium text-on-surface-variant">
+                {{ 'settings.currencyLabel' | transloco }}
+              </p>
               <mat-button-toggle-group
-                aria-label="Devise"
+                [attr.aria-label]="'settings.currencyLabel' | transloco"
                 [value]="selectedCurrency()"
                 (change)="onCurrencyChange($event.value)"
                 data-testid="currency-toggle"
@@ -125,9 +127,11 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
             <!-- Currency Selector Toggle -->
             <div class="flex items-center justify-between gap-4 py-2">
               <div class="space-y-0.5">
-                <p class="text-body-medium">Sélecteur de devise</p>
+                <p class="text-body-medium">
+                  {{ 'settings.currencySelectorLabel' | transloco }}
+                </p>
                 <p class="text-body-small text-on-surface-variant">
-                  Afficher un sélecteur de devise sur les champs montant
+                  {{ 'settings.currencySelectorDescription' | transloco }}
                 </p>
               </div>
               <mat-slide-toggle
@@ -147,9 +151,9 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                   <mat-icon class="text-on-surface-variant"
                     >currency_exchange</mat-icon
                   >
-                  <span class="text-title-small font-medium"
-                    >Convertisseur</span
-                  >
+                  <span class="text-title-small font-medium">{{
+                    'settings.converterTitle' | transloco
+                  }}</span>
                 </div>
 
                 <div class="flex items-center gap-3">
@@ -175,7 +179,9 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                     matButton
                     type="button"
                     (click)="swapConverterDirection()"
-                    aria-label="Inverser la conversion"
+                    [attr.aria-label]="
+                      'settings.swapConversionAriaLabel' | transloco
+                    "
                     data-testid="converter-swap-button"
                   >
                     <mat-icon>swap_horiz</mat-icon>
@@ -207,9 +213,15 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                     class="text-body-small text-on-surface-variant text-center"
                     data-testid="converter-rate-info"
                   >
-                    Taux ECB : 1 {{ converterBase() }} =
-                    {{ conversionRate() | number: '1.3-3' }}
-                    {{ converterTarget() }}
+                    {{
+                      'settings.converterRateInfo'
+                        | transloco
+                          : {
+                              base: converterBase(),
+                              rate: (conversionRate() | number: '1.3-3'),
+                              target: converterTarget(),
+                            }
+                    }}
                   </p>
                 }
               </div>

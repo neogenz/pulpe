@@ -17,7 +17,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { AppCurrencyPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { TransactionLabelPipe } from '@pattern/transaction-display';
-import type { BudgetLine, Transaction } from 'pulpe-shared';
+import type { BudgetLine, Transaction, SupportedCurrency } from 'pulpe-shared';
 import type { TransactionViewModel } from '../models/transaction-view-model';
 import type { BudgetLineTableItem } from '../data-core';
 import { BudgetKindIndicator } from '../components/budget-kind-indicator';
@@ -234,7 +234,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
               [pulpeFinancialKind]="item.data.kind"
               [attr.data-testid]="'transaction-amount-' + item.data.id"
             >
-              {{ item.data.amount | appCurrency: '1.0-0' }}
+              {{ item.data.amount | appCurrency: currency() : '1.0-0' }}
             </div>
             @if (item.data.transactionDate) {
               <span
@@ -298,7 +298,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
           [pulpeFinancialKind]="item.data.kind"
           [attr.data-testid]="'transaction-amount-' + item.data.id"
         >
-          {{ item.data.amount | appCurrency: '1.0-0' }}
+          {{ item.data.amount | appCurrency: currency() : '1.0-0' }}
         </div>
 
         <!-- Footer: Kind label + date + toggle -->
@@ -344,7 +344,7 @@ export class BudgetGrid {
   readonly #viewContainerRef = inject(ViewContainerRef);
 
   // Inputs
-  readonly currency = input<string>('CHF');
+  readonly currency = input<SupportedCurrency>('CHF');
   readonly budgetLineItems = input.required<BudgetLineTableItem[]>();
   readonly transactionItems = input.required<
     {

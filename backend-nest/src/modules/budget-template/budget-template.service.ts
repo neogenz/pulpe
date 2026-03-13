@@ -36,6 +36,7 @@ import {
   templateLinesBulkUpdateSchema,
 } from 'pulpe-shared';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
+import { CurrencyService } from '@modules/currency/currency.service';
 import * as budgetTemplateMappers from './budget-template.mappers';
 
 type TemplateBulkOperationsResult = {
@@ -53,6 +54,7 @@ export class BudgetTemplateService {
     private readonly logger: InfoLogger,
     private readonly budgetService: BudgetService,
     private readonly encryptionService: EncryptionService,
+    private readonly currencyService: CurrencyService,
   ) {}
 
   async #decryptTemplateLine(
@@ -691,8 +693,11 @@ export class BudgetTemplateService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<Tables<'template_line'>> {
     await this.validateTemplateAccess(templateId, user, supabase);
-    const validated =
-      templateLineCreateWithoutTemplateIdSchema.parse(createDto);
+    let validated = templateLineCreateWithoutTemplateIdSchema.parse(createDto);
+
+    if (validated.originalCurrency && validated.targetCurrency) {
+      validated = await this.currencyService.overrideExchangeRate(validated);
+    }
 
     const { amount } = await this.encryptionService.prepareAmountData(
       validated.amount,
@@ -701,7 +706,7 @@ export class BudgetTemplateService {
     );
 
     let encryptedOriginalAmount: string | undefined;
-    if (validated.originalAmount) {
+    if (validated.originalAmount != null) {
       const prepared = await this.encryptionService.prepareAmountData(
         validated.originalAmount,
         user.id,
@@ -828,7 +833,11 @@ export class BudgetTemplateService {
 
     try {
       await this.validateTemplateLineAccess(templateLineId, user, supabase);
-      const validated = templateLineUpdateSchema.parse(updateDto);
+      let validated = templateLineUpdateSchema.parse(updateDto);
+
+      if (validated.originalCurrency && validated.targetCurrency) {
+        validated = await this.currencyService.overrideExchangeRate(validated);
+      }
 
       const data = await this.performTemplateLineUpdate(
         templateLineId,
@@ -1751,14 +1760,22 @@ export class BudgetTemplateService {
       return results;
     }
 
-    const amounts = creates.map((line) => line.amount);
+    const overriddenCreates = await Promise.all(
+      creates.map((line) =>
+        line.originalCurrency && line.targetCurrency
+          ? this.currencyService.overrideExchangeRate(line)
+          : line,
+      ),
+    );
+
+    const amounts = overriddenCreates.map((line) => line.amount);
     const preparedAmounts = await this.encryptionService.prepareAmountsData(
       amounts,
       user.id,
       user.clientKey,
     );
 
-    const inserts = creates.map((line, index) => ({
+    const inserts = overriddenCreates.map((line, index) => ({
       ...budgetTemplateMappers.toDbTemplateLineInsert(
         line,
         templateId,

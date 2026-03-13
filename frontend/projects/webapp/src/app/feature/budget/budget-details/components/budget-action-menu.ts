@@ -11,7 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe } from '@jsverse/transloco';
-import type { BudgetLine } from 'pulpe-shared';
+import type { BudgetLine, SupportedCurrency } from 'pulpe-shared';
 import { CURRENCY_CONFIG } from '@core/currency';
 import type { BudgetLineTableItem } from '../data-core';
 
@@ -102,7 +102,7 @@ import type { BudgetLineTableItem } from '../data-core';
 })
 export class BudgetActionMenu {
   readonly item = input.required<BudgetLineTableItem>();
-  readonly currency = input<string>('CHF');
+  readonly currency = input<SupportedCurrency>('CHF');
   readonly menuIcon = input<string>('more_vert');
   readonly buttonClass = input<string>('');
   readonly showBalance = input<boolean>(false);
@@ -115,9 +115,7 @@ export class BudgetActionMenu {
   protected readonly formattedBalance = computed(() => {
     const balance = this.item().metadata.cumulativeBalance;
     const currency = this.currency();
-    const config =
-      CURRENCY_CONFIG[currency as keyof typeof CURRENCY_CONFIG] ??
-      CURRENCY_CONFIG['CHF'];
+    const config = CURRENCY_CONFIG[currency];
     return new Intl.NumberFormat(config.locale, {
       style: 'currency',
       currency,

@@ -9,6 +9,8 @@ import {
   CHART_FONT_FAMILY,
 } from '../utils/chart-utils';
 
+const AXIS_ABBREVIATION_THRESHOLD = 1000;
+
 export function buildProjectionChartOptions(
   theme: ChartThemeColors | null,
   amountsHidden = false,
@@ -93,7 +95,11 @@ export function buildProjectionChartOptions(
           },
           color: tickColor,
           callback: function (value: string | number) {
-            return amountsHidden ? '•' : Number(value) / 1000 + 'k';
+            if (amountsHidden) return '•';
+            const num = Number(value);
+            if (num >= AXIS_ABBREVIATION_THRESHOLD)
+              return num / AXIS_ABBREVIATION_THRESHOLD + 'k';
+            return num;
           },
         },
       },

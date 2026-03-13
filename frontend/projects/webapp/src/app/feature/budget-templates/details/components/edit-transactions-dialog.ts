@@ -267,7 +267,7 @@ interface EditTransactionsDialogResult {
                   [class.text-financial-negative]="runningTotals()[i] < 0"
                   class="font-medium ph-no-capture"
                 >
-                  {{ runningTotals()[i] | appCurrency }}
+                  {{ runningTotals()[i] | appCurrency: currency() }}
                 </span>
               </td>
             </ng-container>
@@ -410,6 +410,7 @@ export default class EditTransactionsDialog {
   protected readonly deleteLineTooltip = this.#transloco.translate(
     'template.deleteLine',
   );
+  protected readonly currency = this.#userSettings.currency;
   protected readonly currencySymbol = computed(
     () => CURRENCY_CONFIG[this.#userSettings.currency()].symbol,
   );
@@ -419,14 +420,15 @@ export default class EditTransactionsDialog {
     this.#userSettings.currency(),
   );
 
-  // Expose store signals directly
   protected readonly isLoading = this.#store.isLoading;
-  protected readonly errorMessage = this.#store.error;
+  readonly #conversionError = signal<string | null>(null);
+  protected readonly errorMessage = computed(
+    () => this.#conversionError() ?? this.#store.error(),
+  );
   protected readonly hasUnsavedChanges = this.#store.hasUnsavedChanges;
   protected readonly canRemoveTransaction = this.#store.canRemoveTransaction;
   protected readonly isValid = this.#store.isValid;
 
-  // Get active lines from store
   protected readonly transactions = this.#store.activeLines;
 
   protected readonly displayedColumns: readonly string[] = [
@@ -439,13 +441,11 @@ export default class EditTransactionsDialog {
   protected readonly transactionTypes = getTransactionTypes();
 
   constructor() {
-    // Initialize the store
     this.#store.initialize(
       this.data.originalTemplateLines,
       this.data.transactions,
     );
 
-    // Configure dialog to prevent closing during loading
     this.#dialogRef.disableClose = true;
   }
 
@@ -492,17 +492,22 @@ export default class EditTransactionsDialog {
 
     const propagateToBudgets = propagationChoice === 'propagate';
 
-    // Convert amounts if input currency differs from default
-    for (const line of this.transactions()) {
-      const { convertedAmount } = await this.#converter.convertWithMetadata(
-        line.formData.amount,
-        this.inputCurrency(),
-        this.#userSettings.currency(),
+    try {
+      for (const line of this.transactions()) {
+        const { convertedAmount } = await this.#converter.convertWithMetadata(
+          line.formData.amount,
+          this.inputCurrency(),
+          this.#userSettings.currency(),
+        );
+        this.#store.updateTransaction(line.id, { amount: convertedAmount });
+      }
+    } catch {
+      this.#conversionError.set(
+        this.#transloco.translate('common.conversionError'),
       );
-      this.#store.updateTransaction(line.id, { amount: convertedAmount });
+      return;
     }
 
-    // Perform save - no sync needed as state is already up-to-date
     const result = await this.#store.saveChanges(
       this.data.templateId,
       propagateToBudgets,
@@ -572,12 +577,9 @@ export default class EditTransactionsDialog {
     _index: number,
     transaction: EditableLine,
   ): string => {
-    return transaction.id; // Use the stable UUID for tracking
+    return transaction.id;
   };
 
-  /**
-   * Show confirmation dialog for transaction removal
-   */
   async #showConfirmationDialog(): Promise<boolean> {
     const dialogRef = this.#dialog.open(ConfirmationDialog, {
       data: {

@@ -11,9 +11,11 @@ struct UserSettings: Codable, Sendable {
 struct UpdateUserSettings: Codable, Sendable {
     let payDayOfMonth: Int?
     let currency: String?
+    let showCurrencySelector: Bool?
 
-    init(payDayOfMonth: Int? = nil, currency: String? = nil) {
+    init(payDayOfMonth: Int? = nil, currency: String? = nil, showCurrencySelector: Bool? = nil) {
         self.payDayOfMonth = payDayOfMonth
         self.currency = currency
+        self.showCurrencySelector = showCurrencySelector
     }
 }

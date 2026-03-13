@@ -14,7 +14,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
-import { type BudgetLine } from 'pulpe-shared';
+import { type BudgetLine, type SupportedCurrency } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { RecurrenceLabelPipe } from '@pattern/transaction-display';
@@ -85,7 +85,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
             @if (item().metadata.isPropagationLocked) {
               <mat-icon
                 class="text-sm! text-outline shrink-0"
-                matTooltip="Montants verrouillés"
+                [matTooltip]="'budget.lockedAmounts' | transloco"
               >
                 lock
               </mat-icon>
@@ -137,7 +137,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                   item().consumption!.consumptionState === 'over-budget'
                 "
               >
-                {{ remaining | appCurrency: '1.0-0' }}
+                {{ remaining | appCurrency: currency() : '1.0-0' }}
               </div>
               <span class="text-label-small text-on-surface-variant">{{
                 'budgetLine.available' | transloco
@@ -147,7 +147,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                 class="ph-no-capture text-headline-medium font-bold"
                 [pulpeFinancialKind]="item().data.kind"
               >
-                {{ item().data.amount | appCurrency: '1.0-0' }}
+                {{ item().data.amount | appCurrency: currency() : '1.0-0' }}
               </div>
               <span class="text-label-small text-on-surface-variant">{{
                 'budgetLine.planned' | transloco
@@ -161,7 +161,10 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
               <div
                 class="ph-no-capture text-title-medium font-semibold text-on-surface"
               >
-                {{ item().consumption!.consumed | appCurrency: '1.0-0' }}
+                {{
+                  item().consumption!.consumed
+                    | appCurrency: currency() : '1.0-0'
+                }}
               </div>
               <span class="text-label-small text-on-surface-variant">{{
                 'budgetLine.spent' | transloco
@@ -190,7 +193,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                         : {
                             amount:
                               (item().consumption!.consumed - item().data.amount
-                              | appCurrency: '1.0-0'),
+                              | appCurrency: currency() : '1.0-0'),
                           }
                   }}
                 </span>
@@ -229,12 +232,15 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                   matBadgeColor="primary"
                   (click)="viewTransactions.emit(item())"
                   [matTooltip]="
-                    'Voir les ' + item().consumption!.transactionCountLabel
+                    'budget.viewTransactionsCount'
+                      | transloco
+                        : { label: item().consumption!.transactionCountLabel }
                   "
                 >
                   <mat-icon class="text-base! mr-1">receipt_long</mat-icon>
                   <span class="ph-no-capture">{{
-                    item().consumption!.consumed | appCurrency: '1.0-0'
+                    item().consumption!.consumed
+                      | appCurrency: currency() : '1.0-0'
                   }}</span>
                 </button>
               }
@@ -277,7 +283,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
 })
 export class BudgetGridMobileCard {
   readonly item = input.required<BudgetLineTableItem>();
-  readonly currency = input<string>('CHF');
+  readonly currency = input<SupportedCurrency>('CHF');
   readonly isSelected = input<boolean>(false);
 
   readonly matchAnnotation = computed(() =>
