@@ -61,6 +61,12 @@ struct AddTransactionSheet: View {
 
             addButton
         }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("OK") { isAmountFocused = false }
+            }
+        }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
 
