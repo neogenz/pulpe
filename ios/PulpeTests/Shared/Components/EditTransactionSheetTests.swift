@@ -2,7 +2,7 @@ import Foundation
 @testable import Pulpe
 import Testing
 
-@Suite
+@Suite("EditTransactionSheet Tests")
 @MainActor
 struct EditTransactionSheetTests {
     // MARK: - Dependencies
