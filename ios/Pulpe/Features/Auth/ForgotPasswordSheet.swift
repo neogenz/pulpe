@@ -18,6 +18,7 @@ struct ForgotPasswordSheet: View {
             }
             .padding(DesignTokens.Spacing.xl)
             .background(Color.sheetBackground)
+            .dismissKeyboardOnTap()
             .navigationTitle("Mot de passe oublié")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

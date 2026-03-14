@@ -70,6 +70,7 @@ struct ConfirmPasswordSheet: View {
                 }
             }
             .background(Color.sheetBackground)
+            .dismissKeyboardOnTap()
             .interactiveDismissDisabled(isVerifying)
             .onDisappear { verifyTask?.cancel() }
         }

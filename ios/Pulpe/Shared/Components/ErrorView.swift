@@ -58,8 +58,7 @@ struct ErrorBanner: View {
                 .font(PulpeTypography.subheadline)
                 .foregroundStyle(.primary)
                 .multilineTextAlignment(.leading)
-
-            Spacer()
+                .fixedSize(horizontal: false, vertical: true)
 
             if let dismissAction {
                 Button {

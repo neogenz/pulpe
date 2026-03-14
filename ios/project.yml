@@ -120,7 +120,7 @@ targets:
               - pulpe
             CFBundleURLName: app.pulpe.ios
           - CFBundleURLSchemes:
-              - $(GOOGLE_URL_SCHEME)
+              - com.googleusercontent.apps.894420283180-534drgml29aruk8ceqr1gecc5mn66gmg
             CFBundleURLName: google-sign-in
         UIAppFonts:
           - Manrope-Bold.ttf
@@ -135,8 +135,8 @@ targets:
         POSTHOG_API_KEY: $(POSTHOG_API_KEY)
         POSTHOG_HOST: $(POSTHOG_HOST)
         POSTHOG_ENABLED: $(POSTHOG_ENABLED)
-        GOOGLE_CLIENT_ID: $(GOOGLE_CLIENT_ID)
-        GIDClientID: $(GOOGLE_CLIENT_ID)
+        GOOGLE_CLIENT_ID: 894420283180-534drgml29aruk8ceqr1gecc5mn66gmg.apps.googleusercontent.com
+        GIDClientID: 894420283180-534drgml29aruk8ceqr1gecc5mn66gmg.apps.googleusercontent.com
 
   PulpeWidget:
     type: app-extension

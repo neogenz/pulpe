@@ -114,6 +114,7 @@ struct OnboardingStepView<Content: View>: View {
                 .padding(.bottom, DesignTokens.Spacing.xxxl)
             }
             .scrollBounceBehavior(.basedOnSize)
+            .scrollDismissesKeyboard(.interactively)
 
             Spacer()
 
