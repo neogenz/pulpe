@@ -1,5 +1,5 @@
 ---
-description: SwiftUI hit area standards — contentShape, minimum tap targets, shared ButtonStyles
+description: SwiftUI hit area standards — contentShape, minimum tap targets, shared ButtonStyles, hitbox vs visual separation
 paths: "ios/**/*.swift"
 ---
 
@@ -8,6 +8,34 @@ paths: "ios/**/*.swift"
 ## Minimum Tap Target
 
 Every interactive element must have a **minimum 44×44pt** tap area (Apple HIG).
+
+## Critical Rule: Hitbox ≠ Visual Size
+
+**`frame(minHeight: 44)` MUST go on the Button, NEVER inside the label.**
+
+Placing it inside the label inflates the visible background/shape to 44pt. Instead, keep the visual content compact and expand only the tap area.
+
+```swift
+// GOOD — compact visual, 44pt hitbox
+Button { action() } label: {
+    Text("Label")
+        .padding(.vertical, 8)
+        .background(Color.accentColor)
+        .clipShape(Capsule())
+}
+.frame(minHeight: 44)       // hitbox on the Button
+.contentShape(Capsule())    // tap area fills the 44pt frame
+.plainPressedButtonStyle()
+
+// BAD — background inflates to 44pt, button looks bloated
+Button { action() } label: {
+    Text("Label")
+        .frame(minHeight: 44)   // ← visual + hitbox coupled
+        .padding(.vertical, 8)
+        .background(Color.accentColor)
+        .clipShape(Capsule())
+}
+```
 
 ## Shared ButtonStyles
 
@@ -19,7 +47,8 @@ All shared styles live in `ios/Pulpe/Shared/Design/PrimaryButtonStyle.swift`.
 | `SecondaryButtonStyle` | Cancel/back CTA | Full width × 54pt |
 | `DestructiveButtonStyle` | Danger CTA | Full width × 54pt |
 | `IconButtonStyle` | Icon-only (eye toggle, dismiss X, delete, chart) | 44×44pt min |
-| `TextLinkButtonStyle` | Text links (forgot password, create account, back) | 44pt min height |
+| `TextLinkButtonStyle` | Text links (forgot password, see-all, back) | Pressed feedback + contentShape only (no forced height) |
+| `PlainPressedButtonStyle` | Custom buttons that manage their own layout | Pressed feedback only |
 
 ### Usage
 
@@ -30,31 +59,24 @@ Button { toggle() } label: {
 }
 .iconButtonStyle()
 
-// Text links
+// Text links (container spacing provides tap area)
 Button("Mot de passe oublié ?") { showReset() }
 .textLinkButtonStyle()
+
+// Capsule/chip buttons (compact visual, 44pt hitbox)
+Button { select() } label: {
+    Text("Option")
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(Color.accent).clipShape(Capsule())
+}
+.frame(minHeight: 44)
+.contentShape(Capsule())
+.plainPressedButtonStyle()
 ```
 
 ## `.contentShape()` Rule
 
-**Every button using `.buttonStyle(.plain)` MUST have a `.contentShape()`** on the label or the button itself. Without it, only the visible pixels are tappable.
-
-```swift
-// Good — contentShape ensures full area is tappable
-Button { action() } label: {
-    Text("Tap me")
-        .frame(maxWidth: .infinity)
-        .contentShape(Rectangle())
-}
-.buttonStyle(.plain)
-
-// Bad — only the text pixels are tappable
-Button { action() } label: {
-    Text("Tap me")
-        .frame(maxWidth: .infinity)
-}
-.buttonStyle(.plain)
-```
+**Every button using `.buttonStyle(.plain)` or `.plainPressedButtonStyle()` MUST have a `.contentShape()`** on the button itself. Without it, only the visible pixels are tappable.
 
 ## TextField / SecureField in Custom Containers
 
@@ -71,8 +93,8 @@ SwiftUI TextFields only respond to taps on the text line, not the full container
 
 | Don't | Do |
 |-------|-----|
-| `Button` with `.buttonStyle(.plain)` and no `contentShape` | Add `.contentShape()` or use a shared ButtonStyle |
+| `frame(minHeight: 44)` inside button label (before background) | `frame(minHeight: 44)` on the Button itself |
+| `Button` with `.plainPressedButtonStyle()` and no `contentShape` | Add `.contentShape()` on the Button |
 | Icon-only button without minimum frame | Use `.iconButtonStyle()` |
-| Text link without minimum height | Use `.textLinkButtonStyle()` |
 | `frame(width: 32, height: 32)` for icon buttons | `frame(width: 44, height: 44)` minimum |
-| Custom padding for tap area | Use shared ButtonStyle that guarantees 44pt |
+| Forcing 44pt on text links inside padded containers | Use `.textLinkButtonStyle()` (relies on container spacing) |

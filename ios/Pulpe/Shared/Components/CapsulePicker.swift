@@ -26,12 +26,12 @@ struct CapsulePicker<T: CaseIterable & Hashable, ItemLabel: View>: View where T.
                             .padding(.horizontal, DesignTokens.Spacing.md)
                             .padding(.vertical, DesignTokens.Spacing.sm)
                             .frame(maxWidth: .infinity)
-                            .frame(minHeight: DesignTokens.TapTarget.minimum)
                             .background(isSelected ? Color.pulpePrimary : Color.surfaceContainer)
                             .foregroundStyle(isSelected ? Color.textOnPrimary : Color.textPrimary)
                             .clipShape(Capsule())
-                            .contentShape(Capsule())
                     }
+                    .frame(minHeight: DesignTokens.TapTarget.minimum)
+                    .contentShape(Capsule())
                     .plainPressedButtonStyle()
                     .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }

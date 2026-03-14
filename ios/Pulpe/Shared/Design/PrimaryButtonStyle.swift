@@ -82,12 +82,12 @@ struct IconButtonStyle: ButtonStyle {
     }
 }
 
-/// Text-link button style (forgot password, create account, back)
-/// Guarantees 44pt minimum tap height with transparent background.
+/// Text-link button style (forgot password, create account, see-all links)
+/// Provides pressed feedback and extends hit area to full frame.
+/// Callers are responsible for sizing (padding, frame) — the style does not enforce 44pt.
 struct TextLinkButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .frame(minHeight: DesignTokens.TapTarget.minimum)
             .contentShape(Rectangle())
             .opacity(configuration.isPressed ? DesignTokens.Opacity.pressed : 1.0)
             .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)

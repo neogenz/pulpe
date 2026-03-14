@@ -69,17 +69,12 @@ struct EditTransactionSheet: View {
     // MARK: - Description
 
     private var descriptionField: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text("Description")
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.onSurfaceVariant)
-            FormTextField(placeholder: kind.descriptionPlaceholder, text: $name)
-                .overlay(
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                        .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: 1)
-                )
-                .accessibilityLabel("Description de la transaction")
-        }
+        FormTextField(
+            placeholder: kind.descriptionPlaceholder,
+            text: $name,
+            label: "Description",
+            accessibilityLabel: "Description de la transaction"
+        )
     }
 
     // MARK: - Date Selector

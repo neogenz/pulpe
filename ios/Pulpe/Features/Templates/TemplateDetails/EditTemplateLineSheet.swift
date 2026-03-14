@@ -59,17 +59,12 @@ struct EditTemplateLineSheet: View {
     // MARK: - Description
 
     private var descriptionField: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text("Description")
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.onSurfaceVariant)
-            FormTextField(placeholder: kind.descriptionPlaceholder, text: $name)
-                .overlay(
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                        .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: 1)
-                )
-                .accessibilityLabel("Nom de la ligne du modèle")
-        }
+        FormTextField(
+            placeholder: kind.descriptionPlaceholder,
+            text: $name,
+            label: "Description",
+            accessibilityLabel: "Nom de la ligne du modèle"
+        )
     }
 
     // MARK: - Recurrence Selector

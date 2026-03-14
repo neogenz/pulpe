@@ -16,7 +16,6 @@ struct KindToggle: View {
                         .font(isSelected ? PulpeTypography.labelLarge : PulpeTypography.labelMedium)
                         .foregroundStyle(isSelected ? kind.color : Color.onSurfaceVariant)
                         .frame(maxWidth: .infinity)
-                        .frame(minHeight: DesignTokens.TapTarget.minimum)
                         .padding(.vertical, DesignTokens.Spacing.sm)
                         .background(
                             isSelected
@@ -24,7 +23,6 @@ struct KindToggle: View {
                                 : Color.clear
                         )
                         .clipShape(Capsule())
-                        .contentShape(Capsule())
                         .overlay(
                             Capsule().strokeBorder(
                                 isSelected
@@ -34,6 +32,8 @@ struct KindToggle: View {
                             )
                         )
                 }
+                .frame(minHeight: DesignTokens.TapTarget.minimum)
+                .contentShape(Capsule())
                 .plainPressedButtonStyle()
                 .accessibilityLabel(kind.label)
                 .accessibilityAddTraits(isSelected ? .isSelected : [])

@@ -55,7 +55,12 @@ struct AddAllocatedTransactionSheet: View {
     // MARK: - Description
 
     private var descriptionField: some View {
-        FormTextField(placeholder: budgetLine.kind.descriptionPlaceholder, text: $name)
+        FormTextField(
+            placeholder: budgetLine.kind.descriptionPlaceholder,
+            text: $name,
+            label: "Description",
+            accessibilityLabel: "Description de la transaction"
+        )
     }
 
     // MARK: - Date Selector

@@ -33,11 +33,9 @@ struct QuickAmountChips: View {
                         .padding(.horizontal, DesignTokens.Spacing.md)
                         .padding(.vertical, DesignTokens.Spacing.sm)
                         .frame(maxWidth: .infinity)
-                        .frame(minHeight: DesignTokens.TapTarget.minimum)
                         .background(Color.surfaceContainer)
                         .foregroundStyle(isSelected ? color : Color.onSurfaceVariant)
                         .clipShape(Capsule())
-                        .contentShape(Capsule())
                         .overlay(
                             Capsule().strokeBorder(
                                 isSelected
@@ -47,6 +45,8 @@ struct QuickAmountChips: View {
                             )
                         )
                 }
+                .frame(minHeight: DesignTokens.TapTarget.minimum)
+                .contentShape(Capsule())
                 .plainPressedButtonStyle()
                 .accessibilityHint("Définir le montant à \(quickAmount) \(DesignTokens.AmountInput.currencyCode)")
             }

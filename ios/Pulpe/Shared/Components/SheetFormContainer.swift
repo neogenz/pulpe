@@ -32,7 +32,13 @@ struct SheetFormContainer<Content: View>: View {
                 if let autoFocus {
                     ToolbarItemGroup(placement: .keyboard) {
                         Spacer()
-                        Button("OK") { autoFocus.wrappedValue = false }
+                        Button("OK") {
+                            autoFocus.wrappedValue = false
+                            UIApplication.shared.sendAction(
+                                #selector(UIResponder.resignFirstResponder),
+                                to: nil, from: nil, for: nil
+                            )
+                        }
                     }
                 }
             }
