@@ -413,6 +413,8 @@
     "checkTransactionsTitle": "Pointer les transactions ?",
     "checkAllConfirm": "Oui, tout pointer",
     "checkOnlyEnvelope": "Non, juste l'enveloppe",
+    "closePanelLabel": "Fermer le panneau",
+    "estimatedBalanceTooltip": "Au fur et à mesure que tu pointes tes éléments, ce montant te dit combien il devrait rester sur ton compte. Compare avec ton app bancaire !",
     "snackbar": {
       "envelopeOver": "Comptabilisé {{ consumed }} sur {{ envelope }} CHF (enveloppe)",
       "envelopeWithin": "Comptabilisé {{ envelope }} CHF (enveloppe)",

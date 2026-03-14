@@ -292,7 +292,6 @@ export default class BudgetDetailsPage {
       this.#transloco.translate('common.close'),
       {
         duration: 5000,
-        panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
       },
     );
   }
@@ -306,7 +305,6 @@ export default class BudgetDetailsPage {
       this.#transloco.translate('common.close'),
       {
         duration: 5000,
-        panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
       },
     );
   }
@@ -367,10 +365,7 @@ export default class BudgetDetailsPage {
       this.#snackBar.open(
         this.#transloco.translate('transaction.deleted'),
         this.#transloco.translate('common.close'),
-        {
-          duration: 5000,
-          panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
-        },
+        { duration: 5000 },
       );
     }
   }
@@ -426,7 +421,9 @@ export default class BudgetDetailsPage {
       this.#snackBar.open(
         this.#transloco.translate('budget.transactionAdded'),
         this.#transloco.translate('common.close'),
-        { duration: 3000 },
+        {
+          duration: 3000,
+        },
       );
     }
   }
@@ -445,7 +442,9 @@ export default class BudgetDetailsPage {
       this.#snackBar.open(
         this.#transloco.translate('transaction.deleted'),
         this.#transloco.translate('common.close'),
-        { duration: 3000 },
+        {
+          duration: 3000,
+        },
       );
     }
   }
@@ -457,10 +456,7 @@ export default class BudgetDetailsPage {
       this.#snackBar.open(
         this.#transloco.translate('budget.forecastReset'),
         this.#transloco.translate('common.close'),
-        {
-          duration: 5000,
-          panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
-        },
+        { duration: 5000 },
       );
     } catch (error) {
       const errorMessage =

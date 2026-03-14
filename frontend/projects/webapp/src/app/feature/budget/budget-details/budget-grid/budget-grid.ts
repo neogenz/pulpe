@@ -278,7 +278,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
         <div class="flex items-start justify-between gap-2 mb-4 flex-1">
           <div class="flex items-center gap-2 min-w-0 flex-1">
             <pulpe-budget-kind-indicator [kind]="item.data.kind" />
-            <span class="text-title-small font-medium truncate">{{
+            <span class="text-title-small font-medium truncate ph-no-capture">{{
               item.data.name
             }}</span>
           </div>

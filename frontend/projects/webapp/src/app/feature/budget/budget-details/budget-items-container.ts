@@ -121,7 +121,7 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
             }}
           </span>
           <mat-icon
-            matTooltip="Au fur et à mesure que tu pointes tes éléments, ce montant te dit combien il devrait rester sur ton compte. Compare avec ton app bancaire !"
+            [matTooltip]="'budget.estimatedBalanceTooltip' | transloco"
             matTooltipPosition="above"
             matTooltipTouchGestures="auto"
             [attr.aria-label]="'budget.estimatedBalanceInfo' | transloco"

@@ -16,6 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetLine, type Transaction } from 'pulpe-shared';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { TransactionLabelPipe } from '@pattern/transaction-display';
 import {
@@ -67,6 +68,7 @@ const DETAIL_SEGMENT_COUNT = 12;
     DatePipe,
     FinancialKindDirective,
     TransactionLabelPipe,
+    TranslocoPipe,
     SegmentedBudgetProgress,
     BudgetKindIndicator,
   ],
@@ -90,8 +92,8 @@ const DETAIL_SEGMENT_COUNT = 12;
           <button
             matIconButton
             (click)="close()"
-            matTooltip="Fermer"
-            aria-label="Fermer le panneau"
+            [matTooltip]="'common.close' | transloco"
+            [attr.aria-label]="'budget.closePanelLabel' | transloco"
             class="shrink-0"
           >
             <mat-icon>close</mat-icon>
@@ -103,7 +105,9 @@ const DETAIL_SEGMENT_COUNT = 12;
       <div class="p-5 border-b border-outline-variant">
         <div class="grid grid-cols-3 gap-4 mb-4">
           <div class="text-center">
-            <div class="text-label-medium text-on-surface-variant">Prévu</div>
+            <div class="text-label-medium text-on-surface-variant">
+              {{ 'budget.tablePlanned' | transloco }}
+            </div>
             <div
               class="ph-no-capture text-title-medium font-bold"
               [pulpeFinancialKind]="envelope.data.kind"
@@ -112,7 +116,9 @@ const DETAIL_SEGMENT_COUNT = 12;
             </div>
           </div>
           <div class="text-center">
-            <div class="text-label-medium text-on-surface-variant">Dépensé</div>
+            <div class="text-label-medium text-on-surface-variant">
+              {{ 'budget.tableSpent' | transloco }}
+            </div>
             <div class="ph-no-capture text-title-medium font-semibold">
               {{
                 envelope.consumption?.consumed ?? 0
@@ -121,7 +127,9 @@ const DETAIL_SEGMENT_COUNT = 12;
             </div>
           </div>
           <div class="text-center">
-            <div class="text-label-medium text-on-surface-variant">Reste</div>
+            <div class="text-label-medium text-on-surface-variant">
+              {{ 'budget.tableRemaining' | transloco }}
+            </div>
             @let remaining =
               envelope.data.amount - (envelope.consumption?.consumed ?? 0);
             <div
@@ -154,20 +162,26 @@ const DETAIL_SEGMENT_COUNT = 12;
           <div class="text-center text-label-medium">
             @if (consumption.consumptionState === 'over-budget') {
               <span class="ph-no-capture text-financial-over-budget">
-                Dépassé de
                 {{
-                  consumption.consumed - envelope.data.amount
-                    | currency: 'CHF' : 'symbol' : '1.0-0'
+                  'budgetLine.exceededBy'
+                    | transloco
+                      : {
+                          amount:
+                            (consumption.consumed - envelope.data.amount
+                            | currency: 'CHF' : 'symbol' : '1.0-0'),
+                        }
                 }}
               </span>
             } @else if (consumption.consumptionState === 'near-limit') {
-              <span class="text-financial-warning"
-                >{{ consumption.percentage }}% utilisé</span
-              >
+              <span class="text-financial-warning">{{
+                'budgetLine.usedPercent'
+                  | transloco: { percent: consumption.percentage }
+              }}</span>
             } @else {
-              <span class="text-on-surface-variant"
-                >{{ consumption.percentage }}% utilisé</span
-              >
+              <span class="text-on-surface-variant">{{
+                'budgetLine.usedPercent'
+                  | transloco: { percent: consumption.percentage }
+              }}</span>
             }
           </div>
         }
@@ -178,7 +192,7 @@ const DETAIL_SEGMENT_COUNT = 12;
         <div class="p-5">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-title-medium font-semibold">
-              Transactions
+              {{ 'budget.transactions' | transloco }}
               @if (allocatedTransactions().length > 0) {
                 <span class="text-on-surface-variant font-normal">
                   ({{ allocatedTransactions().length }})
@@ -189,19 +203,21 @@ const DETAIL_SEGMENT_COUNT = 12;
               matButton
               (click)="onAddTransaction()"
               class="!rounded-full"
-              aria-label="Ajouter une transaction"
+              [attr.aria-label]="'budgetLine.addTransaction' | transloco"
             >
               <mat-icon>add</mat-icon>
-              Ajouter
+              {{ 'common.add' | transloco }}
             </button>
           </div>
 
           @if (allocatedTransactions().length === 0) {
             <div class="text-center py-8 text-on-surface-variant">
               <mat-icon class="mb-2 opacity-50">receipt_long</mat-icon>
-              <p class="text-body-medium">Pas de transaction</p>
+              <p class="text-body-medium">
+                {{ 'budget.noTransaction' | transloco }}
+              </p>
               <p class="text-body-small">
-                Ajoute une transaction pour suivre tes dépenses
+                {{ 'budget.noTransactionHint' | transloco }}
               </p>
             </div>
           } @else {
@@ -238,25 +254,31 @@ const DETAIL_SEGMENT_COUNT = 12;
                       [attr.data-testid]="'toggle-tx-check-' + tx.id"
                       [attr.aria-label]="
                         tx.checkedAt
-                          ? 'Marquer ' + tx.name + ' comme non vérifié'
-                          : 'Marquer ' + tx.name + ' comme vérifié'
+                          ? ('budgetLine.uncheckLabel'
+                            | transloco: { name: tx.name })
+                          : ('budgetLine.checkLabel'
+                            | transloco: { name: tx.name })
                       "
                     />
                     <button
                       matIconButton
                       (click)="onEditTransaction(tx)"
-                      matTooltip="Modifier"
+                      [matTooltip]="'common.edit' | transloco"
                       [attr.data-testid]="'edit-tx-' + tx.id"
-                      [attr.aria-label]="'Modifier ' + tx.name"
+                      [attr.aria-label]="
+                        ('common.edit' | transloco) + ' ' + tx.name
+                      "
                     >
                       <mat-icon>edit</mat-icon>
                     </button>
                     <button
                       matIconButton
                       (click)="onDeleteTransaction(tx.id)"
-                      matTooltip="Supprimer"
+                      [matTooltip]="'common.delete' | transloco"
                       [attr.data-testid]="'delete-tx-' + tx.id"
-                      [attr.aria-label]="'Supprimer ' + tx.name"
+                      [attr.aria-label]="
+                        ('common.delete' | transloco) + ' ' + tx.name
+                      "
                     >
                       <mat-icon class="text-error">delete</mat-icon>
                     </button>
