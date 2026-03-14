@@ -1,10 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { of } from 'rxjs';
 import { type Budget } from 'pulpe-shared';
 import { BudgetListStore } from './budget-list-store';
 import { BudgetApi } from '@core/budget/budget-api';
-import { Logger } from '@core/logging/logger';
 
 const mockCache = {
   get: vi.fn().mockReturnValue(null),
@@ -13,12 +12,12 @@ const mockCache = {
   invalidate: vi.fn(),
   deduplicate: vi.fn((key: string[], fn: () => Promise<unknown>) => fn()),
   clear: vi.fn(),
+  version: signal(0),
 };
 
 describe('BudgetListStore', () => {
   let store: BudgetListStore;
   let budgetApiMock: Partial<BudgetApi>;
-  let loggerMock: Partial<Logger>;
 
   beforeEach(() => {
     mockCache.get.mockReturnValue(null);
@@ -28,18 +27,11 @@ describe('BudgetListStore', () => {
       cache: mockCache as unknown as BudgetApi['cache'],
     };
 
-    loggerMock = {
-      error: vi.fn(),
-      warn: vi.fn(),
-      info: vi.fn(),
-    };
-
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         BudgetListStore,
         { provide: BudgetApi, useValue: budgetApiMock },
-        { provide: Logger, useValue: loggerMock },
       ],
     });
 

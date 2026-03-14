@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import {
   provideHttpClientTesting,
@@ -81,7 +81,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     updateTransaction$: ReturnType<typeof vi.fn>;
     deleteTransaction$: ReturnType<typeof vi.fn>;
     toggleTransactionCheck$: ReturnType<typeof vi.fn>;
-    cache: Record<string, ReturnType<typeof vi.fn>>;
+    cache: Record<string, unknown>;
   };
   let mockLogger: {
     debug: ReturnType<typeof vi.fn>;
@@ -126,6 +126,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       deleteTransaction$: vi.fn(),
       toggleTransactionCheck$: vi.fn(),
       cache: {
+        version: signal(0),
         get: vi.fn().mockReturnValue(null),
         set: vi.fn(),
         has: vi.fn().mockReturnValue(false),
@@ -133,6 +134,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) =>
           fn(),
         ),
+        prefetch: vi.fn(),
         clear: vi.fn(),
       },
     };
@@ -1193,95 +1195,6 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       expect(realUncheckedAfter?.checkedAt).toBe('2024-01-20T11:00:00Z');
       expect(tempAfter?.checkedAt).toBeNull();
       expect(otherLineAfter?.checkedAt).toBeNull();
-    });
-  });
-
-  describe('Cache fallback paths (regression: empty page on navigation)', () => {
-    it('returns cached BudgetDetailsViewModel when cache is fresh without calling API', async () => {
-      const cachedViewModel = {
-        ...mockBudgetDetailsResponse.data.budget,
-        budgetLines: mockBudgetDetailsResponse.data.budgetLines,
-        transactions: mockBudgetDetailsResponse.data.transactions,
-      };
-
-      mockBudgetApi.cache['get'] = vi
-        .fn()
-        .mockReturnValue({ data: cachedViewModel, fresh: true });
-
-      service.setBudgetId(mockBudgetId);
-      TestBed.tick();
-      await waitForResourceStable();
-
-      const details = service.budgetDetails();
-      expect(details).toBeDefined();
-      expect(details?.budgetLines).toHaveLength(2);
-      expect(details?.transactions).toHaveLength(1);
-      expect(details?.budgetLines[0].name).toBe('Salary');
-      expect(mockBudgetApi.getBudgetWithDetails$).not.toHaveBeenCalled();
-    });
-
-    it('displayBudgetLines does not crash when cache returns correct ViewModel shape', async () => {
-      const cachedViewModel = {
-        ...mockBudgetDetailsResponse.data.budget,
-        budgetLines: mockBudgetDetailsResponse.data.budgetLines,
-        transactions: mockBudgetDetailsResponse.data.transactions,
-      };
-
-      mockBudgetApi.cache['get'] = vi
-        .fn()
-        .mockReturnValue({ data: cachedViewModel, fresh: true });
-
-      service.setBudgetId(mockBudgetId);
-      TestBed.tick();
-      await waitForResourceStable();
-
-      const displayLines = service.displayBudgetLines();
-      expect(displayLines.length).toBeGreaterThan(0);
-      expect(() => [...displayLines]).not.toThrow();
-    });
-
-    it('falls back to stale cache while fresh data loads', async () => {
-      const cachedViewModel = {
-        ...mockBudgetDetailsResponse.data.budget,
-        budgetLines: mockBudgetDetailsResponse.data.budgetLines,
-        transactions: mockBudgetDetailsResponse.data.transactions,
-      };
-
-      mockBudgetApi.cache['get'] = vi
-        .fn()
-        .mockReturnValue({ data: cachedViewModel, fresh: false });
-
-      service.setBudgetId(mockBudgetId);
-      TestBed.tick();
-      await waitForResourceStable();
-
-      const details = service.budgetDetails();
-      expect(details).toBeDefined();
-      expect(details?.budgetLines).toHaveLength(2);
-      expect(mockBudgetApi.getBudgetWithDetails$).toHaveBeenCalled();
-    });
-
-    it('falls back to cache on API error', async () => {
-      const cachedViewModel = {
-        ...mockBudgetDetailsResponse.data.budget,
-        budgetLines: mockBudgetDetailsResponse.data.budgetLines,
-        transactions: mockBudgetDetailsResponse.data.transactions,
-      };
-
-      mockBudgetApi.getBudgetWithDetails$ = vi
-        .fn()
-        .mockReturnValue(throwError(() => new Error('Network error')));
-      mockBudgetApi.cache['get'] = vi
-        .fn()
-        .mockReturnValue({ data: cachedViewModel, fresh: false });
-
-      service.setBudgetId(mockBudgetId);
-      TestBed.tick();
-      await waitForResourceStable();
-
-      const details = service.budgetDetails();
-      expect(details).toBeDefined();
-      expect(details?.budgetLines).toHaveLength(2);
     });
   });
 

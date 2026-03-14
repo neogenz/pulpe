@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { BudgetTemplatesApi } from '../../services/budget-templates-api';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import type { TransactionFormData } from '../../services/transaction-form';
 import type {
   TemplateLine,

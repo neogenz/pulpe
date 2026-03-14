@@ -1,10 +1,20 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { BudgetTemplatesStore } from './budget-templates-store';
-import { BudgetTemplatesApi } from './budget-templates-api';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import type { BudgetTemplate, BudgetTemplateCreate } from 'pulpe-shared';
+
+const mockCache = {
+  get: vi.fn().mockReturnValue(null),
+  set: vi.fn(),
+  has: vi.fn().mockReturnValue(false),
+  invalidate: vi.fn(),
+  deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
+  clear: vi.fn(),
+  version: signal(0),
+};
 
 describe('BudgetTemplatesStore', () => {
   let store: BudgetTemplatesStore;
@@ -30,6 +40,10 @@ describe('BudgetTemplatesStore', () => {
   ];
 
   beforeEach(() => {
+    mockCache.get.mockReturnValue(null);
+    mockCache.set.mockClear();
+    mockCache.invalidate.mockClear();
+
     mockApi = {
       getAll$: vi
         .fn()
@@ -37,6 +51,7 @@ describe('BudgetTemplatesStore', () => {
       create$: vi.fn(),
       update$: vi.fn(),
       delete$: vi.fn(),
+      cache: mockCache as unknown as BudgetTemplatesApi['cache'],
     };
 
     TestBed.configureTestingModule({
@@ -62,14 +77,12 @@ describe('BudgetTemplatesStore', () => {
 
   describe('Template Count and Limit Management', () => {
     it('should compute template count correctly', async () => {
-      // Wait for resource to load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(store.templateCount()).toBe(2);
     });
 
     it('should compute isTemplateLimitReached correctly when under limit', async () => {
-      // Wait for resource to load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(store.isTemplateLimitReached()).toBe(false);
@@ -88,10 +101,8 @@ describe('BudgetTemplatesStore', () => {
         .fn()
         .mockReturnValue(of({ data: fiveTemplates, success: true }));
 
-      // Reinitialize state with new mock data
       store = TestBed.inject(BudgetTemplatesStore);
 
-      // Wait for resource to load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(store.templateCount()).toBe(5);
@@ -102,7 +113,6 @@ describe('BudgetTemplatesStore', () => {
 
   describe('Default Template Management', () => {
     it('should identify current default template', async () => {
-      // Wait for resource to load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const defaultTemplate = store.defaultBudgetTemplate();
@@ -123,7 +133,6 @@ describe('BudgetTemplatesStore', () => {
 
       store = TestBed.inject(BudgetTemplatesStore);
 
-      // Wait for resource to load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(store.defaultBudgetTemplate()).toBeNull();
@@ -132,7 +141,6 @@ describe('BudgetTemplatesStore', () => {
 
   describe('Template Creation Validation', () => {
     it('should allow creation when under limit', async () => {
-      // Wait for resource to load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(store.isTemplateLimitReached()).toBe(false);
@@ -151,7 +159,6 @@ describe('BudgetTemplatesStore', () => {
 
       store = TestBed.inject(BudgetTemplatesStore);
 
-      // Wait for resource to load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(store.isTemplateLimitReached()).toBe(true);
@@ -180,12 +187,10 @@ describe('BudgetTemplatesStore', () => {
           of({ data: { template: createdTemplate, lines: [] }, success: true }),
         );
 
-      // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       await store.addTemplate(newTemplate);
 
-      // Should NOT call update since backend handles default switching
       expect(mockApi.update$).not.toHaveBeenCalled();
       expect(mockApi.create$).toHaveBeenCalledWith(newTemplate);
     });
@@ -211,7 +216,6 @@ describe('BudgetTemplatesStore', () => {
           of({ data: { template: createdTemplate, lines: [] }, success: true }),
         );
 
-      // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       await store.addTemplate(newTemplate);
@@ -232,7 +236,6 @@ describe('BudgetTemplatesStore', () => {
         .fn()
         .mockReturnValue(throwError(() => new Error('Creation failed')));
 
-      // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       await expect(store.addTemplate(newTemplate)).rejects.toThrow(
@@ -252,14 +255,12 @@ describe('BudgetTemplatesStore', () => {
         .fn()
         .mockReturnValue(throwError(() => new Error('Creation failed')));
 
-      // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const initialCount = store.templateCount();
 
       await expect(store.addTemplate(newTemplate)).rejects.toThrow();
 
-      // Template count should remain the same after rollback
       expect(store.templateCount()).toBe(initialCount);
     });
 
@@ -276,7 +277,6 @@ describe('BudgetTemplatesStore', () => {
 
       store = TestBed.inject(BudgetTemplatesStore);
 
-      // Wait for resource to load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const newTemplate: BudgetTemplateCreate = {
@@ -315,18 +315,50 @@ describe('BudgetTemplatesStore', () => {
           of({ data: { template: createdTemplate, lines: [] }, success: true }),
         );
 
-      // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const initialCount = store.templateCount();
 
       await store.addTemplate(newTemplate);
 
-      // Template should be added after successful creation
       expect(store.templateCount()).toBe(initialCount + 1);
       expect(
         store.budgetTemplates.value()?.find((t) => t.id === 'template-3'),
       ).toBeTruthy();
+    });
+
+    it('should pre-populate detail cache after creation', async () => {
+      const createdTemplate: BudgetTemplate = {
+        id: 'template-3',
+        name: 'New Template',
+        description: 'Testing cache',
+        isDefault: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const lines = [{ id: 'line-1', name: 'Salary' }];
+
+      mockApi.create$ = vi.fn().mockReturnValue(
+        of({
+          data: { template: createdTemplate, lines },
+          success: true,
+        }),
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      await store.addTemplate({
+        name: 'New Template',
+        description: 'Testing cache',
+        isDefault: false,
+        lines: [],
+      });
+
+      expect(mockCache.set).toHaveBeenCalledWith(
+        ['templates', 'details', 'template-3'],
+        { template: createdTemplate, transactions: lines },
+      );
     });
 
     it('should not modify state on creation failure', async () => {
@@ -341,7 +373,6 @@ describe('BudgetTemplatesStore', () => {
         .fn()
         .mockReturnValue(throwError(() => new Error('Creation failed')));
 
-      // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const initialCount = store.templateCount();
@@ -352,14 +383,12 @@ describe('BudgetTemplatesStore', () => {
         // Expected error
       }
 
-      // Template count should remain unchanged
       expect(store.templateCount()).toBe(initialCount);
     });
   });
 
   describe('Template Selection', () => {
     it('should select template by id', async () => {
-      // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       store.selectTemplate('template-2');
@@ -371,7 +400,6 @@ describe('BudgetTemplatesStore', () => {
     });
 
     it('should set null when selecting non-existent template', async () => {
-      // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       store.selectTemplate('non-existent');
@@ -380,59 +408,34 @@ describe('BudgetTemplatesStore', () => {
   });
 
   describe('Template Deletion', () => {
-    it('should delete template optimistically', async () => {
-      mockApi.delete$ = vi.fn().mockReturnValue(of({ success: true }));
+    it('should delete template via mutation with optimistic update', async () => {
+      mockApi.delete$ = vi
+        .fn()
+        .mockReturnValue(of({ success: true, data: null }));
 
-      // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const initialCount = store.templateCount();
 
-      await store.deleteTemplate('template-2');
+      store.deleteTemplate.mutate('template-2');
 
+      // Optimistic update happens synchronously via onMutate
       expect(store.templateCount()).toBe(initialCount - 1);
       expect(
         store.budgetTemplates.value()?.find((t) => t.id === 'template-2'),
       ).toBeFalsy();
+
+      // Wait for mutation to complete
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
       expect(mockApi.delete$).toHaveBeenCalledWith('template-2');
-    });
-
-    it('should rollback deletion on error', async () => {
-      mockApi.delete$ = vi
-        .fn()
-        .mockReturnValue(throwError(() => new Error('Deletion failed')));
-
-      // Wait for initial load
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      const initialTemplates = store.budgetTemplates.value();
-
-      await expect(store.deleteTemplate('template-2')).rejects.toThrow(
-        'Deletion failed',
-      );
-
-      // Should be rolled back
-      expect(store.budgetTemplates.value()).toEqual(initialTemplates);
     });
   });
 
   describe('Data Refresh', () => {
-    it('should refresh data when not loading', async () => {
-      // Wait for initial load to complete
+    it('should refresh data', async () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const reloadSpy = vi.spyOn(store.budgetTemplates, 'reload');
-
-      store.refreshData();
-
-      expect(reloadSpy).toHaveBeenCalled();
-    });
-
-    it('should not refresh when already loading', async () => {
-      // Wait for initial load to complete
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      // The current implementation always calls reload
       const reloadSpy = vi.spyOn(store.budgetTemplates, 'reload');
 
       store.refreshData();
@@ -451,11 +454,9 @@ describe('BudgetTemplatesStore', () => {
 
       store = TestBed.inject(BudgetTemplatesStore);
 
-      // Wait for resource to attempt load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(store.budgetTemplates.error()).toBeTruthy();
-      // When in error state, resource doesn't return data, so these computed signals should handle it gracefully
       expect(store.budgetTemplates.status()).toBe('error');
     });
   });

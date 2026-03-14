@@ -13,7 +13,7 @@ import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import EditTransactionsDialog from './edit-transactions-dialog';
 import { TemplateLineStore } from '../services/template-line-store';
 import { TransactionFormService } from '../../services/transaction-form';
-import { BudgetTemplatesApi } from '../../services/budget-templates-api';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { TransactionLabelPipe } from '@pattern/transaction-display';
 import type { TransactionFormData } from '../../services/transaction-form';
 import type { TemplateLine } from 'pulpe-shared';

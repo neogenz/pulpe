@@ -1,4 +1,5 @@
-import { inject, Injectable, signal, computed, resource } from '@angular/core';
+import { inject, Injectable, computed } from '@angular/core';
+import { DataCache, cachedResource } from 'ngx-ziflux';
 import {
   type UserSettings,
   type UpdateUserSettings,
@@ -33,20 +34,25 @@ export class UserSettingsApi {
   readonly #demoMode = inject(DemoModeService);
   readonly #logger = inject(Logger);
 
-  readonly #reloadTrigger = signal(0);
+  readonly cache = new DataCache({
+    name: 'settings',
+    staleTime: 60_000,
+    expireTime: 600_000,
+  });
 
-  readonly #settingsResource = resource<
+  readonly #settingsResource = cachedResource<
     UserSettings | null,
-    { isReady: boolean; trigger: number }
+    { isReady: boolean }
   >({
-    params: () => ({
-      isReady:
+    cache: this.cache,
+    cacheKey: ['settings', 'user'],
+    params: () => {
+      const isReady =
         this.#authState.isAuthenticated() &&
-        (this.#clientKey.hasClientKey() || this.#demoMode.isDemoMode()),
-      trigger: this.#reloadTrigger(),
-    }),
-    loader: async ({ params }) =>
-      params.isReady ? this.#loadSettings() : null,
+        (this.#clientKey.hasClientKey() || this.#demoMode.isDemoMode());
+      return isReady ? { isReady } : undefined;
+    },
+    loader: async () => this.#loadSettings(),
   });
 
   readonly settings = computed(() => this.#settingsResource.value());
@@ -68,12 +74,13 @@ export class UserSettingsApi {
   }
 
   reload(): void {
-    this.#reloadTrigger.update((v) => v + 1);
+    this.cache.invalidate(['settings']);
+    this.#settingsResource.reload();
   }
 
   reset(): void {
+    this.cache.clear();
     this.#settingsResource.set(null);
-    this.#reloadTrigger.set(0);
   }
 
   async deleteAccount(): Promise<DeleteAccountResponse> {

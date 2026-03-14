@@ -244,6 +244,9 @@ importers:
       ngx-unicode-spinners:
         specifier: ^1.0.0
         version: 1.0.0(@angular/core@21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2))
+      ngx-ziflux:
+        specifier: ^0.0.2
+        version: 0.0.2(@angular/common@21.0.6(@angular/core@21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2))(rxjs@7.8.2)
       postcss:
         specifier: ^8.5.4
         version: 8.5.6
@@ -5764,6 +5767,14 @@ packages:
     resolution: {integrity: sha512-YssEBTzgX+f8IvXWMEetknAZi001YICgtCqLAyTIsM98AXSBAXcStwX6q6ZUffwmq3MoPYFrj4lCBQLO46ayfg==}
     peerDependencies:
       '@angular/core': ^21.0.0
+
+  ngx-ziflux@0.0.2:
+    resolution: {integrity: sha512-d2ILe7KUYoUaIq67Ln/WN2pA072TAVmgZ3qwKguP9fndefM8DPXVGxdO7WXK0xjN14GvAJvtj7fQ4SRzIwcg8w==}
+    engines: {node: '>=22.0.0'}
+    peerDependencies:
+      '@angular/common': ^21.0.0
+      '@angular/core': ^21.0.0
+      rxjs: ^7.0.0
 
   nice-try@1.0.5:
     resolution: {integrity: sha512-1nh45deeb5olNY7eX82BkPO7SSxR5SSYJiPTrTdFUVYwAl8CKMA5N9PjTYkHiRjisVcxcQ1HXdLhx2qxxJzLNQ==}
@@ -13368,6 +13379,13 @@ snapshots:
   ngx-unicode-spinners@1.0.0(@angular/core@21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2)):
     dependencies:
       '@angular/core': 21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2)
+      tslib: 2.8.1
+
+  ngx-ziflux@0.0.2(@angular/common@21.0.6(@angular/core@21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2))(rxjs@7.8.2):
+    dependencies:
+      '@angular/common': 21.0.6(@angular/core@21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2))(rxjs@7.8.2)
+      '@angular/core': 21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2)
+      rxjs: 7.8.2
       tslib: 2.8.1
 
   nice-try@1.0.5: {}

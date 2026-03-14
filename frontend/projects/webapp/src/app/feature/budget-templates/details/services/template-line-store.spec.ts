@@ -3,7 +3,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { TemplateLineStore } from './template-line-store';
-import { BudgetTemplatesApi } from '../../services/budget-templates-api';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import {
   TransactionFormService,
   type TransactionFormData,

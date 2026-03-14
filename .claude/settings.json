@@ -15,7 +15,6 @@
     "deny": [],
     "defaultMode": "acceptEdits"
   },
-  "model": "opus",
   "enableAllProjectMcpServers": true,
   "enabledPlugins": {
     "typescript-lsp@claude-plugins-official": true,

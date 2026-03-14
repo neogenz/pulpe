@@ -1,33 +1,31 @@
-import { Injectable, computed, inject, resource, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import {
   type BudgetTemplate,
   type BudgetTemplateCreate,
   type BudgetTemplateCreateResponse,
 } from 'pulpe-shared';
-import { firstValueFrom } from 'rxjs';
-import { BudgetTemplatesApi } from './budget-templates-api';
-import { Logger } from '@core/logging/logger';
+import { firstValueFrom, map } from 'rxjs';
+import { cachedResource, cachedMutation } from 'ngx-ziflux';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 
 @Injectable()
 export class BudgetTemplatesStore {
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
-  readonly #logger = inject(Logger);
 
   // Business constants
   readonly MAX_TEMPLATES = 5;
 
-  readonly budgetTemplates = resource<BudgetTemplate[], void>({
-    loader: async () => {
-      try {
-        const response = await firstValueFrom(
-          this.#budgetTemplatesApi.getAll$(),
-        );
-        return Array.isArray(response.data) ? response.data : [];
-      } catch (error) {
-        this.#logger.error('Erreur lors du chargement des templates:', error);
-        throw error;
-      }
-    },
+  readonly budgetTemplates = cachedResource({
+    cache: this.#budgetTemplatesApi.cache,
+    cacheKey: ['templates', 'list'],
+    loader: () =>
+      this.#budgetTemplatesApi
+        .getAll$()
+        .pipe(
+          map((response) =>
+            Array.isArray(response.data) ? response.data : [],
+          ),
+        ),
   });
   readonly selectedTemplate = signal<BudgetTemplate | null>(null);
 
@@ -51,10 +49,24 @@ export class BudgetTemplatesStore {
     () => this.#persistedTemplates().find((t) => t.isDefault) ?? null,
   );
 
+  readonly deleteTemplate = cachedMutation<string, void, BudgetTemplate[]>({
+    cache: this.#budgetTemplatesApi.cache,
+    mutationFn: (id) =>
+      this.#budgetTemplatesApi.delete$(id).pipe(map(() => void 0 as void)),
+    onMutate: (id) => {
+      const previous = this.budgetTemplates.value() ?? [];
+      this.budgetTemplates.update((data) =>
+        (data ?? []).filter((t) => t.id !== id),
+      );
+      return previous;
+    },
+    onError: (_err, _id, previous) => {
+      if (previous) this.budgetTemplates.set(previous);
+    },
+  });
+
   refreshData(): void {
-    if (this.budgetTemplates.status() !== 'loading') {
-      this.budgetTemplates.reload();
-    }
+    this.budgetTemplates.reload();
   }
 
   selectTemplate(id: string): void {
@@ -79,31 +91,25 @@ export class BudgetTemplatesStore {
     );
 
     // Update list state with template only (lines don't belong in list)
-    this.budgetTemplates.update((data) => {
-      if (!data || !response.data.template) return data;
-      return [...data, response.data.template];
-    });
+    if (response.data.template) {
+      this.budgetTemplates.update((data) => [
+        ...(data ?? []),
+        response.data.template!,
+      ]);
+    }
+
+    // Pre-populate detail cache for SWR navigation
+    if (response.data.template) {
+      this.#budgetTemplatesApi.cache.set(
+        ['templates', 'details', response.data.template.id],
+        {
+          template: response.data.template,
+          transactions: response.data.lines ?? [],
+        },
+      );
+    }
 
     // Return full data (template + lines) for SWR navigation
     return response.data;
-  }
-  async deleteTemplate(id: string): Promise<void> {
-    const originalData = this.budgetTemplates.value();
-
-    // Optimistic update
-    this.budgetTemplates.update((data) => {
-      if (!data) return data;
-      return data.filter((t) => t.id !== id);
-    });
-
-    try {
-      await firstValueFrom(this.#budgetTemplatesApi.delete$(id));
-    } catch (error) {
-      // Rollback on error
-      if (originalData) {
-        this.budgetTemplates.update(() => originalData);
-      }
-      throw error;
-    }
   }
 }

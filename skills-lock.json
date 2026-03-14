@@ -20,6 +20,11 @@
       "source": "manutej/luxor-claude-marketplace",
       "sourceType": "github",
       "computedHash": "de11ad890ffe93db296e13f42afea7ce7f7c18f12871f417b2b9b08f548f27af"
+    },
+    "ziflux-expert": {
+      "source": "neogenz/ziflux",
+      "sourceType": "github",
+      "computedHash": "00d993983908ac4a29c16f81e9b4a8e5da50f0ae2993b60eb3eb795369f55956"
     }
   }
 }

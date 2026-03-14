@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { type Observable, forkJoin, map } from 'rxjs';
+import { type Observable, forkJoin, map, tap } from 'rxjs';
 import {
   type BudgetTemplateCreate,
   type BudgetTemplateCreateFromOnboarding,
@@ -23,10 +23,18 @@ import {
   templateUsageResponseSchema,
 } from 'pulpe-shared';
 import { ApiClient } from '@core/api/api-client';
+import { DataCache } from 'ngx-ziflux';
 
-@Injectable()
+@Injectable({
+  providedIn: 'root',
+})
 export class BudgetTemplatesApi {
   readonly #api = inject(ApiClient);
+  readonly cache = new DataCache({
+    name: 'templates',
+    staleTime: 30_000,
+    expireTime: 300_000,
+  });
 
   getAll$(): Observable<BudgetTemplateListResponse> {
     return this.#api.get$(
@@ -45,11 +53,9 @@ export class BudgetTemplatesApi {
   create$(
     template: BudgetTemplateCreate,
   ): Observable<BudgetTemplateCreateResponse> {
-    return this.#api.post$(
-      '/budget-templates',
-      template,
-      budgetTemplateCreateResponseSchema,
-    );
+    return this.#api
+      .post$('/budget-templates', template, budgetTemplateCreateResponseSchema)
+      .pipe(tap(() => this.cache.invalidate(['templates'])));
   }
 
   createFromOnboarding$(
@@ -66,11 +72,9 @@ export class BudgetTemplatesApi {
     id: string,
     updates: Partial<BudgetTemplateCreate>,
   ): Observable<BudgetTemplateResponse> {
-    return this.#api.patch$(
-      `/budget-templates/${id}`,
-      updates,
-      budgetTemplateResponseSchema,
-    );
+    return this.#api
+      .patch$(`/budget-templates/${id}`, updates, budgetTemplateResponseSchema)
+      .pipe(tap(() => this.cache.invalidate(['templates'])));
   }
 
   getTemplateTransactions$(
@@ -86,29 +90,32 @@ export class BudgetTemplatesApi {
     templateId: string,
     bulkUpdate: TemplateLinesBulkUpdate,
   ): Observable<TemplateLinesBulkUpdateResponse> {
-    return this.#api.patch$(
-      `/budget-templates/${templateId}/lines`,
-      bulkUpdate,
-      templateLinesBulkUpdateResponseSchema,
-    );
+    return this.#api
+      .patch$(
+        `/budget-templates/${templateId}/lines`,
+        bulkUpdate,
+        templateLinesBulkUpdateResponseSchema,
+      )
+      .pipe(tap(() => this.cache.invalidate(['templates'])));
   }
 
   bulkOperationsTemplateLines$(
     templateId: string,
     bulkOperations: TemplateLinesBulkOperations,
   ): Observable<TemplateLinesBulkOperationsResponse> {
-    return this.#api.post$(
-      `/budget-templates/${templateId}/lines/bulk-operations`,
-      bulkOperations,
-      templateLinesBulkOperationsResponseSchema,
-    );
+    return this.#api
+      .post$(
+        `/budget-templates/${templateId}/lines/bulk-operations`,
+        bulkOperations,
+        templateLinesBulkOperationsResponseSchema,
+      )
+      .pipe(tap(() => this.cache.invalidate(['templates'])));
   }
 
   delete$(id: string): Observable<BudgetTemplateDeleteResponse> {
-    return this.#api.delete$(
-      `/budget-templates/${id}`,
-      budgetTemplateDeleteResponseSchema,
-    );
+    return this.#api
+      .delete$(`/budget-templates/${id}`, budgetTemplateDeleteResponseSchema)
+      .pipe(tap(() => this.cache.invalidate(['templates'])));
   }
 
   checkUsage$(id: string): Observable<TemplateUsageResponse> {
