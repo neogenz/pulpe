@@ -81,7 +81,7 @@ import {
             </span>
             @if (line().metadata.envelopeName) {
               <span
-                class="flex items-center gap-1 text-label-small text-on-surface-variant"
+                class="flex items-center gap-1 text-label-small text-on-surface-variant ph-no-capture"
               >
                 <mat-icon class="text-sm!">folder</mat-icon>
                 {{ line().metadata.envelopeName }}

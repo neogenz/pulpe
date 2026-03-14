@@ -79,7 +79,7 @@ const DETAIL_SEGMENT_COUNT = 12;
           <div class="flex items-center gap-3 min-w-0 flex-1">
             <pulpe-budget-kind-indicator [kind]="envelope.data.kind" />
             <div class="min-w-0">
-              <h2 class="text-title-large font-semibold truncate">
+              <h2 class="text-title-large font-semibold truncate ph-no-capture">
                 {{ envelope.data.name }}
               </h2>
               <span class="text-label-medium text-on-surface-variant">
@@ -213,7 +213,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                 >
                   <div class="flex-1 min-w-0">
                     <div
-                      class="text-body-medium font-medium truncate"
+                      class="text-body-medium font-medium truncate ph-no-capture"
                       [class.line-through]="tx.checkedAt"
                       [class.text-on-surface-variant]="tx.checkedAt"
                     >

@@ -61,7 +61,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
           <div class="flex items-center gap-2.5 min-w-0 flex-1">
             <pulpe-budget-kind-indicator [kind]="item().data.kind" />
             <span
-              class="text-title-medium font-medium truncate"
+              class="text-title-medium font-medium truncate ph-no-capture"
               [class.line-through]="item().data.checkedAt"
               [class.text-on-surface-variant]="item().data.checkedAt"
             >

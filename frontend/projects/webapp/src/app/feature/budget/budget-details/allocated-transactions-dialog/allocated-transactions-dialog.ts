@@ -123,7 +123,11 @@ export interface AllocatedTransactionsDialogResult {
               <th mat-header-cell *matHeaderCellDef>
                 {{ 'budget.tableDescription' | transloco }}
               </th>
-              <td mat-cell *matCellDef="let tx" class="text-body-medium">
+              <td
+                mat-cell
+                *matCellDef="let tx"
+                class="text-body-medium ph-no-capture"
+              >
                 {{ tx.name }}
               </td>
             </ng-container>
