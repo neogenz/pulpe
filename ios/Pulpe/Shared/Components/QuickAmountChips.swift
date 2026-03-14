@@ -47,7 +47,7 @@ struct QuickAmountChips: View {
                             )
                         )
                 }
-                .buttonStyle(.plain)
+                .plainPressedButtonStyle()
                 .accessibilityHint("Définir le montant à \(quickAmount) \(DesignTokens.AmountInput.currencyCode)")
             }
         }

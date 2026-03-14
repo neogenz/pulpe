@@ -39,6 +39,5 @@ struct CapsulePicker<T: CaseIterable & Hashable, ItemLabel: View>: View where T.
             .sensoryFeedback(.selection, trigger: selection)
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(title)
     }
 }
