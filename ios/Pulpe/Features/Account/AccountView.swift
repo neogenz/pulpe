@@ -26,7 +26,7 @@ struct AccountView: View {
                     }
                 }
             } message: {
-                Text("Tu devras te reconnecter avec ton email et mot de passe.")
+                Text("Tu devras te reconnecter avec ton email et ton mot de passe.")
             }
             .sensoryFeedback(.impact, trigger: debugToggleTrigger)
             .listStyle(.insetGrouped)

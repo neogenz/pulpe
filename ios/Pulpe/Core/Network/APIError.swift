@@ -32,7 +32,7 @@ enum APIError: LocalizedError {
         case .invalidURL:
             return "L'adresse n'est pas valide — vérifie le lien"
         case .invalidResponse:
-            return "Le serveur a répondu de façon inattendue — réessaye"
+            return "Le serveur a répondu de façon inattendue — réessaie"
         case .unauthorized:
             return "Session expirée — reconnecte-toi pour continuer"
         case .forbidden:
@@ -48,7 +48,7 @@ enum APIError: LocalizedError {
         case .networkError:
             return "Connexion impossible — vérifie ta connexion internet"
         case .decodingError:
-            return "Les données reçues sont illisibles — réessaye"
+            return "Les données reçues sont illisibles — réessaie"
         case .unknown(let code):
             return "Quelque chose n'a pas fonctionné (code: \(code))"
 
