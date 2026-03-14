@@ -200,18 +200,13 @@ describe('UserSettingsApi', () => {
       setupTestBed(true);
     });
 
-    it('should trigger a new api.get$ call when reload is called', () => {
+    it('should invalidate cache and trigger reload', () => {
       TestBed.flushEffects();
-      mockApi.get$.mockClear();
+      const cacheInvalidateSpy = vi.spyOn(service.cache, 'invalidate');
 
-      mockApi.get$.mockReturnValue(of({ data: { payDayOfMonth: 20 } }));
       service.reload();
-      TestBed.flushEffects();
 
-      expect(mockApi.get$).toHaveBeenCalledWith(
-        '/users/settings',
-        userSettingsResponseSchema,
-      );
+      expect(cacheInvalidateSpy).toHaveBeenCalledWith(['settings']);
     });
   });
 });

@@ -16,12 +16,14 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
-import type { BudgetTemplateDetailViewModel } from '../services/budget-templates-api';
-import { BudgetTemplatesApi } from '../services/budget-templates-api';
+import {
+  BudgetTemplatesApi,
+  type BudgetTemplateDetailViewModel,
+} from '@core/budget-template/budget-templates-api';
+import { BudgetTemplatesStore } from '../services/budget-templates-store';
 import { TemplateDetailsStore } from './services/template-details-store';
 import { PulpeTitleStrategy } from '@core/routing/title-strategy';
 import { Logger } from '@core/logging/logger';
-import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { BudgetApi } from '@core/budget/budget-api';
 import { TransactionLabelPipe } from '@pattern/transaction-display';
 import { BaseLoading } from '@ui/loading';
@@ -113,12 +115,15 @@ const mockStore = {
 const mockDialog = { open: vi.fn() };
 const mockSnackBar = { open: vi.fn() };
 const mockBudgetTemplatesApi = { checkUsage$: vi.fn(), delete$: vi.fn() };
+const mockDeleteMutation = {
+  mutate: vi.fn<(id: string) => Promise<void>>().mockResolvedValue(undefined),
+  error: signal<unknown>(null),
+};
+const mockBudgetTemplatesStore = {
+  deleteTemplate: mockDeleteMutation,
+};
 const mockTitleStrategy = { setTitle: vi.fn() };
 const mockLogger = { error: vi.fn() };
-const mockBudgetInvalidationService = {
-  invalidate: vi.fn(),
-  version: signal(0).asReadonly(),
-};
 const mockBudgetApi = { cache: { invalidate: vi.fn() } };
 const mockRoute = {
   snapshot: {
@@ -146,12 +151,9 @@ describe('TemplateDetail', () => {
         { provide: MatDialog, useValue: mockDialog },
         { provide: MatSnackBar, useValue: mockSnackBar },
         { provide: BudgetTemplatesApi, useValue: mockBudgetTemplatesApi },
+        { provide: BudgetTemplatesStore, useValue: mockBudgetTemplatesStore },
         { provide: PulpeTitleStrategy, useValue: mockTitleStrategy },
         { provide: Logger, useValue: mockLogger },
-        {
-          provide: BudgetInvalidationService,
-          useValue: mockBudgetInvalidationService,
-        },
         { provide: BudgetApi, useValue: mockBudgetApi },
       ],
     })
@@ -179,6 +181,8 @@ describe('TemplateDetail', () => {
     storeTemplateDetails.set(mockTemplateDetails);
     storeIsLoading.set(false);
     storeError.set(null);
+    mockDeleteMutation.error.set(null);
+    mockDeleteMutation.mutate.mockResolvedValue(undefined);
     // Default route returns template-123
     mockRoute.snapshot.paramMap.get.mockImplementation((key: string) =>
       key === 'templateId' ? 'template-123' : null,
@@ -197,7 +201,6 @@ describe('TemplateDetail', () => {
 
       expect(mockStore.initializeTemplateId).toHaveBeenCalledWith(
         'template-123',
-        undefined,
       );
     });
 
@@ -383,7 +386,6 @@ describe('TemplateDetail', () => {
       fixture.componentInstance.editTemplate();
 
       expect(mockStore.reloadTemplateDetails).toHaveBeenCalledOnce();
-      expect(mockBudgetInvalidationService.invalidate).toHaveBeenCalledOnce();
       expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledWith(['budget']);
     });
 
@@ -404,7 +406,6 @@ describe('TemplateDetail', () => {
       fixture.componentInstance.editTemplate();
 
       expect(mockStore.reloadTemplateDetails).toHaveBeenCalledOnce();
-      expect(mockBudgetInvalidationService.invalidate).not.toHaveBeenCalled();
       expect(mockBudgetApi.cache.invalidate).not.toHaveBeenCalled();
     });
 
@@ -555,7 +556,8 @@ describe('TemplateDetail', () => {
       mockBudgetTemplatesApi.checkUsage$.mockReturnValue(
         of({ data: { isUsed: false, budgets: [] } }),
       );
-      mockBudgetTemplatesApi.delete$.mockReturnValue(of({}));
+      mockDeleteMutation.mutate.mockResolvedValue(undefined);
+      mockDeleteMutation.error.set(null);
       mockDialog.open.mockReturnValue({ afterClosed: () => of(true) });
 
       const fixture = await createFixture();
@@ -564,9 +566,7 @@ describe('TemplateDetail', () => {
 
       await fixture.componentInstance.deleteTemplate();
 
-      expect(mockBudgetTemplatesApi.delete$).toHaveBeenCalledWith(
-        'template-123',
-      );
+      expect(mockDeleteMutation.mutate).toHaveBeenCalledWith('template-123');
       expect(mockSnackBar.open).toHaveBeenCalledWith(
         'Modèle supprimé avec succès',
         undefined,
@@ -579,9 +579,10 @@ describe('TemplateDetail', () => {
       mockBudgetTemplatesApi.checkUsage$.mockReturnValue(
         of({ data: { isUsed: false, budgets: [] } }),
       );
-      mockBudgetTemplatesApi.delete$.mockReturnValue(
-        throwError(() => new Error('Network error')),
-      );
+      const deleteError = new Error('Network error');
+      mockDeleteMutation.mutate.mockImplementation(async () => {
+        mockDeleteMutation.error.set(deleteError);
+      });
       mockDialog.open.mockReturnValue({ afterClosed: () => of(true) });
 
       const fixture = await createFixture();

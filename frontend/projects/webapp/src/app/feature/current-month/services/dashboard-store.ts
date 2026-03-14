@@ -4,7 +4,6 @@ import {
   inject,
   Injectable,
   InjectionToken,
-  resource,
   signal,
   untracked,
 } from '@angular/core';
@@ -13,7 +12,7 @@ import {
   calculateAllConsumptions,
   type BudgetLineConsumption,
 } from '@core/budget';
-import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
+import { cachedResource } from 'ngx-ziflux';
 import { UserSettingsApi } from '@core/user-settings';
 import {
   type BudgetLine,
@@ -44,7 +43,6 @@ export class DashboardStore {
   // ── 1. Dependencies ──
   readonly #budgetApi = inject(BudgetApi);
   readonly #userSettingsApi = inject(UserSettingsApi);
-  readonly #invalidationService = inject(BudgetInvalidationService);
 
   // ── 2. State ──
   readonly #pendingChecks = signal(new Set<string>());
@@ -60,43 +58,33 @@ export class DashboardStore {
   });
 
   // ── 3. Resources ──
-  readonly #dashboardResource = resource<
+  readonly #dashboardResource = cachedResource<
     DashboardData,
-    { month: string; year: string; version: number }
+    { month: string; year: string }
   >({
+    cache: this.#budgetApi.cache,
+    cacheKey: (params) => ['budget', 'dashboard', params.month, params.year],
     params: () => {
       const period = this.currentBudgetPeriod();
       return {
         month: period.month.toString().padStart(2, '0'),
         year: period.year.toString(),
-        version: this.#invalidationService.version(),
       };
     },
-    loader: async ({ params }) =>
-      firstValueFrom(
-        this.#budgetApi.getDashboardData$(params.month, params.year),
-      ),
+    loader: ({ params }) =>
+      this.#budgetApi.getDashboardData$(params.month, params.year),
   });
 
-  readonly #historyResource = resource<HistoryDataPoint[], { version: number }>(
-    {
-      params: () => ({
-        version: this.#invalidationService.version(),
-      }),
-      loader: async () => firstValueFrom(this.#budgetApi.getHistoryData$()),
-    },
-  );
+  readonly #historyResource = cachedResource<HistoryDataPoint[], object>({
+    cache: this.#budgetApi.cache,
+    cacheKey: ['budget', 'history'],
+    loader: () => this.#budgetApi.getHistoryData$(),
+  });
 
   // ── 4. Selectors ──
-  readonly dashboardData = computed(() => {
-    const resourceValue = this.#dashboardResource.value();
-    if (resourceValue) return resourceValue;
-
-    const period = this.currentBudgetPeriod();
-    const month = period.month.toString().padStart(2, '0');
-    const year = period.year.toString();
-    return this.#budgetApi.getDashboardCached(month, year);
-  });
+  readonly dashboardData = computed(
+    () => this.#dashboardResource.value() ?? null,
+  );
 
   readonly transactions = computed<Transaction[]>(
     () => this.dashboardData()?.transactions ?? [],
@@ -140,8 +128,7 @@ export class DashboardStore {
   readonly isInitialLoading = computed(() => {
     if (this.dashboardData()) return false;
     return (
-      this.status() === 'loading' ||
-      (this.isSettingsLoading() && !this.hasValue())
+      this.#dashboardResource.isInitialLoading() || this.isSettingsLoading()
     );
   });
 
@@ -353,25 +340,15 @@ export class DashboardStore {
     budgetLineId: string,
     checkedAt: string | null,
   ): void {
-    let patched: DashboardData | undefined;
     this.#dashboardResource.update((data) => {
-      if (!data) return data;
-      patched = {
+      if (!data) return data!;
+      return {
         ...data,
         budgetLines: data.budgetLines.map((line) =>
           line.id === budgetLineId ? { ...line, checkedAt } : line,
         ),
       };
-      return patched;
     });
-    if (patched) this.#syncDashboardCache(patched);
-  }
-
-  #syncDashboardCache(data: DashboardData): void {
-    const period = this.currentBudgetPeriod();
-    const month = period.month.toString().padStart(2, '0');
-    const year = period.year.toString();
-    this.#budgetApi.seedDashboardCache(month, year, data);
   }
 
   async #performOptimisticMutation<T>(
@@ -414,7 +391,6 @@ export class DashboardStore {
           },
         };
         this.#dashboardResource.set(withMetrics);
-        this.#syncDashboardCache(withMetrics);
 
         const budgetId = currentData.budget.id;
         const updatedBudget = await firstValueFrom(
@@ -432,13 +408,11 @@ export class DashboardStore {
             },
           };
           this.#dashboardResource.set(withBudget);
-          this.#syncDashboardCache(withBudget);
         }
       }
     } catch (error) {
       if (originalData) {
         this.#dashboardResource.set(originalData);
-        this.#syncDashboardCache(originalData);
       } else {
         this.refreshData();
       }

@@ -1,15 +1,8 @@
-import {
-  Injectable,
-  computed,
-  inject,
-  linkedSignal,
-  resource,
-} from '@angular/core';
+import { Injectable, computed, inject, linkedSignal } from '@angular/core';
 import { BudgetApi } from '@core/budget/budget-api';
-import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
-import { Logger } from '@core/logging/logger';
 import { type Budget } from 'pulpe-shared';
-import { firstValueFrom } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { cachedResource } from 'ngx-ziflux';
 
 export interface BudgetPlaceholder {
   month: number;
@@ -19,31 +12,23 @@ export interface BudgetPlaceholder {
 @Injectable()
 export class BudgetListStore {
   readonly #budgetApi = inject(BudgetApi);
-  readonly #logger = inject(Logger);
-  readonly #invalidationService = inject(BudgetInvalidationService);
 
   private static readonly MAX_FUTURE_MONTHS_TO_SEARCH = 36;
 
-  /**
-   * Resource that auto-reloads when budget invalidation version changes.
-   * This enables automatic cache invalidation across stores.
-   */
-  readonly budgets = resource<Budget[], { version: number }>({
-    params: () => ({ version: this.#invalidationService.version() }),
-    loader: async () => this.#loadBudgets(),
+  readonly budgets = cachedResource({
+    cache: this.#budgetApi.cache,
+    cacheKey: ['budget', 'list'],
+    loader: () =>
+      this.#budgetApi
+        .getAllBudgets$()
+        .pipe(map((budgets) => this.#sortBudgets(budgets))),
   });
 
-  readonly isLoading = computed(() => this.budgets.isLoading());
+  readonly isLoading = this.budgets.isInitialLoading;
   readonly hasValue = computed(() => this.budgets.hasValue());
   readonly error = computed(() => this.budgets.error());
 
-  readonly budgetsList = computed(() => {
-    const resourceValue = this.budgets.value();
-    if (resourceValue) return resourceValue;
-
-    const cached = this.#budgetApi.cache.get<Budget[]>(['budget', 'list']);
-    return cached ? this.#sortBudgets(cached.data) : [];
-  });
+  readonly budgetsList = computed(() => this.budgets.value() ?? []);
 
   readonly plannedYears = computed(() => {
     const months = this.budgetsList();
@@ -169,30 +154,13 @@ export class BudgetListStore {
   });
 
   refreshData(): void {
-    if (!this.isLoading()) {
+    if (!this.budgets.isLoading()) {
       this.budgets.reload();
     }
   }
 
   setSelectedYear(year: number): void {
     this.selectedYear.set(year);
-  }
-
-  async #loadBudgets(): Promise<Budget[]> {
-    const cacheKey: string[] = ['budget', 'list'];
-    const cached = this.#budgetApi.cache.get<Budget[]>(cacheKey);
-
-    if (cached?.fresh) {
-      return this.#sortBudgets(cached.data);
-    }
-
-    try {
-      const budgets = await firstValueFrom(this.#budgetApi.getAllBudgets$());
-      return this.#sortBudgets(budgets);
-    } catch (error) {
-      this.#logger.error('Erreur lors du chargement des mois:', error);
-      throw error;
-    }
   }
 
   #sortBudgets(budgets: Budget[]): Budget[] {

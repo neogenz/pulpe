@@ -292,7 +292,7 @@ export default class BudgetListPage {
         },
       });
 
-      // Store auto-refreshes via BudgetInvalidationService when budget is created
+      // Store auto-refreshes via cache invalidation when budget is created
       await firstValueFrom(dialogRef.afterClosed());
     } catch (error) {
       this.#logger.error('Error opening create budget dialog', error);
@@ -322,7 +322,7 @@ export default class BudgetListPage {
         data: { month, year },
       });
 
-      // Store auto-refreshes via BudgetInvalidationService when budget is created
+      // Store auto-refreshes via cache invalidation when budget is created
       await firstValueFrom(dialogRef.afterClosed());
     } catch (error) {
       this.#logger.error('Error opening create budget dialog', error);

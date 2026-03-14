@@ -3,13 +3,12 @@ import {
   effect,
   inject,
   Injectable,
-  resource,
   signal,
   untracked,
 } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
+import { cachedResource } from 'ngx-ziflux';
 import { BudgetApi } from '@core/budget/budget-api';
-import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { isApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
@@ -56,7 +55,6 @@ export class BudgetDetailsStore {
   // ── 1. Dependencies ──
   readonly #apiErrorLocalizer = inject(ApiErrorLocalizer);
   readonly #budgetApi = inject(BudgetApi);
-  readonly #invalidationService = inject(BudgetInvalidationService);
   readonly #logger = inject(Logger);
   readonly #storage = inject(StorageService);
   readonly #transloco = inject(TranslocoService);
@@ -96,49 +94,40 @@ export class BudgetDetailsStore {
   }
 
   // ── 3. Data loading (resource) ──
-  readonly #budgetDetailsResource = resource<
+  readonly #budgetDetailsResource = cachedResource<
     BudgetDetailsViewModel,
-    string | undefined
+    { budgetId: string }
   >({
-    params: () => this.#state.budgetId() ?? undefined,
-    loader: async ({ params: budgetId }) => {
-      const cacheKey: string[] = ['budget', 'details', budgetId];
-      const cached =
-        this.#budgetApi.cache.get<BudgetDetailsViewModel>(cacheKey);
-
-      if (cached?.fresh) return cached.data;
-
-      const freshPromise = this.#budgetApi.cache.deduplicate(
-        cacheKey,
-        async () => {
-          const response = await firstValueFrom(
-            this.#budgetApi.getBudgetWithDetails$(budgetId),
-          );
-
-          if (!response.success || !response.data) {
-            this.#logger.error('Failed to fetch budget details', {
-              budgetId,
-            });
-            throw new Error('Failed to fetch budget details');
-          }
-
-          const viewModel: BudgetDetailsViewModel = {
-            ...response.data.budget,
-            budgetLines: response.data.budgetLines,
-            transactions: response.data.transactions,
-          };
-
-          return viewModel;
-        },
+    cache: this.#budgetApi.cache,
+    cacheKey: (params) => ['budget', 'details', params.budgetId],
+    params: () => {
+      const id = this.#state.budgetId();
+      return id ? { budgetId: id } : undefined;
+    },
+    loader: async ({ params }) => {
+      const response = await firstValueFrom(
+        this.#budgetApi.getBudgetWithDetails$(params.budgetId),
       );
 
-      return freshPromise;
+      if (!response.success || !response.data) {
+        this.#logger.error('Failed to fetch budget details', {
+          budgetId: params.budgetId,
+        });
+        throw new Error('Failed to fetch budget details');
+      }
+
+      return {
+        ...response.data.budget,
+        budgetLines: response.data.budgetLines,
+        transactions: response.data.transactions,
+      };
     },
   });
 
-  readonly #allBudgetsResource = resource({
-    params: () => ({ version: this.#invalidationService.version() }),
-    loader: async () => firstValueFrom(this.#budgetApi.getAllBudgets$()),
+  readonly #allBudgetsResource = cachedResource({
+    cache: this.#budgetApi.cache,
+    cacheKey: ['budget', 'list'],
+    loader: () => this.#budgetApi.getAllBudgets$(),
   });
 
   // ── 4. Public selectors (readonly/computed) ──
@@ -154,27 +143,12 @@ export class BudgetDetailsStore {
         ])?.data ?? null
       );
     }
-    const resourceValue = this.#budgetDetailsResource.value();
-    if (resourceValue) return resourceValue;
-
-    const budgetId = this.#state.budgetId();
-    if (!budgetId) return null;
-    return (
-      this.#budgetApi.cache.get<BudgetDetailsViewModel>([
-        'budget',
-        'details',
-        budgetId,
-      ])?.data ?? null
-    );
+    return this.#budgetDetailsResource.value() ?? null;
   });
   readonly isLoading = computed(
     () => this.#budgetDetailsResource.isLoading() && !this.budgetDetails(),
   );
-  readonly isInitialLoading = computed(
-    () =>
-      this.#budgetDetailsResource.status() === 'loading' &&
-      !this.budgetDetails(),
-  );
+  readonly isInitialLoading = this.#budgetDetailsResource.isInitialLoading;
   readonly hasValue = computed(() => this.budgetDetails() !== null);
   readonly error = computed(
     () => this.#budgetDetailsResource.error() || this.#state.errorMessage(),
@@ -374,7 +348,7 @@ export class BudgetDetailsStore {
 
     // Optimistic update - add the new line immediately
     this.#budgetDetailsResource.update((details) => {
-      if (!details) return details;
+      if (!details) return details!;
 
       return {
         ...details,
@@ -389,7 +363,7 @@ export class BudgetDetailsStore {
 
       // Replace temporary line with server response
       this.#budgetDetailsResource.update((details) => {
-        if (!details) return details;
+        if (!details) return details!;
 
         return {
           ...details,
@@ -414,7 +388,7 @@ export class BudgetDetailsStore {
   async updateBudgetLine(data: BudgetLineUpdate): Promise<void> {
     // Optimistic update
     this.#budgetDetailsResource.update((details) => {
-      if (!details) return details;
+      if (!details) return details!;
 
       const updatedLines = details.budgetLines.map((line) =>
         line.id === data.id
@@ -447,7 +421,7 @@ export class BudgetDetailsStore {
    */
   async updateTransaction(id: string, data: TransactionUpdate): Promise<void> {
     this.#budgetDetailsResource.update((details) => {
-      if (!details) return details;
+      if (!details) return details!;
 
       const updatedTransactions = (details.transactions ?? []).map((tx) =>
         tx.id === id
@@ -481,7 +455,7 @@ export class BudgetDetailsStore {
   async deleteBudgetLine(id: string): Promise<void> {
     // Optimistic update - remove the line and free its allocated transactions
     this.#budgetDetailsResource.update((details) => {
-      if (!details) return details;
+      if (!details) return details!;
 
       return {
         ...details,
@@ -510,7 +484,7 @@ export class BudgetDetailsStore {
   async deleteTransaction(id: string): Promise<void> {
     // Optimistic update - remove the transaction
     this.#budgetDetailsResource.update((details) => {
-      if (!details) return details;
+      if (!details) return details!;
 
       return {
         ...details,
@@ -557,7 +531,7 @@ export class BudgetDetailsStore {
     };
 
     this.#budgetDetailsResource.update((details) => {
-      if (!details) return details;
+      if (!details) return details!;
 
       return {
         ...details,
@@ -574,7 +548,7 @@ export class BudgetDetailsStore {
       );
 
       this.#budgetDetailsResource.update((details) => {
-        if (!details) return details;
+        if (!details) return details!;
 
         return {
           ...details,
@@ -605,7 +579,7 @@ export class BudgetDetailsStore {
       );
 
       this.#budgetDetailsResource.update((details) => {
-        if (!details) return details;
+        if (!details) return details!;
 
         return {
           ...details,
@@ -652,7 +626,7 @@ export class BudgetDetailsStore {
     this.#mutatingIds.add(id);
 
     this.#budgetDetailsResource.update((d) => {
-      if (!d) return d;
+      if (!d) return d!;
       return {
         ...d,
         budgetLines: result.updatedBudgetLines,
@@ -667,7 +641,7 @@ export class BudgetDetailsStore {
 
       const updatedLine = response.data;
       this.#budgetDetailsResource.update((d) => {
-        if (!d) return d;
+        if (!d) return d!;
         return {
           ...d,
           budgetLines: d.budgetLines.map((line) =>
@@ -704,7 +678,7 @@ export class BudgetDetailsStore {
     this.#mutatingIds.add(id);
 
     this.#budgetDetailsResource.update((d) => {
-      if (!d) return d;
+      if (!d) return d!;
       return {
         ...d,
         transactions: result.updatedTransactions,
@@ -717,7 +691,7 @@ export class BudgetDetailsStore {
       );
 
       this.#budgetDetailsResource.update((d) => {
-        if (!d) return d;
+        if (!d) return d!;
         return {
           ...d,
           transactions: (d.transactions ?? []).map((tx) =>
@@ -757,7 +731,7 @@ export class BudgetDetailsStore {
     const now = new Date().toISOString();
     const uncheckedIds = new Set(uncheckedTransactions.map((tx) => tx.id));
     this.#budgetDetailsResource.update((d) => {
-      if (!d) return d;
+      if (!d) return d!;
       return {
         ...d,
         budgetLines: d.budgetLines.map((line) =>
@@ -778,7 +752,7 @@ export class BudgetDetailsStore {
 
       const responseMap = new Map(response.data.map((tx) => [tx.id, tx]));
       this.#budgetDetailsResource.update((d) => {
-        if (!d) return d;
+        if (!d) return d!;
         return {
           ...d,
           transactions: (d.transactions ?? []).map((tx) => {
@@ -824,31 +798,23 @@ export class BudgetDetailsStore {
   #prefetchAdjacentBudgets(prevId: string | null, nextId: string | null): void {
     const ids = [prevId, nextId].filter((id): id is string => id !== null);
     for (const id of ids) {
-      const cached = this.#budgetApi.cache.get<BudgetDetailsViewModel>([
-        'budget',
-        'details',
-        id,
-      ]);
-      if (!cached?.fresh) {
-        this.#budgetApi.cache
-          .deduplicate(['budget', 'details', id], async () => {
-            const response = await firstValueFrom(
-              this.#budgetApi.getBudgetWithDetails$(id),
-            );
-            const viewModel: BudgetDetailsViewModel = {
-              ...response.data.budget,
-              budgetLines: response.data.budgetLines,
-              transactions: response.data.transactions,
-            };
-            return viewModel;
-          })
-          .catch((error) => {
-            this.#logger.warn(
-              `[BudgetDetailsStore] Failed to prefetch budget ${id}`,
-              error,
-            );
-          });
-      }
+      this.#budgetApi.cache
+        .prefetch(['budget', 'details', id], async () => {
+          const response = await firstValueFrom(
+            this.#budgetApi.getBudgetWithDetails$(id),
+          );
+          return {
+            ...response.data.budget,
+            budgetLines: response.data.budgetLines,
+            transactions: response.data.transactions,
+          };
+        })
+        .catch((error) => {
+          this.#logger.warn(
+            `[BudgetDetailsStore] Failed to prefetch budget ${id}`,
+            error,
+          );
+        });
     }
   }
 }

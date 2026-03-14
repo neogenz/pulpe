@@ -17,7 +17,6 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
 import { BudgetApi } from '@core/budget/budget-api';
-import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { ROUTES } from '@core/routing';
 import { Logger } from '@core/logging/logger';
 import { PulpeTitleStrategy } from '@core/routing/title-strategy';
@@ -30,15 +29,13 @@ import { BaseLoading } from '@ui/loading';
 import { TransactionLabelPipe } from '@pattern/transaction-display';
 import { firstValueFrom } from 'rxjs';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
-import {
-  BudgetTemplatesApi,
-  type BudgetTemplateDetailViewModel,
-} from '../services/budget-templates-api';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import {
   EditTransactionsDialog,
   TransactionsTable,
   type FinancialEntry,
 } from './components';
+import { BudgetTemplatesStore } from '../services/budget-templates-store';
 import { TemplateDetailsStore } from './services/template-details-store';
 
 @Component({
@@ -260,6 +257,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
 })
 export default class TemplateDetail implements OnInit {
   readonly templateDetailsStore = inject(TemplateDetailsStore);
+  readonly #budgetTemplatesStore = inject(BudgetTemplatesStore);
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
@@ -269,7 +267,6 @@ export default class TemplateDetail implements OnInit {
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
   readonly #destroyRef = inject(DestroyRef);
-  readonly #budgetInvalidationService = inject(BudgetInvalidationService);
   readonly #budgetApi = inject(BudgetApi);
   readonly #transloco = inject(TranslocoService);
 
@@ -309,14 +306,7 @@ export default class TemplateDetail implements OnInit {
     const templateId = this.#route.snapshot.paramMap.get('templateId');
     if (!templateId) return;
 
-    // Extract stale data from router state (if navigated from create page)
-    // Note: Use history.state because getCurrentNavigation() returns null in ngOnInit
-    // (navigation is already complete when component initializes)
-    const staleData = history.state?.['initialData'] as
-      | BudgetTemplateDetailViewModel
-      | undefined;
-
-    this.templateDetailsStore.initializeTemplateId(templateId, staleData);
+    this.templateDetailsStore.initializeTemplateId(templateId);
   }
 
   get #templateId(): string | null {
@@ -472,7 +462,6 @@ export default class TemplateDetail implements OnInit {
             // Reload to sync with server state when changes were applied
             this.templateDetailsStore.reloadTemplateDetails();
             if (propagation.mode === 'propagate') {
-              this.#budgetInvalidationService.invalidate();
               this.#budgetApi.cache.invalidate(['budget']);
             }
           }
@@ -579,28 +568,26 @@ export default class TemplateDetail implements OnInit {
       return;
     }
 
-    try {
-      await firstValueFrom(this.#budgetTemplatesApi.delete$(templateId));
+    await this.#budgetTemplatesStore.deleteTemplate.mutate(templateId);
 
-      this.#snackBar.open(
-        this.#transloco.translate('template.deleted'),
-        undefined,
-        {
-          duration: 3000,
-        },
+    if (this.#budgetTemplatesStore.deleteTemplate.error()) {
+      this.#logger.error(
+        'Error deleting template:',
+        this.#budgetTemplatesStore.deleteTemplate.error(),
       );
-
-      // Navigate back to templates list
-      this.navigateBack();
-    } catch (error) {
-      this.#logger.error('Error deleting template:', error);
       this.#snackBar.open(
         this.#transloco.translate('template.deleteCheckError'),
         this.#transloco.translate('common.close'),
-        {
-          duration: 5000,
-        },
+        { duration: 5000 },
       );
+      return;
     }
+
+    this.#snackBar.open(
+      this.#transloco.translate('template.deleted'),
+      undefined,
+      { duration: 3000 },
+    );
+    this.navigateBack();
   }
 }
