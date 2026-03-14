@@ -3,6 +3,7 @@ import {
   afterNextRender,
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   inject,
   input,
   computed,
@@ -24,6 +25,7 @@ import {
   calculateAllConsumptions,
 } from '@core/budget';
 import { Logger } from '@core/logging/logger';
+import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { BreadcrumbState } from '@core/routing';
 import {
   ProductTourService,
@@ -162,6 +164,8 @@ export default class BudgetDetailsPage {
   readonly #logger = inject(Logger);
   readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #transloco = inject(TranslocoService);
+  readonly #loadingIndicator = inject(LoadingIndicator);
+  readonly #destroyRef = inject(DestroyRef);
   readonly #breakpointObserver = inject(BreakpointObserver);
 
   readonly #isMobile = toSignal(
@@ -176,6 +180,15 @@ export default class BudgetDetailsPage {
   constructor() {
     effect(() => {
       this.store.setBudgetId(this.id());
+    });
+
+    effect(() => {
+      const status = this.store.status();
+      this.#loadingIndicator.setLoading(status === 'reloading');
+    });
+
+    this.#destroyRef.onDestroy(() => {
+      this.#loadingIndicator.setLoading(false);
     });
 
     effect((onCleanup) => {
