@@ -96,6 +96,7 @@ struct CreateTemplateView: View {
             }
             .loadingOverlay(isCreating, message: "Création...")
         }
+        .standardSheetPresentation()
     }
 
     private func calculateTotals() -> LineTotals {
