@@ -21,12 +21,19 @@ struct SheetFormContainer<Content: View>: View {
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.xl)
             }
+            .scrollBounceBehavior(.basedOnSize)
             .background(Color.surface)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     SheetCloseButton()
+                }
+                if let autoFocus {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("OK") { autoFocus.wrappedValue = false }
+                    }
                 }
             }
             .loadingOverlay(isLoading)

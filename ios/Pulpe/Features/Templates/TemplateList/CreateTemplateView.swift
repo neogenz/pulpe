@@ -106,6 +106,7 @@ struct CreateTemplateView: View {
 
     private func createTemplate() async {
         isCreating = true
+        defer { isCreating = false }
         error = nil
 
         let data = BudgetTemplateCreate(
@@ -129,7 +130,6 @@ struct CreateTemplateView: View {
             dismiss()
         } catch {
             self.error = error
-            isCreating = false
         }
     }
 }
@@ -186,122 +186,59 @@ struct AddTemplateLineSheet: View {
     @State private var recurrence: TransactionRecurrence = .fixed
     @FocusState private var isAmountFocused: Bool
     @State private var amountText = ""
+    @State private var submitSuccessTrigger = false
 
-    private var canAdd: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty && (amount ?? 0) > 0
+    private var canSubmit: Bool {
+        !name.trimmingCharacters(in: .whitespaces).isEmpty &&
+        (amount ?? 0) > 0
     }
 
-    private var displayAmount: String {
-        if let amount, amount > 0 {
-            return Formatters.amountInput.string(from: amount as NSDecimalNumber) ?? "0"
-        }
-        return "0.00"
+    private var hasStartedFilling: Bool {
+        (amount ?? 0) > 0 || !name.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private var validationHint: String? {
+        guard !canSubmit, hasStartedFilling else { return nil }
+        if (amount ?? 0) <= 0 { return "Ajoute un montant" }
+        if name.trimmingCharacters(in: .whitespaces).isEmpty { return "Ajoute une description" }
+        return nil
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: DesignTokens.Spacing.xxl) {
-                    heroAmountSection
-                    nameField
-                    kindSelector
-                    recurrenceSelector
-                    addButton
-                }
-                .padding(.horizontal, DesignTokens.Spacing.xl)
-                .padding(.top, DesignTokens.Spacing.xxxl)
-                .padding(.bottom, DesignTokens.Spacing.xl)
-            }
-            .background(Color.sheetBackground)
-            .navigationTitle("Nouvelle ligne")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
-                }
-            }
-            .dismissKeyboardOnTap()
-            .task {
-                try? await Task.sleep(for: .milliseconds(200))
-                isAmountFocused = true
-            }
+        SheetFormContainer(title: "Nouvelle ligne", isLoading: false, autoFocus: $isAmountFocused) {
+            KindToggle(selection: $kind)
+            HeroAmountField(
+                amount: $amount,
+                amountText: $amountText,
+                isFocused: $isAmountFocused,
+                accentColor: kind.color
+            )
+            QuickAmountChips(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused, color: kind.color)
+                .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
+            descriptionField
+            recurrenceSelector
+            addButton
         }
+        .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
 
-    // MARK: - Hero Amount
+    // MARK: - Description
 
-    private var heroAmountSection: some View {
-        VStack(spacing: DesignTokens.Spacing.sm) {
-            Text(DesignTokens.AmountInput.currencyCode)
-                .font(PulpeTypography.labelLarge)
-                .foregroundStyle(Color.pulpeTextTertiary)
-
-            ZStack {
-                TextField("", text: $amountText)
-                    .keyboardType(.decimalPad)
-                    .focused($isAmountFocused)
-                    .opacity(0)
-                    .frame(width: 0, height: 0)
-                    .onChange(of: amountText) { _, newValue in
-                        parseAmount(newValue)
-                    }
-
-                Text(displayAmount)
-                    .font(PulpeTypography.amountHero)
-                    .foregroundStyle((amount ?? 0) > 0 ? Color.textPrimary : Color.pulpeTextTertiary)
-                    .contentTransition(.numericText())
-                    .animation(.snappy(duration: DesignTokens.Animation.fast), value: amount)
-            }
-            .accessibilityAddTraits(.isButton)
-            .accessibilityLabel("Montant")
-            .onTapGesture { isAmountFocused = true }
-
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
-                .fill(isAmountFocused ? Color.pulpePrimary : Color.pulpeTextTertiary.opacity(0.3))
-                .frame(width: 120, height: 2)
-                .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isAmountFocused)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, DesignTokens.Spacing.lg)
-    }
-
-    // MARK: - Name
-
-    private var nameField: some View {
-        TextField("Nom de la ligne", text: $name)
-            .font(PulpeTypography.bodyLarge)
-            .padding(DesignTokens.Spacing.lg)
-            .background(Color.inputBackgroundSoft)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-    }
-
-    // MARK: - Kind Selector
-
-    private var kindSelector: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Type")
-                .font(PulpeTypography.inputLabel)
-                .foregroundStyle(Color.pulpeTextTertiary)
-
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                ForEach(TransactionKind.allCases, id: \.self) { type in
-                    Button {
-                        withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
-                            kind = type
-                        }
-                    } label: {
-                        Label(type.label, systemImage: type.icon)
-                            .font(PulpeTypography.buttonSecondary)
-                            .padding(.horizontal, DesignTokens.Spacing.md)
-                            .padding(.vertical, DesignTokens.Spacing.sm + 2)
-                            .frame(maxWidth: .infinity)
-                            .background(kind == type ? Color.pulpePrimary : Color.surfaceContainer)
-                            .foregroundStyle(kind == type ? Color.textOnPrimary : Color.textPrimary)
-                            .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+    private var descriptionField: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text("Description")
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.onSurfaceVariant)
+            TextField("Nom de la ligne", text: $name)
+                .font(PulpeTypography.bodyLarge)
+                .padding(DesignTokens.Spacing.lg)
+                .background(Color.inputBackgroundSoft)
+                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+                .overlay(
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+                        .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: 1)
+                )
+                .accessibilityLabel("Nom de la ligne budgétaire")
         }
     }
 
@@ -328,6 +265,7 @@ struct AddTemplateLineSheet: View {
                             .background(recurrence == type ? Color.pulpePrimary : Color.surfaceContainer)
                             .foregroundStyle(recurrence == type ? Color.textOnPrimary : Color.textPrimary)
                             .clipShape(Capsule())
+                            .contentShape(Capsule())
                     }
                     .buttonStyle(.plain)
                 }
@@ -338,32 +276,33 @@ struct AddTemplateLineSheet: View {
     // MARK: - Add Button
 
     private var addButton: some View {
-        Button {
-            if let amount {
-                let line = TemplateLineInput(
-                    name: name.trimmingCharacters(in: .whitespaces),
-                    amount: amount,
-                    kind: kind,
-                    recurrence: recurrence
-                )
-                onAdd(line)
-                dismiss()
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            Button {
+                if let amount {
+                    submitSuccessTrigger.toggle()
+                    let line = TemplateLineInput(
+                        name: name.trimmingCharacters(in: .whitespaces),
+                        amount: amount,
+                        kind: kind,
+                        recurrence: recurrence
+                    )
+                    onAdd(line)
+                    dismiss()
+                }
+            } label: {
+                Text("Ajouter")
             }
-        } label: {
-            Text("Ajouter")
-        }
-        .disabled(!canAdd)
-        .primaryButtonStyle(isEnabled: canAdd)
-    }
+            .disabled(!canSubmit)
+            .primaryButtonStyle(isEnabled: canSubmit)
 
-    // MARK: - Logic
-
-    private func parseAmount(_ text: String) {
-        if let value = text.parsedAsAmount {
-            amount = value
-        } else {
-            amount = nil
+            if let hint = validationHint {
+                Text(hint)
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.onSurfaceVariant)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
+        .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: validationHint)
     }
 }
 

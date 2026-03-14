@@ -37,21 +37,47 @@ struct LinkedTransactionsSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: DesignTokens.Spacing.xl) {
+            List {
+                Section {
                     metricsSection
-                    progressSection
+                        .listRowCustomStyled(insets: EdgeInsets())
+                }
 
-                    if transactions.isEmpty {
+                Section {
+                    progressSection
+                        .listRowCustomStyled(insets: EdgeInsets())
+                }
+
+                if transactions.isEmpty {
+                    Section {
                         emptyStateView
-                    } else {
-                        transactionsSection
+                            .listRowCustomStyled(insets: EdgeInsets())
+                    }
+                } else {
+                    Section {
+                        ForEach(transactions) { transaction in
+                            TransactionRow(
+                                transaction: transaction,
+                                isSyncing: false,
+                                onEdit: { onEdit(transaction) }
+                            )
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                swipeActions(for: transaction)
+                            }
+                            .listRowSeparator(.hidden)
+                        }
+                    } header: {
+                        Text("Transactions")
+                            .font(PulpeTypography.headline)
+                            .foregroundStyle(.primary)
+                            .textCase(nil)
                     }
                 }
-                .padding(.top, DesignTokens.Spacing.sm)
-                .padding(.bottom, 100)
             }
-            .background(Color.sheetBackground)
+            .listStyle(.insetGrouped)
+            .listSectionSpacing(DesignTokens.Spacing.lg)
+            .scrollContentBackground(.hidden)
+            .background(Color.sheetBackground.ignoresSafeArea())
             .safeAreaInset(edge: .bottom) {
                 addTransactionButton
             }
@@ -92,7 +118,6 @@ struct LinkedTransactionsSheet: View {
                 color: remainingColor
             )
         }
-        .padding(.horizontal)
     }
 
     // MARK: - Progress Section
@@ -123,9 +148,7 @@ struct LinkedTransactionsSheet: View {
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { progressBarWidth = $0 }
         }
         .padding(DesignTokens.Spacing.lg)
-        .background(Color.surfaceContainerHigh)
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-        .padding(.horizontal)
+        .pulpeCardBackground()
     }
 
     // MARK: - Empty State
@@ -152,30 +175,33 @@ struct LinkedTransactionsSheet: View {
         .padding(.horizontal)
     }
 
-    // MARK: - Transactions Section
+    // MARK: - Swipe Actions
 
-    private var transactionsSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Transactions")
-                .font(PulpeTypography.buttonSecondary)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal)
-
-            VStack(spacing: 2) {
-                ForEach(transactions) { transaction in
-                    LinkedTransactionRow(
-                        transaction: transaction,
-                        isFirst: transaction.id == transactions.first?.id,
-                        isLast: transaction.id == transactions.last?.id,
-                        onEdit: { onEdit(transaction) },
-                        onDelete: { onDelete(transaction) }
-                    )
-                }
-            }
-            .background(Color.surfaceContainerHigh)
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-            .padding(.horizontal)
+    @ViewBuilder
+    private func swipeActions(for transaction: Transaction) -> some View {
+        Button {
+            onDelete(transaction)
+        } label: {
+            Label("Supprimer", systemImage: "trash")
         }
+        .tint(Color.destructivePrimary)
+
+        Button {
+            onToggle(transaction)
+        } label: {
+            Label(
+                transaction.isChecked ? "Dépointer" : "Comptabiliser",
+                systemImage: transaction.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
+            )
+        }
+        .tint(transaction.isChecked ? Color.financialOverBudget : .pulpePrimary)
+
+        Button {
+            onEdit(transaction)
+        } label: {
+            Label("Modifier", systemImage: "pencil")
+        }
+        .tint(.editAction)
     }
 
     // MARK: - Add Transaction Button
@@ -190,6 +216,10 @@ struct LinkedTransactionsSheet: View {
         .padding(.horizontal)
         .padding(.vertical, DesignTokens.Spacing.md)
         .pulpeFloatingGlass(cornerRadius: 0)
+        .background {
+            Color.sheetBackground
+                .ignoresSafeArea(edges: .bottom)
+        }
     }
 }
 
@@ -220,71 +250,7 @@ private struct MetricCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.md)
-        .background(Color.surfaceContainerHigh)
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-    }
-}
-
-// MARK: - Transaction Row
-
-private struct LinkedTransactionRow: View {
-    let transaction: Transaction
-    let isFirst: Bool
-    let isLast: Bool
-    let onEdit: () -> Void
-    let onDelete: () -> Void
-
-    var body: some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(transaction.name)
-                    .font(PulpeTypography.body)
-                    .fontWeight(.medium)
-                    .lineLimit(1)
-
-                Text(transaction.transactionDate.formatted(date: .abbreviated, time: .omitted))
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer(minLength: 8)
-
-            Text(transaction.amount.asCHF)
-                .font(PulpeTypography.buttonPrimary)
-                .foregroundStyle(transaction.kind.color)
-                .sensitiveAmount()
-
-            Button {
-                onEdit()
-            } label: {
-                Image(systemName: "pencil")
-                    .font(.system(size: 15))
-                    .foregroundStyle(.secondary)
-                    .frame(minWidth: 44, minHeight: 44)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Modifier")
-
-            Button {
-                onDelete()
-            } label: {
-                Image(systemName: "trash")
-                    .font(.system(size: 15))
-                    .foregroundStyle(Color.destructivePrimary)
-                    .frame(minWidth: 44, minHeight: 44)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Supprimer")
-        }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, DesignTokens.ListRow.verticalPadding)
-        .background(Color.surfaceContainerHigh)
-        .overlay(alignment: .bottom) {
-            if !isLast {
-                Divider()
-                    .padding(.leading, DesignTokens.Spacing.lg)
-            }
-        }
+        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.md)
     }
 }
 

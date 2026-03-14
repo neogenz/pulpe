@@ -79,6 +79,7 @@ struct AddAllocatedTransactionSheet: View {
             )
             .labelsHidden()
             .datePickerStyle(.compact)
+            .accessibilityLabel("Date de la transaction")
         }
         .padding(DesignTokens.Spacing.lg)
         .background(Color.inputBackgroundSoft)
