@@ -12,8 +12,6 @@ import {
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { StateCard } from '@ui/state-card/state-card';
 
-import { type HttpErrorResponse } from '@angular/common/http';
-
 interface ApiErrorDetails {
   readonly statusCode?: number;
   readonly message?: string;
@@ -24,8 +22,6 @@ interface ApiError {
   readonly error?: ApiErrorDetails;
   readonly message?: string;
 }
-
-type TemplateErrorType = HttpErrorResponse | ApiError | Error | null;
 
 @Component({
   selector: 'pulpe-templates-error',
@@ -62,26 +58,26 @@ export class TemplatesError {
   readonly #transloco = inject(TranslocoService);
 
   readonly reload = output<void>();
-  readonly error = input<TemplateErrorType>();
+  readonly error = input<unknown>();
 
   readonly retryCountdown = signal(0);
   readonly retryDisabled = computed(() => this.retryCountdown() > 0);
 
   readonly isRateLimited = computed(() => {
     const err = this.error();
-    if (!err) return false;
+    if (!err || typeof err !== 'object') return false;
 
     // Check for HttpErrorResponse
-    if ('status' in err && err.status === 429) {
+    if ('status' in err && (err as ApiError).status === 429) {
       return true;
     }
 
     // Check for ApiError with nested error object
+    const apiErr = err as ApiError;
     if (
-      'error' in err &&
-      err.error &&
-      'statusCode' in err.error &&
-      err.error.statusCode === 429
+      apiErr.error &&
+      'statusCode' in apiErr.error &&
+      apiErr.error.statusCode === 429
     ) {
       return true;
     }

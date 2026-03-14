@@ -106,7 +106,7 @@ import {
         }
         @case (store.budgetTemplates.status() === 'error') {
           <pulpe-templates-error
-            [error]="$any(store.budgetTemplates.error())"
+            [error]="store.budgetTemplates.error()"
             (reload)="store.refreshData()"
             data-testid="templates-error"
           />
