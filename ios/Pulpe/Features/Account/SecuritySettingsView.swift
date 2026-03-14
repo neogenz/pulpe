@@ -81,6 +81,8 @@ struct SecuritySettingsView: View {
                             .background(Color.destructivePrimary)
                             .clipShape(Capsule())
                     }
+                    .frame(minHeight: DesignTokens.TapTarget.minimum)
+                    .contentShape(Capsule())
                     .plainPressedButtonStyle()
                     .accessibilityLabel("Supprimer le compte")
                     .accessibilityHint("Demande la suppression définitive de ton compte Pulpe")
