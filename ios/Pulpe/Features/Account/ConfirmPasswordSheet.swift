@@ -74,6 +74,7 @@ struct ConfirmPasswordSheet: View {
             .interactiveDismissDisabled(isVerifying)
             .onDisappear { verifyTask?.cancel() }
         }
+        .standardSheetPresentation()
     }
 
     private func verifyPassword() async {
