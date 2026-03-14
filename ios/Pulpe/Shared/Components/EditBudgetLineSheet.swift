@@ -6,6 +6,7 @@ struct EditBudgetLineSheet: View {
     let onUpdate: (BudgetLine) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(ToastManager.self) private var toastManager
     @State private var name: String
     @State private var amount: Decimal?
     @State private var kind: TransactionKind
@@ -13,6 +14,7 @@ struct EditBudgetLineSheet: View {
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
     @State private var amountText: String
+    @State private var submitSuccessTrigger = false
 
     private let dependencies: EditBudgetLineDependencies
 
@@ -27,12 +29,8 @@ struct EditBudgetLineSheet: View {
         _name = State(initialValue: budgetLine.name)
         _amount = State(initialValue: budgetLine.amount)
         _kind = State(initialValue: budgetLine.kind)
-        _amountText = State(initialValue: {
-            if let str = Formatters.amountInput.string(from: budgetLine.amount as NSDecimalNumber) {
-                return str
-            }
-            return ""
-        }())
+        let amountString = Formatters.amountInput.string(from: budgetLine.amount as NSDecimalNumber) ?? ""
+        _amountText = State(initialValue: amountString)
     }
 
     private var canSubmit: Bool {
@@ -57,16 +55,27 @@ struct EditBudgetLineSheet: View {
 
             saveButton
         }
+        .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
 
     // MARK: - Description
 
     private var descriptionField: some View {
-        TextField(kind.descriptionPlaceholder, text: $name)
-            .font(PulpeTypography.bodyLarge)
-            .padding(DesignTokens.Spacing.lg)
-            .background(Color.inputBackgroundSoft)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text("Description")
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.onSurfaceVariant)
+            TextField(kind.descriptionPlaceholder, text: $name)
+                .font(PulpeTypography.bodyLarge)
+                .padding(DesignTokens.Spacing.lg)
+                .background(Color.inputBackgroundSoft)
+                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+                .overlay(
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+                        .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: 1)
+                )
+                .accessibilityLabel("Description de la prévision")
+        }
     }
 
     // MARK: - Save Button
@@ -100,7 +109,9 @@ struct EditBudgetLineSheet: View {
 
         do {
             let updatedLine = try await dependencies.updateBudgetLine(budgetLine.id, data)
+            submitSuccessTrigger.toggle()
             onUpdate(updatedLine)
+            toastManager.show("Prévision modifiée")
             dismiss()
         } catch {
             self.error = error
@@ -137,4 +148,5 @@ struct EditBudgetLineDependencies: Sendable {
     ) { line in
         print("Updated: \(line)")
     }
+    .environment(ToastManager())
 }

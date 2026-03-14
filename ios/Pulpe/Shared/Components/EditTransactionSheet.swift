@@ -31,12 +31,8 @@ struct EditTransactionSheet: View {
         _amount = State(initialValue: transaction.amount)
         _kind = State(initialValue: transaction.kind)
         _transactionDate = State(initialValue: transaction.transactionDate)
-        _amountText = State(initialValue: {
-            if let str = Formatters.amountInput.string(from: transaction.amount as NSDecimalNumber) {
-                return str
-            }
-            return ""
-        }())
+        let amountString = Formatters.amountInput.string(from: transaction.amount as NSDecimalNumber) ?? ""
+        _amountText = State(initialValue: amountString)
     }
 
     static func isFormValid(name: String, amount: Decimal?, isLoading: Bool) -> Bool {
@@ -66,12 +62,6 @@ struct EditTransactionSheet: View {
             }
 
             saveButton
-        }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("OK") { isAmountFocused = false }
-            }
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }

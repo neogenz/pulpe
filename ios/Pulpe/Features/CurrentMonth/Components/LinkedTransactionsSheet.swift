@@ -40,23 +40,18 @@ struct LinkedTransactionsSheet: View {
             List {
                 Section {
                     metricsSection
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets())
-                        .listRowSeparator(.hidden)
+                        .listRowCustomStyled(insets: EdgeInsets())
                 }
 
                 Section {
                     progressSection
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets())
-                        .listRowSeparator(.hidden)
+                        .listRowCustomStyled(insets: EdgeInsets())
                 }
 
                 if transactions.isEmpty {
                     Section {
                         emptyStateView
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
+                            .listRowCustomStyled(insets: EdgeInsets())
                     }
                 } else {
                     Section {

@@ -6,6 +6,7 @@ struct EditTemplateLineSheet: View {
     let onUpdate: (TemplateLine) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(ToastManager.self) private var toastManager
     @State private var name: String
     @State private var amount: Decimal?
     @State private var kind: TransactionKind
@@ -14,6 +15,7 @@ struct EditTemplateLineSheet: View {
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
     @State private var amountText: String
+    @State private var submitSuccessTrigger = false
 
     private let templateService = TemplateService.shared
 
@@ -24,7 +26,8 @@ struct EditTemplateLineSheet: View {
         _amount = State(initialValue: templateLine.amount)
         _kind = State(initialValue: templateLine.kind)
         _recurrence = State(initialValue: templateLine.recurrence)
-        _amountText = State(initialValue: templateLine.amount > 0 ? "\(templateLine.amount)" : "")
+        let amountString = Formatters.amountInput.string(from: templateLine.amount as NSDecimalNumber) ?? ""
+        _amountText = State(initialValue: amountString)
     }
 
     private var canSubmit: Bool {
@@ -50,16 +53,27 @@ struct EditTemplateLineSheet: View {
 
             saveButton
         }
+        .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
 
     // MARK: - Description
 
     private var descriptionField: some View {
-        TextField(kind.descriptionPlaceholder, text: $name)
-            .font(PulpeTypography.bodyLarge)
-            .padding(DesignTokens.Spacing.lg)
-            .background(Color.inputBackgroundSoft)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text("Description")
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.onSurfaceVariant)
+            TextField(kind.descriptionPlaceholder, text: $name)
+                .font(PulpeTypography.bodyLarge)
+                .padding(DesignTokens.Spacing.lg)
+                .background(Color.inputBackgroundSoft)
+                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+                .overlay(
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+                        .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: 1)
+                )
+                .accessibilityLabel("Nom de la ligne du modèle")
+        }
     }
 
     // MARK: - Recurrence Selector
@@ -85,6 +99,7 @@ struct EditTemplateLineSheet: View {
                             .background(recurrence == type ? Color.pulpePrimary : Color.surfaceContainer)
                             .foregroundStyle(recurrence == type ? Color.textOnPrimary : Color.textPrimary)
                             .clipShape(Capsule())
+                            .contentShape(Capsule())
                     }
                     .buttonStyle(.plain)
                 }
@@ -122,7 +137,9 @@ struct EditTemplateLineSheet: View {
 
         do {
             let updatedLine = try await templateService.updateTemplateLine(id: templateLine.id, data: data)
+            submitSuccessTrigger.toggle()
             onUpdate(updatedLine)
+            toastManager.show("Ligne modifiée")
             dismiss()
         } catch {
             self.error = error
@@ -146,4 +163,5 @@ struct EditTemplateLineSheet: View {
     ) { line in
         print("Updated: \(line)")
     }
+    .environment(ToastManager())
 }

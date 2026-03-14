@@ -59,6 +59,30 @@ cd .. && pnpm dev:backend
 ./scripts/bump-version.sh build   # build 1 → 2
 ```
 
+## Shared Components — Check Before Building
+
+**BEFORE creating or editing any sheet/form/view, you MUST check `Shared/Components/` and `Shared/Extensions/` for existing reusable components.** Never hand-roll UI that a shared component already provides.
+
+| Need | Use this | NOT this |
+|------|----------|----------|
+| Sheet form wrapper | `SheetFormContainer` | Manual `NavigationStack > ScrollView > VStack` |
+| Amount input | `HeroAmountField` | Custom TextField + display amount logic |
+| Preset amounts | `QuickAmountChips` | Custom chip buttons |
+| Kind picker | `KindToggle` | Custom HStack of buttons for expense/income/saving |
+| Checked toggle | `CheckedToggle` | Custom Toggle |
+| Error display | `ErrorBanner` | Custom error HStack |
+| Currency formatting | `Decimal.asCHF` / `.asCompactCHF` | Manual string concatenation |
+| Sheet presentation | `.standardSheetPresentation()` | Manual `.presentationDetents` + `.presentationBackground` |
+| List row styling | `.listRowCustomStyled()` | `.listRowBackground` + `.listRowInsets` + `.listRowSeparator` |
+| Background | `.pulpeBackground()` / `.pulpeCardBackground()` | Manual `.background(Color.surface)` |
+
+**Consistency checklist for form sheets:**
+- [ ] Uses `SheetFormContainer` (provides: nav title, close button, keyboard toolbar, auto-focus, loading overlay, sheet presentation)
+- [ ] Description field has label ("Description") + overlay border + accessibility label
+- [ ] Submit button uses `.primaryButtonStyle(isEnabled:)`
+- [ ] Success path: `submitSuccessTrigger.toggle()` + `toastManager.show(...)` + `dismiss()`
+- [ ] `.sensoryFeedback(.success, trigger: submitSuccessTrigger)` on the form
+
 ## Currency
 
 ```swift
