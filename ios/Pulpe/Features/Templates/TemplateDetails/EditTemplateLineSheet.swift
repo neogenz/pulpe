@@ -37,12 +37,12 @@ struct EditTemplateLineSheet: View {
 
     var body: some View {
         SheetFormContainer(title: "Modifier la ligne", isLoading: isLoading, autoFocus: $isAmountFocused) {
+            KindToggle(selection: $kind)
             HeroAmountField(
                 amount: $amount, amountText: $amountText,
                 isFocused: $isAmountFocused, accentColor: kind.color
             )
             descriptionField
-            KindToggle(selection: $kind)
             recurrenceSelector
 
             if let error {

@@ -78,21 +78,7 @@ struct AddTransactionSheet: View {
     // MARK: - Date Selector
 
     private var dateSelector: some View {
-        HStack {
-            Label("Date", systemImage: "calendar")
-                .font(PulpeTypography.bodyLarge)
-                .foregroundStyle(Color.textPrimary)
-
-            Spacer()
-
-            DatePicker("", selection: $transactionDate, displayedComponents: .date)
-                .labelsHidden()
-                .datePickerStyle(.compact)
-                .accessibilityLabel("Date de la transaction")
-        }
-        .padding(DesignTokens.Spacing.lg)
-        .background(Color.inputBackgroundSoft)
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+        TransactionDateSelector(date: $transactionDate)
     }
 
     // MARK: - Add Button
