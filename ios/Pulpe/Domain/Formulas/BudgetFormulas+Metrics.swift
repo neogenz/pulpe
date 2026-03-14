@@ -61,12 +61,7 @@ extension BudgetFormulas {
         let checkedCount = budgetLines.filter { $0.isChecked }.count + transactions.filter { $0.isChecked }.count
         let totalCount = budgetLines.count + transactions.count
 
-        let checkedSavingsAmount = budgetLines
-            .filter { $0.isChecked && $0.kind == .saving }
-            .reduce(Decimal.zero) { $0 + $1.amount }
-            + transactions
-            .filter { $0.isChecked && $0.kind == .saving }
-            .reduce(Decimal.zero) { $0 + $1.amount }
+        let checkedSavingsAmount = calculateRealizedSavings(budgetLines: budgetLines, transactions: transactions)
 
         return RealizedMetrics(
             realizedIncome: realizedIncome,

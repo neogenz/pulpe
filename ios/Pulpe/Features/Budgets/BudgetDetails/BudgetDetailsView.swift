@@ -13,7 +13,7 @@ struct BudgetDetailsView: View {
     @State private var viewModel: BudgetDetailsViewModel
     @State private var selectedLineForTransaction: BudgetLine?
     @State private var showAddBudgetLine = false
-    @State private var linkedTransactionsContext: LinkedTransactionsContext?
+    @State private var linkedBudgetLineId: IdentifiableString?
     @State private var selectedBudgetLineForEdit: BudgetLine?
     @State private var selectedTransactionForEdit: Transaction?
     @State private var previousBudgetItem: PreviousBudgetItem?
@@ -96,24 +96,21 @@ struct BudgetDetailsView: View {
                 viewModel.addBudgetLine(budgetLine)
             }
         }
-        .sheet(item: $linkedTransactionsContext) { context in
-            LinkedTransactionsSheet(
-                budgetLine: context.budgetLine,
-                transactions: context.transactions,
-                onToggle: { transaction in
-                    Task { await viewModel.toggleTransaction(transaction) }
-                },
-                onEdit: { transaction in
-                    linkedTransactionsContext = nil
+        .sheet(item: $linkedBudgetLineId) { idWrapper in
+            LinkedTransactionsSheetWrapper(
+                budgetLineId: idWrapper.value,
+                viewModel: viewModel,
+                onDismissAndEdit: { transaction in
+                    linkedBudgetLineId = nil
                     selectedTransactionForEdit = transaction
                 },
-                onDelete: { transaction in
-                    linkedTransactionsContext = nil // Dismiss sheet first
+                onDismissAndDelete: { transaction in
+                    linkedBudgetLineId = nil
                     viewModel.softDeleteTransaction(transaction, toastManager: appState.toastManager)
                 },
-                onAddTransaction: {
-                    linkedTransactionsContext = nil
-                    selectedLineForTransaction = context.budgetLine
+                onDismissAndAddTransaction: { budgetLine in
+                    linkedBudgetLineId = nil
+                    selectedLineForTransaction = budgetLine
                 }
             )
         }
@@ -290,11 +287,8 @@ struct BudgetDetailsView: View {
             onAddTransaction: { line in
                 selectedLineForTransaction = line
             },
-            onLongPress: { line, transactions in
-                linkedTransactionsContext = LinkedTransactionsContext(
-                    budgetLine: line,
-                    transactions: transactions
-                )
+            onLongPress: { line, _ in
+                linkedBudgetLineId = IdentifiableString(value: line.id)
             },
             onEdit: { line in
                 guard !line.isManuallyAdjusted else {
@@ -308,6 +302,47 @@ struct BudgetDetailsView: View {
             },
             tip: tip
         )
+    }
+}
+
+/// Thin Identifiable wrapper for `.sheet(item:)` with a plain String ID
+private struct IdentifiableString: Identifiable {
+    let id = UUID()
+    let value: String
+}
+
+/// Reactive wrapper that reads budgetLine + transactions from the ViewModel
+/// so SwiftUI re-renders when `toggleTransaction` mutates the @Observable store.
+private struct LinkedTransactionsSheetWrapper: View {
+    let budgetLineId: String
+    let viewModel: BudgetDetailsViewModel
+    let onDismissAndEdit: (Transaction) -> Void
+    let onDismissAndDelete: (Transaction) -> Void
+    let onDismissAndAddTransaction: (BudgetLine) -> Void
+
+    private var budgetLine: BudgetLine? {
+        viewModel.budgetLines.first { $0.id == budgetLineId }
+    }
+
+    private var transactions: [Transaction] {
+        viewModel.transactions
+            .filter { $0.budgetLineId == budgetLineId }
+            .sorted { $0.transactionDate > $1.transactionDate }
+    }
+
+    var body: some View {
+        if let budgetLine {
+            LinkedTransactionsSheet(
+                budgetLine: budgetLine,
+                transactions: transactions,
+                onToggle: { transaction in
+                    Task { await viewModel.toggleTransaction(transaction) }
+                },
+                onEdit: { transaction in onDismissAndEdit(transaction) },
+                onDelete: { transaction in onDismissAndDelete(transaction) },
+                onAddTransaction: { onDismissAndAddTransaction(budgetLine) }
+            )
+        }
     }
 }
 

@@ -76,7 +76,7 @@ struct TransactionSection: View {
                 onToggle(transaction)
             } label: {
                 Label(
-                    transaction.isChecked ? "Annuler" : "Comptabiliser",
+                    transaction.isChecked ? "Dépointer" : "Comptabiliser",
                     systemImage: transaction.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
                 )
             }

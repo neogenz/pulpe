@@ -237,6 +237,38 @@ enum BudgetFormulas {
         return total + freeTransactions
     }
 
+    /// Calculate realized savings using envelope logic
+    /// Same pattern as calculateRealizedExpenses but only for .saving kind
+    static func calculateRealizedSavings(
+        budgetLines: [BudgetLine],
+        transactions: [Transaction] = []
+    ) -> Decimal {
+        let transactionsByLineId = Dictionary(
+            grouping: transactions.filter { $0.isChecked && $0.kind == .saving },
+            by: { $0.budgetLineId ?? "" }
+        )
+
+        var total: Decimal = 0
+
+        for line in budgetLines {
+            guard line.kind == .saving else { continue }
+
+            let consumed = transactionsByLineId[line.id]?
+                .reduce(Decimal.zero) { $0 + $1.amount } ?? 0
+
+            if line.isChecked {
+                total += max(line.amount, consumed)
+            } else {
+                total += consumed
+            }
+        }
+
+        let freeTransactions = transactionsByLineId[""]?
+            .reduce(Decimal.zero) { $0 + $1.amount } ?? 0
+
+        return total + freeTransactions
+    }
+
     /// Calculate realized balance (checked income - checked expenses)
     static func calculateRealizedBalance(
         budgetLines: [BudgetLine],
