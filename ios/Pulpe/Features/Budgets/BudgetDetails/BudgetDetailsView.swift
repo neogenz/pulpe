@@ -307,8 +307,8 @@ struct BudgetDetailsView: View {
 
 /// Thin Identifiable wrapper for `.sheet(item:)` with a plain String ID
 private struct IdentifiableString: Identifiable {
-    let id = UUID()
     let value: String
+    var id: String { value }
 }
 
 /// Reactive wrapper that reads budgetLine + transactions from the ViewModel

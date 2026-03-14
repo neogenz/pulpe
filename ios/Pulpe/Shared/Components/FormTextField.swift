@@ -30,6 +30,7 @@ struct FormTextField: View {
             }
         } else {
             textField
+                .accessibilityLabel(accessibilityLabel ?? placeholder)
         }
     }
 

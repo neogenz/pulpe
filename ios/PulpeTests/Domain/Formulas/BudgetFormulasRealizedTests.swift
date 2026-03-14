@@ -84,6 +84,46 @@ struct BudgetFormulasRealizedTests {
         #expect(metrics.realizedBalance == 50)
     }
 
+    // MARK: - Realized Savings Envelope Logic
+
+    @Test func realizedSavings_envelope_consumedExceedsLine() {
+        let lines = [
+            TestDataFactory.createBudgetLine(
+                id: "line-1", amount: 100, kind: .saving, isChecked: true
+            )
+        ]
+        let transactions = [
+            TestDataFactory.createTransaction(
+                id: "tx-1", budgetLineId: "line-1",
+                amount: 200, kind: .saving, isChecked: true
+            )
+        ]
+        let savings = BudgetFormulas.calculateRealizedSavings(
+            budgetLines: lines, transactions: transactions
+        )
+        // max(100, 200) = 200 — no double counting
+        #expect(savings == 200)
+    }
+
+    @Test func realizedSavings_envelope_uncheckedParent() {
+        let lines = [
+            TestDataFactory.createBudgetLine(
+                id: "line-1", amount: 200, kind: .saving, isChecked: false
+            )
+        ]
+        let transactions = [
+            TestDataFactory.createTransaction(
+                id: "tx-1", budgetLineId: "line-1",
+                amount: 150, kind: .saving, isChecked: true
+            )
+        ]
+        let savings = BudgetFormulas.calculateRealizedSavings(
+            budgetLines: lines, transactions: transactions
+        )
+        // Unchecked parent: only checked transactions count
+        #expect(savings == 150)
+    }
+
     // MARK: - Consumption Tracking
 
     @Test func calculateConsumption_withNoTransactions_showsFullAvailable() {
