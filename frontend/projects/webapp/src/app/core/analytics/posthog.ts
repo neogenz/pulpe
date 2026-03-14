@@ -14,6 +14,8 @@ import { STORAGE_KEYS } from '../storage/storage-keys';
 import { buildInfo } from '@env/build-info';
 import { sanitizeEventPayload } from './posthog-sanitizer';
 
+const CROSS_DOMAIN_PARAM = 'ph_did';
+
 /**
  * PostHog service for analytics and error tracking.
  * Uses PostHog's built-in privacy protection and minimal configuration.
@@ -56,10 +58,15 @@ export class PostHogService {
     try {
       this.#logger.info('Initializing PostHog', { host: config.host });
 
+      const crossDomainId = this.#extractCrossDomainId();
+
       posthog.init(config.apiKey, {
         api_host: config.host,
         ui_host: 'https://eu.posthog.com',
         debug: config.debug,
+
+        // Cross-domain: use landing page distinct_id when available
+        bootstrap: crossDomainId ? { distinctID: crossDomainId } : undefined,
 
         // Privacy-first: anonymous events flow immediately, person profiles
         // only created after identify(). Full auto-capture enabled after auth.
@@ -230,6 +237,21 @@ export class PostHogService {
     } catch (error) {
       this.#logger.error('Failed to reset PostHog', error);
     }
+  }
+
+  /**
+   * Extract cross-domain distinct_id from URL and clean up the param.
+   * Used to link landing page (pulpe.app) sessions with webapp (app.pulpe.app).
+   */
+  #extractCrossDomainId(): string | null {
+    const url = new URL(window.location.href);
+    const distinctId = url.searchParams.get(CROSS_DOMAIN_PARAM);
+    if (!distinctId) return null;
+
+    url.searchParams.delete(CROSS_DOMAIN_PARAM);
+    window.history.replaceState({}, '', url.toString());
+    this.#logger.info('Cross-domain distinct_id received from landing');
+    return distinctId;
   }
 
   #canCapture(): boolean {
