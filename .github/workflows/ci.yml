@@ -31,7 +31,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v4
@@ -45,7 +45,7 @@ jobs:
           npm config set fetch-retries 3
 
       - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm" # Cache pnpm store en backup
@@ -67,7 +67,7 @@ jobs:
     needs: install
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 🗄️ Setup Supabase CLI
         uses: supabase/setup-cli@v1
@@ -118,9 +118,10 @@ jobs:
           echo "✅ Environment ready"
 
       - name: 💾 Save Supabase State
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: supabase-state
+          include-hidden-files: true
           path: |
             backend-nest/.env
             backend-nest/src/types/database.types.ts
@@ -135,7 +136,7 @@ jobs:
     needs: [install, supabase-setup]
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v4
@@ -149,7 +150,7 @@ jobs:
           npm config set fetch-retries 3
 
       - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
@@ -166,7 +167,7 @@ jobs:
           version: latest
 
       - name: 📥 Download Supabase State
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: supabase-state
           path: backend-nest/
@@ -198,7 +199,7 @@ jobs:
         run: pnpm build
 
       - name: 📤 Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-artifacts
           path: |
@@ -215,7 +216,7 @@ jobs:
     needs: [install, build]
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v4
@@ -229,7 +230,7 @@ jobs:
           npm config set fetch-retries 3
 
       - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
@@ -246,13 +247,13 @@ jobs:
           version: latest
 
       - name: 📥 Download Supabase State
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: supabase-state
           path: backend-nest/
 
       - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: build-artifacts
 
@@ -324,7 +325,7 @@ jobs:
           - "Feature Tests (Mocked)"
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v4
@@ -338,7 +339,7 @@ jobs:
           npm config set fetch-retries 3
 
       - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
@@ -348,7 +349,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: build-artifacts
 
@@ -368,7 +369,7 @@ jobs:
 
       - name: 📤 Upload E2E artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report-${{ strategy.job-index }}
           path: |
@@ -387,7 +388,7 @@ jobs:
         check: [lint, format:check, quality, deps:check]
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v4
@@ -401,7 +402,7 @@ jobs:
           npm config set fetch-retries 3
 
       - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
@@ -432,7 +433,7 @@ jobs:
     needs: [install, build]
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v4
@@ -446,7 +447,7 @@ jobs:
           npm config set fetch-retries 3
 
       - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
@@ -463,13 +464,13 @@ jobs:
           version: latest
 
       - name: 📥 Download Supabase State
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: supabase-state
           path: backend-nest/
 
       - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: build-artifacts
 
@@ -534,7 +535,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 🔧 Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
@@ -545,7 +546,7 @@ jobs:
         run: brew install xcodegen
 
       - name: 💾 Cache SPM packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
@@ -653,7 +654,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 🗄️ Setup Supabase CLI
         uses: supabase/setup-cli@v1
@@ -723,7 +724,7 @@ jobs:
     needs: [ci-success]
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 🗄️ Setup Supabase CLI
         uses: supabase/setup-cli@v1
