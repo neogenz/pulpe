@@ -7,6 +7,7 @@ struct AddAllocatedTransactionSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var name = ""
     @State private var amount: Decimal?
     @State private var transactionDate = Date()
@@ -15,8 +16,10 @@ struct AddAllocatedTransactionSheet: View {
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
     @State private var amountText = ""
+    @State private var inputCurrency = "CHF"
 
     private let transactionService = TransactionService.shared
+    private let conversionService = CurrencyConversionService.shared
 
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
@@ -26,17 +29,22 @@ struct AddAllocatedTransactionSheet: View {
 
     var body: some View {
         SheetFormContainer(title: budgetLine.name, isLoading: isLoading, autoFocus: $isAmountFocused) {
+            if userSettingsStore.showCurrencySelector {
+                CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
+            }
             HeroAmountField(
                 amount: $amount,
                 amountText: $amountText,
                 isFocused: $isAmountFocused,
+                currency: inputCurrency,
                 accentColor: budgetLine.kind.color
             )
             QuickAmountChips(
                 amount: $amount,
                 amountText: $amountText,
                 isFocused: $isAmountFocused,
-                color: budgetLine.kind.color
+                color: budgetLine.kind.color,
+                currency: inputCurrency
             )
             descriptionField
             dateSelector
@@ -50,6 +58,7 @@ struct AddAllocatedTransactionSheet: View {
 
             addButton
         }
+        .onAppear { inputCurrency = userSettingsStore.currency }
     }
 
     // MARK: - Description
@@ -106,17 +115,27 @@ struct AddAllocatedTransactionSheet: View {
         defer { isLoading = false }
         error = nil
 
-        let data = TransactionCreate(
-            budgetId: budgetLine.budgetId,
-            name: name.trimmingCharacters(in: .whitespaces),
-            amount: amount,
-            kind: budgetLine.kind,
-            budgetLineId: budgetLine.id,
-            transactionDate: transactionDate,
-            checkedAt: isChecked ? Date() : nil
-        )
-
         do {
+            let conversion = try await conversionService.convert(
+                amount: amount,
+                from: inputCurrency,
+                to: userSettingsStore.currency
+            )
+
+            let data = TransactionCreate(
+                budgetId: budgetLine.budgetId,
+                name: name.trimmingCharacters(in: .whitespaces),
+                amount: conversion?.convertedAmount ?? amount,
+                kind: budgetLine.kind,
+                budgetLineId: budgetLine.id,
+                transactionDate: transactionDate,
+                checkedAt: isChecked ? Date() : nil,
+                originalAmount: conversion?.originalAmount,
+                originalCurrency: conversion?.originalCurrency,
+                targetCurrency: conversion?.targetCurrency,
+                exchangeRate: conversion?.exchangeRate
+            )
+
             let transaction = try await transactionService.createTransaction(data)
             onAdd(transaction)
             toastManager.show("Transaction ajoutée")
@@ -147,4 +166,5 @@ struct AddAllocatedTransactionSheet: View {
         print("Added: \(transaction)")
     }
     .environment(ToastManager())
+    .environment(UserSettingsStore())
 }

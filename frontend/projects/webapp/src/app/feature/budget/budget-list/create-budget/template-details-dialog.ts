@@ -1,17 +1,14 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 
-import { CurrencyPipe } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatDividerModule } from '@angular/material/divider';
 import { type BudgetTemplate, type TemplateLine } from 'pulpe-shared';
+import { TranslocoPipe } from '@jsverse/transloco';
+import { AppCurrencyPipe } from '@core/currency';
+import { UserSettingsApi } from '@core/user-settings';
 
 export interface TemplateDetailsDialogData {
   template: BudgetTemplate;
@@ -22,7 +19,8 @@ export interface TemplateDetailsDialogData {
   selector: 'pulpe-template-details-dialog',
 
   imports: [
-    CurrencyPipe,
+    TranslocoPipe,
+    AppCurrencyPipe,
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
@@ -41,24 +39,20 @@ export interface TemplateDetailsDialogData {
         </p>
       }
 
-      @let lines = templateLines();
+      @let lines = templateLines;
       @if (lines.length > 0) {
         <!-- Summary Section -->
         <div class="flex justify-between mb-4">
           <div class="flex flex-col">
-            <div>Revenus total:</div>
+            <div>{{ 'template.totalIncome' | transloco }}</div>
             <div class="ph-no-capture text-financial-income text-label-large">
-              {{
-                totalIncome() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
-              }}
+              {{ totalIncome | appCurrency: currency() }}
             </div>
           </div>
           <div class="flex flex-col">
-            <div>Dépenses total:</div>
+            <div>{{ 'template.totalExpenses' | transloco }}</div>
             <div class="ph-no-capture text-financial-negative text-label-large">
-              {{
-                totalExpenses() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
-              }}
+              {{ totalExpenses | appCurrency: currency() }}
             </div>
           </div>
         </div>
@@ -91,9 +85,7 @@ export interface TemplateDetailsDialogData {
                   [class.text-financial-income]="line.kind === 'income'"
                 >
                   {{ line.kind === 'income' ? '+' : '-' }}
-                  {{
-                    line.amount | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
-                  }}
+                  {{ line.amount | appCurrency: currency() }}
                 </div>
               </div>
             </mat-list-item>
@@ -106,9 +98,9 @@ export interface TemplateDetailsDialogData {
         <!-- Net Balance -->
         <mat-divider class="mb-2!"></mat-divider>
         <div class="flex justify-between text-body-medium font-medium">
-          <span>Solde net:</span>
+          <span>{{ 'template.netBalanceLabel' | transloco }}</span>
           <span class="ph-no-capture">
-            {{ netBalance() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
+            {{ netBalance | appCurrency: currency() }}
           </span>
         </div>
       } @else {
@@ -118,14 +110,16 @@ export interface TemplateDetailsDialogData {
         >
           <mat-icon class="text-display-small mb-2">inbox</mat-icon>
           <p class="text-body-medium font-medium">
-            Pas de prévision dans ce modèle
+            {{ 'template.noForecastInTemplate' | transloco }}
           </p>
         </div>
       }
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button matButton mat-dialog-close>Fermer</button>
+      <button matButton mat-dialog-close>
+        {{ 'common.close' | transloco }}
+      </button>
     </mat-dialog-actions>
   `,
   styles: `
@@ -144,25 +138,19 @@ export interface TemplateDetailsDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TemplateDetailsDialog {
+  readonly #userSettings = inject(UserSettingsApi);
+  protected readonly currency = this.#userSettings.currency;
   readonly data = inject<TemplateDetailsDialogData>(MAT_DIALOG_DATA);
 
-  readonly templateLines = computed(() => this.data.templateLines);
+  readonly templateLines = this.data.templateLines;
 
-  readonly totalIncome = computed(() => {
-    const lines = this.templateLines();
-    return lines
-      .filter((line) => line.kind === 'income')
-      .reduce((sum, line) => sum + line.amount, 0);
-  });
+  readonly totalIncome = this.templateLines
+    .filter((line) => line.kind === 'income')
+    .reduce((sum, line) => sum + line.amount, 0);
 
-  readonly totalExpenses = computed(() => {
-    const lines = this.templateLines();
-    return lines
-      .filter((line) => line.kind === 'expense' || line.kind === 'saving')
-      .reduce((sum, line) => sum + line.amount, 0);
-  });
+  readonly totalExpenses = this.templateLines
+    .filter((line) => line.kind === 'expense' || line.kind === 'saving')
+    .reduce((sum, line) => sum + line.amount, 0);
 
-  readonly netBalance = computed(() => {
-    return this.totalIncome() - this.totalExpenses();
-  });
+  readonly netBalance = this.totalIncome - this.totalExpenses;
 }

@@ -3,8 +3,6 @@ import type { BudgetLine, Transaction } from 'pulpe-shared';
 import {
   computeEnvelopeSnackbarMessage,
   computeTransactionSnackbarMessage,
-  type EnvelopeSnackbarMessages,
-  type TransactionSnackbarMessages,
 } from './budget-details-snackbar.utils';
 
 const NOW = new Date().toISOString();
@@ -44,16 +42,6 @@ function makeTransaction(overrides: Partial<Transaction> = {}): Transaction {
   };
 }
 
-const envelopeMessages: EnvelopeSnackbarMessages = {
-  overEnvelope: (consumed, envelope) =>
-    `Comptabilisé ${consumed} sur ${envelope} CHF (enveloppe)`,
-  withinEnvelope: (envelope) => `Comptabilisé ${envelope} CHF (enveloppe)`,
-};
-
-const transactionMessages: TransactionSnackbarMessages = {
-  checked: (amount) => `Comptabilisé ${amount} CHF`,
-};
-
 describe('computeEnvelopeSnackbarMessage', () => {
   it('AC1 — returns null when checkedAt is null (unchecked)', () => {
     const budgetLine = makeBudgetLine({ checkedAt: null });
@@ -62,7 +50,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       budgetLine.id,
       [budgetLine],
       [],
-      envelopeMessages,
+      'CHF',
     );
 
     expect(result).toBeNull();
@@ -75,7 +63,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       budgetLine.id,
       [budgetLine],
       [],
-      envelopeMessages,
+      'CHF',
     );
 
     expect(result).toBe('Comptabilisé 408 CHF (enveloppe)');
@@ -89,7 +77,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       budgetLine.id,
       [budgetLine],
       [tx],
-      envelopeMessages,
+      'CHF',
     );
 
     expect(result).not.toBeNull();
@@ -106,7 +94,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       budgetLine.id,
       [budgetLine],
       transactions,
-      envelopeMessages,
+      'CHF',
     );
 
     expect(result).toBe('Comptabilisé 1574 sur 408 CHF (enveloppe)');
@@ -120,7 +108,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       budgetLine.id,
       [budgetLine],
       [tx],
-      envelopeMessages,
+      'CHF',
     );
 
     expect(result).toBe('Comptabilisé 408 CHF (enveloppe)');
@@ -137,7 +125,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       budgetLine.id,
       [budgetLine],
       transactions,
-      envelopeMessages,
+      'CHF',
     );
 
     expect(result).toBe('Comptabilisé 408 CHF (enveloppe)');
@@ -150,7 +138,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       budgetLine.id,
       [budgetLine],
       [],
-      envelopeMessages,
+      'CHF',
     );
 
     expect(result).toBe('Comptabilisé 408 CHF (enveloppe)');
@@ -177,7 +165,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       budgetLine.id,
       [budgetLine],
       transactions,
-      envelopeMessages,
+      'CHF',
     );
 
     expect(result).toBe('Comptabilisé 408 CHF (enveloppe)');
@@ -188,11 +176,7 @@ describe('computeTransactionSnackbarMessage', () => {
   it('AC5 — returns null when checkedAt is null (unchecked)', () => {
     const tx = makeTransaction({ checkedAt: null });
 
-    const result = computeTransactionSnackbarMessage(
-      tx.id,
-      [tx],
-      transactionMessages,
-    );
+    const result = computeTransactionSnackbarMessage(tx.id, [tx], 'CHF');
 
     expect(result).toBeNull();
   });
@@ -200,11 +184,7 @@ describe('computeTransactionSnackbarMessage', () => {
   it('AC5 — returns a message when checked', () => {
     const tx = makeTransaction({ amount: 150, checkedAt: NOW });
 
-    const result = computeTransactionSnackbarMessage(
-      tx.id,
-      [tx],
-      transactionMessages,
-    );
+    const result = computeTransactionSnackbarMessage(tx.id, [tx], 'CHF');
 
     expect(result).not.toBeNull();
   });
@@ -212,11 +192,7 @@ describe('computeTransactionSnackbarMessage', () => {
   it('AC6 — displays the rounded absolute amount of the transaction', () => {
     const tx = makeTransaction({ amount: 42, checkedAt: NOW });
 
-    const result = computeTransactionSnackbarMessage(
-      tx.id,
-      [tx],
-      transactionMessages,
-    );
+    const result = computeTransactionSnackbarMessage(tx.id, [tx], 'CHF');
 
     expect(result).toBe('Comptabilisé 42 CHF');
   });

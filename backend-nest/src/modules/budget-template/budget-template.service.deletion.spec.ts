@@ -35,6 +35,7 @@ describe('BudgetTemplateService - Template Deletion', () => {
       mockLogger as any,
       mockBudgetService as any,
       mockEncryptionService as any,
+      {} as any,
     );
   });
 

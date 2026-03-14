@@ -3,17 +3,13 @@ import { templateLineSchema } from 'pulpe-shared';
 import {
   toApiTemplateLine,
   toApiTemplateLineList,
+  type DecryptedTemplateLineRow,
 } from './budget-template.mappers';
-import type { Tables } from '@/types/database.types';
-
-type DecryptedTemplateLine = Omit<Tables<'template_line'>, 'amount'> & {
-  amount: number;
-};
 
 describe('BudgetTemplate Mappers', () => {
   describe('toApiTemplateLine', () => {
     it('should map all fields from DB row to API entity', () => {
-      const dbRow: DecryptedTemplateLine = {
+      const dbRow: DecryptedTemplateLineRow = {
         id: 'line-123',
         template_id: 'template-123',
         name: 'Salaire',
@@ -23,6 +19,10 @@ describe('BudgetTemplate Mappers', () => {
         description: 'Salaire mensuel',
         created_at: '2026-01-01T00:00:00Z',
         updated_at: '2026-01-01T00:00:00Z',
+        original_amount: null,
+        original_currency: null,
+        target_currency: null,
+        exchange_rate: null,
       };
 
       const result = toApiTemplateLine(dbRow);
@@ -38,7 +38,7 @@ describe('BudgetTemplate Mappers', () => {
 
   describe('toApiTemplateLineList', () => {
     it('should map all rows', () => {
-      const dbRows: DecryptedTemplateLine[] = [
+      const dbRows: DecryptedTemplateLineRow[] = [
         {
           id: 'line-1',
           template_id: 'template-123',
@@ -49,6 +49,10 @@ describe('BudgetTemplate Mappers', () => {
           description: '',
           created_at: '2026-01-01T00:00:00Z',
           updated_at: '2026-01-01T00:00:00Z',
+          original_amount: null,
+          original_currency: null,
+          target_currency: null,
+          exchange_rate: null,
         },
         {
           id: 'line-2',
@@ -60,6 +64,10 @@ describe('BudgetTemplate Mappers', () => {
           description: '',
           created_at: '2026-01-01T00:00:00Z',
           updated_at: '2026-01-01T00:00:00Z',
+          original_amount: null,
+          original_currency: null,
+          target_currency: null,
+          exchange_rate: null,
         },
       ];
 

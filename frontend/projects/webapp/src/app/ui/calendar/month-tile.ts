@@ -10,6 +10,20 @@ import { MatIconModule } from '@angular/material/icon';
 import { isBefore } from 'date-fns';
 import { type CalendarMonth } from './calendar-types';
 
+const AMOUNT_FORMATTERS = new Map<string, Intl.NumberFormat>();
+
+function getAmountFormatter(locale: string): Intl.NumberFormat {
+  let formatter = AMOUNT_FORMATTERS.get(locale);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+    AMOUNT_FORMATTERS.set(locale, formatter);
+  }
+  return formatter;
+}
+
 type BackgroundStyle =
   | 'positive'
   | 'negative'
@@ -90,7 +104,7 @@ interface MonthTileViewModel {
             <span
               class="text-body-medium md:text-body-large text-on-surface-variant"
             >
-              CHF
+              {{ currency() }}
             </span>
           </div>
           @if (vm().period) {
@@ -141,6 +155,8 @@ interface MonthTileViewModel {
 })
 export class MonthTile {
   readonly month = input.required<CalendarMonth>();
+  readonly currency = input<string>('CHF');
+  readonly locale = input<string>('de-CH');
   readonly isCurrentMonth = input<boolean>(false);
   readonly tileClick = output<CalendarMonth>();
 
@@ -158,7 +174,7 @@ export class MonthTile {
       formattedAmount,
       period: month.period,
       ariaLabel: month.hasContent
-        ? `${month.displayName}, ${formattedAmount} CHF disponible`
+        ? `${month.displayName}, ${formattedAmount} ${this.currency()} disponible`
         : `${month.displayName}, créer un budget`,
       backgroundStyle: month.hasContent ? status : 'empty',
       statusColor: status,
@@ -195,9 +211,6 @@ export class MonthTile {
 
   #formatAmount(value?: number): string {
     if (value === undefined) return '0';
-    return new Intl.NumberFormat('de-CH', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(Math.abs(value));
+    return getAmountFormatter(this.locale()).format(Math.abs(value));
   }
 }

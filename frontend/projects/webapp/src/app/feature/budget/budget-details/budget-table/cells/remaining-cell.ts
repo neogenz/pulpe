@@ -1,12 +1,19 @@
-import { CurrencyPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  input,
+} from '@angular/core';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { AppCurrencyPipe } from '@core/currency';
+import { UserSettingsApi } from '@core/user-settings';
 
 import type { BudgetLineTableItem } from '../../data-core';
 
 @Component({
   selector: 'pulpe-remaining-cell',
-  imports: [CurrencyPipe, MatProgressBarModule],
+  imports: [AppCurrencyPipe, MatProgressBarModule, TranslocoPipe],
   template: `
     @if (line().consumption?.hasTransactions) {
       @let remaining = line().data.amount - line().consumption!.consumed;
@@ -22,9 +29,11 @@ import type { BudgetLineTableItem } from '../../data-core';
               line().consumption!.consumptionState === 'over-budget'
             "
           >
-            {{ remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
+            {{ remaining | appCurrency: currency() : '1.0-0' }}
             @if (line().consumption!.consumptionState === 'over-budget') {
-              <span class="text-label-small font-normal ml-1">dépassé</span>
+              <span class="text-label-small font-normal ml-1">{{
+                'budgetLine.exceeded' | transloco
+              }}</span>
             }
           </span>
           @if (!line().metadata.isRollover) {
@@ -66,5 +75,7 @@ import type { BudgetLineTableItem } from '../../data-core';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RemainingCell {
+  readonly #userSettings = inject(UserSettingsApi);
+  protected readonly currency = this.#userSettings.currency;
   readonly line = input.required<BudgetLineTableItem>();
 }

@@ -35,6 +35,10 @@ describe('BudgetTemplateService - Simplified Tests', () => {
     description: 'Test description',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    original_amount: null,
+    original_currency: null,
+    target_currency: null,
+    exchange_rate: null,
   };
 
   beforeEach(() => {
@@ -72,6 +76,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       mockLogger as any,
       mockBudgetService as any,
       mockEncryptionService as any,
+      {} as any,
     );
   });
 

@@ -1,34 +1,26 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  input,
+} from '@angular/core';
 import { MatTableModule } from '@angular/material/table';
+import { TranslocoPipe } from '@jsverse/transloco';
+import { AppCurrencyPipe } from '@core/currency';
+import { UserSettingsApi } from '@core/user-settings';
 
-/**
- * One immutable row displayed in the financial entries table.
- */
 export interface FinancialEntry {
   description: string;
-  /** Amount already spent – must be positive CHF value in centimes */
   spent: number;
-  /** Amount earned – must be positive CHF value in centimes */
   earned: number;
-  /** Amount saved – must be positive CHF value in centimes */
   saved: number;
-  /** Net total for the row in centimes */
   total: number;
 }
 
-/**
- * Generic, presentation-only table component for displaying financial entries.
- *
- * – Pure UI component (no business logic, no service injection).
- * – Relies on Angular Material Table for accessibility & MD3 compliance.
- * – Tailwind utility classes are applied for spacing and responsive layout.
- * – Features sticky header and full-height scrollable content.
- */
 @Component({
   selector: 'pulpe-transactions-table',
 
-  imports: [MatTableModule, CurrencyPipe],
+  imports: [MatTableModule, AppCurrencyPipe, TranslocoPipe],
   template: `
     <div
       class="flex flex-col rounded-corner-large overflow-hidden bg-surface-container-low max-h-[50vh] 2xl:h-full 2xl:max-h-none"
@@ -46,7 +38,7 @@ export interface FinancialEntry {
               *matHeaderCellDef
               class="text-left font-medium px-4 py-3 text-title-medium bg-surface-container-low"
             >
-              Description
+              {{ 'template.colDescription' | transloco }}
             </th>
             <td mat-cell *matCellDef="let row" class="px-4 py-2">
               <span class="ph-no-capture">{{ row.description }}</span>
@@ -60,12 +52,12 @@ export interface FinancialEntry {
               *matHeaderCellDef
               class="text-right font-medium px-4 py-3 text-title-medium bg-surface-container-low"
             >
-              Dépensé
+              {{ 'template.colSpent' | transloco }}
             </th>
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
               @if (row.spent !== 0) {
                 <span class="ph-no-capture">{{
-                  row.spent | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                  row.spent | appCurrency: currency()
                 }}</span>
               }
             </td>
@@ -78,12 +70,12 @@ export interface FinancialEntry {
               *matHeaderCellDef
               class="text-right font-medium px-4 py-3 text-title-medium bg-surface-container-low"
             >
-              Gagné
+              {{ 'template.colEarned' | transloco }}
             </th>
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
               @if (row.earned !== 0) {
                 <span class="ph-no-capture">{{
-                  row.earned | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                  row.earned | appCurrency: currency()
                 }}</span>
               }
             </td>
@@ -96,12 +88,12 @@ export interface FinancialEntry {
               *matHeaderCellDef
               class="text-right font-medium px-4 py-3 text-title-medium bg-surface-container-low"
             >
-              Économisé
+              {{ 'template.colSaved' | transloco }}
             </th>
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
               @if (row.saved !== 0) {
                 <span class="ph-no-capture">{{
-                  row.saved | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                  row.saved | appCurrency: currency()
                 }}</span>
               }
             </td>
@@ -114,11 +106,11 @@ export interface FinancialEntry {
               *matHeaderCellDef
               class="text-right font-medium px-4 py-3 text-title-medium bg-surface-container-low"
             >
-              Total
+              {{ 'template.colTotal' | transloco }}
             </th>
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
               <span class="ph-no-capture">{{
-                row.total | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                row.total | appCurrency: currency()
               }}</span>
             </td>
           </ng-container>
@@ -159,10 +151,10 @@ export interface FinancialEntry {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TransactionsTable {
-  /** Immutable list of entries to display. */
+  readonly #userSettings = inject(UserSettingsApi);
+  protected readonly currency = this.#userSettings.currency;
   readonly entries = input.required<readonly FinancialEntry[]>();
 
-  // Material table determines column order via this array.
   readonly displayedColumns = [
     'description',
     'spent',

@@ -1,4 +1,9 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import {
   MAT_DIALOG_DATA,
   MatDialogRef,
@@ -10,14 +15,20 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatSelectModule } from '@angular/material/select';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { type BudgetLine, type TransactionCreate } from 'pulpe-shared';
+import {
+  type BudgetLine,
+  type TransactionCreate,
+  type SupportedCurrency,
+} from 'pulpe-shared';
 import { formatLocalDate } from '@core/date/format-local-date';
+import { CurrencyConverterService } from '@core/currency';
 import {
   computeBudgetPeriodDateConstraints,
   createDateRangeValidator,
 } from './budget-period-date-constraints';
+import { UserSettingsApi } from '@core/user-settings/user-settings-api';
 
 export interface CreateAllocatedTransactionDialogData {
   budgetLine: BudgetLine;
@@ -34,8 +45,8 @@ export interface CreateAllocatedTransactionDialogData {
     MatInputModule,
     MatButtonModule,
     MatIconModule,
+    MatSelectModule,
     MatDatepickerModule,
-    MatSlideToggleModule,
     ReactiveFormsModule,
     TranslocoPipe,
   ],
@@ -83,7 +94,20 @@ export interface CreateAllocatedTransactionDialogData {
             inputmode="decimal"
             data-testid="transaction-amount"
           />
-          <span matTextSuffix>CHF</span>
+          @if (showCurrencySelector()) {
+            <mat-select
+              matTextSuffix
+              [value]="inputCurrency()"
+              (selectionChange)="inputCurrency.set($event.value)"
+              class="!w-[70px] text-on-surface-variant font-medium"
+              aria-label="Devise"
+            >
+              <mat-option value="CHF">CHF</mat-option>
+              <mat-option value="EUR">EUR</mat-option>
+            </mat-select>
+          } @else {
+            <span matTextSuffix>{{ currency() }}</span>
+          }
           @if (
             form.get('amount')?.hasError('required') &&
             form.get('amount')?.touched
@@ -132,19 +156,14 @@ export interface CreateAllocatedTransactionDialogData {
             }}</mat-error>
           }
         </mat-form-field>
-
-        <div class="flex items-center justify-between py-2 px-1">
-          <span class="text-body-medium text-on-surface">{{
-            'transactionForm.checkedToggle' | transloco
-          }}</span>
-          <mat-slide-toggle
-            formControlName="isChecked"
-            [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
-          />
-        </div>
       </form>
     </mat-dialog-content>
 
+    @if (conversionError()) {
+      <p class="text-error text-body-small px-6 pb-2">
+        {{ 'common.conversionError' | transloco }}
+      </p>
+    }
     <mat-dialog-actions align="end">
       <button matButton (click)="cancel()" data-testid="cancel-transaction">
         {{ 'common.cancel' | transloco }}
@@ -163,8 +182,13 @@ export interface CreateAllocatedTransactionDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateAllocatedTransactionDialog {
-  protected readonly data =
-    inject<CreateAllocatedTransactionDialogData>(MAT_DIALOG_DATA);
+  readonly #userSettings = inject(UserSettingsApi);
+  readonly #converter = inject(CurrencyConverterService);
+  protected readonly currency = this.#userSettings.currency;
+  protected readonly showCurrencySelector =
+    this.#userSettings.showCurrencySelector;
+  protected readonly inputCurrency = signal<SupportedCurrency>(this.currency());
+  readonly data = inject<CreateAllocatedTransactionDialogData>(MAT_DIALOG_DATA);
   readonly #dialogRef = inject(
     MatDialogRef<CreateAllocatedTransactionDialog, TransactionCreate>,
   );
@@ -175,10 +199,10 @@ export class CreateAllocatedTransactionDialog {
     this.data.budgetYear,
     this.data.payDayOfMonth,
   );
-  protected readonly minDate = this.#dateConstraints.minDate;
-  protected readonly maxDate = this.#dateConstraints.maxDate;
+  readonly minDate = this.#dateConstraints.minDate;
+  readonly maxDate = this.#dateConstraints.maxDate;
 
-  protected readonly form = this.#fb.group({
+  readonly form = this.#fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
     amount: [
       null as number | null,
@@ -191,27 +215,44 @@ export class CreateAllocatedTransactionDialog {
         createDateRangeValidator(this.minDate, this.maxDate),
       ],
     ],
-    isChecked: [false],
   });
 
-  protected cancel(): void {
+  protected readonly conversionError = signal(false);
+
+  cancel(): void {
     this.#dialogRef.close();
   }
 
-  protected submit(): void {
+  async submit(): Promise<void> {
     if (this.form.invalid) return;
 
     const formValue = this.form.getRawValue();
+
+    let convertedAmount: number;
+    let metadata: Awaited<
+      ReturnType<CurrencyConverterService['convertWithMetadata']>
+    >['metadata'];
+    try {
+      ({ convertedAmount, metadata } =
+        await this.#converter.convertWithMetadata(
+          formValue.amount!,
+          this.inputCurrency(),
+          this.currency(),
+        ));
+    } catch {
+      this.conversionError.set(true);
+      return;
+    }
 
     const transaction: TransactionCreate = {
       budgetId: this.data.budgetLine.budgetId,
       budgetLineId: this.data.budgetLine.id,
       name: formValue.name!.trim(),
-      amount: Math.abs(formValue.amount!),
+      amount: convertedAmount,
       kind: this.data.budgetLine.kind,
       transactionDate: formatLocalDate(formValue.transactionDate!),
       category: null,
-      checkedAt: formValue.isChecked ? new Date().toISOString() : null,
+      ...metadata,
     };
 
     this.#dialogRef.close(transaction);

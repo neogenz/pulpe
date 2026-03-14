@@ -19,6 +19,7 @@ struct CurrencyField: View {
     @Binding var value: Decimal?
     let hint: String
     let label: String?
+    let currency: String
     let visualStyle: VisualStyle
 
     @Environment(\.colorScheme) private var colorScheme
@@ -36,12 +37,14 @@ struct CurrencyField: View {
         value: Binding<Decimal?>,
         hint: String = "0.00",
         label: String? = nil,
+        currency: String = "CHF",
         visualStyle: VisualStyle = .onboarding,
         externalFocus: FocusState<Bool>.Binding? = nil
     ) {
         self._value = value
         self.hint = hint
         self.label = label
+        self.currency = currency
         self.visualStyle = visualStyle
         self.externalFocus = externalFocus
 
@@ -62,11 +65,15 @@ struct CurrencyField: View {
             }
 
             HStack {
+                Text(currency)
+                    .foregroundStyle(prefixColor)
+                    .font(PulpeTypography.bodyLarge)
+
                 TextField(hint, text: $textValue)
                     .keyboardType(.decimalPad)
                     .foregroundStyle(Color.authInputText)
                     .focused(externalFocus ?? $internalFocus)
-                    .accessibilityLabel(label ?? "Montant en CHF")
+                    .accessibilityLabel(label ?? "Montant en \(currency)")
                     .onChange(of: textValue) { _, newValue in
                         updateValue(from: newValue)
                     }
@@ -76,7 +83,7 @@ struct CurrencyField: View {
                         }
                     }
 
-                Text("CHF")
+                Text(currency)
                     .foregroundStyle(prefixColor)
                     .font(PulpeTypography.bodyLarge)
             }
@@ -199,6 +206,7 @@ struct CurrencyField: View {
 struct CurrencyText: View {
     let amount: Decimal
     let showSign: Bool
+    let currency: String
     let style: TextStyle
 
     enum TextStyle {
@@ -207,9 +215,10 @@ struct CurrencyText: View {
         case caption
     }
 
-    init(_ amount: Decimal, showSign: Bool = false, style: TextStyle = .body) {
+    init(_ amount: Decimal, showSign: Bool = false, currency: String = "CHF", style: TextStyle = .body) {
         self.amount = amount
         self.showSign = showSign
+        self.currency = currency
         self.style = style
     }
 
@@ -228,7 +237,8 @@ struct CurrencyText: View {
     }
 
     private var formattedAmount: String {
-        let style = Decimal.FormatStyle.Currency(code: "CHF")
+        let style = Decimal.FormatStyle.Currency(code: currency)
+            .locale(Formatters.locale(for: currency))
             .sign(strategy: showSign ? .always() : .automatic)
         return amount.formatted(style)
     }

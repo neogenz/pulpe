@@ -20,15 +20,22 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import type { TransactionCreate } from 'pulpe-shared';
+import type { TransactionCreate, SupportedCurrency } from 'pulpe-shared';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { TransactionValidators } from '@core/transaction';
 import { TransactionLabelPipe } from '@pattern/transaction-display';
+import { UserSettingsApi } from '@core/user-settings/user-settings-api';
+import { CurrencyConverterService } from '@core/currency';
 
 export type TransactionFormData = Pick<
   TransactionCreate,
   'name' | 'amount' | 'kind' | 'category' | 'checkedAt'
->;
+> & {
+  originalAmount?: number;
+  originalCurrency?: string;
+  targetCurrency?: string;
+  exchangeRate?: number;
+};
 
 // Define the form structure type
 interface TransactionFormControls {
@@ -105,7 +112,20 @@ interface TransactionFormControls {
             max="999999.99"
             required
           />
-          <span matTextSuffix>CHF</span>
+          @if (showCurrencySelector()) {
+            <mat-select
+              matTextSuffix
+              [value]="inputCurrency()"
+              (selectionChange)="inputCurrency.set($event.value)"
+              class="!w-[70px] text-on-surface-variant font-medium"
+              aria-label="Devise"
+            >
+              <mat-option value="CHF">CHF</mat-option>
+              <mat-option value="EUR">EUR</mat-option>
+            </mat-select>
+          } @else {
+            <span matTextSuffix>{{ currency() }}</span>
+          }
           @if (
             transactionForm.get('amount')?.hasError('required') &&
             transactionForm.get('amount')?.touched
@@ -137,7 +157,7 @@ interface TransactionFormControls {
                 (click)="selectPredefinedAmount(amount)"
                 class="!min-w-[80px] !h-[40px]"
               >
-                {{ amount }} CHF
+                {{ amount }} {{ currency() }}
               </button>
             }
           </div>
@@ -246,6 +266,12 @@ interface TransactionFormControls {
         </div>
       </form>
 
+      @if (conversionError()) {
+        <p class="text-error text-body-small pb-2">
+          {{ 'common.conversionError' | transloco }}
+        </p>
+      }
+
       <!-- Action Buttons -->
       <div class="flex gap-3 pt-4 pb-6 px-6 border-t border-outline-variant">
         <button
@@ -276,6 +302,12 @@ export class AddTransactionBottomSheet {
     MatBottomSheetRef<AddTransactionBottomSheet>,
   );
   readonly #transloco = inject(TranslocoService);
+  readonly #converter = inject(CurrencyConverterService);
+  readonly #userSettings = inject(UserSettingsApi);
+  protected readonly currency = this.#userSettings.currency;
+  protected readonly showCurrencySelector =
+    this.#userSettings.showCurrencySelector;
+  protected readonly inputCurrency = signal<SupportedCurrency>(this.currency());
 
   // View child for focus management
   protected readonly amountInput =
@@ -283,6 +315,7 @@ export class AddTransactionBottomSheet {
 
   // Predefined amounts for quick selection
   protected readonly predefinedAmounts = signal([10, 15, 20, 30]);
+  protected readonly conversionError = signal(false);
 
   // Reactive form with shared validators for consistency
   protected readonly transactionForm: FormGroup<TransactionFormControls> =
@@ -314,7 +347,7 @@ export class AddTransactionBottomSheet {
     this.transactionForm.patchValue({ amount });
   }
 
-  protected onSubmit(): void {
+  protected async onSubmit(): Promise<void> {
     if (!this.transactionForm.valid) {
       this.transactionForm.markAllAsTouched();
       return;
@@ -322,12 +355,35 @@ export class AddTransactionBottomSheet {
 
     const formValue = this.transactionForm.value;
 
+    // Explicit validation for required fields
+    if (!formValue.name || !formValue.amount || !formValue.kind) {
+      this.transactionForm.markAllAsTouched();
+      return;
+    }
+
+    let convertedAmount: number;
+    let metadata: Awaited<
+      ReturnType<CurrencyConverterService['convertWithMetadata']>
+    >['metadata'];
+    try {
+      ({ convertedAmount, metadata } =
+        await this.#converter.convertWithMetadata(
+          formValue.amount,
+          this.inputCurrency(),
+          this.currency(),
+        ));
+    } catch {
+      this.conversionError.set(true);
+      return;
+    }
+
     const transaction: TransactionFormData = {
-      name: formValue.name!,
-      amount: Math.abs(formValue.amount!),
-      kind: formValue.kind!,
+      name: formValue.name,
+      amount: convertedAmount,
+      kind: formValue.kind,
       category: formValue.category || null,
       checkedAt: formValue.isChecked ? new Date().toISOString() : null,
+      ...metadata,
     };
 
     this.#bottomSheetRef.dismiss(transaction);

@@ -1,4 +1,3 @@
-import { CurrencyPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -23,6 +22,8 @@ import {
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { RecurrenceLabelPipe } from '@pattern/transaction-display';
 import { type BudgetLine, type BudgetLineUpdate } from 'pulpe-shared';
+import { AppCurrencyPipe } from '@core/currency';
+import { UserSettingsApi } from '@core/user-settings';
 import { ActionsCell, BalanceCell, NameCell, RemainingCell } from './cells';
 import { EditBudgetLineDialog } from '../edit-budget-line/edit-budget-line-dialog';
 import type {
@@ -45,8 +46,8 @@ import type {
     MatBadgeModule,
     MatChipsModule,
     MatTooltipModule,
-    CurrencyPipe,
     TranslocoPipe,
+    AppCurrencyPipe,
     FinancialKindDirective,
     RecurrenceLabelPipe,
     NameCell,
@@ -83,7 +84,7 @@ import type {
               [class.italic]="line.metadata.isRollover"
               [pulpeFinancialKind]="line.data.kind"
             >
-              {{ line.data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+              {{ line.data.amount | appCurrency: currency() : '1.0-0' }}
             </span>
           </td>
         </ng-container>
@@ -106,13 +107,14 @@ import type {
                 matBadgeColor="primary"
                 (click)="viewTransactions.emit(line)"
                 [matTooltip]="
-                  'Voir les ' + line.consumption.transactionCountLabel
+                  'budget.viewTransactionsCount'
+                    | transloco
+                      : { label: line.consumption.transactionCountLabel }
                 "
               >
                 <mat-icon class="text-base! mr-1">receipt_long</mat-icon>
                 <span class="ph-no-capture">{{
-                  line.consumption.consumed
-                    | currency: 'CHF' : 'symbol' : '1.0-0'
+                  line.consumption.consumed | appCurrency: currency() : '1.0-0'
                 }}</span>
               </button>
             }
@@ -285,6 +287,8 @@ export class BudgetTable {
   readonly #dialog = inject(MatDialog);
   readonly #logger = inject(Logger);
   readonly #transloco = inject(TranslocoService);
+  readonly #userSettings = inject(UserSettingsApi);
+  protected readonly currency = this.#userSettings.currency;
 
   // Inputs
   readonly tableData = input.required<TableRowItem[]>();

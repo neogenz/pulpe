@@ -41,10 +41,10 @@ Chaque table stocke les montants chiffrés dans une colonne texte (type `text`).
 
 | Table | Colonne chiffrée |
 |-------|-----------------|
-| `budget_line` | `amount` |
-| `transaction` | `amount` |
-| `template_line` | `amount` |
-| `savings_goal` | `target_amount` |
+| `budget_line` | `amount`, `original_amount` |
+| `transaction` | `amount`, `original_amount` |
+| `template_line` | `amount`, `original_amount` |
+| `savings_goal` | `target_amount`, `original_target_amount` |
 | `monthly_budget` | `ending_balance` |
 
 ## Mode démo

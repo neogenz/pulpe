@@ -6,6 +6,7 @@ struct EditTemplateLineSheet: View {
     let onUpdate: (TemplateLine) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var name: String
     @State private var amount: Decimal?
     @State private var kind: TransactionKind
@@ -14,8 +15,10 @@ struct EditTemplateLineSheet: View {
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
     @State private var amountText: String
+    @State private var inputCurrency = "CHF"
 
     private let templateService = TemplateService.shared
+    private let conversionService = CurrencyConversionService.shared
 
     init(templateLine: TemplateLine, onUpdate: @escaping (TemplateLine) -> Void) {
         self.templateLine = templateLine
@@ -34,9 +37,17 @@ struct EditTemplateLineSheet: View {
 
     var body: some View {
         SheetFormContainer(title: "Modifier la ligne", isLoading: isLoading, autoFocus: $isAmountFocused) {
+            if userSettingsStore.showCurrencySelector {
+                CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
+            }
             HeroAmountField(
                 amount: $amount, amountText: $amountText,
-                isFocused: $isAmountFocused, accentColor: kind.color
+                isFocused: $isAmountFocused, currency: inputCurrency, accentColor: kind.color
+            )
+            CurrencyConversionBadge(
+                originalAmount: templateLine.originalAmount,
+                originalCurrency: templateLine.originalCurrency,
+                exchangeRate: templateLine.exchangeRate
             )
             descriptionField
             KindToggle(selection: $kind)
@@ -50,6 +61,7 @@ struct EditTemplateLineSheet: View {
 
             saveButton
         }
+        .onAppear { inputCurrency = userSettingsStore.currency }
     }
 
     // MARK: - Description
@@ -113,14 +125,24 @@ struct EditTemplateLineSheet: View {
         defer { isLoading = false }
         error = nil
 
-        let data = TemplateLineUpdate(
-            name: name.trimmingCharacters(in: .whitespaces),
-            amount: amount,
-            kind: kind,
-            recurrence: recurrence
-        )
-
         do {
+            let conversion = try await conversionService.convert(
+                amount: amount,
+                from: inputCurrency,
+                to: userSettingsStore.currency
+            )
+
+            let data = TemplateLineUpdate(
+                name: name.trimmingCharacters(in: .whitespaces),
+                amount: conversion?.convertedAmount ?? amount,
+                kind: kind,
+                recurrence: recurrence,
+                originalAmount: conversion?.originalAmount,
+                originalCurrency: conversion?.originalCurrency,
+                targetCurrency: conversion?.targetCurrency,
+                exchangeRate: conversion?.exchangeRate
+            )
+
             let updatedLine = try await templateService.updateTemplateLine(id: templateLine.id, data: data)
             onUpdate(updatedLine)
             dismiss()
@@ -146,4 +168,5 @@ struct EditTemplateLineSheet: View {
     ) { line in
         print("Updated: \(line)")
     }
+    .environment(UserSettingsStore())
 }

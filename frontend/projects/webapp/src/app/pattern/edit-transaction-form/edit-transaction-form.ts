@@ -26,8 +26,14 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
-import { type Transaction, type TransactionCreate } from 'pulpe-shared';
+import {
+  type Transaction,
+  type TransactionCreate,
+  type SupportedCurrency,
+} from 'pulpe-shared';
 import { startOfMonth, endOfMonth } from 'date-fns';
+import { CURRENCY_CONFIG, CurrencyConverterService } from '@core/currency';
+import { UserSettingsApi } from '@core/user-settings';
 import { TransactionValidators } from '@core/transaction';
 import { TransactionLabelPipe } from '@pattern/transaction-display';
 import { Logger } from '@core/logging/logger';
@@ -40,6 +46,10 @@ export type EditTransactionFormData = Pick<
   'name' | 'amount' | 'kind' | 'category'
 > & {
   transactionDate: string;
+  originalAmount?: number;
+  originalCurrency?: string;
+  targetCurrency?: string;
+  exchangeRate?: number;
 };
 
 @Component({
@@ -123,7 +133,20 @@ export type EditTransactionFormData = Pick<
           max="999999.99"
           aria-describedby="amount-hint"
         />
-        <span matTextSuffix>CHF</span>
+        @if (showCurrencySelector()) {
+          <mat-select
+            matTextSuffix
+            [value]="inputCurrency()"
+            (selectionChange)="inputCurrency.set($event.value)"
+            class="!w-[70px] text-on-surface-variant font-medium"
+            aria-label="Devise"
+          >
+            <mat-option value="CHF">CHF</mat-option>
+            <mat-option value="EUR">EUR</mat-option>
+          </mat-select>
+        } @else {
+          <span matTextSuffix>{{ currencySymbol() }}</span>
+        }
         <mat-hint id="amount-hint" class="ph-no-capture">
           {{ 'transactionForm.amountHint' | transloco }}
         </mat-hint>
@@ -269,9 +292,19 @@ export class EditTransactionForm implements OnInit {
   readonly #locale = inject(LOCALE_ID);
   readonly #logger = inject(Logger);
   readonly #transloco = inject(TranslocoService);
+  readonly #userSettings = inject(UserSettingsApi);
+  readonly #converter = inject(CurrencyConverterService);
 
   protected readonly formAriaLabel = this.#transloco.translate(
     'transactionForm.formAriaLabel',
+  );
+
+  protected readonly currency = this.#userSettings.currency;
+  protected readonly showCurrencySelector =
+    this.#userSettings.showCurrencySelector;
+  protected readonly inputCurrency = signal<SupportedCurrency>(this.currency());
+  protected readonly currencySymbol = computed(
+    () => CURRENCY_CONFIG[this.currency()].symbol,
   );
 
   readonly transaction = input.required<Transaction>();
@@ -375,32 +408,47 @@ export class EditTransactionForm implements OnInit {
     }
   }
 
-  onSubmit(): void {
+  async onSubmit(): Promise<void> {
     if (!this.transactionForm.valid || this.isUpdating()) {
       this.transactionForm.markAllAsTouched();
       return;
     }
 
-    const { name, amount, kind, transactionDate, category } =
-      this.transactionForm.getRawValue() as {
-        name: string;
-        amount: number | null;
-        kind: 'expense' | 'income' | 'saving';
-        transactionDate: Date | null;
-        category: string | null;
-      };
+    const {
+      name,
+      amount: rawAmount,
+      kind,
+      transactionDate,
+      category,
+    } = this.transactionForm.getRawValue() as {
+      name: string;
+      amount: number | null;
+      kind: 'expense' | 'income' | 'saving';
+      transactionDate: Date | null;
+      category: string | null;
+    };
 
     // Form is valid so all required fields are guaranteed non-null
-    if (!name || !amount || !kind || !transactionDate) return;
+    if (!name || !rawAmount || !kind || !transactionDate) return;
+
+    const { convertedAmount, metadata } =
+      await this.#converter.convertWithMetadata(
+        rawAmount,
+        this.inputCurrency(),
+        this.currency(),
+      );
 
     this.#isUpdating.set(true);
 
-    this.updateTransaction.emit({
+    const formData: EditTransactionFormData = {
       name,
-      amount,
+      amount: convertedAmount,
       kind,
       transactionDate: formatLocalDate(transactionDate),
       category: category || null,
-    });
+      ...metadata,
+    };
+
+    this.updateTransaction.emit(formData);
   }
 }

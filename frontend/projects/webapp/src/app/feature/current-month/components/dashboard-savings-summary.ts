@@ -8,6 +8,8 @@ import {
 import { DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
+import type { SupportedCurrency } from 'pulpe-shared';
+import { CURRENCY_CONFIG } from '@core/currency';
 
 @Component({
   selector: 'pulpe-dashboard-savings-summary',
@@ -79,12 +81,12 @@ import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
             <p class="text-body-medium text-on-surface">
               {{ 'currentMonth.savingsAmountText' | transloco }}
               <span class="font-bold text-financial-savings ph-no-capture">
-                {{ totalRealized() | number: '1.2-2' : 'de-CH' }}
-                CHF
+                {{ totalRealized() | number: '1.2-2' : locale() }}
+                {{ currency() }}
               </span>
               {{ 'dashboard.on' | transloco }}
               <span class="ph-no-capture">{{
-                totalPlanned() | number: '1.2-2' : 'de-CH'
+                totalPlanned() | number: '1.2-2' : locale()
               }}</span>
               {{ 'currentMonth.savingsPlanned' | transloco }}
             </p>
@@ -121,6 +123,11 @@ export class DashboardSavingsSummary {
   readonly totalRealized = input.required<number>();
   readonly checkedCount = input.required<number>();
   readonly totalCount = input.required<number>();
+  readonly currency = input<SupportedCurrency>('CHF');
+
+  protected readonly locale = computed(
+    () => CURRENCY_CONFIG[this.currency()].locale,
+  );
 
   protected readonly progressPercentage = computed(() => {
     const planned = this.totalPlanned();

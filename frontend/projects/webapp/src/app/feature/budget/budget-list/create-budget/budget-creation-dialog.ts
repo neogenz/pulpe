@@ -33,6 +33,8 @@ import { BudgetApi } from '@core/budget/budget-api';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { isApiError } from '@core/api/api-error';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { UserSettingsApi } from '@core/user-settings';
+import { CURRENCY_CONFIG } from '@core/currency';
 
 const DESCRIPTION_MAX_LENGTH = 100;
 
@@ -145,6 +147,8 @@ const MONTH_YEAR_FORMATS = {
             [selectedTemplateId]="templateStore.selectedTemplateId()"
             [isLoading]="templateStore.isLoading()"
             [hasError]="!!templateStore.error()"
+            [currency]="currency()"
+            [locale]="locale()"
             (templateSelected)="onTemplateSelect($event)"
             (templateDetailsRequested)="showTemplateDetails($event)"
             (retryRequested)="templateStore.reloadTemplates()"
@@ -201,7 +205,12 @@ export class CreateBudgetDialogComponent {
   readonly #apiErrorLocalizer = inject(ApiErrorLocalizer);
   readonly #budgetApi = inject(BudgetApi);
   readonly #transloco = inject(TranslocoService);
+  readonly #userSettings = inject(UserSettingsApi);
   readonly templateStore = inject(TemplateStore);
+  protected readonly currency = this.#userSettings.currency;
+  protected readonly locale = computed(
+    () => CURRENCY_CONFIG[this.#userSettings.currency()].locale,
+  );
   readonly #data = inject(MAT_DIALOG_DATA, { optional: true }) as {
     month?: number;
     year?: number;

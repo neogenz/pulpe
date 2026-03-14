@@ -177,46 +177,4 @@ describe('CreateAllocatedTransactionDialog', () => {
       ).toBe(true);
     });
   });
-
-  describe('checked toggle', () => {
-    it('should set checkedAt to null by default', () => {
-      const midMonth = new Date(
-        new Date().getFullYear(),
-        new Date().getMonth(),
-        15,
-      );
-      component['form'].patchValue({
-        name: 'Test',
-        amount: 10,
-        transactionDate: midMonth,
-      });
-
-      component['submit']();
-
-      expect(mockDialogRef.close).toHaveBeenCalledWith(
-        expect.objectContaining({ checkedAt: null }),
-      );
-    });
-
-    it('should set checkedAt to ISO string when isChecked is true', () => {
-      const midMonth = new Date(
-        new Date().getFullYear(),
-        new Date().getMonth(),
-        15,
-      );
-      component['form'].patchValue({
-        name: 'Test',
-        amount: 10,
-        transactionDate: midMonth,
-        isChecked: true,
-      });
-
-      component['submit']();
-
-      const callArg = mockDialogRef.close.mock.calls[0][0];
-      expect(callArg.checkedAt).toBeDefined();
-      expect(typeof callArg.checkedAt).toBe('string');
-      expect(() => new Date(callArg.checkedAt)).not.toThrow();
-    });
-  });
 });

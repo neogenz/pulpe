@@ -1,9 +1,15 @@
-import { CommonModule } from '@angular/common';
+import {
+  AppCurrencyPipe,
+  CURRENCY_CONFIG,
+  CurrencyConverterService,
+} from '@core/currency';
+import { UserSettingsApi } from '@core/user-settings';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
   inject,
+  signal,
 } from '@angular/core';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { MatButtonModule } from '@angular/material/button';
@@ -24,6 +30,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   type TemplateLine,
   type TemplateLinesPropagationSummary,
+  type SupportedCurrency,
 } from 'pulpe-shared';
 import {
   ConfirmationDialog,
@@ -59,7 +66,7 @@ interface EditTransactionsDialogResult {
 @Component({
   selector: 'pulpe-edit-transactions-dialog',
   imports: [
-    CommonModule,
+    AppCurrencyPipe,
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
@@ -191,7 +198,20 @@ interface EditTransactionsDialogResult {
                     [attr.id]="'amount-' + transaction.id"
                     data-testid="edit-line-amount"
                   />
-                  <span matTextSuffix>CHF</span>
+                  @if (showCurrencySelector()) {
+                    <mat-select
+                      matTextSuffix
+                      [value]="inputCurrency()"
+                      (selectionChange)="inputCurrency.set($event.value)"
+                      class="!w-[70px] text-on-surface-variant font-medium"
+                      aria-label="Devise"
+                    >
+                      <mat-option value="CHF">CHF</mat-option>
+                      <mat-option value="EUR">EUR</mat-option>
+                    </mat-select>
+                  } @else {
+                    <span matTextSuffix>{{ currencySymbol() }}</span>
+                  }
                   @if (transaction.formData.amount < 0) {
                     <mat-error>{{
                       'template.amountPositive' | transloco
@@ -247,9 +267,7 @@ interface EditTransactionsDialogResult {
                   [class.text-financial-negative]="runningTotals()[i] < 0"
                   class="font-medium ph-no-capture"
                 >
-                  {{
-                    runningTotals()[i] | currency: 'CHF' : 'symbol' : '1.2-2'
-                  }}
+                  {{ runningTotals()[i] | appCurrency: currency() }}
                 </span>
               </td>
             </ng-container>
@@ -376,6 +394,8 @@ export default class EditTransactionsDialog {
   readonly #dialog = inject(MatDialog);
   readonly #store = inject(TemplateLineStore);
   readonly #transloco = inject(TranslocoService);
+  readonly #userSettings = inject(UserSettingsApi);
+  readonly #converter = inject(CurrencyConverterService);
   protected readonly data = inject<EditTransactionsDialogData>(MAT_DIALOG_DATA);
 
   protected readonly saveLoadingLabel = this.#transloco.translate(
@@ -390,15 +410,25 @@ export default class EditTransactionsDialog {
   protected readonly deleteLineTooltip = this.#transloco.translate(
     'template.deleteLine',
   );
+  protected readonly currency = this.#userSettings.currency;
+  protected readonly currencySymbol = computed(
+    () => CURRENCY_CONFIG[this.#userSettings.currency()].symbol,
+  );
+  protected readonly showCurrencySelector =
+    this.#userSettings.showCurrencySelector;
+  protected readonly inputCurrency = signal<SupportedCurrency>(
+    this.#userSettings.currency(),
+  );
 
-  // Expose store signals directly
   protected readonly isLoading = this.#store.isLoading;
-  protected readonly errorMessage = this.#store.error;
+  readonly #conversionError = signal<string | null>(null);
+  protected readonly errorMessage = computed(
+    () => this.#conversionError() ?? this.#store.error(),
+  );
   protected readonly hasUnsavedChanges = this.#store.hasUnsavedChanges;
   protected readonly canRemoveTransaction = this.#store.canRemoveTransaction;
   protected readonly isValid = this.#store.isValid;
 
-  // Get active lines from store
   protected readonly transactions = this.#store.activeLines;
 
   protected readonly displayedColumns: readonly string[] = [
@@ -411,13 +441,11 @@ export default class EditTransactionsDialog {
   protected readonly transactionTypes = getTransactionTypes();
 
   constructor() {
-    // Initialize the store
     this.#store.initialize(
       this.data.originalTemplateLines,
       this.data.transactions,
     );
 
-    // Configure dialog to prevent closing during loading
     this.#dialogRef.disableClose = true;
   }
 
@@ -464,7 +492,24 @@ export default class EditTransactionsDialog {
 
     const propagateToBudgets = propagationChoice === 'propagate';
 
-    // Perform save - no sync needed as state is already up-to-date
+    try {
+      for (const line of this.transactions()) {
+        const { convertedAmount, metadata } =
+          await this.#converter.convertWithMetadata(
+            line.formData.amount,
+            this.inputCurrency(),
+            this.#userSettings.currency(),
+          );
+        this.#store.updateTransaction(line.id, { amount: convertedAmount });
+        this.#store.setCurrencyMetadata(line.id, metadata);
+      }
+    } catch {
+      this.#conversionError.set(
+        this.#transloco.translate('common.conversionError'),
+      );
+      return;
+    }
+
     const result = await this.#store.saveChanges(
       this.data.templateId,
       propagateToBudgets,
@@ -534,12 +579,9 @@ export default class EditTransactionsDialog {
     _index: number,
     transaction: EditableLine,
   ): string => {
-    return transaction.id; // Use the stable UUID for tracking
+    return transaction.id;
   };
 
-  /**
-   * Show confirmation dialog for transaction removal
-   */
   async #showConfirmationDialog(): Promise<boolean> {
     const dialogRef = this.#dialog.open(ConfirmationDialog, {
       data: {

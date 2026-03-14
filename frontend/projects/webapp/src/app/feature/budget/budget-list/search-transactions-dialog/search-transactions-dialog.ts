@@ -6,7 +6,6 @@ import {
   resource,
   signal,
 } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -20,6 +19,9 @@ import { firstValueFrom } from 'rxjs';
 import type { TransactionSearchResult } from 'pulpe-shared';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { BudgetApi } from '@core/budget/budget-api';
+import { TranslocoPipe } from '@jsverse/transloco';
+import { AppCurrencyPipe } from '@core/currency';
+import { UserSettingsApi } from '@core/user-settings';
 import { Logger } from '@core/logging/logger';
 
 @Component({
@@ -34,10 +36,11 @@ import { Logger } from '@core/logging/logger';
     MatProgressSpinnerModule,
     MatSelectModule,
     Field,
-    CurrencyPipe,
+    AppCurrencyPipe,
+    TranslocoPipe,
   ],
   template: `
-    <h2 mat-dialog-title>Rechercher dans le budget</h2>
+    <h2 mat-dialog-title>{{ 'budget.searchTitle' | transloco }}</h2>
 
     <mat-dialog-content class="flex flex-col gap-4 pt-2!">
       <div class="flex flex-col sm:flex-row gap-4">
@@ -46,7 +49,7 @@ import { Logger } from '@core/logging/logger';
           subscriptSizing="dynamic"
           class="flex-1"
         >
-          <mat-label>Rechercher</mat-label>
+          <mat-label>{{ 'common.search' | transloco }}</mat-label>
           @if (searchResource.isLoading()) {
             <mat-progress-spinner
               matIconPrefix
@@ -69,7 +72,7 @@ import { Logger } from '@core/logging/logger';
               matIconButton
               matIconSuffix
               (click)="clearSearch()"
-              aria-label="Effacer"
+              [attr.aria-label]="'common.clear' | transloco"
               type="button"
             >
               <mat-icon>close</mat-icon>
@@ -82,7 +85,7 @@ import { Logger } from '@core/logging/logger';
           subscriptSizing="dynamic"
           class="sm:w-48"
         >
-          <mat-label>Filtrer par année</mat-label>
+          <mat-label>{{ 'budget.filterByYear' | transloco }}</mat-label>
           <mat-select
             [field]="filterForm.years"
             multiple
@@ -93,7 +96,9 @@ import { Logger } from '@core/logging/logger';
             }
           </mat-select>
           @if (availableYearsResource.error()) {
-            <mat-hint class="text-error">Erreur de chargement</mat-hint>
+            <mat-hint class="text-error">{{
+              'budget.yearLoadError' | transloco
+            }}</mat-hint>
           }
         </mat-form-field>
       </div>
@@ -110,7 +115,9 @@ import { Logger } from '@core/logging/logger';
             data-testid="search-results-table"
           >
             <ng-container matColumnDef="period">
-              <th mat-header-cell *matHeaderCellDef>Période</th>
+              <th mat-header-cell *matHeaderCellDef>
+                {{ 'budget.searchColPeriod' | transloco }}
+              </th>
               <td
                 mat-cell
                 *matCellDef="let row"
@@ -121,7 +128,9 @@ import { Logger } from '@core/logging/logger';
             </ng-container>
 
             <ng-container matColumnDef="name">
-              <th mat-header-cell *matHeaderCellDef>Nom</th>
+              <th mat-header-cell *matHeaderCellDef>
+                {{ 'budget.searchColName' | transloco }}
+              </th>
               <td
                 mat-cell
                 *matCellDef="let row"
@@ -136,7 +145,7 @@ import { Logger } from '@core/logging/logger';
 
             <ng-container matColumnDef="amount">
               <th mat-header-cell *matHeaderCellDef class="text-right">
-                Montant
+                {{ 'budget.searchColAmount' | transloco }}
               </th>
               <td
                 mat-cell
@@ -146,7 +155,7 @@ import { Logger } from '@core/logging/logger';
                 [class.text-financial-expense]="row.kind === 'expense'"
                 [class.text-financial-savings]="row.kind === 'saving'"
               >
-                {{ row.amount | currency: 'CHF' : 'symbol' : '1.2-2' }}
+                {{ row.amount | appCurrency: currency() }}
               </td>
             </ng-container>
 
@@ -164,36 +173,45 @@ import { Logger } from '@core/logging/logger';
           <mat-icon class="text-5xl! w-auto! h-auto! mb-2"
             >error_outline</mat-icon
           >
-          <p class="text-body-medium">Erreur lors de la recherche</p>
-          <p class="text-body-small">Réessaie plus tard</p>
+          <p class="text-body-medium">{{ 'budget.searchError' | transloco }}</p>
+          <p class="text-body-small">
+            {{ 'budget.searchErrorRetry' | transloco }}
+          </p>
         </div>
       } @else if (searchResource.isLoading()) {
         <div class="flex flex-col items-center justify-center py-8 gap-2">
           <mat-progress-spinner mode="indeterminate" [diameter]="40" />
           <span class="text-body-medium text-on-surface-variant">
-            Recherche en cours...
+            {{ 'budget.searchLoading' | transloco }}
           </span>
         </div>
       } @else if (hasSearched()) {
         <div class="text-center py-8 text-on-surface-variant">
           <mat-icon class="text-5xl! w-auto! h-auto! mb-2">search_off</mat-icon>
-          <p class="text-body-medium">Pas de résultat</p>
-          <p class="text-body-small">Essaie avec un autre terme de recherche</p>
+          <p class="text-body-medium">
+            {{ 'budget.searchNoResult' | transloco }}
+          </p>
+          <p class="text-body-small">
+            {{ 'budget.searchTryAnother' | transloco }}
+          </p>
         </div>
       } @else {
         <div class="text-center py-8 text-on-surface-variant">
           <mat-icon class="text-5xl! w-auto! h-auto! mb-2">search</mat-icon>
-          <p class="text-body-medium">Recherchez dans vos budgets</p>
+          <p class="text-body-medium">
+            {{ 'budget.searchPrompt' | transloco }}
+          </p>
           <p class="text-body-small">
-            Saisissez au moins 2 caractères pour rechercher dans les prévisions
-            et transactions
+            {{ 'budget.searchMinChars' | transloco }}
           </p>
         </div>
       }
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button matButton mat-dialog-close>Fermer</button>
+      <button matButton mat-dialog-close>
+        {{ 'common.close' | transloco }}
+      </button>
     </mat-dialog-actions>
   `,
   styles: `
@@ -208,6 +226,8 @@ import { Logger } from '@core/logging/logger';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class SearchTransactionsDialogComponent {
+  readonly #userSettings = inject(UserSettingsApi);
+  protected readonly currency = this.#userSettings.currency;
   readonly #dialogRef = inject(
     MatDialogRef<
       SearchTransactionsDialogComponent,
