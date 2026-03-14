@@ -133,6 +133,7 @@ export class BudgetDetailsStore {
   readonly error = computed(
     () => this.#budgetDetailsResource.error() || this.#state.errorMessage(),
   );
+  readonly status = this.#budgetDetailsResource.status;
 
   readonly #budgetsList = computed(() =>
     this.#allBudgetsResource.error()
