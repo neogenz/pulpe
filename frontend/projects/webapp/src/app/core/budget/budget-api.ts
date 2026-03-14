@@ -75,6 +75,12 @@ export class BudgetApi {
         this.#hasBudgetCache.setHasBudget(response.data.length > 0),
       ),
       map((response) => response.data),
+      map((budgets) =>
+        [...budgets].sort((a, b) => {
+          if (a.year !== b.year) return a.year - b.year;
+          return a.month - b.month;
+        }),
+      ),
     );
   }
 

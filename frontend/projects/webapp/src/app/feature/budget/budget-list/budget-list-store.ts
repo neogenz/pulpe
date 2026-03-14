@@ -1,7 +1,6 @@
 import { Injectable, computed, inject, linkedSignal } from '@angular/core';
 import { BudgetApi } from '@core/budget/budget-api';
 import { type Budget } from 'pulpe-shared';
-import { map } from 'rxjs/operators';
 import { cachedResource } from 'ngx-ziflux';
 
 export interface BudgetPlaceholder {
@@ -18,10 +17,7 @@ export class BudgetListStore {
   readonly budgets = cachedResource({
     cache: this.#budgetApi.cache,
     cacheKey: ['budget', 'list'],
-    loader: () =>
-      this.#budgetApi
-        .getAllBudgets$()
-        .pipe(map((budgets) => this.#sortBudgets(budgets))),
+    loader: () => this.#budgetApi.getAllBudgets$(),
   });
 
   readonly isLoading = this.budgets.isInitialLoading;
@@ -144,12 +140,5 @@ export class BudgetListStore {
 
   setSelectedYear(year: number): void {
     this.selectedYear.set(year);
-  }
-
-  #sortBudgets(budgets: Budget[]): Budget[] {
-    return [...budgets].sort((a, b) => {
-      if (a.year !== b.year) return a.year - b.year;
-      return a.month - b.month;
-    });
   }
 }

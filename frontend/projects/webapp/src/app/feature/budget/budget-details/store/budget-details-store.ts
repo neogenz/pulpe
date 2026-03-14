@@ -123,6 +123,7 @@ export class BudgetDetailsStore {
 
   // ── 4. Public selectors (readonly/computed) ──
   readonly budgetDetails = computed(() => {
+    // ziflux value() returns undefined on error — fallback to cache for graceful degradation
     if (this.#budgetDetailsResource.error()) {
       const budgetId = this.#state.budgetId();
       if (!budgetId) return null;
@@ -145,31 +146,27 @@ export class BudgetDetailsStore {
     () => this.#budgetDetailsResource.error() || this.#state.errorMessage(),
   );
 
-  readonly #sortedBudgets = computed(() => {
-    const budgets = this.#allBudgetsResource.error()
+  readonly #budgetsList = computed(() =>
+    this.#allBudgetsResource.error()
       ? []
-      : (this.#allBudgetsResource.value() ?? []);
-    return budgets.toSorted((a, b) => {
-      if (a.year !== b.year) return a.year - b.year;
-      return a.month - b.month;
-    });
-  });
+      : (this.#allBudgetsResource.value() ?? []),
+  );
 
   readonly #currentIndex = computed(() => {
     const currentId = this.#state.budgetId();
-    return this.#sortedBudgets().findIndex((b) => b.id === currentId);
+    return this.#budgetsList().findIndex((b) => b.id === currentId);
   });
 
   readonly previousBudgetId = computed(() => {
     const idx = this.#currentIndex();
-    const sorted = this.#sortedBudgets();
-    return idx > 0 ? sorted[idx - 1].id : null;
+    const budgets = this.#budgetsList();
+    return idx > 0 ? budgets[idx - 1].id : null;
   });
 
   readonly nextBudgetId = computed(() => {
     const idx = this.#currentIndex();
-    const sorted = this.#sortedBudgets();
-    return idx >= 0 && idx < sorted.length - 1 ? sorted[idx + 1].id : null;
+    const budgets = this.#budgetsList();
+    return idx >= 0 && idx < budgets.length - 1 ? budgets[idx + 1].id : null;
   });
 
   readonly hasPrevious = computed(() => this.previousBudgetId() !== null);
