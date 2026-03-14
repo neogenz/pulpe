@@ -248,9 +248,9 @@ export class DashboardStore {
   );
 
   readonly totalSavingsRealized = computed<number>(() =>
-    this.budgetLines()
-      .filter((line) => line.kind === 'saving' && line.checkedAt !== null)
-      .reduce((sum, line) => sum + line.amount, 0),
+    BudgetFormulas.calculateTotalSavings(
+      this.budgetLines().filter((line) => line.checkedAt !== null),
+    ),
   );
 
   readonly savingsCheckedCount = computed<number>(

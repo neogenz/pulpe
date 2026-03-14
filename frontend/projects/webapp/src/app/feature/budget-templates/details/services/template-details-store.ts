@@ -72,10 +72,11 @@ export class TemplateDetailsStore {
 
   readonly totals = computed(() => {
     const lines = this.templateLines();
-    const income = BudgetFormulas.calculateTotalIncome(lines);
-    const savings = BudgetFormulas.calculateTotalSavings(lines);
-    const expense = BudgetFormulas.calculateTotalExpenses(lines) - savings;
-    return { income, expense, savings };
+    return {
+      income: BudgetFormulas.calculateTotalIncome(lines),
+      expense: BudgetFormulas.calculateTotalExpenseOnly(lines),
+      savings: BudgetFormulas.calculateTotalSavings(lines),
+    };
   });
 
   readonly netBalance = computed(() => {
