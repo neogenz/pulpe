@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { TemplateLineStore } from './template-line-store';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import {
   TransactionFormService,
   type TransactionFormData,
@@ -63,6 +64,7 @@ describe('TemplateLineStore - Integration Tests', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
         TemplateLineStore,
         { provide: BudgetTemplatesApi, useValue: mockBudgetTemplatesApi },
         { provide: TransactionFormService, useValue: {} },

@@ -26,7 +26,6 @@ import { TemplateApi } from '@core/budget-template/template-api';
 import { type BudgetTemplate } from 'pulpe-shared';
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
 import { TemplateStore, type TemplateTotals } from './services/template-store';
-import { TemplateTotalsCalculator } from './services/template-totals-calculator';
 import { type TemplateViewModel } from './ui/template-view-model';
 import { TemplatesList } from './ui/templates-list';
 
@@ -107,7 +106,6 @@ describe('CreateBudgetDialogComponent', () => {
   let mockBudgetApi: Partial<BudgetApi>;
   let mockTemplateApi: Partial<TemplateApi>;
   let mockTemplateStore: Partial<TemplateStore>;
-  let mockTemplateTotalsCalculator: Partial<TemplateTotalsCalculator>;
 
   // Service instances from TestBed
   let budgetApiService: BudgetApi;
@@ -186,25 +184,6 @@ describe('CreateBudgetDialogComponent', () => {
       loadTemplates: vi.fn(),
     };
 
-    // Mock TemplateTotalsCalculator
-    mockTemplateTotalsCalculator = {
-      calculateTemplateTotals: vi.fn().mockReturnValue({
-        income: 0,
-        expenses: 0,
-        savings: 0,
-        netBalance: 0,
-        loading: false,
-      }),
-      calculateBatchTotals: vi.fn().mockReturnValue({}),
-      createDefaultTotals: vi.fn().mockReturnValue({
-        income: 0,
-        expenses: 0,
-        savings: 0,
-        netBalance: 0,
-        loading: false,
-      }),
-    };
-
     await TestBed.configureTestingModule({
       imports: [
         CreateBudgetDialogComponent,
@@ -230,17 +209,11 @@ describe('CreateBudgetDialogComponent', () => {
       .overrideComponent(CreateBudgetDialogComponent, {
         remove: {
           imports: [TemplatesList],
-          providers: [TemplateStore, TemplateTotalsCalculator],
+          providers: [TemplateStore],
         },
         add: {
           imports: [MockTemplatesList],
-          providers: [
-            { provide: TemplateStore, useValue: mockTemplateStore },
-            {
-              provide: TemplateTotalsCalculator,
-              useValue: mockTemplateTotalsCalculator,
-            },
-          ],
+          providers: [{ provide: TemplateStore, useValue: mockTemplateStore }],
         },
       })
       .compileComponents();
@@ -405,7 +378,6 @@ describe('CreateBudgetDialogComponent', () => {
           expenses: 2000,
           savings: 0,
           netBalance: 1000,
-          loading: false,
         },
       };
 
@@ -420,7 +392,6 @@ describe('CreateBudgetDialogComponent', () => {
           expenses: 2500,
           savings: 0,
           netBalance: 1500,
-          loading: true,
         },
       }));
 
@@ -431,7 +402,6 @@ describe('CreateBudgetDialogComponent', () => {
         expenses: 2500,
         savings: 0,
         netBalance: 1500,
-        loading: true,
       });
     });
   });

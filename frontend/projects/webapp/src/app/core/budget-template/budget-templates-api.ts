@@ -118,6 +118,15 @@ export class BudgetTemplatesApi {
       .pipe(tap(() => this.cache.invalidate(['templates'])));
   }
 
+  cacheTemplateDetail(data: BudgetTemplateCreateResponse['data']): void {
+    if (data.template) {
+      this.cache.set(['templates', 'details', data.template.id], {
+        template: data.template,
+        transactions: data.lines ?? [],
+      });
+    }
+  }
+
   checkUsage$(id: string): Observable<TemplateUsageResponse> {
     return this.#api.get$(
       `/budget-templates/${id}/usage`,

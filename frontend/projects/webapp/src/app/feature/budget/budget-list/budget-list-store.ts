@@ -9,11 +9,11 @@ export interface BudgetPlaceholder {
   year: number;
 }
 
+const MAX_FUTURE_MONTHS_TO_SEARCH = 36;
+
 @Injectable()
 export class BudgetListStore {
   readonly #budgetApi = inject(BudgetApi);
-
-  private static readonly MAX_FUTURE_MONTHS_TO_SEARCH = 36;
 
   readonly budgets = cachedResource({
     cache: this.#budgetApi.cache,
@@ -33,7 +33,7 @@ export class BudgetListStore {
   readonly plannedYears = computed(() => {
     const months = this.budgetsList();
     const years = [...new Set(months.map((month) => month.year))];
-    return years.sort((a, b) => a - b); // Tri croissant
+    return years.toSorted((a, b) => a - b); // Tri croissant
   });
 
   /**
@@ -52,7 +52,7 @@ export class BudgetListStore {
     groupedByYear.forEach((months, year) => {
       groupedByYear.set(
         year,
-        months.sort((a, b) => b.month - a.month),
+        months.toSorted((a, b) => b.month - a.month),
       );
     });
 
@@ -92,26 +92,9 @@ export class BudgetListStore {
 
   readonly selectedYear = linkedSignal<number[], number | null>({
     source: this.plannedYears,
-    computation: (years, previous) => {
-      // Garder la sélection précédente si elle existe encore
-      const currentYear = previous?.value ?? new Date().getFullYear();
-      const isExistingYear = years.includes(currentYear);
-      if (isExistingYear) {
-        return currentYear;
-      }
-
-      // Fallback sur la première année
-      return years[0] ?? null;
+    computation: (_years, previous) => {
+      return previous?.value ?? new Date().getFullYear();
     },
-  });
-
-  readonly selectedYearIndex = computed(() => {
-    const year = this.selectedYear();
-    const years = this.plannedYears();
-
-    if (!year || years.length === 0) return 0;
-
-    return Math.max(0, years.indexOf(year));
   });
 
   /**
@@ -136,7 +119,7 @@ export class BudgetListStore {
     );
 
     // Parcourir les mois futurs pour trouver le premier disponible
-    for (let i = 0; i < BudgetListStore.MAX_FUTURE_MONTHS_TO_SEARCH; i++) {
+    for (let i = 0; i < MAX_FUTURE_MONTHS_TO_SEARCH; i++) {
       // Calculer le mois et l'année à vérifier
       const totalMonths = currentYear * 12 + currentMonth - 1 + i;
       const year = Math.floor(totalMonths / 12);

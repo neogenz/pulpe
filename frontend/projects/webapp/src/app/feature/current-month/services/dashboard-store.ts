@@ -302,7 +302,7 @@ export class DashboardStore {
   }
 
   async addTransaction(transactionData: TransactionCreate): Promise<void> {
-    return this.#performOptimisticMutation<Transaction>(
+    return this.#performMutationWithRefresh<Transaction>(
       () => this.#budgetApi.createTransaction$(transactionData),
       (currentData, response) => ({
         ...currentData,
@@ -351,15 +351,15 @@ export class DashboardStore {
     });
   }
 
-  async #performOptimisticMutation<T>(
+  async #performMutationWithRefresh<T>(
     operation: () => Observable<{ data: T }>,
     updateData: (currentData: DashboardData, response: T) => DashboardData,
   ): Promise<void>;
-  async #performOptimisticMutation(
+  async #performMutationWithRefresh(
     operation: () => Observable<void>,
     updateData: (currentData: DashboardData) => DashboardData,
   ): Promise<void>;
-  async #performOptimisticMutation<T>(
+  async #performMutationWithRefresh<T>(
     operation: () => Observable<{ data: T } | void>,
     updateData: (currentData: DashboardData, response?: T) => DashboardData,
   ): Promise<void> {

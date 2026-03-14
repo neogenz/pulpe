@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { TranslocoService } from '@jsverse/transloco';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import type { TransactionFormData } from '../../services/transaction-form';
 import type {
@@ -10,30 +11,20 @@ import type {
 } from 'pulpe-shared';
 import type { EditableLine, SaveResult } from './template-line-state';
 
-/**
- * TemplateLineStore - Simplified store for managing template line editing
- *
- * This store provides a simplified API for managing template line editing:
- * - Direct state management with public signals
- * - CRUD operations with UUID-based identification for stability
- * - Bulk operations for efficient API calls
- * - Minimal complexity while preserving all essential functionality
- */
 @Injectable()
 export class TemplateLineStore {
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
+  readonly #transloco = inject(TranslocoService);
 
-  // Private state signals
-  readonly lines = signal<EditableLine[]>([]);
+  readonly #lines = signal<EditableLine[]>([]);
+  readonly lines = this.#lines.asReadonly();
   readonly #isLoading = signal(false);
   readonly #error = signal<string | null>(null);
 
-  // Standardized resource state signals (aligned with Angular resource() API)
   readonly isLoading = computed(() => this.#isLoading());
   readonly hasValue = computed(() => this.lines().length > 0 && !this.#error());
   readonly error = computed(() => this.#error());
 
-  // Computed properties for component consumption
   readonly activeLines = computed(() =>
     this.lines().filter((line) => !this.#deletedIds().has(line.id)),
   );
@@ -52,20 +43,13 @@ export class TemplateLineStore {
     this.activeLines().every((line) => this.#isLineValid(line)),
   );
 
-  // Track deleted line IDs
   readonly #deletedIds = signal<Set<string>>(new Set());
 
-  /**
-   * Get line by ID - returns undefined if not found or deleted
-   */
   getLineById(id: string): EditableLine | undefined {
     const line = this.lines().find((line) => line.id === id);
     return line && !this.#deletedIds().has(id) ? line : undefined;
   }
 
-  /**
-   * Initialize the editor with template lines and form data
-   */
   initialize(
     templateLines: TemplateLine[],
     formData: TransactionFormData[],
@@ -75,33 +59,26 @@ export class TemplateLineStore {
       return this.#createEditableLine(data, originalLine);
     });
 
-    this.lines.set(editableLines);
+    this.#lines.set(editableLines);
     this.#deletedIds.set(new Set());
     this.#error.set(null);
   }
 
-  /**
-   * Add a new line to the list
-   */
   addTransaction(data: TransactionFormData): string {
     const newLine = this.#createEditableLine(data);
-    this.lines.update((lines) => [...lines, newLine]);
-    return newLine.id; // Return the UUID
+    this.#lines.update((lines) => [...lines, newLine]);
+    return newLine.id;
   }
 
-  /**
-   * Update an existing line by ID
-   */
   updateTransaction(
     id: string,
     updates: Partial<TransactionFormData>,
   ): boolean {
-    // Check if line exists and is not deleted
     if (!this.getLineById(id)) {
       return false;
     }
 
-    this.lines.update((lines) =>
+    this.#lines.update((lines) =>
       lines.map((line) =>
         line.id === id
           ? {
@@ -115,9 +92,6 @@ export class TemplateLineStore {
     return true;
   }
 
-  /**
-   * Remove a line by ID
-   */
   removeTransaction(id: string): boolean {
     if (!this.canRemoveTransaction()) {
       return false;
@@ -129,19 +103,14 @@ export class TemplateLineStore {
     }
 
     if (!line.originalLine) {
-      // New line - remove entirely from array
-      this.lines.update((lines) => lines.filter((l) => l.id !== id));
+      this.#lines.update((lines) => lines.filter((l) => l.id !== id));
     } else {
-      // Existing line - mark as deleted
       this.#deletedIds.update((deleted) => new Set([...deleted, id]));
     }
 
     return true;
   }
 
-  /**
-   * Save all changes via bulk operations API
-   */
   async saveChanges(
     templateId: string,
     propagateToBudgets: boolean,
@@ -180,7 +149,7 @@ export class TemplateLineStore {
       const errorMessage =
         error instanceof Error
           ? error.message
-          : 'Une erreur est survenue lors de la sauvegarde';
+          : this.#transloco.translate('template.saveError');
 
       this.#error.set(errorMessage);
       return { success: false, error: errorMessage };
@@ -188,8 +157,6 @@ export class TemplateLineStore {
       this.#isLoading.set(false);
     }
   }
-
-  // Private helper methods
 
   #createEditableLine(
     data: TransactionFormData,
@@ -230,14 +197,8 @@ export class TemplateLineStore {
         .map((line) => this.#mapToUpdateData(line)),
 
       delete: Array.from(deletedSet)
-        .filter((id) => {
-          const line = currentLines.find((l) => l.id === id);
-          return line?.originalLine;
-        })
-        .map((id) => {
-          const line = currentLines.find((l) => l.id === id);
-          return line!.originalLine!.id;
-        }),
+        .map((id) => currentLines.find((l) => l.id === id)?.originalLine?.id)
+        .filter((id): id is string => id != null),
       propagateToBudgets,
     };
   }
@@ -265,13 +226,14 @@ export class TemplateLineStore {
 
   #mapToUpdateData(line: EditableLine): TemplateLineUpdateWithId {
     const { originalLine, formData } = line;
+    if (!originalLine) throw new Error('Cannot update line without original');
     return {
-      id: originalLine!.id,
+      id: originalLine.id,
       name: formData.description,
       amount: formData.amount,
       kind: formData.type,
-      recurrence: originalLine!.recurrence,
-      description: originalLine!.description,
+      recurrence: originalLine.recurrence,
+      description: originalLine.description,
     };
   }
 
@@ -304,7 +266,7 @@ export class TemplateLineStore {
         return line;
       });
 
-    this.lines.set(updatedLines);
+    this.#lines.set(updatedLines);
     this.#deletedIds.set(new Set());
   }
 
