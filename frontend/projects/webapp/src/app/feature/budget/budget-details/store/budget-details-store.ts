@@ -122,21 +122,9 @@ export class BudgetDetailsStore {
   });
 
   // ── 4. Public selectors (readonly/computed) ──
-  readonly budgetDetails = computed(() => {
-    // ziflux value() returns undefined on error — fallback to cache for graceful degradation
-    if (this.#budgetDetailsResource.error()) {
-      const budgetId = this.#state.budgetId();
-      if (!budgetId) return null;
-      return (
-        this.#budgetApi.cache.get<BudgetDetailsViewModel>([
-          'budget',
-          'details',
-          budgetId,
-        ])?.data ?? null
-      );
-    }
-    return this.#budgetDetailsResource.value() ?? null;
-  });
+  readonly budgetDetails = computed(
+    () => this.#budgetDetailsResource.value() ?? null,
+  );
   readonly isLoading = computed(
     () => this.#budgetDetailsResource.isLoading() && !this.budgetDetails(),
   );

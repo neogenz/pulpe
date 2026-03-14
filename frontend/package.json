@@ -64,7 +64,7 @@
     "ngx-lottie": "^20.0.0",
     "ngx-turnstile": "^0.2.5",
     "ngx-unicode-spinners": "^1.0.0",
-    "ngx-ziflux": "^0.0.2",
+    "ngx-ziflux": "^0.0.4",
     "postcss": "^8.5.4",
     "posthog-js": "^1.260.2",
     "pulpe-shared": "workspace:*",
