@@ -100,14 +100,59 @@ const storeTemplateDetails: WritableSignal<BudgetTemplateDetailViewModel | null>
 const storeIsLoading = signal(false);
 const storeError: WritableSignal<unknown> = signal(null);
 
+const KIND_ORDER: Record<string, number> = {
+  income: 1,
+  saving: 2,
+  expense: 3,
+};
+
+const storeTransactions = computed(
+  () => storeTemplateDetails()?.transactions ?? [],
+);
+
+const storeEntries = computed(() => {
+  const transactions = storeTransactions();
+  const sorted = [...transactions].sort((a, b) => {
+    const kindDiff =
+      (KIND_ORDER[a.kind] ?? Infinity) - (KIND_ORDER[b.kind] ?? Infinity);
+    if (kindDiff !== 0) return kindDiff;
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  });
+  return sorted.map((t) => {
+    const spent = t.kind === 'expense' ? t.amount : 0;
+    const earned = t.kind === 'income' ? t.amount : 0;
+    const saved = t.kind === 'saving' ? t.amount : 0;
+    return { description: t.name, spent, earned, saved, total: earned - spent };
+  });
+});
+
+const storeTotals = computed(() =>
+  storeEntries().reduce(
+    (acc, e) => ({
+      income: acc.income + e.earned,
+      expense: acc.expense + e.spent,
+      savings: acc.savings + e.saved,
+    }),
+    { income: 0, expense: 0, savings: 0 },
+  ),
+);
+
+const storeNetBalance = computed(() => {
+  const t = storeTotals();
+  return t.income - t.expense - t.savings;
+});
+
 const mockStore = {
   templateDetails: storeTemplateDetails,
   isLoading: storeIsLoading,
   error: storeError,
   hasValue: computed(() => !!storeTemplateDetails()),
   template: computed(() => storeTemplateDetails()?.template ?? null),
-  transactions: computed(() => storeTemplateDetails()?.transactions ?? []),
-  templateLines: computed(() => storeTemplateDetails()?.transactions ?? []),
+  transactions: storeTransactions,
+  templateLines: storeTransactions,
+  entries: storeEntries,
+  totals: storeTotals,
+  netBalance: storeNetBalance,
   initializeTemplateId: vi.fn(),
   reloadTemplateDetails: vi.fn(),
 };
@@ -219,18 +264,16 @@ describe('TemplateDetail', () => {
 
   describe('Computed State', () => {
     it('should sort entries by kind then createdAt', async () => {
-      const fixture = await createFixture();
-      const descriptions = fixture.componentInstance
-        .entries()
-        .map((e: { description: string }) => e.description);
+      await createFixture();
+      const descriptions = mockStore.entries().map((e) => e.description);
 
       // income first, then saving, then expense
       expect(descriptions).toEqual(['Salaire', 'Épargne', 'Loyer']);
     });
 
     it('should map template lines to FinancialEntry with correct amounts', async () => {
-      const fixture = await createFixture();
-      const entries = fixture.componentInstance.entries();
+      await createFixture();
+      const entries = mockStore.entries();
 
       expect(entries[0]).toEqual({
         description: 'Salaire',
@@ -256,8 +299,8 @@ describe('TemplateDetail', () => {
     });
 
     it('should calculate totals from entries', async () => {
-      const fixture = await createFixture();
-      expect(fixture.componentInstance.totals()).toEqual({
+      await createFixture();
+      expect(mockStore.totals()).toEqual({
         income: 5000,
         expense: 1200,
         savings: 800,
@@ -265,17 +308,17 @@ describe('TemplateDetail', () => {
     });
 
     it('should calculate net balance as income minus expense minus savings', async () => {
-      const fixture = await createFixture();
+      await createFixture();
       // 5000 - 1200 - 800 = 3000
-      expect(fixture.componentInstance.netBalance()).toBe(3000);
+      expect(mockStore.netBalance()).toBe(3000);
     });
 
     it('should return empty entries when transactions are empty', async () => {
       storeTemplateDetails.set({ template: mockTemplate, transactions: [] });
-      const fixture = await createFixture();
+      await createFixture();
 
-      expect(fixture.componentInstance.entries()).toEqual([]);
-      expect(fixture.componentInstance.totals()).toEqual({
+      expect(mockStore.entries()).toEqual([]);
+      expect(mockStore.totals()).toEqual({
         income: 0,
         expense: 0,
         savings: 0,

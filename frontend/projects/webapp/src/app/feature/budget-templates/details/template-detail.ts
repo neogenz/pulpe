@@ -30,11 +30,7 @@ import { TransactionLabelPipe } from '@pattern/transaction-display';
 import { firstValueFrom } from 'rxjs';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
-import {
-  EditTransactionsDialog,
-  TransactionsTable,
-  type FinancialEntry,
-} from './components';
+import { EditTransactionsDialog, TransactionsTable } from './components';
 import { BudgetTemplatesStore } from '../services/budget-templates-store';
 import { TemplateDetailsStore } from './services/template-details-store';
 
@@ -69,7 +65,11 @@ import { TemplateDetailsStore } from './services/template-details-store';
           aria-live="assertive"
         >
           <div class="text-center">
-            <mat-icon class="mb-4 !text-4xl" aria-hidden="true">
+            <mat-icon
+              class="mb-4"
+              style="font-size: 2.25rem; width: 2.25rem; height: 2.25rem;"
+              aria-hidden="true"
+            >
               error_outline
             </mat-icon>
             <p class="text-body-large">{{ loadingError }}</p>
@@ -161,15 +161,21 @@ import { TemplateDetailsStore } from './services/template-details-store';
             <!-- Hero: Net balance -->
             <div
               class="text-center py-6 px-4 sm:py-8 sm:px-6 rounded-3xl"
-              [class.bg-primary-container]="netBalance() >= 0"
-              [class.bg-error-container]="netBalance() < 0"
+              [class.bg-primary-container]="
+                templateDetailsStore.netBalance() >= 0
+              "
+              [class.bg-error-container]="templateDetailsStore.netBalance() < 0"
             >
               <p
                 class="text-body-large mb-3"
-                [class.text-on-primary-container]="netBalance() >= 0"
-                [class.text-on-error-container]="netBalance() < 0"
+                [class.text-on-primary-container]="
+                  templateDetailsStore.netBalance() >= 0
+                "
+                [class.text-on-error-container]="
+                  templateDetailsStore.netBalance() < 0
+                "
               >
-                @if (netBalance() >= 0) {
+                @if (templateDetailsStore.netBalance() >= 0) {
                   {{ netBalanceLabel }}
                 } @else {
                   {{ deficitLabel }}
@@ -177,8 +183,12 @@ import { TemplateDetailsStore } from './services/template-details-store';
               </p>
               <div
                 class="text-display-medium sm:text-display-large font-bold tracking-tight ph-no-capture"
-                [class.text-on-primary-container]="netBalance() >= 0"
-                [class.text-on-error-container]="netBalance() < 0"
+                [class.text-on-primary-container]="
+                  templateDetailsStore.netBalance() >= 0
+                "
+                [class.text-on-error-container]="
+                  templateDetailsStore.netBalance() < 0
+                "
               >
                 {{ absNetBalance() | number: '1.0-0' : 'de-CH' }}
                 <span class="text-headline-small font-normal">CHF</span>
@@ -230,7 +240,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
             <div class="flex-1 min-h-0 rounded-lg">
               <pulpe-transactions-table
                 class="flex-1 min-h-0"
-                [entries]="entries()"
+                [entries]="templateDetailsStore.entries()"
                 role="table"
                 [attr.aria-label]="forecastsTableLabel"
               />
@@ -256,7 +266,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class TemplateDetail implements OnInit {
-  readonly templateDetailsStore = inject(TemplateDetailsStore);
+  protected readonly templateDetailsStore = inject(TemplateDetailsStore);
   readonly #budgetTemplatesStore = inject(BudgetTemplatesStore);
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);
@@ -313,65 +323,16 @@ export default class TemplateDetail implements OnInit {
     return this.#route.snapshot.paramMap.get('templateId');
   }
 
-  // Define sort order for transaction kinds
-  readonly #KIND_ORDER: Record<string, number> = {
-    income: 1,
-    saving: 2,
-    expense: 3,
-  } as const;
-
-  readonly entries = computed<FinancialEntry[]>(() => {
-    const transactions = this.templateDetailsStore.transactions();
-
-    // Sort transactions by kind first, then by createdAt
-    const sortedTransactions = [...transactions].sort((a, b) => {
-      // First sort by kind (income → saving → expense)
-      const kindDiff =
-        (this.#KIND_ORDER[a.kind] ?? 999) - (this.#KIND_ORDER[b.kind] ?? 999);
-      if (kindDiff !== 0) return kindDiff;
-
-      // Then sort by createdAt (ascending)
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    });
-
-    return sortedTransactions.map((transaction: TemplateLine) => {
-      const spent = transaction.kind === 'expense' ? transaction.amount : 0;
-      const earned = transaction.kind === 'income' ? transaction.amount : 0;
-      const saved = transaction.kind === 'saving' ? transaction.amount : 0;
-      return {
-        description: transaction.name,
-        spent,
-        earned,
-        saved,
-        total: earned - spent,
-      };
-    });
-  });
-
-  readonly totals = computed(() => {
-    return this.entries().reduce(
-      (acc, entry) => ({
-        income: acc.income + entry.earned,
-        expense: acc.expense + entry.spent,
-        savings: acc.savings + entry.saved,
-      }),
-      { income: 0, expense: 0, savings: 0 },
-    );
-  });
-
-  readonly netBalance = computed(() => {
-    const t = this.totals();
-    return t.income - t.expense - t.savings;
-  });
-
-  readonly absNetBalance = computed(() => Math.abs(this.netBalance()));
+  readonly absNetBalance = computed(() =>
+    Math.abs(this.templateDetailsStore.netBalance()),
+  );
 
   readonly #incomeLabel = this.#transloco.translate('template.incomeLabel');
   readonly #expensesLabel = this.#transloco.translate('template.expensesLabel');
   readonly #savingsLabel = this.#transloco.translate('template.savingsLabel');
 
   readonly financialPills = computed(() => {
-    const t = this.totals();
+    const t = this.templateDetailsStore.totals();
     return [
       {
         testId: 'income-pill',

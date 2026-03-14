@@ -52,6 +52,7 @@ describe('BudgetTemplatesStore', () => {
       update$: vi.fn(),
       delete$: vi.fn(),
       cache: mockCache as unknown as BudgetTemplatesApi['cache'],
+      cacheTemplateDetail: vi.fn(),
     };
 
     TestBed.configureTestingModule({
@@ -355,10 +356,10 @@ describe('BudgetTemplatesStore', () => {
         lines: [],
       });
 
-      expect(mockCache.set).toHaveBeenCalledWith(
-        ['templates', 'details', 'template-3'],
-        { template: createdTemplate, transactions: lines },
-      );
+      expect(mockApi.cacheTemplateDetail).toHaveBeenCalledWith({
+        template: createdTemplate,
+        lines,
+      });
     });
 
     it('should not modify state on creation failure', async () => {

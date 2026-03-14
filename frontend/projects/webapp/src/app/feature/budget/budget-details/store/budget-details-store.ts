@@ -46,10 +46,6 @@ function generateTempId(): string {
   return `${TEMP_ID_PREFIX}${uuidv4()}`;
 }
 
-/**
- * Signal-based store for budget details state management
- * Follows the reactive patterns with single state signal and resource separation
- */
 @Injectable()
 export class BudgetDetailsStore {
   // ── 1. Dependencies ──
@@ -65,18 +61,15 @@ export class BudgetDetailsStore {
   // Mutex: prevents concurrent toggle mutations on the same item
   readonly #mutatingIds = new Set<string>();
 
-  // Filter state - show only unchecked items by default
   readonly #isShowingOnlyUnchecked = signal<boolean>(
     this.#storage.get<boolean>(STORAGE_KEYS.BUDGET_SHOW_ONLY_UNCHECKED) ?? true,
   );
   readonly isShowingOnlyUnchecked = this.#isShowingOnlyUnchecked.asReadonly();
 
-  // Search filter state
   readonly #searchText = signal('');
   readonly searchText = this.#searchText.asReadonly();
 
   constructor() {
-    // Persist filter preference to localStorage
     effect(() => {
       this.#storage.set(
         STORAGE_KEYS.BUDGET_SHOW_ONLY_UNCHECKED,
@@ -84,8 +77,6 @@ export class BudgetDetailsStore {
       );
     });
 
-    // Prefetch adjacent budgets for instant navigation
-    // Only re-fires when the user navigates (prev/next IDs change)
     effect(() => {
       const prevId = this.previousBudgetId();
       const nextId = this.nextBudgetId();
@@ -184,10 +175,6 @@ export class BudgetDetailsStore {
   readonly hasPrevious = computed(() => this.previousBudgetId() !== null);
   readonly hasNext = computed(() => this.nextBudgetId() !== null);
 
-  /**
-   * Budget lines for display - includes virtual rollover line when applicable
-   * Similar to current-month-store pattern but for budget details page
-   */
   readonly displayBudgetLines = computed<BudgetLine[]>(() => {
     const details = this.budgetDetails();
     if (!details) return [];
@@ -249,9 +236,6 @@ export class BudgetDetailsStore {
     return lines.length + transactions.length;
   });
 
-  /**
-   * Filtered budget lines based on checked filter and search text
-   */
   readonly filteredBudgetLines = computed<BudgetLine[]>(() => {
     let lines = this.displayBudgetLines();
     if (this.#isShowingOnlyUnchecked()) {
@@ -280,11 +264,6 @@ export class BudgetDetailsStore {
     );
   });
 
-  /**
-   * Filtered transactions based on checked filter and search text
-   * - Allocated transactions: follow their parent budget line's visibility
-   * - Free transactions: filtered by their own checkedAt and search text
-   */
   readonly filteredTransactions = computed<Transaction[]>(() => {
     const details = this.budgetDetails();
     if (!details) return [];
@@ -311,9 +290,6 @@ export class BudgetDetailsStore {
     });
   });
 
-  /**
-   * Set the isShowingOnlyUnchecked filter value
-   */
   setIsShowingOnlyUnchecked(value: boolean): void {
     this.#isShowingOnlyUnchecked.set(value);
   }
@@ -329,9 +305,6 @@ export class BudgetDetailsStore {
 
   // ── 5. Mutations (async/await) ──
 
-  /**
-   * Create a new budget line with optimistic updates
-   */
   async createBudgetLine(budgetLine: BudgetLineCreate): Promise<void> {
     const newId = generateTempId();
 
@@ -382,9 +355,6 @@ export class BudgetDetailsStore {
     }
   }
 
-  /**
-   * Update an existing budget line with optimistic updates
-   */
   async updateBudgetLine(data: BudgetLineUpdate): Promise<void> {
     // Optimistic update
     this.#budgetDetailsResource.update((details) => {
@@ -416,9 +386,6 @@ export class BudgetDetailsStore {
     }
   }
 
-  /**
-   * Update an existing transaction with optimistic updates
-   */
   async updateTransaction(id: string, data: TransactionUpdate): Promise<void> {
     this.#budgetDetailsResource.update((details) => {
       if (!details) return details!;
@@ -449,9 +416,6 @@ export class BudgetDetailsStore {
     }
   }
 
-  /**
-   * Delete a budget line with optimistic updates
-   */
   async deleteBudgetLine(id: string): Promise<void> {
     // Optimistic update - remove the line and free its allocated transactions
     this.#budgetDetailsResource.update((details) => {
@@ -478,9 +442,6 @@ export class BudgetDetailsStore {
     }
   }
 
-  /**
-   * Delete a transaction with optimistic updates
-   */
   async deleteTransaction(id: string): Promise<void> {
     // Optimistic update - remove the transaction
     this.#budgetDetailsResource.update((details) => {
@@ -506,9 +467,6 @@ export class BudgetDetailsStore {
     }
   }
 
-  /**
-   * Create an allocated transaction with optimistic updates
-   */
   async createAllocatedTransaction(
     transactionData: TransactionCreate,
   ): Promise<void> {
@@ -569,9 +527,6 @@ export class BudgetDetailsStore {
     }
   }
 
-  /**
-   * Reset a budget line from its template values
-   */
   async resetBudgetLineFromTemplate(id: string): Promise<void> {
     try {
       const response = await firstValueFrom(
@@ -771,9 +726,6 @@ export class BudgetDetailsStore {
     }
   }
 
-  /**
-   * Manually reload budget details from the server
-   */
   reloadBudgetDetails(): void {
     this.#budgetDetailsResource.reload();
     this.#clearError();
@@ -781,16 +733,10 @@ export class BudgetDetailsStore {
 
   // ── 6. Private utility methods ──
 
-  /**
-   * Set an error message in the state
-   */
   #setError(error: string): void {
     this.#state.errorMessage.set(error);
   }
 
-  /**
-   * Clear the error state
-   */
   #clearError(): void {
     this.#state.errorMessage.set(null);
   }

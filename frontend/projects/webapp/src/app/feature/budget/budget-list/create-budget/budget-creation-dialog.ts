@@ -28,7 +28,6 @@ import { TemplatesList } from './ui/templates-list';
 import { type TemplateViewModel } from './ui/template-view-model';
 import { TemplateDetailsDialog } from './template-details-dialog';
 import { TemplateStore } from './services/template-store';
-import { TemplateTotalsCalculator } from './services/template-totals-calculator';
 import { BudgetApi } from '@core/budget/budget-api';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { isApiError } from '@core/api/api-error';
@@ -67,7 +66,6 @@ const MONTH_YEAR_FORMATS = {
   ],
   providers: [
     TemplateStore,
-    TemplateTotalsCalculator,
     { provide: MAT_DATE_FORMATS, useValue: MONTH_YEAR_FORMATS },
   ],
   template: `
@@ -222,7 +220,7 @@ export class CreateBudgetDialogComponent {
         income: totals?.income || 0,
         expenses: (totals?.expenses || 0) + (totals?.savings || 0), // Combine for display as per SPECS
         netBalance: totals?.netBalance || 0,
-        loading: totals?.loading || !totals,
+        loading: !totals,
       };
     });
 

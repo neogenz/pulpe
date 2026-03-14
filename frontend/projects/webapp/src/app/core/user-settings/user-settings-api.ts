@@ -14,16 +14,6 @@ import { ClientKeyService } from '../encryption/client-key.service';
 import { DemoModeService } from '../demo/demo-mode.service';
 import { Logger } from '../logging/logger';
 
-/**
- * Hybrid API + Store service for user settings.
- *
- * Combines API calls with local resource caching because settings are:
- * - Read frequently (every component that needs payDayOfMonth)
- * - Written rarely (only from settings page)
- * - Needed at app startup (PreloadService)
- *
- * This avoids an extra store layer for a single, rarely-mutated resource.
- */
 @Injectable({
   providedIn: 'root',
 })
@@ -61,9 +51,9 @@ export class UserSettingsApi {
     () => this.settings()?.payDayOfMonth ?? null,
   );
 
-  readonly isLoading = computed(() => this.#settingsResource.isLoading());
+  readonly isLoading = this.#settingsResource.isLoading;
 
-  readonly error = computed(() => this.#settingsResource.error());
+  readonly error = this.#settingsResource.error;
 
   async updateSettings(settings: UpdateUserSettings): Promise<UserSettings> {
     const response = await firstValueFrom(

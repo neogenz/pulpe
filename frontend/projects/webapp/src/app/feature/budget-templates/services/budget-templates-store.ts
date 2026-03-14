@@ -98,15 +98,8 @@ export class BudgetTemplatesStore {
       ]);
     }
 
-    // Pre-populate detail cache for SWR navigation
     if (response.data.template) {
-      this.#budgetTemplatesApi.cache.set(
-        ['templates', 'details', response.data.template.id],
-        {
-          template: response.data.template,
-          transactions: response.data.lines ?? [],
-        },
-      );
+      this.#budgetTemplatesApi.cacheTemplateDetail(response.data);
     }
 
     // Return full data (template + lines) for SWR navigation
