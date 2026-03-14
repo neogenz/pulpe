@@ -67,41 +67,18 @@ struct AddTransactionSheet: View {
     // MARK: - Description
 
     private var descriptionField: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text("Description")
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.onSurfaceVariant)
-            TextField(kind.descriptionPlaceholder, text: $name)
-                .font(PulpeTypography.bodyLarge)
-                .padding(DesignTokens.Spacing.lg)
-                .background(Color.inputBackgroundSoft)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-                .overlay(
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                        .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: 1)
-                )
-                .accessibilityLabel("Description de la transaction")
-        }
+        FormTextField(
+            placeholder: kind.descriptionPlaceholder,
+            text: $name,
+            label: "Description",
+            accessibilityLabel: "Description de la transaction"
+        )
     }
 
     // MARK: - Date Selector
 
     private var dateSelector: some View {
-        HStack {
-            Label("Date", systemImage: "calendar")
-                .font(PulpeTypography.bodyLarge)
-                .foregroundStyle(Color.textPrimary)
-
-            Spacer()
-
-            DatePicker("", selection: $transactionDate, displayedComponents: .date)
-                .labelsHidden()
-                .datePickerStyle(.compact)
-                .accessibilityLabel("Date de la transaction")
-        }
-        .padding(DesignTokens.Spacing.lg)
-        .background(Color.inputBackgroundSoft)
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+        TransactionDateSelector(date: $transactionDate)
     }
 
     // MARK: - Add Button

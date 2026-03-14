@@ -9,7 +9,7 @@
     "swiftui-expert-skill": {
       "source": "avdlee/swiftui-agent-skill",
       "sourceType": "github",
-      "computedHash": "0331c926849c43df17ece2fc04daac21e7724ed4e6b41995c8d36a748fa16cde"
+      "computedHash": "f8f1a9994e0c22bd01e37369f192651819fce9a80ee21b4faff43b6710191943"
     },
     "tailwind-design-system": {
       "source": "wshobson/agents",

@@ -32,7 +32,9 @@ struct KindToggle: View {
                             )
                         )
                 }
-                .buttonStyle(.plain)
+                .frame(minHeight: DesignTokens.TapTarget.minimum)
+                .contentShape(Capsule())
+                .plainPressedButtonStyle()
                 .accessibilityLabel(kind.label)
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
             }

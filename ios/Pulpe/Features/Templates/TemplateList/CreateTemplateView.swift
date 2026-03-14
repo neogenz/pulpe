@@ -169,7 +169,7 @@ struct TemplateLineInputRow: View {
                 Image(systemName: "trash")
                     .foregroundStyle(Color.errorPrimary)
             }
-            .buttonStyle(.plain)
+            .iconButtonStyle()
         }
     }
 }
@@ -225,51 +225,19 @@ struct AddTemplateLineSheet: View {
     // MARK: - Description
 
     private var descriptionField: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text("Description")
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.onSurfaceVariant)
-            TextField("Nom de la ligne", text: $name)
-                .font(PulpeTypography.bodyLarge)
-                .padding(DesignTokens.Spacing.lg)
-                .background(Color.inputBackgroundSoft)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-                .overlay(
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                        .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: 1)
-                )
-                .accessibilityLabel("Nom de la ligne budgétaire")
-        }
+        FormTextField(
+            placeholder: "Nom de la ligne",
+            text: $name,
+            label: "Description",
+            accessibilityLabel: "Nom de la ligne budgétaire"
+        )
     }
 
     // MARK: - Recurrence Selector
 
     private var recurrenceSelector: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Récurrence")
-                .font(PulpeTypography.inputLabel)
-                .foregroundStyle(Color.pulpeTextTertiary)
-
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                ForEach(TransactionRecurrence.allCases, id: \.self) { type in
-                    Button {
-                        withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
-                            recurrence = type
-                        }
-                    } label: {
-                        Text(type.label)
-                            .font(PulpeTypography.buttonSecondary)
-                            .padding(.horizontal, DesignTokens.Spacing.md)
-                            .padding(.vertical, DesignTokens.Spacing.sm + 2)
-                            .frame(maxWidth: .infinity)
-                            .background(recurrence == type ? Color.pulpePrimary : Color.surfaceContainer)
-                            .foregroundStyle(recurrence == type ? Color.textOnPrimary : Color.textPrimary)
-                            .clipShape(Capsule())
-                            .contentShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+        CapsulePicker(selection: $recurrence, title: "Récurrence") { type in
+            Text(type.label)
         }
     }
 

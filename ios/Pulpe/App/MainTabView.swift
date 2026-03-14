@@ -151,6 +151,7 @@ struct MainTabView: View {
                         .foregroundStyle(isSelected ? Color.pulpePrimary : .primary)
                         .frame(maxWidth: .infinity)
                     }
+                    .plainPressedButtonStyle()
                 }
             }
             .frame(maxWidth: .infinity)
@@ -168,6 +169,7 @@ struct MainTabView: View {
                         .foregroundStyle(Color.pulpePrimary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+                .plainPressedButtonStyle()
                 .frame(width: tabBarHeight, height: tabBarHeight)
                 .contentShape(Circle())
                 .background(.ultraThinMaterial)

@@ -45,6 +45,7 @@ struct OnboardingNavigationButtons: View {
                     }
                     .foregroundStyle(Color.textSecondaryOnboarding)
                 }
+                .textLinkButtonStyle()
                 .padding(.top, DesignTokens.Spacing.xs)
             }
         }

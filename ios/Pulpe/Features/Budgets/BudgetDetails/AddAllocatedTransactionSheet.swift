@@ -15,6 +15,7 @@ struct AddAllocatedTransactionSheet: View {
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
     @State private var amountText = ""
+    @State private var submitSuccessTrigger = false
 
     private let transactionService = TransactionService.shared
 
@@ -22,6 +23,17 @@ struct AddAllocatedTransactionSheet: View {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
         (amount ?? 0) > 0 &&
         !isLoading
+    }
+
+    private var hasStartedFilling: Bool {
+        (amount ?? 0) > 0 || !name.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private var validationHint: String? {
+        guard !canSubmit, !isLoading, hasStartedFilling else { return nil }
+        if (amount ?? 0) <= 0 { return "Ajoute un montant" }
+        if name.trimmingCharacters(in: .whitespaces).isEmpty { return "Ajoute une description" }
+        return nil
     }
 
     var body: some View {
@@ -50,52 +62,46 @@ struct AddAllocatedTransactionSheet: View {
 
             addButton
         }
+        .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
 
     // MARK: - Description
 
     private var descriptionField: some View {
-        TextField(budgetLine.kind.descriptionPlaceholder, text: $name)
-            .font(PulpeTypography.bodyLarge)
-            .padding(DesignTokens.Spacing.lg)
-            .background(Color.inputBackgroundSoft)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+        FormTextField(
+            placeholder: budgetLine.kind.descriptionPlaceholder,
+            text: $name,
+            label: "Description",
+            accessibilityLabel: "Description de la transaction"
+        )
     }
 
     // MARK: - Date Selector
 
     private var dateSelector: some View {
-        HStack {
-            Label("Date", systemImage: "calendar")
-                .font(PulpeTypography.bodyLarge)
-                .foregroundStyle(Color.textPrimary)
-
-            Spacer()
-
-            DatePicker(
-                "",
-                selection: $transactionDate,
-                displayedComponents: .date
-            )
-            .labelsHidden()
-            .datePickerStyle(.compact)
-            .accessibilityLabel("Date de la transaction")
-        }
-        .padding(DesignTokens.Spacing.lg)
-        .background(Color.inputBackgroundSoft)
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+        TransactionDateSelector(date: $transactionDate)
     }
 
     // MARK: - Add Button
 
     private var addButton: some View {
-        Button {
-            Task { await addTransaction() }
-        } label: {
-            Text("Ajouter")
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            Button {
+                Task { await addTransaction() }
+            } label: {
+                Text("Ajouter")
+            }
+            .disabled(!canSubmit)
+            .primaryButtonStyle(isEnabled: canSubmit)
+
+            if let hint = validationHint {
+                Text(hint)
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.onSurfaceVariant)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
-        .disabled(!canSubmit)
-        .primaryButtonStyle(isEnabled: canSubmit)
+        .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: validationHint)
     }
 
     // MARK: - Logic
@@ -119,6 +125,7 @@ struct AddAllocatedTransactionSheet: View {
 
         do {
             let transaction = try await transactionService.createTransaction(data)
+            submitSuccessTrigger.toggle()
             onAdd(transaction)
             toastManager.show("Transaction ajoutée")
             dismiss()

@@ -70,12 +70,20 @@ struct SecuritySettingsView: View {
 
                     Spacer(minLength: 0)
 
-                    Button("Supprimer") {
+                    Button {
                         showDeleteConfirmation = true
+                    } label: {
+                        Text("Supprimer")
+                            .font(PulpeTypography.buttonSecondary)
+                            .foregroundStyle(Color.textOnPrimary)
+                            .padding(.horizontal, DesignTokens.Spacing.lg)
+                            .padding(.vertical, DesignTokens.Spacing.sm)
+                            .background(Color.destructivePrimary)
+                            .clipShape(Capsule())
                     }
-                    .buttonStyle(.borderedProminent)
-                    .buttonBorderShape(.capsule)
-                    .tint(.destructivePrimary)
+                    .frame(minHeight: DesignTokens.TapTarget.minimum)
+                    .contentShape(Capsule())
+                    .plainPressedButtonStyle()
                     .accessibilityLabel("Supprimer le compte")
                     .accessibilityHint("Demande la suppression définitive de ton compte Pulpe")
                 }

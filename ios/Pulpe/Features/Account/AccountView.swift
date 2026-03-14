@@ -13,8 +13,9 @@ struct AccountView: View {
                 personalInfoSection
                 appSettingsSection
                 supportSection
+                legalSection
                 logoutSection
-                legalFooterSection
+                versionFooterSection
             }
             .alert("Déconnexion", isPresented: $showLogoutConfirmation) {
                 Button("Annuler", role: .cancel) { }
@@ -101,32 +102,36 @@ extension AccountView {
                 Text("Déconnexion")
                     .foregroundStyle(Color.errorPrimary)
             }
-            .buttonStyle(.plain)
+            .plainPressedButtonStyle()
         }
     }
 
-    private static let legalText: AttributedString = {
-        (try? AttributedString(
-            markdown: "Les [Conditions générales](\(AppURLs.terms)) et " +
-                "l'[Avis de confidentialité](\(AppURLs.privacy)) de Pulpe s'appliquent."
-        )) ?? AttributedString(
-            "Les Conditions générales et l'Avis de confidentialité de Pulpe s'appliquent."
-        )
-    }()
+    private var legalSection: some View {
+        Section {
+            iconChevronLink(
+                icon: "doc.text",
+                title: "Conditions générales",
+                subtitle: "Conditions d'utilisation de Pulpe",
+                url: AppURLs.terms
+            )
 
-    private var legalFooterSection: some View {
+            iconChevronLink(
+                icon: "hand.raised",
+                title: "Avis de confidentialité",
+                subtitle: "Protection de vos données",
+                url: AppURLs.privacy
+            )
+        } header: {
+            Text("LÉGAL")
+        }
+    }
+
+    private var versionFooterSection: some View {
         Section {
             VStack(spacing: DesignTokens.Spacing.sm) {
-                Text(Self.legalText)
-                .font(PulpeTypography.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .tint(Color.pulpePrimary)
-
                 Text("Version \(AppConfiguration.appVersion) - \(AppConfiguration.buildNumber)")
                     .font(PulpeTypography.caption)
                     .foregroundStyle(.tertiary)
-                    .padding(.top, DesignTokens.Spacing.xs)
                     .onLongPressGesture(minimumDuration: 5) {
                         debugToggleTrigger.toggle()
                         withAnimation(.easeInOut(duration: DesignTokens.Animation.normal)) {
@@ -220,7 +225,7 @@ extension AccountView {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Image(systemName: "chevron.right")
+                Image(systemName: "arrow.up.right")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }

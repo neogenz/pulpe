@@ -58,7 +58,8 @@ private struct QuickActionButton: View {
             .background(Color.surfaceContainer)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
         }
-        .buttonStyle(.plain)
+        .plainPressedButtonStyle()
+        .contentShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
         .accessibilityLabel(title)
     }
 }

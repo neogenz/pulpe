@@ -179,6 +179,7 @@ extension LoginView {
             }
             .font(PulpeTypography.labelMedium)
             .foregroundStyle(Color.pulpePrimary)
+            .textLinkButtonStyle()
             .accessibilityIdentifier("forgotPasswordButton")
         }
     }
@@ -248,6 +249,7 @@ extension LoginView {
                     .font(PulpeTypography.subheadline.weight(.semibold))
                     .foregroundStyle(Color.pulpePrimary)
             }
+            .textLinkButtonStyle()
         }
         .padding(.top, DesignTokens.Spacing.md)
         .opacity(isAppeared ? 1 : 0)
