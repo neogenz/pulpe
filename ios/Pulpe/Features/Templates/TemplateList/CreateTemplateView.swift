@@ -229,11 +229,7 @@ struct AddTemplateLineSheet: View {
             Text("Description")
                 .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.onSurfaceVariant)
-            TextField("Nom de la ligne", text: $name)
-                .font(PulpeTypography.bodyLarge)
-                .padding(DesignTokens.Spacing.lg)
-                .background(Color.inputBackgroundSoft)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+            FormTextField(placeholder: "Nom de la ligne", text: $name)
                 .overlay(
                     RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
                         .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: 1)
