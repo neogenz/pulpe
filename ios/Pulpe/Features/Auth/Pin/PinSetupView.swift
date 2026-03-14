@@ -99,6 +99,7 @@ struct PinSetupView: View {
                     .font(PulpeTypography.footnote)
                     .foregroundStyle(Color.textSecondaryOnboarding)
             }
+            .textLinkButtonStyle()
         }
         .padding(.top, DesignTokens.Spacing.md)
     }

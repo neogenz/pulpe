@@ -26,6 +26,7 @@ struct AlertsSection: View {
                         Text("Voir le budget")
                             .font(PulpeTypography.buttonSecondary)
                     }
+                    .textLinkButtonStyle()
                     .padding(.top, DesignTokens.Spacing.xs)
                 }
                 .padding(.vertical, DesignTokens.Spacing.xs)

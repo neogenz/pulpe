@@ -31,8 +31,9 @@ struct ErrorView: View {
                         Text("Réessayer")
                     }
                 }
-                .buttonStyle(.borderedProminent)
+                .primaryButtonStyle(isEnabled: !isRetrying)
                 .disabled(isRetrying)
+                .padding(.horizontal, DesignTokens.Spacing.sectionGap)
             }
         }
     }
@@ -106,7 +107,8 @@ struct EmptyStateView: View {
         } actions: {
             if let action, let actionTitle {
                 Button(actionTitle, action: action)
-                    .buttonStyle(.borderedProminent)
+                    .primaryButtonStyle()
+                    .padding(.horizontal, DesignTokens.Spacing.sectionGap)
             }
         }
     }

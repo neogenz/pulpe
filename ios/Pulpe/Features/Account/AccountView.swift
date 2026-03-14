@@ -101,7 +101,7 @@ extension AccountView {
                 Text("Déconnexion")
                     .foregroundStyle(Color.errorPrimary)
             }
-            .buttonStyle(.plain)
+            .plainPressedButtonStyle()
         }
     }
 

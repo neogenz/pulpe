@@ -42,7 +42,7 @@ struct MaintenanceView: View {
                     Label("Réessayer", systemImage: "arrow.clockwise")
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .primaryButtonStyle(isEnabled: !isChecking)
             .disabled(isChecking)
         }
         .padding()

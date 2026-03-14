@@ -169,7 +169,7 @@ struct TemplateLineInputRow: View {
                 Image(systemName: "trash")
                     .foregroundStyle(Color.errorPrimary)
             }
-            .buttonStyle(.plain)
+            .iconButtonStyle()
         }
     }
 }
