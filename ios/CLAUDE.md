@@ -31,6 +31,7 @@
 ```bash
 # After git pull / clone
 xcodegen generate
+xcode-build-server config -scheme PulpeLocal -project Pulpe.xcodeproj  # SourceKit LSP (once)
 
 # Build (pick scheme)
 xcodebuild build -scheme PulpeLocal   -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' CODE_SIGNING_ALLOWED=NO
