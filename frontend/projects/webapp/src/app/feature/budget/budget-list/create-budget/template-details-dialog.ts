@@ -11,7 +11,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatDividerModule } from '@angular/material/divider';
-import { type BudgetTemplate, type TemplateLine } from 'pulpe-shared';
+import {
+  type BudgetTemplate,
+  type TemplateLine,
+  BudgetFormulas,
+} from 'pulpe-shared';
 
 export interface TemplateDetailsDialogData {
   template: BudgetTemplate;
@@ -148,21 +152,15 @@ export class TemplateDetailsDialog {
 
   readonly templateLines = computed(() => this.data.templateLines);
 
-  readonly totalIncome = computed(() => {
-    const lines = this.templateLines();
-    return lines
-      .filter((line) => line.kind === 'income')
-      .reduce((sum, line) => sum + line.amount, 0);
-  });
+  readonly totalIncome = computed(() =>
+    BudgetFormulas.calculateTotalIncome(this.templateLines(), []),
+  );
 
-  readonly totalExpenses = computed(() => {
-    const lines = this.templateLines();
-    return lines
-      .filter((line) => line.kind === 'expense' || line.kind === 'saving')
-      .reduce((sum, line) => sum + line.amount, 0);
-  });
+  readonly totalExpenses = computed(() =>
+    BudgetFormulas.calculateTotalExpenses(this.templateLines(), []),
+  );
 
-  readonly netBalance = computed(() => {
-    return this.totalIncome() - this.totalExpenses();
-  });
+  readonly netBalance = computed(
+    () => this.totalIncome() - this.totalExpenses(),
+  );
 }
