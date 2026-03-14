@@ -279,11 +279,10 @@ export class TemplateStore {
   #calculateTotals(lines: TemplateLine[]): TemplateTotals {
     const income = BudgetFormulas.calculateTotalIncome(lines, []);
     const totalExpenses = BudgetFormulas.calculateTotalExpenses(lines, []);
-    const savings = BudgetFormulas.calculateTotalSavings(lines, []);
     return {
       income,
-      expenses: totalExpenses - savings,
-      savings,
+      expenses: BudgetFormulas.calculateTotalExpenseOnly(lines, []),
+      savings: BudgetFormulas.calculateTotalSavings(lines, []),
       netBalance: income - totalExpenses,
     };
   }
